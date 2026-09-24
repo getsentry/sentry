@@ -1966,6 +1966,18 @@ SENTRY_TOKEN_ONLY_SCOPES = frozenset(
     ]
 )
 
+# Scopes that endpoints already accept, but that roles only grant once
+# `organizations:granular-permission-scopes` is enabled. Until that rollout finishes
+# they are not universally grantable, so they stay out of the public API schema and
+# out of the Seer agent token flow. Drop an entry when its rollout completes.
+GRANULAR_SCOPES = frozenset(
+    [
+        "dashboard:read",
+        "dashboard:write",
+        "dashboard:delete",
+    ]
+)
+
 SENTRY_SCOPE_SETS = (
     (
         ("org:admin", "Read, write, and admin access to organization details."),
@@ -2035,6 +2047,174 @@ SENTRY_DEFAULT_ROLE = "member"
 # that is earlier in the chain cannot manage the settings of a member later
 # in the chain (they still require the appropriate scope).
 SENTRY_ROLES: tuple[RoleDict, ...] = (
+    {
+        "id": "member",
+        "name": "Member",
+        "desc": "Members can view and act on events, as well as view most other data within the organization. By default, they can invite members to the organization unless the organization has disabled this feature.",
+        "scopes": {
+            "event:read",
+            "event:write",
+            "event:admin",
+            "project:releases",
+            "project:read",
+            "org:read",
+            "member:invite",
+            "member:read",
+            "team:read",
+            "alerts:read",
+            "alerts:write",
+        },
+    },
+    {
+        "id": "admin",
+        "name": "Admin",
+        "desc": (
+            """
+            Admin privileges on any teams of which they're a member. They can
+            create new teams and projects, as well as remove teams and projects
+            on which they already hold membership (or all teams, if open
+            membership is enabled). Additionally, they can manage memberships of
+            teams that they are members of. By default, they can invite members
+            to the organization unless the organization has disabled this feature.
+            """
+        ),
+        "scopes": {
+            "event:read",
+            "event:write",
+            "event:admin",
+            "org:read",
+            "member:read",
+            "member:invite",
+            "project:read",
+            "project:write",
+            "project:admin",
+            "project:releases",
+            "team:read",
+            "team:write",
+            "team:admin",
+            "org:integrations",
+            "alerts:read",
+            "alerts:write",
+        },
+        "is_retired": True,
+    },
+    {
+        "id": "manager",
+        "name": "Manager",
+        "desc": "Gains admin access on all teams as well as the ability to add and remove members.",
+        "scopes": {
+            "event:read",
+            "event:write",
+            "event:admin",
+            "member:invite",
+            "member:read",
+            "member:write",
+            "member:admin",
+            "project:read",
+            "project:write",
+            "project:admin",
+            "project:releases",
+            "team:read",
+            "team:write",
+            "team:admin",
+            "org:read",
+            "org:write",
+            "org:integrations",
+            "alerts:read",
+            "alerts:write",
+        },
+        "is_global": True,
+    },
+    {
+        "id": "owner",
+        "name": "Owner",
+        "desc": (
+            """
+            Unrestricted access to the organization, its data, and its settings.
+            Can add, modify, and delete projects and members, as well as make
+            billing and plan changes.
+            """
+        ),
+        "scopes": {
+            "org:read",
+            "org:write",
+            "org:admin",
+            "org:integrations",
+            "member:invite",
+            "member:read",
+            "member:write",
+            "member:admin",
+            "team:read",
+            "team:write",
+            "team:admin",
+            "project:read",
+            "project:write",
+            "project:admin",
+            "project:releases",
+            "event:read",
+            "event:write",
+            "event:admin",
+            "alerts:read",
+            "alerts:write",
+        },
+        "is_global": True,
+    },
+)
+
+SENTRY_TEAM_ROLES: tuple[RoleDict, ...] = (
+    {
+        "id": "contributor",
+        "name": "Contributor",
+        "desc": "Contributors can view and act on events, as well as view most other data within the team's projects.",
+        "scopes": {
+            "event:read",
+            "event:write",
+            # "event:admin",  # Scope granted/withdrawn by "sentry:events_member_admin" to org-level role
+            "project:releases",
+            "project:read",
+            "org:read",
+            "member:read",
+            "team:read",
+            "alerts:read",
+            # "alerts:write",  # Scope granted/withdrawn by "sentry:alerts_member_write" to org-level role
+        },
+    },
+    {
+        "id": "admin",
+        "name": "Team Admin",
+        "desc": (
+            # TODO: Editing pass
+            """
+            Admin privileges on the team. They can create and remove projects,
+            and can manage the team's memberships.
+            """
+        ),
+        "scopes": {
+            "event:read",
+            "event:write",
+            "event:admin",
+            "org:read",
+            "member:read",
+            "project:read",
+            "project:write",
+            "project:admin",
+            "project:releases",
+            "team:read",
+            "team:write",
+            "team:admin",
+            "org:integrations",
+            "alerts:read",
+            "alerts:write",
+        },
+        "is_minimum_role_for": "admin",
+    },
+)
+
+# Copy of SENTRY_ROLES that also grants granular scopes (e.g. dashboard:*). Used in
+# place of SENTRY_ROLES when `organizations:granular-permission-scopes` is enabled.
+# Keep the two in sync until the flag is removed; the goal is to eventually delete
+# SENTRY_ROLES and rename this to take its place.
+SENTRY_GRANULAR_ROLES: tuple[RoleDict, ...] = (
     {
         "id": "member",
         "name": "Member",
@@ -2158,55 +2338,6 @@ SENTRY_ROLES: tuple[RoleDict, ...] = (
             "dashboard:delete",
         },
         "is_global": True,
-    },
-)
-
-SENTRY_TEAM_ROLES: tuple[RoleDict, ...] = (
-    {
-        "id": "contributor",
-        "name": "Contributor",
-        "desc": "Contributors can view and act on events, as well as view most other data within the team's projects.",
-        "scopes": {
-            "event:read",
-            "event:write",
-            # "event:admin",  # Scope granted/withdrawn by "sentry:events_member_admin" to org-level role
-            "project:releases",
-            "project:read",
-            "org:read",
-            "member:read",
-            "team:read",
-            "alerts:read",
-            # "alerts:write",  # Scope granted/withdrawn by "sentry:alerts_member_write" to org-level role
-        },
-    },
-    {
-        "id": "admin",
-        "name": "Team Admin",
-        "desc": (
-            # TODO: Editing pass
-            """
-            Admin privileges on the team. They can create and remove projects,
-            and can manage the team's memberships.
-            """
-        ),
-        "scopes": {
-            "event:read",
-            "event:write",
-            "event:admin",
-            "org:read",
-            "member:read",
-            "project:read",
-            "project:write",
-            "project:admin",
-            "project:releases",
-            "team:read",
-            "team:write",
-            "team:admin",
-            "org:integrations",
-            "alerts:read",
-            "alerts:write",
-        },
-        "is_minimum_role_for": "admin",
     },
 )
 

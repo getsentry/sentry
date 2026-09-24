@@ -1342,6 +1342,7 @@ class DashboardDetail extends Component<Props, State> {
 
                   <WidgetBuilderV2
                     isOpen={this.state.isWidgetBuilderOpen}
+                    widgetInterval={this.props.widgetInterval}
                     openWidgetTemplates={this.state.openWidgetTemplates ?? false}
                     setOpenWidgetTemplates={this.handleChangeWidgetBuilderView}
                     onClose={this.handleCloseWidgetBuilder}

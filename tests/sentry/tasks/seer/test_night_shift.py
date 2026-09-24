@@ -629,6 +629,26 @@ class TestRunNightShiftForOrg(NightShiftFixtures, TestCase, SnubaTestCase):
         assert SeerWorkflowRun.objects.filter(organization=org).count() == 1
         assert mock_execute.call_count == 2
 
+    def test_completed_schedule_id_returns_same_run_without_quota(self) -> None:
+        org = self.create_organization()
+        schedule_id = "2024-07-22T22:00"
+
+        with (
+            patch(
+                "sentry.tasks.seer.night_shift.cron.quotas.backend.check_seer_quota",
+                side_effect=[True, False],
+            ),
+            patch("sentry.tasks.seer.night_shift.cron.run_night_shift_execution") as mock_execute,
+        ):
+            first_run_id = run_night_shift_for_org(org.id, schedule_id=schedule_id)
+            assert first_run_id is not None
+            _complete_run(SeerWorkflowRun.objects.get(id=first_run_id))
+            second_run_id = run_night_shift_for_org(org.id, schedule_id=schedule_id)
+
+        assert second_run_id == first_run_id
+        assert SeerWorkflowRun.objects.filter(organization=org).count() == 1
+        mock_execute.assert_called_once()
+
     def test_completed_run_ignores_stale_extras_update(self) -> None:
         org = self.create_organization()
 
@@ -767,6 +787,28 @@ class TestRunNightShiftForOrg(NightShiftFixtures, TestCase, SnubaTestCase):
 
         assert run_id is not None
         assert SeerWorkflowRun.objects.filter(id=run_id, organization=org).exists()
+
+    def test_no_seer_quota_does_not_resume_incomplete_run_without_executions(self) -> None:
+        org = self.create_organization()
+        schedule_id = "2024-07-22T22:00"
+
+        with (
+            patch(
+                "sentry.tasks.seer.night_shift.cron.quotas.backend.check_seer_quota",
+                side_effect=[True, False],
+            ),
+            patch("sentry.tasks.seer.night_shift.cron.run_night_shift_execution") as mock_execution,
+        ):
+            first_run_id = run_night_shift_for_org(org.id, schedule_id=schedule_id)
+            second_run_id = run_night_shift_for_org(org.id, schedule_id=schedule_id)
+
+        assert first_run_id is not None
+        assert second_run_id is None
+        run = SeerWorkflowRun.objects.get(id=first_run_id)
+        assert run.date_completed is None
+        assert not run.executions.exists()
+        assert SeerWorkflowRun.objects.filter(organization=org).count() == 1
+        mock_execution.assert_called_once()
 
     def test_free_cohort_skips_quota_check(self) -> None:
         org = self.create_organization()
@@ -1321,6 +1363,26 @@ class TestRunNightShiftForOrgManualPath(NightShiftFixtures, TestCase):
             "extra_triage_instructions": "",
         }
         assert kwargs["project_ids"] == [project.id]
+
+    def test_enqueues_execution_when_requested(self) -> None:
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+
+        with patch("sentry.tasks.seer.night_shift.cron.run_night_shift_execution") as mock_execute:
+            run_id = run_night_shift_for_org(
+                org.id,
+                options={"source": "manual"},
+                project_ids=[project.id],
+                execute_in_task=True,
+            )
+
+        assert run_id is not None
+        run = SeerWorkflowRun.objects.get(id=run_id)
+        mock_execute.assert_not_called()
+        mock_execute.apply_async.assert_called_once_with(
+            args=[run_id],
+            kwargs={"options": run.extras["options"], "project_ids": [project.id]},
+        )
 
     def test_no_seer_quota_records_failed_run(self) -> None:
         org = self.create_organization()
