@@ -202,9 +202,7 @@ describe('WidgetBuilderGroupBySelector', () => {
     const addGroupButton = await screen.findByRole('button', {name: 'Add Group'});
     expect(addGroupButton).toBeDisabled();
 
-    // The QueryField component renders a Select component with a disabled input
-    const selectInput = await screen.findByRole('textbox');
-    expect(selectInput).toBeDisabled();
+    expect(await screen.findByRole('button', {name: 'Select group'})).toBeDisabled();
   });
 
   it('enables group by selector when transaction widget type but no discover-saved-queries-deprecation feature flag', async () => {
@@ -234,8 +232,7 @@ describe('WidgetBuilderGroupBySelector', () => {
     const addGroupButton = await screen.findByRole('button', {name: 'Add Group'});
     expect(addGroupButton).toBeEnabled();
 
-    const selectInput = await screen.findByRole('textbox');
-    expect(selectInput).toBeEnabled();
+    expect(await screen.findByRole('button', {name: 'Select group'})).toBeEnabled();
   });
 
   it('enables group by selector when discover-saved-queries-deprecation feature flag but not transaction widget type', async () => {
@@ -265,8 +262,7 @@ describe('WidgetBuilderGroupBySelector', () => {
     const addGroupButton = await screen.findByRole('button', {name: 'Add Group'});
     expect(addGroupButton).toBeEnabled();
 
-    const selectInput = await screen.findByRole('textbox');
-    expect(selectInput).toBeEnabled();
+    expect(await screen.findByRole('button', {name: 'Select group'})).toBeEnabled();
   });
 
   it('hides group by fields that are hidden in the trace metrics dataset', async () => {
