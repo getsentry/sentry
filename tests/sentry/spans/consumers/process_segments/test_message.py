@@ -7,6 +7,7 @@ import pytest
 from django.utils import timezone
 
 from sentry import nodestore
+from sentry.constants import MAX_TAG_VALUE_LENGTH
 from sentry.issue_detection.detectors.n_plus_one_db_span_detector import NPlusOneDBSpanDetector
 from sentry.issue_detection.detectors.span_first.run_detectors import run_span_first_detectors
 from sentry.issue_detection.detectors.span_first.span_first_utils import (
@@ -32,12 +33,14 @@ from sentry.spans.consumers.process_segments.message import (
     EVIDENCE_SPAN_DATA_KEYS,
     MAX_EVIDENCE_LIST_ITEMS,
     MAX_EVIDENCE_VALUE_LENGTH,
+    MAX_OCCURRENCE_TAGS_BYTES,
     MAX_SPAN_DATA_VALUE_LENGTH,
     MAX_SPAN_DESCRIPTION_LENGTH,
     OVERALL_MAX_EVIDENCE_SPANS,
     _bump_release_last_seen,
     _get_evidence_data_for_occurrence,
     _get_evidence_span_for_occurrence,
+    _trim_event_data_for_occurrence,
     _truncate_value_for_occurrence,
     _verify_compatibility,
     process_segment,
@@ -50,6 +53,7 @@ from sentry.testutils.helpers.options import override_options
 from sentry.testutils.issue_detection.experiments import exclude_experimental_detectors
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
+from sentry.utils.safe import get_json_bytes
 from tests.sentry.spans.consumers.process import build_mock_span
 
 DETECTORS_ENABLED_OPTION = "spans.process-segments.detect-performance-problems.detectors-enabled"
@@ -654,6 +658,46 @@ def test_truncate_value_for_occurrence_recurses_and_leaves_scalars_alone() -> No
     assert bounded["num_repeating_spans"] == "500"
     assert bounded["pattern_size"] == 3
     assert bounded["detector_id"] is None
+
+
+def test_trim_oversize_event_data() -> None:
+    event_data = {
+        "tags": [[f"dog_{i}", "very good"] for i in range(3000)],
+    }
+
+    original_tag_bytes = get_json_bytes(event_data["tags"])
+
+    _trim_event_data_for_occurrence(event_data)
+
+    trimmed_tag_bytes = get_json_bytes(event_data["tags"])
+
+    assert original_tag_bytes > MAX_OCCURRENCE_TAGS_BYTES
+
+    assert trimmed_tag_bytes <= MAX_OCCURRENCE_TAGS_BYTES
+
+
+def test_trim_event_data_caps_tag_values_by_character_count() -> None:
+    # Tag values are capped the way `set_tag` caps them, so that a value which survives here is
+    # identical to what the transaction pipeline would have stored. Measuring bytes instead would
+    # cut a non-ASCII value roughly six times shorter than an ASCII one.
+    event_data = {"tags": [["ascii", "x" * 5000], ["cyrillic", "ж" * 5000]]}
+
+    _trim_event_data_for_occurrence(event_data)
+
+    assert [len(value) for _, value in event_data["tags"]] == [
+        MAX_TAG_VALUE_LENGTH,
+        MAX_TAG_VALUE_LENGTH,
+    ]
+
+
+def test_trim_event_data_small_values() -> None:
+    event_data = {
+        "tags": [["browser.name", "Chrome"], ["dog.name", "maisey"]],
+    }
+
+    _trim_event_data_for_occurrence(event_data)
+
+    assert event_data["tags"] == [["browser.name", "Chrome"], ["dog.name", "maisey"]]
 
 
 def test_evidence_stays_under_the_producer_message_limit() -> None:
