@@ -40,6 +40,7 @@ from sentry.constants import ObjectStatus
 from sentry.db.models.query import in_iexact
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.monitors.models import (
     DEFAULT_STATUS_ORDER,
     MONITOR_ENVIRONMENT_ORDERING,
@@ -88,9 +89,7 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
     owner = ApiOwner.CRONS
     permission_classes = (OrganizationAlertRulePermission,)
 
-    def check_can_create_monitor(
-        self, request: AuthenticatedHttpRequest, organization: Organization
-    ) -> None:
+    def check_can_create_monitor(self, request: AuthenticatedHttpRequest, project: Project) -> None:
         if (
             request.access.has_scope("alerts:write")
             or request.access.has_scope("org:admin")
@@ -98,12 +97,7 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
         ):
             return
 
-        # Team admins need alerts:write on every selected project. An empty
-        # project set must not grant permission through all([]).
-        projects = self.get_projects(request, organization)
-        if not projects or not all(
-            request.access.has_project_scope(project, "alerts:write") for project in projects
-        ):
+        if not request.access.has_project_scope(project, "alerts:write"):
             raise PermissionDenied
 
     @extend_schema(
@@ -307,14 +301,14 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
         """
         Create a new monitor.
         """
-        self.check_can_create_monitor(request, organization)
-
         validator = MonitorValidator(
             data=request.data,
             context={"organization": organization, "access": request.access, "request": request},
         )
         if not validator.is_valid():
             return self.respond(validator.errors, status=400)
+
+        self.check_can_create_monitor(request, validator.validated_data["project"])
 
         monitor = validator.save()
         return self.respond(serialize(monitor, request.user), status=201)
