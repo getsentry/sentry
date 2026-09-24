@@ -10,6 +10,7 @@ import {
   type CategorySection,
   formatDroppedShare,
   type ReasonRow,
+  reasonTitle,
 } from 'sentry/components/droppedData/utils';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconChevron} from 'sentry/icons';
@@ -98,7 +99,7 @@ function ReasonTable({
         >
           <Stack gap="xs" padding="md xl">
             <Text size="md" bold>
-              {row.reason}
+              {reasonTitle(row.reason)}
             </Text>
             <Flex gap="md">
               <MetaItem>

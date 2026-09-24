@@ -1,6 +1,11 @@
 import {AnnotationFixture} from 'sentry-fixture/annotation';
 
-import {annotationsToCategorySections, groupIntoBuckets, opacityForRatio} from './utils';
+import {
+  annotationsToCategorySections,
+  groupIntoBuckets,
+  opacityForRatio,
+  reasonTitle,
+} from './utils';
 
 describe('groupIntoBuckets', () => {
   it('returns an empty array for no annotations', () => {
@@ -293,5 +298,16 @@ describe('annotationsToCategorySections', () => {
     );
 
     expect(sections[0]!.reasons[0]!.lastSeen).toBe(now);
+  });
+});
+
+describe('reasonTitle', () => {
+  it('maps a known reason code to its human title', () => {
+    expect(reasonTitle('sample_rate')).toBe('Dropped by sample rate');
+    expect(reasonTitle('too_large:span')).toBe('Span payload too large');
+  });
+
+  it('falls back to the raw code for an unknown reason', () => {
+    expect(reasonTitle('some_new_reason')).toBe('some_new_reason');
   });
 });

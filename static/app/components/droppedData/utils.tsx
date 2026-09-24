@@ -19,6 +19,35 @@ export function outcomeLabel(outcome: string): string {
   return OUTCOME_LABELS[outcome as Outcome] ?? outcome;
 }
 
+const REASON_TITLES: Record<string, string> = {
+  backpressure: t('SDK backpressure drop'),
+  before_send: t('Dropped by before send'),
+  buffer_overflow: t('SDK buffer overflow'),
+  network_error: t('Unretried network error'),
+  queue_overflow: t('SDK queue overflow'),
+  ratelimit_backoff: t('SDK rate-limit backoff'),
+  sample_rate: t('Dropped by sample rate'),
+  send_error: t('SDK send failure'),
+  'filtered-transaction': t('Filtered transaction'),
+  'legacy-browsers': t('Legacy browser filter'),
+  'web-crawlers': t('Web crawler filter'),
+  internal: t('Sentry processing error'),
+  invalid_dsc: t('Invalid trace context'),
+  invalid_json: t('Malformed JSON payload'),
+  invalid_transaction: t('Invalid transaction data'),
+  missing_dsc: t('Missing trace context'),
+  'too_large:event': t('Event payload too large'),
+  'too_large:profile': t('Profile payload too large'),
+  'too_large:span': t('Span payload too large'),
+  'too_large:transaction': t('Transaction payload too large'),
+  generic: t('Generic rate limit'),
+  project_abuse_limit: t('Project abuse limit'),
+};
+
+export function reasonTitle(reason: string): string {
+  return REASON_TITLES[reason] ?? reason;
+}
+
 // Shares run tiny (a reason can be a sliver of all traffic), so floor the
 // display at 0.01% rather than rounding to 0%. Matches the drop tooltip.
 const SHARE_MIN_VALUE = 0.0001;
