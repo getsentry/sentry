@@ -1,4 +1,4 @@
-import type {MouseEvent, ReactNode} from 'react';
+import {Fragment, type MouseEvent, type ReactNode} from 'react';
 import type {LocationDescriptor} from 'history';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
@@ -13,13 +13,13 @@ import {ClippedDetail} from './clippedDetail';
 import {ToolCallIndicator, type ToolCallStatus} from './toolCallIndicator';
 
 /**
- * A compact chip referencing an entity a tool call produced or acted on (e.g.
+ * An inline link referencing an entity a tool call produced or acted on (e.g.
  * `Trace: a3805648`). Renders as a real link when given `to`, an interactive
- * button when given `onClick`, or a non-interactive display chip otherwise.
+ * button when given `onClick`, or non-interactive text otherwise.
  */
 export interface ToolCallReference {
   /**
-   * The referenced identifier, emphasized in the chip (e.g. a trace or span id).
+   * The referenced identifier, emphasized in the link (e.g. a trace or span id).
    */
   value: string;
   /**
@@ -31,13 +31,13 @@ export interface ToolCallReference {
    */
   label?: string;
   /**
-   * Fires when the chip is activated. When omitted (and no `to` is set) the chip
-   * is still rendered but non-interactive. Receives the event so callers can stop
+   * Fires when the reference is activated. When omitted (and no `to` is set) the
+   * reference is still rendered but non-interactive. Receives the event so callers can stop
    * propagation or record analytics; pair it with `to` to track a navigation.
    */
   onClick?: (event: MouseEvent<HTMLElement>) => void;
   /**
-   * Navigation target. When set, the chip renders as a real link (anchor) so it
+   * Navigation target. When set, the reference renders as a real link (anchor) so it
    * supports middle/cmd-click and keyboard access, rather than an `onClick` button.
    */
   to?: LocationDescriptor;
@@ -80,7 +80,7 @@ interface ToolCallProps {
    */
   output?: ReactNode;
   /**
-   * A trailing chip shown inline with the title. Typically the entity the call
+   * A link flowing inline after the title text. Typically the entity the call
    * acted on — the call's result.
    */
   reference?: ToolCallReference;
@@ -106,26 +106,38 @@ function ChipContent({label, value}: {value: string; label?: string}) {
   );
 }
 
-function ReferenceChip({reference}: {reference: ToolCallReference}) {
+/**
+ * The reference, rendered as a `link`-variant button that flows inline after the
+ * title text. A trailing chip in its own non-shrinking column squeezed the title
+ * into a narrow, many-line column in tight containers; inline, the title keeps
+ * the full width and the link wraps with it as a single unit.
+ */
+function ReferenceLink({reference}: {reference: ToolCallReference}) {
   const {label, value, icon, onClick, to} = reference;
   // No explicit size: `Button`/`LinkButton` already scale their `icon` via
   // `IconDefaultsProvider`, and a hardcoded size here would fight that when the
-  // chip's button size ever changes.
+  // link's button size ever changes.
   const chipIcon = icon ?? <IconSpan />;
   const content = <ChipContent label={label} value={value} />;
 
   // A navigation target renders as a real anchor so middle/cmd-click and keyboard access work; an
-  // `onClick`-only chip stays a button; a chip with neither is a non-interactive display chip.
+  // `onClick`-only reference stays a button; one with neither is non-interactive.
   if (to) {
     return (
-      <LinkButton size="xs" icon={chipIcon} to={to} onClick={onClick}>
+      <LinkButton size="zero" variant="link" icon={chipIcon} to={to} onClick={onClick}>
         {content}
       </LinkButton>
     );
   }
 
   return (
-    <Button size="xs" icon={chipIcon} onClick={onClick} disabled={!onClick}>
+    <Button
+      size="zero"
+      variant="link"
+      icon={chipIcon}
+      onClick={onClick}
+      disabled={!onClick}
+    >
       {content}
     </Button>
   );
@@ -133,8 +145,8 @@ function ReferenceChip({reference}: {reference: ToolCallReference}) {
 
 /**
  * The hoisted failure marker. A failed call keeps its leading glyph but also
- * surfaces this danger chip in the trailing result slot, where a successful call
- * would show its `reference` — so the outcome is legible on the right rather than
+ * surfaces this danger chip in the trailing result slot, so the outcome is
+ * legible on the right rather than
  * only as a small glyph on the far left. The `label` is typically the HTTP status
  * code (e.g. `502`).
  */
@@ -215,8 +227,9 @@ function getStatusLabel(
  *
  * Unlike the collapsible `ThinkingBlock` it lives in, a tool call is not itself a
  * disclosure — its detail is always visible. The lifecycle glyph
- * (`ToolCallIndicator`) leads the title; an optional `reference` chip and, on
- * failure, a `failureLabel` chip (the HTTP status) trail it. `input`, `output`,
+ * (`ToolCallIndicator`) leads the title; an optional `reference` link follows the
+ * title text inline and, on failure, a `failureLabel` chip (the HTTP status)
+ * trails the row. `input`, `output`,
  * `notifications`, and `children` stack beneath the title, indented to align
  * under the headline.
  */
@@ -232,7 +245,6 @@ export function ToolCall({
 }: ToolCallProps) {
   const {t} = useTranslation();
   const isFailure = status === 'failure';
-  const hasTrailing = Boolean(reference) || isFailure;
   const hasDetail =
     Boolean(input) ||
     Boolean(output) ||
@@ -245,16 +257,19 @@ export function ToolCall({
         <Flex width={GLYPH_SLOT_WIDTH} justify="center" flexShrink={0}>
           <ToolCallIndicator status={status} aria-label={getStatusLabel(status, t)} />
         </Flex>
-        <Flex flex={1} minWidth={0} align="center" justify="between" gap="md" wrap="wrap">
-          <Flex flex="1 1 20ch" minWidth={0} maxWidth="50ch">
-            <Text size="sm" variant="secondary" monospace wordBreak="break-word">
-              {title}
-            </Text>
-          </Flex>
-          {hasTrailing ? (
-            <Flex align="center" gap="sm" flexShrink={0}>
-              {reference ? <ReferenceChip reference={reference} /> : null}
-              {isFailure ? <FailureChip label={failureLabel ?? t('Failed')} /> : null}
+        <Flex flex={1} minWidth={0} align="center" justify="between" gap="md">
+          <Text size="sm" variant="secondary" monospace wordBreak="break-word">
+            {title}
+            {reference ? (
+              <Fragment>
+                {' '}
+                <ReferenceLink reference={reference} />
+              </Fragment>
+            ) : null}
+          </Text>
+          {isFailure ? (
+            <Flex flexShrink={0}>
+              <FailureChip label={failureLabel ?? t('Failed')} />
             </Flex>
           ) : null}
         </Flex>
