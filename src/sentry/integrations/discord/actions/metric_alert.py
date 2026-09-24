@@ -1,9 +1,6 @@
 from __future__ import annotations
 
-import sentry_sdk
-
-from sentry import features
-from sentry.incidents.charts import build_metric_alert_chart
+from sentry.incidents.charts import build_metric_alert_notification_chart
 from sentry.incidents.typings.metric_detector import (
     AlertContext,
     MetricIssueContext,
@@ -11,6 +8,7 @@ from sentry.incidents.typings.metric_detector import (
     OpenPeriodContext,
 )
 from sentry.integrations.discord.client import DiscordClient
+from sentry.integrations.discord.message_builder.base.base import DiscordMessage
 from sentry.integrations.discord.message_builder.metric_alerts import (
     DiscordMetricAlertMessageBuilder,
 )
@@ -21,12 +19,31 @@ from sentry.integrations.messaging.metrics import (
     MessagingInteractionType,
 )
 from sentry.models.organization import Organization
+from sentry.notifications.platform.shadow.capture import record_legacy_render
+from sentry.notifications.platform.types import NotificationProviderKey
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.workflow_engine.endpoints.serializers.detector_serializer import (
     DetectorSerializerResponse,
 )
 
 from ..utils import logger
+
+
+def build_metric_alert_message(
+    organization: Organization,
+    alert_context: AlertContext,
+    metric_issue_context: MetricIssueContext,
+    open_period_context: OpenPeriodContext,
+    chart_url: str | None,
+    notification_uuid: str | None,
+) -> DiscordMessage:
+    return DiscordMetricAlertMessageBuilder(
+        alert_context=alert_context,
+        metric_issue_context=metric_issue_context,
+        organization=organization,
+        date_started=open_period_context.date_started,
+        chart_url=chart_url,
+    ).build(notification_uuid=notification_uuid)
 
 
 def send_incident_alert_notification(
@@ -38,19 +55,13 @@ def send_incident_alert_notification(
     detector_serialized_response: DetectorSerializerResponse | None = None,
     notification_uuid: str | None = None,
 ) -> bool:
-    chart_url = None
-    if features.has("organizations:metric-alert-chartcuterie", organization):
-        try:
-            chart_url = build_metric_alert_chart(
-                organization=organization,
-                snuba_query=metric_issue_context.snuba_query,
-                alert_context=alert_context,
-                open_period_context=open_period_context,
-                subscription=metric_issue_context.subscription,
-                detector_serialized_response=detector_serialized_response,
-            )
-        except Exception as e:
-            sentry_sdk.capture_exception(e)
+    chart_url = build_metric_alert_notification_chart(
+        organization=organization,
+        alert_context=alert_context,
+        metric_issue_context=metric_issue_context,
+        open_period_context=open_period_context,
+        detector_serialized_response=detector_serialized_response,
+    )
 
     channel = notification_context.target_identifier
 
@@ -62,13 +73,15 @@ def send_incident_alert_notification(
         )
         return False
 
-    message = DiscordMetricAlertMessageBuilder(
+    message = build_metric_alert_message(
+        organization=organization,
         alert_context=alert_context,
         metric_issue_context=metric_issue_context,
-        organization=organization,
-        date_started=open_period_context.date_started,
+        open_period_context=open_period_context,
         chart_url=chart_url,
-    ).build(notification_uuid=notification_uuid)
+        notification_uuid=notification_uuid,
+    )
+    record_legacy_render(NotificationProviderKey.DISCORD, message, chart_url=chart_url)
 
     client = DiscordClient()
     with MessagingInteractionEvent(

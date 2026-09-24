@@ -21,6 +21,7 @@ from sentry.integrations.repository.notification_action import (
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.integrations.slack.actions.form import SlackNotifyServiceForm
 from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
+from sentry.integrations.slack.message_builder.types import SlackBlock
 from sentry.integrations.slack.metrics import record_lifecycle_termination_level
 from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.spec import SlackMessagingSpec
@@ -29,8 +30,11 @@ from sentry.integrations.slack.utils.nudge import should_send_nudge_block
 from sentry.integrations.slack.utils.threads import NotificationActionThreadUtils
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import EventLifecycle
+from sentry.models.organization import Organization
 from sentry.models.rule import Rule
 from sentry.notifications.additional_attachment_manager import get_additional_attachment
+from sentry.notifications.platform.shadow.capture import record_legacy_render
+from sentry.notifications.platform.types import NotificationProviderKey
 from sentry.notifications.utils.open_period import open_period_start_for_group
 from sentry.rules.actions import IntegrationEventAction
 from sentry.rules.base import CallbackFuture
@@ -44,6 +48,37 @@ from sentry.utils import metrics
 from sentry.workflow_engine.models.action import Action
 
 _default_logger: Logger = getLogger(__name__)
+
+
+def build_issue_alert_blocks(
+    event: GroupEvent,
+    rules: Sequence[Rule],
+    tags: set[str],
+    notes: str,
+    integration: RpcIntegration,
+    organization: Organization,
+    notification_uuid: str | None = None,
+    send_nudge: bool = False,
+) -> SlackBlock:
+    additional_attachment = get_additional_attachment(integration, organization)
+    scopes = set(integration.metadata.get("scopes") or [])
+    blocks = SlackIssuesMessageBuilder(
+        group=event.group,
+        event=event,
+        tags=tags,
+        rules=list(rules),
+        notes=notes,
+        send_nudge=send_nudge,
+        # app_mentions:read is mandatory for every new Slack app installation, so its
+        # presence tells us the app is up to date.
+        has_mentions_read_scope=SlackScope.APP_MENTIONS_READ in scopes,
+    ).build(notification_uuid=notification_uuid)
+
+    if additional_attachment:
+        for block in additional_attachment:
+            blocks["blocks"].append(block)
+
+    return blocks
 
 
 class SlackNotifyServiceAction(IntegrationEventAction):
@@ -73,40 +108,6 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                 channel_id=channel_id, organization=self.project.organization
             )
         )
-
-    def _build_notification_blocks(
-        self,
-        event: GroupEvent,
-        rules: Sequence[Rule],
-        tags: set,
-        integration: RpcIntegration,
-        notification_uuid: str | None = None,
-        send_nudge: bool = False,
-    ) -> tuple[dict[str, Any], str | None]:
-        """Build the notification blocks and return the blocks and JSON representation."""
-        additional_attachment = get_additional_attachment(integration, self.project.organization)
-        scopes = set(integration.metadata.get("scopes") or [])
-        blocks = SlackIssuesMessageBuilder(
-            group=event.group,
-            event=event,
-            tags=tags,
-            rules=list(rules),
-            notes=self.get_option("notes", ""),
-            send_nudge=send_nudge,
-            # app_mentions:read is mandatory for every new Slack app installation, so its
-            # presence tells us the app is up to date.
-            has_mentions_read_scope=SlackScope.APP_MENTIONS_READ in scopes,
-        ).build(notification_uuid=notification_uuid)
-
-        if additional_attachment:
-            for block in additional_attachment:
-                blocks["blocks"].append(block)
-
-        json_blocks = None
-        if payload_blocks := blocks.get("blocks"):
-            json_blocks = orjson.dumps(payload_blocks).decode()
-
-        return blocks, json_blocks
 
     @classmethod
     def _send_slack_message(
@@ -180,15 +181,26 @@ class SlackNotifyServiceAction(IntegrationEventAction):
     ) -> None:
         """Common logic for sending Slack notifications."""
         rules = [f.rule for f in futures]
-        blocks, json_blocks = self._build_notification_blocks(
-            event, rules, tags, integration, notification_uuid, send_nudge=send_nudge
+        blocks = build_issue_alert_blocks(
+            event=event,
+            rules=rules,
+            tags=tags,
+            notes=self.get_option("notes", ""),
+            integration=integration,
+            organization=self.project.organization,
+            notification_uuid=notification_uuid,
+            send_nudge=send_nudge,
         )
+        json_blocks = None
+        if payload_blocks := blocks.get("blocks"):
+            json_blocks = orjson.dumps(payload_blocks).decode()
 
         # If this flow is triggered again for the same issue, we want it to be seen in the main channel
         reply_broadcast = thread_ts is not None
 
         client = SlackSdkClient(integration_id=integration.id)
         text = str(blocks.get("text"))
+        record_legacy_render(NotificationProviderKey.SLACK, {"blocks": json_blocks, "text": text})
         message_ts: str | None = None
         # Wrap the Slack API call with lifecycle tracking
         with MessagingInteractionEvent(

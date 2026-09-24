@@ -3,6 +3,7 @@ from typing import Any
 
 from sentry.integrations.discord.actions.issue_alert.form import DiscordNotifyServiceForm
 from sentry.integrations.discord.client import DiscordClient
+from sentry.integrations.discord.message_builder.base.base import DiscordMessage
 from sentry.integrations.discord.message_builder.issues import DiscordIssuesMessageBuilder
 from sentry.integrations.discord.spec import DiscordMessagingSpec
 from sentry.integrations.discord.utils.metrics import record_lifecycle_termination_level
@@ -11,12 +12,26 @@ from sentry.integrations.messaging.metrics import (
     MessagingInteractionType,
 )
 from sentry.integrations.types import IntegrationProviderSlug
+from sentry.models.rule import Rule
+from sentry.notifications.platform.shadow.capture import record_legacy_render
+from sentry.notifications.platform.types import NotificationProviderKey
 from sentry.rules.actions import IntegrationEventAction
 from sentry.rules.base import CallbackFuture
 from sentry.services.eventstore.models import GroupEvent
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.types.rules import RuleFuture
 from sentry.utils import metrics
+
+
+def build_issue_alert_message(
+    event: GroupEvent,
+    tags: set[str],
+    rules: Sequence[Rule],
+    notification_uuid: str | None = None,
+) -> DiscordMessage:
+    return DiscordIssuesMessageBuilder(
+        event.group, event=event, tags=tags, rules=list(rules)
+    ).build(notification_uuid=notification_uuid)
 
 
 class DiscordNotifyServiceAction(IntegrationEventAction):
@@ -50,9 +65,8 @@ class DiscordNotifyServiceAction(IntegrationEventAction):
 
         def send_notification(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
             rules = [f.rule for f in futures]
-            message = DiscordIssuesMessageBuilder(
-                event.group, event=event, tags=tags, rules=rules
-            ).build(notification_uuid=notification_uuid)
+            message = build_issue_alert_message(event, tags, rules, notification_uuid)
+            record_legacy_render(NotificationProviderKey.DISCORD, message)
 
             client = DiscordClient()
             with MessagingInteractionEvent(

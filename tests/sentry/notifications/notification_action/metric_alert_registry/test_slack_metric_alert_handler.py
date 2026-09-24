@@ -124,7 +124,7 @@ class TestSlackMetricAlertHandlerSendAlert(MetricAlertHandlerBase):
         }
 
     @with_feature("organizations:metric-alert-chartcuterie")
-    @patch("sentry.integrations.slack.utils.notifications.build_metric_alert_chart")
+    @patch("sentry.incidents.charts.build_metric_alert_chart")
     @patch("sentry.integrations.slack.utils.notifications.SlackSdkClient")
     @patch(f"{_HANDLER_PATH}.NotificationService.has_access", return_value=False)
     def test_send_alert_and_resolution_with_notes_and_chart(
@@ -343,7 +343,7 @@ class TestSlackMetricAlertHandlerInvokeRegistry(MetricAlertHandlerBase):
         )
 
         notification_data = metric_alert_notification_data_factory(
-            IssueNotificationContext(invocation)
+            IssueNotificationContext(invocation), chart_url=None
         )
         assert notification_data.notes == "Check the runbook"
         assert notification_data.new_status == IncidentStatus.CLOSED.value

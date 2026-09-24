@@ -24,6 +24,7 @@ from sentry.models.activity import Activity
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.rule import Rule, RuleSource
+from sentry.notifications.platform.shadow.capture import record_metric_alert_context
 from sentry.notifications.types import TEST_NOTIFICATION_ID
 from sentry.notifications.utils.issue_notification_context import IssueNotificationContext
 from sentry.rules.processing.processor import activate_downstream_actions
@@ -452,6 +453,7 @@ class BaseMetricAlertHandler(ABC):
     @classmethod
     def invoke_legacy_registry(cls, invocation: ActionInvocation) -> None:
         issue_notification_context = IssueNotificationContext(invocation)
+        record_metric_alert_context(issue_notification_context)
 
         notification_context = issue_notification_context.notification_context
         alert_context = issue_notification_context.alert_context
