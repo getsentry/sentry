@@ -324,9 +324,6 @@ shared_tests_skipped = [
     "invalid_aggregate_column_with_duration_filter",
     "invalid_numeric_aggregate_filter",
     "disallow_wildcard_filter",
-    # The frontend keeps `key:////` as an empty-pattern regex filter so the search bar can
-    # say the filter needs a value; the backend grammar requires at least one character and
-    # so reads `////` as a literal. See test_parses_an_empty_regex_pattern_as_a_literal below.
     "regex_empty_pattern",
 ]
 
