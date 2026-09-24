@@ -1,11 +1,10 @@
 import {useMemo, useRef} from 'react';
-import {keepPreviousData, queryOptions, useQueries} from '@tanstack/react-query';
+import {queryOptions, useQueries} from '@tanstack/react-query';
 
 import type {Series} from 'sentry/types/echarts';
 import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {toArray} from 'sentry/utils/array/toArray';
-import {getUtcDateString} from 'sentry/utils/dates';
 import type {EventsTableData} from 'sentry/utils/discover/discoverQuery';
 import {
   getEquationAliasIndex,
@@ -24,8 +23,10 @@ import type {
   WidgetQueryParams,
 } from 'sentry/views/dashboards/datasetConfig/base';
 import {TraceMetricsConfig} from 'sentry/views/dashboards/datasetConfig/traceMetrics';
-import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
-import {DisplayType} from 'sentry/views/dashboards/types';
+import {
+  getSeriesRequestData,
+  getTimeseriesQueryParams,
+} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {getSeriesQueryPrefix} from 'sentry/views/dashboards/utils/getSeriesQueryPrefix';
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
@@ -37,6 +38,7 @@ import {
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
+import {getTimeseriesWidgetQueryOptions} from 'sentry/views/dashboards/widgetCard/hooks/utils/getTimeseriesWidgetQueryOptions';
 import {NONE_UNIT} from 'sentry/views/explore/metrics/constants';
 import {useMetricHeatMapData} from 'sentry/views/explore/metrics/hooks/useMetricHeatMapData';
 import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
@@ -62,6 +64,9 @@ export function useTraceMetricsSeriesQuery(
 
   const {queue} = useWidgetQueryQueue();
   const prevRawDataRef = useRef<TraceMetricsSeriesResponse[] | undefined>(undefined);
+  const hasMeasuredIngestionDelayUi = organization.features.includes(
+    'measured-ingestion-delay-ui'
+  );
 
   const filteredWidget = useMemo(
     () =>
@@ -81,78 +86,18 @@ export function useTraceMetricsSeriesQuery(
         widgetInterval
       );
 
-      requestData.generatePathname = () =>
-        `/organizations/${organization.slug}/events-timeseries/`;
-
-      if (
-        [DisplayType.LINE, DisplayType.AREA, DisplayType.BAR].includes(
-          filteredWidget.displayType
-        ) &&
-        (filteredWidget.queries[0]?.columns?.length ?? 0) > 0
-      ) {
-        requestData.queryExtras = {
-          ...requestData.queryExtras,
-          groupBy: filteredWidget.queries[0]!.columns,
-        };
-      }
-
-      // Remove duplicate yAxis values
-      requestData.yAxis = [...new Set(requestData.yAxis)];
-
-      // Add sampling mode if provided
       if (samplingMode) {
         requestData.sampling = samplingMode;
       }
 
-      // Transform requestData into proper query params
-      const {
-        organization: _org,
-        includeAllArgs: _includeAllArgs,
-        includePrevious: _includePrevious,
-        generatePathname: _generatePathname,
-        period,
-        queryExtras,
-        ...restParams
-      } = requestData;
-
-      const queryParams = {
-        ...restParams,
-        ...(period ? {statsPeriod: period} : {}),
-        ...queryExtras,
-      };
-
-      if (queryParams.start) {
-        queryParams.start = getUtcDateString(queryParams.start);
-      }
-      if (queryParams.end) {
-        queryParams.end = getUtcDateString(queryParams.end);
-      }
-
-      return queryOptions({
-        ...apiOptions.as<TraceMetricsSeriesResponse>()(
-          '/organizations/$organizationIdOrSlug/events-timeseries/',
-          {
-            path: {organizationIdOrSlug: organization.slug},
-            query: queryParams,
-            staleTime: getWidgetStaleTime(pageFilters),
-          }
-        ),
-        queryFn: (context): Promise<ApiResponse<TraceMetricsSeriesResponse>> => {
-          if (queue) {
-            return new Promise((resolve, reject) => {
-              const fetchFnRef = {
-                current: () =>
-                  apiFetch<TraceMetricsSeriesResponse>(context).then(resolve, reject),
-              };
-              queue.addItem({fetchDataRef: fetchFnRef});
-            });
-          }
-          return apiFetch<TraceMetricsSeriesResponse>(context);
-        },
+      return getTimeseriesWidgetQueryOptions({
+        organization,
+        pageFilters,
+        queue,
         enabled,
-        retry: false,
-        retryDelay: getRetryDelay,
-        placeholderData: keepPreviousData,
+        query: getTimeseriesQueryParams(requestData, {
+          includeMeasuredIngestionDelayMetadata: hasMeasuredIngestionDelayUi,
+        }),
       });
     }),
   });

@@ -138,7 +138,7 @@ describe('useTraceMetricsSeriesQuery', () => {
     });
   });
 
-  it('includes groupBy query param when widget has columns', async () => {
+  it('includes groupBy and topEvents query params when widget has columns', async () => {
     const widget = WidgetFixture({
       displayType: DisplayType.LINE,
       queries: [
@@ -174,7 +174,8 @@ describe('useTraceMetricsSeriesQuery', () => {
         '/organizations/org-slug/events-timeseries/',
         expect.objectContaining({
           query: expect.objectContaining({
-            groupBy: ['project'],
+            groupBy: ['project', 'avg(value,test_metric,millisecond,none)'],
+            topEvents: 5,
           }),
         })
       );

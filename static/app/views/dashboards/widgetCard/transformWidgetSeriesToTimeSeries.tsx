@@ -1,4 +1,3 @@
-import type {Series} from 'sentry/types/echarts';
 import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
 import {
   SERIES_NAME_PART_DELIMITER,
@@ -7,6 +6,7 @@ import {
 } from 'sentry/utils/timeSeries/transformLegacySeriesToTimeSeries';
 import {formatTraceMetricsFunction} from 'sentry/views/dashboards/datasetConfig/traceMetrics';
 import {WidgetType, type Widget, type WidgetQuery} from 'sentry/views/dashboards/types';
+import type {WidgetSeries} from 'sentry/views/dashboards/utils/transformTimeSeriesResponseToSeries';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {formatTimeSeriesLabelForWidgetQuery} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabelForWidgetQuery';
 
@@ -22,7 +22,7 @@ interface TransformedSeries {
  * query configuration, and computes a display label that matches the chart legend.
  */
 export function transformWidgetSeriesToTimeSeries(
-  series: Series,
+  series: WidgetSeries,
   widget: Widget,
   timeseriesResultsTypes?: Record<string, AggregationOutputType>,
   timeseriesResultsUnits?: Record<string, DataUnit>
@@ -82,7 +82,7 @@ export function transformWidgetSeriesToTimeSeries(
     aggregates[0] ??
     '';
 
-  const timeSeries = transformLegacySeriesToTimeSeries(
+  const legacyTimeSeries = transformLegacySeriesToTimeSeries(
     effectiveSeries,
     timeseriesResultsTypes,
     timeseriesResultsUnits,
@@ -91,9 +91,25 @@ export function transformWidgetSeriesToTimeSeries(
     effectiveQueryName
   );
 
-  if (!timeSeries) {
+  if (!legacyTimeSeries) {
     return null;
   }
+
+  // Keep the widget's resolved value type and unit, since users can override them
+  const timeSeries: TimeSeries = series.timeSeries
+    ? {
+        ...legacyTimeSeries,
+        values: series.timeSeries.values.map(item => ({
+          ...item,
+          value: item.value ?? 0,
+        })),
+        meta: {
+          ...series.timeSeries.meta,
+          valueType: legacyTimeSeries.meta.valueType,
+          valueUnit: legacyTimeSeries.meta.valueUnit,
+        },
+      }
+    : legacyTimeSeries;
 
   const label = formatTimeSeriesLabelForWidgetQuery(timeSeries, widget, widgetQuery);
 

@@ -34,6 +34,7 @@ import {
 import {formatTraceMetricsFunction} from 'sentry/views/dashboards/datasetConfig/formatTraceMetricsFunction';
 import {combineBaseFieldsWithTags} from 'sentry/views/dashboards/datasetConfig/utils/combineBaseFieldsWithEapTags';
 import {DisplayType, type WidgetQuery} from 'sentry/views/dashboards/types';
+import type {WidgetSeries} from 'sentry/views/dashboards/utils/transformTimeSeriesResponseToSeries';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {useTraceMetricMultiMetricSelection} from 'sentry/views/dashboards/widgetBuilder/hooks/useTraceMetricMultiMetricSelection';
 import {
@@ -364,7 +365,7 @@ export const TraceMetricsConfig: DatasetConfig<
     }
     return transformedData;
   },
-  transformSeries: (data, widgetQuery) => {
+  transformSeries: (data, widgetQuery): WidgetSeries[] => {
     return data.timeSeries.map(timeSeries => {
       // The function should always be defined when dealing with a successful
       // time series response
@@ -378,6 +379,7 @@ export const TraceMetricsConfig: DatasetConfig<
           widgetQuery,
           timeSeries,
         }),
+        timeSeries,
       };
     });
   },

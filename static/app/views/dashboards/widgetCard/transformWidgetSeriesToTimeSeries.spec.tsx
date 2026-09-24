@@ -1,3 +1,4 @@
+import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 import {WidgetFixture} from 'sentry-fixture/widget';
 import {WidgetQueryFixture} from 'sentry-fixture/widgetQuery';
 
@@ -267,6 +268,60 @@ describe('transformWidgetSeriesToTimeSeries', () => {
         widget
       );
       expect(result?.label).toBe('prod');
+    });
+  });
+
+  it('plots the attached time series values', () => {
+    const widget = WidgetFixture({
+      queries: [
+        WidgetQueryFixture({
+          name: '',
+          aggregates: ['count()'],
+          columns: [],
+          fields: ['count()'],
+        }),
+      ],
+    });
+    const timeSeries = TimeSeriesFixture({
+      yAxis: 'count()',
+      meta: {valueType: 'integer', valueUnit: null, interval: 60_000, isOther: false},
+      values: [
+        {timestamp: 1000, value: 5, confidence: 'high'},
+        {
+          timestamp: 2000,
+          value: null,
+          incomplete: true,
+          incompleteReason: 'INCOMPLETE_BUCKET',
+        },
+      ],
+    });
+
+    const result = transformWidgetSeriesToTimeSeries(
+      {
+        seriesName: 'count()',
+        data: [
+          {name: 1000, value: 5},
+          {name: 2000, value: 0},
+        ],
+        timeSeries,
+      },
+      widget
+    );
+
+    expect(result?.timeSeries.values).toEqual([
+      {timestamp: 1000, value: 5, confidence: 'high'},
+      {
+        timestamp: 2000,
+        value: 0,
+        incomplete: true,
+        incompleteReason: 'INCOMPLETE_BUCKET',
+      },
+    ]);
+    expect(result?.timeSeries.meta).toEqual({
+      valueType: 'number',
+      valueUnit: null,
+      interval: 60_000,
+      isOther: false,
     });
   });
 });
