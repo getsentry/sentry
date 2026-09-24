@@ -30,6 +30,8 @@ const defaultHookReturn: ReturnType<typeof useSeerExplorerModule.useSeerExplorer
   overrideCodeModeEnable: 'off',
   hasSentInterrupt: false,
   sendMessage: jest.fn(),
+  sendMessageError: null,
+  dismissSendMessageError: jest.fn(),
   switchToRun: jest.fn(),
   startNewSession: jest.fn(),
   interruptRun: jest.fn(),
@@ -566,6 +568,39 @@ describe('SeerExplorerContent', () => {
 
       expect(sendMessage).toHaveBeenCalledWith('Test message', 0);
       expect(textarea).toHaveValue('');
+    });
+
+    it('shows a dismissable alert and restores the draft when sending fails', async () => {
+      const dismissSendMessageError = jest.fn();
+      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
+        ...defaultHookReturn,
+        sendMessageError: {query: 'Failed message'},
+        dismissSendMessageError,
+      });
+
+      render(
+        <PictureInPictureProvider>
+          <SeerExplorerSessionsProvider>
+            <SeerExplorerContent
+              getPageReferrer={mockGetPageReferrer}
+              onClose={() => {}}
+            />
+          </SeerExplorerSessionsProvider>
+        </PictureInPictureProvider>,
+        {
+          organization,
+        }
+      );
+
+      expect(
+        await screen.findByText(
+          'There was an error sending your message, wait and try again.'
+        )
+      ).toBeInTheDocument();
+      expect(screen.getByTestId('seer-explorer-input')).toHaveValue('Failed message');
+
+      await userEvent.click(screen.getByRole('button', {name: 'Dismiss'}));
+      expect(dismissSendMessageError).toHaveBeenCalled();
     });
 
     it('calls sendMessage and clears input when Enter is pressed', async () => {

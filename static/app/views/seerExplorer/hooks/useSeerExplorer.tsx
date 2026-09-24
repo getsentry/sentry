@@ -10,7 +10,12 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
+import {
+  fetchMutation,
+  getApiQueryData,
+  setApiQueryData,
+  useApiQuery,
+} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -205,6 +210,8 @@ export const useSeerExplorer = () => {
     sentAt: string;
   } | null>(null);
   const [hasSentInterrupt, setHasSentInterrupt] = useState(false);
+  // The last message that failed to send, so the UI can show an alert and restore the draft.
+  const [sendMessageError, setSendMessageError] = useState<{query: string} | null>(null);
   const previousPRStatesRef = useRef<Record<string, RepoPRState>>({});
 
   // Queries and mutations
@@ -223,29 +230,36 @@ export const useSeerExplorer = () => {
       runId: SeerExplorerRunId | null;
       screenshot: string | undefined;
       sentAt: string[];
-    }
+    },
+    {previousData: SeerExplorerResponse | undefined}
   >({
-    mutationFn: async params => {
+    onMutate: params => {
       setHasSentInterrupt(false);
+      setSendMessageError(null);
+      if (params.runId === null) {
+        return {previousData: undefined};
+      }
       const queryKey = makeSeerExplorerQueryKey(params.orgSlug, params.runId);
+      const previousData = getApiQueryData<SeerExplorerResponse>(queryClient, queryKey);
 
       // Set optimistic status and updated_at to prevent isPolling flicker on new message.
-      if (params.runId !== null) {
-        setApiQueryData<SeerExplorerResponse>(queryClient, queryKey, prev =>
-          prev?.session
-            ? {
-                ...prev,
-                session: {
-                  ...prev.session,
-                  failure_reason: null,
-                  status: 'processing',
-                  updated_at: new Date().toISOString(),
-                },
-              }
-            : prev
-        );
-      }
-      const {url} = parseQueryKey(queryKey);
+      setApiQueryData<SeerExplorerResponse>(queryClient, queryKey, prev =>
+        prev?.session
+          ? {
+              ...prev,
+              session: {
+                ...prev.session,
+                failure_reason: null,
+                status: 'processing',
+                updated_at: new Date().toISOString(),
+              },
+            }
+          : prev
+      );
+      return {previousData};
+    },
+    mutationFn: async params => {
+      const {url} = parseQueryKey(makeSeerExplorerQueryKey(params.orgSlug, params.runId));
       return fetchMutation({
         url,
         method: 'POST',
@@ -276,20 +290,18 @@ export const useSeerExplorer = () => {
         });
       }
     },
-    onError: (e, params) => {
-      if (params.runId !== null) {
-        // API data is disabled for null runId (new runs).
+    onError: (_e, params, context) => {
+      // Keep the existing conversation: roll back the optimistic status and drop the
+      // optimistic user/loading blocks. The UI surfaces the failure and restores the draft.
+      if (params.runId !== null && context?.previousData) {
         setApiQueryData<SeerExplorerResponse>(
           queryClient,
           makeSeerExplorerQueryKey(params.orgSlug, params.runId),
-          makeErrorSeerExplorerData('An error occurred')
+          context.previousData
         );
       }
-      addErrorMessage(
-        typeof e.responseJSON?.detail === 'string'
-          ? e.responseJSON.detail
-          : 'Failed to send message'
-      );
+      setLastSentMessage(null);
+      setSendMessageError({query: params.query});
     },
   });
 
@@ -470,6 +482,7 @@ export const useSeerExplorer = () => {
       dispatch({type: 'set run id', payload: newRunId});
       setLastSentMessage(null);
       setHasSentInterrupt(false);
+      setSendMessageError(null);
 
       // Invalidate the query to force a fresh fetch
       if (orgSlug && newRunId !== null) {
@@ -757,6 +770,8 @@ export const useSeerExplorer = () => {
     };
   }, [rawSessionData, runId, lastSentMessage, isPolling, isSendingMessage, isTimedOut]);
 
+  const dismissSendMessageError = useCallback(() => setSendMessageError(null), []);
+
   return {
     sessionData: processedSessionData,
     isPolling,
@@ -766,6 +781,9 @@ export const useSeerExplorer = () => {
     errorStatusCode,
     isTimedOut,
     sendMessage,
+    /** Set when the last message failed to send; holds the query so it can be restored. */
+    sendMessageError,
+    dismissSendMessageError,
     runId,
     /** Switches to a different run and fetches its latest state. */
     switchToRun,

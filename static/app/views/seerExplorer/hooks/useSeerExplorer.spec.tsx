@@ -328,6 +328,65 @@ describe('useSeerExplorer', () => {
         expect(result.current.isPolling).toBe(false);
       });
     });
+
+    it('keeps the existing chat and exposes the failed query when sending fails', async () => {
+      const runId = 'run-with-history';
+      const existingBlocks = [
+        {
+          id: 'user-1',
+          message: {role: 'user', content: 'First question'},
+          timestamp: '2024-01-01T00:00:00Z',
+          loading: false,
+        },
+        {
+          id: 'assistant-1',
+          message: {role: 'assistant', content: 'First answer'},
+          timestamp: '2024-01-01T00:00:01Z',
+          loading: false,
+        },
+      ];
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/${runId}/`,
+        method: 'GET',
+        body: {session: {blocks: existingBlocks, status: 'completed'}},
+      });
+      const postMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/${runId}/`,
+        method: 'POST',
+        statusCode: 500,
+        body: {detail: 'Server error'},
+      });
+
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
+        additionalWrapper: SeerExplorerChatStateProvider,
+      });
+      act(() => {
+        result.current.switchToRun(runId);
+      });
+      await waitFor(() => {
+        expect(result.current.sessionData?.blocks).toHaveLength(2);
+      });
+
+      act(() => {
+        result.current.sendMessage('Second question');
+      });
+
+      await waitFor(() => {
+        expect(result.current.sendMessageError).toEqual({query: 'Second question'});
+      });
+      expect(postMock).toHaveBeenCalled();
+      expect(result.current.sessionData?.status).toBe('completed');
+      expect(result.current.sessionData?.blocks.map(b => b.message.content)).toEqual([
+        'First question',
+        'First answer',
+      ]);
+
+      act(() => {
+        result.current.dismissSendMessageError();
+      });
+      expect(result.current.sendMessageError).toBeNull();
+    });
   });
 
   describe('switching sessions', () => {
