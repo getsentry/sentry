@@ -1956,6 +1956,7 @@ STALE_DETAILS_BATCH_SIZE = 100
     name="sentry.tasks.autofix.sweep_pr_iteration_details",
     namespace=seer_tasks,
     processing_deadline_duration=120,
+    retry=Retry(times=1),
 )
 def sweep_pr_iteration_details() -> None:
     """Discard iteration rows left behind by iterations that never completed."""
