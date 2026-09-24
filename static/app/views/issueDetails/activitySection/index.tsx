@@ -30,6 +30,7 @@ import {ActivityNoteInput} from 'sentry/views/issueDetails/activitySection/activ
 import {useMutateActivity} from 'sentry/views/issueDetails/activitySection/useMutateActivity';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {SidebarFoldSection} from 'sentry/views/issueDetails/foldSection';
+import {isGenerativeReportNote} from 'sentry/views/issueDetails/generativeReport/utils';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
@@ -198,7 +199,9 @@ export function ActivitySection({
   };
 
   const displayedActivities = buildActivityFeedItems({
-    activities,
+    // Generative report comments carry raw HTML and are rendered in their own
+    // section (GenerativeReportSection), so hide them from the activity feed.
+    activities: activities.filter(activity => !isGenerativeReportNote(activity)),
     filterComments,
   });
   const inputVariant = isStandalone ? 'full' : 'compact';
