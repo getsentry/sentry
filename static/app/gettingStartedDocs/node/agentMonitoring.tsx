@@ -12,6 +12,9 @@ import {
   getJsDataCollectionDocsLink,
   getDataCollectionStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils';
+import {onboarding as eveFrameworkOnboarding} from 'sentry/gettingStartedDocs/node-eve/onboarding';
+import {onboarding as flueFrameworkOnboarding} from 'sentry/gettingStartedDocs/node-flue/onboarding';
+import {onboarding as mastraFrameworkOnboarding} from 'sentry/gettingStartedDocs/node-mastra/onboarding';
 import {getImport, getInstallCodeBlock} from 'sentry/gettingStartedDocs/node/utils';
 import {t, tct} from 'sentry/locale';
 import {SdkUpdateAlert} from 'sentry/views/insights/pages/agents/components/sdkUpdateAlert';
@@ -26,16 +29,17 @@ import {
 // auto-instruments the `env.AI` binding only from that version.
 export const MIN_REQUIRED_VERSION = '10.67.0';
 
-// The Cloudflare Agents SDK helper `instrumentAgentWithSentry` only exists from
-// this version; earlier SDKs expose `instrumentDurableObjectWithSentry` instead.
 // @see https://docs.sentry.io/platforms/javascript/guides/cloudflare/features/agents-sdk/
 const CLOUDFLARE_AGENTS_MIN_VERSION = '10.69.0';
+const INTEGRATION_MIN_VERSIONS: Partial<Record<AgentIntegration, string>> = {
+  [AgentIntegration.CLOUDFLARE_AGENTS]: CLOUDFLARE_AGENTS_MIN_VERSION,
+  [AgentIntegration.EVE]: '11.0.0',
+  [AgentIntegration.MASTRA]: '11.0.0',
+};
 
 const CLOUDFLARE_AGENT_TRACING_DOCS =
   'https://docs.sentry.io/platforms/javascript/guides/cloudflare/agent-tracing/';
 
-const CLOUDFLARE_DURABLE_OBJECTS_DOCS =
-  'https://docs.sentry.io/platforms/javascript/guides/cloudflare/features/durableobject/';
 const CLOUDFLARE_AGENTS_SDK_DOCS =
   'https://docs.sentry.io/platforms/javascript/guides/cloudflare/features/agents-sdk/';
 const FLUE_NODE_AGENT_TRACING_DOCS =
@@ -56,13 +60,11 @@ export function getDeploymentTarget(params: DocsParams): DeploymentTarget {
 }
 
 /**
- * The minimum SDK version required for the selected integration. Most SDKs share
- * MIN_REQUIRED_VERSION, but the Cloudflare Agents SDK needs a newer release.
+ * The minimum SDK version required for the selected integration. Integrations
+ * without a specific requirement use the caller's platform default.
  */
 export function getMinRequiredVersion(params: DocsParams, fallback: string): string {
-  return getAgentIntegration(params) === AgentIntegration.CLOUDFLARE_AGENTS
-    ? CLOUDFLARE_AGENTS_MIN_VERSION
-    : fallback;
+  return INTEGRATION_MIN_VERSIONS[getAgentIntegration(params)] ?? fallback;
 }
 
 /**
@@ -88,67 +90,26 @@ export function getAgentDataCollectionStep(params: DocsParams): OnboardingStep[]
   ];
 }
 
-/**
- * Cloudflare Workers don't expose the public `Sentry.init()` API. Instead the
- * SDK is bootstrapped by wrapping the worker with `Sentry.withSentry`. The
- * Vercel AI SDK additionally requires the `nodejs_compat` entrypoint and its
- * integration to be registered explicitly.
- *
- * @see https://docs.sentry.io/platforms/javascript/guides/cloudflare/agent-tracing/
- */
-function getCloudflareConfigureSnippet({
-  dsn,
-  integration,
-}: {
-  dsn: string;
-  integration?: AgentIntegration;
-}): string {
-  const isVercelAi = integration === AgentIntegration.VERCEL_AI;
-  const importPath = isVercelAi
-    ? '@sentry/cloudflare/nodejs_compat'
-    : '@sentry/cloudflare';
-  const integrationsLine = isVercelAi
-    ? '\n    integrations: [Sentry.vercelAIIntegration()],'
-    : '';
+const getCloudflareViteConfigSnippet =
+  () => `import { cloudflare } from "@cloudflare/vite-plugin";
+import { sentryCloudflareVitePlugin } from "@sentry/cloudflare/vite";
+import { defineConfig } from "vite";
 
-  return `import * as Sentry from "${importPath}";
+export default defineConfig({
+  plugins: [cloudflare(), sentryCloudflareVitePlugin()],
+});`;
 
-export default Sentry.withSentry(
-  (env) => ({
-    dsn: "${dsn}",
-    // Tracing must be enabled for agent monitoring to work
-    tracesSampleRate: 1.0,${integrationsLine}
-  }),
-  {
-    async fetch(request, env, ctx) {
-      // Your worker logic goes here
-      return new Response("Hello World!");
-    },
-  }
-);`;
-}
+const getCloudflareOptionsSnippet = (dsn: string) =>
+  `import { defineCloudflareOptions } from "@sentry/cloudflare";
+
+export default defineCloudflareOptions((env) => ({
+  dsn: "${dsn}",
+  // Tracing must be enabled for agent monitoring to work
+  tracesSampleRate: 1.0,
+}));`;
 
 const WORKERS_AI_DOCS =
   'https://docs.sentry.io/platforms/javascript/guides/cloudflare/features/workers-ai/';
-
-/**
- * `instrumentDurableObjectWithSentry` is the Durable-Object / Agents-SDK
- * equivalent of `withSentry` - a bootstrapping concern that is independent of
- * the chosen AI SDK, so this note is shown for every Cloudflare integration.
- */
-function getDurableObjectsNote(): ContentBlock {
-  return {
-    type: 'text',
-    text: tct(
-      'If your AI calls run inside a [durableObjectsLink:Durable Object] or [agentsSdkLink:Agents SDK] agent rather than the fetch handler, bootstrap Sentry there too with [code:instrumentDurableObjectWithSentry] - it takes the same options as [code:withSentry].',
-      {
-        code: <code />,
-        durableObjectsLink: <ExternalLink href={CLOUDFLARE_DURABLE_OBJECTS_DOCS} />,
-        agentsSdkLink: <ExternalLink href={CLOUDFLARE_AGENTS_SDK_DOCS} />,
-      }
-    ),
-  };
-}
 
 /**
  * Workers AI (`env.AI`) is Cloudflare-native and auto-instruments once the
@@ -298,16 +259,17 @@ function getCloudflareWrapBlocks(integration: AgentIntegration): ContentBlock[] 
 }
 
 export const mastraOnboarding: OnboardingConfig = {
-  install: () => [
+  install: params => [
     {
       type: StepType.INSTALL,
       content: [
         {
           type: 'text',
           text: tct(
-            'Install the [code:@mastra/sentry] package to enable Sentry integration with Mastra.',
+            'Install the Sentry Node SDK and [code:@mastra/observability]. If you previously used [legacy:@mastra/sentry], remove that exporter because it initializes Sentry itself and conflicts with the built-in integration.',
             {
               code: <code />,
+              legacy: <code />,
             }
           ),
         },
@@ -317,17 +279,17 @@ export const mastraOnboarding: OnboardingConfig = {
             {
               label: 'npm',
               language: 'bash',
-              code: 'npm install @mastra/sentry',
+              code: `npm install @sentry/node${params.isProfilingSelected ? ' @sentry/profiling-node' : ''} @mastra/observability`,
             },
             {
               label: 'yarn',
               language: 'bash',
-              code: 'yarn add @mastra/sentry',
+              code: `yarn add @sentry/node${params.isProfilingSelected ? ' @sentry/profiling-node' : ''} @mastra/observability`,
             },
             {
               label: 'pnpm',
               language: 'bash',
-              code: 'pnpm add @mastra/sentry',
+              code: `pnpm add @sentry/node${params.isProfilingSelected ? ' @sentry/profiling-node' : ''} @mastra/observability`,
             },
           ],
         },
@@ -341,10 +303,10 @@ export const mastraOnboarding: OnboardingConfig = {
         {
           type: 'text',
           text: tct(
-            'Configure Mastra to use Sentry by adding the [code:SentryExporter] to your Mastra observability config. For more details, see the [link:@mastra/sentry package].',
+            'Create [code:src/mastra/public/instrument.mjs]. Mastra copies files in [public:public/] next to the compiled server, allowing the Sentry SDK to load before Mastra and the AI SDK.',
             {
               code: <code />,
-              link: <ExternalLink href="https://www.npmjs.com/package/@mastra/sentry" />,
+              public: <code />,
             }
           ),
         },
@@ -354,26 +316,59 @@ export const mastraOnboarding: OnboardingConfig = {
             {
               label: 'JavaScript',
               language: 'javascript',
-              code: `import { Mastra } from '@mastra/core';
-import { SentryExporter } from '@mastra/sentry';
+              filename: 'src/mastra/public/instrument.mjs',
+              code: `import * as Sentry from "@sentry/node";${
+                params.isProfilingSelected
+                  ? '\nimport { nodeProfilingIntegration } from "@sentry/profiling-node";'
+                  : ''
+              }
 
-const mastra = new Mastra({
-  // ... your existing config
-  observability: {
-    configs: {
-      sentry: {
-        serviceName: 'my-service',
-        exporters: [
-          new SentryExporter({
-            dsn: '${params.dsn.public}',
-            // Tracing must be enabled for agent monitoring to work
-            tracesSampleRate: 1.0,
-          }),
-        ],
-      },
-    },
-  },
+Sentry.init({
+  dsn: "${params.dsn.public}",${
+    params.isProfilingSelected
+      ? `
+  integrations: [nodeProfilingIntegration()],`
+      : ''
+  }${
+    params.isPerformanceSelected
+      ? `
+  tracesSampleRate: 1.0,`
+      : ''
+  }${
+    params.isProfilingSelected
+      ? `
+  profileSessionSampleRate: 1.0,`
+      : ''
+  }${
+    params.isLogsSelected
+      ? `
+  enableLogs: true,`
+      : ''
+  }
 });`,
+            },
+          ],
+        },
+        {
+          type: 'text',
+          text: tct(
+            'Preload the instrument file for both development and production with Mastra’s [code:--custom-args] option:',
+            {code: <code />}
+          ),
+        },
+        {
+          type: 'code',
+          tabs: [
+            {
+              label: 'package.json',
+              language: 'json',
+              filename: 'package.json',
+              code: `{
+  "scripts": {
+    "dev": "mastra dev --custom-args=\\"--import=./instrument.mjs\\"",
+    "start": "mastra start --custom-args=\\"--import=./instrument.mjs\\""
+  }
+}`,
             },
           ],
         },
@@ -386,27 +381,9 @@ const mastra = new Mastra({
       content: [
         {
           type: 'text',
-          text: t('Verify that your instrumentation works by simply calling your LLM.'),
-        },
-        {
-          type: 'code',
-          tabs: [
-            {
-              label: 'JavaScript',
-              language: 'javascript',
-              code: `import { Agent } from '@mastra/core/agent';
-
-// This agent needs to be registered in your Mastra config
-const agent = new Agent({
-  id: 'my-agent',
-  name: 'My Agent',
-  instructions: 'You are a helpful assistant',
-  model: 'openai/gpt-5.4',
-});
-
-const result = await agent.generate([{ role: "user", content: "Hello!" }]);`,
-            },
-          ],
+          text: t(
+            'Run one of your Mastra agents, then open Agent Tracing in Sentry to verify its model generations, tool calls, token usage, latency, and errors.'
+          ),
         },
       ],
     },
@@ -530,8 +507,9 @@ SENTRY_TRACES_SAMPLE_RATE=1`,
             type: 'code',
             tabs: [
               {
-                label: 'index.ts',
+                label: 'app.ts',
                 language: 'typescript',
+                filename: 'app.ts',
                 code: 'import "./sentry.ts";',
               },
             ],
@@ -564,111 +542,106 @@ SENTRY_TRACES_SAMPLE_RATE=1`,
 
 /**
  * Eve is Vercel's filesystem-first framework for durable backend AI agents. It
- * doesn't use `Sentry.init` - its `eve add instrumentation/sentry` command
- * generates an `agent/instrumentation.ts` that wires `@vercel/otel` to Sentry's
- * OTLP traces endpoint, reading the endpoint and public key from the
- * environment. Eve runs on Node only.
+ * auto-discovers instrumentation providers under `agent/instrumentation/`.
+ * The Sentry provider initializes the Node SDK before Eve loads the agent and
+ * AI SDK. Eve runs on Node only.
  *
  * @see https://docs.sentry.io/platforms/javascript/guides/node/agent-tracing/eve/
  */
 export const eveOnboarding: OnboardingConfig = {
-  install: () => [
+  install: params => [
     {
       type: StepType.INSTALL,
       content: [
         {
           type: 'text',
-          text: tct(
-            'Add the Sentry instrumentation to your Eve project. This generates [code:agent/instrumentation.ts] and installs the required OpenTelemetry packages.',
-            {
-              code: <code />,
-            }
-          ),
+          text: t('Install the Sentry Node SDK in your Eve project:'),
         },
         {
           type: 'code',
           tabs: [
             {
-              label: 'bash',
+              label: 'npm',
               language: 'bash',
-              code: 'eve add instrumentation/sentry',
+              code: `npm install @sentry/node${params.isProfilingSelected ? ' @sentry/profiling-node' : ''}`,
+            },
+            {
+              label: 'yarn',
+              language: 'bash',
+              code: `yarn add @sentry/node${params.isProfilingSelected ? ' @sentry/profiling-node' : ''}`,
+            },
+            {
+              label: 'pnpm',
+              language: 'bash',
+              code: `pnpm add @sentry/node${params.isProfilingSelected ? ' @sentry/profiling-node' : ''}`,
             },
           ],
         },
       ],
     },
   ],
-  configure: params => {
-    // `dsn.public` is the full DSN; Eve's `x-sentry-auth` header only needs the
-    // public key portion (the DSN's userinfo).
-    const publicKey = new URL(params.dsn.public).username;
-
-    return [
-      {
-        title: t('Configure'),
-        content: [
-          {
-            type: 'text',
-            text: tct(
-              'The generated [code:agent/instrumentation.ts] reads your Sentry OTLP endpoint and public key from the environment. Set these variables so Eve exports traces to Sentry:',
-              {
-                code: <code />,
+  configure: params => [
+    {
+      title: t('Configure'),
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            'Create [code:agent/instrumentation/sentry.ts]. Eve auto-discovers this provider and runs it before loading your agent and the AI SDK.',
+            {code: <code />}
+          ),
+        },
+        {
+          type: 'code',
+          tabs: [
+            {
+              label: 'TypeScript',
+              language: 'typescript',
+              filename: 'agent/instrumentation/sentry.ts',
+              code: `import * as Sentry from "@sentry/node";${
+                params.isProfilingSelected
+                  ? '\nimport { nodeProfilingIntegration } from "@sentry/profiling-node";'
+                  : ''
               }
-            ),
-          },
-          {
-            type: 'code',
-            tabs: [
-              {
-                label: 'bash',
-                language: 'bash',
-                code: [
-                  `SENTRY_OTLP_TRACES_ENDPOINT="${params.dsn.otlp_traces}"`,
-                  `SENTRY_PUBLIC_KEY="${publicKey}"`,
-                ].join('\n'),
-              },
-            ],
-          },
-          {
-            type: 'text',
-            text: tct(
-              'For reference, the generated instrumentation looks like this. See the [link:Eve docs] for details.',
-              {
-                link: <ExternalLink href={EVE_AGENT_TRACING_DOCS} />,
-              }
-            ),
-          },
-          {
-            type: 'code',
-            tabs: [
-              {
-                label: 'agent/instrumentation.ts',
-                language: 'typescript',
-                code: `import { OTLPHttpProtoTraceExporter, registerOTel } from "@vercel/otel";
 import { defineInstrumentation } from "eve/instrumentation";
 
-export default defineInstrumentation({
-  // Capture prompts and responses; set either to false to omit them.
-  recordInputs: true,
-  recordOutputs: true,
-  setup: ({ agentName }) =>
-    registerOTel({
-      serviceName: agentName,
-      traceExporter: new OTLPHttpProtoTraceExporter({
-        url: process.env.SENTRY_OTLP_TRACES_ENDPOINT!,
-        headers: {
-          "x-sentry-auth": \`sentry sentry_key=\${process.env.SENTRY_PUBLIC_KEY}\`,
+export default defineInstrumentation(
+  Sentry.eveInstrumentation({
+    dsn: "${params.dsn.public}",${
+      params.isProfilingSelected
+        ? `
+    integrations: [nodeProfilingIntegration()],`
+        : ''
+    }${
+      params.isPerformanceSelected
+        ? `
+    tracesSampleRate: 1.0,`
+        : ''
+    }${
+      params.isProfilingSelected
+        ? `
+    profileSessionSampleRate: 1.0,`
+        : ''
+    }${
+      params.isLogsSelected
+        ? `
+    enableLogs: true,`
+        : ''
+    }
+  }),
+);`,
+            },
+          ],
         },
-      }),
-    }),
-});`,
-              },
-            ],
-          },
-        ],
-      },
-    ];
-  },
+        {
+          type: 'text',
+          text: tct('See the [link:Eve guide] for privacy controls and details.', {
+            link: <ExternalLink href={EVE_AGENT_TRACING_DOCS} />,
+          }),
+        },
+      ],
+    },
+  ],
   verify: () => [
     {
       type: StepType.VERIFY,
@@ -703,9 +676,7 @@ export function getManualConfigureStep(
   const isCloudflare = getDeploymentTarget(params) === DeploymentTarget.CLOUDFLARE;
   const importStatement = sentryImport ?? getImport(packageName, importMode).join('\n');
 
-  const code = isCloudflare
-    ? getCloudflareConfigureSnippet({dsn: params.dsn.public})
-    : `${importStatement}
+  const code = `${importStatement}
 
 Sentry.init({
   dsn: "${params.dsn.public}",
@@ -719,19 +690,44 @@ Sentry.init({
       content: [
         {
           type: 'text',
-          text: t('Initialize the Sentry SDK in the entry point of your application.'),
+          text: isCloudflare
+            ? tct(
+                'Add the Sentry Cloudflare plugin to your [code:vite.config.ts], after the Cloudflare Vite plugin. It wraps your Worker at build time.',
+                {code: <code />}
+              )
+            : t('Initialize the Sentry SDK in the entry point of your application.'),
         },
         {
           type: 'code',
           tabs: [
             {
-              label: configFileName ?? 'JavaScript',
-              language: 'javascript',
-              code,
+              label: isCloudflare ? 'vite.config.ts' : (configFileName ?? 'JavaScript'),
+              language: isCloudflare ? 'typescript' : 'javascript',
+              code: isCloudflare ? getCloudflareViteConfigSnippet() : code,
             },
           ],
         },
-        ...(isCloudflare ? [getDurableObjectsNote()] : []),
+        ...(isCloudflare
+          ? [
+              {
+                type: 'text' as const,
+                text: tct(
+                  'Put your Sentry options in an [code:instrument.server.ts] file next to your Worker entry. The plugin loads these options automatically.',
+                  {code: <code />}
+                ),
+              },
+              {
+                type: 'code' as const,
+                tabs: [
+                  {
+                    label: 'src/instrument.server.ts',
+                    language: 'typescript' as const,
+                    code: getCloudflareOptionsSnippet(params.dsn.public),
+                  },
+                ],
+              },
+            ]
+          : []),
         {
           type: 'custom',
           content: (
@@ -762,15 +758,15 @@ export function getInstallStep(
   const selected = getAgentIntegration(params);
 
   if (selected === AgentIntegration.MASTRA) {
-    return mastraOnboarding.install(params);
+    return mastraFrameworkOnboarding.install(params);
   }
 
   if (selected === AgentIntegration.FLUE) {
-    return flueOnboarding.install(params);
+    return flueFrameworkOnboarding.install(params);
   }
 
   if (selected === AgentIntegration.EVE) {
-    return eveOnboarding.install(params);
+    return eveFrameworkOnboarding.install(params);
   }
 
   const resolvedPackageName =
@@ -795,69 +791,6 @@ export function getInstallStep(
         getInstallCodeBlock(params, {
           packageName: resolvedPackageName,
         }),
-      ],
-    },
-  ];
-}
-
-/**
- * The Cloudflare Agents SDK is bootstrapped by wrapping the agent class with
- * `instrumentAgentWithSentry` (Durable Object instrumentation under the hood),
- * a different entry point than `withSentry`, so it gets its own configure step.
- *
- * @see https://docs.sentry.io/platforms/javascript/guides/cloudflare/features/agents-sdk/
- */
-function getCloudflareAgentsConfigureStep(params: DocsParams): OnboardingStep[] {
-  return [
-    {
-      title: t('Configure'),
-      content: [
-        {
-          type: 'text',
-          text: tct(
-            'Wrap your agent class with [code:Sentry.instrumentAgentWithSentry]. It applies Durable Object instrumentation plus agent-specific telemetry, including callable RPC spans and automatic conversation ID tracking.',
-            {code: <code />}
-          ),
-        },
-        {
-          type: 'code',
-          tabs: [
-            {
-              label: 'JavaScript',
-              language: 'javascript',
-              code: `import * as Sentry from "@sentry/cloudflare";
-import { Agent } from "agents";
-
-class MyAgentBase extends Agent {
-  // Your agent logic goes here
-}
-
-// Wrap the agent so its RPC calls and model invocations are captured as AI spans
-export const MyAgent = Sentry.instrumentAgentWithSentry(
-  (env) => ({
-    dsn: "${params.dsn.public}",
-    // Tracing must be enabled for agent monitoring to work
-    tracesSampleRate: 1.0,
-    // Propagate traces across callable RPC methods
-    enableRpcTracePropagation: true,
-  }),
-  MyAgentBase,
-);`,
-            },
-          ],
-        },
-        {
-          type: 'text',
-          text: tct(
-            'The wrapper also supports [aiChatAgent:AIChatAgent] and [mcpAgent:McpAgent]. For per-user or singleton agents, call [code:Sentry.setConversationId] at the start of [code:onChatMessage] to override the automatic conversation ID. See the [link:Agents SDK docs] for details.',
-            {
-              code: <code />,
-              aiChatAgent: <code />,
-              mcpAgent: <code />,
-              link: <ExternalLink href={CLOUDFLARE_AGENTS_SDK_DOCS} />,
-            }
-          ),
-        },
       ],
     },
   ];
@@ -956,7 +889,7 @@ const result = await agent.generate({
     isCloudflare && integration === AgentIntegration.WORKERS_AI;
 
   const configureCode = isCloudflare
-    ? getCloudflareConfigureSnippet({dsn: params.dsn.public, integration})
+    ? getCloudflareViteConfigSnippet()
     : `${getImport(packageName).join('\n')}
 
 Sentry.init({
@@ -966,9 +899,12 @@ Sentry.init({
 });`;
 
   // On Node the SDK auto-instruments the integration; on Cloudflare the worker is
-  // wrapped and (for most SDKs) the client is instrumented explicitly below.
+  // wrapped at build time and (for most SDKs) the client is instrumented explicitly below.
   const introText = isCloudflare
-    ? t('Wrap your Worker with the Sentry SDK:')
+    ? tct(
+        'Add the Sentry Cloudflare plugin to your [code:vite.config.ts], after the Cloudflare Vite plugin. It wraps your Worker and instruments bundled AI dependencies at build time.',
+        {code: <code />}
+      )
     : tct(
         'Import and initialize the Sentry SDK - the [integration] will be enabled automatically:',
         {
@@ -981,7 +917,7 @@ Sentry.init({
       title: t('Configure'),
       content:
         integration === AgentIntegration.MASTRA
-          ? (mastraOnboarding.configure(params)[0]?.content ?? [])
+          ? (mastraFrameworkOnboarding.configure(params)[0]?.content ?? [])
           : [
               {
                 type: 'text',
@@ -991,14 +927,50 @@ Sentry.init({
                 type: 'code',
                 tabs: [
                   {
-                    label: configFileName ?? 'JavaScript',
-                    language: 'javascript',
+                    label: isCloudflare
+                      ? 'vite.config.ts'
+                      : (configFileName ?? 'JavaScript'),
+                    language: isCloudflare ? 'typescript' : 'javascript',
                     code: configureCode,
                   },
                 ],
               },
+              ...(isCloudflare
+                ? [
+                    {
+                      type: 'text' as const,
+                      text: tct(
+                        'Put your Sentry options in an [code:instrument.server.ts] file next to your Worker entry. The plugin loads these options automatically.',
+                        {code: <code />}
+                      ),
+                    },
+                    {
+                      type: 'code' as const,
+                      tabs: [
+                        {
+                          label: 'src/instrument.server.ts',
+                          language: 'typescript' as const,
+                          code: getCloudflareOptionsSnippet(params.dsn.public),
+                        },
+                      ],
+                    },
+                  ]
+                : []),
+              ...(isCloudflare && integration === AgentIntegration.CLOUDFLARE_AGENTS
+                ? [
+                    {
+                      type: 'text' as const,
+                      text: tct(
+                        'The plugin automatically instruments [code:AIChatAgent], so do not also wrap it with [code:instrumentAgentWithSentry]. For per-user or singleton agents, call [code:Sentry.setConversationId] at the start of [code:onChatMessage] to override the automatic conversation ID. See the [link:Agents SDK docs] for details.',
+                        {
+                          code: <code />,
+                          link: <ExternalLink href={CLOUDFLARE_AGENTS_SDK_DOCS} />,
+                        }
+                      ),
+                    },
+                  ]
+                : []),
               ...(isCloudflareWorkersAi ? [getWorkersAiNote()] : []),
-              ...(isCloudflare ? [getDurableObjectsNote()] : []),
               ...(isCloudflareWrap ? getCloudflareWrapBlocks(integration) : []),
               ...vercelAiExtraInstrumentation,
             ],
@@ -1010,15 +982,15 @@ function getVerifyStep(params: DocsParams): OnboardingStep[] {
   const selected = getAgentIntegration(params);
 
   if (selected === AgentIntegration.MASTRA) {
-    return mastraOnboarding.verify(params);
+    return mastraFrameworkOnboarding.verify(params);
   }
 
   if (selected === AgentIntegration.FLUE) {
-    return flueOnboarding.verify(params);
+    return flueFrameworkOnboarding.verify(params);
   }
 
   if (selected === AgentIntegration.EVE) {
-    return eveOnboarding.verify(params);
+    return eveFrameworkOnboarding.verify(params);
   }
 
   // The Agents SDK only produces spans once the wrapped agent runs, so there's
@@ -1228,15 +1200,11 @@ function getAgentConfigureSteps(
   }
 
   if (selected === AgentIntegration.FLUE) {
-    return flueOnboarding.configure(params);
+    return flueFrameworkOnboarding.configure(params);
   }
 
   if (selected === AgentIntegration.EVE) {
-    return eveOnboarding.configure(params);
-  }
-
-  if (selected === AgentIntegration.CLOUDFLARE_AGENTS) {
-    return getCloudflareAgentsConfigureStep(params);
+    return eveFrameworkOnboarding.configure(params);
   }
 
   return getConfigureStep({

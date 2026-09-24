@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 import invariant from 'invariant';
 
 import {ProjectAvatar, UserAvatar} from '@sentry/scraps/avatar';
-import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {DateTime} from 'sentry/components/dateTime';
@@ -59,7 +59,7 @@ export function ReplayBadge({replay}: Props) {
   );
 
   return (
-    <Wrapper columns="24px 1fr" gap="md" align="center" justify="center">
+    <Wrapper columns="24px minmax(0, 1fr)" gap="md" align="center" justify="center">
       <UserAvatar
         user={{
           username: replay.user?.display_name || '',
@@ -71,33 +71,40 @@ export function ReplayBadge({replay}: Props) {
         size={24}
       />
 
-      <Stack gap="xs" justify="center">
+      <Stack gap="xs" justify="center" minWidth="0">
         <Flex direction="row" align="center" gap="xs">
-          {/* We use div here because the Text component has 100% width and will push live indicator to the far right */}
-          <div>
+          <Container minWidth="0">
             <Text size="md" bold ellipsis data-underline-on-hover>
               {replay.user.display_name || t('Anonymous User')}
             </Text>
-          </div>
+          </Container>
           {isLive ? <LiveBadge /> : null}
         </Flex>
 
-        <Flex gap="xs">
+        <Flex gap="xs" wrap="wrap">
           {/* Avatar is used instead of ProjectBadge because using ProjectBadge increases spacing, which doesn't look as good */}
-          {project ? <ProjectAvatar size={12} project={project} /> : null}
           {project ? (
-            <Text size="sm" variant="muted">
-              {project.slug}
-            </Text>
+            <Flex gap="xs" align="center" minWidth="0" maxWidth="100%">
+              <ProjectAvatar size={12} project={project} />
+              <Text size="sm" variant="muted" ellipsis>
+                {project.slug}
+              </Text>
+            </Flex>
           ) : null}
           <Text size="sm" variant="muted">
             {events.getShortEventId(replay.id)}
           </Text>
           {/* z-index lifts the timestamp above the row's ::before click target
              (from SimpleTable.rowLinkStyle) so the TimeSince tooltip can trigger */}
-          <Flex gap="xs" align="center" position="relative" style={{zIndex: 1}}>
+          <Flex
+            gap="xs"
+            align="center"
+            minWidth="0"
+            position="relative"
+            style={{zIndex: 1}}
+          >
             <IconCalendar variant="muted" size="xs" />
-            <Text size="sm" variant="muted">
+            <Text size="sm" variant="muted" wrap="normal">
               {timestampType === 'absolute' ? (
                 <DateTime year timeZone date={replay.started_at} />
               ) : (

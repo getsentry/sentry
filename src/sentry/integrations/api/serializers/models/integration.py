@@ -114,13 +114,14 @@ class IntegrationSerializer(Serializer):
         match provider.key:
             case "github":
                 out_of_date = bool(get_missing_github_app_permissions(obj.metadata))
-                permissions = obj.metadata.get("permissions")
-                if permissions is not None:
-                    tiers = get_permission_tiers(permissions, GITHUB_APP_LATEST_PERMISSIONS)
-                    missing_features = [
-                        {"key": tier.key, "description": tier.description}
-                        for tier in reversed(tiers)
-                    ]
+                # Read missing permissions as "holds none", the same way
+                # outOfDate does, so an install flagged out of date always
+                # names the features it is missing.
+                permissions = obj.metadata.get("permissions") or {}
+                tiers = get_permission_tiers(permissions, GITHUB_APP_LATEST_PERMISSIONS)
+                missing_features = [
+                    {"key": tier.key, "description": tier.description} for tier in reversed(tiers)
+                ]
             case "slack":
                 out_of_date = SlackScope.APP_MENTIONS_READ not in (obj.metadata.get("scopes") or [])
 
