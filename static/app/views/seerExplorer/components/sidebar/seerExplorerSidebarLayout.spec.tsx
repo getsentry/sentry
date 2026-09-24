@@ -553,7 +553,9 @@ describe('SeerExplorerSidebarLayout', () => {
 
       mockWideScreen(true);
       const {router} = renderSidebar(orgWithSidebar, undefined, {explorerRunId: '99'});
-      expect(await screen.findByTestId('seer-explorer-input')).toBeInTheDocument();
+      const input = await screen.findByTestId('seer-explorer-input');
+      // Opening focuses the input; wait for it so the focus move can't close the menu below.
+      await waitFor(() => expect(input).toHaveFocus());
 
       await userEvent.click(screen.getByRole('button', {name: 'Dock position'}));
       await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Windowed'}));
