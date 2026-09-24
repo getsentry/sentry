@@ -280,3 +280,38 @@ def test_iteration() -> None:
     assert inst[0].type == "ValueError"
     for exc in inst:
         assert exc.type == "ValueError"
+
+
+def test_get_api_meta_with_non_numeric_keys() -> None:
+    """Test that get_api_meta skips non-numeric keys in meta values.
+    
+    This handles native/minidump events where Relay validation errors
+    can result in empty string keys instead of numeric indices.
+    """
+    inst = Exception.to_python({
+        "values": [
+            {"type": "ValueError", "value": "test error"},
+            {"type": "TypeError", "value": "another error"}
+        ]
+    })
+    
+    # Meta with both numeric and non-numeric keys
+    meta = {
+        "values": {
+            "0": {"type": {}, "value": {}},  # Valid numeric key
+            "": {"err": ["missing_attribute"]},  # Empty string key from Relay
+            "1": {"type": {}, "value": {}},  # Valid numeric key
+            "non-numeric": {"err": ["something"]},  # Another invalid key
+        }
+    }
+    
+    # Should not crash and should return only valid numeric keys
+    result = inst.get_api_meta(meta)
+    
+    assert result is not None
+    assert "values" in result
+    assert "0" in result["values"]
+    assert "1" in result["values"]
+    # Non-numeric keys should be skipped
+    assert "" not in result["values"]
+    assert "non-numeric" not in result["values"]
