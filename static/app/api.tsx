@@ -581,10 +581,7 @@ export class Client {
               const message = '200 treated as error';
 
               Sentry.withScope(scope => {
-                scope.setTags({
-                  endpoint: `${method} ${parameterizedPath}`,
-                  errorReason,
-                });
+                scope.setTags({endpoint: `${method} ${parameterizedPath}`, errorReason});
                 scope.setExtras({
                   twoHundredErrorReason,
                   responseJSON,

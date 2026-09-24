@@ -37,9 +37,7 @@ describe('api', () => {
         const req1 = new Request(new Promise(() => null), {
           abort: abort1,
         } as any);
-        const req2 = new Request(new Promise(() => null), {
-          abort: abort2,
-        } as any);
+        const req2 = new Request(new Promise(() => null), {abort: abort2} as any);
 
         api.activeRequests = {
           1: req1,
@@ -66,11 +64,7 @@ describe('api', () => {
   it('does not call success callback if 302 was returned because of a project slug change', () => {
     const successCb = jest.fn();
     api.activeRequests = {
-      id: {
-        alive: true,
-        requestPromise: new Promise(() => null),
-        cancel: jest.fn(),
-      },
+      id: {alive: true, requestPromise: new Promise(() => null), cancel: jest.fn()},
     };
     api.wrapCallback(
       'id',
@@ -125,17 +119,13 @@ describe('api', () => {
     const unregister = registerApiErrorHandler(errorHandler);
     const client = new Client();
 
-    fetchMock.mockResponseOnce(JSON.stringify({detail: 'Nope'}), {
-      status: 500,
-    });
+    fetchMock.mockResponseOnce(JSON.stringify({detail: 'Nope'}), {status: 500});
     await expect(client.requestPromise('/first/')).rejects.toBeDefined();
     expect(errorHandler).toHaveBeenCalledTimes(1);
 
     unregister();
 
-    fetchMock.mockResponseOnce(JSON.stringify({detail: 'Still nope'}), {
-      status: 500,
-    });
+    fetchMock.mockResponseOnce(JSON.stringify({detail: 'Still nope'}), {status: 500});
     await expect(client.requestPromise('/second/')).rejects.toBeDefined();
     expect(errorHandler).toHaveBeenCalledTimes(1);
   });
