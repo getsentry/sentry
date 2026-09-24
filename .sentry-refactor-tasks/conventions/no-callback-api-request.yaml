@@ -20,6 +20,9 @@ detect: |
       without success/error/complete callback options
     - The definition of request() or requestPromise() methods themselves
     - References in comments, documentation, or test mocks
+    - api.requestPromise() used inside a useMutation() mutationFn — even when
+      the surrounding useMutation() object has onSuccess/onError/onSettled options.
+      Those are React Query lifecycle hooks, NOT api.request() callback options.
 
 fix: |
   Convert callback-based api.request() to await api.requestPromise():
@@ -63,6 +66,12 @@ examples:
   good:
     - "const data = await api.requestPromise('/endpoint/');"
     - "await this.api.requestPromise('/endpoint/', { method: 'POST', data });"
+    - |
+      useMutation({
+        mutationFn: () => api.requestPromise('/endpoint/', { method: 'POST', data }),
+        onSuccess: (result) => { /* React Query hook, not an api.request callback */ },
+        onError: (err) => { setError(err.message); },
+      })
 
 include:
   - 'static/app/**/*.tsx'
@@ -74,4 +83,4 @@ exclude:
   - '**/*.test.*'
   - '**/test/**'
 
-prefilter: "grep -rl --include='*.tsx' --include='*.ts' -E 'api\\.request\\(|api\\.requestPromise\\(' {repo_path}/static/"
+prefilter: "grep -rl --include='*.tsx' --include='*.ts' -E 'api\\.request\\(|api\\.requestPromise\\(' {repo_path}/static/app/"
