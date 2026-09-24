@@ -417,8 +417,8 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
 
   const refetchData = useCallback(() => {
     refetchEvent();
-    refetchGroup();
-  }, [refetchGroup, refetchEvent]);
+    refetchGroupCall();
+  }, [refetchGroupCall, refetchEvent]);
 
   // Refetch when group is stale
   useEffect(() => {
