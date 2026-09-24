@@ -640,6 +640,7 @@ class ProjectUpdateTest(APITestCase):
             "sentry:replay_hydration_error_issues": True,
             "sentry:toolbar_allowed_origins": "*.sentry.io\nexample.net  \nnugettrends.com",
             "sentry:replay_rage_click_issues": True,
+            "sentry:relay_automatic_json_expansion": True,
             "sentry:feedback_user_report_notifications": True,
             "sentry:feedback_ai_spam_detection": True,
             "feedback:branding": False,
@@ -779,6 +780,7 @@ class ProjectUpdateTest(APITestCase):
             "nugettrends.com",
         ]
         assert project.get_option("sentry:replay_rage_click_issues") is True
+        assert project.get_option("sentry:relay_automatic_json_expansion") is True
         assert project.get_option("sentry:feedback_user_report_notifications") is True
         assert project.get_option("sentry:feedback_ai_spam_detection") is True
 

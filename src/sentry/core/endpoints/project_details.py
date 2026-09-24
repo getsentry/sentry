@@ -1226,6 +1226,11 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     "sentry:toolbar_allowed_origins",
                     clean_newline_inputs(options["sentry:toolbar_allowed_origins"]),
                 )
+            if "sentry:relay_automatic_json_expansion" in options:
+                project.update_option(
+                    "sentry:relay_automatic_json_expansion",
+                    bool(options["sentry:relay_automatic_json_expansion"]),
+                )
             if "filters:react-hydration-errors" in options:
                 project.update_option(
                     "filters:react-hydration-errors",

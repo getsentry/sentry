@@ -148,6 +148,13 @@ register(
     default=[],
 )
 
+# Opt-in to Relay expanding JSON-like string attributes on EAP items into KVList
+# attributes, so the nested keys become searchable.
+register(
+    key="sentry:relay_automatic_json_expansion",
+    default=False,
+)
+
 register(
     key="sentry:feedback_user_report_notifications",
     epoch_defaults={12: True},
