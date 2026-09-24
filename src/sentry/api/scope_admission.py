@@ -12,12 +12,15 @@ produce them.
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Collection, Iterable
 from dataclasses import dataclass
 
 from django.conf import settings
 from django.http.request import HttpRequest
 from rest_framework.request import Request
+
+logger = logging.getLogger(__name__)
 
 REQUEST_ATTR = "scope_admission"
 
@@ -41,16 +44,21 @@ def record_scope_admission(
     last one wins, because it is the most specific and is evaluated against the
     caller's effective access rather than the raw token.
     """
-    granted = set(granted_scopes)
-    satisfying = tuple(sorted(scope for scope in allowed_scopes if scope in granted))
-    if not satisfying:
-        return
-    record = ScopeAdmission(
-        satisfying=satisfying,
-        allowed=tuple(sorted(allowed_scopes)),
-        least_permissive=least_permissive_scope(satisfying),
-    )
-    setattr(_underlying(request), REQUEST_ATTR, record)
+    try:
+        granted = set(granted_scopes)
+        satisfying = tuple(sorted(scope for scope in allowed_scopes if scope in granted))
+        if not satisfying:
+            return
+        record = ScopeAdmission(
+            satisfying=satisfying,
+            allowed=tuple(sorted(allowed_scopes)),
+            least_permissive=least_permissive_scope(satisfying),
+        )
+        setattr(_underlying(request), REQUEST_ATTR, record)
+    except Exception:
+        # Telemetry on the permission path: a failure here must not turn an
+        # authorized request into a 500.
+        logger.exception("api.scope_admission.record_failed")
 
 
 def get_scope_admission(request: Request) -> ScopeAdmission | None:

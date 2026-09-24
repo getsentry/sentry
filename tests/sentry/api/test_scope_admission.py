@@ -82,3 +82,24 @@ class LeastPermissiveScopeTest(TestCase):
 
     def test_no_scopes(self) -> None:
         assert least_permissive_scope([]) is None
+
+
+class RecordingFailureTest(APITestCase):
+    """Telemetry on the permission path must not turn an authorized request into a 500."""
+
+    def test_a_failure_while_recording_does_not_fail_the_request(self) -> None:
+        self.login_as(self.user)
+        url = f"/api/0/organizations/{self.organization.slug}/"
+
+        with (
+            self.feature(FEATURE_FLAG),
+            mock.patch(
+                "sentry.api.scope_admission.least_permissive_scope",
+                side_effect=ValueError("boom"),
+            ),
+            mock.patch("sentry.api.client_kind.set_span_data") as set_span_data,
+        ):
+            assert self.client.get(url).status_code == 200
+
+        recorded = {call.args[1] for call in set_span_data.call_args_list}
+        assert "scopes_satisfying" not in recorded
