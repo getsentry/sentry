@@ -153,7 +153,7 @@ class TriggerSmartAssignmentTest(TestCase):
             f"smart-assignment-prefetch:{self.group.id}",
         )
         run_kwargs = mock_client_cls.return_value.start_feature_run.call_args.kwargs
-        assert run_kwargs["payload"]["prefetch_mode"] == "prefetch"
+        assert run_kwargs["payload"]["is_prefetch_enabled"] is True
         assert run_kwargs["flush"] is False
         assert self._mirrors()[0].extras["prefetch_cohort"] == "prefetch"
 
@@ -177,7 +177,7 @@ class TriggerSmartAssignmentTest(TestCase):
             )
 
         run_kwargs = mock_client_cls.return_value.start_feature_run.call_args.kwargs
-        assert run_kwargs["payload"]["prefetch_mode"] == "control"
+        assert run_kwargs["payload"]["is_prefetch_enabled"] is False
         assert self._mirrors()[0].extras["prefetch_cohort"] == "control"
 
     @patch(CLIENT_PATH)

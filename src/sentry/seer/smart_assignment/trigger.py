@@ -18,7 +18,6 @@ from sentry.seer.smart_assignment.models import (
     SEER_FEATURE_ID,
     SEER_START_ACTIVITIES,
     SmartAssignmentPayload,
-    SmartAssignmentPrefetchMode,
     is_unscorable_assignment,
 )
 from sentry.seer.smart_assignment.scoring import record_ground_truth, resolver_user_id
@@ -178,18 +177,15 @@ def _dispatch(group: Group, activity_type: ActivityType, activity: Activity) -> 
         )
         return
 
-    prefetch_mode: SmartAssignmentPrefetchMode = (
-        "prefetch"
-        if in_rollout_group(
-            "seer.smart_assignment.prefetch_rollout_rate",
-            f"smart-assignment-prefetch:{group.id}",
-        )
-        else "control"
+    is_prefetch_enabled = in_rollout_group(
+        "seer.smart_assignment.prefetch_rollout_rate",
+        f"smart-assignment-prefetch:{group.id}",
     )
+
     extras: dict[str, object] = {
         "trigger": activity_type.name,
         "triggering_activity_id": activity.id,
-        "prefetch_cohort": prefetch_mode,
+        "prefetch_cohort": "prefetch" if is_prefetch_enabled else "control",
     }
 
     preferences = bulk_read_preferences_from_sentry_db(organization.id, [group.project_id])
@@ -201,7 +197,7 @@ def _dispatch(group: Group, activity_type: ActivityType, activity: Activity) -> 
         group_id=group.id,
         project_slug=group.project.slug,
         connected_repos=connected_repos,
-        prefetch_mode=prefetch_mode,
+        is_prefetch_enabled=is_prefetch_enabled,
     )
     title = f"Smart assignment for {group.qualified_short_id or group.id}"
     try:
