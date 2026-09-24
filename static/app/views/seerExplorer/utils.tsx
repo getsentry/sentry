@@ -81,8 +81,7 @@ export const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
       ? ([] as string[]).concat(args.project_slugs)
       : [];
 
-    const projectInfo =
-      projectSlugs.length > 0 ? ` in ${projectSlugs.join(', ')}` : '';
+    const projectInfo = projectSlugs.length > 0 ? ` in ${projectSlugs.join(', ')}` : '';
 
     if (dataset === 'issues') {
       return isLoading
