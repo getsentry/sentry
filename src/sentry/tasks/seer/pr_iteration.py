@@ -5,7 +5,6 @@ from collections.abc import Collection
 from dataclasses import dataclass
 from datetime import timedelta
 from enum import StrEnum
-from multiprocessing.context import TimeoutError as ProcessingDeadlineExceeded
 from typing import Any, NamedTuple
 from uuid import uuid4
 
@@ -1240,11 +1239,9 @@ def _resolve_run_for_pr_comment(
 
 # Seer outages (a deploy, say) can outlast the quick retries on the request
 # itself, so tasks that start with a Seer lookup try again every minute for five
-# minutes. Once those run out, the worker reports NoRetriesRemainingError. Only
-# that error is retried: taskbroker would otherwise also retry deadline timeouts.
-SEER_UNAVAILABLE_RETRY = Retry(
-    on=(SeerUnavailableError,), ignore=(ProcessingDeadlineExceeded,), times=6, delay=60
-)
+# minutes. Once those run out, the worker reports NoRetriesRemainingError. Other
+# errors, including hitting the processing deadline, are not retried.
+SEER_UNAVAILABLE_RETRY = Retry(on=(SeerUnavailableError,), times=6, delay=60)
 
 
 @instrumented_task(

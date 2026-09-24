@@ -11,6 +11,7 @@ from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.models.organizationmember import OrganizationMember
 from sentry.seer.agent.client_utils import (
     AGENT_STATE_PR_RETRIES,
+    AGENT_STATE_PR_TIMEOUT,
     _normalize_wildcard_operators,
     _sanitize_json_strings,
     collect_user_org_context,
@@ -627,6 +628,7 @@ class GetAgentStateFromPrIdTest(TestCase):
             assert get_agent_state_from_pr_id(1, "integrations:github", 2) is None
 
         assert request.call_args.kwargs["retries"] is AGENT_STATE_PR_RETRIES
+        assert request.call_args.kwargs["timeout"] == AGENT_STATE_PR_TIMEOUT
 
     def test_raises_unavailable_on_server_error(self) -> None:
         with mock.patch(self._REQUEST, return_value=mock.Mock(status=503)):
