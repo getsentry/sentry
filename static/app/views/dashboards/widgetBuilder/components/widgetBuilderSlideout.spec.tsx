@@ -358,10 +358,10 @@ describe('WidgetBuilderSlideout', () => {
     );
     expect(screen.getByPlaceholderText('Add Alias')).toHaveValue('test alias again');
 
-    await userEvent.click(await screen.findByText('Table'));
-    await userEvent.click(await screen.findByText('Area'));
-    await userEvent.click(await screen.findByText('Area'));
-    await userEvent.click(await screen.findByText('Table'));
+    await userEvent.click(await screen.findByRole('button', {name: 'Table'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'Area'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Area'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'Table'}));
 
     await waitFor(() => {
       expect(screen.getByPlaceholderText('Add Alias')).toHaveValue('');
