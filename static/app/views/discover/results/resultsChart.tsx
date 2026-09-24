@@ -100,7 +100,8 @@ class ResultsChart extends Component<ResultsChartProps> {
             ? AreaChart
             : undefined;
     const interval =
-      display === DisplayModes.BAR
+      eventView.interval ??
+      (display === DisplayModes.BAR
         ? getInterval(
             {
               start,
@@ -110,7 +111,7 @@ class ResultsChart extends Component<ResultsChartProps> {
             },
             'low'
           )
-        : eventView.interval;
+        : undefined);
 
     const seriesLabels = yAxisValue.map(stripEquationPrefix);
     const disableableSeries = [
