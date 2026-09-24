@@ -170,6 +170,9 @@ def get_current_release_version_of_group(group: Group, follows_semver: bool = Fa
         if release is not None:
             current_release_version = release.version
     else:
+        # Preserve the last-release cache refresh for issue details. Its history
+        # includes archived releases, so refresh it separately from anchor selection.
+        group.get_last_release(use_cache=False)
         # Keep the issue's last-seen ordering, but exclude archived releases before
         # choosing its resolution anchor. General release history remains unfiltered.
         eligible_releases = Release.objects.filter(

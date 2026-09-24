@@ -74,6 +74,8 @@ def test_resolution_anchor_uses_latest_eligible_observation(
 ) -> None:
     now = datetime.now(UTC)
     project = default_group.project
+    # Prime the general history cache before any release has been observed.
+    assert default_group.get_last_release() is None
     archived = factories.create_release(
         project=project, version="archived", status=ReleaseStatus.ARCHIVED
     )
@@ -81,6 +83,7 @@ def test_resolution_anchor_uses_latest_eligible_observation(
     # An unobserved project release is not a replacement for the issue's anchor.
     factories.create_release(project=project, version="unobserved")
     assert get_current_release_version_of_group(default_group) is None
+    assert default_group.get_last_release() == archived.version
 
     older_release = factories.create_release(
         project=project, version="older", date_added=now - timedelta(days=3), status=eligible_status
@@ -97,8 +100,9 @@ def test_resolution_anchor_uses_latest_eligible_observation(
 
     # Resolution anchors follow last-seen order, not release creation order.
     assert get_current_release_version_of_group(default_group) == older_release.version
-    # General issue history continues to include archived releases.
-    assert default_group.get_last_release(use_cache=False) == archived.version
+    # The general history cache must retain the archived latest observation,
+    # rather than the eligible release chosen for resolution.
+    assert default_group.get_last_release() == archived.version
 
 
 class ValidateSearchFilterPermissionsTest(TestCase):
