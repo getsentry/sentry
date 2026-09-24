@@ -55,8 +55,7 @@ class EvaluationContext:
             vector.append(str(self.__data[key]))
         hashed = hashlib.sha1()
         if feature_name is not None:
-            hashed.update(feature_name.encode("utf8"))
-            hashed.update(b":")
+            hashed.update((feature_name + ":").encode("utf8"))
         hashed.update(":".join(vector).encode("utf8"))
         return int.from_bytes(hashed.digest(), byteorder="big")
 
