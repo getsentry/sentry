@@ -112,9 +112,7 @@ export function LaunchpadAdminPage() {
           host: locality?.url,
         }
       );
-      addSuccessMessage(
-        `Artifact info fetched successfully for: ${fetchInfoArtifactId}`
-      );
+      addSuccessMessage(`Artifact info fetched successfully for: ${fetchInfoArtifactId}`);
       setFetchedArtifactInfo(data);
       setFetchInfoArtifactId('');
     } catch {
