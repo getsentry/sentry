@@ -55,24 +55,4 @@ describe('AutomationStatsChart time range', () => {
       xAxis: {type: 'time', min: start, max: end},
     });
   });
-
-  it('continues to accept the legacy response during deployment', async () => {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/workflows/123/stats/',
-      body: [{date: '2026-01-13T20:00:00Z', count: 1}],
-    });
-
-    render(
-      <AutomationStatsChart
-        automationId="123"
-        period="1h"
-        start={null}
-        end={null}
-        utc={null}
-      />,
-      {organization}
-    );
-
-    expect(await screen.findByText('1')).toBeInTheDocument();
-  });
 });

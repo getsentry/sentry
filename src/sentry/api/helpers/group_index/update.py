@@ -50,6 +50,7 @@ from sentry.models.grouphistory import record_group_history_from_activity_type
 from sentry.models.groupinbox import GroupInboxRemoveAction, remove_group_from_inbox
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupopenperiod import update_group_open_period
+from sentry.models.grouprelease import GroupRelease
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.groupseen import GroupSeen
 from sentry.models.groupshare import GroupShare
@@ -86,7 +87,7 @@ class ResolutionParams(TypedDict):
     type: int | None
     status: int | None
     actor_id: int | None
-    current_release_version: NotRequired[str]
+    current_release_version: NotRequired[str | None]
 
 
 def handle_discard(
@@ -169,12 +170,28 @@ def get_current_release_version_of_group(group: Group, follows_semver: bool = Fa
         if release is not None:
             current_release_version = release.version
     else:
-        # This sets current_release_version to the most recent release associated with a group
-        # In order to be able to do that, `use_cache` has to be set to False. Otherwise,
-        # group.get_last_release might not return the actual latest release associated with a
-        # group but rather a cached version (which might or might not be the actual latest. It is
-        # the first latest observed by Sentry)
-        current_release_version = group.get_last_release(use_cache=False)
+        # Preserve the last-release cache refresh for issue details. Its history
+        # includes archived releases, so refresh it separately from anchor selection.
+        group.get_last_release(use_cache=False)
+        # Keep the issue's last-seen ordering, but exclude archived releases before
+        # choosing its resolution anchor. General release history remains unfiltered.
+        eligible_releases = Release.objects.filter(
+            organization_id=group.project.organization_id,
+        ).filter(Q(status=ReleaseStatus.OPEN) | Q(status__isnull=True))
+        latest_observation = (
+            GroupRelease.objects.filter(
+                group_id=group.id,
+                project_id=group.project_id,
+                release_id__in=eligible_releases.values("id"),
+            )
+            .order_by("-last_seen")
+            .values("release_id")[:1]
+        )
+        current_release_version = (
+            Release.objects.filter(id__in=latest_observation)
+            .values_list("version", flat=True)
+            .first()
+        )
     return current_release_version
 
 
@@ -532,10 +549,10 @@ def process_group_resolution(
             )
 
             current_release_version = get_current_release_version_of_group(group, follows_semver)
+            # Clear a previous anchor if no eligible observed release remains.
+            resolution_params["current_release_version"] = current_release_version
 
             if current_release_version:
-                resolution_params.update({"current_release_version": current_release_version})
-
                 # Sets `current_release_version` for activity, since there is no point
                 # waiting for when a new release is created i.e.
                 # clear_expired_resolutions task to be run.
