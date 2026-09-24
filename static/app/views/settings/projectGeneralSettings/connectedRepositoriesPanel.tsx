@@ -1,4 +1,4 @@
-import {useQuery} from '@tanstack/react-query';
+import {useInfiniteQuery} from '@tanstack/react-query';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
@@ -15,6 +15,7 @@ import {PanelItem} from 'sentry/components/panels/panelItem';
 import {IconAdd, IconEllipsis} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
+import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -40,14 +41,14 @@ const OVERFLOW_ITEMS: MenuItemProps[] = [
   },
 ];
 
-function projectRepoQueryOptions({
+function projectRepoInfiniteOptions({
   orgSlug,
   projectSlug,
 }: {
   orgSlug: string;
   projectSlug: string;
 }) {
-  return apiOptions.as<ProjectRepoListItem[]>()(
+  return apiOptions.asInfinite<ProjectRepoListItem[]>()(
     '/projects/$organizationIdOrSlug/$projectIdOrSlug/repo/',
     {
       path: {organizationIdOrSlug: orgSlug, projectIdOrSlug: projectSlug},
@@ -93,15 +94,22 @@ function ConnectedRepositoryRow({repo}: {repo: ProjectRepoListItem}) {
 export function ConnectedRepositoriesPanel({project}: {project: Project}) {
   const organization = useOrganization();
 
-  const query = useQuery(
-    projectRepoQueryOptions({
+  const query = useInfiniteQuery(
+    projectRepoInfiniteOptions({
       orgSlug: organization.slug,
       projectSlug: project.slug,
     })
   );
+  useFetchAllPages({result: query});
+
+  // Wait for every page so repository mapping counts are complete.
+  const isLoadingAllPages =
+    !query.isError && (query.isPending || query.isFetchingNextPage || query.hasNextPage);
+
+  const repos = query.data?.pages.flatMap(p => p.json) ?? [];
 
   function renderBody() {
-    if (query.isPending) {
+    if (isLoadingAllPages) {
       return (
         <Flex justify="center" align="center" padding="xl">
           <LoadingIndicator mini />
@@ -111,14 +119,14 @@ export function ConnectedRepositoriesPanel({project}: {project: Project}) {
     if (query.isError) {
       return <LoadingError message={t('Failed to load connected repositories.')} />;
     }
-    if (query.data.length === 0) {
+    if (repos.length === 0) {
       return (
         <Flex padding="xl">
           <Text variant="muted">{t('No repositories connected')}</Text>
         </Flex>
       );
     }
-    return query.data.map(repo => <ConnectedRepositoryRow key={repo.id} repo={repo} />);
+    return repos.map(repo => <ConnectedRepositoryRow key={repo.id} repo={repo} />);
   }
 
   return (

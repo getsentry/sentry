@@ -1,7 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {ConnectedRepositoriesPanel} from 'sentry/views/settings/projectGeneralSettings/connectedRepositoriesPanel';
 
@@ -114,6 +114,56 @@ describe('ConnectedRepositoriesPanel', () => {
 
     expect(await screen.findByText('getsentry/relay')).toBeInTheDocument();
     expect(screen.getByText('0 mappings')).toBeInTheDocument();
+  });
+
+  it('waits for every page before rendering rows', async () => {
+    const repoA = {
+      id: '1',
+      projectId: project.id,
+      repositoryId: '10',
+      repoName: 'getsentry/sentry',
+      source: 'manual',
+      providerKey: 'github',
+      mappingCount: 1,
+    };
+    const repoB = {
+      id: '2',
+      projectId: project.id,
+      repositoryId: '11',
+      repoName: 'getsentry/relay',
+      source: 'manual',
+      providerKey: 'github',
+      mappingCount: 0,
+    };
+
+    MockApiClient.addMockResponse({
+      url: repoUrl,
+      method: 'GET',
+      body: [repoA],
+      headers: {
+        Link: `<${repoUrl}?cursor=0:100:0>; rel="next"; results="true"; cursor="0:100:0"`,
+      },
+    });
+
+    const nextPage = Promise.withResolvers<void>();
+    const nextPageRequest = MockApiClient.addMockResponse({
+      url: repoUrl,
+      method: 'GET',
+      body: [repoB],
+      asyncDelay: nextPage.promise,
+      match: [MockApiClient.matchQuery({cursor: '0:100:0'})],
+    });
+
+    renderPanel();
+
+    await waitFor(() => expect(nextPageRequest).toHaveBeenCalled());
+    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
+    expect(screen.queryByText('getsentry/sentry')).not.toBeInTheDocument();
+
+    act(() => nextPage.resolve());
+
+    expect(await screen.findByText('getsentry/sentry')).toBeInTheDocument();
+    expect(screen.getByText('getsentry/relay')).toBeInTheDocument();
   });
 
   it('opens overflow menu with disabled Edit and Disconnect items', async () => {
