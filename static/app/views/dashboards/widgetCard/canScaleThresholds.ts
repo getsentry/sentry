@@ -12,6 +12,7 @@ const SCALABLE_AGGREGATES = new Set<string>([
 
 function isScalableAggregate(aggregate: string): boolean {
   if (isEquation(aggregate)) {
+    // Equations scale by user choice; we do not classify whether their result is interval-additive.
     return getEquation(aggregate).trim() !== '';
   }
 
