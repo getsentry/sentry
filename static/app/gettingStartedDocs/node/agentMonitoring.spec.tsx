@@ -338,16 +338,21 @@ describe('node agentMonitoring onboarding', () => {
     const DATA_COLLECTION_TITLE = 'Control the Data You Send to Sentry (Optional)';
 
     it.each([
-      ['vercel_ai', {integration: 'vercel_ai'}],
-      ['manual', {integration: 'manual'}],
-      ['mastra', {integration: 'mastra'}],
-      ['flue', {integration: 'flue'}],
-      ['on Cloudflare', {integration: 'openai', deploymentTarget: 'cloudflare'}],
+      ['vercel_ai', {integration: 'vercel_ai'}, 'Sentry.init({'],
+      ['manual', {integration: 'manual'}, 'Sentry.init({'],
+      ['mastra', {integration: 'mastra'}, 'Sentry.init({'],
+      ['flue', {integration: 'flue'}, 'Sentry.init({'],
+      [
+        'on Cloudflare',
+        {integration: 'openai', deploymentTarget: 'cloudflare'},
+        'defineCloudflareOptions((env) => ({',
+      ],
       [
         'cloudflare_agents',
         {integration: 'cloudflare_agents', deploymentTarget: 'cloudflare'},
+        'defineCloudflareOptions((env) => ({',
       ],
-    ])('offers the genAI opt-out for %s', (_label, platformOptions) => {
+    ])('offers the genAI opt-out for %s', (_label, platformOptions, wrapper) => {
       const steps = config.configure(makeParams(platformOptions));
       const dataCollectionSteps = steps.filter(
         step => step.title === DATA_COLLECTION_TITLE
@@ -355,9 +360,10 @@ describe('node agentMonitoring onboarding', () => {
 
       // Exactly one, even though several integrations reuse another config's steps.
       expect(dataCollectionSteps).toHaveLength(1);
-      expect(collectCode(dataCollectionSteps)).toContain(
-        'genAI: { inputs: false, outputs: false }'
-      );
+      const code = collectCode(dataCollectionSteps);
+      expect(code).toContain('genAI: { inputs: false, outputs: false }');
+      // The snippet shows where the options go, matching the target's init shape.
+      expect(code).toContain(wrapper);
       // GuidedSteps drops collapsible steps, so a collapsible step would never render.
       expect(dataCollectionSteps[0]!.collapsible).toBeFalsy();
     });
