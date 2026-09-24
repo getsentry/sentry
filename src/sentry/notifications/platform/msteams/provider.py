@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from sentry.integrations.msteams.card_builder.block import ActionType
 from sentry.notifications.platform.provider import (
     NotificationProvider,
     NotificationProviderError,
@@ -180,6 +181,8 @@ class MSTeamsNotificationProvider(NotificationProvider[MSTeamsRenderable]):
                 f"Target '{target.__class__.__name__}' is not a valid dataclass for {cls.__name__}"
             )
 
+        cls._add_integration_id(renderable, integration_id=target.integration_id)
+
         msteams_target = PreparedIntegrationNotificationTarget[MsTeamsIntegration](
             target=target, installation_cls=MsTeamsIntegration
         )
@@ -190,3 +193,22 @@ class MSTeamsNotificationProvider(NotificationProvider[MSTeamsRenderable]):
         except IntegrationError as e:
             return integration_error_result(e)
         return SendSuccessResult()
+
+    @classmethod
+    def _add_integration_id(cls, node: object, *, integration_id: int) -> None:
+        """
+        Add the integration id to the payload of every submit action in the card, in place. Teams
+        echoes a submit action's payload back to the webhook, which routes the request to a cell
+        by that id.
+        """
+        if isinstance(node, list):
+            for item in node:
+                cls._add_integration_id(item, integration_id=integration_id)
+        elif isinstance(node, dict):
+            data = node.get("data")
+            if node.get("type") == ActionType.SUBMIT and isinstance(data, dict):
+                payload = data.get("payload")
+                if isinstance(payload, dict):
+                    payload["integrationId"] = integration_id
+            for value in node.values():
+                cls._add_integration_id(value, integration_id=integration_id)
