@@ -225,6 +225,7 @@ class OpsgenieIntegrationProvider(IntegrationProvider):
     metadata = metadata
     integration_cls = OpsgenieIntegration
     overwrite_existing_integration = False
+    overwrite_existing_integration_if_unshared = True
     features = frozenset(
         [
             IntegrationFeatures.ENTERPRISE_INCIDENT_MANAGEMENT,

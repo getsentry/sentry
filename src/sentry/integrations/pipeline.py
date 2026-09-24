@@ -253,7 +253,10 @@ class IntegrationPipeline(Pipeline[Never, PipelineSessionStore]):
             )
         else:
             overwrite_existing_integration = self.provider.overwrite_existing_integration
-            if not overwrite_existing_integration:
+            if (
+                not overwrite_existing_integration
+                and self.provider.overwrite_existing_integration_if_unshared
+            ):
                 overwrite_existing_integration = (
                     not OrganizationIntegration.objects.filter(
                         integration__provider=self.provider.integration_key,
