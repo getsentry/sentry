@@ -430,12 +430,11 @@ function getTokenBreakdowns(
   usageByModel: ConversationModelUsage[]
 ): TokenBreakdownDetails[] {
   return usageByModel.map(usage => {
-    const isComplete = usage.inputTokens !== null && usage.outputTokens !== null;
     const breakdown = getTokenBreakdown({
-      inputTokens: usage.inputTokens ?? 0,
+      inputTokens: usage.inputTokens,
       cachedTokens: usage.cacheReadTokens,
       cacheWriteTokens: usage.cacheWriteTokens,
-      outputTokens: usage.outputTokens ?? 0,
+      outputTokens: usage.outputTokens,
       reasoningTokens: usage.reasoningTokens,
       totalTokens: usage.totalTokens,
     });
@@ -445,10 +444,10 @@ function getTokenBreakdowns(
       cacheRead: breakdown.cached,
       cacheWrite: breakdown.cacheWrite,
       input,
-      isComplete,
+      isComplete: true,
       output: breakdown.output,
       reasoning: usage.reasoningTokens,
-      total: isComplete ? input + breakdown.output : usage.totalTokens,
+      total: usage.totalTokens,
       inputCost: usage.inputCost,
       model: usage.model ?? t('Unknown model'),
       outputCost: usage.outputCost,

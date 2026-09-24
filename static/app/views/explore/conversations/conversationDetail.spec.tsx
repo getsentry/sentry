@@ -229,17 +229,17 @@ describe('ConversationDetailPage summary stats', () => {
     });
   });
 
-  it('uses the reported total when a model breakdown is incomplete', async () => {
+  it('shows available token counts from the API', async () => {
     mockApis(null, CONVERSATION_BODY, {
       usageByModel: [
         {
           cacheReadTokens: 0,
           cacheWriteTokens: 0,
           inputCost: 0,
-          inputTokens: null,
+          inputTokens: 100,
           model: null,
           outputCost: 0,
-          outputTokens: null,
+          outputTokens: 0,
           reasoningTokens: 0,
           totalCost: 0,
           totalTokens: 150,
@@ -253,6 +253,7 @@ describe('ConversationDetailPage summary stats', () => {
     await userEvent.hover(tokenCount.parentElement!);
 
     expect(await screen.findAllByText('150')).toHaveLength(2);
+    expect(screen.getByText('100')).toBeInTheDocument();
     expect(screen.getByText('Unknown model')).toBeInTheDocument();
   });
 

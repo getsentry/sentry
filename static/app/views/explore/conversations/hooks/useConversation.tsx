@@ -82,10 +82,10 @@ export interface ConversationModelUsage {
   cacheReadTokens: number;
   cacheWriteTokens: number;
   inputCost: number;
-  inputTokens: number | null;
+  inputTokens: number;
   model: string | null;
   outputCost: number;
-  outputTokens: number | null;
+  outputTokens: number;
   reasoningTokens: number;
   totalCost: number;
   totalTokens: number;
