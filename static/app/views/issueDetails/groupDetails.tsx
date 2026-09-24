@@ -264,14 +264,14 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
    * This is not closer to the GroupEventHeader because it is unmounted
    * between route changes like latest event => eventId
    */
-  const previousEvent = useMemoWithPrevious<{event: Event; groupId: string} | null>(
+  const previousEvent = useMemoWithPrevious<typeof event | null>(
     previousInstance => {
       if (event) {
-        return {event, groupId};
+        return event;
       }
       return previousInstance;
     },
-    [event, groupId]
+    [event]
   );
 
   // If the environment changes, we need to refetch the group, but we can
@@ -438,10 +438,8 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
   return {
     loadingGroup,
     group,
-    // Only retain an event while loading another event from the same issue.
-    event:
-      event ??
-      (loadingEvent && previousEvent?.groupId === groupId ? previousEvent.event : null),
+    // Allow previous event to be displayed while new event is loading
+    event: (loadingEvent ? (event ?? previousEvent) : event) ?? null,
     errorType,
     error: isGroupError,
     refetchData,
