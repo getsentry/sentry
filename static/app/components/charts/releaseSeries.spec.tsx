@@ -173,7 +173,7 @@ describe('useReleaseSeries', () => {
 
   it('fetches on property updates', async () => {
     const {rerender} = renderHookWithProviders(useReleaseSeries, {
-      initialProps: {...baseProps, period: '14d'},
+      initialProps: baseProps,
       organization,
     });
 
