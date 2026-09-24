@@ -102,6 +102,36 @@ class DatabaseBackedRepositoryService(RepositoryService):
 
             repository.save()
 
+    def update_repository_config(
+        self,
+        *,
+        organization_id: int,
+        id: int,
+        config_updates: dict[str, Any],
+        expected_integration_id: int | None = None,
+        expected_config: dict[str, Any] | None = None,
+    ) -> bool:
+        with transaction.atomic(router.db_for_write(Repository)):
+            repository = (
+                Repository.objects.filter(organization_id=organization_id, id=id)
+                .select_for_update()
+                .first()
+            )
+            if repository is None or repository.status != ObjectStatus.ACTIVE:
+                return False
+            if (
+                expected_integration_id is not None
+                and repository.integration_id != expected_integration_id
+            ):
+                return False
+            for key, value in (expected_config or {}).items():
+                if repository.config.get(key) != value:
+                    return False
+
+            repository.config = {**repository.config, **config_updates}
+            repository.save(update_fields=["config"])
+        return True
+
     def update_repositories(self, *, organization_id: int, updates: list[RpcRepository]) -> None:
         if not updates:
             return

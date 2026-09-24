@@ -6,6 +6,7 @@ import pytest
 import responses
 
 from fixtures.gitlab import COMMIT_DIFF_RESPONSE, COMMIT_LIST_RESPONSE, COMPARE_RESPONSE
+from sentry.constants import ObjectStatus
 from sentry.integrations.gitlab.repository import GitlabRepositoryProvider
 from sentry.integrations.gitlab.tasks import update_all_project_webhooks
 from sentry.integrations.services.repository.serial import serialize_repository
@@ -221,6 +222,51 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
 
         assert [call.request.method for call in responses.calls] == ["PUT", "POST"]
         assert self.get_repository(pk=repo.id).config["webhook_id"] == 100
+
+    def _on_create_repository_relink_discards_hook_when_repository_disabled(
+        self, delete_status: int
+    ) -> None:
+        response = self.create_repository(self.default_repository_config, self.integration.id)
+        repo = self.get_repository(pk=response.data["id"])
+        responses.reset()
+
+        def create(request):
+            with assume_test_silo_mode(SiloMode.CELL):
+                Repository.objects.filter(id=repo.id).update(status=ObjectStatus.DISABLED)
+            return 201, {}, '{"id": 100}'
+
+        responses.add(
+            responses.PUT,
+            "https://example.gitlab.com/api/v4/projects/%s/hooks/99" % self.gitlab_id,
+            status=404,
+        )
+        responses.add_callback(
+            responses.POST,
+            "https://example.gitlab.com/api/v4/projects/%s/hooks" % self.gitlab_id,
+            callback=create,
+        )
+        responses.add(
+            responses.DELETE,
+            "https://example.gitlab.com/api/v4/projects/%s/hooks/100" % self.gitlab_id,
+            status=delete_status,
+        )
+
+        self.relink_repository(repo)
+
+        assert [call.request.method for call in responses.calls] == ["PUT", "POST", "DELETE"]
+        repo = self.get_repository(pk=repo.id)
+        assert repo.status == ObjectStatus.DISABLED
+        assert repo.config["webhook_id"] == 99
+
+    @responses.activate
+    def test_on_create_repository_relink_discards_hook_when_repository_disabled(self) -> None:
+        self._on_create_repository_relink_discards_hook_when_repository_disabled(delete_status=204)
+
+    @responses.activate
+    def test_on_create_repository_relink_discards_hook_when_repository_disabled_and_cleanup_fails(
+        self,
+    ) -> None:
+        self._on_create_repository_relink_discards_hook_when_repository_disabled(delete_status=500)
 
     @responses.activate
     def test_on_create_repository_relink_update_failure_creates_no_duplicate(self) -> None:
