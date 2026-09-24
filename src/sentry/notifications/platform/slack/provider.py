@@ -56,6 +56,9 @@ class SlackProviderThreadingContext(ProviderThreadingContext):
     thread_ts: str | None = None
 
 
+SLACK_HEADER_BLOCK_MAX_LENGTH = 150
+
+
 class SlackRenderable(TypedDict):
     blocks: list[Block]
     attachments: NotRequired[list[dict[str, Any]]]
@@ -68,7 +71,10 @@ class SlackRenderer(NotificationRenderer[SlackRenderable]):
         cls, *, data: DataT, rendered_template: NotificationRenderedTemplate
     ) -> SlackRenderable:
         # Slack does not support rich text in the subject
-        subject_block = HeaderBlock(text=PlainTextObject(text=rendered_template.subject_text))
+        subject_text = rendered_template.subject_text
+        if len(subject_text) > SLACK_HEADER_BLOCK_MAX_LENGTH:
+            subject_text = subject_text[: SLACK_HEADER_BLOCK_MAX_LENGTH - 3] + "..."
+        subject_block = HeaderBlock(text=PlainTextObject(text=subject_text))
         body_blocks: list[Block] = cls._render_body(rendered_template.body)
 
         blocks: list[Block] = [subject_block, *body_blocks]
