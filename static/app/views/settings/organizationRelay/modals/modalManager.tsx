@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useState} from 'react';
 import {useMutation} from '@tanstack/react-query';
 import omit from 'lodash/omit';
 
@@ -47,14 +47,9 @@ export function ModalManager({
   const [values, setValues] = useState<Values>({...DEFAULT_VALUES, ...initialValues});
   const [errors, setErrors] = useState<FormProps['errors']>({});
   const [disables] = useState<FormProps['disables']>(initialDisables);
-  const [isFormValid, setIsFormValid] = useState(false);
-
-  useEffect(() => {
-    const valid = REQUIRED_VALUES.every(
-      field => !!values[field].replace(/\s/g, '') && !errors[field]
-    );
-    setIsFormValid(valid);
-  }, [values, errors]);
+  const isFormValid = REQUIRED_VALUES.every(
+    field => !!values[field].replace(/\s/g, '') && !errors[field]
+  );
 
   const {mutate: save} = useMutation({
     mutationFn: (trustedRelays: Array<Omit<Relay, 'created' | 'lastModified'>>) =>
