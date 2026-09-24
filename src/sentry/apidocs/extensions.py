@@ -12,6 +12,18 @@ from drf_spectacular.utils import Direction
 
 from sentry.apidocs.spectacular_ports import resolve_type_hint
 
+# Scopes that endpoints already accept but that are still gated behind a rollout
+# flag, so they are not part of the public API surface yet. Drop an entry once its
+# rollout finishes and the scope is meant to be documented.
+UNDOCUMENTED_SCOPES = frozenset(
+    {
+        # organizations:granular-permission-scopes
+        "dashboard:read",
+        "dashboard:write",
+        "dashboard:delete",
+    }
+)
+
 
 class TokenAuthExtension(OpenApiAuthenticationExtension):
     """
@@ -28,8 +40,7 @@ class TokenAuthExtension(OpenApiAuthenticationExtension):
             for s in permission.scope_map.get(auto_schema.method, []):
                 scopes.add(s)
 
-        scope_list = list(scopes)
-        scope_list.sort()
+        scope_list = sorted(scopes - UNDOCUMENTED_SCOPES)
         return {self.name: scope_list}
 
     def get_security_definition(
