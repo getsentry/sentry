@@ -8,7 +8,7 @@ resources:
 ---
 
 import {ToolCall} from '@sentry/scraps/chat';
-import {Container, Stack} from '@sentry/scraps/layout';
+import {Container} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {IconIssues} from 'sentry/icons';
@@ -250,18 +250,16 @@ wraps together with its link instead of being squeezed into a column beside it.
 
 <Storybook.Demo align="stretch">
   <Container width="300px" background="secondary" radius="md" padding="lg">
-    <Stack gap="md">
-      <ToolCall
-        title="Retrieving span 91225316d1e54127 in trace 2f41db5c12ee46ceb385a23e27bc06e3"
-        status="success"
-        reference={{value: 'View span', to: '/traces/2f41db5c/'}}
-      />
-      <ToolCall
-        title="Retrieving span 9b9617775af020e0 in trace 869694f977e140e1be71e7433d7842b0"
-        status="success"
-        reference={{value: 'View span', to: '/traces/869694f9/'}}
-      />
-    </Stack>
+    <ToolCall
+      title="Retrieving span 91225316d1e54127 in trace 2f41db5c12ee46ceb385a23e27bc06e3"
+      status="success"
+      reference={{value: 'View span', to: '/traces/2f41db5c/'}}
+    />
+    <ToolCall
+      title="Retrieving span 9b9617775af020e0 in trace 869694f977e140e1be71e7433d7842b0"
+      status="success"
+      reference={{value: 'View span', to: '/traces/869694f9/'}}
+    />
   </Container>
 </Storybook.Demo>
 

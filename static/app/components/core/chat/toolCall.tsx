@@ -91,16 +91,18 @@ interface ToolCallProps {
 // under the headline rather than under the glyph.
 const GLYPH_SLOT_WIDTH = '16px';
 
+// `inherit` so the text takes the link button's accent color rather than
+// resetting to the default content color.
 function ChipContent({label, value}: {value: string; label?: string}) {
   return label ? (
-    <Text size="sm">
+    <Text size="sm" variant="inherit">
       {`${label}: `}
-      <Text size="sm" bold>
+      <Text size="sm" variant="inherit" bold>
         {value}
       </Text>
     </Text>
   ) : (
-    <Text size="sm" bold>
+    <Text size="sm" variant="inherit" bold>
       {value}
     </Text>
   );
