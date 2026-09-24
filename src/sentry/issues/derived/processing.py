@@ -11,6 +11,7 @@ from typing import NamedTuple
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import IntegrityError, router, transaction
 from django.db.models import Q
+from django.db.models.functions import Now
 from django.utils import timezone
 
 from sentry.db.postgres.transactions import enforce_constraints
@@ -415,9 +416,7 @@ def invalidate_group_derived_data(
         # Bumping ``generated_at`` reuses ``promote_to_live``'s SUPERSEDED
         # CAS path — pre-invalidation snapshots can't win over the null-hash
         # row.
-        affected = qs.update(
-            pipeline_hash=None, generated_at=timezone.now(), date_updated=timezone.now()
-        )
+        affected = qs.update(pipeline_hash=None, generated_at=Now(), date_updated=timezone.now())
     else:
         affected, _ = qs.delete()
 
@@ -434,7 +433,7 @@ def invalidate_group_derived_data(
             # insert fails — treat as a no-op.
             try:
                 _, created = GroupDerivedData.objects.get_or_create(
-                    group_id=group_id, defaults={"pipeline_hash": None}
+                    group_id=group_id, defaults={"pipeline_hash": None, "generated_at": Now()}
                 )
             except IntegrityError:
                 logger.info(

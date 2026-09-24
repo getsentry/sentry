@@ -4,7 +4,9 @@ from datetime import timedelta
 from unittest.mock import patch
 
 import pytest
+import time_machine
 from django.db.models import Model
+from django.db.models.functions import Now
 from django.db.models.query import QuerySet
 from django.utils import timezone as django_timezone
 
@@ -95,8 +97,14 @@ class PromoteToLiveTest(TestCase):
 
     def test_build_and_promote_raises_for_deleted_group(self) -> None:
         nonexistent_group_id = 999999999
-        with pytest.raises(Group.DoesNotExist):
+        with (
+            patch("sentry.issues.derived.promote._drain_log") as drain,
+            self.assertNumQueries(1),
+            pytest.raises(Group.DoesNotExist),
+        ):
             build_and_promote_derived_data(nonexistent_group_id, time_limit=timedelta(minutes=5))
+
+        drain.assert_not_called()
 
     def test_promote_updates_existing_row(self) -> None:
         group = self.create_group()
@@ -395,6 +403,29 @@ class PromoteToLiveTest(TestCase):
         assert derived.view_count == 1
         assert derived.data["status"] == "closed"
         assert derived.generated_at is not None
+
+    def test_build_and_promote_uses_database_clock_and_preserves_it_on_resume(self) -> None:
+        group = self.create_group()
+        before = Group.objects.filter(id=group.id).values_list(Now(), flat=True).get()
+
+        with (
+            time_machine.travel(before - timedelta(hours=1)),
+            patch("sentry.issues.derived.promote._drain_log", return_value=False),
+            self.assertNumQueries(1),
+            pytest.raises(GroupLogTimeout) as exc_info,
+        ):
+            build_and_promote_derived_data(group.id, time_limit=timedelta(minutes=5))
+
+        after = Group.objects.filter(id=group.id).values_list(Now(), flat=True).get()
+        generation_id = exc_info.value.generation_id
+        assert generation_id is not None
+        assert before <= generation_id.generated_at <= after
+
+        build_and_promote_derived_data(
+            group.id, generation_id=generation_id, time_limit=timedelta(minutes=5)
+        )
+        derived = GroupDerivedData.objects.get(group_id=group.id)
+        assert derived.generated_at == generation_id.generated_at
 
     def test_build_and_promote_updates_existing_row(self) -> None:
         group = self.create_group()
