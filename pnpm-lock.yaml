@@ -12,6 +12,9 @@ overrides:
 packageExtensionsChecksum: sha256-0VZ2XeajIU53t75fxV6NpDm9r5YxmYRM0rEQhyaaIlQ=
 
 patchedDependencies:
+  '@sentry-internal/rrweb-player@2.41.0':
+    hash: 6c41d593c3332fcc99d948fdceb199216e0c4b02d2fe3c2cd0e61edb578789b8
+    path: patches/@sentry-internal__rrweb-player@2.41.0.patch
   jsdom@30.1.0:
     hash: 5dac761088e7baf0d6a93f505737e3e3f0dc178680ab47fb53483561d730388a
     path: patches/jsdom@30.1.0.patch
@@ -193,7 +196,7 @@ importers:
         version: 2.41.0
       '@sentry-internal/rrweb-player':
         specifier: 2.41.0
-        version: 2.41.0
+        version: 2.41.0(patch_hash=6c41d593c3332fcc99d948fdceb199216e0c4b02d2fe3c2cd0e61edb578789b8)
       '@sentry-internal/rrweb-snapshot':
         specifier: 2.41.0
         version: 2.41.0
@@ -12038,7 +12041,7 @@ snapshots:
       '@sentry-internal/rrweb-types': 2.41.0
       fflate: 0.4.8
 
-  '@sentry-internal/rrweb-player@2.41.0':
+  '@sentry-internal/rrweb-player@2.41.0(patch_hash=6c41d593c3332fcc99d948fdceb199216e0c4b02d2fe3c2cd0e61edb578789b8)':
     dependencies:
       '@sentry-internal/rrweb': 2.41.0
       '@sentry-internal/rrweb-packer': 2.41.0
