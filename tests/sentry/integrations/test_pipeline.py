@@ -714,7 +714,7 @@ class GitlabFinishPipelineTest(IntegrationTestCase):
             provider=self.provider.key, external_id=self.external_id
         )
         schedule.assert_called_once_with(
-            organization_id=self.organization.id, integration_id=integration.id
+            organization_id=self.organization.id, integration_id=integration.id, force=True
         )
         org_integration = OrganizationIntegration.objects.get(
             organization_id=self.organization.id, integration=integration

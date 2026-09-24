@@ -324,10 +324,12 @@ class DatabaseBackedRepositoryService(RepositoryService):
         *,
         organization_id: int,
         integration_id: int,
+        force: bool = False,
     ) -> None:
         update_all_project_webhooks.delay(
             integration_id=integration_id,
             organization_id=organization_id,
+            force=force,
         )
 
     def auto_link_repos_by_name(
