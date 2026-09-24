@@ -129,7 +129,7 @@ class ProjectRepoGetTest(APITestCase):
         assert row["source"] == "manual"
         assert "mappingCount" not in row
 
-    def test_include_maps_count_zero(self) -> None:
+    def test_include_mapping_count_zero(self) -> None:
         ProjectRepository.objects.create(
             project=self.project,
             repository=self.repo,
@@ -139,13 +139,13 @@ class ProjectRepoGetTest(APITestCase):
         response = self.get_success_response(
             self.organization.slug,
             self.project.slug,
-            qs_params={"includeMapsCount": "1"},
+            qs_params={"includeMappingCount": "1"},
         )
 
         assert len(response.data) == 1
         assert response.data[0]["mappingCount"] == 0
 
-    def test_include_maps_count_with_mappings(self) -> None:
+    def test_include_mapping_count_with_mappings(self) -> None:
         integration, org_integration = self.create_provider_integration_for(
             self.organization, self.user, provider="github", name="GitHub", external_id="gh-1"
         )
@@ -190,7 +190,7 @@ class ProjectRepoGetTest(APITestCase):
         response = self.get_success_response(
             self.organization.slug,
             self.project.slug,
-            qs_params={"includeMapsCount": "1"},
+            qs_params={"includeMappingCount": "1"},
         )
 
         assert len(response.data) == 2
