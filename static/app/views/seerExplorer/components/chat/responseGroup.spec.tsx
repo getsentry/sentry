@@ -120,6 +120,24 @@ describe('groupTranscript', () => {
 });
 
 describe('deriveThinkingTitle', () => {
+  it('uses the latest complete summary ahead of tool activity', () => {
+    const group = [
+      toolUseBlock('t1', {
+        content:
+          '{% tool_summary %}Checking the issue details{% /tool_summary %}{% tool_summary %}Comparing related errors{% /tool_summary %}',
+      }),
+      toolUseBlock('t2'),
+    ];
+
+    expect(deriveThinkingTitle(group)).toBe('Comparing related errors');
+  });
+
+  it('ignores a summary that is still streaming', () => {
+    const group = [toolUseBlock('t1', {content: '{% tool_summary %}Checking the'})];
+
+    expect(deriveThinkingTitle(group)).toMatch(/Queried spans/);
+  });
+
   it('summarizes the response with the latest tool activity', () => {
     const group = [toolUseBlock('t1'), assistantBlock('a1', 'answer')];
     // telemetry_live_search settles to "Queried spans" (see getToolsStringFromBlock).
@@ -133,6 +151,49 @@ describe('deriveThinkingTitle', () => {
 
 describe('ResponseGroup', () => {
   const organization = OrganizationFixture();
+
+  it('uses the summary as the completed title and leaves no embed content', async () => {
+    const summary = 'Checking the issue details';
+    const group = [
+      toolUseBlock('t1', {
+        content: `{% tool_summary %}${summary}{% /tool_summary %}`,
+      }),
+      assistantBlock('a1', 'The final answer'),
+    ];
+
+    const {container} = render(
+      <ResponseGroup group={group} blockIndex={1} blocks={group} />,
+      {organization}
+    );
+
+    expect(reasoningBox(container).querySelector('button')).toHaveTextContent(summary);
+    await userEvent.click(reasoningBox(container).querySelector('button')!);
+    expect(
+      within(reasoningBox(container).querySelector('[role="group"]')!).queryByText(
+        summary
+      )
+    ).not.toBeInTheDocument();
+    expect(screen.getByText('The final answer')).toBeInTheDocument();
+  });
+
+  it('renders only the title for a completed summary alone', () => {
+    const group = [
+      assistantBlock(
+        'a1',
+        '{% tool_summary %}Checking the issue details{% /tool_summary %}'
+      ),
+    ];
+
+    const {container} = render(
+      <ResponseGroup group={group} blockIndex={1} blocks={group} />,
+      {organization}
+    );
+
+    expect(reasoningBox(container).querySelector('button')).toHaveTextContent(
+      'Checking the issue details'
+    );
+    expect(within(reasoningBox(container)).queryByRole('group')).not.toBeInTheDocument();
+  });
 
   it('renders a single reasoning block titled by the latest activity, answer outside it', () => {
     const group = [

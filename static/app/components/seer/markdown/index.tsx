@@ -88,6 +88,9 @@ function reportUnhandledTag(
 const SEER_EMBED_COMPONENTS: MarkdownProps['components'] = {
   Tag: function SeerTag({name, data, level, attrs, index}) {
     const structuredContent = useContext(StructuredContentContext);
+    if (name === 'tool_summary') {
+      return null;
+    }
     const Embed = SeerEmbedRegistry.get(name);
     if (Embed) {
       const embedData =

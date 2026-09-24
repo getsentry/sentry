@@ -25,6 +25,29 @@ import {
   type LatestTodos,
 } from './toolUse';
 
+const TOOL_SUMMARY_TAG = /\{%\s+tool_summary\s+%\}([\s\S]*?)\{%\s+\/tool_summary\s+%\}/g;
+
+function latestToolSummary(group: Block[]): string | null {
+  for (let i = group.length - 1; i >= 0; i--) {
+    const content = group[i]?.message.content;
+    if (!content) {
+      continue;
+    }
+    const summaries = [...content.matchAll(TOOL_SUMMARY_TAG)];
+    const summary = summaries.at(-1)?.[1]?.trim();
+    if (summary) {
+      return summary;
+    }
+  }
+  return null;
+}
+
+function hasVisibleContent(content: string | null | undefined): content is string {
+  return hasValidContent(
+    content?.replace(TOOL_SUMMARY_TAG, '').replace(/\{%\s+tool_summary\b[\s\S]*$/, '')
+  );
+}
+
 /**
  * One assistant response: a run of consecutive `assistant`/`tool_use` blocks that follows a user
  * message. The server emits a turn as many blocks (a `tool_use` block per reasoning+tool step, then
@@ -82,7 +105,7 @@ export function groupTranscript(blocks: Block[]): TranscriptSegment[] {
  */
 function finalAnswer(group: Block[]): Block | null {
   const last = group[group.length - 1];
-  return last?.message.role === 'assistant' && hasValidContent(last.message.content)
+  return last?.message.role === 'assistant' && hasVisibleContent(last.message.content)
     ? last
     : null;
 }
@@ -126,6 +149,10 @@ function latestBlockActivity(block: Block): string | null {
  * back to a plain "Thinking" before any tool has run.
  */
 export function deriveThinkingTitle(group: Block[]): string {
+  const summary = latestToolSummary(group);
+  if (summary) {
+    return summary;
+  }
   for (let i = group.length - 1; i >= 0; i--) {
     const label = latestBlockActivity(group[i]!);
     if (label) {
@@ -192,6 +219,7 @@ export const ResponseGroup = memo(function ResponseGroup({
   const answer = finalAnswer(group);
   const settledAnswer = answer && !answer.loading ? answer : null;
   const active = group.some(block => block.loading);
+  const toolSummary = latestToolSummary(group);
 
   // The reasoning trace is everything except the answer's content: thinking prose (gated on the
   // `showThinking` toggle), any intermediate narration, and the tool calls.
@@ -199,7 +227,7 @@ export const ResponseGroup = memo(function ResponseGroup({
     const isAnswer = block === answer;
     return (
       (showThinking && hasValidContent(block.message.thinking_content)) ||
-      (!isAnswer && hasValidContent(block.message.content)) ||
+      (!isAnswer && hasVisibleContent(block.message.content)) ||
       // Not `tool_calls.length`: a call that reported nothing renders no row, and counting it
       // opens a reasoning box with an empty body.
       blockRendersToolContent(block, latestTodos)
@@ -222,10 +250,11 @@ export const ResponseGroup = memo(function ResponseGroup({
           readOnly={readOnly ?? false}
           respondToUserInput={respondToUserInput}
         >
-          {active || hasTrace ? (
+          {active || hasTrace || toolSummary ? (
             <MessageRow from="assistant" density="compact">
               <ThinkingBlock
                 title={deriveThinkingTitle(group)}
+                completedTitle={toolSummary ?? undefined}
                 startTime={startTime}
                 endTime={endTime}
               >
@@ -256,7 +285,7 @@ export const ResponseGroup = memo(function ResponseGroup({
                                 <SeerMarkdown raw={block.message.thinking_content} />
                               </ThinkingProse>
                             )}
-                          {!isAnswer && hasValidContent(block.message.content) && (
+                          {!isAnswer && hasVisibleContent(block.message.content) && (
                             <SeerMarkdown raw={block.message.content} />
                           )}
                           {block.message.tool_calls ? (
