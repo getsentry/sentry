@@ -20,6 +20,7 @@ import sentry_sdk
 from rest_framework.request import Request
 from sentry_conventions.attributes import ATTRIBUTE_NAMES
 
+from sentry.api.scope_admission import get_scope_admission
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.auth.system import is_system_auth
 from sentry.middleware import is_frontend_request
@@ -226,6 +227,7 @@ def _record_attribution_span(
     route it served rather than its caller's.
     """
     route = get_transaction_name_from_request(request)
+    admission = get_scope_admission(request)
     with start_span(op=ATTRIBUTION_SPAN_OP, name=route) as span:
         set_span_data(span, ATTRIBUTE_NAMES.HTTP_ROUTE, route)
         set_span_data(span, "client_kind_test", client_kind.value)
@@ -233,6 +235,11 @@ def _record_attribution_span(
             set_span_data(span, "client_host_test", client_host)
         if user_agent is not None:
             set_span_data(span, ATTRIBUTE_NAMES.USER_AGENT_ORIGINAL, user_agent)
+        if admission is not None:
+            # Which of the endpoint's scopes this caller actually held, so a scope
+            # can be removed from the map once no request depends on it alone.
+            set_span_data(span, "scopes_satisfying_test", ",".join(admission.satisfying))
+            set_span_data(span, "scopes_allowed_test", ",".join(admission.allowed))
 
 
 def get_user_agent(request: Request) -> str | None:

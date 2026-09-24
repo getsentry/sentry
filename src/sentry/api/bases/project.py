@@ -14,6 +14,7 @@ from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environments
 from sentry.api.permissions import StaffPermissionMixin
+from sentry.api.scope_admission import record_scope_admission
 from sentry.api.utils import get_date_range_from_params
 from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidParams
@@ -58,7 +59,16 @@ class ProjectPermission(OrganizationPermission):
 
         assert request.method is not None
         allowed_scopes = set(self.scope_map.get(request.method, []))
-        return request.access.has_any_project_scope(project, allowed_scopes)
+        if not request.access.has_any_project_scope(project, allowed_scopes):
+            return False
+        # Re-checked per scope so team-role scopes, which only apply to this project,
+        # are reflected in the recorded set.
+        record_scope_admission(
+            request,
+            allowed_scopes,
+            [s for s in allowed_scopes if request.access.has_project_scope(project, s)],
+        )
+        return True
 
 
 class ProjectAndStaffPermission(StaffPermissionMixin, ProjectPermission):

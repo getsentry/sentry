@@ -17,6 +17,7 @@ from sentry.api.exceptions import (
     SuperuserRequired,
     TwoFactorRequired,
 )
+from sentry.api.scope_admission import record_scope_admission
 from sentry.auth import access
 from sentry.auth.staff import has_staff_option, is_active_staff
 from sentry.auth.superuser import SUPERUSER_ORG_ID, is_active_superuser
@@ -153,6 +154,7 @@ class ScopedPermission(BasePermission):
         allowed_scopes = set(self.scope_map.get(request.method, []))
         current_scopes = request.auth.get_scopes()
         if any(s in allowed_scopes for s in current_scopes):
+            record_scope_admission(request, allowed_scopes, current_scopes)
             return True
         if allowed_scopes:
             # Token-authorized (request.auth is set) but under-scoped. Record the required
