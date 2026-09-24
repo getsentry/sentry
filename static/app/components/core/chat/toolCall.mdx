@@ -26,9 +26,11 @@ the title text.
 ## Anatomy
 
 A tool call is a single title line: the status glyph, the `title`, and an
-optional `reference` link pointing at the entity the call acted on. The link
-flows inline right after the title text, so in a narrow container it wraps with
-the title rather than claiming a column of its own.
+optional `reference` link pointing at the entity the call acted on. In a wide
+container the link sits at the right edge, level with the title's first line.
+In a narrow one it flows inline right after the title text, so it wraps with the
+title rather than claiming a column of its own. The status glyph stays on the
+title's first line either way.
 
 <Storybook.Demo align="stretch">
   <Container width="100%" background="secondary" radius="md" padding="lg">
@@ -245,8 +247,9 @@ middle/cmd-click and keyboard access) rather than an `onClick` button.
 
 ## Narrow containers
 
-The `reference` flows inline after the title, so a long title in a narrow panel
-wraps together with its link instead of being squeezed into a column beside it.
+Below the `sm` container width (512px) the `reference` flows inline after the
+title, so a long title in a narrow panel wraps together with its link instead of
+being squeezed into a column beside it.
 
 <Storybook.Demo align="stretch">
   <Container width="300px" background="secondary" radius="md" padding="lg">
@@ -270,6 +273,27 @@ wraps together with its link instead of being squeezed into a column beside it.
   reference={{value: 'View span', to: '/traces/2f41db5c/'}}
 />
 ```
+
+## Wrapping titles
+
+From the `sm` container width up, a title that wraps keeps its status glyph and
+`reference` level with its first line, the link at the right edge.
+
+<Storybook.Demo align="stretch">
+  <Container width="640px" background="secondary" radius="md" padding="lg">
+    <ToolCall
+      title="Retrieving span 91225316d1e54127 in trace 2f41db5c12ee46ceb385a23e27bc06e3 with its child spans and attributes"
+      status="success"
+      reference={{value: 'View span', to: '/traces/2f41db5c/'}}
+    />
+    <ToolCall
+      title="Retrieving span 9b9617775af020e0 in trace 869694f977e140e1be71e7433d7842b0 with its child spans and attributes"
+      status="failure"
+      failureLabel="502"
+      reference={{value: 'View span', to: '/traces/869694f9/'}}
+    />
+  </Container>
+</Storybook.Demo>
 
 ## Detail
 
