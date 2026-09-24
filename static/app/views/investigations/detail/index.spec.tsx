@@ -189,6 +189,60 @@ describe('Investigation detail', () => {
     });
   });
 
+  it('links a breached metric investigation to its issue by monitor name', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationDetailFixture({
+        sourceType: 'metric_open_period',
+        source: {
+          type: 'metric_open_period',
+          ref: {groupId: '123', openPeriodId: '456'},
+          snapshot: {monitor: {id: '789', name: 'Checkout error rate'}},
+        },
+      }),
+    });
+
+    renderView();
+
+    expect(
+      await screen.findByRole('link', {name: 'Checkout error rate'})
+    ).toHaveAttribute('href', '/organizations/org-slug/issues/123/');
+    expect(screen.queryByText('Breached metric')).not.toBeInTheDocument();
+  });
+
+  it('links the issue of a breached metric investigation without a snapshot', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationDetailFixture({
+        sourceType: 'metric_open_period',
+        source: {
+          type: 'metric_open_period',
+          ref: {groupId: '123', openPeriodId: '456'},
+        },
+      }),
+    });
+
+    renderView();
+
+    expect(await screen.findByRole('link', {name: 'View issue'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/issues/123/'
+    );
+    expect(screen.queryByText('Breached metric')).not.toBeInTheDocument();
+  });
+
+  it('labels a manual investigation without a source link', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationDetailFixture(),
+    });
+
+    renderView();
+
+    expect(await screen.findByText('Manual investigation')).toBeInTheDocument();
+    expect(screen.queryByRole('link', {name: 'View issue'})).not.toBeInTheDocument();
+  });
+
   it('renders completed investigation metadata above the first block', async () => {
     MockApiClient.addMockResponse({
       url: detailUrl,
