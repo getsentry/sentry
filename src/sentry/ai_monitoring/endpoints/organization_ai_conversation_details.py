@@ -58,19 +58,14 @@ MAX_RETENTION_DAYS = 30
 MAX_PARENT_REPAIR_DEPTH = 5
 MAX_MODEL_USAGE_ROWS = 100
 
-# EAP stores legacy and current token conventions as separate attributes. Sum legacy
-# values only when the current attribute is absent to avoid double counting.
 MODEL_USAGE_COLUMNS = [
     "gen_ai.request.model",
     "gen_ai.response.model",
     "sum_if(gen_ai.cost.input_tokens,gen_ai.operation.type,equals,ai_client) as input_cost",
     "sum_if(gen_ai.cost.output_tokens,gen_ai.operation.type,equals,ai_client) as output_cost",
     "sum_if(`gen_ai.operation.type:ai_client`,gen_ai.usage.cache_read.input_tokens) as cache_read_tokens",
-    "sum_if(`gen_ai.operation.type:ai_client !has:gen_ai.usage.cache_read.input_tokens`,gen_ai.usage.input_tokens.cached) as legacy_cache_read_tokens",
     "sum_if(`gen_ai.operation.type:ai_client`,gen_ai.usage.cache_creation.input_tokens) as cache_write_tokens",
-    "sum_if(`gen_ai.operation.type:ai_client !has:gen_ai.usage.cache_creation.input_tokens`,gen_ai.usage.input_tokens.cache_write) as legacy_cache_write_tokens",
     "sum_if(`gen_ai.operation.type:ai_client`,gen_ai.usage.reasoning.output_tokens) as reasoning_tokens",
-    "sum_if(`gen_ai.operation.type:ai_client !has:gen_ai.usage.reasoning.output_tokens`,gen_ai.usage.output_tokens.reasoning) as legacy_reasoning_tokens",
     "count_if(`gen_ai.operation.type:ai_client has:gen_ai.usage.input_tokens`,span.duration) as input_token_spans",
     "count_if(`gen_ai.operation.type:ai_client has:gen_ai.usage.output_tokens`,span.duration) as output_token_spans",
 ]
@@ -187,41 +182,38 @@ class AIConversationDetailsResponse(TypedDict):
     stats: AIConversationStats
 
 
-def _model_name(row: Mapping[str, Any]) -> str | None:
-    for field in ("gen_ai.response.model", "gen_ai.request.model"):
-        value = row.get(field)
-        if isinstance(value, str) and value:
-            return value
-    return None
-
-
 def _parse_grouped_stats(rows: Sequence[Mapping[str, Any]]) -> AIConversationStats:
-    aggregates = parse_conversation_aggregates({})
+    conversation_stats = parse_conversation_aggregates({})
     tool_names: set[str] = set()
     usage_by_model: dict[str | None, AIConversationModelUsage] = {}
+    # Model columns group query rows, so fold each pair back into conversation totals.
     for row in rows:
-        row_aggregates = parse_conversation_aggregates(row)
-        aggregates["generationDuration"] += row_aggregates["generationDuration"]
-        aggregates["inputTokens"] += row_aggregates["inputTokens"]
-        aggregates["llmCalls"] += row_aggregates["llmCalls"]
-        aggregates["outputTokens"] += row_aggregates["outputTokens"]
-        aggregates["toolCalls"] += row_aggregates["toolCalls"]
-        aggregates["toolErrors"] += row_aggregates["toolErrors"]
-        aggregates["totalCost"] += row_aggregates["totalCost"]
-        aggregates["totalTokens"] += row_aggregates["totalTokens"]
-        tool_names.update(row_aggregates["toolNames"])
+        model_pair_stats = parse_conversation_aggregates(row)
+        llm_calls = model_pair_stats["llmCalls"]
+        conversation_stats["generationDuration"] += model_pair_stats["generationDuration"]
+        conversation_stats["inputTokens"] += model_pair_stats["inputTokens"]
+        conversation_stats["llmCalls"] += llm_calls
+        conversation_stats["outputTokens"] += model_pair_stats["outputTokens"]
+        conversation_stats["toolCalls"] += model_pair_stats["toolCalls"]
+        conversation_stats["toolErrors"] += model_pair_stats["toolErrors"]
+        conversation_stats["totalCost"] += model_pair_stats["totalCost"]
+        conversation_stats["totalTokens"] += model_pair_stats["totalTokens"]
+        tool_names.update(model_pair_stats["toolNames"])
 
-        start_timestamp = row_aggregates["startTimestamp"]
+        start_timestamp = model_pair_stats["startTimestamp"]
         if start_timestamp and (
-            not aggregates["startTimestamp"] or start_timestamp < aggregates["startTimestamp"]
+            not conversation_stats["startTimestamp"]
+            or start_timestamp < conversation_stats["startTimestamp"]
         ):
-            aggregates["startTimestamp"] = start_timestamp
-        aggregates["endTimestamp"] = max(aggregates["endTimestamp"], row_aggregates["endTimestamp"])
+            conversation_stats["startTimestamp"] = start_timestamp
+        conversation_stats["endTimestamp"] = max(
+            conversation_stats["endTimestamp"], model_pair_stats["endTimestamp"]
+        )
 
-        if row_aggregates["llmCalls"] == 0:
+        if llm_calls == 0:
             continue
 
-        model = _model_name(row)
+        model = row.get("gen_ai.response.model") or row.get("gen_ai.request.model")
         usage = usage_by_model.setdefault(
             model,
             {
@@ -238,39 +230,30 @@ def _parse_grouped_stats(rows: Sequence[Mapping[str, Any]]) -> AIConversationSta
             },
         )
         input_tokens = usage["inputTokens"]
-        usage["inputTokens"] = (
-            input_tokens + row_aggregates["inputTokens"]
-            if input_tokens is not None
-            and int(row.get("input_token_spans") or 0) == row_aggregates["llmCalls"]
-            else None
-        )
+        if input_tokens is not None and int(row.get("input_token_spans") or 0) == llm_calls:
+            usage["inputTokens"] = input_tokens + model_pair_stats["inputTokens"]
+        else:
+            usage["inputTokens"] = None
+
         output_tokens = usage["outputTokens"]
-        usage["outputTokens"] = (
-            output_tokens + row_aggregates["outputTokens"]
-            if output_tokens is not None
-            and int(row.get("output_token_spans") or 0) == row_aggregates["llmCalls"]
-            else None
-        )
-        usage["totalTokens"] += row_aggregates["totalTokens"]
-        usage["cacheReadTokens"] += int(row.get("cache_read_tokens") or 0) + int(
-            row.get("legacy_cache_read_tokens") or 0
-        )
-        usage["cacheWriteTokens"] += int(row.get("cache_write_tokens") or 0) + int(
-            row.get("legacy_cache_write_tokens") or 0
-        )
-        usage["reasoningTokens"] += int(row.get("reasoning_tokens") or 0) + int(
-            row.get("legacy_reasoning_tokens") or 0
-        )
+        if output_tokens is not None and int(row.get("output_token_spans") or 0) == llm_calls:
+            usage["outputTokens"] = output_tokens + model_pair_stats["outputTokens"]
+        else:
+            usage["outputTokens"] = None
+        usage["totalTokens"] += model_pair_stats["totalTokens"]
+        usage["cacheReadTokens"] += int(row.get("cache_read_tokens") or 0)
+        usage["cacheWriteTokens"] += int(row.get("cache_write_tokens") or 0)
+        usage["reasoningTokens"] += int(row.get("reasoning_tokens") or 0)
         usage["inputCost"] += float(row.get("input_cost") or 0)
         usage["outputCost"] += float(row.get("output_cost") or 0)
-        usage["totalCost"] += row_aggregates["totalCost"]
+        usage["totalCost"] += model_pair_stats["totalCost"]
 
-    aggregates["toolNames"] = sorted(tool_names)
+    conversation_stats["toolNames"] = sorted(tool_names)
     sorted_usage = sorted(
         usage_by_model.values(),
         key=lambda usage: (-usage["totalTokens"], usage["model"] or ""),
     )
-    return {**aggregates, "usageByModel": sorted_usage}
+    return {**conversation_stats, "usageByModel": sorted_usage}
 
 
 @extend_schema(tags=["Explore"])
