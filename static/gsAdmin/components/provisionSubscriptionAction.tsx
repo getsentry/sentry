@@ -375,7 +375,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
     }
   };
 
-  handleSubmit = () => {
+  handleSubmit = async () => {
     this.setState({errorMessage: null});
     const postData: Record<string, any> = {...this.state.data};
 
@@ -568,19 +568,19 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
     }
     delete postData.seerBudget;
 
-    this.props.api.request(this.endpoint, {
-      method: 'POST',
-      data: postData,
-      success: () => {
-        this.props.onSuccess();
-        this.props.closeModal();
-      },
-      error: error => {
-        this.onSubmitError({
-          responseJSON: error.responseJSON,
-        });
-      },
-    });
+    try {
+      await this.props.api.requestPromise(this.endpoint, {
+        method: 'POST',
+        data: postData,
+        includeAllArgs: true,
+      });
+      this.props.onSuccess();
+      this.props.closeModal();
+    } catch (error: any) {
+      this.onSubmitError({
+        responseJSON: error.responseJSON,
+      });
+    }
   };
 
   render() {
