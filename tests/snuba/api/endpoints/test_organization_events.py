@@ -17,6 +17,7 @@ from sentry.discover.models import (
     DiscoverSavedQueryTypes,
     TeamKeyTransaction,
 )
+from sentry.ingestion_delay.status import IngestionDelayStatus, IngestionStatus
 from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.models.group import GroupStatus
 from sentry.models.project import Project
@@ -7523,3 +7524,44 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
         response = self.do_request(query)
         assert response.status_code == 200, response.content
         assert response.data["data"][0]["count()"] == 2
+
+
+class OrganizationEventsIngestionDelayTest(OrganizationEventsEndpointTestBase):
+    def _do_request(
+        self, flagged: bool = True, ingestion_delay: bool = True, dataset: str = "spans"
+    ):
+        query: dict[str, Any] = {
+            "field": ["count()"],
+            "project": [self.project.id],
+            "dataset": dataset,
+        }
+        if ingestion_delay:
+            query["includeMeasuredIngestionDelayMetadata"] = "1"
+        features = {
+            "organizations:discover-basic": True,
+            "organizations:measured-ingestion-delay-metadata": flagged,
+        }
+        return self.do_request(query, features=features)
+
+    @mock.patch("sentry.api.helpers.ingestion_delay.compute_ingestion_delay_status")
+    def test_ingestion_absent_for_a_non_eap_dataset(self, mock_measure: mock.MagicMock) -> None:
+        response = self._do_request(dataset="errors")
+        assert response.status_code == 200, response.content
+        assert "ingestion" not in response.data["meta"]
+        assert not mock_measure.called
+
+    @mock.patch("sentry.api.helpers.ingestion_delay.compute_ingestion_delay_status")
+    def test_ingestion_present(self, mock_measure: mock.MagicMock) -> None:
+        complete_through = before_now(minutes=5)
+        mock_measure.return_value = IngestionDelayStatus(
+            delay_seconds=42.5,
+            complete_through=complete_through,
+            status=IngestionStatus.HEALTHY,
+        )
+        response = self._do_request()
+        assert response.status_code == 200, response.content
+        assert response.data["meta"]["ingestion"] == {
+            "status": "healthy",
+            "delaySeconds": 42.5,
+            "completeThrough": complete_through.timestamp() * 1000,
+        }
