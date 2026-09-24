@@ -11,7 +11,7 @@ import logging
 import re
 import time
 from collections.abc import Callable, Mapping, Sequence
-from typing import Any, NotRequired, TypedDict
+from typing import Any, Literal, NotRequired, TypedDict
 
 import orjson
 from django.conf import settings
@@ -132,6 +132,7 @@ class AgentPrStateRequest(TypedDict):
 
 
 class AgentRunOptions(TypedDict):
+    enable_code_mode_tools: NotRequired[Literal["off", "on", "only"]]
     enable_assisted_query_code_mode: NotRequired[bool]
     enable_frontend_code_search: NotRequired[bool | None]
     is_context_engine_enabled: NotRequired[bool]
