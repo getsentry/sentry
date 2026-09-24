@@ -1,5 +1,6 @@
 from typing import cast
 
+import pytest
 from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 
 from sentry.spans.consumers.process_segments.shim import (
@@ -141,6 +142,12 @@ class TestBuildShimEventData:
                 # These end up in `event["sdk"]`
                 "sentry.sdk.name": {"value": "sentry.python", "type": "string"},
                 "sentry.sdk.version": {"value": "4.15.13", "type": "string"},
+                # These end up in `event["request"]`
+                "url.query": {"value": "dogs=great", "type": "string"},
+                "http.request.body.data": {
+                    "value": '{"so": "much", "fur": "everywhere"}',
+                    "type": "string",
+                },
             }
         )
 
@@ -213,6 +220,85 @@ class TestBuildShimEventData:
         event = build_shim_event_data(segment_span, [segment_span])
 
         assert event["sdk"] == {"name": "sentry.python", "version": "4.15.13"}
+
+    def test_reconstructs_request(self) -> None:
+        segment_span = build_segment_span(
+            attributes={
+                "url.full": {"value": "https://dogs.are.great/dogpark", "type": "string"},
+                "http.request.method": {"value": "GET", "type": "string"},
+                "url.query": {"value": "sort=squirrels_caught&order=desc", "type": "string"},
+                "http.request.body.data": {"value": '{"name": "Maisey"}', "type": "string"},
+            }
+        )
+
+        event = build_shim_event_data(segment_span, [segment_span])
+
+        assert event["request"] == {
+            "url": "https://dogs.are.great/dogpark",
+            "method": "GET",
+            # `SQLInjectionDetector` walks this as key-value pairs, not as a raw string
+            "query_string": [("sort", "squirrels_caught"), ("order", "desc")],
+            "data": {"name": "Maisey"},
+        }
+
+    @pytest.mark.parametrize(
+        "url_attribute_names",
+        (
+            ("url.template", "http.route", "url.path", "url.full"),
+            ("url.template", "http.route", "url.path"),
+            ("url.template", "http.route"),
+            ("url.template",),
+        ),
+        ids=repr,
+    )
+    def test_prefers_the_most_specific_url_attribute(
+        self, url_attribute_names: tuple[str, ...]
+    ) -> None:
+        # Which URL attribute we get is SDK-dependent, and the injection detectors match against
+        # concrete URLs, so the most specific one present should win. Each attribute is given its
+        # own name as a value, so the winner is self-evident.
+        segment_span = build_segment_span(
+            attributes={name: {"value": name, "type": "string"} for name in url_attribute_names}
+        )
+
+        event = build_shim_event_data(segment_span, [segment_span])
+
+        assert event["request"]["url"] == url_attribute_names[-1]
+
+    def test_empty_attributes_do_not_displace_lower_priority_ones(self) -> None:
+        # Higher-priority attributes are listed last so that they overwrite lower-priority ones,
+        # which means an empty value has to be skipped outright rather than stored - otherwise it
+        # clobbers a perfectly good value from further down the chain.
+        segment_span = build_segment_span(
+            attributes={
+                "url.path": {"value": "/dogpark", "type": "string"},
+                "url.full": {"value": "", "type": "string"},
+            }
+        )
+
+        event = build_shim_event_data(segment_span, [segment_span])
+
+        assert event["request"]["url"] == "/dogpark"
+
+    @pytest.mark.parametrize(
+        "body",
+        (
+            "dogs are great!",  # Not valid JSON
+            '"dogs are great!"',  # Valid because of the inner quotes
+            '[{"dog": "Maisey"}]',  # Valid but not a dict
+            "90813",  # Valid but not a dict
+            "null",  # Valid but not a dict
+        ),
+        ids=repr,
+    )
+    def test_drops_a_request_bodies_which_are_not_json_objects(self, body: str) -> None:
+        segment_span = build_segment_span(
+            attributes={"http.request.body.data": {"value": body, "type": "string"}}
+        )
+
+        event = build_shim_event_data(segment_span, [segment_span])
+
+        assert "request" not in event
 
     def test_lifts_span_description_to_the_top_level(self) -> None:
         segment_span = build_segment_span(description="SELECT * FROM dogs")
