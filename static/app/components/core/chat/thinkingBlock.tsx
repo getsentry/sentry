@@ -69,10 +69,17 @@ interface ThinkingBlockProps {
   startTime: Date;
   title: string;
   children?: React.ReactNode;
+  completedTitle?: string;
   endTime?: Date;
 }
 
-export function ThinkingBlock({title, startTime, endTime, children}: ThinkingBlockProps) {
+export function ThinkingBlock({
+  title,
+  startTime,
+  endTime,
+  children,
+  completedTitle,
+}: ThinkingBlockProps) {
   const {t} = useTranslation();
   const elapsed = useElapsedTime(startTime, endTime);
   const isActive = !endTime;
@@ -91,7 +98,7 @@ export function ThinkingBlock({title, startTime, endTime, children}: ThinkingBlo
   useTextDecodeAnimation(titleRef, baseTitle);
 
   const isExpanded = override ?? isActive;
-  const summaryTitle = t('See thinking and tool calls');
+  const summaryTitle = completedTitle ?? t('See thinking and tool calls');
 
   return (
     <Disclosure
