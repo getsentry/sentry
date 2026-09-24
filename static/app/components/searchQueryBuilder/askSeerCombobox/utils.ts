@@ -19,6 +19,7 @@ import type {Project} from 'sentry/types/project';
 import {isEquation, stripEquationPrefix} from 'sentry/utils/discover/fields';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {getConversationsUrlForExternalUse} from 'sentry/views/explore/conversations/utils/urlParams';
 import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
 import type {CrossEvent} from 'sentry/views/explore/queryParams/crossEvent';
 
@@ -63,14 +64,24 @@ export function trackAiQueryOutcome({
       : error instanceof Error
         ? extractErrorReason(error)
         : undefined;
+
+  const conversationUrl = getConversationsUrlForExternalUse('sentry', runId);
+  const codeMode = organization.features.includes('seer-assisted-query-codemode');
+  const crossEventEnabled = organization.features.includes(
+    'seer-assisted-query-cross-event-explorer'
+  );
+
   const attributes = {
     dataset,
     mode: mode.toString(),
     org_slug: organization.slug,
     referrer,
     run_id: runId,
+    conversation_url: conversationUrl,
     outcome,
     error_reason: errorReason,
+    code_mode: codeMode,
+    cross_event_enabled: crossEventEnabled,
   };
 
   Sentry.logger.info('assisted_query.outcome', {
