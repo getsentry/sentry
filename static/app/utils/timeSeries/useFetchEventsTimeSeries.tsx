@@ -213,7 +213,7 @@ export interface Annotation {
   byteSize?: number;
 }
 
-export interface IngestionMeta {
+interface IngestionMeta {
   status: 'healthy' | 'stalled' | 'idle' | 'unknown';
   completeThrough?: number;
   delaySeconds?: number;
