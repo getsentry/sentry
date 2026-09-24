@@ -116,6 +116,7 @@ class TestSelectRequester(TestCase):
 
         request = responses.calls[0].request
         assert request.headers["Authorization"] == "Bearer secret-token"
+        assert request.headers["Sentry-App-Signature"] == self.sentry_app.build_signature("")
         # Sentry's own headers win when a custom header collides.
         assert request.headers["Content-Type"] == "application/json"
 
@@ -125,7 +126,7 @@ class TestSelectRequester(TestCase):
         assert logged_headers is not None
         assert logged_headers["Authorization"] == MASKED_VALUE
         assert logged_headers["Content-Type"] == "application/json"
-        assert logged_headers["Sentry-App-Signature"] == self.sentry_app.build_signature("")
+        assert logged_headers["Sentry-App-Signature"] == MASKED_VALUE
         assert "secret-token" not in logged_headers.values()
 
     @responses.activate

@@ -11,6 +11,7 @@ from redis.client import Pipeline
 from requests.models import Response
 
 from sentry.sentry_apps.models.sentry_app import VALID_EVENTS
+from sentry.sentry_apps.utils.headers import mask_signature_headers
 from sentry.utils import json, redis
 
 if TYPE_CHECKING:
@@ -193,7 +194,7 @@ class SentryAppWebhookRequestsBuffer:
         MAX_SIZE = 1024
         if response_code >= 400 or response_code in NO_RESPONSE_STATUS_CODES:
             if headers:
-                request_data["request_headers"] = headers
+                request_data["request_headers"] = mask_signature_headers(headers)
 
             if response is not None:
                 if response.content is not None:

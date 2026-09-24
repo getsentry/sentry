@@ -12,6 +12,7 @@ from sentry.hybridcloud.services.organization_mapping import (
 )
 from sentry.sentry_apps.api.utils.webhook_requests import BufferedRequest
 from sentry.sentry_apps.models.sentry_app import SentryApp
+from sentry.sentry_apps.utils.headers import mask_signature_headers
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.utils.sentry_apps.webhooks import NO_RESPONSE_STATUS_CODES
@@ -99,7 +100,12 @@ class SentryAppWebhookRequestSerializer(Serializer[SentryAppWebhookRequestSerial
                     "project_id": obj.data.project_id,
                     "error_id": obj.data.error_id,
                     "request_body": obj.data.request_body,
-                    "request_headers": obj.data.request_headers,
+                    # Also redact entries buffered before signatures were masked on write.
+                    "request_headers": (
+                        mask_signature_headers(obj.data.request_headers)
+                        if obj.data.request_headers is not None
+                        else None
+                    ),
                     "response_body": obj.data.response_body,
                 }
             )

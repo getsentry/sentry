@@ -216,6 +216,7 @@ class WebhookCircuitBreakerTest(TestCase):
         # The custom header goes out on the request in the clear.
         call_headers = mock_safe_urlopen.call_args.kwargs["headers"]
         assert call_headers["Authorization"] == "Bearer super-secret"
+        assert call_headers["Sentry-Hook-Signature"] == sentry_app.build_signature(event.body)
 
         requests = SentryAppWebhookRequestsBuffer(sentry_app).get_requests(errors_only=True)
         assert len(requests) == 1
@@ -224,7 +225,8 @@ class WebhookCircuitBreakerTest(TestCase):
         # The custom header name is recorded but its value is masked.
         assert headers["Authorization"] == MASKED_VALUE
         assert "Bearer super-secret" not in headers.values()
-        # Sentry's own headers are still recorded in the clear.
+        assert headers["Sentry-Hook-Signature"] == MASKED_VALUE
+        # Non-sensitive protocol headers remain useful for debugging.
         assert headers["Content-Type"] == "application/json"
 
 

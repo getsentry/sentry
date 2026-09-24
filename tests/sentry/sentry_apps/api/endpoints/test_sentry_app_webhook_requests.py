@@ -4,11 +4,14 @@ from unittest.mock import Mock
 from django.urls import reverse
 from requests.models import Response
 
+from sentry.sentry_apps.models.sentry_app import MASKED_VALUE
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.silo import control_silo_test, create_test_cells
 from sentry.testutils.skips import requires_snuba
+from sentry.utils import json
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
+from sentry.utils.sentry_apps.webhooks import CONNECTION_ERROR_STATUS_CODE, TIMEOUT_STATUS_CODE
 
 pytestmark = [requires_snuba]
 
@@ -364,6 +367,98 @@ class SentryAppWebhookRequestsGetTest(APITestCase):
         response = self.client.get(url, format="json")
         assert response.status_code == 200
         assert len(response.data) == 2
+
+    def test_error_signatures_are_masked_in_redis(self) -> None:
+        self.assert_signatures_are_masked_in_redis(500)
+
+    def test_timeout_signatures_are_masked_in_redis(self) -> None:
+        self.assert_signatures_are_masked_in_redis(TIMEOUT_STATUS_CODE)
+
+    def test_connection_error_signatures_are_masked_in_redis(self) -> None:
+        self.assert_signatures_are_masked_in_redis(CONNECTION_ERROR_STATUS_CODE)
+
+    def assert_signatures_are_masked_in_redis(self, response_code: int) -> None:
+        buffer = SentryAppWebhookRequestsBuffer(self.internal_app)
+        headers = {
+            "Content-Type": "application/json",
+            "Sentry-Hook-Signature": "hook-signature",
+            "sentry-hook-signature": "lowercase-hook-signature",
+            "Sentry-App-Signature": "app-signature",
+            "SENTRY-APP-SIGNATURE": "uppercase-app-signature",
+        }
+        original_headers = headers.copy()
+        buffer.add_request(
+            response_code=response_code,
+            org_id=self.org.id,
+            event="issue.assigned",
+            url=self.internal_app.webhook_url,
+            headers=headers,
+        )
+
+        # Inspect persisted data directly, independently of response serialization.
+        stored = buffer.client.lrange(buffer._get_redis_key("issue.assigned"), 0, -1)
+        stored_errors = buffer.client.lrange(
+            buffer._get_redis_key("issue.assigned", error=True), 0, -1
+        )
+        assert len(stored) == 1
+        assert stored_errors == stored
+        assert json.loads(stored[0])["request_headers"] == {
+            "Content-Type": "application/json",
+            "Sentry-Hook-Signature": MASKED_VALUE,
+            "sentry-hook-signature": MASKED_VALUE,
+            "Sentry-App-Signature": MASKED_VALUE,
+            "SENTRY-APP-SIGNATURE": MASKED_VALUE,
+        }
+        assert headers == original_headers
+
+    def test_legacy_control_request_signatures_are_masked(self) -> None:
+        self.assert_legacy_request_signatures_are_masked("installation.created")
+
+    def test_legacy_cell_request_signatures_are_masked(self) -> None:
+        self.assert_legacy_request_signatures_are_masked("issue.assigned")
+
+    def assert_legacy_request_signatures_are_masked(self, event: str) -> None:
+        member = self.create_user(email="member@example.com")
+        self.create_member(user=member, organization=self.org, role="member")
+        self.login_as(user=member)
+        buffer = SentryAppWebhookRequestsBuffer(self.internal_app)
+        # Seed an old entry without going through the redacting write path.
+        entry = {
+            "date": before_now(seconds=10).isoformat(sep=" ", timespec="microseconds"),
+            "response_code": 500,
+            "webhook_url": self.internal_app.webhook_url,
+            "request_body": "request body",
+            "response_body": "response body",
+            "request_headers": {
+                "Content-Type": "application/json",
+                "Sentry-Hook-Signature": "hook-signature",
+                "sentry-hook-signature": "lowercase-hook-signature",
+                "Sentry-App-Signature": "app-signature",
+                "SENTRY-APP-SIGNATURE": "uppercase-app-signature",
+            },
+        }
+        pipe = buffer.client.pipeline()
+        buffer._add_to_buffer_pipeline(buffer._get_redis_key(event), entry, pipe)
+        buffer._add_to_buffer_pipeline(buffer._get_redis_key(event, error=True), entry, pipe)
+        pipe.execute()
+
+        url = reverse("sentry-api-0-sentry-app-webhook-requests", args=[self.internal_app.slug])
+        response = self.client.get(url, format="json")
+        errors_only_response = self.client.get(url, {"errorsOnly": "true"}, format="json")
+
+        assert response.status_code == 200
+        assert errors_only_response.status_code == 200
+        assert errors_only_response.data == response.data
+        assert len(response.data) == 1
+        assert response.data[0]["request_headers"] == {
+            "Content-Type": "application/json",
+            "Sentry-Hook-Signature": MASKED_VALUE,
+            "sentry-hook-signature": MASKED_VALUE,
+            "Sentry-App-Signature": MASKED_VALUE,
+            "SENTRY-APP-SIGNATURE": MASKED_VALUE,
+        }
+        assert response.data[0]["request_body"] == "request body"
+        assert response.data[0]["response_body"] == "response body"
 
     def test_request_id_subject_and_duration_on_success_and_error_rows(self) -> None:
         self.login_as(user=self.user)
