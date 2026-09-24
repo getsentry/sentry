@@ -16,13 +16,14 @@ import Feature from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {openConfirmModal} from 'sentry/components/confirm';
+import {DateTime} from 'sentry/components/dateTime';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconStack} from 'sentry/icons';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -39,9 +40,11 @@ import {
 } from 'sentry/views/investigations/api';
 import {
   InvestigationCell,
+  isBlockWorking,
   shouldDisplayInvestigationBlock,
   shouldPollInvestigationBlocks,
 } from 'sentry/views/investigations/detail/cell';
+import {InvestigationCellPlaceholder} from 'sentry/views/investigations/detail/cellPlaceholder';
 import {InvestigationRunTimer} from 'sentry/views/investigations/detail/runTimer';
 import {
   InvestigationHypotheses,
@@ -384,7 +387,9 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                 <Text variant="muted">{formatSourceType(investigation.sourceType)}</Text>
                 <MetaDivider />
                 <Text variant="muted">
-                  {t('Last update: %s', formatNotebookDate(investigation.dateUpdated))}
+                  {tct('Last update: [date]', {
+                    date: <DateTime date={investigation.dateUpdated} year />,
+                  })}
                 </Text>
               </Flex>
               <FeedbackButton
@@ -407,7 +412,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
             </Flex>
           </Stack>
         </Container>
-        <Layout.Body>
+        <Layout.Body padding={{'screen:sm': '0 lg lg', 'screen:md': '0 xl lg'}}>
           <Layout.Main width="full">
             <Stack width="100%" maxWidth="960px" minWidth={0} margin="0 auto">
               {/*
@@ -448,6 +453,9 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                       investigation={investigation}
                     />
                   ))}
+                  {isAwaitingReportCell(investigation) ? (
+                    <InvestigationCellPlaceholder />
+                  ) : null}
                 </Stack>
               </Stack>
               <Container height="160px" flexShrink={0} aria-hidden />
@@ -457,6 +465,20 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
       </Stack>
     </SentryDocumentTitle>
   );
+}
+
+// Seer reaches the reporting phase once it is done with the hypotheses, but the
+// report arrives as cells on a later poll. Until then the notebook stands in a
+// placeholder cell, unless a cell is already running — that one shows its own.
+function isAwaitingReportCell(investigation: InvestigationDetail) {
+  const {orchestration} = investigation;
+  if (orchestration?.status !== 'processing' || orchestration.phase !== 'reporting') {
+    return false;
+  }
+  // Only a cell Seer is working on rules this out, because that cell is already
+  // showing a placeholder of its own. A cell that finished, failed or was
+  // cancelled is done, and more are still coming.
+  return !(investigation.blocks ?? []).some(isBlockWorking);
 }
 
 function isTitleGenerationActive(status: string | null | undefined) {
@@ -477,10 +499,6 @@ function formatSourceType(sourceType: string) {
     return t('Manual investigation');
   }
   return sourceType.replaceAll('_', ' ');
-}
-
-function formatNotebookDate(date: string) {
-  return new Date(date).toISOString().slice(0, 10).replaceAll('-', '.');
 }
 
 const NotebookSummaryCard = styled(InvestigationSummaryCard)`

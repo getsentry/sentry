@@ -19,7 +19,7 @@ export type MarkdownComponents = Partial<{
     WithDefault<{children: ReactNode; level: 1 | 2 | 3 | 4 | 5 | 6}>
   >;
   HorizontalRule: ComponentType<WithDefault<Record<PropertyKey, unknown>>>;
-  Html: ComponentType<WithDefault<{html: string}>>;
+  Html: ComponentType<WithDefault<{html: TrustedHTML}>>;
   Image: ComponentType<{src: string; alt?: string; title?: string | null}>;
   InlineCode: ComponentType<WithDefault<{children: string}>>;
   LineBreak: ComponentType<WithDefault<Record<PropertyKey, unknown>>>;

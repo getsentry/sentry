@@ -29,7 +29,7 @@ import {
   getSavedQueryTraceItemDataset,
   isExploreSavedQuery,
   useGetSavedQueries,
-  type AllSavedQuery,
+  type CombinedSavedQuery,
   type SortOption,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useFromSavedQuery} from 'sentry/views/explore/hooks/useSaveQuery';
@@ -40,6 +40,7 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 import {
   confirmDeleteSavedQuery,
   getSavedQueryTraceItemUrl,
+  getYAxisDiscoverSavedQuery,
 } from 'sentry/views/explore/utils';
 
 type Props = {
@@ -91,7 +92,7 @@ export function SavedQueriesTable({
   }, [isFetched, data]);
 
   const starQueryHandler = useCallback(
-    (query: AllSavedQuery, starred: boolean) => {
+    (query: CombinedSavedQuery, starred: boolean) => {
       const key = getSavedQueryKey(query);
       if (starred) {
         setStarredKeys(prev => [...prev, key]);
@@ -133,22 +134,22 @@ export function SavedQueriesTable({
   );
 
   const getHandleUpdateFromSavedQuery = useCallback(
-    (savedQuery: AllSavedQuery) => {
+    (savedQuery: CombinedSavedQuery) => {
       return ({name}: {name: string}) => {
         return updateQueryFromSavedQuery({
           ...savedQuery,
           name,
-        } as AllSavedQuery);
+        } as CombinedSavedQuery);
       };
     },
     [updateQueryFromSavedQuery]
   );
 
-  const duplicateQuery = async (savedQuery: AllSavedQuery) => {
+  const duplicateQuery = async (savedQuery: CombinedSavedQuery) => {
     await saveQueryFromSavedQuery({
       ...savedQuery,
       name: `${savedQuery.name} (Copy)`,
-    } as AllSavedQuery);
+    } as CombinedSavedQuery);
   };
 
   const handleCursor: CursorHandler = (_cursor, pathname, query) => {
@@ -161,7 +162,7 @@ export function SavedQueriesTable({
   const debouncedOnClick = useMemo(
     () =>
       debounce(
-        (query: AllSavedQuery, starred: boolean) => {
+        (query: CombinedSavedQuery, starred: boolean) => {
           if (starred) {
             addLoadingMessage(t('Unstarring query...'));
             starQueryHandler(query, false);
@@ -259,7 +260,7 @@ export function SavedQueriesTable({
                 ) : (
                   <StyledExploreParams
                     query={query.query ?? ''}
-                    visualizes={query.yAxis?.length ? [{yAxes: query.yAxis}] : []}
+                    visualizes={getYAxisDiscoverSavedQuery(query)}
                   />
                 )}
               </SavedEntityTable.Cell>
@@ -278,27 +279,24 @@ export function SavedQueriesTable({
               <SavedEntityTable.Cell hasButton>
                 <SavedEntityTable.CellActions
                   items={[
-                    ...(isPrebuilt || !isExplore
+                    ...(isPrebuilt
                       ? []
                       : [
                           {
                             key: 'rename',
                             label: t('Rename'),
                             onAction: () => {
-                              if (
-                                getSavedQueryTraceItemDataset(query.dataset) ===
-                                TraceItemDataset.SPANS
-                              ) {
+                              const traceItemDataset = isExplore
+                                ? getSavedQueryTraceItemDataset(query.dataset)
+                                : TraceItemDataset.ERRORS;
+                              if (traceItemDataset === TraceItemDataset.SPANS) {
                                 trackAnalytics('trace_explorer.save_query_modal', {
                                   action: 'open',
                                   save_type: 'rename_query',
                                   ui_source: 'table',
                                   organization,
                                 });
-                              } else if (
-                                getSavedQueryTraceItemDataset(query.dataset) ===
-                                TraceItemDataset.LOGS
-                              ) {
+                              } else if (traceItemDataset === TraceItemDataset.LOGS) {
                                 trackAnalytics('logs.save_query_modal', {
                                   action: 'open',
                                   save_type: 'rename_query',
@@ -311,9 +309,7 @@ export function SavedQueriesTable({
                                 saveQuery: getHandleUpdateFromSavedQuery(query),
                                 name: query.name,
                                 source: 'table',
-                                traceItemDataset: getSavedQueryTraceItemDataset(
-                                  query.dataset
-                                ),
+                                traceItemDataset,
                               });
                             },
                           },

@@ -70,7 +70,7 @@ from sentry.models.code_review_event import CodeReviewEvent, CodeReviewEventStat
 from sentry.models.counter import Counter
 from sentry.models.custominboundfilter import (
     CustomInboundFilter,
-    CustomInboundFilterDataType,
+    DataType,
 )
 from sentry.models.dashboard import (
     Dashboard,
@@ -511,7 +511,7 @@ class ExhaustiveFixtures(Fixtures):
         CustomInboundFilter.objects.create(
             project=project,
             name=f"custom-inbound-filter-{slug}",
-            data_type=CustomInboundFilterDataType.ALL,
+            data_type=DataType.ALL,
             conditions=[{"type": "release", "value": ["1.0.0"]}],
         )
 

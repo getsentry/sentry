@@ -191,9 +191,8 @@ describe('InvestigationFixtureApi', () => {
         })
       ).toBeInTheDocument();
       expect(screen.getByText('Supported')).toBeInTheDocument();
-      expect(
-        screen.getByText('Compare FCP with server response time')
-      ).toBeInTheDocument();
+      // A settled hypothesis folds its checks behind a toggle.
+      expect(screen.getByRole('button', {name: 'Show all 3 steps'})).toBeInTheDocument();
     });
 
     it('applies a disposition command and returns the new projection', async () => {

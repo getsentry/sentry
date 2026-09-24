@@ -169,7 +169,11 @@ export function CMDKAction<TData = unknown>({
   const {query, action: navAction} = useCommandPaletteState();
   const state = navAction?.value.key === key ? 'selected' : undefined;
 
-  if (!children && !resource) {
+  // Only skip rendering for nodes that have no actionable content at all.
+  // Nodes with `onAction` or `to` are valid leaf actions and must render the
+  // Context.Provider so they participate correctly in the slot tree and are
+  // visible in the command palette ListBox.
+  if (!children && !resource && !onAction && !to) {
     return null;
   }
 

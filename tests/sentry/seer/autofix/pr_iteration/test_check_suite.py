@@ -1223,16 +1223,18 @@ def _run_state(*, blocks: list[MemoryBlock] | None = None) -> SeerRunState:
     )
 
 
-def _autofix_run(*, blocks: list[MemoryBlock] | None = None) -> CheckSuiteAutofixRun:
+def _autofix_run(
+    *, blocks: list[MemoryBlock] | None = None, group_id: int = 1
+) -> CheckSuiteAutofixRun:
     return CheckSuiteAutofixRun(
         repository=MagicMock(organization_id=1, id=2),
         run_state=_run_state(blocks=blocks or []),
         pr_id=1,
-        group_id=1,
+        group_id=group_id,
     )
 
 
-def _check_suite_source() -> CheckSuiteFeedbackSource:
+def _check_suite_source(*, group_id: int = 1) -> CheckSuiteFeedbackSource:
     source = CheckSuiteFeedbackSource(
         event={
             "check_suite": {
@@ -1249,7 +1251,8 @@ def _check_suite_source() -> CheckSuiteFeedbackSource:
         },
     )
     with patch(
-        f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_autofix_run", return_value=_autofix_run()
+        f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_autofix_run",
+        return_value=_autofix_run(group_id=group_id),
     ):
         _ = source.autofix_run
     return source
@@ -1329,6 +1332,16 @@ class CheckSuiteHardCapTest(TestCase):
 
         assert self._source().should_trigger(_run_state(blocks=blocks)) == TriggerDecision(
             task=None, reason="hard_cap_reached"
+        )
+
+    def test_should_queue_false_when_project_disabled_pr_iteration(self) -> None:
+        group = self.create_group()
+        group.project.update_option("sentry:seer_pr_iteration", False)
+
+        source = _check_suite_source(group_id=group.id)
+
+        assert source.should_queue(self._run_state_on_head(blocks=[])) == Decision(
+            ok=False, reason="project_disabled"
         )
 
     def test_should_queue_false_when_cap_reached(self) -> None:

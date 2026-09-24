@@ -402,7 +402,15 @@ export function useWidgetBuilderState(): {
   const [yAxis, setYAxis] = useSeededQueryState('yAxis', parseAsColumns);
   const [query, setQuery] = useSeededQueryState('query', parseAsQueries);
   // oxlint-disable-next-line react/refs
-  const [sort, setSort] = useSeededQueryState('sort', parseAsWidgetSorts(datasetRef));
+  const [sort, setRawSort] = useSeededQueryState('sort', parseAsWidgetSorts(datasetRef));
+  const setSort = useCallback<typeof setRawSort>(
+    (value, options) =>
+      setRawSort(
+        value ? value.map(s => ({...s, field: normalizeSortField(s.field)})) : value,
+        options
+      ),
+    [setRawSort]
+  );
   const [limit, setLimit] = useSeededQueryState('limit', parseAsLimit);
   const [legendAlias, setLegendAlias] = useSeededQueryState(
     'legendAlias',
@@ -1406,14 +1414,20 @@ function deserializeLinkedDashboards(linkedDashboards: string[]): LinkedDashboar
 export function serializeSorts(dataset?: WidgetType) {
   return function (sorts: Sort[]): string[] {
     return sorts.map(sort => {
+      const field = normalizeSortField(sort.field);
       // All issue fields do not use '-' regardless of order
       if (dataset === WidgetType.ISSUE) {
-        return sort.field;
+        return field;
       }
       const direction = sort.kind === 'desc' ? '-' : '';
-      return `${direction}${sort.field}`;
+      return `${direction}${field}`;
     });
   };
+}
+
+function normalizeSortField(field: string): string {
+  const parsedField = explodeField({field});
+  return parsedField.kind === 'function' ? generateFieldAsString(parsedField) : field;
 }
 
 function deserializeSorts(dataset?: WidgetType) {
@@ -1424,11 +1438,11 @@ function deserializeSorts(dataset?: WidgetType) {
         REVERSED_ORDER_FIELD_SORT_LIST.includes(sort.field)
       ) {
         return {
-          field: sort.field,
+          field: normalizeSortField(sort.field),
           kind: 'desc',
         };
       }
-      return sort;
+      return {...sort, field: normalizeSortField(sort.field)};
     });
   };
 }
