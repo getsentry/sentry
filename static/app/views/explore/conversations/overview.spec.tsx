@@ -21,7 +21,7 @@ const organizationWithoutAgentsOverview = OrganizationFixture({
 });
 
 const MISSING_AGENT_SPANS_MESSAGE =
-  'Not seeing agent runs or tool calls — this project is sending LLM calls without agent spans.';
+  'You’re sending LLM calls only — no agent or tool spans yet. Running agents in your app?';
 const AGENT_OR_TOOL_QUERY = '(gen_ai.operation.type:agent OR gen_ai.operation.type:tool)';
 const LLM_QUERY = 'gen_ai.operation.type:ai_client';
 
@@ -161,7 +161,7 @@ describe('ConversationsOverviewPage', () => {
     ).toBeTruthy();
   });
 
-  it('only shows the cost chart and a dismissible banner without agent or tool spans', async () => {
+  it('only shows the cost chart and setup banner without agent or tool spans', async () => {
     let finishAgentOrToolRequest!: () => void;
     const agentOrToolRequestGate = new Promise<void>(resolve => {
       finishAgentOrToolRequest = resolve;
@@ -205,10 +205,9 @@ describe('ConversationsOverviewPage', () => {
     expect(
       costChartTitle.compareDocumentPosition(banner) & Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();
-
-    await userEvent.click(screen.getByRole('button', {name: 'Dismiss banner'}));
-
-    expect(screen.queryByText(MISSING_AGENT_SPANS_MESSAGE)).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Dismiss banner'})
+    ).not.toBeInTheDocument();
   });
 
   it('does not show the banner when the selected time range has no LLM spans', async () => {
