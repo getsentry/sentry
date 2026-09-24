@@ -4,7 +4,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {getApiQueryData} from 'sentry/utils/queryClient';
+import {getApiQueryData, setApiQueryData} from 'sentry/utils/queryClient';
 import * as llmContextModule from 'sentry/views/seerExplorer/contexts/llmContext';
 import {SeerExplorerChatStateProvider} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
 import type {SeerExplorerResponse} from 'sentry/views/seerExplorer/types';
@@ -537,6 +537,78 @@ describe('useSeerExplorer', () => {
           seerExplorerUtils.makeSeerExplorerQueryKey(organization.slug, runId)
         )?.session?.status
       ).toBe('completed');
+    });
+
+    it('keeps fresher session data when a send fails after the cache was refreshed', async () => {
+      const runId = 'run-refreshed';
+      const queryKey = seerExplorerUtils.makeSeerExplorerQueryKey(
+        organization.slug,
+        runId
+      );
+      const freshData: SeerExplorerResponse = {
+        session: {
+          blocks: [
+            {
+              id: 'user-1',
+              message: {role: 'user', content: 'Question'},
+              timestamp: '2024-01-01T00:00:00Z',
+              loading: false,
+            },
+            {
+              id: 'assistant-1',
+              message: {role: 'assistant', content: 'Answer from polling'},
+              timestamp: '2024-01-01T00:00:01Z',
+              loading: false,
+            },
+          ],
+          status: 'completed',
+          updated_at: '2024-01-01T00:00:01Z',
+        },
+      };
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/${runId}/`,
+        method: 'GET',
+        body: {session: {blocks: [], status: 'completed'}},
+      });
+
+      let queryClient!: QueryClient;
+      const {result} = renderHookWithProviders(
+        () => {
+          queryClient = useQueryClient();
+          return useSeerExplorer();
+        },
+        {
+          organization,
+          additionalWrapper: SeerExplorerChatStateProvider,
+        }
+      );
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/${runId}/`,
+        method: 'POST',
+        statusCode: 500,
+        // Polling stores fresher server data after the optimistic update, before the failure.
+        body: () => {
+          setApiQueryData<SeerExplorerResponse>(queryClient, queryKey, freshData);
+          return {detail: 'Server error'};
+        },
+      });
+      act(() => {
+        result.current.switchToRun(runId);
+      });
+      await waitFor(() => {
+        expect(result.current.sessionData?.status).toBe('completed');
+      });
+
+      act(() => {
+        result.current.sendMessage('Question');
+      });
+      await waitFor(() => {
+        expect(result.current.requestError).toEqual({query: 'Question'});
+      });
+
+      expect(getApiQueryData<SeerExplorerResponse>(queryClient, queryKey)).toEqual(
+        freshData
+      );
     });
 
     it('keeps the alert when an older send succeeds after a newer send failed', async () => {

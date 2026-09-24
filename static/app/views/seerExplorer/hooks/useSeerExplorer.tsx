@@ -49,6 +49,12 @@ type SeerExplorerChatResponse = {
   sentry_run_id?: string | null;
 };
 
+/** Session data before and after a request's optimistic update, used to roll it back. */
+type SessionSnapshot = {
+  optimisticData: SeerExplorerResponse | undefined;
+  previousData: SeerExplorerResponse | undefined;
+};
+
 type SeerExplorerUpdateResponse = {
   run_id: number;
 };
@@ -223,48 +229,60 @@ export const useSeerExplorer = () => {
 
   /**
    * Optimistically marks the session as processing (prevents isPolling flicker on a new
-   * message) and returns the previous data so a failed request can roll it back.
+   * message) and returns the previous and optimistic data so a failed request can roll it
+   * back.
    */
   const markSessionProcessing = useCallback(
     (orgSlugParam: string, runIdParam: SeerExplorerRunId | null) => {
       if (runIdParam === null) {
         // API data is disabled for null runId (new runs).
-        return {previousData: undefined};
+        return {previousData: undefined, optimisticData: undefined};
       }
       const queryKey = makeSeerExplorerQueryKey(orgSlugParam, runIdParam);
       const previousData = getApiQueryData<SeerExplorerResponse>(queryClient, queryKey);
-      setApiQueryData<SeerExplorerResponse>(queryClient, queryKey, prev =>
-        prev?.session
-          ? {
-              ...prev,
-              session: {
-                ...prev.session,
-                failure_reason: null,
-                status: 'processing',
-                updated_at: new Date().toISOString(),
-              },
-            }
-          : prev
+      const optimisticData = setApiQueryData<SeerExplorerResponse>(
+        queryClient,
+        queryKey,
+        prev =>
+          prev?.session
+            ? {
+                ...prev,
+                session: {
+                  ...prev.session,
+                  failure_reason: null,
+                  status: 'processing',
+                  updated_at: new Date().toISOString(),
+                },
+              }
+            : prev
       );
-      return {previousData};
+      return {previousData, optimisticData};
     },
     [queryClient]
   );
 
-  /** Restores the session data captured by `markSessionProcessing`. */
+  /**
+   * Restores the session data captured by `markSessionProcessing`, but only while the cache
+   * still holds that optimistic write. If polling or a refetch has since stored fresher server
+   * data, keep it rather than rolling back to the older snapshot.
+   */
   const restoreSessionData = useCallback(
     (
       orgSlugParam: string,
       runIdParam: SeerExplorerRunId | null,
-      previousData: SeerExplorerResponse | undefined
+      snapshot: SessionSnapshot | undefined
     ) => {
-      if (runIdParam !== null && previousData) {
-        setApiQueryData<SeerExplorerResponse>(
-          queryClient,
-          makeSeerExplorerQueryKey(orgSlugParam, runIdParam),
-          previousData
-        );
+      if (runIdParam === null || !snapshot?.previousData) {
+        return;
       }
+      const queryKey = makeSeerExplorerQueryKey(orgSlugParam, runIdParam);
+      if (
+        getApiQueryData<SeerExplorerResponse>(queryClient, queryKey) !==
+        snapshot.optimisticData
+      ) {
+        return;
+      }
+      setApiQueryData<SeerExplorerResponse>(queryClient, queryKey, snapshot.previousData);
     },
     [queryClient]
   );
@@ -287,7 +305,7 @@ export const useSeerExplorer = () => {
       screenshot: string | undefined;
       sentAt: string[];
     },
-    {previousData: SeerExplorerResponse | undefined}
+    SessionSnapshot
   >({
     onMutate: params => {
       setHasSentInterrupt(false);
@@ -337,7 +355,7 @@ export const useSeerExplorer = () => {
       }
       // Keep the existing conversation: roll back the optimistic status and drop the
       // optimistic user/loading blocks. The UI surfaces the failure and restores the draft.
-      restoreSessionData(params.orgSlug, params.runId, context?.previousData);
+      restoreSessionData(params.orgSlug, params.runId, context);
       if (isCurrentRun(params.runId)) {
         setRequestError({runId: params.runId, query: params.query});
       }
@@ -354,7 +372,7 @@ export const useSeerExplorer = () => {
       runId: SeerExplorerRunId | null;
       responseData?: Record<string, unknown>;
     },
-    {previousData: SeerExplorerResponse | undefined}
+    SessionSnapshot
   >({
     onMutate: params => {
       setHasSentInterrupt(false);
@@ -388,7 +406,7 @@ export const useSeerExplorer = () => {
         return;
       }
       // Keep the existing conversation and pending input so the user can answer again.
-      restoreSessionData(params.orgSlug, params.runId, context?.previousData);
+      restoreSessionData(params.orgSlug, params.runId, context);
       if (isCurrentRun(params.runId)) {
         setRequestError({runId: params.runId});
       }
