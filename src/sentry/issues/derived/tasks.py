@@ -638,9 +638,6 @@ def heal_stale_derived_data(**kwargs: object) -> None:
         )
         for start, end in ranges:
             regenerate_stale_derived_data_batch.delay(
-                # ``stale_pipeline_hashes`` is only here so workers still running the
-                # previous release can read it; ``target_hash`` is the real argument.
-                stale_pipeline_hashes=[] if stale_hash is None else [stale_hash],
                 target_hash=stale_hash,
                 group_id_start=start,
                 group_id_end=end,
@@ -891,7 +888,6 @@ def check_fresh_derived_data_batch(
     processing_deadline_duration=int(BATCH_PROCESSING_DEADLINE.total_seconds()),
 )
 def regenerate_stale_derived_data_batch(
-    stale_pipeline_hashes: list[str],
     group_id_start: int,
     group_id_end: int,
     target_hash: str | None = None,  # None targets the NULL hash, not "unset"
@@ -906,14 +902,11 @@ def regenerate_stale_derived_data_batch(
     A *target_hash* of None targets rows with no hash, i.e. ones explicitly
     invalidated. Rows that have raced to the current hash are filtered out
     naturally. Reschedules the remaining range on batch or per-group timeout.
-
-    *stale_pipeline_hashes* is the superseded interface, kept only so activations
-    in flight across the deploy still run. Callers should pass *target_hash*.
     """
     logger.info(
         "regenerate_stale_derived_data_batch.started",
         extra={
-            "stale_pipeline_hashes": stale_pipeline_hashes,
+            "target_hash": target_hash,
             "group_id_start": group_id_start,
             "group_id_end": group_id_end,
         },
@@ -924,14 +917,6 @@ def regenerate_stale_derived_data_batch(
     from sentry.issues.derived.promote import build_and_promote_batch
     from sentry.issues.models.groupderiveddata import GroupDerivedData
     from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawned
-
-    # Transitional: activations enqueued before ``target_hash`` existed carry a list
-    # of hashes and no target. The current scheduler only ever pairs an empty list
-    # with a None target, so a non-empty list here means we're running one of those.
-    # Targeting just the first hash under-covers the range for this one run, which
-    # the next scheduled run picks up.
-    if target_hash is None and stale_pipeline_hashes:
-        target_hash = stale_pipeline_hashes[0]
 
     task_state = current_task()
     activation_id = task_state.id if task_state else None
@@ -987,7 +972,6 @@ def regenerate_stale_derived_data_batch(
         gen_id = result.resume_generation_id
         rows_consumed = bisect_left(group_ids, result.resume_from_group_id)
         regenerate_stale_derived_data_batch.delay(
-            stale_pipeline_hashes=stale_pipeline_hashes,
             target_hash=target_hash,
             group_id_start=result.resume_from_group_id,
             group_id_end=group_id_end,
@@ -1006,7 +990,6 @@ def regenerate_stale_derived_data_batch(
             tags={"reason": "range_overflow"},
         )
         regenerate_stale_derived_data_batch.delay(
-            stale_pipeline_hashes=stale_pipeline_hashes,
             target_hash=target_hash,
             group_id_start=group_ids[-1] + 1,
             group_id_end=group_id_end,

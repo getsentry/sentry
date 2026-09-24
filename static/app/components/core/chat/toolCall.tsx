@@ -245,10 +245,12 @@ export function ToolCall({
         <Flex width={GLYPH_SLOT_WIDTH} justify="center" flexShrink={0}>
           <ToolCallIndicator status={status} aria-label={getStatusLabel(status, t)} />
         </Flex>
-        <Flex flex={1} minWidth={0} align="center" justify="between" gap="md">
-          <Text size="sm" variant="secondary" monospace>
-            {title}
-          </Text>
+        <Flex flex={1} minWidth={0} align="center" justify="between" gap="md" wrap="wrap">
+          <Flex flex="1 1 20ch" minWidth={0} maxWidth="50ch">
+            <Text size="sm" variant="secondary" monospace wordBreak="break-word">
+              {title}
+            </Text>
+          </Flex>
           {hasTrailing ? (
             <Flex align="center" gap="sm" flexShrink={0}>
               {reference ? <ReferenceChip reference={reference} /> : null}

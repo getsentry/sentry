@@ -454,9 +454,9 @@ describe('callRecordStatus', () => {
 });
 
 describe('callRecordLabel', () => {
-  // Only the title. A rule in `links.tsx` may name the row instead, and where that wins over the
-  // shipped title is settled in `links.spec.tsx` — not here.
-  it('reports the shipped title verbatim, whatever the call was', () => {
+  // A rule in `links.tsx` may name the row instead, and where that wins over the shipped title is
+  // settled in `links.spec.tsx` — not here.
+  it('reports the shipped title', () => {
     expect(
       callRecordLabel({
         id: 1,
@@ -469,6 +469,18 @@ describe('callRecordLabel', () => {
 
   it('uses the shipped title when no handler matches', () => {
     expect(callRecordLabel(apiRecord())).toBe('Retrieve an Organization');
+  });
+
+  it('drops query params from titles when they render as input tags', () => {
+    expect(
+      callRecordLabel(
+        apiRecord({
+          title: 'Querying span timelines for [project, query]',
+          resolved_path:
+            '/api/0/organizations/acme/events/?project=frontend&query=span.op%3Adb',
+        })
+      )
+    ).toBe('Querying span timelines…');
   });
 
   it('returns null rather than a raw identifier when there is nothing to show', () => {
