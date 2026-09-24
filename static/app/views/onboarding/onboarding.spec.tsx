@@ -692,8 +692,8 @@ describe('Onboarding', () => {
       ).toBeInTheDocument();
       expect(screen.getByText('Recommended')).toBeInTheDocument();
       expect(screen.getByText('Claude Code, Codex, Cursor, & Grok')).toBeInTheDocument();
-      const prompt = screen.getByText(/org slug: org-slug/);
-      const onboardingCode = prompt.textContent?.match(
+      const prompt = screen.getByText(/org slug: org-slug/).closest('code');
+      const onboardingCode = prompt?.textContent?.match(
         /run code: ([A-Za-z0-9]{10})/
       )?.[1];
 
@@ -731,7 +731,9 @@ describe('Onboarding', () => {
         })
       );
 
-      const prompt = screen.getByText(/Please help me get started with sentry/);
+      const prompt = screen
+        .getByText(/Please help me get started with sentry/)
+        .closest('code')!;
       await userEvent.click(prompt);
 
       expect(window.getSelection()?.toString()).toBe(prompt.textContent);

@@ -173,9 +173,9 @@ describe('javascript-astro onboarding docs', () => {
       ],
     });
 
-    const astroConfig = screen.getByText(
-      textWithMarkupMatcher(/import sentry from "@sentry\/astro"/)
-    );
+    const astroConfig = screen
+      .getByText(textWithMarkupMatcher(/import sentry from "@sentry\/astro"/))
+      .closest('code');
 
     expect(astroConfig).toHaveTextContent('project:');
     expect(astroConfig).toHaveTextContent('org:');
@@ -186,7 +186,9 @@ describe('javascript-astro onboarding docs', () => {
     );
 
     // Runtime options belong in the client and server initialization files.
-    const runtimeConfigs = screen.getAllByText(textWithMarkupMatcher(/Sentry\.init\(/));
+    const runtimeConfigs = screen
+      .getAllByText(textWithMarkupMatcher(/Sentry\.init\(/))
+      .map(el => el.closest('code'));
     expect(runtimeConfigs).toHaveLength(2);
     for (const config of runtimeConfigs) {
       expect(config).toHaveTextContent('dsn:');

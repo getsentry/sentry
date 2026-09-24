@@ -28,7 +28,9 @@ describe('javascript-vue onboarding docs', () => {
   it('initializes Vue 3 with the root component and existing router', () => {
     renderWithOnboardingLayout(docs);
 
-    const setup = screen.getByText(textWithMarkupMatcher(/Sentry\.init\(/));
+    const setup = screen
+      .getByText(textWithMarkupMatcher(/Sentry\.init\(/))
+      .closest('code');
     expect(setup).toHaveTextContent('import App from "./App.vue"');
     expect(setup).toHaveTextContent('import router from "./router"');
     expect(setup).toHaveTextContent('const app = createApp(App)');
@@ -41,7 +43,9 @@ describe('javascript-vue onboarding docs', () => {
       selectedOptions: {siblingOption: VueVersion.VUE2},
     });
 
-    const setup = screen.getByText(textWithMarkupMatcher(/Sentry\.init\(/));
+    const setup = screen
+      .getByText(textWithMarkupMatcher(/Sentry\.init\(/))
+      .closest('code');
     expect(setup).toHaveTextContent('import Vue from "vue"');
     expect(setup).toHaveTextContent('import App from "./App.vue"');
     expect(setup).toHaveTextContent('Vue.use(Router)');
@@ -58,7 +62,9 @@ describe('javascript-vue onboarding docs', () => {
       selectedProducts: [ProductSolution.ERROR_MONITORING, ...products],
     });
 
-    const verify = screen.getByText(textWithMarkupMatcher(/throw new Error/));
+    const verify = screen
+      .getByText(textWithMarkupMatcher(/throw new Error/))
+      .closest('code');
     expect(verify).toHaveTextContent('import * as Sentry from "@sentry/vue"');
     expect(verify.textContent?.includes('Sentry.logger.info')).toBe(
       products.includes(ProductSolution.LOGS)
@@ -67,7 +73,9 @@ describe('javascript-vue onboarding docs', () => {
       products.includes(ProductSolution.METRICS)
     );
 
-    const setup = screen.getByText(textWithMarkupMatcher(/Sentry\.init\(/));
+    const setup = screen
+      .getByText(textWithMarkupMatcher(/Sentry\.init\(/))
+      .closest('code');
     expect(setup).not.toHaveTextContent(/sendDefaultPii|enableLogs|enableMetrics/);
 
     // `dataCollection` is presented as its own step rather than in the snippet.
@@ -84,7 +92,9 @@ describe('javascript-vue onboarding docs', () => {
         selectedProducts: [ProductSolution.ERROR_MONITORING],
       });
 
-      const verify = screen.getByText(textWithMarkupMatcher(/throw new Error/));
+      const verify = screen
+        .getByText(textWithMarkupMatcher(/throw new Error/))
+        .closest('code');
       expect(verify).toHaveTextContent('<script>');
       expect(verify).toHaveTextContent(/methods:\s*\{\s*triggerError\(\)/);
       expect(verify).toHaveTextContent('<template>');
@@ -99,7 +109,9 @@ describe('javascript-vue onboarding docs', () => {
       selectedProducts: [ProductSolution.ERROR_MONITORING],
     });
 
-    const verify = screen.getByText(textWithMarkupMatcher(/throw new Error/));
+    const verify = screen
+      .getByText(textWithMarkupMatcher(/throw new Error/))
+      .closest('code');
     expect(verify).not.toHaveTextContent(/import|Sentry\.logger|Sentry\.metrics/);
   });
 

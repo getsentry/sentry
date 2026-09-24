@@ -120,10 +120,12 @@ describe('javascript-gatsby onboarding docs', () => {
     });
 
     expect(
-      screen.getByText(textWithMarkupMatcher(/Sentry\.browserTracingIntegration\(\)/))
+      screen.getAllByText(
+        textWithMarkupMatcher(/Sentry\.browserTracingIntegration\(\)/)
+      )[0]
     ).toBeInTheDocument();
     expect(
-      screen.getByText(textWithMarkupMatcher(/tracePropagationTargets/))
+      screen.getAllByText(textWithMarkupMatcher(/tracePropagationTargets/))[0]
     ).toBeInTheDocument();
   });
 
