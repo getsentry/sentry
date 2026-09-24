@@ -384,18 +384,21 @@ class TestRolloutBucketing:
         )
 
     def test_keeps_identity_bucketing_for_features_created_before_epoch(self) -> None:
-        # foo:bar is bucket 62 on identity alone (see test_evaluation_context.py).
-        context = EvaluationContext({"foo": "bar"}, {"foo"})
+        # Organization 123 is bucket 56 on identity alone. Under the feature
+        # name it would be 64 (see the test below), which rollout 56 excludes.
+        context = EvaluationContext({"organization_id": 123}, {"organization_id"})
+        assert context.id % 100 == 56
 
-        assert self._feature("organizations:test-feature", "2024-01-01", 62).match(context)
-        assert not self._feature("organizations:test-feature", "2024-01-01", 61).match(context)
+        assert self._feature("organizations:performance-view", "2024-01-01", 56).match(context)
+        assert not self._feature("organizations:performance-view", "2024-01-01", 55).match(context)
 
     def test_buckets_by_feature_for_features_created_after_epoch(self) -> None:
-        # foo:bar is bucket 11 under organizations:test-feature and 40 under
-        # organizations:other-feature (see test_evaluation_context.py), so the
-        # two features at the same rollout reach different populations.
-        context = EvaluationContext({"foo": "bar"}, {"foo"})
+        # Organization 123 lands in a different bucket under each feature, so
+        # the two features at the same rollout reach different populations.
+        context = EvaluationContext({"organization_id": 123}, {"organization_id"})
+        assert context.bucket_id("organizations:performance-view") % 100 == 64
+        assert context.bucket_id("organizations:dashboards-edit") % 100 == 75
 
-        assert self._feature("organizations:test-feature", "2026-12-01", 11).match(context)
-        assert not self._feature("organizations:test-feature", "2026-12-01", 10).match(context)
-        assert not self._feature("organizations:other-feature", "2026-12-01", 11).match(context)
+        assert self._feature("organizations:performance-view", "2026-12-01", 64).match(context)
+        assert not self._feature("organizations:performance-view", "2026-12-01", 63).match(context)
+        assert not self._feature("organizations:dashboards-edit", "2026-12-01", 64).match(context)
