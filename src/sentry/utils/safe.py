@@ -9,6 +9,9 @@ from django.utils.http import urlencode
 from sentry.utils import json
 from sentry.utils.strings import truncatechars
 
+logger = logging.getLogger(__name__)
+
+
 PathSearchable = Union[Mapping[str, Any], Sequence[Any], None]
 
 P = ParamSpec("P")
@@ -178,7 +181,8 @@ def _strict_trim_inner(
 
     if isinstance(value_to_trim, dict):
         result: Any = {}
-        current_budget -= 2  # 2 for the outer `{` and `}`
+        current_budget -= 2  # 2 for the outer `{}`
+
         sort_by_entry_size = lambda key: (
             # Doing string length here is less exact than jsonsifying, because it doesn't
             # encode/escape anything, but since it's just for comparison, it's fine to use the
@@ -187,74 +191,80 @@ def _strict_trim_inner(
             str(key),
         )
         sorted_keys = sorted(value_to_trim.keys(), key=sort_by_entry_size)
+
         for key in sorted_keys:
-            # If there's already an entry in `result`, account for the comma between it and the
-            # entry we're handling now
-            maybe_comma_size = 1 if result else 0
-            # If the key is already a string, JSONifying it won't add quotes around it, but if it's
-            # not (if it's an int, for example), it will
-            maybe_quotes_size = 2 if not isinstance(key, str) else 0
-            colon_size = 1
+            # Comma between this pair and the previously added one (if any)
+            punctuation_size = 1 if result else 0
+            # Quotes added to non-string keys when jsonified
+            punctuation_size += 2 if not isinstance(key, str) else 0
+            # Colon between key and value
+            punctuation_size += 1
 
-            key_size = get_json_bytes(key)
-            key_and_punctuation_size = key_size + maybe_comma_size + maybe_quotes_size + colon_size
-
-            min_value_size = 1
-            min_entry_size = key_and_punctuation_size + min_value_size
-
-            if min_entry_size > current_budget:
-                break
-
-            orig_value = value_to_trim[key]
-            trimmed_value, trimmed_value_size = _strict_trim_inner(
-                orig_value,
-                incoming_budget=current_budget - key_and_punctuation_size,
-                **options,
+            trimmed_value, full_pair_size = _trim_key_value_pair(
+                key, value_to_trim[key], punctuation_size, current_budget, **options
             )
-            full_entry_size = key_and_punctuation_size + trimmed_value_size
 
-            # If we're either out of budget, or so close to being out of budget that all we can fit
-            # is a value which has had all of its contents trimmed away, we're done
-            if full_entry_size > current_budget or _was_emptied_by_trimming(
-                orig_value, trimmed_value
-            ):
+            if full_pair_size == 0:  # The helper ran out of room
                 break
-            else:
-                result[key] = trimmed_value
-                current_budget -= full_entry_size
+
+            result[key] = trimmed_value
+            current_budget -= full_pair_size
 
     elif isinstance(value_to_trim, (list, tuple)):
         # Use a list to collect trimmed values, regardless of `value_to_trim`'s type, since tuples
         # are immutatble. If `value_to_trim` is in fact a tuple, we'll convert it back after we're
         # done adding elements to it.
         result = []
-        current_budget -= 2  # Add 2 for the opening/closing brackets or parens
+        malformed_entries = []  # Only applies to dict-entries mode
+        current_budget -= 2  # 2 for the outer `()` or `[]`
 
         for element in value_to_trim:
-            # If there's already an element in `result`, account for the comma between it and the
-            # element we're handling now
-            maybe_comma_size = 1 if result else 0
+            # Comma between this pair and the previously added one (if any)
+            punctuation_size = 1 if result else 0
 
-            trimmed_element, trimmed_element_size = _strict_trim_inner(
-                element,
-                incoming_budget=current_budget - maybe_comma_size,
-                **options,
-            )
-            full_element_size = trimmed_element_size + maybe_comma_size
+            # In dict-entries mode, we assume the elements are key-value pairs and apply stricter
+            # rules (never trim key, only include pair if at least part of the value fits)
+            if treat_as_dict_entries:
+                # Skip malformed key-value pairs
+                if not isinstance(element, (list, tuple)) or len(element) != 2:
+                    malformed_entries.append(element)
+                    continue
 
-            # If we're either out of budget, or so close to being out of budget that all we can fit
-            # is a value which has had all of its contents trimmed away, we're done
-            if full_element_size > current_budget or _was_emptied_by_trimming(
-                element, trimmed_element
-            ):
-                break
+                # The pair's parens/brackets (2 chars) and the comma between key and value (1 char)
+                punctuation_size += 3
+
+                key, raw_value = element
+                trimmed_value, full_pair_size = _trim_key_value_pair(
+                    key, raw_value, punctuation_size, current_budget, **options
+                )
+
+                trimmed_element = (
+                    [key, trimmed_value] if isinstance(element, list) else (key, trimmed_value)
+                )
+                full_element_size = full_pair_size
+            # Default list/tuple-handling behavior (no restriction on trimming and/or dropping
+            # nested values)
             else:
-                result.append(trimmed_element)
-                current_budget -= full_element_size
+                trimmed_element, full_element_size = _trim_single_element(
+                    element, punctuation_size, current_budget, **options
+                )
 
-        # Convert back to a tuple if that's `value_to_trim`'s original type
+            if full_element_size == 0:  # The helper ran out of room
+                break
+
+            result.append(trimmed_element)
+            current_budget -= full_element_size
+
+        # Both tuples and lists produce a list result; convert back to a tuple if that's what we
+        #  originally had
         if isinstance(value_to_trim, tuple):
             result = tuple(result)
+
+        if malformed_entries:
+            logger.warning(
+                "`strict_trim` option `treat_as_dict_entries` used with invalid entries",
+                extra={"invalid_values": malformed_entries},
+            )
 
     elif isinstance(value_to_trim, str):
         # Trim the string to something which jsonifies within our budget. (Because jsonifying also
