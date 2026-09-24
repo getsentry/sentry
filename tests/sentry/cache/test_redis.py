@@ -66,7 +66,9 @@ def _assert_roundtrip(backend: RedisCache) -> None:
     assert backend.get("k") is None
 
 
-@pytest.mark.parametrize("cache_options", ({}, {"cluster": "default"}), ids=("implicit", "named"))
+@pytest.mark.parametrize(
+    "cache_options", ({}, {"cluster_id": "default"}), ids=("implicit", "named")
+)
 def test_redis_cache_uses_redis_clusters(cache_options) -> None:
     backend = RedisCache(**cache_options)
     assert backend._text_client is redis_clusters.get("default")
@@ -82,4 +84,4 @@ def test_redis_cache_rejects_multi_host_cluster() -> None:
     }
     with override_options({"redis.clusters": clusters}):
         with pytest.raises(KeyError):
-            RedisCache(cluster="cache-multi-host")
+            RedisCache(cluster_id="cache-multi-host")

@@ -58,19 +58,12 @@ class CommonRedisCache(BaseCache):
         return result
 
 
-class RbCache(CommonRedisCache):
-    def __init__(self, cluster: str = "default", **options: object) -> None:
-        client = redis_clusters.get(cluster)
-        raw_client = redis_clusters.get_binary(cluster)
-        super().__init__(client=client, raw_client=raw_client, **options)
-
-
-# Legacy name for RbCache. Deploy configs refer to it by string.
-RedisCache = RbCache
-
-
 class RedisClusterCache(CommonRedisCache):
-    def __init__(self, cluster_id: str, **options: object) -> None:
+    def __init__(self, cluster_id: str = "default", **options: object) -> None:
         client = redis_clusters.get(cluster_id)
         raw_client = redis_clusters.get_binary(cluster_id)
         super().__init__(client=client, raw_client=raw_client, **options)
+
+
+# Deploy configs refer to both names by string.
+RedisCache = RedisClusterCache
