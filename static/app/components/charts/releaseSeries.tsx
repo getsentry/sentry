@@ -76,8 +76,7 @@ const getOrganizationReleasesMemoized = memoize(
       .join('-')
 );
 
-export interface ReleaseSeriesProps {
-  children: (s: ReleaseSeriesState) => React.ReactNode;
+interface UseReleaseSeriesProps {
   end: DateString;
   environments: readonly string[];
   projects: readonly number[];
@@ -99,8 +98,6 @@ type ReleaseSeriesState = {
   releases: ReleaseMetaBasic[] | null;
 };
 
-type UseReleaseSeriesProps = Omit<ReleaseSeriesProps, 'children'>;
-
 function buildReleaseSeries({
   releases,
   emphasizeReleases,
@@ -113,7 +110,7 @@ function buildReleaseSeries({
   onReleaseClick: (version: string) => void;
   releases: ReleaseMetaBasic[];
   emphasizeReleases?: string[];
-  tooltip?: ReleaseSeriesProps['tooltip'];
+  tooltip?: UseReleaseSeriesProps['tooltip'];
   utc?: boolean | null;
 }): Series[] {
   function makeOneSeries(items: ReleaseMetaBasic[], lineStyle = {}): Series {
@@ -356,11 +353,4 @@ export function useReleaseSeries({
   }
 
   return {releases, releaseSeries};
-}
-
-/**
- * @deprecated use useReleaseSeries hook instead
- */
-export function ReleaseSeries({children, ...props}: ReleaseSeriesProps) {
-  return children(useReleaseSeries(props));
 }

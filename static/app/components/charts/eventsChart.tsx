@@ -21,7 +21,7 @@ import ChartZoom from 'sentry/components/charts/chartZoom';
 import {ErrorPanel} from 'sentry/components/charts/errorPanel';
 import type {LineChartProps} from 'sentry/components/charts/lineChart';
 import {LineChart} from 'sentry/components/charts/lineChart';
-import {ReleaseSeries} from 'sentry/components/charts/releaseSeries';
+import {useReleaseSeries} from 'sentry/components/charts/releaseSeries';
 import {TransitionChart} from 'sentry/components/charts/transitionChart';
 import {TransparentLoadingMask} from 'sentry/components/charts/transparentLoadingMask';
 import {getInterval, RELEASE_LINES_THRESHOLD} from 'sentry/components/charts/utils';
@@ -435,7 +435,6 @@ type ChartDataProps = {
   reloading: boolean;
   zoomRenderProps: ZoomRenderProps;
   previousTimeseriesData?: Series[] | null;
-  releaseSeries?: Series[];
   results?: Series[];
   tableData?: TableDataWithTitle[];
   timeframe?: {end: number; start: number};
@@ -511,9 +510,21 @@ export function EventsChart(props: EventsChartProps) {
 
   const intervalVal = showDaily ? '1d' : interval || getInterval(props, 'high');
 
-  let chartImplementation = ({
+  const {releaseSeries} = useReleaseSeries({
+    utc,
+    period,
+    start,
+    end,
+    projects,
+    environments,
+    emphasizeReleases,
+    preserveQueryParams: preserveReleaseQueryParams,
+    queryExtra: releaseQueryExtra,
+    enabled: !disableReleases,
+  });
+
+  const chartImplementation = ({
     zoomRenderProps,
-    releaseSeries,
     errored,
     loading,
     reloading,
@@ -550,7 +561,7 @@ export function EventsChart(props: EventsChartProps) {
           reloading={reloading || !!reloadingAdditionalSeries}
           showLegend={showLegend}
           minutesThresholdToDisplaySeconds={minutesThresholdToDisplaySeconds}
-          releaseSeries={releaseSeries || []}
+          releaseSeries={releaseSeries}
           timeseriesData={seriesData ?? []}
           previousTimeseriesData={previousTimeseriesData}
           currentSeriesNames={currentSeriesNames}
@@ -576,25 +587,6 @@ export function EventsChart(props: EventsChartProps) {
       </TransitionChart>
     );
   };
-
-  if (!disableReleases) {
-    const previousChart = chartImplementation;
-    chartImplementation = chartProps => (
-      <ReleaseSeries
-        utc={utc}
-        period={period}
-        start={start}
-        end={end}
-        projects={projects}
-        environments={environments}
-        emphasizeReleases={emphasizeReleases}
-        preserveQueryParams={preserveReleaseQueryParams}
-        queryExtra={releaseQueryExtra}
-      >
-        {({releaseSeries}) => previousChart({...chartProps, releaseSeries})}
-      </ReleaseSeries>
-    );
-  }
 
   return (
     <ChartZoom
