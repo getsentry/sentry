@@ -1,17 +1,10 @@
 import {useMemo} from 'react';
 
-import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
-import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {IconClock} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {
-  ChartIntervalUnspecifiedStrategy,
-  useChartInterval,
-} from 'sentry/utils/useChartInterval';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -23,7 +16,9 @@ import {
 } from 'sentry/views/dashboards/types';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
 import {WidgetLegendSelectionState} from 'sentry/views/dashboards/widgetLegendSelectionState';
-import {useCombinedQuery} from 'sentry/views/insights/pages/agents/hooks/useCombinedQuery';
+import {AgentsChartsBanner} from 'sentry/views/explore/conversations/components/agentsChartsBanner';
+import {useAgentsChartsState} from 'sentry/views/explore/conversations/components/agentsChartsControls';
+import {useAgentFilter} from 'sentry/views/insights/pages/agents/hooks/useAgentFilter';
 import {
   getAgentRunsFilter,
   getToolSpansFilter,
@@ -82,19 +77,39 @@ export function AgentsCharts() {
   const location = useLocation();
   const navigate = useNavigate();
   const {selection} = usePageFilters();
-  const [chartInterval, setChartInterval, chartIntervalOptions] = useChartInterval({
-    unspecifiedStrategy: ChartIntervalUnspecifiedStrategy.USE_BIGGEST,
-  });
-  const chartIntervalLabel =
-    chartIntervalOptions.find(({value}) => value === chartInterval)?.label ??
-    chartInterval;
+  const agentsChartsState = useAgentsChartsState();
+  const {
+    chartInterval,
+    hasNoAgentOrToolData,
+    isChartDataPending,
+    showMissingAgentDataBanner,
+  } = agentsChartsState;
+  const {agentQuery} = useAgentFilter();
+  const agentFilterSuffix = agentQuery ? ` ${agentQuery}` : '';
 
-  const agentRunsQuery = useCombinedQuery(getAgentRunsFilter());
-  const estimatedCostQuery = useCombinedQuery(AI_CLIENT_FILTER);
-  const toolCallsQuery = useCombinedQuery(getToolSpansFilter());
+  const agentRunsQuery = `${getAgentRunsFilter()}${agentFilterSuffix}`;
+  const estimatedCostQuery = `${AI_CLIENT_FILTER}${agentFilterSuffix}`;
+  const toolCallsQuery = `${getToolSpansFilter()}${agentFilterSuffix}`;
 
-  const widgets = useMemo<Widget[]>(
-    () => [
+  const widgets = useMemo<Widget[]>(() => {
+    const estimatedCostWidget = createGroupedWidget({
+      id: 'explore-agents-estimated-cost',
+      interval: chartInterval,
+      title: t('Estimated Cost'),
+      description: t('Estimated cost of LLM calls grouped by response model.'),
+      query: estimatedCostQuery,
+      groupBy: SpanFields.GEN_AI_RESPONSE_MODEL,
+      aggregate: COST,
+      groupByLabel: t('Model'),
+      aggregateLabel: t('Estimated Cost'),
+    });
+
+    if (hasNoAgentOrToolData) {
+      return [estimatedCostWidget];
+    }
+
+    return [
+      estimatedCostWidget,
       createGroupedWidget({
         id: 'explore-agents-agent-runs',
         interval: chartInterval,
@@ -107,17 +122,6 @@ export function AgentsCharts() {
         aggregateLabel: t('Runs'),
       }),
       createGroupedWidget({
-        id: 'explore-agents-estimated-cost',
-        interval: chartInterval,
-        title: t('Estimated Cost'),
-        description: t('Estimated cost of LLM calls grouped by response model.'),
-        query: estimatedCostQuery,
-        groupBy: SpanFields.GEN_AI_RESPONSE_MODEL,
-        aggregate: COST,
-        groupByLabel: t('Model'),
-        aggregateLabel: t('Estimated Cost'),
-      }),
-      createGroupedWidget({
         id: 'explore-agents-tool-calls',
         interval: chartInterval,
         title: t('Tool calls'),
@@ -128,9 +132,14 @@ export function AgentsCharts() {
         groupByLabel: t('Tool Name'),
         aggregateLabel: t('Calls'),
       }),
-    ],
-    [agentRunsQuery, chartInterval, estimatedCostQuery, toolCallsQuery]
-  );
+    ];
+  }, [
+    agentRunsQuery,
+    chartInterval,
+    estimatedCostQuery,
+    hasNoAgentOrToolData,
+    toolCallsQuery,
+  ]);
 
   const dashboard = useMemo<DashboardDetails>(
     () => ({
@@ -158,48 +167,38 @@ export function AgentsCharts() {
   return (
     <Container containerType="inline-size">
       <Stack gap="sm">
-        <Flex justify="end">
-          <Tooltip title={t('Time interval displayed in the charts')}>
-            <CompactSelect
-              trigger={triggerProps => (
-                <OverlayTrigger.Button
-                  {...triggerProps}
-                  aria-label={t('Chart interval: %s', chartIntervalLabel)}
-                  icon={<IconClock />}
-                  size="xs"
-                  variant="transparent"
-                >
-                  {chartIntervalLabel}
-                </OverlayTrigger.Button>
-              )}
-              menuTitle={t('Interval')}
-              options={chartIntervalOptions}
-              value={chartInterval}
-              onChange={option => setChartInterval(option.value)}
-            />
-          </Tooltip>
-        </Flex>
-        <Grid
-          columns={{zero: 'minmax(0, 1fr)', xl: 'repeat(3, minmax(0, 1fr))'}}
-          gap="md"
-        >
-          {widgets.map(widget => (
-            <Container key={widget.id} minHeight="240px" minWidth="0">
-              <WidgetCard
-                disableFullscreen
-                disableTableActions
-                disableZoom
-                dashboardFilters={dashboard.filters}
-                selection={selection}
-                showContextMenu
-                widget={widget}
-                widgetInterval={chartInterval}
-                widgetLegendState={widgetLegendState}
-                widgetLimitReached={false}
-              />
-            </Container>
-          ))}
-        </Grid>
+        {isChartDataPending ? (
+          <Flex align="center" justify="center" minHeight="240px">
+            <LoadingIndicator />
+          </Flex>
+        ) : (
+          <Grid
+            columns={
+              hasNoAgentOrToolData
+                ? 'minmax(0, 1fr)'
+                : {zero: 'minmax(0, 1fr)', xl: 'repeat(3, minmax(0, 1fr))'}
+            }
+            gap="md"
+          >
+            {widgets.map(widget => (
+              <Container key={widget.id} minHeight="240px" minWidth="0">
+                <WidgetCard
+                  disableFullscreen
+                  disableTableActions
+                  disableZoom
+                  dashboardFilters={dashboard.filters}
+                  selection={selection}
+                  showContextMenu
+                  widget={widget}
+                  widgetInterval={chartInterval}
+                  widgetLegendState={widgetLegendState}
+                  widgetLimitReached={false}
+                />
+              </Container>
+            ))}
+          </Grid>
+        )}
+        <AgentsChartsBanner show={showMissingAgentDataBanner} />
       </Stack>
     </Container>
   );
