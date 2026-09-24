@@ -188,15 +188,6 @@ importers:
       '@sentry-internal/global-search':
         specifier: ^1.0.0
         version: 1.0.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
-      '@sentry-internal/rrweb':
-        specifier: 2.41.0
-        version: 2.41.0
-      '@sentry-internal/rrweb-player':
-        specifier: 2.41.0
-        version: 2.41.0
-      '@sentry-internal/rrweb-snapshot':
-        specifier: 2.41.0
-        version: 2.41.0
       '@sentry/browser':
         specifier: 11.0.0
         version: 11.0.0
@@ -215,6 +206,15 @@ importers:
       '@sentry/release-parser':
         specifier: ^1.3.1
         version: 1.3.1
+      '@sentry/rrweb':
+        specifier: 2.44.0
+        version: 2.44.0
+      '@sentry/rrweb-player':
+        specifier: 2.44.0
+        version: 2.44.0
+      '@sentry/rrweb-snapshot':
+        specifier: 2.44.0
+        version: 2.44.0
       '@sentry/sqlish':
         specifier: 1.0.1
         version: 1.0.1(react@19.2.3)
@@ -564,12 +564,12 @@ importers:
       '@jest/types':
         specifier: 30.5.1
         version: 30.5.1
-      '@sentry-internal/rrweb-types':
-        specifier: 2.43.0
-        version: 2.43.0
       '@sentry/jest-environment':
         specifier: 8.0.0
         version: 8.0.0(@jest/environment-jsdom-abstract@30.5.1(@types/jsdom@21.1.7)(jsdom@30.1.0(patch_hash=5dac761088e7baf0d6a93f505737e3e3f0dc178680ab47fb53483561d730388a)))(@sentry/node@11.0.0)(jest-environment-node@30.5.1)(jest@30.5.1(@types/node@24.13.2)(babel-plugin-macros@3.1.0)(ts-node@10.9.2(@swc/core@1.16.2)(@types/node@24.13.2)(@typescript/typescript6@6.0.2)))(jsdom@30.1.0(patch_hash=5dac761088e7baf0d6a93f505737e3e3f0dc178680ab47fb53483561d730388a))
+      '@sentry/rrweb-types':
+        specifier: 2.44.0
+        version: 2.44.0
       '@swc-contrib/mut-cjs-exports':
         specifier: 15.0.0
         version: 15.0.0(@swc/core@1.16.2)(@swc/jest@0.2.39(@swc/core@1.16.2))
@@ -622,8 +622,8 @@ importers:
         specifier: 7.37.5
         version: 7.37.5(eslint@10.8.0(jiti@2.7.0))
       eslint-plugin-react-you-might-not-need-an-effect:
-        specifier: 0.5.3
-        version: 0.5.3(eslint@10.8.0(jiti@2.7.0))
+        specifier: 1.0.2
+        version: 1.0.2(eslint@10.8.0(jiti@2.7.0))
       eslint-plugin-regexp:
         specifier: 3.1.1
         version: 3.1.1(eslint@10.8.0(jiti@2.7.0))
@@ -3420,30 +3420,6 @@ packages:
       react: '>=16'
       react-dom: '>=16'
 
-  '@sentry-internal/rrdom@2.41.0':
-    resolution: {integrity: sha512-oFBTYW/YH98Hp43AsgXXx0FUY2GmwFVYeEdwKqCxui6yV3cLH9ut2aguFLbel7VmCsgsvEuzvDx6z04mbWJgNA==}
-
-  '@sentry-internal/rrweb-packer@2.41.0':
-    resolution: {integrity: sha512-1X4ckBAjtFBZlQ8AlT4sUsuTi8yfrQfq4GJ03lbpdawgiH8NGr6ZBR2pl0ZTHo7bUGDGPA5VSYUuztEEzfNuuA==}
-
-  '@sentry-internal/rrweb-player@2.41.0':
-    resolution: {integrity: sha512-XUGhvTG90DonA7aV/7NS4/p2bEyTlX+U0kCsxp0dOq1i+Z0bYPEUPK2TJPVQJY7fgl44DPBJZiCvRe32760SuA==}
-
-  '@sentry-internal/rrweb-snapshot@2.41.0':
-    resolution: {integrity: sha512-2NPQmwfbVONnyLOOwQ4WP+PIJx+qB5mEIFUq2bpgWglDSPSkr6yxnMB2kT+lE8P3OC/N3I/IrV0vEyFEReVgBA==}
-
-  '@sentry-internal/rrweb-snapshot@2.43.0':
-    resolution: {integrity: sha512-DF6HOwkOTpxCYZWCLZ32Sl27f6iXi4jSyonhjkie44Wr9nMe6Zvey/V0glm8xI1XkGqZaFGUVzVRReezwwkeHg==}
-
-  '@sentry-internal/rrweb-types@2.41.0':
-    resolution: {integrity: sha512-9+sfBcblve5i6uZpeu9s/tCUhhwg3wb8Ywe4RjVI4jNywVYsCJscpswbM8mdNUNvJpaaZud0QLS50HwQycCEZA==}
-
-  '@sentry-internal/rrweb-types@2.43.0':
-    resolution: {integrity: sha512-T98inxcRWi+GhZIPBOdAE0xaKxnm6am3h+9mbkN+rDqdFz/TsGF+bTvjTHuZ/nE7dzCGCxGnwQCNnJk9Z14x4A==}
-
-  '@sentry-internal/rrweb@2.41.0':
-    resolution: {integrity: sha512-Pq5Ng/NhXza40lIXAjBCclvuC+QFwAktWwl2Sa/oMH//GxtDc/mcWV7CIHdsiSbTkd3jFQZcuutByFq2hlCSug==}
-
   '@sentry/babel-plugin-component-annotate@5.3.0':
     resolution: {integrity: sha512-p4q8gn8wcFqZGP/s2MnJCAAd8fTikaU6A0mM97RDHQgStcrYiaS0Sc5zUNfb1V+UOLPuvdEdL6MwyxfzjYJQTA==}
     engines: {node: '>= 18'}
@@ -3587,6 +3563,24 @@ packages:
   '@sentry/replay@11.0.0':
     resolution: {integrity: sha512-4/36Iw288SaWEwLjhpLRjCjL2UmSNEyU0TvLrAlzRAoYdksneEe7iQTSe7WD257buSgop0m+lauGRHQf7fD9qg==}
     engines: {node: '>=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0'}
+
+  '@sentry/rrdom@2.44.0':
+    resolution: {integrity: sha512-Hv9seHyX0pBaemWvKkYhserC1NY3ThBBlJ73HZOfd8TmOAGX48jL7iULUvWoToYLD+o429d9Ji+/O7gRjrrwaw==}
+
+  '@sentry/rrweb-packer@2.44.0':
+    resolution: {integrity: sha512-fJSgWcsdi28tueAhrvR1DXcxXq6DeNy+G3IxL8prj2Z31yRanTtGJQ1Vt+aFh9nZxCz/mWvrBUCccJJuDZ2uZw==}
+
+  '@sentry/rrweb-player@2.44.0':
+    resolution: {integrity: sha512-/UWIJl4KAZsFWxWiYjTRyU1d3B2X3FqluE7+Yp/td6kDcVmqPU8Lu3LygvGmQrabGrOyvHsZNtelnaBHsuupoA==}
+
+  '@sentry/rrweb-snapshot@2.44.0':
+    resolution: {integrity: sha512-eAG1oQ9T815TzXyX8S6mtgwr1eZdI4HtxO4qwNNLhKXddSZD8mHRZpU3MVuTzVe80fEVISOqp54dwWkTn2Jslg==}
+
+  '@sentry/rrweb-types@2.44.0':
+    resolution: {integrity: sha512-/Nly7y88iCzGFddO2IMcZN9KvqqltwsRm5QN4H9uk6mLkKNTU+5+LmeWNsDhYhZyDUbEF8PJF/rqm0AGD58AOw==}
+
+  '@sentry/rrweb@2.44.0':
+    resolution: {integrity: sha512-iyy7adl1MM2T75Nvd3JxNPEJkJsas+5Z4HbD8dgqDcxGWdQ4jj51rR8mDUPumUajXxJjPHchjp8ltEvquxkwLA==}
 
   '@sentry/server-runtime-injection@11.0.0':
     resolution: {integrity: sha512-AE39xdGbi8WmcB9LtITuvJkp+sYxkPAR+3lRG4MYrJLVQS+YeYfn/AaZdEXOhnOagdpozsDbpEneGJn6vD8p6Q==}
@@ -5889,8 +5883,8 @@ packages:
       '@testing-library/dom':
         optional: true
 
-  eslint-plugin-react-you-might-not-need-an-effect@0.5.3:
-    resolution: {integrity: sha512-/tkUN71PIp5+LVSDb9y3MA4zMyjVGJojfWCeC2NSWhRRBbc0NRR8WnFXe2h3bw6tTcYMack/dlHME5YVu/0Fmw==}
+  eslint-plugin-react-you-might-not-need-an-effect@1.0.2:
+    resolution: {integrity: sha512-HgYol2zhH3KbnW9Q4FY/FcIINbsYVL6rwQESChqBC2s9SLWtw1wg05+J7SCrr3BfQpNY2ReYhf8xjpd2JhKJOQ==}
     engines: {node: '>=14.0.0'}
     peerDependencies:
       eslint: '>=8.40.0'
@@ -5922,16 +5916,6 @@ packages:
   eslint-scope@9.1.2:
     resolution: {integrity: sha512-xS90H51cKw0jltxmvmHy2Iai1LIqrfbw57b79w/J7MfvDfkIkFZ+kj6zC3BjtUwh150HsSSdxXZcsuv72miDFQ==}
     engines: {node: ^20.19.0 || ^22.13.0 || >=24}
-
-  eslint-utils@3.0.0:
-    resolution: {integrity: sha512-uuQC43IGctw68pJA1RgbQS8/NP7rch6Cwd4j3ZBtgo4/8Flj4eGE7ZYSZRN3iq5pVUv6GPdW5Z1RFleo84uLDA==}
-    engines: {node: ^10.0.0 || ^12.0.0 || >= 14.0.0}
-    peerDependencies:
-      eslint: '>=5'
-
-  eslint-visitor-keys@2.1.0:
-    resolution: {integrity: sha512-0rSmRBzXgDzIsD6mGdJgevzgezI534Cer5L/vyMX0kHzT/jiB43jRhd9YUlMGYLQy2zprNmoT8qasCGtY+QaKw==}
-    engines: {node: '>=10'}
 
   eslint-visitor-keys@3.4.3:
     resolution: {integrity: sha512-wpc+LXeiyiisxPlEkUzU6svyS1frIO3Mgxj1fdy7Pm8Ygzguax2N3Fa/D/ag1WqbOprdI+uY6wMUl8/a2G+iag==}
@@ -6323,8 +6307,8 @@ packages:
     resolution: {integrity: sha512-WOBp/EEGUiIsJSp7wcv/y6MO+lV9UoncWqxuFfm8eBwzWNgyfBd6Gz+IeKQ9jCmyhoH99g15M3T+QaVHFjizVA==}
     engines: {node: '>=4'}
 
-  globals@16.3.0:
-    resolution: {integrity: sha512-bqWEnJ1Nt3neqx2q5SFfGS8r/ahumIakg3HcwtNlrVlwXIeNumWn/c7Pn/wKzGhf6SaW6H6uWXLqC30STCMchQ==}
+  globals@16.5.0:
+    resolution: {integrity: sha512-c/c15i26VrJ4IRt5Z89DnIzCGDn9EcebibhAOjw5ibqEHsE1wLUgkPn9RDmNcUKyU87GeaL633nyJ+pplFR2ZQ==}
     engines: {node: '>=18'}
 
   globals@17.12.0:
@@ -12029,46 +12013,6 @@ snapshots:
       react-dom: 19.2.3(react@19.2.3)
       title-case: 3.0.2
 
-  '@sentry-internal/rrdom@2.41.0':
-    dependencies:
-      '@sentry-internal/rrweb-snapshot': 2.41.0
-
-  '@sentry-internal/rrweb-packer@2.41.0':
-    dependencies:
-      '@sentry-internal/rrweb-types': 2.41.0
-      fflate: 0.4.8
-
-  '@sentry-internal/rrweb-player@2.41.0':
-    dependencies:
-      '@sentry-internal/rrweb': 2.41.0
-      '@sentry-internal/rrweb-packer': 2.41.0
-      '@tsconfig/svelte': 1.0.13
-
-  '@sentry-internal/rrweb-snapshot@2.41.0': {}
-
-  '@sentry-internal/rrweb-snapshot@2.43.0': {}
-
-  '@sentry-internal/rrweb-types@2.41.0':
-    dependencies:
-      '@sentry-internal/rrweb-snapshot': 2.41.0
-      '@types/css-font-loading-module': 0.0.7
-
-  '@sentry-internal/rrweb-types@2.43.0':
-    dependencies:
-      '@sentry-internal/rrweb-snapshot': 2.43.0
-      '@types/css-font-loading-module': 0.0.7
-
-  '@sentry-internal/rrweb@2.41.0':
-    dependencies:
-      '@sentry-internal/rrdom': 2.41.0
-      '@sentry-internal/rrweb-snapshot': 2.41.0
-      '@sentry-internal/rrweb-types': 2.41.0
-      '@types/css-font-loading-module': 0.0.7
-      '@xstate/fsm': 1.6.5
-      base64-arraybuffer: 1.0.2
-      fflate: 0.4.8
-      mitt: 3.0.1
-
   '@sentry/babel-plugin-component-annotate@5.3.0': {}
 
   '@sentry/browser-utils@11.0.0':
@@ -12214,6 +12158,39 @@ snapshots:
     dependencies:
       '@sentry/browser-utils': 11.0.0
       '@sentry/core': 11.0.0
+
+  '@sentry/rrdom@2.44.0':
+    dependencies:
+      '@sentry/rrweb-snapshot': 2.44.0
+
+  '@sentry/rrweb-packer@2.44.0':
+    dependencies:
+      '@sentry/rrweb-types': 2.44.0
+      fflate: 0.4.8
+
+  '@sentry/rrweb-player@2.44.0':
+    dependencies:
+      '@sentry/rrweb': 2.44.0
+      '@sentry/rrweb-packer': 2.44.0
+      '@tsconfig/svelte': 1.0.13
+
+  '@sentry/rrweb-snapshot@2.44.0': {}
+
+  '@sentry/rrweb-types@2.44.0':
+    dependencies:
+      '@sentry/rrweb-snapshot': 2.44.0
+      '@types/css-font-loading-module': 0.0.7
+
+  '@sentry/rrweb@2.44.0':
+    dependencies:
+      '@sentry/rrdom': 2.44.0
+      '@sentry/rrweb-snapshot': 2.44.0
+      '@sentry/rrweb-types': 2.44.0
+      '@types/css-font-loading-module': 0.0.7
+      '@xstate/fsm': 1.6.5
+      base64-arraybuffer: 1.0.2
+      fflate: 0.4.8
+      mitt: 3.0.1
 
   '@sentry/server-runtime-injection@11.0.0':
     dependencies:
@@ -14585,11 +14562,10 @@ snapshots:
     optionalDependencies:
       '@testing-library/dom': 10.4.1
 
-  eslint-plugin-react-you-might-not-need-an-effect@0.5.3(eslint@10.8.0(jiti@2.7.0)):
+  eslint-plugin-react-you-might-not-need-an-effect@1.0.2(eslint@10.8.0(jiti@2.7.0)):
     dependencies:
       eslint: 10.8.0(jiti@2.7.0)
-      eslint-utils: 3.0.0(eslint@10.8.0(jiti@2.7.0))
-      globals: 16.3.0
+      globals: 16.5.0
 
   eslint-plugin-react@7.37.5(eslint@10.8.0(jiti@2.7.0)):
     dependencies:
@@ -14663,13 +14639,6 @@ snapshots:
       '@types/estree': 1.0.9
       esrecurse: 4.3.0
       estraverse: 5.3.0
-
-  eslint-utils@3.0.0(eslint@10.8.0(jiti@2.7.0)):
-    dependencies:
-      eslint: 10.8.0(jiti@2.7.0)
-      eslint-visitor-keys: 2.1.0
-
-  eslint-visitor-keys@2.1.0: {}
 
   eslint-visitor-keys@3.4.3: {}
 
@@ -15139,7 +15108,7 @@ snapshots:
 
   globals@11.12.0: {}
 
-  globals@16.3.0: {}
+  globals@16.5.0: {}
 
   globals@17.12.0: {}
 

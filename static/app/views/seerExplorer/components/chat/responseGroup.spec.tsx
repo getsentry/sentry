@@ -5,6 +5,7 @@ import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary
 import type {Block} from 'sentry/views/seerExplorer/types';
 
 import {groupTranscript, deriveThinkingTitle, ResponseGroup} from './responseGroup';
+import {findLatestTodos} from './toolUse';
 
 function userBlock(id: string, content: string): Block {
   return {
@@ -140,9 +141,17 @@ describe('ResponseGroup', () => {
       assistantBlock('a1', 'The final answer'),
     ];
 
-    render(<ResponseGroup group={group} blockIndex={1} blocks={group} showThinking />, {
-      organization,
-    });
+    render(
+      <ResponseGroup
+        group={group}
+        blockIndex={1}
+        latestTodos={findLatestTodos(group)}
+        showThinking
+      />,
+      {
+        organization,
+      }
+    );
 
     // One consolidated reasoning toggle for the whole response.
     expect(
@@ -178,7 +187,12 @@ describe('ResponseGroup', () => {
     ];
 
     const {container} = render(
-      <ResponseGroup group={group} blockIndex={1} blocks={group} showThinking />,
+      <ResponseGroup
+        group={group}
+        blockIndex={1}
+        latestTodos={findLatestTodos(group)}
+        showThinking
+      />,
       {organization}
     );
 
@@ -210,7 +224,12 @@ describe('ResponseGroup', () => {
     ];
 
     const {container} = render(
-      <ResponseGroup group={group} blockIndex={1} blocks={group} showThinking />,
+      <ResponseGroup
+        group={group}
+        blockIndex={1}
+        latestTodos={findLatestTodos(group)}
+        showThinking
+      />,
       {organization}
     );
 
@@ -221,7 +240,12 @@ describe('ResponseGroup', () => {
     const group = [toolUseBlock('t1')];
 
     const {container} = render(
-      <ResponseGroup group={group} blockIndex={1} blocks={group} showThinking />,
+      <ResponseGroup
+        group={group}
+        blockIndex={1}
+        latestTodos={findLatestTodos(group)}
+        showThinking
+      />,
       {organization}
     );
 
@@ -234,9 +258,17 @@ describe('ResponseGroup', () => {
       assistantBlock('a1', 'Done'),
     ];
 
-    render(<ResponseGroup group={group} blockIndex={1} blocks={group} showThinking />, {
-      organization,
-    });
+    render(
+      <ResponseGroup
+        group={group}
+        blockIndex={1}
+        latestTodos={findLatestTodos(group)}
+        showThinking
+      />,
+      {
+        organization,
+      }
+    );
 
     // A completed response's reasoning starts collapsed, so the thinking prose is hidden.
     expect(screen.getByText('my private reasoning')).not.toBeVisible();
@@ -254,7 +286,12 @@ describe('ResponseGroup', () => {
     const group = [toolUseBlock('t1'), llmWaitBlock()];
 
     const {container} = render(
-      <ResponseGroup group={group} blockIndex={1} blocks={group} showThinking />,
+      <ResponseGroup
+        group={group}
+        blockIndex={1}
+        latestTodos={findLatestTodos(group)}
+        showThinking
+      />,
       {organization}
     );
 
@@ -271,7 +308,12 @@ describe('ResponseGroup', () => {
     const group = [toolUseBlock('t1'), toolUseBlock('t2')];
 
     const {container} = render(
-      <ResponseGroup group={group} blockIndex={1} blocks={group} showThinking />,
+      <ResponseGroup
+        group={group}
+        blockIndex={1}
+        latestTodos={findLatestTodos(group)}
+        showThinking
+      />,
       {organization}
     );
 
@@ -285,7 +327,12 @@ describe('ResponseGroup', () => {
     const group = [toolUseBlock('t1', {loading: true})];
 
     const {container} = render(
-      <ResponseGroup group={group} blockIndex={1} blocks={group} showThinking />,
+      <ResponseGroup
+        group={group}
+        blockIndex={1}
+        latestTodos={findLatestTodos(group)}
+        showThinking
+      />,
       {organization}
     );
 
@@ -299,9 +346,17 @@ describe('ResponseGroup', () => {
   it('renders no reasoning block when the response is a direct answer', () => {
     const group = [assistantBlock('a1', 'Just an answer')];
 
-    render(<ResponseGroup group={group} blockIndex={0} blocks={group} showThinking />, {
-      organization,
-    });
+    render(
+      <ResponseGroup
+        group={group}
+        blockIndex={0}
+        latestTodos={findLatestTodos(group)}
+        showThinking
+      />,
+      {
+        organization,
+      }
+    );
 
     expect(
       screen.queryByRole('button', {name: /See thinking and tool calls/})
@@ -338,7 +393,7 @@ describe('ResponseGroup', () => {
     const group = [llmWaitBlock()];
 
     const {container} = render(
-      <ResponseGroup group={group} blockIndex={0} blocks={group} />,
+      <ResponseGroup group={group} blockIndex={0} latestTodos={findLatestTodos(group)} />,
       {organization}
     );
 
@@ -355,7 +410,12 @@ describe('ResponseGroup', () => {
     ];
 
     render(
-      <ResponseGroup group={group} blockIndex={1} blocks={group} showThinking={false} />,
+      <ResponseGroup
+        group={group}
+        blockIndex={1}
+        latestTodos={findLatestTodos(group)}
+        showThinking={false}
+      />,
       {organization}
     );
 

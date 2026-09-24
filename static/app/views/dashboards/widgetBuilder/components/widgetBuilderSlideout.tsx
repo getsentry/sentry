@@ -86,6 +86,7 @@ type WidgetBuilderSlideoutProps = {
   isQueryConditionInvalid?: boolean;
   onDataFetched?: (results: OnDataFetchedParams) => void;
   thresholdMetaState?: ThresholdMetaState;
+  widgetInterval?: string;
 };
 
 function WidgetBuilderSlideoutInner({
@@ -100,6 +101,7 @@ function WidgetBuilderSlideoutInner({
   setOpenWidgetTemplates,
   onDataFetched,
   thresholdMetaState,
+  widgetInterval,
 }: WidgetBuilderSlideoutProps) {
   const organization = useOrganization();
   const location = useLocation();
@@ -411,6 +413,7 @@ function WidgetBuilderSlideoutInner({
                         <WidgetPreviewContainer
                           dashboard={dashboard}
                           dashboardFilters={dashboardFilters}
+                          widgetInterval={widgetInterval}
                           isQueryConditionInvalid={isQueryConditionInvalid}
                           onDataFetched={onDataFetched}
                           openWidgetTemplates={openWidgetTemplates}
@@ -468,6 +471,7 @@ function WidgetBuilderSlideoutInner({
                           <WidgetPreviewContainer
                             dashboard={dashboard}
                             dashboardFilters={dashboardFilters}
+                            widgetInterval={widgetInterval}
                             isQueryConditionInvalid={isQueryConditionInvalid}
                             onDataFetched={onDataFetched}
                             openWidgetTemplates={openWidgetTemplates}

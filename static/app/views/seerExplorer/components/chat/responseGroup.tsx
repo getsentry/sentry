@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, memo} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
@@ -19,7 +19,12 @@ import {getToolsStringFromBlock} from 'sentry/views/seerExplorer/utils';
 
 import {AssistantBlock} from './assistant';
 import {hasValidContent} from './shared';
-import {CODE_MODE_TOOLS, ToolCallList, blockRendersToolContent} from './toolUse';
+import {
+  CODE_MODE_TOOLS,
+  ToolCallList,
+  blockRendersToolContent,
+  type LatestTodos,
+} from './toolUse';
 
 /**
  * One assistant response: a run of consecutive `assistant`/`tool_use` blocks that follows a user
@@ -134,9 +139,10 @@ export function deriveThinkingTitle(group: Block[]): string {
 interface ResponseGroupProps {
   blockIndex: number;
   group: Block[];
-  blocks?: Block[];
   getPageReferrer?: () => string;
   interactionPending?: boolean;
+  /** The conversation's newest todo snapshot, from `findLatestTodos`. */
+  latestTodos?: LatestTodos | null;
   pendingInput?: PendingUserInput | null;
   readOnly?: boolean;
   respondToUserInput?: (inputId: string, responseData?: Record<string, unknown>) => void;
@@ -145,15 +151,33 @@ interface ResponseGroupProps {
 }
 
 /**
+ * Every poll rebuilds the transcript's arrays, so `group` is a fresh array even when none of its
+ * blocks changed. Compare it element-wise so a settled response skips re-rendering (and re-parsing
+ * its markdown) while a later one streams.
+ */
+function areResponseGroupPropsEqual(prev: ResponseGroupProps, next: ResponseGroupProps) {
+  for (const key of Object.keys(next) as Array<keyof ResponseGroupProps>) {
+    if (key !== 'group' && prev[key] !== next[key]) {
+      return false;
+    }
+  }
+  return (
+    Object.keys(prev).length === Object.keys(next).length &&
+    prev.group.length === next.group.length &&
+    prev.group.every((block, i) => block === next.group[i])
+  );
+}
+
+/**
  * Renders one assistant response as a single top-level `ThinkingBlock` — reasoning, intermediate
  * narration, and every tool call interleaved in run order inside it — followed by the final answer
  * as a sibling. Replaces the previous one-row-per-block rendering that produced a wall of separate
  * "Thinking" and tool-call rows for a single turn.
  */
-export function ResponseGroup({
+export const ResponseGroup = memo(function ResponseGroup({
   group,
   blockIndex,
-  blocks,
+  latestTodos,
   getPageReferrer,
   interactionPending,
   pendingInput,
@@ -183,7 +207,7 @@ export function ResponseGroup({
       (!isAnswer && hasValidContent(block.message.content)) ||
       // Not `tool_calls.length`: a call that reported nothing renders no row, and counting it
       // opens a reasoning box with an empty body.
-      blockRendersToolContent(block, blocks)
+      blockRendersToolContent(block, latestTodos)
     );
   });
 
@@ -243,7 +267,7 @@ export function ResponseGroup({
                           {block.message.tool_calls ? (
                             <ToolCallList
                               block={block}
-                              blocks={blocks}
+                              latestTodos={latestTodos}
                               getPageReferrer={getPageReferrer}
                             />
                           ) : null}
@@ -269,7 +293,7 @@ export function ResponseGroup({
       </motion.div>
     </Container>
   );
-}
+}, areResponseGroupPropsEqual);
 
 // The response's raw reasoning. When it sits between tool calls it is set apart with extra vertical
 // space (`data-spaced`); leading or trailing reasoning gets none so it stays tight against the

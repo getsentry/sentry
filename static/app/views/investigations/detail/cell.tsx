@@ -124,9 +124,11 @@ export function InvestigationCell({
       return;
     }
     autoOpenedExecutionId.current = activeExecutionId;
+    // eslint-disable react-you-might-not-need-an-effect/no-derived-state
     setPanelOpen(true);
     setTraceExecutionId(activeExecutionId);
     setShowPrompt(false);
+    // eslint-enable react-you-might-not-need-an-effect/no-derived-state
   }, [activeExecutionId]);
 
   // A cell that was already on screen can stop for a question part way through
@@ -141,9 +143,11 @@ export function InvestigationCell({
       return;
     }
     askedForInputId.current = activeExecutionId;
+    // eslint-disable react-you-might-not-need-an-effect/no-derived-state
     setPanelOpen(true);
     setTraceExecutionId(activeExecutionId);
     setShowPrompt(false);
+    // eslint-enable react-you-might-not-need-an-effect/no-derived-state
   }, [awaitingInput, activeExecutionId]);
 
   function openPanel() {
