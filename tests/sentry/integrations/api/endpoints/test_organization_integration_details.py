@@ -65,6 +65,28 @@ class OrganizationIntegrationDetailsGetTest(OrganizationIntegrationDetailsTest):
 class OrganizationIntegrationDetailsPostTest(OrganizationIntegrationDetailsTest):
     method = "post"
 
+    def test_each_gitlab_settings_save_schedules_reconciliation(self) -> None:
+        org_integration = OrganizationIntegration.objects.get(
+            integration=self.integration, organization_id=self.organization.id
+        )
+        org_integration.update(config={"gitlab_webhook_version": 2})
+        with patch(
+            "sentry.integrations.gitlab.integration.repository_service.schedule_update_gitlab_project_webhooks"
+        ) as schedule:
+            self.get_success_response(
+                self.organization.slug, self.integration.id, sync_comments=True
+            )
+            schedule.assert_called_once_with(
+                organization_id=self.organization.id, integration_id=self.integration.id
+            )
+            schedule.reset_mock()
+            self.get_success_response(
+                self.organization.slug, self.integration.id, sync_reverse_assignment=True
+            )
+            schedule.assert_called_once_with(
+                organization_id=self.organization.id, integration_id=self.integration.id
+            )
+
     def test_update_config(self) -> None:
         config = {"setting": "new_value", "setting2": "baz"}
         with patch(

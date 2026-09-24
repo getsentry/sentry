@@ -253,6 +253,41 @@ describe('ConversationsOverviewPage', () => {
     expect(screen.queryByTestId('recent-filter-key')).not.toBeInTheDocument();
   });
 
+  it('sorts conversation aliases above matching span attributes', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/attributes/`,
+      body: [
+        {key: 'ai.toolCall.args', name: 'ai.toolCall.args', attributeType: 'string'},
+        {key: 'ai.toolCall.result', name: 'ai.toolCall.result', attributeType: 'string'},
+        {
+          key: 'ai.response.toolCalls',
+          name: 'ai.response.toolCalls',
+          attributeType: 'string',
+        },
+      ],
+    });
+
+    render(<ConversationsOverviewPage />, {organization});
+
+    await userEvent.click(
+      await screen.findByRole('combobox', {name: 'Add a search term'})
+    );
+    await userEvent.keyboard('toolca');
+
+    await screen.findByRole('option', {name: 'conversation.toolCalls'});
+
+    // Options render the key followed by its value type, e.g. "conversation.toolCallsinteger".
+    const matchedKeys = screen
+      .getAllByRole('option')
+      .map(option => option.textContent ?? '')
+      .filter(text => text.includes('toolCall') || text.includes('toolErrors'));
+
+    // Both table-header aliases win over the raw span attributes, even though
+    // `ai.toolCall.args` matches the input more literally.
+    expect(matchedKeys[0]).toMatch(/^conversation\.toolCalls/);
+    expect(matchedKeys[1]).toMatch(/^conversation\.toolErrors/);
+  });
+
   it('offers conversation aggregate aliases as filters', async () => {
     render(<ConversationsOverviewPage />, {organization});
 

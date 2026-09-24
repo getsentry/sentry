@@ -2,9 +2,9 @@ import {AnnotationFixture} from 'sentry-fixture/annotation';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import {DroppedDataTooltip} from 'sentry/components/droppedData/droppedDataTooltip';
+import {groupIntoBuckets} from 'sentry/components/droppedData/utils';
 import type {Annotation} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
-import {DroppedDataTooltip} from 'sentry/views/explore/components/chart/droppedDataBand/droppedDataTooltip';
-import {groupIntoBuckets} from 'sentry/views/explore/components/chart/droppedDataBand/utils';
 
 const START = Date.UTC(2024, 0, 12, 15, 0);
 const END = Date.UTC(2024, 0, 12, 15, 5);

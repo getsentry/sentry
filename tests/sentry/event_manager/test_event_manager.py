@@ -676,7 +676,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert group.is_resolved()
 
         resolved_at = before_now(minutes=4)
-        activity = Activity.objects.create(
+        Activity.objects.create(
             group=group,
             project=group.project,
             type=ActivityType.SET_RESOLVED.value,
@@ -685,7 +685,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
         GroupOpenPeriod.objects.get(group=group, date_ended__isnull=True).close_open_period(
             resolution_time=resolved_at,
-            resolution_activity=activity,
         )
 
         manager = EventManager(

@@ -6,7 +6,7 @@ import logging
 import time
 from collections.abc import Callable, Iterable, Mapping
 from datetime import datetime, timedelta, timezone
-from typing import Any, TypedDict
+from typing import TYPE_CHECKING, Any, TypedDict
 from urllib.parse import quote as urlquote
 
 import sentry_sdk
@@ -65,6 +65,9 @@ from sentry.utils.http import (
 )
 from sentry.utils.sdk import capture_exception, merge_context_into_scope
 from sentry.utils.tracing import set_span_data, start_span
+
+if TYPE_CHECKING:
+    from rest_framework.views import AsView, GenericView
 
 from ..utils.pagination_factory import (
     annotate_span_with_pagination_args,
@@ -257,6 +260,9 @@ class Endpoint(APIView):
     # Note: the available renderer and parser classes can be found in conf/server.py.
     authentication_classes: tuple[type[BaseAuthentication], ...] = DEFAULT_AUTHENTICATION
     permission_classes: tuple[type[BasePermission], ...] = (NoPermission,)
+    # Enable this for anonymous browser endpoints that rely on cookie-backed session state.
+    # DRF only performs its own CSRF check after session authentication succeeds.
+    csrf_protect = False
 
     cursor_name = "cursor"
 
@@ -265,6 +271,13 @@ class Endpoint(APIView):
     rate_limits: RateLimitConfig | Callable[..., RateLimitConfig] = DEFAULT_RATE_LIMIT_CONFIG
     enforce_rate_limit: bool = settings.SENTRY_RATELIMITER_ENABLED
     servers: list[dict[str, Any]] | None = None
+
+    @classmethod
+    def as_view(cls, **initkwargs: Any) -> AsView[GenericView]:
+        view = super().as_view(**initkwargs)
+        if cls.csrf_protect:
+            view.csrf_exempt = False
+        return view
 
     def build_cursor_link(self, request: HttpRequest, name: str, cursor: Cursor) -> str:
         if request.GET.get("cursor") is None:

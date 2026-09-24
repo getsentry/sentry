@@ -33,6 +33,7 @@ from sentry.workflow_engine.endpoints.validators.utils import (
     get_unknown_detector_type_error,
     log_alerting_quota_hit,
     update_owner,
+    validate_workflow_connections,
 )
 from sentry.workflow_engine.models import (
     DataConditionGroup,
@@ -127,6 +128,15 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer[Any]):
         # TODO: Probably need to check a feature flag to decide if a given
         # org/user is allowed to add a detector
         return type
+
+    def validate_workflow_ids(self, value: list[int]) -> list[int]:
+        validate_workflow_connections(
+            value,
+            self.context["organization"],
+            self.context["request"],
+            self.instance.id if self.instance else None,
+        )
+        return value
 
     @property
     def data_conditions(self) -> BaseDataConditionValidator:

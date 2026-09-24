@@ -205,8 +205,13 @@ class AuthLoginView(BaseView, ReactMixin):
         ):
             return None
 
+        if request.path_info == reverse("sentry-register"):
+            path = reverse("sentry-register")
+        else:
+            path = reverse("sentry-auth-organization", args=[request.subdomain])
+
         path = construct_link_with_query(
-            path=reverse("sentry-auth-organization", args=[request.subdomain]),
+            path=path,
             query_params=request.GET,
         )
         return HttpResponseRedirect(absolute_uri(path))
