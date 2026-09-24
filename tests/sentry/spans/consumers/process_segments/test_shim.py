@@ -138,6 +138,9 @@ class TestBuildShimEventData:
                 # These in up in `event["user"]`
                 "user.id": {"value": "1231908", "type": "string"},
                 "user.geo.city": {"value": "Boston", "type": "string"},
+                # These end up in `event["sdk"]`
+                "sentry.sdk.name": {"value": "sentry.python", "type": "string"},
+                "sentry.sdk.version": {"value": "4.15.13", "type": "string"},
             }
         )
 
@@ -198,6 +201,18 @@ class TestBuildShimEventData:
         event = build_shim_event_data(segment_span, [segment_span])
 
         assert event["user"] == {"geo": {"city": "Boston"}}
+
+    def test_reconstructs_sdk(self) -> None:
+        segment_span = build_segment_span(
+            attributes={
+                "sentry.sdk.name": {"value": "sentry.python", "type": "string"},
+                "sentry.sdk.version": {"value": "4.15.13", "type": "string"},
+            }
+        )
+
+        event = build_shim_event_data(segment_span, [segment_span])
+
+        assert event["sdk"] == {"name": "sentry.python", "version": "4.15.13"}
 
     def test_lifts_span_description_to_the_top_level(self) -> None:
         segment_span = build_segment_span(description="SELECT * FROM dogs")
