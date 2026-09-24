@@ -283,7 +283,15 @@ def pytest_configure(config: pytest.Config) -> None:
 
     settings.SENTRY_OPTIONS.update(
         {
-            "redis.clusters": {"default": {"hosts": {0: {"db": xdist.get_redis_db()}}}},
+            "redis.clusters": {
+                "default": {"hosts": {0: {"db": xdist.get_redis_db()}}},
+                # The redis-cluster devservice. Start it with 'devservices up --mode backend-ci'.
+                "cluster": {
+                    "is_redis_cluster": True,
+                    "hosts": [{"host": "0.0.0.0", "port": port} for port in range(7000, 7006)],
+                    "key_prefix": xdist.get_redis_cluster_key_prefix(),
+                },
+            },
             "mail.backend": "django.core.mail.backends.locmem.EmailBackend",
             "system.url-prefix": "http://testserver",
             "system.secret-key": "a" * 52,
@@ -442,6 +450,19 @@ def pytest_runtest_teardown(item: pytest.Item) -> None:
 
     with clusters.get("default").all() as client:
         client.flushdb()
+
+    from redis.exceptions import RedisError
+    from rediscluster.exceptions import RedisClusterException
+
+    from sentry.utils.redis import pop_used_key_prefix_clients
+
+    # Workers share the redis-cluster. Only a test that used it has keys to delete, and a
+    # flush on a prefixed client deletes only the keys of this worker.
+    for cluster_client in pop_used_key_prefix_clients():
+        try:
+            cluster_client.flushdb()
+        except (RedisError, RedisClusterException):
+            pass
 
     from sentry.models.options.organization_option import OrganizationOption
     from sentry.models.options.project_option import ProjectOption

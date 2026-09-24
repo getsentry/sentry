@@ -141,6 +141,8 @@ def buffer(request):
             with use_redis_cluster(
                 "span-buffer",
                 with_settings={"SENTRY_SPAN_BUFFER_CLUSTER": "span-buffer"},
+                # The span buffer script makes key names from KEYS[1].
+                prefix_keys=False,
             ):
                 buf = SpansBuffer(assigned_shards=list(range(32)))
                 buf.client.flushall()
@@ -2185,6 +2187,8 @@ def distributed_buffer(request):
             with use_redis_cluster(
                 "span-buffer",
                 with_settings={"SENTRY_SPAN_BUFFER_CLUSTER": "span-buffer"},
+                # The span buffer script makes key names from KEYS[1].
+                prefix_keys=False,
             ):
                 buf = SpansBuffer(assigned_shards=list(range(32)))
                 buf.client.flushall()
