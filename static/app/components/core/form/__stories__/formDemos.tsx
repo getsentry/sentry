@@ -227,6 +227,30 @@ export function NumberFieldDemo() {
   );
 }
 
+export function CheckboxFieldDemo() {
+  const {t} = useTranslation();
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {subscribe: false},
+    validators: {onDynamic: z.object({subscribe: z.boolean()})},
+  });
+
+  return (
+    <form.AppForm form={form}>
+      <form.AppField name="subscribe">
+        {field => (
+          <field.Checkbox
+            checked={field.state.value}
+            onChange={field.handleChange}
+            label={t('Send me the newsletter')}
+            hintText={t('Get product updates by email.')}
+          />
+        )}
+      </form.AppField>
+    </form.AppForm>
+  );
+}
+
 export function BaseFieldDemo() {
   const {t} = useTranslation();
   const form = useScrapsForm({

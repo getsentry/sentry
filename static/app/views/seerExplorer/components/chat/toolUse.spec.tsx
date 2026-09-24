@@ -5,7 +5,10 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {BlockComponent} from 'sentry/views/seerExplorer/components/chat';
-import {blockRendersToolContent} from 'sentry/views/seerExplorer/components/chat/toolUse';
+import {
+  blockRendersToolContent,
+  findLatestTodos,
+} from 'sentry/views/seerExplorer/components/chat/toolUse';
 import type {
   AgentWriteApproval,
   Block,
@@ -1482,7 +1485,7 @@ describe('blockRendersToolContent', () => {
       links: [{kind: 'get_issue_details', params: {is_error: true}}],
     });
 
-    expect(blockRendersToolContent(block, [block])).toBe(false);
+    expect(blockRendersToolContent(block, findLatestTodos([block]))).toBe(false);
   });
 
   it('counts a link that did not error', () => {
@@ -1490,7 +1493,7 @@ describe('blockRendersToolContent', () => {
       links: [{kind: 'get_issue_details', params: {issueId: '4521'}}],
     });
 
-    expect(blockRendersToolContent(block, [block])).toBe(true);
+    expect(blockRendersToolContent(block, findLatestTodos([block]))).toBe(true);
   });
 
   it('ignores todos superseded by a later block', () => {
@@ -1503,7 +1506,7 @@ describe('blockRendersToolContent', () => {
     });
     const blocks = [stale, newest];
 
-    expect(blockRendersToolContent(stale, blocks)).toBe(false);
-    expect(blockRendersToolContent(newest, blocks)).toBe(true);
+    expect(blockRendersToolContent(stale, findLatestTodos(blocks))).toBe(false);
+    expect(blockRendersToolContent(newest, findLatestTodos(blocks))).toBe(true);
   });
 });
