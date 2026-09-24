@@ -11,7 +11,7 @@ export function getSlackUpgradeModalParams(
     title: t('Update Slack App Permissions'),
     description: missingFeatures?.length
       ? [
-          t('This workspace is missing permissions for the following features:'),
+          t('Updating Slack app permissions enables these features.'),
           ...missingFeatures.map(feature => feature.description),
           instructions,
         ].join(' ')

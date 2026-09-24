@@ -520,7 +520,7 @@ describe('IntegrationDetailedView', () => {
           provider: 'slack',
           title: 'Update Slack App Permissions',
           description:
-            'This workspace is missing permissions for the following features: Server-provided Seer mentions feature. Reauthorize the Sentry app in your Slack workspace and accept the updated permissions to continue.',
+            'Updating Slack app permissions enables these features. Server-provided Seer mentions feature. Reauthorize the Sentry app in your Slack workspace and accept the updated permissions to continue.',
         })
       );
     });
