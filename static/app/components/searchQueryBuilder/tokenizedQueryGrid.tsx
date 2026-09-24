@@ -208,15 +208,15 @@ export function TokenizedQueryGrid({
 function getGridPaddingLeft(
   hideSearchIcon: boolean | undefined,
   menuPresentation: 'floating' | 'panel' | undefined,
-  space: {lg: string; sm: string}
+  space: {lg: string; xs: string}
 ) {
   if (!hideSearchIcon) {
-    return '32px';
+    return '28px';
   }
   if (menuPresentation === 'panel') {
     return `calc(${space.lg} - 1px)`;
   }
-  return space.sm;
+  return space.xs;
 }
 
 const SearchQueryGridWrapper = styled('div')<{
@@ -230,7 +230,7 @@ const SearchQueryGridWrapper = styled('div')<{
    * matches suggestion offset (space.lg minus this field's 1px border). */
   padding-left: ${p =>
     getGridPaddingLeft(p.$hideSearchIcon, p.$menuPresentation, p.theme.space)};
-  padding-right: ${p => p.theme.space.sm};
+  padding-right: ${p => p.theme.space.xs};
   display: flex;
   align-items: stretch;
   row-gap: ${p => p.theme.space.xs};
