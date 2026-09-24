@@ -1,15 +1,22 @@
-import {getEquation, isEquation} from 'sentry/utils/discover/fields';
+import {getEquation, isEquation, parseFunction} from 'sentry/utils/discover/fields';
+import {AggregationKey} from 'sentry/utils/fields';
 import type {Widget} from 'sentry/views/dashboards/types';
 import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
 
-const SCALABLE_COUNTS = new Set(['count()', 'count(span.duration)']);
+const SCALABLE_AGGREGATES = new Set<string>([
+  AggregationKey.COUNT,
+  AggregationKey.COUNT_IF,
+  AggregationKey.SUM,
+  AggregationKey.FAILURE_COUNT,
+]);
 
 function isScalableAggregate(aggregate: string): boolean {
-  return (
-    SCALABLE_COUNTS.has(aggregate) ||
-    /^sum\(.*\)$/.test(aggregate) ||
-    (isEquation(aggregate) && getEquation(aggregate).trim() !== '')
-  );
+  if (isEquation(aggregate)) {
+    return getEquation(aggregate).trim() !== '';
+  }
+
+  const functionName = parseFunction(aggregate)?.name;
+  return functionName !== undefined && SCALABLE_AGGREGATES.has(functionName);
 }
 
 export function canScaleThresholds(

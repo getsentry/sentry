@@ -3,6 +3,7 @@ import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import type {WidgetBuilderState} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
+import {SpanFields} from 'sentry/views/insights/types';
 
 describe('convertBuilderStateToWidget', () => {
   it('returns the widget with the provided widget queries state', () => {
@@ -147,7 +148,7 @@ describe('convertBuilderStateToWidget', () => {
     expect(widget.thresholds).toEqual(thresholds);
   });
 
-  it.each(['sum(span.duration)', 'equation|count() / 2'])(
+  it.each([`sum(${SpanFields.SPAN_DURATION})`, 'equation|count() / 2'])(
     'preserves the interval for %s',
     aggregate => {
       const thresholds = {max_values: {max1: 100}, unit: null, timeWindow: '10m'};
@@ -162,7 +163,7 @@ describe('convertBuilderStateToWidget', () => {
   );
 
   it.each([
-    ['duration', 'p95', 'span.duration'],
+    ['duration', 'p95', SpanFields.SPAN_DURATION],
     ['rate', 'eps', ''],
   ])('removes the saved interval for a %s aggregate', (_name, functionName, field) => {
     const widget = convertBuilderStateToWidget({

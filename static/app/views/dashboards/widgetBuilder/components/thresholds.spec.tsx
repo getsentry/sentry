@@ -6,6 +6,7 @@ import {
   useWidgetBuilderContext,
   WidgetBuilderProvider,
 } from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import {SpanFields} from 'sentry/views/insights/types';
 
 describe('Thresholds', () => {
   it('sets thresholds to undefined if the thresholds are fully wiped', async () => {
@@ -111,7 +112,7 @@ describe('Thresholds', () => {
     ).toBeInTheDocument();
   });
 
-  it.each(['p95(span.duration)', 'eps()'])(
+  it.each([`p95(${SpanFields.SPAN_DURATION})`, 'eps()'])(
     'hides the interval selector for %s and clears a saved interval',
     async aggregate => {
       const {router} = render(
@@ -143,7 +144,7 @@ describe('Thresholds', () => {
     }
   );
 
-  it.each(['sum(span.duration)', 'equation|count() / 2'])(
+  it.each([`sum(${SpanFields.SPAN_DURATION})`, 'equation|count() / 2'])(
     'shows the saved interval for %s',
     aggregate => {
       render(

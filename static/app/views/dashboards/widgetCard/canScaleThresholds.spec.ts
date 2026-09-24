@@ -1,5 +1,6 @@
 import {DisplayType} from 'sentry/views/dashboards/types';
 import {canScaleThresholds} from 'sentry/views/dashboards/widgetCard/canScaleThresholds';
+import {SpanFields} from 'sentry/views/insights/types';
 
 const query = {
   name: '',
@@ -13,12 +14,15 @@ const query = {
 describe('canScaleThresholds', () => {
   it.each([
     'count()',
-    'count(span.duration)',
+    `count(${SpanFields.SPAN_DURATION})`,
+    'count(custom_field)',
+    `count_if(${SpanFields.SPAN_STATUS},equals,error)`,
+    'failure_count()',
     'sum(session)',
-    'sum(span.duration)',
+    `sum(${SpanFields.SPAN_DURATION})`,
     'sum(value,metricA,gauge,none)',
     'equation|count() / 2',
-    'equation|p95(span.duration) / 100',
+    `equation|p95(${SpanFields.SPAN_DURATION}) / 100`,
   ])('allows the aggregate %s', aggregate => {
     expect(
       canScaleThresholds({
@@ -29,11 +33,12 @@ describe('canScaleThresholds', () => {
   });
 
   it.each([
-    ['duration', ['p95(span.duration)']],
+    ['duration', [`p95(${SpanFields.SPAN_DURATION})`]],
     ['rate', ['eps()']],
-    ['average', ['avg(span.duration)']],
+    ['average', [`avg(${SpanFields.SPAN_DURATION})`]],
+    ['distinct count', ['count_unique(user)']],
     ['empty equation', ['equation|']],
-    ['mixed aggregates', ['count()', 'p95(span.duration)']],
+    ['mixed aggregates', ['count()', `p95(${SpanFields.SPAN_DURATION})`]],
     ['no aggregates', []],
   ])('disallows %s', (_name, aggregates) => {
     expect(

@@ -7,6 +7,7 @@ import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {VisualizationWidget} from 'sentry/views/dashboards/widgetCard/visualizationWidget';
 import {WidgetCardDataLoader} from 'sentry/views/dashboards/widgetCard/widgetCardDataLoader';
+import {SpanFields} from 'sentry/views/insights/types';
 
 jest.mock('sentry/views/dashboards/widgetCard/widgetCardDataLoader');
 jest.mock(
@@ -235,7 +236,12 @@ describe('VisualizationWidget threshold time windows', () => {
   it('treats a saved interval as fixed for unsupported aggregates', () => {
     const durationWidget = {
       ...thresholdWidget,
-      queries: [{...thresholdWidget.queries[0]!, aggregates: ['p95(span.duration)']}],
+      queries: [
+        {
+          ...thresholdWidget.queries[0]!,
+          aggregates: [`p95(${SpanFields.SPAN_DURATION})`],
+        },
+      ],
     };
 
     render(
@@ -250,7 +256,7 @@ describe('VisualizationWidget threshold time windows', () => {
     expect(screen.getByTestId('threshold-values')).toHaveTextContent('100, 200');
   });
 
-  it.each(['sum(span.duration)', 'equation|count() / 2'])(
+  it.each([`sum(${SpanFields.SPAN_DURATION})`, 'equation|count() / 2'])(
     'scales a saved interval for %s',
     aggregate => {
       const widget = {
