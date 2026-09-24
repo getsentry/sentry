@@ -1,6 +1,9 @@
 import logging
 
-from sentry.incidents.charts import build_metric_alert_notification_chart
+import sentry_sdk
+
+from sentry import features
+from sentry.incidents.charts import build_metric_alert_chart
 from sentry.incidents.models.incident import IncidentStatus, TriggerStatus
 from sentry.incidents.typings.metric_detector import (
     AlertContext,
@@ -59,13 +62,19 @@ def _send_via_notification_platform(
         referrer="metric_alert_slack",
     )
 
-    chart_url = build_metric_alert_notification_chart(
-        organization=organization,
-        alert_context=alert_context,
-        metric_issue_context=metric_issue_context,
-        open_period_context=open_period_context,
-        detector_serialized_response=detector_serialized_response,
-    )
+    chart_url = None
+    if features.has("organizations:metric-alert-chartcuterie", organization):
+        try:
+            chart_url = build_metric_alert_chart(
+                organization=organization,
+                snuba_query=metric_issue_context.snuba_query,
+                alert_context=alert_context,
+                open_period_context=open_period_context,
+                subscription=metric_issue_context.subscription,
+                detector_serialized_response=detector_serialized_response,
+            )
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
 
     data = MetricAlertNotificationData(
         group_id=metric_issue_context.id,

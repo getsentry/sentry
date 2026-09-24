@@ -124,7 +124,7 @@ class TestSlackMetricAlertHandlerSendAlert(MetricAlertHandlerBase):
         }
 
     @with_feature("organizations:metric-alert-chartcuterie")
-    @patch("sentry.incidents.charts.build_metric_alert_chart")
+    @patch("sentry.integrations.slack.utils.notifications.build_metric_alert_chart")
     @patch("sentry.integrations.slack.utils.notifications.SlackSdkClient")
     @patch(f"{_HANDLER_PATH}.NotificationService.has_access", return_value=False)
     def test_send_alert_and_resolution_with_notes_and_chart(
