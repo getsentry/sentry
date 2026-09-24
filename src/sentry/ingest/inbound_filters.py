@@ -452,6 +452,18 @@ def _trace_metric_names_generic_filters(project: Project) -> list[GenericFilter]
     return [_generic_filter("trace-metric-name", condition)]
 
 
+def _blacklisted_ips_generic_filters(project: Project) -> list[GenericFilter]:
+    """
+    The legacy IP address list as a generic filter. It keeps the outcome reason of the
+    native ``clientIps`` filter it replaces, so filter stats stay continuous.
+    """
+    ips = project.get_option("sentry:blacklisted_ips")
+    if not ips:
+        return []
+
+    return [_generic_filter(FilterStatKeys.IP_ADDRESS, _client_ip_matcher(ips))]
+
+
 @dataclass(frozen=True)
 class InboundFilterFeatures:
     """
@@ -459,12 +471,16 @@ class InboundFilterFeatures:
 
     ``custom_inbound_filters`` gates the other three, and additionally gates the
     legacy ``releases`` and ``errorMessages`` filter settings built by the caller.
+
+    ``generic_ip_filter`` serves the legacy IP address list as a generic filter. The
+    caller then leaves out the native ``clientIps`` setting.
     """
 
     custom_inbound_filters: bool = False
     logs: bool = False
     metrics: bool = False
     custom_inbound_filters_v2: bool = False
+    generic_ip_filter: bool = False
 
 
 def get_generic_filters(
@@ -478,6 +494,10 @@ def get_generic_filters(
     hardcoded set of rules, specific to each type.
     """
     generic_filters: list[GenericFilter] = []
+
+    # First, as the native IP filter runs before the other native filters.
+    if filter_features.generic_ip_filter:
+        generic_filters += _blacklisted_ips_generic_filters(project)
 
     if filter_features.custom_inbound_filters:
         if filter_features.logs:
@@ -563,6 +583,9 @@ def _cidr_matcher(name: str) -> _ConditionMatcher:
     return match
 
 
+_client_ip_matcher = _cidr_matcher("envelope.client_ip")
+
+
 _CONDITION_MATCHERS: Mapping[
     ConditionType,
     _ConditionMatcher | Mapping[DataType, _ConditionMatcher],
@@ -585,7 +608,7 @@ _CONDITION_MATCHERS: Mapping[
         DataType.METRIC: _field_matcher("trace_metric.attributes.sentry.release.value"),
         DataType.SPAN: _field_matcher("span.attributes.sentry.release.value"),
     },
-    ConditionType.IP_ADDRESS: _cidr_matcher("envelope.client_ip"),
+    ConditionType.IP_ADDRESS: _client_ip_matcher,
 }
 
 _SINGLE_DATA_TYPES = frozenset(DataType) - {DataType.ALL}

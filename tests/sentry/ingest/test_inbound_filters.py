@@ -634,8 +634,13 @@ def test_custom_inbound_filters_are_ordered_by_id(default_project, factories) ->
             id="custom_inbound_filters_v2",
         ),
         pytest.param(
-            InboundFilterFeatures(True, True, True, True),
-            ["log-message", "trace-metric-name", "cif"],
+            InboundFilterFeatures(generic_ip_filter=True),
+            ["ip-address"],
+            id="generic_ip_filter_needs_no_plan_feature",
+        ),
+        pytest.param(
+            InboundFilterFeatures(True, True, True, True, True),
+            ["ip-address", "log-message", "trace-metric-name", "cif"],
             id="every_feature",
         ),
     ],
@@ -645,6 +650,7 @@ def test_get_generic_filters_gates_each_source_on_its_feature(
 ) -> None:
     for builtin_filter_id, _ in ACTIVE_GENERIC_FILTERS:
         default_project.update_option(f"filters:{builtin_filter_id}", "0")
+    default_project.update_option("sentry:blacklisted_ips", ["10.0.0.0/8"])
     default_project.update_option("sentry:log_messages", ["some log"])
     default_project.update_option("sentry:trace_metric_names", ["some.metric"])
     custom_filter = factories.create_project_custom_inbound_filter(
@@ -670,5 +676,33 @@ def test_get_generic_filters_omits_gated_sources_without_configuration(default_p
         default_project.update_option(f"filters:{builtin_filter_id}", "0")
 
     assert (
-        get_generic_filters(default_project, InboundFilterFeatures(True, True, True, True)) is None
+        get_generic_filters(default_project, InboundFilterFeatures(True, True, True, True, True))
+        is None
     )
+
+
+@django_db_all
+def test_blacklisted_ips_become_a_generic_filter_with_the_native_reason(default_project) -> None:
+    for builtin_filter_id, _ in ACTIVE_GENERIC_FILTERS:
+        default_project.update_option(f"filters:{builtin_filter_id}", "0")
+    default_project.update_option("sentry:blacklisted_ips", ["10.0.0.0/8", "2001:db8::1"])
+
+    generic_filters = get_generic_filters(
+        default_project, InboundFilterFeatures(generic_ip_filter=True)
+    )
+
+    assert generic_filters == {
+        "version": 1,
+        "filters": [
+            {
+                "id": "ip-address",
+                "isEnabled": True,
+                "condition": {
+                    "op": "cidr",
+                    "name": "envelope.client_ip",
+                    "value": ["10.0.0.0/8", "2001:db8::1"],
+                },
+            }
+        ],
+    }
+    assert_relay_accepts_condition(generic_filters["filters"][0]["condition"])
