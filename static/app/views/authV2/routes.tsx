@@ -9,5 +9,9 @@ export const authV2Routes: SentryRouteObject = {
       path: 'login/:orgSlug?/',
       component: make(() => import('sentry/views/authV2/authLogin')),
     },
+    {
+      path: 'register/',
+      component: make(() => import('sentry/views/authV2/authRegister')),
+    },
   ],
 };
