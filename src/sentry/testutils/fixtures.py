@@ -23,6 +23,7 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
+from sentry.issues.models.groupcomment import GroupComment
 from sentry.issues.models.groupderiveddata import GroupDerivedData
 from sentry.models.activity import Activity
 from sentry.models.commitcomparison import CommitComparison
@@ -422,6 +423,11 @@ class Fixtures:
         if group is None:
             group = self.group
         return Factories.create_group_activity(group, *args, **kwargs)
+
+    def create_group_comment(self, group: Group | None = None, **kwargs: Any) -> GroupComment:
+        if group is None:
+            group = self.group
+        return Factories.create_group_comment(group, **kwargs)
 
     def create_group_link(self, group=None, **kwargs):
         if group is None:

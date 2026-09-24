@@ -13,6 +13,7 @@ from sentry import eventstream, similarity, tsdb
 from sentry.db.models.base import Model
 from sentry.issues.derived.processing import invalidate_group_derived_data
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
+from sentry.issues.models.groupcomment import GroupComment
 from sentry.killswitches import killswitch_matches_context
 from sentry.models.group import Group
 from sentry.silo.base import SiloMode
@@ -177,6 +178,7 @@ def merge_groups(
     else:
         model_list = (
             Activity,
+            GroupComment,
             GroupAssignee,
             GroupEnvironment,
             GroupHash,

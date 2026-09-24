@@ -740,6 +740,7 @@ def test_set_null_deletion_behavior(task_runner: Callable[[], ContextManager[Non
         organization=organization,
         created_by=user,
     )
+    comment = Factories.create_group_comment(group=data["group"], user_id=user.id)
 
     user_id = user.id
     with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
@@ -759,6 +760,8 @@ def test_set_null_deletion_behavior(task_runner: Callable[[], ContextManager[Non
     # Org dashboards must survive creator deletion (incl. internal-integration proxy users).
     dashboard = Dashboard.objects.get(id=dashboard.id)
     assert dashboard.created_by_id is None
+    comment.refresh_from_db()
+    assert comment.user_id is None
 
 
 class _IdParams(TypedDict):

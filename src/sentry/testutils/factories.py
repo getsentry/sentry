@@ -100,6 +100,7 @@ from sentry.issue_detection.performance_problem import PerformanceProblem
 from sentry.issues.action_log.types import GroupActionType, GroupActorType
 from sentry.issues.grouptype import get_group_type_by_type_id
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
+from sentry.issues.models.groupcomment import GroupComment
 from sentry.issues.models.groupderiveddata import GroupDerivedData
 from sentry.models.activity import Activity
 from sentry.models.apikey import ApiKey
@@ -1455,6 +1456,12 @@ class Factories:
     @assume_test_silo_mode(SiloMode.CELL)
     def create_group_activity(group, *args, **kwargs):
         return Activity.objects.create(group=group, project=group.project, *args, **kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_group_comment(group: Group, **kwargs: Any) -> GroupComment:
+        kwargs.setdefault("text", "A comment")
+        return GroupComment.objects.create(group=group, project=group.project, **kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)

@@ -18,6 +18,7 @@ from sentry.issues.action_log.types import GroupActionType, GroupActorType
 from sentry.issues.grouptype import FeedbackGroup, GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
+from sentry.issues.models.groupcomment import GroupComment
 from sentry.models.activity import Activity
 from sentry.models.eventattachment import EventAttachment
 from sentry.models.group import Group
@@ -69,6 +70,7 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
         GroupHash.objects.create(project=self.project, group=event.group, hash=uuid4().hex)
         GroupMeta.objects.create(group=event.group, key="foo", value="bar")
         GroupRedirect.objects.create(group_id=event.group.id, previous_group_id=1)
+        self.create_group_comment(group=event.group)
         Activity.objects.create(
             group=event.group, project=self.project, type=ActivityType.SET_RESOLVED.value
         )
@@ -105,6 +107,7 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
         assert not EventAttachment.objects.filter(event_id=event.event_id).exists()
 
         assert not Activity.objects.filter(group_id=event.group.id).exists()
+        assert not GroupComment.objects.filter(group_id=event.group.id).exists()
         assert not GroupRedirect.objects.filter(group_id=event.group.id).exists()
         assert not GroupHash.objects.filter(group_id=event.group.id).exists()
         assert not GroupActionLogEntry.objects.filter(group_id=event.group.id).exists()

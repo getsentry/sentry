@@ -37,6 +37,7 @@ from sentry.tasks.reprocessing2 import (
 )
 from sentry.tasks.store import preprocess_event
 from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawned
+from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.task_runner import BurstTaskRunner
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -705,8 +706,13 @@ def test_finish_reprocessing(default_project) -> None:
 def test_reprocessing_an_ongoing_reprocessing(default_project) -> None:
     # Pretend that the old group has more than one activity still connected:
     old_group = Group.objects.create(project=default_project, data={})
+    comment = Factories.create_group_comment(group=old_group)
 
     new_group_id = start_group_reprocessing(default_project.id, old_group.id, "delete")
+
+    comment.refresh_from_db()
+    assert comment.group_id == new_group_id
+    assert comment.project_id == default_project.id
 
     with pytest.raises(RuntimeError) as e:
         start_group_reprocessing(default_project.id, new_group_id, "delete")

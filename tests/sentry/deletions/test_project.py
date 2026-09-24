@@ -3,6 +3,7 @@ from unittest import mock
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.incidents.models.alert_rule import AlertRule
 from sentry.incidents.models.incident import Incident
+from sentry.issues.models.groupcomment import GroupComment
 from sentry.models.activity import Activity
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
@@ -65,6 +66,7 @@ class DeleteProjectTest(BaseWorkflowTest, TransactionTestCase, HybridCloudTestMi
         event = self.store_event(data={}, project_id=project.id)
         assert event.group is not None
         group = event.group
+        comment = self.create_group_comment(group=group)
         activity = Activity.objects.create(
             group=group,
             project=project,
@@ -192,6 +194,7 @@ class DeleteProjectTest(BaseWorkflowTest, TransactionTestCase, HybridCloudTestMi
             group_open_period_id=open_period.id
         ).exists()
         assert not Activity.objects.filter(id=activity.id).exists()
+        assert not GroupComment.objects.filter(id=comment.id).exists()
         assert not MonitorCheckIn.objects.filter(id=checkin.id).exists()
         assert not QuerySubscription.objects.filter(id=query_sub.id).exists()
 

@@ -25,6 +25,32 @@ index = _make_index_backend(redis.clusters.get("default").get_local_client(0))
 
 @patch.object(features, "index", new=index)
 class MergeGroupTest(TestCase, SnubaTestCase):
+    def test_merge_preserves_comments(self) -> None:
+        source = self.create_group()
+        target = self.create_group(project=source.project)
+        created_at = before_now(days=2)
+        edited_at = before_now(days=1)
+        comment = self.create_group_comment(
+            group=source,
+            user_id=self.user.id,
+            text="Edited comment",
+            mentions=[{"type": "user", "id": str(self.user.id)}],
+            date_added=created_at,
+            date_updated=edited_at,
+        )
+
+        with self.tasks():
+            merge_groups([source.id], target.id)
+
+        comment.refresh_from_db()
+        assert comment.group_id == target.id
+        assert comment.project_id == target.project_id
+        assert comment.user_id == self.user.id
+        assert comment.text == "Edited comment"
+        assert comment.mentions == [{"type": "user", "id": str(self.user.id)}]
+        assert comment.date_added == created_at
+        assert comment.date_updated == edited_at
+
     @patch("sentry.eventstream.backend")
     def test_merge_calls_eventstream(self, mock_eventstream) -> None:
         group1 = self.create_group(self.project)
