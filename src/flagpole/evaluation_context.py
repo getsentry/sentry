@@ -21,14 +21,12 @@ class EvaluationContext:
 
     __data: EvaluationContextDict
     __identity_fields: set[str]
-    __identity: str
     __id: int
 
     def __init__(self, data: EvaluationContextDict, identity_fields: set[str] | None = None):
         self.__data = deepcopy(data)
         self.__set_identity_fields(identity_fields)
-        self.__identity = self.__generate_identity()
-        self.__id = self.__hash_identity(self.__identity)
+        self.__id = self.__generate_id()
 
     def __set_identity_fields(self, identity_fields: set[str] | None = None):
         trimmed_id_fields = set()
@@ -42,24 +40,24 @@ class EvaluationContext:
 
         self.__identity_fields = trimmed_id_fields
 
-    def __generate_identity(self) -> str:
+    def __generate_id(self, feature_name: str | None = None) -> int:
         """
-        The identity fields, sorted and joined as ``key:value:key:value``.
+        Generates and return a hashed identifier for this context
 
-        Hashing it gives an identifier that is stable for a given context
-        contents. Identifiers are used to determine rollout groups
-        deterministically and consistently.
+        The identifier should be stable for a given context contents.
+        Identifiers are used to determine rollout groups deterministically
+        and consistently.
         """
         keys = list(self.__identity_fields)
         vector = []
         for key in sorted(keys):
             vector.append(key)
             vector.append(str(self.__data[key]))
-        return ":".join(vector)
-
-    @staticmethod
-    def __hash_identity(identity: str) -> int:
-        hashed = hashlib.sha1(identity.encode("utf8"))
+        hashed = hashlib.sha1()
+        if feature_name is not None:
+            hashed.update(feature_name.encode("utf8"))
+            hashed.update(b":")
+        hashed.update(":".join(vector).encode("utf8"))
         return int.from_bytes(hashed.digest(), byteorder="big")
 
     @property
@@ -81,7 +79,7 @@ class EvaluationContext:
         """
         if feature_name is None:
             return self.__id
-        return self.__hash_identity(f"{feature_name}:{self.__identity}")
+        return self.__generate_id(feature_name)
 
     @property
     def identity_fields(self) -> frozenset[str]:

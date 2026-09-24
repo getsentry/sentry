@@ -66,7 +66,8 @@ class TestEvaluationContext:
         eval_context = EvaluationContext(
             {"organization_id": 123, "organization_slug": "sentry"}, {"organization_id"}
         )
-        assert eval_context.bucket_id() == eval_context.id
+        legacy_id = eval_context.id
+        assert eval_context.bucket_id() == legacy_id
 
         # Pinned against sentry-options (clients/rust/src/features.rs) so both
         # evaluators put a feature's rollout in the same buckets.
@@ -74,6 +75,8 @@ class TestEvaluationContext:
         assert feature_id == 1281760666578325888851926379272252352362712881664
         assert feature_id % 100 == 64, "bucket should be correct"
         assert eval_context.bucket_id("organizations:dashboards-edit") % 100 == 75
+        assert eval_context.id == legacy_id
+        assert eval_context.bucket_id() == legacy_id
 
         assert EvaluationContext({}).bucket_id("organizations:performance-view") % 100 == 85
 
