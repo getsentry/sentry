@@ -6,7 +6,7 @@ import {MetricQueryRows} from 'sentry/views/dashboards/widgetBuilder/components/
 import {prepareQueriesForEquationMode} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricsEquationVisualize/utils';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import type {EquationModeSnapshot} from 'sentry/views/dashboards/widgetBuilder/hooks/useTraceMetricsVisualizeModeState';
-import {getTraceMetricAggregateSource} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
+import {getTraceMetricAggregates} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {assignSequentialLabels} from 'sentry/views/explore/metrics/hooks/useStableLabels';
 import {defaultMetricQuery} from 'sentry/views/explore/metrics/metricQuery';
@@ -33,7 +33,7 @@ export function MetricsEquationVisualize({
 }: MetricsEquationVisualizeProps) {
   const {state} = useWidgetBuilderContext();
 
-  const aggregateSource = getTraceMetricAggregateSource(
+  const aggregateSource = getTraceMetricAggregates(
     state.displayType,
     state.yAxis,
     state.fields

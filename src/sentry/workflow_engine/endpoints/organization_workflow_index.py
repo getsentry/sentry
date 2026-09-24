@@ -56,7 +56,6 @@ from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
-from sentry.models.project import Project
 from sentry.search.utils import parse_user_value
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.dates import ensure_aware
@@ -75,7 +74,7 @@ from sentry.workflow_engine.endpoints.validators.detector_workflow_mutation impo
     DetectorWorkflowMutationValidator,
 )
 from sentry.workflow_engine.endpoints.validators.utils import (
-    is_workflow_connected_to_all_projects_detector,
+    enforce_workflow_access,
     should_include_all_projects_detector_workflows,
     should_include_all_projects_detector_workflows_or_raise,
 )
@@ -130,27 +129,7 @@ class OrganizationWorkflowEndpoint(OrganizationEndpoint):
         except Workflow.DoesNotExist:
             raise ResourceDoesNotExist
 
-        # Check project access for workflows connected to detectors.
-        # User must have access to at least one connected project.
-        # Workflows with no detector connections are org-level and accessible
-        # to anyone with org-level workflow permissions.
-        workflow = kwargs["workflow"]
-        organization = kwargs["organization"]
-        if is_workflow_connected_to_all_projects_detector(workflow):
-            if not should_include_all_projects_detector_workflows_or_raise(request, organization):
-                raise PermissionDenied
-            return args, kwargs
-
-        connected_projects = Project.objects.filter(
-            detector__detectorworkflow__workflow=workflow
-        ).distinct()
-
-        if connected_projects.exists():
-            has_access = any(
-                request.access.has_project_access(project) for project in connected_projects
-            )
-            if not has_access:
-                raise PermissionDenied
+        enforce_workflow_access(kwargs["workflow"], kwargs["organization"], request)
 
         return args, kwargs
 

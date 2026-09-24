@@ -14,7 +14,6 @@ import {
 import {SeerExplorerHeader} from 'sentry/views/seerExplorer/components/seerExplorerHeader';
 import * as useSeerExplorerModule from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
 import {SeerExplorerSessionsProvider} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
-import type {SeerExplorerResponse} from 'sentry/views/seerExplorer/types';
 
 const mockGetPageReferrer = jest.fn().mockReturnValue('/issues/');
 
@@ -51,6 +50,7 @@ describe('SeerExplorerContent', () => {
     MockApiClient.clearMockResponses();
     sessionStorage.clear();
     jest.clearAllMocks();
+    ConfigStore.set('user', UserFixture());
 
     // The header collapses its actions into an overflow menu on narrow
     // containers (resolved via `useContainerBreakpoint`, which measures
@@ -134,10 +134,9 @@ describe('SeerExplorerContent', () => {
               loading: false,
             },
           ],
-          run_id: 123,
           status: 'completed',
           updated_at: '2024-01-01T00:02:00Z',
-        } as SeerExplorerResponse['session'],
+        },
       });
 
       render(
@@ -359,10 +358,9 @@ describe('SeerExplorerContent', () => {
               loading: false,
             },
           ],
-          run_id: 123,
           status: 'completed',
           updated_at: '2024-01-01T00:01:00Z',
-        } as SeerExplorerResponse['session'],
+        },
       });
 
       render(
@@ -628,10 +626,9 @@ describe('SeerExplorerContent', () => {
               loading: false,
             },
           ],
-          run_id: 123,
           status: 'completed',
           updated_at: '2024-01-01T00:02:00Z',
-        } as SeerExplorerResponse['session'],
+        },
       });
 
       render(
@@ -879,11 +876,10 @@ describe('SeerExplorerContent', () => {
         ...defaultHookReturn,
         sessionData: {
           blocks: [],
-          run_id: 999,
           status: 'completed',
           updated_at: '2024-01-01T00:00:00Z',
           owner_user_id: 2,
-        } as SeerExplorerResponse['session'],
+        },
       });
 
       render(
@@ -914,11 +910,10 @@ describe('SeerExplorerContent', () => {
         ...defaultHookReturn,
         sessionData: {
           blocks: [],
-          run_id: 999,
           status: 'completed',
           updated_at: '2024-01-01T00:00:00Z',
           owner_user_id: 1,
-        } as SeerExplorerResponse['session'],
+        },
       });
 
       render(
@@ -949,11 +944,10 @@ describe('SeerExplorerContent', () => {
         ...defaultHookReturn,
         sessionData: {
           blocks: [],
-          run_id: 999,
           status: 'completed',
           updated_at: '2024-01-01T00:00:00Z',
           owner_user_id: undefined,
-        } as SeerExplorerResponse['session'],
+        },
       });
 
       render(
@@ -984,6 +978,15 @@ describe('SeerExplorerContent', () => {
         'gen-ai-features',
         'seer-explorer-context-engine-fe-override-ui-flag',
       ],
+    });
+
+    beforeEach(() => {
+      ConfigStore.set(
+        'user',
+        UserFixture({
+          emails: [{email: 'employee@sentry.io', is_verified: true, id: '1'}],
+        })
+      );
     });
 
     it('does not show the debug menu without any debug feature flag', async () => {

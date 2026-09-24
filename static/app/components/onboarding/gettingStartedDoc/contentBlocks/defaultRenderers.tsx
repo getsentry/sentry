@@ -60,7 +60,7 @@ function CodeBlock(block: Extract<ContentBlock, {type: 'code'}>) {
   if ('code' in block) {
     return (
       <div css={baseBlockStyles}>
-        <OnboardingCodeSnippet language={block.language}>
+        <OnboardingCodeSnippet language={block.language} filename={block.filename}>
           {block.code}
         </OnboardingCodeSnippet>
       </div>

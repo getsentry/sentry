@@ -7,7 +7,7 @@ import {z} from 'zod';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormOptions, FieldGroup, useScrapsForm} from '@sentry/scraps/form';
 import {InfoText} from '@sentry/scraps/info';
 import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
@@ -413,6 +413,7 @@ function CustomFilterModal({
     dataTypeOptions,
     filter ? defaultValues.dataType : undefined
   );
+  const theme = useTheme();
 
   const form = useScrapsForm({
     ...defaultFormOptions,
@@ -496,6 +497,9 @@ function CustomFilterModal({
                           )}
                         </Text>
                       )}
+                      {/* The value textarea grows with its lines, so the row aligns
+                          to the top and the single-line cells center on the control
+                          height to line up with the first line. */}
                       <Stack gap="sm">
                         {conditions.map((condition, index) => (
                           <Grid
@@ -515,12 +519,14 @@ function CustomFilterModal({
                                 />
                               )}
                             </form.AppField>
-                            <InfoText
-                              variant="muted"
-                              title={getMatchDescription(condition.property, dataType)}
-                            >
-                              {t('matches')}
-                            </InfoText>
+                            <Flex align="center" height={theme.form.md.height}>
+                              <InfoText
+                                variant="muted"
+                                title={getMatchDescription(condition.property, dataType)}
+                              >
+                                {t('matches')}
+                              </InfoText>
+                            </Flex>
                             <form.AppField name={`conditions[${index}].value`}>
                               {valueField => (
                                 <valueField.TextArea
@@ -537,14 +543,16 @@ function CustomFilterModal({
                                 />
                               )}
                             </form.AppField>
-                            <Button
-                              size="sm"
-                              variant="transparent"
-                              icon={<IconDelete />}
-                              aria-label={t('Remove condition')}
-                              disabled={conditions.length === 1}
-                              onClick={() => conditionsField.removeValue(index)}
-                            />
+                            <Flex align="center" height={theme.form.md.height}>
+                              <Button
+                                size="sm"
+                                variant="transparent"
+                                icon={<IconDelete />}
+                                aria-label={t('Remove condition')}
+                                disabled={conditions.length === 1}
+                                onClick={() => conditionsField.removeValue(index)}
+                              />
+                            </Flex>
                           </Grid>
                         ))}
                       </Stack>
@@ -684,10 +692,10 @@ function FilteredVolumeCells({
   if (isPending) {
     return (
       <Fragment>
-        <SimpleTable.RowCell columnKey="trend">
+        <SimpleTable.RowCell>
           <Placeholder height={`${CHART_HEIGHT}px`} width={`${CHART_WIDTH}px`} />
         </SimpleTable.RowCell>
-        <SimpleTable.RowCell columnKey="filtered">
+        <SimpleTable.RowCell>
           <Flex height={`${CHART_HEIGHT}px`} align="center">
             <Placeholder height="16px" width="40px" />
           </Flex>
@@ -699,12 +707,12 @@ function FilteredVolumeCells({
   if (isError) {
     return (
       <Fragment>
-        <SimpleTable.RowCell columnKey="trend">
+        <SimpleTable.RowCell>
           <Flex height={`${CHART_HEIGHT}px`} align="center">
             <Text variant="muted">{'—'}</Text>
           </Flex>
         </SimpleTable.RowCell>
-        <SimpleTable.RowCell columnKey="filtered">
+        <SimpleTable.RowCell>
           <Flex height={`${CHART_HEIGHT}px`} align="center">
             <Text variant="muted">{'—'}</Text>
           </Flex>
@@ -766,7 +774,7 @@ function FilteredVolumeCells({
 
   return (
     <Fragment>
-      <SimpleTable.RowCell columnKey="trend">
+      <SimpleTable.RowCell>
         <Container width={`${CHART_WIDTH}px`} height={`${CHART_HEIGHT}px`}>
           <MiniBarChart
             stacked
@@ -788,7 +796,7 @@ function FilteredVolumeCells({
           />
         </Container>
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell columnKey="filtered">
+      <SimpleTable.RowCell>
         <Flex height={`${CHART_HEIGHT}px`} align="center">
           <Text tabular variant={total === 0 ? 'muted' : 'primary'}>
             {formatAbbreviatedNumber(total)}
@@ -960,7 +968,7 @@ export function CustomFilters({project}: {project: Project}) {
   const visibleFilters = filters.filter(filter => matchesQuery(filter, query));
 
   return (
-    <Stack gap="lg">
+    <FieldGroup title={t('Filter Rules')}>
       <Flex gap="md" align="center">
         <Flex flex={1}>
           <InputGroup style={{width: '100%'}}>
@@ -1025,16 +1033,16 @@ export function CustomFilters({project}: {project: Project}) {
                 <SimpleTable.HeaderCell divider={false}>
                   {t('Conditions')}
                 </SimpleTable.HeaderCell>
-                <SimpleTable.HeaderCell divider={false} columnKey="trend">
+                <SimpleTable.HeaderCell divider={false}>
                   {t('Trend')}
                 </SimpleTable.HeaderCell>
-                <SimpleTable.HeaderCell divider={false} columnKey="filtered">
+                <SimpleTable.HeaderCell divider={false}>
                   {t('Filtered')}
                 </SimpleTable.HeaderCell>
-                <SimpleTable.HeaderCell divider={false} columnKey="created">
+                <SimpleTable.HeaderCell divider={false}>
                   {t('Created')}
                 </SimpleTable.HeaderCell>
-                <SimpleTable.HeaderCell divider={false} columnKey="edited">
+                <SimpleTable.HeaderCell divider={false}>
                   {t('Edited')}
                 </SimpleTable.HeaderCell>
                 <SimpleTable.HeaderCell divider={false}>
@@ -1086,10 +1094,10 @@ export function CustomFilters({project}: {project: Project}) {
                   isPending={isStatsPending}
                   isError={isStatsError}
                 />
-                <SimpleTable.RowCell whiteSpace="nowrap" columnKey="created">
+                <SimpleTable.RowCell whiteSpace="nowrap">
                   <TimeSince date={filter.dateCreated} unitStyle="extraShort" />
                 </SimpleTable.RowCell>
-                <SimpleTable.RowCell whiteSpace="nowrap" columnKey="edited">
+                <SimpleTable.RowCell whiteSpace="nowrap">
                   <TimeSince date={filter.dateUpdated} unitStyle="extraShort" />
                 </SimpleTable.RowCell>
                 <SimpleTable.RowCell>
@@ -1134,7 +1142,7 @@ export function CustomFilters({project}: {project: Project}) {
           </CustomFiltersTable>
         </Container>
       )}
-    </Stack>
+    </FieldGroup>
   );
 }
 

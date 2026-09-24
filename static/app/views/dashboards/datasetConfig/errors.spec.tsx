@@ -57,8 +57,7 @@ describe('ErrorsConfig', () => {
         '/organizations/org-slug/dashboards/trace/abcd/'
       );
       expect(router.location.query).toEqual({
-        pageEnd: undefined,
-        pageStart: undefined,
+        source: 'dashboards',
         statsPeriod: '14d',
       });
     });

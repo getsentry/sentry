@@ -3,6 +3,7 @@ import {useMemo} from 'react';
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {AggregationKey} from 'sentry/utils/fields';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import type {RPCQueryExtras} from 'sentry/views/explore/hooks/useProgressiveQuery';
@@ -41,6 +42,10 @@ export function useLogsTimeseriesRequest({
   const [caseInsensitive] = useCaseInsensitivity();
   const autorefreshEnabled = useLogsAutoRefreshEnabled();
   const [interval] = useChartInterval();
+  const organization = useOrganization();
+  const hasMeasuredIngestionDelayUi = organization.features.includes(
+    'measured-ingestion-delay-ui'
+  );
 
   return useMemo(() => {
     const search = logsSearch.copy();
@@ -68,7 +73,7 @@ export function useLogsTimeseriesRequest({
       topEvents: topEventsLimit,
       orderby,
       caseInsensitive,
-      includeMeasuredIngestionDelayMetadata: true,
+      includeMeasuredIngestionDelayMetadata: hasMeasuredIngestionDelayUi,
       ...queryExtras,
     };
   }, [
@@ -77,6 +82,7 @@ export function useLogsTimeseriesRequest({
     caseInsensitive,
     enabled,
     groupBys,
+    hasMeasuredIngestionDelayUi,
     interval,
     logsSearch,
     queryExtras,
