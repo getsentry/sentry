@@ -1016,6 +1016,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.seer.explorer_index",
     "sentry.tasks.seer.context_engine_index",
     "sentry.tasks.seer.lightweight_rca_cluster",
+    "sentry.tasks.seer.smart_assignment",
     "sentry.tasks.seer.investigation",
     "sentry.tasks.seer.night_shift.cron",
     "sentry.tasks.seer.autofix_issue_data",

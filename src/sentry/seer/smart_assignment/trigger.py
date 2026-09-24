@@ -9,6 +9,12 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.ratelimits import backend as ratelimiter
 from sentry.seer.agent.client import SeerAgentClient
+from sentry.seer.agent.tools import (
+    get_event_details,
+    get_issue_committers,
+    get_issue_details,
+    get_issue_ownership,
+)
 from sentry.seer.autofix.utils import bulk_read_preferences_from_sentry_db
 from sentry.seer.models import SeerApiError, SeerPermissionError
 from sentry.seer.models.run import SeerRun
@@ -30,6 +36,13 @@ FEATURE_FLAG = "organizations:seer-smart-assignment-run"
 
 # Rolling window (seconds) for the per-org and global dispatch caps below.
 _RATE_LIMIT_WINDOW = 86400
+
+
+def is_smart_assignment_enabled(organization: Organization) -> bool:
+    return features.has(FEATURE_FLAG, organization) and (
+        features.has("organizations:seer-added", organization)
+        or features.has("organizations:seat-based-seer-enabled", organization)
+    )
 
 
 def trigger_smart_assignment(
@@ -57,13 +70,7 @@ def trigger_smart_assignment(
     """
     organization = group.organization
 
-    if not (
-        features.has(FEATURE_FLAG, organization)
-        and (
-            features.has("organizations:seer-added", organization)
-            or features.has("organizations:seat-based-seer-enabled", organization)
-        )
-    ):
+    if not is_smart_assignment_enabled(organization):
         return
 
     if activity_type in RESOLUTION_ACTIVITIES and resolver_user_id(activity) is None:
@@ -181,6 +188,69 @@ def _dispatch(group: Group, activity_type: ActivityType, activity: Activity) -> 
         "triggering_activity_id": activity.id,
     }
 
+    prefetched_tool_calls: list[dict[str, object]] = []
+    prefetched = random.random() < options.get("seer.smart_assignment.prefetch_sample_rate")
+    if prefetched:
+        issue_id = str(group.id)
+        try:
+            issue_details = get_issue_details(
+                organization_id=organization.id,
+                issue_id=issue_id,
+            )
+            event_details = get_event_details(
+                organization_id=organization.id,
+                issue_id=issue_id,
+            )
+            committers = get_issue_committers(
+                organization_id=organization.id,
+                issue_id=issue_id,
+            )
+            ownership = get_issue_ownership(
+                organization_id=organization.id,
+                issue_id=issue_id,
+            )
+            if (
+                issue_details is None
+                or event_details is None
+                or committers is None
+                or ownership is None
+            ):
+                raise ValueError("A prefetched Smart Assignment tool returned no result")
+            prefetched_tool_calls = [
+                {
+                    "name": "get_issue_details_agentic_triage",
+                    "arguments": {"issue_id": issue_id, "start": None, "end": None},
+                    "result": issue_details.dict(),
+                },
+                {
+                    "name": "get_event_details_agentic_triage",
+                    "arguments": {
+                        "issue_id": issue_id,
+                        "event_id": None,
+                        "start": None,
+                        "end": None,
+                    },
+                    "result": event_details.dict(),
+                },
+                {
+                    "name": "get_issue_committers",
+                    "arguments": {"issue_id": issue_id, "start": None, "end": None},
+                    "result": committers.dict(),
+                },
+                {
+                    "name": "get_issue_ownership",
+                    "arguments": {"issue_id": issue_id},
+                    "result": ownership.dict(),
+                },
+            ]
+        except Exception:
+            logger.exception(
+                "smart_assignment.trigger.prefetch_failed", extra={"group_id": group.id}
+            )
+            prefetched = False
+            prefetched_tool_calls = []
+    extras["smart_assignment_prefetched"] = prefetched
+
     preferences = bulk_read_preferences_from_sentry_db(organization.id, [group.project_id])
     preference = preferences.get(group.project_id)
     connected_repos = (
@@ -190,6 +260,7 @@ def _dispatch(group: Group, activity_type: ActivityType, activity: Activity) -> 
         group_id=group.id,
         project_slug=group.project.slug,
         connected_repos=connected_repos,
+        prefetched_tool_calls=prefetched_tool_calls,
     )
     title = f"Smart assignment for {group.qualified_short_id or group.id}"
     try:

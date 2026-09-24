@@ -31,6 +31,9 @@ SEER_START_ACTIVITY_TYPES = (
 class TriggerSmartAssignmentTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
+        self._options_ctx = self.options({"seer.smart_assignment.prefetch_sample_rate": 0.0})
+        self._options_ctx.__enter__()
+        self.addCleanup(lambda: self._options_ctx.__exit__(None, None, None))
         self.group = self.create_group()
 
     def _wire_client(self, mock_client_cls: MagicMock) -> None:
@@ -125,8 +128,83 @@ class TriggerSmartAssignmentTest(TestCase):
             "getsentry/sentry",
             "getsentry/seer",
         ]
+        assert run_kwargs["payload"]["prefetched_tool_calls"] == []
+        assert mirrors[0].extras["smart_assignment_prefetched"] is False
         # A Seer AI-step start carries no ground truth.
         assert "actual_assignee_user_id" not in mirrors[0].extras
+
+    @patch(CLIENT_PATH)
+    def test_dispatch_prefetches_common_tools(self, mock_client_cls: MagicMock) -> None:
+        self._wire_client(mock_client_cls)
+        response = SimpleNamespace(dict=lambda: {"value": "result"})
+        with (
+            self.feature(RUN_FEATURES),
+            self.options({"seer.smart_assignment.prefetch_sample_rate": 1.0}),
+            patch(
+                "sentry.seer.smart_assignment.trigger.bulk_read_preferences_from_sentry_db",
+                return_value={},
+            ),
+            patch(
+                "sentry.seer.smart_assignment.trigger.get_issue_details",
+                return_value=response,
+            ) as issue_details,
+            patch(
+                "sentry.seer.smart_assignment.trigger.get_event_details",
+                return_value=response,
+            ) as event_details,
+            patch(
+                "sentry.seer.smart_assignment.trigger.get_issue_committers",
+                return_value=response,
+            ) as committers,
+            patch(
+                "sentry.seer.smart_assignment.trigger.get_issue_ownership",
+                return_value=response,
+            ) as ownership,
+        ):
+            trigger_smart_assignment(
+                self.group, ActivityType.SEER_RCA_STARTED, self._seer_started()
+            )
+
+        issue_id = str(self.group.id)
+        issue_details.assert_called_once_with(
+            organization_id=self.organization.id, issue_id=issue_id
+        )
+        event_details.assert_called_once_with(
+            organization_id=self.organization.id, issue_id=issue_id
+        )
+        committers.assert_called_once_with(organization_id=self.organization.id, issue_id=issue_id)
+        ownership.assert_called_once_with(organization_id=self.organization.id, issue_id=issue_id)
+        run_kwargs = mock_client_cls.return_value.start_feature_run.call_args.kwargs
+        assert [call["name"] for call in run_kwargs["payload"]["prefetched_tool_calls"]] == [
+            "get_issue_details_agentic_triage",
+            "get_event_details_agentic_triage",
+            "get_issue_committers",
+            "get_issue_ownership",
+        ]
+        assert self._mirrors()[0].extras["smart_assignment_prefetched"] is True
+
+    @patch(CLIENT_PATH)
+    def test_prefetch_failure_dispatches_control(self, mock_client_cls: MagicMock) -> None:
+        self._wire_client(mock_client_cls)
+        with (
+            self.feature(RUN_FEATURES),
+            self.options({"seer.smart_assignment.prefetch_sample_rate": 1.0}),
+            patch(
+                "sentry.seer.smart_assignment.trigger.bulk_read_preferences_from_sentry_db",
+                return_value={},
+            ),
+            patch(
+                "sentry.seer.smart_assignment.trigger.get_issue_details",
+                side_effect=RuntimeError("failed"),
+            ),
+        ):
+            trigger_smart_assignment(
+                self.group, ActivityType.SEER_RCA_STARTED, self._seer_started()
+            )
+
+        run_kwargs = mock_client_cls.return_value.start_feature_run.call_args.kwargs
+        assert run_kwargs["payload"]["prefetched_tool_calls"] == []
+        assert self._mirrors()[0].extras["smart_assignment_prefetched"] is False
 
     @patch(CLIENT_PATH)
     def test_flag_disabled_is_noop(self, mock_client_cls: MagicMock) -> None:
