@@ -225,17 +225,20 @@ function ReferenceLink({reference}: {reference: ToolCallReference}) {
  */
 function FailureChip({label}: {label: ReactNode}) {
   return (
-    <Container
+    // A flex container blockifies the label, so `Text`'s `text-box-trim` trims it
+    // to the glyphs' ascent/descent. Otherwise the chip's height is the line box,
+    // whose descender room (unused by digits) reads as extra bottom padding.
+    <Flex
+      align="center"
       border="danger"
       radius="sm"
-      paddingLeft="sm"
-      paddingRight="sm"
+      padding="2xs sm"
       background="primary"
     >
       <Text size="sm" variant="danger" bold>
         {label}
       </Text>
-    </Container>
+    </Flex>
   );
 }
 
