@@ -20,31 +20,25 @@ function makeFileApproval(id: string, patchCount: number): PendingUserInput {
 }
 
 describe('usePendingUserInput', () => {
-  function renderPendingUserInput(pendingInput: PendingUserInput) {
-    let lastOptions: RespondToUserInputOptions | undefined;
-    const respondToUserInput = jest.fn(
-      (_inputId: string, _data?: unknown, options?: RespondToUserInputOptions) => {
-        lastOptions = options;
-      }
-    );
-    const hook = renderHookWithProviders(
-      (props: {pendingInput: PendingUserInput}) =>
-        usePendingUserInput({
-          isAwaitingUserInput: true,
-          pendingInput: props.pendingInput,
-          respondToUserInput,
-          scrollContainerRef: {current: null},
-          userScrolledUpRef: {current: false},
-        }),
-      {initialProps: {pendingInput}}
-    );
-    return {...hook, respondToUserInput, getLastOptions: () => lastOptions};
-  }
+  const respondToUserInput = jest.fn<
+    void,
+    [string, ({decisions: boolean[]} | {answers: string[]})?, RespondToUserInputOptions?]
+  >();
+  const defaultProps = {
+    isAwaitingUserInput: true,
+    respondToUserInput,
+    scrollContainerRef: {current: null},
+    userScrolledUpRef: {current: false},
+  };
+
+  beforeEach(() => {
+    respondToUserInput.mockClear();
+  });
 
   it('steps back to the last patch when the approval fails to send', () => {
-    const {result, respondToUserInput, getLastOptions} = renderPendingUserInput(
-      makeFileApproval('input-a', 1)
-    );
+    const {result} = renderHookWithProviders(usePendingUserInput, {
+      initialProps: {...defaultProps, pendingInput: makeFileApproval('input-a', 1)},
+    });
 
     act(() => {
       result.current.handleFileApprovalApprove();
@@ -57,22 +51,23 @@ describe('usePendingUserInput', () => {
     expect(result.current.fileApprovalIndex).toBe(1);
 
     act(() => {
-      getLastOptions()?.onError?.();
+      respondToUserInput.mock.lastCall?.[2]?.onError?.();
     });
     expect(result.current.fileApprovalIndex).toBe(0);
   });
 
   it('ignores a failed approval once a different input is pending', () => {
-    const {result, rerender, getLastOptions} = renderPendingUserInput(
-      makeFileApproval('input-a', 1)
-    );
+    const {result, rerender} = renderHookWithProviders(usePendingUserInput, {
+      initialProps: {...defaultProps, pendingInput: makeFileApproval('input-a', 1)},
+    });
 
     act(() => {
       result.current.handleFileApprovalApprove();
     });
+    const onFirstApprovalError = respondToUserInput.mock.lastCall?.[2]?.onError;
 
     // Switch to another conversation with its own approval, and move past its first patch.
-    rerender({pendingInput: makeFileApproval('input-b', 3)});
+    rerender({...defaultProps, pendingInput: makeFileApproval('input-b', 3)});
     expect(result.current.fileApprovalIndex).toBe(0);
     act(() => {
       result.current.handleFileApprovalApprove();
@@ -81,7 +76,7 @@ describe('usePendingUserInput', () => {
 
     // The first approval's failure arrives late and must not touch input-b's state.
     act(() => {
-      getLastOptions()?.onError?.();
+      onFirstApprovalError?.();
     });
     expect(result.current.fileApprovalIndex).toBe(1);
   });

@@ -391,10 +391,10 @@ export function SeerExplorerContent({
   // the request error alert sits directly above it instead of above the composer.
   const showFileApprovalBlock =
     !readOnly && isFileApprovalPending && fileApprovalIndex < fileApprovalTotalPatches;
-  const showQuestionBlock = !readOnly && isQuestionPending && !!currentQuestion;
-  const showReauthBlock = !readOnly && showReauth && !!reauthData;
+  const questionToShow = !readOnly && isQuestionPending ? currentQuestion : undefined;
+  const reauthToShow = !readOnly && showReauth ? reauthData : null;
   const showsPendingInputBlock =
-    showFileApprovalBlock || showQuestionBlock || showReauthBlock;
+    showFileApprovalBlock || !!questionToShow || !!reauthToShow;
 
   const requestErrorAlert = requestError ? (
     <Container padding="0 xl">
@@ -735,9 +735,9 @@ export function SeerExplorerContent({
                   pendingInput={pendingInput}
                 />
               )}
-              {showQuestionBlock && currentQuestion && (
+              {questionToShow && (
                 <AskUserQuestionBlock
-                  currentQuestion={currentQuestion}
+                  currentQuestion={questionToShow}
                   customText={customText}
                   isOtherSelected={isOtherSelected}
                   onCustomTextChange={handleQuestionCustomTextChange}
@@ -746,9 +746,9 @@ export function SeerExplorerContent({
                   selectedOption={selectedOption}
                 />
               )}
-              {showReauthBlock && reauthData && (
+              {reauthToShow && (
                 <ReauthMonitoringProviderBlock
-                  data={reauthData}
+                  data={reauthToShow}
                   onComplete={handleReauthComplete}
                   returnUrl={
                     runId === null
