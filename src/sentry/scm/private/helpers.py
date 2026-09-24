@@ -2,6 +2,7 @@ from typing import cast
 
 import sentry_sdk
 from django.db.models import Q
+from scm.providers.cursor_origin.provider import CursorOriginProvider
 from scm.providers.github.provider import GitHubProvider
 from scm.providers.gitlab.provider import GitLabProvider
 from scm.types import Provider, Repository, RepositoryId
@@ -32,6 +33,10 @@ def fetch_service_provider(organization_id: int, repository: Repository) -> Prov
         return GitHubProvider(client, organization_id, repository)
     elif integration.provider == "gitlab":
         return GitLabProvider(client, organization_id, repository)
+    elif integration.provider == "cursor_origin":
+        return CursorOriginProvider(
+            client, organization_id, repository, installation_id=integration.external_id
+        )
     else:
         return None
 
