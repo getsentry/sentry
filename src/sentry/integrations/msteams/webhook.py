@@ -260,7 +260,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
             "service_url": service_url,
             "user_id": user_id,
             "tenant_id": tenant_id,
-            "conversation_id": team_id,
+            "conversation_id": data["conversation"]["id"],
             "external_id": team_id,
             "external_name": team_name,
             "installation_type": "team",
@@ -276,6 +276,15 @@ class MsTeamsWebhookEndpoint(Endpoint):
                 extra={"request_data": data},
             )
             return self.respond({"details": f"{action} is currently not supported"}, status=204)
+
+        conversation_type = data.get("conversation", {}).get("conversationType")
+        team = data.get("channelData", {}).get("team")
+        if conversation_type != "channel" or not team:
+            logger.info(
+                "sentry.integrations.msteams.webhooks: Non-team installation ignored",
+                extra={"request_data": data},
+            )
+            return self.respond(status=204)
 
         try:
             installation_params = self._get_team_installation_request_data(data=data)
@@ -358,7 +367,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
     def _handle_team_member_added(self, request: Request) -> Response:
         data = request.data
         team = data["channelData"]["team"]
-        data["conversation_id"] = team["id"]
+        data["conversation_id"] = data["conversation"]["id"]
 
         params = {
             "external_id": team["id"],
