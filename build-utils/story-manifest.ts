@@ -93,7 +93,7 @@ export class StoryManifestPlugin implements RspackPluginInstance {
   apply(compiler: Compiler) {
     this.virtualModules.apply(compiler);
     compiler.hooks.watchRun.tap(PLUGIN_NAME, () => {
-      // rspack.config.ts excludes Story files from Rspack's watcher so the
+      // rsbuild.config.ts excludes Story files from Rspack's watcher so the
       // manifest can update first. Debounce the duplicate events emitted by
       // editors that save by replacing a file.
       // https://rspack.rs/config/watch#watchoptionsignored

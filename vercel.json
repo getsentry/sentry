@@ -43,5 +43,5 @@
     }
   ],
   "github": {"silent": true},
-  "ignoreCommand": "git rev-parse -q --verify HEAD^&& ! git diff --name-only HEAD^|grep -qE '^(static|build-utils|src/sentry/(locale|static/sentry/images))|^(package\\.json|pnpm-lock\\.yaml|tsconfig\\.json|rspack\\.config\\.ts|vercel\\.json|\\.vercelignore)$'"
+  "ignoreCommand": "git rev-parse -q --verify HEAD^&& ! git diff --name-only HEAD^|grep -qE '^(static|build-utils|src/sentry/(locale|static/sentry/images))|^(package\\.json|pnpm-lock\\.yaml|tsconfig\\.json|rsbuild\\.config\\.ts|vercel\\.json|\\.vercelignore)$'"
 }
