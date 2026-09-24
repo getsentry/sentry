@@ -92,8 +92,19 @@ def test_code_mode_flag_applies_to_every_dispatched_shard(default_organization, 
         status = _dispatch_pending_shards(run, default_organization, {}, time.monotonic())
 
     assert status == ShardDispatchStatus.COMPLETE
+    with with_feature(
+        {
+            "organizations:gen-ai-features": True,
+            "organizations:seer-night-shift-code-mode": not enabled,
+        }
+    ):
+        assert (
+            _dispatch_pending_shards(run, default_organization, {}, time.monotonic())
+            == ShardDispatchStatus.COMPLETE
+        )
     for shard in shards:
         shard.refresh_from_db()
+        assert shard.extras == {**plan.to_extras(), "enable_code_mode_tools": mode}
         outbox = CellOutbox.objects.get(
             category=OutboxCategory.SEER_RUN_CREATE, object_identifier=shard.seer_run_id
         )

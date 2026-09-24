@@ -880,7 +880,11 @@ def _dispatch_pending_shards(
 
             def _link_shard(created: SeerRun) -> None:
                 shard.seer_run = created
-                shard.save(update_fields=["seer_run"])
+                shard.extras = {
+                    **shard.extras,
+                    "enable_code_mode_tools": agent_run_options["enable_code_mode_tools"],
+                }
+                shard.save(update_fields=["seer_run", "extras"])
 
             try:
                 client.start_feature_run(
