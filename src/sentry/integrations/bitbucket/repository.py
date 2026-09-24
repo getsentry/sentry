@@ -105,11 +105,20 @@ class BitbucketRepositoryProvider(IntegrationRepositoryProvider["BitbucketIntegr
             "repository.webhook_discarded",
             extra={"repository_id": repo.id, "organization_id": organization.id},
         )
+        # The repository itself was linked fine, so a failed cleanup only leaves the hook
+        # orphaned; raising would report the link as failed.
         try:
             client.delete_hook(repo.config["name"], webhook_id)
         except ApiError as e:
             if e.code != 404:
-                installation.raise_error(e)
+                logger.warning(
+                    "repository.webhook_discard_failed",
+                    extra={
+                        "repository_id": repo.id,
+                        "organization_id": organization.id,
+                        "status_code": e.code,
+                    },
+                )
 
     def on_delete_repository(self, repo):
         installation = self.get_installation(repo.integration_id, repo.organization_id)

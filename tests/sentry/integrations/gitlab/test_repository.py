@@ -223,8 +223,9 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
         assert [call.request.method for call in responses.calls] == ["PUT", "POST"]
         assert self.get_repository(pk=repo.id).config["webhook_id"] == 100
 
-    @responses.activate
-    def test_on_create_repository_relink_discards_hook_when_repository_disabled(self) -> None:
+    def _on_create_repository_relink_discards_hook_when_repository_disabled(
+        self, delete_status: int
+    ) -> None:
         response = self.create_repository(self.default_repository_config, self.integration.id)
         repo = self.get_repository(pk=response.data["id"])
         responses.reset()
@@ -247,7 +248,7 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
         responses.add(
             responses.DELETE,
             "https://example.gitlab.com/api/v4/projects/%s/hooks/100" % self.gitlab_id,
-            status=204,
+            status=delete_status,
         )
 
         self.relink_repository(repo)
@@ -256,6 +257,16 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
         repo = self.get_repository(pk=repo.id)
         assert repo.status == ObjectStatus.DISABLED
         assert repo.config["webhook_id"] == 99
+
+    @responses.activate
+    def test_on_create_repository_relink_discards_hook_when_repository_disabled(self) -> None:
+        self._on_create_repository_relink_discards_hook_when_repository_disabled(delete_status=204)
+
+    @responses.activate
+    def test_on_create_repository_relink_discards_hook_when_repository_disabled_and_cleanup_fails(
+        self,
+    ) -> None:
+        self._on_create_repository_relink_discards_hook_when_repository_disabled(delete_status=500)
 
     @responses.activate
     def test_on_create_repository_relink_update_failure_creates_no_duplicate(self) -> None:

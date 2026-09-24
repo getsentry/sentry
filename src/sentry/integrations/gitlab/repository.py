@@ -100,11 +100,20 @@ class GitlabRepositoryProvider(IntegrationRepositoryProvider["GitlabIntegration"
                     "gitlab.repository.webhook_discarded",
                     extra={**log_extra, "gitlab.repository.webhook_id": hook_id},
                 )
+                # The repository itself was linked fine, so a failed cleanup only leaves the
+                # hook orphaned; raising would report the link as failed.
                 try:
                     client.delete_project_webhook(project_id, hook_id)
                 except ApiError as e:
                     if e.code != 404:
-                        raise installation.raise_error(e)
+                        logger.warning(
+                            "gitlab.repository.webhook_discard_failed",
+                            extra={
+                                **log_extra,
+                                "gitlab.repository.webhook_id": hook_id,
+                                "gitlab.repository.status_code": e.code,
+                            },
+                        )
                 return
             repo.config["webhook_id"] = hook_id
             event = (

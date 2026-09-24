@@ -83,8 +83,9 @@ class BitbucketRepositoryProviderTest(TestCase):
             }
         ]
 
-    @responses.activate
-    def test_on_create_repository_discards_hook_when_repository_disabled(self) -> None:
+    def _on_create_repository_discards_hook_when_repository_disabled(
+        self, delete_status: int
+    ) -> None:
         def create(request):
             Repository.objects.filter(id=self.repo.id).update(status=ObjectStatus.DISABLED)
             return 201, {}, '{"uuid": "hook-uuid"}'
@@ -97,7 +98,7 @@ class BitbucketRepositoryProviderTest(TestCase):
         responses.add(
             responses.DELETE,
             "https://api.bitbucket.org/2.0/repositories/sentryuser/newsdiffs/hooks/hook-uuid",
-            status=204,
+            status=delete_status,
         )
 
         self.provider.on_create_repository(
@@ -108,6 +109,16 @@ class BitbucketRepositoryProviderTest(TestCase):
         self.repo.refresh_from_db()
         assert self.repo.status == ObjectStatus.DISABLED
         assert "webhook_id" not in self.repo.config
+
+    @responses.activate
+    def test_on_create_repository_discards_hook_when_repository_disabled(self) -> None:
+        self._on_create_repository_discards_hook_when_repository_disabled(delete_status=204)
+
+    @responses.activate
+    def test_on_create_repository_discards_hook_when_repository_disabled_and_cleanup_fails(
+        self,
+    ) -> None:
+        self._on_create_repository_discards_hook_when_repository_disabled(delete_status=500)
 
     @responses.activate
     def test_on_create_repository_preserves_concurrent_changes(self) -> None:
