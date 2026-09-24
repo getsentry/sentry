@@ -185,7 +185,9 @@ export function DocIntegrationModal(props: Props) {
     addLoadingMessage('Saving changes\u2026');
     try {
       const response = await api.requestPromise(
-        docIntegration ? `/doc-integrations/${docIntegration.slug}/` : '/doc-integrations/',
+        docIntegration
+          ? `/doc-integrations/${docIntegration.slug}/`
+          : '/doc-integrations/',
         {
           method: docIntegration ? 'PUT' : 'POST',
           data: prepareData(data),
