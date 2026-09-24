@@ -1,27 +1,21 @@
 from __future__ import annotations
 
 import logging
-from collections import Counter
 from typing import TYPE_CHECKING, Any
-from uuid import uuid4
 
 import sentry_sdk
 from django.db import router, transaction
 from django.utils import timezone
 from pydantic import ValidationError
-from scm.manager import SourceCodeManager
 
 from sentry import analytics, features
 from sentry.analytics.events.autofix_events import (
     AiAutofixIntrospectionEvent,
     AiAutofixPrCreatedCompletedEvent,
 )
-from sentry.integrations.github.utils import is_github_rate_limit_sensitive
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.models.repository import Repository
-from sentry.scm.factory import new as make_scm
 from sentry.seer.agent.client_models import Artifact
 from sentry.seer.agent.client_utils import fetch_run_status
 from sentry.seer.agent.on_completion_hook import AgentOnCompletionHook
@@ -29,40 +23,26 @@ from sentry.seer.autofix.analytics import record_autofix_event
 from sentry.seer.autofix.artifact_schemas import FixabilityAssessment, RootCauseArtifact
 from sentry.seer.autofix.autofix_agent import (
     STEP_CONFIGS,
-    get_iterations,
     get_latest_iteration_index,
-    iteration_repos,
     should_open_autofix_pr_as_draft,
     trigger_autofix_agent,
     trigger_coding_agent_handoff,
     trigger_push_changes,
 )
 from sentry.seer.autofix.coding_agent import IntegrationNotFound
-from sentry.seer.autofix.commit_author import SeerCommitAuthor, parse_commit_author
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.feature.models import FEATURE_ID as AUTOFIX_FEATURE_ID
 from sentry.seer.autofix.feature.models import LEGACY_FEATURE_ID as LEGACY_AUTOFIX_FEATURE_ID
-from sentry.seer.autofix.github_perms import failed_tool_calls
-from sentry.seer.autofix.pr_iteration.emit import (
-    PrIterationOutcome,
-    complete_pr_iteration_details,
-    outcome_for_failed_run,
+from sentry.seer.autofix.pr_iteration.completion import (
+    continue_pr_iteration,
+    fail_pr_iteration,
+    fail_pr_iteration_missing_group,
+    iteration_completed_webhook_fields,
+    iteration_terminal_errored_repos,
+    log_completion_received,
+    record_failed_tool_calls,
 )
-from sentry.seer.autofix.pr_iteration.feedback import (
-    latest_iteration_feedback_kind,
-    parse_feedback,
-)
-from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTriggerSource
-from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
-    GithubPrCommentFeedbackSource,
-    GithubPrReviewCommentFeedbackSource,
-)
-from sentry.seer.autofix.pr_iteration.logs import LogCtxIteration, PrIterationLogContext
-from sentry.seer.autofix.pr_iteration.pause import PauseReason, pause_pr_iteration
-from sentry.seer.autofix.pr_iteration.pr_state import (
-    iteration_prs_any_closed,
-    record_pr_closed,
-)
+from sentry.seer.autofix.pr_iteration.completion_reactions import react_to_completed_iteration
 from sentry.seer.autofix.pr_iteration.tracing import set_pr_iteration_attributes
 from sentry.seer.autofix.pr_ready_for_review import (
     emit_pr_ready_for_review,
@@ -89,15 +69,8 @@ from sentry.seer.models import (
 from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 from sentry.sentry_apps.utils.webhooks import SeerActionType
-from sentry.tasks.seer.pr_iteration import (
-    UnsupportedProviderError,
-    _add_comment_reaction,
-    _delete_own_comment_eyes_reaction,
-    _resolve_review_comment_threads,
-    consume_queued_autofix_feedback,
-)
 from sentry.utils import metrics
-from sentry.utils.tracing import start_span, trace
+from sentry.utils.tracing import start_span
 from sentry.viewer_context import get_viewer_context
 
 if TYPE_CHECKING:
@@ -118,29 +91,6 @@ STOPPING_POINT_TO_STEP: dict[AutofixStoppingPoint, AutofixStep] = {
     AutofixStoppingPoint.SOLUTION: AutofixStep.SOLUTION,
     AutofixStoppingPoint.CODE_CHANGES: AutofixStep.CODE_CHANGES,
 }
-
-
-def _record_completion_reaction(outcome: str, amount: int = 1) -> None:
-    """Record where a completion-reaction attempt exited so silent drop-offs of
-    the :tada: ack are visible in aggregate rather than invisible."""
-    metrics.incr(
-        "autofix.on_completion_hook.completion_reaction",
-        amount=amount,
-        tags={"outcome": outcome},
-    )
-
-
-def _iteration_repo_states(state: SeerRunState) -> list[dict[str, Any]]:
-    """Where each of the run's PRs stands on this pass."""
-    return [
-        {
-            "scm_repo_full_name": repo_name,
-            "commit_sha": pr_state.commit_sha,
-            "pr_creation_status": pr_state.pr_creation_status,
-            "synced": state._is_repo_synced(repo_name),
-        }
-        for repo_name, pr_state in state.repo_pr_states.items()
-    ]
 
 
 def _stopping_point_from_run(organization: Organization, run_id: int) -> str | None:
@@ -223,67 +173,30 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             return
 
         group_id, run_referrer = cls._resolve_group_id(organization, run_id, state)
+        current_step, _ = cls._get_current_step(state)
 
-        # this must run before we null check group id else we won't get the analytics required for pr iteration
-        if state.status == "error":
-            current_step, _ = cls._get_current_step(state)
-            if current_step == AutofixStep.PR_ITERATION:
-                cls._fail_pr_iteration(organization, run_id, state, group_id)
-                return
+        if current_step == AutofixStep.PR_ITERATION:
+            cls._complete_pr_iteration(organization, run_id, state, group_id, run_referrer)
+        else:
+            cls._complete_autofix_step(organization, run_id, state, group_id, run_referrer)
 
-        if group_id is None:
-            logger.warning(
-                "autofix.on_completion_hook.missing_group_id",
-                extra={"run_id": run_id, "organization_id": organization.id},
-            )
-            return
-
+    @classmethod
+    def _complete_autofix_step(
+        cls,
+        organization: Organization,
+        run_id: int,
+        state: SeerRunState,
+        group_id: int | None,
+        run_referrer: AutofixReferrer | None,
+    ) -> None:
         group = cls._fetch_group(organization, run_id, group_id)
         if group is None:
             return
 
-        if state.status != "completed":
-            logger.info(
-                "autofix.on_completion_hook.run_not_completed",
-                extra={
-                    "run_id": run_id,
-                    "organization_id": organization.id,
-                    "status": state.status,
-                    "failure_reason": state.failure_reason,
-                },
-            )
-            metrics.incr(
-                "autofix.on_completion_hook.run_not_completed",
-                tags={"status": state.status},
-            )
+        if not cls._run_completed(organization, run_id, state):
             return
 
-        now = timezone.now()
-        with transaction.atomic(using=router.db_for_write(Group)):
-            group.update(seer_explorer_autofix_last_triggered=now)
-            SeerRun.objects.filter(
-                organization_id=organization.id,
-                seer_run_state_id=run_id,
-            ).update(last_triggered_at=now)
-
-        current_step, _ = cls._get_current_step(state)
-        if current_step == AutofixStep.PR_ITERATION:
-            log_ctx = cls._iteration_log_context(organization, group, state)
-            set_pr_iteration_attributes(
-                group_id=group.id,
-                iteration_id=log_ctx.iteration_id,
-            )
-            has_changes, is_synced = state.has_code_changes()
-            log_ctx.info(
-                "autofix.pr_iteration.completion_hook.received",
-                run_status=state.status,
-                iteration_index=get_latest_iteration_index(state),
-                has_changes=has_changes,
-                is_synced=is_synced,
-                repos_with_diffs=sorted(state.get_diffs_by_repo()),
-            )
-
-        # Send webhook for the completed step
+        cls._record_triggered(organization, run_id, group)
         viewer_context = get_viewer_context()
         cls._send_step_webhook(
             organization,
@@ -293,12 +206,52 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             fallback_referrer=run_referrer,
             actor_user_id=viewer_context.user_id if viewer_context is not None else None,
         )
+        cls._maybe_continue_pipeline(
+            organization, run_id, state, group, fallback_referrer=run_referrer
+        )
 
-        cls._record_failed_tool_calls(organization, group, state)
+    @classmethod
+    def _complete_pr_iteration(
+        cls,
+        organization: Organization,
+        run_id: int,
+        state: SeerRunState,
+        group_id: int | None,
+        run_referrer: AutofixReferrer | None,
+    ) -> None:
+        if state.status == "error":
+            fail_pr_iteration(organization, run_id, state, group_id)
+            return
 
-        # Acknowledge the comment(s) that triggered a completed PR iteration; no
-        # outcomes means it was never an ack candidate, so there's nothing to log.
-        reaction_outcomes = cls._maybe_react_to_completed_iteration(organization, run_id, state)
+        group = cls._fetch_group(organization, run_id, group_id)
+        if group is None:
+            fail_pr_iteration_missing_group(organization, state, group_id)
+            return
+
+        if not cls._run_completed(organization, run_id, state):
+            return
+
+        cls._record_triggered(organization, run_id, group)
+        log_completion_received(organization, group, state)
+
+        iteration_fields = iteration_completed_webhook_fields(
+            organization, group, state, cls._format_code_changes_payload
+        )
+        if iteration_fields is not None:
+            viewer_context = get_viewer_context()
+            cls._send_step_webhook(
+                organization,
+                run_id,
+                state,
+                group,
+                fallback_referrer=run_referrer,
+                actor_user_id=viewer_context.user_id if viewer_context is not None else None,
+                iteration_fields=iteration_fields,
+            )
+
+        record_failed_tool_calls(organization, group, state)
+
+        reaction_outcomes = react_to_completed_iteration(organization, run_id, state)
         if reaction_outcomes:
             logger.info(
                 "autofix.on_completion_hook.completion_reaction.summary",
@@ -309,10 +262,43 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 },
             )
 
-        # Continue the automated pipeline if stopping_point hasn't been reached
-        cls._maybe_continue_pipeline(
-            organization, run_id, state, group, fallback_referrer=run_referrer
+        _, referrer = cls._get_current_step(state)
+        continue_pr_iteration(
+            organization,
+            group,
+            run_id,
+            state,
+            referrer or run_referrer or AutofixReferrer.ON_COMPLETION_HOOK,
         )
+
+    @classmethod
+    def _run_completed(cls, organization: Organization, run_id: int, state: SeerRunState) -> bool:
+        if state.status == "completed":
+            return True
+        logger.info(
+            "autofix.on_completion_hook.run_not_completed",
+            extra={
+                "run_id": run_id,
+                "organization_id": organization.id,
+                "status": state.status,
+                "failure_reason": state.failure_reason,
+            },
+        )
+        metrics.incr(
+            "autofix.on_completion_hook.run_not_completed",
+            tags={"status": state.status},
+        )
+        return False
+
+    @classmethod
+    def _record_triggered(cls, organization: Organization, run_id: int, group: Group) -> None:
+        now = timezone.now()
+        with transaction.atomic(using=router.db_for_write(Group)):
+            group.update(seer_explorer_autofix_last_triggered=now)
+            SeerRun.objects.filter(
+                organization_id=organization.id,
+                seer_run_state_id=run_id,
+            ).update(last_triggered_at=now)
 
     @classmethod
     def _resolve_group_id(
@@ -327,8 +313,16 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         return group_id, run_referrer
 
     @classmethod
-    def _fetch_group(cls, organization: Organization, run_id: int, group_id: int) -> Group | None:
+    def _fetch_group(
+        cls, organization: Organization, run_id: int, group_id: int | None
+    ) -> Group | None:
         """The run's group, scoped to the organization."""
+        if group_id is None:
+            logger.warning(
+                "autofix.on_completion_hook.missing_group_id",
+                extra={"run_id": run_id, "organization_id": organization.id},
+            )
+            return None
         group = Group.objects.filter(id=group_id, project__organization_id=organization.id).first()
         if group is None:
             logger.warning(
@@ -340,301 +334,6 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 },
             )
         return group
-
-    @classmethod
-    def _iteration_log_context(
-        cls,
-        organization: Organization,
-        group: Group,
-        state: SeerRunState,
-    ) -> PrIterationLogContext:
-        """The shared PR-iteration identity, from what the caller already holds."""
-        return PrIterationLogContext.for_run(
-            logger, state, organization.id, group.id, iteration=LogCtxIteration.TRIGGERED
-        )
-
-    @classmethod
-    def _fail_pr_iteration(
-        cls,
-        organization: Organization,
-        run_id: int,
-        state: SeerRunState,
-        group_id: int | None,
-    ) -> None:
-        """Pause the failed run. Then record the batch that the run stopped."""
-        log_ctx = PrIterationLogContext.for_run(
-            logger, state, organization.id, group_id, iteration=LogCtxIteration.TRIGGERED
-        )
-        set_pr_iteration_attributes(group_id=group_id, iteration_id=log_ctx.iteration_id)
-
-        paused = pause_pr_iteration(
-            run_id=run_id,
-            organization_id=organization.id,
-            reason=PauseReason.RUN_ERRORED,
-        )
-        log_ctx.info(
-            "autofix.pr_iteration.paused_on_error",
-            run_status=state.status,
-            paused=paused,
-            failure_reason=state.failure_reason,
-        )
-        complete_pr_iteration_details(
-            log_ctx=log_ctx,
-            run_state=state,
-            organization_id=organization.id,
-            outcome=outcome_for_failed_run(state),
-        )
-
-    @classmethod
-    def _record_failed_tool_calls(
-        cls,
-        organization: Organization,
-        group: Group,
-        state: SeerRunState,
-    ) -> None:
-        """Log and count PR-iteration tool calls Seer marked ``is_error``."""
-        current_step, _ = cls._get_current_step(state)
-        if current_step != AutofixStep.PR_ITERATION:
-            return
-
-        # The hook re-fires after a successful push. Count only on the
-        # agent-completion pass (or a no-diff pass), not the post-push one.
-        has_changes, is_synced = state.has_code_changes()
-        if has_changes and is_synced:
-            return
-
-        iterations = get_iterations(state)
-        if not iterations:
-            return
-
-        failed = failed_tool_calls(iterations[-1].blocks)
-        if not failed:
-            return
-
-        counts = Counter(call.function for call in failed)
-        for function, amount in counts.items():
-            metrics.incr(
-                "autofix.pr_iteration.failed_tool_call",
-                amount=amount,
-                tags={"tool": function},
-                sample_rate=1.0,
-            )
-
-        cls._iteration_log_context(organization, group, state).info(
-            "autofix.pr_iteration.failed_tool_calls",
-            failed_tool_counts=dict(counts),
-        )
-
-    @classmethod
-    def _repo_name_for_feedback(
-        cls,
-        state: SeerRunState,
-        source: GithubPrCommentFeedbackSource | GithubPrReviewCommentFeedbackSource,
-        run_id: int,
-        organization_id: int,
-    ) -> str | None:
-        # Only top-level PR comments capture ``repo_name`` at trigger time; review
-        # comments fall back to the sole repo when the run touches exactly one.
-        repo_name = getattr(source, "repo_name", None)
-        if repo_name is not None:
-            return repo_name
-        if len(state.repo_pr_states) == 1:
-            # Backward-compat path for feedback serialized before repo_name was
-            # captured at trigger time; unambiguous only with a single repo.
-            logger.info(
-                "autofix.on_completion_hook.completion_reaction.legacy_repo_inference",
-                extra={"run_id": run_id, "organization_id": organization_id},
-            )
-            return next(iter(state.repo_pr_states))
-        logger.warning(
-            "autofix.on_completion_hook.completion_reaction.repo_unresolved",
-            extra={"run_id": run_id, "organization_id": organization_id},
-        )
-        return None
-
-    @classmethod
-    @trace
-    def _maybe_react_to_completed_iteration(
-        cls,
-        organization: Organization,
-        run_id: int,
-        state: SeerRunState,
-    ) -> Counter[str]:
-        """Acknowledge the comment(s) that triggered a completed iteration.
-
-        Returns every recorded outcome so the caller can log what this attempt did;
-        empty means the run wasn't an ack candidate at all.
-        """
-        # Mirrors what's recorded to the outcome metric, so a single run's story is
-        # readable in logs and not only in aggregate.
-        outcomes: Counter[str] = Counter()
-
-        def record(outcome: str, amount: int = 1) -> None:
-            outcomes[outcome] += amount
-            _record_completion_reaction(outcome, amount)
-
-        if not features.has("organizations:autofix-pr-iteration-manual", organization=organization):
-            return outcomes
-
-        current_step, _ = cls._get_current_step(state)
-        if current_step != AutofixStep.PR_ITERATION or state.status != "completed":
-            return outcomes
-
-        # Don't react before the commit lands.
-        _, is_synced = state.has_code_changes()
-        if not is_synced:
-            record("not_synced")
-            return outcomes
-
-        # The consumed feedback is serialized onto the latest iteration's
-        # opening PR_ITERATION block.
-        iterations = get_iterations(state)
-        raw = (
-            (iterations[-1].blocks[0].message.metadata or {}).get("feedback")
-            if iterations
-            else None
-        )
-        if not raw:
-            record("no_feedback")
-            return outcomes
-
-        sources: list[GithubPrCommentFeedbackSource | GithubPrReviewCommentFeedbackSource] = []
-        for feedback in parse_feedback(raw):
-            if isinstance(
-                feedback.source,
-                (GithubPrCommentFeedbackSource, GithubPrReviewCommentFeedbackSource),
-            ):
-                sources.append(feedback.source)
-        if not sources:
-            record("no_pr_comment_sources")
-            return outcomes
-
-        # Rate-limit-sensitive orgs skip the extra reaction-delete / resolve API calls.
-        rate_limit_sensitive = is_github_rate_limit_sensitive(organization.slug)
-        delete_eyes = not rate_limit_sensitive
-
-        scm_by_repo: dict[str, SourceCodeManager] = {}
-        # Inline review-comment node ids to resolve, grouped by (repo, PR).
-        resolve_by_repo_pr: dict[tuple[str, int], list[str]] = {}
-        for source in sources:
-            comment_id = source.comment.id
-            if comment_id is None:
-                record("no_comment_id")
-                continue
-
-            repo_name = cls._repo_name_for_feedback(state, source, run_id, organization.id)
-            if repo_name is None:
-                record("no_repo_name")
-                continue
-
-            scm = scm_by_repo.get(repo_name)
-            if scm is None:
-                # Refuse to guess when the same name spans providers; None on both
-                # "not found" and "ambiguous".
-                repo, resolution = Repository.objects.resolve_active(
-                    organization_id=organization.id,
-                    name=repo_name,
-                    normalized_provider=None,
-                )
-                if repo is None:
-                    logger.warning(
-                        "autofix.on_completion_hook.completion_reaction.repo_not_found",
-                        extra={
-                            "run_id": run_id,
-                            "organization_id": organization.id,
-                            "resolution": resolution,
-                        },
-                    )
-                    record("repo_not_found")
-                    continue
-                try:
-                    scm = make_scm(organization.id, repo.id, referrer="seer")
-                except Exception:
-                    logger.warning(
-                        "autofix.on_completion_hook.completion_reaction.scm_init_failed",
-                        extra={"run_id": run_id, "organization_id": organization.id},
-                        exc_info=True,
-                    )
-                    record("scm_init_failed")
-                    continue
-                scm_by_repo[repo_name] = scm
-
-            pr_state = state.repo_pr_states.get(repo_name)
-            if not pr_state or not pr_state.pr_number:
-                record("no_pr_number")
-                continue
-            pr_number = pr_state.pr_number
-
-            source_type = source.type
-            # Only top-level PR comments get the :tada:; inline comments resolve below (CW-1688).
-            if source_type == "github-pr-comment":
-                _add_comment_reaction(
-                    scm,
-                    source_type=source_type,
-                    pr_number=pr_number,
-                    comment_id=comment_id,
-                    reaction="hooray",
-                )
-                record("reacted")
-            elif source_type == "github-pr-review-comment" and not rate_limit_sensitive:
-                unique_id = getattr(source.comment, "unique_id", None)
-                if unique_id is None:
-                    record("resolve_no_unique_id")
-                else:
-                    resolve_by_repo_pr.setdefault((repo_name, pr_number), []).append(unique_id)
-            if delete_eyes:
-                _delete_own_comment_eyes_reaction(
-                    scm,
-                    source_type=source_type,
-                    pr_number=pr_number,
-                    comment_id=comment_id,
-                )
-
-        if rate_limit_sensitive and any(
-            source.type == "github-pr-review-comment" for source in sources
-        ):
-            record("resolve_rate_limited")
-
-        for (repo_name, pr_number), unique_ids in resolve_by_repo_pr.items():
-            log_extra = {
-                "run_id": run_id,
-                "organization_id": organization.id,
-                "repo_name": repo_name,
-                "pr_number": pr_number,
-                "comment_count": len(unique_ids),
-            }
-            try:
-                result = _resolve_review_comment_threads(
-                    scm_by_repo[repo_name],
-                    pr_number=pr_number,
-                    comment_unique_ids=unique_ids,
-                )
-            except UnsupportedProviderError:
-                logger.warning(
-                    "autofix.on_completion_hook.completion_reaction.resolve_unsupported_provider",
-                    extra=log_extra,
-                    exc_info=True,
-                )
-                record("resolve_unsupported_provider")
-                continue
-            except Exception:
-                logger.exception(
-                    "autofix.on_completion_hook.completion_reaction.resolve_failed",
-                    extra=log_extra,
-                )
-                record("resolve_failed")
-                continue
-
-            resolve_outcomes = {
-                "resolved": result.resolved,
-                "resolve_skipped_already_resolved": result.already_resolved,
-                "resolve_thread_not_found": result.not_found,
-            }
-            for outcome, amount in resolve_outcomes.items():
-                if amount:
-                    record(outcome, amount)
-
-        return outcomes
 
     @classmethod
     def find_latest_artifact_for_step(cls, state: SeerRunState, key: str) -> Artifact | None:
@@ -655,6 +354,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         group: Group,
         fallback_referrer: AutofixReferrer | None = None,
         actor_user_id: int | None = None,
+        iteration_fields: dict[str, Any] | None = None,
     ) -> None:
         """
         Send webhook for the completed step.
@@ -713,51 +413,9 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             else:
                 webhook_action_type = SeerActionType.CODING_COMPLETED
                 webhook_payload["code_changes"] = cls._format_code_changes_payload(state)
-        elif current_step == AutofixStep.PR_ITERATION:
-            log_ctx = cls._iteration_log_context(organization, group, state)
-            iteration_index = get_latest_iteration_index(state)
-
-            if not state.repo_pr_states:
-                log_ctx.error(
-                    "autofix.pr_iteration.iteration_outcome",
-                    outcome="push_failed",
-                    reason="no_pull_requests",
-                    webhook_emitted=False,
-                    iteration_index=iteration_index,
-                    exc_info=False,
-                )
-                return
-
-            # we only want to emit this webhook after the iteration changes are pushed
-            _, is_synced = state.has_code_changes()
-            errored_repos = [] if is_synced else cls._iteration_terminal_errored_repos(state)
-            if not is_synced and not errored_repos:
-                # Haven't _pushed_ changes yet
-                log_ctx.info(
-                    "autofix.pr_iteration.iteration_outcome",
-                    outcome="awaiting_push",
-                    reason="repos_not_synced",
-                    webhook_emitted=False,
-                    iteration_index=iteration_index,
-                    repo_states=_iteration_repo_states(state),
-                )
-                return
-
-            # We tried pushing since `is_synced` or `errored_repos` are true
-            log_ctx.info(
-                "autofix.pr_iteration.iteration_outcome",
-                outcome="changes_pushed" if is_synced else "push_failed",
-                reason="all_repos_synced" if is_synced else "pr_creation_errored",
-                webhook_emitted=True,
-                iteration_index=iteration_index,
-                errored_repos=errored_repos,
-                repo_states=_iteration_repo_states(state),
-            )
-
+        elif iteration_fields is not None:
             webhook_action_type = SeerActionType.ITERATION_COMPLETED
-            webhook_payload["pull_requests"] = format_pull_requests_payload(state)
-            webhook_payload["code_changes"] = cls._format_code_changes_payload(state)
-            webhook_payload["iteration_index"] = iteration_index
+            webhook_payload.update(iteration_fields)
 
         if not webhook_action_type:
             return
@@ -960,60 +618,6 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             reached_stopping_point=reached_stopping_point,
         )
 
-        # PR iteration runs against an existing PR rather than the automated
-        # pipeline. Once the agent finishes iterating, push the new changes to
-        # update that PR. _push_changes is a no-op once the repos are synced, so
-        # the hook re-fire after the push doesn't loop.
-        if current_step == AutofixStep.PR_ITERATION:
-            log_ctx = cls._iteration_log_context(organization, group, state)
-
-            outcome = cls._pr_iteration_push_outcome(log_ctx, group, run_id, state, referrer)
-
-            if outcome is None:
-                metrics.incr(
-                    "autofix.pr_iteration.step",
-                    tags={
-                        "checkpoint": "code_change_completed",
-                        "referrer": referrer.value,
-                        "feedback_kind": latest_iteration_feedback_kind(state),
-                    },
-                    sample_rate=1.0,
-                )
-                # A push was attempted and succeeded. Not terminal yet -- we wait
-                # for the next completion hook, where the repos show as synced,
-                # to consume queued feedback and complete the iteration details.
-                return
-
-            # Only consume queued feedback once we know the PR reflects the
-            # agent's work: either this is the hand-back pass seeing a prior
-            # push's changes as synced, or there was never anything to push.
-            # A push that failed leaves the feedback queued rather than risk
-            # consuming it as if changes had landed.
-            if outcome == PrIterationOutcome.ALREADY_PUSHED:
-                metrics.incr(
-                    "autofix.pr_iteration.step",
-                    tags={
-                        "checkpoint": "iteration_completed",
-                        "referrer": referrer.value,
-                        "feedback_kind": latest_iteration_feedback_kind(state),
-                    },
-                    sample_rate=1.0,
-                )
-
-            if outcome in (
-                PrIterationOutcome.ALREADY_PUSHED,
-                PrIterationOutcome.NO_CODE_CHANGES,
-            ):
-                cls._consume_queued_feedback(log_ctx, organization, run_id)
-
-            complete_pr_iteration_details(
-                log_ctx=log_ctx,
-                run_state=state,
-                organization_id=organization.id,
-                outcome=outcome.value,
-            )
-            return
-
         if stopping_point is None or reached_stopping_point:
             # We've reached the stopping point
             return
@@ -1077,43 +681,6 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         )
 
     @classmethod
-    @trace
-    def _consume_queued_feedback(
-        cls,
-        log_ctx: PrIterationLogContext,
-        organization: Organization,
-        run_id: int,
-    ) -> None:
-        """Drain any feedback enqueued while the iteration was running.
-
-        No GitHub App permission check here, deliberately. We only reach this
-        from a finished PR_ITERATION step, and an iteration can only have been
-        started by ``trigger_consume_pr_iteration_feedback``, which refuses to
-        schedule one while a permission is missing. So reaching this point is
-        itself evidence the permissions were there — re-checking would only
-        catch a lapse mid-iteration, which the next queue-time gate handles.
-        """
-        # Minted here because `apply_async` returns `None`, so passing our own id
-        # down is the only direction the link travels.
-        trigger_id = uuid4().hex
-        consume_queued_autofix_feedback.apply_async(
-            kwargs={
-                "run_id": run_id,
-                "organization_id": organization.id,
-                "trigger_id": trigger_id,
-                "trigger_source": ConsumeTriggerSource.COMPLETION,
-            }
-        )
-        log_ctx.info(
-            "autofix.pr_iteration.feedback.trigger",
-            outcome="triggered",
-            reason="iteration_finished",
-            countdown=None,
-            trigger_id=trigger_id,
-            trigger_source=ConsumeTriggerSource.COMPLETION,
-        )
-
-    @classmethod
     def determine_fixability(
         cls,
         *,
@@ -1168,202 +735,13 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         return fixability
 
     @classmethod
-    def _iteration_terminal_errored_repos(cls, state: SeerRunState) -> list[str]:
-        """
-        Return the errored repos when unsynced repos have terminal push failures.
-
-        Returns an empty list when there are no errored repos, or when some
-        non-errored repo is still unsynced (i.e. a push can still make progress).
-        Used to stop waiting for a synced PR after push errors without retrying.
-        """
-        diffs_by_repo = state.get_diffs_by_repo()
-        errored_repos = [
-            repo
-            for repo in diffs_by_repo
-            if (pr_state := state.repo_pr_states.get(repo)) is not None
-            and pr_state.pr_creation_status == "error"
-        ]
-        if not errored_repos:
-            return []
-
-        if all(state._is_repo_synced(repo) or repo in errored_repos for repo in diffs_by_repo):
-            return errored_repos
-
-        return []
-
-    @classmethod
-    def _iteration_commit_author(cls, state: SeerRunState) -> SeerCommitAuthor | None:
-        """The author stored on the latest iteration's opening PR_ITERATION block."""
-        try:
-            iterations = get_iterations(state)
-        except Exception:
-            logger.exception("autofix.on_completion_hook.iteration_commit_author_failed")
-            return None
-        if not iterations:
-            return None
-        metadata = iterations[-1].blocks[0].message.metadata or {}
-        return parse_commit_author(metadata.get("commit_author"))
-
-    @classmethod
-    def _latest_iteration_touched_files(
-        cls, log_ctx: PrIterationLogContext, state: SeerRunState
-    ) -> bool:
-        """Whether the iteration that just finished produced any file patches.
-
-        ``state.has_code_changes()`` looks at the diff merged across the whole
-        run, which in PR iteration is almost never empty once the PR exists --
-        it would report changes even when this particular batch touched
-        nothing. This checks only the blocks the latest PR_ITERATION opened.
-        Fails open (assumes changes) so a lookup failure falls back to the
-        normal push path instead of silently skipping it.
-        """
-        try:
-            iterations = get_iterations(state)
-        except Exception:
-            log_ctx.error("autofix.pr_iteration.get_iterations_failed")
-            return True
-
-        if not iterations:
-            return True
-
-        return bool(iteration_repos(iterations[-1]))
-
-    @classmethod
-    @trace
-    def _pr_iteration_push_outcome(
-        cls,
-        log_ctx: PrIterationLogContext,
-        group: Group,
-        run_id: int,
-        state: SeerRunState,
-        referrer: AutofixReferrer,
-    ) -> PrIterationOutcome | None:
-        """Decide whether this pass needs to push, and how it ended.
-
-        ``None`` means a push was attempted and succeeded -- the iteration
-        isn't finished, we're waiting for the next completion hook to see the
-        repos as synced. Every other return is terminal: either there was
-        nothing to push (no PRs, no changes, already synced) or a push was
-        attempted (this pass or a prior one) and failed.
-        """
-        if not state.repo_pr_states:
-            log_ctx.error(
-                "autofix.pr_iteration.push",
-                outcome="not_pushed",
-                reason="no_pull_requests",
-                exc_info=False,
-            )
-            return PrIterationOutcome.NO_PULL_REQUEST
-
-        if not cls._latest_iteration_touched_files(log_ctx, state):
-            log_ctx.info("autofix.pr_iteration.push", outcome="not_pushed", reason="no_changes")
-            metrics.incr(
-                "autofix.pr_iteration.step",
-                tags={
-                    "checkpoint": "no_code_change",
-                    "referrer": referrer.value,
-                    "feedback_kind": latest_iteration_feedback_kind(state),
-                },
-                sample_rate=1.0,
-            )
-            return PrIterationOutcome.NO_CODE_CHANGES
-
-        _, is_synced = state.has_code_changes()
-
-        if is_synced:
-            log_ctx.info("autofix.pr_iteration.push", outcome="not_pushed", reason="already_synced")
-            return PrIterationOutcome.ALREADY_PUSHED
-
-        errored_repos = cls._iteration_terminal_errored_repos(state)
-        if errored_repos:
-            log_ctx.info(
-                "autofix.pr_iteration.push",
-                outcome="not_pushed",
-                reason="terminal_push_errors",
-                errored_repos=errored_repos,
-            )
-            return PrIterationOutcome.PR_CREATION_ERRORED
-
-        if iteration_prs_any_closed(group.organization, state):
-            record_pr_closed("push")
-            pause_pr_iteration(
-                run_id=run_id,
-                organization_id=group.organization.id,
-                reason=PauseReason.PR_CLOSED,
-            )
-            log_ctx.info("autofix.pr_iteration.push", outcome="not_pushed", reason="pr_closed")
-            return PrIterationOutcome.PR_CLOSED
-
-        metrics.incr(
-            "autofix.pr_iteration.step",
-            tags={
-                "checkpoint": "code_change_started",
-                "referrer": referrer.value,
-                "feedback_kind": latest_iteration_feedback_kind(state),
-            },
-            sample_rate=1.0,
-        )
-
-        pushed = cls._push_iteration_changes(
-            log_ctx,
-            group,
-            run_id,
-            state,
-            author=cls._iteration_commit_author(state),
-        )
-        return None if pushed else PrIterationOutcome.PUSH_FAILED
-
-    @classmethod
-    @trace
-    def _push_iteration_changes(
-        cls,
-        log_ctx: PrIterationLogContext,
-        group: Group,
-        run_id: int,
-        state: SeerRunState,
-        author: SeerCommitAuthor | None = None,
-    ) -> bool:
-        """Push an iteration's changes to the PRs it already has. True if it pushed.
-
-        Branched off :meth:`_push_changes`. Callers are expected to have
-        already checked that there's something to push -- this only attempts
-        the push and reports whether it worked.
-        """
-        try:
-            trigger_push_changes(
-                group,
-                run_id,
-                referrer=AutofixReferrer.ON_COMPLETION_HOOK,
-                state=state,
-                verify_content=features.has(
-                    "organizations:autofix-verify-pr-content", organization=group.organization
-                ),
-                author=author,
-            )
-        except Exception as e:
-            log_ctx.error(
-                "autofix.pr_iteration.push",
-                outcome="failed",
-                reason="exception",
-                error_type=type(e).__name__,
-            )
-            return False
-
-        log_ctx.info("autofix.pr_iteration.push", outcome="pushed", reason="ok")
-        return True
-
-    @classmethod
     def _push_changes(
         cls,
         group: Group,
         run_id: int,
         state: SeerRunState,
     ) -> bool:
-        """Push code changes to create PRs. Returns True if changes were pushed.
-
-        The automated pipeline's open-PR step; PR iteration branched off into
-        :meth:`_push_iteration_changes` and took the ``author`` with it.
-        """
+        """Push code changes to create PRs. Returns True if changes were pushed."""
         # Check if there are code changes to push
         has_changes, is_synced = state.has_code_changes()
         if not has_changes or is_synced:
@@ -1379,7 +757,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             return False
 
         # Errored repos are terminal — re-pushing would re-fire this hook in a loop.
-        errored_repos = cls._iteration_terminal_errored_repos(state)
+        errored_repos = iteration_terminal_errored_repos(state)
         if errored_repos:
             logger.info(
                 "autofix.on_completion_hook.skip_no_pushable_repos",
