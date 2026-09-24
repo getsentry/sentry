@@ -29,10 +29,10 @@ describe('IntegrationDetailedView', () => {
   const missingFeatures = [
     {key: 'seer_mentions', description: 'Server-provided Seer mentions feature.'},
   ];
-  const slackIntegration = OrganizationIntegrationsFixture({
-    outOfDate: true,
+  const slackIntegration = {
+    ...OrganizationIntegrationsFixture({outOfDate: true}),
     missingFeatures,
-  });
+  };
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -530,8 +530,8 @@ describe('IntegrationDetailedView', () => {
       {body: [OrganizationIntegrationsFixture({outOfDate: false, missingFeatures: []})]},
       {
         body: [
-          OrganizationIntegrationsFixture({id: '1', outOfDate: true, missingFeatures}),
-          OrganizationIntegrationsFixture({id: '2', outOfDate: true, missingFeatures}),
+          {...slackIntegration, id: '1'},
+          {...slackIntegration, id: '2'},
         ],
       },
     ])(

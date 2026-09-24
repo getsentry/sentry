@@ -12,6 +12,7 @@ import {t, tct} from 'sentry/locale';
 interface MissingFeature {
   description: string;
   key: string;
+  name: string;
 }
 
 const DEFAULT_INSTALLATIONS_URL = 'https://github.com/settings/installations/';

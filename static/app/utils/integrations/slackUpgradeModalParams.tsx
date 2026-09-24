@@ -1,8 +1,7 @@
 import {t} from 'sentry/locale';
-import type {OrganizationIntegration} from 'sentry/types/integrations';
 
 export function getSlackUpgradeModalParams(
-  missingFeatures: OrganizationIntegration['missingFeatures']
+  missingFeatures: Array<{description: string; key: string}> | null | undefined
 ) {
   const instructions = t(
     'Reauthorize the Sentry app in your Slack workspace and accept the updated permissions to continue.'
