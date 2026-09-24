@@ -102,7 +102,7 @@ def load_json_schema() -> dict[str, Any]:
     return data
 
 
-FEATURE_BUCKETING_EPOCH = datetime(2026, 10, 15, tzinfo=UTC)
+FEATURE_BUCKETING_EPOCH = datetime(2026, 10, 5, tzinfo=UTC)
 """
 Features created after this instant bucket their percentage rollouts by feature
 name as well as by context identity, so two features at the same rollout reach
