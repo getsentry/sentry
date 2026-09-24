@@ -135,6 +135,9 @@ class TestBuildShimEventData:
                 # These end up in `event["contexts"]`
                 "sentry.profile_id": {"value": "11211231415908", "type": "string"},
                 "browser.name": {"value": "chrome", "type": "string"},
+                # These in up in `event["user"]`
+                "user.id": {"value": "1231908", "type": "string"},
+                "user.geo.city": {"value": "Boston", "type": "string"},
             }
         )
 
@@ -155,6 +158,46 @@ class TestBuildShimEventData:
         event = build_shim_event_data(segment_span, [segment_span])
 
         assert event["tags"] == [["dog.name", "charlie"]]
+
+    def test_reconstructs_user(self) -> None:
+        segment_span = build_segment_span(
+            attributes={
+                "user.id": {"value": "1231908", "type": "string"},
+                "user.email": {"value": "maisey@dogpark.com", "type": "string"},
+                "user.name": {"value": "maiseythedog", "type": "string"},
+                "user.ip_address": {"value": "192.168.0.1", "type": "string"},
+                "user.geo.country_code": {"value": "US", "type": "string"},
+                "user.geo.region": {"value": "United States", "type": "string"},
+                "user.geo.subdivision": {"value": "Massachusetts", "type": "string"},
+                "user.geo.city": {"value": "Boston", "type": "string"},
+            }
+        )
+
+        event = build_shim_event_data(segment_span, [segment_span])
+
+        assert event["user"] == {
+            "id": "1231908",
+            "email": "maisey@dogpark.com",
+            "username": "maiseythedog",  # Not `user.name` - `event["user"]["username"]` is correct
+            "ip_address": "192.168.0.1",
+            "geo": {
+                "country_code": "US",
+                "region": "United States",
+                "subdivision": "Massachusetts",
+                "city": "Boston",
+            },
+        }
+
+    def test_reconstructs_user_with_only_geo(self) -> None:
+        # Relay derives `user.geo.*` from the client IP on both paths, but only ever gets identity
+        # from the SDK, so geo-only is the normal shape for a segment from the span buffer.
+        segment_span = build_segment_span(
+            attributes={"user.geo.city": {"value": "Boston", "type": "string"}}
+        )
+
+        event = build_shim_event_data(segment_span, [segment_span])
+
+        assert event["user"] == {"geo": {"city": "Boston"}}
 
     def test_lifts_span_description_to_the_top_level(self) -> None:
         segment_span = build_segment_span(description="SELECT * FROM dogs")
