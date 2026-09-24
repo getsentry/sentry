@@ -359,9 +359,10 @@ class Pipeline[M: Model, S: PipelineSessionStore](abc.ABC):
         result = api_step.handle_post(validated_data, self, request)
 
         if result.action == PipelineStepAction.ADVANCE:
-            self.state.step_index = step_index + 1
-            if self.step_index >= len(api_steps):
+            next_step_index = step_index + 1
+            if next_step_index >= len(api_steps):
                 return self.api_finish_pipeline()
+            self.state.step_index = next_step_index
 
         return result
 
