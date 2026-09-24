@@ -5,6 +5,7 @@ from rest_framework.serializers import ValidationError
 
 from sentry.auth.access import Access, NoAccess, SystemAccess, from_user
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.workflow_engine.defaults.detectors import ensure_default_all_projects_detector
 from sentry.workflow_engine.endpoints.validators.utils import (
     connect_detectors_to_workflows,
