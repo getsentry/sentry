@@ -16,20 +16,12 @@ import {getFormattedDate, getTimeFormat} from 'sentry/utils/dates';
 
 export const CHART_TOOLTIP_VIEWPORT_OFFSET = 20;
 
-// ECharts assigns a string tooltip straight to `el.innerHTML`
-// (TooltipHTMLContent.setContent), which Trusted Types blocks. Its formatter
-// callback also accepts DOM, and setContent appends nodes instead of writing
-// innerHTML, so returning nodes removes the sink. Sanitizing on the way out
-// also closes the unescaped series-name / sub-label interpolations built below.
-const TOOLTIP_ALLOWED_TAGS = ['div', 'span', 'strong', 'br', 'p'];
-const TOOLTIP_ALLOWED_ATTR = ['class', 'style'];
-
-function toTooltipNodes(html: string): HTMLElement[] {
-  const fragment = dompurify.sanitize(html, {
-    RETURN_DOM_FRAGMENT: true,
-    ALLOWED_TAGS: TOOLTIP_ALLOWED_TAGS,
-    ALLOWED_ATTR: TOOLTIP_ALLOWED_ATTR,
-  });
+// Return tooltip content as DOM nodes rather than a string: ECharts assigns a
+// string tooltip to innerHTML, which Trusted Types blocks, but appends nodes.
+// DOMPurify's default profile strips script/iframe/event handlers while keeping
+// the tables and styled markers tooltips legitimately render.
+function toTooltipNodes(parts: string[]): HTMLElement[] {
+  const fragment = dompurify.sanitize(parts.join(''), {RETURN_DOM_FRAGMENT: true});
   return Array.from(fragment.children) as HTMLElement[];
 }
 
@@ -217,18 +209,16 @@ export function getFormatter({
         seriesParamsOrParam.name
       );
 
-      return toTooltipNodes(
-        [
-          '<div class="tooltip-series">',
-          `<div>
+      return toTooltipNodes([
+        '<div class="tooltip-series">',
+        `<div>
           <span class="tooltip-label"><strong>${seriesParamsOrParam.name}</strong></span>
           ${truncatedName}: ${formattedValue}
         </div>`,
-          '</div>',
-          `<div class="tooltip-footer">${label}</div>`,
-          '</div>',
-        ].join('')
-      );
+        '</div>',
+        `<div class="tooltip-footer">${label}</div>`,
+        '</div>',
+      ]);
     }
 
     let seriesParams: CallbackDataParams[] = toArray(seriesParamsOrParam);
@@ -338,27 +328,23 @@ export function getFormatter({
       ) ?? '';
 
     if (subLabels.length > 0) {
-      return toTooltipNodes(
-        [
-          `<div class="tooltip-series">${series.join('')}${seriesDetails}</div>`,
-          '<div class="tooltip-footer">',
-          `<div><strong>${t('Date')}:</strong> ${date}</div>`,
-          `<div><strong>${t('Total')}:</strong> ${valueFormatter(total)}</div>`,
-          '</div>',
-          '<div class="tooltip-arrow"></div>',
-        ].join('')
-      );
-    }
-
-    return toTooltipNodes(
-      [
+      return toTooltipNodes([
         `<div class="tooltip-series">${series.join('')}${seriesDetails}</div>`,
-        '<div class="tooltip-footer tooltip-footer-centered">',
-        date,
+        '<div class="tooltip-footer">',
+        `<div><strong>${t('Date')}:</strong> ${date}</div>`,
+        `<div><strong>${t('Total')}:</strong> ${valueFormatter(total)}</div>`,
         '</div>',
         '<div class="tooltip-arrow"></div>',
-      ].join('')
-    );
+      ]);
+    }
+
+    return toTooltipNodes([
+      `<div class="tooltip-series">${series.join('')}${seriesDetails}</div>`,
+      '<div class="tooltip-footer tooltip-footer-centered">',
+      `${date}`,
+      '</div>',
+      '<div class="tooltip-arrow"></div>',
+    ]);
   };
 }
 
