@@ -299,14 +299,29 @@ function formValuesToConditions(
   }));
 }
 
-function getErrorDetail(error: unknown, fallback: string): string {
-  if (error instanceof RequestError) {
-    const detail = error.responseJSON?.detail;
-    if (typeof detail === 'string') {
-      return detail;
-    }
+// The API answers with either `{detail: string}` or a DRF validation error, which
+// nests messages under field names and list indexes, e.g.
+// `{conditions: [{}, {value: ['... is not an IP address or CIDR range.']}]}`. Both
+// shapes have their messages as string leaves.
+function collectErrorMessages(value: unknown): string[] {
+  if (typeof value === 'string') {
+    return [value];
   }
-  return fallback;
+  if (Array.isArray(value)) {
+    return value.flatMap(collectErrorMessages);
+  }
+  if (value && typeof value === 'object') {
+    return Object.values(value).flatMap(collectErrorMessages);
+  }
+  return [];
+}
+
+function getErrorDetail(error: unknown, fallback: string): string {
+  if (!(error instanceof RequestError)) {
+    return fallback;
+  }
+  const messages = [...new Set(collectErrorMessages(error.responseJSON))];
+  return messages.length > 0 ? messages.join(' ') : fallback;
 }
 
 function getMatchDescription(property: string, dataType: FilterDataType): string {
