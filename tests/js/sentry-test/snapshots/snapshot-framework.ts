@@ -129,7 +129,7 @@ function snapshotTest(
       const fileSlug = viewportSuffix
         ? details.fileSlug.replace(new RegExp(`${viewportSuffix}$`, 'i'), '')
         : details.fileSlug;
-      const containerTestSuffix = `@container-${scenario.container}`;
+      const containerTestSuffix = `@${scenario.container}`;
       const baseFileSlug =
         containers.length > 1
           ? fileSlug.replace(new RegExp(`${containerTestSuffix}$`, 'i'), '')

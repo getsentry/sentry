@@ -34,7 +34,6 @@ import {
 // ToolbarContainer, mirroring how SnapshotMainContent composes the real toolbar
 // from the same presentational components in production.
 function SnapshotsToolbarWithControls({
-  containerWidth,
   viewMode,
   onViewModeChange,
   progress,
@@ -42,7 +41,6 @@ function SnapshotsToolbarWithControls({
   diff,
   solo,
 }: {
-  containerWidth: number;
   onViewModeChange: (mode: ViewMode) => void;
   viewMode: ViewMode;
   diff?: {
@@ -81,7 +79,7 @@ function SnapshotsToolbarWithControls({
 
   return (
     <OrganizationContext value={organization}>
-      <Container containerType="inline-size" style={{width: containerWidth}}>
+      <Container containerType="inline-size" width="100cqw">
         <ToolbarContainer
           toggle={
             <ViewModeToggle viewMode={viewMode} onViewModeChange={onViewModeChange} />
@@ -132,11 +130,10 @@ const noop = () => {};
 describe('SnapshotsToolbar', () => {
   it.snapshot(
     'all controls',
-    ({container, containerWidth}) => {
-      const isCompact = container === 'xs';
+    ({container}) => {
+      const isCompact = container === 'xl';
       return (
         <SnapshotsToolbarWithControls
-          containerWidth={containerWidth}
           viewMode="list"
           onViewModeChange={noop}
           progress={{current: 3, total: 12, percent: 25}}
@@ -154,14 +151,13 @@ describe('SnapshotsToolbar', () => {
         />
       );
     },
-    {containers: ['xs', '2xl', '3xl'], tags: {area: 'snapshots'}}
+    {tags: {area: 'snapshots'}}
   );
 
   it.snapshot(
     'no diff controls',
-    ({containerWidth}) => (
+    () => (
       <SnapshotsToolbarWithControls
-        containerWidth={containerWidth}
         viewMode="single"
         onViewModeChange={noop}
         progress={{current: 1, total: 5, percent: 0}}
@@ -174,9 +170,8 @@ describe('SnapshotsToolbar', () => {
 
   it.snapshot(
     'solo base tag',
-    ({containerWidth}) => (
+    () => (
       <SnapshotsToolbarWithControls
-        containerWidth={containerWidth}
         viewMode="list"
         onViewModeChange={noop}
         progress={{current: 1, total: 3, percent: 0}}
@@ -188,21 +183,14 @@ describe('SnapshotsToolbar', () => {
 
   it.snapshot(
     'minimal',
-    ({containerWidth}) => (
-      <SnapshotsToolbarWithControls
-        containerWidth={containerWidth}
-        viewMode="list"
-        onViewModeChange={noop}
-      />
-    ),
+    () => <SnapshotsToolbarWithControls viewMode="list" onViewModeChange={noop} />,
     {tags: {area: 'snapshots'}}
   );
 
   it.snapshot.each<DiffMode>(['split', 'wipe', 'onion'])(
     '%s',
-    (diffMode, {containerWidth}) => (
+    diffMode => (
       <SnapshotsToolbarWithControls
-        containerWidth={containerWidth}
         viewMode="single"
         onViewModeChange={noop}
         progress={{current: 1, total: 5, percent: 20}}
