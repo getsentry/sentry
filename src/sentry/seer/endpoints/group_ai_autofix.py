@@ -594,7 +594,12 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                         user_context=user_context,
                         insert_index=data.get("insert_index"),
                         user=request.user,
-                        enable_bash_mode=data.get("enable_bash_mode", False),
+                        enable_bash_mode=data.get("enable_bash_mode", False)
+                        and features.has(
+                            "organizations:seer-explorer-allow-bash-mode",
+                            group.organization,
+                            actor=request.user,
+                        ),
                         actor_user_id=(
                             request.user.id if step == AutofixStep.CODE_CHANGES.value else None
                         ),

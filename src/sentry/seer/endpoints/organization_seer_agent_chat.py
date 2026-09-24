@@ -329,7 +329,12 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
                 organization,
                 request.user,
                 is_interactive=True,
-                enable_bash_mode=override_bash_mode_enabled,
+                enable_bash_mode=override_bash_mode_enabled
+                and features.has(
+                    "organizations:seer-explorer-allow-bash-mode",
+                    organization,
+                    actor=request.user,
+                ),
                 enable_coding=enable_coding,
                 enable_code_mode_tools=enable_code_mode_tools,
                 reasoning_effort="medium",
