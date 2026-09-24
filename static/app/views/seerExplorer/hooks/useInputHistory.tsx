@@ -3,7 +3,7 @@ import {useCallback, useRef} from 'react';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 
 /** How many of the user's sent messages to remember, across all runs. */
-export const INPUT_HISTORY_LIMIT = 25;
+const INPUT_HISTORY_LIMIT = 25;
 
 const INPUT_HISTORY_STORAGE_KEY_PREFIX = 'seer-explorer-input-history';
 
@@ -12,7 +12,7 @@ function getStorageKey(userId: string) {
 }
 
 /** Oldest first. Read fresh on each use so every open surface sees the same list. */
-export function readInputHistory(userId: string): string[] {
+function readInputHistory(userId: string): string[] {
   try {
     const parsed = JSON.parse(localStorageWrapper.getItem(getStorageKey(userId)) ?? '[]');
     return Array.isArray(parsed)

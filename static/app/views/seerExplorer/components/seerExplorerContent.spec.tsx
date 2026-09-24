@@ -834,7 +834,7 @@ describe('SeerExplorerContent', () => {
       const {unmount} = renderContent();
       await userEvent.type(
         await screen.findByTestId('seer-explorer-input'),
-        'from another run{Enter}'
+        'other run{Enter}'
       );
       unmount();
 
@@ -847,7 +847,7 @@ describe('SeerExplorerContent', () => {
       const textarea = await screen.findByTestId('seer-explorer-input');
       await userEvent.click(textarea);
       await userEvent.keyboard('{ArrowUp}');
-      expect(textarea).toHaveValue('from another run');
+      expect(textarea).toHaveValue('other run');
     });
 
     it('keeps only the last 25 messages', async () => {
@@ -872,11 +872,14 @@ describe('SeerExplorerContent', () => {
       renderContent();
 
       const textarea = await screen.findByTestId('seer-explorer-input');
-      await userEvent.type(textarea, 'sent{Enter}');
-      await userEvent.type(textarea, 'line one{Shift>}{Enter}{/Shift}line two');
+      localStorage.setItem(
+        `seer-explorer-input-history:${UserFixture().id}`,
+        JSON.stringify(['sent'])
+      );
+      await userEvent.type(textarea, 'a{Shift>}{Enter}{/Shift}b');
 
       await userEvent.keyboard('{ArrowUp}');
-      expect(textarea).toHaveValue('line one\nline two');
+      expect(textarea).toHaveValue('a\nb');
     });
   });
 
