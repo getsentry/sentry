@@ -12,9 +12,6 @@ detect: |
   Look for calls to api.request() or this.api.request() that use the
   callback-based pattern with success, error, or complete options.
 
-  Also flag any remaining calls to api.requestPromise() that still pass
-  success/error/complete callbacks instead of using await with try/catch.
-
   Do NOT flag:
     - Calls to api.requestPromise() that are properly awaited or .then()-chained
       without success/error/complete callback options
@@ -74,4 +71,4 @@ exclude:
   - '**/*.test.*'
   - '**/test/**'
 
-prefilter: "grep -rl --include='*.tsx' --include='*.ts' -E 'api\\.request\\(|api\\.requestPromise\\(' {repo_path}/static/"
+prefilter: "grep -Prl --include='*.tsx' --include='*.ts' 'api\\.request(?!Promise)\\(' {repo_path}/static/"
