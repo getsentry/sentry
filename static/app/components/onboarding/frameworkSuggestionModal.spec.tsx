@@ -1,5 +1,12 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import {
   makeClosableHeader,
@@ -8,6 +15,7 @@ import {
   ModalFooter,
 } from '@sentry/scraps/modal';
 
+import {openModal} from 'sentry/actionCreators/modal';
 import {allPlatforms as platforms} from 'sentry/data/platforms';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import * as analytics from 'sentry/utils/analytics';
@@ -75,6 +83,50 @@ describe('Framework suggestion modal', () => {
     });
 
     expect(screen.getByRole('button', {name: 'Configure SDK'})).toBeEnabled();
+  });
+
+  it('focuses Configure SDK so Enter confirms the default Node selection', async () => {
+    const onSkip = jest.fn();
+    const onConfigure = jest.fn();
+    const onClose = jest.fn();
+    const {waitForModalToHide} = renderGlobalModal();
+
+    act(() =>
+      openModal(
+        modalProps => (
+          <FrameworkSuggestionModal
+            {...modalProps}
+            onConfigure={onConfigure}
+            onSkip={onSkip}
+            organization={organization}
+            selectedPlatform={{
+              key: 'node',
+              language: 'node',
+              category: 'server',
+              type: 'language',
+              link: 'https://docs.sentry.io/platforms/javascript/guides/node',
+              name: 'Node.js',
+            }}
+          />
+        ),
+        {onClose}
+      )
+    );
+
+    expect(screen.getByRole('radio', {name: 'Nope, Vanilla'})).toBeChecked();
+    await waitFor(() => {
+      expect(screen.getByRole('button', {name: 'Configure SDK'})).toHaveFocus();
+    });
+
+    await userEvent.keyboard('{Enter}');
+
+    expect(onSkip).toHaveBeenCalledTimes(1);
+    expect(onConfigure).not.toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
+
+    await userEvent.keyboard('{Escape}');
+    await waitForModalToHide();
+    expect(onClose).toHaveBeenCalledWith('escape-key');
   });
 
   it('should only call handleConfigure once on rapid multiple clicks', async () => {

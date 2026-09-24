@@ -418,6 +418,7 @@ export function FrameworkSuggestionModal({
       </Body>
       <Footer>
         <Button
+          autoFocus
           variant="primary"
           onClick={debounceHandleClick}
           busy={isCreatingProjectAndRules}
