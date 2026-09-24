@@ -16,13 +16,14 @@ import Feature from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {openConfirmModal} from 'sentry/components/confirm';
+import {DateTime} from 'sentry/components/dateTime';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconStack} from 'sentry/icons';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -386,7 +387,9 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                 <Text variant="muted">{formatSourceType(investigation.sourceType)}</Text>
                 <MetaDivider />
                 <Text variant="muted">
-                  {t('Last update: %s', formatNotebookDate(investigation.dateUpdated))}
+                  {tct('Last update: [date]', {
+                    date: <DateTime date={investigation.dateUpdated} year />,
+                  })}
                 </Text>
               </Flex>
               <FeedbackButton
@@ -409,7 +412,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
             </Flex>
           </Stack>
         </Container>
-        <Layout.Body>
+        <Layout.Body padding={{'screen:sm': '0 lg lg', 'screen:md': '0 xl lg'}}>
           <Layout.Main width="full">
             <Stack width="100%" maxWidth="960px" minWidth={0} margin="0 auto">
               {/*
@@ -496,10 +499,6 @@ function formatSourceType(sourceType: string) {
     return t('Manual investigation');
   }
   return sourceType.replaceAll('_', ' ');
-}
-
-function formatNotebookDate(date: string) {
-  return new Date(date).toISOString().slice(0, 10).replaceAll('-', '.');
 }
 
 const NotebookSummaryCard = styled(InvestigationSummaryCard)`

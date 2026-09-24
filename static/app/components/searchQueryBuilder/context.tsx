@@ -52,6 +52,7 @@ interface SearchQueryBuilderStateContextData {
 }
 
 interface SearchQueryBuilderConfigContextData {
+  allowRegexOperators: boolean;
   caseInsensitive: CaseInsensitive | undefined;
   disabled: boolean;
   disallowFreeText: boolean;
@@ -76,6 +77,7 @@ interface SearchQueryBuilderConfigContextData {
   namespace: string | undefined;
   onCaseInsensitiveClick: ((value: CaseInsensitive) => void) | undefined;
   placeholder: string | undefined;
+  prioritizedFilterKeys: string[] | undefined;
   recentSearches: SavedSearchType | undefined;
   replaceRawSearchKeys: string[] | undefined;
   searchSource: string;
@@ -174,6 +176,7 @@ const SearchQueryBuilderProviderContext = createContext(false);
 
 export function SearchQueryBuilderProvider({
   children,
+  allowRegexOperators,
   disabled = false,
   disallowLogicalOperators,
   disallowFreeText,
@@ -199,6 +202,7 @@ export function SearchQueryBuilderProvider({
   searchSource,
   getFilterTokenWarning,
   portalTarget,
+  prioritizedFilterKeys,
   replaceRawSearchKeys,
   matchKeySuggestions,
   filterKeyAliases,
@@ -288,6 +292,7 @@ export function SearchQueryBuilderProvider({
   const parseQuery = useCallback(
     (query: string) =>
       parseQueryBuilderValue(query, getFieldDefinitionWithTagMetadata, {
+        allowRegexOperators,
         getFilterTokenWarning,
         disallowFreeText,
         disallowLogicalOperators,
@@ -300,6 +305,7 @@ export function SearchQueryBuilderProvider({
         filterKeyAliases,
       }),
     [
+      allowRegexOperators,
       disallowFreeText,
       disallowLogicalOperators,
       disallowNegation,
@@ -411,6 +417,7 @@ export function SearchQueryBuilderProvider({
 
   const configValue = useMemo((): SearchQueryBuilderConfigContextData => {
     return {
+      allowRegexOperators: Boolean(allowRegexOperators),
       caseInsensitive,
       disabled,
       disallowFreeText: Boolean(disallowFreeText),
@@ -431,11 +438,13 @@ export function SearchQueryBuilderProvider({
       namespace,
       onCaseInsensitiveClick,
       placeholder,
+      prioritizedFilterKeys,
       recentSearches,
       replaceRawSearchKeys,
       searchSource,
     };
   }, [
+    allowRegexOperators,
     caseInsensitive,
     disabled,
     disallowFreeText,
@@ -454,6 +463,7 @@ export function SearchQueryBuilderProvider({
     namespace,
     onCaseInsensitiveClick,
     placeholder,
+    prioritizedFilterKeys,
     recentSearches,
     replaceRawSearchKeys,
     searchSource,

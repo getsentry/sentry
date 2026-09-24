@@ -184,6 +184,11 @@ const frequencyTypes = new Set<DataConditionType>([
   DataConditionType.EVENT_UNIQUE_USER_FREQUENCY_PERCENT,
 ]);
 
+const percentSessionTypes = new Set<DataConditionType>([
+  DataConditionType.PERCENT_SESSIONS_COUNT,
+  DataConditionType.PERCENT_SESSIONS_PERCENT,
+]);
+
 /**
  * Filters that require a GroupEvent to evaluate. Activity-based triggers
  * (like Seer activity) pass an Activity object, so these filters always
@@ -251,6 +256,7 @@ function findFirstSeenEventConflictingConditions(
     if (
       isConflictingTrigger ||
       isInvalidFrequency ||
+      percentSessionTypes.has(condition.type) ||
       isInvalidAgeComparison ||
       isInvalidIssueOccurence
     ) {

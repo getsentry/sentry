@@ -640,6 +640,15 @@ export const useSeerExplorer = () => {
     return {...session, blocks: normalizeBlocks(session.blocks ?? [])};
   }, [apiData?.session]);
 
+  // A session that comes back with `status: 'error'` and no blocks failed server-side
+  // before anything was rendered. Nothing is left to display, so treat it as a failure
+  // to load the conversation instead of falling through to the default empty state,
+  // which is indistinguishable from an idle new chat.
+  const hasSessionLoadError =
+    runId !== null &&
+    rawSessionData?.status === 'error' &&
+    rawSessionData.blocks.length === 0;
+
   // Append optimistic blocks to session data while polling, enabling a more responsive UI with loading placeholders.
   const processedSessionData = useMemo(() => {
     const awaitingResponse =
@@ -724,6 +733,8 @@ export const useSeerExplorer = () => {
     sessionData: processedSessionData,
     isPolling,
     isError,
+    /** The session itself came back errored with nothing to render. */
+    hasSessionLoadError,
     errorStatusCode,
     isTimedOut,
     sendMessage,

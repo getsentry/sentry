@@ -6,16 +6,13 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
 
+import type {AnnotationBucket, OutcomeVolume} from 'sentry/components/droppedData/utils';
 import {t} from 'sentry/locale';
 import {getFormat} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {formatNumberWithDynamicDecimalPoints} from 'sentry/utils/number/formatNumberWithDynamicDecimalPoints';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
-import type {
-  AnnotationBucket,
-  OutcomeVolume,
-} from 'sentry/views/explore/components/chart/droppedDataBand/utils';
 
 const BYTE_UNITS = ['B', 'kB', 'MB', 'GB', 'TB', 'PB'];
 const BYTE_THRESHOLD = 1000;
@@ -67,13 +64,27 @@ function formatByteRatio(value: number, total: number): Ratio {
 function formatBucketRange(start: number, end: number, timezone: string): string {
   const startMoment = moment.tz(start, timezone);
   const endMoment = moment.tz(end, timezone);
-  const year = startMoment.year() !== moment().year();
+  const showYear = startMoment.year() !== moment().year();
 
   const endFormat = startMoment.isSame(endMoment, 'day')
     ? getFormat({timeOnly: true, timeZone: true})
-    : getFormat({year, timeZone: true});
+    : getFormat({year: showYear, timeZone: true});
 
-  return `${startMoment.format(getFormat({year}))} - ${endMoment.format(endFormat)}`;
+  return `${startMoment.format(getFormat({year: showYear}))} - ${endMoment.format(endFormat)}`;
+}
+
+function totalEventCount(bucket: AnnotationBucket): number {
+  return bucket.dropped.eventCount + bucket.accepted.eventCount;
+}
+
+function byteTotals(bucket: AnnotationBucket): {dropped: number; total: number} | null {
+  const dropped = bucket.dropped.byteSize;
+  if (!defined(dropped)) {
+    return null;
+  }
+  const total = dropped + (bucket.accepted.byteSize ?? 0);
+
+  return {dropped, total};
 }
 
 function VolumeRow({label, value, total}: Ratio & {label: string}) {
@@ -94,11 +105,8 @@ interface DroppedDataTooltipProps {
 }
 
 export function DroppedDataTooltip({bucket, timezone}: DroppedDataTooltipProps) {
-  const totalEvents = bucket.dropped.eventCount + bucket.accepted.eventCount;
-  const droppedBytes = bucket.dropped.byteSize;
-  const totalBytes = defined(droppedBytes)
-    ? droppedBytes + (bucket.accepted.byteSize ?? 0)
-    : undefined;
+  const totalEvents = totalEventCount(bucket);
+  const bytes = byteTotals(bucket);
 
   return (
     <Fragment>
@@ -118,10 +126,10 @@ export function DroppedDataTooltip({bucket, timezone}: DroppedDataTooltipProps) 
               {...formatCountRatio(outcome.eventCount, totalEvents)}
             />
           ))}
-          {defined(droppedBytes) && defined(totalBytes) && (
+          {bytes && (
             <VolumeRow
               label={t('Payloads Rejected')}
-              {...formatByteRatio(droppedBytes, totalBytes)}
+              {...formatByteRatio(bytes.dropped, bytes.total)}
             />
           )}
         </Stack>

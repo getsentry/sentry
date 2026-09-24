@@ -31,7 +31,7 @@ class GetIngestionDelayStatusTest(TestCase):
                 "sentry.ingestion_delay.status.get_ingestion_delay_measurement"
             ) as mock_measure,
             mock.patch(
-                "sentry.ingestion_delay.status.has_accepted_outcomes", return_value=accepted
+                "sentry.ingestion_delay.status.get_accepted_outcomes", return_value=accepted
             ) as mock_accepted,
         ):
             from datetime import UTC, datetime

@@ -5,6 +5,7 @@ from selenium.webdriver.common.by import By
 from sentry.models.authprovider import AuthProvider
 from sentry.models.organization import Organization
 from sentry.testutils.cases import AcceptanceTestCase
+from sentry.testutils.helpers import override_options
 from sentry.testutils.silo import no_silo_test
 
 
@@ -43,6 +44,21 @@ class AcceptOrganizationInviteTest(AcceptanceTestCase):
         self.browser.get(self.member.get_invite_link().split("/", 3)[-1])
         self.browser.wait_until('[data-test-id="accept-invite"]')
         assert self.browser.element_exists('[data-test-id="create-account"]')
+
+    @override_options({"auth.v2.enabled": True})
+    def test_invite_create_account_opens_registration(self) -> None:
+        self.browser.get(self.member.get_invite_link().split("/", 3)[-1])
+        self.browser.wait_until('[data-test-id="accept-invite"]')
+
+        self.browser.click('[data-test-id="create-account"]')
+
+        self.browser.wait_until_script_execution(
+            "return window.location.pathname === '/auth/register/'"
+        )
+        self.browser.wait_until("#register.active #id_registration_name")
+        assert self.browser.driver.current_url.endswith("/auth/register/")
+        assert self.browser.element_exists("#id_registration_username")
+        assert self.browser.element_exists("#id_registration_password")
 
     def test_invite_2fa_enforced_org(self) -> None:
         self.org.update(flags=F("flags").bitor(Organization.flags.require_2fa))

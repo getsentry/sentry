@@ -956,3 +956,12 @@ function getDiscoverSavedQueryUrl({
   const search = qs.stringify(query);
   return search ? `${pathname}?${search}` : pathname;
 }
+
+export function getYAxisDiscoverSavedQuery(
+  savedQuery: DiscoverSavedQuery
+): BaseVisualize[] {
+  if (savedQuery.yAxis?.length) {
+    return [{yAxes: savedQuery.yAxis}];
+  }
+  return [{yAxes: [EventView.fromSavedQuery(savedQuery).getYAxis()]}];
+}

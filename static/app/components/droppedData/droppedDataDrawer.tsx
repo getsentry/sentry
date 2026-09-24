@@ -3,18 +3,15 @@ import {Fragment} from 'react';
 import {DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
 import {Text} from '@sentry/scraps/text';
 
+import {DroppedDataChart} from 'sentry/components/droppedData/droppedDataChart';
 import {t} from 'sentry/locale';
 import type {Annotation} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 
-import {DroppedDataChart} from './droppedDataChart';
-
-interface DroppedDataPanelContentProps {
+interface DroppedDataDrawerProps {
   droppedDataAnnotations: Annotation[];
 }
 
-export function DroppedDataPanelContent({
-  droppedDataAnnotations,
-}: DroppedDataPanelContentProps) {
+export function DroppedDataDrawer({droppedDataAnnotations}: DroppedDataDrawerProps) {
   return (
     <Fragment>
       <DrawerHeader>

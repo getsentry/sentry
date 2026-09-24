@@ -3,7 +3,7 @@ from unittest.mock import call, patch
 
 from sentry.api.serializers import serialize
 from sentry.integrations.api.serializers.models.integration import IntegrationConfigSerializer
-from sentry.integrations.utils.github_permission_tiers import PR_ITERATION_TIER
+from sentry.integrations.utils.github_permission_tiers import PR_ITERATION_TIER, TIERS
 from sentry.integrations.utils.github_permissions import GITHUB_APP_LATEST_PERMISSIONS
 from sentry.organizations.services.organization import organization_service
 from sentry.shared_integrations.exceptions import ApiError
@@ -86,7 +86,7 @@ class IntegrationSerializerTest(TestCase):
             }
         ]
 
-    def test_github_missing_features_unknown_when_permissions_are_null(self) -> None:
+    def test_github_missing_features_lists_every_tier_when_permissions_are_null(self) -> None:
         integration = self.create_provider_integration(
             provider="github",
             external_id="4",
@@ -96,7 +96,22 @@ class IntegrationSerializerTest(TestCase):
 
         result = serialize(integration, self.user)
 
-        assert result["missingFeatures"] is None
+        assert result["outOfDate"] is True
+        assert result["missingFeatures"] == [
+            {"key": tier.key, "description": tier.description} for tier in reversed(TIERS)
+        ]
+
+    def test_github_missing_features_lists_every_tier_when_permissions_are_absent(self) -> None:
+        integration = self.create_provider_integration(
+            provider="github", external_id="5", name="octocat", metadata={}
+        )
+
+        result = serialize(integration, self.user)
+
+        assert result["outOfDate"] is True
+        assert result["missingFeatures"] == [
+            {"key": tier.key, "description": tier.description} for tier in reversed(TIERS)
+        ]
 
     def test_non_github_provider_has_no_missing_features(self) -> None:
         integration = self.create_provider_integration(

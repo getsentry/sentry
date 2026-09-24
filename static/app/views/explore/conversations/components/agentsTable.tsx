@@ -38,6 +38,7 @@ interface AgentsTableProps {
   hasConversations: boolean;
   onConversationOnboardingDismiss: () => void;
   onTabChange: (tab: AgentsTableTab) => void;
+  searchBar?: React.ReactNode;
 }
 
 export function AgentsTable({
@@ -47,6 +48,7 @@ export function AgentsTable({
   hasConversations,
   onConversationOnboardingDismiss,
   onTabChange,
+  searchBar,
 }: AgentsTableProps) {
   if (!hasAgenticSpans) {
     return <ConversationOnboarding onDismiss={onConversationOnboardingDismiss} />;
@@ -61,6 +63,7 @@ export function AgentsTable({
           <TabList.Item key="spans">{t('LLM Calls')}</TabList.Item>
         </TabList>
       </Tabs>
+      {searchBar}
       {activeTab === 'conversations' &&
         (hasConversations ? (
           <ConversationsTable conversations={conversations} />
