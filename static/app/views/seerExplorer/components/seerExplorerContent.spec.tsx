@@ -808,13 +808,12 @@ describe('SeerExplorerContent', () => {
       localStorage.clear();
     });
 
-    it('recalls sent messages with ArrowUp and restores the draft with ArrowDown', async () => {
+    it('recalls sent messages with ArrowUp and ArrowDown from an empty input', async () => {
       renderContent();
 
       const textarea = await screen.findByTestId('seer-explorer-input');
       await userEvent.type(textarea, 'first{Enter}');
       await userEvent.type(textarea, 'second{Enter}');
-      await userEvent.type(textarea, 'draft');
 
       await userEvent.keyboard('{ArrowUp}');
       expect(textarea).toHaveValue('second');
@@ -827,7 +826,7 @@ describe('SeerExplorerContent', () => {
       await userEvent.keyboard('{ArrowDown}');
       expect(textarea).toHaveValue('second');
       await userEvent.keyboard('{ArrowDown}');
-      expect(textarea).toHaveValue('draft');
+      expect(textarea).toHaveValue('');
     });
 
     it('shares history across conversations', async () => {
@@ -868,18 +867,37 @@ describe('SeerExplorerContent', () => {
       expect(history[24]).toBe('newest');
     });
 
-    it('does not take over ArrowUp when the caret is below the first line', async () => {
-      renderContent();
-
-      const textarea = await screen.findByTestId('seer-explorer-input');
+    it('ignores ArrowUp and ArrowDown when the input has text', async () => {
       localStorage.setItem(
         `seer-explorer-input-history:${UserFixture().id}`,
         JSON.stringify(['sent'])
       );
-      await userEvent.type(textarea, 'a{Shift>}{Enter}{/Shift}b');
+      renderContent();
+
+      const textarea = await screen.findByTestId('seer-explorer-input');
+      await userEvent.type(textarea, 'draft');
 
       await userEvent.keyboard('{ArrowUp}');
-      expect(textarea).toHaveValue('a\nb');
+      expect(textarea).toHaveValue('draft');
+      await userEvent.keyboard('{ArrowDown}');
+      expect(textarea).toHaveValue('draft');
+    });
+
+    it('stops browsing once a recalled message is edited', async () => {
+      localStorage.setItem(
+        `seer-explorer-input-history:${UserFixture().id}`,
+        JSON.stringify(['older', 'newer'])
+      );
+      renderContent();
+
+      const textarea = await screen.findByTestId('seer-explorer-input');
+      await userEvent.click(textarea);
+      await userEvent.keyboard('{ArrowUp}');
+      expect(textarea).toHaveValue('newer');
+
+      await userEvent.type(textarea, '!');
+      await userEvent.keyboard('{ArrowUp}');
+      expect(textarea).toHaveValue('newer!');
     });
   });
 

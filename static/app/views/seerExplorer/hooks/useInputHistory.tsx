@@ -40,7 +40,8 @@ interface UseInputHistoryOptions {
 
 /**
  * Shell-style Up/Down recall of the user's last sent messages. The history is
- * shared by every conversation, not kept per run.
+ * shared by every conversation, not kept per run. Browsing only starts from an
+ * empty composer, so the arrow keys never clobber a draft.
  */
 export function useInputHistory({
   userId,
@@ -50,8 +51,6 @@ export function useInputHistory({
 }: UseInputHistoryOptions) {
   // Index into the history being shown, or null when not browsing it.
   const indexRef = useRef<number | null>(null);
-  // What was in the composer before browsing started, restored past the newest entry.
-  const draftRef = useRef('');
   // The entry last put into the composer, to tell whether the user has since edited it.
   const shownRef = useRef<string | null>(null);
 
@@ -99,22 +98,10 @@ export function useInputHistory({
         shownRef.current = null;
       }
 
-      const isBrowsing = indexRef.current !== null;
-      // Outside of browsing, only take over the arrow keys when the caret can't
-      // move any further, so multi-line drafts can still be navigated.
-      if (!isBrowsing) {
-        const {selectionStart, selectionEnd} = e.currentTarget;
-        if (selectionStart !== selectionEnd) {
-          return false;
-        }
-        const onFirstLine = !value.slice(0, selectionStart).includes('\n');
-        const onLastLine = !value.slice(selectionEnd).includes('\n');
-        if (
-          (e.key === 'ArrowUp' && !onFirstLine) ||
-          (e.key === 'ArrowDown' && !onLastLine)
-        ) {
-          return false;
-        }
+      // Only start browsing from an empty composer; after that, keep going
+      // through the (unedited) recalled entries.
+      if (indexRef.current === null && value !== '') {
+        return false;
       }
 
       const history = readInputHistory(userId);
@@ -124,7 +111,6 @@ export function useInputHistory({
           return false;
         }
         if (indexRef.current === null) {
-          draftRef.current = value;
           indexRef.current = history.length - 1;
         } else {
           indexRef.current = Math.max(0, Math.min(indexRef.current, history.length) - 1);
@@ -143,8 +129,9 @@ export function useInputHistory({
         indexRef.current += 1;
         show(history[indexRef.current] ?? '');
       } else {
+        // Past the newest entry: back to the empty composer.
         indexRef.current = null;
-        show(draftRef.current);
+        show('');
         shownRef.current = null;
       }
       return true;
