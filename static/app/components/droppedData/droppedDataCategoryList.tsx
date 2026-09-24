@@ -4,27 +4,18 @@ import {useTheme} from '@emotion/react';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {getOutcomeColors} from 'sentry/components/droppedData/droppedDataChart';
+import {
+  annotationsToCategorySections,
+  type CategorySection,
+  formatDroppedShare,
+  type ReasonRow,
+} from 'sentry/components/droppedData/utils';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
-import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import type {Annotation} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
-
-import {
-  annotationsToCategorySections,
-  type CategorySection,
-  type ReasonRow,
-} from './droppedDataCategories';
-import {getOutcomeColors} from './droppedDataChart';
-
-// Shares run tiny (a reason can be a sliver of all traffic), so keep two
-// decimals and floor the display at 0.01% rather than rounding to 0%.
-const SHARE_MIN_VALUE = 0.0001;
-
-function formatShare(ratio: number): string {
-  return formatPercentage(ratio, 2, {minimumValue: SHARE_MIN_VALUE});
-}
 
 const COLUMNS = '1fr 84px 84px';
 
@@ -124,7 +115,7 @@ function ReasonTable({
           </Container>
           <Container padding="md xl">
             <Text size="md" variant="muted" tabular>
-              {formatShare(row.shareRatio)}
+              {formatDroppedShare(row.shareRatio)}
             </Text>
           </Container>
         </Grid>
@@ -163,7 +154,7 @@ function CategorySectionRow({
             {t(
               '%s events • %s',
               formatAbbreviatedNumber(section.events),
-              formatShare(section.shareRatio)
+              formatDroppedShare(section.shareRatio)
             )}
           </CategoryPill>
         </Flex>
@@ -188,14 +179,9 @@ export function DroppedDataCategoryList({
     droppedDataAnnotations,
     acceptedDataAnnotations
   );
-  // Dropped and accepted share the same buckets, so the distinct bucket count
-  // across both is the series length used for each reason's "N of total".
   const totalBuckets = new Set(
     [...droppedDataAnnotations, ...acceptedDataAnnotations].map(a => a.start)
   ).size;
-  // Sort the labels the same way the chart does (alphabetical) before assigning
-  // colors, so a category's dot here matches its bar color in the chart even
-  // though the sections themselves are displayed by event count.
   const colors = getOutcomeColors(sections.map(section => section.label).sort(), theme);
 
   return (

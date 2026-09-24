@@ -5,8 +5,8 @@ import {useTheme} from '@emotion/react';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {outcomeLabel} from 'sentry/components/droppedData/utils';
 import {t} from 'sentry/locale';
-import {Outcome} from 'sentry/types/core';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import type {Annotation} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
@@ -16,19 +16,6 @@ import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/tim
 const STACK_NAME = 'dropped';
 
 const CHART_HEIGHT = '112px';
-
-const OUTCOME_LABELS: Partial<Record<Outcome, string>> = {
-  [Outcome.CLIENT_DISCARD]: t('Client discard'),
-  [Outcome.FILTERED]: t('Inbound filter'),
-  [Outcome.INVALID]: t('Invalid or malformed'),
-  [Outcome.RATE_LIMITED]: t('Rate limited'),
-  [Outcome.ABUSE]: t('Abuse limit'),
-  [Outcome.CARDINALITY_LIMITED]: t('Cardinality limit'),
-};
-
-export function outcomeLabel(outcome: string): string {
-  return OUTCOME_LABELS[outcome as Outcome] ?? outcome;
-}
 
 function orderOutcomes(outcomes: string[]): string[] {
   return [...outcomes].sort();
