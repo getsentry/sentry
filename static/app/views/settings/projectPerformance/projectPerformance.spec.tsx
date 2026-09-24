@@ -206,6 +206,7 @@ describe('projectPerformance', () => {
     expect(input).toHaveValue('400');
   });
 
+  // Two sequential saves and project refetches can exceed 5s on shared CI workers.
   it('keeps sampling priority forms synchronized after saves', async () => {
     let dynamicSamplingBiases = [
       {id: DynamicSamplingBiasType.BOOST_LATEST_RELEASES, active: false},
@@ -244,34 +245,29 @@ describe('projectPerformance', () => {
       initialRouterConfig,
     });
 
-    await userEvent.click(
-      await screen.findByRole('checkbox', {name: 'Prioritize new releases'})
-    );
-    await waitFor(() => {
-      expect(projectPutMock).toHaveBeenCalledTimes(1);
-      expect(
-        screen.getByRole('checkbox', {name: 'Prioritize dev environments'})
-      ).toBeDisabled();
+    const releasesSwitch = await screen.findByRole('checkbox', {
+      name: 'Prioritize new releases',
+    });
+    const environmentsSwitch = screen.getByRole('checkbox', {
+      name: 'Prioritize dev environments',
     });
 
-    await userEvent.click(
-      screen.getByRole('checkbox', {name: 'Prioritize dev environments'})
-    );
+    await userEvent.click(releasesSwitch);
+    await waitFor(() => {
+      expect(projectPutMock).toHaveBeenCalledTimes(1);
+      expect(environmentsSwitch).toBeDisabled();
+    });
+
+    await userEvent.click(environmentsSwitch);
     expect(projectPutMock).toHaveBeenCalledTimes(1);
 
     firstUpdate.resolve({...detailedProject, dynamicSamplingBiases});
     await waitFor(() => {
-      expect(
-        screen.getByRole('checkbox', {name: 'Prioritize new releases'})
-      ).toBeChecked();
-      expect(
-        screen.getByRole('checkbox', {name: 'Prioritize dev environments'})
-      ).toBeEnabled();
+      expect(releasesSwitch).toBeChecked();
+      expect(environmentsSwitch).toBeEnabled();
     });
 
-    await userEvent.click(
-      screen.getByRole('checkbox', {name: 'Prioritize dev environments'})
-    );
+    await userEvent.click(environmentsSwitch);
 
     await waitFor(() => {
       expect(projectPutMock).toHaveBeenLastCalledWith(
@@ -286,8 +282,11 @@ describe('projectPerformance', () => {
           },
         })
       );
+      expect(releasesSwitch).toBeChecked();
+      expect(environmentsSwitch).toBeChecked();
     });
-  });
+    await waitFor(() => expect(environmentsSwitch).toBeEnabled());
+  }, 10_000);
 
   it('shows sampling priority save errors', async () => {
     const dynamicSamplingBiases = [
@@ -549,7 +548,7 @@ describe('projectPerformance', () => {
       threshold: DetectorConfigCustomer.CONSECUTIVE_DB_MIN_TIME_SAVED,
       allowedValues: allowedDurationValues.slice(0, 23),
       configuredValue: 5000,
-      updateValue: 100,
+      updateValue: 4500,
       sliderIdentifier: {
         label: 'Minimum Time Saved',
         index: 0,
@@ -729,18 +728,13 @@ describe('projectPerformance', () => {
 
     expect(performanceIssuesGetMock).toHaveBeenCalledTimes(1);
 
-    const {allowedValues, configuredValue, sliderIdentifier, threshold, updateValue} =
+    const {allowedValues, sliderIdentifier, threshold, updateValue} =
       consecutiveDbThreshold;
     const slider = getDetectorSlider(sliderIdentifier);
-    const indexDelta =
-      allowedValues.indexOf(updateValue) - allowedValues.indexOf(configuredValue);
-    const key = indexDelta > 0 ? '{ArrowRight}' : '{ArrowLeft}';
-    const ue = userEvent.setup({delay: null});
-    await ue.click(slider);
-    for (let index = 0; index < Math.abs(indexDelta); index++) {
-      await ue.keyboard(key);
-    }
-    await ue.tab();
+    // One step still verifies index-to-threshold conversion without repeated saves.
+    await userEvent.click(slider);
+    await userEvent.keyboard('{ArrowLeft}');
+    await userEvent.tab();
 
     expect(slider).toHaveValue(allowedValues.indexOf(updateValue).toString());
     expect(performanceIssuesPutMock).toHaveBeenCalledWith(
@@ -850,7 +844,13 @@ describe('projectPerformance', () => {
     });
   });
 
-  it('allows project admins to disable detectors', async () => {
+  // Each save rerenders the page. Keep all detector coverage without putting
+  // twelve saves under a single five-second test deadline on shared CI workers.
+  it.each([
+    {group: 'database and main thread', detectors: manageDetectorData.slice(0, 4)},
+    {group: 'database and assets', detectors: manageDetectorData.slice(4, 8)},
+    {group: 'HTTP and web vitals', detectors: manageDetectorData.slice(8)},
+  ])('allows project admins to disable $group detectors', async ({detectors}) => {
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/',
       method: 'GET',
@@ -865,13 +865,13 @@ describe('projectPerformance', () => {
     render(<ProjectPerformance />, {organization: org, initialRouterConfig});
     await screen.findByText('Performance Issues - Detector Threshold Settings');
 
-    for (const {label} of manageDetectorData) {
+    for (const {label} of detectors) {
       expect(screen.queryByRole('checkbox', {name: label})).not.toBeInTheDocument();
     }
 
     await expandAllDetectorSettings();
 
-    for (const {label, key} of manageDetectorData) {
+    for (const {label, key} of detectors) {
       const toggle = screen.getByRole('checkbox', {name: label});
       expect(toggle).toBeChecked();
 

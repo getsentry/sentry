@@ -202,6 +202,7 @@ export const useSeerExplorer = () => {
     loadingPlaceholderContent: string;
     prevInsertIndexBlockId: string | undefined;
     query: string;
+    sentAt: string;
   } | null>(null);
   const [hasSentInterrupt, setHasSentInterrupt] = useState(false);
   const previousPRStatesRef = useRef<Record<string, RepoPRState>>({});
@@ -563,6 +564,7 @@ export const useSeerExplorer = () => {
         insertIndex: newInsertIndex,
         prevInsertIndexBlockId: blocks[newInsertIndex]?.id,
         loadingPlaceholderContent: placeholderContent,
+        sentAt: new Date().toISOString(),
       });
 
       // Send POST request
@@ -701,6 +703,7 @@ export const useSeerExplorer = () => {
       query: userQuery,
       prevInsertIndexBlockId,
       loadingPlaceholderContent,
+      sentAt,
     } = lastSentMessage;
 
     // Hydrated state - don't apply optimistic blocks once the server has persisted
@@ -723,14 +726,14 @@ export const useSeerExplorer = () => {
     const optimisticUserBlock: Block = {
       id: `user-${insertIndex}-optimistic`,
       message: {role: 'user', content: userQuery},
-      timestamp: new Date().toISOString(),
+      timestamp: sentAt,
       loading: false,
     };
 
     const optimisticThinkingBlock: Block = {
       id: `loading-${insertIndex + 1}-optimistic`,
       message: {role: 'assistant', content: loadingPlaceholderContent},
-      timestamp: new Date().toISOString(),
+      timestamp: sentAt,
       loading: true,
     };
 
