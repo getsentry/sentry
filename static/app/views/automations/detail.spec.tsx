@@ -368,6 +368,34 @@ describe('AutomationDetail', () => {
     );
   });
 
+  it('disables action buttons for an all-projects alert without org:write', async () => {
+    const alertWriterOrganization = OrganizationFixture({
+      access: ['org:read', 'alerts:read', 'alerts:write'],
+    });
+    const projectScopeRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/workflows/123/project-scope/',
+      body: {projectIds: [], includesAllProjects: true},
+    });
+
+    render(<AutomationDetail />, {
+      organization: alertWriterOrganization,
+      initialRouterConfig: {
+        route: '/alerts/:automationId/',
+        location: {pathname: '/alerts/123/'},
+      },
+    });
+
+    await waitFor(() => expect(projectScopeRequest).toHaveBeenCalled());
+    expect(screen.getByRole('button', {name: 'Disable'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    expect(screen.getByRole('button', {name: 'Edit'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+  });
+
   it('enables action buttons for a team admin of every connected project', async () => {
     const teamAdminOrg = OrganizationFixture({
       access: ['org:read', 'alerts:read'],

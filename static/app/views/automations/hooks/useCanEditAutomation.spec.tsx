@@ -27,7 +27,7 @@ describe('useCanEditAutomation', () => {
     ProjectsStore.loadInitialData([writableProject, readOnlyProject]);
   });
 
-  it('does not request project scope with organization-level alert write access', () => {
+  it('does not request project scope with organization write access', () => {
     const projectScopeRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/workflows/123/project-scope/',
       body: {projectIds: [], includesAllProjects: true},
@@ -39,6 +39,39 @@ describe('useCanEditAutomation', () => {
 
     expect(result.current).toBe(true);
     expect(projectScopeRequest).not.toHaveBeenCalled();
+  });
+
+  it('rejects an all-projects alert with only organization-level alert write access', async () => {
+    const alertWriterOrganization = OrganizationFixture({
+      access: ['org:read', 'alerts:read', 'alerts:write'],
+    });
+    const projectScopeRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/workflows/123/project-scope/',
+      body: {projectIds: [], includesAllProjects: true},
+    });
+
+    const {result} = renderHookWithProviders(() => useCanEditAutomation('123'), {
+      organization: alertWriterOrganization,
+    });
+
+    await waitFor(() => expect(projectScopeRequest).toHaveBeenCalled());
+    expect(result.current).toBe(false);
+  });
+
+  it('allows a project-scoped alert with organization-level alert write access', async () => {
+    const alertWriterOrganization = OrganizationFixture({
+      access: ['org:read', 'alerts:read', 'alerts:write'],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/workflows/123/project-scope/',
+      body: {projectIds: [readOnlyProject.id], includesAllProjects: false},
+    });
+
+    const {result} = renderHookWithProviders(() => useCanEditAutomation('123'), {
+      organization: alertWriterOrganization,
+    });
+
+    await waitFor(() => expect(result.current).toBe(true));
   });
 
   it('does not request project scope without any writable projects', () => {

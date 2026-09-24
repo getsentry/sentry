@@ -11,6 +11,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {
   canEditAutomationProjectScope,
+  hasAllProjectsAutomationWriteAccess,
   hasAutomationWriteAccess,
   hasOrganizationAutomationWriteAccess,
   type AutomationProjectScope,
@@ -43,6 +44,7 @@ function useAutomationAccess() {
   const organization = useOrganization();
   const {projects} = useProjects();
   const canEditOrganization = hasOrganizationAutomationWriteAccess(organization);
+  const canEditAllProjects = hasAllProjectsAutomationWriteAccess(organization);
   const writableProjectIds = useMemo(
     () =>
       new Set(
@@ -53,18 +55,28 @@ function useAutomationAccess() {
     [organization, projects]
   );
 
-  return {canEditOrganization, organization, writableProjectIds};
+  return {canEditAllProjects, canEditOrganization, organization, writableProjectIds};
 }
 
 export function useCanEditAutomation(automationId: string): boolean {
-  const {canEditOrganization, organization, writableProjectIds} = useAutomationAccess();
+  const {canEditAllProjects, canEditOrganization, organization, writableProjectIds} =
+    useAutomationAccess();
   const {data: projectScope} = useQuery(
     workflowProjectScopeApiOptions({
       organization,
       automationId,
-      enabled: !canEditOrganization && writableProjectIds.size > 0,
+      enabled:
+        !canEditAllProjects && (canEditOrganization || writableProjectIds.size > 0),
     })
   );
+
+  if (canEditAllProjects) {
+    return true;
+  }
+
+  if (!projectScope || projectScope.includesAllProjects) {
+    return false;
+  }
 
   if (canEditOrganization) {
     return true;
