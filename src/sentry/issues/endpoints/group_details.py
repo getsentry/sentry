@@ -56,6 +56,7 @@ from sentry.issues.constants import (
 )
 from sentry.issues.derived.check import record_status_consistency
 from sentry.issues.derived.gate import derived_should_be_correct
+from sentry.issues.derived.tasks import reconcile_group_status
 from sentry.issues.endpoints.bases.group import GroupEndpoint, GroupPermission
 from sentry.issues.escalating.escalating_group_forecast import EscalatingGroupForecast
 from sentry.issues.models.groupderiveddata import GroupDerivedData
@@ -146,8 +147,6 @@ class GroupDetailsEndpoint(GroupEndpoint):
         if inconsistency is not None and options.get(
             "issues.derived_data.status_reconciliation.enabled"
         ):
-            from sentry.issues.derived.tasks import reconcile_group_status
-
             # Allow transient inconsistencies to settle before checking again.
             reconcile_group_status.apply_async(kwargs={"group_id": group.id}, countdown=5 * 60)
 
