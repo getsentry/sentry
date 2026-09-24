@@ -35,28 +35,30 @@ describe('useReleaseSeries', () => {
     environments: [],
   };
 
-  function renderReleaseSeries(props: Partial<Props> = {}) {
-    return renderHookWithProviders(useReleaseSeries, {
-      initialProps: {...baseProps, ...props},
+  it('does not fetch releases if releases is truthy', () => {
+    renderHookWithProviders(useReleaseSeries, {
+      initialProps: {...baseProps, releases: []},
       organization,
     });
-  }
-
-  it('does not fetch releases if releases is truthy', () => {
-    renderReleaseSeries({releases: []});
 
     expect(releasesMock).not.toHaveBeenCalled();
   });
 
   it('does not fetch releases if not enabled', () => {
-    const {result} = renderReleaseSeries({enabled: false});
+    const {result} = renderHookWithProviders(useReleaseSeries, {
+      initialProps: {...baseProps, enabled: false},
+      organization,
+    });
 
     expect(releasesMock).not.toHaveBeenCalled();
     expect(result.current).toEqual({releases: [], releaseSeries: []});
   });
 
   it('fetches releases if becomes enabled', async () => {
-    const {rerender} = renderReleaseSeries({enabled: false});
+    const {rerender} = renderHookWithProviders(useReleaseSeries, {
+      initialProps: {...baseProps, enabled: false},
+      organization,
+    });
 
     expect(releasesMock).not.toHaveBeenCalled();
 
@@ -72,14 +74,20 @@ describe('useReleaseSeries', () => {
   });
 
   it('fetches releases if no releases passed through props', async () => {
-    const {result} = renderReleaseSeries();
+    const {result} = renderHookWithProviders(useReleaseSeries, {
+      initialProps: baseProps,
+      organization,
+    });
 
     expect(releasesMock).toHaveBeenCalled();
     await waitFor(() => expect(result.current.releases).toEqual(releases));
   });
 
   it('fetches releases with project conditions', async () => {
-    renderReleaseSeries({projects: [1, 2]});
+    renderHookWithProviders(useReleaseSeries, {
+      initialProps: {...baseProps, projects: [1, 2]},
+      organization,
+    });
 
     await waitFor(() =>
       expect(releasesMock).toHaveBeenCalledWith(
@@ -92,7 +100,10 @@ describe('useReleaseSeries', () => {
   });
 
   it('fetches releases with environment conditions', async () => {
-    renderReleaseSeries({environments: ['dev', 'test']});
+    renderHookWithProviders(useReleaseSeries, {
+      initialProps: {...baseProps, environments: ['dev', 'test']},
+      organization,
+    });
 
     await waitFor(() =>
       expect(releasesMock).toHaveBeenCalledWith(
@@ -105,7 +116,10 @@ describe('useReleaseSeries', () => {
   });
 
   it('fetches releases with start and end date strings', async () => {
-    renderReleaseSeries({start: '2020-01-01', end: '2020-01-31'});
+    renderHookWithProviders(useReleaseSeries, {
+      initialProps: {...baseProps, start: '2020-01-01', end: '2020-01-31'},
+      organization,
+    });
 
     await waitFor(() =>
       expect(releasesMock).toHaveBeenCalledWith(
@@ -123,7 +137,10 @@ describe('useReleaseSeries', () => {
   it('fetches releases with start and end dates', async () => {
     const start = new Date(Date.UTC(2020, 0, 1, 12, 13, 14));
     const end = new Date(Date.UTC(2020, 0, 31, 14, 15, 16));
-    renderReleaseSeries({start, end});
+    renderHookWithProviders(useReleaseSeries, {
+      initialProps: {...baseProps, start, end},
+      organization,
+    });
 
     await waitFor(() =>
       expect(releasesMock).toHaveBeenCalledWith(
@@ -139,7 +156,10 @@ describe('useReleaseSeries', () => {
   });
 
   it('fetches releases with period', async () => {
-    renderReleaseSeries({period: '14d'});
+    renderHookWithProviders(useReleaseSeries, {
+      initialProps: {...baseProps, period: '14d'},
+      organization,
+    });
 
     await waitFor(() =>
       expect(releasesMock).toHaveBeenCalledWith(
@@ -152,7 +172,10 @@ describe('useReleaseSeries', () => {
   });
 
   it('fetches on property updates', async () => {
-    const {rerender} = renderReleaseSeries({period: '14d'});
+    const {rerender} = renderHookWithProviders(useReleaseSeries, {
+      initialProps: {...baseProps, period: '14d'},
+      organization,
+    });
 
     const cases: Array<Partial<Props>> = [
       {period: '7d'},
@@ -171,10 +194,14 @@ describe('useReleaseSeries', () => {
   });
 
   it('does not refetch when rebuilt dates and arrays are equal', async () => {
-    const {rerender} = renderReleaseSeries({
-      start: new Date(Date.UTC(2020, 0, 1)),
-      end: new Date(Date.UTC(2020, 0, 2)),
-      projects: [1],
+    const {rerender} = renderHookWithProviders(useReleaseSeries, {
+      initialProps: {
+        ...baseProps,
+        start: new Date(Date.UTC(2020, 0, 1)),
+        end: new Date(Date.UTC(2020, 0, 2)),
+        projects: [1],
+      },
+      organization,
     });
 
     await waitFor(() => expect(releasesMock).toHaveBeenCalledTimes(1));
@@ -191,7 +218,10 @@ describe('useReleaseSeries', () => {
   });
 
   it('does not refetch releases with memoize enabled', async () => {
-    const {rerender} = renderReleaseSeries({period: '14d', memoized: true});
+    const {rerender} = renderHookWithProviders(useReleaseSeries, {
+      initialProps: {...baseProps, period: '14d', memoized: true},
+      organization,
+    });
 
     await waitFor(() => expect(releasesMock).toHaveBeenCalledTimes(1));
 
@@ -205,8 +235,14 @@ describe('useReleaseSeries', () => {
   });
 
   it('shares release fetches between hooks with memoize enabled', async () => {
-    const first = renderReleaseSeries({period: '42d', memoized: true});
-    const second = renderReleaseSeries({period: '42d', memoized: true});
+    const first = renderHookWithProviders(useReleaseSeries, {
+      initialProps: {...baseProps, period: '42d', memoized: true},
+      organization,
+    });
+    const second = renderHookWithProviders(useReleaseSeries, {
+      initialProps: {...baseProps, period: '42d', memoized: true},
+      organization,
+    });
 
     await waitFor(() => expect(first.result.current.releaseSeries).toHaveLength(1));
     await waitFor(() => expect(second.result.current.releaseSeries).toHaveLength(1));
@@ -215,7 +251,10 @@ describe('useReleaseSeries', () => {
   });
 
   it('generates an eCharts `markLine` series from releases', async () => {
-    const {result} = renderReleaseSeries();
+    const {result} = renderHookWithProviders(useReleaseSeries, {
+      initialProps: baseProps,
+      organization,
+    });
 
     await waitFor(() =>
       expect(result.current.releaseSeries).toEqual([
@@ -239,8 +278,9 @@ describe('useReleaseSeries', () => {
       version: 'sentry-android-shop@1.2.1',
       date: '2020-03-24T00:00:00Z',
     });
-    const {result, rerender} = renderReleaseSeries({
-      emphasizeReleases: ['sentry-android-shop@1.2.0'],
+    const {result, rerender} = renderHookWithProviders(useReleaseSeries, {
+      initialProps: {...baseProps, emphasizeReleases: ['sentry-android-shop@1.2.0']},
+      organization,
     });
 
     // Unemphasized releases render at opacity 0.3, emphasized at 0.8
