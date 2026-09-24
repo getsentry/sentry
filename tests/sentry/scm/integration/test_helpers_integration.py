@@ -1,3 +1,4 @@
+from scm.providers.cursor_origin.provider import CursorOriginProvider
 from scm.providers.github.provider import GitHubProvider
 from scm.types import Repository
 
@@ -233,6 +234,30 @@ class TestFetchServiceProvider(TestCase):
         provider = fetch_service_provider(self.organization.id, repository)
 
         assert isinstance(provider, GitHubProvider)
+
+    def test_cursor_origin_returns_origin_provider(self) -> None:
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="cursor_origin",
+            name="acme",
+            external_id="inst_01example",
+        )
+        repository: Repository = {
+            "id": 1,
+            "integration_id": integration.id,
+            "name": "acme/rocket",
+            "organization_id": self.organization.id,
+            "is_active": True,
+            "external_id": "r_01example",
+            "provider_name": "cursor_origin",
+            "web_base_url": None,
+            "installation_id": None,
+        }
+
+        provider = fetch_service_provider(self.organization.id, repository)
+
+        assert isinstance(provider, CursorOriginProvider)
+        assert provider.installation_id == "inst_01example"
 
     def test_github_enterprise_without_integration_returns_none(self) -> None:
         repository: Repository = {
