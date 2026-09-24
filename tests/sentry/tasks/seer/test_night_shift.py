@@ -92,16 +92,6 @@ def test_code_mode_flag_applies_to_every_dispatched_shard(default_organization, 
         status = _dispatch_pending_shards(run, default_organization, {}, time.monotonic())
 
     assert status == ShardDispatchStatus.COMPLETE
-    with with_feature(
-        {
-            "organizations:gen-ai-features": True,
-            "organizations:seer-night-shift-code-mode": not enabled,
-        }
-    ):
-        assert (
-            _dispatch_pending_shards(run, default_organization, {}, time.monotonic())
-            == ShardDispatchStatus.COMPLETE
-        )
     for shard in shards:
         shard.refresh_from_db()
         assert shard.extras == {**plan.to_extras(), "enable_code_mode_tools": mode}
@@ -110,6 +100,43 @@ def test_code_mode_flag_applies_to_every_dispatched_shard(default_organization, 
         )
         assert outbox.payload is not None
         assert outbox.payload["body"]["agent_run_options"]["enable_code_mode_tools"] == mode
+
+
+@django_db_all
+def test_redispatch_preserves_recorded_code_mode_after_flag_is_disabled(default_organization):
+    run = Factories.create_seer_workflow_run(organization=default_organization)
+    plan = NightShiftShardPlan(payload={"candidates": []}, title="Triage")
+    shard = Factories.create_seer_workflow_run_execution(run=run, extras=plan.to_extras())
+
+    with with_feature(
+        {
+            "organizations:gen-ai-features": True,
+            "organizations:seer-night-shift-code-mode": True,
+        }
+    ):
+        assert (
+            _dispatch_pending_shards(run, default_organization, {}, time.monotonic())
+            == ShardDispatchStatus.COMPLETE
+        )
+    original_run, original_body = _dispatched_feature_body(default_organization)
+
+    with with_feature(
+        {
+            "organizations:gen-ai-features": True,
+            "organizations:seer-night-shift-code-mode": False,
+        }
+    ):
+        assert (
+            _dispatch_pending_shards(run, default_organization, {}, time.monotonic())
+            == ShardDispatchStatus.COMPLETE
+        )
+
+    seer_run, body = _dispatched_feature_body(default_organization)
+    shard.refresh_from_db()
+    assert seer_run.id == original_run.id == shard.seer_run_id
+    assert body == original_body
+    assert body["agent_run_options"]["enable_code_mode_tools"] == "only"
+    assert shard.extras["enable_code_mode_tools"] == "only"
 
 
 class NightShiftFixtures(Fixtures):
