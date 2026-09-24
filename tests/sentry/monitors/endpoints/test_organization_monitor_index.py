@@ -746,7 +746,7 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
         )
         assert not Monitor.objects.filter(organization_id=self.organization.id).exists()
 
-    def test_write_permission_checked_before_config_validation(self) -> None:
+    def test_config_validation_precedes_write_permission(self) -> None:
         self.organization.update_option("sentry:alerts_member_write", False)
         member = self.create_user()
         self.create_member(
@@ -754,17 +754,18 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
         )
         self.login_as(member)
 
-        self.get_error_response(
+        response = self.get_error_response(
             self.organization.slug,
             project=self.project.slug,
             name="Invalid Schedule",
             config={"schedule_type": "crontab", "schedule": "invalid schedule"},
-            status_code=403,
+            status_code=400,
         )
+        assert response.data["config"]["schedule"] == ["Schedule is invalid"]
         assert not Monitor.objects.filter(organization_id=self.organization.id).exists()
 
     @override_settings(MAX_MONITORS_PER_ORG=0)
-    def test_write_permission_checked_before_monitor_limit(self) -> None:
+    def test_monitor_limit_validation_precedes_write_permission(self) -> None:
         self.organization.update_option("sentry:alerts_member_write", False)
         member = self.create_user()
         self.create_member(
@@ -772,13 +773,14 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
         )
         self.login_as(member)
 
-        self.get_error_response(
+        response = self.get_error_response(
             self.organization.slug,
             project=self.project.slug,
             name="Over Monitor Limit",
             config={"schedule_type": "crontab", "schedule": "@daily"},
-            status_code=403,
+            status_code=400,
         )
+        assert response.data["nonFieldErrors"] == ["You may not exceed 0 monitors per organization"]
         assert not Monitor.objects.filter(organization_id=self.organization.id).exists()
 
     def test_create_requires_project(self) -> None:

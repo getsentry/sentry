@@ -23,8 +23,6 @@ from sentry.api.bases.organization import OrganizationAlertRulePermission, Organ
 from sentry.api.helpers.teams import get_teams
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.api.serializers.rest_framework import CamelSnakeSerializer
-from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
@@ -77,10 +75,6 @@ def flip_sort_direction(sort_field: str) -> str:
     else:
         sort_field = "-" + sort_field
     return sort_field
-
-
-class MonitorCreateProjectValidator(CamelSnakeSerializer):
-    project = ProjectField(scope="project:read", id_allowed=True, required=True)
 
 
 @cell_silo_endpoint
@@ -307,19 +301,14 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
         """
         Create a new monitor.
         """
-        context = {"organization": organization, "access": request.access, "request": request}
-        project_validator = MonitorCreateProjectValidator(data=request.data, context=context)
-        if not project_validator.is_valid():
-            return self.respond(project_validator.errors, status=400)
-
-        self.check_can_create_monitor(request, project_validator.validated_data["project"])
-
         validator = MonitorValidator(
             data=request.data,
-            context=context,
+            context={"organization": organization, "access": request.access, "request": request},
         )
         if not validator.is_valid():
             return self.respond(validator.errors, status=400)
+
+        self.check_can_create_monitor(request, validator.validated_data["project"])
 
         monitor = validator.save()
         return self.respond(serialize(monitor, request.user), status=201)
