@@ -1296,7 +1296,9 @@ const QueryToolbar = styled(Container)`
 const QueryDisclosureTitle = styled(Disclosure.Title)`
   && {
     height: auto;
-    min-height: 0;
+    /* As tall as the actions menu pinned over the toolbar's right end, so the
+     * title and the menu share a centre line. */
+    min-height: ${p => p.theme.form.xs.height};
     padding: 0;
     gap: ${p => p.theme.space.xs};
   }
@@ -1345,7 +1347,9 @@ const CellHoverSurface = styled(Stack)`
   }
 
   &[data-cell-variant='card'] [data-test-id='query-cell-toolbar'] {
-    padding-right: calc(${p => p.theme.space.lg} + ${p => p.theme.space['2xl']});
+    padding-right: calc(
+      ${p => p.theme.space.lg} + ${p => p.theme.form.xs.height} + ${p => p.theme.space.md}
+    );
   }
 
   @media (hover: none) {
