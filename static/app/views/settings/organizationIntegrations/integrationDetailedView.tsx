@@ -447,7 +447,8 @@ export default function IntegrationDetailedView() {
               provider,
               type: integrationType,
               installStatus: installationStatus,
-              configurations,
+              // Auto-open must wait for fresh workspaces, not consume stale cache data.
+              configurations: isConfigurationsFetching ? undefined : configurations,
               analyticsParams: {
                 view: 'integrations_directory_integration_detail',
                 already_installed: installationStatus !== 'Not Installed',
@@ -483,6 +484,7 @@ export default function IntegrationDetailedView() {
       integrationSlug,
       location.search,
       configurations,
+      isConfigurationsFetching,
     ]
   );
 

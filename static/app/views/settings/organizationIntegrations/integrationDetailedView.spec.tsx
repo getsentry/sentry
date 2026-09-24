@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {QueryClientProvider} from '@tanstack/react-query';
 import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
 import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegrationProvider';
 import {GitLabIntegrationFixture} from 'sentry-fixture/gitlabIntegration';
@@ -6,9 +7,12 @@ import {GitLabIntegrationProviderFixture} from 'sentry-fixture/gitlabIntegration
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
 
+import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as pipelineModal from 'sentry/components/pipeline/modal';
+import {normalizeQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import * as integrationUtil from 'sentry/utils/integrationUtil';
 import IntegrationDetailedView from 'sentry/views/settings/organizationIntegrations/integrationDetailedView';
 
@@ -600,6 +604,59 @@ describe('IntegrationDetailedView', () => {
         'Server-provided Seer mentions feature.'
       );
     });
+
+    it.each([
+      {cached: []},
+      {
+        cached: [
+          OrganizationIntegrationsFixture({outOfDate: false, missingFeatures: []}),
+        ],
+      },
+      {cached: [{...slackIntegration, missingFeatures: []}]},
+    ])(
+      'waits for refetch before using cached Slack workspaces (%#)',
+      async ({cached}) => {
+        const openPipelineModalSpy = jest
+          .spyOn(pipelineModal, 'openPipelineModal')
+          .mockImplementation(() => {});
+        const queryClient = makeTestQueryClient();
+        queryClient.setQueryData(
+          normalizeQueryKey([
+            getApiUrl('/organizations/$organizationIdOrSlug/integrations/', {
+              path: {organizationIdOrSlug: organization.slug},
+            }),
+            {query: {provider_key: 'slack', includeConfig: 0}},
+          ]),
+          {json: cached, headers: {}}
+        );
+        MockApiClient.addMockResponse({
+          url: `/organizations/${organization.slug}/integrations/`,
+          match: [MockApiClient.matchQuery({provider_key: 'slack', includeConfig: 0})],
+          asyncDelay: 100,
+          body: [slackIntegration],
+        });
+
+        const {router} = render(<IntegrationDetailedView />, {
+          initialRouterConfig: createRouterConfig('slack', {showInstallModal: '1'}),
+          organization,
+          additionalWrapper: ({children}) => (
+            <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+          ),
+        });
+
+        expect(await screen.findByTestId('install-button')).toBeInTheDocument();
+        expect(openPipelineModalSpy).not.toHaveBeenCalled();
+        expect(router.location.query.showInstallModal).toBe('1');
+        await waitFor(() => expect(openPipelineModalSpy).toHaveBeenCalledTimes(1));
+        await waitFor(() =>
+          expect(router.location.query.showInstallModal).toBeUndefined()
+        );
+        render(<Fragment>{openPipelineModalSpy.mock.calls[0]![0].description}</Fragment>);
+        expect(screen.getByRole('listitem')).toHaveTextContent(
+          'Server-provided Seer mentions feature.'
+        );
+      }
+    );
 
     it('does not auto-open without the param', async () => {
       const openPipelineModalSpy = jest
