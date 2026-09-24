@@ -1648,6 +1648,8 @@ const config = defineConfig({
         'react-you-might-not-need-an-effect/no-pass-live-state-to-parent': 'off',
         'react-you-might-not-need-an-effect/no-pass-data-to-parent': 'off',
         'react-you-might-not-need-an-effect/no-initialize-state': 'off',
+        // TODO(ryan953): fix and turn this on
+        'react-you-might-not-need-an-effect/no-external-store-subscription': 'off',
       },
     },
     {
