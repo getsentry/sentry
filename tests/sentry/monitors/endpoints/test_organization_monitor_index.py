@@ -730,6 +730,47 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
         resp = self.get_response(self.organization.slug, **data_member)
         assert resp.status_code == 403
 
+    def test_create_denied_without_projects(self) -> None:
+        self.organization.update_option("sentry:alerts_member_write", False)
+        member = self.create_user()
+        self.create_member(user=member, organization=self.organization, role="member", teams=[])
+        self.login_as(member)
+
+        self.get_error_response(
+            self.organization.slug,
+            project=self.project.slug,
+            name="No Project Access",
+            type="cron_job",
+            config={"schedule_type": "crontab", "schedule": "@daily"},
+            status_code=403,
+        )
+        assert not Monitor.objects.filter(organization_id=self.organization.id).exists()
+
+    def test_team_admin_requires_write_access_to_all_selected_projects(self) -> None:
+        self.organization.update_option("sentry:alerts_member_write", False)
+        admin_team = self.create_team(organization=self.organization)
+        member_team = self.create_team(organization=self.organization)
+        admin_project = self.create_project(organization=self.organization, teams=[admin_team])
+        self.create_project(organization=self.organization, teams=[member_team])
+        member = self.create_user()
+        self.create_member(
+            user=member,
+            organization=self.organization,
+            role="member",
+            team_roles=[(admin_team, "admin"), (member_team, "contributor")],
+        )
+        self.login_as(member)
+
+        self.get_error_response(
+            self.organization.slug,
+            project=admin_project.slug,
+            name="Mixed Project Access",
+            type="cron_job",
+            config={"schedule_type": "crontab", "schedule": "@daily"},
+            status_code=403,
+        )
+        assert not Monitor.objects.filter(organization_id=self.organization.id).exists()
+
     def test_owner_team_not_member_denied(self) -> None:
         """
         Test that members cannot assign a team they are not a member of as owner.
