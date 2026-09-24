@@ -29,8 +29,6 @@ import {
 // auto-instruments the `env.AI` binding only from that version.
 export const MIN_REQUIRED_VERSION = '10.67.0';
 
-// The Cloudflare Agents SDK helper `instrumentAgentWithSentry` only exists from
-// this version; earlier SDKs expose `instrumentDurableObjectWithSentry` instead.
 // @see https://docs.sentry.io/platforms/javascript/guides/cloudflare/features/agents-sdk/
 const CLOUDFLARE_AGENTS_MIN_VERSION = '10.69.0';
 const INTEGRATION_MIN_VERSIONS: Partial<Record<AgentIntegration, string>> = {
@@ -42,8 +40,6 @@ const INTEGRATION_MIN_VERSIONS: Partial<Record<AgentIntegration, string>> = {
 const CLOUDFLARE_AGENT_TRACING_DOCS =
   'https://docs.sentry.io/platforms/javascript/guides/cloudflare/agent-tracing/';
 
-const CLOUDFLARE_DURABLE_OBJECTS_DOCS =
-  'https://docs.sentry.io/platforms/javascript/guides/cloudflare/features/durableobject/';
 const CLOUDFLARE_AGENTS_SDK_DOCS =
   'https://docs.sentry.io/platforms/javascript/guides/cloudflare/features/agents-sdk/';
 const FLUE_NODE_AGENT_TRACING_DOCS =
@@ -94,67 +90,25 @@ export function getAgentDataCollectionStep(params: DocsParams): OnboardingStep[]
   ];
 }
 
-/**
- * Cloudflare Workers don't expose the public `Sentry.init()` API. Instead the
- * SDK is bootstrapped by wrapping the worker with `Sentry.withSentry`. The
- * Vercel AI SDK additionally requires the `nodejs_compat` entrypoint and its
- * integration to be registered explicitly.
- *
- * @see https://docs.sentry.io/platforms/javascript/guides/cloudflare/agent-tracing/
- */
-function getCloudflareConfigureSnippet({
-  dsn,
-  integration,
-}: {
-  dsn: string;
-  integration?: AgentIntegration;
-}): string {
-  const isVercelAi = integration === AgentIntegration.VERCEL_AI;
-  const importPath = isVercelAi
-    ? '@sentry/cloudflare/nodejs_compat'
-    : '@sentry/cloudflare';
-  const integrationsLine = isVercelAi
-    ? '\n    integrations: [Sentry.vercelAIIntegration()],'
-    : '';
+const getCloudflareViteConfigSnippet = () => `import { cloudflare } from "@cloudflare/vite-plugin";
+import { sentryCloudflareVitePlugin } from "@sentry/cloudflare/vite";
+import { defineConfig } from "vite";
 
-  return `import * as Sentry from "${importPath}";
+export default defineConfig({
+  plugins: [cloudflare(), sentryCloudflareVitePlugin()],
+});`;
 
-export default Sentry.withSentry(
-  (env) => ({
-    dsn: "${dsn}",
-    // Tracing must be enabled for agent monitoring to work
-    tracesSampleRate: 1.0,${integrationsLine}
-  }),
-  {
-    async fetch(request, env, ctx) {
-      // Your worker logic goes here
-      return new Response("Hello World!");
-    },
-  }
-);`;
-}
+const getCloudflareOptionsSnippet = (dsn: string) =>
+  `import { defineCloudflareOptions } from "@sentry/cloudflare";
+
+export default defineCloudflareOptions((env) => ({
+  dsn: "${dsn}",
+  // Tracing must be enabled for agent monitoring to work
+  tracesSampleRate: 1.0,
+}));`;
 
 const WORKERS_AI_DOCS =
   'https://docs.sentry.io/platforms/javascript/guides/cloudflare/features/workers-ai/';
-
-/**
- * `instrumentDurableObjectWithSentry` is the Durable-Object / Agents-SDK
- * equivalent of `withSentry` - a bootstrapping concern that is independent of
- * the chosen AI SDK, so this note is shown for every Cloudflare integration.
- */
-function getDurableObjectsNote(): ContentBlock {
-  return {
-    type: 'text',
-    text: tct(
-      'If your AI calls run inside a [durableObjectsLink:Durable Object] or [agentsSdkLink:Agents SDK] agent rather than the fetch handler, bootstrap Sentry there too with [code:instrumentDurableObjectWithSentry] - it takes the same options as [code:withSentry].',
-      {
-        code: <code />,
-        durableObjectsLink: <ExternalLink href={CLOUDFLARE_DURABLE_OBJECTS_DOCS} />,
-        agentsSdkLink: <ExternalLink href={CLOUDFLARE_AGENTS_SDK_DOCS} />,
-      }
-    ),
-  };
-}
 
 /**
  * Workers AI (`env.AI`) is Cloudflare-native and auto-instruments once the
@@ -721,9 +675,7 @@ export function getManualConfigureStep(
   const isCloudflare = getDeploymentTarget(params) === DeploymentTarget.CLOUDFLARE;
   const importStatement = sentryImport ?? getImport(packageName, importMode).join('\n');
 
-  const code = isCloudflare
-    ? getCloudflareConfigureSnippet({dsn: params.dsn.public})
-    : `${importStatement}
+  const code = `${importStatement}
 
 Sentry.init({
   dsn: "${params.dsn.public}",
@@ -737,19 +689,44 @@ Sentry.init({
       content: [
         {
           type: 'text',
-          text: t('Initialize the Sentry SDK in the entry point of your application.'),
+          text: isCloudflare
+            ? tct(
+                'Add the Sentry Cloudflare plugin to your [code:vite.config.ts], after the Cloudflare Vite plugin. It wraps your Worker at build time.',
+                {code: <code />}
+              )
+            : t('Initialize the Sentry SDK in the entry point of your application.'),
         },
         {
           type: 'code',
           tabs: [
             {
-              label: configFileName ?? 'JavaScript',
-              language: 'javascript',
-              code,
+              label: isCloudflare ? 'vite.config.ts' : (configFileName ?? 'JavaScript'),
+              language: isCloudflare ? 'typescript' : 'javascript',
+              code: isCloudflare ? getCloudflareViteConfigSnippet() : code,
             },
           ],
         },
-        ...(isCloudflare ? [getDurableObjectsNote()] : []),
+        ...(isCloudflare
+          ? [
+              {
+                type: 'text' as const,
+                text: tct(
+                  'Put your Sentry options in an [code:instrument.server.ts] file next to your Worker entry. The plugin loads these options automatically.',
+                  {code: <code />}
+                ),
+              },
+              {
+                type: 'code' as const,
+                tabs: [
+                  {
+                    label: 'src/instrument.server.ts',
+                    language: 'typescript' as const,
+                    code: getCloudflareOptionsSnippet(params.dsn.public),
+                  },
+                ],
+              },
+            ]
+          : []),
         {
           type: 'custom',
           content: (
@@ -813,69 +790,6 @@ export function getInstallStep(
         getInstallCodeBlock(params, {
           packageName: resolvedPackageName,
         }),
-      ],
-    },
-  ];
-}
-
-/**
- * The Cloudflare Agents SDK is bootstrapped by wrapping the agent class with
- * `instrumentAgentWithSentry` (Durable Object instrumentation under the hood),
- * a different entry point than `withSentry`, so it gets its own configure step.
- *
- * @see https://docs.sentry.io/platforms/javascript/guides/cloudflare/features/agents-sdk/
- */
-function getCloudflareAgentsConfigureStep(params: DocsParams): OnboardingStep[] {
-  return [
-    {
-      title: t('Configure'),
-      content: [
-        {
-          type: 'text',
-          text: tct(
-            'Wrap your agent class with [code:Sentry.instrumentAgentWithSentry]. It applies Durable Object instrumentation plus agent-specific telemetry, including callable RPC spans and automatic conversation ID tracking.',
-            {code: <code />}
-          ),
-        },
-        {
-          type: 'code',
-          tabs: [
-            {
-              label: 'JavaScript',
-              language: 'javascript',
-              code: `import * as Sentry from "@sentry/cloudflare";
-import { Agent } from "agents";
-
-class MyAgentBase extends Agent {
-  // Your agent logic goes here
-}
-
-// Wrap the agent so its RPC calls and model invocations are captured as AI spans
-export const MyAgent = Sentry.instrumentAgentWithSentry(
-  (env) => ({
-    dsn: "${params.dsn.public}",
-    // Tracing must be enabled for agent monitoring to work
-    tracesSampleRate: 1.0,
-    // Propagate traces across callable RPC methods
-    enableRpcTracePropagation: true,
-  }),
-  MyAgentBase,
-);`,
-            },
-          ],
-        },
-        {
-          type: 'text',
-          text: tct(
-            'The wrapper also supports [aiChatAgent:AIChatAgent] and [mcpAgent:McpAgent]. For per-user or singleton agents, call [code:Sentry.setConversationId] at the start of [code:onChatMessage] to override the automatic conversation ID. See the [link:Agents SDK docs] for details.',
-            {
-              code: <code />,
-              aiChatAgent: <code />,
-              mcpAgent: <code />,
-              link: <ExternalLink href={CLOUDFLARE_AGENTS_SDK_DOCS} />,
-            }
-          ),
-        },
       ],
     },
   ];
@@ -974,7 +888,7 @@ const result = await agent.generate({
     isCloudflare && integration === AgentIntegration.WORKERS_AI;
 
   const configureCode = isCloudflare
-    ? getCloudflareConfigureSnippet({dsn: params.dsn.public, integration})
+    ? getCloudflareViteConfigSnippet()
     : `${getImport(packageName).join('\n')}
 
 Sentry.init({
@@ -984,9 +898,12 @@ Sentry.init({
 });`;
 
   // On Node the SDK auto-instruments the integration; on Cloudflare the worker is
-  // wrapped and (for most SDKs) the client is instrumented explicitly below.
+  // wrapped at build time and (for most SDKs) the client is instrumented explicitly below.
   const introText = isCloudflare
-    ? t('Wrap your Worker with the Sentry SDK:')
+    ? tct(
+        'Add the Sentry Cloudflare plugin to your [code:vite.config.ts], after the Cloudflare Vite plugin. It wraps your Worker and instruments bundled AI dependencies at build time.',
+        {code: <code />}
+      )
     : tct(
         'Import and initialize the Sentry SDK - the [integration] will be enabled automatically:',
         {
@@ -1009,14 +926,49 @@ Sentry.init({
                 type: 'code',
                 tabs: [
                   {
-                    label: configFileName ?? 'JavaScript',
-                    language: 'javascript',
+                    label: isCloudflare ? 'vite.config.ts' : (configFileName ?? 'JavaScript'),
+                    language: isCloudflare ? 'typescript' : 'javascript',
                     code: configureCode,
                   },
                 ],
               },
+              ...(isCloudflare
+                ? [
+                    {
+                      type: 'text' as const,
+                      text: tct(
+                        'Put your Sentry options in an [code:instrument.server.ts] file next to your Worker entry. The plugin loads these options automatically.',
+                        {code: <code />}
+                      ),
+                    },
+                    {
+                      type: 'code' as const,
+                      tabs: [
+                        {
+                          label: 'src/instrument.server.ts',
+                          language: 'typescript' as const,
+                          code: getCloudflareOptionsSnippet(params.dsn.public),
+                        },
+                      ],
+                    },
+                  ]
+                : []),
+              ...(isCloudflare &&
+              integration === AgentIntegration.CLOUDFLARE_AGENTS
+                ? [
+                    {
+                      type: 'text' as const,
+                      text: tct(
+                        'The plugin automatically instruments [code:AIChatAgent], so do not also wrap it with [code:instrumentAgentWithSentry]. For per-user or singleton agents, call [code:Sentry.setConversationId] at the start of [code:onChatMessage] to override the automatic conversation ID. See the [link:Agents SDK docs] for details.',
+                        {
+                          code: <code />,
+                          link: <ExternalLink href={CLOUDFLARE_AGENTS_SDK_DOCS} />,
+                        }
+                      ),
+                    },
+                  ]
+                : []),
               ...(isCloudflareWorkersAi ? [getWorkersAiNote()] : []),
-              ...(isCloudflare ? [getDurableObjectsNote()] : []),
               ...(isCloudflareWrap ? getCloudflareWrapBlocks(integration) : []),
               ...vercelAiExtraInstrumentation,
             ],
@@ -1251,10 +1203,6 @@ function getAgentConfigureSteps(
 
   if (selected === AgentIntegration.EVE) {
     return eveFrameworkOnboarding.configure(params);
-  }
-
-  if (selected === AgentIntegration.CLOUDFLARE_AGENTS) {
-    return getCloudflareAgentsConfigureStep(params);
   }
 
   return getConfigureStep({

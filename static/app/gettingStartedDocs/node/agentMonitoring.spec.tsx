@@ -111,15 +111,15 @@ describe('node agentMonitoring onboarding', () => {
   });
 
   describe('Cloudflare deployment target', () => {
-    it('bootstraps the SDK with Sentry.withSentry instead of Sentry.init', () => {
+    it('bootstraps the SDK with the Cloudflare Vite plugin instead of Sentry.init', () => {
       const code = collectCode(
         config.configure(
           makeParams({integration: 'anthropic', deploymentTarget: 'cloudflare'})
         )
       );
 
-      expect(code).toContain('Sentry.withSentry(');
-      expect(code).toContain('import * as Sentry from "@sentry/cloudflare"');
+      expect(code).toContain('sentryCloudflareVitePlugin()');
+      expect(code).toContain('defineCloudflareOptions');
       expect(code).not.toContain('Sentry.init(');
       expect(code).not.toContain('nodejs_compat');
       expect(code).not.toContain('vercelAIIntegration');
@@ -132,8 +132,8 @@ describe('node agentMonitoring onboarding', () => {
         )
       );
 
-      // Worker is wrapped, and the client must be instrumented explicitly
-      expect(code).toContain('Sentry.withSentry(');
+      // The plugin wraps the Worker, and the client must be instrumented explicitly
+      expect(code).toContain('sentryCloudflareVitePlugin()');
       expect(code).toContain('Sentry.instrumentOpenAiClient(');
       // These integrations don't use the nodejs_compat entrypoint (that's Vercel AI)
       expect(code).not.toContain('nodejs_compat');
@@ -155,9 +155,10 @@ describe('node agentMonitoring onboarding', () => {
         )
       );
 
-      expect(configureCode).toContain('Sentry.withSentry(');
-      expect(configureCode).toContain('import * as Sentry from "@sentry/cloudflare"');
-      expect(configureCode).not.toContain('instrument');
+      expect(configureCode).toContain('sentryCloudflareVitePlugin()');
+      expect(configureCode).toContain('defineCloudflareOptions');
+      expect(configureCode).not.toContain('instrumentOpenAiClient');
+      expect(configureCode).not.toContain('instrumentAnthropicAiClient');
       expect(configureCode).not.toContain('nodejs_compat');
       expect(configureCode).not.toContain('vercelAIIntegration');
     });
@@ -172,18 +173,17 @@ describe('node agentMonitoring onboarding', () => {
       expect(verifyCode).toContain('env.AI.run(');
     });
 
-    it('uses the nodejs_compat entrypoint and registers the Vercel AI integration', () => {
+    it('uses build-time instrumentation for the Vercel AI integration', () => {
       const code = collectCode(
         config.configure(
           makeParams({integration: 'vercel_ai', deploymentTarget: 'cloudflare'})
         )
       );
 
-      expect(code).toContain('Sentry.withSentry(');
-      expect(code).toContain(
-        'import * as Sentry from "@sentry/cloudflare/nodejs_compat"'
-      );
-      expect(code).toContain('integrations: [Sentry.vercelAIIntegration()]');
+      expect(code).toContain('sentryCloudflareVitePlugin()');
+      expect(code).toContain('defineCloudflareOptions');
+      expect(code).not.toContain('nodejs_compat');
+      expect(code).not.toContain('vercelAIIntegration');
     });
 
     it('installs @sentry/cloudflare', () => {
@@ -197,14 +197,15 @@ describe('node agentMonitoring onboarding', () => {
       expect(code).not.toContain('@sentry/node');
     });
 
-    it('uses Sentry.withSentry for manual instrumentation', () => {
+    it('uses the Cloudflare Vite plugin for manual instrumentation', () => {
       const code = collectCode(
         config.configure(
           makeParams({integration: 'manual', deploymentTarget: 'cloudflare'})
         )
       );
 
-      expect(code).toContain('Sentry.withSentry(');
+      expect(code).toContain('sentryCloudflareVitePlugin()');
+      expect(code).toContain('defineCloudflareOptions');
       expect(code).not.toContain('Sentry.init(');
     });
   });
@@ -306,12 +307,15 @@ describe('node agentMonitoring onboarding', () => {
       deploymentTarget: 'cloudflare',
     });
 
-    it('wraps the agent class with instrumentAgentWithSentry', () => {
+    it('configures build-time instrumentation with the Cloudflare Vite plugin', () => {
       const code = collectCode(config.configure(agentsParams));
 
-      expect(code).toContain('Sentry.instrumentAgentWithSentry(');
-      expect(code).toContain('import * as Sentry from "@sentry/cloudflare"');
-      expect(code).toContain('enableRpcTracePropagation: true');
+      expect(code).toContain(
+        'import { sentryCloudflareVitePlugin } from "@sentry/cloudflare/vite"'
+      );
+      expect(code).toContain('plugins: [cloudflare(), sentryCloudflareVitePlugin()]');
+      expect(code).toContain('defineCloudflareOptions');
+      expect(code).not.toContain('instrumentAgentWithSentry');
       expect(code).not.toContain('Sentry.withSentry(');
       expect(code).not.toContain('Sentry.init(');
     });
