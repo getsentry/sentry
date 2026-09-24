@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
 import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegrationProvider';
 import {GitLabIntegrationFixture} from 'sentry-fixture/gitlabIntegration';
@@ -238,8 +239,12 @@ describe('IntegrationDetailedView', () => {
       expect.objectContaining({
         provider: 'slack',
         title: 'Update Slack App Permissions',
-        description: expect.stringContaining('Server-provided Seer mentions feature.'),
+        description: expect.anything(),
       })
+    );
+    render(<Fragment>{openPipelineModalSpy.mock.calls[0]![0].description}</Fragment>);
+    expect(screen.getByRole('listitem')).toHaveTextContent(
+      'Server-provided Seer mentions feature.'
     );
   });
 
@@ -284,8 +289,12 @@ describe('IntegrationDetailedView', () => {
         expect.objectContaining({
           provider: 'slack',
           title: 'Update Slack App Permissions',
-          description: expect.stringContaining('Server-provided Seer mentions feature.'),
+          description: expect.anything(),
         })
+      );
+      render(<Fragment>{openPipelineModalSpy.mock.calls[0]![0].description}</Fragment>);
+      expect(screen.getByRole('listitem')).toHaveTextContent(
+        'Server-provided Seer mentions feature.'
       );
     });
 
@@ -519,9 +528,12 @@ describe('IntegrationDetailedView', () => {
         expect.objectContaining({
           provider: 'slack',
           title: 'Update Slack App Permissions',
-          description:
-            'This workspace is missing permissions for the following features: Server-provided Seer mentions feature. Reauthorize the Sentry app in your Slack workspace and accept the updated permissions to continue.',
+          description: expect.anything(),
         })
+      );
+      render(<Fragment>{openPipelineModalSpy.mock.calls[0]![0].description}</Fragment>);
+      expect(screen.getByRole('listitem')).toHaveTextContent(
+        'Server-provided Seer mentions feature.'
       );
     });
 
@@ -583,10 +595,9 @@ describe('IntegrationDetailedView', () => {
       expect(router.location.query.showInstallModal).toBe('1');
       await waitFor(() => expect(router.location.query.showInstallModal).toBeUndefined());
       expect(openPipelineModalSpy).toHaveBeenCalledTimes(1);
-      expect(openPipelineModalSpy).toHaveBeenCalledWith(
-        expect.objectContaining({
-          description: expect.stringContaining('Server-provided Seer mentions feature.'),
-        })
+      render(<Fragment>{openPipelineModalSpy.mock.calls[0]![0].description}</Fragment>);
+      expect(screen.getByRole('listitem')).toHaveTextContent(
+        'Server-provided Seer mentions feature.'
       );
     });
 
