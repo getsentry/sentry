@@ -27,9 +27,6 @@ def review_event(event_type: str, event: PullRequestEvent) -> PullRequestReviewE
         return None
 
     pull_request = event.pull_request
-    if not pull_request.number.isdigit():
-        return None
-
     contributor = pull_request.author.contributor()
     user = pull_request.author.user
     return PullRequestReviewEvent(
