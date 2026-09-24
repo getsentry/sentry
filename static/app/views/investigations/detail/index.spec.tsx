@@ -159,6 +159,28 @@ describe('Investigation detail', () => {
     expect(screen.getByRole('menuitemradio', {name: 'Delete'})).toBeInTheDocument();
   });
 
+  it('keeps both actions on every cell and says why one is disabled', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: {...investigationWithQueryResult(), status: 'archived'},
+    });
+
+    renderView();
+
+    for (const title of ['Summary', 'Latency query']) {
+      await userEvent.click(
+        await screen.findByRole('button', {name: `Cell actions for ${title}`})
+      );
+      expect(screen.getByRole('menuitemradio', {name: 'Refine'})).toBeEnabled();
+      const deleteItem = screen.getByRole('menuitemradio', {name: /Delete/});
+      expect(deleteItem).toHaveAttribute('aria-disabled', 'true');
+      expect(deleteItem).toHaveTextContent(
+        'Only an active investigation can be changed.'
+      );
+      await userEvent.keyboard('{Escape}');
+    }
+  });
+
   it('opens feedback scoped to the investigation', async () => {
     MockApiClient.addMockResponse({
       url: detailUrl,
@@ -878,7 +900,10 @@ describe('Investigation detail', () => {
         currentExecution: null,
         output:
           block.kind === 'text'
-            ? {schemaVersion: 1, markdown: 'Timeouts began after the deployment.'}
+            ? {
+                schemaVersion: 1,
+                markdown: 'Timeouts began after the deployment.',
+              }
             : InvestigationQueryOutputFixture(),
       })),
     };
@@ -918,13 +943,18 @@ describe('Investigation detail', () => {
         dependencies: ['block-1'],
       },
     ];
-    const request = MockApiClient.addMockResponse({url: detailUrl, body: investigation});
+    const request = MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: investigation,
+    });
 
     renderView();
 
     await screen.findByText('Initial notes');
     expect(screen.queryByTestId('investigation-cell-block-2')).not.toBeInTheDocument();
-    await waitFor(() => expect(request).toHaveBeenCalledTimes(2), {timeout: 3000});
+    await waitFor(() => expect(request).toHaveBeenCalledTimes(2), {
+      timeout: 3000,
+    });
   });
 
   it.each(['notRun', 'failed', 'cancelled', 'completed'] as const)(
@@ -1147,7 +1177,7 @@ describe('Investigation detail', () => {
       'unbordered'
     );
     expect(screen.getByTestId('query-cell')).toContainElement(screen.getByText('820ms'));
-    expect(screen.getByTestId('query-cell')).toContainElement(
+    expect(screen.getByTestId('query-cell-toolbar')).not.toContainElement(
       screen.getByRole('button', {name: 'Cell actions for Database latency'})
     );
     expect(screen.getByText('820ms')).toBeInTheDocument();
@@ -1196,14 +1226,18 @@ describe('Investigation detail', () => {
 
     renderView();
 
-    const toggle = await screen.findByRole('button', {name: 'Toggle Latency query'});
+    const toggle = await screen.findByRole('button', {
+      name: 'Toggle Latency query',
+    });
     expect(toggle).toHaveAttribute('aria-expanded', 'true');
     expect(screen.getByText('820ms')).toBeVisible();
     expect(screen.getByRole('button', {name: 'Show query'})).toHaveAttribute(
       'aria-disabled',
       'true'
     );
-    expect(screen.getByTestId('query-cell')).toContainElement(
+    // The menu sits in the cell's corner like every other cell's, not in the
+    // toolbar, so collapsing the result leaves it where it was.
+    expect(screen.getByTestId('query-cell-toolbar')).not.toContainElement(
       screen.getByRole('button', {name: 'Cell actions for Latency query'})
     );
 
@@ -1465,7 +1499,10 @@ describe('Investigation detail', () => {
   });
 
   it('refines an existing result with new instructions', async () => {
-    MockApiClient.addMockResponse({url: detailUrl, body: investigationWithQueryResult()});
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: investigationWithQueryResult(),
+    });
     const updateUrl = `${detailUrl}blocks/block-2/`;
     const updateRequest = MockApiClient.addMockResponse({
       url: updateUrl,
@@ -1729,7 +1766,9 @@ describe('Investigation detail', () => {
       screen.getByLabelText('Instructions for Seer'),
       'Find slow spans'
     );
-    fireEvent.keyDown(screen.getByLabelText('Instructions for Seer'), {key: 'Enter'});
+    fireEvent.keyDown(screen.getByLabelText('Instructions for Seer'), {
+      key: 'Enter',
+    });
 
     expect(await screen.findByText('Building chart…')).toBeInTheDocument();
     expect(screen.queryByText(/tableMarkdown/)).not.toBeInTheDocument();
@@ -1783,7 +1822,9 @@ describe('Investigation detail', () => {
       screen.getByLabelText('Instructions for Seer'),
       'Find slow spans'
     );
-    fireEvent.keyDown(screen.getByLabelText('Instructions for Seer'), {key: 'Enter'});
+    fireEvent.keyDown(screen.getByLabelText('Instructions for Seer'), {
+      key: 'Enter',
+    });
 
     // The transcript renders once the block settles, but the raw JSON answer is dropped —
     // `QueryResult` above already presents its parsed chart/table.
@@ -2040,7 +2081,10 @@ describe('Investigation detail', () => {
     const renameRequest = MockApiClient.addMockResponse({
       url: detailUrl,
       method: 'PUT',
-      body: InvestigationDetailFixture({title: 'Saved before leaving', version: 2}),
+      body: InvestigationDetailFixture({
+        title: 'Saved before leaving',
+        version: 2,
+      }),
     });
 
     const {unmount} = renderView();

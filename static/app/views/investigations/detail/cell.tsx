@@ -161,21 +161,32 @@ export function InvestigationCell({
     setPrompt(block.outputStatus === 'notRun' ? block.generationPrompt : '');
   }
 
+  const refineDisabledReason = waitingForDependencies
+    ? t('Available once the cells this one depends on have run.')
+    : null;
+  const deleteDisabledReason = canRun
+    ? isExecutionActive(block.currentExecution?.status)
+      ? t('Stop the Seer run on this cell before deleting it.')
+      : null
+    : t('Only an active investigation can be changed.');
+
+  // Every cell carries the same two actions. One that can't be used right now
+  // stays in the menu, disabled, and says why — so the menu reads the same on
+  // every cell.
   const actionItems: MenuItemProps[] = [
     {
       key: 'refine',
       label: t('Refine'),
-      disabled: waitingForDependencies,
+      disabled: refineDisabledReason !== null,
+      details: refineDisabledReason ?? undefined,
       onAction: openPanel,
     },
     {
       key: 'delete',
       label: t('Delete'),
       priority: 'danger',
-      disabled:
-        !canRun ||
-        deleteMutation.isPending ||
-        isExecutionActive(block.currentExecution?.status),
+      disabled: deleteDisabledReason !== null || deleteMutation.isPending,
+      details: deleteDisabledReason ?? undefined,
       onAction: () =>
         openConfirmModal({
           message: t('Are you sure you want to delete this cell?'),
@@ -191,7 +202,7 @@ export function InvestigationCell({
   ];
 
   const cellActions = (
-    <CellActions flexShrink={0}>
+    <CellActions position="absolute" top={0} right={0}>
       <DropdownMenu
         position="bottom-end"
         usePortal
@@ -279,9 +290,7 @@ function CellResult({
       data-test-id="text-cell-result"
       data-cell-variant="unbordered"
     >
-      <Container position="absolute" top={0} right={0}>
-        {actions}
-      </Container>
+      {actions}
       <CellExecutionAlert block={block} />
       {markdown ? (
         <SeerMarkdown raw={markdown} />
@@ -322,7 +331,8 @@ function QueryResult({
     getChartMetadata(chart);
 
   return (
-    <CellHoverSurface width="100%">
+    <CellHoverSurface position="relative" width="100%" data-cell-variant="card">
+      {actions}
       <Disclosure
         width="100%"
         border="primary"
@@ -357,7 +367,6 @@ function QueryResult({
                     {showQuery ? t('Hide query') : t('Show query')}
                   </Button>
                 ) : null}
-                {actions}
               </Flex>
             }
           >
@@ -1304,16 +1313,39 @@ const QueryDisclosureContent = styled(Disclosure.Content)`
   }
 `;
 
-const CellActions = styled(Flex)`
+/**
+ * The actions menu, pinned to the top-right corner of every cell. Hidden until
+ * the cell is hovered or focused, and kept out while its own menu is open —
+ * that menu renders in a portal, so the cell loses hover and focus the moment
+ * it opens. Hidden by opacity alone, so the trigger stays in the tab order.
+ */
+const CellActions = styled(Container)`
+  z-index: 1;
   opacity: 0;
   pointer-events: none;
+
+  &:has([aria-expanded='true']) {
+    opacity: 1;
+    pointer-events: auto;
+  }
 `;
 
 const CellHoverSurface = styled(Stack)`
-  &:hover ${CellActions},
-  &:focus-within ${CellActions} {
+  &:hover ${CellActions}, &:focus-within ${CellActions} {
     opacity: 1;
     pointer-events: auto;
+  }
+
+  /* A query cell's corner is the right end of its toolbar: inset the menu by
+   * the toolbar's padding so it lines up with the title, and keep the
+   * toolbar's own trailing items clear of it. */
+  &[data-cell-variant="card"] > ${CellActions} {
+    top: ${p => p.theme.space.md};
+    right: ${p => p.theme.space.lg};
+  }
+
+  &[data-cell-variant='card'] [data-test-id='query-cell-toolbar'] {
+    padding-right: calc(${p => p.theme.space.lg} + ${p => p.theme.space['2xl']});
   }
 
   @media (hover: none) {
