@@ -53,6 +53,19 @@ CONTEXT_FIELDS_BY_ATTRIBUTE_NAME: dict[str, dict[str, str]] = {
     },
 }
 
+USER_FIELDS_BY_ATTRIBUTE_NAME = {
+    ATTRIBUTE_NAMES.USER_ID: "id",
+    ATTRIBUTE_NAMES.USER_EMAIL: "email",
+    ATTRIBUTE_NAMES.USER_NAME: "username",
+    ATTRIBUTE_NAMES.USER_IP_ADDRESS: "ip_address",
+}
+GEO_FIELDS_BY_ATTRIBUTE_NAME = {
+    ATTRIBUTE_NAMES.USER_GEO_CITY: "city",
+    ATTRIBUTE_NAMES.USER_GEO_COUNTRY_CODE: "country_code",
+    ATTRIBUTE_NAMES.USER_GEO_REGION: "region",
+    ATTRIBUTE_NAMES.USER_GEO_SUBDIVISION: "subdivision",
+}
+
 SPAN_SENTRY_TAGS_FIELDS_BY_ATTRIBUTE_NAME = {
     ATTRIBUTE_NAMES.SENTRY_NORMALIZED_DESCRIPTION: "description",
     ATTRIBUTE_NAMES.SENTRY_ENVIRONMENT: "environment",
@@ -65,6 +78,8 @@ SPAN_SENTRY_TAGS_FIELDS_BY_ATTRIBUTE_NAME = {
 KNOWN_NON_TAG_ATTRIBUTE_PREFIXES = frozenset({"sentry.", "user.", "browser.web_vital."})
 KNOWN_NON_TAG_ATTRIBUTES = frozenset().union(
     TOP_LEVEL_FIELDS_BY_ATTRIBUTE_NAME.keys(),
+    USER_FIELDS_BY_ATTRIBUTE_NAME.keys(),
+    GEO_FIELDS_BY_ATTRIBUTE_NAME.keys(),
     SPAN_SENTRY_TAGS_FIELDS_BY_ATTRIBUTE_NAME.keys(),
     *(inner_dict.keys() for inner_dict in CONTEXT_FIELDS_BY_ATTRIBUTE_NAME.values()),
 )
@@ -172,6 +187,22 @@ def _get_event_contexts(segment_span: CompatibleSpan) -> dict[str, Any]:
     return contexts
 
 
+def _get_event_user(segment_span: CompatibleSpan) -> dict[str, Any] | None:
+    """
+    Rebuild the event's `user` entry from the `user.*` attributes on the segment span.
+    """
+    user_data = _extract_attribute_values(segment_span, USER_FIELDS_BY_ATTRIBUTE_NAME)
+    geo_data = _extract_attribute_values(segment_span, GEO_FIELDS_BY_ATTRIBUTE_NAME)
+
+    if not user_data and not geo_data:
+        return None
+
+    if geo_data:
+        user_data["geo"] = geo_data
+
+    return user_data
+
+
 def _get_detector_compatible_spans(spans: list[CompatibleSpan]) -> list[CompatibleSpan]:
     """
     Return a shallow copy of the given span list, with the fields the legacy issue detectors need
@@ -226,5 +257,9 @@ def build_shim_event_data(
     event["contexts"] = _get_event_contexts(segment_span)
     event["tags"] = _get_event_tags(segment_span)
     event["spans"] = _get_detector_compatible_spans(spans)
+
+    user_data = _get_event_user(segment_span)
+    if user_data:
+        event["user"] = user_data
 
     return event
