@@ -196,7 +196,10 @@ export const useSeerExplorer = () => {
   // Set when the last chat message or user-input response failed, so the UI can show an
   // alert until a later request succeeds. `query` is the failed chat message, if any,
   // so the draft can be restored.
-  const [requestError, setRequestError] = useState<{query?: string} | null>(null);
+  const [requestError, setRequestError] = useState<{
+    runId: SeerExplorerRunId | null;
+    query?: string;
+  } | null>(null);
   const previousPRStatesRef = useRef<Record<string, RepoPRState>>({});
 
   /**
@@ -308,7 +311,7 @@ export const useSeerExplorer = () => {
       // optimistic user/loading blocks. The UI surfaces the failure and restores the draft.
       restoreSessionData(params.orgSlug, params.runId, context?.previousData);
       setLastSentMessage(null);
-      setRequestError({query: params.query});
+      setRequestError({runId: params.runId, query: params.query});
     },
   });
 
@@ -350,7 +353,7 @@ export const useSeerExplorer = () => {
     onError: (_e, params, context) => {
       // Keep the existing conversation and pending input so the user can answer again.
       restoreSessionData(params.orgSlug, params.runId, context?.previousData);
-      setRequestError({});
+      setRequestError({runId: params.runId});
     },
   });
 
@@ -436,6 +439,19 @@ export const useSeerExplorer = () => {
     },
   });
 
+  // The error belongs to the conversation it happened in. Clear it whenever the run
+  // changes, however that happens (history, new chat, deep link, drawer open).
+  const [requestErrorRunId, setRequestErrorRunId] = useState(runId);
+  if (requestErrorRunId !== runId) {
+    setRequestErrorRunId(runId);
+    setRequestError(null);
+  }
+
+  const currentRequestError = useMemo<{query?: string} | null>(
+    () => (requestError?.runId === runId ? {query: requestError.query} : null),
+    [requestError, runId]
+  );
+
   const pollingState = runId === null ? undefined : chatStates[runId]?.polling;
   const isPolling = pollingState === 'polling' || pollingState === 'polling-with-backoff';
   const isTimedOut = pollingState === 'timed-out';
@@ -463,7 +479,6 @@ export const useSeerExplorer = () => {
       dispatch({type: 'set run id', payload: newRunId});
       setLastSentMessage(null);
       setHasSentInterrupt(false);
-      setRequestError(null);
 
       // Invalidate the query to force a fresh fetch
       if (orgSlug && newRunId !== null) {
@@ -768,7 +783,7 @@ export const useSeerExplorer = () => {
     isTimedOut,
     sendMessage,
     /** Set when the last chat message or user-input response failed, until a later request succeeds. */
-    requestError,
+    requestError: currentRequestError,
     runId,
     /** Switches to a different run and fetches its latest state. */
     switchToRun,

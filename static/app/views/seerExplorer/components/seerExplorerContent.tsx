@@ -387,6 +387,23 @@ export function SeerExplorerContent({
     !!organization?.features.includes('seer-infra-telemetry') &&
     !!organization?.features.includes('seer-infra-telemetry-user-level-auth');
 
+  // Pending-input blocks rendered at the end of the transcript. When one is showing,
+  // the request error alert sits directly above it instead of above the composer.
+  const showFileApprovalBlock =
+    !readOnly && isFileApprovalPending && fileApprovalIndex < fileApprovalTotalPatches;
+  const showQuestionBlock = !readOnly && isQuestionPending && !!currentQuestion;
+  const showReauthBlock = !readOnly && showReauth && !!reauthData;
+  const showsPendingInputBlock =
+    showFileApprovalBlock || showQuestionBlock || showReauthBlock;
+
+  const requestErrorAlert = requestError ? (
+    <Container padding="0 xl">
+      <Alert variant="danger">
+        <Text>{t('There was an error sending your message, wait and try again.')}</Text>
+      </Alert>
+    </Container>
+  ) : null;
+
   // - Topbar, menu, and slash command handlers -------------------------------
   const copySessionEnabled = runId !== null && !!organization?.slug;
   const {copySessionToClipboard} = useCopySessionDataToClipboard({
@@ -711,15 +728,14 @@ export function SeerExplorerContent({
                 respondToUserInput={respondToUserInput}
                 showThinking={showThinking}
               />
-              {!readOnly &&
-                isFileApprovalPending &&
-                fileApprovalIndex < fileApprovalTotalPatches && (
-                  <FileChangeApprovalBlock
-                    currentIndex={fileApprovalIndex}
-                    pendingInput={pendingInput}
-                  />
-                )}
-              {!readOnly && isQuestionPending && currentQuestion && (
+              {showsPendingInputBlock && requestErrorAlert}
+              {showFileApprovalBlock && (
+                <FileChangeApprovalBlock
+                  currentIndex={fileApprovalIndex}
+                  pendingInput={pendingInput}
+                />
+              )}
+              {showQuestionBlock && currentQuestion && (
                 <AskUserQuestionBlock
                   currentQuestion={currentQuestion}
                   customText={customText}
@@ -730,7 +746,7 @@ export function SeerExplorerContent({
                   selectedOption={selectedOption}
                 />
               )}
-              {!readOnly && showReauth && reauthData && (
+              {showReauthBlock && reauthData && (
                 <ReauthMonitoringProviderBlock
                   data={reauthData}
                   onComplete={handleReauthComplete}
@@ -765,15 +781,7 @@ export function SeerExplorerContent({
             </Alert>
           </Container>
         )}
-        {requestError && (
-          <Container padding="0 xl">
-            <Alert variant="danger">
-              <Text>
-                {t('There was an error sending your message, wait and try again.')}
-              </Text>
-            </Alert>
-          </Container>
-        )}
+        {!showsPendingInputBlock && requestErrorAlert}
         <InputSection
           blocks={blocks}
           enabled={!readOnly && !showLoadError}

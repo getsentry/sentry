@@ -455,6 +455,55 @@ describe('useSeerExplorer', () => {
         'First question',
       ]);
     });
+
+    it('clears the request error when switching conversations', async () => {
+      const runId = 'run-a';
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/${runId}/`,
+        method: 'GET',
+        body: {session: {blocks: [], status: 'completed'}},
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/${runId}/`,
+        method: 'POST',
+        statusCode: 500,
+        body: {detail: 'Server error'},
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/run-b/`,
+        method: 'GET',
+        body: {session: {blocks: [], status: 'completed'}},
+      });
+
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
+        additionalWrapper: SeerExplorerChatStateProvider,
+      });
+      act(() => {
+        result.current.switchToRun(runId);
+      });
+      await waitFor(() => {
+        expect(result.current.sessionData?.status).toBe('completed');
+      });
+
+      act(() => {
+        result.current.sendMessage('Will fail');
+      });
+      await waitFor(() => {
+        expect(result.current.requestError).toEqual({query: 'Will fail'});
+      });
+
+      act(() => {
+        result.current.switchToRun('run-b');
+      });
+      expect(result.current.requestError).toBeNull();
+
+      // Coming back to the original conversation does not bring the stale error back.
+      act(() => {
+        result.current.switchToRun(runId);
+      });
+      expect(result.current.requestError).toBeNull();
+    });
   });
 
   describe('switching sessions', () => {

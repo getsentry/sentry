@@ -518,6 +518,59 @@ describe('SeerExplorerContent', () => {
         screen.queryByText('Ask Seer anything about your application.')
       ).not.toBeInTheDocument();
     });
+
+    it('shows the request error above a pending question', async () => {
+      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
+        ...defaultHookReturn,
+        requestError: {},
+        sessionData: {
+          blocks: [
+            {
+              id: 'msg-1',
+              message: {role: 'user', content: 'Which project?'},
+              timestamp: '2024-01-01T00:00:00Z',
+              loading: false,
+            },
+          ],
+          status: 'awaiting_user_input',
+          pending_user_input: {
+            id: 'input-1',
+            input_type: 'ask_user_question',
+            data: {
+              questions: [
+                {
+                  question: 'Which project should we focus on?',
+                  options: [{label: 'sentry-unreal', description: 'Unreal SDK'}],
+                },
+              ],
+            },
+          },
+          updated_at: '2024-01-01T00:01:00Z',
+        },
+      });
+
+      render(
+        <PictureInPictureProvider>
+          <SeerExplorerSessionsProvider>
+            <SeerExplorerContent
+              getPageReferrer={mockGetPageReferrer}
+              onClose={() => {}}
+            />
+          </SeerExplorerSessionsProvider>
+        </PictureInPictureProvider>,
+        {
+          organization,
+        }
+      );
+
+      const question = await screen.findByText('Which project should we focus on?');
+      const alert = screen.getByText(
+        'There was an error sending your message, wait and try again.'
+      );
+      expect(
+        alert.compareDocumentPosition(question) & Node.DOCUMENT_POSITION_FOLLOWING
+      ).toBeTruthy();
+    });
   });
 
   describe('Input Handling', () => {
