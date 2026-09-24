@@ -7,6 +7,7 @@ import {Alert} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Container, Grid, Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {BrandPageLayout} from 'sentry/components/brandPageLayout';
@@ -340,6 +341,13 @@ export default function AuthLogin() {
                         onAuthResult={handleAuthResult}
                       />
                     </Fragment>
+                  )}
+                  {loginConfig?.canRegister && (
+                    <Text as="div" align="center" size="sm">
+                      {tct('New to Sentry? [register:Create an account]', {
+                        register: <Link to="/auth/register/" />,
+                      })}
+                    </Text>
                   )}
                 </Fragment>
               )}
