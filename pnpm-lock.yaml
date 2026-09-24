@@ -723,6 +723,30 @@ importers:
         specifier: ^0.7.0
         version: 0.7.0
 
+  packages/scraps:
+    dependencies:
+      '@emotion/is-prop-valid':
+        specifier: 1.4.0
+        version: 1.4.0
+      '@emotion/react':
+        specifier: ^11.14.0
+        version: 11.14.0(@types/react@19.2.1)(react@19.2.3)
+      '@emotion/styled':
+        specifier: 11.14.0
+        version: 11.14.0(@emotion/react@11.14.0(@types/react@19.2.1)(react@19.2.3))(@types/react@19.2.1)(react@19.2.3)
+      '@react-aria/utils':
+        specifier: 3.34.1
+        version: 3.34.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      '@types/react':
+        specifier: ^19.0.0
+        version: 19.2.1
+      react:
+        specifier: ^19.0.0
+        version: 19.2.3
+      react-dom:
+        specifier: ^19.0.0
+        version: 19.2.3(react@19.2.3)
+
   static/oxlint/eslintPluginScraps:
     dependencies:
       '@oxlint/plugins':

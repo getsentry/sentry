@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "jsx": "react-jsx",
+    "jsxImportSource": "@emotion/react",
+    "strict": true,
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "rootDir": ".generated/src",
+    "outDir": "dist",
+    "skipLibCheck": true,
+    "types": [],
+    "paths": {"@sentry/scraps/*": ["./.generated/src/*"]}
+  },
+  "include": [".generated/src"]
+}

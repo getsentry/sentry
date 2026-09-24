@@ -1,0 +1,25 @@
+minVersion: '2.20.0'
+releaseBranchPrefix: scraps-releases
+preReleaseCommand: npm version --no-git-tag-version --allow-same-version --ignore-scripts "$CRAFT_NEW_VERSION"
+postReleaseCommand: ''
+changelog:
+  filePath: CHANGELOG.md
+  policy: simple
+statusProvider:
+  name: github
+  config:
+    contexts:
+      - scraps-package-verify
+artifactProvider:
+  name: github
+  config:
+    artifacts:
+      Scraps package:
+        - scraps-tarball
+targets:
+  - name: github
+    tagPrefix: scraps-v
+  - name: npm
+    access: public
+versioning:
+  policy: manual
