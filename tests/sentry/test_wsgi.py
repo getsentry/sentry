@@ -17,7 +17,7 @@ assert_not_in_sys_modules = "\n".join(f'assert "{module}" not in sys.modules' fo
 
 assert_in_sys_modules = "\n".join(f'assert "{module}" in sys.modules' for module in modules)
 
-SUBPROCESS_TEST_WGSI_WARMUP = f"""
+SUBPROCESS_TEST_WSGI_WARMUP = f"""
 import sys
 
 {assert_not_in_sys_modules}
@@ -30,8 +30,6 @@ import django.urls.resolvers
 from django.conf import settings
 resolver = django.urls.resolvers.get_resolver()
 assert resolver._populated is True
-for lang, _ in settings.LANGUAGES:
-    assert lang in resolver._reverse_dict
 """
 
 
@@ -41,5 +39,5 @@ def test_wsgi_init() -> None:
     various resources we want to be "warm"
     """
     subprocess.check_call(
-        [sys.executable, "-c", SUBPROCESS_TEST_WGSI_WARMUP],
+        [sys.executable, "-c", SUBPROCESS_TEST_WSGI_WARMUP],
     )

@@ -1,3 +1,5 @@
+import type {Ref} from 'react';
+
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
@@ -9,6 +11,11 @@ import {t} from 'sentry/locale';
 import type {RowVisualState} from './types';
 
 interface RowActionsProps {
+  /**
+   * The first control of each state. The row moves focus here when a state
+   * change unmounts the control that was activated.
+   */
+  focusRef: Ref<HTMLButtonElement>;
   onCancelRemoving: () => void;
   onChooseDestination: () => void;
   onConfirmRemove: () => void;
@@ -22,6 +29,7 @@ interface RowActionsProps {
 export function RowActions({
   visualState,
   resolvedProvider,
+  focusRef,
   onConnect,
   onChooseDestination,
   onEditDestination,
@@ -31,7 +39,13 @@ export function RowActions({
 }: RowActionsProps) {
   if (visualState === 'loading' || visualState === 'installing') {
     return (
-      <Flex justify="center" align="center" style={{minWidth: 88}}>
+      <Flex
+        justify="center"
+        align="center"
+        style={{minWidth: 88}}
+        role="status"
+        aria-label={t('Connecting %s', resolvedProvider.provider.name)}
+      >
         <LoadingIndicator mini style={{margin: 0}} />
       </Flex>
     );
@@ -40,6 +54,7 @@ export function RowActions({
   if (visualState === 'installable') {
     return (
       <Button
+        ref={focusRef}
         size="sm"
         icon={<IconAdd size="xs" />}
         onClick={onConnect}
@@ -73,6 +88,7 @@ export function RowActions({
   if (visualState === 'choose-destination') {
     return (
       <Button
+        ref={focusRef}
         size="sm"
         icon={<IconAdd size="xs" />}
         onClick={onChooseDestination}
@@ -86,10 +102,21 @@ export function RowActions({
   if (visualState === 'configured') {
     return (
       <Flex gap="xl">
-        <Button size="sm" variant="link" onClick={onEditDestination}>
+        <Button
+          ref={focusRef}
+          size="sm"
+          variant="link"
+          onClick={onEditDestination}
+          aria-label={t('Edit %s destination', resolvedProvider.provider.name)}
+        >
           {t('Edit')}
         </Button>
-        <Button size="sm" variant="link" onClick={onStartRemoving}>
+        <Button
+          size="sm"
+          variant="link"
+          onClick={onStartRemoving}
+          aria-label={t('Remove %s destination', resolvedProvider.provider.name)}
+        >
           {t('Remove')}
         </Button>
       </Flex>
@@ -99,7 +126,7 @@ export function RowActions({
   if (visualState === 'removing') {
     return (
       <Flex gap="xl">
-        <Button size="sm" variant="link" onClick={onCancelRemoving}>
+        <Button ref={focusRef} size="sm" variant="link" onClick={onCancelRemoving}>
           {t('Cancel')}
         </Button>
         <Button size="sm" variant="danger" onClick={onConfirmRemove}>

@@ -137,11 +137,11 @@ class ContainerBlock(TypedDict):
 
 class InputChoice(TypedDict):
     title: str
-    value: object
+    value: str
 
 
 class _InputChoiceSetBlockNotRequired(TypedDict, total=False):
-    value: object
+    value: str
 
 
 class InputChoiceSetBlock(_InputChoiceSetBlockNotRequired):
@@ -240,7 +240,7 @@ def create_container_block(*items: Block) -> ContainerBlock:
 
 
 def create_input_choice_set_block(
-    id: str, choices: Sequence[tuple[str, object]], default_choice: object
+    id: str, choices: Sequence[tuple[str, str]], default_choice: str | None
 ) -> InputChoiceSetBlock:
     default_choice_arg: _InputChoiceSetBlockNotRequired
     default_choice_arg = {"value": default_choice} if default_choice else {}

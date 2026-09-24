@@ -21,6 +21,7 @@ from slack_sdk.models.blocks import (
     SectionBlock,
 )
 
+from sentry.notifications.platform.registry import renderer_registry
 from sentry.notifications.platform.renderer import NotificationRenderer
 from sentry.notifications.platform.slack.provider import SlackRenderable
 from sentry.notifications.platform.templates.seer import (
@@ -32,7 +33,9 @@ from sentry.notifications.platform.templates.seer import (
 )
 from sentry.notifications.platform.types import (
     NotificationData,
+    NotificationProviderKey,
     NotificationRenderedTemplate,
+    NotificationSource,
 )
 from sentry.seer.autofix.utils import AutofixStoppingPoint, CodingAgentProviderType
 
@@ -85,6 +88,17 @@ AUTOFIX_CONFIG: dict[AutofixStoppingPoint, AutofixStageConfig] = {
 }
 
 
+@renderer_registry.register(
+    NotificationProviderKey.SLACK,
+    sources=[
+        NotificationSource.SEER_AUTOFIX_TRIGGER,
+        NotificationSource.SEER_AUTOFIX_ERROR,
+        NotificationSource.SEER_AUTOFIX_SUCCESS,
+        NotificationSource.SEER_AUTOFIX_UPDATE,
+        NotificationSource.SEER_AGENT_RESPONSE,
+        NotificationSource.SEER_AGENT_ERROR,
+    ],
+)
 class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
     @classmethod
     def render[DataT: NotificationData](

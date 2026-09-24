@@ -862,7 +862,7 @@ describe('SpansTabContent', () => {
       ).toBeInTheDocument();
       expect(
         screen.getByRole('button', {name: 'Add a cross event query'})
-      ).toBeDisabled();
+      ).toHaveAttribute('aria-disabled', 'true');
     });
 
     it('adds and removes an empty cross event search bar without refetching results', async () => {

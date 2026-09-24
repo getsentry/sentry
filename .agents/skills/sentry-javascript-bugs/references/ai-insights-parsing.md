@@ -20,7 +20,7 @@ AI Insights parsing errors account for 2 issues and 3,005 events, but this clust
 **Stacktrace:**
 
 ```
-./app/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiInput.tsx
+./app/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiInput.tsx
   parseAIMessages
     -> JSON.parse(messages)
 
@@ -50,7 +50,7 @@ function parseAIMessages(raw: string): AIMessage[] {
 **Stacktrace:**
 
 ```
-./app/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiInput.tsx
+./app/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiInput.tsx
   transformPartsMessages
     -> JSON.parse(message)
 

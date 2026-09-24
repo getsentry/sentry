@@ -63,6 +63,16 @@ class ProjectCodeOwnersDetailsEndpointTestCase(APITestCase):
         assert response.status_code == 204
         assert not ProjectCodeOwners.objects.filter(id=str(self.codeowners.id)).exists()
 
+    def test_basic_get(self) -> None:
+        with self.feature({"organizations:integrations-codeowners": True}):
+            response = self.client.get(self.url)
+
+        assert response.status_code == 200
+        assert response.data["id"] == str(self.codeowners.id)
+        assert response.data["raw"] == self.codeowners.raw
+        assert response.data["codeMappingId"] == str(self.code_mapping.id)
+        assert response.data["codeOwnersUrl"] == "https://github.com/test/CODEOWNERS"
+
     @freeze_time("2023-10-03 00:00:00")
     def test_basic_update(self) -> None:
         self.create_external_team(external_name="@getsentry/frontend", integration=self.integration)

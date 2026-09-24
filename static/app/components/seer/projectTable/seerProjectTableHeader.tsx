@@ -75,6 +75,20 @@ const COLUMNS = [
     key: 'automation_steps',
     sortKey: 'stoppingPoint',
   },
+  {
+    title: (
+      <Flex gap="sm" align="center">
+        {t('Auto-Iterate on PRs')}
+        <InfoTip
+          title={t(
+            'After opening a PR, Seer automatically pushes fixes when CI checks fail. You can still ask Seer to iterate on a PR yourself.'
+          )}
+        />
+      </Flex>
+    ),
+    key: 'pr_iteration',
+    sortKey: undefined,
+  },
 ];
 
 export function ProjectTableHeader({mutableSearch, onSortClick, settings, sort}: Props) {

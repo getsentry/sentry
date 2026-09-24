@@ -150,7 +150,7 @@ class OrganizationOpenPeriodsTest(APITestCase):
         self.group.status = GroupStatus.RESOLVED
         self.group.save()
         resolved_time = timezone.now()
-        activity = Activity.objects.create(
+        Activity.objects.create(
             group=self.group,
             project=self.group.project,
             type=ActivityType.SET_RESOLVED.value,
@@ -160,7 +160,6 @@ class OrganizationOpenPeriodsTest(APITestCase):
             group=self.group,
             new_status=GroupStatus.RESOLVED,
             resolution_time=resolved_time,
-            resolution_activity=activity,
         )
 
         response = self.get_success_response(
@@ -201,7 +200,7 @@ class OrganizationOpenPeriodsTest(APITestCase):
         self.group_open_period.date_started = timezone.now() - timedelta(minutes=10)
         self.group_open_period.save()
         resolved_time = timezone.now() - timedelta(minutes=9)
-        resolve_activity = Activity.objects.create(
+        Activity.objects.create(
             group=self.group,
             project=self.group.project,
             type=ActivityType.SET_RESOLVED.value,
@@ -211,7 +210,6 @@ class OrganizationOpenPeriodsTest(APITestCase):
             group=self.group,
             new_status=GroupStatus.RESOLVED,
             resolution_time=resolved_time,
-            resolution_activity=resolve_activity,
         )
         open_period = GroupOpenPeriod.objects.get(group=self.group, date_ended=resolved_time)
         closed_gopa = GroupOpenPeriodActivity.objects.get(
@@ -232,7 +230,7 @@ class OrganizationOpenPeriodsTest(APITestCase):
         self.group.status = GroupStatus.RESOLVED
         self.group.save()
         second_resolved_time = timezone.now() - timedelta(minutes=7)
-        second_resolve_activity = Activity.objects.create(
+        Activity.objects.create(
             group=self.group,
             project=self.group.project,
             type=ActivityType.SET_RESOLVED.value,
@@ -242,7 +240,6 @@ class OrganizationOpenPeriodsTest(APITestCase):
             group=self.group,
             new_status=GroupStatus.RESOLVED,
             resolution_time=second_resolved_time,
-            resolution_activity=second_resolve_activity,
         )
         open_period2 = GroupOpenPeriod.objects.get(
             group=self.group, date_ended=second_resolved_time
@@ -310,7 +307,7 @@ class OrganizationOpenPeriodsTest(APITestCase):
         self.group_open_period.date_started = timezone.now() - timedelta(minutes=10)
         self.group_open_period.save()
         resolved_time = timezone.now() - timedelta(minutes=5)
-        resolve_activity = Activity.objects.create(
+        Activity.objects.create(
             group=self.group,
             project=self.group.project,
             type=ActivityType.SET_RESOLVED.value,
@@ -320,7 +317,6 @@ class OrganizationOpenPeriodsTest(APITestCase):
             group=self.group,
             new_status=GroupStatus.RESOLVED,
             resolution_time=resolved_time,
-            resolution_activity=resolve_activity,
         )
 
         unresolved_time = timezone.now()
@@ -337,7 +333,7 @@ class OrganizationOpenPeriodsTest(APITestCase):
         second_resolved_time = timezone.now()
         self.group.status = GroupStatus.RESOLVED
         self.group.save()
-        second_resolve_activity = Activity.objects.create(
+        Activity.objects.create(
             group=self.group,
             project=self.group.project,
             type=ActivityType.SET_RESOLVED.value,
@@ -347,7 +343,6 @@ class OrganizationOpenPeriodsTest(APITestCase):
             group=self.group,
             new_status=GroupStatus.RESOLVED,
             resolution_time=second_resolved_time,
-            resolution_activity=second_resolve_activity,
         )
         open_period = GroupOpenPeriod.objects.get(group=self.group, date_ended=second_resolved_time)
 

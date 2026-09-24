@@ -1,4 +1,4 @@
-import type {Replayer} from '@sentry-internal/rrweb';
+import type {Replayer} from '@sentry/rrweb';
 
 const DEFAULT_HIGHLIGHT_COLOR = 'rgba(168, 196, 236, 0.75)';
 

@@ -13,6 +13,7 @@ from sentry.debug_files.objectstore_migration.utils import (
     PostMigrationMetadata,
     commit,
 )
+from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.files.file import File
 from sentry.testutils.cases import TestCase
 from sentry.testutils.skips import requires_objectstore
@@ -112,6 +113,32 @@ class DebugFileObjectstoreMigrationUtilsTest(TestCase):
 
         self.debug_file.refresh_from_db()
         assert self.debug_file.file_id is not None
+
+    def test_missing_project_is_skipped_by_default(self) -> None:
+        debug_file_id = self.debug_file.id
+        file_id = self.debug_file.file_id
+        assert file_id is not None
+        self.debug_file.project_id = 999999999
+        self.debug_file.save(update_fields=["project_id"])
+
+        with self.captureOnCommitCallbacks(execute=True):
+            migrate_debug_file(self.debug_file)
+
+        assert ProjectDebugFile.objects.filter(id=debug_file_id).exists()
+        assert File.objects.filter(id=file_id).exists()
+
+    def test_missing_project_is_deleted_in_delete_corrupt_mode(self) -> None:
+        debug_file_id = self.debug_file.id
+        file_id = self.debug_file.file_id
+        assert file_id is not None
+        self.debug_file.project_id = 999999999
+        self.debug_file.save(update_fields=["project_id"])
+
+        with self.captureOnCommitCallbacks(execute=True):
+            migrate_debug_file(self.debug_file, delete_corrupt=True)
+
+        assert not ProjectDebugFile.objects.filter(id=debug_file_id).exists()
+        assert not File.objects.filter(id=file_id).exists()
 
     def test_commit_noops_when_row_changed(self) -> None:
         metadata = PostMigrationMetadata(

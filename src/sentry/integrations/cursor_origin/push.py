@@ -9,10 +9,12 @@ from django.utils import timezone
 
 from sentry import options
 from sentry.constants import ObjectStatus
+from sentry.integrations.cursor_origin.authors import get_or_create_commit_author
 from sentry.integrations.cursor_origin.client import CursorOriginApiClient
 from sentry.integrations.cursor_origin.handlers import WebhookEventHandler
 from sentry.integrations.cursor_origin.repository import (
     MAX_COMPARE_COMMITS_OPTION_KEY,
+    active_repositories,
     file_changes_from,
 )
 from sentry.integrations.cursor_origin.webhook_types import PushedCommit, PushEvent, RefUpdate
@@ -20,10 +22,8 @@ from sentry.integrations.services.integration.model import (
     RpcIntegration,
     RpcOrganizationIntegration,
 )
-from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import IntegrationWebhookEventType
 from sentry.models.commit import Commit
-from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange, post_bulk_create
 from sentry.models.repository import Repository
 from sentry.plugins.providers.integration_repository import IntegrationRepositoryProvider
@@ -32,8 +32,6 @@ from sentry.utils import metrics
 logger = logging.getLogger("sentry.integrations.cursor_origin")
 
 EMPTY_SHA = "0" * 40
-
-MAX_AUTHOR_EMAIL_LENGTH = 75
 
 
 class RepositoryPushedHandler(WebhookEventHandler):
@@ -63,12 +61,7 @@ class RepositoryPushedHandler(WebhookEventHandler):
             )
             return
 
-        repositories = Repository.objects.filter(
-            organization_id__in=[oi.organization_id for oi in org_integrations],
-            provider=f"integrations:{IntegrationProviderSlug.CURSOR_ORIGIN.value}",
-            external_id=push.repository_id,
-            status=ObjectStatus.ACTIVE,
-        )
+        repositories = active_repositories(push.repository_id, org_integrations)
         if not repositories:
             logger.info(
                 "cursor_origin.push.unknown_repository",
@@ -160,7 +153,9 @@ class RepositoryPushedHandler(WebhookEventHandler):
         if Commit.objects.filter(repository_id=repo.id, key=commit.sha).exists():
             return
 
-        author = self._author(repo, commit)
+        author = get_or_create_commit_author(
+            repo.organization_id, commit.author_email, commit.author_name
+        )
         changes = file_changes_from(client.get_commit_files(repo.config["name"], commit.sha))
 
         with transaction.atomic(router.db_for_write(Commit)):
@@ -189,14 +184,3 @@ class RepositoryPushedHandler(WebhookEventHandler):
             if rows:
                 CommitFileChange.objects.bulk_create(rows, ignore_conflicts=True)
                 post_bulk_create(rows)
-
-    def _author(self, repo: Repository, commit: PushedCommit) -> CommitAuthor | None:
-        if not commit.author_email or len(commit.author_email) > MAX_AUTHOR_EMAIL_LENGTH:
-            return None
-
-        commit_author, _ = CommitAuthor.objects.get_or_create(
-            organization_id=repo.organization_id,
-            email=commit.author_email,
-            defaults={"name": commit.author_name[:128]},
-        )
-        return commit_author

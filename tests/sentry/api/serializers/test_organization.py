@@ -24,11 +24,20 @@ from sentry.models.organizationonboardingtask import (
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.replays.models import OrganizationMemberReplayAccess
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers import with_feature
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
 
-non_default_owner_scopes = ["org:ci", "openid", "email", "profile", "project:distribution"]
+granular_scopes = ["dashboard:read", "dashboard:write", "dashboard:delete"]
+non_default_owner_scopes = [
+    "org:ci",
+    "openid",
+    "email",
+    "profile",
+    "project:distribution",
+    *granular_scopes,
+]
 default_owner_scopes = frozenset(
     filter(lambda scope: scope not in non_default_owner_scopes, settings.SENTRY_SCOPES)
 )
@@ -115,6 +124,19 @@ class OrganizationSerializerTest(TestCase):
         assert isinstance(result["orgRoleList"], list)
         assert isinstance(result["teamRoleList"], list)
         assert result["requiresSso"] == acc.requires_sso
+
+    @with_feature("organizations:granular-permission-scopes")
+    def test_detailed_with_granular_permission_scopes(self) -> None:
+        user = self.create_user()
+        organization = self.create_organization(owner=user)
+        acc = access.from_user(user, organization)
+
+        serializer = OrganizationSerializer()
+        result = serialize(organization, user, serializer, access=acc)
+
+        assert result["access"] == default_owner_scopes | set(granular_scopes)
+        for role in result["orgRoleList"]:
+            assert set(granular_scopes) <= role["scopes"]
 
     def test_granular_replay_permissions_without_option(self) -> None:
         user = self.create_user()

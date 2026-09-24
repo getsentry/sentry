@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import bisect
 import functools
 import re
 from collections.abc import Callable, Generator, Mapping, Sequence
@@ -7,10 +8,11 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Literal, NamedTuple, TypeIs, overload
 
+import re2
 from django.utils.functional import cached_property
 from parsimonious.exceptions import IncompleteParseError
 from parsimonious.grammar import Grammar
-from parsimonious.nodes import Node, NodeVisitor
+from parsimonious.nodes import Node, NodeVisitor, RegexNode
 
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.search.events.constants import (
@@ -79,6 +81,7 @@ filter = date_filter
        / has_in_filter
        / has_filter
        / is_filter
+       / regex_filter
        / array_includes_filter
        / text_in_filter
        / text_filter
@@ -187,6 +190,14 @@ array_includes_attr_key = (key/ quoted_key) array_includes_suffix
 array_includes_key = array_includes_attr_key / array_includes_tag_key
 array_includes_filter = negation? array_includes_key sep wildcard_op? operator? search_value
 
+# key://pattern// runs to the first `//` that ends the value, so patterns can hold spaces and
+# parens unquoted. A quoted "//...//" stays a literal. There's no IN-list form, since `a|b`
+# already covers it. The scan cap only keeps a query full of unclosed `key://` values from
+# rescanning the rest of the line at every one of them; SearchVisitor enforces the real
+# MAX_REGEX_PATTERN_LENGTH, including for patterns too long to scan.
+regex_filter = negation? (array_includes_key / text_key) sep regex_value
+regex_value  = ~r"//(?!//(?:[\t\n )]|$))([^\n]{1,1024}?)//(?=[\t\n )]|$)"
+
 # NOTE: These wildcard operators are internal implementation details and
 # should not be included in product docs. Users should use `*` instead.
 wildcard_op            = wildcard_unicode (contains / starts_with / ends_with) wildcard_unicode
@@ -239,6 +250,18 @@ spaces               = " "*
 end_value = ~r"[\t\n )]|$"
 """
 )
+
+MAX_REGEX_PATTERN_LENGTH = 64
+
+# A newline ends the line a pattern can span, so it's tracked alongside closing delimiters
+REGEX_CLOSING_DELIMITER_OR_NEWLINE = re.compile(r"\n|//(?=[\t\n )]|\Z)")
+
+
+def regex_pattern_too_long_error(key: str) -> InvalidSearchQuery:
+    return InvalidSearchQuery(
+        f"{key}: Regex patterns are limited to {MAX_REGEX_PATTERN_LENGTH} characters. "
+        'To search for a literal value that starts with //, quote it: "//..."'
+    )
 
 
 def translate_wildcard(pat: str) -> str:
@@ -418,6 +441,21 @@ def get_wildcard_op(node: Node | Sequence[Node]) -> str:
     return ""
 
 
+_re2_options = re2.Options()
+_re2_options.log_errors = False
+
+
+def validate_regex_pattern(key: str, pattern: str) -> None:
+    # ClickHouse matches with RE2, which rejects syntax Python's `re` accepts (lookaround,
+    # backreferences) and accepts syntax it rejects (`\pL`, `\z`), so only RE2 can vouch for a
+    # pattern before it reaches ClickHouse
+    try:
+        re2.compile(pattern, _re2_options)
+    except re2.error as exc:
+        detail = exc.args[0].decode() if isinstance(exc.args[0], bytes) else str(exc.args[0])
+        raise InvalidSearchQuery(f"{key}: Invalid regex (RE2 syntax): {detail}")
+
+
 def add_leading_wildcard(value: str) -> str:
     if value.startswith('"') and value.endswith('"'):
         return f"*{value[1:-1]}"
@@ -526,6 +564,7 @@ class SearchValue(NamedTuple):
     raw_value: str | float | datetime | Sequence[float] | Sequence[str]
     # Used for top events where we don't want to modify the raw value at all
     use_raw_value: bool = False
+    is_regex: bool = False
 
     @property
     def value(self) -> Any:
@@ -665,6 +704,9 @@ class SearchFilter(NamedTuple):
         return f"{self.key.name}{self.operator}{self.value.raw_value}"
 
     def to_query_string(self) -> str:
+        if self.value.is_regex:
+            negation = "!" if self.operator == "!=" else ""
+            return f"{negation}{self.key.name}://{self.value.raw_value}//"
         if self.operator == "IN":
             return f"{self.key.name}:{self.value.to_query_string()}"
         elif self.operator == "NOT IN":
@@ -752,6 +794,10 @@ class SearchConfig[TAllowBoolean: (Literal[True], Literal[False]) = Literal[True
     # Whether to wrap free_text_keys in asterisks
     wildcard_free_text: bool = False
 
+    # Only the logs resolver compiles key://pattern// values, so other searches read them as the
+    # literals they have always been
+    allow_regex: bool = False
+
     # Disallow the use of the !has filter
     allow_not_has_filter: bool = True
 
@@ -810,6 +856,7 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
         super().__init__()
 
         self.config = config
+        self._regex_closing_or_newline_offsets: list[int] | None = None
 
         if TYPE_CHECKING:
             from sentry.search.events.builder.discover import UnresolvedQuery
@@ -1467,6 +1514,7 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
         ],
     ) -> SearchFilter:
         (negation, search_key, _sep, wildcard_op, operator, search_value) = children
+        self._raise_if_regex_pattern_is_too_long_to_scan(node, search_key)
         operator_s = get_operator_value(operator)
 
         # XXX: We check whether the text in the node itself is actually empty, so
@@ -1489,6 +1537,59 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
             search_value = search_value._replace(raw_value=wildcarded_value)
 
         return self._handle_basic_filter(search_key, operator_s, search_value)
+
+    def visit_regex_filter(
+        self,
+        node: Node,
+        children: tuple[
+            Node | tuple[Node],  # ! if present
+            tuple[SearchKey],
+            Node,  # :
+            str,  # pattern
+        ],
+    ) -> SearchFilter:
+        (negation, (search_key,), _sep, pattern) = children
+        operator = handle_negation(negation, "=")
+        if not self.config.allow_regex:
+            literal = self.visit_value(node.children[3], [])
+            return self._handle_basic_filter(search_key, operator, SearchValue(literal))
+
+        if len(pattern) > MAX_REGEX_PATTERN_LENGTH:
+            raise regex_pattern_too_long_error(search_key.name)
+        validate_regex_pattern(search_key.name, pattern)
+        # Escape sequences and `*` mean something to the regex engine, so the pattern skips
+        # wildcard and escape translation
+        return SearchFilter(
+            search_key, operator, SearchValue(pattern, use_raw_value=True, is_regex=True)
+        )
+
+    def visit_regex_value(self, node: RegexNode, children: object) -> str:
+        return node.match.group(1)
+
+    def _raise_if_regex_pattern_is_too_long_to_scan(
+        self, node: Node, search_key: SearchKey
+    ) -> None:
+        """A pattern longer than regex_value's scan cap lands in a text filter instead. It shows
+        up there as an unquoted `//` value, with no operator, whose closing `//` sits further
+        along the same line."""
+        wildcard_op, operator, value = node.children[3:6]
+        if (
+            not self.config.allow_regex
+            or wildcard_op.text
+            or operator.text
+            or not value.text.startswith("//")
+        ):
+            return
+
+        text = node.full_text
+        if self._regex_closing_or_newline_offsets is None:
+            self._regex_closing_or_newline_offsets = [
+                match.start() for match in REGEX_CLOSING_DELIMITER_OR_NEWLINE.finditer(text)
+            ]
+        offsets = self._regex_closing_or_newline_offsets
+        index = bisect.bisect_left(offsets, value.start + 3)
+        if index < len(offsets) and text[offsets[index]] == "/":
+            raise regex_pattern_too_long_error(search_key.name)
 
     # --- End of filter visitors
 
@@ -1936,6 +2037,7 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
         ],
     ) -> SearchFilter:
         (negation, search_key, _, wildcard_op, operator, search_value) = children
+        self._raise_if_regex_pattern_is_too_long_to_scan(node, search_key)
         operator_s = get_operator_value(operator)
         if not search_value.raw_value:
             raise InvalidSearchQuery(f"Empty value for {search_key.name}[*]")
