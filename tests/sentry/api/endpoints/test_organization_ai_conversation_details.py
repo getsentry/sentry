@@ -9,6 +9,7 @@ from urllib3.exceptions import ReadTimeoutError
 from sentry.ai_monitoring.endpoints.organization_ai_conversation_details import (
     PARENT_SPAN_ATTRIBUTES,
     OrganizationAIConversationDetailsEndpoint,
+    _parse_grouped_stats,
 )
 from sentry.issues.grouptype import PerformanceFileIOMainThreadGroupType
 from sentry.issues.ingest import save_issue_occurrence
@@ -20,6 +21,25 @@ from sentry.utils.samples import load_data
 from sentry.utils.snuba_rpc import SnubaRPCTimeout
 
 from .test_organization_ai_conversations_base import BaseAIConversationsTestCase
+
+
+def test_parse_grouped_stats_marks_incomplete_token_data() -> None:
+    stats = _parse_grouped_stats(
+        [
+            {
+                "gen_ai.response.model": "model-a",
+                "llm_calls": 1,
+                "input_tokens": 100,
+                "output_tokens": 0,
+                "total_tokens": 150,
+                "input_token_spans": 1,
+                "output_token_spans": 0,
+            }
+        ]
+    )
+
+    assert stats["usageByModel"][0]["inputTokens"] == 100
+    assert stats["usageByModel"][0]["outputTokens"] is None
 
 
 def test_parent_fetch_groups_span_ids_by_trace() -> None:
@@ -959,7 +979,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         assert ai_client_span["gen_ai.usage.total_tokens"] == 100
         assert ai_client_span["gen_ai.cost.total_tokens"] == 0.01
 
-    def test_returns_full_conversation_aggregates_on_each_page(self) -> None:
+    def test_returns_full_conversation_stats_on_each_page(self) -> None:
         now = before_now(days=5).replace(microsecond=0)
         conversation_id = uuid4().hex
         trace_id = uuid4().hex
@@ -1017,7 +1037,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
 
         assert response.status_code == 200
         assert len(response.data["spans"]) == 1
-        expected_aggregates = {
+        expected_stats = {
             "endTimestamp": int(now.timestamp() * 1000),
             "inputTokens": 190,
             "llmCalls": 2,
@@ -1029,8 +1049,9 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
             "totalCost": 0.03,
             "totalTokens": 300,
         }
-        assert {field: response.data[field] for field in expected_aggregates} == expected_aggregates
-        assert response.data["generationDuration"] > 0
+        stats = response.data["stats"]
+        assert {field: stats[field] for field in expected_stats} == expected_stats
+        assert stats["generationDuration"] > 0
         expected_usage_by_model = [
             {
                 "model": "model-b",
@@ -1043,7 +1064,6 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
                 "inputCost": 0.012,
                 "outputCost": 0.008,
                 "totalCost": 0.02,
-                "hasCompleteTokenData": True,
             },
             {
                 "model": "model-a",
@@ -1056,20 +1076,18 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
                 "inputCost": 0.006,
                 "outputCost": 0.004,
                 "totalCost": 0.01,
-                "hasCompleteTokenData": True,
             },
         ]
-        assert response.data["usageByModel"] == expected_usage_by_model
+        assert stats["usageByModel"] == expected_usage_by_model
 
         links = parse_link_header(response.headers["Link"])
         query["cursor"] = next(link for link in links.values() if link["rel"] == "next")["cursor"]
         next_response = self.do_request(conversation_id, query)
 
         assert next_response.status_code == 200
-        assert {
-            field: next_response.data[field] for field in expected_aggregates
-        } == expected_aggregates
-        assert next_response.data["usageByModel"] == expected_usage_by_model
+        next_stats = next_response.data["stats"]
+        assert {field: next_stats[field] for field in expected_stats} == expected_stats
+        assert next_stats["usageByModel"] == expected_usage_by_model
 
     def test_timeout_returns_504(self) -> None:
         conversation_id = uuid4().hex
@@ -1307,21 +1325,10 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         assert response.status_code == 200
         assert set(response.data) == {
             "conversationId",
-            "endTimestamp",
-            "generationDuration",
-            "inputTokens",
-            "llmCalls",
-            "usageByModel",
-            "outputTokens",
             "projects",
             "spans",
-            "startTimestamp",
+            "stats",
             "title",
-            "toolCalls",
-            "toolErrors",
-            "toolNames",
-            "totalCost",
-            "totalTokens",
             "webUrl",
         }
         assert response.data["conversationId"] == conversation_id

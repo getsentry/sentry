@@ -155,8 +155,8 @@ AI_CONVERSATION_ATTRIBUTES = [
 
 class AIConversationModelUsage(TypedDict):
     model: str | None
-    inputTokens: int
-    outputTokens: int
+    inputTokens: int | None
+    outputTokens: int | None
     totalTokens: int
     cacheReadTokens: int
     cacheWriteTokens: int
@@ -164,17 +164,19 @@ class AIConversationModelUsage(TypedDict):
     inputCost: float
     outputCost: float
     totalCost: float
-    hasCompleteTokenData: bool
+
+
+class AIConversationStats(AIConversationAggregates):
+    usageByModel: list[AIConversationModelUsage]
 
 
 class AIConversationQueryResult(TypedDict):
     # GenericOffsetPaginator requires the paginated list under this key.
     data: list[SpanRow]
-    conversationAggregates: AIConversationAggregates
-    usageByModel: list[AIConversationModelUsage]
+    stats: AIConversationStats
 
 
-class AIConversationDetailsResponse(AIConversationAggregates):
+class AIConversationDetailsResponse(TypedDict):
     """Span page plus conversation-level metadata."""
 
     conversationId: str
@@ -182,7 +184,7 @@ class AIConversationDetailsResponse(AIConversationAggregates):
     projects: list[ConversationProject]
     webUrl: str
     spans: list[dict[str, Any]]
-    usageByModel: list[AIConversationModelUsage]
+    stats: AIConversationStats
 
 
 def _model_name(row: Mapping[str, Any]) -> str | None:
@@ -193,9 +195,7 @@ def _model_name(row: Mapping[str, Any]) -> str | None:
     return None
 
 
-def _parse_grouped_aggregates(
-    rows: Sequence[Mapping[str, Any]],
-) -> tuple[AIConversationAggregates, list[AIConversationModelUsage]]:
+def _parse_grouped_stats(rows: Sequence[Mapping[str, Any]]) -> AIConversationStats:
     aggregates = parse_conversation_aggregates({})
     tool_names: set[str] = set()
     usage_by_model: dict[str | None, AIConversationModelUsage] = {}
@@ -235,11 +235,22 @@ def _parse_grouped_aggregates(
                 "inputCost": 0,
                 "outputCost": 0,
                 "totalCost": 0,
-                "hasCompleteTokenData": True,
             },
         )
-        usage["inputTokens"] += row_aggregates["inputTokens"]
-        usage["outputTokens"] += row_aggregates["outputTokens"]
+        input_tokens = usage["inputTokens"]
+        usage["inputTokens"] = (
+            input_tokens + row_aggregates["inputTokens"]
+            if input_tokens is not None
+            and int(row.get("input_token_spans") or 0) == row_aggregates["llmCalls"]
+            else None
+        )
+        output_tokens = usage["outputTokens"]
+        usage["outputTokens"] = (
+            output_tokens + row_aggregates["outputTokens"]
+            if output_tokens is not None
+            and int(row.get("output_token_spans") or 0) == row_aggregates["llmCalls"]
+            else None
+        )
         usage["totalTokens"] += row_aggregates["totalTokens"]
         usage["cacheReadTokens"] += int(row.get("cache_read_tokens") or 0) + int(
             row.get("legacy_cache_read_tokens") or 0
@@ -254,18 +265,12 @@ def _parse_grouped_aggregates(
         usage["outputCost"] += float(row.get("output_cost") or 0)
         usage["totalCost"] += row_aggregates["totalCost"]
 
-        usage["hasCompleteTokenData"] &= (
-            int(row.get("input_token_spans") or 0)
-            == row_aggregates["llmCalls"]
-            == int(row.get("output_token_spans") or 0)
-        )
-
     aggregates["toolNames"] = sorted(tool_names)
     sorted_usage = sorted(
         usage_by_model.values(),
         key=lambda usage: (-usage["totalTokens"], usage["model"] or ""),
     )
-    return aggregates, sorted_usage
+    return {**aggregates, "usageByModel": sorted_usage}
 
 
 @extend_schema(tags=["Explore"])
@@ -362,8 +367,7 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
                     "projects": [serialize_conversation_project(project)] if project else [],
                     "webUrl": get_conversation_url(organization, conversation_id, project_id),
                     "spans": spans,
-                    "usageByModel": query_result["usageByModel"],
-                    **query_result["conversationAggregates"],
+                    "stats": query_result["stats"],
                 }
 
             return self.paginate(
@@ -668,11 +672,9 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
             snuba_params.debug,
         )
         aggregate_rows = results["aggregates"].get("data", [])
-        aggregates, usage_by_model = _parse_grouped_aggregates(aggregate_rows)
         return {
             "data": results["spans"].get("data", []),
-            "conversationAggregates": aggregates,
-            "usageByModel": usage_by_model,
+            "stats": _parse_grouped_stats(aggregate_rows),
         }
 
     @trace
