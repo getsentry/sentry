@@ -229,7 +229,7 @@ function ExploreSecondaryNavigationImpl() {
                     to={`${baseUrl}/investigations/`}
                     activeTo={`${baseUrl}/investigations/`}
                     analyticsItemName="explore_investigations"
-                    trailingItems={<FeatureBadge type="experimental" />}
+                    trailingItems={<FeatureBadge type="alpha" />}
                   >
                     {t('Investigations')}
                   </SecondaryNavigation.Link>
