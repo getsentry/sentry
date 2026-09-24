@@ -8,7 +8,6 @@ import {Button} from '@sentry/scraps/button';
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {updateOrganization} from 'sentry/actionCreators/organizations';
@@ -89,11 +88,16 @@ function IntegrationUpgradeButton({
 }) {
   if (!canManageIntegrations(organization)) {
     return (
-      <Tooltip title={t('You must be an organization owner, manager or admin to update')}>
-        <Button size="xs" variant="primary" disabled>
-          {t('Update')}
-        </Button>
-      </Tooltip>
+      <Button
+        size="xs"
+        variant="primary"
+        disabled
+        tooltipProps={{
+          title: t('You must be an organization owner, manager or admin to update'),
+        }}
+      >
+        {t('Update')}
+      </Button>
     );
   }
 

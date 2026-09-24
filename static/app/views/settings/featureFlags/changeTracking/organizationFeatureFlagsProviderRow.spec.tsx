@@ -67,7 +67,7 @@ describe('OrganizationFeatureFlagsProviderRow', () => {
 
       expect(
         screen.getByRole('button', {name: 'Remove secret for launchdarkly provider'})
-      ).toBeDisabled();
+      ).toHaveAttribute('aria-disabled', 'true');
     });
 
     it('allows to remove', async () => {

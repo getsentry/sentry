@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
@@ -125,22 +124,23 @@ function TeamNotificationSettingsPanel({
       />
 
       <DeleteButtonWrapper>
-        <Tooltip
-          title={t(
-            'You must be an organization owner, manager or admin to remove a Slack team link'
-          )}
-          disabled={hasWriteAccess}
+        <Confirm
+          disabled={!hasWriteAccess}
+          onConfirm={() => onDelete(externalTeam)}
+          message={t('Are you sure you want to remove this Slack team link?')}
         >
-          <Confirm
+          <Button
+            icon={<IconDelete />}
             disabled={!hasWriteAccess}
-            onConfirm={() => onDelete(externalTeam)}
-            message={t('Are you sure you want to remove this Slack team link?')}
+            tooltipProps={{
+              title: t(
+                'You must be an organization owner, manager or admin to remove a Slack team link'
+              ),
+            }}
           >
-            <Button icon={<IconDelete />} disabled={!hasWriteAccess}>
-              {t('Unlink')}
-            </Button>
-          </Confirm>
-        </Tooltip>
+            {t('Unlink')}
+          </Button>
+        </Confirm>
       </DeleteButtonWrapper>
     </Flex>
   ));

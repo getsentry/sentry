@@ -7,7 +7,6 @@ import {Button} from '@sentry/scraps/button';
 import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
@@ -167,24 +166,22 @@ export default function TeamProjects() {
             sortProjects(linkedProjects).map(project => (
               <StyledPanelItem key={project.id}>
                 <ProjectListItem project={project} organization={organization} />
-                <Tooltip
-                  disabled={hasWriteAccess}
-                  title={t(
-                    'You do not have enough permission to change project association.'
-                  )}
+                <Button
+                  size="sm"
+                  disabled={!hasWriteAccess}
+                  icon={<IconSubtract />}
+                  aria-label={t('Remove')}
+                  tooltipProps={{
+                    title: t(
+                      'You do not have enough permission to change project association.'
+                    ),
+                  }}
+                  onClick={() => {
+                    handleLinkProject(project, 'remove');
+                  }}
                 >
-                  <Button
-                    size="sm"
-                    disabled={!hasWriteAccess}
-                    icon={<IconSubtract />}
-                    aria-label={t('Remove')}
-                    onClick={() => {
-                      handleLinkProject(project, 'remove');
-                    }}
-                  >
-                    {t('Remove')}
-                  </Button>
-                </Tooltip>
+                  {t('Remove')}
+                </Button>
               </StyledPanelItem>
             ))
           ) : linkedProjectsLoading ? null : (

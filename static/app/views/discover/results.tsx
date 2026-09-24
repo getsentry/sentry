@@ -1363,22 +1363,20 @@ function SaveQueryButton({
         if (!isNewQuery && isEditingQuery) {
           return (
             <Fragment>
-              <Tooltip
-                title={
-                  deprecatingTransactionsDataset &&
-                  getTransactionDeprecationMessage(tracesUrl)
-                }
+              <Button
+                onClick={handleUpdate}
+                data-test-id="discover2-savedquery-button-update"
+                disabled={disabled || deprecatingTransactionsDataset}
+                size="sm"
+                tooltipProps={{
+                  title:
+                    deprecatingTransactionsDataset &&
+                    getTransactionDeprecationMessage(tracesUrl),
+                }}
               >
-                <Button
-                  onClick={handleUpdate}
-                  data-test-id="discover2-savedquery-button-update"
-                  disabled={disabled || deprecatingTransactionsDataset}
-                  size="sm"
-                >
-                  <IconUpdate />
-                  {t('Save Changes')}
-                </Button>
-              </Tooltip>
+                <IconUpdate />
+                {t('Save Changes')}
+              </Button>
               <Tooltip
                 disabled={
                   currentDataset !== DiscoverDatasets.TRANSACTIONS ||

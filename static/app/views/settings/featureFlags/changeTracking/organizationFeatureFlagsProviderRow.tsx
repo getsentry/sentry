@@ -1,6 +1,5 @@
 import {Button} from '@sentry/scraps/button';
 import {Text} from '@sentry/scraps/text';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Confirm} from 'sentry/components/confirm';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -44,30 +43,30 @@ export function OrganizationFeatureFlagsProviderRow({
       </SimpleTable.RowCell>
 
       <SimpleTable.RowCell justify="end">
-        <Tooltip
-          title={t(
-            'You must be an organization owner, manager or admin to remove a secret.'
+        <Confirm
+          disabled={!removeSecret || isRemoving}
+          onConfirm={removeSecret ? () => removeSecret(secret.id) : undefined}
+          message={t(
+            'Are you sure you want to remove the secret for %s provider? It will not be usable anymore, and this cannot be undone.',
+            secret.provider
           )}
-          disabled={!!removeSecret}
         >
-          <Confirm
-            disabled={!removeSecret || isRemoving}
-            onConfirm={removeSecret ? () => removeSecret(secret.id) : undefined}
-            message={t(
-              'Are you sure you want to remove the secret for %s provider? It will not be usable anymore, and this cannot be undone.',
-              secret.provider
-            )}
+          <Button
+            size="sm"
+            disabled={isRemoving || !removeSecret}
+            aria-label={t('Remove secret for %s provider', secret.provider)}
+            icon={isRemoving ? <LoadingIndicator mini /> : <IconSubtract size="xs" />}
+            tooltipProps={{
+              title: removeSecret
+                ? undefined
+                : t(
+                    'You must be an organization owner, manager or admin to remove a secret.'
+                  ),
+            }}
           >
-            <Button
-              size="sm"
-              disabled={isRemoving || !removeSecret}
-              aria-label={t('Remove secret for %s provider', secret.provider)}
-              icon={isRemoving ? <LoadingIndicator mini /> : <IconSubtract size="xs" />}
-            >
-              {t('Remove')}
-            </Button>
-          </Confirm>
-        </Tooltip>
+            {t('Remove')}
+          </Button>
+        </Confirm>
       </SimpleTable.RowCell>
     </SimpleTable.Row>
   );

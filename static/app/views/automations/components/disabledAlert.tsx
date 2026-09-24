@@ -1,6 +1,5 @@
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -44,17 +43,16 @@ export function DisabledAlert({automation}: DisabledAlertProps) {
       <Alert
         variant="muted"
         trailingItems={
-          <Tooltip title={canEdit ? undefined : permissionTooltipText} disabled={canEdit}>
-            <Button
-              size="xs"
-              icon={<IconPlay />}
-              onClick={handleEnable}
-              disabled={isEnabling || !canEdit}
-              aria-label={t('Enable')}
-            >
-              {t('Enable')}
-            </Button>
-          </Tooltip>
+          <Button
+            size="xs"
+            icon={<IconPlay />}
+            onClick={handleEnable}
+            disabled={isEnabling || !canEdit}
+            aria-label={t('Enable')}
+            tooltipProps={{title: canEdit ? undefined : permissionTooltipText}}
+          >
+            {t('Enable')}
+          </Button>
         }
       >
         {t('This alert is disabled and will not send notifications.')}

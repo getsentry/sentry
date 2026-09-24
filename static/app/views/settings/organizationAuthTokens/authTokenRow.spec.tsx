@@ -149,7 +149,10 @@ describe('OrganizationAuthTokensAuthTokenRow', () => {
         </SimpleTable>
       );
 
-      expect(screen.getByRole('button', {name: 'Revoke My Token'})).toBeDisabled();
+      expect(screen.getByRole('button', {name: 'Revoke My Token'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
     });
 
     it('allows to revoke', async () => {

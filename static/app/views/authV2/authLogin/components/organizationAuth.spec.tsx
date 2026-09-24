@@ -71,14 +71,14 @@ describe('OrganizationAuth', () => {
     );
 
     const ssoButton = screen.getByRole('button', {name: 'SSO'});
-    expect(ssoButton).toBeDisabled();
+    expect(ssoButton).toHaveAttribute('aria-disabled', 'true');
     expect(
       screen.getByText('Members sign in with email and password')
     ).toBeInTheDocument();
     expect(
       screen.queryByText('This organization does not have Single Sign-On configured')
     ).not.toBeInTheDocument();
-    await userEvent.hover(ssoButton.parentElement!);
+    await userEvent.hover(ssoButton);
     expect(
       await screen.findByText('This organization does not have Single Sign-On configured')
     ).toBeInTheDocument();

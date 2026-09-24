@@ -828,13 +828,15 @@ function OpenButton({
         !widgetTypeSupportsExploreMultiQuery(widget.widgetType);
       if (multiQueryUnsupported) {
         return (
-          <Tooltip
-            title={t('Explore does not support multiple queries for this dataset')}
+          <Button
+            variant="primary"
+            disabled
+            tooltipProps={{
+              title: t('Explore does not support multiple queries for this dataset'),
+            }}
           >
-            <Button variant="primary" disabled>
-              {openLabel}
-            </Button>
-          </Tooltip>
+            {openLabel}
+          </Button>
         );
       }
       path = getWidgetExploreUrl(widget, dashboardFilters, selection, organization)!;
@@ -861,22 +863,21 @@ function OpenButton({
   }
 
   return (
-    <Tooltip title={disabledTooltip} disabled={!disabled}>
-      <LinkButton
-        to={path}
-        variant="primary"
-        disabled={disabled}
-        onClick={() => {
-          trackAnalytics('dashboards_views.widget_viewer.open_source', {
-            organization,
-            widget_type: widget.widgetType ?? WidgetType.ERRORS,
-            display_type: widget.displayType,
-          });
-        }}
-      >
-        {openLabel}
-      </LinkButton>
-    </Tooltip>
+    <LinkButton
+      to={path}
+      variant="primary"
+      disabled={disabled}
+      tooltipProps={{title: disabledTooltip}}
+      onClick={() => {
+        trackAnalytics('dashboards_views.widget_viewer.open_source', {
+          organization,
+          widget_type: widget.widgetType ?? WidgetType.ERRORS,
+          display_type: widget.displayType,
+        });
+      }}
+    >
+      {openLabel}
+    </LinkButton>
   );
 }
 

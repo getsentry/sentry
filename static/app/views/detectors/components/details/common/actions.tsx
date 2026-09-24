@@ -1,5 +1,4 @@
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openConfirmModal} from 'sentry/components/confirm';
@@ -74,17 +73,16 @@ export function EditDetectorAction({
     : getManagedBySentryMonitorEditTooltip();
 
   return (
-    <Tooltip title={canEdit ? undefined : permissionTooltipText} disabled={canEdit}>
-      <LinkButton
-        to={`${makeMonitorDetailsPathname(organization.slug, detector.id)}edit/`}
-        variant="primary"
-        icon={<IconEdit />}
-        size="sm"
-        disabled={!canEdit}
-      >
-        {t('Edit')}
-      </LinkButton>
-    </Tooltip>
+    <LinkButton
+      to={`${makeMonitorDetailsPathname(organization.slug, detector.id)}edit/`}
+      variant="primary"
+      icon={<IconEdit />}
+      size="sm"
+      disabled={!canEdit}
+      tooltipProps={{title: canEdit ? undefined : permissionTooltipText}}
+    >
+      {t('Edit')}
+    </LinkButton>
   );
 }
 

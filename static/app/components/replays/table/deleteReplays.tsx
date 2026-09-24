@@ -10,7 +10,6 @@ import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
@@ -87,81 +86,76 @@ export function DeleteReplays({selectedIds, replays, queryOptions}: Props) {
   };
 
   return (
-    <Tooltip
-      disabled={oneProjectEligible}
-      title={t('Select a single project from the dropdown to delete replays')}
-    >
-      <Tooltip
-        disabled={!oneProjectEligible || hasAccess}
-        title={t(
-          'You must have project:write, project:admin, or org:admin access to delete replays'
-        )}
-      >
-        <Button
-          disabled={!oneProjectEligible || !hasAccess}
-          icon={<IconDelete />}
-          onClick={() =>
-            openConfirmModal({
-              bypass: selectedIds !== 'all' && selectedIds.length === 1,
-              renderMessage: _props =>
-                selectedIds === 'all' ? (
-                  <ReplayQueryPreview deletePayload={deletePayload} project={project!} />
-                ) : (
-                  <ErrorBoundary mini>
-                    <Title project={project!}>
-                      {tn(
-                        'The following %s replay will be deleted',
-                        'The following %s replays will be deleted',
-                        selectedIds.length
-                      )}
-                    </Title>
-                    <ReplayPreviewTable replays={replays} selectedIds={selectedIds} />
-                  </ErrorBoundary>
-                ),
-              renderConfirmButton: ({defaultOnClick}) => (
-                <Button onClick={defaultOnClick} variant="danger">
-                  {t('Delete')}
-                </Button>
-              ),
-              onConfirm: () => {
-                bulkDelete([deletePayload], {
-                  onSuccess: () => {
-                    addSuccessMessage(
-                      tct('Replays are being deleted. [settings:View progress]', {
-                        settings: <LinkWithUnderline to={settingsPath} />,
-                      })
-                    );
-                    // TODO: get the list to refetch
-                    refetchAuditLog();
-                  },
-                  onError: error => {
-                    const count =
-                      selectedIds === 'all'
-                        ? Number.MAX_SAFE_INTEGER
-                        : selectedIds.length;
-                    const reason = getBulkDeleteErrorReason(error);
-                    addErrorMessage(
-                      reason
-                        ? tn(
-                            'Failed to delete replay: %2$s',
-                            'Failed to delete replays: %2$s',
-                            count,
-                            reason
-                          )
-                        : tn('Failed to delete replay', 'Failed to delete replays', count)
-                    );
-                  },
-                  onSettled: () => {},
-                });
+    <Button
+      disabled={!oneProjectEligible || !hasAccess}
+      icon={<IconDelete />}
+      tooltipProps={{
+        title: oneProjectEligible
+          ? hasAccess
+            ? undefined
+            : t(
+                'You must have project:write, project:admin, or org:admin access to delete replays'
+              )
+          : t('Select a single project from the dropdown to delete replays'),
+      }}
+      onClick={() =>
+        openConfirmModal({
+          bypass: selectedIds !== 'all' && selectedIds.length === 1,
+          renderMessage: _props =>
+            selectedIds === 'all' ? (
+              <ReplayQueryPreview deletePayload={deletePayload} project={project!} />
+            ) : (
+              <ErrorBoundary mini>
+                <Title project={project!}>
+                  {tn(
+                    'The following %s replay will be deleted',
+                    'The following %s replays will be deleted',
+                    selectedIds.length
+                  )}
+                </Title>
+                <ReplayPreviewTable replays={replays} selectedIds={selectedIds} />
+              </ErrorBoundary>
+            ),
+          renderConfirmButton: ({defaultOnClick}) => (
+            <Button onClick={defaultOnClick} variant="danger">
+              {t('Delete')}
+            </Button>
+          ),
+          onConfirm: () => {
+            bulkDelete([deletePayload], {
+              onSuccess: () => {
+                addSuccessMessage(
+                  tct('Replays are being deleted. [settings:View progress]', {
+                    settings: <LinkWithUnderline to={settingsPath} />,
+                  })
+                );
+                // TODO: get the list to refetch
+                refetchAuditLog();
               },
-            })
-          }
-          size="xs"
-        >
-          {t('Delete')}
-        </Button>
-      </Tooltip>
-    </Tooltip>
+              onError: error => {
+                const count =
+                  selectedIds === 'all' ? Number.MAX_SAFE_INTEGER : selectedIds.length;
+                const reason = getBulkDeleteErrorReason(error);
+                addErrorMessage(
+                  reason
+                    ? tn(
+                        'Failed to delete replay: %2$s',
+                        'Failed to delete replays: %2$s',
+                        count,
+                        reason
+                      )
+                    : tn('Failed to delete replay', 'Failed to delete replays', count)
+                );
+              },
+              onSettled: () => {},
+            });
+          },
+        })
+      }
+      size="xs"
+    >
+      {t('Delete')}
+    </Button>
   );
 }
 

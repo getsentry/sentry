@@ -140,14 +140,14 @@ function LargeWidth({
       <Button size="xs" variant="secondary" onClick={onSpamClick}>
         {isSpam ? t('Move to Inbox') : t('Mark as Spam')}
       </Button>
-      <Tooltip
-        disabled={enableMarkAsRead}
-        title={t('You must be a member of the project')}
+      <Button
+        size="xs"
+        onClick={onMarkAsReadClick}
+        disabled={!enableMarkAsRead}
+        tooltipProps={{title: t('You must be a member of the project')}}
       >
-        <Button size="xs" onClick={onMarkAsReadClick} disabled={!enableMarkAsRead}>
-          {hasSeen ? t('Mark Unread') : t('Mark Read')}
-        </Button>
-      </Tooltip>
+        {hasSeen ? t('Mark Unread') : t('Mark Read')}
+      </Button>
       <Tooltip title={t('Copy feedback as markdown')}>
         <Button
           size="xs"
@@ -157,14 +157,14 @@ function LargeWidth({
           aria-label={t('Copy feedback as markdown')}
         />
       </Tooltip>
-      <Tooltip
-        disabled={enableDelete}
-        title={t('You must be an admin to delete feedback')}
+      <Button
+        size="xs"
+        onClick={onDelete}
+        disabled={!enableDelete}
+        tooltipProps={{title: t('You must be an admin to delete feedback')}}
       >
-        <Button size="xs" onClick={onDelete} disabled={!enableDelete}>
-          {t('Delete')}
-        </Button>
-      </Tooltip>
+        {t('Delete')}
+      </Button>
     </Fragment>
   );
 }

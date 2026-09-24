@@ -87,7 +87,7 @@ describe('DisabledAlert', () => {
     });
 
     const enableButton = screen.getByRole('button', {name: 'Enable'});
-    expect(enableButton).toBeDisabled();
+    expect(enableButton).toHaveAttribute('aria-disabled', 'true');
 
     await userEvent.hover(enableButton);
     expect(

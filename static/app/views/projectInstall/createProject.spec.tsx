@@ -912,7 +912,7 @@ describe('CreateProject', () => {
       // as re-renders can create new DOM nodes
       const getSubmitButton = () => screen.getByRole('button', {name: 'Create Project'});
 
-      expect(getSubmitButton()).toBeDisabled();
+      expect(getSubmitButton()).toHaveAttribute('aria-disabled', 'true');
 
       // Fills the project slug
       await userEvent.type(screen.getByPlaceholderText('project-slug'), 'my-project');
@@ -931,20 +931,20 @@ describe('CreateProject', () => {
       expect(getSubmitButton()).toBeEnabled();
 
       await userEvent.clear(screen.getByTestId('range-input'));
-      expect(getSubmitButton()).toBeDisabled();
+      expect(getSubmitButton()).toHaveAttribute('aria-disabled', 'true');
 
       await userEvent.type(screen.getByTestId('range-input'), '2712');
       expect(getSubmitButton()).toBeEnabled();
 
       await userEvent.clear(screen.getByTestId('range-input'));
-      expect(getSubmitButton()).toBeDisabled();
+      expect(getSubmitButton()).toHaveAttribute('aria-disabled', 'true');
 
       await userEvent.click(
         screen.getByRole('checkbox', {
           name: 'Notify via integration (Slack, Discord, MS Teams, etc.)',
         })
       );
-      expect(getSubmitButton()).toBeDisabled();
+      expect(getSubmitButton()).toHaveAttribute('aria-disabled', 'true');
 
       await userEvent.click(
         screen.getByRole('radio', {name: /create my own alerts later/i})
@@ -1029,7 +1029,10 @@ describe('CreateProject', () => {
         createOptionText: '#custom-channel',
       });
       expect(await screen.findByText('Channel not found')).toBeInTheDocument();
-      expect(screen.getByRole('button', {name: 'Create Project'})).toBeDisabled();
+      expect(screen.getByRole('button', {name: 'Create Project'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
       await userEvent.hover(screen.getByRole('button', {name: 'Create Project'}));
       await waitFor(() =>
         expect(screen.getAllByText('Channel not found')).toHaveLength(2)
@@ -1065,7 +1068,10 @@ describe('CreateProject', () => {
         createOptionText: '#custom-channel',
       });
       expect(await screen.findByText('Channel not found')).toBeInTheDocument();
-      expect(screen.getByRole('button', {name: 'Create Project'})).toBeDisabled();
+      expect(screen.getByRole('button', {name: 'Create Project'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
       await userEvent.click(
         screen.getByRole('checkbox', {
           name: /Notify via integration/,
@@ -1099,7 +1105,10 @@ describe('CreateProject', () => {
         createOptionText: '#custom-channel',
       });
       await waitFor(() =>
-        expect(screen.getByRole('button', {name: 'Create Project'})).toBeDisabled()
+        expect(screen.getByRole('button', {name: 'Create Project'})).toHaveAttribute(
+          'aria-disabled',
+          'true'
+        )
       );
       await userEvent.hover(screen.getByRole('button', {name: 'Create Project'}));
       expect(

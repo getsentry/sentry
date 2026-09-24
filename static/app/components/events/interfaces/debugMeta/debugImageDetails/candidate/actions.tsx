@@ -54,32 +54,30 @@ export function Actions({
     <Access access={['project:write']}>
       {({hasAccess}) => (
         <Grid flow="column" align="center" gap="md">
-          <Tooltip disabled={hasRole} title={noPermissionToDownloadDebugFilesInfo}>
-            <LinkButton
+          <LinkButton
+            size="xs"
+            icon={<IconDownload />}
+            href={downloadUrl}
+            disabled={!hasRole}
+            tooltipProps={{title: noPermissionToDownloadDebugFilesInfo}}
+          >
+            {t('Download')}
+          </LinkButton>
+          <Confirm
+            confirmText={t('Delete')}
+            message={debugFileDeleteConfirmationInfo}
+            onConfirm={() => onDelete(debugFileId)}
+            disabled={!hasAccess}
+          >
+            <Button
+              variant="danger"
+              icon={<IconDelete />}
               size="xs"
-              icon={<IconDownload />}
-              href={downloadUrl}
-              disabled={!hasRole}
-            >
-              {t('Download')}
-            </LinkButton>
-          </Tooltip>
-          <Tooltip disabled={hasAccess} title={noPermissionToDeleteDebugFilesInfo}>
-            <Confirm
-              confirmText={t('Delete')}
-              message={debugFileDeleteConfirmationInfo}
-              onConfirm={() => onDelete(debugFileId)}
               disabled={!hasAccess}
-            >
-              <Button
-                variant="danger"
-                icon={<IconDelete />}
-                size="xs"
-                disabled={!hasAccess}
-                aria-label={t('Delete')}
-              />
-            </Confirm>
-          </Tooltip>
+              aria-label={t('Delete')}
+              tooltipProps={{title: noPermissionToDeleteDebugFilesInfo}}
+            />
+          </Confirm>
         </Grid>
       )}
     </Access>

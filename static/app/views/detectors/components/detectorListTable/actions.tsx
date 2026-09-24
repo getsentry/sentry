@@ -5,7 +5,6 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {Flex} from '@sentry/scraps/layout';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {openConfirmModal} from 'sentry/components/confirm';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -145,56 +144,50 @@ export function DetectorsTableActions({
             }}
           />
           {showEnable && (
-            <Tooltip
-              title={
-                canEdit
-                  ? detectorLimitReached
-                    ? "You've reached your plan's limit on metric monitors."
-                    : ''
-                  : 'You do not have permission to modify the selected monitors.'
-              }
-              disabled={canEdit && !detectorLimitReached}
-            >
-              <Button
-                size="xs"
-                onClick={() => handleUpdate({enabled: true})}
-                disabled={isUpdating || !canEdit || detectorLimitReached}
-              >
-                {t('Enable')}
-              </Button>
-            </Tooltip>
-          )}
-          {showDisable && (
-            <Tooltip
-              title="You do not have permission to modify the selected monitors."
-              disabled={canEdit}
-            >
-              <Button
-                size="xs"
-                onClick={() => handleUpdate({enabled: false})}
-                disabled={isUpdating || !canEdit}
-              >
-                {t('Disable')}
-              </Button>
-            </Tooltip>
-          )}
-          <Tooltip
-            title={
-              hasSystemCreatedDetectors
-                ? t('Monitors managed by Sentry cannot be deleted.')
-                : t('You do not have permission to delete the selected monitors.')
-            }
-            disabled={canDelete}
-          >
             <Button
               size="xs"
-              variant="danger"
-              onClick={handleDelete}
-              disabled={isDeleting || !canDelete}
+              onClick={() => handleUpdate({enabled: true})}
+              disabled={isUpdating || !canEdit || detectorLimitReached}
+              tooltipProps={{
+                title: canEdit
+                  ? detectorLimitReached
+                    ? "You've reached your plan's limit on metric monitors."
+                    : undefined
+                  : 'You do not have permission to modify the selected monitors.',
+              }}
             >
-              {t('Delete')}
+              {t('Enable')}
             </Button>
-          </Tooltip>
+          )}
+          {showDisable && (
+            <Button
+              size="xs"
+              onClick={() => handleUpdate({enabled: false})}
+              disabled={isUpdating || !canEdit}
+              tooltipProps={{
+                title: canEdit
+                  ? undefined
+                  : 'You do not have permission to modify the selected monitors.',
+              }}
+            >
+              {t('Disable')}
+            </Button>
+          )}
+          <Button
+            size="xs"
+            variant="danger"
+            onClick={handleDelete}
+            disabled={isDeleting || !canDelete}
+            tooltipProps={{
+              title: canDelete
+                ? undefined
+                : hasSystemCreatedDetectors
+                  ? t('Monitors managed by Sentry cannot be deleted.')
+                  : t('You do not have permission to delete the selected monitors.'),
+            }}
+          >
+            {t('Delete')}
+          </Button>
         </Flex>
       </SimpleTable.HeaderCell>
     </SimpleTable.HeaderRow>

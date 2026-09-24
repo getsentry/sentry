@@ -6,7 +6,6 @@ import {Avatar} from '@sentry/scraps/avatar';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconClose, IconMegaphone} from 'sentry/icons';
 import {IdentityIcon} from 'sentry/icons/identityIcon';
@@ -65,19 +64,17 @@ export function OrganizationAuth({
     <form method="POST" onSubmit={() => setIsSubmitting(true)}>
       <input type="hidden" name="csrfmiddlewaretoken" value={getCsrfToken()} />
       <input type="hidden" name="init" value="1" />
-      <Tooltip
-        disabled={Boolean(provider)}
-        title={t('This organization does not have Single Sign-On configured')}
+      <Button
+        busy={isSubmitting}
+        disabled={!provider}
+        type="submit"
+        variant={provider ? 'primary' : undefined}
+        tooltipProps={{
+          title: t('This organization does not have Single Sign-On configured'),
+        }}
       >
-        <Button
-          busy={isSubmitting}
-          disabled={!provider}
-          type="submit"
-          variant={provider ? 'primary' : undefined}
-        >
-          {t('SSO')}
-        </Button>
-      </Tooltip>
+        {t('SSO')}
+      </Button>
     </form>
   );
 

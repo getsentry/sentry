@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import color from 'color';
 
 import {Button} from '@sentry/scraps/button';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconCopy, IconDelete, IconEdit, IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -41,37 +40,27 @@ export function Toolbar({
           />
         )}
         {onEdit && (
-          <Tooltip
-            skipWrapper
-            title={disabledReason}
-            disabled={!disabledReason || !disableEdit}
-          >
-            <Button
-              data-test-id="widget-edit"
-              aria-label={t('Edit Widget')}
-              size="xs"
-              variant="transparent"
-              onClick={onEdit}
-              icon={<IconEdit />}
-              disabled={disableEdit}
-            />
-          </Tooltip>
+          <Button
+            data-test-id="widget-edit"
+            aria-label={t('Edit Widget')}
+            size="xs"
+            variant="transparent"
+            onClick={onEdit}
+            icon={<IconEdit />}
+            disabled={disableEdit}
+            tooltipProps={{title: disabledReason}}
+          />
         )}
         {onDuplicate && (
-          <Tooltip
-            skipWrapper
-            title={disabledReason}
-            disabled={!disabledReason || !disableDuplicate}
-          >
-            <Button
-              aria-label={t('Duplicate Widget')}
-              size="xs"
-              variant="transparent"
-              onClick={onDuplicate}
-              icon={<IconCopy />}
-              disabled={disableDuplicate}
-            />
-          </Tooltip>
+          <Button
+            aria-label={t('Duplicate Widget')}
+            size="xs"
+            variant="transparent"
+            onClick={onDuplicate}
+            icon={<IconCopy />}
+            disabled={disableDuplicate}
+            tooltipProps={{title: disabledReason}}
+          />
         )}
         {onDelete && (
           <Button

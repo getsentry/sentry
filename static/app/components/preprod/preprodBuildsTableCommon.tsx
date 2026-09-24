@@ -100,23 +100,19 @@ export function PreprodBuildsRowCells({
                       variant="icon"
                     />
                   ) : (
-                    <Tooltip
-                      title={getDistributionErrorTooltip(
-                        build.distribution_info?.error_code,
-                        build.distribution_info?.error_message
-                      )}
-                      skipWrapper
-                    >
-                      <span>
-                        <Button
-                          aria-label={t('Not installable')}
-                          icon={<IconNot variant="danger" size="xs" />}
-                          variant="transparent"
-                          size="zero"
-                          disabled
-                        />
-                      </span>
-                    </Tooltip>
+                    <Button
+                      aria-label={t('Not installable')}
+                      icon={<IconNot variant="danger" size="xs" />}
+                      variant="transparent"
+                      size="zero"
+                      disabled
+                      tooltipProps={{
+                        title: getDistributionErrorTooltip(
+                          build.distribution_info?.error_code,
+                          build.distribution_info?.error_message
+                        ),
+                      }}
+                    />
                   )}
                 </Flex>
               )}

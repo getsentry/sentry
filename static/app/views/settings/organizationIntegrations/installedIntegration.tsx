@@ -199,28 +199,26 @@ export class InstalledIntegration extends Component<Props> {
                 )}
               </div>
               <div>
-                <Tooltip
-                  disabled={hasAccess}
-                  title={t(
-                    'You must be an organization owner, manager or admin to uninstall'
-                  )}
+                <Confirm
+                  priority="danger"
+                  onConfirming={this.handleUninstallClick}
+                  disabled={!hasAccess || isPendingDeletion}
+                  {...removeConfirmProps}
                 >
-                  <Confirm
-                    priority="danger"
-                    onConfirming={this.handleUninstallClick}
+                  <Button
                     disabled={!hasAccess || isPendingDeletion}
-                    {...removeConfirmProps}
+                    variant="transparent"
+                    icon={<IconDelete />}
+                    data-test-id="integration-remove-button"
+                    tooltipProps={{
+                      title: t(
+                        'You must be an organization owner, manager or admin to uninstall'
+                      ),
+                    }}
                   >
-                    <Button
-                      disabled={!hasAccess || isPendingDeletion}
-                      variant="transparent"
-                      icon={<IconDelete />}
-                      data-test-id="integration-remove-button"
-                    >
-                      {t('Uninstall')}
-                    </Button>
-                  </Confirm>
-                </Tooltip>
+                    {t('Uninstall')}
+                  </Button>
+                </Confirm>
               </div>
               <IntegrationStatus
                 status={this.integrationStatus}

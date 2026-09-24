@@ -305,15 +305,9 @@ export function EventsTable({
               handleCellAction={cellActionHandler}
               allowActions={allowActions}
             >
-              <div>
-                <LinkButton
-                  disabled={!target || isEmptyTarget}
-                  to={target || {}}
-                  size="xs"
-                >
-                  <IconProfiling size="xs" />
-                </LinkButton>
-              </div>
+              <LinkButton disabled={!target || isEmptyTarget} to={target || {}} size="xs">
+                <IconProfiling size="xs" />
+              </LinkButton>
             </CellAction>
           </Tooltip>
         );

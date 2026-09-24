@@ -120,16 +120,15 @@ export function PrIterationFeedbackForm({
         {onClose && (
           <Button aria-label={t('Close')} icon={<IconClose />} onClick={onClose} />
         )}
-        <Tooltip title={pausedTooltip} disabled={!isPaused}>
-          <Button
-            ref={submitButtonRef}
-            icon={isSubmitting ? undefined : <IconArrow size="md" direction="right" />}
-            disabled={isSubmitting || isPaused || !feedback.trim()}
-            onClick={handleSubmit}
-          >
-            {isSubmitting ? t('Submitting feedback') : t('Submit')}
-          </Button>
-        </Tooltip>
+        <Button
+          ref={submitButtonRef}
+          icon={isSubmitting ? undefined : <IconArrow size="md" direction="right" />}
+          disabled={isSubmitting || isPaused || !feedback.trim()}
+          tooltipProps={{title: isPaused ? pausedTooltip : undefined}}
+          onClick={handleSubmit}
+        >
+          {isSubmitting ? t('Submitting feedback') : t('Submit')}
+        </Button>
       </Flex>
     </Stack>
   );
