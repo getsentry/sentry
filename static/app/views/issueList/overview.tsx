@@ -488,7 +488,7 @@ function IssueListOverviewInner({
           mode: 'samples',
           referrer: 'issues',
           resultCount: data.length, // Can also use newQueryCount for total hits
-          orgSlug: organization.slug,
+          organization,
           runId: aiQueryRunId,
         });
       }
@@ -521,7 +521,7 @@ function IssueListOverviewInner({
           mode: 'samples',
           referrer: 'issues',
           resultCount: 0,
-          orgSlug: organization.slug,
+          organization,
           runId: aiQueryRunId,
           error: parseApiError(err as RequestError),
         });

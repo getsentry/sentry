@@ -410,7 +410,7 @@ export class Results extends Component<Props, State> {
           mode,
           referrer: 'errors',
           resultCount: totals,
-          orgSlug: organization.slug,
+          organization,
           runId: aiQueryRunId,
         });
       }
@@ -422,7 +422,7 @@ export class Results extends Component<Props, State> {
           mode,
           referrer: 'errors',
           resultCount: 0,
-          orgSlug: organization.slug,
+          organization,
           runId: aiQueryRunId,
           error: err instanceof Error ? err : true,
         });

@@ -14,6 +14,7 @@ import {
   wildcardOperators,
   WildcardOperators,
 } from 'sentry/components/searchSyntax/parser';
+import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {isEquation, stripEquationPrefix} from 'sentry/utils/discover/fields';
 import {RequestError} from 'sentry/utils/requestError/requestError';
@@ -37,7 +38,7 @@ function extractErrorReason(err: Error): string {
 export function trackAiQueryOutcome({
   dataset,
   mode,
-  orgSlug,
+  organization,
   referrer,
   resultCount,
   runId,
@@ -45,7 +46,7 @@ export function trackAiQueryOutcome({
 }: {
   dataset: 'spans' | 'errors' | 'logs' | 'tracemetrics' | 'issues';
   mode: Mode | 'samples' | 'aggregate';
-  orgSlug: string;
+  organization: Organization;
   referrer: string;
   resultCount: number;
   runId: number | string;
@@ -65,7 +66,7 @@ export function trackAiQueryOutcome({
   const attributes = {
     dataset,
     mode: mode.toString(),
-    org_slug: orgSlug,
+    org_slug: organization.slug,
     referrer,
     run_id: runId,
     outcome,
