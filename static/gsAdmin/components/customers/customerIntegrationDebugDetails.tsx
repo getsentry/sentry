@@ -7,6 +7,7 @@ import {Container, Flex} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {ResultGrid} from 'sentry/components/resultGrid';
 import {IconChevron} from 'sentry/icons';
 import {useApi} from 'sentry/utils/useApi';
@@ -64,7 +65,9 @@ export function CustomerIntegrationDebugDetails({orgId}: Props) {
           addSuccessMessage('Integrations reset successfully.');
           setRefreshKey(value => value + 1);
         } catch (error) {
-          addErrorMessage(error.responseText || 'Failed to reset integrations.');
+          const responseText =
+            error instanceof RequestError ? error.responseText : undefined;
+          addErrorMessage(responseText || 'Failed to reset integrations.');
         }
       },
     });
