@@ -94,7 +94,7 @@ class SmartAssignmentPayload(BaseModel):
 class RankedCandidate(BaseModel):
     name: str | None = None
     identifier: str
-    identifier_kind: Literal["email", "username"]
+    identifier_kind: Literal[email, username]
     reason: str = ""
     signals: list[str] = Field(default_factory=list)
     confidence: str = ""
