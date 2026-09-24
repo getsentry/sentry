@@ -2024,6 +2024,34 @@ describe('SearchQueryBuilder', () => {
       ).toHaveTextContent('bro');
     });
 
+    it('sorts prioritized filter keys above better scoring matches', async () => {
+      // Options render the key followed by its value type, e.g. "agedate".
+      const keyOrder = () =>
+        screen
+          .getAllByRole('option')
+          .map(option => option.textContent ?? '')
+          .filter(text => text.startsWith('age') || text.startsWith('message'));
+
+      const {rerender} = render(<SearchQueryBuilder {...defaultProps} initialQuery="" />);
+      await userEvent.click(getLastInput());
+      await userEvent.type(getLastInput(), 'age');
+
+      // "age" scores better against the `age` key than against `message`
+      await screen.findByRole('option', {name: 'age'});
+      expect(keyOrder()[0]).toMatch(/^age/);
+
+      rerender(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery=""
+          prioritizedFilterKeys={['message']}
+        />
+      );
+
+      await screen.findByRole('option', {name: 'message'});
+      expect(keyOrder()[0]).toMatch(/^message/);
+    });
+
     it('does not highlight non-contiguous fuzzy filter key matches', async () => {
       render(<SearchQueryBuilder {...defaultProps} initialQuery="" />);
       await userEvent.click(getLastInput());
