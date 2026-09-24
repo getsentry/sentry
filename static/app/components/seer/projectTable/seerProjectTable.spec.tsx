@@ -379,6 +379,17 @@ describe('SeerProjectTable', () => {
     ).toBeChecked();
   });
 
+  it('leaves the built-in repos filter out of the selection banner', async () => {
+    render(<ExampleSeerProjectTable />, {organization});
+
+    await screen.findByRole('checkbox', {name: 'Auto-iterate on PRs for project-slug'});
+    // The first checkbox in the table is the header's "select all".
+    await userEvent.click(screen.getAllByRole('checkbox')[0]!);
+
+    expect(await screen.findByText('Selected 1 project.')).toBeInTheDocument();
+    expect(screen.queryByText(/reposCount/)).not.toBeInTheDocument();
+  });
+
   it('disables adding a project without organization write access', async () => {
     render(<ExampleSeerProjectTable />, {
       organization: OrganizationFixture({slug: organization.slug, access: []}),
