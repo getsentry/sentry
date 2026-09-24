@@ -6,6 +6,7 @@ and thus cannot (yet) be refactored to use the new span schema.
 
 import uuid
 from typing import Any
+from urllib.parse import parse_qsl
 
 from sentry_conventions.attributes import ATTRIBUTE_NAMES
 from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
@@ -16,6 +17,7 @@ from sentry.spans.consumers.process_segments.types import (
     attribute_value,
     get_span_op,
 )
+from sentry.utils import json
 from sentry.utils.dates import to_datetime
 
 EMPTY_ATTRIBUTE_VALUES = frozenset({"", None})
@@ -71,6 +73,20 @@ SDK_FIELDS_BY_ATTRIBUTE_NAME = {
     ATTRIBUTE_NAMES.SENTRY_SDK_VERSION: "version",
 }
 
+# There are multiple entries per field here, because which one of these attributes we get is
+# SDK-dependent. They're listed in reverse priority order, with successively-higher-priority
+# attribuates overwriting lower-priority ones if they have a value.
+REQUEST_FIELDS_BY_ATTRIBUTE_NAME = {
+    ATTRIBUTE_NAMES.URL_TEMPLATE: "url",
+    ATTRIBUTE_NAMES.HTTP_ROUTE: "url",
+    ATTRIBUTE_NAMES.URL_PATH: "url",
+    ATTRIBUTE_NAMES.URL_FULL: "url",
+    "sentry.transaction.method": "method",
+    ATTRIBUTE_NAMES.HTTP_REQUEST_METHOD: "method",
+    ATTRIBUTE_NAMES.URL_QUERY: "query_string",
+    ATTRIBUTE_NAMES.HTTP_REQUEST_BODY_DATA: "data",
+}
+
 SPAN_SENTRY_TAGS_FIELDS_BY_ATTRIBUTE_NAME = {
     ATTRIBUTE_NAMES.SENTRY_NORMALIZED_DESCRIPTION: "description",
     ATTRIBUTE_NAMES.SENTRY_ENVIRONMENT: "environment",
@@ -86,6 +102,7 @@ KNOWN_NON_TAG_ATTRIBUTES = frozenset().union(
     USER_FIELDS_BY_ATTRIBUTE_NAME.keys(),
     GEO_FIELDS_BY_ATTRIBUTE_NAME.keys(),
     SDK_FIELDS_BY_ATTRIBUTE_NAME.keys(),
+    REQUEST_FIELDS_BY_ATTRIBUTE_NAME.keys(),
     SPAN_SENTRY_TAGS_FIELDS_BY_ATTRIBUTE_NAME.keys(),
     *(inner_dict.keys() for inner_dict in CONTEXT_FIELDS_BY_ATTRIBUTE_NAME.values()),
 )
@@ -209,6 +226,28 @@ def _get_event_user(segment_span: CompatibleSpan) -> dict[str, Any] | None:
     return user_data
 
 
+def _get_event_request(segment_span: CompatibleSpan) -> dict[str, Any]:
+    request_data = _extract_attribute_values(segment_span, REQUEST_FIELDS_BY_ATTRIBUTE_NAME)
+
+    if "query_string" in request_data:
+        # Convert from a single string to a list of key-value pairs
+        request_data["query_string"] = parse_qsl(request_data["query_string"])
+
+    if "data" in request_data:
+        try:
+            request_data["data"] = json.loads(request_data["data"])
+        except Exception:
+            pass
+
+        # If the JSON failed to parse, or if it parsed successfully but is the wrong shape (arrays
+        # are legal request bodies, though not ones our detectors can handle), drop the data to
+        # avoid storing information we can't use.
+        if not isinstance(request_data["data"], dict):
+            del request_data["data"]
+
+    return request_data
+
+
 def _get_detector_compatible_spans(spans: list[CompatibleSpan]) -> list[CompatibleSpan]:
     """
     Return a shallow copy of the given span list, with the fields the legacy issue detectors need
@@ -271,5 +310,9 @@ def build_shim_event_data(
     sdk_data = _extract_attribute_values(segment_span, SDK_FIELDS_BY_ATTRIBUTE_NAME)
     if sdk_data:
         event["sdk"] = sdk_data
+
+    request_data = _get_event_request(segment_span)
+    if request_data:
+        event["request"] = request_data
 
     return event
