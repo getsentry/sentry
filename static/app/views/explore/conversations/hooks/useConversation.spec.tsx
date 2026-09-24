@@ -5,7 +5,7 @@ import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLib
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {SpanFields} from 'sentry/views/insights/types';
 
-import {useConversation, type ConversationAggregates} from './useConversation';
+import {useConversation, type ConversationStats} from './useConversation';
 
 const BASE_SPAN = {
   'gen_ai.conversation.id': 'conv-123',
@@ -21,7 +21,7 @@ const BASE_SPAN = {
   'gen_ai.operation.type': 'ai_client',
 };
 
-const AGGREGATES: ConversationAggregates = {
+const STATS: ConversationStats = {
   endTimestamp: 1_000_500,
   generationDuration: 500,
   inputTokens: 70,
@@ -32,7 +32,6 @@ const AGGREGATES: ConversationAggregates = {
       cacheWriteTokens: 0,
       inputCost: 0.0006,
       inputTokens: 70,
-      hasCompleteTokenData: true,
       model: 'model-a',
       outputCost: 0.0004,
       outputTokens: 30,
@@ -53,13 +52,13 @@ const AGGREGATES: ConversationAggregates = {
 function envelope(
   spans: Array<Record<string, unknown>>,
   title: string | null = null,
-  aggregates: ConversationAggregates = AGGREGATES
+  stats: ConversationStats = STATS
 ): Record<string, unknown> {
   return {
     conversationId: spans[0]?.['gen_ai.conversation.id'] ?? '',
     title,
     spans,
-    ...aggregates,
+    stats,
   };
 }
 
@@ -80,7 +79,7 @@ describe('useConversation', () => {
       {organization}
     );
 
-    expect(result.current.aggregates).toBeNull();
+    expect(result.current.stats).toBeNull();
     expect(result.current.nodes).toEqual([]);
     expect(result.current.isLoading).toBe(false);
     expect(result.current.title).toBeNull();
@@ -109,7 +108,7 @@ describe('useConversation', () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     expect(result.current.title).toBe('My great conversation');
-    expect(result.current.aggregates).toMatchObject(AGGREGATES);
+    expect(result.current.stats).toMatchObject(STATS);
   });
 
   it('returns a null title when the envelope has none', async () => {

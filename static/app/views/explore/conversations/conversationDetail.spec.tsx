@@ -10,7 +10,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
-import type {ConversationAggregates} from 'sentry/views/explore/conversations/hooks/useConversation';
+import type {ConversationStats} from 'sentry/views/explore/conversations/hooks/useConversation';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
 import ConversationDetailPage from './conversationDetail';
@@ -50,7 +50,7 @@ const CONVERSATION_BODY = [
   }),
 ];
 
-const DEFAULT_AGGREGATES: ConversationAggregates = {
+const DEFAULT_STATS: ConversationStats = {
   endTimestamp: 2_000_000,
   generationDuration: 1000,
   inputTokens: 0,
@@ -68,7 +68,7 @@ const DEFAULT_AGGREGATES: ConversationAggregates = {
 function mockApis(
   title: string | null = null,
   spans: Array<Record<string, unknown>> = CONVERSATION_BODY,
-  aggregateOverrides: Partial<ConversationAggregates> = {}
+  statOverrides: Partial<ConversationStats> = {}
 ) {
   MockApiClient.addMockResponse({
     url: `/organizations/org-slug/agents/conversations/${CONVERSATION_ID}/`,
@@ -76,8 +76,7 @@ function mockApis(
       conversationId: CONVERSATION_ID,
       title,
       spans,
-      ...DEFAULT_AGGREGATES,
-      ...aggregateOverrides,
+      stats: {...DEFAULT_STATS, ...statOverrides},
     },
   });
   MockApiClient.addMockResponse({
@@ -219,7 +218,7 @@ describe('ConversationDetailPage title', () => {
   });
 });
 
-describe('ConversationDetailPage summary aggregates', () => {
+describe('ConversationDetailPage summary stats', () => {
   beforeEach(() => {
     Element.prototype.scrollTo = jest.fn();
     Element.prototype.scrollIntoView = jest.fn();
@@ -237,11 +236,10 @@ describe('ConversationDetailPage summary aggregates', () => {
           cacheReadTokens: 0,
           cacheWriteTokens: 0,
           inputCost: 0,
-          inputTokens: 100,
-          hasCompleteTokenData: false,
+          inputTokens: null,
           model: null,
           outputCost: 0,
-          outputTokens: 0,
+          outputTokens: null,
           reasoningTokens: 0,
           totalCost: 0,
           totalTokens: 150,
@@ -266,7 +264,6 @@ describe('ConversationDetailPage summary aggregates', () => {
           cacheWriteTokens: 10,
           inputCost: 0.02,
           inputTokens: 200,
-          hasCompleteTokenData: true,
           model: 'model-beta',
           outputCost: 0.01,
           outputTokens: 100,
@@ -279,7 +276,6 @@ describe('ConversationDetailPage summary aggregates', () => {
           cacheWriteTokens: 5,
           inputCost: 0.015,
           inputTokens: 180,
-          hasCompleteTokenData: true,
           model: 'model-alpha',
           outputCost: 0.01,
           outputTokens: 70,
@@ -313,7 +309,6 @@ describe('ConversationDetailPage summary aggregates', () => {
           cacheWriteTokens: 0,
           inputCost: 0.02,
           inputTokens: 70,
-          hasCompleteTokenData: true,
           model: 'model-alpha',
           outputCost: 0.01,
           outputTokens: 30,
