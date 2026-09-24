@@ -657,7 +657,12 @@ export function parseRunIdParam(value: string): SeerExplorerRunId | null {
 }
 
 /**
- * useEffect which listens for run ID query param in the current location. If found, it removes the query param and runs a callback.
+ * useEffect which listens for the run ID query param in the current location and runs a callback
+ * whenever its value changes. The param is left in the URL so the link stays shareable and
+ * survives a reload.
+ *
+ * Values seen while disabled are still recorded, so re-enabling (e.g. closing the drawer) doesn't
+ * re-open a run that was already handled.
  */
 export function useSeerExplorerDeepLink({
   callback,
@@ -667,27 +672,61 @@ export function useSeerExplorerDeepLink({
   enabled?: boolean;
 }) {
   const location = useLocation();
-  const navigate = useNavigate();
+  const lastSeenParamRef = useRef<string | undefined>(undefined);
 
   useEffect(() => {
-    if (!enabled) {
-      return;
-    }
-
     const paramValue = location.query?.[RUN_ID_QUERY_PARAM];
-    if (!paramValue || typeof paramValue !== 'string') {
+    const value = typeof paramValue === 'string' ? paramValue : undefined;
+    if (value === lastSeenParamRef.current) {
+      return;
+    }
+    lastSeenParamRef.current = value;
+
+    if (!enabled || !value) {
       return;
     }
 
-    const runId = parseRunIdParam(paramValue);
+    const runId = parseRunIdParam(value);
     if (runId === null) {
       return;
     }
 
-    const {[RUN_ID_QUERY_PARAM]: _runId, ...restQuery} = location.query ?? {};
-    navigate({...location, query: restQuery}, {replace: true});
     callback(runId);
-  }, [location, navigate, callback, enabled]);
+  }, [location, callback, enabled]);
+}
+
+/**
+ * Keeps the run ID query param in sync with the active run, but only when the param is already in
+ * the URL (i.e. the page was opened from a chat link). Switching runs rewrites the param; starting
+ * a new chat removes it, since there is no run to link to yet.
+ */
+export function useSyncSeerExplorerRunIdToUrl(runId: SeerExplorerRunId | null) {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const prevRunIdRef = useRef(runId);
+
+  useEffect(() => {
+    // Only react to run changes. Syncing on mount would overwrite an incoming deep link with the
+    // previously active run before the deep link is handled.
+    if (prevRunIdRef.current === runId) {
+      return;
+    }
+    prevRunIdRef.current = runId;
+
+    const paramValue = location.query?.[RUN_ID_QUERY_PARAM];
+    if (paramValue === undefined || paramValue === String(runId)) {
+      return;
+    }
+
+    const {[RUN_ID_QUERY_PARAM]: _runId, ...restQuery} = location.query ?? {};
+    navigate(
+      {
+        ...location,
+        query: runId === null ? restQuery : {...restQuery, [RUN_ID_QUERY_PARAM]: runId},
+      },
+      {replace: true}
+    );
+  }, [runId, location, navigate]);
 }
 
 /**

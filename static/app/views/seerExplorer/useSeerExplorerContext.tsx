@@ -46,6 +46,7 @@ import {
   useIsSeerExplorerSidebarEnabled,
   usePageReferrer,
   useSeerExplorerDeepLink,
+  useSyncSeerExplorerRunIdToUrl,
 } from 'sentry/views/seerExplorer/utils';
 
 type SeerExplorerSessionState = 'inactive' | 'thinking' | 'done-thinking';
@@ -435,6 +436,9 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
     callback: deepLinkCallback,
     enabled: !isOpen && !isPoppedOut,
   });
+
+  // Links opened with `explorerRunId` keep it in the URL and follow session switches.
+  useSyncSeerExplorerRunIdToUrl(runId);
 
   useHotkeys(
     isModalOpen
