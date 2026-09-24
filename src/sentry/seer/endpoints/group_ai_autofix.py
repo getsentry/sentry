@@ -58,29 +58,13 @@ from sentry.seer.autofix.coding_agent import (
 from sentry.seer.autofix.commit_author import commit_author_for_user
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.exceptions import NoSeerQuotaException
-from sentry.seer.autofix.github_perms import (
-    get_blocked_pr_iteration_permissions,
-)
-from sentry.seer.autofix.pr_iteration.emit import bootstrap_iteration
-from sentry.seer.autofix.pr_iteration.feedback import Feedback
-from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTriggerSource
-from sentry.seer.autofix.pr_iteration.pause import (
-    PAUSED_EXTRA,
-    PauseReason,
-    get_pause_reason,
-    pause_reason_from_marker,
-)
-from sentry.seer.autofix.pr_iteration.queue import (
-    enqueue_autofix_feedback,
-    peek_queued_autofix_feedback,
-)
-from sentry.seer.autofix.pr_iteration.run_markers import get_run_extra
+from sentry.seer.autofix.pr_iteration.manual_trigger import handle_ui_feedback
+from sentry.seer.autofix.pr_iteration.ui_state import get_pr_iteration_state_fields
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.types import (
     AutofixHandoffResponse,
     AutofixPostResponse,
     AutofixStateResponse,
-    GithubAppPermissionsWarning,
 )
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
@@ -90,12 +74,10 @@ from sentry.seer.autofix.utils import (
 from sentry.seer.endpoints.organization_seer_onboarding_check import (
     has_supported_scm_integration,
 )
-from sentry.seer.endpoints.utils import get_seer_run, resolve_seer_run
+from sentry.seer.endpoints.utils import SEER_PERMISSION_DENIED, get_seer_run, resolve_seer_run
 from sentry.seer.models import UNKNOWN_RUN_ID_FOR_GROUP, SeerPermissionError
-from sentry.tasks.seer.pr_iteration import trigger_consume_pr_iteration_feedback
 from sentry.types.activity import ActivityType
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
-from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 from sentry.utils.http import is_mcp_request
 
@@ -105,17 +87,9 @@ logger = logging.getLogger(__name__)
 # static/app/components/events/autofix/types.ts.
 USER_CONTEXT_MAX_LENGTH = 10000
 
-SEER_PERMISSION_DENIED = "You are not authorized to perform this action"
-
 # Marks the one 409 from this endpoint that a caller can recover from on its own:
 # the run named in the body is alive, so polling it is the whole remedy.
 RUN_IN_FLIGHT_CODE = "run_in_flight"
-
-PAUSED_PR_ITERATION_DETAIL = {
-    PauseReason.USER_STOP: "Iteration was stopped for this pull request",
-    PauseReason.RUN_ERRORED: "Seer can no longer iterate on this pull request",
-    PauseReason.PR_CLOSED: "This pull request is closed, so Seer stopped iterating on it",
-}
 
 AUTOFIX_SETUP_REQUIRED_DETAIL = {
     "scm_integration_required": (
@@ -434,80 +408,15 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                         status=status.HTTP_400_BAD_REQUEST,
                     )
 
-                if not features.has(
-                    "organizations:autofix-pr-iteration-manual", group.organization
-                ):
-                    return Response(
-                        {"detail": "PR iteration is not enabled for this organization"},
-                        status=status.HTTP_400_BAD_REQUEST,
-                    )
-
-                if not user_context:
-                    return Response(
-                        {"detail": "feedback is required for pr_iteration"},
-                        status=status.HTTP_400_BAD_REQUEST,
-                    )
-
-                try:
-                    run_state = get_autofix_run_state(group, resolved_run_id)
-                except SeerPermissionError:
-                    raise PermissionDenied(SEER_PERMISSION_DENIED)
-
-                if not run_state.get_created_pull_request_states():
-                    return Response(
-                        {"detail": "Cannot iterate on a PR before one has been created"},
-                        status=status.HTTP_400_BAD_REQUEST,
-                    )
-
-                pause_reason = get_pause_reason(
-                    run_id=resolved_run_id, organization_id=group.organization.id
-                )
-                if pause_reason is not None:
-                    return Response(
-                        {"detail": PAUSED_PR_ITERATION_DETAIL[pause_reason]},
-                        status=status.HTTP_409_CONFLICT,
-                    )
-
-                serialized_users = user_service.serialize_many(
-                    filter={"user_ids": [request.user.id]},
-                )
-                feedback = Feedback(
-                    source={
-                        "type": "user-ui",
-                        "user_id": request.user.id,
-                        "user": serialized_users[0] if serialized_users else None,
-                        "user_feedback": user_context,
-                    },
-                )
-
-                # Shared by both calls, so one arrival of feedback logs its queue
-                # and trigger decisions under one identity.
-                log_ctx = bootstrap_iteration(
-                    logger=logger,
-                    run_state=run_state,
-                    organization_id=group.organization.id,
-                    group_id=group.id,
-                )
-
-                enqueue_autofix_feedback(
-                    log_ctx=log_ctx,
+                error_response = handle_ui_feedback(
+                    group=group,
                     run_id=resolved_run_id,
-                    organization_id=group.organization.id,
-                    group_id=group.id,
-                    feedback=feedback,
+                    user_id=request.user.id,
+                    user_feedback=user_context,
                     referrer=referrer,
-                    run_state=run_state,
-                    actor_user_id=request.user.id,
                 )
-
-                trigger_consume_pr_iteration_feedback(
-                    log_ctx=log_ctx,
-                    run_id=resolved_run_id,
-                    organization_id=group.organization.id,
-                    feedback=feedback,
-                    run_state=run_state,
-                    source=ConsumeTriggerSource.UI_CONSUME,
-                )
+                if error_response is not None:
+                    return error_response
 
                 run_id, sentry_run_id = resolved_run_id, resolved_sentry_run_id
 
@@ -687,28 +596,6 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
 
         run = get_seer_run(state.run_id, group.organization)
         blocks = [block.dict() for block in state.blocks]
-        queued_items = peek_queued_autofix_feedback(state.run_id)
-
-        missing_perms = get_blocked_pr_iteration_permissions(
-            group.organization,
-            state,
-            has_actionable_feedback=any(
-                item.feedback.source.should_consume(state).ok for item in queued_items
-            ),
-        )
-
-        warnings = [
-            GithubAppPermissionsWarning(
-                repo_name=repo_name,
-                installation_id=info.installation_id,
-                installation_url=info.installation_url,
-            ).dict()
-            for repo_name, info in missing_perms.items()
-        ]
-        queued_feedback = [item.feedback.dict() for item in queued_items]
-        # Off the fetched row, not is_pr_iteration_paused: polled every second.
-        paused_marker = get_run_extra(run, PAUSED_EXTRA) if run is not None else None
-        pause_reason = pause_reason_from_marker(paused_marker)
         return Response(
             {
                 "autofix": {
@@ -726,16 +613,7 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                     "coding_agents": {
                         agent_id: agent.dict() for agent_id, agent in state.coding_agents.items()
                     },
-                    "pr_iteration_enabled": features.has(
-                        "organizations:autofix-pr-iteration", group.organization
-                    ),
-                    "manual_pr_iteration_enabled": features.has(
-                        "organizations:autofix-pr-iteration-manual", group.organization
-                    ),
-                    "queued_feedback": queued_feedback,
-                    "pr_iteration_paused": paused_marker is not None,
-                    "pr_iteration_pause_reason": pause_reason.value if pause_reason else None,
-                    "warnings": warnings,
+                    **get_pr_iteration_state_fields(group.organization, state, run),
                 }
             }
         )
