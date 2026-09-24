@@ -68,25 +68,27 @@ function ConnectedRepositoryRow({repo}: {repo: ConnectedRepo}) {
         <Flex align="center" gap="md">
           {getIntegrationIcon(repo.provider?.key, 'sm')}
           <Text>{repo.repoName}</Text>
+        </Flex>
+        <Flex align="center" gap="md">
           <Tag variant="info">
             <Text as="span" tabular>
               {tn('%s mapping', '%s mappings', repo.mappingCount)}
             </Text>
           </Tag>
+          <DropdownMenu
+            items={OVERFLOW_ITEMS}
+            position="bottom-end"
+            trigger={triggerProps => (
+              <Button
+                {...triggerProps}
+                size="xs"
+                variant="transparent"
+                aria-label={t('More Actions')}
+                icon={<IconEllipsis />}
+              />
+            )}
+          />
         </Flex>
-        <DropdownMenu
-          items={OVERFLOW_ITEMS}
-          position="bottom-end"
-          trigger={triggerProps => (
-            <Button
-              {...triggerProps}
-              size="xs"
-              variant="transparent"
-              aria-label={t('More Actions')}
-              icon={<IconEllipsis />}
-            />
-          )}
-        />
       </Flex>
     </PanelItem>
   );
