@@ -10,6 +10,7 @@ import sentry_sdk
 from pydantic import BaseModel
 from rest_framework.exceptions import PermissionDenied
 from scm.types import GetBranchProtocol, GetRepositoryProtocol
+from sentry_sdk import traces
 
 from sentry import features, quotas
 from sentry.analytics.events.autofix_events import (
@@ -82,7 +83,6 @@ from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssu
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 from sentry.sentry_apps.utils.webhooks import SeerActionType
 from sentry.utils import json, metrics
-from sentry.utils.tracing import trace
 
 if TYPE_CHECKING:
     from django.contrib.auth.models import AnonymousUser
@@ -499,7 +499,7 @@ def _assert_existing_run_belongs_to_group(group: Group, run_id: int) -> None:
         raise SeerPermissionError(UNKNOWN_RUN_ID_FOR_GROUP)
 
 
-@trace
+@traces.trace
 def trigger_autofix_agent(
     group: Group,
     step: AutofixStep,

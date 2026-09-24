@@ -6,6 +6,7 @@ from typing import NotRequired, TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Q
+from sentry_sdk import traces
 
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.types import ExternalProviders
@@ -23,7 +24,6 @@ from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils import json, metrics
-from sentry.utils.tracing import trace
 
 logger = logging.getLogger(__name__)
 
@@ -175,7 +175,7 @@ def _feedback_actor(source: FeedbackSourceBase) -> tuple[str, str] | None:
     return ("github", user.login.lstrip("@").lower())
 
 
-@trace
+@traces.trace
 def commit_author_for_feedback(
     items: Sequence[Feedback], organization_id: int
 ) -> SeerCommitAuthor | None:

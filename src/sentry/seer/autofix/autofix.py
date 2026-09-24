@@ -5,6 +5,8 @@ import logging
 from datetime import datetime, timedelta
 from typing import Any
 
+from sentry_sdk import traces
+
 from sentry import tagstore
 from sentry.api.endpoints.organization_trace import OrganizationTraceEndpoint
 from sentry.constants import ObjectStatus
@@ -15,7 +17,6 @@ from sentry.search.events.types import SnubaParams
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.referrer import Referrer
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
-from sentry.utils.tracing import start_span
 
 logger = logging.getLogger(__name__)
 
@@ -88,8 +89,9 @@ def get_trace_tree_for_event(
         }
 
     try:
-        with start_span(
-            op="seer.autofix.get_trace_tree_for_event", name="seer.autofix.get_trace_tree_for_event"
+        with traces.start_span(
+            name="seer.autofix.get_trace_tree_for_event",
+            attributes={"sentry.op": "seer.autofix.get_trace_tree_for_event"},
         ):
             with ContextPropagatingThreadPoolExecutor() as executor:
                 future = executor.submit(_fetch_trace)
