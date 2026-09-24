@@ -1,12 +1,10 @@
 import {Fragment} from 'react';
-import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {CompactSelect as mockCompactSelect} from 'sentry-test/snapshots/mocks/compactSelect';
 
 import {Tag} from '@sentry/scraps/badge';
 
 import {t} from 'sentry/locale';
-import {OrganizationContext} from 'sentry/utils/organizationContext';
 
 import type {DiffMode} from './imageDisplay/diffImageDisplay';
 
@@ -80,52 +78,48 @@ function SnapshotsToolbarWithControls({
   }
 
   return (
-    <OrganizationContext value={organization}>
-      <Container containerType="inline-size" style={{width: containerWidth}}>
-        <ToolbarContainer
-          toggle={
-            <ViewModeToggle viewMode={viewMode} onViewModeChange={onViewModeChange} />
-          }
-          sortDropdown={
-            sort ? <SortDropdown value={sort.value} onChange={sort.onChange} /> : null
-          }
-          progressIndicator={
-            progress ? (
-              <ProgressPill>
-                <ToolbarProgressBar value={progress.percent} />
-                <ProgressCounter size="xs" variant="muted">
-                  {progress.current}/{progress.total}
-                </ProgressCounter>
-              </ProgressPill>
-            ) : null
-          }
-          diffControls={
-            diff ? (
-              <Fragment>
-                {diff.mode === 'split' && (
-                  <ColorPickerButton
-                    color={diff.overlayColor}
-                    onChange={diff.onOverlayColorChange}
-                    opacity={diff.overlayOpacity}
-                    onOpacityChange={diff.onOverlayOpacityChange}
-                  />
-                )}
-                <DiffModeToggle
-                  diffMode={diff.mode}
-                  onDiffModeChange={diff.onModeChange}
-                  showSplit={diff.showSplit ?? true}
+    <Container containerType="inline-size" style={{width: containerWidth}}>
+      <ToolbarContainer
+        toggle={
+          <ViewModeToggle viewMode={viewMode} onViewModeChange={onViewModeChange} />
+        }
+        sortDropdown={
+          sort ? <SortDropdown value={sort.value} onChange={sort.onChange} /> : null
+        }
+        progressIndicator={
+          progress ? (
+            <ProgressPill>
+              <ToolbarProgressBar value={progress.percent} />
+              <ProgressCounter size="xs" variant="muted">
+                {progress.current}/{progress.total}
+              </ProgressCounter>
+            </ProgressPill>
+          ) : null
+        }
+        diffControls={
+          diff ? (
+            <Fragment>
+              {diff.mode === 'split' && (
+                <ColorPickerButton
+                  color={diff.overlayColor}
+                  onChange={diff.onOverlayColorChange}
+                  opacity={diff.overlayOpacity}
+                  onOpacityChange={diff.onOverlayOpacityChange}
                 />
-              </Fragment>
-            ) : null
-          }
-          soloDiffToggle={soloDiffToggle}
-        />
-      </Container>
-    </OrganizationContext>
+              )}
+              <DiffModeToggle
+                diffMode={diff.mode}
+                onDiffModeChange={diff.onModeChange}
+                showSplit={diff.showSplit ?? true}
+              />
+            </Fragment>
+          ) : null
+        }
+        soloDiffToggle={soloDiffToggle}
+      />
+    </Container>
   );
 }
-
-const organization = OrganizationFixture();
 
 const noop = () => {};
 
