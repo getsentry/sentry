@@ -1,4 +1,7 @@
 import merge from 'lodash/merge';
+import {EventFixture} from 'sentry-fixture/event';
+import {ExceptionValueFixture} from 'sentry-fixture/exceptionValue';
+import {FrameFixture} from 'sentry-fixture/frame';
 import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -13,8 +16,9 @@ import {Threads} from 'sentry/components/events/interfaces/threads';
 import {stackTraceDisplayOptionLabels} from 'sentry/components/events/traceEventDataSection';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import type {Event} from 'sentry/types/event';
+import type {Event, Thread} from 'sentry/types/event';
 import {EntryType, EventOrGroupType} from 'sentry/types/event';
+import type {StacktraceType} from 'sentry/types/stacktrace';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 
 describe('Threads', () => {
@@ -49,6 +53,146 @@ describe('Threads', () => {
       `issue-details-stracktrace-display-${organization.slug}-${project.slug}`,
       JSON.stringify([])
     );
+  });
+
+  describe('copying', () => {
+    const stacktrace: StacktraceType = {
+      frames: [
+        FrameFixture({
+          platform: null,
+          filename: 'example.py',
+          function: 'run',
+          lineNo: 42,
+        }),
+      ],
+      framesOmitted: null,
+      registers: {},
+      hasSystemFrames: true,
+    };
+    const thread: Thread = {
+      id: 1,
+      name: 'worker',
+      crashed: true,
+      current: true,
+      stacktrace,
+      rawStacktrace: null,
+    };
+
+    beforeEach(() => {
+      Object.assign(navigator, {clipboard: {writeText: jest.fn().mockResolvedValue('')}});
+    });
+
+    it.each([false, true])(
+      'copies the selected thread with exception-owned frames: %s',
+      async hasOwnStacktrace => {
+        const data = {
+          values: [thread, {...thread, id: 2, crashed: false, current: false}],
+        };
+        const event = EventFixture({
+          projectID: project.id,
+          platform: 'python',
+          entries: [
+            {
+              type: EntryType.EXCEPTION,
+              data: {
+                values: [
+                  ExceptionValueFixture({
+                    type: 'ExampleError',
+                    value: 'Example failure',
+                    threadId: 1,
+                    stacktrace: hasOwnStacktrace ? stacktrace : null,
+                  }),
+                ],
+              },
+            },
+            {type: EntryType.THREADS, data},
+          ],
+        });
+        render(
+          <Threads
+            event={event}
+            data={data}
+            projectSlug={project.slug}
+            group={undefined}
+            groupingCurrentLevel={0}
+          />
+        );
+
+        await userEvent.click(screen.getByRole('button', {name: 'Copy as'}));
+        await userEvent.click(screen.getByRole('menuitemradio', {name: 'Text'}));
+        expect(navigator.clipboard.writeText).toHaveBeenLastCalledWith(
+          'Traceback (most recent call last):\n  File "example.py", line 42, in run\nExampleError: Example failure'
+        );
+
+        await userEvent.click(screen.getByRole('button', {name: 'Next Thread'}));
+        await userEvent.click(screen.getByRole('button', {name: 'Copy as'}));
+        await userEvent.click(screen.getByRole('menuitemradio', {name: 'Text'}));
+        expect(navigator.clipboard.writeText).toHaveBeenLastCalledWith(
+          'Thread: worker\nTraceback (most recent call last):\n  File "example.py", line 42, in run'
+        );
+      }
+    );
+
+    it('copies unsymbolicated frames with the matching exception', async () => {
+      const data = {
+        values: [
+          {
+            ...thread,
+            rawStacktrace: {
+              ...stacktrace,
+              frames: [
+                FrameFixture({
+                  platform: 'java',
+                  module: 'a.b',
+                  function: 'c',
+                  filename: 'a.java',
+                  lineNo: 3,
+                }),
+              ],
+            },
+          },
+        ],
+      };
+      const event = EventFixture({
+        projectID: project.id,
+        platform: 'java',
+        entries: [
+          {
+            type: EntryType.EXCEPTION,
+            data: {
+              values: [
+                ExceptionValueFixture({
+                  type: 'ExampleError',
+                  value: 'Example failure',
+                  rawType: 'a',
+                  rawValue: 'Raw failure',
+                  threadId: 1,
+                }),
+              ],
+            },
+          },
+          {type: EntryType.THREADS, data},
+        ],
+      });
+      render(
+        <Threads
+          event={event}
+          data={data}
+          projectSlug={project.slug}
+          group={undefined}
+          groupingCurrentLevel={0}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Display as'}));
+      await userEvent.click(screen.getByRole('option', {name: 'Unsymbolicated'}));
+      await userEvent.keyboard('{Escape}');
+      await userEvent.click(screen.getByRole('button', {name: 'Copy as'}));
+      await userEvent.click(screen.getByRole('menuitemradio', {name: 'Text'}));
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+        'a: Raw failure\n    at a.b.c(a.java:3)'
+      );
+    });
   });
 
   describe('non native platform', () => {

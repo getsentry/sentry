@@ -13,7 +13,7 @@ import {useStacktraceContext} from 'sentry/components/events/interfaces/stackTra
 import {getThreadException} from 'sentry/components/events/interfaces/threads/threadSelector/getThreadException';
 import {IconEllipsis, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Event} from 'sentry/types/event';
+import type {Entry, Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/platform';
 import type {Project} from 'sentry/types/project';
@@ -236,11 +236,11 @@ export function TraceEventDataSection({
 
     const useMinified = displayOptions.includes('minified');
 
-    const threadEntry = event.entries.find(entry => entry.type === EntryType.THREADS);
+    let entries: Entry[] = event.entries;
+    const threadEntry = entries.find(entry => entry.type === EntryType.THREADS);
     const selectedThread = threadEntry?.data.values?.find(
       thread => thread.id === activeThreadId
     );
-    let entries = event.entries;
     if (selectedThread && threadEntry) {
       // Match the raw view's exception/thread pairing before formatting the trace.
       const exception = getThreadException(event, selectedThread);
