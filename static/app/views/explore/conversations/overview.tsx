@@ -75,6 +75,11 @@ const CONVERSATION_FILTER_KEYS: TagCollection = Object.fromEntries(
   ])
 );
 
+// Conversation fields mirror the columns of the conversations table, so they
+// are surfaced above raw span attributes that happen to match the input more
+// literally (e.g. `toolca` matching `ai.toolCall.args`).
+const CONVERSATION_PRIORITIZED_FILTER_KEYS = Object.keys(CONVERSATION_FILTER_KEYS);
+
 const SPANS_CURSOR_URL_PARAM = 'cursor';
 const agentsTableTabParser = parseAsStringLiteral(AGENTS_TABLE_TABS);
 
@@ -225,10 +230,11 @@ function ConversationsOverviewPage() {
         {
           value: 'conversation',
           label: t('Conversation'),
-          children: Object.keys(CONVERSATION_FILTER_KEYS),
+          children: CONVERSATION_PRIORITIZED_FILTER_KEYS,
         },
         ...spanSearchQueryBuilderProviderProps.filterKeySections,
       ],
+      prioritizedFilterKeys: CONVERSATION_PRIORITIZED_FILTER_KEYS,
       fieldDefinitionGetter: (key: string, options?: {kind?: FieldKind}) =>
         CONVERSATION_FIELD_DEFINITIONS[key] ?? fieldDefinitionGetter(key, options),
       getTagValues: getTagValuesWithoutCounts,
