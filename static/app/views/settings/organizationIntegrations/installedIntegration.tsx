@@ -169,7 +169,7 @@ export class InstalledIntegration extends Component<Props> {
                         }}
                         modalParams={
                           provider.key === 'slack'
-                            ? getSlackUpgradeModalParams()
+                            ? getSlackUpgradeModalParams(integration.missingFeatures)
                             : undefined
                         }
                         buttonText={t('Update %s', provider.name)}

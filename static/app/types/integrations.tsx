@@ -462,8 +462,8 @@ interface CommonIntegration {
   organizationIntegrationStatus: ObjectStatus;
   provider: OrganizationIntegrationProvider;
   status: ObjectStatus;
-  /** GitHub only: feature tiers this installation is missing, oldest first. */
-  missingFeatures?: Array<{description: string; key: string; name: string}> | null;
+  /** Features blocked by missing permissions; GitHub tiers are oldest first. */
+  missingFeatures?: Array<{description: string; key: string}> | null;
   outOfDate?: boolean | null;
 }
 

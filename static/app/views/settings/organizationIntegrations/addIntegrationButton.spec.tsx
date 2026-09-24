@@ -43,7 +43,13 @@ describe('AddIntegrationButton', () => {
           provider={slackProvider}
           organization={organization}
           onAddIntegration={jest.fn()}
-          modalParams={isUpgrade ? getSlackUpgradeModalParams() : undefined}
+          modalParams={
+            isUpgrade
+              ? getSlackUpgradeModalParams([
+                  {key: 'seer_mentions', description: 'Server-provided Seer feature.'},
+                ])
+              : undefined
+          }
         />,
         {organization}
       );
@@ -57,7 +63,7 @@ describe('AddIntegrationButton', () => {
       expect(
         await screen.findByText(
           isUpgrade
-            ? /Seer needs additional Slack app permissions/
+            ? /Server-provided Seer feature\./
             : 'Authorize your Slack account with Sentry to complete the integration setup.'
         )
       ).toBeInTheDocument();
@@ -68,6 +74,17 @@ describe('AddIntegrationButton', () => {
         'pipeline_popup',
         expect.any(String)
       );
+    }
+  );
+
+  it.each([{missingFeatures: undefined}, {missingFeatures: null}, {missingFeatures: []}])(
+    'uses neutral upgrade instructions when missing features are unavailable (%#)',
+    ({missingFeatures}) => {
+      expect(getSlackUpgradeModalParams(missingFeatures)).toEqual({
+        title: 'Update Slack App Permissions',
+        description:
+          'Reauthorize the Sentry app in your Slack workspace and accept the updated permissions to continue.',
+      });
     }
   );
 

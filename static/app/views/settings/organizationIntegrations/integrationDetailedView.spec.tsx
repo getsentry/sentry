@@ -3,6 +3,7 @@ import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegration
 import {GitLabIntegrationFixture} from 'sentry-fixture/gitlabIntegration';
 import {GitLabIntegrationProviderFixture} from 'sentry-fixture/gitlabIntegrationProvider';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -24,6 +25,14 @@ describe('IntegrationDetailedView', () => {
       },
     };
   }
+
+  const missingFeatures = [
+    {key: 'seer_mentions', description: 'Server-provided Seer mentions feature.'},
+  ];
+  const slackIntegration = OrganizationIntegrationsFixture({
+    outOfDate: true,
+    missingFeatures,
+  });
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -136,7 +145,7 @@ describe('IntegrationDetailedView', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/`,
       match: [MockApiClient.matchQuery({provider_key: 'slack', includeConfig: 0})],
-      body: [],
+      body: [slackIntegration],
     });
   });
 
@@ -200,6 +209,7 @@ describe('IntegrationDetailedView', () => {
           provider: slackProvider,
           status: 'active',
           outOfDate: true,
+          missingFeatures,
         },
         {
           id: '11',
@@ -228,7 +238,7 @@ describe('IntegrationDetailedView', () => {
       expect.objectContaining({
         provider: 'slack',
         title: 'Update Slack App Permissions',
-        description: expect.stringContaining('respond when you mention @Sentry'),
+        description: expect.stringContaining('Server-provided Seer mentions feature.'),
       })
     );
   });
@@ -251,6 +261,7 @@ describe('IntegrationDetailedView', () => {
       provider: slackProvider,
       status: 'active',
       outOfDate: true,
+      missingFeatures,
     };
 
     it('explains the Slack permissions when updating from the overview', async () => {
@@ -273,7 +284,7 @@ describe('IntegrationDetailedView', () => {
         expect.objectContaining({
           provider: 'slack',
           title: 'Update Slack App Permissions',
-          description: expect.stringContaining('respond when you mention @Sentry'),
+          description: expect.stringContaining('Server-provided Seer mentions feature.'),
         })
       );
     });
@@ -509,7 +520,72 @@ describe('IntegrationDetailedView', () => {
           provider: 'slack',
           title: 'Update Slack App Permissions',
           description:
-            'Seer needs additional Slack app permissions to respond when you mention @Sentry and read conversation context to help investigate issues. Reauthorize the Sentry app in your Slack workspace and accept the updated permissions to ask questions and debug with Seer directly in Slack.',
+            'This workspace is missing permissions for the following features: Server-provided Seer mentions feature. Reauthorize the Sentry app in your Slack workspace and accept the updated permissions to continue.',
+        })
+      );
+    });
+
+    it.each([
+      {body: []},
+      {body: [OrganizationIntegrationsFixture({outOfDate: false, missingFeatures: []})]},
+      {
+        body: [
+          OrganizationIntegrationsFixture({id: '1', outOfDate: true, missingFeatures}),
+          OrganizationIntegrationsFixture({id: '2', outOfDate: true, missingFeatures}),
+        ],
+      },
+    ])(
+      'does not choose a Slack workspace without one upgrade target (%#)',
+      async ({body}) => {
+        const openPipelineModalSpy = jest
+          .spyOn(pipelineModal, 'openPipelineModal')
+          .mockImplementation(() => {});
+        MockApiClient.addMockResponse({
+          url: `/organizations/${organization.slug}/integrations/`,
+          match: [MockApiClient.matchQuery({provider_key: 'slack', includeConfig: 0})],
+          body,
+        });
+
+        const {router} = render(<IntegrationDetailedView />, {
+          initialRouterConfig: createRouterConfig('slack', {
+            tab: 'configurations',
+            showInstallModal: '1',
+          }),
+          organization,
+        });
+
+        await waitFor(() =>
+          expect(router.location.query.showInstallModal).toBeUndefined()
+        );
+        expect(openPipelineModalSpy).not.toHaveBeenCalled();
+      }
+    );
+
+    it('waits for workspace data and opens once with that workspace’s features', async () => {
+      const openPipelineModalSpy = jest
+        .spyOn(pipelineModal, 'openPipelineModal')
+        .mockImplementation(() => {});
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/integrations/`,
+        match: [MockApiClient.matchQuery({provider_key: 'slack', includeConfig: 0})],
+        asyncDelay: 100,
+        body: [slackIntegration],
+      });
+
+      const {router} = render(<IntegrationDetailedView />, {
+        initialRouterConfig: createRouterConfig('slack', {
+          tab: 'configurations',
+          showInstallModal: '1',
+        }),
+        organization,
+      });
+      expect(openPipelineModalSpy).not.toHaveBeenCalled();
+      expect(router.location.query.showInstallModal).toBe('1');
+      await waitFor(() => expect(router.location.query.showInstallModal).toBeUndefined());
+      expect(openPipelineModalSpy).toHaveBeenCalledTimes(1);
+      expect(openPipelineModalSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          description: expect.stringContaining('Server-provided Seer mentions feature.'),
         })
       );
     });

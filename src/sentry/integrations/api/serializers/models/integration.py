@@ -90,7 +90,7 @@ class IntegrationSerializerResponse(TypedDict):
     accountType: str | None
     scopes: list[str] | None
     outOfDate: bool | None
-    # GitHub only: the feature tiers this installation is missing, oldest first.
+    # Features blocked by missing permissions. GitHub tiers are oldest first.
     # None for providers without a permissions model.
     missingFeatures: list[MissingFeature] | None
     status: str
@@ -124,6 +124,17 @@ class IntegrationSerializer(Serializer):
                 ]
             case "slack":
                 out_of_date = SlackScope.APP_MENTIONS_READ not in (obj.metadata.get("scopes") or [])
+                missing_features = []
+                if out_of_date:
+                    missing_features.append(
+                        {
+                            "key": "seer_mentions",
+                            "description": (
+                                "Seer in Slack: Responds when you mention @Sentry to ask questions "
+                                "and investigate issues."
+                            ),
+                        }
+                    )
 
         return {
             "id": str(obj.id),

@@ -122,7 +122,11 @@ function IntegrationUpgradeButton({
       provider={provider}
       organization={organization}
       onAddIntegration={onInstall}
-      modalParams={provider.key === 'slack' ? getSlackUpgradeModalParams() : undefined}
+      modalParams={
+        provider.key === 'slack'
+          ? getSlackUpgradeModalParams(outdatedConfiguration.missingFeatures)
+          : undefined
+      }
       analyticsParams={{
         view: 'integrations_directory_integration_detail',
         already_installed: true,
@@ -443,6 +447,7 @@ export default function IntegrationDetailedView() {
               provider,
               type: integrationType,
               installStatus: installationStatus,
+              configurations,
               analyticsParams: {
                 view: 'integrations_directory_integration_detail',
                 already_installed: installationStatus !== 'Not Installed',
@@ -477,6 +482,7 @@ export default function IntegrationDetailedView() {
       organization,
       integrationSlug,
       location.search,
+      configurations,
     ]
   );
 

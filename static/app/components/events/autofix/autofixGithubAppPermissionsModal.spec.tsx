@@ -81,12 +81,10 @@ describe('GitHub App permissions modals', () => {
             missingFeatures={[
               {
                 key: 'code_review',
-                name: 'Seer Code Review',
                 description: 'Seer Code Review: Reviews your pull requests.',
               },
               {
                 key: 'pr_iteration',
-                name: 'Pull request iteration',
                 description:
                   'Seer PR Iteration: Reads GitHub Actions logs and re-runs jobs.',
               },

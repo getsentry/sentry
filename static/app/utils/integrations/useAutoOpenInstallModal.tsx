@@ -1,11 +1,15 @@
 import {useEffect, useRef} from 'react';
 import {useQueryState} from 'nuqs';
 
-import type {IntegrationProvider} from 'sentry/types/integrations';
+import type {
+  IntegrationProvider,
+  OrganizationIntegration,
+} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getSlackUpgradeModalParams} from 'sentry/utils/integrations/slackUpgradeModalParams';
 import type {AddIntegrationParams} from 'sentry/utils/integrations/useAddIntegration';
+import {integrationRequiresUpgrade} from 'sentry/utils/integrationUtil';
 
 interface Props {
   onInstall: AddIntegrationParams['onInstall'];
@@ -18,6 +22,7 @@ interface Props {
    */
   startFlow: (params: AddIntegrationParams) => void;
   analyticsParams?: AddIntegrationParams['analyticsParams'];
+  configurations?: OrganizationIntegration[];
   suppressSuccessMessage?: boolean;
 }
 
@@ -44,6 +49,7 @@ export function useAutoOpenInstallModal({
   startFlow,
   analyticsParams,
   suppressSuccessMessage,
+  configurations,
 }: Props) {
   const [showInstallModal, setShowInstallModal] = useQueryState('showInstallModal');
   const autoOpenedForRef = useRef<string | null>(null);
@@ -56,6 +62,19 @@ export function useAutoOpenInstallModal({
       return;
     }
     if (autoOpenedForRef.current === provider.key) {
+      return;
+    }
+
+    // Only the detail page's gated install button has loaded configurations.
+    // Row update buttons must not race it or choose an arbitrary workspace.
+    if (provider.key === 'slack' && !configurations) {
+      return;
+    }
+    const outdatedConfigurations = configurations?.filter(integrationRequiresUpgrade);
+    const upgradeConfiguration =
+      outdatedConfigurations?.length === 1 ? outdatedConfigurations[0] : undefined;
+    if (provider.key === 'slack' && !upgradeConfiguration) {
+      setShowInstallModal(null);
       return;
     }
 
@@ -80,13 +99,14 @@ export function useAutoOpenInstallModal({
       analyticsParams,
       suppressSuccessMessage,
       ...(provider.key === 'slack' && {
-        modalParams: getSlackUpgradeModalParams(),
+        modalParams: getSlackUpgradeModalParams(upgradeConfiguration?.missingFeatures),
       }),
     });
 
     setShowInstallModal(null);
   }, [
     showInstallModal,
+    configurations,
     provider,
     organization,
     onInstall,
