@@ -15,6 +15,7 @@ import {openConfirmModal} from 'sentry/components/confirm';
 import {Duration} from 'sentry/components/duration';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {ChartContent} from 'sentry/components/seer/markdown/embeds/components/chart';
+import {SeerEmbedBlock} from 'sentry/components/seer/markdown/embeds/components/seerEmbedBlock';
 import {ALL_SEER_EMBED_SCHEMAS} from 'sentry/components/seer/markdown/embeds/schemas';
 import {IconArrow, IconClose, IconEllipsis, IconReturn, IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -300,7 +301,6 @@ function QueryResult({
   block: InvestigationBlock;
   progressState: CellProgressState;
 }) {
-  const [expanded, setExpanded] = useState(true);
   const output = getQueryOutput(block.output);
   const chart =
     output?.preferredView === 'chart' ? getRenderableChart(output.chart) : null;
@@ -313,79 +313,36 @@ function QueryResult({
 
   return (
     <CellHoverSurface width="100%">
-      <Disclosure
-        width="100%"
-        border="primary"
-        radius="md"
-        background="secondary"
-        overflow="hidden"
-        expanded={expanded}
-        onExpandedChange={setExpanded}
-        data-test-id="query-cell"
-      >
-        <QueryToolbar width="100%" padding="md lg" data-test-id="query-cell-toolbar">
-          <QueryDisclosureTitle
-            aria-label={t('Toggle %s', title)}
-            trailingItems={actions}
-          >
-            <Text
-              data-test-id="query-cell-title"
-              size="md"
-              density="compressed"
-              align="center"
-              wrap="normal"
-              bold
-              tabular
-            >
-              {title}
-            </Text>
-          </QueryDisclosureTitle>
-        </QueryToolbar>
-        <QueryDisclosureContent>
-          {expanded ? (
-            <Stack
-              width="100%"
-              background="primary"
-              borderTop="primary"
-              padding="lg"
-              gap="lg"
-              data-test-id="query-cell-result"
-            >
-              {(chartHeaderTitle && chartHeaderTitle !== title) || chartHeaderMetadata ? (
-                <Stack gap="2xs" data-test-id="query-cell-header">
-                  {chartHeaderTitle && chartHeaderTitle !== title ? (
-                    <Heading as="h3" size="md">
-                      {chartHeaderTitle}
-                    </Heading>
-                  ) : null}
-                  {chartHeaderMetadata ? (
-                    <Text size="sm" variant="muted">
-                      {chartHeaderMetadata}
-                    </Text>
-                  ) : null}
-                </Stack>
-              ) : null}
-              <Container width="100%" overflow="hidden">
-                <CellExecutionAlert block={block} />
-                {chart ? (
-                  <ChartContent data={chart} showHeader={false} />
-                ) : output?.tableMarkdown ? (
-                  <SeerMarkdown
-                    raw={output.tableMarkdown}
-                    components={{Table: FlushTable}}
-                  />
-                ) : isBlockWorking(block) ? (
-                  // The result's own header lands here, not the cell title the
-                  // toolbar above already shows.
-                  <InvestigationCellPlaceholder />
-                ) : (
-                  <CellProgress state={progressState} />
-                )}
-              </Container>
-            </Stack>
-          ) : null}
-        </QueryDisclosureContent>
-      </Disclosure>
+      <SeerEmbedBlock testId="query-cell" title={title} actions={actions}>
+        {(chartHeaderTitle && chartHeaderTitle !== title) || chartHeaderMetadata ? (
+          <Stack gap="2xs" data-test-id="query-cell-header">
+            {chartHeaderTitle && chartHeaderTitle !== title ? (
+              <Heading as="h3" size="md">
+                {chartHeaderTitle}
+              </Heading>
+            ) : null}
+            {chartHeaderMetadata ? (
+              <Text size="sm" variant="muted">
+                {chartHeaderMetadata}
+              </Text>
+            ) : null}
+          </Stack>
+        ) : null}
+        <Container width="100%" overflow="hidden">
+          <CellExecutionAlert block={block} />
+          {chart ? (
+            <ChartContent data={chart} showHeader={false} />
+          ) : output?.tableMarkdown ? (
+            <SeerMarkdown raw={output.tableMarkdown} components={{Table: FlushTable}} />
+          ) : isBlockWorking(block) ? (
+            // The result's own header lands here, not the cell title the
+            // card's header above already shows.
+            <InvestigationCellPlaceholder />
+          ) : (
+            <CellProgress state={progressState} />
+          )}
+        </Container>
+      </SeerEmbedBlock>
     </CellHoverSurface>
   );
 }
@@ -1208,37 +1165,6 @@ function getChartMetadata(chart: ReturnType<typeof getRenderableChart>) {
 function getSeriesName(series: {label: string} | {name: string}) {
   return 'label' in series ? series.label : series.name;
 }
-
-const QueryToolbar = styled(Container)`
-  &:hover {
-    background: ${p => p.theme.tokens.background.tertiary};
-  }
-
-  && > div {
-    padding: 0;
-    background: transparent;
-  }
-`;
-
-const QueryDisclosureTitle = styled(Disclosure.Title)`
-  && {
-    height: auto;
-    min-height: 0;
-    padding: 0;
-    gap: ${p => p.theme.space.xs};
-  }
-
-  > span > [aria-hidden] {
-    order: 1;
-    margin: 0;
-  }
-`;
-
-const QueryDisclosureContent = styled(Disclosure.Content)`
-  && {
-    padding: 0;
-  }
-`;
 
 const CellActions = styled(Flex)`
   opacity: 0;
