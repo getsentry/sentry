@@ -131,7 +131,7 @@ describe('SnapshotsToolbar', () => {
   it.snapshot(
     'all controls',
     ({container}) => {
-      const isCompact = container === 'xl';
+      const isCompact = container === 'md' || container === 'xl';
       return (
         <SnapshotsToolbarWithControls
           viewMode="list"
@@ -151,7 +151,7 @@ describe('SnapshotsToolbar', () => {
         />
       );
     },
-    {tags: {area: 'snapshots'}}
+    {containers: ['md', 'xl', '4xl', '7xl'], tags: {area: 'snapshots'}}
   );
 
   it.snapshot(

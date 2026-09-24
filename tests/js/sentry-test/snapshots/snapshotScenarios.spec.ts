@@ -5,55 +5,31 @@ describe('expandSnapshotScenarios', () => {
     expect(expandSnapshotScenarios('default')).toEqual([
       {
         theme: 'light',
-        container: 'xl',
-        containerWidth: 512,
-        testName: 'light snapshot: default @xl',
-      },
-      {
-        theme: 'light',
-        container: '5xl',
-        containerWidth: 1024,
-        testName: 'light snapshot: default @5xl',
-      },
-      {
-        theme: 'light',
-        container: '7xl',
-        containerWidth: 1440,
-        testName: 'light snapshot: default @7xl',
+        container: '4xl',
+        containerWidth: 960,
+        testName: 'light snapshot: default',
       },
       {
         theme: 'dark',
-        container: 'xl',
-        containerWidth: 512,
-        testName: 'dark snapshot: default @xl',
-      },
-      {
-        theme: 'dark',
-        container: '5xl',
-        containerWidth: 1024,
-        testName: 'dark snapshot: default @5xl',
-      },
-      {
-        theme: 'dark',
-        container: '7xl',
-        containerWidth: 1440,
-        testName: 'dark snapshot: default @7xl',
+        container: '4xl',
+        containerWidth: 960,
+        testName: 'dark snapshot: default',
       },
     ]);
   });
 
   it('keeps the viewport suffix stable across themes', () => {
-    expect(expandSnapshotScenarios('default', ['5xl'], 'md')).toEqual([
+    expect(expandSnapshotScenarios('default', ['4xl'], 'md')).toEqual([
       {
         theme: 'light',
-        container: '5xl',
-        containerWidth: 1024,
+        container: '4xl',
+        containerWidth: 960,
         testName: 'light snapshot: default @md',
       },
       {
         theme: 'dark',
-        container: '5xl',
-        containerWidth: 1024,
+        container: '4xl',
+        containerWidth: 960,
         testName: 'dark snapshot: default @md',
       },
     ]);

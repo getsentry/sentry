@@ -3,7 +3,7 @@ import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
 const SNAPSHOT_THEMES = ['light', 'dark'] as const;
 const THEMES = {light: lightTheme, dark: darkTheme};
 
-export const DEFAULT_SNAPSHOT_CONTAINERS = ['xl', '5xl', '7xl'] as const;
+export const DEFAULT_SNAPSHOT_CONTAINERS = ['4xl'] as const;
 
 export type SnapshotTheme = (typeof SNAPSHOT_THEMES)[number];
 type SnapshotContainer = keyof typeof lightTheme.size;
