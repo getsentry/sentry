@@ -231,7 +231,8 @@ class TestGetDetectorsByDataSource(BaseWorkflowTest):
             assert len(cached_detectors) == 2
             assert {d.id for d in cached_detectors} == {detector1.id, detector2.id}
             assert all(
-                d.get("project_organization_id") == self.organization.id for d in cached_detectors
+                getattr(d, "project_organization_id") == self.organization.id
+                for d in cached_detectors
             )
             assert call_args[0][2] == CACHE_TTL
 
@@ -265,7 +266,7 @@ class TestGetDetectorsByDataSource(BaseWorkflowTest):
             result = bulk_fetch_enabled_detectors("12345", "test")
 
         assert len(result) == 1
-        assert result[0].get("project_organization_id") == self.organization.id
+        assert getattr(result[0], "project_organization_id") == self.organization.id
         mock_cache_set.assert_called_once()
 
     def test_get_detectors_by_data_source__eager_loading_cached(self) -> None:
