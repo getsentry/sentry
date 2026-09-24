@@ -34,7 +34,7 @@ from sentry.testutils.helpers.data_blobs import (
     JIRA_SERVER_ACTION_DATA_BLOBS,
     WEBHOOK_ACTION_DATA_BLOBS,
 )
-from sentry.workflow_engine.models import Action
+from sentry.workflow_engine.models import Action, AlertRuleWorkflow
 from sentry.workflow_engine.types import ActionInvocation, WorkflowEventData
 from sentry.workflow_engine.typings.notification_action import (
     ACTION_FIELD_MAPPINGS,
@@ -111,23 +111,19 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
                 self.action, self.detector, self.event_data, workflow_id=self.workflow.id
             )
 
-    def test_create_rule_instance_from_action_missing_rule_workflow_id_raises_value_error(
-        self,
-    ) -> None:
-        job = WorkflowEventData(
-            event=self.group_event, workflow_env=self.environment, group=self.group
-        )
-        action = self.create_action(
-            type=Action.Type.DISCORD,
-            integration_id="1234567890",
-            config={"target_identifier": "channel456", "target_type": ActionTarget.SPECIFIC},
-            data={"tags": "environment,user,my_tag"},
-        )
-
-        with pytest.raises(ValueError):
-            self.handler.create_rule_instance_from_action(
-                action, self.detector, job, workflow_id=None
+    def test_create_rule_instance_from_action_does_not_query_legacy_rule(self) -> None:
+        with (
+            mock.patch.object(AlertRuleWorkflow.objects, "filter") as mock_mapping_lookup,
+            mock.patch.object(Rule.objects, "get") as mock_rule_lookup,
+        ):
+            rule = self.handler.create_rule_instance_from_action(
+                self.action, self.detector, self.event_data, workflow_id=self.workflow.id
             )
+
+        mock_mapping_lookup.assert_not_called()
+        mock_rule_lookup.assert_not_called()
+        assert rule.data["actions"][0]["workflow_id"] == self.workflow.id
+        assert "legacy_rule_id" not in rule.data["actions"][0]
 
     def test_create_rule_instance_from_action(self) -> None:
         """Test that create_rule_instance_from_action creates a Rule with correct attributes"""
@@ -149,7 +145,6 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
                     "server": "1234567890",
                     "channel_id": "channel456",
                     "tags": "environment,user,my_tag",
-                    "legacy_rule_id": self.rule.id,
                     "workflow_id": self.workflow.id,
                 }
             ],
@@ -260,7 +255,6 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
                     "server": "1234567890",
                     "channel_id": "channel456",
                     "tags": "environment,user,my_tag",
-                    "legacy_rule_id": self.rule.id,
                     "workflow_id": self.workflow.id,
                 }
             ],
