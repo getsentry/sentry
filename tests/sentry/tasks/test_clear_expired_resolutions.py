@@ -7,7 +7,7 @@ from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource, action_context_
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupresolution import GroupResolution
-from sentry.models.release import Release
+from sentry.models.release import Release, ReleaseStatus
 from sentry.tasks.clear_expired_resolutions import clear_expired_resolutions
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
@@ -70,6 +70,71 @@ def test_activity_preserves_resolution_metadata(
     assert resolution.release_id == next_release.id
     assert resolution.type == GroupResolution.Type.in_release
     assert resolution.status == GroupResolution.Status.resolved
+
+
+@django_db_all
+@pytest.mark.parametrize("finalized_order", [False, True], ids=["flag-off", "flag-on"])
+@pytest.mark.parametrize("successor_status", [ReleaseStatus.OPEN, None], ids=["open", "null"])
+def test_archived_release_does_not_expire_resolution(
+    factories: Factories,
+    default_group: Group,
+    finalized_order: bool,
+    successor_status: int | None,
+) -> None:
+    now = timezone.now()
+    project = default_group.project
+    anchor = factories.create_release(
+        project=project, version="anchor", date_added=now - timedelta(days=3)
+    )
+    resolution = factories.create_group_resolution(
+        group=default_group,
+        release=anchor,
+        current_release_version=anchor.version,
+        type=GroupResolution.Type.in_next_release,
+        status=GroupResolution.Status.pending,
+    )
+    with action_context_scope(source=ActionSource.SYSTEM, actor=SYSTEM_ACTOR):
+        activity = Activity.objects.create_group_activity(
+            default_group,
+            ActivityType.SET_RESOLVED_IN_RELEASE,
+            ident=resolution.id,
+            data={"version": "", "current_release_version": anchor.version},
+        )
+    archived = factories.create_release(
+        project=project,
+        version="archived-successor",
+        date_added=now - timedelta(days=2),
+        status=ReleaseStatus.ARCHIVED,
+    )
+    with Feature({"organizations:release-resolution-finalized-order": finalized_order}):
+        clear_expired_resolutions(archived.id)
+
+    resolution.refresh_from_db()
+    activity.refresh_from_db()
+    assert resolution.release_id == anchor.id
+    assert resolution.type == GroupResolution.Type.in_next_release
+    assert resolution.status == GroupResolution.Status.pending
+    assert activity.data == {"version": "", "current_release_version": anchor.version}
+
+    successor = factories.create_release(
+        project=project,
+        version="eligible-successor",
+        date_added=now - timedelta(days=1),
+        status=successor_status,
+    )
+    with Feature({"organizations:release-resolution-finalized-order": finalized_order}):
+        clear_expired_resolutions(successor.id)
+
+    resolution.refresh_from_db()
+    activity.refresh_from_db()
+    assert resolution.release_id == successor.id
+    assert resolution.type == GroupResolution.Type.in_release
+    assert resolution.status == GroupResolution.Status.resolved
+    assert resolution.current_release_version == anchor.version
+    assert activity.data == {
+        "version": successor.version,
+        "current_release_version": anchor.version,
+    }
 
 
 class ClearExpiredResolutionsTest(TestCase):
@@ -231,8 +296,9 @@ class FinalizedResolutionTaskTest(TestCase):
         self.resolution.refresh_from_db()
         assert self.resolution.release_id == next_release.id
 
-    def test_anchor_date_edit_finds_existing_successor(self) -> None:
+    def test_archived_anchor_date_edit_finds_existing_successor(self) -> None:
         existing = self.create_release(version="existing", date_added=self.now - timedelta(days=4))
+        self.anchor.update(status=ReleaseStatus.ARCHIVED)
         self.anchor.update(date_released=self.now - timedelta(days=5))
         clear_expired_resolutions(self.anchor.id)
         self.resolution.refresh_from_db()

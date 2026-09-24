@@ -1,7 +1,7 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {EventView} from 'sentry/utils/discover/eventView';
 import {DISPLAY_MODE_OPTIONS, DisplayModes} from 'sentry/utils/discover/types';
@@ -79,5 +79,80 @@ describe('Discover > ResultsChart', () => {
     );
 
     expect(await screen.findByText(/No Y-Axis selected/)).toBeInTheDocument();
+  });
+
+  it('uses the selected interval for bar charts', async () => {
+    const barLocation = LocationFixture({
+      pathname: '/',
+      query: {
+        display: DisplayModes.BAR,
+        interval: '1h',
+        statsPeriod: '30d',
+        yAxis: 'count()',
+      },
+    });
+    const barEventView = EventView.fromSavedQueryOrLocation(undefined, barLocation);
+    const hourlyRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: [],
+      match: [MockApiClient.matchQuery({interval: '1h'})],
+    });
+    const dailyRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: [],
+      match: [MockApiClient.matchQuery({interval: '1d'})],
+    });
+
+    render(
+      <ResultsChart
+        organization={organization}
+        eventView={barEventView}
+        location={barLocation}
+        onAxisChange={() => {}}
+        onDisplayChange={() => {}}
+        onIntervalChange={() => {}}
+        total={1}
+        confirmedQuery
+        yAxis={['count()']}
+        onTopEventsChange={() => {}}
+      />
+    );
+
+    await waitFor(() => expect(hourlyRequest).toHaveBeenCalled());
+    expect(dailyRequest).not.toHaveBeenCalled();
+  });
+
+  it('uses a low-fidelity interval for bar charts without a selected interval', async () => {
+    const barLocation = LocationFixture({
+      pathname: '/',
+      query: {
+        display: DisplayModes.BAR,
+        statsPeriod: '30d',
+        yAxis: 'count()',
+      },
+    });
+    const barEventView = EventView.fromSavedQueryOrLocation(undefined, barLocation);
+    const dailyRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: [],
+      match: [MockApiClient.matchQuery({interval: '1d'})],
+    });
+
+    render(
+      <ResultsChart
+        organization={organization}
+        eventView={barEventView}
+        location={barLocation}
+        onAxisChange={() => {}}
+        onDisplayChange={() => {}}
+        onIntervalChange={() => {}}
+        total={1}
+        confirmedQuery
+        yAxis={['count()']}
+        onTopEventsChange={() => {}}
+      />
+    );
+
+    await waitFor(() => expect(dailyRequest).toHaveBeenCalled());
   });
 });

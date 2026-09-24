@@ -31,7 +31,7 @@ interface ScmConnectProps {
 const SCM_INFO_SECTIONS = [
   {
     title: t('How we use access'),
-    icon: <IconCheckmark size="xs" variant="success" />,
+    icon: <IconCheckmark size="xs" variant="success" aria-hidden />,
     items: [
       t('Source code context: show code around errors'),
       t('Commit attribution: identify which commit introduced an issue'),
@@ -44,7 +44,7 @@ const SCM_INFO_SECTIONS = [
     tooltip: t(
       "If a feature needs more access to your code, we'll always ask you first. No surprises."
     ),
-    icon: <IconClose size="xs" variant="danger" />,
+    icon: <IconClose size="xs" variant="danger" aria-hidden />,
     items: [
       t('Train AI on your code'),
       t('Use your code for anything beyond debugging and support'),
@@ -97,7 +97,7 @@ export function ScmConnect({
           width="100%"
           maxWidth={SCM_STEP_CONTENT_WIDTH}
         >
-          <IconLock size="sm" variant="secondary" locked />
+          <IconLock size="sm" variant="secondary" locked aria-hidden />
           <Text variant="secondary" size="md" density="comfortable">
             {t('Revoke any time from Settings / Integrations')}
           </Text>
@@ -121,9 +121,9 @@ export function ScmConnect({
                 </Text>
                 {section.tooltip && <InfoTip title={section.tooltip} size="sm" />}
               </Flex>
-              <Stack gap="lg">
+              <Stack as="ul" gap="lg" margin="0" padding="0">
                 {section.items.map(item => (
-                  <Grid key={item} columns="max-content 1fr" gap="md">
+                  <Grid as="li" key={item} columns="max-content 1fr" gap="md">
                     <Flex paddingTop="2xs">{section.icon}</Flex>
                     <Text variant="primary" size="md" density="comfortable">
                       {item}

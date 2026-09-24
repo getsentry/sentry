@@ -30,7 +30,6 @@ import {generateFieldAsString} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useValidateWidgetQuery} from 'sentry/views/dashboards/hooks/useValidateWidget';
 import {
   DisplayType,
   WidgetType,
@@ -68,7 +67,6 @@ import {useDisableTransactionWidget} from 'sentry/views/dashboards/widgetBuilder
 import {useIsEditingWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
 import {useSegmentSpanWidgetState} from 'sentry/views/dashboards/widgetBuilder/hooks/useSegmentSpanWidgetState';
 import {useTraceMetricsVisualizeModeState} from 'sentry/views/dashboards/widgetBuilder/hooks/useTraceMetricsVisualizeModeState';
-import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
 import {convertWidgetToBuilderState} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 import type {OnDataFetchedParams} from 'sentry/views/dashboards/widgetCard';
 import {readableConditions} from 'sentry/views/dashboards/widgetCard/widgetLLMContext';
@@ -88,6 +86,7 @@ type WidgetBuilderSlideoutProps = {
   isQueryConditionInvalid?: boolean;
   onDataFetched?: (results: OnDataFetchedParams) => void;
   thresholdMetaState?: ThresholdMetaState;
+  widgetInterval?: string;
 };
 
 function WidgetBuilderSlideoutInner({
@@ -102,6 +101,7 @@ function WidgetBuilderSlideoutInner({
   setOpenWidgetTemplates,
   onDataFetched,
   thresholdMetaState,
+  widgetInterval,
 }: WidgetBuilderSlideoutProps) {
   const organization = useOrganization();
   const location = useLocation();
@@ -142,10 +142,6 @@ function WidgetBuilderSlideoutInner({
     useState(
       organization.features.includes('performance-transaction-deprecation-banner')
     );
-  const validatedWidgetResponse = useValidateWidgetQuery(
-    convertBuilderStateToWidget(state)
-  );
-
   const traceMetricsVisualizeMode = useTraceMetricsVisualizeModeState();
 
   // Tracks whether the user has entered the metrics equation mode since we
@@ -182,13 +178,20 @@ function WidgetBuilderSlideoutInner({
     !(state.dataset === WidgetType.TRACEMETRICS && isInEquationMode) &&
     !(state.dataset === WidgetType.ISSUE && usesTimeSeriesData(state.displayType));
 
-  // Group By is used by time-series chart widgets to break down data by a field.
+  // Group By is used by time-series chart widgets and Trace Metrics equations
+  // to break down data by a field.
   // - Time-series widgets: show Group By to allow breaking down by fields
   // - Issue widgets: don't support Group By (issues have their own grouping)
   // - Categorical Bar widgets: group by is not supported yet, but may be in the future
   // - Text widgets: don't support Group By (no data visualization)
+  // - Trace Metrics equations with tables: no other way for selecting columns to group by
+  const isTraceMetricsEquationTable =
+    state.dataset === WidgetType.TRACEMETRICS &&
+    isInEquationMode &&
+    state.displayType === DisplayType.TABLE;
   const showGroupBySelector =
-    isTimeSeriesWidget && !(state.dataset === WidgetType.ISSUE) && !isTextWidget;
+    (isTimeSeriesWidget && !(state.dataset === WidgetType.ISSUE) && !isTextWidget) ||
+    isTraceMetricsEquationTable;
 
   // X-Axis selector is only for Categorical Bar widgets, other chart widgets
   // always use time as the X-axis
@@ -410,6 +413,7 @@ function WidgetBuilderSlideoutInner({
                         <WidgetPreviewContainer
                           dashboard={dashboard}
                           dashboardFilters={dashboardFilters}
+                          widgetInterval={widgetInterval}
                           isQueryConditionInvalid={isQueryConditionInvalid}
                           onDataFetched={onDataFetched}
                           openWidgetTemplates={openWidgetTemplates}
@@ -467,6 +471,7 @@ function WidgetBuilderSlideoutInner({
                           <WidgetPreviewContainer
                             dashboard={dashboard}
                             dashboardFilters={dashboardFilters}
+                            widgetInterval={widgetInterval}
                             isQueryConditionInvalid={isQueryConditionInvalid}
                             onDataFetched={onDataFetched}
                             openWidgetTemplates={openWidgetTemplates}
@@ -499,7 +504,6 @@ function WidgetBuilderSlideoutInner({
                       <Section>
                         <WidgetBuilderQueryFilterBuilder
                           onQueryConditionChange={onQueryConditionChange}
-                          validatedWidgetResponse={validatedWidgetResponse}
                         />
                       </Section>
                     )}
@@ -516,7 +520,7 @@ function WidgetBuilderSlideoutInner({
                     {showGroupBySelector && (
                       <Section>
                         <WidgetBuilderGroupBySelector
-                          validatedWidgetResponse={validatedWidgetResponse}
+                          preserveAggregateFields={isTraceMetricsEquationTable}
                         />
                       </Section>
                     )}

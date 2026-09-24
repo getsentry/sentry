@@ -1,4 +1,4 @@
-import {type Replayer} from '@sentry-internal/rrweb';
+import {type Replayer} from '@sentry/rrweb';
 
 import type {RecordingFrame, ReplayFrame} from 'sentry/utils/replays/types';
 

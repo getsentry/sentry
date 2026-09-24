@@ -5,6 +5,7 @@ import {dedupeArray} from 'sentry/utils/dedupeArray';
 import {defined} from 'sentry/utils/defined';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/utils/timeSeries/determineSeriesSampleCount';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {defaultAggregateSortBys} from 'sentry/views/explore/contexts/pageParamsContext/aggregateSortBys';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import {DEFAULT_VISUALIZATION} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
@@ -80,6 +81,10 @@ function useExploreTimeseriesImpl({
   const unvalidatedVisualizes = useQueryParamsVisualizes();
   const [interval] = useChartInterval();
   const topEvents = useTopEvents();
+  const organization = useOrganization();
+  const hasMeasuredIngestionDelayUi = organization.features.includes(
+    'measured-ingestion-delay-ui'
+  );
 
   const validYAxes = useMemo(() => {
     return visualizes.map(visualize => visualize.yAxis);
@@ -135,12 +140,13 @@ function useExploreTimeseriesImpl({
       enabled: enabled && !skippedForInvalidConditionalFilter,
       // Mark buckets incomplete from the measured ingestion delay rather than a
       // static assumption. No-op if the org doesn't have the backend flag enabled.
-      includeMeasuredIngestionDelayMetadata: true,
+      includeMeasuredIngestionDelayMetadata: hasMeasuredIngestionDelayUi,
       ...queryExtras,
     };
   }, [
     enabled,
     fields,
+    hasMeasuredIngestionDelayUi,
     includeAnnotations,
     interval,
     orderby,

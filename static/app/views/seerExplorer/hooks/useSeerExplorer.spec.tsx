@@ -129,7 +129,7 @@ describe('useSeerExplorer', () => {
         getPageReferrer: () => '/dashboard/:dashboardId/',
       });
       const org = OrganizationFixture({
-        features: ['seer-explorer', 'seer-explorer-structured-context-rollout'],
+        features: ['seer-explorer'],
       });
       MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/seer/explorer-chat/`,
@@ -172,6 +172,8 @@ describe('useSeerExplorer', () => {
       '/monitors/:detectorId/',
       '/monitors/:detectorId/edit/',
       '/monitors/alerts/',
+      '/monitors/alerts/:automationId/',
+      '/monitors/alerts/:automationId/edit/',
       '/monitors/crons/',
       '/monitors/errors/',
       '/monitors/metrics/',
@@ -183,7 +185,7 @@ describe('useSeerExplorer', () => {
         getPageReferrer: () => route,
       });
       const org = OrganizationFixture({
-        features: ['seer-explorer', 'seer-explorer-structured-context-rollout'],
+        features: ['seer-explorer'],
       });
       MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/seer/explorer-chat/`,
@@ -219,7 +221,7 @@ describe('useSeerExplorer', () => {
         getPageReferrer: () => '/settings/account/details/',
       });
       const org = OrganizationFixture({
-        features: ['seer-explorer', 'seer-explorer-structured-context-rollout'],
+        features: ['seer-explorer'],
       });
       MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/seer/explorer-chat/`,
@@ -472,6 +474,64 @@ describe('useSeerExplorer', () => {
       await waitFor(() => {
         expect(updateMock).toHaveBeenCalled();
       });
+    });
+
+    it('flags an errored session with no blocks as a load failure', async () => {
+      // Seer can hand back `{session: {status: 'error'}}` with nothing else. Without
+      // this flag the panel is indistinguishable from an idle new chat.
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/789/`,
+        method: 'GET',
+        body: {session: {status: 'error'}},
+      });
+
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
+        additionalWrapper: SeerExplorerChatStateProvider,
+      });
+
+      act(() => {
+        result.current.switchToRun(789);
+      });
+
+      await waitFor(() => {
+        expect(result.current.hasSessionLoadError).toBe(true);
+      });
+      // The request itself succeeded, so the transport-level flag stays false.
+      expect(result.current.isError).toBe(false);
+    });
+
+    it('does not flag an errored session that still has blocks to show', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/790/`,
+        method: 'GET',
+        body: {
+          session: {
+            status: 'error',
+            blocks: [
+              {
+                id: '1',
+                message: {role: 'user', content: 'Hello'},
+                timestamp: '2024-01-01T00:00:00Z',
+              },
+            ],
+          },
+        },
+      });
+
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
+        additionalWrapper: SeerExplorerChatStateProvider,
+      });
+
+      act(() => {
+        result.current.switchToRun(790);
+      });
+
+      await waitFor(() => {
+        expect(result.current.sessionData?.blocks).toHaveLength(1);
+      });
+      expect(result.current.hasSessionLoadError).toBe(false);
     });
   });
 

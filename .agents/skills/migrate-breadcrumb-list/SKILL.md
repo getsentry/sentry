@@ -160,7 +160,7 @@ Already migrated, simplest first. Each answers one question.
 | `views/detectors/components/details/common/header.tsx`                 | The minimal two-slot split                                                               |
 | `views/explore/conversations/components/conversationsBreadcrumbs.tsx`  | Replacing `preservePageFilters`; a standalone `copy` action                              |
 | `views/performance/transactionSummary/transactionBreadcrumbs.tsx`      | Mapping a shared crumb builder into typed items; `leadingGraphic`; a menu with a submenu |
-| `views/performance/newTraceDetails/traceHeader/traceBreadcrumbs.tsx`   | `pagination`; dropping unlinked crumbs with `.flatMap`                                   |
+| `views/performance/traceDetails/traceHeader/traceBreadcrumbs.tsx`      | `pagination`; dropping unlinked crumbs with `.flatMap`                                   |
 | `views/dashboards/dashboardBreadcrumbTitle.tsx`                        | `editable-title`; one early return per page state                                        |
 | `views/explore/replays/detail/header/replayDetailsPageBreadcrumbs.tsx` | The richest title — pagination, `leadingGraphic`, and a nulled action array together     |
 | `views/issueDetails/header/issueIdBreadcrumb.tsx`                      | Building a title item outside JSX with `as const satisfies`                              |

@@ -17,6 +17,7 @@ export function AgentsTracesTableWidgetVisualization({
 }: AgentsTracesTableWidgetVisualizationProps) {
   return (
     <TracesTable
+      agentFilterMode="dashboard-global"
       limit={limit}
       tableWidths={tableWidths}
       dashboardFilters={dashboardFilters}

@@ -24,12 +24,11 @@ import {
   useSeerExplorerChatDispatch,
   useSeerExplorerChatState,
 } from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
-import {
-  normalizeBlocks,
-  type Block,
-  type RepoPRState,
-  type SeerExplorerResponse,
-  type SeerExplorerRunId,
+import type {
+  Block,
+  RepoPRState,
+  SeerExplorerResponse,
+  SeerExplorerRunId,
 } from 'sentry/views/seerExplorer/types';
 import {
   isSeerExplorerEnabled,
@@ -87,6 +86,8 @@ const STRUCTURED_CONTEXT_ROUTES = new Set([
   '/monitors/:detectorId/',
   '/monitors/:detectorId/edit/',
   '/monitors/alerts/',
+  '/monitors/alerts/:automationId/',
+  '/monitors/alerts/:automationId/edit/',
   '/monitors/crons/',
   '/monitors/errors/',
   '/monitors/metrics/',
@@ -94,18 +95,6 @@ const STRUCTURED_CONTEXT_ROUTES = new Set([
   '/monitors/my-monitors/',
   '/monitors/uptime/',
 ]);
-
-function supportsStructuredContext(
-  referrer: string,
-  organization: {features: string[]} | null | undefined
-): boolean {
-  if (STRUCTURED_CONTEXT_ROUTES.has(referrer)) {
-    return (
-      organization?.features.includes('seer-explorer-structured-context-rollout') === true
-    );
-  }
-  return false;
-}
 
 const getOptimisticAssistantTexts = () => [
   t('Looking around...'),
@@ -122,6 +111,32 @@ const getOptimisticAssistantTexts = () => [
   t('Replaying prod...'),
   t('Scanning the error-waves...'),
 ];
+
+// The Seer backend sends 'Thinking...' as message.content on in-flight blocks
+// (see add_loading_response_block in the Seer service). Normalize it to null at
+// the API boundary so downstream code never encounters the sentinel.
+const THINKING_SENTINEL = 'Thinking...';
+
+// Keyed on the server's block object, which query structural sharing keeps stable across polls, so
+// an unchanged block normalizes to the same object every time and memoized rows can skip it.
+const normalizedBlockCache = new WeakMap<Block, Block>();
+
+function normalizeBlocks(blocks: Block[] | undefined): Block[] {
+  if (!blocks) {
+    return [];
+  }
+  return blocks.map(block => {
+    if (block.message.content !== THINKING_SENTINEL) {
+      return block;
+    }
+    let normalized = normalizedBlockCache.get(block);
+    if (!normalized) {
+      normalized = {...block, message: {...block.message, content: null}};
+      normalizedBlockCache.set(block, normalized);
+    }
+    return normalized;
+  });
+}
 
 const makeErrorSeerExplorerData = (errorMessage: string): SeerExplorerResponse => ({
   session: {
@@ -497,13 +512,13 @@ export const useSeerExplorer = () => {
         Sentry.captureException(e);
       }
 
-      // Send structured LLMContext JSON on supported pages when the feature flag
-      // is enabled; fall back to a coarse ASCII screenshot otherwise.
+      // Send structured LLMContext JSON on allowlisted pages; fall back to a
+      // coarse ASCII screenshot everywhere else.
       let screenshot: string | undefined;
       if (
         snapshot &&
         overrideCtxEngEnable &&
-        supportsStructuredContext(getPageReferrer(), organization)
+        STRUCTURED_CONTEXT_ROUTES.has(getPageReferrer())
       ) {
         try {
           screenshot = JSON.stringify(snapshot);
@@ -650,6 +665,15 @@ export const useSeerExplorer = () => {
     return {...session, blocks: normalizeBlocks(session.blocks ?? [])};
   }, [apiData?.session]);
 
+  // A session that comes back with `status: 'error'` and no blocks failed server-side
+  // before anything was rendered. Nothing is left to display, so treat it as a failure
+  // to load the conversation instead of falling through to the default empty state,
+  // which is indistinguishable from an idle new chat.
+  const hasSessionLoadError =
+    runId !== null &&
+    rawSessionData?.status === 'error' &&
+    rawSessionData.blocks.length === 0;
+
   // Append optimistic blocks to session data while polling, enabling a more responsive UI with loading placeholders.
   const processedSessionData = useMemo(() => {
     const awaitingResponse =
@@ -734,6 +758,8 @@ export const useSeerExplorer = () => {
     sessionData: processedSessionData,
     isPolling,
     isError,
+    /** The session itself came back errored with nothing to render. */
+    hasSessionLoadError,
     errorStatusCode,
     isTimedOut,
     sendMessage,

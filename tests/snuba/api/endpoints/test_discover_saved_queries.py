@@ -578,6 +578,34 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
         assert "start" not in response.data
         assert "end" not in response.data
 
+    def test_post_duplicated_query_keeps_starred_status(self) -> None:
+        """Duplicating a starred query re-posts the serialized row, starred flag and all,
+        so the copy has to come back starred for the user who duplicated it."""
+        with self.feature([self.feature_name, self.migrate_feature_name]):
+            response = self.client.post(
+                self.url,
+                {
+                    "name": "Test query (Copy)",
+                    "projects": self.project_ids,
+                    "fields": [],
+                    "range": "24h",
+                    "limit": 20,
+                    "conditions": [],
+                    "aggregations": [],
+                    "orderby": "-time",
+                    "starred": True,
+                },
+            )
+
+        assert response.status_code == 201, response.content
+        duplicate = DiscoverSavedQuery.objects.get(organization=self.org, name="Test query (Copy)")
+        assert DiscoverSavedQueryStarred.objects.filter(
+            organization=self.org,
+            user_id=self.user.id,
+            discover_saved_query=duplicate,
+            starred=True,
+        ).exists()
+
     def test_post_invalid_projects(self) -> None:
         with self.feature(self.feature_name):
             response = self.client.post(

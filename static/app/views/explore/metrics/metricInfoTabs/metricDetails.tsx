@@ -39,9 +39,9 @@ import {
   type TraceMetricEventsResponseItem,
 } from 'sentry/views/explore/metrics/types';
 import {useMetricAttributesTreeActions} from 'sentry/views/explore/metrics/useMetricAttributesTreeActions';
-import type {EAPTraceMeta} from 'sentry/views/performance/newTraceDetails/traceApi/types';
-import {useTraceMeta} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
-import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
+import type {EAPTraceMeta} from 'sentry/views/performance/traceDetails/traceApi/types';
+import {useTraceMeta} from 'sentry/views/performance/traceDetails/traceApi/useTraceMeta';
+import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/breadcrumbs';
 
 const MetricAttributesRendererMap = {
   ...LogAttributesRendererMap,

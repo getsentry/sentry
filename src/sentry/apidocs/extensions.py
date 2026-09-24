@@ -11,6 +11,7 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import Direction
 
 from sentry.apidocs.spectacular_ports import resolve_type_hint
+from sentry.conf.server import GRANULAR_SCOPES
 
 
 class TokenAuthExtension(OpenApiAuthenticationExtension):
@@ -28,8 +29,7 @@ class TokenAuthExtension(OpenApiAuthenticationExtension):
             for s in permission.scope_map.get(auto_schema.method, []):
                 scopes.add(s)
 
-        scope_list = list(scopes)
-        scope_list.sort()
+        scope_list = sorted(scopes - GRANULAR_SCOPES)
         return {self.name: scope_list}
 
     def get_security_definition(

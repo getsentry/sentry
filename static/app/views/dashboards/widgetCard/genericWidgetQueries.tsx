@@ -14,8 +14,6 @@ import {
   type DataUnit,
 } from 'sentry/utils/discover/fields';
 import {TOP_N} from 'sentry/utils/discover/types';
-import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {DatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
@@ -68,6 +66,7 @@ export type GenericWidgetQueriesResult = {
   pageLinks?: string;
   sampleCount?: number;
   tableResults?: TableDataWithTitle[];
+  timeseriesInterval?: string;
   timeseriesResults?: Series[];
   timeseriesResultsTypes?: Record<string, AggregationOutputType>;
   timeseriesResultsUnits?: Record<string, DataUnit>;
@@ -97,7 +96,6 @@ type UseGenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
   disabled?: boolean;
   limit?: number;
   loading?: boolean;
-  mepSetting?: MEPState | null;
   onDataFetchStart?: () => void;
   onDataFetched?: ({
     tableResults,
@@ -106,7 +104,6 @@ type UseGenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
     pageLinks,
     timeseriesResultsTypes,
   }: OnDataFetchedProps) => void;
-  onDemandControlContext?: OnDemandControlContext;
   samplingMode?: SamplingMode;
   // Optional selection override - if not provided, usePageFilters hook will be used
   // This is needed for the widget viewer modal where local zoom state (modalSelection)
@@ -172,10 +169,8 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
     disabled,
     limit,
     loading: propsLoading,
-    mepSetting,
     onDataFetchStart,
     onDataFetched,
-    onDemandControlContext,
     samplingMode,
     selection: propsSelection,
     skipDashboardFilterParens,
@@ -213,8 +208,6 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
     pageFilters: selection,
     dashboardFilters,
     skipDashboardFilterParens,
-    onDemandControlContext,
-    mepSetting,
     samplingMode,
     enabled: isTimeSeriesData && !disabled && !propsLoading,
     limit,
@@ -229,8 +222,6 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
     pageFilters: selection,
     dashboardFilters,
     skipDashboardFilterParens,
-    onDemandControlContext,
-    mepSetting,
     samplingMode,
     enabled: enableTableHook || (enableSeriesHook && needsBreakdownTable),
     limit: limit ?? DEFAULT_TABLE_LIMIT,
@@ -347,7 +338,7 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
   };
 }
 
-export function cleanWidgetForRequest(widget: Widget): Widget {
+function cleanWidgetForRequest(widget: Widget): Widget {
   const _widget = cloneDeep(widget);
   _widget.queries.forEach(query => {
     query.aggregates = query.aggregates.filter(field => !!field && field !== 'equation|');
