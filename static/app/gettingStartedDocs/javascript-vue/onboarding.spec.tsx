@@ -64,7 +64,7 @@ describe('javascript-vue onboarding docs', () => {
 
     const verify = screen
       .getByText(textWithMarkupMatcher(/throw new Error/))
-      .closest('code');
+      .closest('code')!;
     expect(verify).toHaveTextContent('import * as Sentry from "@sentry/vue"');
     expect(verify.textContent?.includes('Sentry.logger.info')).toBe(
       products.includes(ProductSolution.LOGS)
