@@ -5,18 +5,32 @@ This module defines which model versions are used for similarity grouping
 and provides helper functions for determining the appropriate version to use.
 """
 
+from sentry import features
 from sentry.models.project import Project
 from sentry.seer.similarity.types import GroupingVersion
 
 SEER_GROUPING_STABLE_VERSION = GroupingVersion.V2_1
 
-# Set only when a new model is ready to serve grouping requests and populate existing hashes.
+# Reset dormant rollout flags before configuring a new candidate.
 SEER_GROUPING_NEXT_VERSION: GroupingVersion | None = None
+SEER_GROUPING_NEXT_MODEL_ROLLOUT_FEATURE = "projects:similarity-grouping-model-next"
+SEER_GROUPING_SKIP_FALLBACK_FEATURE = "projects:similarity-grouping-skip-fallback"
 
 
 def get_grouping_model_version(project: Project) -> GroupingVersion:
     """Select the grouping model for a project."""
-    return SEER_GROUPING_NEXT_VERSION or SEER_GROUPING_STABLE_VERSION
+    if SEER_GROUPING_NEXT_VERSION is not None and features.has(
+        SEER_GROUPING_NEXT_MODEL_ROLLOUT_FEATURE, project
+    ):
+        return SEER_GROUPING_NEXT_VERSION
+    return SEER_GROUPING_STABLE_VERSION
+
+
+def should_skip_seer_fallback(project: Project) -> bool:
+    if SEER_GROUPING_NEXT_VERSION is None:
+        # Old Seer pods may still consider our stable model their next model.
+        return True
+    return features.has(SEER_GROUPING_SKIP_FALLBACK_FEATURE, project)
 
 
 def should_send_to_seer_for_training(

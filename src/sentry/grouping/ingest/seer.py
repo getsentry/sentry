@@ -21,6 +21,7 @@ from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.seer.similarity.config import (
     get_grouping_model_version,
     should_send_to_seer_for_training,
+    should_skip_seer_fallback,
 )
 from sentry.seer.similarity.similar_issues import get_similarity_data_from_seer
 from sentry.seer.similarity.types import (
@@ -323,7 +324,7 @@ def _build_seer_request(
         "model": model_version,
         "training_mode": training_mode,
         "platform": event.platform or "unknown",
-        "skip_fallback": True,
+        "skip_fallback": should_skip_seer_fallback(event.project),
     }
     event.data.pop("stacktrace_string", None)
 
