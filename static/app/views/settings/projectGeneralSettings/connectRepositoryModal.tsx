@@ -3,8 +3,8 @@ import {useQueries, useQuery} from '@tanstack/react-query';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {Select} from '@sentry/scraps/select';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Select, components} from '@sentry/scraps/select';
 import type {SelectValue} from '@sentry/scraps/select';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -94,26 +94,36 @@ function useGroupedRepoOptions(orgSlug: string): {
 
 function LockedProjectField({project}: {project: Project}) {
   return (
-    <Container border="primary" radius="sm" padding="xs lg">
-      <Flex align="center" gap="sm">
-        <ProjectAvatar project={project} size={16} />
-        <Text flex={1}>{project.slug}</Text>
-        <IconLock locked size="xs" />
-      </Flex>
-    </Container>
+    <Select
+      disabled
+      aria-label={t('Project')}
+      options={[
+        {
+          value: project.slug,
+          label: project.slug,
+          leadingItems: <ProjectAvatar project={project} size={16} />,
+        },
+      ]}
+      value={project.slug}
+      components={{
+        DropdownIndicator: props => (
+          <components.DropdownIndicator {...props}>
+            <IconLock locked size="xs" />
+          </components.DropdownIndicator>
+        ),
+      }}
+    />
   );
 }
 
-function PathsPlaceholder({hasRepo}: {hasRepo: boolean}) {
+function PathsPlaceholder() {
   return (
-    <Container border="muted" radius="md" padding="xl">
-      {!hasRepo && (
-        <Flex justify="center">
-          <Text variant="muted">
-            {t('Select a repository first to configure code paths')}
-          </Text>
-        </Flex>
-      )}
+    <Container border="muted" radius="md" padding="2xl" style={{borderStyle: 'dashed'}}>
+      <Flex justify="center">
+        <Text variant="muted">
+          {t('Select a repository first to configure code paths')}
+        </Text>
+      </Flex>
     </Container>
   );
 }
@@ -151,44 +161,37 @@ export function ConnectRepositoryModal({
             )}
           </Text>
 
-          <Flex gap="md" align="end">
-            <Stack gap="xs" flex={1}>
-              <Text size="sm" bold>
-                {t('Project')}
-              </Text>
-              <LockedProjectField project={project} />
-            </Stack>
+          <Grid columns="1fr auto 1fr" gap="xs md" align="center">
+            <Text size="sm" bold>
+              {t('Project')}
+            </Text>
+            <Container />
+            <Text size="sm" bold>
+              {t('Repository')}
+            </Text>
+            <LockedProjectField project={project} />
+            <IconArrow direction="right" />
+            <Select
+              options={groupedOptions}
+              value={selectedOption?.value ?? null}
+              onChange={option => setSelectedOption(option as RepoSelectOption | null)}
+              placeholder={t('Search repositories')}
+              isLoading={isPending}
+            />
+          </Grid>
 
-            <Flex paddingBottom="xs">
-              <IconArrow direction="right" />
-            </Flex>
-
-            <Stack gap="xs" flex={1}>
-              <Text size="sm" bold>
-                {t('Repository')}
-              </Text>
-              <Select
-                options={groupedOptions}
-                value={selectedOption}
-                onChange={option => setSelectedOption(option as RepoSelectOption | null)}
-                placeholder={t('Search repositories')}
-                isLoading={isPending}
-              />
-            </Stack>
-          </Flex>
-
-          <Stack gap="xs">
+          <Stack gap="xs" paddingTop="2xl">
             <Text size="sm" bold>
               {t('Paths')}
             </Text>
-            <PathsPlaceholder hasRepo={selectedOption !== null} />
+            {!selectedOption && <PathsPlaceholder />}
           </Stack>
         </Stack>
       </Body>
       <Footer>
         <Flex justify="end" gap="md">
           <Button onClick={closeModal}>{t('Cancel')}</Button>
-          <Button priority="primary" disabled>
+          <Button variant="primary" disabled>
             {t('Save')}
           </Button>
         </Flex>

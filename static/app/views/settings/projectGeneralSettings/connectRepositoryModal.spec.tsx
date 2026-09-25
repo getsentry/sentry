@@ -75,9 +75,10 @@ describe('ConnectRepositoryModal', () => {
 
   it('shows the project name as a locked read-only field', () => {
     renderModal();
-    expect(screen.getByText(project.slug)).toBeInTheDocument();
-    // Lock icon is present (not a combobox / selector)
-    expect(screen.queryByRole('combobox', {name: /project/i})).not.toBeInTheDocument();
+    const combobox = screen.getByRole('combobox', {name: /project/i});
+    expect(combobox).toBeInTheDocument();
+    expect(combobox).toBeDisabled();
+    expect(combobox).toHaveValue(project.slug);
   });
 
   it('lists repos from mock integration in the dropdown', async () => {
@@ -99,6 +100,13 @@ describe('ConnectRepositoryModal', () => {
     await waitFor(() =>
       expect(screen.getByRole('button', {name: 'Save'})).toBeDisabled()
     );
+  });
+
+  it('shows the selected repo in the combobox after picking', async () => {
+    renderModal();
+    await userEvent.click(screen.getByText('Search repositories'));
+    await userEvent.click(await screen.findByText('getsentry/sentry'));
+    expect(screen.getByRole('combobox')).toHaveValue('getsentry/sentry');
   });
 
   it('Cancel closes the modal', async () => {
