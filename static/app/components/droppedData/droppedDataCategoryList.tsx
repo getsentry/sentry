@@ -1,6 +1,7 @@
 import {useState} from 'react';
 import {useTheme} from '@emotion/react';
 
+import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -8,6 +9,7 @@ import {
   formatDroppedShare,
   getOutcomeColors,
   outcomeLabel,
+  reasonDescription,
   reasonTitle,
 } from 'sentry/components/droppedData/utils';
 import {TimeSince} from 'sentry/components/timeSince';
@@ -17,6 +19,7 @@ import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import type {Annotation} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 
 interface ReasonRow {
+  category: string;
   droppedBuckets: number;
   events: number;
   lastSeen: number;
@@ -35,6 +38,7 @@ interface CategorySection {
 
 interface ReasonAggregate {
   buckets: Set<number>;
+  category: string;
   events: number;
   lastSeen: number;
 }
@@ -58,12 +62,13 @@ export function annotationsToCategorySections(
   let totalDroppedEvents = 0;
 
   for (const annotation of droppedAnnotations) {
-    const {outcome, reason, eventCount, start, end} = annotation;
+    const {outcome, reason, category, eventCount, start, end} = annotation;
     totalDroppedEvents += eventCount;
     eventsByOutcome.set(outcome, (eventsByOutcome.get(outcome) ?? 0) + eventCount);
 
     const reasons = reasonsByOutcome.get(outcome) ?? new Map<string, ReasonAggregate>();
     const aggregate = reasons.get(reason) ?? {
+      category,
       events: 0,
       buckets: new Set<number>(),
       lastSeen: 0,
@@ -89,6 +94,7 @@ export function annotationsToCategorySections(
     const reasonRows: ReasonRow[] = [];
     for (const [reason, aggregate] of reasons) {
       reasonRows.push({
+        category: aggregate.category,
         outcome,
         reason,
         events: aggregate.events,
@@ -125,17 +131,22 @@ function ColorDot({color}: {color: string}) {
   );
 }
 
-function MetaItem({
-  children,
-  monospace,
-}: {
-  children: React.ReactNode;
-  monospace?: boolean;
-}) {
+function ReasonCodes({row}: {row: ReasonRow}) {
   return (
-    <Text size="sm" variant="muted" monospace={monospace} underline="dotted">
-      {children}
-    </Text>
+    <Grid columns="auto auto" gap="xs md" align="baseline">
+      <Text size="sm" variant="muted">
+        {t('Reason')}
+      </Text>
+      <Text size="sm" monospace>
+        {row.reason}
+      </Text>
+      <Text size="sm" variant="muted">
+        {t('Outcome')}
+      </Text>
+      <Text size="sm" monospace>
+        {row.outcome}
+      </Text>
+    </Grid>
   );
 }
 
@@ -155,6 +166,19 @@ function CategoryPill({children}: {children: React.ReactNode}) {
         {children}
       </Text>
     </Container>
+  );
+}
+
+function ReasonDescriptionLine({reason, category}: {category: string; reason: string}) {
+  const description = reasonDescription(reason, category);
+  if (!description) {
+    return null;
+  }
+
+  return (
+    <Text size="sm" variant="muted">
+      {description}
+    </Text>
   );
 }
 
@@ -192,16 +216,15 @@ function ReasonTable({
           borderBottom={index === reasons.length - 1 ? 'none' : 'muted'}
         >
           <Stack gap="xs" padding="md xl">
-            <Text size="md" bold>
-              {reasonTitle(row.reason)}
-            </Text>
-            <Flex gap="md">
-              <MetaItem>
+            <Flex align="baseline" gap="md">
+              <InfoText size="md" bold title={<ReasonCodes row={row} />}>
+                {reasonTitle(row.reason)}
+              </InfoText>
+              <Text size="sm" variant="muted">
                 <TimeSince date={row.lastSeen} unitStyle="short" />
-              </MetaItem>
-              <MetaItem monospace>{row.reason}</MetaItem>
-              <MetaItem monospace>{row.outcome}</MetaItem>
+              </Text>
             </Flex>
+            <ReasonDescriptionLine reason={row.reason} category={row.category} />
           </Stack>
           <Container padding="md xl">
             <Text size="md" variant="muted" tabular>
