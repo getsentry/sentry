@@ -19,7 +19,7 @@ import ChartZoom, {type ZoomRenderProps} from 'sentry/components/charts/chartZoo
 import type {FormatterOptions} from 'sentry/components/charts/components/tooltip';
 import {getFormatter} from 'sentry/components/charts/components/tooltip';
 import {ErrorPanel} from 'sentry/components/charts/errorPanel';
-import ReleaseSeries from 'sentry/components/charts/releaseSeries';
+import {useReleaseSeries} from 'sentry/components/charts/releaseSeries';
 import {createLineSeries} from 'sentry/components/charts/series/lineSeries';
 import {TransitionChart} from 'sentry/components/charts/transitionChart';
 import {TransparentLoadingMask} from 'sentry/components/charts/transparentLoadingMask';
@@ -243,6 +243,17 @@ export function Chart({
 
   const height = renderingContext?.height ?? chartHeight;
   const isLegendVisible = renderingContext?.isFullscreen ?? showLegend;
+
+  const {releaseSeries} = useReleaseSeries({
+    start,
+    end,
+    queryExtra: undefined,
+    period,
+    utc,
+    projects,
+    environments,
+    enabled: renderingContext?.isFullscreen ?? false,
+  });
 
   const defaultRef = useRef<ReactEchartsRef>(null);
   const chartRef = ref || defaultRef;
@@ -472,23 +483,11 @@ export function Chart({
     <ChartZoom saveOnZoom period={period} start={start} end={end} utc={utc}>
       {zoomRenderProps =>
         renderingContext?.isFullscreen ? (
-          <ReleaseSeries
-            start={start}
-            end={end}
-            queryExtra={undefined}
-            period={period}
-            utc={utc}
-            projects={projects}
-            environments={environments}
-          >
-            {({releaseSeries}) => (
-              <ChartWithSeries
-                {...chartWithSeriesProps}
-                releaseSeries={releaseSeries}
-                zoomRenderProps={zoomRenderProps}
-              />
-            )}
-          </ReleaseSeries>
+          <ChartWithSeries
+            {...chartWithSeriesProps}
+            releaseSeries={releaseSeries}
+            zoomRenderProps={zoomRenderProps}
+          />
         ) : (
           <ChartWithSeries {...chartWithSeriesProps} zoomRenderProps={zoomRenderProps} />
         )
