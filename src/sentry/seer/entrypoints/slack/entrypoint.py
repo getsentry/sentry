@@ -480,14 +480,20 @@ class SlackAutofixEntrypoint(
                     }
                 )
             case SentryAppEventType.SEER_PR_CREATED | SentryAppEventType.SEER_PR_READY_FOR_REVIEW:
-                pull_requests = [
-                    pr_payload.get("pull_request", {})
-                    for pr_payload in event_payload.get("pull_requests", [])
-                ]
-                summary = pull_requests[0].get("pr_url", "") if pull_requests else None
                 pull_requests_list = [
-                    {"pr_number": pr["pr_number"], "pr_url": pr["pr_url"]} for pr in pull_requests
+                    {"pr_number": pr["pr_number"], "pr_url": pr["pr_url"]}
+                    for pr_payload in event_payload.get("pull_requests", [])
+                    for pr in [pr_payload.get("pull_request", {})]
+                    if pr.get("pr_number") is not None and pr.get("pr_url") is not None
                 ]
+                if not pull_requests_list:
+                    logging_ctx["event_type"] = event_type
+                    logger.info(
+                        "seer.entrypoint.slack.autofix_update.no_valid_pull_requests",
+                        extra=logging_ctx,
+                    )
+                    return
+                summary = pull_requests_list[0]["pr_url"]
                 data_kwargs.update(
                     {
                         "current_point": AutofixStoppingPoint.OPEN_PR,
