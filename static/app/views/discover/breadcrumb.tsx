@@ -11,7 +11,6 @@ import type {EventView} from 'sentry/utils/discover/eventView';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import {EventInputName} from 'sentry/views/discover/eventInputName';
 import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
-import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
 type Props = {
@@ -27,9 +26,7 @@ export function DiscoverBreadcrumb({
   location,
   savedQuery,
 }: Props) {
-  const discoverLabel = getDiscoverDeprecation(organization)
-    ? t('Errors')
-    : t('Discover');
+  const discoverLabel = t('Errors');
 
   // Without a query to name, Discover itself is the current page, so there is
   // no trail above it.

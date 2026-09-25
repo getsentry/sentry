@@ -45,58 +45,6 @@ export const DEFAULT_EVENT_VIEW_MAP: Record<SavedQueryDatasets, Readonly<NewQuer
   [SavedQueryDatasets.TRANSACTIONS]: DEFAULT_TRANSACTION_VIEW,
 };
 
-export const getTransactionViews = (organization: Organization) => {
-  const hasDatasetSelectorFeature = hasDatasetSelector(organization);
-  return [
-    {
-      id: undefined,
-      name: t('Transactions by Volume'),
-      fields: [
-        'transaction',
-        'project',
-        'count()',
-        'avg(transaction.duration)',
-        'p75()',
-        'p95()',
-      ],
-      orderby: '-count',
-      query: hasDatasetSelectorFeature ? '' : 'event.type:transaction',
-      projects: [],
-      version: 2,
-      range: '24h',
-      queryDataset: SavedQueryDatasets.TRANSACTIONS,
-    },
-  ] as readonly NewQuery[];
-};
-
-export const getWebVitalsViews = (organization: Organization) => {
-  const hasDatasetSelectorFeature = hasDatasetSelector(organization);
-  return [
-    {
-      id: undefined,
-      name: t('Web Vitals'),
-      fields: [
-        'transaction',
-        'epm()',
-        'p75(measurements.fp)',
-        'p75(measurements.fcp)',
-        'p75(measurements.lcp)',
-        'p75(measurements.fid)',
-        'p75(measurements.cls)',
-      ],
-      orderby: '-epm',
-      query: hasDatasetSelectorFeature
-        ? 'transaction.op:pageload'
-        : 'event.type:transaction transaction.op:pageload',
-      projects: [],
-      version: 2,
-      range: '24h',
-      yAxis: ['epm()'],
-      queryDataset: SavedQueryDatasets.TRANSACTIONS,
-    },
-  ] as readonly NewQuery[];
-};
-
 export const getAllViews = (organization: Organization) => {
   const hasDatasetSelectorFeature = hasDatasetSelector(organization);
   return [
