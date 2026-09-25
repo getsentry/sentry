@@ -1158,10 +1158,11 @@ export class TokenConverter {
       };
     }
 
-    if (this.config.validateRegexPattern?.(value.value) === false) {
+    const invalidRegexReason = this.config.validateRegexPattern?.(value.value);
+    if (invalidRegexReason) {
       return {
         type: InvalidReason.INVALID_REGEX,
-        reason: this.config.invalidMessages[InvalidReason.INVALID_REGEX],
+        reason: `${this.config.invalidMessages[InvalidReason.INVALID_REGEX]}: ${invalidRegexReason}`,
       };
     }
 
@@ -1578,10 +1579,10 @@ export type SearchConfig = {
    */
   validateKeys?: boolean;
   /**
-   * Checks a regex filter's pattern against the RE2 syntax the backend accepts. Undefined
-   * while the engine loads, which lets patterns through until it resolves.
+   * Returns the reason a regex filter's pattern is not valid RE2, or null when it is.
+   * Undefined while the engine loads, which lets patterns through until it resolves.
    */
-  validateRegexPattern?: (pattern: string) => boolean;
+  validateRegexPattern?: (pattern: string) => string | null;
 };
 
 export const defaultConfig: SearchConfig = {

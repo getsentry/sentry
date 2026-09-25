@@ -695,19 +695,27 @@ describe('searchSyntax/parser', () => {
       expect(filter.invalid).toBeNull();
     });
 
-    it('flags a pattern that validateRegexPattern rejects', () => {
+    it('appends the reason when validateRegexPattern rejects a pattern', () => {
       const filter = parseRegexFilter('message://(?=a)b//', {
-        validateRegexPattern: () => false,
+        validateRegexPattern: () => 'invalid or unsupported Perl syntax',
       });
 
-      expect(filter.invalid).toEqual(
-        expect.objectContaining({type: InvalidReason.INVALID_REGEX})
-      );
+      expect(filter.invalid).toEqual({
+        type: InvalidReason.INVALID_REGEX,
+        reason: 'Invalid regex (RE2 syntax): invalid or unsupported Perl syntax',
+      });
+    });
+
+    it('passes the pattern to validateRegexPattern without its delimiters', () => {
+      const validateRegexPattern = jest.fn(() => null);
+      parseRegexFilter('message://^a.*b//', {validateRegexPattern});
+
+      expect(validateRegexPattern).toHaveBeenCalledWith('^a.*b');
     });
 
     it('does not flag a pattern that validateRegexPattern accepts', () => {
       const filter = parseRegexFilter('message://^a.*b//', {
-        validateRegexPattern: () => true,
+        validateRegexPattern: () => null,
       });
 
       expect(filter.invalid).toBeNull();
@@ -720,11 +728,23 @@ describe('searchSyntax/parser', () => {
     });
 
     it('does not run validateRegexPattern on an empty pattern', () => {
-      const validateRegexPattern = jest.fn(() => false);
+      const validateRegexPattern = jest.fn(() => 'missing closing )');
       const filter = parseRegexFilter('message:////', {validateRegexPattern});
 
       expect(filter.invalid).toEqual(
         expect.objectContaining({type: InvalidReason.FILTER_MUST_HAVE_VALUE})
+      );
+      expect(validateRegexPattern).not.toHaveBeenCalled();
+    });
+
+    it('does not run validateRegexPattern on a pattern that is too long', () => {
+      const validateRegexPattern = jest.fn(() => 'missing closing )');
+      const filter = parseRegexFilter(`message://${'a'.repeat(65)}//`, {
+        validateRegexPattern,
+      });
+
+      expect(filter.invalid).toEqual(
+        expect.objectContaining({type: InvalidReason.REGEX_PATTERN_TOO_LONG})
       );
       expect(validateRegexPattern).not.toHaveBeenCalled();
     });

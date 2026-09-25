@@ -8843,7 +8843,11 @@ describe('SearchQueryBuilder', () => {
       await userEvent.click(getLastInput());
       await userEvent.keyboard('{ArrowLeft}');
 
-      expect(await screen.findByText('Invalid regex (RE2 syntax)')).toBeInTheDocument();
+      expect(
+        await screen.findByText(
+          'Invalid regex (RE2 syntax): invalid or unsupported Perl syntax'
+        )
+      ).toBeInTheDocument();
     });
 
     it('does not mark a pattern that RE2 accepts invalid', async () => {
