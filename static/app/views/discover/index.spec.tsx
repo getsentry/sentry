@@ -9,10 +9,18 @@ describe('DiscoverContainer', () => {
     slug: 'org-slug',
     features: ['discover-basic'],
   });
+  const deprecatedOrg = OrganizationFixture({
+    slug: 'org-slug',
+    features: [
+      'discover-basic',
+      'deprecate-discover',
+      'discover-saved-queries-deprecation',
+    ],
+  });
 
-  it('redirects /explore/discover/ to /explore/errors/', async () => {
+  it('redirects /explore/discover/ to /explore/errors/ when the org has the deprecation flags', async () => {
     const {router} = render(<DiscoverContainer />, {
-      organization,
+      organization: deprecatedOrg,
       initialRouterConfig: {
         location: {
           pathname: '/organizations/org-slug/explore/discover/queries/',

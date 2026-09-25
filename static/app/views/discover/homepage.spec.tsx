@@ -133,9 +133,9 @@ describe('Discover > Homepage', () => {
     const {router} = render(<Homepage />, {
       initialRouterConfig: {
         location: {
-          pathname: `/organizations/${organization.slug}/explore/errors/`,
+          pathname: `/organizations/${organization.slug}/explore/discover/`,
         },
-        route: '/organizations/:orgId/explore/errors/',
+        route: '/organizations/:orgId/explore/discover/',
       },
       organization,
     });
@@ -152,7 +152,7 @@ describe('Discover > Homepage', () => {
     await waitFor(() => {
       expect(router.location).toEqual(
         expect.objectContaining({
-          pathname: `/organizations/${organization.slug}/explore/errors/`,
+          pathname: `/organizations/${organization.slug}/explore/discover/`,
           query: expect.objectContaining({
             field: 'event.type',
           }),

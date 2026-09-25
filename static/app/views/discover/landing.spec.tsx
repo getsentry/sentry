@@ -116,11 +116,11 @@ describe('Discover > Landing', () => {
       </OrganizationContext>
     );
 
-    const discoverCrumb = await screen.findByRole('link', {name: 'Discover'});
+    const discoverCrumb = await screen.findByRole('link', {name: 'Errors'});
 
     expect(discoverCrumb).toHaveAttribute(
       'href',
-      '/organizations/org-slug/explore/discover/homepage/'
+      '/organizations/org-slug/explore/discover/'
     );
 
     // 'Saved Queries' heads the page, so it is not repeated in the trail.
