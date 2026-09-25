@@ -18,9 +18,7 @@ class Migration(CheckedMigration):
     #   is a schema change, it's completely safe to run the operation after the code has deployed.
     # Once deployed, run these manually via: https://develop.sentry.dev/database-migrations/#migration-deployment
 
-    # Post-deployment so it runs after the backfill it depends on, which is post-deployment
-    # itself.
-    is_post_deployment = True
+    is_post_deployment = False
 
     dependencies = [
         ("sentry", "1171_backfill_custominboundfilter_data_type"),
