@@ -75,16 +75,9 @@ export const toast = {
     show('loading', message, options),
   message: (message: ReactNode, options?: ToastOptions) =>
     show('default', message, options),
-  /** Dismisses one toast, or every toast when called with no id. */
-  dismiss: (id?: ToastId) => {
-    if (id === undefined) {
-      activeToastIds.clear();
-    } else {
-      for (const variant of activeToastIds.keys()) {
-        removeActiveToast(variant, id);
-      }
-    }
-
-    return sonnerToast.dismiss(id);
+  /** Dismisses every toast. */
+  dismiss: () => {
+    activeToastIds.clear();
+    return sonnerToast.dismiss();
   },
 };
