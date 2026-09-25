@@ -8,6 +8,10 @@ const isoTimestampSchema = z.iso.datetime({offset: true});
 // and every consumer reads them as UTC, so the agent copies that form back.
 const pageFilterTimestampSchema = z.iso.datetime({offset: true, local: true});
 
+// Chart time-axis values also accept timestamps without an offset (treated as
+// UTC) because the AI model frequently omits the `Z` suffix.
+const chartTimeAxisSchema = z.iso.datetime({offset: true, local: true});
+
 const chartSeriesDataSchema = z
   .array(
     z.object({
@@ -319,7 +323,7 @@ export const SEER_EMBED_SCHEMAS = {
             series.data.forEach((point, pointIndex) => {
               if (
                 typeof point.x !== 'string' ||
-                !isoTimestampSchema.safeParse(point.x).success
+                !chartTimeAxisSchema.safeParse(point.x).success
               ) {
                 context.addIssue({
                   code: 'custom',
