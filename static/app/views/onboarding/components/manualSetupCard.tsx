@@ -18,6 +18,7 @@ export function ManualSetupCard({onSetupInBrowser}: ManualSetupCardProps) {
       <Grid
         columns={`${SETUP_CARD_MARKER_PX} 1fr max-content`}
         gap="0 md"
+        background="primary"
         border="primary"
         radius="xl"
         padding="xl"
