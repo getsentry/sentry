@@ -18,6 +18,10 @@ from sentry.seer.agent.client_models import (
 from sentry.seer.autofix.coding_agent import IntegrationNotFound
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.on_completion_hook import AutofixOnCompletionHook
+from sentry.seer.autofix.pr_iteration.completion import (
+    continue_pr_iteration,
+    record_failed_tool_calls,
+)
 from sentry.seer.autofix.pr_iteration.emit import PrIterationOutcome
 from sentry.seer.autofix.pr_iteration.feedback import Feedback, serialize_feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import CheckSuiteFeedbackSource
@@ -129,7 +133,7 @@ def _state(
     )
 
 
-@patch("sentry.seer.autofix.on_completion_hook.metrics")
+@patch("sentry.seer.autofix.pr_iteration.completion.metrics")
 class TestRecordFailedToolCalls(TestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -138,7 +142,7 @@ class TestRecordFailedToolCalls(TestCase):
         self.group = self.create_group(project=self.project)
 
     def _run(self, state: SeerRunState) -> None:
-        AutofixOnCompletionHook._record_failed_tool_calls(self.organization, self.group, state)
+        record_failed_tool_calls(self.organization, self.group, state)
 
     def test_no_failed_tools(self, mock_metrics) -> None:
         self._run(_state([_iteration_block(0, failed=False)]))
@@ -146,28 +150,35 @@ class TestRecordFailedToolCalls(TestCase):
         mock_metrics.incr.assert_not_called()
 
     def test_skips_non_pr_iteration(self, mock_metrics) -> None:
-        self._run(
-            _state(
-                [
-                    MemoryBlock(
-                        id="root",
-                        message=Message(
-                            role="assistant",
-                            content="",
-                            tool_calls=[ToolCall(id="c", function="grep", args="{}")],
-                            metadata={"step": AutofixStep.ROOT_CAUSE.value},
-                        ),
-                        timestamp="2023-07-18T12:00:00Z",
-                        tool_links=[ToolLink(kind="grep", params={"is_error": True})],
-                        tool_results=[
-                            ToolResult(tool_call_id="c", tool_call_function="grep", content="Error")
-                        ],
-                    )
-                ]
-            )
+        state = _state(
+            [
+                MemoryBlock(
+                    id="root",
+                    message=Message(
+                        role="assistant",
+                        content="",
+                        tool_calls=[ToolCall(id="c", function="grep", args="{}")],
+                        metadata={"step": AutofixStep.ROOT_CAUSE.value},
+                    ),
+                    timestamp="2023-07-18T12:00:00Z",
+                    tool_links=[ToolLink(kind="grep", params={"is_error": True})],
+                    tool_results=[
+                        ToolResult(tool_call_id="c", tool_call_function="grep", content="Error")
+                    ],
+                )
+            ]
         )
+        state.metadata = {"group_id": self.group.id}
 
-        mock_metrics.incr.assert_not_called()
+        with (
+            patch("sentry.seer.autofix.on_completion_hook.fetch_run_status", return_value=state),
+            patch.object(AutofixOnCompletionHook, "_send_step_webhook"),
+            patch.object(AutofixOnCompletionHook, "_maybe_continue_pipeline"),
+            patch("sentry.seer.autofix.on_completion_hook.record_failed_tool_calls") as mock_record,
+        ):
+            AutofixOnCompletionHook.execute(self.organization, 1)
+
+        mock_record.assert_not_called()
 
     def test_records_latest_iteration_failures(self, mock_metrics) -> None:
         state = _state(
@@ -238,6 +249,7 @@ class TestRecordFailedToolCalls(TestCase):
 
 
 HOOK_PATH = "sentry.seer.autofix.on_completion_hook"
+COMPLETION_PATH = "sentry.seer.autofix.pr_iteration.completion"
 
 
 def _step_checkpoints(mock_metrics) -> list[str]:
@@ -301,8 +313,8 @@ def _synced_state(feedback: Sequence[Feedback] = ()) -> SeerRunState:
     )
 
 
-@patch(f"{HOOK_PATH}.complete_pr_iteration_details")
-@patch(f"{HOOK_PATH}.metrics")
+@patch(f"{COMPLETION_PATH}.complete_pr_iteration_details")
+@patch(f"{COMPLETION_PATH}.metrics")
 class TestPrIterationStepMetrics(TestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -311,16 +323,12 @@ class TestPrIterationStepMetrics(TestCase):
         self.group = self.create_group(project=self.project)
 
     def _run(self, state: SeerRunState) -> None:
-        AutofixOnCompletionHook._maybe_continue_pipeline(
-            self.organization,
-            1,
-            state,
-            self.group,
-            fallback_referrer=AutofixReferrer.GITHUB_PR_COMMENT,
+        continue_pr_iteration(
+            self.organization, self.group, 1, state, AutofixReferrer.GITHUB_PR_COMMENT
         )
 
     def test_an_accepted_push_counts_the_code_change(self, mock_metrics, _mock_complete) -> None:
-        with patch.object(AutofixOnCompletionHook, "_pr_iteration_push_outcome", return_value=None):
+        with patch(f"{COMPLETION_PATH}.pr_iteration_push_outcome", return_value=None):
             self._run(_unsynced_state(feedback=_manual_feedback()))
 
         assert _step_checkpoints(mock_metrics) == ["code_change_completed"]
@@ -336,12 +344,11 @@ class TestPrIterationStepMetrics(TestCase):
 
     def test_the_re_fire_counts_the_iteration_only(self, mock_metrics, _mock_complete) -> None:
         with (
-            patch.object(
-                AutofixOnCompletionHook,
-                "_pr_iteration_push_outcome",
+            patch(
+                f"{COMPLETION_PATH}.pr_iteration_push_outcome",
                 return_value=PrIterationOutcome.ALREADY_PUSHED,
             ),
-            patch.object(AutofixOnCompletionHook, "_consume_queued_feedback"),
+            patch(f"{COMPLETION_PATH}.consume_queued_feedback"),
         ):
             self._run(_synced_state())
 
@@ -349,12 +356,11 @@ class TestPrIterationStepMetrics(TestCase):
 
     def _complete_iteration(self, state: SeerRunState) -> None:
         with (
-            patch.object(
-                AutofixOnCompletionHook,
-                "_pr_iteration_push_outcome",
+            patch(
+                f"{COMPLETION_PATH}.pr_iteration_push_outcome",
                 return_value=PrIterationOutcome.ALREADY_PUSHED,
             ),
-            patch.object(AutofixOnCompletionHook, "_consume_queued_feedback"),
+            patch(f"{COMPLETION_PATH}.consume_queued_feedback"),
         ):
             self._run(state)
 
@@ -379,7 +385,7 @@ class TestPrIterationStepMetrics(TestCase):
 
     def test_an_errored_run_counts_nothing(self, mock_metrics, _mock_complete) -> None:
         with (
-            patch(f"{HOOK_PATH}.pause_pr_iteration", return_value=True),
+            patch(f"{COMPLETION_PATH}.pause_pr_iteration", return_value=True),
             patch(f"{HOOK_PATH}.fetch_run_status", return_value=_unsynced_state(status="error")),
         ):
             AutofixOnCompletionHook.execute(self.organization, 1)
@@ -389,7 +395,7 @@ class TestPrIterationStepMetrics(TestCase):
     def test_no_code_changes_counts_the_no_change_branch(
         self, mock_metrics, _mock_complete
     ) -> None:
-        with patch.object(AutofixOnCompletionHook, "_consume_queued_feedback"):
+        with patch(f"{COMPLETION_PATH}.consume_queued_feedback"):
             self._run(
                 _state(
                     [_iteration_block(0, feedback=[_check_suite_feedback()])],
@@ -410,8 +416,10 @@ class TestPrIterationStepMetrics(TestCase):
 
     def test_a_failed_push_counts_the_start_only(self, mock_metrics, _mock_complete) -> None:
         with (
-            patch(f"{HOOK_PATH}.iteration_prs_any_closed", return_value=False),
-            patch(f"{HOOK_PATH}.trigger_push_changes", side_effect=RuntimeError("seer is down")),
+            patch(f"{COMPLETION_PATH}.iteration_prs_any_closed", return_value=False),
+            patch(
+                f"{COMPLETION_PATH}.trigger_push_changes", side_effect=RuntimeError("seer is down")
+            ),
         ):
             self._run(_unsynced_state(feedback=_manual_feedback()))
 
