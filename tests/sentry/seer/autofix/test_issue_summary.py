@@ -1142,6 +1142,21 @@ class TestGetAndUpdateGroupFixabilityScore(APITestCase, SnubaTestCase):
         mock_generate.assert_called_once()
 
     @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
+    @patch("sentry.seer.autofix.issue_summary.locks.get")
+    def test_reuses_score_generated_while_waiting_for_lock(
+        self, mock_get_lock: MagicMock, mock_generate: MagicMock
+    ) -> None:
+        def set_score() -> None:
+            self.group.update(seer_fixability_score=0.75)
+
+        mock_get_lock.return_value.blocking_acquire.return_value.__enter__.side_effect = set_score
+
+        result = get_and_update_group_fixability_score(self.group)
+
+        assert result == 0.75
+        mock_generate.assert_not_called()
+
+    @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
     def test_force_generate_regenerates_existing_score(self, mock_generate):
         """Test that force_generate=True regenerates score even if one exists."""
         # Set an existing score

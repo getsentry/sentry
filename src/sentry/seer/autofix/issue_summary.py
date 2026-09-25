@@ -320,18 +320,7 @@ def _generate_fixability_score(
     return SummarizeIssueResponse.validate(response_data)
 
 
-def get_and_update_group_fixability_score(
-    group: Group,
-    force_generate: bool = False,
-) -> float:
-    """
-    Get the fixability score for a group and update the group with the score.
-    If the fixability score is already set, return it without generating a new one.
-    Reads the issue summary from cache to pass to Seer, avoiding a DB lookup for the summary on Seer's side.
-    """
-    if not force_generate and group.seer_fixability_score is not None:
-        return group.seer_fixability_score
-
+def _generate_and_update_group_fixability_score(group: Group) -> float:
     summary = None
     try:
         cache_key = get_issue_summary_cache_key(group.id)
@@ -362,6 +351,27 @@ def get_and_update_group_fixability_score(
     fixability_score = issue_summary.scores.fixability_score
     group.update(seer_fixability_score=fixability_score)
     return fixability_score
+
+
+def get_and_update_group_fixability_score(
+    group: Group,
+    force_generate: bool = False,
+) -> float:
+    """Get or generate a group's fixability score, serializing concurrent generation."""
+    if not force_generate and group.seer_fixability_score is not None:
+        return group.seer_fixability_score
+
+    with locks.get(
+        key=f"ai-group-fixability-score-lock:{group.id}",
+        duration=5,
+        name="get_group_fixability_score",
+    ).blocking_acquire(initial_delay=0.1, timeout=4.5):
+        if not force_generate:
+            group.refresh_from_db(fields=["seer_fixability_score"])
+            if group.seer_fixability_score is not None:
+                return group.seer_fixability_score
+
+        return _generate_and_update_group_fixability_score(group)
 
 
 def _is_issue_fixable(group: Group, fixability_score: float) -> bool:
