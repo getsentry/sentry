@@ -442,7 +442,9 @@ export class Results extends Component<Props, State> {
 
     const value = getSavedQueryDataset(organization, location, savedQuery, splitDecision);
     const defaultEventView = hasDatasetSelector(organization)
-      ? (getSavedQueryWithDataset(DEFAULT_EVENT_VIEW_MAP[value]) as NewQuery)
+      ? (getSavedQueryWithDataset(
+          DEFAULT_EVENT_VIEW_MAP[value] ?? DEFAULT_EVENT_VIEW
+        ) as NewQuery)
       : DEFAULT_EVENT_VIEW;
 
     const query = isHomepage && savedQuery ? omit(savedQuery, 'id') : defaultEventView;
