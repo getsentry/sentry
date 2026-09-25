@@ -324,14 +324,6 @@ interface UseReleaseBubblesParams {
   alignInMiddle?: boolean;
 
   /**
-   * The whitespace around the bubbles.
-   */
-  bubblePadding?: number;
-  /**
-   * The size (height) of the bubble
-   */
-  bubbleSize?: number;
-  /**
    * Unique ID used to associate the releases drawer with this chart.
    */
   chartId?: string;
@@ -378,8 +370,6 @@ export function useReleaseBubbles({
   legendSelected,
   yAxisIndex,
   alignInMiddle = false,
-  bubbleSize = 4,
-  bubblePadding = 2,
   desiredBuckets = 10,
   flags,
 }: UseReleaseBubblesParams) {
@@ -402,6 +392,8 @@ export function useReleaseBubbles({
     [endTimeToUse, now]
   );
   const chartRef = useRef<ReactEchartsRef | null>(null);
+  const bubbleSize = 4;
+  const bubblePadding = 2;
   const totalBubblePaddingY = bubblePadding * 2;
   const releaseBubbleXAxis = useMemo(
     () => ({
