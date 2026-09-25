@@ -327,22 +327,24 @@ class ActivityAssignedAlertBaseTest(TestCase):
                 "assigneeType": "user",
             },
         ).dict()
-        
+
         # Simulate Sentry App automated assignment
-        data_dict.update({
-            "activity_user_name": "sentry-0-issue-assigner-abc123-uuid@proxy-user.sentry.io",
-            "is_automated": True,
-        })
-        
+        data_dict.update(
+            {
+                "activity_user_name": "sentry-0-issue-assigner-abc123-uuid@proxy-user.sentry.io",
+                "is_automated": True,
+            }
+        )
+
         data = AssignedNotificationData(
             **data_dict,
             assignee_label="the workflows team",
             assignee_url=None,
         )
-        
+
         subject = get_assigned_subject(data)
         subject_text = " ".join(b.text for b in subject)
-        
+
         # Should say "auto-assigned" not show proxy email
         assert "auto-assigned" in subject_text
         assert "proxy-user.sentry.io" not in subject_text
@@ -364,22 +366,24 @@ class ActivityAssignedAlertBaseTest(TestCase):
                 "assigneeType": "user",
             },
         ).dict()
-        
+
         # Simulate Sentry App assigning to itself
-        data_dict.update({
-            "activity_user_name": "sentry-0-issue-assigner-abc123-uuid@proxy-user.sentry.io",
-            "is_automated": True,
-        })
-        
+        data_dict.update(
+            {
+                "activity_user_name": "sentry-0-issue-assigner-abc123-uuid@proxy-user.sentry.io",
+                "is_automated": True,
+            }
+        )
+
         data = AssignedNotificationData(
             **data_dict,
             assignee_label="themselves",  # Assigned to itself
             assignee_url=None,
         )
-        
+
         subject = get_assigned_subject(data)
         subject_text = " ".join(b.text for b in subject)
-        
+
         # Should say "auto-assigned to itself" not show proxy email
         assert "auto-assigned to itself" in subject_text
         assert "proxy-user.sentry.io" not in subject_text
