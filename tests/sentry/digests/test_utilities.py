@@ -142,6 +142,29 @@ class UtilitiesHelpersTestCase(TestCase, SnubaTestCase):
         assert rendered_rule.id == workflow.id
         assert rendered_rule.environment_id == environment.id
 
+    def test_workflow_rendering_does_not_use_rule_when_enabled(self) -> None:
+        project = self.create_project(fire_project_created=True)
+        rule = self.create_project_rule(project)
+        workflow_id = int(rule.data["actions"][0]["workflow_id"])
+
+        with self.options({"workflow_engine.notifications.use_workflow_data": True}):
+            rendered_rule = get_rules_from_workflows(project, {workflow_id})[workflow_id]
+
+        assert rendered_rule.id == workflow_id
+        assert rendered_rule.id != rule.id
+        assert rendered_rule.data == {"actions": [{"workflow_id": workflow_id}]}
+
+    def test_legacy_digest_records_still_render_when_enabled(self) -> None:
+        project = self.create_project(fire_project_created=True)
+        rule = self.create_project_rule(project, include_workflow_id=False)
+        event = self.store_event(data={}, project_id=project.id)
+        record = event_to_record(event, [rule])
+
+        with self.options({"workflow_engine.notifications.use_workflow_data": True}):
+            digest = build_digest(project, [record])
+
+        assert list(digest.digest) == [rule]
+
 
 def assert_rule_ids(digest: Digest, expected_rule_ids: list[int]) -> None:
     for rule, groups in digest.items():
