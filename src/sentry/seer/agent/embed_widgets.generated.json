@@ -815,7 +815,6 @@
       "type": "object",
       "properties": {
         "id": {
-          "description": "The 32-character event ID exactly as the events API returns it in `id`.",
           "anyOf": [
             {
               "type": "string"
@@ -823,10 +822,10 @@
             {
               "type": "number"
             }
-          ]
+          ],
+          "description": "The 32-character event ID exactly as the events API returns it in `id`."
         },
         "issueId": {
-          "description": "The numeric group ID exactly as the issues API returns it in `id` (e.g. \"7716642857\"). Required to build the event URL.",
           "anyOf": [
             {
               "type": "string"
@@ -834,7 +833,8 @@
             {
               "type": "number"
             }
-          ]
+          ],
+          "description": "The numeric group ID exactly as the issues API returns it in `id` (e.g. \"7716642857\"). Required to build the event URL."
         },
         "shortId": {
           "type": "string",
