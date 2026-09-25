@@ -2124,7 +2124,6 @@ module = [
     "tests.sentry.tasks.test_weekly_reports",
     "tests.sentry.taskworker.*",
     "tests.sentry.test_constants",
-    "tests.sentry.test_culprit",
     "tests.sentry.test_dependencies",
     "tests.sentry.test_devimports",
     "tests.sentry.test_http",

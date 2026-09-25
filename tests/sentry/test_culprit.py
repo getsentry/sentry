@@ -1,8 +1,10 @@
+from typing import Any
+
 from sentry.event_manager import EventManager
 from sentry.event_manager import get_culprit as get_culprit_impl
 
 
-def get_culprit(data):
+def get_culprit(data: dict[str, Any]) -> str:
     mgr = EventManager(data)
     mgr.normalize()
     return get_culprit_impl(mgr.get_data())
