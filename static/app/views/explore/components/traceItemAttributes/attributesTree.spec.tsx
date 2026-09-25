@@ -115,7 +115,7 @@ describe('attributesTree', () => {
           organization,
         }}
         getCustomActions={content => {
-          if (!content.originalAttribute) {
+          if (!content.original) {
             return [];
           }
 

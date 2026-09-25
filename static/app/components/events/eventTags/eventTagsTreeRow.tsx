@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
@@ -12,17 +12,10 @@ import {hasEveryAccess} from 'sentry/components/acl/access';
 import type {TagTreeContent} from 'sentry/components/events/eventTags/eventTagsTree';
 import {EventTagsValue} from 'sentry/components/events/eventTags/eventTagsValue';
 import {AnnotatedTextErrors} from 'sentry/components/events/meta/annotatedText/annotatedTextErrors';
+import {KeyValueTreeRow} from 'sentry/components/keyValueTree/keyValueTreeRow';
 import {
   TREE_VALUE_DROPDOWN_BUTTON_CLASS,
-  TreeBranchIcon,
-  TreeKey,
-  TreeKeyTrunk,
-  TreeRow as KeyValueTreeRow,
-  TreeSearchKey,
-  TreeSpacer,
-  TreeValue,
-  TreeValueDropdown as KeyValueTreeValueDropdown,
-  TreeValueTrunk as KeyValueTreeValueTrunk,
+  TreeValueDropdown,
 } from 'sentry/components/keyValueTree/styles';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {Version} from 'sentry/components/version';
@@ -77,25 +70,20 @@ export function EventTagsTreeRow({
   config = {},
   ...props
 }: EventTagsTreeRowProps) {
-  const originalTag = content.originalTag;
+  const originalTag = content.original;
   const tagErrors = content.meta?.value?.['']?.err ?? [];
   const hasTagErrors = tagErrors.length > 0 && !config?.disableErrors;
   const hasStem = !isLast && content.subtree.size === 0;
 
   if (!originalTag) {
     return (
-      <TreeRow hasErrors={hasTagErrors} {...props}>
-        <TreeKeyTrunk spacerCount={spacerCount}>
-          {spacerCount > 0 && (
-            <Fragment>
-              <TreeSpacer spacerCount={spacerCount} hasStem={hasStem} />
-              <TreeBranchIcon hasErrors={hasTagErrors} />
-            </Fragment>
-          )}
-          <TreeKey hasErrors={hasTagErrors}>{tagKey}</TreeKey>
-        </TreeKeyTrunk>
-        <TreeValueTrunk />
-      </TreeRow>
+      <KeyValueTreeRow
+        {...props}
+        hasErrors={hasTagErrors}
+        hasStem={hasStem}
+        label={tagKey}
+        spacerCount={spacerCount}
+      />
     );
   }
 
@@ -108,35 +96,24 @@ export function EventTagsTreeRow({
   );
 
   return (
-    <RevealOnHover>
-      {revealOnHoverProps => (
-        <TreeRow hasErrors={hasTagErrors} {...props} {...revealOnHoverProps}>
-          <TreeKeyTrunk spacerCount={spacerCount}>
-            {spacerCount > 0 && (
-              <Fragment>
-                <TreeSpacer spacerCount={spacerCount} hasStem={hasStem} />
-                <TreeBranchIcon hasErrors={hasTagErrors} />
-              </Fragment>
-            )}
-            <TreeSearchKey aria-hidden>{originalTag.key}</TreeSearchKey>
-            <TreeKey hasErrors={hasTagErrors} title={originalTag.key}>
-              {tagKey}
-            </TreeKey>
-          </TreeKeyTrunk>
-          <TreeValueTrunk>
-            <TreeValue hasErrors={hasTagErrors}>
-              <EventTagsTreeValue
-                config={config}
-                content={content}
-                event={event}
-                project={project}
-              />
-            </TreeValue>
-            {!config?.disableActions && tagActions}
-          </TreeValueTrunk>
-        </TreeRow>
-      )}
-    </RevealOnHover>
+    <KeyValueTreeRow
+      {...props}
+      actions={config?.disableActions ? undefined : tagActions}
+      hasErrors={hasTagErrors}
+      hasStem={hasStem}
+      label={tagKey}
+      labelTitle={originalTag.key}
+      searchKey={originalTag.key}
+      spacerCount={spacerCount}
+      value={
+        <EventTagsTreeValue
+          config={config}
+          content={content}
+          event={event}
+          project={project}
+        />
+      }
+    />
   );
 }
 
@@ -151,7 +128,7 @@ function EventTagsTreeRowDropdown({
   const {copy} = useCopyToClipboard();
   const {mutate: saveTag} = useUpdateProject(project);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const originalTag = content.originalTag;
+  const originalTag = content.original;
 
   if (!originalTag) {
     return null;
@@ -353,7 +330,7 @@ function EventTagsTreeValue({
   project,
 }: Pick<EventTagsTreeRowProps, 'config' | 'content' | 'event' | 'project'>) {
   const organization = useOrganization();
-  const {originalTag} = content;
+  const originalTag = content.original;
   const tagMeta = content.meta?.value?.[''];
   if (!originalTag) {
     return null;
@@ -458,22 +435,6 @@ function EventTagsTreeValue({
     tagValue
   );
 }
-
-const TreeRow = styled(KeyValueTreeRow)`
-  &:focus-within {
-    z-index: 1;
-  }
-`;
-
-const TreeValueTrunk = styled(KeyValueTreeValueTrunk)`
-  grid-template-columns: 1fr auto;
-`;
-
-const TreeValueDropdown = styled(KeyValueTreeValueDropdown)`
-  .${TREE_VALUE_DROPDOWN_BUTTON_CLASS} {
-    z-index: 0;
-  }
-`;
 
 const TreeValueErrors = styled('div')`
   height: 20px;

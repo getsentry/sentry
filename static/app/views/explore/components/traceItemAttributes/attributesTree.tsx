@@ -8,27 +8,23 @@ import {Text} from '@sentry/scraps/text';
 
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
+import {KeyValueTreeRow} from 'sentry/components/keyValueTree/keyValueTreeRow';
 import {
   TREE_VALUE_DROPDOWN_BUTTON_CLASS,
-  TreeBranchIcon,
   TreeColumn as KeyValueTreeColumn,
   TreeContainer as KeyValueTreeContainer,
-  TreeKey,
-  TreeKeyTrunk,
-  TreeRow,
-  TreeSearchKey,
-  TreeSpacer,
-  TreeValue,
-  TreeValueDropdown as KeyValueTreeValueDropdown,
-  TreeValueTrunk as KeyValueTreeValueTrunk,
+  TreeValueDropdown,
 } from 'sentry/components/keyValueTree/styles';
-import {distributeRowGroupsIntoColumns} from 'sentry/components/keyValueTree/utils';
+import {
+  buildKeyValueTree,
+  getKeyValueTreeColumns,
+  type KeyValueTreeContent,
+} from 'sentry/components/keyValueTree/utils';
 import {IconEllipsis, IconPin} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {type RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
-import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {isValidUrl} from 'sentry/utils/string/isValidUrl';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
@@ -36,26 +32,17 @@ import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTra
 
 import {AttributesTreeValue} from './attributesTreeValue';
 
-const MAX_TREE_DEPTH = 4;
-const INVALID_BRANCH_REGEX = /\.{2,}/;
-
-interface Attribute {
+export interface Attribute {
   attribute_key: string;
   attribute_value: string | number | null;
   original_attribute_key: string;
   type: TraceItemResponseAttribute['type'];
 }
 
-type AttributesTree = Record<string, AttributesTreeContent>;
-
-export interface AttributesTreeContent {
-  subtree: AttributesTree;
-  value: string | number | null;
-  config?: AttributesTreeRowConfig;
-  // These will be omitted on pseudo attributes (see addToAttributeTree)
-  meta?: Record<any, any>;
-  originalAttribute?: Attribute;
-}
+export type AttributesTreeContent = KeyValueTreeContent<
+  Attribute['attribute_value'],
+  Attribute
+>;
 
 type AttributeItem = {
   fieldKey: string;
@@ -122,114 +109,6 @@ interface AttributesTreeRowProps<
   spacerCount?: number;
 }
 
-function addToAttributeTree(
-  tree: AttributesTree,
-  attribute: Attribute,
-  meta: Record<any, any>,
-  originalAttribute: Attribute
-): AttributesTree {
-  const BRANCH_MATCHES_REGEX = /\./g;
-  if (!defined(attribute.attribute_key)) {
-    return tree;
-  }
-
-  const branchMatches = attribute.attribute_key.match(BRANCH_MATCHES_REGEX) ?? [];
-
-  const hasInvalidBranchCount =
-    branchMatches.length <= 0 || branchMatches.length > MAX_TREE_DEPTH;
-  const hasInvalidBranchSequence = INVALID_BRANCH_REGEX.test(attribute.attribute_key);
-
-  // Ignore attributes with 0, or >4 branches, as well as sequential dots (e.g. 'some..attribute')
-  if (hasInvalidBranchCount || hasInvalidBranchSequence) {
-    tree[attribute.attribute_key] = {
-      value: attribute.attribute_value,
-      subtree: tree[attribute.attribute_key]?.subtree ?? {},
-      meta,
-      originalAttribute,
-    };
-    return tree;
-  }
-  // E.g. 'device.model.version'
-  const splitIndex = attribute.attribute_key.indexOf('.'); // 6
-  const trunk = attribute.attribute_key.slice(0, splitIndex); // 'device'
-  const branch = attribute.attribute_key.slice(splitIndex + 1); // 'model.version'
-
-  if (tree[trunk] === undefined) {
-    tree[trunk] = {value: '', subtree: {}};
-  }
-  // Recurse with a pseudo attribute, e.g. 'model', to create nesting structure
-  const pseudoAttribute: Attribute = {
-    attribute_key: branch,
-    attribute_value: attribute.attribute_value,
-    original_attribute_key: attribute.original_attribute_key,
-    type: attribute.type,
-  };
-  tree[trunk].subtree = addToAttributeTree(
-    tree[trunk].subtree,
-    pseudoAttribute,
-    meta,
-    originalAttribute
-  );
-  return tree;
-}
-
-/**
- * Function to recursively create a flat list of all rows to be rendered for a given AttributeTree
- * @param props The props for rendering the root of the AttributeTree
- * @returns A list of TreeRow components to be rendered in this tree
- */
-function getAttributesTreeRows<RendererExtra extends RenderFunctionBaggage>({
-  attributeKey,
-  content,
-  spacerCount = 0,
-  uniqueKey,
-  renderers = {},
-  rendererExtra,
-  isLast = false,
-  config = {},
-  getCustomActions,
-  pinnedAttribute,
-}: AttributesTreeRowProps<RendererExtra> &
-  AttributesFieldRender<RendererExtra> & {
-    uniqueKey: string;
-  }): React.ReactNode[] {
-  const subtreeAttributes = Object.keys(content.subtree);
-  const subtreeRows = subtreeAttributes.reduce(
-    (rows: React.ReactNode[], attribute, i) => {
-      const branchRows = getAttributesTreeRows<RendererExtra>({
-        attributeKey: attribute,
-        content: content.subtree[attribute]!,
-        spacerCount: spacerCount + 1,
-        isLast: i === subtreeAttributes.length - 1,
-        uniqueKey: `${uniqueKey}-${i}`,
-        renderers,
-        config,
-        rendererExtra,
-        getCustomActions,
-        pinnedAttribute,
-      });
-      return rows.concat(branchRows);
-    },
-    []
-  );
-  return [
-    <AttributesTreeRow
-      key={`${attributeKey}-${spacerCount}-${uniqueKey}`}
-      attributeKey={attributeKey}
-      content={content}
-      spacerCount={spacerCount}
-      data-test-id="attribute-tree-row"
-      renderers={renderers}
-      rendererExtra={rendererExtra}
-      isLast={isLast}
-      config={config}
-      getCustomActions={getCustomActions}
-      pinnedAttribute={pinnedAttribute}
-    />,
-    ...subtreeRows,
-  ];
-}
-
 /**
  * Component to render proportional columns for attributes. The columns will not separate
  * branch attributes from their roots, and attempt to be as evenly distributed as possible.
@@ -249,41 +128,36 @@ function AttributesTreeColumns<RendererExtra extends RenderFunctionBaggage>({
       return [];
     }
 
-    // Convert attributes record to the format expected by addToAttributeTree
-    const visibleAttributes = attributes
-      .map(key => getAttribute(key, getAdjustedAttributeKey))
-      .filter(defined);
-
-    // Create the AttributeTree data structure using all the given attributes
-    const attributesTree = visibleAttributes.reduce<AttributesTree>(
-      (tree, attribute) => addToAttributeTree(tree, attribute, {}, attribute),
-      {}
+    const attributesTree = buildKeyValueTree(
+      attributes
+        .map(attribute => getAttribute(attribute, getAdjustedAttributeKey))
+        .filter(defined)
+        .map(attribute => ({
+          key: attribute.attribute_key,
+          value: attribute.attribute_value,
+          original: attribute,
+        }))
     );
 
-    // Create a list of AttributeTreeRow lists, containing every row to be rendered. They are grouped by
-    // root parent so that we do not split up roots/branches when forming columns
-    const attributeTreeRowGroups: React.ReactNode[][] = Object.entries(
-      attributesTree
-    ).map(([attributeKey, content], i) =>
-      getAttributesTreeRows({
-        attributeKey,
-        content,
-        uniqueKey: `${i}`,
-        renderers,
-        rendererExtra: renderExtra,
-        config,
-        getCustomActions,
-        pinnedAttribute,
-      })
-    );
-
-    return distributeRowGroupsIntoColumns(attributeTreeRowGroups, columnCount).map(
-      (column, index) => (
-        <TreeColumn key={index} data-test-id="attribute-tree-column">
-          {column}
-        </TreeColumn>
-      )
-    );
+    return getKeyValueTreeColumns(attributesTree, columnCount).map((rows, index) => (
+      <TreeColumn key={index} data-test-id="attribute-tree-column">
+        {rows.map(row => (
+          <AttributesTreeRow
+            key={row.uniqueKey}
+            attributeKey={row.treeKey}
+            content={row.content}
+            spacerCount={row.spacerCount}
+            isLast={row.isLast}
+            data-test-id="attribute-tree-row"
+            renderers={renderers}
+            rendererExtra={renderExtra}
+            config={config}
+            getCustomActions={getCustomActions}
+            pinnedAttribute={pinnedAttribute}
+          />
+        ))}
+      </TreeColumn>
+    ));
   }, [
     attributes,
     columnCount,
@@ -323,72 +197,57 @@ function AttributesTreeRow<RendererExtra extends RenderFunctionBaggage>({
   config = {},
   getCustomActions,
   pinnedAttribute,
+  renderers,
+  rendererExtra,
   ...props
 }: AttributesTreeRowProps<RendererExtra>) {
-  const originalAttribute = content.originalAttribute;
-  const hasErrors = false; // No error handling in this simplified version
-  const hasStem = !isLast && isEmptyObject(content.subtree);
+  const originalAttribute = content.original;
+  const hasStem = !isLast && content.subtree.size === 0;
 
   if (!originalAttribute) {
     return (
-      <TreeRow hasErrors={hasErrors} {...props}>
-        <TreeKeyTrunk spacerCount={spacerCount}>
-          {spacerCount > 0 && (
-            <Fragment>
-              <TreeSpacer spacerCount={spacerCount} hasStem={hasStem} />
-              <TreeBranchIcon hasErrors={hasErrors} />
-            </Fragment>
-          )}
-          <TreeKey hasErrors={hasErrors}>{attributeKey}</TreeKey>
-        </TreeKeyTrunk>
-        <TreeValueTrunk />
-      </TreeRow>
+      <KeyValueTreeRow
+        {...props}
+        hasStem={hasStem}
+        label={attributeKey}
+        spacerCount={spacerCount}
+      />
     );
   }
 
-  const attributeActions = config?.disableActions ? null : (
-    <AttributesTreeRowDropdown content={content} getCustomActions={getCustomActions} />
-  );
-
   return (
-    <RevealOnHover>
-      {revealOnHoverProps => (
-        <TreeRow hasErrors={hasErrors} {...props} {...revealOnHoverProps}>
-          <TreeKeyTrunk spacerCount={spacerCount}>
-            {spacerCount > 0 && (
-              <Fragment>
-                <TreeSpacer spacerCount={spacerCount} hasStem={hasStem} />
-                <TreeBranchIcon hasErrors={hasErrors} />
-              </Fragment>
-            )}
-            <TreeSearchKey aria-hidden>{originalAttribute.attribute_key}</TreeSearchKey>
-            <TreeKey
-              hasErrors={hasErrors}
-              title={originalAttribute.attribute_key}
-              data-test-id={`tree-key-${content.originalAttribute?.original_attribute_key}`}
-            >
-              <Flex align="center" gap="xs">
-                <Text>{attributeKey}</Text>
-                {pinnedAttribute === originalAttribute.original_attribute_key && (
-                  <IconPin size="xs" isSolid aria-label={t('Pinned attribute')} />
-                )}
-              </Flex>
-            </TreeKey>
-          </TreeKeyTrunk>
-          <TreeValueTrunk>
-            <TreeValue hasErrors={hasErrors}>
-              <AttributesTreeValue
-                config={config}
-                content={content}
-                renderers={props.renderers}
-                rendererExtra={props.rendererExtra}
-              />
-            </TreeValue>
-            {attributeActions}
-          </TreeValueTrunk>
-        </TreeRow>
-      )}
-    </RevealOnHover>
+    <KeyValueTreeRow
+      {...props}
+      actions={
+        config?.disableActions ? undefined : (
+          <AttributesTreeRowDropdown
+            content={content}
+            getCustomActions={getCustomActions}
+          />
+        )
+      }
+      hasStem={hasStem}
+      label={
+        <Flex align="center" gap="xs">
+          <Text>{attributeKey}</Text>
+          {pinnedAttribute === originalAttribute.original_attribute_key && (
+            <IconPin size="xs" isSolid aria-label={t('Pinned attribute')} />
+          )}
+        </Flex>
+      }
+      labelTestId={`tree-key-${originalAttribute.original_attribute_key}`}
+      labelTitle={originalAttribute.attribute_key}
+      searchKey={originalAttribute.attribute_key}
+      spacerCount={spacerCount}
+      value={
+        <AttributesTreeValue
+          config={config}
+          content={content}
+          renderers={renderers}
+          rendererExtra={rendererExtra}
+        />
+      }
+    />
   );
 }
 
@@ -480,14 +339,4 @@ const TreeContainer = styled(KeyValueTreeContainer)`
 
 const TreeColumn = styled(KeyValueTreeColumn)`
   grid-template-columns: minmax(min-content, max-content) auto;
-`;
-
-const TreeValueTrunk = styled(KeyValueTreeValueTrunk)`
-  grid-template-columns: minmax(0, 1fr) auto;
-`;
-
-const TreeValueDropdown = styled(KeyValueTreeValueDropdown)`
-  .${TREE_VALUE_DROPDOWN_BUTTON_CLASS} {
-    z-index: 1;
-  }
 `;

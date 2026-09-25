@@ -23,7 +23,7 @@ export function useLogAttributesTreeActions({embedded}: {embedded: boolean}) {
 
   const addColumn = useCallback(
     (content: AttributesTreeContent) => {
-      const originalAttribute = content.originalAttribute;
+      const originalAttribute = content.original;
       if (!originalAttribute) {
         return;
       }
@@ -40,10 +40,10 @@ export function useLogAttributesTreeActions({embedded}: {embedded: boolean}) {
 
   const addGroupBy = useCallback(
     (content: AttributesTreeContent) => {
-      if (!content.originalAttribute) {
+      if (!content.original) {
         return;
       }
-      const key = content.originalAttribute.original_attribute_key;
+      const key = content.original.original_attribute_key;
       // Drop empty placeholder group bys, dedupe, then append the new key.
       const newGroupBys = groupBys.filter(Boolean);
       if (!newGroupBys.includes(key)) {
@@ -57,11 +57,11 @@ export function useLogAttributesTreeActions({embedded}: {embedded: boolean}) {
   );
 
   return (content: AttributesTreeContent) => {
-    if (!content.originalAttribute) {
+    if (!content.original) {
       return [];
     }
 
-    const key = content.originalAttribute.original_attribute_key;
+    const key = content.original.original_attribute_key;
     const items = getSearchActions(content);
 
     items.push(

@@ -156,7 +156,7 @@ function HighlightsData({highlightsProject, event, project}: HighlightsDataProps
   );
   const contextReplayId = contextReplayItem?.value ?? EMPTY_HIGHLIGHT_DEFAULT;
 
-  const tagReplayItem = highlightTagItems.find(e => e.originalTag.key === 'replayId');
+  const tagReplayItem = highlightTagItems.find(e => e.original.key === 'replayId');
   const tagReplayId = tagReplayItem?.value ?? EMPTY_HIGHLIGHT_DEFAULT;
 
   // if the id doesn't exist for either tag or context, it's rendered as '--'
@@ -178,7 +178,7 @@ function HighlightsData({highlightsProject, event, project}: HighlightsDataProps
   }
   if (tagReplayItem && replayFetchError) {
     tagReplayItem.value = EMPTY_HIGHLIGHT_DEFAULT;
-    tagReplayItem.originalTag.value = EMPTY_HIGHLIGHT_DEFAULT;
+    tagReplayItem.original.value = EMPTY_HIGHLIGHT_DEFAULT;
   }
 
   const highlightContextRows = highlightContextDataItems.reduce<React.ReactNode[]>(
@@ -204,7 +204,7 @@ function HighlightsData({highlightsProject, event, project}: HighlightsDataProps
       key={`highlight-tag-${i}`}
       content={content}
       event={event}
-      tagKey={content.originalTag.key}
+      tagKey={content.original.key}
       project={highlightsProject}
       config={{
         disableActions: content.value === EMPTY_HIGHLIGHT_DEFAULT,

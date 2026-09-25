@@ -99,17 +99,17 @@ function EditPreviewHighlightSection({
 
   const highlightTagItems = getHighlightTagData({event, highlightTags});
   const highlightTagRows = highlightTagItems.map(content => (
-    <Fragment key={`edit-highlight-tag-${content.originalTag.key}`}>
+    <Fragment key={`edit-highlight-tag-${content.original.key}`}>
       <EditButton
         aria-label="Remove from highlights"
         icon={<IconSubtract />}
-        onClick={() => onRemoveTag(content.originalTag.key)}
+        onClick={() => onRemoveTag(content.original.key)}
         data-test-id="highlights-remove-tag"
       />
       <EditPreviewTagItem
         content={content}
         event={event}
-        tagKey={content.originalTag.key}
+        tagKey={content.original.key}
         project={project}
         config={{disableActions: true, disableRichValue: true, disableErrors: true}}
         data-test-id="highlights-preview-tag"

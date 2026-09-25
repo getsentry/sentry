@@ -40,6 +40,9 @@ export const TreeRow = styled('div')<{hasErrors: boolean}>`
     p.hasErrors ? p.theme.colors.red100 : p.theme.tokens.background.primary};
   box-shadow: inset 0 0 0 1px
     ${p => (p.hasErrors ? p.theme.colors.red200 : 'transparent')};
+  &:focus-within {
+    z-index: 1;
+  }
 `;
 
 export const TreeSpacer = styled('div')<{hasStem: boolean; spacerCount: number}>`
@@ -78,6 +81,7 @@ export const TreeValueTrunk = styled('div')`
   align-items: center;
   min-height: 22px;
   grid-column-gap: ${p => p.theme.space.xs};
+  grid-template-columns: minmax(0, 1fr) auto;
 `;
 
 export const TreeValue = styled('div')<{hasErrors?: boolean}>`
@@ -113,5 +117,6 @@ export const TreeValueDropdown = styled(DropdownMenu)`
     min-height: 20px;
     padding: 0 ${p => p.theme.space.sm};
     border-radius: ${p => p.theme.space.xs};
+    z-index: 1;
   }
 `;

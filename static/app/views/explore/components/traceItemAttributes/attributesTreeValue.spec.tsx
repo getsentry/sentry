@@ -18,9 +18,9 @@ describe('AttributesTreeValue', () => {
   const theme = ThemeFixture();
 
   const defaultContent: AttributesTreeContent = {
-    subtree: {},
+    subtree: new Map(),
     value: 'test-value',
-    originalAttribute: {
+    original: {
       attribute_key: 'test.key',
       attribute_value: 'test-value',
       original_attribute_key: 'test.key',
@@ -43,14 +43,14 @@ describe('AttributesTreeValue', () => {
     jest.clearAllMocks();
   });
 
-  it('returns null when originalAttribute is missing', () => {
+  it('returns null when the original attribute is missing', () => {
     const {container} = render(
       <AttributesTreeValue
         {...defaultProps}
         content={{
-          subtree: {},
+          subtree: new Map(),
           value: 'test-value',
-          originalAttribute: undefined,
+          original: undefined,
         }}
       />
     );

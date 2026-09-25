@@ -45,7 +45,7 @@ export function AttributesTreeValue<RendererExtra extends RenderFunctionBaggage>
   content: AttributesTreeContent;
   config?: AttributesTreeRowConfig;
 } & AttributesFieldRender<RendererExtra>) {
-  const {originalAttribute} = content;
+  const {original: originalAttribute} = content;
   if (!originalAttribute) {
     return null;
   }
