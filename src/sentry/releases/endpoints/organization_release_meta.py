@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import TypedDict
 
+from django.db.models import Q
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -83,12 +84,28 @@ class OrganizationReleaseMetaEndpoint(OrganizationReleasesBaseEndpoint):
         release_project_ids = [pr["project__id"] for pr in project_releases]
 
         parsed_version = parse_release_version(release.version)
-        if parsed_version and release_project_ids:
-            number_of_preprod_builds = PreprodArtifact.objects.filter(
-                app_id=parsed_version.app_id,
-                mobile_app_info__build_version=parsed_version.build_version,
-                project_id__in=release_project_ids,
-            ).count()
+        if release_project_ids:
+            # Preprod builds belong to the release that contains their head
+            # commit (e.g. the one created from `options.release`), even when
+            # the release version is not named after the artifact's bundle id.
+            # See https://github.com/getsentry/sentry/issues/123124
+            preprod_build_filter = Q(
+                commit_comparison__head_sha__in=ReleaseCommit.objects.filter(
+                    release=release
+                ).values("commit__key")
+            )
+            if parsed_version:
+                preprod_build_filter |= Q(
+                    app_id=parsed_version.app_id,
+                    mobile_app_info__build_version=parsed_version.build_version,
+                )
+            number_of_preprod_builds = (
+                PreprodArtifact.objects.filter(
+                    preprod_build_filter, project_id__in=release_project_ids
+                )
+                .distinct()
+                .count()
+            )
         else:
             number_of_preprod_builds = 0
 
