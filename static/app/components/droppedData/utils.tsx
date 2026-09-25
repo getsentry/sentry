@@ -90,16 +90,20 @@ function isConfiguredDrop({outcome, reason}: Annotation): boolean {
 /**
  * Severity opacity is a gradient from 0.15 to 1,
  * clamping full opacity at 0.5.
+ *
+ * `curve` below 1 spreads out small ratios so differences between low drop
+ * rates are easier to see; 1 is linear.
  */
 const MIN_OPACITY = 0.15;
 const FULL_AT_RATIO = 0.5;
 
-export function opacityForRatio(ratio: number): number {
+export function opacityForRatio(ratio: number, curve = 1): number {
   if (ratio <= 0) {
     return 0;
   }
 
-  return Math.min(1, MIN_OPACITY + (1 - MIN_OPACITY) * (ratio / FULL_AT_RATIO));
+  const severity = Math.min(1, ratio / FULL_AT_RATIO) ** curve;
+  return MIN_OPACITY + (1 - MIN_OPACITY) * severity;
 }
 
 interface AnnotationVolume {

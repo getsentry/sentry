@@ -190,6 +190,12 @@ describe('groupIntoBuckets', () => {
     expect(opacityForRatio(0.5)).toBe(1);
     expect(opacityForRatio(1)).toBe(1);
   });
+
+  it('spreads out small ratios when given a curve below 1', () => {
+    expect(opacityForRatio(0.02, 0.5)).toBeCloseTo(0.32);
+    expect(opacityForRatio(0.1, 0.5)).toBeCloseTo(0.53);
+    expect(opacityForRatio(0.5, 0.5)).toBe(1);
+  });
 });
 
 describe('reasonTitle', () => {
