@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 class VstsRepositoryProvider(IntegrationRepositoryProvider["VstsIntegrationType"]):
     name = "Azure DevOps"
     repo_provider = IntegrationProviderSlug.AZURE_DEVOPS.value
+    legacy_provider_ids = ("visualstudio",)
 
     def get_repository_data(
         self, organization: Organization, config: MutableMapping[str, Any]

@@ -112,7 +112,7 @@ from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.commitfilechange import CommitFileChange
-from sentry.models.custominboundfilter import CustomInboundFilter, CustomInboundFilterDataType
+from sentry.models.custominboundfilter import CustomInboundFilter, DataType
 from sentry.models.dashboard import Dashboard, DashboardFavoriteUser
 from sentry.models.dashboard_widget import (
     DashboardWidget,
@@ -179,6 +179,7 @@ from sentry.preprod.models import (
 from sentry.replays.models import DeletionJobStatus, ReplayDeletionJobModel
 from sentry.seer.autofix.constants import CodingAgentStatus
 from sentry.seer.models.agent_write_grant import SeerAgentWriteGrant
+from sentry.seer.models.autofix_issue_data import SeerAutofixIssueData
 from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.seer.models.run import (
     SeerAgentRun,
@@ -861,8 +862,9 @@ class Factories:
         project: Project,
         name: str = "Custom inbound filter",
         active: bool = True,
-        data_type: str = CustomInboundFilterDataType.ERROR,
+        data_type: str = DataType.ERROR,
         conditions: list[dict[str, object]] | None = None,
+        legacy_filter: str | None = None,
     ) -> CustomInboundFilter:
         if conditions is None:
             conditions = [{"type": "release", "value": ["1.*"]}]
@@ -873,6 +875,7 @@ class Factories:
             active=active,
             data_type=data_type,
             conditions=conditions,
+            legacy_filter=legacy_filter,
         )
 
     @staticmethod
@@ -3241,6 +3244,18 @@ class Factories:
             type="github", external_id="github-app", defaults=kwargs
         )
         return identity_provider
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_seer_autofix_issue_data(group: Group, **kwargs) -> SeerAutofixIssueData:
+        kwargs.setdefault("organization_id", group.project.organization_id)
+        kwargs.setdefault("project_id", group.project_id)
+        kwargs.setdefault("source", "night_shift")
+        kwargs.setdefault(
+            "raw_issue_data",
+            {"event_id": "a" * 32, "event": {}, "issue": {}, "status": "skip"},
+        )
+        return SeerAutofixIssueData.objects.create(group=group, **kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)

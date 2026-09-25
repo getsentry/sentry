@@ -8,9 +8,9 @@ from rest_framework.response import Response
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.serializers import serialize
-from sentry.constants import ObjectStatus
 from sentry.investigations.endpoints.base import (
     OrganizationInvestigationEndpoint,
+    organization_project_ids,
     require_authenticated_user,
     service_error,
 )
@@ -19,7 +19,6 @@ from sentry.investigations.endpoints.validators import ParameterValuesValidator
 from sentry.investigations.models import Investigation
 from sentry.investigations.services import update_parameter_values
 from sentry.models.organization import Organization
-from sentry.models.project import Project
 
 
 @extend_schema(tags=["Investigations"])
@@ -35,13 +34,7 @@ class OrganizationInvestigationParametersEndpoint(OrganizationInvestigationEndpo
         if not validator.is_valid():
             return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        project_ids = frozenset(
-            Project.objects.filter(
-                id__in=request.access.accessible_project_ids,
-                organization_id=organization.id,
-                status=ObjectStatus.ACTIVE,
-            ).values_list("id", flat=True)
-        )
+        project_ids = organization_project_ids(organization)
         try:
             updated = update_parameter_values(
                 investigation=investigation,
@@ -59,6 +52,6 @@ class OrganizationInvestigationParametersEndpoint(OrganizationInvestigationEndpo
             serialize(
                 updated,
                 request.user,
-                InvestigationDetailsSerializer(accessible_project_ids=project_ids),
+                InvestigationDetailsSerializer(),
             )
         )

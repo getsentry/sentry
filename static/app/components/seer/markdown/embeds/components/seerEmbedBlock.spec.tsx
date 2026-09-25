@@ -73,6 +73,20 @@ describe('SeerEmbedBlock', () => {
     expect(screen.getByText('Aggregate')).toBeInTheDocument();
   });
 
+  it('renders the header without a link for a block that has no page of its own', () => {
+    render(
+      <SeerEmbedBlock testId="seer-block" title="Error volume">
+        <div>Preview body</div>
+      </SeerEmbedBlock>
+    );
+
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Error volume'})).toHaveAttribute(
+      'aria-expanded',
+      'true'
+    );
+  });
+
   it('renders nothing for the link when the href is unsafe', () => {
     // eslint-disable-next-line no-script-url
     renderBlock({href: 'javascript:alert(1)'});

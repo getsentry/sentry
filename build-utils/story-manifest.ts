@@ -5,20 +5,45 @@ import type {Compiler, RspackPluginInstance} from '@rspack/core';
 import rspack from '@rspack/core';
 import {parse as parseYaml} from 'yaml';
 
+import {validateComponentCategory} from '../static/app/stories/componentCategories';
+
 const appDir = path.resolve(import.meta.dirname, '../static/app');
 const PLUGIN_NAME = 'StoryManifestPlugin';
 const STORY_GLOB = '**/*.{stories.tsx,mdx}';
 const STORY_FILE_PATTERN = /(?:\.stories\.tsx|\.mdx)$/;
 const WATCH_DEBOUNCE_MS = 25;
 
-function readFrontmatter(file: string) {
-  const block = fs
-    .readFileSync(path.join(appDir, file), 'utf8')
-    .match(/^---\s*\n([\s\S]*?)\n---/)?.[1];
+interface StoryFrontmatter {
+  category?: string;
+  figma?: string;
+  title?: string;
+}
+
+function parseStoryFrontmatter(
+  file: string,
+  source: string
+): StoryFrontmatter | undefined {
+  const block = source.match(/^---\s*\n([\s\S]*?)\n---/)?.[1];
   const data = block && parseYaml(block);
-  return data && typeof data === 'object'
-    ? {category: data.category, figma: data.resources?.figma}
-    : undefined;
+  if (!data || typeof data !== 'object') {
+    validateComponentCategory(file, undefined);
+    return undefined;
+  }
+
+  validateComponentCategory(file, data.category);
+
+  return {
+    category: typeof data.category === 'string' ? data.category : undefined,
+    figma:
+      data.resources && typeof data.resources === 'object'
+        ? data.resources.figma
+        : undefined,
+    title: typeof data.title === 'string' ? data.title : undefined,
+  };
+}
+
+function readFrontmatter(file: string) {
+  return parseStoryFrontmatter(file, fs.readFileSync(path.join(appDir, file), 'utf8'));
 }
 
 function createManifest() {

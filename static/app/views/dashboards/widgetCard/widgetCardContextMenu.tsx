@@ -28,7 +28,6 @@ import {
   applyDashboardFilters,
   getWidgetDiscoverUrl,
   getWidgetIssueUrl,
-  hasDatasetSelector,
   isUsingPerformanceScore,
   isWidgetEditable,
   performanceScoreTooltip,
@@ -165,26 +164,6 @@ export const useDroppedColumnsWarning = (widget: Widget): React.JSX.Element | nu
   return null;
 };
 
-export const useDiscoverSplitWarning = (widget: Widget): React.JSX.Element | null => {
-  // make sure there's widget queries so we know it's not a text widget
-  if (
-    (widget.widgetType === WidgetType.DISCOVER || !widget.widgetType) &&
-    widget.queries.length > 0
-  ) {
-    return (
-      <div>
-        <StyledText as="p">
-          {t(
-            "We're splitting up the Discover dataset to be either Errors or Transactions. This widget's dataset will be adjusted."
-          )}
-        </StyledText>
-      </div>
-    );
-  }
-
-  return null;
-};
-
 const StyledText = styled(Text)`
   padding-bottom: ${p => p.theme.space.xs};
 `;
@@ -211,13 +190,9 @@ export function getMenuOptions(
   if (
     organization.features.includes('discover-basic') &&
     widget.widgetType &&
-    [WidgetType.DISCOVER, WidgetType.ERRORS, WidgetType.TRANSACTIONS].includes(
-      widget.widgetType
-    )
+    [WidgetType.ERRORS, WidgetType.TRANSACTIONS].includes(widget.widgetType)
   ) {
-    const optionDisabled =
-      (hasDatasetSelector(organization) && widget.widgetType === WidgetType.DISCOVER) ||
-      isUsingPerformanceScore(widget);
+    const optionDisabled = isUsingPerformanceScore(widget);
     // Open Widget in Discover
     if (widget.queries.length) {
       const discoverPath = getWidgetDiscoverUrl(
@@ -334,7 +309,13 @@ export function getMenuOptions(
 
         return {
           key: `create-alert-${seriesName}-${index}`,
-          label,
+          label: (
+            <Text ellipsis style={{maxWidth: 400}}>
+              {label}
+            </Text>
+          ),
+          textValue: label,
+          tooltip: label,
           to: getAlertsUrl({
             query: search.formatString(),
             aggregate: timeSeries.yAxis,
@@ -412,39 +393,45 @@ export function getMenuOptions(
         });
       },
     });
-    menuOptions.push({
-      key: 'duplicate-widget',
-      label: t('Duplicate Widget'),
-      onAction: () => onDuplicate?.(),
-      tooltip: disableTransactionEdit
-        ? t('This dataset is no longer supported. Please use the Spans dataset.')
-        : undefined,
-      disabled: widgetLimitReached || !hasEditAccess || disableTransactionEdit,
-    });
+    if (onDuplicate) {
+      menuOptions.push({
+        key: 'duplicate-widget',
+        label: t('Duplicate Widget'),
+        onAction: onDuplicate,
+        tooltip: disableTransactionEdit
+          ? t('This dataset is no longer supported. Please use the Spans dataset.')
+          : undefined,
+        disabled: widgetLimitReached || !hasEditAccess || disableTransactionEdit,
+      });
+    }
 
-    menuOptions.push({
-      key: 'edit-widget',
-      label: t('Edit Widget'),
-      onAction: () => onEdit?.(),
-      disabled: !hasEditAccess || !isWidgetEditable(widget.displayType),
-      tooltip: isWidgetEditable(widget.displayType)
-        ? undefined
-        : t('Static widgets from the widget library cannot be edited.'),
-    });
+    if (onEdit) {
+      menuOptions.push({
+        key: 'edit-widget',
+        label: t('Edit Widget'),
+        onAction: onEdit,
+        disabled: !hasEditAccess || !isWidgetEditable(widget.displayType),
+        tooltip: isWidgetEditable(widget.displayType)
+          ? undefined
+          : t('Static widgets from the widget library cannot be edited.'),
+      });
+    }
 
-    menuOptions.push({
-      key: 'delete-widget',
-      label: t('Delete Widget'),
-      priority: 'danger',
-      onAction: () => {
-        openConfirmModal({
-          message: t('Are you sure you want to delete this widget?'),
-          priority: 'danger',
-          onConfirm: () => onDelete?.(),
-        });
-      },
-      disabled: !hasEditAccess,
-    });
+    if (onDelete) {
+      menuOptions.push({
+        key: 'delete-widget',
+        label: t('Delete Widget'),
+        priority: 'danger',
+        onAction: () => {
+          openConfirmModal({
+            message: t('Are you sure you want to delete this widget?'),
+            priority: 'danger',
+            onConfirm: onDelete,
+          });
+        },
+        disabled: !hasEditAccess,
+      });
+    }
   }
 
   return menuOptions;

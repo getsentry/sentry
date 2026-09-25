@@ -39,6 +39,7 @@ class BitbucketAPIPath:
 
     repository = "/2.0/repositories/{repo}"
     repositories = "/2.0/repositories/{username}"
+    workspace_hooks = "/2.0/workspaces/{workspace}/hooks"
     repository_commits = "/2.0/repositories/{repo}/commits/{revision}"
     repository_diff = "/2.0/repositories/{repo}/diff/{spec}"
     repository_hook = "/2.0/repositories/{repo}/hooks/{uid}"
@@ -94,6 +95,9 @@ class BitbucketApiClient(ApiClient, RepositoryClient):
 
     def get_issue(self, repo, issue_id):
         return self.get(BitbucketAPIPath.issue.format(repo=repo, issue_id=issue_id))
+
+    def get_workspace_hooks(self, workspace: str):
+        return self.get(BitbucketAPIPath.workspace_hooks.format(workspace=workspace))
 
     def create_issue(self, repo, data):
         return self.post(path=BitbucketAPIPath.issues.format(repo=repo), data=data)

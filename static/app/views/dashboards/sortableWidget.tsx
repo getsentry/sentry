@@ -15,7 +15,6 @@ import WidgetCard from 'sentry/views/dashboards/widgetCard';
 import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
 
 import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
-import {DashboardsMEPProvider} from './widgetCard/dashboardsMEPContext';
 import {Toolbar} from './widgetCard/toolbar';
 import {
   DisplayType,
@@ -152,32 +151,30 @@ export function SortableWidget(props: Props) {
       isClickable={hasSlideout}
       data-test-id="sortable-widget"
     >
-      <DashboardsMEPProvider>
-        <LazyRender
-          containerHeight={200}
-          withoutContainer
-          disabled={props.isGeneratedDashboard}
-        >
-          <WidgetCard {...widgetProps} />
-          {props.isEditingDashboard && (
-            <Toolbar
-              onEdit={props.onEdit}
-              onDelete={props.onDelete}
-              onDuplicate={props.onDuplicate}
-              isMobile={props.isMobile}
-              disableEdit={disableEdit}
-              disableDuplicate={disableTransactionWidget}
-              disabledReason={
-                disableEdit
-                  ? t('Static widgets from the widget library cannot be edited.')
-                  : t(
-                      'You may have limited functionality due to the ongoing migration of transactions to spans.'
-                    )
-              }
-            />
-          )}
-        </LazyRender>
-      </DashboardsMEPProvider>
+      <LazyRender
+        containerHeight={200}
+        withoutContainer
+        disabled={props.isGeneratedDashboard}
+      >
+        <WidgetCard {...widgetProps} />
+        {props.isEditingDashboard && (
+          <Toolbar
+            onEdit={props.onEdit}
+            onDelete={props.onDelete}
+            onDuplicate={props.onDuplicate}
+            isMobile={props.isMobile}
+            disableEdit={disableEdit}
+            disableDuplicate={disableTransactionWidget}
+            disabledReason={
+              disableEdit
+                ? t('Static widgets from the widget library cannot be edited.')
+                : t(
+                    'You may have limited functionality due to the ongoing migration of transactions to spans.'
+                  )
+            }
+          />
+        )}
+      </LazyRender>
     </GridWidgetWrapper>
   );
 }

@@ -27,6 +27,7 @@ const defaultHookReturn: ReturnType<typeof useSeerExplorerModule.useSeerExplorer
   sessionData: null,
   isPolling: false,
   isError: false,
+  hasSessionLoadError: false,
   errorStatusCode: undefined,
   isTimedOut: false,
   runId: null,
@@ -463,6 +464,26 @@ describe('SeerExplorerSidebarLayout', () => {
         })
       )
     );
+  });
+
+  it('keeps the app rendered when the Seer panel throws', async () => {
+    // Seer renders as a sibling of the routed app in the split panel, so
+    // without a boundary of its own a throw in the chat unmounts the page the
+    // user was on. Anything the panel reads off a session can throw — the
+    // containment is what keeps that from being a page-wide crash.
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    mockWideScreen(true);
+    jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockImplementation(() => {
+      throw new TypeError("Cannot read properties of undefined (reading 'map')");
+    });
+
+    renderSidebar(orgWithSidebar);
+    await userEvent.click(screen.getByText('open-seer'));
+
+    expect(await screen.findByText('There was a problem with Seer.')).toBeInTheDocument();
+    expect(screen.getByText('main app content')).toBeInTheDocument();
+
+    errorSpy.mockRestore();
   });
 
   it('closes the sidebar from the close button', async () => {

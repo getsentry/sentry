@@ -46,6 +46,7 @@ from sentry.models.releases.util import (
     SemverFilter,
     SemverVersion,
     release_order_date,
+    reserve_ids,
 )
 from sentry.utils import metrics
 from sentry.utils.cache import cache
@@ -116,6 +117,7 @@ class ReleaseModelManager(BaseManager["Release"]):
         date_field = "release_order" if use_finalized_order else "date_added"
         return (
             self.filter(projects=project, organization_id=project.organization_id)
+            .filter(Q(status=ReleaseStatus.OPEN) | Q(status__isnull=True))
             .alias(release_order=Coalesce("date_released", "date_added"))
             .filter(
                 Q(**{f"{date_field}__gt": current_date})
@@ -245,6 +247,8 @@ class Release(Model):
 
     __relocation_scope__ = RelocationScope.Excluded
 
+    # Shadow column for widening `id` to int8; swapped into the primary key once backfilled.
+    new_id = BoundedBigIntegerField(null=True)
     organization = FlexibleForeignKey("sentry.Organization")
     projects = models.ManyToManyField(
         "sentry.Project", related_name="releases", through=ReleaseProject
@@ -276,10 +280,7 @@ class Release(Model):
     last_commit_id = BoundedBigIntegerField(null=True)
     authors = ArrayField(models.TextField(), default=list, null=True)
     total_deploys = BoundedPositiveIntegerField(null=True, default=0)
-    last_deploy_id = BoundedPositiveIntegerField(null=True)
-    # Shadow column for the in-progress widening of `last_deploy_id` to int8: every write
-    # must mirror `last_deploy_id` into it. Swapped into `last_deploy_id` once backfilled.
-    new_last_deploy_id = BoundedBigIntegerField(null=True)
+    last_deploy_id = BoundedBigIntegerField(null=True)
 
     # Denormalized semver columns. These will be filled if `version` matches at least
     # part of our more permissive model of semver:
@@ -376,6 +377,17 @@ class Release(Model):
     def __hash__(self):
         # https://code.djangoproject.com/ticket/30333
         return super().__hash__()
+
+    def save(self, **kwds: Any) -> None:
+        if self.id is None:
+            using = kwds.get("using")
+            if using is None:
+                using = router.db_for_write(type(self), instance=self)
+            self.id = reserve_ids(type(self), 1, using)[0]
+            self.new_id = self.id
+            # A freshly claimed pk cannot exist yet, so skip Django's UPDATE probe.
+            kwds["force_insert"] = True
+        super().save(**kwds)
 
     @staticmethod
     def is_valid_version(value):

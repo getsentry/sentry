@@ -74,34 +74,6 @@ def _check_metric_detector_allowed(detector: Detector, organization: Organizatio
         raise ResourceDoesNotExist
 
 
-def remove_detector(
-    request: Request, organization: Organization, detector: Detector
-) -> Response[None]:
-    """
-    Delete a given detector. This method is used by the OrganizationAlertRuleDetailsEndpoint DELETE method
-    for backwards compatibility and can be moved back under DELETE after API deprecation.
-    """
-    if not can_delete_detector(detector, request):
-        raise PermissionDenied
-
-    validator = get_detector_validator(
-        request, detector.linked_project, detector.type, instance=detector
-    )
-    validator.delete()
-
-    if detector.type == MetricIssue.slug:
-        schedule_update_project_config(detector)
-
-    create_audit_entry(
-        request=request,
-        organization=detector.linked_project.organization,
-        target_object=detector.id,
-        event=audit_log.get_event_id("DETECTOR_REMOVE"),
-        data=detector.get_audit_log_data(),
-    )
-    return Response(status=204)
-
-
 def get_detector_validator(
     request: Request,
     project: Project,
@@ -265,4 +237,22 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
         # Intentionally no _check_metric_detector_allowed gate here:
         # orgs should be able to delete detectors they can no longer use
         # (e.g. after a plan downgrade).
-        return remove_detector(request, organization, detector)
+        if not can_delete_detector(detector, request):
+            raise PermissionDenied
+
+        validator = get_detector_validator(
+            request, detector.linked_project, detector.type, instance=detector
+        )
+        validator.delete()
+
+        if detector.type == MetricIssue.slug:
+            schedule_update_project_config(detector)
+
+        create_audit_entry(
+            request=request,
+            organization=detector.linked_project.organization,
+            target_object=detector.id,
+            event=audit_log.get_event_id("DETECTOR_REMOVE"),
+            data=detector.get_audit_log_data(),
+        )
+        return Response(status=204)
