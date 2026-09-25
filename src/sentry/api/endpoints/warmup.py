@@ -1,11 +1,10 @@
-import logging
-from typing import Iterator
+from collections.abc import Iterator
 
 import django.contrib.messages.storage.fallback  # NOQA
 import django.contrib.sessions.serializers  # NOQA
 import django.db.models.sql.compiler  # NOQA
 from django.conf import settings
-from django.urls import URLResolver, get_resolver  # NOQA
+from django.urls import URLResolver, get_resolver, reverse
 from django.utils import translation
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -23,8 +22,6 @@ from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.utils import metrics
 
-logger = logging.getLogger(__name__)
-
 
 def _iter_url_resolvers(resolver: URLResolver) -> Iterator[URLResolver]:
     """Walk nested URL includes once, including repeated or recursive resolvers."""
@@ -41,12 +38,15 @@ def _iter_url_resolvers(resolver: URLResolver) -> Iterator[URLResolver]:
         )
 
 
-def warmup_url_resolver(languages: list[str]) -> None:
+def _warmup_url_resolver(languages: list[str]) -> None:
     if not options.get("warmup.url_resolver.enabled"):
         return
 
-    default_language = settings.LANGUAGE_CODE
+    # Ensure that _reverse_dict is populated with the default language.
+    with translation.override(settings.LANGUAGE_CODE):
+        reverse("sentry-warmup")
 
+    default_language = settings.LANGUAGE_CODE
     resolvers = list(_iter_url_resolvers(get_resolver()))
     for language in languages:
         if language == default_language:
@@ -75,7 +75,7 @@ class WarmupEndpoint(Endpoint):
         languages.append(settings.LANGUAGE_CODE)
 
         with metrics.timer("warmup.url_resolver.duration"):
-            warmup_url_resolver(languages)
+            _warmup_url_resolver(languages)
 
         with metrics.timer("warmup.translation.duration"):
             # for each possible language we support, warm up the translations
