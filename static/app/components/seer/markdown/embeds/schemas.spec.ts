@@ -42,6 +42,14 @@ describe('SEER_EMBED_SCHEMAS page filters', () => {
     }
   });
 
+  it('accepts member:invite as a valid requiredScopes value in agentWriteApproval', () => {
+    const parsed = SEER_EMBED_SCHEMAS.agentWriteApproval.schema.safeParse({
+      requiredScopes: ['member:invite'],
+    });
+
+    expect(parsed.success).toBe(true);
+  });
+
   it('rejects start/end that are not ISO datetimes', () => {
     const parsed = SEER_EMBED_SCHEMAS.spansQuery.schema.safeParse({
       start: 'Mon Sep 07 2026 15:53:00 GMT-0700',
