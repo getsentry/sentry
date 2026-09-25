@@ -1,4 +1,4 @@
-import {Fragment, memo} from 'react';
+import {Fragment, memo, useState} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
@@ -206,7 +206,7 @@ export const ResponseGroup = memo(function ResponseGroup({
     );
   });
 
-  const startTime = new Date(group[0]!.timestamp);
+  const [startTime] = useState(() => new Date(group[0]!.timestamp));
   // `settledAnswer` is the stable "response is done" signal. `block.loading` flickers false
   // between tool calls, but answer settles once
   const endTime =

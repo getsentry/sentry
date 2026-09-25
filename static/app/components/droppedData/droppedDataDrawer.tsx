@@ -1,17 +1,23 @@
 import {Fragment} from 'react';
 
 import {DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
+import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {DroppedDataCategoryList} from 'sentry/components/droppedData/droppedDataCategoryList';
 import {DroppedDataChart} from 'sentry/components/droppedData/droppedDataChart';
 import {t} from 'sentry/locale';
 import type {Annotation} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 
 interface DroppedDataDrawerProps {
+  acceptedDataAnnotations: Annotation[];
   droppedDataAnnotations: Annotation[];
 }
 
-export function DroppedDataDrawer({droppedDataAnnotations}: DroppedDataDrawerProps) {
+export function DroppedDataDrawer({
+  droppedDataAnnotations,
+  acceptedDataAnnotations,
+}: DroppedDataDrawerProps) {
   return (
     <Fragment>
       <DrawerHeader>
@@ -20,7 +26,13 @@ export function DroppedDataDrawer({droppedDataAnnotations}: DroppedDataDrawerPro
         </Text>
       </DrawerHeader>
       <DrawerBody>
-        <DroppedDataChart annotations={droppedDataAnnotations} />
+        <Stack gap="xl">
+          <DroppedDataChart droppedDataAnnotations={droppedDataAnnotations} />
+          <DroppedDataCategoryList
+            droppedDataAnnotations={droppedDataAnnotations}
+            acceptedDataAnnotations={acceptedDataAnnotations}
+          />
+        </Stack>
       </DrawerBody>
     </Fragment>
   );

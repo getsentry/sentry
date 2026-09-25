@@ -53,8 +53,11 @@ describe('useIncompleteBucketTooltipDetails', () => {
   it('adds ingestion delay information to incomplete buckets when measured', () => {
     const {result} = renderTooltipDetails(
       makeChartInfo({
-        completeThrough: INCOMPLETE_TIMESTAMP,
-        estimatedIngestionDelaySeconds: 60,
+        ingestion: {
+          status: 'healthy',
+          completeThrough: INCOMPLETE_TIMESTAMP,
+          delaySeconds: 60,
+        },
       })
     );
 
@@ -69,7 +72,9 @@ describe('useIncompleteBucketTooltipDetails', () => {
 
   it('does not add ingestion delay information to complete buckets', () => {
     const {result} = renderTooltipDetails(
-      makeChartInfo({completeThrough: INCOMPLETE_TIMESTAMP})
+      makeChartInfo({
+        ingestion: {status: 'healthy', completeThrough: INCOMPLETE_TIMESTAMP},
+      })
     );
 
     expect(result.current!(['count(span.duration)'], COMPLETE_TIMESTAMP)).toBe('');

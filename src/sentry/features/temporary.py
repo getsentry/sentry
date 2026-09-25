@@ -269,6 +269,7 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:seer-explorer-index", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable Seer Night Shift nightly autofix cron
     manager.add("organizations:seer-night-shift", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    manager.add("organizations:seer-night-shift-code-mode", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     manager.add("organizations:seer-workflows-monitor-cleanup", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Capture Night Shift training data for the fixability model
     manager.add("organizations:seer-fixability-training-data", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
@@ -342,6 +343,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:seer-infra-telemetry-user-level-auth", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable GitLab as a supported SCM provider for Seer
     manager.add("organizations:seer-gitlab-support", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable Cursor Origin as a supported SCM provider for Seer
+    manager.add("organizations:seer-cursor-origin-support", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable Seer XRay Mode, the overlay that highlights LLM-context-registered DOM nodes
     manager.add("organizations:seer-xray", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Append a "text" summary to SentryApp webhooks sent to Claude Code routine fire URLs

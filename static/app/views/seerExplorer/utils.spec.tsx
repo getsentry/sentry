@@ -1,9 +1,46 @@
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {parseRunIdParam, useSeerExplorerDeepLink} from 'sentry/views/seerExplorer/utils';
+import {
+  parseRunIdParam,
+  TOOL_FORMATTERS,
+  useSeerExplorerDeepLink,
+} from 'sentry/views/seerExplorer/utils';
 
 // URL construction moved to `links.tsx`; its specs (including the metrics query encoding these two
 // cases used to cover) live in `links.spec.tsx`.
+
+describe('TOOL_FORMATTERS.telemetry_live_search', () => {
+  const formatter = TOOL_FORMATTERS.telemetry_live_search!;
+
+  it('handles project_slugs as an array', () => {
+    const result = formatter(
+      {question: 'errors', dataset: 'issues', project_slugs: ['foo', 'bar']},
+      false
+    );
+    expect(result).toBe("Searched for issues in foo, bar: 'errors'");
+  });
+
+  it('handles project_slugs as a scalar string without throwing', () => {
+    const result = formatter(
+      {question: 'errors', dataset: 'issues', project_slugs: 'my-project'},
+      false
+    );
+    expect(result).toBe("Searched for issues in my-project: 'errors'");
+  });
+
+  it('handles missing project_slugs', () => {
+    const result = formatter({question: 'errors', dataset: 'issues'}, false);
+    expect(result).toBe("Searched for issues: 'errors'");
+  });
+
+  it('handles project_slugs as an empty array', () => {
+    const result = formatter(
+      {question: 'errors', dataset: 'spans', project_slugs: []},
+      false
+    );
+    expect(result).toBe("Queried spans: 'errors'");
+  });
+});
 
 describe('parseRunIdParam', () => {
   it('parses a legacy numeric run ID into a number', () => {
