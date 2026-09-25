@@ -94,6 +94,54 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             == f"{event.project.slug} | <http://testserver/settings/account/notifications/alerts/?referrer=issue_alert-slack-user&notification_uuid={notification_uuid}&organizationId={event.organization.id}|Notification Settings>"
         )
 
+    def test_issue_alert_title_link_uses_triggering_event_environment(self) -> None:
+        """
+        The environment query parameter on the issue link should reflect the
+        environment of the event that triggered the alert, not the environment
+        of whichever rule happens to be first in the list.
+        Regression test for https://github.com/getsentry/sentry/issues/123541.
+        """
+        action_data = {
+            "id": "sentry.mail.actions.NotifyEmailAction",
+            "targetType": "Member",
+            "targetIdentifier": str(self.user.id),
+        }
+        dev_environment = self.create_environment(self.project, name="development")
+        prod_environment = self.create_environment(self.project, name="production")
+        dev_rule = self.create_project_rule(
+            project=self.project,
+            action_data=[action_data],
+            name="dev rule",
+            environment_id=dev_environment.id,
+        )
+        prod_rule = self.create_project_rule(
+            project=self.project,
+            action_data=[action_data],
+            name="prod rule",
+            environment_id=prod_environment.id,
+        )
+        event = self.store_event(
+            data={"message": "Hello world", "level": "error", "environment": "production"},
+            project_id=self.project.id,
+        )
+        notification_uuid = str(uuid.uuid4())
+        notification = AlertRuleNotification(
+            Notification(event=event, rules=[dev_rule, prod_rule]),
+            ActionTargetType.MEMBER,
+            self.user.id,
+            notification_uuid=notification_uuid,
+        )
+
+        with self.tasks():
+            notification.send()
+
+        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
+        assert event.group
+        assert (
+            blocks[1]["text"]["text"]
+            == f":red_circle: <http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&environment=production&alert_rule_id={dev_rule.id}&alert_type=issue|*Hello world*>"
+        )
+
     @responses.activate
     @mock.patch("sentry.integrations.slack.message_builder.issues.get_tags", new=fake_get_tags)
     @mock.patch(
