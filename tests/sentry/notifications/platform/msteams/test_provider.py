@@ -307,6 +307,72 @@ class MSTeamsNotificationProviderSendTest(TestCase):
         )
 
     @patch("sentry.integrations.msteams.integration.MsTeamsClient")
+    def test_send_adds_integration_id_to_submit_actions(self, mock_msteams_client: Mock) -> None:
+        from sentry.integrations.msteams.card_builder.block import (
+            ADAPTIVE_CARD_SCHEMA_URL,
+            CURRENT_CARD_VERSION,
+            AdaptiveCard,
+            OpenUrlAction,
+            ShowCardAction,
+            SubmitAction,
+            create_action_set_block,
+        )
+
+        mock_client_instance = mock_msteams_client.return_value
+        mock_client_instance.send_card.return_value = {"id": "1234567890"}
+
+        resolve = SubmitAction(
+            type=ActionType.SUBMIT,
+            title="Resolve",
+            data={"payload": {"actionType": "resolve", "groupId": 1}},
+        )
+        nested_card: AdaptiveCard = {
+            "type": "AdaptiveCard",
+            "body": [],
+            "actions": [resolve],
+            "version": CURRENT_CARD_VERSION,
+            "$schema": ADAPTIVE_CARD_SCHEMA_URL,
+        }
+        unassign = SubmitAction(
+            type=ActionType.SUBMIT,
+            title="Unassign",
+            data={"payload": {"actionType": "unassign", "groupId": 1}},
+        )
+        no_payload = SubmitAction(type=ActionType.SUBMIT, title="No payload", data={"foo": "bar"})
+        open_url = OpenUrlAction(type=ActionType.OPEN_URL, title="Open", url="https://sentry.io")
+        renderable: MSTeamsRenderable = {
+            "type": "AdaptiveCard",
+            "body": [
+                create_action_set_block(
+                    unassign,
+                    ShowCardAction(type=ActionType.SHOW_CARD, title="Resolve", card=nested_card),
+                    no_payload,
+                    open_url,
+                )
+            ],
+            "version": CURRENT_CARD_VERSION,
+            "$schema": ADAPTIVE_CARD_SCHEMA_URL,
+        }
+
+        MSTeamsNotificationProvider.send(target=self._create_target(), renderable=renderable)
+
+        mock_client_instance.send_card.assert_called_once_with(
+            conversation_id="19:test-channel@thread.skype", card=renderable
+        )
+        assert unassign["data"] == {
+            "payload": {
+                "actionType": "unassign",
+                "groupId": 1,
+                "integrationId": self.integration.id,
+            }
+        }
+        assert resolve["data"] == {
+            "payload": {"actionType": "resolve", "groupId": 1, "integrationId": self.integration.id}
+        }
+        assert no_payload["data"] == {"foo": "bar"}
+        assert "data" not in open_url
+
+    @patch("sentry.integrations.msteams.integration.MsTeamsClient")
     def test_invalid_request_is_halt(self, mock_msteams_client: Mock) -> None:
         error = MsTeamsInvalidRequestError("Invalid conversation")
         mock_msteams_client.return_value.send_card.side_effect = error
