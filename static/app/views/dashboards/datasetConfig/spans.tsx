@@ -31,6 +31,7 @@ import {
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
   NO_ARGUMENT_SPAN_AGGREGATES,
 } from 'sentry/utils/fields';
+import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {WIDGET_BUILDER_ATTRIBUTE_STALE_TIME} from 'sentry/views/dashboards/constants';
@@ -56,13 +57,22 @@ import {
 import {getWidgetTableRowExploreUrlFunction} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
 import {
   isEventsStats,
+  isEventsTimeSeriesResponse,
   isGroupedMultiSeriesEventsStats,
   isMultiSeriesEventsStats,
 } from 'sentry/views/dashboards/utils/isEventsStats';
 import {transformEventsResponseToSeries} from 'sentry/views/dashboards/utils/transformEventsResponseToSeries';
+import {
+  getTimeSeriesResultTypes,
+  getTimeSeriesResultUnits,
+  transformTimeSeriesResponseToSeries,
+} from 'sentry/views/dashboards/utils/transformTimeSeriesResponseToSeries';
 import {SpansSearchBar} from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/spansSearchBar';
 import {isPerformanceScoreBreakdownChart} from 'sentry/views/dashboards/widgetBuilder/utils/isPerformanceScoreBreakdownChart';
-import {transformPerformanceScoreBreakdownSeries} from 'sentry/views/dashboards/widgetBuilder/utils/transformPerformanceScoreBreakdownSeries';
+import {
+  transformPerformanceScoreBreakdownSeries,
+  transformPerformanceScoreBreakdownTimeSeries,
+} from 'sentry/views/dashboards/widgetBuilder/utils/transformPerformanceScoreBreakdownSeries';
 import {
   useSpansSeriesQuery,
   useSpansTableQuery,
@@ -287,7 +297,10 @@ function extractSeriesMetadata<T>({
 }
 
 export const SpansConfig: DatasetConfig<
-  EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats,
+  | EventsStats
+  | MultiSeriesEventsStats
+  | GroupedMultiSeriesEventsStats
+  | EventsTimeSeriesResponse,
   TableData | EventsTableData
 > = {
   defaultCategoryField: 'transaction',
@@ -346,6 +359,9 @@ export const SpansConfig: DatasetConfig<
     return getFieldRenderer(field, meta, false, widget, dashboardFilters);
   },
   getSeriesResultUnit: (data, widgetQuery) => {
+    if (isEventsTimeSeriesResponse(data)) {
+      return getTimeSeriesResultUnits(data);
+    }
     return extractSeriesMetadata({
       data,
       widgetQuery,
@@ -354,6 +370,9 @@ export const SpansConfig: DatasetConfig<
     });
   },
   getSeriesResultType: (data, widgetQuery) => {
+    if (isEventsTimeSeriesResponse(data)) {
+      return getTimeSeriesResultTypes(data);
+    }
     return extractSeriesMetadata({
       data,
       widgetQuery,
@@ -556,9 +575,22 @@ function renderInternalErrorCount(widget?: Widget, dashboardFilters?: DashboardF
 }
 
 function transformSeries(
-  data: EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats,
+  data:
+    | EventsStats
+    | MultiSeriesEventsStats
+    | GroupedMultiSeriesEventsStats
+    | EventsTimeSeriesResponse,
   widgetQuery: WidgetQuery
 ) {
+  if (isEventsTimeSeriesResponse(data)) {
+    return transformTimeSeriesResponseToSeries(
+      isPerformanceScoreBreakdownChart(widgetQuery)
+        ? transformPerformanceScoreBreakdownTimeSeries(data)
+        : data,
+      widgetQuery
+    );
+  }
+
   let eventsStats = data;
   // Kind of a hack, but performance score breakdown charts need a special transformation to display correctly.
   if (
