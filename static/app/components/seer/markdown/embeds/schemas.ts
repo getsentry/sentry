@@ -149,7 +149,7 @@ export const SEER_EMBED_SCHEMAS = {
       'Never use a markdown link for dashboard references.',
     level: ['inline', 'block'],
     schema: z.object({
-      id: z.string().min(1),
+      id: idString,
       title: z.string().min(1).optional(),
     }),
     examples: [

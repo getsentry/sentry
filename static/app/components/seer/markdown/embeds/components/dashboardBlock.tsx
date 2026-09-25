@@ -194,7 +194,7 @@ export default function DashboardBlock({id, title}: EmbedOutput<'dashboard'>) {
   const organization = useOrganization();
   const href = normalizeUrl(`/organizations/${organization.slug}/dashboard/${id}/`);
   const {data, isError, isPending} = useQuery({
-    ...dashboardDetailsApiOptions(organization, id),
+    ...dashboardDetailsApiOptions(organization, String(id)),
     retry: false,
   });
   const dashboard = useMemo(() => (data ? getDashboardPreview(data) : undefined), [data]);

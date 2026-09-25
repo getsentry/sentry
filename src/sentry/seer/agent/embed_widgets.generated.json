@@ -73,8 +73,14 @@
       "type": "object",
       "properties": {
         "id": {
-          "type": "string",
-          "minLength": 1
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "number"
+            }
+          ]
         },
         "title": {
           "type": "string",
