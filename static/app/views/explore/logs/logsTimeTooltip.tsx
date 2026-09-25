@@ -29,10 +29,12 @@ function TimestampTooltipBody({
   attributes,
   isTraceItemDetailsPending,
   relativeTime,
+  onPointerUp,
 }: {
   attributes: Record<string, string | number | boolean>;
   timestamp: string | number;
   isTraceItemDetailsPending?: boolean;
+  onPointerUp?: React.PointerEventHandler<HTMLElement>;
   relativeTime?: number;
 }) {
   const currentTimezone = useTimezone();
@@ -53,7 +55,7 @@ function TimestampTooltipBody({
   const isUTCLocalTimezone = currentTimezone === 'UTC';
 
   return (
-    <Tooltip.Grid dl terms="strong">
+    <Tooltip.Grid dl terms="strong" onPointerUp={onPointerUp}>
       <DescriptionList.Term>{t('Occurred')}</DescriptionList.Term>
       <DescriptionList.Details>
         <TimestampValues>
@@ -142,14 +144,13 @@ export function LogsTimestampTooltip({
   return (
     <Tooltip
       title={
-        <div onPointerUp={handleTooltipPointerUp}>
-          <TimestampTooltipBody
-            timestamp={timestamp}
-            attributes={attributes}
-            isTraceItemDetailsPending={isTraceItemDetailsPending}
-            relativeTime={relativeTime}
-          />
-        </div>
+        <TimestampTooltipBody
+          timestamp={timestamp}
+          attributes={attributes}
+          isTraceItemDetailsPending={isTraceItemDetailsPending}
+          relativeTime={relativeTime}
+          onPointerUp={handleTooltipPointerUp}
+        />
       }
       maxWidth={400}
     >

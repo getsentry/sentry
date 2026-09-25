@@ -225,7 +225,7 @@ function TooltipHeader({children, leadingItems, trailingItems}: TooltipHeaderPro
 
 const TooltipDescriptionListContext = createContext(false);
 
-interface TooltipGridProps {
+interface TooltipGridProps extends React.HTMLAttributes<HTMLElement> {
   children: React.ReactNode;
   /**
    * Only for a `dl` section: how each row's term lines up against its details.
@@ -285,6 +285,7 @@ function TooltipGrid({
   nowrap,
   terms,
   dl = false,
+  ...props
 }: TooltipGridProps) {
   if (dl) {
     return (
@@ -296,6 +297,7 @@ function TooltipGrid({
           nowrap={nowrap}
           terms={terms}
           data-tooltip-section
+          {...props}
         >
           {children}
         </DescriptionListSection>
@@ -311,6 +313,7 @@ function TooltipGrid({
         align="center"
         padding="md lg"
         data-tooltip-section
+        {...props}
       >
         {children}
       </GridSection>

@@ -526,6 +526,30 @@ describe('Tooltip', () => {
       expect(definitions[1]).toHaveTextContent('11:42 AM');
     });
 
+    it('puts a handler on the section itself rather than a wrapper', async () => {
+      // A wrapper box between the overlay and the section would stop the
+      // overlay's direct-child rule matching, so the section would re-apply
+      // padding the overlay never cancelled.
+      const onPointerUp = jest.fn();
+      render(
+        <Tooltip
+          title={
+            <Tooltip.Grid dl onPointerUp={onPointerUp}>
+              <Tooltip.Row leadingItems="Occurred">Jan 1, 2026</Tooltip.Row>
+            </Tooltip.Grid>
+          }
+        >
+          <button>My Button</button>
+        </Tooltip>
+      );
+
+      await userEvent.hover(screen.getByText('My Button'));
+
+      const section = await screen.findByRole('term');
+      const overlay = document.querySelector('[data-tooltip]');
+      expect(section.closest('[data-tooltip-section]')?.parentElement).toBe(overlay);
+    });
+
     it('renders rows without description list roles when the grid is not a dl', async () => {
       render(
         <Tooltip
