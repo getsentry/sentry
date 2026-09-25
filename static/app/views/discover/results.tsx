@@ -1343,12 +1343,17 @@ function SaveQueryButton({
   const handleUpdate = (event: React.MouseEvent) => {
     event.preventDefault();
     event.stopPropagation();
-    handleUpdateSavedQuery(api, organization, eventView, yAxis).then((sq: SavedQuery) => {
-      const view = EventView.fromSavedQuery(sq);
-      setSavedQuery(sq);
-      setQueryName('');
-      navigate(view.getResultsViewShortUrlTarget(organization));
-    });
+    handleUpdateSavedQuery(api, organization, eventView, yAxis)
+      .then((sq: SavedQuery) => {
+        const view = EventView.fromSavedQuery(sq);
+        setSavedQuery(sq);
+        setQueryName('');
+        navigate(view.getResultsViewShortUrlTarget(organization));
+      })
+      .catch(() => {
+        // handleUpdateSavedQuery rejects (and shows a toast) when the query has no name;
+        // swallow the rejection here so it does not become an unhandled promise rejection.
+      });
   };
 
   return (
