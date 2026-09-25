@@ -1,0 +1,42 @@
+{
+  "files": {
+    "static/app/components/core/layout/styles.tsx": "src/layout/styles.tsx",
+    "static/app/components/core/layout/container.tsx": "src/layout/container.tsx",
+    "static/app/components/core/layout/surface.tsx": "src/layout/surface.tsx",
+    "static/app/components/core/layout/flex.tsx": "src/layout/flex.tsx",
+    "static/app/components/core/layout/grid.tsx": "src/layout/grid.tsx",
+    "static/app/components/core/separator/separator.tsx": "src/separator/separator.tsx",
+    "static/app/components/core/separator/index.tsx": "src/separator/index.tsx",
+    "static/app/components/core/layout/stack.tsx": "src/layout/stack.tsx",
+    "static/app/components/core/layout/index.tsx": "src/layout/index.tsx",
+    "static/app/components/core/text/styles.tsx": "src/text/styles.tsx",
+    "static/app/components/core/text/text.tsx": "src/text/text.tsx",
+    "static/app/components/core/text/heading.tsx": "src/text/heading.tsx",
+    "static/app/components/core/quote/quote.tsx": "src/quote/quote.tsx",
+    "static/app/components/core/quote/index.tsx": "src/quote/index.tsx",
+    "static/app/components/core/code/inlineCode.tsx": "src/code/inlineCode.tsx",
+    "static/app/components/core/hotkey/kbd.tsx": "src/hotkey/kbd.tsx",
+    "static/app/components/core/loader/indeterminateLoader.tsx": "src/loader/indeterminateLoader.tsx",
+    "static/app/components/core/loader/index.tsx": "src/loader/index.tsx",
+    "static/app/utils/theme/scraps/tokens/color.tsx": "src/tokens/color.tsx",
+    "static/app/utils/theme/scraps/tokens/size.tsx": "src/tokens/size.tsx",
+    "static/app/utils/theme/scraps/tokens/typography.tsx": "src/tokens/typography.tsx",
+    "static/app/utils/theme/scraps/theme/base.tsx": "src/theme/base.tsx",
+    "static/app/utils/theme/scraps/theme/light.tsx": "src/theme/light.tsx",
+    "static/app/utils/theme/scraps/theme/dark.tsx": "src/theme/dark.tsx",
+    "static/app/utils/theme/types.tsx": "src/theme/types.tsx",
+    "static/app/components/core/cssTypes.ts": "src/cssTypes.ts"
+  },
+  "imports": {
+    "sentry/utils/theme": "@sentry/scraps/theme",
+    "sentry/utils/theme/scraps/tokens/color": "@sentry/scraps/tokens/color",
+    "sentry/utils/theme/scraps/tokens/size": "@sentry/scraps/tokens/size",
+    "sentry/utils/theme/scraps/tokens/typography": "@sentry/scraps/tokens/typography"
+  },
+  "emotionJsx": ["src/code/inlineCode.tsx", "src/hotkey/kbd.tsx"],
+  "themeTypes": [
+    "src/code/inlineCode.tsx",
+    "src/hotkey/kbd.tsx",
+    "src/loader/indeterminateLoader.tsx"
+  ]
+}

@@ -1,0 +1,130 @@
+{
+  "name": "@sentry/scraps",
+  "version": "0.0.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/getsentry/sentry.git",
+    "directory": "packages/scraps"
+  },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./theme": {
+      "types": "./dist/theme/index.d.ts",
+      "import": "./dist/theme/index.js"
+    },
+    "./theme/light": {
+      "types": "./dist/theme/light.d.ts",
+      "import": "./dist/theme/light.js"
+    },
+    "./theme/dark": {
+      "types": "./dist/theme/dark.d.ts",
+      "import": "./dist/theme/dark.js"
+    },
+    "./tokens": {
+      "types": "./dist/tokens/index.d.ts",
+      "import": "./dist/tokens/index.js"
+    },
+    "./tokens/color": {
+      "types": "./dist/tokens/color.d.ts",
+      "import": "./dist/tokens/color.js"
+    },
+    "./tokens/size": {
+      "types": "./dist/tokens/size.d.ts",
+      "import": "./dist/tokens/size.js"
+    },
+    "./tokens/typography": {
+      "types": "./dist/tokens/typography.d.ts",
+      "import": "./dist/tokens/typography.js"
+    },
+    "./cssTypes": {
+      "types": "./dist/cssTypes.d.ts",
+      "import": "./dist/cssTypes.js"
+    },
+    "./layout": {
+      "types": "./dist/layout/index.d.ts",
+      "import": "./dist/layout/index.js"
+    },
+    "./layout/container": {
+      "types": "./dist/layout/container.d.ts",
+      "import": "./dist/layout/container.js"
+    },
+    "./layout/surface": {
+      "types": "./dist/layout/surface.d.ts",
+      "import": "./dist/layout/surface.js"
+    },
+    "./layout/flex": {
+      "types": "./dist/layout/flex.d.ts",
+      "import": "./dist/layout/flex.js"
+    },
+    "./layout/grid": {
+      "types": "./dist/layout/grid.d.ts",
+      "import": "./dist/layout/grid.js"
+    },
+    "./layout/stack": {
+      "types": "./dist/layout/stack.d.ts",
+      "import": "./dist/layout/stack.js"
+    },
+    "./layout/styles": {
+      "types": "./dist/layout/styles.d.ts",
+      "import": "./dist/layout/styles.js"
+    },
+    "./text": {
+      "types": "./dist/text/index.d.ts",
+      "import": "./dist/text/index.js"
+    },
+    "./text/text": {
+      "types": "./dist/text/text.d.ts",
+      "import": "./dist/text/text.js"
+    },
+    "./text/heading": {
+      "types": "./dist/text/heading.d.ts",
+      "import": "./dist/text/heading.js"
+    },
+    "./separator": {
+      "types": "./dist/separator/index.d.ts",
+      "import": "./dist/separator/index.js"
+    },
+    "./quote": {
+      "types": "./dist/quote/index.d.ts",
+      "import": "./dist/quote/index.js"
+    },
+    "./loader": {
+      "types": "./dist/loader/index.d.ts",
+      "import": "./dist/loader/index.js"
+    },
+    "./code/inlineCode": {
+      "types": "./dist/code/inlineCode.d.ts",
+      "import": "./dist/code/inlineCode.js"
+    },
+    "./hotkey/kbd": {
+      "types": "./dist/hotkey/kbd.d.ts",
+      "import": "./dist/hotkey/kbd.js"
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "sync": "node scripts/sync.mjs",
+    "build": "node scripts/build.mjs",
+    "verify": "node scripts/verify.mjs"
+  },
+  "dependencies": {
+    "@emotion/is-prop-valid": "1.4.0",
+    "@emotion/styled": "11.14.0",
+    "@react-aria/utils": "3.34.1",
+    "@types/react": "^19.0.0"
+  },
+  "peerDependencies": {
+    "@emotion/react": "^11.14.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  }
+}

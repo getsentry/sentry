@@ -46,6 +46,8 @@ const storyBookEntryPoints = [
 ];
 
 const config: KnipConfig = {
+  // Scraps source is completed from entries.json during package verification.
+  ignoreWorkspaces: ['packages/scraps'],
   workspaces: {
     '.': {
       entry: [

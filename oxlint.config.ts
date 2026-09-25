@@ -401,6 +401,7 @@ const config = defineConfig({
     '!tests/js/**/*',
     '**/vendor/**/*',
     'build-utils/**/*',
+    'packages/scraps/.generated/**/*',
     'config/chartcuterie/config.js',
     'figma.config.json',
     'fixtures/artifact_bundle/**/*',
@@ -1688,6 +1689,25 @@ const config = defineConfig({
       files: ['scripts/**/*.{js,mjs,ts,jsx,tsx}'],
       rules: {
         'import/no-relative-parent-imports': 'off',
+      },
+    },
+    {
+      files: ['packages/scraps/scripts/*.mjs'],
+      rules: {
+        'boundaries/no-unknown-files': 'off',
+        'import-js/no-extraneous-dependencies': 'off',
+        'import/no-nodejs-modules': 'off',
+        'no-console': 'off',
+      },
+      env: {
+        node: true,
+      },
+    },
+    {
+      files: ['packages/scraps/src/**/*.{ts,tsx}'],
+      rules: {
+        'boundaries/no-unknown-files': 'off',
+        'eslint/no-shadow': 'off',
       },
     },
     {
