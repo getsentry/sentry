@@ -5,8 +5,8 @@ import {useTheme} from '@emotion/react';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {outcomeLabel} from 'sentry/components/droppedData/utils';
 import {t} from 'sentry/locale';
-import {Outcome} from 'sentry/types/core';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import type {Annotation} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
@@ -17,24 +17,14 @@ const STACK_NAME = 'dropped';
 
 const CHART_HEIGHT = '112px';
 
-const OUTCOME_LABELS: Partial<Record<Outcome, string>> = {
-  [Outcome.CLIENT_DISCARD]: t('Client discard'),
-  [Outcome.FILTERED]: t('Inbound filter'),
-  [Outcome.INVALID]: t('Invalid or malformed'),
-  [Outcome.RATE_LIMITED]: t('Rate limited'),
-  [Outcome.ABUSE]: t('Abuse limit'),
-  [Outcome.CARDINALITY_LIMITED]: t('Cardinality limit'),
-};
-
-function outcomeLabel(outcome: string): string {
-  return OUTCOME_LABELS[outcome as Outcome] ?? outcome;
-}
-
 function orderOutcomes(outcomes: string[]): string[] {
   return [...outcomes].sort();
 }
 
-function getOutcomeColors(outcomes: string[], theme: Theme): Record<string, string> {
+export function getOutcomeColors(
+  outcomes: string[],
+  theme: Theme
+): Record<string, string> {
   const palette = theme.chart.getColorPalette(Math.max(outcomes.length - 1, 0));
 
   return outcomes.reduce<Record<string, string>>((acc, outcome, index) => {
@@ -106,14 +96,14 @@ function ChartLegend({
 }
 
 interface DroppedDataChartProps {
-  annotations: Annotation[];
+  droppedDataAnnotations: Annotation[];
 }
 
-export function DroppedDataChart({annotations}: DroppedDataChartProps) {
+export function DroppedDataChart({droppedDataAnnotations}: DroppedDataChartProps) {
   const theme = useTheme();
 
   const {outcomes, colors, plottables} = useMemo(() => {
-    const series = annotationsToSeries(annotations);
+    const series = annotationsToSeries(droppedDataAnnotations);
     const orderedOutcomes = orderOutcomes(Object.keys(series));
     const outcomeColors = getOutcomeColors(orderedOutcomes, theme);
 
@@ -129,9 +119,9 @@ export function DroppedDataChart({annotations}: DroppedDataChartProps) {
           })
       ),
     };
-  }, [annotations, theme]);
+  }, [droppedDataAnnotations, theme]);
 
-  const totalDropped = annotations.reduce(
+  const totalDropped = droppedDataAnnotations.reduce(
     (sum, annotation) => sum + annotation.eventCount,
     0
   );

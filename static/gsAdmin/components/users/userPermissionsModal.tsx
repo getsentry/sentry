@@ -63,7 +63,7 @@ export function UserPermissionsModal({Body, Header, user, onSubmit, closeModal}:
       <Header closeButton>Edit Permissions</Header>
       <Body>
         <Form
-          onSubmit={(data, onSuccess, onError) => {
+          onSubmit={async (data, onSuccess, onError) => {
             addLoadingMessage('Saving changes\u2026');
 
             // XXX(dcramer): why did i optimize the api for individual idempotent perm changes..
@@ -93,26 +93,24 @@ export function UserPermissionsModal({Body, Header, user, onSubmit, closeModal}:
               ),
             ];
 
-            Promise.all(requests)
-              .then(() => {
-                onSuccess({
-                  // TODO(dcramer): we could technically pull latest user state from the isSuperuser submission and
-                  // merge it here
-                  ...user,
-                  isSuperuser: data.isSuperuser,
-                  isStaff: data.isStaff,
-                  permissions: newPerms,
-                });
-              })
-              .catch(error => {
-                // TODO(dcramer): technically this is wrong and should probably reload the initial form data as
-                // some of the API changes might have been successful whereas others were not. Probably ok though
-                // just click some buttons again.
-                onError(error);
-              })
-              .finally(() => {
-                clearIndicators();
+            try {
+              await Promise.all(requests);
+              onSuccess({
+                // TODO(dcramer): we could technically pull latest user state from the isSuperuser submission and
+                // merge it here
+                ...user,
+                isSuperuser: data.isSuperuser,
+                isStaff: data.isStaff,
+                permissions: newPerms,
               });
+            } catch (error) {
+              // TODO(dcramer): technically this is wrong and should probably reload the initial form data as
+              // some of the API changes might have been successful whereas others were not. Probably ok though
+              // just click some buttons again.
+              onError(error);
+            } finally {
+              clearIndicators();
+            }
           }}
           onSubmitSuccess={newUser => {
             onSubmit(newUser);

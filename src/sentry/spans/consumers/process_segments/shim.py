@@ -27,6 +27,31 @@ TOP_LEVEL_FIELDS_BY_ATTRIBUTE_NAME = {
     ATTRIBUTE_NAMES.SENTRY_PLATFORM: "platform",
 }
 
+CONTEXT_FIELDS_BY_ATTRIBUTE_NAME: dict[str, dict[str, str]] = {
+    "browser": {
+        ATTRIBUTE_NAMES.BROWSER_NAME: "name",
+        ATTRIBUTE_NAMES.BROWSER_VERSION: "version",
+    },
+    "os": {
+        ATTRIBUTE_NAMES.OS_NAME: "name",
+        ATTRIBUTE_NAMES.OS_VERSION: "version",
+        ATTRIBUTE_NAMES.OS_ROOTED: "rooted",
+    },
+    "device": {
+        ATTRIBUTE_NAMES.DEVICE_FAMILY: "family",
+        ATTRIBUTE_NAMES.DEVICE_MODEL: "model",
+        ATTRIBUTE_NAMES.DEVICE_BRAND: "brand",
+        ATTRIBUTE_NAMES.DEVICE_NAME: "name",
+    },
+    "runtime": {
+        ATTRIBUTE_NAMES.PROCESS_RUNTIME_NAME: "name",
+        ATTRIBUTE_NAMES.PROCESS_RUNTIME_VERSION: "version",
+    },
+    "profile": {
+        ATTRIBUTE_NAMES.SENTRY_PROFILE_ID: "profile_id",
+    },
+}
+
 SPAN_SENTRY_TAGS_FIELDS_BY_ATTRIBUTE_NAME = {
     ATTRIBUTE_NAMES.SENTRY_NORMALIZED_DESCRIPTION: "description",
     ATTRIBUTE_NAMES.SENTRY_ENVIRONMENT: "environment",
@@ -84,12 +109,19 @@ def _get_event_tags(segment_span: CompatibleSpan) -> list[list[str]]:
 
 
 def _get_event_contexts(segment_span: CompatibleSpan) -> dict[str, Any]:
+    """
+    Build the transaction event's `contexts` value from data in the segment span.
+    """
     contexts = {}
 
-    profile_id = attribute_value(segment_span, ATTRIBUTE_NAMES.SENTRY_PROFILE_ID)
-    if profile_id:
-        contexts["profile"] = {"profile_id": profile_id, "type": "profile"}
+    # Reconstruct `contexts` entries we're missing
+    for context_name, sub_fields_by_attribute_name in CONTEXT_FIELDS_BY_ATTRIBUTE_NAME.items():
+        context = _extract_attribute_values(segment_span, sub_fields_by_attribute_name)
+        if context:
+            contexts[context_name] = {"type": context_name, **context}
 
+    # This is not included in the loop above because its values mostly come directly from the
+    # segment span rather than from attributes.
     contexts["trace"] = {
         "trace_id": segment_span["trace_id"],
         "span_id": segment_span["span_id"],
