@@ -1,5 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
+import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 import {WidgetFixture} from 'sentry-fixture/widget';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -40,12 +41,9 @@ describe('useErrorsSeriesQuery', () => {
     });
 
     const mockRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
+      url: '/organizations/org-slug/events-timeseries/',
       body: {
-        data: [
-          [1, [{count: 100}]],
-          [2, [{count: 200}]],
-        ],
+        timeSeries: [TimeSeriesFixture({yAxis: 'count()'})],
       },
     });
 
@@ -60,7 +58,7 @@ describe('useErrorsSeriesQuery', () => {
 
     await waitFor(() => {
       expect(mockRequest).toHaveBeenCalledWith(
-        '/organizations/org-slug/events-stats/',
+        '/organizations/org-slug/events-timeseries/',
         expect.objectContaining({
           query: expect.objectContaining({
             dataset: DiscoverDatasets.ERRORS,
@@ -100,12 +98,9 @@ describe('useErrorsSeriesQuery', () => {
     PageFiltersStore.onInitializeUrlState(pageFiltersWithDates);
 
     const mockRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
+      url: '/organizations/org-slug/events-timeseries/',
       body: {
-        data: [
-          [1, [{count: 100}]],
-          [2, [{count: 200}]],
-        ],
+        timeSeries: [TimeSeriesFixture({yAxis: 'count()'})],
       },
     });
 
@@ -120,7 +115,7 @@ describe('useErrorsSeriesQuery', () => {
 
     await waitFor(() => {
       expect(mockRequest).toHaveBeenCalledWith(
-        '/organizations/org-slug/events-stats/',
+        '/organizations/org-slug/events-timeseries/',
         expect.objectContaining({
           query: expect.objectContaining({
             start: '2026-01-14T00:00:00',
@@ -147,9 +142,9 @@ describe('useErrorsSeriesQuery', () => {
     });
 
     const mockRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
+      url: '/organizations/org-slug/events-timeseries/',
       body: {
-        data: [[1, [{count: 100}]]],
+        timeSeries: [TimeSeriesFixture({yAxis: 'count()'})],
       },
     });
 
@@ -167,7 +162,7 @@ describe('useErrorsSeriesQuery', () => {
 
     await waitFor(() => {
       expect(mockRequest).toHaveBeenCalledWith(
-        '/organizations/org-slug/events-stats/',
+        '/organizations/org-slug/events-timeseries/',
         expect.objectContaining({
           query: expect.objectContaining({
             query: expect.stringContaining('release:"1.0.0"'),
@@ -201,9 +196,9 @@ describe('useErrorsSeriesQuery', () => {
     });
 
     const mockRequest1 = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
+      url: '/organizations/org-slug/events-timeseries/',
       body: {
-        data: [[1, [{count: 100}]]],
+        timeSeries: [TimeSeriesFixture({yAxis: 'count()'})],
       },
       match: [
         function (_url: string, options: Record<string, any>) {
@@ -216,9 +211,9 @@ describe('useErrorsSeriesQuery', () => {
     });
 
     const mockRequest2 = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
+      url: '/organizations/org-slug/events-timeseries/',
       body: {
-        data: [[1, [{count: 50}]]],
+        timeSeries: [TimeSeriesFixture({yAxis: 'count_unique(user)'})],
       },
       match: [
         function (_url: string, options: Record<string, any>) {

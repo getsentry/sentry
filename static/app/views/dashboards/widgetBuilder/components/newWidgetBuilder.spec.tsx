@@ -1,6 +1,7 @@
 import {DashboardFixture} from 'sentry-fixture/dashboard';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -69,14 +70,18 @@ describe('NewWidgetBuilder', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
+      url: '/organizations/org-slug/events-timeseries/',
       body: {
-        data: [
-          [[1646100000], [{count: 1}]],
-          [[1646120000], [{count: 1}]],
+        timeSeries: [
+          TimeSeriesFixture({
+            yAxis: 'count()',
+            meta: {valueType: 'integer', valueUnit: null, interval: 20_000_000},
+            values: [
+              {timestamp: 1646100000000, value: 1},
+              {timestamp: 1646120000000, value: 1},
+            ],
+          }),
         ],
-        start: 1646100000,
-        end: 1646120000,
       },
     });
 

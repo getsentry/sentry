@@ -103,9 +103,9 @@ describe('CreateFromSeer', () => {
       body: {},
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
+      url: '/organizations/org-slug/events-timeseries/',
       method: 'GET',
-      body: {},
+      body: {timeSeries: []},
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/stats/',

@@ -125,8 +125,8 @@ describe('add to dashboard modal', () => {
     });
 
     eventsStatsMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
-      body: [],
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {timeSeries: []},
     });
   });
 
@@ -253,13 +253,12 @@ describe('add to dashboard modal', () => {
     });
 
     expect(eventsStatsMock).toHaveBeenCalledWith(
-      '/organizations/org-slug/events-stats/',
+      '/organizations/org-slug/events-timeseries/',
       expect.objectContaining({
         query: expect.objectContaining({
           environment: [],
           project: [],
           interval: '5m',
-          orderby: '',
           statsPeriod: '24h',
           yAxis: ['count()'],
         }),
@@ -269,13 +268,11 @@ describe('add to dashboard modal', () => {
     await selectEvent.select(screen.getByText('Select Dashboard'), 'Test Dashboard');
 
     expect(eventsStatsMock).toHaveBeenLastCalledWith(
-      '/organizations/org-slug/events-stats/',
+      '/organizations/org-slug/events-timeseries/',
       expect.objectContaining({
         query: expect.objectContaining({
           environment: [],
           interval: '1m',
-          orderby: '',
-          partial: true,
           project: [1],
           query: ' release:"abc@v1.2.0" ',
           statsPeriod: '1h',
@@ -285,7 +282,7 @@ describe('add to dashboard modal', () => {
     );
   });
 
-  it('calls the events stats endpoint with the query and selection values', async () => {
+  it('calls the events timeseries endpoint with the query and selection values', async () => {
     render(
       <AddToDashboardModal
         Header={stubEl}
@@ -305,13 +302,12 @@ describe('add to dashboard modal', () => {
     });
 
     expect(eventsStatsMock).toHaveBeenCalledWith(
-      '/organizations/org-slug/events-stats/',
+      '/organizations/org-slug/events-timeseries/',
       expect.objectContaining({
         query: expect.objectContaining({
           environment: [],
           project: [],
           interval: '5m',
-          orderby: '',
           statsPeriod: '24h',
           yAxis: ['count()'],
         }),
@@ -887,7 +883,7 @@ describe('add to dashboard modal', () => {
       };
     });
 
-    it('renders without making an events-stats request', async () => {
+    it('renders without making an events-timeseries request', async () => {
       render(
         <AddToDashboardModal
           Header={stubEl}

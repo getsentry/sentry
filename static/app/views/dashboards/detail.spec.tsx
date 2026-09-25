@@ -432,6 +432,10 @@ describe('Dashboards > Detail', () => {
         body: {data: []},
       });
       MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events-timeseries/',
+        body: {timeSeries: []},
+      });
+      MockApiClient.addMockResponse({
         method: 'POST',
         url: '/organizations/org-slug/dashboards/widgets/',
         body: [],
@@ -600,8 +604,8 @@ describe('Dashboards > Detail', () => {
         }),
       });
       const mock = MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/events-stats/',
-        body: [],
+        url: '/organizations/org-slug/events-timeseries/',
+        body: {timeSeries: []},
       });
 
       render(
@@ -617,7 +621,7 @@ describe('Dashboards > Detail', () => {
 
       await waitFor(() =>
         expect(mock).toHaveBeenLastCalledWith(
-          '/organizations/org-slug/events-stats/',
+          '/organizations/org-slug/events-timeseries/',
           expect.objectContaining({
             query: expect.objectContaining({
               query:

@@ -4,6 +4,7 @@ import {DashboardFixture} from 'sentry-fixture/dashboard';
 import {MetricsTotalCountByReleaseIn24h} from 'sentry-fixture/metrics';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 import {WidgetFixture} from 'sentry-fixture/widget';
 
 import {
@@ -212,15 +213,18 @@ describe('Modals -> DataWidgetViewerModal', () => {
         };
         jest.mocked(ReactEchartsCore).mockClear();
         MockApiClient.addMockResponse({
-          url: '/organizations/org-slug/events-stats/',
+          url: '/organizations/org-slug/events-timeseries/',
           body: {
-            data: [
-              [[1646100000], [{count: 1}]],
-              [[1646120000], [{count: 1}]],
+            timeSeries: [
+              TimeSeriesFixture({
+                yAxis: 'count()',
+                meta: {valueType: 'integer', valueUnit: null, interval: 20_000_000},
+                values: [
+                  {timestamp: 1646100000000, value: 1},
+                  {timestamp: 1646120000000, value: 1},
+                ],
+              }),
             ],
-            start: 1646100000,
-            end: 1646120000,
-            isMetricsData: false,
           },
         });
       });
@@ -506,15 +510,18 @@ describe('Modals -> DataWidgetViewerModal', () => {
 
       function mockEventsStats() {
         return MockApiClient.addMockResponse({
-          url: '/organizations/org-slug/events-stats/',
+          url: '/organizations/org-slug/events-timeseries/',
           body: {
-            data: [
-              [[1646100000], [{count: 1}]],
-              [[1646120000], [{count: 1}]],
+            timeSeries: [
+              TimeSeriesFixture({
+                yAxis: 'count()',
+                meta: {valueType: 'integer', valueUnit: null, interval: 20_000_000},
+                values: [
+                  {timestamp: 1646100000000, value: 1},
+                  {timestamp: 1646120000000, value: 1},
+                ],
+              }),
             ],
-            start: 1646100000,
-            end: 1646120000,
-            isMetricsData: false,
           },
         });
       }
@@ -660,7 +667,10 @@ describe('Modals -> DataWidgetViewerModal', () => {
       });
 
       it('appends the orderby to the query if it is not already selected as an aggregate', async () => {
-        const eventsStatsMock = mockEventsStats();
+        const eventsStatsMock = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/events-stats/',
+          body: {},
+        });
         mockEvents();
 
         const widget = WidgetFixture({

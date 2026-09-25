@@ -1,5 +1,5 @@
 import {DashboardFixture} from 'sentry-fixture/dashboard';
-import {EventsStatsFixture} from 'sentry-fixture/events';
+import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 import {WidgetFixture} from 'sentry-fixture/widget';
 import {WidgetQueryFixture} from 'sentry-fixture/widgetQuery';
 
@@ -76,8 +76,15 @@ describe('dashboard embed', () => {
       }),
     });
     const widgetDataRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
-      body: EventsStatsFixture(),
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {
+        timeSeries: [
+          TimeSeriesFixture({
+            yAxis: 'count()',
+            meta: {valueType: 'integer', valueUnit: null, interval: 600_000},
+          }),
+        ],
+      },
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/stats/',
@@ -110,7 +117,7 @@ describe('dashboard embed', () => {
     expect(dashboardRequest).toHaveBeenCalled();
     await waitFor(() =>
       expect(widgetDataRequest).toHaveBeenCalledWith(
-        '/organizations/org-slug/events-stats/',
+        '/organizations/org-slug/events-timeseries/',
         expect.objectContaining({
           query: expect.objectContaining({
             environment: ['production'],
@@ -153,8 +160,15 @@ describe('dashboard embed', () => {
       body: DashboardFixture([widget], {id: '123', title: 'Application health'}),
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
-      body: EventsStatsFixture(),
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {
+        timeSeries: [
+          TimeSeriesFixture({
+            yAxis: 'count()',
+            meta: {valueType: 'integer', valueUnit: null, interval: 600_000},
+          }),
+        ],
+      },
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/stats/',

@@ -1,10 +1,5 @@
 import type {TagCollection} from 'sentry/types/group';
-import type {
-  EventsStats,
-  GroupedMultiSeriesEventsStats,
-  MultiSeriesEventsStats,
-  Organization,
-} from 'sentry/types/organization';
+import type {Organization} from 'sentry/types/organization';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
 import type {MetaType} from 'sentry/utils/discover/eventView';
@@ -18,11 +13,16 @@ import {
 } from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {AggregationKey} from 'sentry/utils/fields';
+import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {DashboardFilters, Widget, WidgetQuery} from 'sentry/views/dashboards/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
-import {transformEventsResponseToSeries} from 'sentry/views/dashboards/utils/transformEventsResponseToSeries';
+import {
+  getTimeSeriesResultTypes,
+  getTimeSeriesResultUnits,
+  transformTimeSeriesResponseToSeries,
+} from 'sentry/views/dashboards/utils/transformTimeSeriesResponseToSeries';
 import {EventsSearchBar} from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/eventsSearchBar';
 import {
   useErrorsSeriesQuery,
@@ -87,7 +87,7 @@ function useEventsSearchBarDataProvider(
 }
 
 export const ErrorsConfig: DatasetConfig<
-  EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats,
+  EventsTimeSeriesResponse,
   TableData | EventsTableData
 > = {
   defaultCategoryField: 'title',
@@ -118,7 +118,9 @@ export const ErrorsConfig: DatasetConfig<
   useSeriesQuery: useErrorsSeriesQuery,
   useTableQuery: useErrorsTableQuery,
   transformTable: transformEventsResponseToTable,
-  transformSeries: transformEventsResponseToSeries,
+  transformSeries: transformTimeSeriesResponseToSeries,
+  getSeriesResultType: getTimeSeriesResultTypes,
+  getSeriesResultUnit: getTimeSeriesResultUnits,
   filterAggregateParams,
 };
 
