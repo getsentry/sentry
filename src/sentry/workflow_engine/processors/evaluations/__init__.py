@@ -7,7 +7,6 @@ __all__ = [
     "DetectorEvaluationData",
     "DetectorEvaluationOutcome",
     "DeferredWorkflowEvaluationResult",
-    "emit_evaluations",
     "EvaluationPhase",
     "EvaluationType",
     "ProcessDetectorsResult",
@@ -28,7 +27,6 @@ from .detector import (
     DetectorEvaluationOutcome,
     ProcessDetectorsResult,
 )
-from .tracking import emit_evaluations
 from .workflow import (
     DeferredWorkflowEvaluationResult,
     ProcessWorkflowsResult,
