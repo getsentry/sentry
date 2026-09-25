@@ -29,6 +29,7 @@ from sentry.attachments.base import CachedAttachment
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.incidents.utils.subscription_limits import METRIC_SUBSCRIPTION_FEATURE_FLAGS
 from sentry.issues.endpoints.group_tags import GroupTagsEndpoint
+from sentry.models.custominboundfilter import CustomInboundFilter
 from sentry.models.eventattachment import EventAttachment
 from sentry.models.organizationmember import OrganizationMember
 from sentry.replays.lib.storage import FilestoreBlob, RecordingSegmentStorageMeta
@@ -811,6 +812,13 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
 
         if name == "dashboard":
             resource = self.create_dashboard(organization=self.org, created_by=self.owner)
+        elif name == "custom_inbound_filter":
+            resource = CustomInboundFilter.objects.create(
+                project=self.project,
+                name="Permission matrix filter",
+                data_type="all",
+                conditions=[{"type": "release", "value": ["1.*"]}],
+            )
         elif name == "detector":
             resource = self.create_detector(project=self.project)
         elif name == "mutable_detector":
@@ -1152,6 +1160,8 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
         if placeholder == "key":
             return "environment"
         if placeholder == "filter_id":
+            if endpoint.endpoint_name == "CustomInboundFilterDetailsEndpoint":
+                return str(self._resource("custom_inbound_filter").id)
             return "browser-extensions"
         if placeholder == "event_id":
             return self._resource("event").event_id
@@ -1282,6 +1292,8 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
     ) -> dict[str, bool]:
         flags = {FLAG: True}
         endpoint_flags = {
+            "CustomInboundFilterDetailsEndpoint": "organizations:inbound-filters-v2",
+            "CustomInboundFiltersEndpoint": "organizations:inbound-filters-v2",
             "DataForwardingDetailsEndpoint": "organizations:data-forwarding",
             "DataForwardingIndexEndpoint": "organizations:data-forwarding",
             "DiscoverSavedQueryDetailEndpoint": "organizations:discover-query",
@@ -1307,6 +1319,8 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             flags[feature] = True
         if endpoint.endpoint_name == "OrganizationProjectDetectorIndexEndpoint":
             flags.update(METRIC_SUBSCRIPTION_FEATURE_FLAGS)
+        if endpoint.endpoint_name.startswith("CustomInboundFilter"):
+            flags["projects:custom-inbound-filters"] = True
         if "Replay" in endpoint.endpoint_name:
             flags["organizations:session-replay"] = True
         return flags
@@ -1510,6 +1524,16 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
         if key == ("SentryAppInstallationExternalIssueActionsEndpoint", "POST"):
             return {"groupId": self._resource("group").id, "action": "link", "uri": "/link"}
         payloads: dict[tuple[str, str], dict[str, Any]] = {
+            ("CustomInboundFilterDetailsEndpoint", "PUT"): {
+                "name": "Updated permission matrix filter",
+                "dataType": "error",
+                "conditions": [{"type": "error_message", "value": ["TypeError*"]}],
+            },
+            ("CustomInboundFiltersEndpoint", "POST"): {
+                "name": "Permission matrix new filter",
+                "dataType": "all",
+                "conditions": [{"type": "release", "value": ["2.*"]}],
+            },
             ("DataForwardingDetailsEndpoint", "PUT"): {
                 "provider": "segment",
                 "config": {"write_key": "updated-matrix-key"},
