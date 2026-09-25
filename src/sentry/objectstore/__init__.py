@@ -3,6 +3,7 @@ from __future__ import annotations
 import subprocess
 from datetime import timedelta
 from enum import Enum
+from functools import lru_cache
 from typing import TYPE_CHECKING
 from urllib.parse import urlparse, urlsplit, urlunparse
 
@@ -31,7 +32,7 @@ from sentry.utils.env import in_test_environment
 if TYPE_CHECKING:
     from sentry.models.project import Project
 
-__all__ = ["UsecaseId", "get_session", "parse_accept_encoding"]
+__all__ = ["UsecaseId", "get_session", "get_org_session", "parse_accept_encoding"]
 
 
 # Default validity of the token used for redirecting to Objectstore. This is a
@@ -93,9 +94,16 @@ class UsecaseId(Enum):
     PREPROD = "preprod"
     PREPROD_SNAPSHOTS = "preprod_snapshots"
     PREPROD_SIZE = "preprod_size"
+    SEER_ATTACHMENTS = "seer_attachments"
 
     def create(self) -> ObjectstoreClientUsecase:
         match self:
+            case UsecaseId.SEER_ATTACHMENTS:
+                return ObjectstoreClientUsecase(
+                    self.value,
+                    compression="none",
+                    expiration_policy=TimeToIdle(timedelta(days=91)),
+                )
             case UsecaseId.ATTACHMENTS:
                 return ObjectstoreClientUsecase(
                     self.value,
@@ -123,7 +131,7 @@ class UsecaseId(Enum):
                 )
 
 
-def _create_client() -> Client:
+def _create_client(*, timeout: float | None = None) -> Client:
     options = settings.SENTRY_OBJECTSTORE_CONFIG
 
     # Initialize the `TokenGenerator` if key parameters are found.
@@ -135,15 +143,25 @@ def _create_client() -> Client:
                 **signing_key_options,
             )
 
+    connection_kwargs = options.get(
+        "connection_kwargs",
+        {"timeout": urllib3.Timeout(connect=5.0, read=None), "maxsize": 32},
+    )
+    if timeout is not None:
+        # The caller owns retries. Passing retries=0 to the SDK alone does not
+        # disable urllib3's default retries.
+        connection_kwargs = {
+            **(connection_kwargs or {}),
+            "timeout": urllib3.Timeout(connect=timeout, read=timeout),
+            "retries": urllib3.Retry(total=0, redirect=0),
+        }
+
     return Client(
         options["base_url"],
         metrics_backend=SentryMetricsBackend(),
-        retries=options.get("retries", None),
-        timeout_ms=options.get("timeout_ms", None),
-        connection_kwargs=options.get(
-            "connection_kwargs",
-            {"timeout": urllib3.Timeout(connect=5.0, read=None), "maxsize": 32},
-        ),
+        retries=0 if timeout is not None else options.get("retries", None),
+        timeout_ms=int(timeout * 1000) if timeout is not None else options.get("timeout_ms", None),
+        connection_kwargs=connection_kwargs,
         token=token_generator,
     )
 
@@ -159,6 +177,16 @@ def _get_client() -> Client:
 
 
 _USECASES: dict[UsecaseId, ObjectstoreClientUsecase] = {}
+
+
+@lru_cache(maxsize=8)
+def _get_bounded_client(timeout: float) -> Client:
+    return _create_client(timeout=timeout)
+
+
+def get_org_session(usecase: UsecaseId, org: int, *, timeout: float) -> Session:
+    """Return an organization-only session with caller-managed retries."""
+    return _get_bounded_client(timeout).session(usecase.create(), org=org)
 
 
 def get_session(usecase: UsecaseId, project: Project | int, *, org: int | None = None) -> Session:

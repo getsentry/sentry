@@ -26,6 +26,8 @@ from sentry.seer.agent.client_utils import (
     has_seer_agent_access_with_detail,
     snapshot_to_markdown,
 )
+from sentry.seer.attachments.models import AttachmentError
+from sentry.seer.attachments.storage import validate_message
 from sentry.seer.endpoints.utils import ResolvedSeerRun, resolve_seer_run
 from sentry.seer.models import SeerApiError, SeerPermissionError
 from sentry.seer.seer_setup import has_seer_access_with_detail
@@ -90,10 +92,23 @@ class PageLocationSerializer(serializers.Serializer):
 
 class SeerAgentChatSerializer(serializers.Serializer):
     query = serializers.CharField(
-        required=True,
-        allow_blank=False,
+        required=False,
+        default="",
+        allow_blank=True,
         help_text="The user's query to send to the Seer Agent.",
     )
+    attachment_keys = serializers.ListField(
+        child=serializers.CharField(max_length=255, trim_whitespace=False),
+        required=False,
+        default=list,
+        max_length=50,
+    )
+
+    def validate(self, data: dict[str, Any]) -> dict[str, Any]:
+        if not data["query"].strip() and not data["attachment_keys"]:
+            raise serializers.ValidationError({"query": "This field may not be blank."})
+        return data
+
     insert_index = serializers.IntegerField(
         required=False,
         allow_null=True,
@@ -272,10 +287,19 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
 
         serializer = SeerAgentChatSerializer(data=request.data)
         if not serializer.is_valid():
+            if "attachment_keys" in serializer.errors:
+                raise AttachmentError(
+                    "invalid_keys", "Attachment keys must be a list of opaque identifiers."
+                )
             return Response(serializer.errors, status=400)
 
         validated_data = serializer.validated_data
         query = validated_data["query"]
+        attachment_keys = validated_data["attachment_keys"]
+        if attachment_keys:
+            if not has_access:
+                raise PermissionDenied(error)
+            validate_message(attachment_keys, query)
         insert_index = validated_data.get("insert_index")
         on_page_context = validated_data.get("on_page_context")
         page_name = validated_data.get("page_name")
@@ -346,6 +370,7 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
                     sent_at=sent_at,
                     ui_tools=ui_tools,
                     request=request,
+                    **({"attachment_keys": attachment_keys} if attachment_keys else {}),
                 )
                 return Response(
                     {"run_id": resolved.seer_run_state_id, "sentry_run_id": resolved.uuid}
@@ -360,6 +385,7 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
                 sent_at=sent_at,
                 ui_tools=ui_tools,
                 override_ce_enable=override_ce_enable,
+                **({"attachment_keys": attachment_keys} if attachment_keys else {}),
                 request=request,
             )
             return Response({"run_id": run.seer_run_state_id, "sentry_run_id": str(run.uuid)})

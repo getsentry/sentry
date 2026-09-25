@@ -402,6 +402,7 @@ class SeerAgentClient:
         ui_tools: str | None = None,
         record_in_history: bool = True,
         on_run_created: Callable[[SeerRun], None] | None = None,
+        attachment_keys: list[str] | None = None,
     ) -> SeerRun:
         """
         Start a new Seer Agent session.
@@ -462,6 +463,9 @@ class SeerAgentClient:
 
         if self.project:
             chat_body["project_id"] = self.project.id
+
+        if attachment_keys:
+            chat_body["attachment_keys"] = attachment_keys
 
         if prompt_metadata:
             chat_body["query_metadata"] = prompt_metadata
@@ -751,6 +755,7 @@ class SeerAgentClient:
         artifact_schema: type[BaseModel] | None = None,
         ui_tools: str | None = None,
         request: Request | None = None,
+        attachment_keys: list[str] | None = None,
     ) -> SeerRun:
         """
         Continue an existing Seer Agent session. This allows you to add follow-up queries to an ongoing conversation.
@@ -803,6 +808,9 @@ class SeerAgentClient:
             agent_run_options=agent_run_options,
             proxy_headers=get_proxy_headers() if self.enable_code_mode_tools != "off" else None,
         )
+
+        if attachment_keys:
+            chat_body["attachment_keys"] = attachment_keys
 
         if prompt_metadata:
             chat_body["query_metadata"] = prompt_metadata
