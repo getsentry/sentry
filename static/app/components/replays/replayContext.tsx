@@ -578,8 +578,10 @@ export function Provider({
     if (!isVideoReplay && events) {
       if (replayerRef.current) {
         // If it's already been initialized, we still call initRoot, which
-        // should clear out existing dom element
-        initRoot(replayerRef.current.wrapper.parentElement as RootElem);
+        // should clear out existing dom element.
+        // Guard against wrapper being undefined (e.g. replayer destroyed but ref not yet cleared)
+        // by falling back to rootEl, mirroring the else-if branch below.
+        initRoot((replayerRef.current.wrapper?.parentElement ?? rootEl) as RootElem);
       } else if (rootEl) {
         initRoot(rootEl);
       }
