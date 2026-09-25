@@ -3568,6 +3568,13 @@ register(
     default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Stop workflow-backed notifications from presenting data from correlated persisted Rules.
+register(
+    "workflow_engine.notifications.use_workflow_data",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 register(
     "grouping.grouphash_metadata.ingestion_writes_enabled",

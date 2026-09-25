@@ -3,7 +3,7 @@ from collections import namedtuple
 from collections.abc import Mapping, Sequence
 from typing import Any
 
-from sentry import digests
+from sentry import digests, options
 from sentry.digests import get_option_key as get_digest_option_key
 from sentry.digests.notifications import DigestInfo, event_to_record, unsplit_key
 from sentry.digests.types import IdentifierKey
@@ -86,6 +86,20 @@ class MailAdapter:
             digest_key = unsplit_key(project, target_type, target_identifier, fallthrough_choice)
             extra["digest_key"] = digest_key
             rules_and_workflows = split_rules_by_rule_workflow_id(rules)
+            if (
+                options.get("workflow_engine.notifications.use_workflow_data")
+                and rules_and_workflows.rules
+            ):
+                # Workflow-triggered notifications should always have a workflow ID, but
+                # deliver immediately rather than dropping an unexpected legacy notification.
+                self.notify(
+                    Notification(event=event, rules=rules_and_workflows.rules),
+                    target_type,
+                    target_identifier,
+                    fallthrough_choice,
+                    notification_uuid,
+                )
+                rules_and_workflows.rules = []
             rules_by_identifier_key = {
                 IdentifierKey.RULE: rules_and_workflows.rules,
                 IdentifierKey.WORKFLOW: rules_and_workflows.workflow_rules,
@@ -107,7 +121,7 @@ class MailAdapter:
                     )
             if immediate_delivery:
                 deliver_digest.delay(digest_key, notification_uuid=notification_uuid)
-            else:
+            elif any(rules_by_identifier_key.values()):
                 log_event = "digested"
 
         else:

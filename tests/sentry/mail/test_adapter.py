@@ -17,6 +17,7 @@ from sentry.analytics.events.alert_sent import AlertSentEvent
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.userreport import UserReportWithGroupSerializer
 from sentry.digests.notifications import build_digest, event_to_record
+from sentry.digests.types import IdentifierKey
 from sentry.event_manager import EventManager, get_event_type
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.ownership import grammar
@@ -1592,6 +1593,36 @@ class MailAdapterRuleNotifyTest(BaseMailAdapterTest):
                 "project_id": event.group.project.id,
                 "digest_key": mock.ANY,
             },
+        )
+
+    @mock.patch("sentry.mail.adapter.digests")
+    def test_digest_prefers_workflow_id_when_enabled(self, digests: MagicMock) -> None:
+        digests.backend.enabled.return_value = True
+        event = self.store_event(data={}, project_id=self.project.id)
+        rule = self.create_project_rule(project=self.project)
+
+        with self.options({"workflow_engine.notifications.use_workflow_data": True}):
+            self.adapter.rule_notify(event, [RuleFuture(rule, {})], ActionTargetType.ISSUE_OWNERS)
+
+        record = digests.backend.add.call_args.args[1]
+        assert record.value.identifier_key == IdentifierKey.WORKFLOW
+        assert record.value.rules == [rule.data["actions"][0]["workflow_id"]]
+
+    @mock.patch("sentry.mail.adapter.digests")
+    def test_digest_does_not_write_rule_id_when_enabled(self, digests: MagicMock) -> None:
+        digests.backend.enabled.return_value = True
+        event = self.store_event(data={}, project_id=self.project.id)
+        rule = self.create_project_rule(project=self.project, include_workflow_id=False)
+
+        with (
+            self.options({"workflow_engine.notifications.use_workflow_data": True}),
+            mock.patch.object(self.adapter, "notify") as notify,
+        ):
+            self.adapter.rule_notify(event, [RuleFuture(rule, {})], ActionTargetType.ISSUE_OWNERS)
+
+        assert digests.backend.add.call_count == 0
+        notify.assert_called_once_with(
+            mock.ANY, ActionTargetType.ISSUE_OWNERS, None, None, mock.ANY
         )
 
     @mock.patch("sentry.mail.adapter.digests")

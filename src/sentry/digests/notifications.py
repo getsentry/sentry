@@ -7,7 +7,7 @@ from typing import Any, NamedTuple, TypeAlias
 
 import sentry_sdk
 
-from sentry import tsdb
+from sentry import options, tsdb
 from sentry.digests.types import IdentifierKey, Notification, Record, RecordWithRuleObjects
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
@@ -181,6 +181,18 @@ def get_rules_from_workflows(project: Project, workflow_ids: set[int]) -> dict[i
         workflow_ids
     )
 
+    if options.get("workflow_engine.notifications.use_workflow_data"):
+        # If we can avoid using Rules at all, we should.
+        return {
+            workflow_id: Rule(
+                label=workflow.name,
+                id=workflow_id,
+                project_id=project.id,
+                data={"actions": [{"workflow_id": workflow_id}]},
+            )
+            for workflow_id, workflow in workflows.items()
+        }
+
     # Try to fetch rules for workflows, if not use the workflow id
     alert_rule_workflows = AlertRuleWorkflow.objects.filter(workflow_id__in=workflow_ids)
     alert_rule_workflows_map = {awf.workflow_id: awf for awf in alert_rule_workflows}
@@ -233,6 +245,8 @@ def build_digest(project: Project, records: Sequence[Record]) -> DigestInfo:
     workflow_ids: set[int] = set()
 
     for record in records:
+        # Until we stop generating them and have none left stored in redis, we must support
+        # digest records phrased as Rules.
         identifier_key = getattr(record.value, "identifier_key", IdentifierKey.RULE)
         # record.value is Notification, record.value.rules is Sequence[int]
         ids_to_add = record.value.rules

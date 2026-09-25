@@ -1,3 +1,4 @@
+from unittest import mock
 from urllib.parse import parse_qs, urlparse
 
 from sentry.models.rule import Rule
@@ -7,12 +8,17 @@ from sentry.notifications.helpers import (
     validate,
 )
 from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
-from sentry.notifications.types import NotificationSettingEnum, NotificationSettingsOptionEnum
+from sentry.notifications.types import (
+    TEST_NOTIFICATION_ID,
+    NotificationSettingEnum,
+    NotificationSettingsOptionEnum,
+)
 from sentry.notifications.utils.links import (
     get_email_link_extra_params,
     get_group_settings_link,
     get_rules,
 )
+from sentry.notifications.utils.rules import get_rule_or_workflow_id
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode
@@ -126,3 +132,49 @@ class NotificationHelpersTest(TestCase):
             }
             for rule_detail in rule_details
         }
+
+    def test_get_rule_or_workflow_id_prefers_workflow_when_enabled(self) -> None:
+        rule = self.create_project_rule(self.project)
+
+        with self.options({"workflow_engine.notifications.use_workflow_data": True}):
+            key, value = get_rule_or_workflow_id(rule)
+
+        assert key == "workflow_id"
+        assert value == rule.data["actions"][0]["workflow_id"]
+
+    @mock.patch("sentry.notifications.utils.rules.logger")
+    @mock.patch("sentry.notifications.utils.rules.metrics")
+    def test_get_rule_or_workflow_id_records_legacy_fallback_when_enabled(
+        self, mock_metrics: mock.MagicMock, mock_logger: mock.MagicMock
+    ) -> None:
+        rule = self.create_project_rule(self.project, include_workflow_id=False)
+
+        with self.options({"workflow_engine.notifications.use_workflow_data": True}):
+            key, value = get_rule_or_workflow_id(rule)
+
+        assert key == "legacy_rule_id"
+        assert value == rule.data["actions"][0]["legacy_rule_id"]
+        mock_metrics.incr.assert_called_once_with("notifications.legacy_rule_id_fallback")
+        mock_logger.info.assert_called_once_with(
+            "notifications.legacy_rule_id_fallback",
+            extra={"rule_id": value, "project_id": rule.project_id},
+        )
+
+    @mock.patch("sentry.notifications.utils.rules.logger")
+    @mock.patch("sentry.notifications.utils.rules.metrics")
+    def test_get_rule_or_workflow_id_ignores_test_notification_fallback(
+        self, mock_metrics: mock.MagicMock, mock_logger: mock.MagicMock
+    ) -> None:
+        rule = Rule(
+            id=TEST_NOTIFICATION_ID,
+            project=self.project,
+            data={"actions": [{"legacy_rule_id": TEST_NOTIFICATION_ID}]},
+        )
+
+        with self.options({"workflow_engine.notifications.use_workflow_data": True}):
+            key, value = get_rule_or_workflow_id(rule)
+
+        assert key == "legacy_rule_id"
+        assert int(value) == TEST_NOTIFICATION_ID
+        assert mock_metrics.incr.call_count == 0
+        assert mock_logger.info.call_count == 0
