@@ -186,7 +186,7 @@ class TestAutofixIssueDataJudge(SentryTestCase):
         assert issue_data.judge_review["confidence"] == "high"
         assert issue_data.judge_review["reviewed_event_id"] == event_id
         assert issue_data.judge_review["model"] == "claude-opus-4-8@default"
-        assert issue_data.judge_review["prompt_version"] == "1"
+        assert issue_data.judge_review["prompt_version"] == "2"
 
     @patch("sentry.tasks.seer.autofix_issue_data.make_llm_generate_request")
     def test_skips_stale_event(self, mock_request: MagicMock) -> None:

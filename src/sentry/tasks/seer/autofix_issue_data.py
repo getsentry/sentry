@@ -221,7 +221,7 @@ def _judge_issue(issue_data_id: int, event_id: str) -> None:
             "confidence": result.confidence,
             "reason": result.reason,
             "model": model,
-            "prompt_version": "1",
+            "prompt_version": "2",
             "reviewed_at": reviewed_at.isoformat(),
             "reviewed_event_id": event_id,
         },
