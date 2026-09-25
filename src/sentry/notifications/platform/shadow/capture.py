@@ -1,19 +1,21 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Generator
+from collections.abc import Generator, Mapping, Sequence
 from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
-from sentry.notifications.platform.shadow.compare import ShadowPayload
 from sentry.notifications.platform.types import NotificationProviderKey
 
 if TYPE_CHECKING:
     from sentry.notifications.utils.issue_notification_context import IssueNotificationContext
 
 logger = logging.getLogger(__name__)
+
+type SlackAttachmentsAndText = tuple[str | Sequence[Mapping[str, Any]], str]
+type ShadowPayload = Mapping[str, Any] | SlackAttachmentsAndText
 
 
 @dataclass(frozen=True)
