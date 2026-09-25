@@ -2,6 +2,7 @@ from inspect import signature
 from unittest.mock import ANY, MagicMock, patch
 
 import orjson
+import pytest
 from scm.helpers import iter_all_pages
 
 from sentry.scm.types import CheckSuiteEvent
@@ -50,6 +51,7 @@ from sentry.seer.autofix.pr_iteration.listeners.check_suite import (
     pr_iteration_from_check_suite_listener,
 )
 from sentry.seer.autofix.pr_iteration.queue import QueuedAutofixFeedback
+from sentry.seer.models import SeerUnavailableError
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
 
@@ -118,6 +120,8 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         )
         self.mock_flag_gate = gate_patcher.start()
         self.addCleanup(gate_patcher.stop)
+        # The listener hands its work to a task; run it inline.
+        self.enterContext(self.tasks())
 
     def _event(
         self, raw: dict | None = None, *, action="completed", conclusion="failure"
@@ -538,6 +542,27 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         mock_enqueue.assert_called_once()
         mock_trigger_consume.assert_called_once()
 
+    @patch(f"{CHECK_PATH}.try_enqueue_autofix_feedback")
+    @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_repositories")
+    def test_seer_unavailable_fails_the_task_so_it_is_retried(
+        self,
+        mock_resolve: MagicMock,
+        mock_get_state: MagicMock,
+        mock_enqueue: MagicMock,
+    ) -> None:
+        from sentry.scm.private.ipc import serialize_check_suite_event
+        from sentry.tasks.seer.pr_iteration import process_pr_iteration_check_suite
+
+        mock_resolve.return_value = [MagicMock(organization_id=self.organization.id, id=2)]
+        mock_get_state.side_effect = SeerUnavailableError("down", 503)
+        event = self._event(self._raw(pull_requests=[own_repo_pr(111)]))
+
+        with pytest.raises(SeerUnavailableError):
+            process_pr_iteration_check_suite(event=serialize_check_suite_event(event))
+
+        mock_enqueue.assert_not_called()
+
     @patch(TRIGGER_CONSUME_PATH)
     @patch(f"{CHECK_PATH}.enqueue_autofix_feedback")
     @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
@@ -659,6 +684,7 @@ class GreenCheckSuiteDeferredIterationTest(TestCase):
         )
         gate_patcher.start()
         self.addCleanup(gate_patcher.stop)
+        self.enterContext(self.tasks())
 
     def _event(self) -> CheckSuiteEvent:
         return CheckSuiteEvent(
@@ -1144,6 +1170,43 @@ class ResolveCheckSuiteAutofixRunTest(TestCase):
                 "organization_ids": [self.organization.id, self.organization.id],
             },
         )
+
+    @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_repositories")
+    def test_raises_when_seer_unavailable_and_nothing_matched(
+        self, mock_resolve: MagicMock, mock_get_state: MagicMock
+    ) -> None:
+        # The run may well exist, so "not found" would be the wrong answer.
+        mock_resolve.return_value = [MagicMock(organization_id=self.organization.id, id=2)]
+        mock_get_state.side_effect = [SeerUnavailableError("down", 503), None]
+
+        with pytest.raises(SeerUnavailableError):
+            resolve_check_suite_autofix_run(
+                self._event(
+                    pull_requests=[own_repo_pr(111), own_repo_pr(222)],
+                    repository_id=OWN_REPO_ID,
+                )
+            )
+
+    @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_repositories")
+    def test_returns_match_even_if_another_lookup_was_unavailable(
+        self, mock_resolve: MagicMock, mock_get_state: MagicMock
+    ) -> None:
+        mock_resolve.return_value = [MagicMock(organization_id=self.organization.id, id=2)]
+        mock_get_state.side_effect = [
+            SeerUnavailableError("down", 503),
+            self._agent_state(run_id=222),
+        ]
+
+        result = resolve_check_suite_autofix_run(
+            self._event(
+                pull_requests=[own_repo_pr(111), own_repo_pr(222)], repository_id=OWN_REPO_ID
+            )
+        )
+
+        assert result is not None
+        assert result.run_state.run_id == 222
 
     @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
     @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_repositories")

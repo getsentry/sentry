@@ -126,9 +126,17 @@ def _retrigger_deferred_iteration(
 
 @scm_event_stream.listen_for(event_type="check_suite")
 def pr_iteration_from_check_suite_listener(check_suite_event: CheckSuiteEvent) -> None:
+    # The rest starts with a Seer lookup, so it runs in its own task that can be
+    # retried when Seer is down; the shared webhook task can't be.
     if not _should_process_check_suite(check_suite_event):
         return None
-    return handle_check_suite_event(check_suite_event)
+
+    # Lazy: stream.py loads this module before options init.
+    from sentry.scm.private.ipc import serialize_check_suite_event
+    from sentry.tasks.seer.pr_iteration import process_pr_iteration_check_suite
+
+    process_pr_iteration_check_suite.delay(event=serialize_check_suite_event(check_suite_event))
+    return None
 
 
 def _should_process_check_suite(check_suite_event: CheckSuiteEvent) -> bool:
