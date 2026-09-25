@@ -278,6 +278,110 @@ describe('ConversationDetailPage summary aggregates', () => {
     );
   });
 
+  it('groups LLM calls and cost by model', async () => {
+    mockApis(null, [
+      spanFixture({
+        span_id: 'span-alpha-first',
+        'span.name': 'first alpha turn',
+        'precise.start_ts': 1000,
+        'precise.finish_ts': 1000.5,
+        'gen_ai.response.model': 'model-alpha',
+        'gen_ai.cost.total_tokens': 0.02,
+      }),
+      spanFixture({
+        span_id: 'span-beta',
+        'span.name': 'beta turn',
+        'precise.start_ts': 1001,
+        'precise.finish_ts': 1001.5,
+        'gen_ai.response.model': 'model-beta',
+        'gen_ai.cost.total_tokens': 0.04,
+      }),
+      spanFixture({
+        span_id: 'span-alpha-second',
+        'span.name': 'second alpha turn',
+        'precise.start_ts': 1002,
+        'precise.finish_ts': 1002.5,
+        'gen_ai.response.model': 'model-alpha',
+        'gen_ai.cost.total_tokens': 0.01,
+      }),
+    ]);
+    renderPage();
+
+    const llmCallsStat = (await screen.findByText('LLM Calls')).parentElement!;
+    const llmCalls = await within(llmCallsStat).findByText('3');
+    expect(llmCalls).not.toHaveAttribute('title');
+    await userEvent.hover(llmCalls);
+
+    const modelAlpha = await screen.findByText('model-alpha');
+    const modelBeta = screen.getByText('model-beta');
+    expect(modelAlpha.compareDocumentPosition(modelBeta)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING
+    );
+    expect(
+      within(modelAlpha.parentElement!.parentElement!.parentElement!).getByText('2')
+    ).toBeInTheDocument();
+    expect(
+      within(modelBeta.parentElement!.parentElement!.parentElement!).getByText('1')
+    ).toBeInTheDocument();
+
+    await userEvent.unhover(llmCalls);
+    await waitFor(() =>
+      expect(screen.queryByText('model-alpha')).not.toBeInTheDocument()
+    );
+
+    const costStat = screen.getByText('Cost').parentElement!;
+    const totalCost = within(costStat).getByText('$0.07');
+    expect(totalCost).not.toHaveAttribute('title');
+    await userEvent.hover(totalCost);
+
+    const highestCostModel = await screen.findByText('model-beta');
+    const lowerCostModel = screen.getByText('model-alpha');
+    expect(highestCostModel.compareDocumentPosition(lowerCostModel)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING
+    );
+    expect(
+      within(highestCostModel.parentElement!.parentElement!.parentElement!).getByText(
+        '$0.04'
+      )
+    ).toBeInTheDocument();
+    expect(
+      within(lowerCostModel.parentElement!.parentElement!.parentElement!).getByText(
+        '$0.03'
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('preserves the no-cost explanation when there is no recorded cost', async () => {
+    mockApis();
+    renderPage();
+
+    const costStat = (await screen.findByText('Cost')).parentElement!;
+    await userEvent.hover(await within(costStat).findByText('—'));
+
+    expect(await screen.findByText(/No cost recorded/)).toBeInTheDocument();
+  });
+
+  it('does not render an empty model breakdown when there are no LLM calls', async () => {
+    mockApis(null, [
+      spanFixture({
+        span_id: 'span-tool',
+        'span.name': 'tool call',
+        'gen_ai.operation.type': 'tool',
+        'gen_ai.tool.name': 'test_tool',
+        'precise.start_ts': 1000,
+        'precise.finish_ts': 1000.5,
+      }),
+    ]);
+    renderPage();
+
+    const llmCallsStat = (await screen.findByText('LLM Calls')).parentElement!;
+    const llmCalls = await within(llmCallsStat).findByText('0');
+    expect(llmCalls).toHaveAttribute('title', '0');
+
+    await userEvent.hover(llmCalls);
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+  });
+
   it('renders the fire icon in the summary when a span errored', async () => {
     mockApis(null, [
       ...CONVERSATION_BODY,

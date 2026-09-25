@@ -35,6 +35,7 @@ import {ToolTag} from 'sentry/views/explore/conversations/components/toolTag';
 import type {ConversationUser} from 'sentry/views/explore/conversations/hooks/useConversations';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
+import {ModelName} from 'sentry/views/insights/pages/agents/components/modelName';
 import {NegativeCostInfo} from 'sentry/views/insights/pages/agents/components/negativeCostWarning';
 import {
   TokenBreakdownTooltip,
@@ -45,6 +46,7 @@ import {
   getStringAttr,
   hasError,
 } from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
+import {formatLLMCosts} from 'sentry/views/insights/pages/agents/utils/formatLLMCosts';
 import {
   getIsAiGenerationSpan,
   getIsExecuteToolSpan,
@@ -260,7 +262,12 @@ export function ConversationSummary({
       <Flex align="start" gap="xl" wrap="wrap" flexShrink={0}>
         <Stat
           label={t('LLM Calls')}
-          value={<Count value={aggregates.llmCalls} />}
+          value={
+            <ModelCallBreakdown
+              breakdowns={aggregates.modelBreakdowns}
+              total={aggregates.llmCalls}
+            />
+          }
           isLoading={isLoading}
         />
         <Stat
@@ -300,7 +307,10 @@ export function ConversationSummary({
             aggregates.totalCost < 0 ? (
               <NegativeCostInfo cost={aggregates.totalCost} />
             ) : (
-              <LLMCosts cost={aggregates.totalCost} />
+              <ModelCostBreakdown
+                breakdowns={aggregates.modelBreakdowns}
+                total={aggregates.totalCost}
+              />
             )
           }
           isLoading={isLoading}
@@ -376,6 +386,7 @@ interface ConversationAggregates {
   errorCount: number;
   erroredToolNames: Set<string>;
   llmCalls: number;
+  modelBreakdowns: ModelBreakdownDetails[];
   /** When the conversation began, or null when no span carries a start time. */
   startTimestamp: number | null;
   tokenBreakdowns: TokenBreakdownDetails[];
@@ -383,6 +394,12 @@ interface ConversationAggregates {
   toolNames: string[];
   totalCost: number;
   totalTokens: number;
+}
+
+interface ModelBreakdownDetails {
+  calls: number;
+  cost: number;
+  model: string;
 }
 
 function getGenAiOpType(node: AITraceSpanNode): string | undefined {
@@ -408,6 +425,7 @@ function calculateAggregates(nodes: AITraceSpanNode[]): ConversationAggregates {
   let errorCount = 0;
   let totalCost = 0;
   const tokensByModel = new Map<string, TokenBreakdownDetails>();
+  const metricsByModel = new Map<string, ModelBreakdownDetails>();
   let startTimestamp: number | null = null;
   const toolNameSet = new Set<string>();
   const erroredToolNameSet = new Set<string>();
@@ -449,6 +467,11 @@ function calculateAggregates(nodes: AITraceSpanNode[]): ConversationAggregates {
         getStringAttr(node, SpanFields.GEN_AI_RESPONSE_MODEL) ||
         getStringAttr(node, SpanFields.GEN_AI_REQUEST_MODEL) ||
         t('Unknown model');
+      const cost = getNumberAttr(node, SpanFields.GEN_AI_COST_TOTAL_TOKENS) ?? 0;
+      const modelMetrics = metricsByModel.get(model) ?? {calls: 0, cost: 0, model};
+      modelMetrics.calls++;
+      modelMetrics.cost += cost;
+      metricsByModel.set(model, modelMetrics);
       const modelTokens = tokensByModel.get(model) ?? {
         cacheRead: 0,
         cacheWrite: 0,
@@ -467,7 +490,7 @@ function calculateAggregates(nodes: AITraceSpanNode[]): ConversationAggregates {
       modelTokens.isComplete &&= isComplete;
       modelTokens.total += isComplete ? inputTotal + breakdown.output : reportedTotal;
       tokensByModel.set(model, modelTokens);
-      totalCost += getNumberAttr(node, SpanFields.GEN_AI_COST_TOTAL_TOKENS) ?? 0;
+      totalCost += cost;
     } else if (getIsExecuteToolSpan(opType)) {
       toolCalls++;
       const toolName = getStringAttr(node, SpanFields.GEN_AI_TOOL_NAME);
@@ -493,6 +516,7 @@ function calculateAggregates(nodes: AITraceSpanNode[]): ConversationAggregates {
   const tokenBreakdowns = Array.from(tokensByModel.values()).sort(
     (a, b) => b.total - a.total
   );
+  const modelBreakdowns = Array.from(metricsByModel.values());
 
   return {
     llmCalls,
@@ -500,6 +524,7 @@ function calculateAggregates(nodes: AITraceSpanNode[]): ConversationAggregates {
     errorCount,
     startTimestamp,
     erroredToolNames: erroredToolNameSet,
+    modelBreakdowns,
     tokenBreakdowns,
     totalTokens: tokenBreakdowns.reduce((total, breakdown) => total + breakdown.total, 0),
     totalCost,
@@ -563,7 +588,12 @@ export function ConversationAggregatesBar({
     <Flex align="center" gap="lg" minWidth={0} minHeight="20px">
       <AggregateItem
         label={t('LLM Calls')}
-        value={<Count value={aggregates.llmCalls} />}
+        value={
+          <ModelCallBreakdown
+            breakdowns={aggregates.modelBreakdowns}
+            total={aggregates.llmCalls}
+          />
+        }
         isLoading={isLoading}
       />
       <AggregateItem
@@ -589,7 +619,10 @@ export function ConversationAggregatesBar({
           aggregates.totalCost < 0 ? (
             <NegativeCostInfo cost={aggregates.totalCost} />
           ) : (
-            <LLMCosts cost={aggregates.totalCost} />
+            <ModelCostBreakdown
+              breakdowns={aggregates.modelBreakdowns}
+              total={aggregates.totalCost}
+            />
           )
         }
         isLoading={isLoading}
@@ -668,7 +701,81 @@ function TokenCount({
 }) {
   return (
     <Tooltip title={<TokenBreakdownTooltip breakdowns={breakdowns} />}>
-      <TokenCountValue>{formatAbbreviatedNumber(total)}</TokenCountValue>
+      <TooltipValue>{formatAbbreviatedNumber(total)}</TooltipValue>
+    </Tooltip>
+  );
+}
+
+function ModelCallBreakdown({
+  breakdowns,
+  total,
+}: {
+  breakdowns: ModelBreakdownDetails[];
+  total: number;
+}) {
+  if (total === 0) {
+    return <Count value={total} />;
+  }
+
+  const sortedBreakdowns = [...breakdowns].sort((a, b) => b.calls - a.calls);
+
+  return (
+    <Tooltip
+      title={
+        <ModelBreakdownStack gap="sm">
+          {sortedBreakdowns.map(breakdown => (
+            <Flex key={breakdown.model} align="center" gap="xl" width="100%">
+              <Container minWidth={0} flex={1} overflow="hidden">
+                <ModelName modelId={breakdown.model} size={14} gap="sm" />
+              </Container>
+              <Container flexShrink={0}>
+                <Text tabular align="right">
+                  {formatAbbreviatedNumber(breakdown.calls)}
+                </Text>
+              </Container>
+            </Flex>
+          ))}
+        </ModelBreakdownStack>
+      }
+    >
+      <TooltipValue>{formatAbbreviatedNumber(total)}</TooltipValue>
+    </Tooltip>
+  );
+}
+
+function ModelCostBreakdown({
+  breakdowns,
+  total,
+}: {
+  breakdowns: ModelBreakdownDetails[];
+  total: number;
+}) {
+  if (total === 0) {
+    return <LLMCosts cost={total} />;
+  }
+
+  const sortedBreakdowns = [...breakdowns].sort((a, b) => b.cost - a.cost);
+
+  return (
+    <Tooltip
+      title={
+        <ModelBreakdownStack gap="sm">
+          {sortedBreakdowns.map(breakdown => (
+            <Flex key={breakdown.model} align="center" gap="xl" width="100%">
+              <Container minWidth={0} flex={1} overflow="hidden">
+                <ModelName modelId={breakdown.model} size={14} gap="sm" />
+              </Container>
+              <Container flexShrink={0}>
+                <Text tabular align="right">
+                  {formatLLMCosts(breakdown.cost)}
+                </Text>
+              </Container>
+            </Flex>
+          ))}
+        </ModelBreakdownStack>
+      }
+    >
+      <TooltipValue>{formatLLMCosts(total)}</TooltipValue>
     </Tooltip>
   );
 }
@@ -714,9 +821,14 @@ function AggregateItem({
   return content;
 }
 
-const TokenCountValue = styled('span')`
+const TooltipValue = styled('span')`
   text-decoration: underline dotted;
   text-underline-offset: ${p => p.theme.space['2xs']};
+`;
+
+const ModelBreakdownStack = styled(Stack)`
+  width: 100%;
+  text-align: left;
 `;
 
 const AggregateValue = styled(Text)<{isInteractive?: boolean}>`
