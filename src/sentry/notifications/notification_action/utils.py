@@ -55,6 +55,8 @@ def execute_via_group_type_registry(invocation: ActionInvocation) -> None:
         try:
             return execute_via_activity_type_registry(invocation=invocation)
         except Exception:
+            # TODO(leander): Only fall back for routing or validation errors. Invocation errors
+            # should propagate so the trigger_action task can retry the configured action.
             logger.exception(
                 "Error executing via activity type registry",
                 extra={
