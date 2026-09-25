@@ -17,6 +17,12 @@ from snuba_sdk.legacy import is_condition, parse_condition
 from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
+from sentry.api.event_search import (
+    ParenExpression,
+    SearchBoolean,
+    SearchConfig,
+    parse_search_query,
+)
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.helpers.environments import get_environments
 from sentry.api.helpers.group_index import parse_and_convert_issue_search_query
@@ -48,14 +54,17 @@ from sentry.issues.formatting.mixin import (
     format_event_response,
 )
 from sentry.issues.grouptype import GroupCategory
+from sentry.issues.issue_search import issue_search_config
 from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.ratelimits.config import RateLimitConfig
+from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.filter import (
     FilterConvertParams,
     convert_search_filter_to_snuba_query,
     format_search_filter,
 )
+from sentry.search.events.types import QueryBuilderConfig, SnubaParams
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.dataset import Dataset
@@ -216,13 +225,55 @@ class GroupEventDetailsEndpoint(FormattableResponseMixin, GroupEndpoint):
             raise ParseError(detail="Invalid date range")
 
         query = request.GET.get("query")
+        boolean_search = False
         conditions: list[Condition] = []
         legacy_conditions: list[Any] = []
         if query:
             try:
-                conditions, legacy_conditions = issue_search_query_to_conditions(
-                    query, group, request.user, environments
-                )
+                if features.has(
+                    "organizations:issue-details-boolean-search", organization, actor=request.user
+                ):
+                    # Preserve issue-only filters on the legacy path for non-boolean queries.
+                    parsed_query = parse_search_query(
+                        query,
+                        config=SearchConfig.create_from(issue_search_config, allow_boolean=True),
+                    )
+                    boolean_search = any(
+                        isinstance(term, ParenExpression) or SearchBoolean.is_operator(term)
+                        for term in parsed_query
+                    )
+                if boolean_search:
+                    dataset = (
+                        Dataset.Events
+                        if group.issue_category == GroupCategory.ERROR
+                        else Dataset.IssuePlatform
+                    )
+                    builder = DiscoverQueryBuilder(
+                        dataset=dataset,
+                        params={},
+                        snuba_params=SnubaParams(
+                            organization=organization,
+                            projects=[group.project],
+                            environments=environments,
+                        ),
+                        query=query,
+                        config=QueryBuilderConfig(
+                            skip_time_conditions=True,
+                            use_aggregate_conditions=True,
+                            column_resolver=functools.partial(
+                                get_snuba_column_name, dataset=dataset
+                            ),
+                        ),
+                    )
+                    if builder.having:
+                        raise InvalidSearchQuery(
+                            "Aggregate filters are not supported for individual events."
+                        )
+                    conditions = builder.where
+                else:
+                    conditions, legacy_conditions = issue_search_query_to_conditions(
+                        query, group, request.user, environments
+                    )
             except ValidationError:
                 raise ParseError(detail="Invalid event query")
             except InvalidSearchQuery as error:
@@ -308,6 +359,7 @@ class GroupEventDetailsEndpoint(FormattableResponseMixin, GroupEndpoint):
             include_full_release_data="fullRelease" not in collapse,
             conditions=conditions,
             legacy_conditions=legacy_conditions,
+            use_snql=boolean_search,
             start=start,
             end=end,
         )
