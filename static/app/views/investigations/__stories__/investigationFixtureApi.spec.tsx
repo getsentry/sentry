@@ -192,7 +192,7 @@ describe('InvestigationFixtureApi', () => {
       ).toBeInTheDocument();
       expect(screen.getByText('Supported')).toBeInTheDocument();
       // A settled hypothesis folds its checks behind a toggle.
-      expect(screen.getByRole('button', {name: 'Show all 3 steps'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Show 3 checks'})).toBeInTheDocument();
     });
 
     it('applies a disposition command and returns the new projection', async () => {
