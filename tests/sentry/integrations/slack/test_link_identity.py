@@ -2,20 +2,99 @@ from collections.abc import Generator
 from unittest.mock import MagicMock, call, patch
 
 import pytest
+from django.http import Http404
 from slack_sdk.errors import SlackApiError
 from slack_sdk.web import SlackResponse
 from slack_sdk.webhook import WebhookResponse
 
+from sentry.constants import ObjectStatus
 from sentry.integrations.messaging.linkage import UnlinkIdentityView
 from sentry.integrations.slack.views.link_identity import (
     SUCCESS_LINKED_MESSAGE,
     build_linking_url,
 )
 from sentry.integrations.slack.views.unlink_identity import build_unlinking_url
+from sentry.integrations.types import ExternalProviders
+from sentry.integrations.utils.identities import get_identity_or_404
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import add_identity, install_slack
 from sentry.testutils.silo import control_silo_test
 from sentry.users.models.identity import Identity, IdentityStatus
+
+
+@control_silo_test
+class GetIdentityOrganizationTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.integration = install_slack(self.organization)
+        self.idp = add_identity(self.integration, self.user, "slack-user")
+
+    def test_default_organization(self) -> None:
+        organization, integration, idp = get_identity_or_404(
+            ExternalProviders.SLACK, self.user, self.integration.id
+        )
+
+        assert organization.id == self.organization.id
+        assert integration == self.integration
+        assert idp == self.idp
+
+    def test_explicit_valid_organization(self) -> None:
+        other_organization = self.create_organization(owner=self.user)
+        self.create_organization_integration(
+            organization_id=other_organization.id, integration=self.integration
+        )
+
+        organization, integration, idp = get_identity_or_404(
+            ExternalProviders.SLACK,
+            self.user,
+            self.integration.id,
+            organization_id=other_organization.id,
+        )
+
+        assert organization.id == other_organization.id
+        assert integration == self.integration
+        assert idp == self.idp
+
+    def test_explicit_organization_without_membership(self) -> None:
+        other_organization = self.create_organization(owner=self.create_user())
+        self.create_organization_integration(
+            organization_id=other_organization.id, integration=self.integration
+        )
+
+        with pytest.raises(Http404):
+            get_identity_or_404(
+                ExternalProviders.SLACK,
+                self.user,
+                self.integration.id,
+                organization_id=other_organization.id,
+            )
+
+    def test_explicit_organization_without_integration(self) -> None:
+        other_organization = self.create_organization(owner=self.user)
+
+        with pytest.raises(Http404):
+            get_identity_or_404(
+                ExternalProviders.SLACK,
+                self.user,
+                self.integration.id,
+                organization_id=other_organization.id,
+            )
+
+    def test_explicit_organization_with_inactive_installation(self) -> None:
+        other_organization = self.create_organization(owner=self.user)
+        self.create_organization_integration(
+            organization_id=other_organization.id,
+            integration=self.integration,
+            status=ObjectStatus.DISABLED,
+        )
+
+        with pytest.raises(Http404):
+            get_identity_or_404(
+                ExternalProviders.SLACK,
+                self.user,
+                self.integration.id,
+                organization_id=other_organization.id,
+            )
 
 
 class SlackIntegrationLinkIdentityTestBase(TestCase):

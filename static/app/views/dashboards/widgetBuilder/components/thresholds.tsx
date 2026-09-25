@@ -107,6 +107,11 @@ export function ThresholdsSection({
           if (newThresholds) {
             newThresholds.max_values ??= {};
             if (value) {
+              // Match the displayed unit on first entry without reinterpreting
+              // existing unitless thresholds, which use the base unit.
+              if (!hasThresholdValues) {
+                newThresholds.unit ??= dataUnit || null;
+              }
               newThresholds.max_values[maxKey] = Number(value);
             } else {
               delete newThresholds.max_values[maxKey];

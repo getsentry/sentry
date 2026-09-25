@@ -9,20 +9,20 @@ import {OverrideOrDefault} from './overrideOrDefault';
 describe('OverrideOrDefault', () => {
   it('should render default', () => {
     const Component = OverrideOrDefault({
-      overrideName: 'component:replay-onboarding-cta',
+      overrideName: 'component:product-unavailable-cta',
       defaultComponent: () => (
         <div data-test-id="default-component">Default Component</div>
       ),
     });
 
-    render(<Component organization={OrganizationFixture()}>Test</Component>);
+    render(<Component organization={OrganizationFixture()} />);
     expect(screen.getByTestId('default-component')).toBeInTheDocument();
     expect(screen.getByText('Default Component')).toBeInTheDocument();
   });
 
   it('should render from override registry', () => {
     registerOverride(
-      'component:replay-onboarding-cta',
+      'component:product-unavailable-cta',
       () =>
         function ({organization}) {
           return <div data-test-id="override-component">{organization.slug}</div>;
@@ -30,13 +30,13 @@ describe('OverrideOrDefault', () => {
     );
 
     const Component = OverrideOrDefault({
-      overrideName: 'component:replay-onboarding-cta',
+      overrideName: 'component:product-unavailable-cta',
       defaultComponent: () => (
         <div data-test-id="default-component">Default Component</div>
       ),
     });
 
-    render(<Component organization={OrganizationFixture()}>Test</Component>);
+    render(<Component organization={OrganizationFixture()} />);
 
     expect(screen.getByTestId('override-component')).toBeInTheDocument();
     expect(screen.queryByTestId('default-component')).not.toBeInTheDocument();

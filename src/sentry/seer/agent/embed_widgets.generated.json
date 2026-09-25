@@ -73,8 +73,14 @@
       "type": "object",
       "properties": {
         "id": {
-          "type": "string",
-          "minLength": 1
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "number"
+            }
+          ]
         },
         "title": {
           "type": "string",
@@ -474,7 +480,7 @@
           }
         },
         "steps": {
-          "description": "solution only: the ordered steps needed to resolve the issue.",
+          "description": "solution only: ordered steps to resolve the issue. Each element MUST be an object with \"title\" (string) and \"description\" (string) — never a plain string.",
           "type": "array",
           "items": {
             "type": "object",

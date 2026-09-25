@@ -1978,6 +1978,16 @@ GRANULAR_SCOPES = frozenset(
     ]
 )
 
+# Broad read scopes being retired in favour of granular ones. API attribution tags
+# whether a caller still holds one (see sentry.api.caller_scopes).
+DEPRECATED_SCOPES = frozenset(
+    [
+        "org:read",
+        "project:read",
+        "member:read",
+    ]
+)
+
 SENTRY_SCOPE_SETS = (
     (
         ("org:admin", "Read, write, and admin access to organization details."),

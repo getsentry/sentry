@@ -186,6 +186,35 @@ describe('EditAutomation', () => {
     expect(await screen.findByRole('button', {name: 'Enable'})).toBeInTheDocument();
   });
 
+  it('disables mutations for an all-projects alert without org:write', async () => {
+    const alertWriterOrganization = OrganizationFixture({
+      access: ['org:read', 'alerts:read', 'alerts:write'],
+    });
+    const projectScopeRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/workflows/${automation.id}/project-scope/`,
+      body: {projectIds: [], includesAllProjects: true},
+    });
+
+    render(<AutomationEdit />, {
+      organization: alertWriterOrganization,
+      initialRouterConfig,
+    });
+
+    await waitFor(() => expect(projectScopeRequest).toHaveBeenCalled());
+    expect(screen.getByRole('button', {name: 'Save'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    expect(screen.getByRole('button', {name: 'Delete'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    expect(screen.getByRole('button', {name: 'Disable'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+  });
+
   it('updates automation', async () => {
     const mockUpdateAutomation = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/workflows/${automation.id}/`,
