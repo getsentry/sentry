@@ -426,14 +426,13 @@ class ShadowReadMetricAlertTest(ShadowReadTestBase, MetricAlertHandlerBase):
         action = self.create_shadow_action("discord")
         self.assert_match(self.resolution_invocation(action), execute_via_metric_alert_handler)
 
-    def test_msteams_matches(self) -> None:
+    def test_msteams_has_no_renderer(self) -> None:
         action = self.create_shadow_action("msteams")
-        send = self.assert_match(self.invocation(action))
-        send.assert_called_once()
 
-    def test_msteams_resolution_matches(self) -> None:
-        action = self.create_shadow_action("msteams")
-        self.assert_match(self.resolution_invocation(action), execute_via_metric_alert_handler)
+        observation, send = self.send(self.invocation(action))
+
+        send.assert_called_once()
+        assert observation.outcome == ShadowOutcome.NO_RENDERER
 
     def test_platform_reuses_the_legacy_context(self) -> None:
         action = self.create_shadow_action("discord")
@@ -444,14 +443,15 @@ class ShadowReadMetricAlertTest(ShadowReadTestBase, MetricAlertHandlerBase):
         runner_context_cls.assert_not_called()
 
     def test_compares_when_the_send_raises(self) -> None:
-        action = self.create_shadow_action("msteams")
-        error = RuntimeError("rpc failed")
+        action = self.create_shadow_action("slack")
+        error = RuntimeError("slack is down")
 
         with (
             observe_shadow() as observation,
-            mock.patch(MSTEAMS_METRIC_SEND, side_effect=error),
+            mock.patch(SLACK_METRIC_CLIENT) as client,
             pytest.raises(RuntimeError) as excinfo,
         ):
+            client.return_value.chat_postMessage.side_effect = error
             execute_via_group_type_registry(self.invocation(action))
 
         assert excinfo.value is error
