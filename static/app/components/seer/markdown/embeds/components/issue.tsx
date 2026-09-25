@@ -1,4 +1,5 @@
 import {lazy, useMemo} from 'react';
+import styled from '@emotion/styled';
 
 import {LazyLoad} from 'sentry/components/lazyLoad';
 import {
@@ -85,23 +86,41 @@ function SingleIssueBlock({id, shortId}: IssueEmbedProps) {
       href={getIssueHref(id)}
       icon={IconIssues}
       linkLabel={t('View Issue')}
+      padding="0"
       testId="seer-issue-embed"
       title={getIssueTitle({id, shortId})}
     >
-      <LazyLoad
-        LazyComponent={LazyGroupList}
-        queryParams={queryParams}
-        withChart
-        withColumns={[]}
-        withHeader={false}
-        withPagination={false}
-        canSelectGroups={false}
-        useFilteredStats={false}
-        numPlaceholderRows={1}
-      />
+      <FlushPreview>
+        <LazyLoad
+          LazyComponent={LazyGroupList}
+          queryParams={queryParams}
+          withChart
+          withColumns={[]}
+          withHeader={false}
+          withPagination={false}
+          canSelectGroups={false}
+          useFilteredStats={false}
+          numPlaceholderRows={1}
+        />
+      </FlushPreview>
     </SeerEmbedBlock>
   );
 }
+
+/**
+ * The issue row sits flush in the card: the card's own border already frames
+ * it, so `GroupList`'s panel border, rounding, and trailing margin would only
+ * draw a second box inside the first. A direct-child selector rather than
+ * `${Panel}`, because `GroupList` renders a `styled(Panel)` whose class no
+ * longer carries `Panel`'s own selector target.
+ */
+const FlushPreview = styled('div')`
+  > div {
+    border: 0;
+    border-radius: 0;
+    margin-bottom: 0;
+  }
+`;
 
 export const Issue = defineSeerEmbed({
   name: 'issue',
