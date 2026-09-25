@@ -27,8 +27,11 @@ def get_grouping_model_version(project: Project) -> GroupingVersion:
 
 
 def should_skip_seer_fallback(project: Project) -> bool:
+    """
+    Whether to tell Seer to skip falling back from the next model to the
+    stable model when the next model returns no matches.
+    """
     if SEER_GROUPING_NEXT_VERSION is None:
-        # Old Seer pods may still consider our stable model their next model.
         return True
     return features.has(SEER_GROUPING_SKIP_FALLBACK_FEATURE, project)
 
@@ -46,6 +49,5 @@ def should_send_to_seer_for_training(
     model_version = get_grouping_model_version(project)
     return (
         model_version == SEER_GROUPING_NEXT_VERSION
-        and model_version != SEER_GROUPING_STABLE_VERSION
         and grouphash_seer_latest_training_model != model_version.value
     )

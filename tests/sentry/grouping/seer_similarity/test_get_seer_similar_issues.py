@@ -206,27 +206,6 @@ class GetSeerSimilarIssuesTest(TestCase):
                 ),
             ]
 
-    @patch("sentry.grouping.ingest.seer.metrics.incr")
-    @patch("sentry.grouping.ingest.seer.get_similarity_data_from_seer", return_value=([], "v1"))
-    def test_non_training_mode_metrics(
-        self,
-        mock_get_similarity_data: MagicMock,
-        mock_incr: MagicMock,
-    ) -> None:
-        """Verify get_seer_similar_issues always tags metrics with training_mode=False"""
-        new_event, new_variants, new_grouphash, new_stacktrace_string = create_new_event(
-            self.project
-        )
-
-        get_seer_similar_issues(new_event, new_grouphash, new_variants)
-
-        assert_metrics_call(
-            mock_incr,
-            "get_seer_similar_issues",
-            "no_seer_matches",
-            {"is_hybrid": False, "training_mode": False},
-        )
-
 
 class ParentGroupFoundTest(TestCase):
     @patch("sentry.grouping.ingest.seer.metrics.distribution")

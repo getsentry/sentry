@@ -113,7 +113,7 @@ class MaybeCheckSeerForMatchingGroupHashTest(TestCase):
                             }
                         ]
                     },
-                    "platform": "java",
+                    "platform": "python",
                 },
             )
 
@@ -130,7 +130,7 @@ class MaybeCheckSeerForMatchingGroupHashTest(TestCase):
                 "grouping.similarity.stacktrace_length_filter",
                 sample_rate=sample_rate,
                 tags={
-                    "platform": "java",
+                    "platform": "python",
                     "referrer": "ingest",
                     "outcome": "block_tokens",
                     "stacktrace_type": "system",
@@ -141,52 +141,3 @@ class MaybeCheckSeerForMatchingGroupHashTest(TestCase):
             )
 
             mock_get_similar_issues.assert_not_called()
-
-    @patch("sentry.grouping.ingest.seer.get_similarity_data_from_seer", return_value=([], "v2.1"))
-    def test_previously_bypassed_platform_obeys_length_limit(
-        self, mock_get_similarity_data: MagicMock
-    ) -> None:
-        self.project.update_option("sentry:similarity_backfill_completed", int(time()))
-
-        # Set a low token limit to ensure the stacktrace would be blocked if not bypassed
-        with self.options({"seer.similarity.max_token_count": 100}):
-            error_type = "FailedToFetchError"
-            error_value = "Charlie didn't bring the ball back"
-            context_line = f"raise {error_type}('{error_value}')"
-            # Create a stacktrace that would exceed the token limit if not bypassed
-            new_event = Event(
-                project_id=self.project.id,
-                event_id="22312012112120120908201304152013",
-                data={
-                    "title": f"{error_type}('{error_value}')",
-                    "exception": {
-                        "values": [
-                            {
-                                "type": error_type,
-                                "value": error_value,
-                                "stacktrace": {
-                                    "frames": [
-                                        {
-                                            "function": f"play_fetch_{i}",
-                                            "filename": f"dogpark{i}.py",
-                                            "context_line": context_line,
-                                        }
-                                        for i in range(20)
-                                    ]
-                                },
-                            }
-                        ]
-                    },
-                    "platform": "python",
-                },
-            )
-
-            new_grouphash = GroupHash.objects.create(
-                project=self.project, group=new_event.group, hash=new_event.get_primary_hash()
-            )
-            group_hashes = list(GroupHash.objects.filter(project_id=self.project.id))
-            maybe_check_seer_for_matching_grouphash(
-                new_event, new_grouphash, new_event.get_grouping_variants(), group_hashes
-            )
-
-            mock_get_similarity_data.assert_not_called()
