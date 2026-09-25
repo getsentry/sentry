@@ -4,11 +4,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {
-  InvestigationHypothesisFixture,
-  InvestigationOrchestrationFixture,
-  InvestigationVerificationStepFixture,
-} from 'sentry/views/investigations/fixtures';
+import {InvestigationOrchestrationFixture} from 'sentry/views/investigations/fixtures';
 import {
   InvestigationHypotheses,
   shouldPollInvestigationRun,
@@ -84,54 +80,16 @@ describe('InvestigationHypotheses', () => {
     expect(screen.getByText('Supported')).toBeInTheDocument();
   });
 
-  it('updates the completed check count as verification progresses', async () => {
-    const projection = InvestigationOrchestrationFixture({
-      phase: 'investigating',
-      hypotheses: [
-        InvestigationHypothesisFixture({
-          verificationSteps: [
-            InvestigationVerificationStepFixture({id: 'done', result: null}),
-            InvestigationVerificationStepFixture({
-              id: 'in-progress',
-              status: 'running',
-            }),
-            InvestigationVerificationStepFixture({
-              id: 'failed',
-              status: 'failed',
-            }),
-          ],
-        }),
-        InvestigationHypothesisFixture({
-          id: 'unplanned',
-          verificationSteps: undefined,
-        }),
-      ],
-    });
-    MockApiClient.addMockResponse({url: orchestrationUrl, body: projection});
-    const {queryClient} = renderHypotheses();
-
-    expect(
-      await screen.findByText('2 plausible causes • 1 check completed')
-    ).toBeVisible();
-    const toggle = screen.getByRole('button', {name: /Hypotheses/});
-    expect(toggle).toHaveAttribute('aria-expanded', 'true');
-
+  it('keeps the panel collapsed across refetches once the viewer closes it', async () => {
     MockApiClient.addMockResponse({
       url: orchestrationUrl,
-      body: {
-        ...projection,
-        hypotheses: projection.hypotheses.map(hypothesis => ({
-          ...hypothesis,
-          verificationSteps: hypothesis.verificationSteps?.map(step =>
-            step.id === 'in-progress' ? {...step, status: 'completed'} : step
-          ),
-        })),
-      },
+      body: InvestigationOrchestrationFixture({phase: 'investigating'}),
     });
-    await act(() => queryClient.invalidateQueries());
-    expect(
-      await screen.findByText('2 plausible causes • 2 checks completed')
-    ).toBeVisible();
+    const {queryClient} = renderHypotheses();
+
+    await screen.findAllByTestId('investigation-hypothesis');
+    const toggle = screen.getByRole('button', {name: 'Hypotheses'});
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
 
     await userEvent.click(toggle);
     await act(() => queryClient.invalidateQueries());
@@ -485,7 +443,6 @@ describe('InvestigationHypotheses', () => {
       expect(
         screen.getByTestId('investigation-hypotheses-placeholder')
       ).toBeInTheDocument();
-      expect(screen.queryByText(/plausible cause/)).not.toBeInTheDocument();
     }
   );
 
