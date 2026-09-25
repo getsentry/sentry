@@ -6,7 +6,7 @@ from sentry.notifications.platform.templates.deploy import (
     build_deploy_footer,
     filter_deploy_data,
 )
-from sentry.notifications.platform.types import NotificationSource, NotificationSectionType
+from sentry.notifications.platform.types import NotificationSectionType, NotificationSource
 from sentry.testutils.cases import TestCase
 
 
