@@ -108,7 +108,7 @@ describe('EventNavigation', () => {
         }
       );
 
-      const discoverButton = screen.getByLabelText('Open in Discover');
+      const discoverButton = screen.getByLabelText('Open in Explore');
       expect(discoverButton).toBeInTheDocument();
       expect(discoverButton).toHaveAttribute(
         'href',
@@ -136,7 +136,7 @@ describe('EventNavigation', () => {
         }
       );
 
-      const discoverButton = screen.getByLabelText('Open in Discover');
+      const discoverButton = screen.getByLabelText('Open in Explore');
       expect(discoverButton).toBeInTheDocument();
       const url = new URL(
         discoverButton.getAttribute('href') ?? '',
@@ -162,7 +162,7 @@ describe('EventNavigation', () => {
         }
       );
 
-      const discoverButton = screen.getByLabelText('Open in Discover');
+      const discoverButton = screen.getByLabelText('Open in Explore');
       expect(discoverButton).toBeInTheDocument();
       const url = new URL(
         discoverButton.getAttribute('href') ?? '',

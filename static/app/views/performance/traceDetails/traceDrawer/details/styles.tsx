@@ -58,7 +58,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
-import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 import {getIsAiNode} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {getIsMCPNode} from 'sentry/views/insights/pages/mcp/utils/mcpTraceNodes';
 import {traceAnalytics} from 'sentry/views/performance/traceDetails/traceAnalytics';
@@ -886,8 +885,7 @@ function NodeActions(props: {
 
   const transactionId = props.node.transactionId ?? '';
 
-  const canShowEAPSpanJSON =
-    getDiscoverDeprecation(props.organization) && isEAPSpanNode(props.node);
+  const canShowEAPSpanJSON = isEAPSpanNode(props.node);
 
   const transactionProfileTarget = useMemo(() => {
     if (!props.profileId) {

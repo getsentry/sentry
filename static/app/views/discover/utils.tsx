@@ -901,18 +901,3 @@ export const SAVED_QUERY_DATASET_TO_WIDGET_TYPE = {
   [SavedQueryDatasets.ERRORS]: WidgetType.ERRORS,
   [SavedQueryDatasets.TRANSACTIONS]: WidgetType.TRANSACTIONS,
 };
-
-function getTransactionsDeprecation(organization: Organization) {
-  return organization.features.includes('discover-saved-queries-deprecation');
-}
-
-function getDiscoverDeprecationEnabled(organization: Organization) {
-  return organization.features.includes('deprecate-discover');
-}
-
-export function getDiscoverDeprecation(organization: Organization) {
-  return (
-    getDiscoverDeprecationEnabled(organization) &&
-    getTransactionsDeprecation(organization)
-  );
-}
