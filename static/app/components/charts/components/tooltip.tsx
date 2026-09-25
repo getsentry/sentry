@@ -2,6 +2,7 @@ import 'echarts/lib/component/tooltip';
 
 import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
+import dompurify from 'dompurify';
 import type {TooltipComponentFormatterCallback} from 'echarts';
 import type {CallbackDataParams} from 'echarts/types/dist/shared';
 import moment from 'moment-timezone';
@@ -14,6 +15,15 @@ import {toArray} from 'sentry/utils/array/toArray';
 import {getFormattedDate, getTimeFormat} from 'sentry/utils/dates';
 
 export const CHART_TOOLTIP_VIEWPORT_OFFSET = 20;
+
+// Return tooltip content as DOM nodes rather than a string: ECharts assigns a
+// string tooltip to innerHTML, which Trusted Types blocks, but appends nodes.
+// DOMPurify's default profile strips script/iframe/event handlers while keeping
+// the tables and styled markers tooltips legitimately render.
+function toTooltipNodes(parts: string[]): HTMLElement[] {
+  const fragment = dompurify.sanitize(parts.join(''), {RETURN_DOM_FRAGMENT: true});
+  return Array.from(fragment.children) as HTMLElement[];
+}
 
 type ChartProps = React.ComponentProps<typeof BaseChart>;
 
@@ -199,7 +209,7 @@ export function getFormatter({
         seriesParamsOrParam.name
       );
 
-      return [
+      return toTooltipNodes([
         '<div class="tooltip-series">',
         `<div>
           <span class="tooltip-label"><strong>${seriesParamsOrParam.name}</strong></span>
@@ -208,7 +218,7 @@ export function getFormatter({
         '</div>',
         `<div class="tooltip-footer">${label}</div>`,
         '</div>',
-      ].join('');
+      ]);
     }
 
     let seriesParams: CallbackDataParams[] = toArray(seriesParamsOrParam);
@@ -318,23 +328,23 @@ export function getFormatter({
       ) ?? '';
 
     if (subLabels.length > 0) {
-      return [
+      return toTooltipNodes([
         `<div class="tooltip-series">${series.join('')}${seriesDetails}</div>`,
         '<div class="tooltip-footer">',
         `<div><strong>${t('Date')}:</strong> ${date}</div>`,
         `<div><strong>${t('Total')}:</strong> ${valueFormatter(total)}</div>`,
         '</div>',
         '<div class="tooltip-arrow"></div>',
-      ].join('');
+      ]);
     }
 
-    return [
+    return toTooltipNodes([
       `<div class="tooltip-series">${series.join('')}${seriesDetails}</div>`,
       '<div class="tooltip-footer tooltip-footer-centered">',
-      date,
+      `${date}`,
       '</div>',
       '<div class="tooltip-arrow"></div>',
-    ].join('');
+    ]);
   };
 }
 
