@@ -1283,3 +1283,28 @@ class GroupDeleteTest(APITestCase):
         assert response.data["firstRelease"] is None
         response = self.client.get(url, {"collapse": ["release"]})
         assert "firstRelease" not in response.data
+
+
+class GroupDetailsCorruptDerivedDataTest(APITestCase):
+    @with_feature("projects:issue-status-reconciliation")
+    def test_corrupt_derived_status_does_not_break_details_or_reconcile(self) -> None:
+        self.login_as(user=self.user)
+        group = self.create_group(status=GroupStatus.UNRESOLVED)
+        derived = self.create_group_derived_data(group, data={"status": "invalid"})
+        with (
+            capture_action_log() as log,
+            mock.patch("sentry.issues.derived.check.metrics.incr") as incr,
+        ):
+            response = self.client.get(
+                f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/",
+                {"expand": "derivedData"},
+            )
+        assert response.status_code == 200, response.content
+        assert response.data["status"] == "unresolved"
+        assert "derivedData" not in response.data
+        log.assert_not_logged(ReconcileStatusAction)
+        incr.assert_any_call(
+            "issues.status_reconciliation.error", sample_rate=1.0, tags={"source": "read_path"}
+        )
+        derived.refresh_from_db()
+        assert derived.data == {"status": "invalid"}
