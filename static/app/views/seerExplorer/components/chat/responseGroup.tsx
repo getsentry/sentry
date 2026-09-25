@@ -8,6 +8,7 @@ import {Container} from '@sentry/scraps/layout';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {AgentWriteApprovalProvider} from 'sentry/components/seer/markdown/embeds/components/agentWriteApproval';
 import {t} from 'sentry/locale';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {callRecordLabel, visibleCallRecords} from 'sentry/views/seerExplorer/callRecords';
 import type {
   Block,
@@ -190,12 +191,16 @@ export const ResponseGroup = memo(function ResponseGroup({
   runId,
   showThinking,
 }: ResponseGroupProps) {
+  const organization = useOrganization();
   // `answer` identifies the block whose content is the visible response — used to exclude it
   // from the ThinkingBlock trace. `settledAnswer` is the same block once it has finished
-  // loading — only then is it rendered outside the ThinkingBlock as the actual reply. While
-  // still loading, neither its content nor a MessagePlaceholder leaks into view.
+  // loading. Streamed partial answers can render outside the ThinkingBlock while loading.
   const answer = finalAnswer(group);
   const settledAnswer = answer && !answer.loading ? answer : null;
+  const visibleAnswer =
+    answer && (!answer.loading || organization.features.includes('seer-explorer-stream'))
+      ? answer
+      : null;
   const active = group.some(block => block.loading);
 
   // The reasoning trace is everything except the answer's content: thinking prose (gated on the
@@ -279,9 +284,9 @@ export const ResponseGroup = memo(function ResponseGroup({
             </MessageRow>
           ) : null}
 
-          {settledAnswer ? (
+          {visibleAnswer ? (
             <AssistantBlock
-              block={settledAnswer}
+              block={visibleAnswer}
               blockIndex={blockIndex + group.length - 1}
               runId={runId}
               interactionPending={interactionPending}
