@@ -61,20 +61,15 @@ def _normalize_value(value: object) -> Any:
     if isinstance(value, Enum):
         return value.value
 
-    if isinstance(value, DataConditionEvaluationArtifact):
-        # Inputs and comparisons may contain customer data. IDs, types, and outcomes are
-        # sufficient to explain which condition affected an evaluation.
-        return {
-            field.name: _normalize_value(getattr(value, field.name))
-            for field in fields(value)
-            if field.name not in {"comparison", "input"} and getattr(value, field.name) is not None
-        }
-
     if is_dataclass(value) and not isinstance(value, type):
+        excluded_fields = (
+            {"comparison", "input"} if isinstance(value, DataConditionEvaluationArtifact) else set()
+        )
         return {
-            field.name: _normalize_value(getattr(value, field.name))
+            field.name: _normalize_value(field_value)
             for field in fields(value)
-            if getattr(value, field.name) is not None
+            if field.name not in excluded_fields
+            and (field_value := getattr(value, field.name)) is not None
         }
 
     if isinstance(value, Mapping):
@@ -121,24 +116,28 @@ def _evaluation_attributes(result: WorkflowEngineResult) -> Iterator[dict[str, A
     artifacts = result.evaluation_artifacts()
 
     if isinstance(result, ProcessDetectorsResult):
-        common: dict[str, object] = {
-            "evaluation_type": "detector",
-            "detector_id": result.detector_id,
-            "detector_type": result.detector_type,
-            "project_id": result.project_id,
-        }
+        common = _normalize_value(
+            {
+                "evaluation_type": "detector",
+                "detector_id": result.detector_id,
+                "detector_type": result.detector_type,
+                "project_id": result.project_id,
+            }
+        )
         if not artifacts:
-            yield _normalize_value(
-                {
-                    **common,
-                    "outcome": result.outcome,
-                    "error": result.evaluation_error.msg if result.evaluation_error else None,
-                }
+            common.update(
+                _normalize_value(
+                    {
+                        "outcome": result.outcome,
+                        "error": result.evaluation_error.msg if result.evaluation_error else None,
+                    }
+                )
             )
+            yield common
             return
 
         for artifact in artifacts:
-            yield {**_normalize_value(common), **_normalize_value(artifact)}
+            yield {**common, **_normalize_value(artifact)}
         return
 
     if not artifacts:

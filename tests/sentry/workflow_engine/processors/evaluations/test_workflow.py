@@ -8,6 +8,7 @@ from arroyo.backends.local.storages.memory import MemoryMessageStorage
 from arroyo.types import Partition
 from arroyo.types import Topic as ArroyoTopic
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
+from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
 from sentry.conf.types.kafka_definition import Topic
 from sentry.models.group import GroupStatus
@@ -437,6 +438,24 @@ class TestWorkflowEvaluationArtifact(TestCase):
             },
         )
 
+    def _emit_evaluation_to_eap(
+        self, result: ProcessDetectorsResult | ProcessWorkflowsResult
+    ) -> TraceItem:
+        storage = MemoryMessageStorage[KafkaPayload]()
+        broker = LocalBroker(storage)
+        topic = ArroyoTopic(get_topic_definition(Topic.SNUBA_ITEMS)["real_topic_name"])
+        broker.create_topic(topic, partitions=1)
+
+        with mock.patch(
+            "sentry.workflow_engine.processors.evaluations.eap._eap_producer",
+            broker.get_producer(),
+        ):
+            emit_evaluation_to_eap(self.organization, result)
+
+        message = broker.consume(Partition(topic, 0), 0)
+        assert message is not None
+        return EAP_ITEMS_CODEC.decode(message.payload.value)
+
     def test_eap_emitter_stores_compact_issue_state(self) -> None:
         condition = self.create_data_condition()
         condition.update(comparison={"email": "customer@example.com"})
@@ -463,23 +482,9 @@ class TestWorkflowEvaluationArtifact(TestCase):
             condition_evaluations=[condition_evaluation],
         )
 
-        storage = MemoryMessageStorage[KafkaPayload]()
-        broker = LocalBroker(storage)
-        topic = ArroyoTopic(get_topic_definition(Topic.SNUBA_ITEMS)["real_topic_name"])
-        broker.create_topic(topic, partitions=1)
-
-        with mock.patch(
-            "sentry.workflow_engine.processors.evaluations.eap._eap_producer",
-            broker.get_producer(),
-        ):
-            emit_evaluation_to_eap(
-                self.organization,
-                self._build_batch_result({evaluation.workflow_id: evaluation}),
-            )
-
-        message = broker.consume(Partition(topic, 0), 0)
-        assert message is not None
-        trace_item = EAP_ITEMS_CODEC.decode(message.payload.value)
+        trace_item = self._emit_evaluation_to_eap(
+            self._build_batch_result({evaluation.workflow_id: evaluation})
+        )
 
         assert trace_item.organization_id == self.organization.id
         assert trace_item.project_id == self.project.id
@@ -507,20 +512,7 @@ class TestWorkflowEvaluationArtifact(TestCase):
             project_id=self.project.id,
             evaluations={},
         )
-        storage = MemoryMessageStorage[KafkaPayload]()
-        broker = LocalBroker(storage)
-        topic = ArroyoTopic(get_topic_definition(Topic.SNUBA_ITEMS)["real_topic_name"])
-        broker.create_topic(topic, partitions=1)
-
-        with mock.patch(
-            "sentry.workflow_engine.processors.evaluations.eap._eap_producer",
-            broker.get_producer(),
-        ):
-            emit_evaluation_to_eap(self.organization, result)
-
-        message = broker.consume(Partition(topic, 0), 0)
-        assert message is not None
-        trace_item = EAP_ITEMS_CODEC.decode(message.payload.value)
+        trace_item = self._emit_evaluation_to_eap(result)
 
         assert trace_item.attributes["evaluation_type"].string_value == "detector"
         assert trace_item.attributes["detector_id"].int_value == self.detector.id
