@@ -252,10 +252,25 @@ class IntegrationPipeline(Pipeline[Never, PipelineSessionStore]):
                 provider=self.provider.integration_key, external_id=data["external_id"]
             )
         else:
+            overwrite_existing_integration = self.provider.overwrite_existing_integration
+            if (
+                not overwrite_existing_integration
+                and self.provider.overwrite_existing_integration_if_unshared
+            ):
+                overwrite_existing_integration = (
+                    not OrganizationIntegration.objects.filter(
+                        integration__provider=self.provider.integration_key,
+                        integration__external_id=data["external_id"],
+                        status__in=[ObjectStatus.ACTIVE, ObjectStatus.DISABLED],
+                    )
+                    .exclude(organization_id=self.organization.id)
+                    .exists()
+                )
+
             self.integration = ensure_integration(
                 self.provider.integration_key,
                 data,
-                overwrite_existing_integration=self.provider.overwrite_existing_integration,
+                overwrite_existing_integration=overwrite_existing_integration,
             )
 
         assert self.request.user.is_authenticated
