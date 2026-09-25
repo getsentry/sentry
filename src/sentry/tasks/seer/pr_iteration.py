@@ -120,7 +120,7 @@ from sentry.seer.autofix.pr_iteration.queue import (
 )
 from sentry.seer.autofix.pr_iteration.tracing import set_pr_iteration_attributes
 from sentry.seer.autofix.steps import AutofixStep
-from sentry.seer.models import SeerApiError, SeerPermissionError
+from sentry.seer.models import SeerApiError, SeerPermissionError, SeerUnavailableError
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
 from sentry.users.services.user.model import RpcUser
@@ -1315,11 +1315,18 @@ def _resolve_run_for_pr_comment(
     return ResolvedPrCommentRun(agent_state=agent_state, scm=scm, actor_user=actor_user)
 
 
+# When a Seer lookup gets a server error (during a deploy, say), tasks that
+# start with one try again every minute for five minutes, giving Seer time to
+# recover. Once those run out, the worker reports NoRetriesRemainingError. Other
+# errors, including hitting the processing deadline, are not retried.
+SEER_UNAVAILABLE_RETRY = Retry(on=(SeerUnavailableError,), times=6, delay=60)
+
+
 @instrumented_task(
     name="sentry.tasks.autofix.trigger_pr_iteration_from_comment",
     namespace=seer_tasks,
     processing_deadline_duration=65,
-    retry=Retry(times=1),
+    retry=SEER_UNAVAILABLE_RETRY,
 )
 def trigger_pr_iteration_from_comment(
     *,
@@ -1476,7 +1483,7 @@ def _trigger_pr_iteration_from_comment(
     name="sentry.tasks.autofix.pause_pr_iteration_from_comment",
     namespace=seer_tasks,
     processing_deadline_duration=65,
-    retry=Retry(times=1),
+    retry=SEER_UNAVAILABLE_RETRY,
 )
 def pause_pr_iteration_from_comment(
     *,
@@ -1691,7 +1698,7 @@ def _build_review_feedback(
     name="sentry.tasks.autofix.trigger_pr_iteration_from_review",
     namespace=seer_tasks,
     processing_deadline_duration=65,
-    retry=Retry(times=1),
+    retry=SEER_UNAVAILABLE_RETRY,
 )
 def trigger_pr_iteration_from_review(
     *,
@@ -1823,6 +1830,9 @@ def _trigger_pr_iteration_from_review(
 
     try:
         agent_state = get_agent_state_from_pr_id(organization_id, PR_ITERATION_PROVIDER, pr_id)
+    except SeerUnavailableError:
+        # Seer is down: fail the task so its retry policy tries again later.
+        raise
     except SeerApiError as e:
         logger.warning(
             "autofix.pr_iteration.review_trigger.seer_api_error",

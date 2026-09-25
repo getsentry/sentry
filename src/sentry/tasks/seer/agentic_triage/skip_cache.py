@@ -11,8 +11,8 @@ from sentry.utils.redis import redis_clusters
 
 logger = logging.getLogger(__name__)
 
-# Padded past 7 days so nightly-run jitter can't expire a key right at the
-# 7-day boundary; guarantees the next 7 nightly runs suppress the issue.
+# Padded past 7 days so scheduling jitter cannot expire a key at the
+# 7-day boundary.
 SKIP_TTL_SECONDS = int(timedelta(days=7, hours=12).total_seconds())
 KEY_PREFIX = "seer:night-shift:skip:"
 

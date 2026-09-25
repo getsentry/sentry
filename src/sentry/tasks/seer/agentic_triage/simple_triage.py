@@ -25,24 +25,24 @@ from sentry.seer.autofix.constants import FixabilityScoreThresholds
 from sentry.seer.autofix.utils import is_issue_category_eligible
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
-from sentry.tasks.seer.night_shift.models import TriageAction, TriageResult
-from sentry.tasks.seer.night_shift.skip_cache import recently_skipped
+from sentry.tasks.seer.agentic_triage.models import TriageAction, TriageResult
+from sentry.tasks.seer.agentic_triage.skip_cache import recently_skipped
 from sentry.types.group import PriorityLevel
 from sentry.utils.snuba import raw_snql_query
 
-logger = logging.getLogger("sentry.tasks.seer.night_shift")
+logger = logging.getLogger("sentry.tasks.seer.agentic_triage")
 
-NIGHT_SHIFT_ISSUE_FETCH_LIMIT = 100
+AGENTIC_TRIAGE_ISSUE_FETCH_LIMIT = 100
 # Scales the per-project fetch limit instead of using the flat limit above.
-NIGHT_SHIFT_PER_PROJECT_FETCH_MULTIPLIER = 3
+AGENTIC_TRIAGE_PER_PROJECT_FETCH_MULTIPLIER = 3
 # Skipped issues can't be filtered at query time, so we page past them. At
 # defaults (2 runs/day x 10 candidates, skips expire after 7.5d) live skips
 # plateau at ~150 (~1.5 pages), so 10 pages leaves ample headroom.
 # The per-project path uses a smaller page (~30) but spreads skips across
 # projects, so its per-project window stays well clear too.
-NIGHT_SHIFT_MAX_SEARCH_PAGES = 10
+AGENTIC_TRIAGE_MAX_SEARCH_PAGES = 10
 FIXABILITY_SCORE_THRESHOLD = FixabilityScoreThresholds.MEDIUM.value
-NIGHT_SHIFT_OCCURRENCE_LOOKBACK = timedelta(days=14)
+AGENTIC_TRIAGE_OCCURRENCE_LOOKBACK = timedelta(days=14)
 
 
 @dataclass
@@ -60,7 +60,7 @@ def fixability_score_strategy(
 ) -> list[ScoredCandidate]:
     """Scores candidates across all projects combined — a busy project can eat
     the whole max_candidates budget. See fixability_score_strategy_per_project."""
-    return _fetch_and_score_agentic(projects, max_candidates, NIGHT_SHIFT_ISSUE_FETCH_LIMIT)
+    return _fetch_and_score_agentic(projects, max_candidates, AGENTIC_TRIAGE_ISSUE_FETCH_LIMIT)
 
 
 def fixability_score_strategy_per_project(
@@ -70,7 +70,8 @@ def fixability_score_strategy_per_project(
     """Like fixability_score_strategy, but scores each project independently so
     no project can crowd out the others' share of max_candidates."""
     fetch_limit = min(
-        NIGHT_SHIFT_ISSUE_FETCH_LIMIT, max_candidates * NIGHT_SHIFT_PER_PROJECT_FETCH_MULTIPLIER
+        AGENTIC_TRIAGE_ISSUE_FETCH_LIMIT,
+        max_candidates * AGENTIC_TRIAGE_PER_PROJECT_FETCH_MULTIPLIER,
     )
     selected: list[ScoredCandidate] = []
     for project in projects:
@@ -137,7 +138,7 @@ def _agentic_triage_snuba_factors(
         tenant_ids={"organization_id": organization_id},
     )
     rows = raw_snql_query(
-        request, referrer=Referrer.SEER_NIGHT_SHIFT_FIXABILITY_SCORE_STRATEGY.value
+        request, referrer=Referrer.SEER_AGENTIC_TRIAGE_FIXABILITY_SCORE_STRATEGY.value
     )["data"]
     result: dict[int, dict[str, float]] = {}
     for row in rows:
@@ -218,7 +219,7 @@ def _fetch_and_score_agentic(
     # Exclude groups Seer ran on within the last 30 days (matching the
     # RecentDateCondition used by the recommended path's search filter).
     seer_recency_cutoff = timezone.now() - timedelta(days=30)
-    occurrence_cutoff = timezone.now() - NIGHT_SHIFT_OCCURRENCE_LOOKBACK
+    occurrence_cutoff = timezone.now() - AGENTIC_TRIAGE_OCCURRENCE_LOOKBACK
     base_qs = (
         Group.objects.filter(
             project__in=projects,
@@ -235,7 +236,7 @@ def _fetch_and_score_agentic(
     # enough usable candidates.
     candidates: list[Group] = []
     offset = 0
-    for _page in range(NIGHT_SHIFT_MAX_SEARCH_PAGES):
+    for _page in range(AGENTIC_TRIAGE_MAX_SEARCH_PAGES):
         batch = list(base_qs[offset : offset + fetch_limit])
         if not batch:
             break

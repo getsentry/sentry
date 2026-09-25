@@ -3,7 +3,7 @@ from unittest.mock import patch
 from sentry.testutils.cases import APITestCase
 
 
-class SeerAdminNightShiftTriggerTest(APITestCase):
+class SeerAdminAgenticTriageTriggerTest(APITestCase):
     endpoint = "sentry-admin-seer-night-shift-trigger"
     method = "post"
 
@@ -17,9 +17,9 @@ class SeerAdminNightShiftTriggerTest(APITestCase):
         with patch("sentry.api.permissions.is_active_staff", return_value=True):
             return super().get_response(*args, **params)
 
-    def test_trigger_night_shift(self) -> None:
+    def test_trigger_agentic_triage(self) -> None:
         with patch(
-            "sentry.seer.endpoints.admin_night_shift_trigger.run_night_shift_for_org"
+            "sentry.seer.endpoints.admin_agentic_triage_trigger.run_agentic_triage_for_org"
         ) as mock_task:
             response = self.get_success_response(
                 organization_id=self.organization.id,
@@ -39,7 +39,7 @@ class SeerAdminNightShiftTriggerTest(APITestCase):
 
     def test_trigger_with_max_candidates_override(self) -> None:
         with patch(
-            "sentry.seer.endpoints.admin_night_shift_trigger.run_night_shift_for_org"
+            "sentry.seer.endpoints.admin_agentic_triage_trigger.run_agentic_triage_for_org"
         ) as mock_task:
             response = self.get_success_response(
                 organization_id=self.organization.id,
@@ -76,7 +76,7 @@ class SeerAdminNightShiftTriggerTest(APITestCase):
 
     def test_missing_organization_id_triggers_full_schedule(self) -> None:
         with patch(
-            "sentry.seer.endpoints.admin_night_shift_trigger.schedule_night_shift"
+            "sentry.seer.endpoints.admin_agentic_triage_trigger.schedule_agentic_triage"
         ) as mock_schedule:
             response = self.get_success_response(status_code=200)
 
@@ -88,7 +88,7 @@ class SeerAdminNightShiftTriggerTest(APITestCase):
 
     def test_full_schedule_forwards_overrides(self) -> None:
         with patch(
-            "sentry.seer.endpoints.admin_night_shift_trigger.schedule_night_shift"
+            "sentry.seer.endpoints.admin_agentic_triage_trigger.schedule_agentic_triage"
         ) as mock_schedule:
             response = self.get_success_response(dry_run=True, max_candidates=5, status_code=200)
 

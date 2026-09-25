@@ -20,7 +20,7 @@ review-request succeed/fail/retry independently.
 
 We ask the best reviewer candidate (see ``reviewer_candidates``): the user
 who triggered the run — the person most invested in the fix landing — or,
-for runs without a resolvable triggering user (e.g. Night Shift), the best
+for runs without a resolvable triggering user (e.g. Agentic triage), the best
 of the fallback sources (suspect-commit author, code owners, recent
 committers), which is what makes those PRs routable at all.
 """
@@ -186,7 +186,7 @@ def request_review_from_context(ctx: GreenCheckSuiteContext) -> None:
         tags={"top_source": candidates[0].source if candidates else "none"},
     )
     if not candidates:
-        # Sticky: night-shift / no-user runs will not grow candidates later.
+        # Sticky: agentic-triage / no-user runs will not grow candidates later.
         _record_review_request_skip_marker(
             resolved.seer_run,
             resolved.repo_name,
