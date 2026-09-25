@@ -147,7 +147,7 @@ class ScmOnboardingTest(AcceptanceTestCase):
         """On the messaging step, pick #alerts in the connected Slack row and
         Confirm and continue, which creates the project."""
         self.browser.wait_until('[data-test-id="onboarding-step-scm-messaging"]')
-        self.browser.click(xpath='//button[contains(., "Choose destination")]')
+        self.browser.click(xpath='//button[@aria-label="Set up Slack"]')
         input_el = self.browser.element('input[aria-autocomplete="list"]')
         input_el.send_keys("alerts")
         self.browser.wait_until(xpath='//*[@data-test-id="menu-list-item-label"][text()="#alerts"]')
