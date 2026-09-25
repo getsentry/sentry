@@ -35,6 +35,20 @@ const DISPLAY_TYPES = {
   bar: DisplayType.BAR,
 } satisfies Record<TimeSeriesVisualization, DisplayType>;
 
+/**
+ * Ensures an ISO 8601 timestamp string is interpreted as UTC by `Date.parse`.
+ * The AI model frequently omits the timezone offset (e.g. `2026-09-25T13:00:00`
+ * instead of `2026-09-25T13:00:00Z`). Without a suffix, `Date.parse` treats the
+ * string as local time on most runtimes, shifting the chart by the viewer's UTC
+ * offset. Appending `Z` forces UTC interpretation.
+ */
+function normalizeTimestamp(x: string | number): number {
+  if (typeof x === 'string' && !x.endsWith('Z') && !/[+-]\d{2}:\d{2}$/.test(x)) {
+    return Date.parse(`${x}Z`);
+  }
+  return Date.parse(String(x));
+}
+
 function getInterval(timestamps: number[]): number {
   const intervals = timestamps
     .slice(1)
@@ -85,14 +99,14 @@ export function ChartContent({
             start: new Date(
               Math.min(
                 ...series.flatMap(item =>
-                  item.data.map(point => Date.parse(String(point.x)))
+                  item.data.map(point => normalizeTimestamp(point.x))
                 )
               )
             ).toISOString(),
             end: new Date(
               Math.max(
                 ...series.flatMap(item =>
-                  item.data.map(point => Date.parse(String(point.x)))
+                  item.data.map(point => normalizeTimestamp(point.x))
                 )
               )
             ).toISOString(),
@@ -106,7 +120,7 @@ export function ChartContent({
           .map((item, index) => {
             const values = item.data
               .map(point => ({
-                timestamp: Date.parse(String(point.x)),
+                timestamp: normalizeTimestamp(point.x),
                 value: normalizeValue(point.y, yAxisUnit),
               }))
               .toSorted((left, right) => left.timestamp - right.timestamp);
