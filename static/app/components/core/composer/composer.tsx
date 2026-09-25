@@ -372,7 +372,12 @@ export function Composer({
           return;
         }
 
-        if (event.key === 'Enter' && !event.shiftKey && !event.ctrlKey && !event.metaKey) {
+        if (
+          event.key === 'Enter' &&
+          !event.shiftKey &&
+          !event.ctrlKey &&
+          !event.metaKey
+        ) {
           event.preventDefault();
           if (focusedKey !== null) {
             selectSuggestion(focusedKey);
