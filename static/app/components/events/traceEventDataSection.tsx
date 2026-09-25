@@ -10,9 +10,10 @@ import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {CopyAsDropdown} from 'sentry/components/copyAsDropdown';
 import {displayRawContent} from 'sentry/components/events/interfaces/crashContent/stackTrace/rawContent';
 import {useStacktraceContext} from 'sentry/components/events/interfaces/stackTraceContext';
+import {getThreadException} from 'sentry/components/events/interfaces/threads/threadSelector/getThreadException';
 import {IconEllipsis, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Event} from 'sentry/types/event';
+import type {Entry, Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/platform';
 import type {Project} from 'sentry/types/project';
@@ -235,7 +236,20 @@ export function TraceEventDataSection({
 
     const useMinified = displayOptions.includes('minified');
 
-    const stacktraceEntries = event.entries.filter(
+    let entries: Entry[] = event.entries;
+    const threadEntry = entries.find(entry => entry.type === EntryType.THREADS);
+    const selectedThread = threadEntry?.data.values?.find(
+      thread => thread.id === activeThreadId
+    );
+    if (selectedThread && threadEntry) {
+      // Match the raw view's exception/thread pairing before formatting the trace.
+      const exception = getThreadException(event, selectedThread);
+      entries = exception
+        ? [{type: EntryType.EXCEPTION, data: exception}]
+        : [threadEntry];
+    }
+
+    const stacktraceEntries = entries.filter(
       entry =>
         entry.type === EntryType.EXCEPTION ||
         entry.type === EntryType.STACKTRACE ||
