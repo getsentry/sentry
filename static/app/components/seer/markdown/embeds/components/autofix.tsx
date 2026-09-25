@@ -64,7 +64,7 @@ function autofixStepMarkdown(
   id: string,
   shortId: string | undefined
 ): string {
-  const issue = resourceLinkMarkdown(`/issues/${id}/`, shortId);
+  const issue = resourceLinkMarkdown(`/issues/${id}/`, shortId ?? id);
   return issue ? `${STEP_LABELS[step]}: ${issue}` : STEP_LABELS[step];
 }
 
