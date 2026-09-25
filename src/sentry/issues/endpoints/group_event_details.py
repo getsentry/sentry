@@ -3,6 +3,7 @@ from __future__ import annotations
 import functools
 import logging
 from collections.abc import Sequence
+from dataclasses import asdict
 from typing import Any, cast
 
 import sentry_sdk
@@ -21,13 +22,14 @@ from sentry.api.event_search import (
     ParenExpression,
     SearchBoolean,
     SearchConfig,
+    SearchFilter,
     parse_search_query,
 )
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.helpers.environments import get_environments
 from sentry.api.helpers.group_index import parse_and_convert_issue_search_query
 from sentry.api.helpers.group_index.validators import ValidationError
-from sentry.api.serializers import EventSerializer, serialize
+from sentry.api.serializers import EventSerializer, GroupSerializerSnuba, serialize
 from sentry.api.serializers.models.event import (
     EventSerializerResponse,
     GroupEventDetailsResponse,
@@ -64,7 +66,7 @@ from sentry.search.events.filter import (
     convert_search_filter_to_snuba_query,
     format_search_filter,
 )
-from sentry.search.events.types import QueryBuilderConfig, SnubaParams
+from sentry.search.events.types import QueryBuilderConfig, SnubaParams, WhereType
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.dataset import Dataset
@@ -72,6 +74,16 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.models.user import User
 from sentry.utils import metrics
 from sentry.utils.snuba import get_snuba_column_name
+
+BOOLEAN_SEARCH_CONFIG = SearchConfig.create_from(issue_search_config, allow_boolean=True)
+
+
+class IssueEventQueryBuilder(DiscoverQueryBuilder):
+    def format_search_filter(self, term: SearchFilter) -> WhereType | None:
+        # Like the legacy path, ignore issue-only filters when selecting events.
+        if term.key.name in GroupSerializerSnuba.skip_snuba_fields:
+            return None
+        return super().format_search_filter(term)
 
 
 def issue_search_query_to_conditions(
@@ -92,8 +104,6 @@ def issue_search_query_to_conditions(
     legacy_conditions: list[Any] = []
     if search_filters:
         for search_filter in search_filters:
-            from sentry.api.serializers import GroupSerializerSnuba
-
             if search_filter.key.name not in GroupSerializerSnuba.skip_snuba_fields:
                 filter_keys: FilterConvertParams = {
                     "organization_id": group.project.organization.id,
@@ -233,10 +243,9 @@ class GroupEventDetailsEndpoint(FormattableResponseMixin, GroupEndpoint):
                 if features.has(
                     "organizations:issue-details-boolean-search", organization, actor=request.user
                 ):
-                    # Preserve issue-only filters on the legacy path for non-boolean queries.
                     parsed_query = parse_search_query(
                         query,
-                        config=SearchConfig.create_from(issue_search_config, allow_boolean=True),
+                        config=BOOLEAN_SEARCH_CONFIG,
                     )
                     boolean_search = any(
                         isinstance(term, ParenExpression) or SearchBoolean.is_operator(term)
@@ -248,7 +257,7 @@ class GroupEventDetailsEndpoint(FormattableResponseMixin, GroupEndpoint):
                         if group.issue_category == GroupCategory.ERROR
                         else Dataset.IssuePlatform
                     )
-                    builder = DiscoverQueryBuilder(
+                    builder = IssueEventQueryBuilder(
                         dataset=dataset,
                         params={},
                         snuba_params=SnubaParams(
@@ -258,6 +267,7 @@ class GroupEventDetailsEndpoint(FormattableResponseMixin, GroupEndpoint):
                         ),
                         query=query,
                         config=QueryBuilderConfig(
+                            parser_config_overrides=asdict(BOOLEAN_SEARCH_CONFIG),
                             skip_time_conditions=True,
                             use_aggregate_conditions=True,
                             column_resolver=functools.partial(

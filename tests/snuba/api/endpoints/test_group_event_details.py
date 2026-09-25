@@ -236,12 +236,22 @@ class GroupEventDetailsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase
         assert response.status_code == 400
         assert response.data["detail"] == "Invalid event query"
 
-    def test_simple_query_with_boolean_search_enabled(self) -> None:
+    def test_issue_filters_with_boolean_search_enabled(self) -> None:
         with self.feature(BOOLEAN_SEARCH_FEATURE):
-            response = self.client.get(self._latest_url(), {"query": "is:unresolved region:us"})
-
-        assert response.status_code == 200, response.content
-        assert response.data["id"] == self.event1.event_id
+            for query, expected_id in [
+                ("is:unresolved region:us", self.event1.event_id),
+                ("is:unresolved AND region:us", self.event1.event_id),
+                ("(is:unresolved region:us)", self.event1.event_id),
+                (
+                    "(is:unresolved AND region:us) OR (is:resolved AND region:de)",
+                    self.event2.event_id,
+                ),
+                ("assigned:me AND (region:us OR region:de)", self.event2.event_id),
+                ("(is:unresolved)", self.event2.event_id),
+            ]:
+                response = self.client.get(self._latest_url(), {"query": query})
+                assert response.status_code == 200, (query, response.content)
+                assert response.data["id"] == expected_id, query
 
     def test_boolean_query_invalid(self) -> None:
         with self.feature(BOOLEAN_SEARCH_FEATURE):
