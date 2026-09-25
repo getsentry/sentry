@@ -16,6 +16,8 @@ from django.conf import settings
 from django.db.models import F
 from django.utils import dateformat, timezone
 from sentry_redis_tools.clients import RedisCluster, StrictRedis
+from sentry_sdk import traces
+from sentry_sdk.scope import Scope
 from taskbroker_client.retry import Retry
 from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
@@ -55,7 +57,6 @@ from sentry.utils.dates import floor_to_utc_day, to_datetime
 from sentry.utils.email import MessageBuilder
 from sentry.utils.email.sanitize import sanitize_outbound_name
 from sentry.utils.query import RangeQuerySetWrapper
-from sentry.utils.tracing import set_span_tag, start_span
 
 date_format = partial(dateformat.format, format_string="F jS, Y")
 
@@ -193,12 +194,19 @@ def prepare_organization_report(
     target_user: int | None = None,
     email_override: str | None = None,
 ):
-    with start_span(
-        name="weekly_reports.prepare_organization_report",
-        op="weekly_reports.prepare_organization_report",
-        transaction=True,
-        custom_sampling_context={"sample_rate": 0.1 * settings.SENTRY_BACKEND_APM_SAMPLING},
-    ) as span:
+    traces.new_trace()
+    active_propagation_context = sentry_sdk.get_current_scope().get_active_propagation_context()
+    prev_sampling_context = active_propagation_context.custom_sampling_context
+    Scope.set_custom_sampling_context({"sample_rate": 0.1 * settings.SENTRY_BACKEND_APM_SAMPLING})
+    try:
+        span = traces.start_span(
+            name="weekly_reports.prepare_organization_report",
+            attributes={"sentry.op": "weekly_reports.prepare_organization_report"},
+            parent_span=None,
+        )
+    finally:
+        active_propagation_context.custom_sampling_context = prev_sampling_context
+    with span:
         batch_id = str(batch_id)
         if email_override and not isinstance(target_user, int):
             logger.error(
@@ -212,9 +220,9 @@ def prepare_organization_report(
             )
             return
         organization = Organization.objects.get(id=organization_id)
-        set_span_tag(span, "org.slug", organization.slug)
+        span.set_attribute("org.slug", organization.slug)
         sentry_sdk.set_attribute("org.slug", organization.slug)
-        set_span_tag(span, "org.id", organization_id)
+        span.set_attribute("org.id", organization_id)
         sentry_sdk.set_attribute("org.id", organization_id)
         with WeeklyReportSLO(
             operation_type=WeeklyReportOperationType.PREPARE_ORGANIZATION_REPORT, dry_run=dry_run
@@ -231,12 +239,12 @@ def prepare_organization_report(
                 timestamp=timestamp, duration=duration, organization=organization
             ).create_context()
 
-            with start_span(
-                op="weekly_reports.check_if_ctx_is_empty",
+            with traces.start_span(
                 name="weekly_reports.check_if_ctx_is_empty",
+                attributes={"sentry.op": "weekly_reports.check_if_ctx_is_empty"},
             ):
                 report_is_available = not ctx.is_empty()
-            set_span_tag(span, "report.available", report_is_available)
+            span.set_attribute("report.available", report_is_available)
             sentry_sdk.set_attribute("report.available", report_is_available)
 
             if not report_is_available:
@@ -245,7 +253,10 @@ def prepare_organization_report(
 
         # Deliver the reports
         batch = OrganizationReportBatch(ctx, batch_id, dry_run, target_user, email_override)
-        with start_span(op="weekly_reports.deliver_reports", name="weekly_reports.deliver_reports"):
+        with traces.start_span(
+            name="weekly_reports.deliver_reports",
+            attributes={"sentry.op": "weekly_reports.deliver_reports"},
+        ):
             logger.info(
                 "weekly_reports.deliver_reports",
                 extra={"batch_id": str(batch_id), "organization": organization_id},
