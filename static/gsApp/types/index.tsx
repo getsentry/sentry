@@ -176,7 +176,18 @@ export type Plan = {
   trialPlan: string | null;
   userSelectable: boolean;
   categoryDisplayNames?: Partial<
-    Record<DataCategory | string, {plural: string; singular: string}>
+    Record<
+      DataCategory | string,
+      {
+        plural: string;
+        singular: string;
+        /**
+         * Set for billing platform line items whose quantities are money spent
+         * rather than a volume.
+         */
+        unitType?: 'microCents';
+      }
+    >
   >;
 };
 

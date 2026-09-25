@@ -655,4 +655,49 @@ describe('UsageOverviewTable', () => {
       screen.queryByTestId(`product-row-disabled-${seerUsageUid}`)
     ).not.toBeInTheDocument();
   });
+
+  it('formats a micro-cent line item as dollars', async () => {
+    const seerUsageUid = '0604d551-984d-408e-9bcd-4d490cf7dfc5';
+    const sub = SubscriptionFixture({organization, plan: 'am3_business'});
+    (sub.categories as Record<string, any>)[seerUsageUid] = {
+      category: seerUsageUid,
+      reserved: 500_000_000,
+      prepaid: 500_000_000,
+      free: 0,
+      usage: 123_000_000,
+      onDemandBudget: 0,
+      onDemandQuantity: 0,
+      onDemandSpendUsed: 0,
+      customPrice: null,
+      paygCpe: null,
+      softCapType: null,
+      usageExceeded: false,
+      order: 1000,
+      isDisabled: false,
+    };
+    sub.planDetails.categoryDisplayNames = {
+      ...sub.planDetails.categoryDisplayNames,
+      [seerUsageUid]: {
+        plural: 'seer usage',
+        singular: 'seer usage',
+        unitType: 'microCents',
+      },
+    };
+    SubscriptionStore.set(organization.slug, sub);
+
+    render(
+      <UsageOverviewTable
+        subscription={sub}
+        organization={organization}
+        usageData={usageData}
+        onRowClick={jest.fn()}
+        selectedProduct={DataCategory.ERRORS}
+      />
+    );
+
+    await screen.findByRole('columnheader', {name: 'Feature'});
+
+    const row = screen.getByTestId(`product-row-${seerUsageUid}`);
+    expect(within(row).getByText('$1.23 / $5')).toBeInTheDocument();
+  });
 });
