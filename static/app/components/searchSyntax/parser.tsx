@@ -163,6 +163,13 @@ export const regexOperators = [
   TermOperator.DOES_NOT_MATCH,
 ] as const;
 
+/**
+ * Kept in sync with MAX_REGEX_PATTERN_LENGTH in src/sentry/api/event_search.py, which
+ * rejects longer patterns outright. fixtures/search-syntax/regex_operator.json pins the
+ * two together.
+ */
+const MAX_REGEX_PATTERN_LENGTH = 64;
+
 export type RegexOperator = (typeof regexOperators)[number];
 
 export const negationOperators: readonly TermOperator[] = [
@@ -350,6 +357,7 @@ export enum InvalidReason {
   INVALID_DURATION = 'invalid-duration',
   INVALID_DATE_FORMAT = 'invalid-date-format',
   PARENS_NOT_ALLOWED = 'parens-not-allowed',
+  REGEX_PATTERN_TOO_LONG = 'regex-pattern-too-long',
 }
 
 /**
@@ -1134,13 +1142,23 @@ export class TokenConverter {
   /**
    * Validates the pattern of a regex filter
    */
-  checkInvalidRegexPattern = (value: TextFilter['value']) =>
-    value.value === ''
-      ? {
-          type: InvalidReason.FILTER_MUST_HAVE_VALUE,
-          reason: this.config.invalidMessages[InvalidReason.FILTER_MUST_HAVE_VALUE],
-        }
-      : null;
+  checkInvalidRegexPattern = (value: TextFilter['value']) => {
+    if (value.value === '') {
+      return {
+        type: InvalidReason.FILTER_MUST_HAVE_VALUE,
+        reason: this.config.invalidMessages[InvalidReason.FILTER_MUST_HAVE_VALUE],
+      };
+    }
+
+    if (value.value.length > MAX_REGEX_PATTERN_LENGTH) {
+      return {
+        type: InvalidReason.REGEX_PATTERN_TOO_LONG,
+        reason: this.config.invalidMessages[InvalidReason.REGEX_PATTERN_TOO_LONG],
+      };
+    }
+
+    return null;
+  };
 
   /**
    * Validates the value of a text filter
@@ -1624,6 +1642,10 @@ export const defaultConfig: SearchConfig = {
       'Lists should not have empty values'
     ),
     [InvalidReason.PARENS_NOT_ALLOWED]: t('Parentheses are not supported in this search'),
+    [InvalidReason.REGEX_PATTERN_TOO_LONG]: t(
+      'Regex patterns are limited to %s characters. To search for a literal value that starts with //, quote it: "//..."',
+      MAX_REGEX_PATTERN_LENGTH
+    ),
   },
 };
 

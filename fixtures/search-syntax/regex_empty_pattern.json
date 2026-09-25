@@ -1,0 +1,84 @@
+[
+  {
+    "desc": "An empty pattern is flagged rather than searched for",
+    "query": "message:////",
+    "additionalConfig": {
+      "allowRegex": true
+    },
+    "result": [
+      {
+        "type": "spaces",
+        "value": ""
+      },
+      {
+        "type": "filter",
+        "filter": "text",
+        "key": {
+          "type": "keySimple",
+          "value": "message",
+          "quoted": false
+        },
+        "value": {
+          "type": "valueText",
+          "value": "",
+          "quoted": false
+        },
+        "negated": false,
+        "operator": "//",
+        "invalid": {
+          "type": "filter-must-have-value",
+          "reason": "Filter must have a value"
+        }
+      },
+      {
+        "type": "spaces",
+        "value": ""
+      }
+    ]
+  },
+  {
+    "desc": "An empty pattern on an array membership key is flagged too",
+    "query": "tags[csv_headers,array][*]:////",
+    "additionalConfig": {
+      "allowRegex": true
+    },
+    "result": [
+      {
+        "type": "spaces",
+        "value": ""
+      },
+      {
+        "type": "filter",
+        "filter": "arrayIncludes",
+        "key": {
+          "type": "keyArrayIncludes",
+          "key": {
+            "type": "keyExplicitArrayTag",
+            "prefix": "tags",
+            "key": {
+              "type": "keySimple",
+              "value": "csv_headers",
+              "quoted": false
+            }
+          },
+          "index": "*"
+        },
+        "value": {
+          "type": "valueText",
+          "value": "",
+          "quoted": false
+        },
+        "negated": false,
+        "operator": "//",
+        "invalid": {
+          "type": "filter-must-have-value",
+          "reason": "Filter must have a value"
+        }
+      },
+      {
+        "type": "spaces",
+        "value": ""
+      }
+    ]
+  }
+]
