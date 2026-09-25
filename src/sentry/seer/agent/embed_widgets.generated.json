@@ -815,12 +815,26 @@
       "type": "object",
       "properties": {
         "id": {
-          "type": "string",
-          "minLength": 1
+          "description": "The 32-character event ID exactly as the events API returns it in `id`.",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "number"
+            }
+          ]
         },
         "issueId": {
-          "type": "string",
-          "minLength": 1
+          "description": "The numeric group ID exactly as the issues API returns it in `id` (e.g. \"7716642857\"). Required to build the event URL.",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "number"
+            }
+          ]
         },
         "shortId": {
           "type": "string",

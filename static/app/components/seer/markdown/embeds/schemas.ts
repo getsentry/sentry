@@ -650,8 +650,13 @@ export const SEER_EMBED_SCHEMAS = {
       'Never use a markdown link for event references.',
     level: ['inline', 'block'],
     schema: z.object({
-      id: z.string().min(1),
-      issueId: z.string().min(1),
+      id: idString.describe(
+        'The 32-character event ID exactly as the events API returns it in `id`.'
+      ),
+      issueId: idString.describe(
+        'The numeric group ID exactly as the issues API returns it in `id` ' +
+          '(e.g. "7716642857"). Required to build the event URL.'
+      ),
       shortId: z.string().min(1).optional(),
       view: z.enum(['summary', 'tags', 'tag']).default('summary'),
       // Deliberately uncapped: a `.max()` would make an over-long list fail to
