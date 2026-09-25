@@ -319,7 +319,7 @@ export const SEER_EMBED_SCHEMAS = {
             series.data.forEach((point, pointIndex) => {
               if (
                 typeof point.x !== 'string' ||
-                !isoTimestampSchema.safeParse(point.x).success
+                !pageFilterTimestampSchema.safeParse(point.x).success
               ) {
                 context.addIssue({
                   code: 'custom',

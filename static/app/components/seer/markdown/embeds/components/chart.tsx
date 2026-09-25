@@ -51,6 +51,24 @@ function getSeriesLabel(series: {label: string} | {name: string}): string {
   return 'label' in series ? series.label : series.name;
 }
 
+/**
+ * Normalizes a chart series x value to a UTC millisecond timestamp.
+ *
+ * The Seer LLM often copies timestamps from Sentry page-filter URLs, which
+ * carry no timezone offset (e.g. "2026-09-15T12:00:00"). Date.parse treats
+ * those as *local* time, silently shifting the chart window by the viewer's
+ * UTC offset. We append "Z" whenever the string has no offset so the browser
+ * always interprets it as UTC, matching the convention used everywhere else in
+ * Sentry.
+ */
+function parseChartTimestamp(x: string | number): number {
+  if (typeof x === 'number') {
+    return x;
+  }
+  const hasOffset = x.endsWith('Z') || /[+-]\d{2}:\d{2}$/.test(x);
+  return Date.parse(hasOffset ? x : `${x}Z`);
+}
+
 export function ChartContent({
   data: {title, subtitle, visualization, x_axis: xAxis, y_axis_unit: yAxisUnit, series},
   showHeader = true,
@@ -85,14 +103,14 @@ export function ChartContent({
             start: new Date(
               Math.min(
                 ...series.flatMap(item =>
-                  item.data.map(point => Date.parse(String(point.x)))
+                  item.data.map(point => parseChartTimestamp(point.x))
                 )
               )
             ).toISOString(),
             end: new Date(
               Math.max(
                 ...series.flatMap(item =>
-                  item.data.map(point => Date.parse(String(point.x)))
+                  item.data.map(point => parseChartTimestamp(point.x))
                 )
               )
             ).toISOString(),
@@ -106,7 +124,7 @@ export function ChartContent({
           .map((item, index) => {
             const values = item.data
               .map(point => ({
-                timestamp: Date.parse(String(point.x)),
+                timestamp: parseChartTimestamp(point.x),
                 value: normalizeValue(point.y, yAxisUnit),
               }))
               .toSorted((left, right) => left.timestamp - right.timestamp);
