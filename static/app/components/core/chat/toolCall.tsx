@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, IconText, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {useTranslation} from '@sentry/scraps/translationContext';
 
@@ -87,10 +87,9 @@ interface ToolCallProps {
   reference?: ToolCallReference;
 }
 
-// The leading status glyph and the indent of every row beneath the title are
-// pinned to this width so detail (input chips, notifications, children) aligns
-// under the headline rather than under the glyph.
-const GLYPH_SLOT_WIDTH = '16px';
+// Must match the `iconSize` passed to the title `IconText` so detail rows
+// (input, output, notifications, children) indent under the headline text.
+const GLYPH_SLOT_WIDTH = '12px';
 
 // The reference button is `inline-flex`, whose baseline is its first item's —
 // the icon's bottom edge — so on the title's baseline it rides a few pixels
@@ -269,10 +268,14 @@ export function ToolCall({
 
   return (
     <Stack gap="xs" flex={1} minWidth={0} width="100%">
-      <Flex gap="md" align="center" width="100%">
-        <Flex width={GLYPH_SLOT_WIDTH} justify="center" flexShrink={0}>
+      <IconText
+        icon={
           <ToolCallIndicator status={status} aria-label={getStatusLabel(status, t)} />
-        </Flex>
+        }
+        iconSize="xs"
+        gap="md"
+        width="100%"
+      >
         <Flex flex={1} minWidth={0} align="center" justify="between" gap="md">
           <Text size="sm" variant="secondary" monospace wordBreak="break-word">
             {title}
@@ -291,7 +294,7 @@ export function ToolCall({
             </Flex>
           ) : null}
         </Flex>
-      </Flex>
+      </IconText>
 
       {hasDetail ? (
         <Flex gap="md" align="start" width="100%">
