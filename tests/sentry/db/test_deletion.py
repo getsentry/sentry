@@ -116,6 +116,23 @@ class BulkDeleteQueryTest(TestCase):
 
 
 class BulkDeleteQueryIteratorTestCase(TestCase):
+    def test_id_only_iteration_includes_recent_rows_but_stops_at_initial_max_id(self) -> None:
+        first = self.create_group(last_seen=timezone.now() - timedelta(days=100))
+        second = self.create_group()
+
+        iterator = BulkDeleteQuery(
+            model=Group,
+            project_id=self.project.id,
+            order_by="id",
+        ).iterator(chunk_size=1, batch_size=2)
+
+        assert next(iterator) == (first.id,)
+        later = self.create_group()
+
+        remaining_ids = {group_id for chunk in iterator for group_id in chunk}
+        assert second.id in remaining_ids
+        assert later.id not in remaining_ids
+
     def test_iteration(self) -> None:
         target_project = self.project
         expected_group_ids = {self.create_group().id for i in range(2)}

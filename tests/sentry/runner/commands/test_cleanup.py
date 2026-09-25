@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import timedelta
+from datetime import datetime, timedelta
 from io import BytesIO
 from typing import Any
 from unittest.mock import patch
@@ -48,11 +48,11 @@ class SynchronousTaskQueue:
 
     def __init__(self) -> None:
         # You can use this to inspect the calls to the queue.
-        self.put_calls: list[tuple[str, tuple[int, ...], int | None]] = []
+        self.put_calls: list[tuple[str, tuple[int, ...], int | None, datetime | None]] = []
 
-    def put(self, item: tuple[str, tuple[int, ...], int | None]) -> None:
+    def put(self, item: tuple[str, tuple[int, ...], int | None, datetime | None]) -> None:
         self.put_calls.append(item)
-        task_execution(item[0], item[1], item[2])
+        task_execution(*item)
 
     def join(self) -> None:
         pass
@@ -195,9 +195,10 @@ class RunBulkQueryDeletesByProjectTest(TestCase):
         # Verify we deleted all expected groups (order may vary due to non-unique last_seen)
         all_deleted_ids: set[int] = set()
         for call in task_queue.put_calls:
-            model_name, chunk_ids, call_project_id = call
+            model_name, chunk_ids, call_project_id, cutoff = call
             assert model_name == "sentry.models.group.Group"
             assert call_project_id == project.id
+            assert cutoff is None
             all_deleted_ids.update(chunk_ids)
         assert all_deleted_ids == set(ids)
 
@@ -242,8 +243,9 @@ class RunBulkQueryDeletesByProjectTest(TestCase):
         # Verify each call has the correct project_id
         project_ids_seen: set[int] = set()
         for call in group_calls:
-            model_name, chunk_ids, call_project_id = call
+            model_name, chunk_ids, call_project_id, cutoff = call
             assert call_project_id is not None
+            assert cutoff is None
             project_ids_seen.add(call_project_id)
 
         # Should have seen both projects
@@ -437,6 +439,49 @@ class PartitionValidationTest(TestCase):
     def test_partition_zero_total(self) -> None:
         with pytest.raises(click.ClickException, match="--partition-total: must be greater than 0"):
             self._run_cleanup_with_partition(partition_bucket=0, partition_total=0)
+
+
+class FileCleanupTest(TestCase):
+    @assume_test_silo_mode(SiloMode.CELL)
+    def test_file_age_filter_runs_in_worker(self) -> None:
+        old_file = self.create_file(
+            name="old-cache", type="project.cficache", timestamp=before_now(days=130)
+        )
+        too_young_file = self.create_file(
+            name="young-cache", type="project.cficache", timestamp=before_now(days=100)
+        )
+        recent_file = self.create_file(name="recent-cache", type="project.cficache")
+        old_release_file = self.create_file(
+            name="old-release", type="release.file", timestamp=before_now(days=130)
+        )
+        too_young_release_file = self.create_file(
+            name="young-release", type="release.file", timestamp=before_now(days=100)
+        )
+
+        task_queue = SynchronousTaskQueue()
+        run_bulk_deletes_in_deletes(
+            task_queue,  # type: ignore[arg-type]
+            [(File, "timestamp", "id")],
+            lambda model: False,
+            120,
+            None,
+            None,
+            set(),
+        )
+
+        queued_ids = {file_id for item in task_queue.put_calls for file_id in item[1]}
+        assert {
+            old_file.id,
+            too_young_file.id,
+            recent_file.id,
+            old_release_file.id,
+            too_young_release_file.id,
+        } <= queued_ids
+        assert not File.objects.filter(id=old_file.id).exists()
+        assert File.objects.filter(id=too_young_file.id).exists()
+        assert File.objects.filter(id=recent_file.id).exists()
+        assert not File.objects.filter(id=old_release_file.id).exists()
+        assert File.objects.filter(id=too_young_release_file.id).exists()
 
 
 class ExpiryDeletionsCodePathTest(TestCase):
