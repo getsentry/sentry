@@ -260,9 +260,7 @@ export function OnboardingLayout({
                               project_id: project.id,
                               products: activeProductSelection,
                               step: step.name,
-                              newOrg:
-                                docsFlow === 'onboarding' ||
-                                docsFlow === 'onboarding-scm',
+                              newOrg: docsFlow === 'onboarding-scm',
                               ...docsFlowVariantParams(docsFlow),
                             }
                           )
