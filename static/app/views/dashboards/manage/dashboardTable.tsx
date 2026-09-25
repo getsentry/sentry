@@ -144,7 +144,7 @@ function DashboardRowActions({
             : [
                 {
                   key: 'rename',
-                  label: t('Rename Dashboard'),
+                  label: t('Rename'),
                   leadingItems: <IconInput />,
                   onAction: openRename,
                 },
@@ -161,7 +161,7 @@ function DashboardRowActions({
               ]),
           {
             key: 'duplicate',
-            label: t('Duplicate Dashboard'),
+            label: t('Duplicate'),
             leadingItems: <IconCopy />,
             disabled: isDuplicateDisabled,
             tooltip: isDuplicateDisabled ? limitMessage : undefined,
@@ -175,7 +175,7 @@ function DashboardRowActions({
             ? [
                 {
                   key: 'delete',
-                  label: t('Delete Dashboard'),
+                  label: t('Delete'),
                   leadingItems: <IconDelete />,
                   priority: 'danger' as const,
                   disabled: isPrebuiltDashboard,

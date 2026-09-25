@@ -449,9 +449,7 @@ describe('DashboardBreadcrumbTitle delete', () => {
     const {onDelete} = renderTitle();
 
     await openActionsMenu();
-    await userEvent.click(
-      await screen.findByRole('menuitemradio', {name: 'Delete Dashboard'})
-    );
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Delete'}));
 
     const dialog = await screen.findByRole('dialog');
     await userEvent.click(within(dialog).getByRole('button', {name: 'Confirm'}));
@@ -463,9 +461,7 @@ describe('DashboardBreadcrumbTitle delete', () => {
     const {onDelete} = renderTitle();
 
     await openActionsMenu();
-    await userEvent.click(
-      await screen.findByRole('menuitemradio', {name: 'Delete Dashboard'})
-    );
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Delete'}));
 
     const dialog = await screen.findByRole('dialog');
     await userEvent.click(within(dialog).getByRole('button', {name: 'Cancel'}));
@@ -478,9 +474,10 @@ describe('DashboardBreadcrumbTitle delete', () => {
 
     await openActionsMenu();
 
-    expect(
-      await screen.findByRole('menuitemradio', {name: 'Delete Dashboard'})
-    ).toHaveAttribute('aria-disabled', 'true');
+    expect(await screen.findByRole('menuitemradio', {name: 'Delete'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
   });
 
   it('still offers delete on a prebuilt dashboard with no id yet', async () => {
@@ -492,9 +489,10 @@ describe('DashboardBreadcrumbTitle delete', () => {
 
     // The id-less guard exists for a dashboard that was never saved. A prebuilt
     // one always has a record behind it, so it keeps the entry either way.
-    expect(
-      await screen.findByRole('menuitemradio', {name: 'Delete Dashboard'})
-    ).toHaveAttribute('aria-disabled', 'true');
+    expect(await screen.findByRole('menuitemradio', {name: 'Delete'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
   });
 
   it('does not offer delete on a dashboard that has never been saved', async () => {
@@ -502,9 +500,7 @@ describe('DashboardBreadcrumbTitle delete', () => {
 
     await openActionsMenu();
 
-    expect(
-      screen.queryByRole('menuitemradio', {name: 'Delete Dashboard'})
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('menuitemradio', {name: 'Delete'})).not.toBeInTheDocument();
   });
 
   it('does not offer delete without edit access', async () => {
@@ -518,8 +514,6 @@ describe('DashboardBreadcrumbTitle delete', () => {
 
     await openActionsMenu();
 
-    expect(
-      screen.queryByRole('menuitemradio', {name: 'Delete Dashboard'})
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('menuitemradio', {name: 'Delete'})).not.toBeInTheDocument();
   });
 });

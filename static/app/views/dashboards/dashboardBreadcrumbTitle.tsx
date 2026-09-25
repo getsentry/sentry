@@ -166,7 +166,7 @@ function DashboardTitle({
   // the URL, which on /dashboards/new/ has none to find.
   const deleteItem: MenuItemProps = {
     key: 'delete',
-    label: t('Delete Dashboard'),
+    label: t('Delete'),
     leadingItems: <IconDelete />,
     priority: 'danger',
     disabled: isPrebuiltDashboard,

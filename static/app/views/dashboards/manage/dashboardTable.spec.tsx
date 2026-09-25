@@ -198,9 +198,7 @@ describe('Dashboards - DashboardTable', () => {
     renderGlobalModal();
 
     await openRowActions(1);
-    await userEvent.click(
-      await screen.findByRole('menuitemradio', {name: 'Delete Dashboard'})
-    );
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Delete'}));
 
     expect(deleteMock).not.toHaveBeenCalled();
 
@@ -234,9 +232,7 @@ describe('Dashboards - DashboardTable', () => {
     renderGlobalModal();
 
     await openRowActions(1);
-    await userEvent.click(
-      await screen.findByRole('menuitemradio', {name: 'Duplicate Dashboard'})
-    );
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Duplicate'}));
 
     expect(createMock).not.toHaveBeenCalled();
 
@@ -269,9 +265,7 @@ describe('Dashboards - DashboardTable', () => {
     renderGlobalModal();
 
     await openRowActions(1);
-    await userEvent.click(
-      await screen.findByRole('menuitemradio', {name: 'Duplicate Dashboard'})
-    );
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Duplicate'}));
 
     expect(postMock).not.toHaveBeenCalled();
 
@@ -342,15 +336,11 @@ describe('Dashboards - DashboardTable', () => {
 
     await openRowActions(0);
 
-    expect(
-      screen.queryByRole('menuitemradio', {name: 'Rename Dashboard'})
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('menuitemradio', {name: 'Delete Dashboard'})
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('menuitemradio', {name: 'Rename'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('menuitemradio', {name: 'Delete'})).not.toBeInTheDocument();
     // Duplicating writes a new dashboard rather than changing this one.
     expect(
-      await screen.findByRole('menuitemradio', {name: 'Duplicate Dashboard'})
+      await screen.findByRole('menuitemradio', {name: 'Duplicate'})
     ).toBeInTheDocument();
   });
 
@@ -375,9 +365,7 @@ describe('Dashboards - DashboardTable', () => {
     renderGlobalModal();
 
     await openRowActions(1);
-    await userEvent.click(
-      await screen.findByRole('menuitemradio', {name: 'Rename Dashboard'})
-    );
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Rename'}));
 
     const dialog = await screen.findByRole('dialog');
     await userEvent.clear(within(dialog).getByRole('textbox'));
