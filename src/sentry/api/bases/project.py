@@ -11,10 +11,10 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from sentry.api.base import Endpoint
+from sentry.api.caller_scopes import record_caller_scopes
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environments
 from sentry.api.permissions import StaffPermissionMixin
-from sentry.api.scope_version import record_scope_version
 from sentry.api.utils import get_date_range_from_params
 from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidParams
@@ -61,7 +61,7 @@ class ProjectPermission(OrganizationPermission):
         allowed_scopes = set(self.scope_map.get(request.method, []))
         if not request.access.has_any_project_scope(project, allowed_scopes):
             return False
-        record_scope_version(request, request.access.scopes)
+        record_caller_scopes(request, request.access.scopes)
         return True
 
 

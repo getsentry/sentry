@@ -20,7 +20,7 @@ import sentry_sdk
 from rest_framework.request import Request
 from sentry_conventions.attributes import ATTRIBUTE_NAMES
 
-from sentry.api.scope_version import get_scope_version
+from sentry.api.caller_scopes import has_deprecated_scopes, has_granular_scopes
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.auth.system import is_system_auth
 from sentry.middleware import is_frontend_request
@@ -228,7 +228,6 @@ def _record_attribution_span(
     route it served rather than its caller's.
     """
     route = get_transaction_name_from_request(request)
-    scope_version = get_scope_version(request)
     with start_span(op=ATTRIBUTION_SPAN_OP, name=route) as span:
         set_span_data(span, ATTRIBUTE_NAMES.HTTP_ROUTE, route)
         set_span_data(span, "client_kind_test", client_kind.value)
@@ -237,15 +236,13 @@ def _record_attribution_span(
         if user_agent is not None:
             set_span_data(span, ATTRIBUTE_NAMES.USER_AGENT_ORIGINAL, user_agent)
 
-    if scope_version is not None:
-        metrics.incr(
-            "api.scope_version",
-            tags={
-                ATTRIBUTE_NAMES.HTTP_ROUTE: route,
-                "client_kind": client_kind.value,
-                "scope_version": scope_version,
-            },
-        )
+    tags = {ATTRIBUTE_NAMES.HTTP_ROUTE: route, "client_kind": client_kind.value}
+    for name, value in (
+        ("api.has_deprecated_scopes", has_deprecated_scopes(request)),
+        ("api.has_granular_scopes", has_granular_scopes(request)),
+    ):
+        if value is not None:
+            metrics.incr(name, tags={**tags, "value": str(value).lower()})
 
 
 def get_user_agent(request: Request) -> str | None:

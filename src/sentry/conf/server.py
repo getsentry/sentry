@@ -1978,8 +1978,8 @@ GRANULAR_SCOPES = frozenset(
     ]
 )
 
-# Broad read scopes being retired in favour of granular ones. Requests admitted by
-# one of these are tagged `v1` in API attribution (see sentry.api.scope_version).
+# Broad read scopes being retired in favour of granular ones. API attribution tags
+# whether a caller still holds one (see sentry.api.caller_scopes).
 DEPRECATED_SCOPES = frozenset(
     [
         "org:read",
