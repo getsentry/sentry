@@ -32,7 +32,7 @@ function countCompletedChecks(projection: InvestigationOrchestration): number {
  * weighed, and how much checking stands behind them.
  *
  * Absent until there is something to count, which is why the early running
- * states render without it rather than claiming "0 possible causes".
+ * states render without it rather than claiming "0 hypotheses".
  */
 function getMeta(projection: InvestigationOrchestration): string | undefined {
   const causeCount = projection.hypotheses.length;
@@ -43,7 +43,7 @@ function getMeta(projection: InvestigationOrchestration): string | undefined {
   // Each half is translated; the bullet between them is punctuation, not a
   // string a translator has anything to do with.
   return [
-    tn('%s possible cause', '%s possible causes', causeCount),
+    tn('%s hypothesis', '%s hypotheses', causeCount),
     tn('%s check completed', '%s checks completed', checkCount),
   ].join(' • ');
 }

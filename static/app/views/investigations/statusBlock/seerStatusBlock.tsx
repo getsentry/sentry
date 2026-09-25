@@ -90,7 +90,7 @@ type SeerStatusBlockProps = {
   elapsed?: string;
   /**
    * A tally between the title and the description, e.g.
-   * "4 possible causes · 9 checks completed". Only worth showing once there is
+   * "4 hypotheses · 9 checks completed". Only worth showing once there is
    * something to count.
    */
   meta?: string;

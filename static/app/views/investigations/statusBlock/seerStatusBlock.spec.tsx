@@ -127,7 +127,7 @@ describe('getSeerStatusBlock', () => {
       })
     );
 
-    expect(block?.meta).toBe('1 possible cause • 2 checks completed');
+    expect(block?.meta).toBe('1 hypothesis • 2 checks completed');
   });
 
   it('prefers the run error over the report error', () => {

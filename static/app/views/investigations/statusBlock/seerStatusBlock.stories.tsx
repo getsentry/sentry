@@ -47,7 +47,7 @@ export default Storybook.story('Investigations — Seer status block', story => 
           <SeerStatusBlock
             variant="running"
             title="Seer is bringing the findings together"
-            meta="4 possible causes • 9 checks completed"
+            meta="4 hypotheses • 9 checks completed"
             description="Organizing the explanation, supporting evidence, and next steps. Your investigation will open automatically."
             elapsed="101.5s"
           />
@@ -140,7 +140,7 @@ export default Storybook.story('Investigations — Seer status block', story => 
         <SeerStatusBlock
           variant="complete"
           title="Your investigation is ready"
-          meta="4 possible causes • 9 checks completed"
+          meta="4 hypotheses • 9 checks completed"
           description="Findings, supporting evidence, and recommended next steps are ready."
           elapsed="191.6s"
         />
