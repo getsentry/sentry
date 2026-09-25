@@ -12,9 +12,13 @@ import {defined} from 'sentry/utils/defined';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
 import {getDynamicText} from 'sentry/utils/getDynamicText';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/utils/timeSeries/determineSeriesSampleCount';
+import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {LogsConfig} from 'sentry/views/dashboards/datasetConfig/logs';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
-import {isEventsStats} from 'sentry/views/dashboards/utils/isEventsStats';
+import {
+  isEventsStats,
+  isEventsTimeSeriesResponse,
+} from 'sentry/views/dashboards/utils/isEventsStats';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
 import {
@@ -28,7 +32,11 @@ import type {
 } from './genericWidgetQueries';
 import {useGenericWidgetQueries} from './genericWidgetQueries';
 
-type SeriesResult = EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats;
+type SeriesResult =
+  | EventsStats
+  | MultiSeriesEventsStats
+  | GroupedMultiSeriesEventsStats
+  | EventsTimeSeriesResponse;
 type TableResult = TableData | EventsTableData;
 
 type LogsWidgetQueriesProps = {
@@ -56,6 +64,19 @@ type LogsWidgetQueriesImplProps = LogsWidgetQueriesProps & {
 export function LogsWidgetQueries(props: LogsWidgetQueriesProps) {
   const getConfidenceInformation = useCallback(
     (result: SeriesResult) => {
+      if (isEventsTimeSeriesResponse(result)) {
+        const series = result.timeSeries;
+        const isTopN = (props.widget.queries[0]?.columns.length ?? 0) > 0;
+        const samplingMeta = determineSeriesSampleCountAndIsSampled(series, isTopN);
+
+        return {
+          seriesDataScanned: samplingMeta.dataScanned,
+          seriesConfidence: combineConfidenceForSeries(series),
+          seriesSampleCount: samplingMeta.sampleCount,
+          seriesIsSampled: samplingMeta.isSampled,
+        };
+      }
+
       let seriesConfidence: Confidence | null;
       let seriesSampleCount: number | undefined;
       let seriesIsSampled: boolean | null;
