@@ -39,188 +39,225 @@ function makeEvent(overrides: Partial<LowValueSpanEvidenceData> = {}) {
   });
 }
 
-function organizationWithBillingAccess() {
-  return OrganizationFixture({access: ['org:billing']});
-}
+describe.each([false, true])(
+  'LowValueSpanProblemSection (shared renderer: %s)',
+  shared => {
+    const features = shared ? ['issue-details-generic-problem-section'] : [];
 
-function organizationWithoutBillingAccess() {
-  return OrganizationFixture({access: ['org:read']});
-}
+    function organizationWithBillingAccess() {
+      return OrganizationFixture({access: ['org:billing'], features});
+    }
 
-describe('LowValueSpanProblemSection', () => {
-  beforeEach(() => {
-    MockApiClient.clearMockResponses();
-  });
+    function organizationWithoutBillingAccess() {
+      return OrganizationFixture({access: ['org:read'], features});
+    }
 
-  it('renders low-value span evidence from the occurrence', async () => {
-    mockCostResponse();
-
-    render(<LowValueSpanProblemSection event={makeEvent()} />, {
-      organization: organizationWithBillingAccess(),
+    beforeEach(() => {
+      MockApiClient.clearMockResponses();
     });
 
-    expect(screen.getByText(/frequently created span/)).toBeInTheDocument();
-    expect(screen.getByText('Affected span')).toBeInTheDocument();
-    expect(screen.getByText('function - compute_checksum')).toBeInTheDocument();
-    expect(screen.getByText('Span count')).toBeInTheDocument();
-    expect(screen.getByText('60K')).toBeInTheDocument();
-    expect(await screen.findByText('Estimated cost')).toBeInTheDocument();
-    expect(await screen.findByText('$12.34')).toBeInTheDocument();
-    expect(screen.getAllByLabelText('More information')).toHaveLength(2);
-    expect(screen.getByText('<1ms')).toBeInTheDocument();
-  });
+    it('renders low-value span evidence from the occurrence', async () => {
+      mockCostResponse();
 
-  it('renders estimated cost for users with billing access', async () => {
-    mockCostResponse();
+      render(<LowValueSpanProblemSection event={makeEvent()} />, {
+        organization: organizationWithBillingAccess(),
+      });
 
-    render(<LowValueSpanProblemSection event={makeEvent()} />, {
-      organization: organizationWithBillingAccess(),
+      expect(screen.getByText(/frequently created span/)).toBeInTheDocument();
+      expect(screen.getByText('Affected span')).toBeInTheDocument();
+      expect(screen.getByText('function - compute_checksum')).toBeInTheDocument();
+      expect(screen.getByText('Span count')).toBeInTheDocument();
+      expect(screen.getByText('60K')).toBeInTheDocument();
+      expect(await screen.findByText('Estimated cost')).toBeInTheDocument();
+      expect(await screen.findByText('$12.34')).toBeInTheDocument();
+      expect(screen.getAllByLabelText('More information')).toHaveLength(2);
+      expect(screen.getByText('<1ms')).toBeInTheDocument();
     });
 
-    expect(await screen.findByText('$12.34')).toBeInTheDocument();
-  });
+    it('renders estimated cost for users with billing access', async () => {
+      mockCostResponse();
 
-  it('requests the estimate using the extrapolated span volume', async () => {
-    const costRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/low-value-spans-costs/',
-      body: {estimatedCostUsd: 12.34, pricingBasis: 'reserved'},
-      match: [MockApiClient.matchQuery({spanCount: 60_000})],
+      render(<LowValueSpanProblemSection event={makeEvent()} />, {
+        organization: organizationWithBillingAccess(),
+      });
+
+      expect(await screen.findByText('$12.34')).toBeInTheDocument();
     });
 
-    render(<LowValueSpanProblemSection event={makeEvent()} />, {
-      organization: organizationWithBillingAccess(),
+    it('requests the estimate using the extrapolated span volume', async () => {
+      const costRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/low-value-spans-costs/',
+        body: {estimatedCostUsd: 12.34, pricingBasis: 'reserved'},
+        match: [MockApiClient.matchQuery({spanCount: 60_000})],
+      });
+
+      render(<LowValueSpanProblemSection event={makeEvent()} />, {
+        organization: organizationWithBillingAccess(),
+      });
+
+      // The value only renders if the request matched the extrapolated volume
+      // (60K) rather than the observed count (1.2K).
+      expect(await screen.findByText('$12.34')).toBeInTheDocument();
+      expect(costRequest).toHaveBeenCalled();
     });
 
-    // The value only renders if the request matched the extrapolated volume
-    // (60K) rather than the observed count (1.2K).
-    expect(await screen.findByText('$12.34')).toBeInTheDocument();
-    expect(costRequest).toHaveBeenCalled();
-  });
+    it('does not fetch or render estimated cost without billing access', () => {
+      const costRequest = mockCostResponse();
 
-  it('does not fetch or render estimated cost without billing access', () => {
-    const costRequest = mockCostResponse();
+      render(<LowValueSpanProblemSection event={makeEvent()} />, {
+        organization: organizationWithoutBillingAccess(),
+      });
 
-    render(<LowValueSpanProblemSection event={makeEvent()} />, {
-      organization: organizationWithoutBillingAccess(),
+      expect(screen.queryByText('Estimated cost')).not.toBeInTheDocument();
+      expect(costRequest).not.toHaveBeenCalled();
+      // The rest of the evidence is still visible.
+      expect(screen.getByText('Affected span')).toBeInTheDocument();
     });
 
-    expect(screen.queryByText('Estimated cost')).not.toBeInTheDocument();
-    expect(costRequest).not.toHaveBeenCalled();
-    // The rest of the evidence is still visible.
-    expect(screen.getByText('Affected span')).toBeInTheDocument();
-  });
+    it('falls back to the sampled span count when extrapolated count is unavailable', () => {
+      render(
+        <LowValueSpanProblemSection event={makeEvent({extrapolatedCount: null})} />,
+        {
+          organization: organizationWithoutBillingAccess(),
+        }
+      );
 
-  it('falls back to the sampled span count when extrapolated count is unavailable', () => {
-    render(<LowValueSpanProblemSection event={makeEvent({extrapolatedCount: null})} />, {
-      organization: organizationWithoutBillingAccess(),
+      expect(screen.getByText('1.2K')).toBeInTheDocument();
+      expect(screen.queryAllByLabelText('More information')).toHaveLength(0);
     });
 
-    expect(screen.getByText('1.2K')).toBeInTheDocument();
-    expect(screen.queryAllByLabelText('More information')).toHaveLength(0);
-  });
+    it('does not fetch or render estimated cost without an extrapolated span count', () => {
+      const costRequest = mockCostResponse();
 
-  it('does not fetch or render estimated cost without an extrapolated span count', () => {
-    const costRequest = mockCostResponse();
+      render(
+        <LowValueSpanProblemSection event={makeEvent({extrapolatedCount: null})} />,
+        {
+          organization: organizationWithBillingAccess(),
+        }
+      );
 
-    render(<LowValueSpanProblemSection event={makeEvent({extrapolatedCount: null})} />, {
-      organization: organizationWithBillingAccess(),
+      expect(screen.queryByText('Estimated cost')).not.toBeInTheDocument();
+      expect(costRequest).not.toHaveBeenCalled();
     });
 
-    expect(screen.queryByText('Estimated cost')).not.toBeInTheDocument();
-    expect(costRequest).not.toHaveBeenCalled();
-  });
+    it('tailors the estimated cost tooltip to the pay-as-you-go pricing basis', async () => {
+      mockCostResponse({estimatedCostUsd: 12.34, pricingBasis: 'payg'});
 
-  it('tailors the estimated cost tooltip to the pay-as-you-go pricing basis', async () => {
-    mockCostResponse({estimatedCostUsd: 12.34, pricingBasis: 'payg'});
+      render(<LowValueSpanProblemSection event={makeEvent()} />, {
+        organization: organizationWithBillingAccess(),
+      });
 
-    render(<LowValueSpanProblemSection event={makeEvent()} />, {
-      organization: organizationWithBillingAccess(),
+      // The estimated cost tip is the last one (after the span count tip).
+      await screen.findByText('$12.34');
+      const infoTips = screen.getAllByLabelText('More information');
+      await userEvent.hover(infoTips[infoTips.length - 1]!);
+
+      expect(
+        await screen.findByText(/cost at your pay-as-you-go rate/)
+      ).toBeInTheDocument();
     });
 
-    // The estimated cost tip is the last one (after the span count tip).
-    await screen.findByText('$12.34');
-    const infoTips = screen.getAllByLabelText('More information');
-    await userEvent.hover(infoTips[infoTips.length - 1]!);
+    it('tailors the estimated cost tooltip to the reserved pricing basis', async () => {
+      mockCostResponse({estimatedCostUsd: 12.34, pricingBasis: 'reserved'});
 
-    expect(
-      await screen.findByText(/cost at your pay-as-you-go rate/)
-    ).toBeInTheDocument();
-  });
+      render(<LowValueSpanProblemSection event={makeEvent()} />, {
+        organization: organizationWithBillingAccess(),
+      });
 
-  it('tailors the estimated cost tooltip to the reserved pricing basis', async () => {
-    mockCostResponse({estimatedCostUsd: 12.34, pricingBasis: 'reserved'});
+      await screen.findByText('$12.34');
+      const infoTips = screen.getAllByLabelText('More information');
+      await userEvent.hover(infoTips[infoTips.length - 1]!);
 
-    render(<LowValueSpanProblemSection event={makeEvent()} />, {
-      organization: organizationWithBillingAccess(),
+      expect(await screen.findByText(/cost at your reserved rate/)).toBeInTheDocument();
     });
 
-    await screen.findByText('$12.34');
-    const infoTips = screen.getAllByLabelText('More information');
-    await userEvent.hover(infoTips[infoTips.length - 1]!);
+    it('renders a loading placeholder while the estimated cost is fetched', async () => {
+      mockCostResponse();
 
-    expect(await screen.findByText(/cost at your reserved rate/)).toBeInTheDocument();
-  });
+      render(<LowValueSpanProblemSection event={makeEvent()} />, {
+        organization: organizationWithBillingAccess(),
+      });
 
-  it('renders a loading placeholder while the estimated cost is fetched', async () => {
-    mockCostResponse();
+      // The row and its skeleton appear before the request resolves.
+      expect(screen.getByText('Estimated cost')).toBeInTheDocument();
+      expect(screen.getByTestId('loading-placeholder')).toBeInTheDocument();
 
-    render(<LowValueSpanProblemSection event={makeEvent()} />, {
-      organization: organizationWithBillingAccess(),
+      // Once resolved, the value replaces the skeleton.
+      expect(await screen.findByText('$12.34')).toBeInTheDocument();
+      expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
     });
 
-    // The row and its skeleton appear before the request resolves.
-    expect(screen.getByText('Estimated cost')).toBeInTheDocument();
-    expect(screen.getByTestId('loading-placeholder')).toBeInTheDocument();
+    it('renders an error state when the estimated cost fails to load', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/low-value-spans-costs/',
+        statusCode: 500,
+        body: {detail: 'Internal Error'},
+      });
 
-    // Once resolved, the value replaces the skeleton.
-    expect(await screen.findByText('$12.34')).toBeInTheDocument();
-    expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
-  });
+      render(<LowValueSpanProblemSection event={makeEvent()} />, {
+        organization: organizationWithBillingAccess(),
+      });
 
-  it('renders an error state when the estimated cost fails to load', async () => {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/low-value-spans-costs/',
-      statusCode: 500,
-      body: {detail: 'Internal Error'},
+      expect(await screen.findByText('Unable to load estimate')).toBeInTheDocument();
+      expect(screen.queryByText('$12.34')).not.toBeInTheDocument();
     });
 
-    render(<LowValueSpanProblemSection event={makeEvent()} />, {
-      organization: organizationWithBillingAccess(),
+    it('links to explore filtering for missing description when description is null', () => {
+      render(<LowValueSpanProblemSection event={makeEvent({description: null})} />, {
+        organization: organizationWithoutBillingAccess(),
+      });
+
+      const exploreLink = screen.getByRole('link', {name: 'function'});
+      expect(exploreLink).toHaveAttribute(
+        'href',
+        expect.stringContaining('%21has%3Aspan.description')
+      );
+      expect(exploreLink).toHaveAttribute(
+        'href',
+        expect.stringContaining('span.op%3Afunction')
+      );
     });
 
-    expect(await screen.findByText('Unable to load estimate')).toBeInTheDocument();
-    expect(screen.queryByText('$12.34')).not.toBeInTheDocument();
-  });
+    it('links to explore filtering for missing op when op is null', () => {
+      render(<LowValueSpanProblemSection event={makeEvent({op: null})} />, {
+        organization: organizationWithoutBillingAccess(),
+      });
 
-  it('links to explore filtering for missing description when description is null', () => {
-    render(<LowValueSpanProblemSection event={makeEvent({description: null})} />);
+      const exploreLink = screen.getByRole('link', {name: 'compute_checksum'});
+      expect(exploreLink).toHaveAttribute(
+        'href',
+        expect.stringContaining('%21has%3Aspan.op')
+      );
+    });
 
-    const exploreLink = screen.getByRole('link', {name: 'function'});
-    expect(exploreLink).toHaveAttribute(
-      'href',
-      expect.stringContaining('%21has%3Aspan.description')
-    );
-    expect(exploreLink).toHaveAttribute(
-      'href',
-      expect.stringContaining('span.op%3Afunction')
-    );
-  });
+    it('does not link to explore when both op and description are null', () => {
+      render(
+        <LowValueSpanProblemSection event={makeEvent({op: null, description: null})} />,
+        {organization: organizationWithoutBillingAccess()}
+      );
 
-  it('links to explore filtering for missing op when op is null', () => {
-    render(<LowValueSpanProblemSection event={makeEvent({op: null})} />);
+      expect(screen.queryByRole('link')).not.toBeInTheDocument();
+    });
 
-    const exploreLink = screen.getByRole('link', {name: 'compute_checksum'});
-    expect(exploreLink).toHaveAttribute(
-      'href',
-      expect.stringContaining('%21has%3Aspan.op')
-    );
-  });
+    it('preserves a zero estimated cost', async () => {
+      mockCostResponse({estimatedCostUsd: 0, pricingBasis: 'fixed_rate'});
 
-  it('does not link to explore when both op and description are null', () => {
-    render(
-      <LowValueSpanProblemSection event={makeEvent({op: null, description: null})} />
-    );
+      render(<LowValueSpanProblemSection event={makeEvent()} />, {
+        organization: organizationWithBillingAccess(),
+      });
 
-    expect(screen.queryByRole('link')).not.toBeInTheDocument();
-  });
-});
+      expect(await screen.findByText('$0.00')).toBeInTheDocument();
+    });
+
+    it('shows unknown cost when pricing is unavailable', async () => {
+      mockCostResponse({estimatedCostUsd: null, pricingBasis: null});
+
+      render(<LowValueSpanProblemSection event={makeEvent()} />, {
+        organization: organizationWithBillingAccess(),
+      });
+
+      expect(await screen.findByText('Unknown')).toBeInTheDocument();
+      expect(screen.getByText('Estimated cost')).toBeInTheDocument();
+    });
+  }
+);
