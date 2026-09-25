@@ -291,13 +291,17 @@ def build_activity_notification_data(
             if activity.user_id:
                 user = user_service.get_user(user_id=activity.user_id)
                 if user and user.is_sentry_app:
-                    is_automated = True
+                    return AssignedNotificationData(
+                        **action_data,
+                        assignee_label=assignee_label,
+                        assignee_url=assignee_url,
+                        is_automated=True,
+                    )
 
             return AssignedNotificationData(
                 **action_data,
                 assignee_label=assignee_label,
                 assignee_url=assignee_url,
-                is_automated=is_automated,
             )
         case _:
             return ActivityNotificationData(**action_data)
