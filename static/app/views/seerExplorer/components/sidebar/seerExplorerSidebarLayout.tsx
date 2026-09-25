@@ -1,4 +1,5 @@
 import {useCallback} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Stack} from '@sentry/scraps/layout';
@@ -15,7 +16,6 @@ import {
   roundSeerExplorerAnalyticsPixels,
   SEER_EXPLORER_SIDEBAR_SEER_SIZE_KEY,
   useIsSeerExplorerSidebarEnabled,
-  useSeerExplorerSidebarOrientation,
 } from 'sentry/views/seerExplorer/utils';
 
 // Minimum widths/heights so neither the app content nor Seer collapses to nothing.
@@ -62,20 +62,34 @@ export function SeerExplorerSidebarLayout({children}: {children: React.ReactNode
  */
 function SeerExplorerSidebarLayoutInSidebarMode({children}: {children: React.ReactNode}) {
   const organization = useOrganization({allowNull: true});
+  const theme = useTheme();
   const {isOpen, sidebarPosition, sidebarContainerRef} = useSeerExplorerContext();
   const {width, height} = useDimensions({elementRef: sidebarContainerRef});
-  const orientation = useSeerExplorerSidebarOrientation(sidebarPosition);
+  const [rightSeerSize, setRightSeerSize] = useLocalStorageState<number>(
+    SEER_EXPLORER_SIDEBAR_SEER_SIZE_KEY.right,
+    value => (typeof value === 'number' && value > 0 ? value : DEFAULT_SEER_WIDTH)
+  );
+  const [bottomSeerSize, setBottomSeerSize] = useLocalStorageState<number>(
+    SEER_EXPLORER_SIDEBAR_SEER_SIZE_KEY.bottom,
+    value => (typeof value === 'number' && value > 0 ? value : DEFAULT_SEER_HEIGHT)
+  );
 
+  // Auto-docking responds to the space the routed app would retain beside Seer,
+  // rather than the viewport, so navigation sidebars are accounted for.
+  const autoContentWidth = width - rightSeerSize;
+  const orientation =
+    sidebarPosition === 'auto'
+      ? autoContentWidth >= parseInt(theme.container.xl, 10)
+        ? 'right'
+        : 'bottom'
+      : sidebarPosition;
   const isRight = orientation === 'right';
   const available = isRight ? width : height;
   const minContent = isRight ? MIN_CONTENT_WIDTH : MIN_CONTENT_HEIGHT;
   const minSeer = isRight ? MIN_SEER_WIDTH : MIN_SEER_HEIGHT;
   const defaultSeerSize = isRight ? DEFAULT_SEER_WIDTH : DEFAULT_SEER_HEIGHT;
-  const seerSizeKey = SEER_EXPLORER_SIDEBAR_SEER_SIZE_KEY[orientation];
-
-  const [seerSize, setSeerSize] = useLocalStorageState<number>(seerSizeKey, value =>
-    typeof value === 'number' && value > 0 ? value : defaultSeerSize
-  );
+  const seerSize = isRight ? rightSeerSize : bottomSeerSize;
+  const setSeerSize = isRight ? setRightSeerSize : setBottomSeerSize;
 
   // The app (sized) pane size = available − Seer's size, floored at `minContent`
   // (so a persisted Seer size larger than the viewport can't make it negative).

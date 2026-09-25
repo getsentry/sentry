@@ -9,7 +9,6 @@ import {
   type RefObject,
 } from 'react';
 import {useMatches} from 'react-router-dom';
-import {useTheme} from '@emotion/react';
 import type {LocationDescriptor} from 'history';
 import queryString from 'query-string';
 
@@ -22,7 +21,6 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 import {isUUID} from 'sentry/utils/string/isUUID';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useMedia} from 'sentry/utils/useMedia';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {getConversationsUrlForExternalUse} from 'sentry/views/explore/conversations/utils/urlParams';
@@ -31,7 +29,6 @@ import type {
   Artifact,
   Block,
   SeerExplorerRunId,
-  SeerExplorerSidebarPosition,
   ToolCall,
   ToolLink,
   ToolResult,
@@ -920,28 +917,6 @@ export function getSeerExplorerAnalyticsBrowserSize(): {
     browser_width: roundSeerExplorerAnalyticsPixels(window.innerWidth),
     browser_height: roundSeerExplorerAnalyticsPixels(window.innerHeight),
   };
-}
-
-type SeerExplorerSidebarOrientation = 'right' | 'bottom';
-
-/**
- * Resolves the dock preference to a concrete orientation. `auto` docks right on
- * wide viewports (≥ `xl`) and on short landscape viewports (e.g. phones in
- * landscape), and bottom otherwise. Shared by the layout (to lay out the split)
- * and the provider (to persist the popped-out window's size to the right key).
- */
-export function useSeerExplorerSidebarOrientation(
-  sidebarPosition: SeerExplorerSidebarPosition
-): SeerExplorerSidebarOrientation {
-  const theme = useTheme();
-  const isWideScreen = useMedia(`(min-width: ${theme.breakpoints.xl})`);
-  const isShortLandscape = useMedia(
-    `(orientation: landscape) and (max-height: ${theme.breakpoints.xs})`
-  );
-  if (sidebarPosition === 'auto') {
-    return isWideScreen || isShortLandscape ? 'right' : 'bottom';
-  }
-  return sidebarPosition;
 }
 
 /**
