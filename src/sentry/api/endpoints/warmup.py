@@ -1,11 +1,11 @@
 import logging
-from collections.abc import Iterator
+from typing import Iterator
 
-import django.contrib.messages.storage.fallback
-import django.contrib.sessions.serializers
+import django.contrib.messages.storage.fallback  # NOQA
+import django.contrib.sessions.serializers  # NOQA
 import django.db.models.sql.compiler  # NOQA
 from django.conf import settings
-from django.urls import URLResolver, get_resolver, reverse
+from django.urls import URLResolver, get_resolver  # NOQA
 from django.utils import translation
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -41,33 +41,23 @@ def _iter_url_resolvers(resolver: URLResolver) -> Iterator[URLResolver]:
         )
 
 
-def _warm_up_url_resolver(languages: list[str]) -> None:
-    if options.get("warmup.url_resolver.light.enabled"):
-        with translation.override(settings.LANGUAGE_CODE):
-            reverse("sentry-warmup")
-
+def warmup_url_resolver(languages: list[str]) -> None:
     if not options.get("warmup.url_resolver.enabled"):
         return
 
-    with translation.override(settings.LANGUAGE_CODE):
-        reverse("sentry-warmup")
-        default_language = translation.get_language()
+    default_language = settings.LANGUAGE_CODE
 
     resolvers = list(_iter_url_resolvers(get_resolver()))
-    for lang in languages:
-        with translation.override(lang):
-            reverse("sentry-warmup")
-            language = translation.get_language()
-
+    for language in languages:
         if language == default_language:
             continue
 
         # Django stores a complete reverse cache per language, even when URL
-        # patterns are identical. Preserve distinct translated routes while
-        # sharing equal caches. Tests guard this private Django attribute.
+        # patterns are identical as we don't use localized URLs.
+        # Tests guard this private Django attribute.
         for resolver in resolvers:
             cache = resolver._reverse_dict
-            if cache[language] == cache[default_language]:
+            if language not in cache:
                 cache[language] = cache[default_language]
 
 
@@ -85,8 +75,7 @@ class WarmupEndpoint(Endpoint):
         languages.append(settings.LANGUAGE_CODE)
 
         with metrics.timer("warmup.url_resolver.duration"):
-            # Warm every language to avoid resolver lock contention on requests.
-            _warm_up_url_resolver(languages)
+            warmup_url_resolver(languages)
 
         with metrics.timer("warmup.translation.duration"):
             # for each possible language we support, warm up the translations
@@ -99,5 +88,4 @@ class WarmupEndpoint(Endpoint):
                 else:
                     translation.activate(language)
 
-        logger.info("warmup.request_complete")
         return Response(200)
