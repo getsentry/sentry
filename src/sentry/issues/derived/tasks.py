@@ -3,7 +3,8 @@ from __future__ import annotations
 import logging
 import time
 from bisect import bisect_left
-from collections.abc import Sequence
+from collections.abc import Callable, Mapping, Sequence
+from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING
 
@@ -44,6 +45,25 @@ _MAX_PROJECT_GROUPS = 10_000
 # Hard cap on distinct stale hashes discovered per scan.
 _MAX_STALE_HASHES = 5
 _STALE_HASH_DISCOVERY_TIMEOUT = timedelta(seconds=15)
+
+
+@dataclass(frozen=True)
+class RegenerationRequest:
+    target_hash: str | None
+    group_id_start: int
+    group_id_end: int
+    resume_generated_at: str | None = None
+    resume_pipeline_hash: str | None = None
+    rows_found_before: int = 0
+    range_overflowed: bool = False
+
+
+@dataclass(frozen=True)
+class RegenerationResult:
+    processed: Mapping[PromotionResult, int]
+    total: int
+    continuation: RegenerationRequest | None = None
+    continuation_reason: str | None = None
 
 
 def _stale_pipeline_filter(qs: BaseQuerySet[Group], pipeline_hash: str) -> BaseQuerySet[Group]:
@@ -441,6 +461,25 @@ def generate_project_derived_data_batch(
 # ---------------------------------------------------------------------------
 
 
+def _enqueue_regeneration(request: RegenerationRequest) -> None:
+    regenerate_stale_derived_data_batch.delay(
+        target_hash=request.target_hash,
+        group_id_start=request.group_id_start,
+        group_id_end=request.group_id_end,
+        resume_generated_at=request.resume_generated_at,
+        resume_pipeline_hash=request.resume_pipeline_hash,
+        rows_found_before=request.rows_found_before,
+        range_overflowed=request.range_overflowed,
+    )
+
+
+def _enqueue_fresh_check(group_id_start: int, group_id_end: int) -> None:
+    check_fresh_derived_data_batch.delay(
+        group_id_start=group_id_start,
+        group_id_end=group_id_end,
+    )
+
+
 def _discover_stale_pipeline_hashes(current_hash: str, limit: int) -> list[str]:
     """Return up to ``limit`` distinct non-null GroupDerivedData ``pipeline_hash`` values that aren't ``current_hash``.
     NULL is always stale, so we don't bother finding it here.
@@ -473,13 +512,11 @@ def _discover_stale_pipeline_hashes(current_hash: str, limit: int) -> list[str]:
     return results
 
 
-@instrumented_task(
-    name="sentry.issues.derived.tasks.heal_stale_derived_data",
-    namespace=issues_tasks,
-    silo_mode=SiloMode.CELL,
-    processing_deadline_duration=120,
-)
-def heal_stale_derived_data(**kwargs: object) -> None:
+def _heal_stale_derived_data(
+    *,
+    enqueue_regeneration: Callable[[RegenerationRequest], None],
+    enqueue_check: Callable[[int, int], None],
+) -> None:
     """Rebuild a chunk of GroupDerivedData rows whose ``pipeline_hash`` is stale/NULL."""
     started_at = time.monotonic()
     logger.info("heal_stale_derived_data.started")
@@ -637,10 +674,12 @@ def heal_stale_derived_data(**kwargs: object) -> None:
             extra={"hash_kind": hash_kind, "task_count": len(ranges)},
         )
         for start, end in ranges:
-            regenerate_stale_derived_data_batch.delay(
-                target_hash=stale_hash,
-                group_id_start=start,
-                group_id_end=end,
+            enqueue_regeneration(
+                RegenerationRequest(
+                    target_hash=stale_hash,
+                    group_id_start=start,
+                    group_id_end=end,
+                )
             )
         remaining -= len(ranges)
         scheduled_per_hash["null" if stale_hash is None else stale_hash] = len(ranges)
@@ -722,10 +761,7 @@ def heal_stale_derived_data(**kwargs: object) -> None:
         extra={"task_count": len(check_ranges)},
     )
     for start, end in check_ranges:
-        check_fresh_derived_data_batch.delay(
-            group_id_start=start,
-            group_id_end=end,
-        )
+        enqueue_check(start, end)
 
     logger.info(
         "heal_stale_derived_data.checks_scheduled",
@@ -743,6 +779,19 @@ def heal_stale_derived_data(**kwargs: object) -> None:
             "check_task_count": len(check_ranges),
             "elapsed": time.monotonic() - started_at,
         },
+    )
+
+
+@instrumented_task(
+    name="sentry.issues.derived.tasks.heal_stale_derived_data",
+    namespace=issues_tasks,
+    silo_mode=SiloMode.CELL,
+    processing_deadline_duration=120,
+)
+def heal_stale_derived_data(**kwargs: object) -> None:
+    _heal_stale_derived_data(
+        enqueue_regeneration=_enqueue_regeneration,
+        enqueue_check=_enqueue_fresh_check,
     )
 
 
@@ -881,6 +930,91 @@ def check_fresh_derived_data_batch(
             return
 
 
+def _regenerate_stale_derived_data_batch(
+    *,
+    group_id_start: int,
+    group_id_end: int,
+    target_hash: str | None,
+    timeout: timedelta,
+    resume_generated_at: str | None = None,
+    resume_pipeline_hash: str | None = None,
+    rows_found_before: int = 0,
+    range_overflowed: bool = False,
+) -> RegenerationResult:
+    from sentry import options
+    from sentry.issues.derived.promote import build_and_promote_batch
+    from sentry.issues.models.groupderiveddata import GroupDerivedData
+
+    generation_id = _resume_generation_id(group_id_start, resume_generated_at, resume_pipeline_hash)
+    batch_size = max(1, options.get("issues.derived.heal-batch-size"))
+    group_ids = list(
+        GroupDerivedData.objects.filter(
+            pipeline_hash=target_hash,  # a None target renders as IS NULL
+            group_id__gte=group_id_start,
+            group_id__lt=group_id_end,
+        )
+        .order_by("group_id")
+        .values_list("group_id", flat=True)[: batch_size + 1]
+    )
+    range_overflow = len(group_ids) > batch_size
+    if range_overflow:
+        group_ids = group_ids[:batch_size]
+
+    result = build_and_promote_batch(
+        group_ids,
+        timeout=timeout,
+        initial_generation_id=generation_id,
+        log_key="regenerate_stale_derived_data_batch",
+    )
+
+    continuation: RegenerationRequest | None = None
+    continuation_reason: str | None = None
+    if result.timeout_reason is not None:
+        assert result.resume_from_group_id is not None
+        gen_id = result.resume_generation_id
+        rows_consumed = bisect_left(group_ids, result.resume_from_group_id)
+        continuation = RegenerationRequest(
+            target_hash=target_hash,
+            group_id_start=result.resume_from_group_id,
+            group_id_end=group_id_end,
+            resume_generated_at=gen_id.generated_at.isoformat() if gen_id else None,
+            resume_pipeline_hash=gen_id.pipeline_hash if gen_id else None,
+            rows_found_before=rows_found_before + rows_consumed,
+            range_overflowed=range_overflowed or range_overflow,
+        )
+        continuation_reason = result.timeout_reason
+    elif range_overflow:
+        continuation = RegenerationRequest(
+            target_hash=target_hash,
+            group_id_start=group_ids[-1] + 1,
+            group_id_end=group_id_end,
+            rows_found_before=rows_found_before + len(group_ids),
+            range_overflowed=True,
+        )
+        continuation_reason = "range_overflow"
+    else:
+        metrics.distribution(
+            "issues.derived.heal_range_rows_found",
+            rows_found_before + len(group_ids),
+            sample_rate=1.0,
+            tags={
+                "hash_kind": "null" if target_hash is None else "stale",
+                "range_overflowed": str(range_overflowed).lower(),
+            },
+        )
+
+    _record_batch_metrics(
+        result.processed,
+        metric_name="issues.derived.regenerate_stale_groups_processed",
+    )
+    return RegenerationResult(
+        processed=result.processed,
+        total=len(group_ids),
+        continuation=continuation,
+        continuation_reason=continuation_reason,
+    )
+
+
 @instrumented_task(
     name="sentry.issues.derived.tasks.regenerate_stale_derived_data_batch",
     namespace=issues_tasks,
@@ -913,108 +1047,45 @@ def regenerate_stale_derived_data_batch(
     )
     from taskbroker_client.state import current_task
 
-    from sentry import options
-    from sentry.issues.derived.promote import build_and_promote_batch
-    from sentry.issues.models.groupderiveddata import GroupDerivedData
-    from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawned
+    from sentry.issues.derived.tasks_util import SpawnState
 
-    task_state = current_task()
-    activation_id = task_state.id if task_state else None
-    if activation_id and already_spawned(_REGENERATE_STALE_BATCH_TASK_KEY, activation_id):
+    spawn = SpawnState(current_task(), _REGENERATE_STALE_BATCH_TASK_KEY)
+    if spawn.already_spawned():
         logger.info(
             "regenerate_stale_derived_data_batch.duplicate_skipped",
             extra={
                 "target_hash": target_hash,
-                "activation_id": activation_id,
+                "activation_id": spawn.activation_id,
             },
         )
         metrics.incr(
             "taskworker.selfchain.duplicate_skipped",
-            tags={"task": _REGENERATE_STALE_BATCH_TASK_KEY},
+            tags={"task": spawn.task_key},
         )
         return
 
-    # Reconstruct generation_id for resuming the first group from cache.
-    generation_id = _resume_generation_id(group_id_start, resume_generated_at, resume_pipeline_hash)
-
     start = time.monotonic()
-
-    batch_size = max(1, options.get("issues.derived.heal-batch-size"))
-    group_ids = list(
-        GroupDerivedData.objects.filter(
-            pipeline_hash=target_hash,  # a None target renders as IS NULL
-            group_id__gte=group_id_start,
-            group_id__lt=group_id_end,
-        )
-        .order_by("group_id")
-        .values_list("group_id", flat=True)[: batch_size + 1]
-    )
-    range_overflow = len(group_ids) > batch_size
-    if range_overflow:
-        group_ids = group_ids[:batch_size]
-
-    result = build_and_promote_batch(
-        group_ids,
+    result = _regenerate_stale_derived_data_batch(
+        target_hash=target_hash,
+        group_id_start=group_id_start,
+        group_id_end=group_id_end,
         timeout=BATCH_RETRIGGER_TIMEOUT,
-        initial_generation_id=generation_id,
-        log_key="regenerate_stale_derived_data_batch",
+        resume_generated_at=resume_generated_at,
+        resume_pipeline_hash=resume_pipeline_hash,
+        rows_found_before=rows_found_before,
+        range_overflowed=range_overflowed,
     )
 
-    rescheduled = False
-    if result.timeout_reason is not None:
-        rescheduled = True
+    if result.continuation is not None:
+        assert result.continuation_reason is not None
         metrics.incr(
             "issues.derived.regenerate_stale_batch_rescheduled",
             sample_rate=1.0,
-            tags={"reason": result.timeout_reason},
+            tags={"reason": result.continuation_reason},
         )
-        assert result.resume_from_group_id is not None
-        gen_id = result.resume_generation_id
-        rows_consumed = bisect_left(group_ids, result.resume_from_group_id)
-        regenerate_stale_derived_data_batch.delay(
-            target_hash=target_hash,
-            group_id_start=result.resume_from_group_id,
-            group_id_end=group_id_end,
-            resume_generated_at=gen_id.generated_at.isoformat() if gen_id else None,
-            resume_pipeline_hash=gen_id.pipeline_hash if gen_id else None,
-            rows_found_before=rows_found_before + rows_consumed,
-            range_overflowed=range_overflowed or range_overflow,
-        )
-        if activation_id:
-            mark_spawned(_REGENERATE_STALE_BATCH_TASK_KEY, activation_id)
-    elif range_overflow:
-        rescheduled = True
-        metrics.incr(
-            "issues.derived.regenerate_stale_batch_rescheduled",
-            sample_rate=1.0,
-            tags={"reason": "range_overflow"},
-        )
-        regenerate_stale_derived_data_batch.delay(
-            target_hash=target_hash,
-            group_id_start=group_ids[-1] + 1,
-            group_id_end=group_id_end,
-            rows_found_before=rows_found_before + len(group_ids),
-            range_overflowed=True,
-        )
-        if activation_id:
-            mark_spawned(_REGENERATE_STALE_BATCH_TASK_KEY, activation_id)
-    else:
-        # Record one density observation for the scheduler's original range, not
-        # one capped observation for every self-chain invocation.
-        metrics.distribution(
-            "issues.derived.heal_range_rows_found",
-            rows_found_before + len(group_ids),
-            sample_rate=1.0,
-            tags={
-                "hash_kind": "null" if target_hash is None else "stale",
-                "range_overflowed": str(range_overflowed).lower(),
-            },
-        )
+        _enqueue_regeneration(result.continuation)
+        spawn.mark_spawned()
 
-    _record_batch_metrics(
-        result.processed,
-        metric_name="issues.derived.regenerate_stale_groups_processed",
-    )
     logger.info(
         "regenerate_stale_derived_data_batch.complete",
         extra={
@@ -1022,8 +1093,8 @@ def regenerate_stale_derived_data_batch(
             "group_id_start": group_id_start,
             "group_id_end": group_id_end,
             "processed": {r.value: c for r, c in result.processed.items()},
-            "total": len(group_ids),
-            "rescheduled": rescheduled,
+            "total": result.total,
+            "rescheduled": result.continuation is not None,
             "elapsed": time.monotonic() - start,
         },
     )
