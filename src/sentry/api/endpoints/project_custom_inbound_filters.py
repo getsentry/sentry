@@ -29,6 +29,10 @@ from sentry.tasks.relay import schedule_invalidate_project_config
 
 MAX_CONDITIONS_PER_FILTER = 10
 MAX_FILTERS_PER_PROJECT = 50
+# Relay matches every condition value as a glob against each item, so the size of a
+# filter bounds how much matching work a single filter can cause. A filter stored
+# before this cap keeps its size but cannot grow.
+MAX_CONDITION_VALUE_CHARS_PER_FILTER = 4000
 
 
 # Ingestion feature an organization needs before a filter can target a data type.
@@ -41,6 +45,34 @@ _REQUIRED_FEATURE_BY_DATA_TYPE: Mapping[DataType, str] = {
 class CustomInboundFilterCondition(TypedDict):
     type: str
     value: list[str]
+
+
+def _condition_value_chars(conditions: list[CustomInboundFilterCondition]) -> int:
+    return sum(len(value) for condition in conditions for value in condition["value"])
+
+
+def _validate_size(
+    conditions: list[CustomInboundFilterCondition], stored: CustomInboundFilter | None
+) -> None:
+    size = _condition_value_chars(conditions)
+    if size <= MAX_CONDITION_VALUE_CHARS_PER_FILTER:
+        return
+
+    stored_size = _condition_value_chars(stored.conditions) if stored else 0
+    if size <= stored_size:
+        return
+
+    if stored_size > MAX_CONDITION_VALUE_CHARS_PER_FILTER:
+        message = (
+            f"This filter already exceeds the {MAX_CONDITION_VALUE_CHARS_PER_FILTER} "
+            "character limit for condition values. It can shrink but not grow."
+        )
+    else:
+        message = (
+            f"A filter's condition values can have at most "
+            f"{MAX_CONDITION_VALUE_CHARS_PER_FILTER} characters in total."
+        )
+    raise serializers.ValidationError({"conditions": message})
 
 
 def _is_ip_address_or_range(value: str) -> bool:
@@ -137,6 +169,9 @@ class CustomInboundFilterSerializer(serializers.ModelSerializer[CustomInboundFil
             )
         if conditions is None:
             return attrs
+
+        if "conditions" in attrs:
+            _validate_size(conditions, stored)
 
         data_type = DataType(raw_data_type)
         supported = get_supported_condition_types(data_type)
