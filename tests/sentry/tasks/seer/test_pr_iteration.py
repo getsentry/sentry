@@ -1508,7 +1508,7 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         mock_trigger.assert_called_once()
         assert len(mock_trigger.call_args.kwargs["feedback"]) == 2
 
-    @patch(f"{TASK_PATH}.logger")
+    @patch(f"{TASK_PATH}.metrics")
     @patch(f"{TASK_PATH}.trigger_autofix_agent", side_effect=PrIterationNoPullRequestException())
     @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
     @patch(f"{TASK_PATH}.fetch_run_status")
@@ -1517,16 +1517,39 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         mock_fetch: MagicMock,
         mock_pop: MagicMock,
         _mock_trigger: MagicMock,
-        mock_logger: MagicMock,
+        mock_metrics: MagicMock,
     ) -> None:
         mock_fetch.return_value = self._state()
         mock_pop.return_value = [self._ui_queued()]
 
         self._call()
 
-        assert not any(
-            call.args and call.args[0] == "autofix.pr_iteration.consume_feedback.triggered"
-            for call in mock_logger.info.call_args_list
+        mock_metrics.incr.assert_any_call(
+            "autofix.pr_iteration.consume_feedback.drain",
+            tags={"outcome": "skipped_no_pr", "trigger_source": "unknown"},
+            sample_rate=1.0,
+        )
+
+    @patch(f"{TASK_PATH}.metrics")
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_a_successful_drain_counts_as_started(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        _mock_trigger: MagicMock,
+        mock_metrics: MagicMock,
+    ) -> None:
+        mock_fetch.return_value = self._state()
+        mock_pop.return_value = [self._ui_queued()]
+
+        self._call()
+
+        mock_metrics.incr.assert_any_call(
+            "autofix.pr_iteration.consume_feedback.drain",
+            tags={"outcome": "started", "trigger_source": "unknown"},
+            sample_rate=1.0,
         )
 
     def _enqueue_ui_feedback(self, text: str) -> None:
