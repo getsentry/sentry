@@ -1,4 +1,8 @@
-import {SEER_EMBED_SCHEMAS, STRUCTURED_SEER_EMBED_SCHEMAS, seerEmbedsToJsonSchemas} from './schemas';
+import {
+  SEER_EMBED_SCHEMAS,
+  STRUCTURED_SEER_EMBED_SCHEMAS,
+  seerEmbedsToJsonSchemas,
+} from './schemas';
 
 describe('seerEmbedsToJsonSchemas', () => {
   it('documents the replay timestamp offset requirement in the agent contract', () => {
