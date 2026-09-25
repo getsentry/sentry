@@ -300,8 +300,11 @@ const projectBooleanSchema = z.object({
 
 const legacyBrowserSchema = z.object({'legacy-browsers': z.array(z.string())});
 
-const customFiltersSchema = z.object({
+const blacklistedIpsSchema = z.object({
   'filters:blacklisted_ips': z.string(),
+});
+
+const customFiltersSchema = z.object({
   'filters:releases': z.string(),
   'filters:error_messages': z.string(),
   'filters:log_messages': z.string(),
@@ -325,9 +328,6 @@ function CustomFiltersForm({
   const form = useScrapsForm({
     ...defaultFormOptions,
     defaultValues: {
-      'filters:blacklisted_ips': String(
-        project.options?.['filters:blacklisted_ips'] ?? ''
-      ),
       'filters:releases': String(project.options?.['filters:releases'] ?? ''),
       'filters:error_messages': String(project.options?.['filters:error_messages'] ?? ''),
       'filters:log_messages': String(project.options?.['filters:log_messages'] ?? ''),
@@ -352,31 +352,6 @@ function CustomFiltersForm({
     <form.AppForm form={form}>
       <FormSearch route="/settings/:orgId/projects/:projectId/filters/">
         <FieldGroup title={t('Custom Filters')}>
-          <form.AppField name="filters:blacklisted_ips">
-            {field => (
-              <field.Layout.Row
-                label={t('IP Addresses')}
-                hintText={
-                  <Fragment>
-                    {t('Filter events from these IP addresses. ')}
-                    {newLineHelpText}
-                  </Fragment>
-                }
-              >
-                <field.TextArea
-                  value={field.state.value}
-                  onChange={field.handleChange}
-                  disabled={disabled}
-                  monospace
-                  autosize
-                  rows={1}
-                  maxRows={10}
-                  placeholder="e.g. 127.0.0.1 or 10.0.0.0/8"
-                />
-              </field.Layout.Row>
-            )}
-          </form.AppField>
-
           <Feature
             features="projects:custom-inbound-filters"
             overrideName="feature-disabled:custom-inbound-filters"
@@ -874,6 +849,41 @@ export function ProjectFiltersSettings({project, params}: Props) {
                       checked={field.state.value}
                       onChange={field.handleChange}
                       disabled={!hasAccess}
+                    />
+                  </field.Layout.Row>
+                )}
+              </AutoSaveForm>
+
+              <AutoSaveForm
+                name="filters:blacklisted_ips"
+                schema={blacklistedIpsSchema}
+                initialValue={String(
+                  currentProject.options?.['filters:blacklisted_ips'] ?? ''
+                )}
+                mutationOptions={{
+                  mutationFn: (data: {'filters:blacklisted_ips': string}) =>
+                    updateProject.mutateAsync({options: data}),
+                }}
+              >
+                {field => (
+                  <field.Layout.Row
+                    label={t('IP Addresses')}
+                    hintText={
+                      <Fragment>
+                        {t('Filter events from these IP addresses. ')}
+                        {newLineHelpText}
+                      </Fragment>
+                    }
+                  >
+                    <field.TextArea
+                      value={field.state.value}
+                      onChange={field.handleChange}
+                      disabled={!hasAccess}
+                      monospace
+                      autosize
+                      rows={1}
+                      maxRows={10}
+                      placeholder="e.g. 127.0.0.1 or 10.0.0.0/8"
                     />
                   </field.Layout.Row>
                 )}

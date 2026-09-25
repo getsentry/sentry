@@ -309,6 +309,31 @@ describe('groupDetails', () => {
     expect(hasSeenMock).toHaveBeenCalled();
   });
 
+  it('replaces the history entry when redirecting from a short id', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${defaultInit.organization.slug}/issues/${group.shortId}/`,
+      body: {...group},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${defaultInit.organization.slug}/issues/${group.shortId}/events/recommended/`,
+      body: {...event},
+    });
+
+    const {router} = createWrapper({
+      ...initialRouterConfig,
+      location: {pathname: `/organizations/org-slug/issues/${group.shortId}/`},
+    });
+
+    await waitFor(() => {
+      expect(router.location.pathname).toBe(
+        `/organizations/org-slug/issues/${group.id}/`
+      );
+    });
+    // Pushing would leave the short id URL in history, and going back to it
+    // would redirect forward again, trapping the back button.
+    expect(router.historyAction).toBe('REPLACE');
+  });
+
   it('renders error when issue is not found', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/`,
@@ -328,6 +353,24 @@ describe('groupDetails', () => {
     expect(
       await screen.findByText('The issue you were looking for was not found.')
     ).toBeInTheDocument();
+  });
+
+  it('retries the issue request after an initial load failure', async () => {
+    const url = `/organizations/${defaultInit.organization.slug}/issues/${group.id}/`;
+    MockApiClient.addMockResponse({url, statusCode: 500});
+    setWindowLocation(`http://localhost/?project=${group.project.id}`);
+
+    render(<GroupDetails />, {
+      organization: defaultInit.organization,
+      initialRouterConfig,
+    });
+
+    const retryButton = await screen.findByRole('button', {name: 'Retry'});
+    const retryRequest = MockApiClient.addMockResponse({url, body: group});
+    await userEvent.click(retryButton);
+
+    expect(await screen.findByText(group.shortId)).toBeInTheDocument();
+    expect(retryRequest).toHaveBeenCalledTimes(1);
   });
 
   it('renders MissingProjectMembership when trying to access issue in project the user does not belong to', async () => {

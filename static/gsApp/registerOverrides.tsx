@@ -36,7 +36,6 @@ import {PrimaryNavSeerConfigReminder} from 'getsentry/components/primaryNavSeerC
 import {ProductSelectionAvailability} from 'getsentry/components/productSelectionAvailability';
 import {ProductUnavailableCTA} from 'getsentry/components/productUnavailableCTA';
 import {ReplayInit} from 'getsentry/components/replayInit';
-import ReplayOnboardingCTA from 'getsentry/components/replayOnboardingCTA';
 import {
   shouldExcludeOrg,
   SuperuserWarning,
@@ -237,7 +236,6 @@ const GETSENTRY_OVERRIDES: Partial<Overrides> = {
   'component:first-party-integration-additional-cta': () =>
     FirstPartyIntegrationAdditionalCTA,
   'component:scm-github-multi-org-install': () => ScmGithubMultiOrgInstall,
-  'component:replay-onboarding-cta': () => ReplayOnboardingCTA,
   'component:replay-settings-alert': () => ReplaySettingsAlert,
   'component:product-unavailable-cta': () => ProductUnavailableCTA,
   'component:product-selection-availability': () => ProductSelectionAvailability,

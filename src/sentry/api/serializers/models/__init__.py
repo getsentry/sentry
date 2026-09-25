@@ -37,6 +37,7 @@ from .orgauthtoken import *  # noqa: F401,F403
 from .project import *  # noqa: F401,F403
 from .project_key import *  # noqa: F401,F403
 from .project_platform import *  # noqa: F401,F403
+from .project_repository import *  # noqa: F401,F403
 from .project_transaction_threshold import *  # noqa: F401,F403
 from .projectcodeowners import *  # noqa: F401,F403
 from .projectownership import *  # noqa: F401,F403

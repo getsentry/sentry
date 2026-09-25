@@ -7,6 +7,7 @@ from sentry import features, options
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.organization import Organization
+from sentry.options.rollout import in_rollout_group
 from sentry.ratelimits import backend as ratelimiter
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.autofix.utils import bulk_read_preferences_from_sentry_db
@@ -176,9 +177,15 @@ def _dispatch(group: Group, activity_type: ActivityType, activity: Activity) -> 
         )
         return
 
+    is_prefetch_enabled = in_rollout_group(
+        "seer.smart_assignment.prefetch_rollout_rate",
+        f"smart-assignment-prefetch:{group.id}",
+    )
+
     extras: dict[str, object] = {
         "trigger": activity_type.name,
         "triggering_activity_id": activity.id,
+        "prefetch_cohort": "prefetch" if is_prefetch_enabled else "control",
     }
 
     preferences = bulk_read_preferences_from_sentry_db(organization.id, [group.project_id])
@@ -190,6 +197,7 @@ def _dispatch(group: Group, activity_type: ActivityType, activity: Activity) -> 
         group_id=group.id,
         project_slug=group.project.slug,
         connected_repos=connected_repos,
+        is_prefetch_enabled=is_prefetch_enabled,
     )
     title = f"Smart assignment for {group.qualified_short_id or group.id}"
     try:

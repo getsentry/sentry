@@ -44,6 +44,8 @@ interface InputSectionProps {
   repoPRStates: Record<string, RepoPRState>;
   textAreaRef: React.RefObject<HTMLTextAreaElement | null>;
   canSendMessage?: boolean;
+  /** Placeholder shown while `enabled` is false. Defaults to the read-only copy. */
+  disabledPlaceholder?: string;
   fileApprovalActions?: FileApprovalActions;
   interruptState?: 'can-interrupt' | 'requested' | 'completed' | 'disabled';
   questionActions?: QuestionActions;
@@ -54,6 +56,7 @@ export function InputSection({
   enabled,
   inputValue,
   canSendMessage = true,
+  disabledPlaceholder,
   interruptState = 'disabled',
   onCreatePR,
   onInputChange,
@@ -149,9 +152,10 @@ export function InputSection({
           <StyledInputGroup>
             <InputGroup.TextArea
               disabled
-              placeholder={t(
-                'This conversation is owned by another user and is read-only'
-              )}
+              placeholder={
+                disabledPlaceholder ??
+                t('This conversation is owned by another user and is read-only')
+              }
               rows={1}
               size="md"
               data-test-id="seer-explorer-input"

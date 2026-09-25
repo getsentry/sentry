@@ -85,7 +85,20 @@ describe('AutomationDetail', () => {
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/workflows/123/stats/',
-      body: [],
+      body: {
+        meta: {dataset: 'workflow', start: 0, end: 60 * 60 * 1000},
+        timeSeries: [
+          {
+            yAxis: 'count()',
+            values: [],
+            meta: {
+              interval: 60 * 60 * 1000,
+              valueType: 'integer',
+              valueUnit: null,
+            },
+          },
+        ],
+      },
     });
 
     MockApiClient.addMockResponse({

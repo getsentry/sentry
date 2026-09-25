@@ -188,33 +188,33 @@ importers:
       '@sentry-internal/global-search':
         specifier: ^1.0.0
         version: 1.0.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
-      '@sentry-internal/rrweb':
-        specifier: 2.41.0
-        version: 2.41.0
-      '@sentry-internal/rrweb-player':
-        specifier: 2.41.0
-        version: 2.41.0
-      '@sentry-internal/rrweb-snapshot':
-        specifier: 2.41.0
-        version: 2.41.0
       '@sentry/browser':
-        specifier: 11.0.0-rc.1
-        version: 11.0.0-rc.1
+        specifier: 11.0.0
+        version: 11.0.0
       '@sentry/conventions':
-        specifier: ^0.23.0
-        version: 0.23.0
+        specifier: ^0.24.0
+        version: 0.24.0
       '@sentry/core':
-        specifier: 11.0.0-rc.1
-        version: 11.0.0-rc.1
+        specifier: 11.0.0
+        version: 11.0.0
       '@sentry/node':
-        specifier: 11.0.0-rc.1
-        version: 11.0.0-rc.1
+        specifier: 11.0.0
+        version: 11.0.0
       '@sentry/react':
-        specifier: 11.0.0-rc.1
-        version: 11.0.0-rc.1(react-router@6.30.3(react@19.2.3))(react@19.2.3)
+        specifier: 11.0.0
+        version: 11.0.0(react-router@6.30.3(react@19.2.3))(react@19.2.3)
       '@sentry/release-parser':
         specifier: ^1.3.1
         version: 1.3.1
+      '@sentry/rrweb':
+        specifier: 2.44.0
+        version: 2.44.0
+      '@sentry/rrweb-player':
+        specifier: 2.44.0
+        version: 2.44.0
+      '@sentry/rrweb-snapshot':
+        specifier: 2.44.0
+        version: 2.44.0
       '@sentry/sqlish':
         specifier: 1.0.1
         version: 1.0.1(react@19.2.3)
@@ -314,6 +314,9 @@ importers:
       '@types/reflux':
         specifier: 0.4.1
         version: 0.4.1
+      '@types/trusted-types':
+        specifier: ^2.0.7
+        version: 2.0.7
       ansi-to-react:
         specifier: ^6.1.6
         version: 6.1.6(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
@@ -561,12 +564,12 @@ importers:
       '@jest/types':
         specifier: 30.5.1
         version: 30.5.1
-      '@sentry-internal/rrweb-types':
-        specifier: 2.43.0
-        version: 2.43.0
       '@sentry/jest-environment':
         specifier: 8.0.0
-        version: 8.0.0(@jest/environment-jsdom-abstract@30.5.1(@types/jsdom@21.1.7)(jsdom@30.1.0(patch_hash=5dac761088e7baf0d6a93f505737e3e3f0dc178680ab47fb53483561d730388a)))(@sentry/node@11.0.0-rc.1)(jest-environment-node@30.5.1)(jest@30.5.1(@types/node@24.13.2)(babel-plugin-macros@3.1.0)(ts-node@10.9.2(@swc/core@1.16.2)(@types/node@24.13.2)(@typescript/typescript6@6.0.2)))(jsdom@30.1.0(patch_hash=5dac761088e7baf0d6a93f505737e3e3f0dc178680ab47fb53483561d730388a))
+        version: 8.0.0(@jest/environment-jsdom-abstract@30.5.1(@types/jsdom@21.1.7)(jsdom@30.1.0(patch_hash=5dac761088e7baf0d6a93f505737e3e3f0dc178680ab47fb53483561d730388a)))(@sentry/node@11.0.0)(jest-environment-node@30.5.1)(jest@30.5.1(@types/node@24.13.2)(babel-plugin-macros@3.1.0)(ts-node@10.9.2(@swc/core@1.16.2)(@types/node@24.13.2)(@typescript/typescript6@6.0.2)))(jsdom@30.1.0(patch_hash=5dac761088e7baf0d6a93f505737e3e3f0dc178680ab47fb53483561d730388a))
+      '@sentry/rrweb-types':
+        specifier: 2.44.0
+        version: 2.44.0
       '@swc-contrib/mut-cjs-exports':
         specifier: 15.0.0
         version: 15.0.0(@swc/core@1.16.2)(@swc/jest@0.2.39(@swc/core@1.16.2))
@@ -619,8 +622,8 @@ importers:
         specifier: 7.37.5
         version: 7.37.5(eslint@10.8.0(jiti@2.7.0))
       eslint-plugin-react-you-might-not-need-an-effect:
-        specifier: 0.5.3
-        version: 0.5.3(eslint@10.8.0(jiti@2.7.0))
+        specifier: 1.0.2
+        version: 1.0.2(eslint@10.8.0(jiti@2.7.0))
       eslint-plugin-regexp:
         specifier: 3.1.1
         version: 3.1.1(eslint@10.8.0(jiti@2.7.0))
@@ -3417,48 +3420,24 @@ packages:
       react: '>=16'
       react-dom: '>=16'
 
-  '@sentry-internal/rrdom@2.41.0':
-    resolution: {integrity: sha512-oFBTYW/YH98Hp43AsgXXx0FUY2GmwFVYeEdwKqCxui6yV3cLH9ut2aguFLbel7VmCsgsvEuzvDx6z04mbWJgNA==}
-
-  '@sentry-internal/rrweb-packer@2.41.0':
-    resolution: {integrity: sha512-1X4ckBAjtFBZlQ8AlT4sUsuTi8yfrQfq4GJ03lbpdawgiH8NGr6ZBR2pl0ZTHo7bUGDGPA5VSYUuztEEzfNuuA==}
-
-  '@sentry-internal/rrweb-player@2.41.0':
-    resolution: {integrity: sha512-XUGhvTG90DonA7aV/7NS4/p2bEyTlX+U0kCsxp0dOq1i+Z0bYPEUPK2TJPVQJY7fgl44DPBJZiCvRe32760SuA==}
-
-  '@sentry-internal/rrweb-snapshot@2.41.0':
-    resolution: {integrity: sha512-2NPQmwfbVONnyLOOwQ4WP+PIJx+qB5mEIFUq2bpgWglDSPSkr6yxnMB2kT+lE8P3OC/N3I/IrV0vEyFEReVgBA==}
-
-  '@sentry-internal/rrweb-snapshot@2.43.0':
-    resolution: {integrity: sha512-DF6HOwkOTpxCYZWCLZ32Sl27f6iXi4jSyonhjkie44Wr9nMe6Zvey/V0glm8xI1XkGqZaFGUVzVRReezwwkeHg==}
-
-  '@sentry-internal/rrweb-types@2.41.0':
-    resolution: {integrity: sha512-9+sfBcblve5i6uZpeu9s/tCUhhwg3wb8Ywe4RjVI4jNywVYsCJscpswbM8mdNUNvJpaaZud0QLS50HwQycCEZA==}
-
-  '@sentry-internal/rrweb-types@2.43.0':
-    resolution: {integrity: sha512-T98inxcRWi+GhZIPBOdAE0xaKxnm6am3h+9mbkN+rDqdFz/TsGF+bTvjTHuZ/nE7dzCGCxGnwQCNnJk9Z14x4A==}
-
-  '@sentry-internal/rrweb@2.41.0':
-    resolution: {integrity: sha512-Pq5Ng/NhXza40lIXAjBCclvuC+QFwAktWwl2Sa/oMH//GxtDc/mcWV7CIHdsiSbTkd3jFQZcuutByFq2hlCSug==}
-
   '@sentry/babel-plugin-component-annotate@5.3.0':
     resolution: {integrity: sha512-p4q8gn8wcFqZGP/s2MnJCAAd8fTikaU6A0mM97RDHQgStcrYiaS0Sc5zUNfb1V+UOLPuvdEdL6MwyxfzjYJQTA==}
     engines: {node: '>= 18'}
 
-  '@sentry/browser-utils@11.0.0-rc.1':
-    resolution: {integrity: sha512-1G13DpgQvaR+mqvo9CRavXIQKus7xV2N2zM6eOJwF0Pca2SIudT8lzjoGDG98+EO7h2b978TtjJzmmWluvqrkg==}
+  '@sentry/browser-utils@11.0.0':
+    resolution: {integrity: sha512-ZvGyfDoVeSuaAF78vSeYOFcibUCpQfYlUVpqE+B0RANzoSCBg3JimRa+cDYB/rq36PjRwINk4u2viK2JdO320w==}
     engines: {node: '>=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0'}
 
-  '@sentry/browser@11.0.0-rc.1':
-    resolution: {integrity: sha512-amjroiTLz7T4k9bCC9lFapa2ngrV6WULHvF8gD/3j5U2SSSYW2AgMqO1jhRw+Woktgp6jRkgDgYbLffgcdY2aw==}
+  '@sentry/browser@11.0.0':
+    resolution: {integrity: sha512-a09jUpx4OBebmY0XLYXLhfvkCIken8xoncjmOmbPIa3ibUHI6ZJVyh3jAzMu56LY9xfJRV5bOfp92yf41Yr6dQ==}
     engines: {node: '>=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0'}
 
   '@sentry/bundler-plugin-core@5.3.0':
     resolution: {integrity: sha512-L5T60sWdAI3qWwdg3Ptwek/0TY59PERrxyqp4XMUkroayQvGd9r5dIW9Q1kSeXX9iJ442nXbFZKAOyCKV4Z13Q==}
     engines: {node: '>= 18'}
 
-  '@sentry/bundler-plugins@11.0.0-rc.1':
-    resolution: {integrity: sha512-NB6gYXxxuT3ynw8TA7wtQRu/bFl69c+L9NLaWTKx+KRF7ujblw32gGkSorZdSL1na4GVCFHSluv4LH8roKBDfg==}
+  '@sentry/bundler-plugins@11.0.0':
+    resolution: {integrity: sha512-Oe4/8CbsYrqdjTt91JFMBQza59IWUfSwPrlHGbbJT+qVCyebX2bykxv3mfa6Ty/Gmt8+gva/DI6Kjcyb9EgXBg==}
     engines: {node: '>=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0'}
     peerDependencies:
       rollup: '>=3.2.0'
@@ -3525,12 +3504,16 @@ packages:
     resolution: {integrity: sha512-+Euyo7CNVecoOusgUnq27oV97oshifgceKfnGnuKfXrPUVWA/cisvii3E1rlvy2yBrKvl9K1gCEo1Jqog5zjEQ==}
     engines: {node: '>=14'}
 
-  '@sentry/core@11.0.0-rc.1':
-    resolution: {integrity: sha512-YXQRZTL6CWljXRrkazw2fCA7LGmwLApIlEG05cqCg62kY0T//Af2AzwG0hPqEEMzTitQZ4wfwS2d4hvRRV2uNA==}
+  '@sentry/conventions@0.24.0':
+    resolution: {integrity: sha512-pmmF2mLy7A23z8gnLRG87lYu4SSPIBColtfqu9cfkh1omn/0CI3w0/AqZ/uf/VGAtM/wJMN61J58Ks/IWBCHpQ==}
+    engines: {node: '>=14'}
+
+  '@sentry/core@11.0.0':
+    resolution: {integrity: sha512-Sdmg21POKmNwZDz8pH/2FtilWeryh3yxhRxbfA1ph8SnX2DkXoqX6G+uXyjCSYagW2pefVklmSNeWHmUlSqioA==}
     engines: {node: '>=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0'}
 
-  '@sentry/feedback@11.0.0-rc.1':
-    resolution: {integrity: sha512-PfgfT4ArOaF8UrusQsMirEINW7vKNZ8phcCBjxpl/FUYFJyTjZcq97msVUR7bmTowwSTDbrQeDNoJ+f96LG6kQ==}
+  '@sentry/feedback@11.0.0':
+    resolution: {integrity: sha512-ZdUE6qSfMH4zturLHxg8idfI8cA+JdfrisqUQ6hE6MKaIAAZysNIPvvFysE2WQDjFbj3puS1iZm0jg0ym7kA5g==}
     engines: {node: '>=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0'}
 
   '@sentry/jest-environment@8.0.0':
@@ -3550,18 +3533,18 @@ packages:
       jsdom:
         optional: true
 
-  '@sentry/node@11.0.0-rc.1':
-    resolution: {integrity: sha512-B2UU6xlEldbTDreQYASnMJdNqJloubuGV/2FItYxdhDk4dAulm2RqmBekH9q5D8L9bPNuVwjSQQy/7pdzg/d6A==}
+  '@sentry/node@11.0.0':
+    resolution: {integrity: sha512-ZHk2wYvnKPfaq05YHnva/a6EzZDLTG0EStcWnQdjSae/OxluwCfOfMqwlsKxaY8KDUkyqokTCUPqJITZpUH1Jw==}
     engines: {node: '>=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0'}
 
-  '@sentry/opentelemetry@11.0.0-rc.1':
-    resolution: {integrity: sha512-8X2bTlo9aSzTxP2zVBltqV4y1qQ7Zk0+sK6Gb/e6nuWpVFyOMlxG202BKvz73d84K933ybMSk9khT9Cw4pvFTA==}
+  '@sentry/opentelemetry@11.0.0':
+    resolution: {integrity: sha512-m2EtgppTtN6MxW0dKA45aZMI/xoFZYi2I2cvTIenFGTGLfxyjk6+YCbg0Jf/wdUWoZjR0k6kBBBIbv+zpuvTOA==}
     engines: {node: '>=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0'}
     peerDependencies:
       '@opentelemetry/api': ^1.9.0
 
-  '@sentry/react@11.0.0-rc.1':
-    resolution: {integrity: sha512-moyVtAAOZgD9L7AqhVwiUDSfa06i5wFPZ3p78R1SHnDXcQQBKWyhb2RBJSq/5eDfraJfM5KO186tVhOEEgm7Kw==}
+  '@sentry/react@11.0.0':
+    resolution: {integrity: sha512-YMF4t9659byD3rYZ9zjE5vdL3NUVFBEQfHzbMJf4kow7h7eyDdQi8GN4K1qsOFBim5C/7/ry0dkP1r4p7qtEWA==}
     engines: {node: '>=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0'}
     peerDependencies:
       react: 17.x || 18.x || 19.x
@@ -3573,20 +3556,38 @@ packages:
   '@sentry/release-parser@1.3.1':
     resolution: {integrity: sha512-/dGpCq+j3sJhqQ14RNEEL45Ot/rgq3jAlZDD/8ufeqq+W8p4gUhSrbGWCRL82NEIWY9SYwxYXGXjRcVPSHiA1Q==}
 
-  '@sentry/replay-canvas@11.0.0-rc.1':
-    resolution: {integrity: sha512-6FqzRKuLyDoeeMYYjO1YICwMgL068E4VKNE44v9XZV+mczxlVOXDGebomi7TCdhiLw3FDL/2tyCRffYATLNRwg==}
+  '@sentry/replay-canvas@11.0.0':
+    resolution: {integrity: sha512-cWAx4Fc+T36w4SwN0Ee35xVLrx+nt2kk2An3gKPqgRU0HwxA1w14fKAxcXfKlJcy/K7nnNMgerznvWKgBObenw==}
     engines: {node: '>=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0'}
 
-  '@sentry/replay@11.0.0-rc.1':
-    resolution: {integrity: sha512-8Rkw4u+7Nu6Ukvcru8wfcPgi8TiMP91jmDW+OKgLpSINjeFop/GctqO6eJJ4nhr8KYPou9QfGs0sRjNleEhclg==}
+  '@sentry/replay@11.0.0':
+    resolution: {integrity: sha512-4/36Iw288SaWEwLjhpLRjCjL2UmSNEyU0TvLrAlzRAoYdksneEe7iQTSe7WD257buSgop0m+lauGRHQf7fD9qg==}
     engines: {node: '>=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0'}
 
-  '@sentry/server-runtime-injection@11.0.0-rc.1':
-    resolution: {integrity: sha512-kKiitppKxxMdOrnFHu2rxewCbUOP1lZIKextsWNZpuXrPePANkTJnP4F/AHFREHrPeLhzuls+ZrQqWYb3MDSiA==}
+  '@sentry/rrdom@2.44.0':
+    resolution: {integrity: sha512-Hv9seHyX0pBaemWvKkYhserC1NY3ThBBlJ73HZOfd8TmOAGX48jL7iULUvWoToYLD+o429d9Ji+/O7gRjrrwaw==}
+
+  '@sentry/rrweb-packer@2.44.0':
+    resolution: {integrity: sha512-fJSgWcsdi28tueAhrvR1DXcxXq6DeNy+G3IxL8prj2Z31yRanTtGJQ1Vt+aFh9nZxCz/mWvrBUCccJJuDZ2uZw==}
+
+  '@sentry/rrweb-player@2.44.0':
+    resolution: {integrity: sha512-/UWIJl4KAZsFWxWiYjTRyU1d3B2X3FqluE7+Yp/td6kDcVmqPU8Lu3LygvGmQrabGrOyvHsZNtelnaBHsuupoA==}
+
+  '@sentry/rrweb-snapshot@2.44.0':
+    resolution: {integrity: sha512-eAG1oQ9T815TzXyX8S6mtgwr1eZdI4HtxO4qwNNLhKXddSZD8mHRZpU3MVuTzVe80fEVISOqp54dwWkTn2Jslg==}
+
+  '@sentry/rrweb-types@2.44.0':
+    resolution: {integrity: sha512-/Nly7y88iCzGFddO2IMcZN9KvqqltwsRm5QN4H9uk6mLkKNTU+5+LmeWNsDhYhZyDUbEF8PJF/rqm0AGD58AOw==}
+
+  '@sentry/rrweb@2.44.0':
+    resolution: {integrity: sha512-iyy7adl1MM2T75Nvd3JxNPEJkJsas+5Z4HbD8dgqDcxGWdQ4jj51rR8mDUPumUajXxJjPHchjp8ltEvquxkwLA==}
+
+  '@sentry/server-runtime-injection@11.0.0':
+    resolution: {integrity: sha512-AE39xdGbi8WmcB9LtITuvJkp+sYxkPAR+3lRG4MYrJLVQS+YeYfn/AaZdEXOhnOagdpozsDbpEneGJn6vD8p6Q==}
     engines: {node: '>=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0'}
 
-  '@sentry/server-utils@11.0.0-rc.1':
-    resolution: {integrity: sha512-RxbPq5ZDPiEIjtPZd3UHQKsWyWEr98ZHnBh/jfOYGBwPSBCJQEVI0/iGEDkwTuVHqOTQPf/tokO991TKc45pXw==}
+  '@sentry/server-utils@11.0.0':
+    resolution: {integrity: sha512-XlKDtLoNqOhI+TgCNywan/tFy0yMRzw5+8mdp96KNHtF/YwO9s6c7qZcBG0x8+XDyC0EoNXDlBPJOMEZo5lD4Q==}
     engines: {node: '>=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0'}
 
   '@sentry/sqlish@1.0.1':
@@ -5882,8 +5883,8 @@ packages:
       '@testing-library/dom':
         optional: true
 
-  eslint-plugin-react-you-might-not-need-an-effect@0.5.3:
-    resolution: {integrity: sha512-/tkUN71PIp5+LVSDb9y3MA4zMyjVGJojfWCeC2NSWhRRBbc0NRR8WnFXe2h3bw6tTcYMack/dlHME5YVu/0Fmw==}
+  eslint-plugin-react-you-might-not-need-an-effect@1.0.2:
+    resolution: {integrity: sha512-HgYol2zhH3KbnW9Q4FY/FcIINbsYVL6rwQESChqBC2s9SLWtw1wg05+J7SCrr3BfQpNY2ReYhf8xjpd2JhKJOQ==}
     engines: {node: '>=14.0.0'}
     peerDependencies:
       eslint: '>=8.40.0'
@@ -5915,16 +5916,6 @@ packages:
   eslint-scope@9.1.2:
     resolution: {integrity: sha512-xS90H51cKw0jltxmvmHy2Iai1LIqrfbw57b79w/J7MfvDfkIkFZ+kj6zC3BjtUwh150HsSSdxXZcsuv72miDFQ==}
     engines: {node: ^20.19.0 || ^22.13.0 || >=24}
-
-  eslint-utils@3.0.0:
-    resolution: {integrity: sha512-uuQC43IGctw68pJA1RgbQS8/NP7rch6Cwd4j3ZBtgo4/8Flj4eGE7ZYSZRN3iq5pVUv6GPdW5Z1RFleo84uLDA==}
-    engines: {node: ^10.0.0 || ^12.0.0 || >= 14.0.0}
-    peerDependencies:
-      eslint: '>=5'
-
-  eslint-visitor-keys@2.1.0:
-    resolution: {integrity: sha512-0rSmRBzXgDzIsD6mGdJgevzgezI534Cer5L/vyMX0kHzT/jiB43jRhd9YUlMGYLQy2zprNmoT8qasCGtY+QaKw==}
-    engines: {node: '>=10'}
 
   eslint-visitor-keys@3.4.3:
     resolution: {integrity: sha512-wpc+LXeiyiisxPlEkUzU6svyS1frIO3Mgxj1fdy7Pm8Ygzguax2N3Fa/D/ag1WqbOprdI+uY6wMUl8/a2G+iag==}
@@ -6316,8 +6307,8 @@ packages:
     resolution: {integrity: sha512-WOBp/EEGUiIsJSp7wcv/y6MO+lV9UoncWqxuFfm8eBwzWNgyfBd6Gz+IeKQ9jCmyhoH99g15M3T+QaVHFjizVA==}
     engines: {node: '>=4'}
 
-  globals@16.3.0:
-    resolution: {integrity: sha512-bqWEnJ1Nt3neqx2q5SFfGS8r/ahumIakg3HcwtNlrVlwXIeNumWn/c7Pn/wKzGhf6SaW6H6uWXLqC30STCMchQ==}
+  globals@16.5.0:
+    resolution: {integrity: sha512-c/c15i26VrJ4IRt5Z89DnIzCGDn9EcebibhAOjw5ibqEHsE1wLUgkPn9RDmNcUKyU87GeaL633nyJ+pplFR2ZQ==}
     engines: {node: '>=18'}
 
   globals@17.12.0:
@@ -12022,62 +12013,22 @@ snapshots:
       react-dom: 19.2.3(react@19.2.3)
       title-case: 3.0.2
 
-  '@sentry-internal/rrdom@2.41.0':
-    dependencies:
-      '@sentry-internal/rrweb-snapshot': 2.41.0
-
-  '@sentry-internal/rrweb-packer@2.41.0':
-    dependencies:
-      '@sentry-internal/rrweb-types': 2.41.0
-      fflate: 0.4.8
-
-  '@sentry-internal/rrweb-player@2.41.0':
-    dependencies:
-      '@sentry-internal/rrweb': 2.41.0
-      '@sentry-internal/rrweb-packer': 2.41.0
-      '@tsconfig/svelte': 1.0.13
-
-  '@sentry-internal/rrweb-snapshot@2.41.0': {}
-
-  '@sentry-internal/rrweb-snapshot@2.43.0': {}
-
-  '@sentry-internal/rrweb-types@2.41.0':
-    dependencies:
-      '@sentry-internal/rrweb-snapshot': 2.41.0
-      '@types/css-font-loading-module': 0.0.7
-
-  '@sentry-internal/rrweb-types@2.43.0':
-    dependencies:
-      '@sentry-internal/rrweb-snapshot': 2.43.0
-      '@types/css-font-loading-module': 0.0.7
-
-  '@sentry-internal/rrweb@2.41.0':
-    dependencies:
-      '@sentry-internal/rrdom': 2.41.0
-      '@sentry-internal/rrweb-snapshot': 2.41.0
-      '@sentry-internal/rrweb-types': 2.41.0
-      '@types/css-font-loading-module': 0.0.7
-      '@xstate/fsm': 1.6.5
-      base64-arraybuffer: 1.0.2
-      fflate: 0.4.8
-      mitt: 3.0.1
-
   '@sentry/babel-plugin-component-annotate@5.3.0': {}
 
-  '@sentry/browser-utils@11.0.0-rc.1':
+  '@sentry/browser-utils@11.0.0':
     dependencies:
       '@sentry/conventions': 0.23.0
-      '@sentry/core': 11.0.0-rc.1
+      '@sentry/core': 11.0.0
       web-vitals: 6.2.2
 
-  '@sentry/browser@11.0.0-rc.1':
+  '@sentry/browser@11.0.0':
     dependencies:
-      '@sentry/browser-utils': 11.0.0-rc.1
+      '@sentry/browser-utils': 11.0.0
       '@sentry/conventions': 0.23.0
-      '@sentry/core': 11.0.0-rc.1
-      '@sentry/feedback': 11.0.0-rc.1
-      '@sentry/replay': 11.0.0-rc.1
-      '@sentry/replay-canvas': 11.0.0-rc.1
+      '@sentry/core': 11.0.0
+      '@sentry/feedback': 11.0.0
+      '@sentry/replay': 11.0.0
+      '@sentry/replay-canvas': 11.0.0
 
   '@sentry/bundler-plugin-core@5.3.0(encoding@0.1.13)':
     dependencies:
@@ -12092,10 +12043,10 @@ snapshots:
       - encoding
       - supports-color
 
-  '@sentry/bundler-plugins@11.0.0-rc.1':
+  '@sentry/bundler-plugins@11.0.0':
     dependencies:
       '@babel/core': 7.29.7(supports-color@8.1.1)
-      '@sentry/core': 11.0.0-rc.1
+      '@sentry/core': 11.0.0
       dotenv: 17.4.2
       glob: 13.0.6
       magic-string: 0.30.21
@@ -12149,73 +12100,108 @@ snapshots:
 
   '@sentry/conventions@0.23.0': {}
 
-  '@sentry/core@11.0.0-rc.1':
+  '@sentry/conventions@0.24.0': {}
+
+  '@sentry/core@11.0.0':
     dependencies:
       '@sentry/conventions': 0.23.0
 
-  '@sentry/feedback@11.0.0-rc.1':
+  '@sentry/feedback@11.0.0':
     dependencies:
-      '@sentry/core': 11.0.0-rc.1
+      '@sentry/core': 11.0.0
 
-  '@sentry/jest-environment@8.0.0(@jest/environment-jsdom-abstract@30.5.1(@types/jsdom@21.1.7)(jsdom@30.1.0(patch_hash=5dac761088e7baf0d6a93f505737e3e3f0dc178680ab47fb53483561d730388a)))(@sentry/node@11.0.0-rc.1)(jest-environment-node@30.5.1)(jest@30.5.1(@types/node@24.13.2)(babel-plugin-macros@3.1.0)(ts-node@10.9.2(@swc/core@1.16.2)(@types/node@24.13.2)(@typescript/typescript6@6.0.2)))(jsdom@30.1.0(patch_hash=5dac761088e7baf0d6a93f505737e3e3f0dc178680ab47fb53483561d730388a))':
+  '@sentry/jest-environment@8.0.0(@jest/environment-jsdom-abstract@30.5.1(@types/jsdom@21.1.7)(jsdom@30.1.0(patch_hash=5dac761088e7baf0d6a93f505737e3e3f0dc178680ab47fb53483561d730388a)))(@sentry/node@11.0.0)(jest-environment-node@30.5.1)(jest@30.5.1(@types/node@24.13.2)(babel-plugin-macros@3.1.0)(ts-node@10.9.2(@swc/core@1.16.2)(@types/node@24.13.2)(@typescript/typescript6@6.0.2)))(jsdom@30.1.0(patch_hash=5dac761088e7baf0d6a93f505737e3e3f0dc178680ab47fb53483561d730388a))':
     dependencies:
-      '@sentry/node': 11.0.0-rc.1
+      '@sentry/node': 11.0.0
       jest: 30.5.1(@types/node@24.13.2)(babel-plugin-macros@3.1.0)(ts-node@10.9.2(@swc/core@1.16.2)(@types/node@24.13.2)(@typescript/typescript6@6.0.2))
     optionalDependencies:
       '@jest/environment-jsdom-abstract': 30.5.1(@types/jsdom@21.1.7)(jsdom@30.1.0(patch_hash=5dac761088e7baf0d6a93f505737e3e3f0dc178680ab47fb53483561d730388a))
       jest-environment-node: 30.5.1
       jsdom: 30.1.0(patch_hash=5dac761088e7baf0d6a93f505737e3e3f0dc178680ab47fb53483561d730388a)
 
-  '@sentry/node@11.0.0-rc.1':
+  '@sentry/node@11.0.0':
     dependencies:
       '@opentelemetry/api': 1.9.1
-      '@sentry/bundler-plugins': 11.0.0-rc.1
+      '@sentry/bundler-plugins': 11.0.0
       '@sentry/conventions': 0.23.0
-      '@sentry/core': 11.0.0-rc.1
-      '@sentry/opentelemetry': 11.0.0-rc.1(@opentelemetry/api@1.9.1)
-      '@sentry/server-runtime-injection': 11.0.0-rc.1
-      '@sentry/server-utils': 11.0.0-rc.1
+      '@sentry/core': 11.0.0
+      '@sentry/opentelemetry': 11.0.0(@opentelemetry/api@1.9.1)
+      '@sentry/server-runtime-injection': 11.0.0
+      '@sentry/server-utils': 11.0.0
     transitivePeerDependencies:
       - rollup
       - webpack
 
-  '@sentry/opentelemetry@11.0.0-rc.1(@opentelemetry/api@1.9.1)':
+  '@sentry/opentelemetry@11.0.0(@opentelemetry/api@1.9.1)':
     dependencies:
       '@opentelemetry/api': 1.9.1
       '@sentry/conventions': 0.23.0
-      '@sentry/core': 11.0.0-rc.1
+      '@sentry/core': 11.0.0
 
-  '@sentry/react@11.0.0-rc.1(react-router@6.30.3(react@19.2.3))(react@19.2.3)':
+  '@sentry/react@11.0.0(react-router@6.30.3(react@19.2.3))(react@19.2.3)':
     dependencies:
-      '@sentry/browser': 11.0.0-rc.1
+      '@sentry/browser': 11.0.0
       '@sentry/conventions': 0.23.0
-      '@sentry/core': 11.0.0-rc.1
+      '@sentry/core': 11.0.0
       react: 19.2.3
     optionalDependencies:
       react-router: 6.30.3(react@19.2.3)
 
   '@sentry/release-parser@1.3.1': {}
 
-  '@sentry/replay-canvas@11.0.0-rc.1':
+  '@sentry/replay-canvas@11.0.0':
     dependencies:
-      '@sentry/core': 11.0.0-rc.1
-      '@sentry/replay': 11.0.0-rc.1
+      '@sentry/core': 11.0.0
+      '@sentry/replay': 11.0.0
 
-  '@sentry/replay@11.0.0-rc.1':
+  '@sentry/replay@11.0.0':
     dependencies:
-      '@sentry/browser-utils': 11.0.0-rc.1
-      '@sentry/core': 11.0.0-rc.1
+      '@sentry/browser-utils': 11.0.0
+      '@sentry/core': 11.0.0
 
-  '@sentry/server-runtime-injection@11.0.0-rc.1':
+  '@sentry/rrdom@2.44.0':
     dependencies:
-      '@sentry/core': 11.0.0-rc.1
-      '@sentry/server-utils': 11.0.0-rc.1
+      '@sentry/rrweb-snapshot': 2.44.0
 
-  '@sentry/server-utils@11.0.0-rc.1':
+  '@sentry/rrweb-packer@2.44.0':
+    dependencies:
+      '@sentry/rrweb-types': 2.44.0
+      fflate: 0.4.8
+
+  '@sentry/rrweb-player@2.44.0':
+    dependencies:
+      '@sentry/rrweb': 2.44.0
+      '@sentry/rrweb-packer': 2.44.0
+      '@tsconfig/svelte': 1.0.13
+
+  '@sentry/rrweb-snapshot@2.44.0': {}
+
+  '@sentry/rrweb-types@2.44.0':
+    dependencies:
+      '@sentry/rrweb-snapshot': 2.44.0
+      '@types/css-font-loading-module': 0.0.7
+
+  '@sentry/rrweb@2.44.0':
+    dependencies:
+      '@sentry/rrdom': 2.44.0
+      '@sentry/rrweb-snapshot': 2.44.0
+      '@sentry/rrweb-types': 2.44.0
+      '@types/css-font-loading-module': 0.0.7
+      '@xstate/fsm': 1.6.5
+      base64-arraybuffer: 1.0.2
+      fflate: 0.4.8
+      mitt: 3.0.1
+
+  '@sentry/server-runtime-injection@11.0.0':
+    dependencies:
+      '@sentry/core': 11.0.0
+      '@sentry/server-utils': 11.0.0
+
+  '@sentry/server-utils@11.0.0':
     dependencies:
       '@opentelemetry/api': 1.9.1
       '@sentry/conventions': 0.23.0
-      '@sentry/core': 11.0.0-rc.1
+      '@sentry/core': 11.0.0
 
   '@sentry/sqlish@1.0.1(react@19.2.3)':
     optionalDependencies:
@@ -12904,8 +12890,7 @@ snapshots:
 
   '@types/tough-cookie@4.0.5': {}
 
-  '@types/trusted-types@2.0.7':
-    optional: true
+  '@types/trusted-types@2.0.7': {}
 
   '@types/unist@2.0.11': {}
 
@@ -14577,11 +14562,10 @@ snapshots:
     optionalDependencies:
       '@testing-library/dom': 10.4.1
 
-  eslint-plugin-react-you-might-not-need-an-effect@0.5.3(eslint@10.8.0(jiti@2.7.0)):
+  eslint-plugin-react-you-might-not-need-an-effect@1.0.2(eslint@10.8.0(jiti@2.7.0)):
     dependencies:
       eslint: 10.8.0(jiti@2.7.0)
-      eslint-utils: 3.0.0(eslint@10.8.0(jiti@2.7.0))
-      globals: 16.3.0
+      globals: 16.5.0
 
   eslint-plugin-react@7.37.5(eslint@10.8.0(jiti@2.7.0)):
     dependencies:
@@ -14655,13 +14639,6 @@ snapshots:
       '@types/estree': 1.0.9
       esrecurse: 4.3.0
       estraverse: 5.3.0
-
-  eslint-utils@3.0.0(eslint@10.8.0(jiti@2.7.0)):
-    dependencies:
-      eslint: 10.8.0(jiti@2.7.0)
-      eslint-visitor-keys: 2.1.0
-
-  eslint-visitor-keys@2.1.0: {}
 
   eslint-visitor-keys@3.4.3: {}
 
@@ -15131,7 +15108,7 @@ snapshots:
 
   globals@11.12.0: {}
 
-  globals@16.3.0: {}
+  globals@16.5.0: {}
 
   globals@17.12.0: {}
 

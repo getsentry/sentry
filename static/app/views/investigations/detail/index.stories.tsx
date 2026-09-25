@@ -38,6 +38,7 @@ const completedInvestigation = InvestigationBreachedMetricDetailFixture({
     type: 'metric_open_period',
     ref: {groupId: 'metric-alert-42', openPeriodId: 'open-period-17'},
     revision: 1,
+    snapshot: {monitor: {id: '42', name: 'Checkout p95 latency'}},
   },
   blocks: [
     InvestigationBlockFixture({
