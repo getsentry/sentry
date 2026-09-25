@@ -45,7 +45,7 @@ from sentry.tasks.seer.agentic_triage.skip_cache import mark_skipped
 from sentry.types.activity import ActivityType
 from sentry.utils import json
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("sentry.seer.night_shift.delivery")
 
 # Verdict reasons are LLM-generated free text; cap what we persist per row.
 REASON_MAX_CHARS = 2048
@@ -86,7 +86,7 @@ def _capture_autofix_issue_data(
             event_data = _get_serialized_event(group)
             if event_data is None:
                 logger.warning(
-                    "agentic_triage.autofix_issue_data.event_not_found",
+                    "night_shift.autofix_issue_data.event_not_found",
                     extra={**log_extra, "group_id": group.id},
                 )
                 continue
@@ -121,7 +121,7 @@ def _capture_autofix_issue_data(
             event_ids[group.id] = event_id
         except Exception:
             logger.exception(
-                "agentic_triage.autofix_issue_data.capture_failed",
+                "night_shift.autofix_issue_data.capture_failed",
                 extra={**log_extra, "group_id": group.id},
             )
 
@@ -152,7 +152,7 @@ def deliver_agentic_triage_result(
     )
     if shard is None:
         logger.warning(
-            "agentic_triage.delivery.missing_run",
+            "night_shift.delivery.missing_run",
             extra={"organization_id": organization_id, "run_uuid": run_uuid},
         )
         return
@@ -176,25 +176,25 @@ def deliver_agentic_triage_result(
         "organization_id": run.organization_id,
         "run_id": shard.seer_run.seer_run_state_id,
         "sentry_run_id": run_uuid,
-        "agentic_triage_run_id": run.id,
+        "night_shift_run_id": run.id,
     }
 
     if status == "error" or result is None:
         sentry_sdk.metrics.count(
-            "agentic_triage.triage_error",
+            "night_shift.triage_error",
             1,
             attributes={"error_type": "delivery_error" if status == "error" else "no_artifact"},
         )
-        logger.warning("agentic_triage.delivery.no_result", extra={**log_extra, "status": status})
+        logger.warning("night_shift.delivery.no_result", extra={**log_extra, "status": status})
         return
 
     try:
         triage_response = TriageResponse.parse_obj(result)
     except Exception:
         sentry_sdk.metrics.count(
-            "agentic_triage.triage_error", 1, attributes={"error_type": "invalid_artifact"}
+            "night_shift.triage_error", 1, attributes={"error_type": "invalid_artifact"}
         )
-        logger.exception("agentic_triage.delivery.invalid_result", extra=log_extra)
+        logger.exception("night_shift.delivery.invalid_result", extra=log_extra)
         return
 
     options = (run.extras or {}).get("options") or {}
@@ -243,7 +243,7 @@ def _process_verdicts(
     unknown_group_ids = [gid for gid in group_ids if gid not in groups_by_id]
     if unknown_group_ids:
         logger.warning(
-            "agentic_triage.delivery.unknown_group_ids",
+            "night_shift.delivery.unknown_group_ids",
             extra={**log_extra, "unknown_group_ids": unknown_group_ids},
         )
 
@@ -273,17 +273,17 @@ def _process_verdicts(
             mark_skipped(v.group_id)
             if v.action == TriageAction.SKIP:
                 sentry_sdk.metrics.count(
-                    "agentic_triage.skip_reason",
+                    "night_shift.skip_reason",
                     1,
                     attributes={"skip_reason": v.skip_reason or "unknown"},
                 )
         elif v.action == TriageAction.AUTOFIX:
             fixable_groups.append(group)
 
-    sentry_sdk.metrics.distribution("agentic_triage.candidates_selected", len(fixable_groups))
+    sentry_sdk.metrics.distribution("night_shift.candidates_selected", len(fixable_groups))
     if not fixable_groups:
         logger.info(
-            "agentic_triage.no_fixable_candidates",
+            "night_shift.no_fixable_candidates",
             extra={**log_extra, "num_candidates": len(verdicts)},
         )
 
@@ -337,7 +337,7 @@ def _process_verdicts(
                 )
             except Exception:
                 logger.exception(
-                    "agentic_triage.autofix_trigger_failed",
+                    "night_shift.autofix_trigger_failed",
                     extra={**log_extra, "group_id": group.id},
                 )
                 continue
@@ -351,13 +351,13 @@ def _process_verdicts(
                     send_notification=False,
                 )
 
-        sentry_sdk.metrics.count("agentic_triage.autofix_triggered", len(run_by_group))
+        sentry_sdk.metrics.count("night_shift.autofix_triggered", len(run_by_group))
         if rate_limited_group_ids:
             sentry_sdk.metrics.count(
-                "agentic_triage.autofix_rate_limited", len(rate_limited_group_ids)
+                "night_shift.autofix_rate_limited", len(rate_limited_group_ids)
             )
             logger.info(
-                "agentic_triage.autofix_rate_limited",
+                "night_shift.autofix_rate_limited",
                 extra={**log_extra, "num_rate_limited": len(rate_limited_group_ids)},
             )
 
@@ -408,10 +408,10 @@ def _process_verdicts(
                 log_extra=log_extra,
             )
     except Exception:
-        logger.exception("agentic_triage.autofix_issue_data.capture_failed", extra=log_extra)
+        logger.exception("night_shift.autofix_issue_data.capture_failed", extra=log_extra)
 
     logger.info(
-        "agentic_triage.candidates_selected",
+        "night_shift.candidates_selected",
         extra={
             **log_extra,
             "num_verdicts": len(triage_response.verdicts),

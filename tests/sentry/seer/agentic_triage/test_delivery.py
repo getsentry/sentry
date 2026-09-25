@@ -128,7 +128,7 @@ class TestDeliverAgenticTriageResult(TestCase):
             )
 
             mock_logger.warning.assert_called_once()
-            assert "agentic_triage.delivery.missing_run" in mock_logger.warning.call_args.args[0]
+            assert "night_shift.delivery.missing_run" in mock_logger.warning.call_args.args[0]
 
     def test_error_status_records_error_and_returns(self) -> None:
         """When status is 'error', record the error on the shard and return early."""
@@ -144,7 +144,7 @@ class TestDeliverAgenticTriageResult(TestCase):
             )
 
             mock_logger.warning.assert_called()
-            assert "agentic_triage.delivery.no_result" in mock_logger.warning.call_args.args[0]
+            assert "night_shift.delivery.no_result" in mock_logger.warning.call_args.args[0]
 
         shard = run.executions.get()
         assert shard.extras["error_message"] == "Seer exploded"
@@ -209,9 +209,7 @@ class TestDeliverAgenticTriageResult(TestCase):
             )
 
             mock_logger.exception.assert_called_once()
-            assert (
-                "agentic_triage.delivery.invalid_result" in mock_logger.exception.call_args.args[0]
-            )
+            assert "night_shift.delivery.invalid_result" in mock_logger.exception.call_args.args[0]
 
         assert not SeerAgenticTriageRunResult.objects.filter(run=run).exists()
 
@@ -655,7 +653,7 @@ class TestDeliverAgenticTriageResult(TestCase):
             )
 
             exception_calls = [call.args[0] for call in mock_logger.exception.call_args_list]
-            assert "agentic_triage.autofix_trigger_failed" in exception_calls
+            assert "night_shift.autofix_trigger_failed" in exception_calls
 
         results = {r.group_id: r for r in SeerAgenticTriageRunResult.objects.filter(run=run)}
         assert set(results) == {failing_group.id, ok_group.id}
@@ -796,7 +794,7 @@ class TestDeliverAgenticTriageResult(TestCase):
 
             mock_trigger.assert_not_called()
             warning_calls = [call.args[0] for call in mock_logger.warning.call_args_list]
-            assert "agentic_triage.delivery.unknown_group_ids" in warning_calls
+            assert "night_shift.delivery.unknown_group_ids" in warning_calls
 
         assert not SeerAgenticTriageRunResult.objects.filter(run=run).exists()
 

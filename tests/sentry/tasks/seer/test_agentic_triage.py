@@ -6,6 +6,7 @@ from unittest.mock import Mock, patch
 import pytest
 from django.conf import settings
 from taskbroker_client.scheduler.config import crontab
+from taskbroker_client.scheduler.runner import ScheduleEntry
 
 from sentry.hybridcloud.models.outbox import CellOutbox
 from sentry.hybridcloud.outbox.category import OutboxCategory
@@ -37,6 +38,7 @@ from sentry.tasks.seer.agentic_triage.cron import (
     _record_run_error,
     _update_run_extras,
     build_run_options,
+    run_agentic_triage_execution,
     run_agentic_triage_for_org,
     schedule_agentic_triage,
 )
@@ -239,14 +241,19 @@ class TestBuildRunOptions(TestCase):
 
 
 @pytest.mark.parametrize(
-    "suffix",
-    ["schedule_agentic_triage", "run_agentic_triage_for_org", "run_agentic_triage_execution"],
+    "task,suffix",
+    [
+        (schedule_agentic_triage, "schedule_agentic_triage"),
+        (run_agentic_triage_for_org, "run_agentic_triage_for_org"),
+        (run_agentic_triage_execution, "run_agentic_triage_execution"),
+    ],
 )
-def test_queued_night_shift_tasks_remain_registered(suffix: str) -> None:
-    current = seer_tasks.get(f"sentry.tasks.seer.agentic_triage.{suffix}")
+def test_dispatch_keeps_names_known_to_old_workers(task, suffix: str) -> None:
     legacy_suffix = suffix.replace("agentic_triage", "night_shift")
-    legacy = seer_tasks.get(f"sentry.tasks.seer.night_shift.{legacy_suffix}")
-    assert unwrap(legacy) is unwrap(current)
+    assert task.fullname == f"seer:sentry.tasks.seer.night_shift.{legacy_suffix}"
+    assert seer_tasks.get(task.name) is task
+    renamed = seer_tasks.get(f"sentry.tasks.seer.agentic_triage.{suffix}")
+    assert unwrap(renamed) is unwrap(task)
 
 
 class TestCurrentScheduleId:
@@ -269,13 +276,18 @@ class TestCurrentScheduleId:
         ]
 
     def test_uses_configured_agentic_triage_schedule(self) -> None:
-        schedule_entry = settings.TASKWORKER_SCHEDULES["seer-agentic-triage"]
-        assert (
-            schedule_entry["task"]
-            == "seer:sentry.tasks.seer.agentic_triage.schedule_agentic_triage"
-        )
+        schedule_entry = settings.TASKWORKER_SCHEDULES["seer-night-shift"]
+        assert schedule_entry["task"] == "seer:sentry.tasks.seer.night_shift.schedule_night_shift"
         assert isinstance(schedule_entry["schedule"], crontab)
         assert _agentic_triage_cron_expr() == "0 10,22 * * *"
+        entry = ScheduleEntry(
+            key="seer-night-shift",
+            task=schedule_agentic_triage,
+            schedule=schedule_entry["schedule"],
+        )
+        assert entry.storage_key == (
+            "seer-night-shift:seer:sentry.tasks.seer.night_shift.schedule_night_shift:0_10,22_*_*_*"
+        )
 
 
 @django_db_all
@@ -328,10 +340,8 @@ class TestScheduleAgenticTriage(TestCase):
             log_extras = {
                 call.args[0]: call.kwargs["extra"] for call in mock_logger.info.call_args_list
             }
-            assert log_extras["agentic_triage.schedule_start"]["schedule_id"] == "2024-07-22T22:00"
-            assert (
-                log_extras["agentic_triage.schedule_complete"]["schedule_id"] == "2024-07-22T22:00"
-            )
+            assert log_extras["night_shift.schedule_start"]["schedule_id"] == "2024-07-22T22:00"
+            assert log_extras["night_shift.schedule_complete"]["schedule_id"] == "2024-07-22T22:00"
 
     def test_dispatches_with_run_options(self) -> None:
         org = self.create_org_with_seer()
@@ -814,7 +824,7 @@ class TestRunAgenticTriageForOrg(AgenticTriageFixtures, TestCase, SnubaTestCase)
         ):
             run_agentic_triage_for_org(org.id)
             info_events = [call.args[0] for call in mock_logger.info.call_args_list]
-            assert "agentic_triage.no_eligible_projects" in info_events
+            assert "night_shift.no_eligible_projects" in info_events
 
         run = SeerWorkflowRun.objects.get(organization=org)
         assert run.extras.get("error_message") is None
@@ -1372,7 +1382,7 @@ class TestRunAgenticTriageFeatureDelivery(AgenticTriageFixtures, TestCase, Snuba
         incomplete_log = next(
             call.kwargs["extra"]
             for call in mock_logger.info.call_args_list
-            if call.args[0] == "agentic_triage.shard_dispatch_incomplete"
+            if call.args[0] == "night_shift.shard_dispatch_incomplete"
         )
         assert incomplete_log["reason"] == "no_seer_access"
 

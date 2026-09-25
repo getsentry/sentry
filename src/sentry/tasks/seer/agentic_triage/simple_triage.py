@@ -30,7 +30,7 @@ from sentry.tasks.seer.agentic_triage.skip_cache import recently_skipped
 from sentry.types.group import PriorityLevel
 from sentry.utils.snuba import raw_snql_query
 
-logger = logging.getLogger("sentry.tasks.seer.agentic_triage")
+logger = logging.getLogger("sentry.tasks.seer.night_shift")
 
 AGENTIC_TRIAGE_ISSUE_FETCH_LIMIT = 100
 # Scales the per-project fetch limit instead of using the flat limit above.
@@ -151,7 +151,7 @@ def _agentic_triage_snuba_factors(
         result[factors.pop("group_id")] = factors
 
     logger.info(
-        "agentic_triage.agentic_snuba_factors",
+        "night_shift.agentic_snuba_factors",
         extra={
             "organization_id": organization_id,
             "num_groups_queried": len(group_ids),
@@ -192,7 +192,7 @@ def _agentic_triage_score(
     scores = {gid: sum(w * normed[k][i] for k, w in active) for i, gid in enumerate(group_ids)}
 
     logger.info(
-        "agentic_triage.agentic_triage_score",
+        "night_shift.agentic_triage_score",
         extra={
             "num_candidates": len(group_ids),
             "num_active_factors": len(active),
@@ -254,7 +254,7 @@ def _fetch_and_score_agentic(
             break
 
     logger.info(
-        "agentic_triage.agentic_search_results",
+        "night_shift.agentic_search_results",
         extra={
             "organization_id": projects[0].organization_id,
             "num_candidates": len(candidates),
@@ -295,7 +295,7 @@ def _fetch_and_score_agentic(
     ]
 
     logger.info(
-        "agentic_triage.agentic_selected",
+        "night_shift.agentic_selected",
         extra={
             "organization_id": projects[0].organization_id,
             "num_selected": len(selected),
@@ -306,7 +306,7 @@ def _fetch_and_score_agentic(
 
     for c in selected:
         if c.fixability is not None:
-            sentry_sdk.metrics.distribution("agentic_triage.fixability_score", c.fixability)
+            sentry_sdk.metrics.distribution("night_shift.fixability_score", c.fixability)
 
     return selected
 

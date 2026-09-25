@@ -17,7 +17,7 @@ from sentry.tasks.seer.agentic_triage.cron import (
     run_agentic_triage_for_org,
 )
 
-logger = logging.getLogger("sentry.seer.endpoints.project_seer_agentic_triage")
+logger = logging.getLogger("sentry.seer.endpoints.project_seer_night_shift")
 
 
 @cell_silo_endpoint
@@ -36,7 +36,7 @@ class ProjectSeerAgenticTriageEndpoint(ProjectEndpoint):
         triggering_user_id = request.user.id if request.user.is_authenticated else None
 
         logger.info(
-            "agentic_triage.manual_trigger.dispatched",
+            "night_shift.manual_trigger.dispatched",
             extra={
                 "project_id": project.id,
                 "project_slug": project.slug,
