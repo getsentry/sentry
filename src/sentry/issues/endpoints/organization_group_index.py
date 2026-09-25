@@ -385,9 +385,12 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
                 sentry_sdk.capture_exception(e)
 
         if query:
-            # check to see if we've got an event ID
-            event_id = normalize_event_id(query)
-            if event_id:
+            # Ignore search filters for direct hits, but don't choose between event IDs.
+            event_ids = {
+                event_id for token in query.split() if (event_id := normalize_event_id(token))
+            }
+            if len(event_ids) == 1:
+                event_id = event_ids.pop()
                 # For a direct hit lookup we want to use any passed project ids
                 # (we've already checked permissions on these) plus any other
                 # projects that the user is a member of. This gives us a better
