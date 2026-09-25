@@ -120,20 +120,17 @@ describe('groupTranscript', () => {
 });
 
 describe('deriveThinkingTitle', () => {
-  it('uses the latest complete summary ahead of tool activity', () => {
+  it('uses the latest block summary ahead of tool activity', () => {
     const group = [
-      toolUseBlock('t1', {
-        content:
-          '{% tool_summary %}Checking the issue details{% /tool_summary %}{% tool_summary %}Comparing related errors{% /tool_summary %}',
-      }),
-      toolUseBlock('t2'),
+      {...toolUseBlock('t1'), tool_summary: 'Checking the issue details'},
+      {...toolUseBlock('t2'), tool_summary: 'Comparing related errors'},
     ];
 
     expect(deriveThinkingTitle(group)).toBe('Comparing related errors');
   });
 
-  it('ignores a summary that is still streaming', () => {
-    const group = [toolUseBlock('t1', {content: '{% tool_summary %}Checking the'})];
+  it('ignores an empty summary', () => {
+    const group = [{...toolUseBlock('t1'), tool_summary: '  '}];
 
     expect(deriveThinkingTitle(group)).toMatch(/Queried spans/);
   });
@@ -177,12 +174,10 @@ describe('ResponseGroup', () => {
     expect(screen.getByText('5.0s')).toBeInTheDocument();
   });
 
-  it('uses the summary as the completed title and leaves no embed content', async () => {
+  it('uses the summary as the completed title without adding message content', async () => {
     const summary = 'Checking the issue details';
     const group = [
-      toolUseBlock('t1', {
-        content: `{% tool_summary %}${summary}{% /tool_summary %}`,
-      }),
+      {...toolUseBlock('t1'), tool_summary: summary},
       assistantBlock('a1', 'The final answer'),
     ];
 
@@ -203,10 +198,7 @@ describe('ResponseGroup', () => {
 
   it('renders only the title for a completed summary alone', () => {
     const group = [
-      assistantBlock(
-        'a1',
-        '{% tool_summary %}Checking the issue details{% /tool_summary %}'
-      ),
+      {...assistantBlock('a1', ''), tool_summary: 'Checking the issue details'},
     ];
 
     const {container} = render(

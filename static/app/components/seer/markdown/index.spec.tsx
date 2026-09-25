@@ -5,23 +5,6 @@ import {render} from 'sentry-test/reactTestingLibrary';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 
 describe('SeerMarkdown', () => {
-  it('renders tool summaries as invisible embeds without reporting them', () => {
-    const captureException = jest.spyOn(Sentry, 'captureException');
-    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
-
-    const {container} = render(
-      <SeerMarkdown raw="Before {% tool_summary %}Checking the latest issue{% /tool_summary %} after" />
-    );
-
-    expect(container).toHaveTextContent('Before after');
-    expect(container).not.toHaveTextContent('Checking the latest issue');
-    expect(captureException).not.toHaveBeenCalled();
-    expect(warn).not.toHaveBeenCalled();
-
-    captureException.mockRestore();
-    warn.mockRestore();
-  });
-
   it('drops unknown embed tags and reports them', () => {
     const captureException = jest.spyOn(Sentry, 'captureException');
     const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
