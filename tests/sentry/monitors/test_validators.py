@@ -282,6 +282,34 @@ class MonitorValidatorCreateTest(MonitorTestCase):
         assert "schedule" in validator.errors["config"]
         assert validator.errors["config"]["schedule"][0] == "Schedule is invalid"
 
+    def test_interval_schedule_string_count(self) -> None:
+        data = {
+            "project": self.project.slug,
+            "name": "My Monitor",
+            "type": "cron_job",
+            "config": {"schedule_type": "interval", "schedule": ["6", "minute"]},
+        }
+        validator = MonitorValidator(data=data, context=self.context)
+        assert validator.is_valid(), validator.errors
+        monitor = validator.save()
+        assert monitor.config["schedule"] == [6, "minute"]
+        assert monitor.config["schedule_type"] == ScheduleType.INTERVAL
+
+    def test_interval_schedule_non_numeric_string_count(self) -> None:
+        data = {
+            "project": self.project.slug,
+            "name": "My Monitor",
+            "type": "cron_job",
+            "config": {"schedule_type": "interval", "schedule": ["abc", "minute"]},
+        }
+        validator = MonitorValidator(data=data, context=self.context)
+        assert not validator.is_valid()
+        assert "config" in validator.errors
+        assert "schedule" in validator.errors["config"]
+        assert (
+            validator.errors["config"]["schedule"][0] == "Invalid schedule for schedule unit count"
+        )
+
     def test_create_with_owner_team(self) -> None:
         """Test creating a monitor with a team owner."""
         team = self.create_team(organization=self.organization)

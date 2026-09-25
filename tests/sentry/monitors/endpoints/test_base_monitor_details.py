@@ -727,6 +727,21 @@ class BaseUpdateMonitorTest(MonitorTestCase):
         assert monitor.config["schedule_type"] == ScheduleType.INTERVAL
         assert monitor.config["schedule"] == [1, "month"]
 
+    def test_cronjob_interval_numeric_string(self) -> None:
+        monitor = self._create_monitor()
+
+        resp = self.get_success_response(
+            self.organization.slug,
+            monitor.slug,
+            method="PUT",
+            **{"config": {"schedule_type": "interval", "schedule": ["6", "minute"]}},
+        )
+
+        assert resp.data["config"]["schedule"] == [6, "minute"]
+
+        monitor.refresh_from_db()
+        assert monitor.config["schedule"] == [6, "minute"]
+
     def test_cronjob_interval_invalid_inteval(self) -> None:
         monitor = self._create_monitor()
 
