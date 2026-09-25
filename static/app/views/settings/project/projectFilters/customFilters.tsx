@@ -51,7 +51,8 @@ type ConditionType =
   | 'error_type'
   | 'metric_name'
   | 'log_message'
-  | 'release';
+  | 'release'
+  | 'ip_address';
 
 type CustomInboundFilterCondition = {
   type: ConditionType;
@@ -117,13 +118,16 @@ type ConditionSpec = {
   description: string | Record<FilterDataType, string>;
   label: string;
   placeholder: string;
-  // The data type whose field this condition reads. Absent for `release`, which
-  // every data type carries, so it stays on offer whatever the filter targets.
+  // The data type whose field this condition reads. Absent for `release` and
+  // `ip_address`, which every data type carries, so they stay on offer whatever
+  // the filter targets.
   dataType?: FilterDataType;
 };
 
 // Declaration order is the order of the property dropdown, and the first
-// condition of a data type is the one a new row starts with. Keep `release` last.
+// condition of a data type is the one a new row starts with. Keep the conditions
+// every data type carries last, `release` first among them: it is the default
+// for the catch-all.
 const CONDITIONS: Record<ConditionType, ConditionSpec> = {
   error_message: {
     dataType: 'error',
@@ -163,6 +167,13 @@ const CONDITIONS: Record<ConditionType, ConditionSpec> = {
       metric: t('Matches the release attribute of the metric.'),
       span: t('Matches the release attribute of the span.'),
     },
+  },
+  ip_address: {
+    label: t('IP Address'),
+    placeholder: t('IP address or CIDR range, e.g. 203.0.113.7 or 10.0.0.0/8'),
+    description: t(
+      'Matches the IP address the data was sent from. Takes single addresses and CIDR ranges, not glob patterns.'
+    ),
   },
 };
 
@@ -291,14 +302,29 @@ function formValuesToConditions(
   }));
 }
 
-function getErrorDetail(error: unknown, fallback: string): string {
-  if (error instanceof RequestError) {
-    const detail = error.responseJSON?.detail;
-    if (typeof detail === 'string') {
-      return detail;
-    }
+// The API answers with either `{detail: string}` or a DRF validation error, which
+// nests messages under field names and list indexes, e.g.
+// `{conditions: [{}, {value: ['... is not an IP address or CIDR range.']}]}`. Both
+// shapes have their messages as string leaves.
+function collectErrorMessages(value: unknown): string[] {
+  if (typeof value === 'string') {
+    return [value];
   }
-  return fallback;
+  if (Array.isArray(value)) {
+    return value.flatMap(collectErrorMessages);
+  }
+  if (value && typeof value === 'object') {
+    return Object.values(value).flatMap(collectErrorMessages);
+  }
+  return [];
+}
+
+function getErrorDetail(error: unknown, fallback: string): string {
+  if (!(error instanceof RequestError)) {
+    return fallback;
+  }
+  const messages = [...new Set(collectErrorMessages(error.responseJSON))];
+  return messages.length > 0 ? messages.join(' ') : fallback;
 }
 
 function getMatchDescription(property: string, dataType: FilterDataType): string {
@@ -467,11 +493,14 @@ function CustomFilterModal({
                     onChange={value => {
                       dataTypeField.handleChange(value);
                       // Carry existing rows over to the new data type. A row
-                      // whose property the new data type does not read falls
-                      // back to the default one; release rows stay as they are.
+                      // whose property the new data type does not offer falls
+                      // back to the default one; the rest stay as they are.
+                      const offered = new Set(
+                        getPropertyOptions(value).map(option => option.value)
+                      );
                       form.setFieldValue('conditions', conditions =>
                         conditions.map(condition =>
-                          condition.property === 'release'
+                          offered.has(condition.property)
                             ? condition
                             : {
                                 ...condition,
