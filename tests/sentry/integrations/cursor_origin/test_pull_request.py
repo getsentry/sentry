@@ -34,9 +34,6 @@ def _payload(**overrides: Any) -> dict[str, Any]:
         "author": {"user": {"id": "user_01example", "email": "jane@example.com"}},
         "createdAt": "2026-08-01T09:30:00Z",
         "updatedAt": "2026-08-01T10:00:00Z",
-        "closedAt": "",
-        "mergedAt": "",
-        "mergeCommitSha": "",
     }
     pull_request.update(overrides)
     return {
@@ -117,6 +114,14 @@ class PullRequestLifecycleHandlerTest(TestCase):
         )
 
         assert self._pull_requests()[0].state == PullRequestLifecycleState.CLOSED
+
+    def test_empty_close_and_merge_fields_are_unset(self) -> None:
+        self._handle(_payload(closedAt="", mergedAt="", mergeCommitSha=""))
+
+        pull_request = self._pull_requests()[0]
+        assert pull_request.closed_at is None
+        assert pull_request.merged_at is None
+        assert pull_request.merge_commit_sha is None
 
     def test_a_later_event_updates_the_same_row(self) -> None:
         self._handle(_payload())
@@ -208,8 +213,8 @@ class PullRequestLifecycleHandlerTest(TestCase):
 
 
 class PullRequestEventTest(TestCase):
-    def test_an_empty_date_is_absent_rather_than_invalid(self) -> None:
-        """Origin sends an empty string for a date that is unset, as `closedAt` is while open."""
+    def test_an_open_pull_request_has_no_close_date(self) -> None:
+        """Origin leaves `closedAt` out while the pull request is open."""
         assert PullRequestEvent.from_payload(_payload()).pull_request.closed_at is None
 
     def test_a_field_origin_always_sends_is_required(self) -> None:
