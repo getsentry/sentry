@@ -283,19 +283,30 @@ describe('useReleaseSeries', () => {
       organization,
     });
 
+    const release120 = expect.objectContaining({
+      name: '1.2.0, sentry-android-shop',
+      value: '1.2.0, sentry-android-shop',
+      xAxis: 1584921600000,
+    });
+    const release121 = expect.objectContaining({
+      name: '1.2.1, sentry-android-shop',
+      value: '1.2.1, sentry-android-shop',
+      xAxis: 1585008000000,
+    });
+
     // Unemphasized releases render at opacity 0.3, emphasized at 0.8
     await waitFor(() =>
       expect(result.current.releaseSeries).toEqual([
         expect.objectContaining({
           markLine: expect.objectContaining({
             lineStyle: expect.objectContaining({opacity: 0.3}),
-            data: [expect.objectContaining({name: '1.2.1, sentry-android-shop'})],
+            data: [release121],
           }),
         }),
         expect.objectContaining({
           markLine: expect.objectContaining({
             lineStyle: expect.objectContaining({opacity: 0.8}),
-            data: [expect.objectContaining({name: '1.2.0, sentry-android-shop'})],
+            data: [release120],
           }),
         }),
       ])
@@ -308,13 +319,13 @@ describe('useReleaseSeries', () => {
         expect.objectContaining({
           markLine: expect.objectContaining({
             lineStyle: expect.objectContaining({opacity: 0.3}),
-            data: [expect.objectContaining({name: '1.2.0, sentry-android-shop'})],
+            data: [release120],
           }),
         }),
         expect.objectContaining({
           markLine: expect.objectContaining({
             lineStyle: expect.objectContaining({opacity: 0.8}),
-            data: [expect.objectContaining({name: '1.2.1, sentry-android-shop'})],
+            data: [release121],
           }),
         }),
       ])
