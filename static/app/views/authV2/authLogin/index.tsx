@@ -31,6 +31,7 @@ import {useAuthConfig} from './hooks/useAuthConfig';
 import {useAuthOrganization} from './hooks/useAuthOrganization';
 import {useDemoLogin} from './hooks/useDemoLogin';
 import type {EmailAuthResult} from './hooks/useEmailAuth';
+import {useSingleOrganizationLogin} from './hooks/useSingleOrganizationLogin';
 import type {AuthenticatedResult, MfaMethod} from './types';
 
 type AuthProviderLinkKey = keyof Pick<
@@ -75,6 +76,11 @@ export default function AuthLogin() {
 
   const nextUri = authConfig && 'nextUri' in authConfig ? authConfig.nextUri : undefined;
   const loginConfig = authConfig && !('nextUri' in authConfig) ? authConfig : undefined;
+  const singleOrganizationSlug = loginConfig?.singleOrganizationSlug;
+  const isSingleOrganization = useSingleOrganizationLogin({
+    organizationSlug: orgSlug,
+    singleOrganizationSlug,
+  });
 
   // An authenticated user may still need to authenticate with an organization's SSO
   // provider before its APIs will grant access. Keep that organization in focus instead
@@ -82,6 +88,8 @@ export default function AuthLogin() {
   const focusedOrgAuth = Boolean(
     orgSlug && nextUri && authOrganization && !authOrganization.memberAuthenticated
   );
+  const showEmailAuth =
+    !focusedOrgAuth || (isSingleOrganization && !authOrganization?.ssoRequired);
   const isAuthOrganizationNotFound = isNotFoundError(authOrganizationError);
   const hasAuthOrganizationError = Boolean(
     authOrganizationError && !isAuthOrganizationNotFound
@@ -299,7 +307,7 @@ export default function AuthLogin() {
               ) : organizationSsoOnly ? (
                 <RequiredOrganizationSso
                   authOrganization={organizationSsoOnly}
-                  onClear={handleClearOrganization}
+                  onClear={isSingleOrganization ? undefined : handleClearOrganization}
                 />
               ) : (
                 <Fragment>
@@ -325,13 +333,17 @@ export default function AuthLogin() {
                       authOrganization={authOrganization}
                       isInputVisible={isOrganizationSlugInputVisible}
                       onCancel={() => setIsOrganizationSlugInputVisible(false)}
-                      onClear={focusedOrgAuth ? undefined : handleClearOrganization}
+                      onClear={
+                        focusedOrgAuth || isSingleOrganization
+                          ? undefined
+                          : handleClearOrganization
+                      }
                       onOpen={() => setIsOrganizationSlugInputVisible(true)}
                       onSelect={handleSelectOrganization}
                     />
                   </Stack>
 
-                  {!focusedOrgAuth && (
+                  {showEmailAuth && (
                     <Fragment>
                       <AuthDivider />
 

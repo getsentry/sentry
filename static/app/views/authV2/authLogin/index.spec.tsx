@@ -7,6 +7,7 @@ import {setWindowLocation} from 'sentry-test/utils';
 
 import {BrandPageLayout} from 'sentry/components/brandPageLayout';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {AuthConfig} from 'sentry/types/auth';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
@@ -20,6 +21,7 @@ jest.mock('sentry/utils/analytics');
 describe('AuthLogin', () => {
   beforeEach(() => {
     jest.mocked(trackAnalytics).mockClear();
+    ConfigStore.set('singleOrganization', false);
   });
 
   beforeAll(() => {
@@ -33,7 +35,7 @@ describe('AuthLogin', () => {
     Reflect.deleteProperty(document, 'elementFromPoint');
   });
 
-  function mockAuthConfig() {
+  function mockAuthConfig(singleOrganizationSlug?: string) {
     MockApiClient.addMockResponse({
       url: '/auth/config/',
       body: {
@@ -44,6 +46,7 @@ describe('AuthLogin', () => {
         pendingMfa: null,
         serverHostname: 'sentry.example.com',
         vstsLoginLink: '',
+        ...(singleOrganizationSlug ? {singleOrganizationSlug} : {}),
       } satisfies AuthConfig,
     });
   }
@@ -159,6 +162,144 @@ describe('AuthLogin', () => {
       screen.queryByRole('heading', {name: 'Sign in to Sentry'})
     ).not.toBeInTheDocument();
     expect(screen.getByText('Loading authentication')).toBeInTheDocument();
+  });
+
+  it('replaces the generic login route and shows password auth for a single org', async () => {
+    ConfigStore.set('singleOrganization', true);
+    mockAuthConfig('sentry');
+    MockApiClient.addMockResponse({
+      url: '/auth/organizations/sentry/config/',
+      body: {
+        authenticated: false,
+        memberAuthenticated: false,
+        canRegister: false,
+        joinRequestUrl: null,
+        loginMethod: 'password',
+        ssoRequired: false,
+        organization: {avatarUrl: null, name: 'Sentry', slug: 'sentry'},
+        provider: null,
+        warnings: [],
+      },
+    });
+
+    const {router} = render(<AuthLogin />, {
+      initialRouterConfig: {
+        location: {pathname: '/auth/login/'},
+        route: '/auth/login/:orgSlug?/',
+      },
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('Sentry')).toBeVisible();
+      expect(screen.getByRole('textbox', {name: 'Email'})).toBeVisible();
+      expect(screen.getByLabelText('Password')).toBeVisible();
+    });
+    expect(router.location.pathname).toBe('/auth/login/sentry/');
+    expect(testableWindowLocation.assign).not.toHaveBeenCalled();
+    expect(
+      screen.queryByRole('button', {name: 'Clear organization login context'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows both SSO and password auth when SSO is optional for a single org', async () => {
+    ConfigStore.set('singleOrganization', true);
+    mockAuthConfig('sentry');
+    MockApiClient.addMockResponse({
+      url: '/auth/organizations/sentry/config/',
+      body: {
+        authenticated: false,
+        memberAuthenticated: false,
+        canRegister: false,
+        joinRequestUrl: null,
+        loginMethod: 'sso',
+        ssoRequired: false,
+        organization: {avatarUrl: null, name: 'Sentry', slug: 'sentry'},
+        provider: {key: 'saml2', name: 'SAML'},
+        warnings: [],
+      },
+    });
+
+    render(<AuthLogin />, {
+      initialRouterConfig: {
+        location: {pathname: '/auth/login/sentry/'},
+        route: '/auth/login/:orgSlug?/',
+      },
+    });
+
+    expect(await screen.findByRole('textbox', {name: 'Email'})).toBeVisible();
+    expect(screen.getByLabelText('Password')).toBeVisible();
+    expect(screen.getByRole('button', {name: 'SSO'})).toBeEnabled();
+    expect(
+      screen.queryByRole('button', {name: 'Clear organization login context'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('offers password auth to an authenticated user without single-org access', async () => {
+    ConfigStore.set('singleOrganization', true);
+    MockApiClient.addMockResponse({
+      url: '/auth/config/',
+      body: {nextUri: '/organizations/sentry/issues/'},
+    });
+    MockApiClient.addMockResponse({
+      url: '/auth/organizations/sentry/config/',
+      body: {
+        authenticated: true,
+        memberAuthenticated: false,
+        canRegister: false,
+        joinRequestUrl: null,
+        loginMethod: 'password',
+        ssoRequired: false,
+        organization: {avatarUrl: null, name: 'Sentry', slug: 'sentry'},
+        provider: null,
+        warnings: [],
+      },
+    });
+
+    render(<AuthLogin />, {
+      initialRouterConfig: {
+        location: {pathname: '/auth/login/sentry/'},
+        route: '/auth/login/:orgSlug?/',
+      },
+    });
+
+    expect(await screen.findByRole('textbox', {name: 'Email'})).toBeVisible();
+    expect(screen.getByLabelText('Password')).toBeVisible();
+    expect(testableWindowLocation.assign).not.toHaveBeenCalled();
+    expect(
+      screen.queryByRole('button', {name: 'Clear organization login context'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('requires SSO without offering another org in single-org mode', async () => {
+    ConfigStore.set('singleOrganization', true);
+    mockAuthConfig('sentry');
+    MockApiClient.addMockResponse({
+      url: '/auth/organizations/sentry/config/',
+      body: {
+        authenticated: false,
+        memberAuthenticated: false,
+        canRegister: false,
+        joinRequestUrl: null,
+        loginMethod: 'sso',
+        ssoRequired: true,
+        organization: {avatarUrl: null, name: 'Sentry', slug: 'sentry'},
+        provider: {key: 'saml2', name: 'SAML'},
+        warnings: [],
+      },
+    });
+
+    render(<AuthLogin />, {
+      initialRouterConfig: {
+        location: {pathname: '/auth/login/sentry/'},
+        route: '/auth/login/:orgSlug?/',
+      },
+    });
+
+    expect(await screen.findByRole('button', {name: 'SSO'})).toBeEnabled();
+    expect(screen.queryByRole('textbox', {name: 'Email'})).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Wrong organization'})
+    ).not.toBeInTheDocument();
   });
 
   it('authenticates a demo organization before rendering the sign-in flow', async () => {
