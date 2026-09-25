@@ -34,7 +34,7 @@ def get_assigned_subject(data: AssignedNotificationData) -> list[NotificationTex
         blocks.append(CodeTextBlock(text=data.issue_short_id))
     else:
         blocks.append(PlainTextBlock(text="An Issue"))
-    
+
     # For automated assignments from Sentry Apps, use "was auto-assigned" instead of "by {proxy_email}"
     if data.is_automated:
         blocks.append(PlainTextBlock(text=f"was auto-assigned to {get_assignee_label(data)}"))
@@ -45,7 +45,7 @@ def get_assigned_subject(data: AssignedNotificationData) -> list[NotificationTex
         )
         if by_display:
             blocks.append(PlainTextBlock(text=f"by {by_display}"))
-    
+
     return blocks
 
 

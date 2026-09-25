@@ -286,22 +286,18 @@ def build_activity_notification_data(
             # TODO(Leander): If a team is assigned, maybe link to the team page?
             if assignee_email:
                 assignee_url = f"mailto:{assignee_email}"
-            
+
             # Check if this is an automated assignment from a Sentry App
             if activity.user_id:
                 user = user_service.get_user(user_id=activity.user_id)
                 if user and user.is_sentry_app:
-                    return AssignedNotificationData(
-                        **action_data,
-                        assignee_label=assignee_label,
-                        assignee_url=assignee_url,
-                        is_automated=True,
-                    )
-            
+                    is_automated = True
+
             return AssignedNotificationData(
                 **action_data,
                 assignee_label=assignee_label,
                 assignee_url=assignee_url,
+                is_automated=is_automated,
             )
         case _:
             return ActivityNotificationData(**action_data)

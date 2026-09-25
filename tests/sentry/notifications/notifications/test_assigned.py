@@ -518,7 +518,7 @@ class AssignedNotificationAPITest(APITestCase):
             email="sentry-0-issue-assigner-abc123-12345678-1234-1234-1234-123456789abc@proxy-user.sentry.io",
             is_sentry_app=True,
         )
-        
+
         # Create a regular user to be assigned
         assigned_user = self.create_user(email="assigned@example.com")
         self.setup_user(assigned_user, self.team)
@@ -540,22 +540,26 @@ class AssignedNotificationAPITest(APITestCase):
         with self.tasks():
             # Trigger notification processing
             from sentry.tasks.activity import send_activity_notifications
+
             send_activity_notifications(Activity.objects.latest("id").id)
 
         # Verify the notification message uses "auto-assigned" instead of the proxy email
         assert len(mail.outbox) == 1
         msg = mail.outbox[0]
-        
+
         # Check that "auto-assigned" appears in the notification
         assert "auto-assigned" in msg.body.lower() or "automatically assigned" in msg.body.lower()
-        
+
         # Check that the ugly proxy user email does NOT appear in the notification
         assert "proxy-user.sentry.io" not in msg.body
-        
+
         # Verify Slack message also shows cleaner format
         blocks = orjson.loads(mock_post.call_args.kwargs["blocks"])
         fallback_text = mock_post.call_args.kwargs["text"]
-        
+
         # Should say "auto-assigned" not "by {proxy_email}"
-        assert "auto-assigned" in fallback_text.lower() or "automatically assigned" in fallback_text.lower()
+        assert (
+            "auto-assigned" in fallback_text.lower()
+            or "automatically assigned" in fallback_text.lower()
+        )
         assert "proxy-user.sentry.io" not in fallback_text
