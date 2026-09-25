@@ -1,4 +1,4 @@
-import {SEER_EMBED_SCHEMAS, seerEmbedsToJsonSchemas} from './schemas';
+import {SEER_EMBED_SCHEMAS, STRUCTURED_SEER_EMBED_SCHEMAS, seerEmbedsToJsonSchemas} from './schemas';
 
 describe('seerEmbedsToJsonSchemas', () => {
   it('documents the replay timestamp offset requirement in the agent contract', () => {
@@ -43,8 +43,11 @@ describe('SEER_EMBED_SCHEMAS page filters', () => {
   });
 
   it('accepts member:invite as a valid requiredScopes value in agentWriteApproval', () => {
-    const parsed = SEER_EMBED_SCHEMAS.agentWriteApproval.schema.safeParse({
+    const parsed = STRUCTURED_SEER_EMBED_SCHEMAS.agentWriteApproval.schema.safeParse({
+      inputId: '00000000-0000-0000-0000-000000000000',
       requiredScopes: ['member:invite'],
+      sessionId: 'test-session',
+      status: 'pending',
     });
 
     expect(parsed.success).toBe(true);
