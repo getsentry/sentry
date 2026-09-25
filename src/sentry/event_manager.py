@@ -2226,6 +2226,8 @@ def _get_severity_score(event: Event) -> tuple[float, str]:
                     timeout=timeout,
                     viewer_context=viewer_context,
                 )
+                if response.status >= 400:
+                    raise Exception(f"Seer severity endpoint returned HTTP {response.status}")
                 severity = orjson.loads(response.data).get("severity")
                 reason = "ml"
         except MaxRetryError:
