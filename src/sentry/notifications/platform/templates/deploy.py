@@ -146,11 +146,30 @@ def build_deploy_body(data: DeployReleaseData) -> list[NotificationSection]:
     )
     max_body_blocks = SLACK_MAX_BLOCKS - slack_overhead
 
+    # Defensive check: ensure projects don't exceed the available budget
+    # Reserve at least 2 blocks for commits section if possible
+    max_project_blocks = max_body_blocks - len(summary_sections) - 2
+    if len(project_sections) > max_project_blocks and max_project_blocks > 1:
+        # Keep the "Projects:" header (first section) and truncate the rest
+        # Reserve 1 slot for the truncation notice itself
+        original_count = len(project_sections)
+        truncated_count = original_count - (max_project_blocks - 1)
+        project_sections = project_sections[: max_project_blocks - 1]
+        project_sections.append(
+            ParagraphSection(
+                blocks=[
+                    ItalicTextBlock(
+                        text=f"{truncated_count} more project{pluralize(truncated_count)} not shown."
+                    )
+                ]
+            )
+        )
+
     commits_sections: list[NotificationSection] = []
     if data.repo_name_to_commits:
         # How many slots are available for the entire commits_sections list, after reserving
-        # space for summary and project sections.
-        commits_budget = max_body_blocks - len(summary_sections) - len(project_sections)
+        # space for summary and project sections. Use max() to prevent negative budgets.
+        commits_budget = max(1, max_body_blocks - len(summary_sections) - len(project_sections))
 
         total_commits = sum(len(c) for c in data.repo_name_to_commits.values())
         shown_commits = 0

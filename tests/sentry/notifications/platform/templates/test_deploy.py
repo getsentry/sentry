@@ -1,6 +1,8 @@
 from sentry.notifications.platform.templates.deploy import (
     SLACK_MAX_BLOCKS,
+    DeployReleaseCommit,
     DeployReleaseData,
+    DeployReleaseProject,
     build_deploy_actions,
     build_deploy_body,
     build_deploy_footer,
@@ -123,21 +125,21 @@ class FilterDeployDataTest(TestCase):
         assert self.data.release_projects == original_projects
 
 
-def _make_commit(i: int) -> dict:
-    return {
-        "author_name": f"author-{i}",
-        "date": "2023-01-01T00:00:00+00:00",
-        "sha": f"abc{i:04d}",
-        "message": f"commit message {i}",
-    }
+def _make_commit(i: int) -> DeployReleaseCommit:
+    return DeployReleaseCommit(
+        author_name=f"author-{i}",
+        date="2023-01-01T00:00:00+00:00",
+        sha=f"abc{i:04d}",
+        message=f"commit message {i}",
+    )
 
 
-def _make_project(i: int) -> dict:
-    return {
-        "project_slug": f"project-{i}",
-        "release_url": f"https://example.com/project-{i}",
-        "resolved_issue_count": 0,
-    }
+def _make_project(i: int) -> DeployReleaseProject:
+    return DeployReleaseProject(
+        project_slug=f"project-{i}",
+        release_url=f"https://example.com/project-{i}",
+        resolved_issue_count=0,
+    )
 
 
 def _slack_overhead(data: DeployReleaseData) -> int:
