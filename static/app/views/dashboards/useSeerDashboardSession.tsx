@@ -22,6 +22,12 @@ function buildEditOnPageContext(
   return `The user is editing an existing dashboard. The current dashboard state is:\n\n${JSON.stringify({title: dashboard.title, widgets: dashboard.widgets})}\n\nThis session must ONLY modify the dashboard artifact. Produce a COMPLETE dashboard artifact that incorporates the requested changes while preserving widgets the user did not ask to change.`;
 }
 
+function makeExplorerUpdateUrl(orgSlug: string, runId: number) {
+  return getApiUrl('/organizations/$organizationIdOrSlug/seer/explorer-update/$runId/', {
+    path: {organizationIdOrSlug: orgSlug, runId: String(runId)},
+  });
+}
+
 async function startDashboardEditSession(
   orgSlug: string,
   message: string,
@@ -113,6 +119,7 @@ export function useSeerDashboardSession({
   );
 
   const session = data?.session;
+  const pendingUserInput = session?.pending_user_input;
   const sessionStatus = session?.status ?? null;
   const sessionUpdatedAt = session?.updated_at ?? null;
 
@@ -159,7 +166,40 @@ export function useSeerDashboardSession({
       completedAtRef.current = null;
       const errorMessage = t('Failed to send message');
       try {
-        if (!seerRunId && dashboard) {
+        if (seerRunId) {
+          const queryKey = makeSeerExplorerQueryKey(organization.slug, seerRunId);
+
+          if (
+            sessionStatus === 'awaiting_user_input' &&
+            pendingUserInput?.input_type === 'ask_user_question'
+          ) {
+            await fetchMutation({
+              url: makeExplorerUpdateUrl(organization.slug, seerRunId),
+              method: 'POST',
+              data: {
+                payload: {
+                  type: 'user_input_response',
+                  input_id: pendingUserInput.id,
+                  response_data: {answers: [message]},
+                },
+              },
+            });
+          } else {
+            // A session exists, send the message to the existing session
+            const {url} = parseQueryKey(queryKey);
+            await fetchMutation({
+              url,
+              method: 'POST',
+              data: {
+                query: message,
+                ...(dashboard
+                  ? {on_page_context: buildEditOnPageContext(dashboard)}
+                  : {}),
+              },
+            });
+          }
+          queryClient.invalidateQueries({queryKey});
+        } else if (dashboard) {
           // No session exists yet and an initial dashboard is provided, start a new Seer session
           const runId = await startDashboardEditSession(
             organization.slug,
@@ -170,26 +210,20 @@ export function useSeerDashboardSession({
             throw new Error('Failed to start dashboard editing session');
           }
           setInternalRunId(runId);
-        } else {
-          // A session exists, send the message to the existing session
-          const queryKey = makeSeerExplorerQueryKey(organization.slug, seerRunId);
-          const {url} = parseQueryKey(queryKey);
-          await fetchMutation({
-            url,
-            method: 'POST',
-            data: {
-              query: message,
-              ...(dashboard ? {on_page_context: buildEditOnPageContext(dashboard)} : {}),
-            },
-          });
-          queryClient.invalidateQueries({queryKey});
         }
       } catch {
         setIsUpdating(false);
         addErrorMessage(errorMessage);
       }
     },
-    [organization.slug, queryClient, seerRunId, dashboard]
+    [
+      organization.slug,
+      queryClient,
+      seerRunId,
+      dashboard,
+      pendingUserInput,
+      sessionStatus,
+    ]
   );
 
   return {
