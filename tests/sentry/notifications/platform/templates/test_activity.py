@@ -308,3 +308,78 @@ class ActivitySetResolvedAlertBaseTest(TestCase):
             for b in subject
             if b.type == NotificationTextBlockType.PLAIN_TEXT
         )
+
+
+class ActivityAssignedAlertBaseTest(TestCase):
+    def test_automated_assignment_subject(self) -> None:
+        """Test that automated Sentry App assignments show 'auto-assigned' without proxy email"""
+        from sentry.notifications.platform.templates.activity.assigned import get_assigned_subject
+        from sentry.notifications.platform.templates.activity.base import (
+            AssignedNotificationData,
+            create_activity_notification_example,
+        )
+
+        data_dict = create_activity_notification_example(
+            ActivityType.ASSIGNED,
+            activity_data={
+                "assignee": "123",
+                "assigneeEmail": "user@example.com",
+                "assigneeType": "user",
+            },
+        ).dict()
+        
+        # Simulate Sentry App automated assignment
+        data_dict.update({
+            "activity_user_name": "sentry-0-issue-assigner-abc123-uuid@proxy-user.sentry.io",
+            "is_automated": True,
+        })
+        
+        data = AssignedNotificationData(
+            **data_dict,
+            assignee_label="the workflows team",
+            assignee_url=None,
+        )
+        
+        subject = get_assigned_subject(data)
+        subject_text = " ".join(b.text for b in subject)
+        
+        # Should say "auto-assigned" not show proxy email
+        assert "auto-assigned" in subject_text
+        assert "proxy-user.sentry.io" not in subject_text
+        assert "the workflows team" in subject_text
+
+    def test_automated_self_assignment_subject(self) -> None:
+        """Test that when a Sentry App assigns to itself, we show 'itself' not proxy email"""
+        from sentry.notifications.platform.templates.activity.assigned import get_assigned_subject
+        from sentry.notifications.platform.templates.activity.base import (
+            AssignedNotificationData,
+            create_activity_notification_example,
+        )
+
+        data_dict = create_activity_notification_example(
+            ActivityType.ASSIGNED,
+            activity_data={
+                "assignee": "123",
+                "assigneeEmail": "sentry-0-issue-assigner-abc123@proxy-user.sentry.io",
+                "assigneeType": "user",
+            },
+        ).dict()
+        
+        # Simulate Sentry App assigning to itself
+        data_dict.update({
+            "activity_user_name": "sentry-0-issue-assigner-abc123-uuid@proxy-user.sentry.io",
+            "is_automated": True,
+        })
+        
+        data = AssignedNotificationData(
+            **data_dict,
+            assignee_label="themselves",  # Assigned to itself
+            assignee_url=None,
+        )
+        
+        subject = get_assigned_subject(data)
+        subject_text = " ".join(b.text for b in subject)
+        
+        # Should say "auto-assigned to itself" not show proxy email
+        assert "auto-assigned to itself" in subject_text
+        assert "proxy-user.sentry.io" not in subject_text
