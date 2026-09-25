@@ -35,7 +35,7 @@ replays: 0001_squashed_0007_organizationmember_replay_access
 
 seer: 0036_disable_autofix_issue_data_fk_constraints
 
-sentry: 1184_custominboundfilter_add_legacy_filter
+sentry: 1185_backfill_release_new_id
 
 social_auth: 0001_squashed_0003_social_auth_json_field
 
