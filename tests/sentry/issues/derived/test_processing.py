@@ -1,5 +1,6 @@
 from collections.abc import Iterable
 from datetime import datetime, timedelta, timezone
+from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
@@ -47,6 +48,7 @@ from sentry.issues.derived.features import (
 )
 from sentry.issues.derived.framework import (
     AggregatorResult,
+    DerivedDataError,
     Feature,
     Pipeline,
     State,
@@ -1320,3 +1322,46 @@ class ProcessGroupLogTimeoutTest(TestCase):
 
         derived = process_group_log(group.id, timeout=timedelta(minutes=5))
         assert derived.view_count == 3
+
+
+@pytest.mark.parametrize("data", [[], "invalid", None, 42])
+def test_store_rejects_non_object_data(data: Any) -> None:
+    with pytest.raises(DerivedDataError) as exc:
+        GroupDerivedDataStore.load(PIPELINE, GroupDerivedData(data=data))
+    assert exc.value.stage == "decode"
+    assert isinstance(exc.value.__cause__, TypeError)
+
+
+@pytest.mark.parametrize(
+    "values,feature",
+    [
+        ({"data": {"status": "invalid"}}, "status"),
+        ({"data": {"status": None}}, "status"),
+        ({"data": {"has_open_fix_pr": "false"}}, "has_open_fix_pr"),
+        ({"data": {"no_change_reconcile_ids": [True]}}, "no_change_reconcile_ids"),
+        ({"progress": "invalid"}, "progress"),
+        ({"view_count": True}, "view_count"),
+        ({"last_progressed_at": "invalid"}, "last_progressed_at"),
+    ],
+)
+def test_store_rejects_invalid_features(values: dict[str, Any], feature: str) -> None:
+    with pytest.raises(DerivedDataError) as exc:
+        GroupDerivedDataStore.load(PIPELINE, GroupDerivedData(**values))
+    assert exc.value.stage == "decode"
+    assert exc.value.feature_name == feature
+
+
+def test_store_preserves_missing_defaults_and_optional_null() -> None:
+    state = GroupDerivedDataStore.load(PIPELINE, GroupDerivedData(data={}, progress=None))
+    assert state[STATUS] == STATUS.initial_value()
+    assert state[PROGRESS] is None
+    assert state[LAST_PROGRESSED_AT] is None
+
+
+def test_store_rejects_invalid_output() -> None:
+    state = PIPELINE.initial_state()
+    state.merge(StateUpdate({VIEW_COUNT: "invalid"}))
+    with pytest.raises(DerivedDataError) as exc:
+        GroupDerivedDataStore.build_update(PIPELINE, state)
+    assert exc.value.stage == "encode"
+    assert exc.value.feature_name == VIEW_COUNT.name
