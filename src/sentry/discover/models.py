@@ -7,7 +7,6 @@ from django.db import models, router, transaction
 from django.db.models import Q, UniqueConstraint
 from django.utils import timezone
 
-from sentry import features
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, cell_silo_model, sane_repr
 from sentry.db.models.base import DefaultFieldsModel
@@ -162,7 +161,9 @@ class TeamKeyTransactionModelManager(BaseManager["TeamKeyTransaction"]):
         if project is None:
             return
 
-        if features.has("organizations:dynamic-sampling", project.organization):
+        from sentry.dynamic_sampling.utils import has_dynamic_sampling
+
+        if has_dynamic_sampling(project.organization):
             from sentry.dynamic_sampling import RuleType, get_enabled_user_biases
 
             # check if option is enabled

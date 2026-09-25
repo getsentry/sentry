@@ -13,6 +13,7 @@ from usageaccountant import UsageUnit
 from sentry import features, nodestore
 from sentry.attachments import CachedAttachment, attachment_cache, store_attachments_for_event
 from sentry.constants import DataCategory
+from sentry.dynamic_sampling.utils import has_dynamic_sampling
 from sentry.event_manager import save_attachment
 from sentry.feedback.lib.utils import FeedbackCreationSource, is_in_feedback_denylist
 from sentry.feedback.usecases.ingest.userreport import Conflict, save_userreport
@@ -431,9 +432,9 @@ def collect_span_metrics(
     project: Project,
     data: MutableMapping[str, Any],
 ):
-    if not features.has("organizations:am3-tier", project.organization) and not features.has(
-        "organizations:dynamic-sampling", project.organization
-    ):
+    if not features.has(
+        "organizations:am3-tier", project.organization
+    ) and not has_dynamic_sampling(project.organization):
         amount = (
             len(data.get("spans", [])) + 1
         )  # Segment spans also get added to the total span count.

@@ -170,19 +170,24 @@ class SchedulePerOrgCalculationsTest(TestCase):
         without_dynamic_sampling = self.create_organization()
         self.create_project(organization=without_dynamic_sampling)
 
-        with self.feature({"organizations:dynamic-sampling": [with_dynamic_sampling.slug]}):
+        with patch(
+            "sentry.quotas.backend.get_blended_sample_rate",
+            side_effect=lambda organization_id: 0.5
+            if organization_id == with_dynamic_sampling.id
+            else None,
+        ):
             org_ids = self._prevalidated_org_ids()
 
         assert with_dynamic_sampling.id in org_ids
         assert without_dynamic_sampling.id not in org_ids
 
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
-    def test_raises_when_the_feature_cannot_be_evaluated(self) -> None:
+    def test_raises_when_the_quota_service_fails(self) -> None:
         org = self.create_organization()
         self.create_project(organization=org)
 
         with (
-            patch("sentry.features.batch_has_for_organizations", return_value=None),
+            patch("sentry.quotas.backend.get_blended_sample_rate", side_effect=RuntimeError),
             pytest.raises(RuntimeError),
         ):
             self._prevalidated_org_ids()

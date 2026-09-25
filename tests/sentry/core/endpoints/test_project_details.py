@@ -1760,6 +1760,9 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsBase):
 
     def setUp(self) -> None:
         super().setUp()
+        quota_rate = mock.patch("sentry.quotas.backend.get_blended_sample_rate", return_value=0.5)
+        quota_rate.start()
+        self.addCleanup(quota_rate.stop)
         self.new_ds_flag = "organizations:dynamic-sampling"
         self.url = reverse(
             "sentry-api-0-project-details",
@@ -1937,12 +1940,13 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsBase):
         feature of new plans
         """
 
-        response = self.client.put(
-            self.url,
-            format="json",
-            HTTP_AUTHORIZATION=self.authorization,
-            data={"dynamicSamplingBiases": DEFAULT_BIASES},
-        )
+        with mock.patch("sentry.quotas.backend.get_blended_sample_rate", return_value=None):
+            response = self.client.put(
+                self.url,
+                format="json",
+                HTTP_AUTHORIZATION=self.authorization,
+                data={"dynamicSamplingBiases": DEFAULT_BIASES},
+            )
         assert response.status_code == 403
         assert response.data["detail"] == "dynamicSamplingBiases is not a valid field"
 

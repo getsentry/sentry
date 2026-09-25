@@ -5,7 +5,6 @@ from sentry.discover.models import TeamKeyTransaction, TeamKeyTransactionModelMa
 from sentry.models.projectteam import ProjectTeam
 from sentry.signals import receivers_raise_on_send
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers import Feature
 
 
 class TeamKeyTransactionModelManagerTestCase(TestCase):
@@ -29,11 +28,7 @@ class TeamKeyTransactionModelManagerTestCase(TestCase):
 
     @receivers_raise_on_send()
     def test_post_save_signal_runs_if_dynamic_sampling_is_enabled(self) -> None:
-        with Feature(
-            {
-                "organizations:dynamic-sampling": True,
-            }
-        ):
+        with patch("sentry.quotas.backend.get_blended_sample_rate", return_value=0.5):
             self.project = self.create_project(name="foo")
             team = self.create_team(organization=self.organization, name="Team A")
             self.project.add_team(team)

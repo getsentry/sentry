@@ -3710,9 +3710,11 @@ class ReleaseIssueTest(TestCase):
         )
 
 
-@with_feature("organizations:dynamic-sampling")
 class DSLatestReleaseBoostTest(TestCase):
     def setUp(self) -> None:
+        quota_rate = patch("sentry.quotas.backend.get_blended_sample_rate", return_value=0.5)
+        quota_rate.start()
+        self.addCleanup(quota_rate.stop)
         self.environment1 = Environment.get_or_create(self.project, "prod")
         self.environment2 = Environment.get_or_create(self.project, "staging")
         self.timestamp = float(int(time() - 300))

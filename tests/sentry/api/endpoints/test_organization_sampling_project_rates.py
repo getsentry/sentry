@@ -9,7 +9,6 @@ class OrganizationSamplingProjectRatesTest(APITestCase):
         super().setUp()
 
         self.features = {
-            "organizations:dynamic-sampling": True,
             "organizations:dynamic-sampling-custom": True,
         }
 

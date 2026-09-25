@@ -124,6 +124,25 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         response = self.get_success_response(self.organization.slug)
         assert "features" not in response.data
 
+    def test_dynamic_sampling_feature_uses_quota_rate(self) -> None:
+        with (
+            self.feature({"organizations:dynamic-sampling": False}),
+            patch("sentry.quotas.backend.get_blended_sample_rate", return_value=0.5),
+        ):
+            response = self.get_success_response(
+                self.organization.slug, qs_params={"include_feature_flags": 1}
+            )
+        assert "dynamic-sampling" in response.data["features"]
+
+        with (
+            self.feature({"organizations:dynamic-sampling": True}),
+            patch("sentry.quotas.backend.get_blended_sample_rate", return_value=None),
+        ):
+            response = self.get_success_response(
+                self.organization.slug, qs_params={"include_feature_flags": 1}
+            )
+        assert "dynamic-sampling" not in response.data["features"]
+
     def test_simple_customer_domain(self) -> None:
         HTTP_HOST = f"{self.organization.slug}.testserver"
         response = self.get_success_response(
@@ -296,41 +315,29 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         assert response.data["hasAuthProvider"] is True
 
     def test_is_dynamically_sampled(self) -> None:
-        with self.feature({"organizations:dynamic-sampling": True}):
-            with patch(
-                "sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate",
-                return_value=0.5,
-            ):
-                response = self.get_success_response(self.organization.slug)
-                assert response.data["isDynamicallySampled"]
-                assert response.data["planSampleRate"] == 0.5
+        with patch(
+            "sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate",
+            return_value=0.5,
+        ):
+            response = self.get_success_response(self.organization.slug)
+            assert response.data["isDynamicallySampled"]
+            assert response.data["planSampleRate"] == 0.5
 
-        with self.feature({"organizations:dynamic-sampling": True}):
-            with patch(
-                "sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate",
-                return_value=1.0,
-            ):
-                response = self.get_success_response(self.organization.slug)
-                assert not response.data["isDynamicallySampled"]
-                assert response.data["planSampleRate"] == 1.0
+        with patch(
+            "sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate",
+            return_value=1.0,
+        ):
+            response = self.get_success_response(self.organization.slug)
+            assert not response.data["isDynamicallySampled"]
+            assert response.data["planSampleRate"] == 1.0
 
-        with self.feature({"organizations:dynamic-sampling": True}):
-            with patch(
-                "sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate",
-                return_value=None,
-            ):
-                response = self.get_success_response(self.organization.slug)
-                assert not response.data["isDynamicallySampled"]
-                assert "planSampleRate" not in response.data
-
-        with self.feature({"organizations:dynamic-sampling": False}):
-            with patch(
-                "sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate",
-                return_value=None,
-            ):
-                response = self.get_success_response(self.organization.slug)
-                assert not response.data["isDynamicallySampled"]
-                assert "planSampleRate" not in response.data
+        with patch(
+            "sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate",
+            return_value=None,
+        ):
+            response = self.get_success_response(self.organization.slug)
+            assert not response.data["isDynamicallySampled"]
+            assert "planSampleRate" not in response.data
 
     def test_is_dynamically_sampled_no_org_option(self) -> None:
         with self.feature({"organizations:dynamic-sampling-custom": True}):
