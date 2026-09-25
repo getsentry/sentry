@@ -97,6 +97,7 @@ function ExampleStackTrace() {
 }
 
 describe('Core StackTrace', () => {
+  const longFilename = `/source/${'long directory with spaces/'.repeat(10)}runner.py`;
   beforeEach(() => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/prompts-activity/',
@@ -582,36 +583,48 @@ describe('Core StackTrace', () => {
     );
   });
 
-  it('shows a tooltip with absPath when hovering filename', async () => {
-    jest.useFakeTimers();
-    const {event, stacktrace} = makeStackTraceData();
-    const frameWithAbsolutePath = {
-      ...stacktrace.frames[stacktrace.frames.length - 1]!,
+  it.each([
+    {
       filename: 'raven/scripts/runner.py',
       absPath: '/home/ubuntu/raven/scripts/runner.py',
-      inApp: false,
-    };
+    },
+    {filename: longFilename, absPath: longFilename},
+    {filename: longFilename, absPath: null},
+  ])(
+    'shows the full path in the filename tooltip (case %#)',
+    async ({filename, absPath}) => {
+      jest.useFakeTimers();
+      const {event, stacktrace} = makeStackTraceData();
 
-    render(
-      <TestStackTraceProvider
-        event={event}
-        stacktrace={{
-          ...stacktrace,
-          frames: [frameWithAbsolutePath],
-        }}
-      >
-        <DisplayOptions />
-        <StackTraceFrames frameContextComponent={FrameContent} />
-      </TestStackTraceProvider>
-    );
+      render(
+        <TestStackTraceProvider
+          event={event}
+          stacktrace={{
+            ...stacktrace,
+            frames: [
+              {
+                ...stacktrace.frames[stacktrace.frames.length - 1]!,
+                filename,
+                absPath,
+                inApp: false,
+              },
+            ],
+          }}
+        >
+          <DisplayOptions />
+          <StackTraceFrames frameContextComponent={FrameContent} />
+        </TestStackTraceProvider>
+      );
 
-    await userEvent.hover(screen.getByText('raven/scripts/runner.py'), {delay: null});
-    act(() => jest.advanceTimersByTime(2000));
-    expect(
-      await screen.findByText('/home/ubuntu/raven/scripts/runner.py')
-    ).toBeInTheDocument();
-    jest.useRealTimers();
-  });
+      await userEvent.hover(screen.getByText(filename), {delay: null});
+      act(() => jest.advanceTimersByTime(2000));
+
+      expect(
+        await screen.findByText(absPath ?? filename, {selector: '[data-tooltip] span'})
+      ).toBeVisible();
+      jest.useRealTimers();
+    }
+  );
 
   it('shows copy path and code mapping setup actions on hover for collapsed frames', async () => {
     const {event, stacktrace} = makeStackTraceData();
