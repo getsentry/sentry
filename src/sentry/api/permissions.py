@@ -154,7 +154,7 @@ class ScopedPermission(BasePermission):
         allowed_scopes = set(self.scope_map.get(request.method, []))
         current_scopes = request.auth.get_scopes()
         if any(s in allowed_scopes for s in current_scopes):
-            record_scope_version(request, allowed_scopes, current_scopes)
+            record_scope_version(request, current_scopes)
             return True
         if allowed_scopes:
             # Token-authorized (request.auth is set) but under-scoped. Record the required

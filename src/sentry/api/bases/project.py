@@ -61,7 +61,7 @@ class ProjectPermission(OrganizationPermission):
         allowed_scopes = set(self.scope_map.get(request.method, []))
         if not request.access.has_any_project_scope(project, allowed_scopes):
             return False
-        record_scope_version(request, allowed_scopes, request.access.scopes)
+        record_scope_version(request, request.access.scopes)
         return True
 
 

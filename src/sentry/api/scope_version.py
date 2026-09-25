@@ -1,14 +1,14 @@
-"""Record whether a request was admitted by a deprecated, broad scope.
+"""Record which scope version the caller was on when making a request.
 
-`v1` requests relied on one of the broad read scopes we want to retire; `v2`
-requests got in without one. The version is stashed on the request and read when
+`v1` callers hold one of the broad read scopes we want to retire; `v2` callers
+hold none of them. The version is stashed on the request and read when
 the `api.attribution` span is emitted (`sentry.api.client_kind`), which happens
 after the permission checks that produce it.
 """
 
 from __future__ import annotations
 
-from collections.abc import Collection, Iterable
+from collections.abc import Iterable
 from typing import Literal
 
 from django.conf import settings
@@ -20,19 +20,16 @@ ScopeVersion = Literal["v1", "v2"]
 REQUEST_ATTR = "scope_version"
 
 
-def record_scope_version(
-    request: Request | HttpRequest, allowed_scopes: Collection[str], granted_scopes: Iterable[str]
-) -> None:
-    """Record the scope version of the scopes that admitted this request.
+def record_scope_version(request: Request | HttpRequest, granted_scopes: Iterable[str]) -> None:
+    """Record the scope version of the caller this request was admitted for.
 
     Called from each permission check that admits a request. A request can pass
     several checks (token scopes, then the organization's, then a project's); the
     last one wins, because it is the most specific.
     """
-    satisfying = set(allowed_scopes).intersection(granted_scopes)
-    if not satisfying:
-        return
-    version: ScopeVersion = "v1" if satisfying & settings.DEPRECATED_SCOPES else "v2"
+    version: ScopeVersion = (
+        "v1" if settings.DEPRECATED_SCOPES.intersection(granted_scopes) else "v2"
+    )
     setattr(_underlying(request), REQUEST_ATTR, version)
 
 

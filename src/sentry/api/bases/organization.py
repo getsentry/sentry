@@ -124,7 +124,7 @@ class OrganizationPermission(DemoSafePermission):
         allowed_scopes = set(self.scope_map.get(request.method or "", []))
         if not any(request.access.has_scope(s) for s in allowed_scopes):
             return False
-        record_scope_version(request, allowed_scopes, request.access.scopes)
+        record_scope_version(request, request.access.scopes)
         return True
 
     def is_member_disabled_from_limit(
