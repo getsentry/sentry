@@ -12,7 +12,7 @@ from sentry.utils.redis import redis_clusters
 logger = logging.getLogger("sentry.tasks.seer.night_shift.skip_cache")
 
 # Padded past 7 days so scheduling jitter cannot expire a key at the
-# 7-day boundary. Preserve the key prefix to honor existing skip decisions.
+# 7-day boundary.
 SKIP_TTL_SECONDS = int(timedelta(days=7, hours=12).total_seconds())
 KEY_PREFIX = "seer:night-shift:skip:"
 

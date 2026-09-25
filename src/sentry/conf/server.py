@@ -1186,7 +1186,6 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         # Run once a month at midnight
         "schedule": crontab("0", "0", "*", "1", "*"),
     },
-    # Keep the deployed schedule/task identifiers stable during rolling deploys.
     "seer-night-shift": {
         "task": "seer:sentry.tasks.seer.night_shift.schedule_night_shift",
         # Run every 12 hours, at 10:00 and 22:00 UTC
