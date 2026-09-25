@@ -102,7 +102,7 @@ function CommitRow({commit, onPullRequestClick, onCommitClick, project}: CommitR
               }
             )}
             disabled={!commit.author || commit.author.id !== undefined}
-            overlayStyle={{maxWidth: '350px'}}
+            maxWidth={350}
             skipWrapper
           >
             <AuthorWrapper>

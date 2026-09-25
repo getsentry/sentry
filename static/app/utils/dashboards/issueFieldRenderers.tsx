@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
@@ -207,9 +208,8 @@ const issuesCountRenderer = (
     <Container>
       <Tooltip
         skipWrapper
-        overlayStyle={{padding: 0}}
         title={
-          <div>
+          <div data-tooltip-section>
             {filteredCount ? (
               <Fragment>
                 <StyledLink to={filteredDiscoverLink}>
@@ -285,19 +285,19 @@ export function getSortField(field: string): string | null {
   }
 }
 
-const contentStyle = css`
+const contentStyle = (theme: Theme) => css`
   width: 100%;
   justify-content: space-between;
   display: flex;
-  padding: 6px 10px;
+  padding: ${theme.space.md} ${theme.space.lg};
 `;
 
 const StyledContent = styled('div')`
-  ${contentStyle};
+  ${p => contentStyle(p.theme)};
 `;
 
 const StyledLink = styled(Link)`
-  ${contentStyle};
+  ${p => contentStyle(p.theme)};
   color: ${p => p.theme.colors.gray500};
   &:hover {
     color: ${p => p.theme.colors.gray500};
