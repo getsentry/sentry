@@ -1,17 +1,24 @@
 from typing import Any
 from urllib.parse import urlencode
 
+import orjson
+from django.conf import settings
+from django.core.mail.message import make_msgid
+
 from sentry import features
 from sentry.models.activity import Activity
 from sentry.models.commit import Commit
 from sentry.models.group import Group
+from sentry.models.groupemailthread import GroupEmailThread
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.notifications.platform.email.utils import build_email_subject_prefix
 from sentry.notifications.platform.types import (
     CodeSection,
     CodeTextBlock,
     LinkTextBlock,
     NotificationData,
+    NotificationProviderKey,
     NotificationSection,
     NotificationSource,
     NotificationTarget,
@@ -22,7 +29,10 @@ from sentry.notifications.platform.types import (
 )
 from sentry.types.activity import SEER_ACTIVITY_TYPES, ActivityType
 from sentry.users.services.user.service import user_service
+from sentry.utils.email import group_id_to_email
+from sentry.utils.email.address import get_from_email_domain
 from sentry.utils.http import absolute_uri
+from sentry.utils.strings import is_valid_dot_atom
 from sentry.workflow_engine.models import Workflow
 
 ACTIVITY_TYPE_TO_SOURCE: dict[int, NotificationSource] = {
@@ -47,6 +57,16 @@ ACTIVITY_TYPE_TO_SOURCE: dict[int, NotificationSource] = {
     ActivityType.NOTE.value: NotificationSource.ACTIVITY_NOTE,
     ActivityType.ASSIGNED.value: NotificationSource.ACTIVITY_ASSIGNED,
     ActivityType.UNASSIGNED.value: NotificationSource.ACTIVITY_UNASSIGNED,
+}
+
+ACTIVITY_TYPE_TO_LEGACY_EMAIL_CATEGORY: dict[int, str] = {
+    ActivityType.SET_RESOLVED.value: "resolved_activity",
+    ActivityType.SET_REGRESSION.value: "regression_activity",
+    ActivityType.NOTE.value: "note_activity",
+    ActivityType.ASSIGNED.value: "assigned_activity",
+    ActivityType.UNASSIGNED.value: "unassigned_activity",
+    ActivityType.SET_RESOLVED_IN_RELEASE.value: "resolved_in_release_activity",
+    ActivityType.SET_ESCALATING.value: "escalating_activity",
 }
 
 ACTIVITY_NOTIFICATION_REFERRER = "activity_notification"
@@ -75,6 +95,8 @@ class ActivityNotificationData(NotificationData):
     alert_url: str | None = None
     # If the target recipient is a user, this link will direct them to their notification preferences.
     user_settings_url: str | None = None
+    email_headers: dict[str, str] | None = None
+    email_subject_prefix: str | None = None
 
 
 def create_activity_notification_example(
@@ -162,8 +184,44 @@ def extract_notification_models_by_activity(
     return group, project, organization
 
 
+def build_activity_email_headers(
+    *,
+    activity_type: int,
+    group: Group,
+    project: Project,
+    organization: Organization,
+    target: NotificationTarget,
+) -> dict[str, str] | None:
+    legacy_category = ACTIVITY_TYPE_TO_LEGACY_EMAIL_CATEGORY.get(activity_type)
+    if legacy_category is None or target.provider_key != NotificationProviderKey.EMAIL:
+        return None
+
+    message_id = make_msgid(domain=get_from_email_domain())
+    headers = {
+        "X-SMTPAPI": orjson.dumps({"category": legacy_category}).decode(),
+        "X-Sentry-Project": project.slug,
+        "X-Sentry-Logger": group.logger,
+        "X-Sentry-Logger-Level": group.get_level_display(),
+        "X-Sentry-Reply-To": group_id_to_email(group.id, organization.id),
+        "Message-Id": message_id,
+    }
+    list_id_label = f"{project.slug}.{organization.slug}"
+    if is_valid_dot_atom(list_id_label):
+        headers["List-Id"] = f"<{list_id_label}.{settings.SENTRY_MAIL_LIST_NAMESPACE}>"
+
+    thread, created = GroupEmailThread.objects.get_or_create(
+        email=target.resource_id,
+        group=group,
+        defaults={"project": project, "msgid": message_id},
+    )
+    if not created:
+        headers["In-Reply-To"] = thread.msgid
+        headers["References"] = thread.msgid
+    return headers
+
+
 def build_activity_notification_data(
-    activity: Activity, *, workflow_id: int | None = None, target: NotificationTarget | None = None
+    activity: Activity, *, target: NotificationTarget, workflow_id: int | None = None
 ) -> ActivityNotificationData:
     from sentry.integrations.messaging.message_builder import (
         build_attachment_text,
@@ -176,6 +234,15 @@ def build_activity_notification_data(
         raise ValueError(f"No notification source for activity type: {activity.type}")
 
     group, project, organization = extract_notification_models_by_activity(activity)
+
+    email_headers = build_activity_email_headers(
+        activity_type=activity.type,
+        group=group,
+        project=project,
+        organization=organization,
+        target=target,
+    )
+    email_subject_prefix = build_email_subject_prefix(project=project) if email_headers else None
 
     workflow: Workflow | None = None
     if workflow_id:
@@ -216,6 +283,8 @@ def build_activity_notification_data(
         ),
         activity_data=activity.data,
         activity_user_name=None,
+        email_headers=email_headers,
+        email_subject_prefix=email_subject_prefix,
     )
 
     if workflow:
@@ -229,7 +298,7 @@ def build_activity_notification_data(
             }
         )
 
-    if target and target.resource_type in {
+    if target.resource_type in {
         NotificationTargetResourceType.DIRECT_MESSAGE,
         NotificationTargetResourceType.EMAIL,
     }:
