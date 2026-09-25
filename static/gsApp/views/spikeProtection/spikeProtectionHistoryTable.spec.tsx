@@ -110,12 +110,12 @@ describe('SpikeProtectionHistoryTable', () => {
     expect(headers).toHaveLength(5);
 
     const discoverLink = screen.getByTestId('spike-protection-discover-button');
-    expect(discoverLink).toHaveTextContent(/Discover/);
+    expect(discoverLink).toHaveTextContent(/Explore/);
     await userEvent.click(discoverLink);
 
     expect(router.location).toEqual(
       expect.objectContaining({
-        pathname: expect.stringContaining('discover/homepage'),
+        pathname: expect.stringContaining('/errors'),
         query: expect.objectContaining({
           project: project.id,
           start: expect.stringContaining('2022-01-01'),

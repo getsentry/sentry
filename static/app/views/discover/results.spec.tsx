@@ -245,10 +245,10 @@ describe('Results', () => {
       const {router} = render(<Results />, {
         initialRouterConfig: {
           location: {
-            pathname: `/organizations/${organization.slug}/explore/discover/results/`,
+            pathname: `/organizations/${organization.slug}/explore/errors/results/`,
             query: {query: 'tag:value'},
           },
-          route: '/organizations/:orgId/explore/discover/results/',
+          route: '/organizations/:orgId/explore/errors/results/',
         },
         organization,
       });
@@ -256,7 +256,7 @@ describe('Results', () => {
       // Should redirect and retain the old query value
       expect(await screen.findByText(eventTitle)).toBeInTheDocument();
       expect(router.location.pathname).toBe(
-        `/organizations/${organization.slug}/explore/discover/results/`
+        `/organizations/${organization.slug}/explore/errors/results/`
       );
       expect(router.location.query).toEqual(
         expect.objectContaining({
@@ -1129,7 +1129,7 @@ describe('Results', () => {
 
       expect(discoverCrumb).toHaveAttribute(
         'href',
-        expect.stringMatching(new RegExp('^/organizations/org-slug/explore/discover/'))
+        expect.stringMatching(new RegExp('^/organizations/org-slug/explore/errors/'))
       );
 
       // The query name heads the page, so it is not repeated in the trail.
@@ -1163,7 +1163,7 @@ describe('Results', () => {
       expect(screen.getByRole('link', {name: 'Saved Queries'})).toHaveAttribute(
         'href',
         expect.stringMatching(
-          new RegExp('^/organizations/org-slug/explore/discover/queries/')
+          new RegExp('^/organizations/org-slug/explore/errors/queries/')
         )
       );
     });

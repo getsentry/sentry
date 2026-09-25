@@ -47,7 +47,7 @@ describe('getDetectorOpenInDestination', () => {
       expect(result?.buttonText).toBe('Open in Discover');
       expect(result?.to).toEqual(
         expect.objectContaining({
-          pathname: expect.stringContaining('/discover/results/'),
+          pathname: expect.stringContaining('/errors/results/'),
           query: expect.objectContaining({
             dataset: 'errors',
             query: 'event.type:error is:unresolved',
