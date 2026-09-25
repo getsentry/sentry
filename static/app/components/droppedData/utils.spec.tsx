@@ -1,6 +1,12 @@
 import {AnnotationFixture} from 'sentry-fixture/annotation';
 
-import {groupIntoBuckets, hasDroppedData, opacityForRatio, reasonTitle} from './utils';
+import {
+  groupIntoBuckets,
+  hasDroppedData,
+  opacityForRatio,
+  reasonDescription,
+  reasonTitle,
+} from './utils';
 
 describe('hasDroppedData', () => {
   it('is true when there is at least one dropped annotation', () => {
@@ -200,5 +206,32 @@ describe('reasonTitle', () => {
 
   it('falls back to the raw code for an unknown reason', () => {
     expect(reasonTitle('some_new_reason')).toBe('some_new_reason');
+  });
+});
+
+describe('reasonDescription', () => {
+  it('returns the short description for a known reason', () => {
+    expect(reasonDescription('queue_overflow', 'span')).toBe(
+      "SDK's send queue was full."
+    );
+  });
+
+  it('names the data type from the annotation category', () => {
+    expect(reasonDescription('project_abuse_limit', 'log_item')).toBe(
+      'Your log events exceeded the project abuse limit.'
+    );
+    expect(reasonDescription('usage_exceeded', 'trace_metric')).toBe(
+      'Your organization hit its quota for the application metric event type.'
+    );
+  });
+
+  it('drops the data type for an unknown category', () => {
+    expect(reasonDescription('too_large:event', 'unknown')).toBe(
+      'The event exceeded maximum payload size.'
+    );
+  });
+
+  it('returns undefined for an unknown reason', () => {
+    expect(reasonDescription('some_new_reason', 'span')).toBeUndefined();
   });
 });
