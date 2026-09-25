@@ -1,16 +1,10 @@
 import pytest
-from django.test import RequestFactory
-from rest_framework.request import Request
 
-from sentry.api.caller_scopes import (
-    has_deprecated_scopes,
-    has_granular_scopes,
-    record_caller_scopes,
-)
+from sentry.api.caller_scopes import has_deprecated_scopes, has_granular_scopes
 
 
 @pytest.mark.parametrize(
-    ("granted", "deprecated", "granular"),
+    ("scopes", "deprecated", "granular"),
     [
         (["org:read"], True, False),
         (["project:read"], True, False),
@@ -21,14 +15,6 @@ from sentry.api.caller_scopes import (
         ([], False, False),
     ],
 )
-def test_record_caller_scopes(granted: list[str], deprecated: bool, granular: bool) -> None:
-    request = Request(RequestFactory().get("/"))
-    record_caller_scopes(request, granted)
-    assert has_deprecated_scopes(request) is deprecated
-    assert has_granular_scopes(request) is granular
-
-
-def test_nothing_recorded() -> None:
-    request = Request(RequestFactory().get("/"))
-    assert has_deprecated_scopes(request) is None
-    assert has_granular_scopes(request) is None
+def test_caller_scopes(scopes: list[str], deprecated: bool, granular: bool) -> None:
+    assert has_deprecated_scopes(scopes) is deprecated
+    assert has_granular_scopes(scopes) is granular

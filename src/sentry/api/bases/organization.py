@@ -14,7 +14,6 @@ from rest_framework.request import Request
 from rest_framework.views import APIView
 
 from sentry.api.base import Endpoint
-from sentry.api.caller_scopes import record_caller_scopes
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environments
 from sentry.api.helpers.projects import (
@@ -122,10 +121,7 @@ class OrganizationPermission(DemoSafePermission):
     ) -> bool:
         self.determine_access(request, organization)
         allowed_scopes = set(self.scope_map.get(request.method or "", []))
-        if not any(request.access.has_scope(s) for s in allowed_scopes):
-            return False
-        record_caller_scopes(request, request.access.scopes)
-        return True
+        return any(request.access.has_scope(s) for s in allowed_scopes)
 
     def is_member_disabled_from_limit(
         self,

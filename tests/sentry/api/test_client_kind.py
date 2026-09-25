@@ -19,6 +19,7 @@ from sentry.api.client_kind import (
     get_user_agent,
     set_client_kind_attributes,
 )
+from sentry.auth.access import NoAccess
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.auth.system import SystemToken
 from sentry.seer.agent_token import AGENT_TOKEN_KIND
@@ -48,6 +49,8 @@ def make_request(
     # otherwise run, so the request arrives pre-authenticated.
     request.user = user if user is not None else AnonymousUser()
     request.auth = auth
+    # Set by `Endpoint.dispatch` before the attribution span reads it.
+    request.access = NoAccess()
     return request
 
 

@@ -9,7 +9,6 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import SAFE_METHODS, BasePermission, IsAuthenticated  # noqa: S012
 from rest_framework.request import Request
 
-from sentry.api.caller_scopes import record_caller_scopes
 from sentry.api.exceptions import (
     INSUFFICIENT_SCOPE_ATTR,
     InsufficientScope,
@@ -154,7 +153,6 @@ class ScopedPermission(BasePermission):
         allowed_scopes = set(self.scope_map.get(request.method, []))
         current_scopes = request.auth.get_scopes()
         if any(s in allowed_scopes for s in current_scopes):
-            record_caller_scopes(request, current_scopes)
             return True
         if allowed_scopes:
             # Token-authorized (request.auth is set) but under-scoped. Record the required

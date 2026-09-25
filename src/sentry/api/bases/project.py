@@ -11,7 +11,6 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from sentry.api.base import Endpoint
-from sentry.api.caller_scopes import record_caller_scopes
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environments
 from sentry.api.permissions import StaffPermissionMixin
@@ -59,10 +58,7 @@ class ProjectPermission(OrganizationPermission):
 
         assert request.method is not None
         allowed_scopes = set(self.scope_map.get(request.method, []))
-        if not request.access.has_any_project_scope(project, allowed_scopes):
-            return False
-        record_caller_scopes(request, request.access.scopes)
-        return True
+        return request.access.has_any_project_scope(project, allowed_scopes)
 
 
 class ProjectAndStaffPermission(StaffPermissionMixin, ProjectPermission):
