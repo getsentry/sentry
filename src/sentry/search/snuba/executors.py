@@ -16,6 +16,7 @@ from typing import Any, TypedDict, cast
 import sentry_sdk
 from django.db.models import F
 from django.utils import timezone
+from sentry_sdk import traces
 from snuba_sdk.query import Query
 
 from sentry import features, options
@@ -60,7 +61,6 @@ from sentry.utils.snuba import (
     aliased_query_params,
     bulk_raw_query,
 )
-from sentry.utils.tracing import set_span_data, start_span
 
 logger = logging.getLogger(__name__)
 
@@ -1334,9 +1334,9 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             and not environments
             and native_upper_bound_ok
         ):
-            with start_span(
-                op="search.postgres_sort.native_order_by",
+            with traces.start_span(
                 name="search.postgres_sort.native_order_by",
+                attributes={"sentry.op": "search.postgres_sort.native_order_by"},
             ):
                 ordered_queryset, order_by = strategy.native_order_by(group_queryset)
                 return Paginator(
@@ -1344,13 +1344,14 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 ).get_result(limit, cursor, count_hits=count_hits, max_hits=max_hits)
 
         max_candidates = options.get("snuba.search.max-pre-snuba-candidates")
-        with start_span(
-            op="search.postgres_sort.candidates", name="search.postgres_sort.candidates"
+        with traces.start_span(
+            name="search.postgres_sort.candidates",
+            attributes={"sentry.op": "search.postgres_sort.candidates"},
         ) as span:
             candidate_ids = list(
                 group_queryset.using_replica().values_list("id", flat=True)[: max_candidates + 1]
             )
-            set_span_data(span, "candidate_count", len(candidate_ids))
+            span.set_attribute("candidate_count", len(candidate_ids))
 
         if not candidate_ids:
             return self.empty_result
@@ -1400,9 +1401,9 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 raise InvalidQueryForExecutor(
                     f"Unknown snuba aggregation {sort_field!r} in Postgres sort strategy"
                 )
-            with start_span(
-                op="search.postgres_sort.snuba_aggregation",
+            with traces.start_span(
                 name="search.postgres_sort.snuba_aggregation",
+                attributes={"sentry.op": "search.postgres_sort.snuba_aggregation"},
             ):
                 snuba_groups, _ = self.snuba_search(
                     start=start,
@@ -1427,8 +1428,9 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             return self.empty_result
 
         logical_names = list(postgres_fields.keys())
-        with start_span(
-            op="search.postgres_sort.postgres_fields", name="search.postgres_sort.postgres_fields"
+        with traces.start_span(
+            name="search.postgres_sort.postgres_fields",
+            attributes={"sentry.op": "search.postgres_sort.postgres_fields"},
         ):
             pg_rows = (
                 group_queryset.filter(id__in=candidate_ids)
@@ -1442,12 +1444,16 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         # scan) is visible on its own rather than buried in an aggregate.
         signal_data: dict[str, dict[int, Any]] = {}
         for name, resolver in strategy.signal_resolvers.items():
-            with start_span(
-                op=f"search.postgres_sort.signal.{name}", name=f"search.postgres_sort.signal.{name}"
+            with traces.start_span(
+                name=f"search.postgres_sort.signal.{name}",
+                attributes={"sentry.op": f"search.postgres_sort.signal.{name}"},
             ):
                 signal_data[name] = resolver(actor, organization, projects, candidate_ids)
 
-        with start_span(op="search.postgres_sort.scoring", name="search.postgres_sort.scoring"):
+        with traces.start_span(
+            name="search.postgres_sort.scoring",
+            attributes={"sentry.op": "search.postgres_sort.scoring"},
+        ):
             scored_groups: list[tuple[Any, int]] = []
             for gid in candidate_ids:
                 pg_values = pg_data.get(gid)
@@ -1596,9 +1602,9 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         num_chunks = 0
 
         time_start = time.time()
-        with start_span(
-            op="search.postgres_sort.inverted_chunk",
+        with traces.start_span(
             name="search.postgres_sort.inverted_chunk",
+            attributes={"sentry.op": "search.postgres_sort.inverted_chunk"},
         ) as span:
             while True:
                 if (time.time() - time_start) >= max_time:
@@ -1652,8 +1658,8 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                     if crossed:
                         break
 
-            set_span_data(span, "num_chunks", num_chunks)
-            set_span_data(span, "num_passers", len(passers))
+            span.set_attribute("num_chunks", num_chunks)
+            span.set_attribute("num_passers", len(passers))
         metrics.distribution("search.progress_inverted.num_chunks", num_chunks)
 
         if not passers:
@@ -1861,12 +1867,14 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         # clause.
         max_candidates = options.get("snuba.search.max-pre-snuba-candidates")
 
-        with start_span(op="snuba_group_query", name="snuba_group_query") as span:
+        with traces.start_span(
+            name="snuba_group_query", attributes={"sentry.op": "snuba_group_query"}
+        ) as span:
             group_ids = list(
                 group_queryset.using_replica().values_list("id", flat=True)[: max_candidates + 1]
             )
-            set_span_data(span, "Max Candidates", max_candidates)
-            set_span_data(span, "Result Size", len(group_ids))
+            span.set_attribute("Max Candidates", max_candidates)
+            span.set_attribute("Result Size", len(group_ids))
         metrics.distribution("snuba.search.num_candidates", len(group_ids))
         too_many_candidates = False
         original_group_ids: list[int] | None = None
