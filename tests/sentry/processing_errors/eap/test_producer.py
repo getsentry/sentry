@@ -251,6 +251,25 @@ class ProduceProcessingErrorsToEAPTest(TestCase):
 
     @patch("sentry.processing_errors.eap.producer._eap_producer")
     @patch("sentry.processing_errors.eap.producer.get_topic_definition")
+    def test_symbolicator_type_none_is_omitted(self, mock_get_topic, mock_producer):
+        """Regression test: symbolicator_type=None must not be passed to anyvalue()."""
+        mock_get_topic.return_value = {"real_topic_name": "test-eap-items"}
+        codec = get_topic_codec(Topic.SNUBA_ITEMS)
+
+        event_data = self._make_event_data()
+        errors = [{"type": "js_no_source", "symbolicator_type": None}]
+
+        # Should not raise ValueError: Unsupported EAP value type for AnyValue: <class 'NoneType'>
+        produce_processing_errors_to_eap(self.project, event_data, errors)
+
+        mock_producer.produce.assert_called_once()
+        payload = mock_producer.produce.call_args[0][1]
+        trace_item = codec.decode(payload.value)
+
+        assert "symbolicator_type" not in trace_item.attributes
+
+    @patch("sentry.processing_errors.eap.producer._eap_producer")
+    @patch("sentry.processing_errors.eap.producer.get_topic_definition")
     def test_error_type_defaults_to_unknown(self, mock_get_topic, mock_producer):
         mock_get_topic.return_value = {"real_topic_name": "test-eap-items"}
         codec = get_topic_codec(Topic.SNUBA_ITEMS)

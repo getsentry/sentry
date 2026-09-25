@@ -94,7 +94,7 @@ def produce_processing_errors_to_eap(
                 "error_type": error.get("type", "unknown"),
             }
 
-            if "symbolicator_type" in error:
+            if error.get("symbolicator_type") is not None:
                 attributes["symbolicator_type"] = error["symbolicator_type"]
 
             if release is not None:
