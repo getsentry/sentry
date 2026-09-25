@@ -56,6 +56,22 @@ class ExploreSavedQueryDetailTest(APITestCase, SnubaTestCase):
         assert set(response.data["projects"]) == set(self.project_ids)
         assert response.data["query"] == [{"fields": ["span.op"], "mode": "samples"}]
 
+    def test_get_returns_a_link_that_restores_the_query(self) -> None:
+        with self.feature(self.feature_name):
+            url = reverse(
+                "sentry-api-0-explore-saved-query-detail", args=[self.org.slug, self.query_id]
+            )
+            response = self.client.get(url)
+
+        assert response.status_code == 200, response.content
+        # The link carries the query's own parameters, not just its id: Explore
+        # reads `?id=` only for the page title.
+        saved_query_url = response.data["url"]
+        assert "/explore/traces/" in saved_query_url
+        assert f"id={self.query_id}" in saved_query_url
+        assert "field=span.op" in saved_query_url
+        assert "mode=samples" in saved_query_url
+
     def test_get_explore_query_flag(self) -> None:
         with self.feature(self.feature_name):
             url = reverse(
