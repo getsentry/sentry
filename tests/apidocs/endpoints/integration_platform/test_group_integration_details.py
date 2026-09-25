@@ -80,6 +80,16 @@ class GroupIntegrationDetailsDocs(APIDocsTestCase):
 
         self.validate_schema(RequestFactory().get(url), response)
 
+    def test_put_existing_link(self) -> None:
+        data = {"externalIssue": "APP-123"}
+        with self.feature("organizations:integrations-issue-basic"):
+            self.client.put(self.base_url, data=data)
+            response = self.client.put(self.base_url, data=data)
+        request = RequestFactory().put(self.base_url, data=data)
+
+        assert response.status_code == 200
+        self.validate_schema(request, response)
+
     def test_delete(self) -> None:
         external_issue = ExternalIssue.objects.create(
             organization_id=self.organization.id,

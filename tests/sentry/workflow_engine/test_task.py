@@ -55,7 +55,7 @@ class TestProcessWorkflowActivity(TestCase):
         self.detector = self.create_detector(type=MetricIssue.slug)
 
     @override_options({"workflow_engine.evaluation_log_sample_rate": 1.0})
-    @mock.patch("sentry.workflow_engine.tasks.workflows.logger")
+    @mock.patch("sentry.workflow_engine.processors.evaluations.logging.logger")
     def test_process_workflow_activity__no_workflows(self, mock_logger: mock.MagicMock) -> None:
         with mock.patch(
             "sentry.workflow_engine.processors.workflow.evaluate_workflow_triggers",
@@ -82,7 +82,7 @@ class TestProcessWorkflowActivity(TestCase):
         "sentry.workflow_engine.processors.workflow.evaluate_workflows_action_filters",
         return_value=(set(), {}, EvaluationStats(), {}),
     )
-    @mock.patch("sentry.workflow_engine.tasks.workflows.logger")
+    @mock.patch("sentry.workflow_engine.processors.evaluations.logging.logger")
     def test_process_workflow_activity__workflows__no_actions(
         self,
         mock_logger: mock.MagicMock,
@@ -128,10 +128,7 @@ class TestProcessWorkflowActivity(TestCase):
         "sentry.workflow_engine.processors.action.filter_recently_fired_workflow_actions",
         return_value=([], {}),
     )
-    @mock.patch("sentry.workflow_engine.tasks.workflows.logger")
-    def test_process_workflow_activity(
-        self, mock_logger: mock.MagicMock, mock_filter_actions: mock.MagicMock
-    ) -> None:
+    def test_process_workflow_activity(self, mock_filter_actions: mock.MagicMock) -> None:
         self.workflow = self.create_workflow(organization=self.organization)
 
         self.action_group = self.create_data_condition_group(logic_type="any-short")
@@ -162,7 +159,7 @@ class TestProcessWorkflowActivity(TestCase):
 
     @override_options({"workflow_engine.evaluation_log_sample_rate": 1.0})
     @mock.patch("sentry.workflow_engine.processors.workflow.evaluate_workflow_triggers")
-    @mock.patch("sentry.workflow_engine.tasks.workflows.logger")
+    @mock.patch("sentry.workflow_engine.processors.evaluations.logging.logger")
     def test_process_workflow_activity__success_logs(
         self, mock_logger: mock.MagicMock, mock_evaluate_workflow_triggers: mock.MagicMock
     ) -> None:

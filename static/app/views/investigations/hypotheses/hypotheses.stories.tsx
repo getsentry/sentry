@@ -86,15 +86,15 @@ export default Storybook.story('Investigations — Hypotheses', story => {
     <Fragment>
       <p>
         A card renders <code>effectiveStatus</code>, which already folds the agent verdict
-        and any user disposition into the run status. Its verdict tag appears beside the
-        hypothesis number, without a confidence percentage.
+        and any user disposition into the run status. Its verdict status appears beside
+        the hypothesis number, without a confidence percentage.
       </p>
       <p>
         The border carries the verdict three ways. A thicker solid accent edge marks the
         explanation that stands — supported by the evidence, or accepted by a person. A
         dashed edge marks a card that was checked and is not the answer: ruled out,
         inconclusive, failed and cancelled all read the same way to someone scanning the
-        row, so the tag carries that distinction rather than the border. A hypothesis
+        row, so the status carries that distinction rather than the border. A hypothesis
         still being investigated keeps an ordinary solid edge, because dashing it would
         announce a verdict the agent has not reached.
       </p>
@@ -106,10 +106,11 @@ export default Storybook.story('Investigations — Hypotheses', story => {
         through several states worth naming: formed, having its checks planned, running
         them, and done checking but not yet judged. Those are read off the verification
         steps, since that is the only place the distinction exists. Only the running state
-        has a purple tag; the other three use muted tags. All four keep a solid border:
-        dashing one would announce a verdict the agent has not reached. Verification steps
-        show only their titles in a connected timeline. The current step has a filled dark
-        circle and primary text; other steps have hollow circles and muted text.
+        has a purple dot and label; the other three are gray. All four keep a solid
+        border: dashing one would announce a verdict the agent has not reached.
+        Verification steps show only their titles in a connected timeline. The current
+        step has a filled dark circle and primary text; other steps have hollow circles
+        and muted text.
       </p>
       <Storybook.Demo direction="column" align="stretch" maxHeight="none">
         <HypothesisList hypotheses={inFlightHypotheses()} />

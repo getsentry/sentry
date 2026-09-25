@@ -27,7 +27,7 @@ interface PipelineModalProps<
   provider: P;
   type: T;
   /** Overrides the step's default descriptive copy. */
-  description?: string;
+  description?: React.ReactNode;
   initialData?: Record<string, string>;
   onComplete?: (data: CompletionDataFor<T, P>) => void;
   onError?: (error: string) => void;
@@ -163,7 +163,7 @@ interface OpenPipelineModalOptions<
 > {
   provider: P;
   type: T;
-  description?: string;
+  description?: React.ReactNode;
   initialData?: Record<string, string>;
   onClose?: () => void;
   onComplete?: (data: CompletionDataFor<T, P>) => void;

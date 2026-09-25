@@ -5,6 +5,7 @@ import omit from 'lodash/omit';
 import {PlatformPicker} from 'sentry/components/platformPicker';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {ONBOARDING_ENTER} from 'sentry/views/onboarding/animations';
 import {GenericFooter} from 'sentry/views/onboarding/components/genericFooter';
 import {OnboardingStepHeading} from 'sentry/views/onboarding/components/onboardingStepHeading';
 import {useConfigureSdk} from 'sentry/views/onboarding/useConfigureSdk';
@@ -23,13 +24,7 @@ export function PlatformSelection(props: StepProps) {
       <OnboardingStepHeading step={props.stepIndex}>
         {t('Select the platform you want to monitor')}
       </OnboardingStepHeading>
-      <motion.div
-        variants={{
-          initial: {y: 30, opacity: 0},
-          animate: {y: 0, opacity: 1},
-          exit: {opacity: 0},
-        }}
-      >
+      <motion.div {...ONBOARDING_ENTER}>
         <p>
           {t(
             'Set up a separate project for each part of your application (for example, your API server and frontend client), to quickly pinpoint which part of your application errors are coming from.'

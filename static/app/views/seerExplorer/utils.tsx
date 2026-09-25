@@ -1,4 +1,13 @@
-import {useCallback, useEffect, useRef, useState} from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+  type RefObject,
+} from 'react';
 import {useMatches} from 'react-router-dom';
 import {useTheme} from '@emotion/react';
 import type {LocationDescriptor} from 'history';
@@ -657,8 +666,32 @@ export function parseRunIdParam(value: string): SeerExplorerRunId | null {
   return isUUID(value) ? value : null;
 }
 
+const SeerExplorerDeepLinkParamContext = createContext<RefObject<
+  string | undefined
+> | null>(null);
+
 /**
- * useEffect which listens for run ID query param in the current location. If found, it removes the query param and runs a callback.
+ * Holds the last run ID query param value seen by any `useSeerExplorerDeepLink` listener. The
+ * listeners mount and remount independently (the provider, the drawer, the sidebar, the popped-out
+ * window), so tracking it per listener would make a freshly mounted one treat an already-handled
+ * param as a new link, e.g. switching back to the linked run right after starting a new chat.
+ */
+export function SeerExplorerDeepLinkParamProvider({children}: {children: ReactNode}) {
+  const lastSeenParamRef = useRef<string | undefined>(undefined);
+  return (
+    <SeerExplorerDeepLinkParamContext.Provider value={lastSeenParamRef}>
+      {children}
+    </SeerExplorerDeepLinkParamContext.Provider>
+  );
+}
+
+/**
+ * useEffect which listens for the run ID query param in the current location and runs a callback
+ * whenever its value changes. The param is left in the URL so the link stays shareable and
+ * survives a reload.
+ *
+ * Values seen while disabled are still recorded, so re-enabling (e.g. closing the drawer) doesn't
+ * re-open a run that was already handled.
  */
 export function useSeerExplorerDeepLink({
   callback,
@@ -668,27 +701,79 @@ export function useSeerExplorerDeepLink({
   enabled?: boolean;
 }) {
   const location = useLocation();
-  const navigate = useNavigate();
+  const sharedLastSeenParamRef = useContext(SeerExplorerDeepLinkParamContext);
+  const ownLastSeenParamRef = useRef<string | undefined>(undefined);
+  const lastSeenParamRef = sharedLastSeenParamRef ?? ownLastSeenParamRef;
 
   useEffect(() => {
-    if (!enabled) {
-      return;
-    }
-
     const paramValue = location.query?.[RUN_ID_QUERY_PARAM];
-    if (!paramValue || typeof paramValue !== 'string') {
+    const value = typeof paramValue === 'string' ? paramValue : undefined;
+    if (value === lastSeenParamRef.current) {
+      return;
+    }
+    lastSeenParamRef.current = value;
+
+    if (!enabled || !value) {
       return;
     }
 
-    const runId = parseRunIdParam(paramValue);
+    const runId = parseRunIdParam(value);
     if (runId === null) {
       return;
     }
 
-    const {[RUN_ID_QUERY_PARAM]: _runId, ...restQuery} = location.query ?? {};
-    navigate({...location, query: restQuery}, {replace: true});
     callback(runId);
-  }, [location, navigate, callback, enabled]);
+  }, [location, callback, enabled, lastSeenParamRef]);
+}
+
+/**
+ * Returns a callback that removes the run ID query param from the current URL, if it's there.
+ * Pushes a history entry, so browser back returns to the URL with the chat open.
+ */
+export function useRemoveSeerExplorerRunIdParam() {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  return useCallback(() => {
+    if (location.query?.[RUN_ID_QUERY_PARAM] === undefined) {
+      return;
+    }
+    const {[RUN_ID_QUERY_PARAM]: _runId, ...restQuery} = location.query;
+    navigate({...location, query: restQuery});
+  }, [location, navigate]);
+}
+
+/**
+ * Keeps the run ID query param in sync with the active run, but only when the param is already in
+ * the URL (i.e. the page was opened from a chat link). Switching runs rewrites the param; starting
+ * a new chat removes it, since there is no run to link to yet.
+ */
+export function useSyncSeerExplorerRunIdToUrl(runId: SeerExplorerRunId | null) {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const prevRunIdRef = useRef(runId);
+
+  useEffect(() => {
+    // Only react to run changes. Syncing on mount would overwrite an incoming deep link with the
+    // previously active run before the deep link is handled.
+    if (prevRunIdRef.current === runId) {
+      return;
+    }
+    prevRunIdRef.current = runId;
+
+    const paramValue = location.query?.[RUN_ID_QUERY_PARAM];
+    if (paramValue === undefined || paramValue === String(runId)) {
+      return;
+    }
+
+    // Push rather than replace, so the browser back button returns to the previous
+    // conversation (the deep link listener switches to it when the param changes).
+    const {[RUN_ID_QUERY_PARAM]: _runId, ...restQuery} = location.query ?? {};
+    navigate({
+      ...location,
+      query: runId === null ? restQuery : {...restQuery, [RUN_ID_QUERY_PARAM]: runId},
+    });
+  }, [runId, location, navigate]);
 }
 
 /**

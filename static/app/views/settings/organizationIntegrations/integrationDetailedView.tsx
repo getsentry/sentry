@@ -29,6 +29,7 @@ import type {
 import type {Organization} from 'sentry/types/organization';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {getSlackUpgradeModalParams} from 'sentry/utils/integrations/slackUpgradeModalParams';
 import {
   openGithubPermissionsUpdateModal,
   useAutoOpenPermissionsModal,
@@ -121,6 +122,11 @@ function IntegrationUpgradeButton({
       provider={provider}
       organization={organization}
       onAddIntegration={onInstall}
+      modalParams={
+        provider.key === 'slack'
+          ? getSlackUpgradeModalParams(outdatedConfiguration.missingFeatures)
+          : undefined
+      }
       analyticsParams={{
         view: 'integrations_directory_integration_detail',
         already_installed: true,
@@ -441,6 +447,8 @@ export default function IntegrationDetailedView() {
               provider,
               type: integrationType,
               installStatus: installationStatus,
+              // Auto-open must wait for fresh workspaces, not consume stale cache data.
+              configurations: isConfigurationsFetching ? undefined : configurations,
               analyticsParams: {
                 view: 'integrations_directory_integration_detail',
                 already_installed: installationStatus !== 'Not Installed',
@@ -475,6 +483,8 @@ export default function IntegrationDetailedView() {
       organization,
       integrationSlug,
       location.search,
+      configurations,
+      isConfigurationsFetching,
     ]
   );
 

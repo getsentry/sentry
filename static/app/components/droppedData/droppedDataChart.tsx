@@ -1,11 +1,10 @@
 import {useMemo} from 'react';
-import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {outcomeLabel} from 'sentry/components/droppedData/utils';
+import {getOutcomeColors, outcomeLabel} from 'sentry/components/droppedData/utils';
 import {t} from 'sentry/locale';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import type {Annotation} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
@@ -19,18 +18,6 @@ const CHART_HEIGHT = '112px';
 
 function orderOutcomes(outcomes: string[]): string[] {
   return [...outcomes].sort();
-}
-
-export function getOutcomeColors(
-  outcomes: string[],
-  theme: Theme
-): Record<string, string> {
-  const palette = theme.chart.getColorPalette(Math.max(outcomes.length - 1, 0));
-
-  return outcomes.reduce<Record<string, string>>((acc, outcome, index) => {
-    acc[outcome] = palette[index % palette.length]!;
-    return acc;
-  }, {});
 }
 
 export function annotationsToSeries(
@@ -96,14 +83,14 @@ function ChartLegend({
 }
 
 interface DroppedDataChartProps {
-  droppedDataAnnotations: Annotation[];
+  droppedAnnotations: Annotation[];
 }
 
-export function DroppedDataChart({droppedDataAnnotations}: DroppedDataChartProps) {
+export function DroppedDataChart({droppedAnnotations}: DroppedDataChartProps) {
   const theme = useTheme();
 
   const {outcomes, colors, plottables} = useMemo(() => {
-    const series = annotationsToSeries(droppedDataAnnotations);
+    const series = annotationsToSeries(droppedAnnotations);
     const orderedOutcomes = orderOutcomes(Object.keys(series));
     const outcomeColors = getOutcomeColors(orderedOutcomes, theme);
 
@@ -119,9 +106,9 @@ export function DroppedDataChart({droppedDataAnnotations}: DroppedDataChartProps
           })
       ),
     };
-  }, [droppedDataAnnotations, theme]);
+  }, [droppedAnnotations, theme]);
 
-  const totalDropped = droppedDataAnnotations.reduce(
+  const totalDropped = droppedAnnotations.reduce(
     (sum, annotation) => sum + annotation.eventCount,
     0
   );

@@ -5,10 +5,6 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import Feature
 from sentry.testutils.helpers.options import override_options
 from sentry.workflow_engine.models import DataConditionGroup
-from sentry.workflow_engine.processors.evaluation_logging import (
-    emit_workflow_evaluation_logs,
-    should_log,
-)
 from sentry.workflow_engine.processors.evaluations import (
     DataConditionEvaluation,
     DataConditionGroupEvaluation,
@@ -19,9 +15,14 @@ from sentry.workflow_engine.processors.evaluations import (
     WorkflowEvaluation,
     WorkflowEvaluationOutcome,
 )
+from sentry.workflow_engine.processors.evaluations.logging import (
+    redact_pii_from_artifact,
+    should_log,
+)
+from sentry.workflow_engine.processors.evaluations.tracking import emit_evaluations
 from sentry.workflow_engine.types import ConditionError, WorkflowEventData
 
-LOGGING_MODULE = "sentry.workflow_engine.processors.evaluation_logging"
+LOGGING_MODULE = "sentry.workflow_engine.processors.evaluations.logging"
 
 
 class TestWorkflowEvaluationArtifact(TestCase):
@@ -113,7 +114,7 @@ class TestWorkflowEvaluationArtifact(TestCase):
             "group_id": self.group.id,
             "outcome": WorkflowEvaluationOutcome.ERROR,
             "triggered_action_ids": [],
-            "deferred": None,
+            "delayed": None,
             "trigger_evaluation": {
                 "triggered": True,
                 "error": "evaluation failed",
@@ -130,7 +131,7 @@ class TestWorkflowEvaluationArtifact(TestCase):
         artifact = asdict(evaluation.to_artifact())
 
         assert artifact["outcome"] == WorkflowEvaluationOutcome.DEFERRED
-        assert artifact["deferred"] == {
+        assert artifact["delayed"] == {
             "trigger_group_id": 20,
             "filter_group_ids": [30],
             "passing_filter_group_ids": [40],
@@ -185,6 +186,22 @@ class TestWorkflowEvaluationArtifact(TestCase):
         }
         assert "user@example.com" not in str(artifact)
 
+    def test_logging_redacts_raw_input_data(self) -> None:
+        artifact: dict[str, object] = {
+            "trigger_evaluation": {
+                "condition_evaluations": [
+                    {
+                        "input": {"email": "user@example.com"},
+                        "input_type": "dict",
+                    }
+                ]
+            }
+        }
+
+        assert redact_pii_from_artifact(artifact) == {
+            "trigger_evaluation": {"condition_evaluations": [{"input": None, "input_type": "dict"}]}
+        }
+
     def test_condition_artifact_includes_string_input(self) -> None:
         condition = self.create_data_condition()
         evaluation = DataConditionEvaluation(
@@ -198,7 +215,6 @@ class TestWorkflowEvaluationArtifact(TestCase):
 
     def test_emitter_always_logs_with_feature_enabled(self) -> None:
         evaluation = self._build_evaluation()
-        mock_logger = mock.MagicMock()
         with (
             Feature({"organizations:workflow-engine-log-evaluations": True}),
             override_options(
@@ -207,9 +223,9 @@ class TestWorkflowEvaluationArtifact(TestCase):
                     "workflow_engine.evaluation_logs_direct_to_sentry": False,
                 }
             ),
+            mock.patch(f"{LOGGING_MODULE}.logger") as mock_logger,
         ):
-            assert emit_workflow_evaluation_logs(
-                mock_logger,
+            emit_evaluations(
                 organization=self.organization,
                 result=self._build_batch_result({10: evaluation}),
             )
@@ -234,7 +250,6 @@ class TestWorkflowEvaluationArtifact(TestCase):
 
     def test_emitter_respects_sample_rate_when_feature_disabled(self) -> None:
         evaluation = self._build_evaluation()
-        mock_logger = mock.MagicMock()
         with (
             Feature({"organizations:workflow-engine-log-evaluations": False}),
             override_options(
@@ -244,14 +259,13 @@ class TestWorkflowEvaluationArtifact(TestCase):
                 }
             ),
             mock.patch(f"{LOGGING_MODULE}.random.random", side_effect=[0.05, 0.15]),
+            mock.patch(f"{LOGGING_MODULE}.logger") as mock_logger,
         ):
-            assert emit_workflow_evaluation_logs(
-                mock_logger,
+            emit_evaluations(
                 organization=self.organization,
                 result=self._build_batch_result({10: evaluation}),
             )
-            assert not emit_workflow_evaluation_logs(
-                mock_logger,
+            emit_evaluations(
                 organization=self.organization,
                 result=self._build_batch_result({10: evaluation}),
             )
@@ -260,14 +274,12 @@ class TestWorkflowEvaluationArtifact(TestCase):
 
     def test_emitter_logs_artifact_to_sentry_logger(self) -> None:
         evaluation = self._build_evaluation(triggered=True)
-        mock_logger = mock.MagicMock()
         with (
             Feature({"organizations:workflow-engine-log-evaluations": True}),
             override_options({"workflow_engine.evaluation_logs_direct_to_sentry": True}),
             mock.patch(f"{LOGGING_MODULE}.sdk_logger") as mock_sentry_logger,
         ):
-            assert emit_workflow_evaluation_logs(
-                mock_logger,
+            emit_evaluations(
                 organization=self.organization,
                 result=self._build_batch_result({10: evaluation}),
             )
@@ -279,20 +291,18 @@ class TestWorkflowEvaluationArtifact(TestCase):
                 "organization_id": self.organization.id,
             },
         )
-        mock_logger.info.assert_not_called()
 
     def test_emitter_logs_each_workflow_evaluation(self) -> None:
         evaluations = {
             10: self._build_evaluation(workflow_id=10),
             11: self._build_evaluation(workflow_id=11),
         }
-        mock_logger = mock.MagicMock()
         with (
             Feature({"organizations:workflow-engine-log-evaluations": True}),
             override_options({"workflow_engine.evaluation_logs_direct_to_sentry": False}),
+            mock.patch(f"{LOGGING_MODULE}.logger") as mock_logger,
         ):
-            assert emit_workflow_evaluation_logs(
-                mock_logger,
+            emit_evaluations(
                 organization=self.organization,
                 result=self._build_batch_result(evaluations),
             )
@@ -306,11 +316,11 @@ class TestWorkflowEvaluationArtifact(TestCase):
         ]
 
     def test_emitter_logs_empty_batch_outcome(self) -> None:
-        mock_logger = mock.MagicMock()
-
-        with Feature({"organizations:workflow-engine-log-evaluations": True}):
-            assert emit_workflow_evaluation_logs(
-                mock_logger,
+        with (
+            Feature({"organizations:workflow-engine-log-evaluations": True}),
+            mock.patch(f"{LOGGING_MODULE}.logger") as mock_logger,
+        ):
+            emit_evaluations(
                 organization=self.organization,
                 result=self._build_batch_result(
                     outcome=WorkflowEvaluationOutcome.NO_WORKFLOWS,

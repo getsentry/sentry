@@ -208,7 +208,7 @@ class ScmOnboardingTest(AcceptanceTestCase):
             self.start_onboarding()
 
             # Connect a repo and advance to the platform-features step.
-            self.browser.wait_until(xpath='//*[contains(text(), "Connected to")]')
+            self.browser.wait_until('input[aria-autocomplete="list"]')
             input_el = self.browser.element('input[aria-autocomplete="list"]')
             input_el.send_keys("sentry")
             self.browser.wait_until('[data-test-id="menu-list-item-label"]')
@@ -310,7 +310,7 @@ class ScmOnboardingTest(AcceptanceTestCase):
             self.start_onboarding()
 
             # Connect the first repo; detection resolves to Django.
-            self.browser.wait_until(xpath='//*[contains(text(), "Connected to")]')
+            self.browser.wait_until('input[aria-autocomplete="list"]')
             input_el = self.browser.element('input[aria-autocomplete="list"]')
             input_el.send_keys("sentry")
             self.browser.wait_until('[data-test-id="menu-list-item-label"]')
@@ -483,7 +483,7 @@ class ScmOnboardingTest(AcceptanceTestCase):
             )
 
             # Wait for the pipeline modal to close and the connected state.
-            self.browser.wait_until(xpath='//*[contains(text(), "Connected to")]')
+            self.browser.wait_until('input[aria-autocomplete="list"]')
 
             # Repo search (same flow as happy path from here on).
             input_el = self.browser.element('input[aria-autocomplete="list"]')
@@ -546,7 +546,7 @@ class ScmOnboardingTest(AcceptanceTestCase):
             self.start_onboarding()
 
             # SCM Connect: select a repo
-            self.browser.wait_until(xpath='//*[contains(text(), "Connected to")]')
+            self.browser.wait_until('input[aria-autocomplete="list"]')
             input_el = self.browser.element('input[aria-autocomplete="list"]')
             input_el.send_keys("sentry")
             self.browser.wait_until('[data-test-id="menu-list-item-label"]')
@@ -591,7 +591,7 @@ class ScmOnboardingTest(AcceptanceTestCase):
             self.start_onboarding()
 
             # SCM Connect: integration detected, search returns no results
-            self.browser.wait_until(xpath='//*[contains(text(), "Connected to")]')
+            self.browser.wait_until('input[aria-autocomplete="list"]')
             input_el = self.browser.element('input[aria-autocomplete="list"]')
             input_el.send_keys("nonexistent-repo")
             self.browser.wait_until(xpath='//*[contains(text(), "No repositories found")]')
@@ -672,7 +672,7 @@ class ScmOnboardingTest(AcceptanceTestCase):
         ):
             self.start_onboarding()
 
-            self.browser.wait_until(xpath='//*[contains(text(), "Connected to")]')
+            self.browser.wait_until('input[aria-autocomplete="list"]')
             input_el = self.browser.element('input[aria-autocomplete="list"]')
             input_el.send_keys("sentry")
             self.browser.wait_until('[data-test-id="menu-list-item-label"]')

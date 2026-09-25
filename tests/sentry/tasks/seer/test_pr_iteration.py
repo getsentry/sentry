@@ -2171,6 +2171,30 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
     @patch(f"{TASK_PATH}.trigger_autofix_agent")
     @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
     @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_a_mixed_batch_records_every_feedback_type(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        _mock_trigger: MagicMock,
+    ) -> None:
+        seer_run = self.create_seer_run(organization=self.organization, seer_run_state_id=67890)
+        mock_fetch.return_value = self._state_on_head()
+        mock_pop.return_value = [
+            self._queued(self._review_feedback(1), referrer=AutofixReferrer.GITHUB_PR_REVIEW),
+            self._queued(self._check_suite_feedback(), referrer=AutofixReferrer.GITHUB_CHECK_SUITE),
+            self._queued(self._review_feedback(2), referrer=AutofixReferrer.GITHUB_PR_REVIEW),
+        ]
+        self._open_iteration_row()
+
+        self._call()
+
+        (row,) = open_iterations(seer_run)
+        assert row.data["referrer"] == AutofixReferrer.UNKNOWN.value
+        assert row.data["feedback_types"] == "github.check_suite,github.pr_review"
+
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
     def test_a_dropped_bot_review_contributes_no_login(
         self,
         mock_fetch: MagicMock,

@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {GlobalDrawer} from '@sentry/scraps/drawer';
 import {PictureInPictureProvider} from '@sentry/scraps/pictureInPicture';
@@ -106,9 +106,13 @@ function sidebarTree(openOptions?: OpenSeerExplorerDrawerOptions) {
 
 function renderSidebar(
   organization: ReturnType<typeof OrganizationFixture>,
-  openOptions?: OpenSeerExplorerDrawerOptions
+  openOptions?: OpenSeerExplorerDrawerOptions,
+  query?: Record<string, string>
 ) {
-  return render(sidebarTree(openOptions), {organization});
+  return render(sidebarTree(openOptions), {
+    organization,
+    ...(query ? {initialRouterConfig: {location: {pathname: '/issues/', query}}} : {}),
+  });
 }
 
 // The split divider is a `role="separator"`; its `data-orientation` is the
@@ -499,5 +503,94 @@ describe('SeerExplorerSidebarLayout', () => {
       expect(screen.queryByTestId('seer-explorer-input')).not.toBeInTheDocument()
     );
     expect(splitOrientation()).toBeUndefined();
+  });
+
+  describe('explorerRunId param', () => {
+    beforeEach(() => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${orgWithSidebar.slug}/seer/explorer-chat/99/`,
+        method: 'GET',
+        body: {session: {blocks: []}},
+      });
+    });
+
+    it('opens from the param and removes it on close', async () => {
+      mockWideScreen(true);
+      const {router} = renderSidebar(orgWithSidebar, undefined, {
+        explorerRunId: '99',
+        query: 'is:unresolved',
+      });
+
+      expect(await screen.findByTestId('seer-explorer-input')).toBeInTheDocument();
+      expect(router.location.query.explorerRunId).toBe('99');
+
+      await userEvent.click(screen.getByRole('button', {name: 'Close Seer'}));
+
+      await waitFor(() => expect(router.location.query.explorerRunId).toBeUndefined());
+      expect(router.location.query.query).toBe('is:unresolved');
+      // Dropping the param must not look like a new link and reopen Seer.
+      expect(screen.queryByTestId('seer-explorer-input')).not.toBeInTheDocument();
+    });
+
+    it('keeps the closed and open states in browser history', async () => {
+      mockWideScreen(true);
+      const {router} = renderSidebar(orgWithSidebar, undefined, {explorerRunId: '99'});
+      expect(await screen.findByTestId('seer-explorer-input')).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Close Seer'}));
+      await waitFor(() => expect(router.location.query.explorerRunId).toBeUndefined());
+
+      act(() => router.navigate('/issues/?query=is%3Aresolved'));
+      await waitFor(() => expect(router.location.query.query).toBe('is:resolved'));
+
+      // Back lands on the page as it was after closing: no param, Seer closed.
+      act(() => router.navigate(-1));
+      await waitFor(() => expect(router.location.query.query).toBeUndefined());
+      expect(router.location.query.explorerRunId).toBeUndefined();
+      expect(screen.queryByTestId('seer-explorer-input')).not.toBeInTheDocument();
+
+      // Back again returns to the link, which reopens the chat.
+      act(() => router.navigate(-1));
+      await waitFor(() => expect(router.location.query.explorerRunId).toBe('99'));
+      expect(await screen.findByTestId('seer-explorer-input')).toBeInTheDocument();
+    });
+
+    it('keeps the param when redocking from the popped-out window', async () => {
+      let firePagehide = () => {};
+      const pip = {
+        document: document.implementation.createHTMLDocument('pip'),
+        close: jest.fn(),
+        focus: jest.fn(),
+        addEventListener: jest.fn((event: string, handler: () => void) => {
+          if (event === 'pagehide') {
+            firePagehide = handler;
+          }
+        }),
+        removeEventListener: jest.fn(),
+        closed: false,
+      };
+      Object.defineProperty(window, 'documentPictureInPicture', {
+        configurable: true,
+        writable: true,
+        value: {requestWindow: jest.fn().mockResolvedValue(pip), window: null},
+      });
+
+      mockWideScreen(true);
+      const {router} = renderSidebar(orgWithSidebar, undefined, {explorerRunId: '99'});
+      const input = await screen.findByTestId('seer-explorer-input');
+      // Opening focuses the input; wait for it so the focus move can't close the menu below.
+      await waitFor(() => expect(input).toHaveFocus());
+
+      await userEvent.click(screen.getByRole('button', {name: 'Dock position'}));
+      await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Windowed'}));
+      await waitFor(() => expect(splitOrientation()).toBeUndefined());
+      expect(router.location.query.explorerRunId).toBe('99');
+
+      // Closing the window natively redocks Seer instead of closing it.
+      act(() => firePagehide());
+
+      expect(await screen.findByTestId('seer-explorer-input')).toBeInTheDocument();
+      expect(router.location.query.explorerRunId).toBe('99');
+    });
   });
 });

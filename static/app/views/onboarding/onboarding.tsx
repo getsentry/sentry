@@ -33,6 +33,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {ONBOARDING_ENTER, ONBOARDING_STAGGER} from 'sentry/views/onboarding/animations';
 import {useBackActions} from 'sentry/views/onboarding/useBackActions';
 
 import {FOOTER_HEIGHT} from './components/genericFooter';
@@ -280,22 +281,14 @@ interface OnboardingStepVariableProps {
 }
 
 function OnboardingStepVariable(props: PropsWithChildren<OnboardingStepVariableProps>) {
+  // The SCM flow centers every step vertically; the legacy flow only its welcome.
   const Component =
-    props.id === OnboardingStepId.WELCOME && !props.hasScmOnboarding
+    props.hasScmOnboarding || props.id === OnboardingStepId.WELCOME
       ? OnboardingStepNewUi
       : OnboardingStep;
 
   return (
-    <Component
-      initial="initial"
-      animate="animate"
-      exit="exit"
-      variants={{animate: {}}}
-      transition={{
-        staggerChildren: 0.2,
-      }}
-      data-test-id={`onboarding-step-${props.id}`}
-    >
+    <Component {...ONBOARDING_STAGGER} data-test-id={`onboarding-step-${props.id}`}>
       {props.children}
     </Component>
   );
@@ -472,7 +465,7 @@ export function OnboardingWithoutContext() {
       <Button
         onClick={() => handleGoBack()}
         icon={<IconArrow direction="left" />}
-        variant="link"
+        variant="transparent"
       >
         {t('Back')}
       </Button>
@@ -523,35 +516,8 @@ export function OnboardingWithoutContext() {
   return (
     <Stack as="main" flexGrow={1} data-test-id="targeted-onboarding">
       <SentryDocumentTitle title={stepObj.title} />
-      <Header
-        columns={{'screen:2xs': 'repeat(2, 1fr)', 'screen:md': 'repeat(3, 1fr)'}}
-        as="header"
-      >
+      <Header columns="repeat(2, 1fr)" as="header">
         <LogoSvg showWordmark={!hasScmOnboarding} />
-        {stepIndex !== -1 && (
-          <Flex
-            justify="center"
-            display={{
-              'screen:2xs': 'none',
-              'screen:xs': 'none',
-              'screen:sm': 'none',
-              'screen:md': 'flex',
-            }}
-          >
-            <Stepper
-              numSteps={onboardingSteps.length}
-              currentStepIndex={stepIndex}
-              onClick={i => {
-                if (i < stepIndex && shallProjectBeDeleted) {
-                  handleGoBack(i);
-                  return;
-                }
-
-                goToStep(onboardingSteps[i]!);
-              }}
-            />
-          </Flex>
-        )}
         <Flex align="center" justify="end" gap="md">
           <Override
             name="onboarding:targeted-onboarding-header"
@@ -578,25 +544,13 @@ export function OnboardingWithoutContext() {
             />
           </Container>
         )}
+        {/* Outside the step, so no ancestor declares the variant names. */}
         {stepIndex > 0 && !hasScmOnboarding && (
-          <BackMotionDiv
-            initial="initial"
-            animate="visible"
-            variants={{
-              initial: {opacity: 0, visibility: 'hidden'},
-              visible: {
-                opacity: 1,
-                transition: {delay: 1},
-                transitionEnd: {
-                  visibility: 'visible',
-                },
-              },
-            }}
-          >
+          <BackMotionDiv {...ONBOARDING_ENTER} initial="initial" animate="animate">
             <Button
               onClick={() => handleGoBack()}
               icon={<IconArrow direction="left" />}
-              variant="link"
+              variant="transparent"
             >
               {t('Back')}
             </Button>
@@ -624,6 +578,22 @@ export function OnboardingWithoutContext() {
             )}
           </OnboardingStepVariable>
         </AnimatePresence>
+        {stepIndex !== -1 && (
+          <Flex justify="center" paddingTop="3xl">
+            <Stepper
+              numSteps={onboardingSteps.length}
+              currentStepIndex={stepIndex}
+              onClick={i => {
+                if (i < stepIndex && shallProjectBeDeleted) {
+                  handleGoBack(i);
+                  return;
+                }
+
+                goToStep(onboardingSteps[i]!);
+              }}
+            />
+          </Flex>
+        )}
       </ContainerVariable>
     </Stack>
   );
@@ -676,14 +646,12 @@ const OnboardingContainer = styled('div')<{
 `;
 
 const Header = styled(Grid)`
-  background: ${p => p.theme.tokens.background.primary};
   padding: ${p => p.theme.space.md} ${p => p.theme.space['3xl']};
   position: sticky;
   min-height: 60px;
   align-items: center;
   top: 0;
   z-index: 100;
-  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
 
 const LogoSvg = styled(LogoSentry)`
