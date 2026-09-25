@@ -12,6 +12,9 @@ overrides:
 packageExtensionsChecksum: sha256-0VZ2XeajIU53t75fxV6NpDm9r5YxmYRM0rEQhyaaIlQ=
 
 patchedDependencies:
+  echarts@6.1.0:
+    hash: 22cc7c03f987c40d3f2a1bf0aa41c5938cfc706857435f6aa00da745a762fe70
+    path: patches/echarts@6.1.0.patch
   jsdom@30.1.0:
     hash: 5dac761088e7baf0d6a93f505737e3e3f0dc178680ab47fb53483561d730388a
     path: patches/jsdom@30.1.0.patch
@@ -364,10 +367,10 @@ importers:
         version: 1.4.0
       echarts:
         specifier: 6.1.0
-        version: 6.1.0
+        version: 6.1.0(patch_hash=22cc7c03f987c40d3f2a1bf0aa41c5938cfc706857435f6aa00da745a762fe70)
       echarts-for-react:
         specifier: 3.0.6
-        version: 3.0.6(echarts@6.1.0)(react@19.2.3)
+        version: 3.0.6(echarts@6.1.0(patch_hash=22cc7c03f987c40d3f2a1bf0aa41c5938cfc706857435f6aa00da745a762fe70))(react@19.2.3)
       esbuild:
         specifier: 0.28.1
         version: 0.28.1
@@ -14156,14 +14159,14 @@ snapshots:
 
   eastasianwidth@0.2.0: {}
 
-  echarts-for-react@3.0.6(echarts@6.1.0)(react@19.2.3):
+  echarts-for-react@3.0.6(echarts@6.1.0(patch_hash=22cc7c03f987c40d3f2a1bf0aa41c5938cfc706857435f6aa00da745a762fe70))(react@19.2.3):
     dependencies:
-      echarts: 6.1.0
+      echarts: 6.1.0(patch_hash=22cc7c03f987c40d3f2a1bf0aa41c5938cfc706857435f6aa00da745a762fe70)
       fast-deep-equal: 3.1.3
       react: 19.2.3
       size-sensor: 1.0.3
 
-  echarts@6.1.0:
+  echarts@6.1.0(patch_hash=22cc7c03f987c40d3f2a1bf0aa41c5938cfc706857435f6aa00da745a762fe70):
     dependencies:
       tslib: 2.3.0
       zrender: 6.1.0(patch_hash=183ccabb66e5590ca8a810519f1df210e5a87bb8e48b4bae25e76a619954a193)
