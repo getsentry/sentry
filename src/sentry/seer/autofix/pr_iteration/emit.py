@@ -81,6 +81,7 @@ class PrIterationOutcome(StrEnum):
     TIMEOUT = "timeout"
     STALLED = "stalled"
     ERRORED = "errored"
+    MISSING_GROUP_ID = "missing_group_id"
 
     # technically we can recover from this
     # but an iteration is stuck until then
