@@ -63,8 +63,7 @@ export function ChartContent({
   // Category axes are only meaningful for bar charts. When the LLM pairs
   // x_axis:'category' with a line/area visualization, fall back to 'time'
   // so the chart renders gracefully instead of throwing.
-  const effectiveXAxis =
-    xAxis === 'category' && visualization !== 'bar' ? 'time' : xAxis;
+  const effectiveXAxis = xAxis === 'category' && visualization !== 'bar' ? 'time' : xAxis;
 
   const visualizationComponent =
     effectiveXAxis === 'category' ? (
@@ -93,8 +92,12 @@ export function ChartContent({
               .filter(t => !isNaN(t));
             const now = Date.now();
             return {
-              start: new Date(allTimestamps.length > 0 ? Math.min(...allTimestamps) : now).toISOString(),
-              end: new Date(allTimestamps.length > 0 ? Math.max(...allTimestamps) : now).toISOString(),
+              start: new Date(
+                allTimestamps.length > 0 ? Math.min(...allTimestamps) : now
+              ).toISOString(),
+              end: new Date(
+                allTimestamps.length > 0 ? Math.max(...allTimestamps) : now
+              ).toISOString(),
               period: null,
               utc: true,
             };
