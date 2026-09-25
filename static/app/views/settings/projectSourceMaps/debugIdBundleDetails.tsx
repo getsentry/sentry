@@ -57,5 +57,7 @@ export function DebugIdBundleDetails({
     projectId,
   ]);
 
-  return <KeyValueTableCard contentItems={detailsData.map(item => ({item}))} />;
+  return (
+    <KeyValueTableCard contentItems={detailsData.map(item => ({item}))} variant="label" />
+  );
 }

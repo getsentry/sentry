@@ -464,6 +464,7 @@ function TriggeredConditionDetails({
         }
       >
         <KeyValueTableCard
+          variant="label"
           contentItems={[
             {
               key: 'dataset',

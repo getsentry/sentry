@@ -135,6 +135,7 @@ export function SizeAnalysisTriggeredSection({event}: SizeAnalysisTriggeredSecti
       }
     >
       <KeyValueTableCard
+        variant="label"
         contentItems={[
           {
             key: 'thresholdType',

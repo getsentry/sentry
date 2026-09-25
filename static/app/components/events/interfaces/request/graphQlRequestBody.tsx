@@ -134,6 +134,7 @@ export function GraphQlRequestBody({data, event}: GraphQlBodyProps) {
             <KeyValueTableDataRow
               key={key}
               item={{key, subject: key, value: value as React.ReactNode}}
+              variant="label"
             />
           )
         )}

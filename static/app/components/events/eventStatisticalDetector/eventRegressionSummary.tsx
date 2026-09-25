@@ -32,7 +32,7 @@ export function EventRegressionSummary({event, group}: EventRegressionSummaryPro
       sectionKey={SectionKey.REGRESSION_SUMMARY}
       title={t('Regression Summary')}
     >
-      <KeyValueTableCard contentItems={data.map(item => ({item}))} />
+      <KeyValueTableCard contentItems={data.map(item => ({item}))} variant="label" />
     </FoldSection>
   );
 }

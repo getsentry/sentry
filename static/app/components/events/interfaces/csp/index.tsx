@@ -20,6 +20,7 @@ function getView(view: View, data: Record<any, any>, meta: Record<any, any>) {
     case 'report':
       return (
         <KeyValueTableCard
+          variant="label"
           contentItems={Object.entries(data).map(([key, value]) => ({
             item: {
               key,

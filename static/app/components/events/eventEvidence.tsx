@@ -52,6 +52,7 @@ export function EventEvidence({
       disableCollapsePersistence={disableCollapsePersistence}
     >
       <KeyValueTableCard
+        variant="label"
         contentItems={evidenceDisplay.map(item => ({
           item: {subject: item.name, key: item.name, value: item.value},
         }))}

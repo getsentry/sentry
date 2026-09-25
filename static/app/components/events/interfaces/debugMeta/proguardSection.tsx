@@ -31,6 +31,7 @@ export function ProguardSection({data, projectSlug}: ProguardSectionProps) {
       initialCollapse
     >
       <KeyValueTableCard
+        variant="label"
         contentItems={[
           {
             item: {

@@ -63,6 +63,7 @@ function SpanEvidencePreviewBody({
     return (
       <Container padding="lg lg 0 lg" width="700px" data-test-id="evidence-preview-body">
         <KeyValueTableCard
+          variant="label"
           contentItems={evidenceDisplay.map(item => ({
             item: {key: item.name, subject: item.name, value: item.value},
           }))}

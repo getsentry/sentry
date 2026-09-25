@@ -9,5 +9,6 @@ export {
   type KeyValueTableDataRowProps,
   KeyValueTableSubject,
   KeyValueTableValueSection,
+  type KeyValueTableVariant,
 } from './keyValueTableDataRow';
 export {KeyValueTable, KeyValueTableRow} from './keyValueTable';

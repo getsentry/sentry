@@ -37,6 +37,7 @@ function renderParams(params: Props['data']['params'], meta: any) {
 
   return (
     <KeyValueTableCard
+      variant="label"
       contentItems={entries.map(([key, value, valueMeta]) => ({
         item: {
           key,

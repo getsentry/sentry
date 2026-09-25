@@ -438,7 +438,7 @@ function SourceMapUploadDetails({
   return (
     <Grid columns="fit-content(50%) 1fr" gap="0 lg">
       {detailsData.map(item => (
-        <KeyValueTableDataRow key={item.key} item={item} />
+        <KeyValueTableDataRow key={item.key} item={item} variant="label" />
       ))}
     </Grid>
   );

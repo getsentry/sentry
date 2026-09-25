@@ -82,7 +82,10 @@ export function ProfileEventEvidence({event, projectSlug}: ProfileEvidenceProps)
 
   return (
     <FoldSection title={t('Function Evidence')} sectionKey={SectionKey.EVIDENCE}>
-      <KeyValueTableCard contentItems={keyValueListData.map(item => ({item}))} />
+      <KeyValueTableCard
+        contentItems={keyValueListData.map(item => ({item}))}
+        variant="label"
+      />
     </FoldSection>
   );
 }

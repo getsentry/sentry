@@ -653,7 +653,7 @@ function DefaultSpanEvidence({
 }
 
 function PresortedKeyValueList({data}: {data: KeyValueListData}) {
-  return <KeyValueTableCard contentItems={data.map(item => ({item}))} />;
+  return <KeyValueTableCard contentItems={data.map(item => ({item}))} variant="label" />;
 }
 
 const makeTransactionNameRow = (

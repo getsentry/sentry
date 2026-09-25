@@ -19,6 +19,7 @@ export function UptimeAssertionsSection({event}: {event: Event}) {
       disableCollapsePersistence
     >
       <KeyValueTableCard
+        variant="label"
         contentItems={[
           {
             item: {

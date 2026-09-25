@@ -172,13 +172,14 @@ export function GroupingVariant({
       <Header>{title}</Header>
 
       <KeyValueTableCard
+        variant="label"
         contentItems={data.map(([subject, value]) => ({
           item: {
             key: subject,
             subject,
             subjectNode:
               subject === t('Hash') ? (
-                <KeyValueTableSubject>
+                <KeyValueTableSubject variant="label">
                   <Flex align="center" gap="xs">
                     {subject}
                     <InfoTip

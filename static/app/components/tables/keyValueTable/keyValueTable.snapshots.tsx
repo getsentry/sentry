@@ -129,4 +129,14 @@ describe('KeyValueTable', () => {
     ),
     {tags: {area: 'core', variant: 'card'}}
   );
+
+  it.snapshot(
+    'card-label-variant',
+    () => (
+      <div style={{padding: 8, width: 500}}>
+        <KeyValueTableCard contentItems={contentItems} variant="label" />
+      </div>
+    ),
+    {tags: {area: 'core', variant: 'card'}}
+  );
 });

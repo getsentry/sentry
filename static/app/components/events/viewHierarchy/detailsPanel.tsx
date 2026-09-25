@@ -19,7 +19,7 @@ function DetailsPanel({data, getTitle}: DetailsPanelProps) {
   return (
     <Container>
       {defined(getTitle) && <Title>{getTitle(data)}</Title>}
-      <KeyValueTableCard contentItems={contentItems} sortAlphabetically />
+      <KeyValueTableCard contentItems={contentItems} sortAlphabetically variant="label" />
     </Container>
   );
 }
