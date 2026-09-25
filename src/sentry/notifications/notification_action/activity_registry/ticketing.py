@@ -2,29 +2,15 @@ import logging
 from typing import Any
 
 from sentry.constants import ObjectStatus
-from sentry.exceptions import InvalidIdentity
 from sentry.integrations.mixins.issues import IssueBasicIntegration
-from sentry.integrations.models.external_issue import ExternalIssue
-from sentry.integrations.project_management.metrics import (
-    ProjectManagementActionType,
-    ProjectManagementEvent,
-)
+from sentry.integrations.project_management.ticket_creation import create_ticket
 from sentry.integrations.services.integration.service import integration_service
 from sentry.models.activity import Activity
 from sentry.models.group import Group
-from sentry.models.grouplink import GroupLink
 from sentry.notifications.notification_action.activity_registry.base import require_integration_id
 from sentry.notifications.notification_action.registry import activity_handler_registry
 from sentry.notifications.notification_action.types import ActivityHandler
 from sentry.notifications.utils.links import create_link_to_workflow
-from sentry.shared_integrations.exceptions import (
-    ApiUnauthorized,
-    IntegrationConfigurationError,
-    IntegrationFormError,
-    IntegrationProviderError,
-    IntegrationResourceNotFoundError,
-)
-from sentry.silo.base import cell_silo_function
 from sentry.types.activity import ActivityType
 from sentry.utils.http import absolute_uri
 from sentry.workflow_engine.models import Action
@@ -41,59 +27,6 @@ TICKETING_ACTIVITY_DESCRIPTIONS: dict[ActivityType, str] = {
 }
 
 TICKETING_COMPATIBLE_ACTIVITY_TYPES = list(TICKETING_ACTIVITY_DESCRIPTIONS.keys())
-
-
-@cell_silo_function
-def _create_link(
-    integration_id: int,
-    installation: IssueBasicIntegration,
-    organization_id: int,
-    group: Group,
-    group_title: str,
-    description: str,
-    response: dict[str, Any],
-) -> None:
-    external_issue_key = installation.make_external_key(response)
-
-    external_issue = ExternalIssue.objects.create(
-        organization_id=organization_id,
-        integration_id=integration_id,
-        key=external_issue_key,
-        title=group_title,
-        description=description,
-        metadata=response.get("metadata"),
-    )
-    GroupLink.objects.create(
-        group_id=group.id,
-        project_id=group.project_id,
-        linked_type=GroupLink.LinkedType.issue,
-        linked_id=external_issue.id,
-        relationship=GroupLink.Relationship.references,
-        data={"provider": installation.model.get_provider().name},
-    )
-    issue_url = response.get("url") or installation.get_issue_url(external_issue.key)
-    Activity.objects.create_group_activity(
-        group=group,
-        type=ActivityType.CREATE_ISSUE,
-        data={
-            "title": external_issue.title,
-            "provider": installation.model.get_provider().name,
-            "location": issue_url,
-            "label": installation.get_issue_display_name(external_issue) or external_issue.key,
-            "new": True,
-        },
-    )
-
-
-def _has_linked_issue(group_id: int, project_id: int, integration_id: int) -> bool:
-    return ExternalIssue.objects.filter(
-        id__in=GroupLink.objects.filter(
-            project_id=project_id,
-            group_id=group_id,
-            linked_type=GroupLink.LinkedType.issue,
-        ).values_list("linked_id", flat=True),
-        integration_id=integration_id,
-    ).exists()
 
 
 def _build_description(
@@ -126,7 +59,7 @@ class TicketingActivityHandler(ActivityHandler):
         )
 
         action = invocation.action
-        group, project, organization = extract_notification_models_by_activity(activity)
+        group, _, organization = extract_notification_models_by_activity(activity)
 
         integration_id = require_integration_id(action)
         provider = action.type
@@ -160,59 +93,24 @@ class TicketingActivityHandler(ActivityHandler):
             )
             return
 
-        if _has_linked_issue(group.id, project.id, integration_id):
-            logger.info(
-                "notification_action.activity.ticketing.link_already_exists",
-                extra={
-                    "action_id": action.id,
-                    "group_id": group.id,
-                    "project_id": project.id,
-                    "integration_id": integration_id,
-                    "provider": provider,
-                },
-            )
-            return
-
         activity_description = TICKETING_ACTIVITY_DESCRIPTIONS.get(ActivityType(activity.type))
         title = f"[{activity_description}] {group.title}" if activity_description else group.title
 
+        additional_fields = action.data.get(TicketFieldMappingKeys.ADDITIONAL_FIELDS_KEY.value, {})
         data: dict[str, Any] = {
+            **additional_fields,
             "title": title,
             "description": _build_description(
                 installation, group, invocation.workflow_id, organization.slug
             ),
         }
 
-        additional_fields = action.data.get(TicketFieldMappingKeys.ADDITIONAL_FIELDS_KEY.value, {})
-        data.update(additional_fields)
-
-        with ProjectManagementEvent(
-            action_type=ProjectManagementActionType.CREATE_EXTERNAL_ISSUE,
+        create_ticket(
             integration=integration,
-        ).capture() as lifecycle:
-            lifecycle.add_extra("provider", provider)
-            lifecycle.add_extra("integration_id", integration_id)
-            lifecycle.add_extra("action_id", action.id)
-
-            try:
-                response = installation.create_issue(data)
-            except (
-                IntegrationConfigurationError,
-                IntegrationFormError,
-                InvalidIdentity,
-                ApiUnauthorized,
-                IntegrationResourceNotFoundError,
-                IntegrationProviderError,
-            ) as e:
-                lifecycle.record_halt(e)
-                raise
-
-        _create_link(
-            integration_id=integration.id,
             installation=installation,
-            organization_id=organization.id,
             group=group,
-            group_title=title,
-            description=data["description"],
-            response=response,
+            data=data,
+            external_issue_title=title,
+            external_issue_description=data["description"],
+            metric_extras={"action_id": action.id, "activity_id": activity.id},
         )
