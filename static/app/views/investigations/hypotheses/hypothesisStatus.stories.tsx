@@ -15,17 +15,17 @@ export default Storybook.story('Investigations — Hypothesis status', story => 
   story('A verdict the agent reached', () => (
     <Fragment>
       <p>
-        The status tag sits beside the hypothesis number. Its label comes from{' '}
+        The status sits beside the hypothesis number. Its label comes from{' '}
         <code>effectiveStatus</code>, <code>decisionSource</code> and the shape of{' '}
         <code>verificationSteps</code> together. Every row below is the projection shape
-        that produces that tag.
+        that produces that status.
       </p>
       <p>Confidence percentages are omitted from every state.</p>
       <p>
         Colour is deliberately sparing. <code>supported</code> and <code>accepted</code>{' '}
-        use green tags. <code>inconclusive</code> is amber, while <code>refuted</code>,{' '}
-        <code>rejected</code> and <code>cancelled</code> use gray tags.
-        <code>failed</code> uses a red tag.
+        are green. <code>inconclusive</code> is amber, while <code>refuted</code>,{' '}
+        <code>rejected</code> and <code>cancelled</code> are gray. <code>failed</code> is
+        red. Each is a coloured dot beside a label in the same colour.
       </p>
       <StatusBoxes rows={SETTLED} />
     </Fragment>
@@ -54,8 +54,9 @@ export default Storybook.story('Investigations — Hypothesis status', story => 
         the verdict is missing.
       </p>
       <p>
-        <em>Verifying…</em> uses a purple tag for active work. The other three stages use
-        muted tags while the hypothesis is being prepared or waiting for a verdict.
+        <em>Verifying…</em> is purple, and its dot pulses to mark active work. The other
+        three stages are gray while the hypothesis is being prepared or waiting for a
+        verdict.
       </p>
       <StatusBoxes rows={IN_FLIGHT} />
     </Fragment>
@@ -115,7 +116,7 @@ const SETTLED: StatusBoxRow[] = [
   },
   {
     key: 'refuted',
-    caption: "effectiveStatus: 'refuted' — ruled out, with a muted tag",
+    caption: "effectiveStatus: 'refuted' — ruled out, in gray",
     hypothesis: InvestigationHypothesisFixture({
       effectiveStatus: 'refuted',
       confidence: 0.91,
@@ -208,7 +209,7 @@ const IN_FLIGHT: StatusBoxRow[] = [
   },
   {
     key: 'checking',
-    caption: "status: 'running' — live work, with a purple tag",
+    caption: "status: 'running' — live work, in pulsing purple",
     hypothesis: InvestigationHypothesisFixture({
       status: 'running',
       effectiveStatus: 'investigating',

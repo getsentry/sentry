@@ -1,4 +1,6 @@
-import {Tag, type TagProps} from '@sentry/scraps/badge';
+import {Flex} from '@sentry/scraps/layout';
+import {StatusIndicator} from '@sentry/scraps/statusIndicator';
+import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
 import {humanize} from 'sentry/utils/string/humanize';
@@ -16,13 +18,15 @@ function hasRun(step: InvestigationVerificationStep): boolean {
   return Boolean(step.result) || Boolean(step.error);
 }
 
+type HypothesisStatusVariant = 'accent' | 'success' | 'warning' | 'danger' | 'muted';
+
 type HypothesisStatusDisplay = {
   label: string;
-  variant: TagProps['variant'];
+  variant: HypothesisStatusVariant;
 };
 
 /**
- * The label and colour of the tag beside the hypothesis number.
+ * The label and colour of the status beside the hypothesis number.
  *
  * A hypothesis in flight is all one `effectiveStatus`, but it passes through
  * several states worth naming: formed, having its checks planned, running them,
@@ -77,7 +81,7 @@ function getHypothesisStatusDisplay(
     return {label: t('Evidence checked'), variant: 'muted'};
   }
   if (hypothesis.status === 'running') {
-    return {label: t('Verifying…'), variant: 'info'};
+    return {label: t('Verifying…'), variant: 'accent'};
   }
   return {label: t('Preparing checks'), variant: 'muted'};
 }
@@ -92,7 +96,7 @@ function getHypothesisStatusDisplay(
  *   has not reached.
  * - `dashed` — checked, and not the answer. Ruled out, inconclusive, failed and
  *   cancelled all read the same way to someone scanning the row, so one broken
- *   edge covers them and the tag carries the distinction.
+ *   edge covers them and the status carries the distinction.
  */
 export function getHypothesisCardBorder(
   status: InvestigationHypothesisStatus
@@ -111,8 +115,15 @@ export function HypothesisStatus({hypothesis}: HypothesisStatusProps) {
   const {label, variant} = getHypothesisStatusDisplay(hypothesis);
 
   return (
-    <Tag variant={variant} data-test-id="hypothesis-status">
-      {label}
-    </Tag>
+    <Flex align="center" gap="sm" data-test-id="hypothesis-status">
+      {/* Only live work pulses; a settled status is a still dot. */}
+      <StatusIndicator
+        variant={variant}
+        animationIterationCount={variant === 'accent' ? 'infinite' : 0}
+      />
+      <Text size="sm" variant={variant}>
+        {label}
+      </Text>
+    </Flex>
   );
 }
