@@ -4,7 +4,6 @@ import type {Location} from 'history';
 import type {Organization} from 'sentry/types/organization';
 import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
 import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
-import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import type {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/breadcrumbs';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/traceUrl';
