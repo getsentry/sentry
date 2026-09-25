@@ -459,10 +459,10 @@ class GroupIntegrationDetailsTest(APITestCase):
             )
             repeated = self.client.put(path, data={"externalIssue": "ABC-123"})
         assert response.status_code == 201
-        assert response.data["changed"] is True
+        assert "changed" not in response.data
         assert response.data["key"] == "ABC-123"
         assert repeated.status_code == 200
-        assert repeated.data == {**response.data, "changed": False}
+        assert repeated.data == response.data
         assert GroupLink.objects.filter(
             group_id=self.group.id,
             linked_id=response.data["id"],
@@ -617,13 +617,13 @@ class GroupIntegrationDetailsTest(APITestCase):
             response = self.client.put(path, data={"externalIssue": "APP-123"})
 
             assert response.status_code == 201
-            assert response.data["changed"] is True
+            assert "changed" not in response.data
             first_link = response.data
             self.assert_correctly_linked(group, "APP-123", integration, org)
 
             response = self.client.put(path, data={"externalIssue": "APP-123"})
             assert response.status_code == 200
-            assert response.data == {**first_link, "changed": False}
+            assert response.data == first_link
 
         mock_after_link.assert_called_once()
         mock_publish_action.assert_called_once()

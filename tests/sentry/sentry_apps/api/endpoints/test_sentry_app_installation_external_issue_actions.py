@@ -91,10 +91,10 @@ class SentryAppInstallationExternalIssuesEndpointTest(APITestCase):
         first = self.client.post(url, data=data, format="json")
         repeated = self.client.post(url, data=data, format="json")
 
-        assert first.status_code == 200, first.content
-        assert first.data["changed"] is True
+        assert first.status_code == 201, first.content
+        assert "changed" not in first.data
         assert repeated.status_code == 200, repeated.content
-        assert repeated.data == {**first.data, "changed": False}
+        assert repeated.data == first.data
         assert len(responses.calls) == 1
         assert json.loads(responses.calls[0].request.body)["fields"] == {
             "issue": "123",

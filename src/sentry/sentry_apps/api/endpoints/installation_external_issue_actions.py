@@ -1,5 +1,3 @@
-from typing import NotRequired
-
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -32,10 +30,6 @@ from sentry.sentry_apps.external_requests.utils import validate_sentry_app_uri
 from sentry.sentry_apps.services.cell import sentry_app_cell_service
 from sentry.sentry_apps.utils.errors import SentryAppPublicErrorBody
 from sentry.users.services.user.serial import serialize_generic_user
-
-
-class SentryAppExternalIssueActionResponse(PlatformExternalIssueSerializerResponse):
-    changed: NotRequired[bool]
 
 
 class SentryAppInstallationExternalIssueActionsSerializer(serializers.Serializer):
@@ -82,7 +76,10 @@ class SentryAppInstallationExternalIssueActionsEndpoint(
         request=SentryAppInstallationExternalIssueActionsSerializer,
         responses={
             200: inline_sentry_response_serializer(
-                "SentryAppExternalIssueActionResponse", SentryAppExternalIssueActionResponse
+                "PlatformExternalIssueResponse", PlatformExternalIssueSerializerResponse
+            ),
+            201: inline_sentry_response_serializer(
+                "PlatformExternalIssueResponse", PlatformExternalIssueSerializerResponse
             ),
             400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
@@ -94,7 +91,7 @@ class SentryAppInstallationExternalIssueActionsEndpoint(
     def post(
         self, request: Request, installation
     ) -> (
-        Response[SentryAppExternalIssueActionResponse]
+        Response[PlatformExternalIssueSerializerResponse]
         | Response[DetailResponse]
         | Response[ValidationErrorResponse]
         | Response[SentryAppPublicErrorBody]
@@ -105,10 +102,11 @@ class SentryAppInstallationExternalIssueActionsEndpoint(
 
         For `action=link`, the optional `expectedExternalIssueUrl` query parameter
         requires an exact canonical `webUrl` match. An existing matching link is
-        returned with `changed: false` without calling the App; a different link
+        returned with HTTP 200 without calling the App; a different link
         returns 409. The callback must also return this URL before a new link is
         saved. Callback effects cannot be rolled back if its response conflicts.
-        Omitting the parameter preserves the App's existing replacement behavior.
+        A new association returns HTTP 201. Omitting the parameter preserves the
+        App's existing replacement behavior and HTTP 200 response.
         """
         data = request.data.copy()
 
@@ -148,9 +146,7 @@ class SentryAppInstallationExternalIssueActionsEndpoint(
         if not result.external_issue:
             return Response({"detail": "Failed to create external issue"}, status=500)
 
-        body = SentryAppExternalIssueActionResponse(
-            **serialize(objects=result.external_issue, serializer=PlatformExternalIssueSerializer())
+        body: PlatformExternalIssueSerializerResponse = serialize(
+            objects=result.external_issue, serializer=PlatformExternalIssueSerializer()
         )
-        if result.changed is not None:
-            body["changed"] = result.changed
-        return Response(body)
+        return Response(body, status=201 if result.changed else 200)

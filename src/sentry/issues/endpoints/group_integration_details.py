@@ -83,11 +83,7 @@ class IntegrationIssueConfigResponse(IntegrationSerializerResponse, total=False)
     createIssueConfig: list[dict[str, Any]]
 
 
-class ExternalIssueLinkResponseOptional(TypedDict, total=False):
-    changed: bool
-
-
-class ExternalIssueLinkResponse(ExternalIssueLinkResponseOptional):
+class ExternalIssueLinkResponse(TypedDict):
     id: int
     key: str
     url: str
@@ -440,7 +436,8 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         ticket or GitHub issue) to the given Sentry issue. Additional accepted fields
         are integration-specific; fetch them from the `linkIssueConfig` returned by
         the `GET` endpoint with `?action=link`. Linking the same issue again returns
-        the existing link with `changed: false`, without repeating provider comments.
+        the existing link with HTTP 200, without repeating provider comments. A new
+        link returns HTTP 201.
         """
         if not request.user.is_authenticated:
             return Response(status=400)
@@ -590,7 +587,6 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             "url": url,
             "integrationId": external_issue.integration_id,
             "displayName": installation.get_issue_display_name(external_issue),
-            "changed": changed,
         }
         return Response(context, status=201 if changed else 200)
 
