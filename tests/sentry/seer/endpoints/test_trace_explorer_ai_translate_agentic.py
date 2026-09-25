@@ -59,7 +59,12 @@ class SearchAgentTranslateEndpointTest(APITestCase):
                 "organization_id": self.organization.id,
                 "user_id": self.user.id,
             },
-            options={},
+            options={
+                "cross_event": False,
+                "project_expansion": False,
+                "reflection_step": False,
+                "code_mode": False,
+            },
         )
 
     @patch(
