@@ -32,6 +32,10 @@ class BaseAIConversationsTestCase(BaseSpansTestCase, SpanTestCase, APITestCase):
         cache_write_tokens=None,
         reasoning_tokens=None,
         cost=None,
+        input_cost=None,
+        output_cost=None,
+        request_model=None,
+        response_model=None,
         trace_id=None,
         agent_name=None,
         messages=None,
@@ -68,6 +72,10 @@ class BaseAIConversationsTestCase(BaseSpansTestCase, SpanTestCase, APITestCase):
             cache_write_tokens: Cache-creation input token count
             reasoning_tokens: Reasoning output token count
             cost: Cost (gen_ai.cost.total_tokens)
+            input_cost: Input token cost (gen_ai.cost.input_tokens)
+            output_cost: Output token cost (gen_ai.cost.output_tokens)
+            request_model: Requested model (gen_ai.request.model)
+            response_model: Responding model (gen_ai.response.model)
             trace_id: The trace ID for the span
             agent_name: The gen_ai.agent.name attribute
             messages: The gen_ai.request.messages (will be JSON serialized)
@@ -109,6 +117,14 @@ class BaseAIConversationsTestCase(BaseSpansTestCase, SpanTestCase, APITestCase):
             span_data["gen_ai.usage.reasoning.output_tokens"] = reasoning_tokens
         if cost is not None:
             span_data["gen_ai.cost.total_tokens"] = cost
+        if input_cost is not None:
+            span_data["gen_ai.cost.input_tokens"] = input_cost
+        if output_cost is not None:
+            span_data["gen_ai.cost.output_tokens"] = output_cost
+        if request_model is not None:
+            span_data["gen_ai.request.model"] = request_model
+        if response_model is not None:
+            span_data["gen_ai.response.model"] = response_model
         if agent_name is not None:
             span_data["gen_ai.agent.name"] = agent_name
         if messages is not None:
