@@ -191,17 +191,37 @@ class TestFindStacktraces:
         assert infos[0].exception_type == "Error"
 
 
+def _thread(**kwargs):
+    return {"stacktrace": {"frames": [{"in_app": True, "marco": "polo"}]}, **kwargs}
+
+
 @pytest.mark.parametrize(
     "event",
     [
-        {"threads": {"values": [{"stacktrace": {"frames": [{"in_app": True, "marco": "polo"}]}}]}},
+        {"threads": {"values": [_thread()]}},
         {
             "exception": {
                 "values": [{"stacktrace": {"frames": [{"in_app": True, "marco": "polo"}]}}]
             }
         },
         {"stacktrace": {"frames": [{"in_app": True, "marco": "polo"}]}},
+        {"threads": {"values": [{"id": 0}, _thread(crashed=True), {"id": 2}]}},
+        {"threads": {"values": [{"id": 0}, _thread(current=True), {"id": 2}]}},
+        {"threads": {"values": [None, _thread()]}},
     ],
 )
 def test_get_crash_frame(event) -> None:
     assert get_crash_frame_from_event_data(event)["marco"] == "polo"
+
+
+@pytest.mark.parametrize(
+    "event",
+    [
+        {"threads": {"values": []}},
+        {"threads": {"values": [{"id": 0}, {"id": 1}]}},
+        {"threads": {"values": [_thread(crashed=True), _thread(crashed=True)]}},
+        {"threads": {"values": [_thread(current=True), _thread(current=True)]}},
+    ],
+)
+def test_get_crash_frame_returns_none(event) -> None:
+    assert get_crash_frame_from_event_data(event) is None
