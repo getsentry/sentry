@@ -50,6 +50,18 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
         assert resp.status_code == 200
         self.assertTemplateUsed("sentry/login.html")
 
+    def test_login_page_includes_password_visibility_toggle(self) -> None:
+        resp = self.client.get(self.path)
+
+        assert resp.status_code == 200
+        content = resp.content.decode()
+        # The password field is wrapped in a container with a toggle button
+        assert 'class="login-form-field password-field"' in content
+        assert 'class="password-visibility-toggle"' in content
+        assert 'aria-label="Show password"' in content
+        # The client-side behavior for the toggle is present
+        assert "bindPasswordVisibilityToggles" in content
+
     def test_renders_legacy_login_banner(self) -> None:
         banner = 'Banner message <a href="https://example.com">Learn more</a>.'
         with mock.patch.object(
