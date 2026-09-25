@@ -1,7 +1,7 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import {useSearchParams} from 'react-router-dom';
 import styled from '@emotion/styled';
-import {useQuery} from '@tanstack/react-query';
+import {useInfiniteQuery, useQuery} from '@tanstack/react-query';
 import startCase from 'lodash/startCase';
 
 import {DocIntegrationAvatar, SentryAppAvatar} from '@sentry/scraps/avatar';
@@ -30,6 +30,8 @@ import type {
   SentryApp,
   SentryAppInstallation,
 } from 'sentry/types/integrations';
+import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {uniq} from 'sentry/utils/array/uniq';
 import {
@@ -129,14 +131,26 @@ function useIntegrationList() {
     isPending: isOrgOwnedAppsPending,
     isError: isOrgOwnedAppsError,
   } = useQuery(sentryAppsApiOptions({orgSlug: organization.slug}));
+  const publishedAppsQuery = useInfiniteQuery({
+    ...apiOptions.asInfinite<SentryApp[]>()('/sentry-apps/', {
+      query: {status: 'published'},
+      ...queryOptions,
+    }),
+    select: data => data.pages.flatMap(page => page.json),
+  });
+  useFetchAllPages({result: publishedAppsQuery});
+
   const {
     data: publishedApps = [],
-    isPending: isPublishedAppsPending,
+    isPending: isPublishedAppsQueryPending,
     isError: isPublishedAppsError,
-  } = useApiQuery<SentryApp[]>(
-    [getApiUrl('/sentry-apps/'), {query: {status: 'published'}}],
-    queryOptions
-  );
+    hasNextPage: hasNextPublishedAppsPage,
+    isFetchingNextPage: isFetchingNextPublishedAppsPage,
+  } = publishedAppsQuery;
+  const isPublishedAppsPending =
+    isPublishedAppsQueryPending ||
+    isFetchingNextPublishedAppsPage ||
+    (hasNextPublishedAppsPage && !isPublishedAppsError);
   const {
     data: appInstalls = [],
     isPending: isAppInstallsPending,
