@@ -7,22 +7,21 @@ import {
   type RefCallback,
 } from 'react';
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {useHotkeys} from '@sentry/scraps/hotkey';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
 import {SlideOverPanel} from '@sentry/scraps/slideOverPanel';
+import {Heading} from '@sentry/scraps/text';
 
-import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {Placeholder} from 'sentry/components/placeholder';
-import {IconClose} from 'sentry/icons';
+import {IconArrow, IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
@@ -243,24 +242,6 @@ function WidgetBuilderSlideoutInner({
     [observer]
   );
 
-  const widgetLibraryWidgets = getDefaultWidgets(organization);
-
-  const widgetLibraryElement = (
-    <SlideoutBreadcrumb
-      onClick={() => {
-        setCustomizeFromLibrary(false);
-        setOpenWidgetTemplates(true);
-        // clears the widget to start fresh on the library page
-        dispatch({
-          type: 'SET_STATE',
-          payload: convertWidgetToBuilderState(widgetLibraryWidgets[0] ?? ({} as Widget)),
-        });
-      }}
-    >
-      {t('Widget Library')}
-    </SlideoutBreadcrumb>
-  );
-
   const onCloseWithModal = useCallback(() => {
     openConfirmModal({
       bypass: isEqual(initialState, state),
@@ -283,47 +264,58 @@ function WidgetBuilderSlideoutInner({
     },
   ]);
 
-  const breadcrumbs = customizeFromLibrary
-    ? [
-        {
-          label: widgetLibraryElement,
-          to: '',
-        },
-        {
-          label: title,
-          to: '',
-        },
-      ]
-    : [
-        {
-          label: title,
-          to: '',
-        },
-      ];
+  const returnToWidgetLibrary = () => {
+    setCustomizeFromLibrary(false);
+    setOpenWidgetTemplates(true);
+    // clears the widget to start fresh on the library page
+    dispatch({
+      type: 'SET_STATE',
+      payload: convertWidgetToBuilderState(
+        getDefaultWidgets(organization)[0] ?? ({} as Widget)
+      ),
+    });
+  };
 
   const header = (
     <Flex
       align="center"
       justify="between"
+      gap="md"
       borderBottom="primary"
       height="44px"
-      padding="0 2xl"
+      padding="0 lg"
     >
-      <Breadcrumbs as="nav" crumbs={breadcrumbs} />
-      <CloseButton
-        variant="link"
-        size="zero"
+      <Flex align="center" minWidth="0">
+        {customizeFromLibrary && (
+          <Button
+            variant="transparent"
+            size="sm"
+            icon={<IconArrow direction="left" size="sm" />}
+            aria-label={t('Back to Widget Library')}
+            tooltipProps={{title: t('Back to Widget Library')}}
+            onClick={returnToWidgetLibrary}
+          />
+        )}
+        <Flex padding="0 lg">
+          <Heading as="h2" size="md" ellipsis>
+            {title}
+          </Heading>
+        </Flex>
+      </Flex>
+      <Button
+        variant="transparent"
+        size="sm"
         aria-label={t('Close Widget Builder')}
         icon={<IconClose size="sm" />}
         onClick={onCloseWithModal}
       >
         {t('Close')}
-      </CloseButton>
+      </Button>
     </Flex>
   );
 
   return (
-    <SlideOverPanel position="left" data-test-id="widget-slideout">
+    <SlideOverPanel position="left" ariaLabel={title} data-test-id="widget-slideout">
       {({isOpening}) => {
         if (isOpening) {
           return (
@@ -342,13 +334,13 @@ function WidgetBuilderSlideoutInner({
         return (
           <Fragment>
             {header}
-            <SlideoutBodyWrapper>
+            <Container padding="2xl">
               {isTransactionsWidget && showTransactionsDeprecationAlert && (
                 <Section>
                   <Alert
                     variant="warning"
                     trailingItems={
-                      <StyledCloseButton
+                      <Button
                         icon={<IconClose size="sm" />}
                         aria-label={t('Close')}
                         onClick={() => {
@@ -534,7 +526,7 @@ function WidgetBuilderSlideoutInner({
                   />
                 </Fragment>
               )}
-            </SlideoutBodyWrapper>
+            </Container>
           </Fragment>
         );
       }}
@@ -549,9 +541,9 @@ export const WidgetBuilderSlideout = registerLLMContext(
 
 function Section({children}: {children: React.ReactNode}) {
   return (
-    <SectionWrapper>
+    <Container marginBottom="2xl">
       <ErrorBoundary mini>{children}</ErrorBoundary>
-    </SectionWrapper>
+    </Container>
   );
 }
 
@@ -584,35 +576,3 @@ function DisableTransactionWidget({children}: DisableModeProps) {
     </div>
   );
 }
-
-const CloseButton = styled(Button)`
-  color: ${p => p.theme.tokens.content.secondary};
-  height: fit-content;
-  &:hover {
-    color: ${p => p.theme.colors.gray500};
-  }
-  z-index: 100;
-`;
-
-const SlideoutBreadcrumb = styled('div')`
-  cursor: pointer;
-`;
-
-const SlideoutBodyWrapper = styled('div')`
-  padding: ${p => p.theme.space['2xl']};
-`;
-
-const SectionWrapper = styled('div')`
-  margin-bottom: 24px;
-`;
-
-const StyledCloseButton = styled(Button)`
-  background-color: transparent;
-  transition: opacity 0.1s linear;
-
-  &:hover,
-  &:focus {
-    background-color: transparent;
-    opacity: 1;
-  }
-`;
