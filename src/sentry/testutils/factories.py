@@ -864,6 +864,7 @@ class Factories:
         active: bool = True,
         data_type: str = DataType.ERROR,
         conditions: list[dict[str, object]] | None = None,
+        legacy_filter: str | None = None,
     ) -> CustomInboundFilter:
         if conditions is None:
             conditions = [{"type": "release", "value": ["1.*"]}]
@@ -874,6 +875,7 @@ class Factories:
             active=active,
             data_type=data_type,
             conditions=conditions,
+            legacy_filter=legacy_filter,
         )
 
     @staticmethod
