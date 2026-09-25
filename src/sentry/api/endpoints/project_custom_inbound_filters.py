@@ -25,6 +25,7 @@ from sentry.apidocs.response_types import (
     as_validation_errors,
 )
 from sentry.ingest.inbound_filters import get_supported_condition_types
+from sentry.ingest.legacy_filter_lists import without_hidden_rows
 from sentry.models.custominboundfilter import (
     ConditionType,
     CustomInboundFilter,
@@ -309,7 +310,7 @@ class CustomInboundFiltersEndpoint(ProjectCustomInboundFilterEndpoint):
         if not self.has_feature(request, project):
             return Response({"detail": "You do not have that feature enabled"}, status=400)
 
-        filters = CustomInboundFilter.objects.filter(project_id=project.id)
+        filters = without_hidden_rows(CustomInboundFilter.objects.filter(project_id=project.id))
         return self.paginate(
             request=request,
             queryset=filters,
@@ -346,9 +347,8 @@ class CustomInboundFiltersEndpoint(ProjectCustomInboundFilterEndpoint):
         if not self.has_feature(request, project):
             return Response({"detail": "You do not have that feature enabled"}, status=400)
 
-        if CustomInboundFilter.objects.filter(project_id=project.id).count() >= (
-            MAX_FILTERS_PER_PROJECT
-        ):
+        visible = without_hidden_rows(CustomInboundFilter.objects.filter(project_id=project.id))
+        if visible.count() >= MAX_FILTERS_PER_PROJECT:
             return Response(
                 {
                     "detail": (

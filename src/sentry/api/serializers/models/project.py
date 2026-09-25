@@ -27,7 +27,7 @@ from sentry.dynamic_sampling.utils import (
     is_project_mode_sampling,
 )
 from sentry.features.base import ProjectFeature
-from sentry.ingest.inbound_filters import FilterTypes
+from sentry.ingest.legacy_filter_lists import get_lists
 from sentry.issues.highlights import HighlightPreset, get_highlight_preset_for_project
 from sentry.lang.native.sources import parse_sources, redact_source_secrets
 from sentry.lang.native.utils import convert_crashreport_count
@@ -1062,6 +1062,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
 
         # Only fetch the latest release version key for each project to cut down on response size
         latest_release_versions = _get_project_to_release_version_mapping(item_list)
+        legacy_lists = get_lists(item_list, options_by_project)
 
         for item in item_list:
             attrs[item].update(
@@ -1069,6 +1070,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                     "latest_release": latest_release_versions.get(item.id),
                     "org": orgs[str(item.organization_id)],
                     "options": options_by_project[item.id],
+                    "legacy_filter_lists": legacy_lists[item.id],
                     "processing_issues": 0,
                     "highlight_preset": get_highlight_preset_for_project(item),
                 }
@@ -1218,18 +1220,10 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             "filters:react-hydration-errors": options.get("filters:react-hydration-errors", "1")
             in ("1", True),
             "filters:chunk-load-error": options.get("filters:chunk-load-error", "1") == "1",
-            f"filters:{FilterTypes.RELEASES}": "\n".join(
-                options.get(f"sentry:{FilterTypes.RELEASES}", [])
-            ),
-            f"filters:{FilterTypes.ERROR_MESSAGES}": "\n".join(
-                options.get(f"sentry:{FilterTypes.ERROR_MESSAGES}", [])
-            ),
-            f"filters:{FilterTypes.LOG_MESSAGES}": "\n".join(
-                options.get(f"sentry:{FilterTypes.LOG_MESSAGES}", [])
-            ),
-            f"filters:{FilterTypes.TRACE_METRIC_NAMES}": "\n".join(
-                options.get(f"sentry:{FilterTypes.TRACE_METRIC_NAMES}", [])
-            ),
+            **{
+                f"filters:{legacy_list}": "\n".join(lines)
+                for legacy_list, lines in attrs["legacy_filter_lists"].items()
+            },
             "feedback:branding": options.get("feedback:branding", "1") == "1",
             "sentry:feedback_user_report_notifications": bool(
                 self.get_value_with_default(attrs, "sentry:feedback_user_report_notifications")
