@@ -48,13 +48,13 @@ from sentry.workflow_engine.processors.data_condition_group import (
     evaluate_data_conditions,
     get_slow_conditions_for_groups,
 )
-from sentry.workflow_engine.processors.evaluation_logging import emit_workflow_evaluation_logs
 from sentry.workflow_engine.processors.evaluations import (
     DataConditionGroupEvaluation,
     EvaluationPhase,
     EvaluationType,
     WorkflowEvaluationOutcome,
 )
+from sentry.workflow_engine.processors.evaluations.tracking import emit_evaluations
 from sentry.workflow_engine.processors.evaluations.workflow import WorkflowEvaluationArtifact
 from sentry.workflow_engine.processors.log_util import track_batch_performance
 from sentry.workflow_engine.processors.workflow_fire_history import create_workflow_fire_histories
@@ -780,7 +780,7 @@ def get_groups_to_fire(
             WorkflowEvaluationArtifact(
                 triggered=when_evaluation.triggered,
                 error=error.msg if error is not None else None,
-                deferred=None,
+                delayed=None,
                 detector_id=None,
                 detector_type=None,
                 evaluation_phase=EvaluationPhase.DELAYED,
@@ -1075,8 +1075,7 @@ def _process_workflows_for_project(project: Project, event_data: EventRedisData)
         dcg_to_slow_conditions,
         project.id,
     )
-    emit_workflow_evaluation_logs(
-        logger,
+    emit_evaluations(
         organization=project.organization,
         result=evaluation,
     )
