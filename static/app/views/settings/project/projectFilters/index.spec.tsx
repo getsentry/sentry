@@ -71,14 +71,17 @@ describe('ProjectFilters', () => {
     };
   }
 
-  function renderInboundFilters(filters: CustomInboundFilter[]) {
+  function renderInboundFilters(
+    filters: CustomInboundFilter[],
+    renderedProject: typeof project = project
+  ) {
     MockApiClient.addMockResponse({
       url: CUSTOM_INBOUND_FILTERS_URL,
       body: filters,
     });
     const result = render(<ProjectFilters />, {
       organization: inboundFiltersV2Org,
-      outletContext: {project},
+      outletContext: {project: renderedProject},
       initialRouterConfig,
     });
     renderGlobalModal();
@@ -309,7 +312,7 @@ describe('ProjectFilters', () => {
     expect(mock.mock.calls[1][1].data.subfilters).toEqual([]);
   });
 
-  it('can set ip address filter', async () => {
+  it('saves the ip address filter on blur from the filters section', async () => {
     renderComponent();
 
     const mock = MockApiClient.addMockResponse({
@@ -318,25 +321,32 @@ describe('ProjectFilters', () => {
     });
 
     const textbox = await screen.findByRole('textbox', {name: 'IP Addresses'});
+    // The IP list works on every plan, so it sits with the built-in filters above
+    // the plan-gated custom filters.
+    const releases = screen.getByRole('textbox', {name: 'Releases'});
     expect(
-      screen.queryByText('Changing this filter will apply to all new events.')
-    ).not.toBeInTheDocument();
-    await userEvent.type(textbox, 'test\ntest2');
-    expect(
-      screen.getByText('Changing this filter will apply to all new events.')
-    ).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+      textbox.compareDocumentPosition(releases) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
 
+    await userEvent.type(textbox, 'test\ntest2');
+    expect(mock).not.toHaveBeenCalled();
+    await userEvent.tab();
+
+    await waitFor(() => expect(mock).toHaveBeenCalledTimes(1));
     expect(mock.mock.calls[0][0]).toBe(PROJECT_URL);
-    expect(mock.mock.calls[0][1].data.options['filters:blacklisted_ips']).toBe(
-      'test\ntest2'
-    );
+    expect(mock.mock.calls[0][1].data.options).toEqual({
+      'filters:blacklisted_ips': 'test\ntest2',
+    });
   });
 
   it('can cancel custom filter changes', async () => {
-    renderComponent();
+    render(<ProjectFilters />, {
+      organization,
+      outletContext: {project: {...project, features: ['custom-inbound-filters']}},
+      initialRouterConfig,
+    });
 
-    const textbox = await screen.findByRole('textbox', {name: 'IP Addresses'});
+    const textbox = await screen.findByRole('textbox', {name: 'Releases'});
     await userEvent.type(textbox, 'test\ntest2');
     expect(textbox).toHaveValue('test\ntest2');
 
@@ -500,7 +510,7 @@ describe('ProjectFilters', () => {
   });
 
   it('keeps legacy custom filter edits while a filter is created in the modal', async () => {
-    renderInboundFilters([]);
+    renderInboundFilters([], {...project, features: ['custom-inbound-filters']});
     expect(await screen.findByText('No inbound filters found')).toBeInTheDocument();
 
     const projectMock = MockApiClient.addMockResponse({
@@ -513,8 +523,8 @@ describe('ProjectFilters', () => {
       body: CustomInboundFilterFixture({id: '10', name: 'Block spam messages'}),
     });
 
-    const ipAddresses = screen.getByRole('textbox', {name: 'IP Addresses'});
-    await userEvent.type(ipAddresses, '10.0.0.0/8');
+    const releases = screen.getByRole('textbox', {name: 'Releases'});
+    await userEvent.type(releases, '1.*');
 
     await userEvent.click(screen.getByRole('button', {name: 'Add Filter'}));
     const dialog = await screen.findByRole('dialog');
@@ -537,12 +547,10 @@ describe('ProjectFilters', () => {
     expect(projectMock).not.toHaveBeenCalled();
 
     // The unsaved legacy edit survived the modal round trip and still saves.
-    expect(ipAddresses).toHaveValue('10.0.0.0/8');
+    expect(releases).toHaveValue('1.*');
     await userEvent.click(screen.getByRole('button', {name: 'Save'}));
     await waitFor(() => expect(projectMock).toHaveBeenCalledTimes(1));
-    expect(projectMock.mock.calls[0][1].data.options['filters:blacklisted_ips']).toBe(
-      '10.0.0.0/8'
-    );
+    expect(projectMock.mock.calls[0][1].data.options['filters:releases']).toBe('1.*');
   });
 
   it('loads custom filters from the API and filters them by search', async () => {
