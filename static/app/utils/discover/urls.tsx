@@ -129,14 +129,8 @@ export function eventDetailsRouteWithEventView({
  */
 export function getDiscoverLandingUrl(organization: Organization): string {
   if (organization.features.includes('discover-query')) {
-    if (getDiscoverDeprecation(organization)) {
-      return makeDiscoverPathname({
-        path: '/',
-        organization,
-      });
-    }
     return makeDiscoverPathname({
-      path: '/homepage/',
+      path: '/',
       organization,
     });
   }

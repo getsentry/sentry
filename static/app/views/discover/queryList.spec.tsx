@@ -180,7 +180,7 @@ describe('Discover > QueryList', () => {
 
     await userEvent.click(screen.getAllByTestId(/card-*/).at(0)!);
     expect(router.location.pathname).toBe(
-      '/organizations/org-slug/explore/discover/results/'
+      '/organizations/org-slug/explore/errors/results/'
     );
     expect(router.location.query).toEqual(
       expect.objectContaining({queryDataset: 'error-events'})
@@ -296,7 +296,7 @@ describe('Discover > QueryList', () => {
     await userEvent.click(screen.getAllByTestId(/card-*/).at(0)!);
     expect(router.location).toEqual(
       expect.objectContaining({
-        pathname: '/organizations/org-slug/explore/discover/results/',
+        pathname: '/organizations/org-slug/explore/errors/results/',
         query: {id: '1', statsPeriod: '14d'},
       })
     );

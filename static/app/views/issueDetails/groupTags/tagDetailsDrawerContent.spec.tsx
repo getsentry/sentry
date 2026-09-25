@@ -151,7 +151,7 @@ describe('TagDetailsDrawerContent', () => {
     expect(discoverMenuItem).toBeInTheDocument();
 
     const link = new URL(discoverMenuItem.getAttribute('href') ?? '', 'http://localhost');
-    expect(link.pathname).toBe('/organizations/org-slug/explore/discover/results/');
+    expect(link.pathname).toBe('/organizations/org-slug/explore/errors/results/');
     const discoverQueryParams = qs.parse(link.search);
 
     expect(discoverQueryParams).toEqual({
