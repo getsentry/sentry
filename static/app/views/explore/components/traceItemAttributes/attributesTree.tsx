@@ -7,22 +7,33 @@ import {RevealOnHover} from '@sentry/scraps/revealOnHover';
 import {Text} from '@sentry/scraps/text';
 
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
+import {AttributeDetailsTooltip} from 'sentry/components/attributes/attributeDetailsTooltip';
 import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
 import {IconEllipsis, IconPin} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {type RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
+import {FieldValueType, type GetFieldDefinitionType} from 'sentry/utils/fields';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {isValidUrl} from 'sentry/utils/string/isValidUrl';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import {TraceItemMetaInfo} from 'sentry/views/explore/utils';
 
 import {AttributesTreeValue} from './attributesTreeValue';
 
 const MAX_TREE_DEPTH = 4;
 const INVALID_BRANCH_REGEX = /\.{2,}/;
+
+const ATTRIBUTE_VALUE_TYPES: Record<TraceItemResponseAttribute['type'], FieldValueType> =
+  {
+    bool: FieldValueType.BOOLEAN,
+    float: FieldValueType.NUMBER,
+    int: FieldValueType.INTEGER,
+    str: FieldValueType.STRING,
+  };
 
 interface Attribute {
   attribute_key: string;
@@ -78,6 +89,12 @@ interface AttributesTreeProps<
    * The attributes to show in the attribute tree. If you need to hide any attributes, filter them out before passing them here. If you need extra attribute information for rendering but you don't want to show those attributes, pass that information in the `rendererExtra` prop.
    */
   attributes: TraceItemResponseAttribute[];
+  /**
+   * When provided, hovering an attribute key describes the attribute, reading
+   * its description from this registry. Otherwise keys show their full name in
+   * a plain browser tooltip.
+   */
+  attributeDetailsType?: GetFieldDefinitionType;
   // If provided, locks the number of columns to this number. If not provided, the number of columns will be dynamic based on width.
   columnCount?: number;
   config?: AttributesTreeRowConfig;
@@ -106,6 +123,7 @@ interface AttributesTreeRowProps<
 > extends AttributesFieldRender<RendererExtra> {
   attributeKey: string;
   content: AttributesTreeContent;
+  attributeDetailsType?: GetFieldDefinitionType;
   config?: AttributesTreeRowConfig;
   getCustomActions?: (content: AttributesTreeContent) => MenuItemProps[];
   isLast?: boolean;
@@ -180,6 +198,7 @@ function getAttributesTreeRows<RendererExtra extends RenderFunctionBaggage>({
   config = {},
   getCustomActions,
   pinnedAttribute,
+  attributeDetailsType,
 }: AttributesTreeRowProps<RendererExtra> &
   AttributesFieldRender<RendererExtra> & {
     uniqueKey: string;
@@ -198,6 +217,7 @@ function getAttributesTreeRows<RendererExtra extends RenderFunctionBaggage>({
         rendererExtra,
         getCustomActions,
         pinnedAttribute,
+        attributeDetailsType,
       });
       return rows.concat(branchRows);
     },
@@ -216,6 +236,7 @@ function getAttributesTreeRows<RendererExtra extends RenderFunctionBaggage>({
       config={config}
       getCustomActions={getCustomActions}
       pinnedAttribute={pinnedAttribute}
+      attributeDetailsType={attributeDetailsType}
     />,
     ...subtreeRows,
   ];
@@ -234,6 +255,7 @@ function AttributesTreeColumns<RendererExtra extends RenderFunctionBaggage>({
   getCustomActions,
   getAdjustedAttributeKey,
   pinnedAttribute,
+  attributeDetailsType,
 }: AttributesTreeColumnsProps<RendererExtra>) {
   const assembledColumns = useMemo(() => {
     if (!attributes) {
@@ -265,6 +287,7 @@ function AttributesTreeColumns<RendererExtra extends RenderFunctionBaggage>({
         config,
         getCustomActions,
         pinnedAttribute,
+        attributeDetailsType,
       })
     );
 
@@ -312,6 +335,7 @@ function AttributesTreeColumns<RendererExtra extends RenderFunctionBaggage>({
     getCustomActions,
     getAdjustedAttributeKey,
     pinnedAttribute,
+    attributeDetailsType,
   ]);
 
   return <Fragment>{assembledColumns}</Fragment>;
@@ -342,6 +366,7 @@ function AttributesTreeRow<RendererExtra extends RenderFunctionBaggage>({
   config = {},
   getCustomActions,
   pinnedAttribute,
+  attributeDetailsType,
   ...props
 }: AttributesTreeRowProps<RendererExtra>) {
   const originalAttribute = content.originalAttribute;
@@ -369,6 +394,14 @@ function AttributesTreeRow<RendererExtra extends RenderFunctionBaggage>({
     <AttributesTreeRowDropdown content={content} getCustomActions={getCustomActions} />
   );
 
+  const traceItemMeta = props.rendererExtra.traceItemMeta;
+  const isScrubbed =
+    attributeDetailsType !== undefined &&
+    traceItemMeta !== undefined &&
+    new TraceItemMetaInfo(traceItemMeta).hasRemarks(
+      originalAttribute.original_attribute_key
+    );
+
   return (
     <RevealOnHover>
       {revealOnHoverProps => (
@@ -383,11 +416,23 @@ function AttributesTreeRow<RendererExtra extends RenderFunctionBaggage>({
             <TreeSearchKey aria-hidden>{originalAttribute.attribute_key}</TreeSearchKey>
             <TreeKey
               hasErrors={hasErrors}
-              title={originalAttribute.attribute_key}
+              title={attributeDetailsType ? undefined : originalAttribute.attribute_key}
               data-test-id={`tree-key-${content.originalAttribute?.original_attribute_key}`}
             >
               <Flex align="center" gap="xs">
-                <Text>{attributeKey}</Text>
+                {attributeDetailsType ? (
+                  <AttributeDetailsTooltip
+                    attributeKey={originalAttribute.original_attribute_key}
+                    name={originalAttribute.attribute_key}
+                    fieldDefinitionType={attributeDetailsType}
+                    defaultValueType={ATTRIBUTE_VALUE_TYPES[originalAttribute.type]}
+                    isScrubbed={isScrubbed}
+                  >
+                    {attributeKey}
+                  </AttributeDetailsTooltip>
+                ) : (
+                  <Text>{attributeKey}</Text>
+                )}
                 {pinnedAttribute === originalAttribute.original_attribute_key && (
                   <IconPin size="xs" isSolid aria-label={t('Pinned attribute')} />
                 )}

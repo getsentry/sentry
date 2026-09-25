@@ -163,4 +163,98 @@ describe('attributesTree', () => {
       expect(within(row).queryByText('Hidden Action')).not.toBeInTheDocument();
     }
   });
+
+  it('describes an attribute key when an attribute details type is given', async () => {
+    const attributes: TraceItemResponseAttribute[] = [
+      {
+        type: 'str',
+        value: 'sentry.python',
+        name: 'sentry.logger.name',
+      },
+    ];
+
+    render(
+      <AttributesTree
+        attributes={attributes}
+        attributeDetailsType="log"
+        getAdjustedAttributeKey={() => 'logger.name'}
+        rendererExtra={{
+          theme,
+          location,
+          navigate: jest.fn(),
+          organization,
+        }}
+      />
+    );
+
+    await userEvent.hover(
+      within(screen.getByTestId('tree-key-logger.name')).getByText('name')
+    );
+
+    expect(
+      await screen.findByText('The name of the logger that generated this event.')
+    ).toBeInTheDocument();
+    expect(screen.getByText('Added by Sentry')).toBeInTheDocument();
+  });
+
+  it('notes an attribute was scrubbed when its trace item meta carries a remark', async () => {
+    const attributes: TraceItemResponseAttribute[] = [
+      {
+        type: 'str',
+        value: '[Filtered]',
+        name: 'user.email',
+      },
+    ];
+
+    render(
+      <AttributesTree
+        attributes={attributes}
+        attributeDetailsType="log"
+        rendererExtra={{
+          theme,
+          location,
+          navigate: jest.fn(),
+          organization,
+          traceItemMeta: {
+            'user.email': {
+              meta: {value: {'': {len: 10, rem: [['@email', 's', 0, 10]]}}},
+            },
+          },
+        }}
+      />
+    );
+
+    await userEvent.hover(
+      within(screen.getByTestId('tree-key-user.email')).getByText('email')
+    );
+
+    expect(await screen.findByText('Data scrubbed for privacy')).toBeInTheDocument();
+  });
+
+  it('falls back to a plain browser tooltip when no attribute details type is given', () => {
+    const attributes: TraceItemResponseAttribute[] = [
+      {
+        type: 'str',
+        value: 'sentry.python',
+        name: 'sentry.logger.name',
+      },
+    ];
+
+    render(
+      <AttributesTree
+        attributes={attributes}
+        rendererExtra={{
+          theme,
+          location,
+          navigate: jest.fn(),
+          organization,
+        }}
+      />
+    );
+
+    expect(screen.getByTestId('tree-key-sentry.logger.name')).toHaveAttribute(
+      'title',
+      'logger.name'
+    );
+  });
 });
