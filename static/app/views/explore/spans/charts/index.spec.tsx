@@ -1,9 +1,12 @@
 import {useMemo, useState} from 'react';
 import {AnnotationFixture} from 'sentry-fixture/annotation';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Annotation} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {ChartSelectionProvider} from 'sentry/views/explore/components/attributeBreakdowns/chartSelectionContext';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
@@ -113,6 +116,37 @@ describe('ExploreCharts', () => {
   });
 
   describe('dropped data layer', () => {
+    beforeEach(() => {
+      MockApiClient.clearMockResponses();
+      const project = ProjectFixture();
+      ProjectsStore.loadInitialData([project]);
+      PageFiltersStore.onInitializeUrlState({
+        projects: [parseInt(project.id, 10)],
+        environments: [],
+        datetime: {period: '7d', start: null, end: null, utc: null},
+      });
+    });
+
+    // Annotations now come from the dedicated `/events-annotations/` endpoint
+    // rather than the chart's timeseries `meta`.
+    function mockAnnotations({
+      acceptedAnnotations = [],
+      droppedAnnotations = [],
+    }: {
+      acceptedAnnotations?: Annotation[];
+      droppedAnnotations?: Annotation[];
+    }) {
+      return MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events-annotations/',
+        method: 'GET',
+        body: {
+          meta: {dataset: 'spans', start: 0, end: 60_000, interval: 60_000},
+          droppedAnnotations,
+          acceptedAnnotations,
+        },
+      });
+    }
+
     function renderCharts({
       features = [],
       acceptedAnnotations,
@@ -122,10 +156,7 @@ describe('ExploreCharts', () => {
       droppedAnnotations?: Annotation[];
       features?: string[];
     }) {
-      const meta =
-        droppedAnnotations || acceptedAnnotations
-          ? ({droppedAnnotations, acceptedAnnotations} as SortedTimeSeries['meta'])
-          : undefined;
+      mockAnnotations({acceptedAnnotations, droppedAnnotations});
 
       return render(
         <SpansQueryParamsProvider>
@@ -133,7 +164,7 @@ describe('ExploreCharts', () => {
             <ExploreCharts
               extrapolate
               query=""
-              timeseriesResult={timeseriesResultFixture({meta})}
+              timeseriesResult={timeseriesResultFixture()}
               visualizes={defaultVisualizes()}
               setVisualizes={() => {}}
               rawSpanCounts={{
