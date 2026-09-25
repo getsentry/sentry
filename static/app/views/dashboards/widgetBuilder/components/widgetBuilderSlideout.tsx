@@ -290,7 +290,7 @@ function WidgetBuilderSlideoutInner({
           <Button
             variant="transparent"
             size="sm"
-            icon={<IconArrow direction="left" size="sm" />}
+            icon={<IconArrow direction="left" />}
             aria-label={t('Back to Widget Library')}
             tooltipProps={{title: t('Back to Widget Library')}}
             onClick={returnToWidgetLibrary}
