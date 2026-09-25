@@ -317,6 +317,43 @@ describe('Dashboards - DashboardTable', () => {
     expect(screen.getByRole('checkbox', {name: 'Select All'})).toBeChecked();
   });
 
+  it('hides the actions that write to a dashboard without edit access', async () => {
+    const organizationWithoutAdmin = OrganizationFixture({
+      access: ['org:read'],
+      features: ['dashboards-basic', 'dashboards-edit', 'discover-query'],
+    });
+
+    render(
+      <DashboardTable
+        onDashboardsChange={jest.fn()}
+        organization={organizationWithoutAdmin}
+        dashboards={[
+          DashboardListItemFixture({
+            id: '3',
+            title: 'Someone Elses Dashboard',
+            createdBy: UserFixture({id: '99', email: 'someone-else@example.com'}),
+            permissions: {isEditableByEveryone: false, teamsWithEditAccess: []},
+          }),
+        ]}
+        location={location}
+        isOnlyPrebuilt={false}
+      />
+    );
+
+    await openRowActions(0);
+
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'Rename Dashboard'})
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'Delete Dashboard'})
+    ).not.toBeInTheDocument();
+    // Duplicating writes a new dashboard rather than changing this one.
+    expect(
+      await screen.findByRole('menuitemradio', {name: 'Duplicate Dashboard'})
+    ).toBeInTheDocument();
+  });
+
   it('renames a dashboard from the row actions menu', async () => {
     const renameMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/2/',

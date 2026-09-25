@@ -35,6 +35,8 @@ import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {useUser} from 'sentry/utils/useUser';
+import {useUserTeams} from 'sentry/utils/useUserTeams';
 import {withApi} from 'sentry/utils/withApi';
 import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
 import {useOpenEditAccessModal} from 'sentry/views/dashboards/editAccessModal';
@@ -48,6 +50,7 @@ import type {
   DashboardPermissions,
 } from 'sentry/views/dashboards/types';
 import {PREBUILT_DASHBOARD_LABEL} from 'sentry/views/dashboards/types';
+import {checkUserHasEditAccess} from 'sentry/views/dashboards/utils/checkUserHasEditAccess';
 
 type Props = {
   api: Client;
@@ -107,23 +110,36 @@ function DashboardRowActions({
   onDelete,
   onDuplicate,
   onRename,
+  organization,
 }: {
   dashboard: DashboardListItem;
   onChangeEditAccess: (newDashboardPermissions: DashboardPermissions) => void;
   onDelete: ReturnType<typeof useDeleteDashboard>;
   onDuplicate: ReturnType<typeof useDuplicateDashboard>;
   onRename: () => void;
+  organization: Organization;
 }) {
   const openEditAccess = useOpenEditAccessModal(dashboard, onChangeEditAccess);
   const openRename = useOpenRenameDashboardModal(dashboard, onRename, 'table');
+  const currentUser = useUser();
+  const {teams: userTeams} = useUserTeams();
   const isPrebuiltDashboard = defined(dashboard.prebuiltId);
+  // Renaming and deleting both write to the dashboard, so both answer to the
+  // same permission the detail page enforces.
+  const hasEditAccess = checkUserHasEditAccess(
+    currentUser,
+    userTeams,
+    organization,
+    dashboard.permissions,
+    dashboard.createdBy
+  );
 
   return (
     <DashboardCreateLimitWrapper>
       {({hasReachedDashboardLimit, isLoading, limitMessage}) => {
         const isDuplicateDisabled = hasReachedDashboardLimit || isLoading;
         const items: MenuItemProps[] = [
-          ...(isPrebuiltDashboard
+          ...(isPrebuiltDashboard || !hasEditAccess
             ? []
             : [
                 {
@@ -132,6 +148,10 @@ function DashboardRowActions({
                   leadingItems: <IconInput />,
                   onAction: openRename,
                 },
+              ]),
+          ...(isPrebuiltDashboard
+            ? []
+            : [
                 {
                   key: 'view-permissions',
                   label: t('View Permissions'),
@@ -151,26 +171,31 @@ function DashboardRowActions({
                 onConfirm: () => onDuplicate(dashboard, 'table'),
               }),
           },
-          {
-            key: 'delete',
-            label: t('Delete Dashboard'),
-            leadingItems: <IconDelete />,
-            priority: 'danger',
-            disabled: isPrebuiltDashboard,
-            tooltip: isPrebuiltDashboard
-              ? tct('[label] dashboards cannot be deleted', {
-                  label: PREBUILT_DASHBOARD_LABEL,
-                })
-              : undefined,
-            onAction: () =>
-              openConfirmModal({
-                message: tct('Are you sure you want to delete the [title] dashboard?', {
-                  title: <strong>{dashboard[ResponseKeys.NAME]}</strong>,
-                }),
-                priority: 'danger',
-                onConfirm: () => onDelete(dashboard, 'table'),
-              }),
-          },
+          ...(hasEditAccess
+            ? [
+                {
+                  key: 'delete',
+                  label: t('Delete Dashboard'),
+                  leadingItems: <IconDelete />,
+                  priority: 'danger' as const,
+                  disabled: isPrebuiltDashboard,
+                  tooltip: isPrebuiltDashboard
+                    ? tct('[label] dashboards cannot be deleted', {
+                        label: PREBUILT_DASHBOARD_LABEL,
+                      })
+                    : undefined,
+                  onAction: () =>
+                    openConfirmModal({
+                      message: tct(
+                        'Are you sure you want to delete the [title] dashboard?',
+                        {title: <strong>{dashboard[ResponseKeys.NAME]}</strong>}
+                      ),
+                      priority: 'danger' as const,
+                      onConfirm: () => onDelete(dashboard, 'table'),
+                    }),
+                },
+              ]
+            : []),
         ];
 
         return (
@@ -357,6 +382,7 @@ function DashboardTable({
               onDelete={handleDeleteDashboard}
               onDuplicate={handleDuplicateDashboard}
               onRename={onDashboardsChange}
+              organization={organization}
             />
           )}
         </Flex>
@@ -381,6 +407,7 @@ function DashboardTable({
             onDelete={handleDeleteDashboard}
             onDuplicate={handleDuplicateDashboard}
             onRename={onDashboardsChange}
+            organization={organization}
           />
         </Flex>
       );
