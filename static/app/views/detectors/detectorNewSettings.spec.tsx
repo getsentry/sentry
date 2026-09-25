@@ -2,6 +2,7 @@ import {AutomationFixture} from 'sentry-fixture/automations';
 import {
   CronDetectorFixture,
   MetricDetectorFixture,
+  PreprodDetectorFixture,
   UptimeDetectorFixture,
 } from 'sentry-fixture/detectors';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -18,6 +19,7 @@ import {selectEvent} from 'sentry-test/selectEvent';
 
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import type {DetectorType} from 'sentry/types/workflowEngine/detectors';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 import DetectorNewSettings from 'sentry/views/detectors/detectorNewSettings';
@@ -26,13 +28,30 @@ describe('DetectorEdit', () => {
   const organization = OrganizationFixture({
     features: ['visibility-explore-view', 'performance-view'],
   });
-  const project = ProjectFixture({organization, environments: ['production']});
+  const organizationWithMonitorDuplication = OrganizationFixture({
+    ...organization,
+    features: [...organization.features, 'monitor-duplication'],
+  });
+  const project = ProjectFixture({
+    organization,
+    environments: ['production'],
+  });
   const initialRouterConfig = {
     route: '/organizations/:orgId/monitors/new/settings/',
     location: {
       pathname: '/organizations/org-slug/monitors/new/settings/',
     },
   };
+
+  function getDuplicateRouterConfig(detectorType: DetectorType, duplicateFrom: string) {
+    return {
+      ...initialRouterConfig,
+      location: {
+        ...initialRouterConfig.location,
+        query: {detectorType, duplicateFrom, project: project.id},
+      },
+    };
+  }
 
   beforeEach(() => {
     OrganizationStore.init();
@@ -183,7 +202,9 @@ describe('DetectorEdit', () => {
 
     await selectEvent.openMenu(screen.getByRole('textbox', {name: 'Select Project'}));
     expect(
-      await screen.findByRole('menuitemradio', {name: otherWritableProject.slug})
+      await screen.findByRole('menuitemradio', {
+        name: otherWritableProject.slug,
+      })
     ).toBeInTheDocument();
     expect(
       screen.queryByRole('menuitemradio', {name: readOnlyProject.slug})
@@ -221,6 +242,264 @@ describe('DetectorEdit', () => {
     expect(
       screen.getByText(/You do not have permission to create monitors/)
     ).toBeInTheDocument();
+  });
+
+  describe('Duplicate Detector', () => {
+    it('rejects duplication when the feature is disabled', () => {
+      render(<DetectorNewSettings />, {
+        organization,
+        initialRouterConfig: getDuplicateRouterConfig('metric_issue', 'source-detector'),
+      });
+
+      expect(screen.getByText('This monitor cannot be duplicated.')).toBeVisible();
+    });
+
+    it('rejects mobile build duplication when mobile build monitors are disabled', () => {
+      render(<DetectorNewSettings />, {
+        organization: organizationWithMonitorDuplication,
+        initialRouterConfig: getDuplicateRouterConfig(
+          'preprod_size_analysis',
+          'source-mobile-build'
+        ),
+      });
+
+      expect(screen.getByText('This monitor cannot be duplicated.')).toBeVisible();
+    });
+
+    it('prefills and creates a metric detector copy', async () => {
+      const sourceDetector = MetricDetectorFixture({
+        id: 'source-detector',
+        name: 'Checkout failures',
+        projectId: project.id,
+        description: 'Detects checkout failures',
+        workflowIds: ['100'],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/${sourceDetector.id}/`,
+        body: sourceDetector,
+      });
+      const mockCreateDetector = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/projects/${project.id}/detectors/`,
+        method: 'POST',
+        body: MetricDetectorFixture({id: 'copied-detector'}),
+      });
+
+      const {router} = render(<DetectorNewSettings />, {
+        organization: organizationWithMonitorDuplication,
+        initialRouterConfig: getDuplicateRouterConfig(
+          sourceDetector.type,
+          sourceDetector.id
+        ),
+      });
+
+      expect(
+        await screen.findByRole('heading', {name: 'Checkout failures (Copy)'})
+      ).toBeInTheDocument();
+      expect(screen.getByRole('textbox', {name: 'description'})).toHaveValue(
+        'Detects checkout failures'
+      );
+      expect(screen.getByRole('button', {name: 'Cancel'})).toHaveAttribute(
+        'href',
+        `/organizations/${organization.slug}/monitors/${sourceDetector.id}/`
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Create Monitor'}));
+
+      await waitFor(() => {
+        expect(mockCreateDetector).toHaveBeenCalledWith(
+          `/organizations/${organization.slug}/projects/${project.id}/detectors/`,
+          expect.objectContaining({
+            data: expect.objectContaining({
+              name: 'Checkout failures (Copy)',
+              description: 'Detects checkout failures',
+              projectId: project.id,
+              type: 'metric_issue',
+              workflowIds: ['100'],
+            }),
+          })
+        );
+      });
+      expect(router.location.pathname).toBe(
+        `/organizations/${organization.slug}/monitors/copied-detector/`
+      );
+    });
+
+    it('prefills a cron detector copy, including its schedule', async () => {
+      const sourceDetector = CronDetectorFixture({
+        id: 'source-cron',
+        name: 'Nightly cleanup',
+        projectId: project.id,
+        workflowIds: ['100'],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/${sourceDetector.id}/`,
+        body: sourceDetector,
+      });
+      const mockCreateDetector = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/projects/${project.id}/detectors/`,
+        method: 'POST',
+        body: CronDetectorFixture({id: 'copied-cron'}),
+      });
+
+      render(<DetectorNewSettings />, {
+        organization: organizationWithMonitorDuplication,
+        initialRouterConfig: getDuplicateRouterConfig(
+          sourceDetector.type,
+          sourceDetector.id
+        ),
+      });
+
+      expect(
+        await screen.findByRole('heading', {name: 'Nightly cleanup (Copy)'})
+      ).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', {name: 'Create Monitor'}));
+
+      await waitFor(() => {
+        expect(mockCreateDetector).toHaveBeenCalledWith(
+          `/organizations/${organization.slug}/projects/${project.id}/detectors/`,
+          expect.objectContaining({
+            data: expect.objectContaining({
+              name: 'Nightly cleanup (Copy)',
+              workflowIds: ['100'],
+              dataSources: [
+                expect.objectContaining({
+                  name: 'Nightly cleanup (Copy)',
+                  config: expect.objectContaining({
+                    schedule: '0 0 * * *',
+                    schedule_type: 'crontab',
+                  }),
+                }),
+              ],
+            }),
+          })
+        );
+      });
+    });
+
+    it('prefills and creates an uptime detector copy', async () => {
+      const sourceDetector = UptimeDetectorFixture({
+        id: 'source-uptime',
+        name: 'Checkout uptime',
+        projectId: project.id,
+        workflowIds: ['100'],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/${sourceDetector.id}/`,
+        body: sourceDetector,
+      });
+      const mockCreateDetector = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/projects/${project.id}/detectors/`,
+        method: 'POST',
+        body: UptimeDetectorFixture({id: 'copied-uptime'}),
+      });
+
+      render(<DetectorNewSettings />, {
+        organization: organizationWithMonitorDuplication,
+        initialRouterConfig: getDuplicateRouterConfig(
+          sourceDetector.type,
+          sourceDetector.id
+        ),
+      });
+
+      expect(
+        await screen.findByRole('heading', {name: 'Checkout uptime (Copy)'})
+      ).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', {name: 'Create Monitor'}));
+
+      await waitFor(() => {
+        expect(mockCreateDetector).toHaveBeenCalledWith(
+          `/organizations/${organization.slug}/projects/${project.id}/detectors/`,
+          expect.objectContaining({
+            data: expect.objectContaining({
+              name: 'Checkout uptime (Copy)',
+              type: 'uptime_domain_failure',
+              workflowIds: ['100'],
+              dataSources: [
+                expect.objectContaining({
+                  url: 'https://example.com',
+                }),
+              ],
+              config: expect.objectContaining({
+                environment: 'production',
+              }),
+            }),
+          })
+        );
+      });
+    });
+
+    it('prefills and creates a mobile build detector copy', async () => {
+      const sourceDetector = PreprodDetectorFixture({
+        id: 'source-mobile-build',
+        name: 'iOS download size',
+        projectId: project.id,
+        workflowIds: ['100'],
+        config: {
+          measurement: 'download_size',
+          thresholdType: 'relative_diff',
+        },
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/${sourceDetector.id}/`,
+        body: sourceDetector,
+      });
+      const mockCreateDetector = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/projects/${project.id}/detectors/`,
+        method: 'POST',
+        body: PreprodDetectorFixture({id: 'copied-mobile-build'}),
+      });
+
+      render(<DetectorNewSettings />, {
+        organization: OrganizationFixture({
+          ...organizationWithMonitorDuplication,
+          features: [
+            ...organizationWithMonitorDuplication.features,
+            'preprod-size-monitors-frontend',
+          ],
+        }),
+        initialRouterConfig: getDuplicateRouterConfig(
+          sourceDetector.type,
+          sourceDetector.id
+        ),
+      });
+
+      expect(
+        await screen.findByRole('heading', {name: 'iOS download size (Copy)'})
+      ).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', {name: 'Create Monitor'}));
+
+      await waitFor(() => {
+        expect(mockCreateDetector).toHaveBeenCalledWith(
+          `/organizations/${organization.slug}/projects/${project.id}/detectors/`,
+          expect.objectContaining({
+            data: expect.objectContaining({
+              name: 'iOS download size (Copy)',
+              type: 'preprod_size_analysis',
+              workflowIds: ['100'],
+              config: expect.objectContaining({
+                measurement: 'download_size',
+                thresholdType: 'relative_diff',
+              }),
+            }),
+          })
+        );
+      });
+    });
+
+    it('rejects a source monitor whose type does not match the create form', async () => {
+      const sourceDetector = CronDetectorFixture({id: 'source-cron'});
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/${sourceDetector.id}/`,
+        body: sourceDetector,
+      });
+
+      render(<DetectorNewSettings />, {
+        organization: organizationWithMonitorDuplication,
+        initialRouterConfig: getDuplicateRouterConfig('metric_issue', sourceDetector.id),
+      });
+
+      expect(await screen.findByText('This monitor cannot be duplicated.')).toBeVisible();
+    });
   });
 
   describe('Metric Detector', () => {
@@ -1008,9 +1287,13 @@ describe('DetectorEdit', () => {
       await selectEvent.select(screen.getByRole('textbox', {name: 'Method'}), 'POST');
 
       // Add headers
-      const headerNameInput = screen.getByRole('textbox', {name: 'Name of header 1'});
+      const headerNameInput = screen.getByRole('textbox', {
+        name: 'Name of header 1',
+      });
       await userEvent.type(headerNameInput, 'X-API-Key');
-      const headerValueInput = screen.getByRole('textbox', {name: 'Value of X-API-Key'});
+      const headerValueInput = screen.getByRole('textbox', {
+        name: 'Value of X-API-Key',
+      });
       await userEvent.type(headerValueInput, 'secret-key-123');
 
       // Add body
@@ -1177,7 +1460,10 @@ describe('DetectorEdit', () => {
       ...initialRouterConfig,
       location: {
         ...initialRouterConfig.location,
-        query: {detectorType: 'monitor_check_in_failure', project: project.id},
+        query: {
+          detectorType: 'monitor_check_in_failure',
+          project: project.id,
+        },
       },
     };
 

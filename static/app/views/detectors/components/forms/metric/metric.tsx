@@ -21,7 +21,11 @@ import {t, tct} from 'sentry/locale';
 import {pulse} from 'sentry/styles/animations';
 import {PriorityLevel} from 'sentry/types/group';
 import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
-import type {Detector, MetricDetectorConfig} from 'sentry/types/workflowEngine/detectors';
+import type {
+  Detector,
+  MetricDetector,
+  MetricDetectorConfig,
+} from 'sentry/types/workflowEngine/detectors';
 import {generateFieldAsString} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -102,7 +106,11 @@ export function EditExistingMetricDetectorForm({detector}: {detector: Detector})
   );
 }
 
-export function NewMetricDetectorForm() {
+export function NewMetricDetectorForm({
+  duplicateDetector,
+}: {
+  duplicateDetector?: MetricDetector;
+}) {
   const initialMetricFormData = useInitialMetricDetectorFormData();
 
   return (
@@ -110,7 +118,11 @@ export function NewMetricDetectorForm() {
       detectorType="metric_issue"
       previewChart={<MetricDetectorPreviewChart />}
       formDataToEndpointPayload={metricDetectorFormDataToEndpointPayload}
-      initialFormData={initialMetricFormData}
+      initialFormData={
+        duplicateDetector
+          ? metricSavedDetectorToFormData(duplicateDetector)
+          : initialMetricFormData
+      }
       mapFormErrors={mapMetricDetectorFormErrors}
     >
       <MetricDetectorForm />

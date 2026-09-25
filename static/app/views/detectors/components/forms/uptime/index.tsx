@@ -73,15 +73,23 @@ function UptimeDetectorForm() {
   );
 }
 
-export function NewUptimeDetectorForm() {
+export function NewUptimeDetectorForm({
+  duplicateDetector,
+}: {
+  duplicateDetector?: UptimeDetector;
+}) {
   return (
     <PreviewCheckResultProvider>
-      <NewUptimeDetectorFormContent />
+      <NewUptimeDetectorFormContent duplicateDetector={duplicateDetector} />
     </PreviewCheckResultProvider>
   );
 }
 
-function NewUptimeDetectorFormContent() {
+function NewUptimeDetectorFormContent({
+  duplicateDetector,
+}: {
+  duplicateDetector?: UptimeDetector;
+}) {
   const {hasRuntimeAssertions} = useUptimeAssertionFeatures();
   const previewCheckResult = usePreviewCheckResult();
 
@@ -89,7 +97,9 @@ function NewUptimeDetectorFormContent() {
     <NewDetectorLayout
       detectorType="uptime_domain_failure"
       formDataToEndpointPayload={uptimeFormDataToEndpointPayload}
-      initialFormData={{}}
+      initialFormData={
+        duplicateDetector ? uptimeSavedDetectorToFormData(duplicateDetector) : {}
+      }
       extraFooterButton={
         hasRuntimeAssertions ? <ConnectedTestUptimeMonitorButton /> : undefined
       }

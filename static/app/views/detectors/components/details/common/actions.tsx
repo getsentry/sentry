@@ -3,7 +3,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {IconEdit} from 'sentry/icons';
+import {IconCopy, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -11,12 +11,17 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUpdateDetector} from 'sentry/views/detectors/hooks';
 import {useDeleteDetectorMutation} from 'sentry/views/detectors/hooks/useDeleteDetectorMutation';
 import {
+  makeMonitorCreateSettingsPathname,
   makeMonitorDetailsPathname,
   makeMonitorTypePathname,
 } from 'sentry/views/detectors/pathnames';
-import {detectorTypeIsUserCreateable} from 'sentry/views/detectors/utils/detectorTypeConfig';
+import {
+  detectorTypeIsAvailableForCreation,
+  detectorTypeIsUserCreateable,
+} from 'sentry/views/detectors/utils/detectorTypeConfig';
 import {
   getManagedBySentryMonitorEditTooltip,
+  getNoPermissionToCreateMonitorsTooltip,
   getNoPermissionToEditMonitorTooltip,
 } from 'sentry/views/detectors/utils/monitorAccessMessages';
 import {useCanEditDetector} from 'sentry/views/detectors/utils/useCanEditDetector';
@@ -83,6 +88,47 @@ export function EditDetectorAction({
         disabled={!canEdit}
       >
         {t('Edit')}
+      </LinkButton>
+    </Tooltip>
+  );
+}
+
+export function DuplicateDetectorAction({detector}: {detector: Detector}) {
+  const organization = useOrganization();
+  const canDuplicate = useCanEditDetector({
+    detectorType: detector.type,
+    projectId: detector.projectId,
+  });
+
+  if (
+    !organization.features.includes('monitor-duplication') ||
+    !detectorTypeIsAvailableForCreation(detector.type, organization)
+  ) {
+    return null;
+  }
+
+  return (
+    <Tooltip
+      title={canDuplicate ? undefined : getNoPermissionToCreateMonitorsTooltip()}
+      disabled={canDuplicate}
+    >
+      <LinkButton
+        to={{
+          pathname: makeMonitorCreateSettingsPathname(organization.slug),
+          query: {
+            detectorType: detector.type,
+            duplicateFrom: detector.id,
+            project: detector.projectId ?? undefined,
+          },
+        }}
+        icon={<IconCopy />}
+        size="sm"
+        disabled={!canDuplicate}
+        analyticsEventKey="monitor.duplicate_clicked"
+        analyticsEventName="Monitors: Duplicate Clicked"
+        analyticsParams={{detector_type: detector.type}}
+      >
+        {t('Duplicate')}
       </LinkButton>
     </Tooltip>
   );
