@@ -9,6 +9,7 @@ import type {SelectValue} from '@sentry/scraps/select';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {ScmVirtualizedMenuList} from 'sentry/components/onboarding/scm/scmVirtualizedMenuList';
 import {IconLock} from 'sentry/icons';
 import {IconArrow} from 'sentry/icons/iconArrow';
 import {t, tct} from 'sentry/locale';
@@ -177,6 +178,8 @@ export function ConnectRepositoryModal({
               onChange={option => setSelectedOption(option as RepoSelectOption | null)}
               placeholder={t('Search repositories')}
               isLoading={isPending}
+              searchable
+              components={{MenuList: ScmVirtualizedMenuList}}
             />
           </Grid>
 

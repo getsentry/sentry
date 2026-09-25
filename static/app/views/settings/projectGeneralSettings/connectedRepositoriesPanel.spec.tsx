@@ -4,7 +4,8 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {GlobalModal} from 'sentry/components/globalModal';
+import {GlobalModal} from '@sentry/scraps/modal';
+
 import {ConnectedRepositoriesPanel} from 'sentry/views/settings/projectGeneralSettings/connectedRepositoriesPanel';
 
 describe('ConnectedRepositoriesPanel', () => {
