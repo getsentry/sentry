@@ -105,7 +105,6 @@ function flattenKeyValueTreeRows<Value extends KeyValueTreeValue, Original>(
         treeKey,
         spacerCount: descriptor.spacerCount + 1,
         hasStem: index < branches.length - 1 && content.subtree.size === 0,
-        // Encoding the trunk's key with the branch index keeps every row's key unique
         uniqueKey: `${descriptor.uniqueKey}-${index}`,
       })
     ),

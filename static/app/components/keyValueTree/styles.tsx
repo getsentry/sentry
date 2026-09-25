@@ -98,9 +98,6 @@ export const TreeKey = styled(TreeValue)<{hasErrors?: boolean}>`
   color: ${p => (p.hasErrors ? 'inherit' : p.theme.tokens.content.secondary)};
 `;
 
-/**
- * Hidden element to allow browser searching for exact key name
- */
 export const TreeSearchKey = styled('span')`
   font-size: 0;
   position: absolute;
