@@ -172,7 +172,7 @@ logger = logging.getLogger("sentry.events")
 
 outcome_aggregator = OutcomeAggregator()
 
-SECURITY_REPORT_INTERFACES = ("csp", "hpkp", "expectct", "expectstaple", "nel")
+SECURITY_REPORT_INTERFACES = ("csp", "nel")
 
 # Timeout for cached group crash report counts
 CRASH_REPORT_TIMEOUT = 24 * 3600  # one day
