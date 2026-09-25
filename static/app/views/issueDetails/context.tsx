@@ -18,6 +18,7 @@ export const enum SectionKey {
 
   USER_FEEDBACK = 'user-feedback',
   SEER = 'seer',
+  GENERATIVE_REPORT = 'generative-report',
   EXTERNAL_ISSUES = 'external-issues',
   PEOPLE = 'people',
   ACTIVITY = 'activity',
