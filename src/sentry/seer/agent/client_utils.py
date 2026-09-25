@@ -37,7 +37,7 @@ from sentry.net.http import connection_from_url
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.autofix.utils import bulk_read_preferences_from_sentry_db
-from sentry.seer.models import SeerApiError
+from sentry.seer.models import SeerApiError, SeerUnavailableError
 from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.seer.seer_setup import has_seer_access_with_detail
 from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
@@ -351,8 +351,18 @@ def enqueue_seer_run(
 def get_agent_state_from_pr_id(
     organization_id: int, provider: str, pr_id: int
 ) -> SeerRunState | None:
+    """
+    Look up the Seer run that owns a pull request, or None if there isn't one.
+
+    A server error raises ``SeerUnavailableError`` so the calling task can try
+    again later.
+    """
     body = AgentPrStateRequest(organization_id=organization_id, provider=provider, pr_id=pr_id)
     response = make_agent_state_pr_request(body)
+
+    if response.status >= 500:
+        metrics.incr("seer.agent.state_from_pr", tags={"outcome": "unavailable"})
+        raise SeerUnavailableError("Seer request failed", response.status)
 
     if response.status == 404:
         metrics.incr("seer.agent.state_from_pr", tags={"outcome": "no_run_for_org"})
