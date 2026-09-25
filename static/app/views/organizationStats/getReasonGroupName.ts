@@ -168,6 +168,7 @@ const invalidReasonsGroup: Record<string, DiscardReason[]> = {
 // Filter names whose words are acronyms. `startCase` would render them as
 // ordinary words, such as "Ip Address".
 const filteredReasonNames: Record<string, string> = {
+  'invalid-csp': 'Invalid CSP',
   'ip-address': 'IP Address',
 };
 
