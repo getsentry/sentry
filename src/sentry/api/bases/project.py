@@ -14,7 +14,7 @@ from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environments
 from sentry.api.permissions import StaffPermissionMixin
-from sentry.api.scope_admission import record_scope_admission
+from sentry.api.scope_version import record_scope_version
 from sentry.api.utils import get_date_range_from_params
 from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidParams
@@ -65,7 +65,7 @@ class ProjectPermission(OrganizationPermission):
         # `has_project_scope` call each, and each of those queries the project's teams
         # and reports its own team-role metric. A request admitted solely by a team
         # role therefore records nothing rather than costing a query per scope.
-        record_scope_admission(request, allowed_scopes, request.access.scopes)
+        record_scope_version(request, allowed_scopes, request.access.scopes)
         return True
 
 
