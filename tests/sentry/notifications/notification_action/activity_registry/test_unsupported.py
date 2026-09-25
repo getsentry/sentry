@@ -13,11 +13,6 @@ from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 UNSUPPORTED_ACTION_TYPES = [
     Action.Type.PAGERDUTY,
     Action.Type.OPSGENIE,
-    Action.Type.GITHUB,
-    Action.Type.GITHUB_ENTERPRISE,
-    Action.Type.JIRA,
-    Action.Type.JIRA_SERVER,
-    Action.Type.AZURE_DEVOPS,
     Action.Type.PLUGIN,
 ]
 
