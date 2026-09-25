@@ -313,6 +313,11 @@ export enum FieldValueType {
   ARRAY = 'array',
 }
 
+/**
+ * What to say about an attribute the field definition registry does not define.
+ */
+export const DEFAULT_TAG_DESCRIPTION = t('A tag sent with one or more events');
+
 export enum WebVital {
   FP = 'measurements.fp',
   FCP = 'measurements.fcp',

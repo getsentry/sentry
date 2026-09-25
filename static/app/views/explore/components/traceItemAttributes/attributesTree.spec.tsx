@@ -176,7 +176,7 @@ describe('attributesTree', () => {
     render(
       <AttributesTree
         attributes={attributes}
-        attributeDetailsType="log"
+        config={{attributeDetailsType: 'log'}}
         getAdjustedAttributeKey={() => 'logger.name'}
         rendererExtra={{
           theme,
@@ -209,7 +209,7 @@ describe('attributesTree', () => {
     render(
       <AttributesTree
         attributes={attributes}
-        attributeDetailsType="log"
+        config={{attributeDetailsType: 'log'}}
         rendererExtra={{
           theme,
           location,
