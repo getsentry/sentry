@@ -242,7 +242,11 @@ def build_activity_notification_data(
         organization=organization,
         target=target,
     )
-    email_subject_prefix = build_email_subject_prefix(project=project) if email_headers else None
+    email_subject_prefix = (
+        build_email_subject_prefix(project=project)
+        if target.provider_key == NotificationProviderKey.EMAIL
+        else None
+    )
 
     workflow: Workflow | None = None
     if workflow_id:

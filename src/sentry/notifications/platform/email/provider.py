@@ -49,6 +49,8 @@ class EmailRenderer(NotificationRenderer[EmailRenderable]):
         subject = rendered_template.subject_text
         if rendered_template.email_subject_prefix is not None:
             subject = f"{rendered_template.email_subject_prefix}{subject}"
+        # Avoid BadHeaderError by preventing multi-line subjects
+        subject = subject.splitlines()[0] if subject else ""
         footer_html = mark_safe(
             cls.render_text_blocks_to_html_string(rendered_template.footer_blocks)
         )

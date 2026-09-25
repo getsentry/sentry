@@ -157,7 +157,12 @@ class ActivityAlertBaseTest(TestCase):
             query=urlencode({"referrer": ACTIVITY_NOTIFICATION_REFERRER}),
         )
         assert data.activity_data == activity.data
-        assert data.user_settings_url is None
+        assert data.user_settings_url == self.organization.absolute_url(
+            "settings/account/notifications/alerts/",
+            query=urlencode({"referrer": ACTIVITY_NOTIFICATION_REFERRER}),
+        )
+        assert data.email_headers is None
+        assert data.email_subject_prefix == "[Sentry] "
 
     def test_build_activity_notification_data_user_settings_url_to_alerts(self) -> None:
         workflow = self.create_workflow(

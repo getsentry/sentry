@@ -178,6 +178,17 @@ class EmailRendererTest(TestCase):
 
         assert email.subject == "[Project] Test subject"
 
+    def test_subject_uses_first_line(self) -> None:
+        rendered_template = NotificationRenderedTemplate(
+            subject="Test subject",
+            body=[],
+            email_subject_prefix="[Project]\nInjected: ",
+        )
+
+        email = EmailRenderer.render(data=self.data, rendered_template=rendered_template)
+
+        assert email.subject == "[Project]"
+
     def test_subject_prefix_uses_project_option_with_global_fallback(self) -> None:
         with self.options({"mail.subject-prefix": "[Global]"}):
             assert build_email_subject_prefix(self.project) == "[Global] "
