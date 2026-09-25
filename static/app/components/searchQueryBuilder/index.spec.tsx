@@ -8822,6 +8822,40 @@ describe('SearchQueryBuilder', () => {
         );
       });
     });
+
+    it('displays the pattern in the filter when the operator is matches regex', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          allowRegexOperators
+          initialQuery="browser.name://fire.*fox//"
+        />
+      );
+
+      expect(
+        within(
+          await screen.findByRole('row', {name: 'browser.name://fire.*fox//'})
+        ).getByText('fire.*fox')
+      ).toBeInTheDocument();
+    });
+
+    it('displays the pattern over the input when editing a regex value', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          allowRegexOperators
+          initialQuery="browser.name://fire.*fox//"
+        />
+      );
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+      );
+
+      expect(
+        await screen.findByRole('combobox', {name: 'Edit filter value'})
+      ).toHaveValue('fire.*fox');
+      expect(screen.getByText('fire.*fox')).toHaveAttribute('aria-hidden', 'true');
+    });
   });
 
   describe('regex pattern validation', () => {

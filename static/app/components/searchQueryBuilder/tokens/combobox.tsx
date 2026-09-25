@@ -11,6 +11,7 @@ import {
 } from 'react';
 import {createPortal} from 'react-dom';
 import {usePopper} from 'react-popper';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {type AriaComboBoxProps} from '@react-aria/combobox';
 import {type AriaListBoxOptions} from '@react-aria/listbox';
@@ -121,6 +122,11 @@ type SearchQueryBuilderComboboxProps<T extends SelectOptionOrSectionWithKey<stri
   openOnFocus?: boolean;
   placeholder?: string;
   ref?: React.Ref<HTMLInputElement>;
+  /**
+   * Renders the input's value in an overlay drawn on top of the input, whose own
+   * text is hidden. Use to style the value beyond what an input can render.
+   */
+  renderInputValue?: (value: string) => ReactNode;
   /**
    * Function to determine whether the menu should close when interacting with
    * other elements.
@@ -421,6 +427,7 @@ export function SearchQueryBuilderCombobox<
   keepVisibleRef,
   'data-test-id': dataTestId,
   ref,
+  renderInputValue,
 }: SearchQueryBuilderComboboxProps<T>) {
   const {clearSearchQuery, dispatch} = useSearchQueryBuilderState();
   const {disabled} = useSearchQueryBuilderConfig();
@@ -666,10 +673,13 @@ export function SearchQueryBuilderCombobox<
 
   const autosizeInput = useAutosizeInput({value: inputValue});
 
+  const highlightedValue = inputValue ? renderInputValue?.(inputValue) : null;
+
   return (
     <Flex align="stretch" width="100%" height="100%" position="relative">
       <UnstyledInput
         {...inputProps}
+        hideValue={Boolean(highlightedValue)}
         size="md"
         ref={mergeRefs(
           ref,
@@ -715,6 +725,9 @@ export function SearchQueryBuilderCombobox<
         }}
         data-test-id={dataTestId}
       />
+      {highlightedValue ? (
+        <InputValueOverlay aria-hidden>{highlightedValue}</InputValueOverlay>
+      ) : null}
       {description ? (
         <StyledPositionWrapper
           {...descriptionPopper.attributes.popper}
@@ -750,7 +763,7 @@ export function SearchQueryBuilderCombobox<
   );
 }
 
-const UnstyledInput = styled(Input)`
+const UnstyledInput = styled(Input)<{hideValue?: boolean}>`
   background: transparent;
   border: none;
   box-shadow: none;
@@ -767,6 +780,25 @@ const UnstyledInput = styled(Input)`
     border: none;
     box-shadow: none;
   }
+
+  ${p =>
+    p.hideValue &&
+    css`
+      color: transparent;
+      caret-color: ${p.theme.tokens.content.primary};
+    `}
+`;
+
+const InputValueOverlay = styled('div')`
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  white-space: pre;
+  pointer-events: none;
+  font-family: ${p => p.theme.font.family.sans};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  font-size: ${p => p.theme.form.md.fontSize};
 `;
 
 const StyledPositionWrapper = styled('div')<{visible?: boolean}>`
