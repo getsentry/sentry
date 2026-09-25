@@ -5,6 +5,7 @@ import {demoSignupModal} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUTMState} from 'sentry/utils/demoMode/utm';
+import {setExternalScriptSrc} from 'sentry/utils/trustedTypes';
 
 import {isDemoModeActive} from './index';
 
@@ -72,7 +73,10 @@ function initDemoAnalytics() {
     mainScript.id = 'plausible-script';
     mainScript.defer = true;
     mainScript.setAttribute('data-domain', window.location.hostname);
-    mainScript.src = 'https://plausible.io/js/script.pageview-props.tagged-events.js';
+    setExternalScriptSrc(
+      mainScript,
+      'https://plausible.io/js/script.pageview-props.tagged-events.js'
+    );
 
     const queueScript = document.createElement('script');
     queueScript.id = 'plausible-queue-script';
