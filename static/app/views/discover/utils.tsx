@@ -902,11 +902,11 @@ export const SAVED_QUERY_DATASET_TO_WIDGET_TYPE = {
   [SavedQueryDatasets.TRANSACTIONS]: WidgetType.TRANSACTIONS,
 };
 
-export function getTransactionsDeprecation(organization: Organization) {
+function getTransactionsDeprecation(organization: Organization) {
   return organization.features.includes('discover-saved-queries-deprecation');
 }
 
-export function getDiscoverDeprecationEnabled(organization: Organization) {
+function getDiscoverDeprecationEnabled(organization: Organization) {
   return organization.features.includes('deprecate-discover');
 }
 
