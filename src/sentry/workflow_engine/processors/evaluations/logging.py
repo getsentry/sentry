@@ -3,12 +3,15 @@ from __future__ import annotations
 import logging
 import random
 from collections.abc import Iterator, Mapping, Sequence
-from dataclasses import fields, is_dataclass
-from typing import TYPE_CHECKING, cast
+from dataclasses import asdict, is_dataclass
+from typing import TYPE_CHECKING, cast, overload
 
 from sentry import features, options
 from sentry.utils.sdk import sdk_logger
-from sentry.workflow_engine.processors.evaluations.base import EvaluationType
+from sentry.workflow_engine.processors.evaluations.base import (
+    BaseWorkflowEngineEvaluationArtifact,
+    EvaluationType,
+)
 from sentry.workflow_engine.processors.evaluations.detector import ProcessDetectorsResult
 from sentry.workflow_engine.processors.evaluations.workflow import (
     ProcessWorkflowsResult,
@@ -52,7 +55,23 @@ def should_log(
 
 
 def redact_pii_from_artifact(artifact: dict[str, object]) -> dict[str, object]:
-    return cast(dict[str, object], _serialize_log_value(artifact))
+    return _serialize_log_value(artifact)
+
+
+@overload
+def _serialize_log_value(
+    value: BaseWorkflowEngineEvaluationArtifact, field_name: str | None = None
+) -> dict[str, object]: ...
+
+
+@overload
+def _serialize_log_value[K](
+    value: Mapping[K, object], field_name: str | None = None
+) -> dict[K, object]: ...
+
+
+@overload
+def _serialize_log_value(value: object, field_name: str | None = None) -> object: ...
 
 
 def _serialize_log_value(value: object, field_name: str | None = None) -> object:
@@ -61,10 +80,7 @@ def _serialize_log_value(value: object, field_name: str | None = None) -> object
         return value if isinstance(value, ALLOWED_LOG_INPUT_TYPES) else None
 
     if is_dataclass(value) and not isinstance(value, type):
-        return {
-            field.name: _serialize_log_value(getattr(value, field.name), field.name)
-            for field in fields(value)
-        }
+        return _serialize_log_value(asdict(value))
 
     if isinstance(value, Mapping):
         return {key: _serialize_log_value(item, str(key)) for key, item in value.items()}
@@ -115,7 +131,7 @@ def _serialize_evaluation_artifacts(
         return
 
     for artifact in artifacts:
-        serialized = cast(dict[str, object], _serialize_log_value(artifact))
+        serialized = _serialize_log_value(artifact)
         if isinstance(result, ProcessDetectorsResult):
             yield {
                 "evaluation_type": EvaluationType.DETECTOR,
