@@ -874,7 +874,38 @@ describe('ProjectFilters', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Create Filter'}));
 
     await waitFor(() => expect(createMock).toHaveBeenCalled());
+    // Both `render` and `renderGlobalModal` mount a toast container, so the toast
+    // shows up twice.
+    expect(
+      await screen.findAllByText(
+        'Log message filters are not enabled for this organization.'
+      )
+    ).not.toHaveLength(0);
     // The modal stays open so the user can correct the error
+    expect(screen.getByText('Create Custom Filter')).toBeInTheDocument();
+  });
+
+  it('shows the field errors the API returns for a condition value', async () => {
+    renderInboundFilters([]);
+    expect(await screen.findByText('No inbound filters found')).toBeInTheDocument();
+
+    const createMock = MockApiClient.addMockResponse({
+      url: CUSTOM_INBOUND_FILTERS_URL,
+      method: 'POST',
+      statusCode: 400,
+      // The DRF shape: one entry per condition, messages under the field name.
+      body: {conditions: [{}, {value: ['10.0.0.* is not an IP address or CIDR range.']}]},
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Add Filter'}));
+    await userEvent.type(screen.getByRole('textbox', {name: 'Name'}), 'Block the office');
+    await userEvent.type(screen.getByRole('textbox', {name: 'Condition value'}), 'x');
+    await userEvent.click(screen.getByRole('button', {name: 'Create Filter'}));
+
+    await waitFor(() => expect(createMock).toHaveBeenCalled());
+    expect(
+      await screen.findAllByText('10.0.0.* is not an IP address or CIDR range.')
+    ).not.toHaveLength(0);
     expect(screen.getByText('Create Custom Filter')).toBeInTheDocument();
   });
 
@@ -921,6 +952,29 @@ describe('ProjectFilters', () => {
       )
     );
     expect(await screen.findByText('Updated name')).toBeInTheDocument();
+  });
+
+  it('keeps an IP address condition when the data type changes', async () => {
+    renderInboundFilters([]);
+    expect(await screen.findByText('No inbound filters found')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Add Filter'}));
+    await userEvent.click(screen.getByRole('textbox', {name: 'Condition property'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'IP Address'}));
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Condition value'}),
+      '10.0.0.0/8'
+    );
+
+    // Every data type carries the client IP, so the row survives the switch the
+    // way a release row does, instead of collapsing to the default property.
+    await userEvent.click(screen.getByRole('textbox', {name: 'Data Type'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Spans'}));
+    const dialog = screen.getByRole('dialog');
+    expect(within(dialog).getByText('IP Address')).toBeInTheDocument();
+    expect(screen.getByRole('textbox', {name: 'Condition value'})).toHaveValue(
+      '10.0.0.0/8'
+    );
   });
 
   it('keeps a gated data type selectable when editing', async () => {
@@ -1048,6 +1102,7 @@ describe('ProjectFilters', () => {
     ).toBeInTheDocument();
     expect(screen.getByRole('menuitemradio', {name: 'Error Type'})).toBeInTheDocument();
     expect(screen.getByRole('menuitemradio', {name: 'Release'})).toBeInTheDocument();
+    expect(screen.getByRole('menuitemradio', {name: 'IP Address'})).toBeInTheDocument();
     expect(
       screen.queryByRole('menuitemradio', {name: 'Metric Name'})
     ).not.toBeInTheDocument();
@@ -1128,6 +1183,7 @@ describe('ProjectFilters', () => {
     ).toBeInTheDocument();
     await userEvent.click(screen.getByRole('textbox', {name: 'Condition property'}));
     expect(screen.getByRole('menuitemradio', {name: 'Release'})).toBeInTheDocument();
+    expect(screen.getByRole('menuitemradio', {name: 'IP Address'})).toBeInTheDocument();
     expect(
       screen.queryByRole('menuitemradio', {name: 'Error Message'})
     ).not.toBeInTheDocument();
