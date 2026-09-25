@@ -5,7 +5,6 @@ import {FeatureBadge} from '@sentry/scraps/badge';
 import Feature from 'sentry/components/acl/feature';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 import {EXPLORE_AGENTS_SUB_PATH} from 'sentry/views/explore/conversations/settings';
 import {
   MAX_STARRED_SAVED_QUERIES_IN_NAV,
@@ -27,8 +26,6 @@ function ExploreSecondaryNavigationImpl() {
     starred: true,
     perPage: MAX_STARRED_SAVED_QUERIES_IN_NAV,
   });
-
-  const discoverTransactionsDeprecation = getDiscoverDeprecation(organization);
 
   // Mirrors the <Feature> gates below so the reported nav items match what's
   // actually rendered — including any beta/new/alpha badge shown on them.
@@ -53,10 +50,8 @@ function ExploreSecondaryNavigationImpl() {
   }
   if (organization.features.includes('discover-basic')) {
     navItems.push({
-      label: discoverTransactionsDeprecation ? 'Errors' : 'Discover',
-      to: discoverTransactionsDeprecation
-        ? `${baseUrl}/errors/homepage/`
-        : `${baseUrl}/discover/homepage/`,
+      label: 'Errors',
+      to: `${baseUrl}/errors/`,
     });
   }
   if (organization.features.includes('profiling')) {
@@ -153,19 +148,11 @@ function ExploreSecondaryNavigationImpl() {
             >
               <SecondaryNavigation.ListItem>
                 <SecondaryNavigation.Link
-                  to={
-                    discoverTransactionsDeprecation
-                      ? `${baseUrl}/errors/`
-                      : `${baseUrl}/discover/homepage/`
-                  }
-                  activeTo={
-                    discoverTransactionsDeprecation
-                      ? `${baseUrl}/errors/`
-                      : `${baseUrl}/discover/`
-                  }
+                  to={`${baseUrl}/errors/`}
+                  activeTo={`${baseUrl}/errors/`}
                   analyticsItemName="explore_discover"
                 >
-                  {discoverTransactionsDeprecation ? t('Errors') : t('Discover')}
+                  {t('Errors')}
                 </SecondaryNavigation.Link>
               </SecondaryNavigation.ListItem>
             </Feature>

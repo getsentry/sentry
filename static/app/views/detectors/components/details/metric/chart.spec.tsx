@@ -98,7 +98,7 @@ describe('MetricDetectorDetailsChart', () => {
       render(<MetricDetectorDetailsChart detector={anomalyDetector} />, {organization});
 
       expect(
-        await screen.findByRole('button', {name: 'Open in Discover'})
+        await screen.findByRole('button', {name: 'Open in Explore'})
       ).toBeInTheDocument();
       expect(screen.queryByText(CUTOFF_MESSAGE)).not.toBeInTheDocument();
     });

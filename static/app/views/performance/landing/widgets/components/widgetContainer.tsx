@@ -20,7 +20,6 @@ import {usePerformanceDisplayType} from 'sentry/utils/performance/contexts/perfo
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
-import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
@@ -206,9 +205,7 @@ function WidgetInteractiveTitle({
       menuOptions.push({label: t('Open in Explore'), value: 'open_in_explore'});
     } else {
       menuOptions.push({
-        label: getDiscoverDeprecation(organization)
-          ? t('Open in Explore')
-          : t('Open in Discover'),
+        label: t('Open in Explore'),
         value: 'open_in_discover',
       });
     }

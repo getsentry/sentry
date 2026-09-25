@@ -56,77 +56,15 @@ describe('DatasetSelector', () => {
     });
   });
 
-  it('disables transactions dataset when discover-saved-queries-deprecation feature is enabled', async () => {
-    const organizationWithDeprecation = OrganizationFixture({
-      features: ['discover-saved-queries-deprecation'],
-    });
-
+  it('does not show the transactions dataset', async () => {
     render(
       <WidgetBuilderProvider>
         <DatasetSelector />
-      </WidgetBuilderProvider>,
-      {
-        organization: organizationWithDeprecation,
-      }
+      </WidgetBuilderProvider>
     );
 
     await userEvent.click(await screen.findByRole('button', {name: 'Errors'}));
-
-    const transactionsOption = await screen.findByRole('option', {name: 'Transactions'});
-    expect(transactionsOption).toHaveAttribute('aria-disabled', 'true');
-
-    expect(
-      await screen.findByText(/No longer supported\. Use the spans dataset with the/)
-    ).toBeInTheDocument();
-    expect(screen.getByText('is_transaction:true')).toBeInTheDocument();
-  });
-
-  it('does not show transactions dataset when deprecate-discover feature is enabled', async () => {
-    const organizationWithDeprecation = OrganizationFixture({
-      features: ['deprecate-discover', 'discover-saved-queries-deprecation'],
-    });
-
-    render(
-      <WidgetBuilderProvider>
-        <DatasetSelector />
-      </WidgetBuilderProvider>,
-      {
-        organization: organizationWithDeprecation,
-      }
-    );
-
-    await userEvent.click(await screen.findByRole('button', {name: 'Errors'}));
+    expect(await screen.findByRole('option', {name: 'Issues'})).toBeInTheDocument();
     expect(screen.queryByRole('option', {name: 'Transactions'})).not.toBeInTheDocument();
-  });
-
-  it('allows selection of transactions dataset when discover-saved-queries-deprecation feature is disabled', async () => {
-    const organizationWithoutDeprecation = OrganizationFixture({
-      features: [], // No discover-saved-queries-deprecation feature
-    });
-
-    const {router} = render(
-      <WidgetBuilderProvider>
-        <DatasetSelector />
-      </WidgetBuilderProvider>,
-      {
-        organization: organizationWithoutDeprecation,
-      }
-    );
-
-    await userEvent.click(await screen.findByRole('button', {name: 'Errors'}));
-
-    const transactionsOption = await screen.findByRole('option', {name: 'Transactions'});
-
-    expect(
-      await screen.findByText('Transactions from your application')
-    ).toBeInTheDocument();
-
-    await userEvent.click(transactionsOption);
-
-    await waitFor(() => {
-      expect(router.location.query).toEqual(
-        expect.objectContaining({dataset: 'transaction-like'})
-      );
-    });
   });
 });

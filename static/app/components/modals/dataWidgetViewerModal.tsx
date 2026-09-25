@@ -108,7 +108,6 @@ import {Actions} from 'sentry/views/discover/table/cellAction';
 import {TransactionLink} from 'sentry/views/discover/table/tableView';
 import {
   decodeColumnOrder,
-  getDiscoverDeprecation,
   getTargetForTransactionSummaryLink,
 } from 'sentry/views/discover/utils';
 
@@ -848,9 +847,7 @@ function OpenButton({
       // Mobile app size widgets are not integrated with Explore or Discover
       return null;
     default:
-      openLabel = getDiscoverDeprecation(organization)
-        ? t('Open in Explore')
-        : t('Open in Discover');
+      openLabel = t('Open in Explore');
       path = getWidgetDiscoverUrl(
         {...widget, queries: [widget.queries[selectedQueryIndex]!]},
         dashboardFilters,
