@@ -9,7 +9,6 @@ import {
   waitFor,
   within,
 } from 'sentry-test/reactTestingLibrary';
-import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import IssueViewsList from 'sentry/views/issueList/issueViews/issueViewsList/issueViewsList';
 
@@ -71,7 +70,10 @@ describe('IssueViewsList', () => {
       'href',
       '/organizations/org-slug/issues/views/1/'
     );
-    expect(screen.getByText(textWithMarkupMatcher('foo is bar'))).toBeInTheDocument();
+    const fooRow = screen.getByRole('row', {name: /Foo/});
+    expect(within(fooRow).getByText('foo')).toBeInTheDocument();
+    expect(within(fooRow).getByText('is')).toBeInTheDocument();
+    expect(within(fooRow).getByText('bar')).toBeInTheDocument();
     expect(screen.getByText('env1')).toBeInTheDocument();
     expect(screen.getByText('0')).toBeInTheDocument();
 
@@ -80,7 +82,10 @@ describe('IssueViewsList', () => {
       'href',
       '/organizations/org-slug/issues/views/2/'
     );
-    expect(screen.getByText(textWithMarkupMatcher('bar is baz'))).toBeInTheDocument();
+    const barRow = screen.getByRole('row', {name: /Bar/});
+    expect(within(barRow).getByText('bar')).toBeInTheDocument();
+    expect(within(barRow).getByText('is')).toBeInTheDocument();
+    expect(within(barRow).getByText('baz')).toBeInTheDocument();
     expect(screen.getByText('My Projects')).toBeInTheDocument();
     expect(screen.getByText('All')).toBeInTheDocument();
     expect(screen.getByText('7')).toBeInTheDocument();

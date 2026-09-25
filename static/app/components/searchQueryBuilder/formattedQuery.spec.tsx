@@ -1,6 +1,5 @@
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 import {triggerResizeObservers} from 'sentry-test/resizeObserver';
-import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {
   FormattedQuery,
@@ -32,45 +31,53 @@ describe('FormattedQuery', () => {
   it('renders aggregate filters correctly', () => {
     render(<FormattedQuery {...defaultProps} query="count():>1" />);
 
-    expect(screen.getByText(textWithMarkupMatcher('count() > 1'))).toBeInTheDocument();
+    expect(screen.getByText('count')).toBeInTheDocument();
+    expect(screen.getByText('>')).toBeInTheDocument();
+    expect(screen.getByText('1')).toBeInTheDocument();
   });
 
   it('renders filters with multiple values correctly', () => {
     render(<FormattedQuery {...defaultProps} query="browser.name:[Firefox,Chrome]" />);
 
-    expect(
-      screen.getByText(textWithMarkupMatcher('browser.name is Firefox or Chrome'))
-    ).toBeInTheDocument();
+    const property = screen.getByText('browser.name');
+    const filter = property.closest('[aria-label]');
+
+    expect(filter).toHaveAttribute('aria-label', 'browser.name:[Firefox,Chrome]');
   });
 
   it('renders negated filters with multiple values using and', () => {
     render(<FormattedQuery {...defaultProps} query="!browser.name:[Firefox,Chrome]" />);
 
-    expect(
-      screen.getByText(textWithMarkupMatcher('browser.name is not Firefox and Chrome'))
-    ).toBeInTheDocument();
+    expect(screen.getByText('browser.name')).toBeInTheDocument();
+    expect(screen.getByText('is not')).toBeInTheDocument();
+    expect(screen.getByText('Firefox')).toBeInTheDocument();
+    expect(screen.getByText('and')).toBeInTheDocument();
+    expect(screen.getByText('Chrome')).toBeInTheDocument();
   });
 
   it('renders "is" filter correctly', () => {
     render(<FormattedQuery {...defaultProps} query="is:unresolved" />);
 
-    expect(screen.getByText(textWithMarkupMatcher('is unresolved'))).toBeInTheDocument();
+    const operator = screen.getByText('is');
+    const filter = operator.closest('[aria-label]');
+
+    expect(filter).toHaveAttribute('aria-label', 'is:unresolved');
   });
 
   it('renders relative date filter correctly', () => {
     render(<FormattedQuery {...defaultProps} query="lastSeen:-7d" />);
 
-    expect(
-      screen.getByText(textWithMarkupMatcher('lastSeen is after 7d ago'))
-    ).toBeInTheDocument();
+    expect(screen.getByText('lastSeen')).toBeInTheDocument();
+    expect(screen.getByText('is after')).toBeInTheDocument();
+    expect(screen.getByText('7d ago')).toBeInTheDocument();
   });
 
   it('renders absolute date filter correctly', () => {
     render(<FormattedQuery {...defaultProps} query="lastSeen:>2024-01-01" />);
 
-    expect(
-      screen.getByText(textWithMarkupMatcher('lastSeen is after Jan 1, 2024'))
-    ).toBeInTheDocument();
+    expect(screen.getByText('lastSeen')).toBeInTheDocument();
+    expect(screen.getByText('is after')).toBeInTheDocument();
+    expect(screen.getByText('Jan 1, 2024')).toBeInTheDocument();
   });
 
   it('renders boolean logic correctly', () => {
@@ -84,25 +91,31 @@ describe('FormattedQuery', () => {
   it('renders explicit string tag correctly', () => {
     render(<FormattedQuery {...defaultProps} query="tags[foo,string]:bar" />);
 
-    expect(screen.getByText(textWithMarkupMatcher('foo is bar'))).toBeInTheDocument();
+    expect(screen.getByText('foo')).toBeInTheDocument();
+    expect(screen.getByText('is')).toBeInTheDocument();
+    expect(screen.getByText('bar')).toBeInTheDocument();
   });
 
   it('renders explicit number tag correctly', () => {
     render(<FormattedQuery {...defaultProps} query="tags[foo,number]:<=100" />);
 
-    expect(screen.getByText(textWithMarkupMatcher('foo is <=100'))).toBeInTheDocument();
+    expect(screen.getByText('foo')).toBeInTheDocument();
+    expect(screen.getByText('is')).toBeInTheDocument();
+    expect(screen.getByText('<=100')).toBeInTheDocument();
   });
 
   it('renders has explicit string tag correctly', () => {
     render(<FormattedQuery {...defaultProps} query="has:tags[foo,string]" />);
 
-    expect(screen.getByText(textWithMarkupMatcher('has foo'))).toBeInTheDocument();
+    expect(screen.getByText('has')).toBeInTheDocument();
+    expect(screen.getByText('foo')).toBeInTheDocument();
   });
 
   it('renders has number string tag correctly', () => {
     render(<FormattedQuery {...defaultProps} query="has:tags[foo,number]" />);
 
-    expect(screen.getByText(textWithMarkupMatcher('has foo'))).toBeInTheDocument();
+    expect(screen.getByText('has')).toBeInTheDocument();
+    expect(screen.getByText('foo')).toBeInTheDocument();
   });
 
   it('renders an escaped asterisk with the escape visible', () => {

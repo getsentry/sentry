@@ -1,8 +1,29 @@
+import {Fragment} from 'react';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {getEmotionRules} from 'sentry-test/utils';
 
 import {Chip} from '@sentry/scraps/chip';
 
 describe('Chip', () => {
+  it('renders readonly flat and compound values with primary text', () => {
+    render(
+      <Fragment>
+        <Chip readonly property="Flat property" value="Flat value" />
+        <Chip.Root readonly>
+          <Chip.Value>Compound value</Chip.Value>
+        </Chip.Root>
+      </Fragment>
+    );
+
+    expect(getEmotionRules(screen.getByText('Flat value')).join('')).toContain(
+      'color: rgb(48, 46, 54)'
+    );
+    expect(getEmotionRules(screen.getByText('Compound value')).join('')).toContain(
+      'color: rgb(48, 46, 54)'
+    );
+  });
+
   describe('flat API', () => {
     it('renders property, operator, and value', () => {
       render(<Chip property="browser" operator="is" value="Chrome" />);
@@ -60,6 +81,27 @@ describe('Chip', () => {
       );
       expect(screen.getByText('browser')).toBeInTheDocument();
       expect(screen.queryByRole('button')).not.toBeInTheDocument();
+    });
+
+    it('forwards inert styling props and constrains values', () => {
+      render(
+        <Chip.Root>
+          <Chip.Property className="property" style={{maxWidth: 100}}>
+            browser
+          </Chip.Property>
+          <Chip.Operator>is</Chip.Operator>
+          <Chip.Value maxWidth="300px">Chrome</Chip.Value>
+        </Chip.Root>
+      );
+
+      const property = screen.getByText('browser').parentElement;
+      expect(property).toHaveClass('property');
+      expect(property).toHaveStyle({maxWidth: '100px'});
+      expect(
+        screen
+          .getByText('Chrome')
+          .parentElement?.style.getPropertyValue('--chip-value-max-width')
+      ).toBe('300px');
     });
 
     it('renders a section as a button when given onClick and fires it', async () => {
