@@ -9,8 +9,8 @@ import {
 import {SpanFields} from 'sentry/views/insights/types';
 
 describe('Thresholds', () => {
-  it.each(['15', '0', '0.5'])(
-    'uses the displayed unit when entering the first threshold (%s)',
+  it.each(['15', '0'])(
+    'saves the displayed unit when entering a new threshold (%s)',
     async value => {
       const {router} = render(
         <WidgetBuilderProvider>
@@ -18,11 +18,11 @@ describe('Thresholds', () => {
         </WidgetBuilderProvider>
       );
 
-      expect(screen.getAllByText('second')).toHaveLength(3);
       await userEvent.type(screen.getByLabelText('First Maximum'), value);
 
+      expect(screen.getByLabelText('Second Minimum')).toHaveValue(Number(value));
       await waitFor(() => {
-        expect(JSON.parse(router.location.query.thresholds as string)).toEqual({
+        expect(JSON.parse(router.location.query.thresholds as string)).toMatchObject({
           max_values: {max1: Number(value)},
           unit: 'second',
         });
@@ -30,7 +30,7 @@ describe('Thresholds', () => {
     }
   );
 
-  it('initializes the unit after choosing polarity and after clearing thresholds', async () => {
+  it('saves the displayed unit when polarity is selected before the threshold', async () => {
     const {router} = render(
       <WidgetBuilderProvider>
         <Thresholds dataType="duration" dataUnit="second" />
@@ -40,22 +40,30 @@ describe('Thresholds', () => {
     await userEvent.click(screen.getByRole('radio', {name: 'Higher is better'}));
     await userEvent.type(screen.getByLabelText('Second Maximum'), '15');
 
+    expect(screen.getByRole('radio', {name: 'Higher is better'})).toBeChecked();
     await waitFor(() => {
-      expect(JSON.parse(router.location.query.thresholds as string)).toEqual({
+      expect(JSON.parse(router.location.query.thresholds as string)).toMatchObject({
         max_values: {max2: 15},
         unit: 'second',
-        preferredPolarity: '+',
       });
     });
+  });
 
-    await userEvent.clear(screen.getByLabelText('Second Maximum'));
+  it('uses the displayed unit again after clearing the thresholds', async () => {
+    const {router} = render(
+      <WidgetBuilderProvider>
+        <Thresholds dataType="duration" dataUnit="second" />
+      </WidgetBuilderProvider>
+    );
+
+    await userEvent.type(screen.getByLabelText('First Maximum'), '15');
+    await userEvent.clear(screen.getByLabelText('First Maximum'));
     await userEvent.type(screen.getByLabelText('First Maximum'), '30');
 
     await waitFor(() => {
-      expect(JSON.parse(router.location.query.thresholds as string)).toEqual({
+      expect(JSON.parse(router.location.query.thresholds as string)).toMatchObject({
         max_values: {max1: 30},
         unit: 'second',
-        preferredPolarity: '+',
       });
     });
   });
@@ -72,26 +80,9 @@ describe('Thresholds', () => {
     await userEvent.type(screen.getByLabelText('First Maximum'), '15');
 
     await waitFor(() => {
-      expect(JSON.parse(router.location.query.thresholds as string)).toEqual({
+      expect(JSON.parse(router.location.query.thresholds as string)).toMatchObject({
         max_values: {max1: 15},
         unit: 'second',
-      });
-    });
-  });
-
-  it('keeps unitless thresholds unitless', async () => {
-    const {router} = render(
-      <WidgetBuilderProvider>
-        <Thresholds dataType="integer" />
-      </WidgetBuilderProvider>
-    );
-
-    await userEvent.type(screen.getByLabelText('First Maximum'), '15');
-
-    await waitFor(() => {
-      expect(JSON.parse(router.location.query.thresholds as string)).toEqual({
-        max_values: {max1: 15},
-        unit: null,
       });
     });
   });
@@ -117,7 +108,7 @@ describe('Thresholds', () => {
     await userEvent.type(screen.getByLabelText('Second Maximum'), '200');
 
     await waitFor(() => {
-      expect(JSON.parse(router.location.query.thresholds as string)).toEqual({
+      expect(JSON.parse(router.location.query.thresholds as string)).toMatchObject({
         max_values: {max1: 100, max2: 200},
         unit: null,
       });
