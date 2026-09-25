@@ -15,10 +15,7 @@ import {
   useDeleteAutomationMutation,
   useUpdateAutomation,
 } from 'sentry/views/automations/hooks';
-import {
-  getNoAlertWritePermissionTooltip,
-  useCanEditAutomation,
-} from 'sentry/views/automations/hooks/useCanEditAutomation';
+import {useAutomationEditPermission} from 'sentry/views/automations/hooks/useCanEditAutomation';
 import {
   makeAutomationBasePathname,
   makeAutomationDetailsPathname,
@@ -32,8 +29,7 @@ interface EditAutomationActionsProps {
 export function EditAutomationActions({automation, form}: EditAutomationActionsProps) {
   const organization = useOrganization();
   const navigate = useNavigate();
-  const canEdit = useCanEditAutomation(automation.id);
-  const permissionTooltipText = canEdit ? undefined : getNoAlertWritePermissionTooltip();
+  const {canEdit, disabledReason} = useAutomationEditPermission(automation.id);
   const {mutateAsync: deleteAutomation, isPending: isDeleting} =
     useDeleteAutomationMutation();
   const {mutate: updateAutomation, isPending: isUpdating} = useUpdateAutomation();
@@ -74,7 +70,7 @@ export function EditAutomationActions({automation, form}: EditAutomationActionsP
           size="sm"
           onClick={toggleDisabled}
           disabled={!canEdit || isUpdating}
-          tooltipProps={{title: permissionTooltipText}}
+          tooltipProps={{title: disabledReason}}
         >
           {automation.enabled ? t('Disable') : t('Enable')}
         </Button>
@@ -82,7 +78,7 @@ export function EditAutomationActions({automation, form}: EditAutomationActionsP
           variant="danger"
           onClick={handleDelete}
           disabled={!canEdit || isDeleting}
-          tooltipProps={{title: permissionTooltipText}}
+          tooltipProps={{title: disabledReason}}
           size="sm"
         >
           {t('Delete')}
@@ -103,7 +99,7 @@ export function EditAutomationActions({automation, form}: EditAutomationActionsP
               size="sm"
               busy={form.isSaving}
               disabled={!canEdit}
-              tooltipProps={{title: permissionTooltipText}}
+              tooltipProps={{title: disabledReason}}
             >
               {t('Save')}
             </Button>

@@ -4,7 +4,7 @@ import {skipToken, useQuery} from '@tanstack/react-query';
 
 import {Link} from '@sentry/scraps/link';
 
-import {tct} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -59,6 +59,13 @@ function useAutomationAccess() {
 }
 
 export function useCanEditAutomation(automationId: string): boolean {
+  return useAutomationEditPermission(automationId).canEdit;
+}
+
+export function useAutomationEditPermission(automationId: string): {
+  canEdit: boolean;
+  disabledReason: ReactNode;
+} {
   const {canEditAllProjects, canEditOrganization, organization, writableProjectIds} =
     useAutomationAccess();
   const {data: projectScope} = useQuery(
@@ -71,18 +78,27 @@ export function useCanEditAutomation(automationId: string): boolean {
   );
 
   if (canEditAllProjects) {
-    return true;
+    return {canEdit: true, disabledReason: undefined};
   }
 
-  if (!projectScope || projectScope.includesAllProjects) {
-    return false;
+  if (projectScope?.includesAllProjects) {
+    return {
+      canEdit: false,
+      disabledReason: getNoAllProjectsWritePermissionTooltip(),
+    };
   }
 
   if (canEditOrganization) {
-    return true;
+    return projectScope
+      ? {canEdit: true, disabledReason: undefined}
+      : {canEdit: false, disabledReason: getNoAlertWritePermissionTooltip()};
   }
 
-  return canEditAutomationProjectScope(projectScope, writableProjectIds);
+  const canEdit = canEditAutomationProjectScope(projectScope, writableProjectIds);
+  return {
+    canEdit,
+    disabledReason: canEdit ? undefined : getNoAlertWritePermissionTooltip(),
+  };
 }
 
 export function useCanCreateAutomation(): boolean {
@@ -110,4 +126,8 @@ export function getNoAlertWritePermissionTooltip() {
     'You do not have permission to create or edit alerts. Ask your organization owner or manager to [settingsLink:enable alert access] for you.',
     {settingsLink: <AlertsMemberWriteSettingsLink />}
   );
+}
+
+export function getNoAllProjectsWritePermissionTooltip() {
+  return t('Only organization owners and managers can create/modify all-project alerts.');
 }

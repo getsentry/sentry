@@ -5,6 +5,7 @@ import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary'
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {
+  useAutomationEditPermission,
   useCanCreateAutomation,
   useCanEditAutomation,
 } from 'sentry/views/automations/hooks/useCanEditAutomation';
@@ -50,12 +51,17 @@ describe('useCanEditAutomation', () => {
       body: {projectIds: [], includesAllProjects: true},
     });
 
-    const {result} = renderHookWithProviders(() => useCanEditAutomation('123'), {
+    const {result} = renderHookWithProviders(() => useAutomationEditPermission('123'), {
       organization: alertWriterOrganization,
     });
 
-    await waitFor(() => expect(projectScopeRequest).toHaveBeenCalled());
-    expect(result.current).toBe(false);
+    await waitFor(() =>
+      expect(result.current.disabledReason).toBe(
+        'Only organization owners and managers can create/modify all-project alerts.'
+      )
+    );
+    expect(result.current.canEdit).toBe(false);
+    expect(projectScopeRequest).toHaveBeenCalled();
   });
 
   it('allows a project-scoped alert with organization-level alert write access', async () => {

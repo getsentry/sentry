@@ -26,6 +26,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {AutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
 import {ConnectedMonitorsList} from 'sentry/views/automations/components/connectedMonitorsList';
+import {getNoAllProjectsWritePermissionTooltip} from 'sentry/views/automations/hooks/useCanEditAutomation';
 import {useConnectedDetectors} from 'sentry/views/automations/hooks/useConnectedDetectors';
 import {
   canConnectAutomationToDetector,
@@ -381,12 +382,7 @@ function EditConnectedMonitorsContent({
     monitorModeChoices.push(['allProjects', t('Alert on all issues in all projects')]);
 
     if (!canEditAllProjects) {
-      disabledChoices.push([
-        'allProjects',
-        t(
-          'Only organization owners and managers can create/modify global issue monitors.'
-        ),
-      ]);
+      disabledChoices.push(['allProjects', getNoAllProjectsWritePermissionTooltip()]);
     }
   }
 
