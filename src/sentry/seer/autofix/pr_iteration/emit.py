@@ -33,6 +33,7 @@ from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.autofix.autofix_agent import (
     get_iterations,
     get_latest_iteration_index,
+    get_open_iteration_index,
     iteration_repos,
 )
 from sentry.seer.autofix.pr_iteration.current_iteration import triggered_iteration_id
@@ -81,6 +82,8 @@ class PrIterationOutcome(StrEnum):
     TIMEOUT = "timeout"
     STALLED = "stalled"
     ERRORED = "errored"
+    # The drain popped the batch but failed to hand it to the agent.
+    DRAIN_FAILED = "drain_failed"
 
     # technically we can recover from this
     # but an iteration is stuck until then
@@ -92,6 +95,7 @@ class PrIterationOutcome(StrEnum):
     PAUSED_USER_STOP = "paused_user_stop"
     PAUSED_RUN_ERRORED = "paused_run_errored"
     PAUSED_PR_CLOSED = "paused_pr_closed"
+    PAUSED_DRAIN_FAILED = "paused_drain_failed"
 
 
 # Every pause reason has its own outcome; there is no catch-all. mypy flags a
@@ -100,6 +104,7 @@ _PAUSE_REASON_OUTCOMES: dict[PauseReason, PrIterationOutcome] = {
     PauseReason.USER_STOP: PrIterationOutcome.PAUSED_USER_STOP,
     PauseReason.RUN_ERRORED: PrIterationOutcome.PAUSED_RUN_ERRORED,
     PauseReason.PR_CLOSED: PrIterationOutcome.PAUSED_PR_CLOSED,
+    PauseReason.DRAIN_FAILED: PrIterationOutcome.PAUSED_DRAIN_FAILED,
 }
 
 
@@ -421,6 +426,48 @@ def complete_pr_iteration_details(
         return
     set_pr_iteration_attributes(iteration_id=iteration_id)
 
+    _complete_iteration(
+        log_ctx=log_ctx,
+        run_state=run_state,
+        organization_id=organization_id,
+        iteration_id=iteration_id,
+        iteration_index=get_latest_iteration_index(run_state),
+        outcome=outcome,
+    )
+
+
+def fail_pr_iteration_details(
+    *,
+    log_ctx: PrIterationLogContext,
+    run_state: SeerRunState,
+    organization_id: int,
+    iteration_id: int,
+    outcome: str,
+) -> None:
+    """Emit and drop the row of an iteration the drain claimed but never started.
+
+    The agent never saw this batch, so the run state carries no id for it and
+    the completion hook will never come; the drain passes the id it claimed.
+    """
+    _complete_iteration(
+        log_ctx=log_ctx,
+        run_state=run_state,
+        organization_id=organization_id,
+        iteration_id=iteration_id,
+        iteration_index=get_open_iteration_index(run_state),
+        outcome=outcome,
+    )
+
+
+def _complete_iteration(
+    *,
+    log_ctx: PrIterationLogContext,
+    run_state: SeerRunState,
+    organization_id: int,
+    iteration_id: int,
+    iteration_index: int,
+    outcome: str,
+) -> None:
     try:
         seer_run = _seer_run(run_id=run_state.run_id, organization_id=organization_id)
         if seer_run is None:
@@ -443,7 +490,7 @@ def complete_pr_iteration_details(
             log_ctx,
             iteration,
             AiAutofixPrIterationFeedbackBatchCompletedEvent,
-            iteration_index=get_latest_iteration_index(run_state),
+            iteration_index=iteration_index,
             outcome=outcome,
             head_shas=head_shas,
         )

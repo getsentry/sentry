@@ -115,6 +115,7 @@ PAUSED_PR_ITERATION_DETAIL = {
     PauseReason.USER_STOP: "Iteration was stopped for this pull request",
     PauseReason.RUN_ERRORED: "Seer can no longer iterate on this pull request",
     PauseReason.PR_CLOSED: "This pull request is closed, so Seer stopped iterating on it",
+    PauseReason.DRAIN_FAILED: "Seer hit an error starting its next iteration, so it stopped iterating on this pull request",
 }
 
 AUTOFIX_SETUP_REQUIRED_DETAIL = {

@@ -66,8 +66,10 @@ from sentry.seer.autofix.pr_iteration.details_store import (
     remove_iterations_before,
 )
 from sentry.seer.autofix.pr_iteration.emit import (
+    PrIterationOutcome,
     bootstrap_iteration,
     discard_pr_iteration_details,
+    fail_pr_iteration_details,
     outcome_for_pause,
     record_pr_iteration_blocked,
     record_pr_iteration_counts,
@@ -539,6 +541,15 @@ def consume_queued_autofix_feedback(
             raise
 
 
+def _record_drain_outcome(outcome: str, trigger_source: str | None) -> None:
+    """Count how each drain ended, so the mix of outcomes can be charted."""
+    metrics.incr(
+        "autofix.pr_iteration.consume_feedback.drain",
+        tags={"outcome": outcome, "trigger_source": trigger_source or "unknown"},
+        sample_rate=1.0,
+    )
+
+
 def _discard_iteration(
     log_ctx: PrIterationLogContext, run_id: int, organization_id: int, iteration_id: int | None
 ) -> None:
@@ -615,6 +626,7 @@ def _drain_queued_autofix_feedback(
             trigger_source=trigger_source,
             left_queued_count=count_queued_autofix_feedback(run_id),
         )
+        _record_drain_outcome(f"skipped_run_{state.status}", trigger_source)
         return
 
     # The previous iteration's push (triggered separately, from the
@@ -633,6 +645,7 @@ def _drain_queued_autofix_feedback(
             trigger_source=trigger_source,
             left_queued_count=count_queued_autofix_feedback(run_id),
         )
+        _record_drain_outcome("skipped_push_pending", trigger_source)
         return
 
     # Claim before the pop, so feedback arriving mid-drain opens its own row.
@@ -654,6 +667,7 @@ def _drain_queued_autofix_feedback(
             trigger_id=trigger_id,
             trigger_source=trigger_source,
         )
+        _record_drain_outcome("skipped_no_feedback", trigger_source)
         return
 
     consumable_items: list[QueuedAutofixFeedback] = []
@@ -728,6 +742,7 @@ def _drain_queued_autofix_feedback(
             queued_count=len(queued_items),
             dropped=dropped,
         )
+        _record_drain_outcome("skipped_no_feedback", trigger_source)
         # The drain popped the queue, so this iteration will never run.
         _discard_iteration(log_ctx, run_id, organization_id, iteration_id)
         return
@@ -805,9 +820,31 @@ def _drain_queued_autofix_feedback(
             trigger_id=trigger_id,
             trigger_source=trigger_source,
         )
+        _record_drain_outcome(
+            "skipped_permission" if isinstance(error, SeerPermissionError) else "skipped_no_pr",
+            trigger_source,
+        )
         # The drain popped the queue, so this iteration will never run.
         _discard_iteration(log_ctx, run_id, organization_id, iteration_id)
         return
+    except Exception as error:
+        _stop_after_drain_failure(
+            log_ctx=log_ctx,
+            run_id=run_id,
+            organization_id=organization_id,
+            state=state,
+            iteration_id=iteration_id,
+        )
+        log_ctx.info(
+            "autofix.pr_iteration.consume_feedback.trigger_agent",
+            outcome="failed",
+            reason=type(error).__name__,
+            trigger_id=trigger_id,
+            trigger_source=trigger_source,
+            dropped_feedback_ids=[item.feedback.feedback_id for item in consumable_items],
+        )
+        _record_drain_outcome("failed", trigger_source)
+        raise
 
     log_ctx.info(
         "autofix.pr_iteration.consume_feedback.trigger_agent",
@@ -815,10 +852,34 @@ def _drain_queued_autofix_feedback(
         trigger_id=trigger_id,
         trigger_source=trigger_source,
     )
-    metrics.incr(
-        "autofix.pr_iteration.consume_feedback.triggered",
-        tags={"trigger_source": trigger_source or "unknown"},
-    )
+    _record_drain_outcome("started", trigger_source)
+
+
+def _stop_after_drain_failure(
+    *,
+    log_ctx: PrIterationLogContext,
+    run_id: int,
+    organization_id: int,
+    state: SeerRunState,
+    iteration_id: int | None,
+) -> None:
+    """Pause the run and record the claimed iteration as failed."""
+    if iteration_id is not None:
+        fail_pr_iteration_details(
+            log_ctx=log_ctx,
+            run_state=state,
+            organization_id=organization_id,
+            iteration_id=iteration_id,
+            outcome=PrIterationOutcome.DRAIN_FAILED.value,
+        )
+    try:
+        pause_pr_iteration(
+            run_id=run_id,
+            organization_id=organization_id,
+            reason=PauseReason.DRAIN_FAILED,
+        )
+    except Exception:
+        log_ctx.error("autofix.pr_iteration.consume_feedback.pause_failed")
 
 
 def _github_commenter_has_repo_write_access(
