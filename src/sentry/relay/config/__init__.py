@@ -143,6 +143,9 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
         logs=features.has("organizations:ourlogs-ingestion", organization),
         metrics=features.has("organizations:tracemetrics-ingestion", organization),
         custom_inbound_filters_v2=features.has("organizations:inbound-filters-v2", organization),
+        generic_ip_filter=features.has(
+            "organizations:inbound-filters-generic-ip-filter", organization
+        ),
     )
 
     if filter_features.custom_inbound_filters:
@@ -155,7 +158,7 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
             filter_settings["errorMessages"] = {"patterns": error_messages}
 
     blacklisted_ips = project.get_option("sentry:blacklisted_ips")
-    if blacklisted_ips:
+    if blacklisted_ips and not filter_features.generic_ip_filter:
         filter_settings["clientIps"] = {"blacklistedIps": blacklisted_ips}
 
     csp_disallowed_sources: list[str] = []
