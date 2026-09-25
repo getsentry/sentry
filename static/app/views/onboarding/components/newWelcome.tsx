@@ -8,9 +8,7 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {
   IconBot,
-  IconCheckmark,
   IconGraph,
-  IconLightning,
   IconProfiling,
   IconSeer,
   IconSpan,
@@ -20,9 +18,7 @@ import {
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {useExperiment} from 'sentry/utils/useExperiment';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {GenericFooter} from 'sentry/views/onboarding/components/genericFooter';
 import {
   NewWelcomeProductCard,
   type ProductOption,
@@ -31,7 +27,6 @@ import {
   useWelcomeAgentRun,
   WelcomeAgentSetup,
 } from 'sentry/views/onboarding/components/welcomeAgentSetup';
-import {WelcomeSkipButton} from 'sentry/views/onboarding/components/welcomeSkipButton';
 import {ONBOARDING_WELCOME_STAGGER_ITEM} from 'sentry/views/onboarding/consts';
 import {OnboardingWelcomeProductId, type StepProps} from 'sentry/views/onboarding/types';
 import {useWelcomeAnalyticsEffect} from 'sentry/views/onboarding/useWelcomeAnalyticsEffect';
@@ -158,12 +153,7 @@ function getAgentHeading({
 
 export function NewWelcomeUI(props: StepProps) {
   const organization = useOrganization();
-  const {inExperiment: hasScmOnboarding} = useExperiment({
-    feature: 'onboarding-scm-experiment',
-    reportExposure: false,
-  });
-  const hasAgenticSetup = organization.features.includes('onboarding-agentic-setup');
-  const showAgentSetup = hasScmOnboarding && hasAgenticSetup;
+  const showAgentSetup = organization.features.includes('onboarding-agentic-setup');
   const {
     run,
     onboardingCode,
@@ -209,53 +199,14 @@ export function NewWelcomeUI(props: StepProps) {
       <MotionFlex direction="column" align="center" {...STAGGER_CONTAINER}>
         <Stack gap="3xl" align="center" width="100%">
           <MotionStack gap="md" {...ONBOARDING_WELCOME_STAGGER_ITEM} width="100%">
-            {hasScmOnboarding ? (
-              <Stack gap="lg">
-                <Heading as="h2" size="4xl" wrap="pre-line">
-                  {scmHeading.title}
-                </Heading>
-                <Text variant="muted" size="xl" density="comfortable">
-                  {scmHeading.description}
-                </Text>
-              </Stack>
-            ) : (
-              <Stack gap="sm" paddingBottom="2xl">
-                <Container>
-                  <Heading as="h1" density="comfortable">
-                    {t('Welcome to Sentry')}
-                  </Heading>
-                </Container>
-                <Container>
-                  <Text variant="muted" size="xl" bold wrap="pre-line">
-                    {t("Your code is probably broken. Let's fix it faster.")}
-                  </Text>
-                </Container>
-              </Stack>
-            )}
-
-            {hasScmOnboarding ? null : (
-              <Stack gap="2xs">
-                <Flex align="center" gap="md">
-                  <Container>
-                    <IconLightning size="md" variant="accent" />
-                  </Container>
-                  <Container>
-                    <Text size="lg" bold density="comfortable">
-                      {t(
-                        "You've got 14 days of Business with unlimited access to everything below."
-                      )}
-                    </Text>
-                  </Container>
-                </Flex>
-                <Container>
-                  <Text size="md" variant="muted">
-                    {t(
-                      "We'll walk you through setup next. Start with what matters now, add the rest when you're ready."
-                    )}
-                  </Text>
-                </Container>
-              </Stack>
-            )}
+            <Stack gap="lg">
+              <Heading as="h2" size="4xl" wrap="pre-line">
+                {scmHeading.title}
+              </Heading>
+              <Text variant="muted" size="xl" density="comfortable">
+                {scmHeading.description}
+              </Text>
+            </Stack>
           </MotionStack>
 
           {/* Let the onboarding step's exit animate through this nested boundary. */}
@@ -306,53 +257,23 @@ export function NewWelcomeUI(props: StepProps) {
                   ))}
                 </MotionGrid>
 
-                {hasScmOnboarding ? (
-                  <MotionFlex
-                    {...ONBOARDING_WELCOME_STAGGER_ITEM}
-                    width="100%"
-                    justify="end"
+                <MotionFlex
+                  {...ONBOARDING_WELCOME_STAGGER_ITEM}
+                  width="100%"
+                  justify="end"
+                >
+                  <Button
+                    variant="primary"
+                    onClick={handleComplete}
+                    data-test-id="onboarding-welcome-start"
                   >
-                    <Button
-                      variant="primary"
-                      onClick={handleComplete}
-                      data-test-id="onboarding-welcome-start"
-                    >
-                      {t('Let’s get started')}
-                    </Button>
-                  </MotionFlex>
-                ) : (
-                  <MotionContainer {...ONBOARDING_WELCOME_STAGGER_ITEM}>
-                    <Flex align="center" gap="md" justify="center">
-                      <IconCheckmark size="md" variant="success" />
-                      <Text size="md" variant="muted">
-                        {t(
-                          "After the trial ends, you'll move to our free plan. You will not be charged for any usage, promise."
-                        )}
-                      </Text>
-                    </Flex>
-                  </MotionContainer>
-                )}
+                    {t('Let’s get started')}
+                  </Button>
+                </MotionFlex>
               </MotionStack>
             )}
           </AnimatePresence>
         </Stack>
-        {hasScmOnboarding ? null : (
-          <GenericFooter gap="3xl" padding="0 3xl">
-            <Flex align="center">
-              <WelcomeSkipButton asButton>{t('Skip onboarding')}</WelcomeSkipButton>
-            </Flex>
-
-            <Flex align="center">
-              <Button
-                variant="primary"
-                onClick={handleComplete}
-                data-test-id="onboarding-welcome-start"
-              >
-                {t('Begin setup')}
-              </Button>
-            </Flex>
-          </GenericFooter>
-        )}
       </MotionFlex>
     </MotionContainer>
   );
