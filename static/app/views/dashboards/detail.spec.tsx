@@ -193,8 +193,8 @@ describe('Dashboards > Detail', () => {
         body: [],
       });
       MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/events-stats/',
-        body: {data: []},
+        url: '/organizations/org-slug/events-timeseries/',
+        body: {timeSeries: []},
       });
       MockApiClient.addMockResponse({
         method: 'GET',
@@ -227,8 +227,8 @@ describe('Dashboards > Detail', () => {
     // eslint-disable-next-line jest/no-disabled-tests
     it.skip('assigns unique IDs to all widgets so grid keys are unique', async () => {
       MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/events-stats/',
-        body: {data: []},
+        url: '/organizations/org-slug/events-timeseries/',
+        body: {timeSeries: []},
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/default-overview/',
@@ -426,10 +426,6 @@ describe('Dashboards > Detail', () => {
         url: '/organizations/org-slug/dashboards/1/',
         method: 'PUT',
         body: DashboardFixture(widgets, {id: '1', title: 'Custom Errors'}),
-      });
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/events-stats/',
-        body: {data: []},
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events-timeseries/',

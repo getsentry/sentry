@@ -131,10 +131,6 @@ describe('Dashboards > WidgetCard', () => {
     PageFiltersStore.init();
     PageFiltersStore.onInitializeUrlState(selection);
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
-      body: {meta: {}},
-    });
-    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-timeseries/',
       body: {timeSeries: []},
     });

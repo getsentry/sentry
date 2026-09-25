@@ -1,5 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
+import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 import {WidgetFixture} from 'sentry-fixture/widget';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -27,7 +28,7 @@ describe('useTransactionsSeriesQuery', () => {
     PageFiltersStore.onInitializeUrlState(pageFilters);
   });
 
-  it('makes a request to the events-stats endpoint', async () => {
+  it('makes a request to the events-timeseries endpoint', async () => {
     const widget = WidgetFixture({
       displayType: DisplayType.LINE,
       queries: [
@@ -43,9 +44,9 @@ describe('useTransactionsSeriesQuery', () => {
     });
 
     const mockRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
+      url: '/organizations/org-slug/events-timeseries/',
       body: {
-        data: [],
+        timeSeries: [TimeSeriesFixture({yAxis: 'count()'})],
       },
     });
 
@@ -60,7 +61,7 @@ describe('useTransactionsSeriesQuery', () => {
 
     await waitFor(() => {
       expect(mockRequest).toHaveBeenCalledWith(
-        '/organizations/org-slug/events-stats/',
+        '/organizations/org-slug/events-timeseries/',
         expect.objectContaining({
           query: expect.objectContaining({
             yAxis: ['count()'],

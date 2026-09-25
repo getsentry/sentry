@@ -1,26 +1,25 @@
 import {useMemo, useRef} from 'react';
-import {keepPreviousData, queryOptions, useQueries} from '@tanstack/react-query';
+import {queryOptions, useQueries} from '@tanstack/react-query';
 import cloneDeep from 'lodash/cloneDeep';
 
 import type {Series} from 'sentry/types/echarts';
-import type {
-  EventsStats,
-  GroupedMultiSeriesEventsStats,
-  MultiSeriesEventsStats,
-} from 'sentry/types/organization';
 import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
-import {getUtcDateString} from 'sentry/utils/dates';
 import type {
   EventsTableData,
   TableData,
   TableDataWithTitle,
 } from 'sentry/utils/discover/discoverQuery';
+import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
 import type {DiscoverQueryRequestParams} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
 import {TransactionsConfig} from 'sentry/views/dashboards/datasetConfig/transactions';
-import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
+import {
+  getSeriesRequestData,
+  getTimeseriesQueryParams,
+} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {HookWidgetQueryResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
@@ -29,12 +28,10 @@ import {
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
+import {getTimeseriesWidgetQueryOptions} from 'sentry/views/dashboards/widgetCard/hooks/utils/getTimeseriesWidgetQueryOptions';
 import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
 
-type TransactionsSeriesResponse =
-  | EventsStats
-  | MultiSeriesEventsStats
-  | GroupedMultiSeriesEventsStats;
+type TransactionsSeriesResponse = EventsTimeSeriesResponse;
 type TransactionsTableResponse = TableData | EventsTableData;
 
 // Stable empty array to prevent infinite rerenders
@@ -80,55 +77,12 @@ export function useTransactionsSeriesQuery(
         widgetInterval
       );
 
-      // Transform requestData into proper query params
-      const {
-        organization: _org,
-        includeAllArgs: _includeAllArgs,
-        includePrevious: _includePrevious,
-        generatePathname: _generatePathname,
-        period,
-        ...restParams
-      } = requestData;
-
-      const queryParams = {
-        ...restParams,
-        ...(period ? {statsPeriod: period} : {}),
-      };
-
-      if (queryParams.start) {
-        queryParams.start = getUtcDateString(queryParams.start);
-      }
-      if (queryParams.end) {
-        queryParams.end = getUtcDateString(queryParams.end);
-      }
-
-      return queryOptions({
-        ...apiOptions.as<TransactionsSeriesResponse>()(
-          '/organizations/$organizationIdOrSlug/events-stats/',
-          {
-            path: {organizationIdOrSlug: organization.slug},
-            method: 'GET' as const,
-            query: queryParams,
-            staleTime: getWidgetStaleTime(pageFilters),
-          }
-        ),
-        queryFn: (context): Promise<ApiResponse<TransactionsSeriesResponse>> => {
-          if (queue) {
-            return new Promise((resolve, reject) => {
-              const fetchFnRef = {
-                current: () =>
-                  apiFetch<TransactionsSeriesResponse>(context).then(resolve, reject),
-              };
-              queue.addItem({fetchDataRef: fetchFnRef});
-            });
-          }
-
-          return apiFetch<TransactionsSeriesResponse>(context);
-        },
+      return getTimeseriesWidgetQueryOptions({
+        organization,
+        pageFilters,
+        queue,
         enabled,
-        retry: false,
-        retryDelay: getRetryDelay,
-        placeholderData: keepPreviousData,
+        query: getTimeseriesQueryParams(requestData),
       });
     }),
   });
@@ -148,6 +102,8 @@ export function useTransactionsSeriesQuery(
     }
 
     const timeseriesResults: Series[] = [];
+    const timeseriesResultsTypes: Record<string, AggregationOutputType> = {};
+    const timeseriesResultsUnits: Record<string, DataUnit> = {};
     const rawData: TransactionsSeriesResponse[] = [];
 
     queryResults.forEach((q, requestIndex) => {
@@ -168,6 +124,21 @@ export function useTransactionsSeriesQuery(
       transformedResult.forEach((result: Series, resultIndex: number) => {
         timeseriesResults[requestIndex * transformedResult.length + resultIndex] = result;
       });
+
+      Object.assign(
+        timeseriesResultsTypes,
+        TransactionsConfig.getSeriesResultType?.(
+          responseData,
+          filteredWidget.queries[requestIndex]!
+        )
+      );
+      Object.assign(
+        timeseriesResultsUnits,
+        TransactionsConfig.getSeriesResultUnit?.(
+          responseData,
+          filteredWidget.queries[requestIndex]!
+        )
+      );
     });
 
     // Check if rawData is the same as before to prevent unnecessary rerenders
@@ -193,6 +164,8 @@ export function useTransactionsSeriesQuery(
       loading: false,
       errorMessage: undefined,
       timeseriesResults,
+      timeseriesResultsTypes,
+      timeseriesResultsUnits,
       rawData: finalRawData,
     };
   })();

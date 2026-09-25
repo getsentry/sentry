@@ -667,10 +667,7 @@ describe('Modals -> DataWidgetViewerModal', () => {
       });
 
       it('appends the orderby to the query if it is not already selected as an aggregate', async () => {
-        const eventsStatsMock = MockApiClient.addMockResponse({
-          url: '/organizations/org-slug/events-stats/',
-          body: {},
-        });
+        const eventsStatsMock = mockEventsStats();
         mockEvents();
 
         const widget = WidgetFixture({
@@ -689,9 +686,10 @@ describe('Modals -> DataWidgetViewerModal', () => {
         await renderModal({initialData, widget});
         await waitFor(() => {
           expect(eventsStatsMock).toHaveBeenCalledWith(
-            '/organizations/org-slug/events-stats/',
+            '/organizations/org-slug/events-timeseries/',
             expect.objectContaining({
               query: expect.objectContaining({
+                groupBy: ['country', 'count()', 'epm()'],
                 field: ['country', 'count()', 'epm()'],
               }),
             })

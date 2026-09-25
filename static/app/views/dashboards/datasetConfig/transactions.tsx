@@ -1,10 +1,5 @@
 import type {TagCollection} from 'sentry/types/group';
-import type {
-  EventsStats,
-  GroupedMultiSeriesEventsStats,
-  MultiSeriesEventsStats,
-  Organization,
-} from 'sentry/types/organization';
+import type {Organization} from 'sentry/types/organization';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
 import {
@@ -17,9 +12,14 @@ import {
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {AggregationKey} from 'sentry/utils/fields';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
+import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import type {WidgetQuery} from 'sentry/views/dashboards/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
-import {transformEventsResponseToSeries} from 'sentry/views/dashboards/utils/transformEventsResponseToSeries';
+import {
+  getTimeSeriesResultTypes,
+  getTimeSeriesResultUnits,
+  transformTimeSeriesResponseToSeries,
+} from 'sentry/views/dashboards/utils/transformTimeSeriesResponseToSeries';
 import {EventsSearchBar} from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/eventsSearchBar';
 import {
   useTransactionsSeriesQuery,
@@ -56,7 +56,7 @@ const DEFAULT_FIELD: QueryFieldValue = {
 };
 
 export const TransactionsConfig: DatasetConfig<
-  EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats,
+  EventsTimeSeriesResponse,
   TableData | EventsTableData
 > = {
   defaultCategoryField: 'transaction',
@@ -84,7 +84,9 @@ export const TransactionsConfig: DatasetConfig<
   ],
   useSeriesQuery: useTransactionsSeriesQuery,
   useTableQuery: useTransactionsTableQuery,
-  transformSeries: transformEventsResponseToSeries,
+  transformSeries: transformTimeSeriesResponseToSeries,
+  getSeriesResultType: getTimeSeriesResultTypes,
+  getSeriesResultUnit: getTimeSeriesResultUnits,
   transformTable: transformEventsResponseToTable,
   filterAggregateParams,
 };
