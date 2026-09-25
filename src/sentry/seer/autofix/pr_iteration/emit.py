@@ -33,6 +33,7 @@ from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.autofix.autofix_agent import (
     get_iterations,
     get_latest_iteration_index,
+    get_open_iteration_index,
     iteration_repos,
 )
 from sentry.seer.autofix.pr_iteration.current_iteration import triggered_iteration_id
@@ -430,6 +431,7 @@ def complete_pr_iteration_details(
         run_state=run_state,
         organization_id=organization_id,
         iteration_id=iteration_id,
+        iteration_index=get_latest_iteration_index(run_state),
         outcome=outcome,
     )
 
@@ -452,6 +454,7 @@ def fail_pr_iteration_details(
         run_state=run_state,
         organization_id=organization_id,
         iteration_id=iteration_id,
+        iteration_index=get_open_iteration_index(run_state),
         outcome=outcome,
     )
 
@@ -462,6 +465,7 @@ def _complete_iteration(
     run_state: SeerRunState,
     organization_id: int,
     iteration_id: int,
+    iteration_index: int,
     outcome: str,
 ) -> None:
     try:
@@ -486,7 +490,7 @@ def _complete_iteration(
             log_ctx,
             iteration,
             AiAutofixPrIterationFeedbackBatchCompletedEvent,
-            iteration_index=get_latest_iteration_index(run_state),
+            iteration_index=iteration_index,
             outcome=outcome,
             head_shas=head_shas,
         )

@@ -371,6 +371,15 @@ def get_latest_iteration_index(state: SeerRunState) -> int:
     return iterations[-1].index if iterations else 0
 
 
+def get_open_iteration_index(state: SeerRunState) -> int:
+    """The index of the iteration a drain has claimed but not started yet.
+
+    Its row stores no index, and the run state only gains the iteration once
+    the agent starts it, so the index is one past the last one the state holds.
+    """
+    return get_latest_iteration_index(state) + 1
+
+
 def get_iteration_for_insert_index(state: SeerRunState, insert_index: int) -> int:
     block = state.blocks[insert_index]
     metadata = block.message.metadata or {}
@@ -626,7 +635,7 @@ def trigger_autofix_agent(
         if insert_index is not None:
             iteration_index = get_iteration_for_insert_index(run_state, insert_index)
         else:
-            iteration_index = get_latest_iteration_index(run_state) + 1
+            iteration_index = get_open_iteration_index(run_state)
 
     prompt = build_step_prompt(
         step,

@@ -1607,6 +1607,8 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         assert completed.type == "ai.autofix.pr_iteration.feedback_batch.completed"
         assert completed.outcome == PrIterationOutcome.DRAIN_FAILED.value
         assert completed.feedback_count == 1
+        # The run state holds no iteration yet, so this one would have been the first.
+        assert completed.iteration_index == 1
         assert open_iterations(seer_run) == []
         # Logged as an error with the traceback, which is what reaches Sentry.
         error_call = mock_logger.error.call_args
