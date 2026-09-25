@@ -2,9 +2,10 @@ from unittest.mock import patch
 
 import pytest
 import responses
-from django.urls import reverse
+from rest_framework import serializers
 from rest_framework.test import APITestCase as BaseAPITestCase
 
+from sentry.api.serializers.rest_framework.rule import validate_actions
 from sentry.integrations.github_enterprise import client
 from sentry.integrations.github_enterprise.actions.create_ticket import (
     GitHubEnterpriseCreateTicketAction,
@@ -13,7 +14,6 @@ from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIn
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.models.activity import Activity
 from sentry.models.repository import Repository
-from sentry.models.rule import Rule
 from sentry.rules import rules
 from sentry.services.eventstore.models import GroupEvent
 from sentry.silo.base import SiloMode
@@ -128,38 +128,23 @@ class GitHubEnterpriseEnterpriseTicketRulesTestCase(RuleTestCase, BaseAPITestCas
         )
 
         # Create a new Rule
-        response = self.client.post(
-            reverse(
-                "sentry-api-0-project-rules",
-                kwargs={
-                    "organization_id_or_slug": self.organization.slug,
-                    "project_id_or_slug": self.project.slug,
-                },
-            ),
-            format="json",
-            data={
-                "name": "hello world",
-                "owner": self.user.id,
-                "environment": None,
-                "actionMatch": "any",
-                "frequency": 5,
-                "actions": [
-                    {
-                        "id": "sentry.integrations.github_enterprise.notify_action.GitHubEnterpriseCreateTicketAction",
-                        "integration": self.integration.id,
-                        "dynamic_form_fields": [{"random": "garbage"}],
-                        "repo": self.repo,
-                        "assignee": self.assignee,
-                        "labels": self.labels,
-                    }
-                ],
-                "conditions": [],
-            },
+        rule_object = self.create_project_rule(
+            project=self.project,
+            name="hello world",
+            action_match="any",
+            frequency=5,
+            action_data=[
+                {
+                    "id": "sentry.integrations.github_enterprise.notify_action.GitHubEnterpriseCreateTicketAction",
+                    "integration": self.integration.id,
+                    "dynamic_form_fields": [{"random": "garbage"}],
+                    "repo": self.repo,
+                    "assignee": self.assignee,
+                    "labels": self.labels,
+                }
+            ],
         )
-        assert response.status_code == 200
 
-        # Get the rule from DB
-        rule_object = Rule.objects.get(id=response.data["id"])
         event = self.get_group_event()
 
         # Trigger its `after`
@@ -207,33 +192,18 @@ class GitHubEnterpriseEnterpriseTicketRulesTestCase(RuleTestCase, BaseAPITestCas
         """
         Test that the absence of dynamic_form_fields in the action fails validation
         """
-        # Create a new Rule
-        response = self.client.post(
-            reverse(
-                "sentry-api-0-project-rules",
-                kwargs={
-                    "organization_id_or_slug": self.organization.slug,
-                    "project_id_or_slug": self.project.slug,
-                },
-            ),
-            format="json",
-            data={
-                "name": "hello world",
-                "owner": self.user.id,
-                "environment": None,
-                "actionMatch": "any",
-                "frequency": 5,
-                "actions": [
-                    {
-                        "id": "sentry.integrations.github_enterprise.notify_action.GitHubEnterpriseCreateTicketAction",
-                        "integration": self.integration.id,
-                        "repo": self.repo,
-                        "assignee": self.assignee,
-                        "labels": self.labels,
-                    }
-                ],
-                "conditions": [],
-            },
-        )
-        assert response.status_code == 400
-        assert response.data["actions"][0] == "Must configure issue link settings."
+        with pytest.raises(serializers.ValidationError) as excinfo:
+            validate_actions(
+                {
+                    "actions": [
+                        {
+                            "id": "sentry.integrations.github_enterprise.notify_action.GitHubEnterpriseCreateTicketAction",
+                            "integration": self.integration.id,
+                            "repo": self.repo,
+                            "assignee": self.assignee,
+                            "labels": self.labels,
+                        }
+                    ]
+                }
+            )
+        assert excinfo.value.detail == {"actions": "Must configure issue link settings."}

@@ -37,6 +37,8 @@ import {useUser} from 'sentry/utils/useUser';
 type AuthPayload = {
   challenge?: string;
   isSuperuserModal?: boolean;
+  isSuperuserOrgAuth?: boolean;
+  orgSlug?: string;
   password?: string;
   response?: string;
   superuserAccessCategory?: string;
@@ -62,6 +64,11 @@ type Props = DefaultProps &
      */
     isSuperuser?: boolean;
     needsReload?: boolean;
+    /**
+     * Org slug for per-org authorization. When set, the modal shows a
+     * lightweight category + reason form instead of the full U2F flow.
+     */
+    orgSlug?: string;
     /**
      * expects a function that returns a Promise
      */
@@ -102,6 +109,7 @@ function getErrorType(err: RequestError): ErrorCodes {
 function SudoModal({
   closeModal,
   isSuperuser,
+  orgSlug: targetOrgSlug,
   needsReload,
   retryRequest,
   Header,
@@ -114,6 +122,7 @@ function SudoModal({
   const params = useParams<{orgId?: string}>();
   const location = useLocation();
   const api = useApi();
+  const isOrgAuth = !!targetOrgSlug;
 
   const [errorType, setErrorType] = useState<ErrorCodes>();
   const [superuserStep, setSuperuserStep] = useState<SuperuserStep>({
@@ -133,8 +142,12 @@ function SudoModal({
   const {isFetching: isProjectsFetching} = useQuery(
     getBootstrapProjectsQueryOptions(orgSlug)
   );
+  // Org-auth mode doesn't re-authenticate — it adds an org authorization to
+  // the existing session, so there's no risk of overwriting the session cookie.
+  // Skip the bootstrap gate to avoid deadlock: those queries also 403 on the
+  // unauthorized org and would keep the modal in a loading state forever.
   const bootstrapIsPending =
-    isOrganizationFetching || isTeamsFetching || isProjectsFetching;
+    !isOrgAuth && (isOrganizationFetching || isTeamsFetching || isProjectsFetching);
 
   // XXX(epurkhiser): Using isFetchedAfterMount here since the WebAuthn
   // authenticator will always produce a new challenge. We don't want to render
@@ -157,6 +170,13 @@ function SudoModal({
   });
 
   const handleSuccess = useCallback(() => {
+    if (isOrgAuth) {
+      // Always do a full reload for org-auth: multiple parallel queries
+      // will have 403'd, and retrying just one leaves the rest broken.
+      testableWindowLocation.reload();
+      return;
+    }
+
     if (isSuperuser) {
       navigate(
         {pathname: location.pathname, state: {forceUpdate: new Date()}},
@@ -174,7 +194,15 @@ function SudoModal({
     }
 
     retryRequest().then(closeModal);
-  }, [closeModal, isSuperuser, location.pathname, navigate, needsReload, retryRequest]);
+  }, [
+    closeModal,
+    isOrgAuth,
+    isSuperuser,
+    location.pathname,
+    navigate,
+    needsReload,
+    retryRequest,
+  ]);
 
   const handleError = useCallback((err: unknown) => {
     setErrorType(
@@ -219,6 +247,19 @@ function SudoModal({
     onSubmit: async ({value}) => {
       const access = accessSchema.parse(value);
 
+      if (targetOrgSlug) {
+        try {
+          await authenticate({
+            isSuperuserOrgAuth: true,
+            orgSlug: targetOrgSlug,
+            ...access,
+          });
+        } catch {
+          superuserForm.reset();
+        }
+        return;
+      }
+
       if (!disableU2FForSUForm) {
         // Without an authenticator the webauthn step has nothing to render.
         if (!authenticators.length) {
@@ -232,7 +273,10 @@ function SudoModal({
       }
 
       try {
-        await authenticate({isSuperuserModal: true, ...access});
+        await authenticate({
+          isSuperuserModal: true,
+          ...access,
+        });
       } catch {
         superuserForm.reset();
       }
@@ -296,7 +340,10 @@ function SudoModal({
     );
   }
 
-  if (authenticatorsFetching || !authenticatorsLoaded || bootstrapIsPending) {
+  if (
+    !isOrgAuth &&
+    (authenticatorsFetching || !authenticatorsLoaded || bootstrapIsPending)
+  ) {
     return (
       <Fragment>
         {header}
@@ -313,15 +360,18 @@ function SudoModal({
 
   if (
     (!user.hasPasswordAuth && authenticators.length === 0) ||
-    (isSuperuser && !isSelfHosted && validateSUForm)
+    (isSuperuser && !isSelfHosted && validateSUForm) ||
+    isOrgAuth
   ) {
-    const introText = isSuperuser
-      ? t(
-          'You are attempting to access a resource that requires superuser access, please re-authenticate as a superuser.'
-        )
-      : t('You will need to reauthenticate to continue');
+    const introText = isOrgAuth
+      ? t('Please provide a reason for accessing this organization.')
+      : isSuperuser
+        ? t(
+            'You are attempting to access a resource that requires superuser access, please re-authenticate as a superuser.'
+          )
+        : t('You will need to reauthenticate to continue');
 
-    if (!isSuperuser) {
+    if (!isSuperuser && !isOrgAuth) {
       return (
         <Fragment>
           {header}

@@ -35,6 +35,8 @@ from sentry.integrations.cursor_origin.keys import signing_keys_for
 from sentry.integrations.cursor_origin.pull_request import PullRequestLifecycleHandler
 from sentry.integrations.cursor_origin.push import RepositoryPushedHandler
 from sentry.integrations.cursor_origin.repository_events import (
+    RepositoryCreatedHandler,
+    RepositoryDeletedHandler,
     RepositoryMetadataUpdatedHandler,
     refresh_repository_name,
 )
@@ -155,6 +157,8 @@ HANDLERS: dict[str, type[WebhookEventHandler]] = {
     "pull_request.metadata.updated": PullRequestLifecycleHandler,
     "pull_request.published": PullRequestLifecycleHandler,
     "pull_request.reopened": PullRequestLifecycleHandler,
+    "repository.created": RepositoryCreatedHandler,
+    "repository.deleted": RepositoryDeletedHandler,
     "repository.metadata.updated": RepositoryMetadataUpdatedHandler,
     "repository.pushed": RepositoryPushedHandler,
 }
@@ -224,9 +228,9 @@ class CursorOriginWebhookEndpoint(Endpoint):
             },
         )
 
-        handler_cls = HANDLERS.get(event_type) if event_type else None
-        if handler_cls is None:
+        if not isinstance(event_type, str) or event_type not in HANDLERS:
             return HttpResponse(status=204)
+        handler_cls = HANDLERS[event_type]
 
         installation_id = envelope.get("installationId")
 
@@ -257,7 +261,7 @@ class CursorOriginWebhookEndpoint(Endpoint):
                 domain=IntegrationDomain.SOURCE_CODE_MANAGEMENT,
                 provider_key=IntegrationProviderSlug.CURSOR_ORIGIN.value,
             ).capture():
-                handler_cls()(
+                handler_cls(event_type)(
                     payload,
                     delivery_id,
                     context.integration,

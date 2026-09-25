@@ -20,10 +20,12 @@ import sentry_sdk
 from rest_framework.request import Request
 from sentry_conventions.attributes import ATTRIBUTE_NAMES
 
+from sentry.api.caller_scopes import has_deprecated_scopes, has_granular_scopes
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.auth.system import is_system_auth
 from sentry.middleware import is_frontend_request
 from sentry.seer.agent_token import is_agent_auth
+from sentry.utils import metrics
 from sentry.utils.http import SEER_REFERRER_HEADER, get_mcp_client_family, is_mcp_request
 from sentry.utils.sdk import get_transaction_name_from_request
 from sentry.utils.tracing import set_span_data, start_span
@@ -233,6 +235,16 @@ def _record_attribution_span(
             set_span_data(span, "client_host_test", client_host)
         if user_agent is not None:
             set_span_data(span, ATTRIBUTE_NAMES.USER_AGENT_ORIGINAL, user_agent)
+
+    # A token's own scopes; otherwise the access resolved for the request. Not every
+    # `request.auth` is a token: HMAC signature authentication sets it to a string.
+    get_token_scopes = getattr(request.auth, "get_scopes", None)
+    scopes = get_token_scopes() if get_token_scopes else request.access.scopes
+    tags = {ATTRIBUTE_NAMES.HTTP_ROUTE: route, "client_kind": client_kind.value}
+    if has_deprecated_scopes(scopes):
+        metrics.incr("api.has_deprecated_scopes", tags=tags)
+    if has_granular_scopes(scopes):
+        metrics.incr("api.has_granular_scopes", tags=tags)
 
 
 def get_user_agent(request: Request) -> str | None:

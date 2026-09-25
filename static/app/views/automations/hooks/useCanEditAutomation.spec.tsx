@@ -5,11 +5,11 @@ import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary'
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {
+  useAutomationEditPermission,
   useCanCreateAutomation,
-  useCanEditAutomation,
 } from 'sentry/views/automations/hooks/useCanEditAutomation';
 
-describe('useCanEditAutomation', () => {
+describe('useAutomationEditPermission', () => {
   const organization = OrganizationFixture({
     access: ['org:read', 'alerts:read'],
   });
@@ -27,18 +27,84 @@ describe('useCanEditAutomation', () => {
     ProjectsStore.loadInitialData([writableProject, readOnlyProject]);
   });
 
-  it('does not request project scope with organization-level alert write access', () => {
+  it('does not request project scope with organization write access', () => {
     const projectScopeRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/workflows/123/project-scope/',
       body: {projectIds: [], includesAllProjects: true},
     });
 
-    const {result} = renderHookWithProviders(() => useCanEditAutomation('123'), {
-      organization: OrganizationFixture(),
-    });
+    const {result} = renderHookWithProviders(
+      () => useAutomationEditPermission('123').canEdit,
+      {organization: OrganizationFixture()}
+    );
 
     expect(result.current).toBe(true);
     expect(projectScopeRequest).not.toHaveBeenCalled();
+  });
+
+  it('rejects an all-projects alert with only organization-level alert write access', async () => {
+    const alertWriterOrganization = OrganizationFixture({
+      access: ['org:read', 'alerts:read', 'alerts:write'],
+    });
+    const projectScopeRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/workflows/123/project-scope/',
+      body: {projectIds: [], includesAllProjects: true},
+    });
+
+    const {result} = renderHookWithProviders(() => useAutomationEditPermission('123'), {
+      organization: alertWriterOrganization,
+    });
+
+    await waitFor(() =>
+      expect(result.current.disabledReason).toBe(
+        'Only organization owners and managers can create/modify all-project alerts.'
+      )
+    );
+    expect(result.current.canEdit).toBe(false);
+    expect(projectScopeRequest).toHaveBeenCalled();
+  });
+
+  it('allows a project-scoped alert with organization-level alert write access', async () => {
+    const alertWriterOrganization = OrganizationFixture({
+      access: ['org:read', 'alerts:read', 'alerts:write'],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/workflows/123/project-scope/',
+      body: {projectIds: [readOnlyProject.id], includesAllProjects: false},
+    });
+
+    const {result} = renderHookWithProviders(() => useAutomationEditPermission('123'), {
+      organization: alertWriterOrganization,
+    });
+
+    expect(result.current).toEqual({
+      canEdit: false,
+      disabledReason: undefined,
+      isPending: true,
+    });
+    await waitFor(() => expect(result.current.canEdit).toBe(true));
+  });
+
+  it('reports when project scope permissions cannot be verified', async () => {
+    const alertWriterOrganization = OrganizationFixture({
+      access: ['org:read', 'alerts:read', 'alerts:write'],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/workflows/123/project-scope/',
+      statusCode: 500,
+    });
+
+    const {result} = renderHookWithProviders(() => useAutomationEditPermission('123'), {
+      organization: alertWriterOrganization,
+    });
+
+    await waitFor(() =>
+      expect(result.current.disabledReason).toBe(
+        'Could not verify your edit permissions. Refresh and try again.'
+      )
+    );
+    expect(result.current.canEdit).toBe(false);
+    expect(result.current.isPending).toBe(false);
   });
 
   it('does not request project scope without any writable projects', () => {
@@ -48,9 +114,10 @@ describe('useCanEditAutomation', () => {
       body: {projectIds: [], includesAllProjects: false},
     });
 
-    const {result} = renderHookWithProviders(() => useCanEditAutomation('123'), {
-      organization,
-    });
+    const {result} = renderHookWithProviders(
+      () => useAutomationEditPermission('123').canEdit,
+      {organization}
+    );
 
     expect(result.current).toBe(false);
     expect(projectScopeRequest).not.toHaveBeenCalled();
@@ -62,9 +129,10 @@ describe('useCanEditAutomation', () => {
       body: {projectIds: [writableProject.id], includesAllProjects: false},
     });
 
-    const {result} = renderHookWithProviders(() => useCanEditAutomation('123'), {
-      organization,
-    });
+    const {result} = renderHookWithProviders(
+      () => useAutomationEditPermission('123').canEdit,
+      {organization}
+    );
 
     await waitFor(() => expect(result.current).toBe(true));
   });
@@ -78,9 +146,10 @@ describe('useCanEditAutomation', () => {
       },
     });
 
-    const {result} = renderHookWithProviders(() => useCanEditAutomation('123'), {
-      organization,
-    });
+    const {result} = renderHookWithProviders(
+      () => useAutomationEditPermission('123').canEdit,
+      {organization}
+    );
 
     await waitFor(() => expect(projectScopeRequest).toHaveBeenCalled());
     expect(result.current).toBe(false);
@@ -95,9 +164,10 @@ describe('useCanEditAutomation', () => {
       body: projectScope,
     });
 
-    const {result} = renderHookWithProviders(() => useCanEditAutomation('123'), {
-      organization,
-    });
+    const {result} = renderHookWithProviders(
+      () => useAutomationEditPermission('123').canEdit,
+      {organization}
+    );
 
     await waitFor(() => expect(projectScopeRequest).toHaveBeenCalled());
     expect(result.current).toBe(false);

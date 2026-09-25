@@ -22,6 +22,11 @@ import {
 } from 'sentry/components/charts/useChartXRangeSelection';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {isChartHovered, truncationFormatter} from 'sentry/components/charts/utils';
+import type {DroppedDataProps} from 'sentry/components/droppedData/types';
+import {
+  DROPPED_DATA_SERIES_ID,
+  useDroppedDataBand,
+} from 'sentry/components/droppedData/useDroppedDataBand';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import type {
@@ -36,7 +41,6 @@ import {escape} from 'sentry/utils';
 import {getUserTimezone} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
 import {RangeMap, type Range} from 'sentry/utils/number/rangeMap';
-import type {Annotation} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useWidgetSyncContext} from 'sentry/views/dashboards/contexts/widgetSyncContext';
@@ -49,11 +53,6 @@ import type {
 import {WidgetLoadingPanel} from 'sentry/views/dashboards/widgets/common/widgetLoadingPanel';
 import {WidgetNoDataPanel} from 'sentry/views/dashboards/widgets/common/widgetNoDataPanel';
 import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/plottablesCanBeVisualized';
-import {
-  DROPPED_DATA_SERIES_ID,
-  useDroppedDataBand,
-} from 'sentry/views/explore/components/chart/droppedDataBand/useDroppedDataBand';
-import type {AnnotationBucket} from 'sentry/views/explore/components/chart/droppedDataBand/utils';
 import {useReleaseBubbles} from 'sentry/views/explore/releases/releaseBubbles/useReleaseBubbles';
 import {makeReleaseDrawerPathname} from 'sentry/views/explore/releases/utils/pathnames';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
@@ -75,10 +74,6 @@ export interface TimeSeriesWidgetVisualizationProps extends Partial<LoadableChar
    * An array of `Plottable` objects. This can be any object that implements the `Plottable` interface.
    */
   plottables: Plottable[];
-  /**
-   * Annotations for the volume that was accepted.
-   */
-  acceptedData?: Annotation[];
 
   /**
    * Sets the range of the Y axis.
@@ -99,17 +94,16 @@ export interface TimeSeriesWidgetVisualizationProps extends Partial<LoadableChar
   chartXRangeSelection?: Partial<ChartXRangeSelectionProps>;
 
   /**
-   * Annotations rendered as a severity band between the plot and
-   * the x-axis line. No-ops when empty.
+   * Dropped-data annotations rendered as a severity band between the plot and
+   * the x-axis line. The band is hidden when `visible` is false or no bucket has
+   * dropped data. `onClick` is called with the clicked bucket.
    */
-  droppedData?: Annotation[];
+  droppedData?: DroppedDataProps;
 
   /**
    * A mapping of time series field name to boolean. If the value is `false`, the series is hidden from view
    */
   legendSelection?: LegendSelection;
-
-  onDroppedDataClick?: (bucket: AnnotationBucket) => void;
 
   /**
    * Callback that returns an updated `LegendSelection` after a user manipulations the selection via the legend
@@ -132,12 +126,6 @@ export interface TimeSeriesWidgetVisualizationProps extends Partial<LoadableChar
    * Returns extra HTML to append to the tooltip's series block.
    */
   renderTooltipSeriesDetails?: (seriesNames: string[], timestamp: number) => string;
-
-  /**
-   * When false, hide the dropped-data band and collapse the reserved space.
-   * Defaults to true when `droppedData` is provided.
-   */
-  showDroppedData?: boolean;
 
   /**
    * Defines the legend's visibility.
@@ -451,10 +439,8 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   const {droppedDataSeries, droppedDataBandHeight, droppedDataYAxis} = useDroppedDataBand(
     {
       chartRef,
-      acceptedAnnotations: props.acceptedData,
-      droppedAnnotations: props.droppedData,
+      droppedData: props.droppedData,
       bandOffset: releaseBandHeight,
-      showDroppedData: props.showDroppedData,
       utc,
       yAxisIndex: yAxes.length,
     }
@@ -714,7 +700,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   const handleClick: EChartClickHandler = event => {
     if (event.seriesId === DROPPED_DATA_SERIES_ID) {
-      props.onDroppedDataClick?.(event.data as AnnotationBucket);
+      props.droppedData?.onClick?.();
       return;
     }
     runHandler(event, 'onClick');

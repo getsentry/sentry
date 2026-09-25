@@ -7,7 +7,7 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics, features
+from sentry import analytics, features, quotas
 from sentry.analytics.events.agent_monitoring_events import AgentMonitoringQuery
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -16,7 +16,7 @@ from sentry.api.endpoints.organization_events_stats import SENTRY_BACKEND_REFERR
 from sentry.api.endpoints.timeseries import (
     EMPTY_STATS_RESPONSE,
     INGESTION_DELAY,
-    INGESTION_DELAY_MESSAGE,
+    BucketBoundaries,
     Row,
     SeriesMeta,
     StatsMeta,
@@ -24,7 +24,10 @@ from sentry.api.endpoints.timeseries import (
     TimeSeries,
 )
 from sentry.api.helpers.data_annotations import get_dropped_data_annotations
-from sentry.api.helpers.ingestion_delay import get_ingestion_delay_status
+from sentry.api.helpers.ingestion_delay import (
+    get_ingestion_delay_status,
+    serialize_ingestion_status,
+)
 from sentry.api.utils import handle_query_errors
 from sentry.apidocs import constants as api_constants
 from sentry.apidocs.examples.discover_performance_examples import DiscoverAndPerformanceExamples
@@ -468,20 +471,22 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
         ):
             ingestion_delay_status = get_ingestion_delay_status(dataset, snuba_params)
             if ingestion_delay_status is not None:
-                if ingestion_delay_status.delay_seconds is not None:
-                    stats_meta["estimatedIngestionDelaySeconds"] = (
-                        ingestion_delay_status.delay_seconds
-                    )
+                stats_meta["ingestion"] = serialize_ingestion_status(ingestion_delay_status)
                 if ingestion_delay_status.complete_through is not None:
                     complete_through = ingestion_delay_status.complete_through.timestamp()
-                    # Seconds to milliseconds
-                    stats_meta["completeThrough"] = complete_through * 1000
-                if ingestion_delay_status.status is not None:
-                    stats_meta["ingestionDelayStatus"] = ingestion_delay_status.status
+
+        retention_days = quotas.backend.get_event_retention(organization=organization)
+        boundaries = BucketBoundaries(
+            now=now,
+            complete_through=complete_through,
+            retention_start=now - timedelta(days=retention_days).total_seconds()
+            if retention_days
+            else None,
+        )
 
         response = StatsResponse(
             meta=stats_meta,
-            timeSeries=self.serialize_result(result, axes, rollup, complete_through),
+            timeSeries=self.serialize_result(result, axes, rollup, boundaries),
         )
         return response
 
@@ -490,24 +495,24 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
         result: SnubaTSResult | dict[str, SnubaTSResult],
         axes: list[str],
         rollup: int,
-        complete_through: float,
+        boundaries: BucketBoundaries,
     ) -> list[TimeSeries]:
         serialized_result = []
         if isinstance(result, SnubaTSResult):
             for axis in axes:
                 serialized_result.append(
-                    self.serialize_timeseries(result, axis, rollup, complete_through)
+                    self.serialize_timeseries(result, axis, rollup, boundaries)
                 )
         else:
             for key, value in result.items():
                 for axis in axes:
                     serialized_result.append(
-                        self.serialize_timeseries(value, axis, rollup, complete_through)
+                        self.serialize_timeseries(value, axis, rollup, boundaries)
                     )
         return serialized_result
 
     def serialize_timeseries(
-        self, result: SnubaTSResult, axis: str, rollup: int, complete_through: float
+        self, result: SnubaTSResult, axis: str, rollup: int, boundaries: BucketBoundaries
     ) -> TimeSeries:
         unit, field_type = self.get_unit_and_type(axis, result.data["meta"]["fields"][axis])
         series_meta = SeriesMeta(
@@ -532,9 +537,9 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
         for row in result.data["data"]:
             value_row = Row(timestamp=row["time"] * 1000, value=row.get(axis, 0), incomplete=False)
 
-            if incomplete := self.check_incomplete(row, complete_through, rollup):
+            if reason := boundaries.incomplete_reason(row["time"], rollup):
                 value_row["incomplete"] = True
-                value_row["incompleteReason"] = incomplete
+                value_row["incompleteReason"] = reason
             if "comparisonCount" in row:
                 value_row["comparisonValue"] = row["comparisonCount"]
             timeseries_values.append(value_row)
@@ -558,14 +563,6 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
         timeseries["values"] = timeseries_values
 
         return timeseries
-
-    def check_incomplete(
-        self, row: dict[str, Any], complete_through: float, rollup: int
-    ) -> str | None:
-        if row["time"] + rollup >= complete_through:
-            return INGESTION_DELAY_MESSAGE
-        else:
-            return None
 
     def _emit_analytics_event(self, organization: Organization, referrer: str) -> None:
         if "agent-monitoring" not in referrer:

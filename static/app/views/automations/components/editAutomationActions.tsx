@@ -15,10 +15,7 @@ import {
   useDeleteAutomationMutation,
   useUpdateAutomation,
 } from 'sentry/views/automations/hooks';
-import {
-  getNoAlertWritePermissionTooltip,
-  useCanEditAutomation,
-} from 'sentry/views/automations/hooks/useCanEditAutomation';
+import {useAutomationEditPermission} from 'sentry/views/automations/hooks/useCanEditAutomation';
 import {
   makeAutomationBasePathname,
   makeAutomationDetailsPathname,
@@ -32,8 +29,11 @@ interface EditAutomationActionsProps {
 export function EditAutomationActions({automation, form}: EditAutomationActionsProps) {
   const organization = useOrganization();
   const navigate = useNavigate();
-  const canEdit = useCanEditAutomation(automation.id);
-  const permissionTooltipText = canEdit ? undefined : getNoAlertWritePermissionTooltip();
+  const {
+    canEdit,
+    disabledReason,
+    isPending: isPermissionPending,
+  } = useAutomationEditPermission(automation.id);
   const {mutateAsync: deleteAutomation, isPending: isDeleting} =
     useDeleteAutomationMutation();
   const {mutate: updateAutomation, isPending: isUpdating} = useUpdateAutomation();
@@ -73,16 +73,18 @@ export function EditAutomationActions({automation, form}: EditAutomationActionsP
           variant="secondary"
           size="sm"
           onClick={toggleDisabled}
+          busy={isPermissionPending}
           disabled={!canEdit || isUpdating}
-          tooltipProps={{title: permissionTooltipText}}
+          tooltipProps={{title: disabledReason}}
         >
           {automation.enabled ? t('Disable') : t('Enable')}
         </Button>
         <Button
           variant="danger"
           onClick={handleDelete}
+          busy={isPermissionPending}
           disabled={!canEdit || isDeleting}
-          tooltipProps={{title: permissionTooltipText}}
+          tooltipProps={{title: disabledReason}}
           size="sm"
         >
           {t('Delete')}
@@ -101,9 +103,9 @@ export function EditAutomationActions({automation, form}: EditAutomationActionsP
               type="submit"
               variant="primary"
               size="sm"
-              busy={form.isSaving}
+              busy={form.isSaving || isPermissionPending}
               disabled={!canEdit}
-              tooltipProps={{title: permissionTooltipText}}
+              tooltipProps={{title: disabledReason}}
             >
               {t('Save')}
             </Button>

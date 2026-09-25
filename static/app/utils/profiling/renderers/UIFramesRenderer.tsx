@@ -1,10 +1,10 @@
 import type {mat3, vec2} from 'gl-matrix';
 
+import {upperBound} from 'sentry/utils/array/upperBound';
 import type {
   ColorChannels,
   FlamegraphTheme,
 } from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
-import {upperBound} from 'sentry/utils/profiling/gl/utils';
 import type {Rect} from 'sentry/utils/profiling/speedscope';
 import type {UIFrameNode, UIFrames} from 'sentry/utils/profiling/uiFrames';
 

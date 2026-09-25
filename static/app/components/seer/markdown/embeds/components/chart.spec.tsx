@@ -1,4 +1,4 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {BaseChart} from 'sentry/components/charts/baseChart';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
@@ -189,6 +189,40 @@ describe('Chart embed', () => {
     );
 
     expect(screen.queryByTestId('seer-chart-embed')).not.toBeInTheDocument();
+  });
+
+  it('collapses the plot behind the chart title', async () => {
+    render(
+      <ExampleChartEmbed
+        body={{
+          title: 'Error volume',
+          subtitle: 'Last three hours',
+          series: [
+            {
+              label: 'Errors',
+              data: [
+                {x: '2026-07-30T12:00:00Z', y: 12},
+                {x: '2026-07-30T13:00:00Z', y: 18},
+              ],
+            },
+          ],
+        }}
+      />
+    );
+
+    // A chart has no page of its own to link to, so the header carries the
+    // toggle alone.
+    const toggle = screen.getByRole('button', {name: 'Error volume'});
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
+    expect(screen.getByTestId('seer-chart-content')).toBeVisible();
+
+    await userEvent.click(toggle);
+
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.getByTestId('seer-chart-content')).not.toBeVisible();
+    // The subtitle lives in the panel now, so it collapses with the plot.
+    expect(screen.getByText('Last three hours')).not.toBeVisible();
   });
 
   it('renders the legacy series name field', () => {

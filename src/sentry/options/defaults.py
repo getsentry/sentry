@@ -1416,6 +1416,12 @@ register(
     default=0.10,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "seer.smart_assignment.prefetch_rollout_rate",
+    type=Float,
+    default=0.5,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Fuzzy resolution always runs after an exact email miss so its proposal can be
 # inspected. This controls whether that proposal is used in the delivered prediction.
 register(
@@ -1437,6 +1443,18 @@ register(
     "issues.derived_data.read_path_checks.killswitch",
     type=Bool,
     default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "issues.derived_data.status_reconciliation.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "issues.derived_data.status_reconciliation.dry_run",
+    type=Bool,
+    default=True,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -2573,6 +2591,10 @@ register(
         "bitbucket",
         "bitbucket_server",
         "gitlab",
+        "jira",
+        "jira_server",
+        "vsts",
+        "msteams",
     ],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -2582,7 +2604,7 @@ register(
 # before falling back to the scheduler.
 register(
     "hybridcloud.webhookpayload.max_chain_depth",
-    default=1,
+    default=8,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Break glass for inbound webhook floods. Matching webhooks are dropped with a
@@ -4181,6 +4203,19 @@ register(
     "provision_organization.override.rate",
     type=Float,
     default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "warmup.url_resolver.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "warmup.enabled",
+    type=Bool,
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
