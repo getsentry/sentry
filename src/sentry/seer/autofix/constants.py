@@ -54,6 +54,7 @@ class AutofixReferrer(enum.StrEnum):
     SLACK = "slack"
     ON_COMPLETION_HOOK = "autofix.on_completion_hook"
     AGENTIC_TRIAGE = "night_shift"
+    NIGHT_SHIFT = AGENTIC_TRIAGE
     CLI = "api.cli"
     LINEAR_AGENT = "api.linear_agent"
     MCP = "api.mcp"
@@ -71,6 +72,7 @@ class SeerAutomationSource(enum.Enum):
     ISSUE_DETAILS = "issue_details"
     POST_PROCESS = "post_process"
     AGENTIC_TRIAGE = "night_shift"
+    NIGHT_SHIFT = AGENTIC_TRIAGE
 
 
 class CodingAgentStatus(enum.StrEnum):

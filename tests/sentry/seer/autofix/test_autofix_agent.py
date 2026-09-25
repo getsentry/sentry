@@ -28,14 +28,20 @@ from sentry.seer.autofix.autofix_agent import (
     trigger_push_changes,
 )
 from sentry.seer.autofix.commit_author import SeerCommitAuthor
-from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.constants import AutofixReferrer, SeerAutomationSource
 from sentry.seer.autofix.exceptions import NoSeerQuotaException
+from sentry.seer.autofix.issue_summary import referrer_map
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.models import SeerPermissionError
 from sentry.sentry_apps.utils.webhooks import SeerActionType
 from sentry.testutils.cases import TestCase
 from sentry.types.activity import ActivityType
 from sentry.utils import json
+
+
+def test_legacy_night_shift_referrer() -> None:
+    assert AutofixReferrer.NIGHT_SHIFT is AutofixReferrer.AGENTIC_TRIAGE
+    assert referrer_map[SeerAutomationSource.NIGHT_SHIFT] is AutofixReferrer.AGENTIC_TRIAGE
 
 
 def _make_scm_mock(*, get_repository=None, get_branch=None):
