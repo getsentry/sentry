@@ -287,7 +287,7 @@ def test_get_api_meta_with_non_numeric_keys() -> None:
     meta: dict[str, dict[str, dict[str, object]]] = {
         "values": {"0": {}, "": {}, "1": {}, "invalid": {}}
     }
-    
+
     result = inst.get_api_meta(meta)
     
     assert "0" in result["values"]
