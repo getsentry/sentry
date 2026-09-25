@@ -3,11 +3,9 @@ import type {Variants} from 'framer-motion';
 import {motion} from 'framer-motion';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Container, Flex, Grid, type GridProps} from '@sentry/scraps/layout';
-import {Link, type LinkProps} from '@sentry/scraps/link';
+import {Flex, Grid, type GridProps} from '@sentry/scraps/layout';
 
 import {CreateSampleEventButton} from 'sentry/components/onboarding/createSampleEventButton';
-import {useOnboardingSidebar} from 'sentry/components/onboarding/useOnboardingSidebar';
 import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {pulsingIndicatorStyles} from 'sentry/styles/pulsingIndicator';
@@ -17,7 +15,6 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {useExperiment} from 'sentry/utils/useExperiment';
 
 import {GridFooter} from './genericFooter';
 
@@ -36,16 +33,13 @@ export function FirstEventFooter({
   isLast,
   leading,
 }: FirstEventFooterProps) {
-  const {activateSidebar} = useOnboardingSidebar();
-  const {inExperiment: hasScmOnboarding} = useExperiment({
-    feature: 'onboarding-scm-experiment',
-    reportExposure: false,
-  });
-
   const {data: issues} = useApiQuery<Group[]>(
     [
       getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/issues/', {
-        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
+        path: {
+          organizationIdOrSlug: organization.slug,
+          projectIdOrSlug: project.slug,
+        },
       }),
     ],
     {
@@ -59,29 +53,9 @@ export function FirstEventFooter({
       ? issues.find((issue: Group) => issue.firstSeen === project.firstEvent)
       : undefined;
 
-  const source = 'targeted_onboarding_first_event_footer';
-
   return (
     <GridFooter>
-      {hasScmOnboarding ? (
-        <LeadingSlot>{leading}</LeadingSlot>
-      ) : (
-        <SkipOnboardingLink
-          onClick={() => {
-            trackAnalytics('growth.onboarding_clicked_skip', {
-              organization,
-              source,
-            });
-            activateSidebar({
-              userClicked: false,
-              source: 'targeted_onboarding_first_event_footer_skip',
-            });
-          }}
-          to={`/organizations/${organization.slug}/issues/?referrer=onboarding-first-event-footer-skip`}
-        >
-          {t('Skip Onboarding')}
-        </SkipOnboardingLink>
-      )}
+      <LeadingSlot>{leading}</LeadingSlot>
       <Flex align="center" justify="center" display={{zero: 'none', xl: 'flex'}}>
         {flexProps => (
           <motion.div
@@ -125,17 +99,10 @@ export function FirstEventFooter({
         {project.firstEvent ? (
           <LinkButton
             onClick={() => {
-              if (hasScmOnboarding) {
-                trackAnalytics('onboarding.scm_take_to_error_clicked', {
-                  organization,
-                  platform: project.platform,
-                });
-              } else {
-                trackAnalytics('growth.onboarding_take_to_error', {
-                  organization,
-                  platform: project.platform,
-                });
-              }
+              trackAnalytics('onboarding.scm_take_to_error_clicked', {
+                organization,
+                platform: project.platform,
+              });
             }}
             to={`/organizations/${organization.slug}/issues/${
               firstIssue && 'id' in firstIssue ? `${firstIssue.id}/` : ''
@@ -149,7 +116,7 @@ export function FirstEventFooter({
             project={project}
             source="targeted-onboarding"
             variant="primary"
-            hasScmOnboarding={hasScmOnboarding}
+            hasScmOnboarding
           >
             {t('View Sample Error')}
           </CreateSampleEventButton>
@@ -192,15 +159,3 @@ const LeadingSlot = styled('div')`
   align-items: center;
   margin: auto ${p => p.theme.space['3xl']};
 `;
-
-function SkipOnboardingLink(props: LinkProps) {
-  return (
-    <Container
-      display={{zero: 'none', xl: 'block'}}
-      margin="auto 3xl"
-      whiteSpace="nowrap"
-    >
-      {containerProps => <Link {...containerProps} {...props} />}
-    </Container>
-  );
-}

@@ -15,7 +15,7 @@ interface SkipAnalyticsConfig {
   sidebarSource: SidebarSource;
 }
 
-const SKIP_CONFIG_BY_STEP: Partial<Record<OnboardingStepId, SkipAnalyticsConfig>> = {
+const SKIP_CONFIG_BY_STEP: Record<OnboardingStepId, SkipAnalyticsConfig> = {
   [OnboardingStepId.WELCOME]: {
     sidebarSource: 'targeted_onboarding_welcome_skip',
     referrer: 'onboarding-welcome-skip',
@@ -49,9 +49,6 @@ export function OnboardingSkipButton({stepId}: OnboardingSkipButtonProps) {
   const {activateSidebar} = useOnboardingSidebar();
 
   const config = SKIP_CONFIG_BY_STEP[stepId];
-  if (!config) {
-    return null;
-  }
 
   const handleClick = () => {
     // Skipping exits the treatment and must not leave a half-staged session for

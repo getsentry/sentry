@@ -2,8 +2,6 @@ import type {MotionProps} from 'framer-motion';
 
 import type {IconSize} from 'sentry/utils/theme';
 
-export const ONBOARDING_WELCOME_SCREEN_SOURCE = 'targeted_onboarding';
-
 // Child element animation - used by each staggered item
 export const ONBOARDING_WELCOME_STAGGER_ITEM: MotionProps = {
   variants: {

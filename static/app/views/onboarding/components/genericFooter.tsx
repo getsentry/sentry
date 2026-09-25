@@ -3,8 +3,6 @@ import {motion} from 'framer-motion';
 import {
   Container,
   type ContainerProps,
-  Flex,
-  type FlexProps,
   Grid,
   type GridProps,
 } from '@sentry/scraps/layout';
@@ -30,14 +28,6 @@ const footerChromeProps = {
   style: {zIndex: 100},
 } as const satisfies ContainerProps;
 
-export function GenericFooter(
-  props: React.ComponentProps<typeof motion.div> & FlexProps
-) {
-  return (
-    <MotionFlex {...footerChromeProps} justify="between" {...motionProps} {...props} />
-  );
-}
-
 export function GridFooter(props: React.ComponentProps<typeof motion.div> & GridProps) {
   return (
     // A separate element from the grid below: an element can't query itself, and
@@ -58,5 +48,4 @@ export function GridFooter(props: React.ComponentProps<typeof motion.div> & Grid
   );
 }
 
-const MotionFlex = motion.create(Flex);
 const MotionGrid = motion.create(Grid);

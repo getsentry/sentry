@@ -79,12 +79,7 @@ describe('Onboarding Setup Docs', () => {
 
     render(
       <OnboardingContextProvider>
-        <SetupDocs
-          onComplete={() => {}}
-          stepIndex={2}
-          genSkipOnboardingLink={() => ''}
-          recentCreatedProject={project}
-        />
+        <SetupDocs onComplete={() => {}} recentCreatedProject={project} />
       </OnboardingContextProvider>
     );
 
@@ -113,12 +108,7 @@ describe('Onboarding Setup Docs', () => {
 
     render(
       <OnboardingContextProvider>
-        <SetupDocs
-          onComplete={() => {}}
-          stepIndex={2}
-          genSkipOnboardingLink={() => ''}
-          recentCreatedProject={project}
-        />
+        <SetupDocs onComplete={() => {}} recentCreatedProject={project} />
       </OnboardingContextProvider>
     );
 
@@ -145,12 +135,7 @@ describe('Onboarding Setup Docs', () => {
 
       render(
         <OnboardingContextProvider>
-          <SetupDocs
-            onComplete={() => {}}
-            stepIndex={2}
-            genSkipOnboardingLink={() => ''}
-            recentCreatedProject={project}
-          />
+          <SetupDocs onComplete={() => {}} recentCreatedProject={project} />
         </OnboardingContextProvider>,
         {
           initialRouterConfig: {
@@ -195,12 +180,7 @@ describe('Onboarding Setup Docs', () => {
 
       render(
         <OnboardingContextProvider>
-          <SetupDocs
-            onComplete={() => {}}
-            stepIndex={2}
-            genSkipOnboardingLink={() => ''}
-            recentCreatedProject={project}
-          />
+          <SetupDocs onComplete={() => {}} recentCreatedProject={project} />
         </OnboardingContextProvider>,
         {
           initialRouterConfig: {
@@ -236,12 +216,7 @@ describe('Onboarding Setup Docs', () => {
 
       render(
         <OnboardingContextProvider>
-          <SetupDocs
-            onComplete={() => {}}
-            stepIndex={2}
-            genSkipOnboardingLink={() => ''}
-            recentCreatedProject={project}
-          />
+          <SetupDocs onComplete={() => {}} recentCreatedProject={project} />
         </OnboardingContextProvider>,
         {
           initialRouterConfig: {
@@ -277,12 +252,7 @@ describe('Onboarding Setup Docs', () => {
 
       render(
         <OnboardingContextProvider>
-          <SetupDocs
-            onComplete={() => {}}
-            stepIndex={2}
-            genSkipOnboardingLink={() => ''}
-            recentCreatedProject={project}
-          />
+          <SetupDocs onComplete={() => {}} recentCreatedProject={project} />
         </OnboardingContextProvider>,
         {
           initialRouterConfig: {
@@ -330,12 +300,7 @@ describe('Onboarding Setup Docs', () => {
 
       render(
         <OnboardingContextProvider>
-          <SetupDocs
-            onComplete={() => {}}
-            stepIndex={2}
-            genSkipOnboardingLink={() => ''}
-            recentCreatedProject={project}
-          />
+          <SetupDocs onComplete={() => {}} recentCreatedProject={project} />
         </OnboardingContextProvider>,
         {
           organization,
@@ -420,12 +385,7 @@ describe('Onboarding Setup Docs', () => {
 
       render(
         <OnboardingContextProvider>
-          <SetupDocs
-            onComplete={() => {}}
-            stepIndex={2}
-            genSkipOnboardingLink={() => ''}
-            recentCreatedProject={project}
-          />
+          <SetupDocs onComplete={() => {}} recentCreatedProject={project} />
         </OnboardingContextProvider>
       );
 
@@ -437,7 +397,7 @@ describe('Onboarding Setup Docs', () => {
 
   it('syncs product toggles into onboarding context for SCM onboarding', async () => {
     const organization = OrganizationFixture({
-      features: ['session-replay', 'performance-view', 'onboarding-scm-experiment'],
+      features: ['session-replay', 'performance-view'],
     });
     const project = ProjectFixture({
       slug: 'javascript-react',
@@ -466,12 +426,7 @@ describe('Onboarding Setup Docs', () => {
         }}
       >
         <FeaturesObserver />
-        <SetupDocs
-          onComplete={() => {}}
-          stepIndex={2}
-          genSkipOnboardingLink={() => ''}
-          recentCreatedProject={project}
-        />
+        <SetupDocs onComplete={() => {}} recentCreatedProject={project} />
       </OnboardingContextProvider>,
       {
         organization,
@@ -506,73 +461,6 @@ describe('Onboarding Setup Docs', () => {
     );
   });
 
-  it('does not sync product toggles into onboarding context for legacy onboarding', async () => {
-    const organization = OrganizationFixture({
-      features: ['session-replay', 'performance-view'],
-    });
-    const project = ProjectFixture({
-      slug: 'javascript-react',
-      platform: 'javascript-react',
-    });
-
-    ProjectsStore.init();
-    ProjectsStore.loadInitialData([project]);
-
-    renderMockRequests({project, orgSlug: organization.slug});
-
-    function FeaturesObserver() {
-      const {selectedFeatures} = useOnboardingContext();
-      return (
-        <div data-test-id="selected-features">{(selectedFeatures ?? []).join(',')}</div>
-      );
-    }
-
-    render(
-      <OnboardingContextProvider
-        initialValue={{
-          selectedFeatures: [
-            ProductSolution.PERFORMANCE_MONITORING,
-            ProductSolution.SESSION_REPLAY,
-          ],
-        }}
-      >
-        <FeaturesObserver />
-        <SetupDocs
-          onComplete={() => {}}
-          stepIndex={2}
-          genSkipOnboardingLink={() => ''}
-          recentCreatedProject={project}
-        />
-      </OnboardingContextProvider>,
-      {
-        organization,
-        initialRouterConfig: {
-          location: {
-            pathname: `/onboarding/${organization.slug}/setup-docs/`,
-            query: {
-              product: [
-                ProductSolution.PERFORMANCE_MONITORING,
-                ProductSolution.SESSION_REPLAY,
-              ],
-            },
-          },
-          route: '/onboarding/:orgId/setup-docs/',
-        },
-      }
-    );
-
-    expect(
-      await screen.findByRole('heading', {name: 'Configure React SDK'})
-    ).toBeInTheDocument();
-
-    await userEvent.click(await screen.findByRole('button', {name: 'Session Replay'}));
-
-    // Context remains at its initial value; toggle only updated URL, not context.
-    expect(screen.getByTestId('selected-features')).toHaveTextContent(
-      ProductSolution.SESSION_REPLAY
-    );
-  });
-
   it('reads feature selections from URL params', async () => {
     const organization = OrganizationFixture();
     const project = ProjectFixture({
@@ -586,12 +474,7 @@ describe('Onboarding Setup Docs', () => {
     renderMockRequests({project, orgSlug: organization.slug});
 
     const {router} = render(
-      <SetupDocs
-        onComplete={() => {}}
-        stepIndex={2}
-        genSkipOnboardingLink={() => ''}
-        recentCreatedProject={project}
-      />,
+      <SetupDocs onComplete={() => {}} recentCreatedProject={project} />,
       {
         organization,
         initialRouterConfig: {
