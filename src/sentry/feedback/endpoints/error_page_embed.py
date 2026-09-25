@@ -6,6 +6,7 @@ from urllib.parse import urlparse
 from django import forms
 from django.conf import settings
 from django.db import IntegrityError, router
+from django.forms import BoundField
 from django.http import HttpRequest, HttpResponse, HttpResponseBase
 from django.utils import timezone
 from django.utils.safestring import mark_safe
@@ -47,6 +48,8 @@ DEFAULT_COMMENTS_LABEL = _("What happened?")
 DEFAULT_CLOSE_LABEL = _("Close")
 DEFAULT_SUBMIT_LABEL = _("Submit Crash Report")
 
+POWERED_BY = _("Crash reports powered by")
+
 DEFAULT_OPTIONS: dict[str, Any] = {
     "title": DEFAULT_TITLE,
     "subtitle": DEFAULT_SUBTITLE,
@@ -79,6 +82,24 @@ class UserReportForm(forms.ModelForm):
     class Meta:
         model = UserReport
         fields = ("name", "email", "comments")
+
+
+def _field_spec(bound_field: BoundField, label: str) -> dict[str, Any]:
+    widget = bound_field.field.widget
+    attrs = bound_field.build_widget_attrs({"id": bound_field.auto_id})
+    context = widget.get_context(bound_field.html_name, bound_field.value(), attrs)["widget"]
+    return {
+        "label": str(label),
+        "tag": "textarea" if isinstance(widget, forms.Textarea) else "input",
+        "type": context.get("type"),
+        "name": context["name"],
+        "value": context["value"],
+        "attrs": {
+            key: value if value is True else str(value)
+            for key, value in context["attrs"].items()
+            if value is not False and value is not None
+        },
+    }
 
 
 class ErrorEmbedResolver(CellRequestResolver):
@@ -276,25 +297,24 @@ class ErrorPageEmbedView(View):
             == "1"
         )
 
-        template = render_to_string(
-            "sentry/error-page-embed.html",
-            context={
-                "form": form,
-                "show_branding": show_branding,
-                "title": options["title"],
-                "subtitle": options["subtitle"],
-                "subtitle2": options["subtitle2"],
-                "name_label": options["labelName"],
-                "email_label": options["labelEmail"],
-                "comments_label": options["labelComments"],
-                "submit_label": options["labelSubmit"],
-                "close_label": options["labelClose"],
-            },
-        )
+        dialog = {
+            "style": render_to_string("sentry/error-page-embed.css"),
+            "title": str(options["title"]),
+            "subtitle": str(options["subtitle"]),
+            "subtitle2": str(options["subtitle2"]),
+            "fields": [
+                _field_spec(form["name"], options["labelName"]),
+                _field_spec(form["email"], options["labelEmail"]),
+                _field_spec(form["comments"], options["labelComments"]),
+            ],
+            "submit_label": str(options["labelSubmit"]),
+            "close_label": str(options["labelClose"]),
+            "powered_by": str(POWERED_BY) if show_branding else None,
+        }
 
         context = {
             "endpoint": mark_safe("*/" + json.dumps(endpoint) + ";/*"),
-            "template": mark_safe("*/" + json.dumps(template) + ";/*"),
+            "dialog": mark_safe("*/" + json.dumps_htmlsafe(dialog) + ";/*"),
             "strings": mark_safe(
                 "*/"
                 + json.dumps_htmlsafe(
