@@ -1,4 +1,4 @@
-import {Fragment, memo, useState} from 'react';
+import {memo, useState} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
@@ -18,6 +18,7 @@ import type {
 import {getToolsStringFromBlock} from 'sentry/views/seerExplorer/utils';
 
 import {AssistantBlock} from './assistant';
+import {BlockEmbedProvider} from './embedReferences';
 import {hasValidContent} from './shared';
 import {
   CODE_MODE_TOOLS,
@@ -254,7 +255,7 @@ export const ResponseGroup = memo(function ResponseGroup({
                       const thinkingBetweenToolCalls =
                         toolCallBefore && toolCallAtOrAfter;
                       return (
-                        <Fragment key={block.id}>
+                        <BlockEmbedProvider key={block.id} block={block}>
                           {showThinking &&
                             hasValidContent(block.message.thinking_content) && (
                               <ThinkingProse data-spaced={thinkingBetweenToolCalls}>
@@ -271,7 +272,7 @@ export const ResponseGroup = memo(function ResponseGroup({
                               getPageReferrer={getPageReferrer}
                             />
                           ) : null}
-                        </Fragment>
+                        </BlockEmbedProvider>
                       );
                     })
                   : null}
@@ -280,14 +281,16 @@ export const ResponseGroup = memo(function ResponseGroup({
           ) : null}
 
           {settledAnswer ? (
-            <AssistantBlock
-              block={settledAnswer}
-              blockIndex={blockIndex + group.length - 1}
-              runId={runId}
-              interactionPending={interactionPending}
-              readOnly={readOnly}
-              compact={hasTrace}
-            />
+            <BlockEmbedProvider block={settledAnswer}>
+              <AssistantBlock
+                block={settledAnswer}
+                blockIndex={blockIndex + group.length - 1}
+                runId={runId}
+                interactionPending={interactionPending}
+                readOnly={readOnly}
+                compact={hasTrace}
+              />
+            </BlockEmbedProvider>
           ) : null}
         </AgentWriteApprovalProvider>
       </motion.div>

@@ -44,6 +44,7 @@ import {
 } from 'sentry/views/navigation/constants';
 import {AskUserQuestionBlock} from 'sentry/views/seerExplorer/components/askUserQuestionBlock';
 import {BlockComponent} from 'sentry/views/seerExplorer/components/chat';
+import {EmbedReferenceRegistryProvider} from 'sentry/views/seerExplorer/components/chat/embedReferences';
 import {
   groupTranscript,
   ResponseGroup,
@@ -860,36 +861,40 @@ const SeerExplorerTranscript = memo(function SeerExplorerTranscript({
   // Walk the conversation once here rather than once per tool block.
   const latestTodos = useMemo(() => findLatestTodos(blocks), [blocks]);
 
-  return segments.map(segment => {
-    if (segment.kind === 'user') {
-      // For slide-in animation that runs on mount. Avoid running this twice on user
-      // blocks when blocks are hydrated.
-      return (
-        <BlockComponent
-          key={`user-${segment.index}`}
-          block={segment.block}
-          blockIndex={segment.index}
-          runId={runId ?? undefined}
-        />
-      );
-    }
+  return (
+    <EmbedReferenceRegistryProvider blocks={blocks}>
+      {segments.map(segment => {
+        if (segment.kind === 'user') {
+          // For slide-in animation that runs on mount. Avoid running this twice on user
+          // blocks when blocks are hydrated.
+          return (
+            <BlockComponent
+              key={`user-${segment.index}`}
+              block={segment.block}
+              blockIndex={segment.index}
+              runId={runId ?? undefined}
+            />
+          );
+        }
 
-    return (
-      <ResponseGroup
-        key={`response-${segment.indices[0]}`}
-        group={segment.blocks}
-        blockIndex={segment.indices[0]!}
-        latestTodos={latestTodos}
-        runId={runId ?? undefined}
-        getPageReferrer={getPageReferrer}
-        interactionPending={interactionPending}
-        pendingInput={pendingInput}
-        readOnly={readOnly}
-        respondToUserInput={respondToUserInput}
-        showThinking={showThinking}
-      />
-    );
-  });
+        return (
+          <ResponseGroup
+            key={`response-${segment.indices[0]}`}
+            group={segment.blocks}
+            blockIndex={segment.indices[0]!}
+            latestTodos={latestTodos}
+            runId={runId ?? undefined}
+            getPageReferrer={getPageReferrer}
+            interactionPending={interactionPending}
+            pendingInput={pendingInput}
+            readOnly={readOnly}
+            respondToUserInput={respondToUserInput}
+            showThinking={showThinking}
+          />
+        );
+      })}
+    </EmbedReferenceRegistryProvider>
+  );
 });
 
 const BlocksContainer = styled(Stack)`

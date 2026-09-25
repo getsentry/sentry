@@ -1,9 +1,10 @@
 import type {ReactNode} from 'react';
-import {Fragment, createElement, useCallback, useMemo, useState} from 'react';
+import {Fragment, createElement, useCallback, useContext, useMemo, useState} from 'react';
 import {createPortal} from 'react-dom';
 
 import {splitTags} from '@sentry/scraps/markdown';
 
+import {EmbedReferenceContext, useResolvedEmbed} from './embedReferences';
 import {SeerEmbedRegistry} from './embeds';
 
 /**
@@ -18,7 +19,12 @@ function SeerMarkdownText({raw}: {raw: string}) {
         segment.type === 'text' ? (
           <Fragment key={index}>{segment.value}</Fragment>
         ) : (
-          <SeerEmbedText key={index} name={segment.name} data={segment.data} />
+          <SeerEmbedText
+            key={index}
+            name={segment.name}
+            data={segment.data}
+            attrs={segment.attrs}
+          />
         )
       )}
     </Fragment>
@@ -26,11 +32,22 @@ function SeerMarkdownText({raw}: {raw: string}) {
 }
 
 /** An unregistered name renders nothing, as it does in the document. */
-function SeerEmbedText({name, data}: {data: unknown; name: string}) {
-  const Embed = SeerEmbedRegistry.get(name);
+function SeerEmbedText({
+  name,
+  data,
+  attrs,
+}: {
+  attrs: Record<string, string>;
+  data: unknown;
+  name: string;
+}) {
+  const resolved = useResolvedEmbed({name, data, attrs});
+  const Embed = resolved && SeerEmbedRegistry.get(resolved.name);
   // `createElement` because a component read out of the registry looks to the
   // linter like one created during render.
-  return Embed ? createElement(Embed, {name, data, level: 'markdown'}) : null;
+  return Embed && resolved
+    ? createElement(Embed, {name: resolved.name, data: resolved.body, level: 'markdown'})
+    : null;
 }
 
 interface UseSeerMarkdownTextResult {
@@ -49,18 +66,23 @@ interface UseSeerMarkdownTextResult {
  * anything reading the tree.
  */
 export function useSeerMarkdownText(raw: string): UseSeerMarkdownTextResult {
+  // Re-read the portal when a poll supplies records for unchanged reply text.
+  const references = useContext(EmbedReferenceContext);
   const [container] = useState(() => document.createElement('span'));
-  const [text, setText] = useState('');
+  const [copy, setCopy] = useState({text: '', references});
 
   // Read on mount rather than from an effect. A caller can withhold the node
   // for a while -- the action bar renders nothing while a block is pending --
   // and by the time it appears `raw` is long settled, so an effect keyed on it
   // would never fire.
-  const readText = useCallback((node: HTMLSpanElement | null) => {
-    if (node) {
-      setText(node.textContent ?? '');
-    }
-  }, []);
+  const readText = useCallback(
+    (node: HTMLSpanElement | null) => {
+      if (node) {
+        setCopy({text: node.textContent ?? '', references});
+      }
+    },
+    [references]
+  );
 
   // Keyed on the reply so a new one remounts the span and re-runs the ref;
   // reconciling in place would leave the first reading behind.
@@ -75,5 +97,5 @@ export function useSeerMarkdownText(raw: string): UseSeerMarkdownTextResult {
     [container, raw, readText]
   );
 
-  return {text, node};
+  return {text: copy.references === references ? copy.text : '', node};
 }

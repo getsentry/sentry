@@ -1,6 +1,7 @@
 import {z} from 'zod';
 
 import {isFilePatch, type FilePatch} from 'sentry/components/events/autofix/types';
+import type {EmbedReference} from 'sentry/components/seer/markdown/embedReferences';
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
 
 /**
@@ -165,7 +166,9 @@ export interface ToolResult {
   structuredContent?: {
     agentWriteApproval?: AgentWriteApproval;
     artifacts?: Artifact[];
+    autofix?: EmbedOutput<'autofix'>;
     calls?: CallRecord[];
+    embeds?: EmbedReference[];
     links?: ToolLink[];
     todos?: TodoItem[];
   } | null;
@@ -190,6 +193,7 @@ export interface Block {
   message: Message;
   timestamp: string;
   artifacts?: Artifact[];
+  embed_protocol?: 'references-v1' | null;
   file_patches?: ExplorerFilePatch[] | null;
   /**
    * Calls the in-flight Code Mode execute has made so far, written as they happen so a long run

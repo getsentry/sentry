@@ -4,6 +4,8 @@ import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLi
 
 import type {Block} from 'sentry/views/seerExplorer/types';
 
+import {EmbedReferenceRegistryProvider} from './embedReferences';
+import {BlockComponent} from './index';
 import {groupTranscript, deriveThinkingTitle, ResponseGroup} from './responseGroup';
 import {findLatestTodos} from './toolUse';
 
@@ -80,6 +82,119 @@ function assistantBlock(id: string, content: string, loading = false): Block {
     loading,
   };
 }
+
+function issuedDocs(id: string, title: string, tool = 'sentry_api_execute'): Block {
+  return {
+    id,
+    embed_protocol: 'references-v1',
+    timestamp: '2024-01-01T00:01:00Z',
+    message: {
+      role: 'tool_use',
+      content: null,
+      tool_calls: [{id, function: tool, args: '{}'}],
+    },
+    tool_results: [
+      {
+        tool_call_id: id,
+        tool_call_function: tool,
+        content: 'done',
+        structuredContent: {
+          embeds: [
+            {id, name: 'docs', body: {href: `https://docs.sentry.io/${id}/`, title}},
+          ],
+        },
+      },
+    ],
+  };
+}
+
+describe('helper-issued embed references', () => {
+  it('resolves preceding turns, preserves same-name records, and rejects future or unrelated tool records', () => {
+    const first = issuedDocs('first', 'First');
+    const second = issuedDocs('second', 'Second');
+    const unrelated = issuedDocs('forged', 'Unrelated', 'external_tool');
+    const future = issuedDocs('future', 'Future');
+    const answer: Block = {
+      ...assistantBlock(
+        'answer',
+        'See {% embed ref="first" /%} and {% embed ref="second" /%}. {% embed ref="forged" /%} {% embed ref="future" /%}'
+      ),
+      embed_protocol: 'references-v1',
+    };
+    const blocks = [
+      first,
+      second,
+      unrelated,
+      userBlock('user', 'question'),
+      answer,
+      future,
+    ];
+    render(
+      <EmbedReferenceRegistryProvider blocks={blocks}>
+        <ResponseGroup group={[answer]} blockIndex={4} />
+      </EmbedReferenceRegistryProvider>
+    );
+    expect(screen.getByRole('link', {name: 'First'})).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'Second'})).toBeInTheDocument();
+    expect(screen.queryByRole('link', {name: 'Unrelated'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', {name: 'Future'})).not.toBeInTheDocument();
+  });
+
+  it('uses the block protocol for preambles and thinking while a response is loading', () => {
+    const source = issuedDocs('issued', 'Issued');
+    const preamble: Block = {
+      ...toolUseBlock('preamble', {
+        content:
+          'Preamble {% embed ref="issued" /%} {% docs %}{"href":"https://docs.sentry.io/","title":"Raw"}{% /docs %}',
+        thinking_content: 'Thinking {% embed ref="issued" /%}',
+        tool_calls: [],
+      }),
+      embed_protocol: 'references-v1',
+    };
+    const loading: Block = {...llmWaitBlock(), embed_protocol: 'references-v1'};
+    const blocks = [source, preamble, loading];
+    render(
+      <EmbedReferenceRegistryProvider blocks={blocks}>
+        <ResponseGroup group={[preamble, loading]} blockIndex={1} showThinking />
+      </EmbedReferenceRegistryProvider>
+    );
+    expect(screen.getAllByRole('link', {name: 'Issued'})).toHaveLength(2);
+    expect(screen.queryByRole('link', {name: 'Raw'})).not.toBeInTheDocument();
+  });
+
+  it('resolves a tool result from its own block without exposing it to preceding prose', () => {
+    const source = issuedDocs('issued', 'Issued');
+    source.message.content = 'Preamble {% embed ref="issued" /%}';
+    source.tool_results![0]!.content = '{% embed ref="issued" /%}';
+    const loading = llmWaitBlock();
+    const blocks = [source, loading];
+    render(
+      <EmbedReferenceRegistryProvider blocks={blocks}>
+        <ResponseGroup group={blocks} blockIndex={0} />
+      </EmbedReferenceRegistryProvider>
+    );
+    expect(screen.getAllByRole('link', {name: 'Issued'})).toHaveLength(1);
+  });
+
+  it('renders streaming references and keeps legacy blocks in the same conversation', () => {
+    const source = issuedDocs('issued', 'Issued');
+    const streaming: Block = {
+      ...assistantBlock('streaming', 'See {% embed ref="issued" /%}', true),
+      embed_protocol: 'references-v1',
+    };
+    const legacy = assistantBlock(
+      'legacy',
+      'See {% docs %}{"href":"https://docs.sentry.io/","title":"Legacy"}{% /docs %}'
+    );
+    const {rerender} = render(
+      <BlockComponent block={streaming} blocks={[source, streaming]} blockIndex={1} />,
+      {organization: OrganizationFixture({features: ['seer-explorer-stream']})}
+    );
+    expect(screen.getByRole('link', {name: 'Issued'})).toBeInTheDocument();
+    rerender(<BlockComponent block={legacy} blocks={[source, legacy]} blockIndex={1} />);
+    expect(screen.getByRole('link', {name: 'Legacy'})).toBeInTheDocument();
+  });
+});
 
 describe('groupTranscript', () => {
   it('keeps user blocks as their own segments', () => {

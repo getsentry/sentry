@@ -9,7 +9,7 @@ import {Markdown, type MarkdownProps} from '@sentry/scraps/markdown';
 import {Heading} from '@sentry/scraps/text';
 
 import {type SeerEmbedScope, SeerEmbedScopeContext} from './embeds/renderTracking';
-import {STRUCTURED_SEER_EMBED_SCHEMAS} from './embeds/schemas';
+import {useResolvedEmbed} from './embedReferences';
 import {SeerEmbedRegistry} from './embeds';
 
 const ISSUE_SHORT_ID_PATTERN =
@@ -88,15 +88,15 @@ function reportUnhandledTag(
 const SEER_EMBED_COMPONENTS: MarkdownProps['components'] = {
   Tag: function SeerTag({name, data, level, attrs, index}) {
     const structuredContent = useContext(StructuredContentContext);
-    const Embed = SeerEmbedRegistry.get(name);
+    const resolved = useResolvedEmbed({name, data, attrs, structuredContent});
+    if (!resolved) {
+      return null;
+    }
+    const Embed = SeerEmbedRegistry.get(resolved.name);
     if (Embed) {
-      const embedData =
-        name in STRUCTURED_SEER_EMBED_SCHEMAS
-          ? structuredContent?.[name]
-          : data === undefined
-            ? structuredContent?.[name]
-            : data;
-      const embed = <Embed name={name} data={embedData} level={level} index={index} />;
+      const embed = (
+        <Embed name={resolved.name} data={resolved.body} level={level} index={index} />
+      );
       if (level === 'inline') {
         return embed;
       }

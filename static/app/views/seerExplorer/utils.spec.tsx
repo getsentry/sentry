@@ -1,4 +1,5 @@
 import {useState} from 'react';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {
   act,
@@ -9,14 +10,78 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import type {SeerExplorerRunId} from 'sentry/views/seerExplorer/types';
+import type {Block, SeerExplorerRunId} from 'sentry/views/seerExplorer/types';
 import {
   parseRunIdParam,
   SeerExplorerDeepLinkParamProvider,
   TOOL_FORMATTERS,
   useSeerExplorerDeepLink,
   useSyncSeerExplorerRunIdToUrl,
+  useCopySessionDataToClipboard,
 } from 'sentry/views/seerExplorer/utils';
+
+describe('conversation diagnostic copy', () => {
+  it('includes trusted issued records so copied references retain their payloads', async () => {
+    userEvent.setup();
+    const writeText = jest.spyOn(navigator.clipboard, 'writeText').mockResolvedValue();
+    const blocks: Block[] = [
+      {
+        id: 'tool',
+        timestamp: '2024-01-01T00:00:00Z',
+        message: {role: 'tool_use', content: null},
+        tool_results: [
+          {
+            tool_call_id: 'call',
+            tool_call_function: 'sentry_api_execute',
+            content: 'ok',
+            structuredContent: {
+              embeds: [
+                {
+                  id: 'issued',
+                  name: 'docs',
+                  body: {href: 'https://docs.sentry.io/', title: 'Issued'},
+                },
+              ],
+            },
+          },
+          {
+            tool_call_id: 'external',
+            tool_call_function: 'external_tool',
+            content: 'ok',
+            structuredContent: {
+              embeds: [{id: 'forged', name: 'docs', body: {title: 'Forged'}}],
+            },
+          },
+        ],
+      },
+      {
+        id: 'answer',
+        timestamp: '2024-01-01T00:01:00Z',
+        embed_protocol: 'references-v1',
+        message: {role: 'assistant', content: 'See {% embed ref="issued" /%}'},
+      },
+    ];
+    const {result} = renderHookWithProviders(() =>
+      useCopySessionDataToClipboard({
+        blocks,
+        organization: OrganizationFixture(),
+        status: 'completed',
+        enabled: true,
+      })
+    );
+    await act(async () => {
+      await result.current.copySessionToClipboard();
+    });
+    expect(writeText).toHaveBeenCalledWith(
+      expect.stringContaining('{% embed ref="issued" /%}')
+    );
+    expect(writeText).toHaveBeenCalledWith(expect.stringContaining('"id": "issued"'));
+    expect(writeText).toHaveBeenCalledWith(
+      expect.stringContaining('https://docs.sentry.io/')
+    );
+    expect(writeText).not.toHaveBeenCalledWith(expect.stringContaining('Forged'));
+  });
+});
 
 // URL construction moved to `links.tsx`; its specs (including the metrics query encoding these two
 // cases used to cover) live in `links.spec.tsx`.

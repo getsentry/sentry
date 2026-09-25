@@ -336,6 +336,7 @@ export const useSeerExplorer = () => {
           override_ce_enable: params.overrideCtxEngEnable,
           override_bash_mode_enabled: params.overrideBashModeEnabled,
           override_code_mode_enable: params.overrideCodeModeEnable,
+          embed_protocol: 'references-v1',
         },
       });
     },

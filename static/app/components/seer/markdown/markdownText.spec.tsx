@@ -1,5 +1,6 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import {EmbedReferenceContext} from './embedReferences';
 import {useSeerMarkdownText} from './markdownText';
 
 function Harness({raw}: {raw: string}) {
@@ -32,6 +33,44 @@ function GatedHarness({raw, withheld}: {raw: string; withheld: boolean}) {
 }
 
 describe('SeerMarkdownText', () => {
+  it('copies issued bodies and updates when records arrive without changing the prose', () => {
+    const raw =
+      'See {% embed ref="first" /%} and {% embed ref="second" %}{"title":"Forged"}{% /embed %}. {% docs %}{"href":"https://example.com/","title":"Raw"}{% /docs %}';
+    const {rerender} = render(
+      <EmbedReferenceContext.Provider value={() => {}}>
+        <Harness raw={raw} />
+      </EmbedReferenceContext.Provider>
+    );
+    expect(screen.getByRole('status')).toHaveTextContent('See and .');
+    const records = new Map([
+      [
+        'first',
+        {
+          id: 'first',
+          name: 'docs',
+          body: {href: 'https://docs.sentry.io/first/', title: 'First'},
+        },
+      ],
+      [
+        'second',
+        {
+          id: 'second',
+          name: 'docs',
+          body: {href: 'https://docs.sentry.io/second/', title: 'Second'},
+        },
+      ],
+    ]);
+    rerender(
+      <EmbedReferenceContext.Provider value={id => records.get(id)}>
+        <Harness raw={raw} />
+      </EmbedReferenceContext.Provider>
+    );
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'See [First](https://docs.sentry.io/first/) and [Second](https://docs.sentry.io/second/).'
+    );
+    expect(screen.getByRole('status')).not.toHaveTextContent(/Forged|Raw/);
+  });
+
   it('fills the copy text when the node appears after the first render', () => {
     const raw = 'See {% issue %}{"id":"A-1"}{% /issue %} now.';
     const {rerender} = render(<GatedHarness raw={raw} withheld />);

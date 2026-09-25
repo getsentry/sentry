@@ -118,6 +118,7 @@ describe('useSeerExplorer', () => {
             data: expect.objectContaining({
               query: 'Test query',
               insert_index: 0,
+              embed_protocol: 'references-v1',
             }),
           })
         );
@@ -379,6 +380,7 @@ describe('useSeerExplorer', () => {
         expect(result.current.requestError).toEqual({query: 'Second question'});
       });
       expect(postMock).toHaveBeenCalled();
+      expect(postMock.mock.calls[0][1].data.embed_protocol).toBe('references-v1');
       expect(result.current.sessionData?.status).toBe('completed');
       expect(result.current.sessionData?.blocks.map(b => b.message.content)).toEqual([
         'First question',

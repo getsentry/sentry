@@ -15,6 +15,7 @@ import queryString from 'query-string';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {UseFeedbackOptions} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
+import type {EmbedReference} from 'sentry/components/seer/markdown/embedReferences';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
@@ -26,6 +27,7 @@ import {useMedia} from 'sentry/utils/useMedia';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {getConversationsUrlForExternalUse} from 'sentry/views/explore/conversations/utils/urlParams';
+import {collectEmbedReferences} from 'sentry/views/seerExplorer/components/chat/embedReferences';
 import {resolveLink, subjectFromToolLink} from 'sentry/views/seerExplorer/links';
 import type {
   Artifact,
@@ -568,7 +570,15 @@ function formatSessionData(
   organization: Organization,
   projects?: Array<{id: string; slug: string}>
 ): string {
-  const formatBlock = (block: Block): string => {
+  const embedsByBlock = new Map<number, EmbedReference[]>();
+  for (const {blockIndex, reference} of collectEmbedReferences(
+    blocks
+  ).references.values()) {
+    const records = embedsByBlock.get(blockIndex) ?? [];
+    records.push(reference);
+    embedsByBlock.set(blockIndex, records);
+  }
+  const formatBlock = (block: Block, blockIndex: number): string => {
     const {message, timestamp, tool_links, tool_results} = block;
 
     const {content: messageContent, role, tool_calls, thinking_content} = message;
@@ -631,12 +641,16 @@ function formatSessionData(
         }
       });
     }
+    const embeds = embedsByBlock.get(blockIndex);
+    if (embeds?.length) {
+      lines.push('', '## EMBED RECORDS', JSON.stringify(embeds, null, 2));
+    }
     lines.push('');
     return lines.join('\n');
   };
 
   return blocks
-    .map(block => formatBlock(block))
+    .map(formatBlock)
     .join('\n--------------------------------------------------\n\n');
 }
 

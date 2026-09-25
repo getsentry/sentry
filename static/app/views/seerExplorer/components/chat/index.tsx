@@ -12,6 +12,7 @@ import type {
 } from 'sentry/views/seerExplorer/types';
 
 import {AssistantBlock} from './assistant';
+import {BlockEmbedProvider, EmbedReferenceRegistryProvider} from './embedReferences';
 import {ToolUseBlock} from './toolUse';
 import {UserBlock} from './user';
 
@@ -49,7 +50,11 @@ export const BlockComponent = memo(function BlockComponent({
       onClick={onClick}
     >
       <motion.div initial={{opacity: 0, x: 10}} animate={{opacity: 1, x: 0}}>
-        <BlockVariant {...props} />
+        <EmbedReferenceRegistryProvider blocks={props.blocks ?? [props.block]}>
+          <BlockEmbedProvider block={props.block}>
+            <BlockVariant {...props} />
+          </BlockEmbedProvider>
+        </EmbedReferenceRegistryProvider>
       </motion.div>
     </Container>
   );
