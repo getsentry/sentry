@@ -55,7 +55,9 @@ export function AttributeDetailsTooltip({
   isScrubbed,
   name,
 }: AttributeDetailsTooltipProps) {
-  const fieldDefinition = getFieldDefinition(attributeKey, fieldDefinitionType);
+  const fieldDefinition =
+    getFieldDefinition(attributeKey, fieldDefinitionType) ??
+    (name === undefined ? null : getFieldDefinition(name, fieldDefinitionType));
   const valueType =
     fieldDefinition?.valueType ?? defaultValueType ?? FieldValueType.STRING;
   const description = fieldDefinition?.desc ?? DEFAULT_TAG_DESCRIPTION;

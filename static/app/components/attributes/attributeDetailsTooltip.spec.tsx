@@ -49,6 +49,23 @@ describe('AttributeDetailsTooltip', () => {
     expect(screen.getByText('integer')).toBeInTheDocument();
   });
 
+  it('finds the definition when the key is prefixed but the name is not', async () => {
+    render(
+      <AttributeDetailsTooltip
+        attributeKey="sentry.logger.name"
+        fieldDefinitionType="log"
+        name="logger.name"
+      />
+    );
+
+    await userEvent.hover(screen.getByText('logger.name'));
+
+    expect(
+      await screen.findByText('The name of the logger that generated this event.')
+    ).toBeInTheDocument();
+    expect(screen.getByText('Added by Sentry')).toBeInTheDocument();
+  });
+
   it('describes an unknown attribute as a tag and credits nobody', async () => {
     render(
       <AttributeDetailsTooltip
