@@ -1159,8 +1159,9 @@ describe('ProjectFilters', () => {
       }),
     ]);
 
-    expect(await screen.findByText('Errors')).toBeInTheDocument();
-    expect(screen.getByText('All Data Types')).toBeInTheDocument();
+    const table = await screen.findByRole('table');
+    expect(within(table).getByText('Errors')).toBeInTheDocument();
+    expect(within(table).getByText('All')).toBeInTheDocument();
   });
 
   it('derives the data type from the conditions when the API omits it', async () => {
