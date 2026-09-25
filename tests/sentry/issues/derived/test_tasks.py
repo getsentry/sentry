@@ -21,7 +21,11 @@ from sentry.issues.derived.heal_state import (
 from sentry.issues.derived.processing import PIPELINE, GroupLogTimeout, process_group_log
 from sentry.issues.derived.tasks import (
     BATCH_RETRIGGER_TIMEOUT,
+    RegenerationRequest,
+    RegenerationResult,
     _discover_stale_pipeline_hashes,
+    _enqueue_fresh_check,
+    _enqueue_regeneration,
     check_fresh_derived_data_batch,
     generate_project_derived_data,
     generate_project_derived_data_batch,
@@ -336,6 +340,95 @@ class SpawnStateTest(TestCase):
         assert already_spawned(spawn.task_key, "act-none") is False
 
 
+class HealTaskAdapterTest(TestCase):
+    def test_delegates_with_task_enqueue_callbacks(self) -> None:
+        with patch("sentry.issues.derived.tasks._heal_stale_derived_data") as heal:
+            heal_stale_derived_data()
+
+        heal.assert_called_once_with(
+            enqueue_regeneration=_enqueue_regeneration,
+            enqueue_check=_enqueue_fresh_check,
+        )
+
+    def test_serializes_regeneration_request(self) -> None:
+        request = RegenerationRequest(
+            target_hash="stale",
+            group_id_start=1,
+            group_id_end=3,
+            resume_generated_at="2024-01-01T00:00:00+00:00",
+            resume_pipeline_hash="pipeline",
+            rows_found_before=2,
+            range_overflowed=True,
+        )
+
+        with patch.object(regenerate_stale_derived_data_batch, "delay") as delay:
+            _enqueue_regeneration(request)
+
+        delay.assert_called_once_with(
+            target_hash="stale",
+            group_id_start=1,
+            group_id_end=3,
+            resume_generated_at="2024-01-01T00:00:00+00:00",
+            resume_pipeline_hash="pipeline",
+            rows_found_before=2,
+            range_overflowed=True,
+        )
+
+
+class RegenerateStaleDerivedDataBatchAdapterTest(TestCase):
+    @patch("taskbroker_client.state.current_task")
+    def test_enqueues_continuation_and_marks_activation(self, mock_current_task: MagicMock) -> None:
+        mock_current_task.return_value = SimpleNamespace(id="regenerate-adapter")
+        continuation = RegenerationRequest(
+            target_hash="stale",
+            group_id_start=2,
+            group_id_end=3,
+            rows_found_before=1,
+        )
+        result = RegenerationResult(
+            processed={},
+            total=1,
+            continuation=continuation,
+            continuation_reason="range_overflow",
+        )
+
+        with (
+            patch(
+                "sentry.issues.derived.tasks._regenerate_stale_derived_data_batch",
+                return_value=result,
+            ) as regenerate,
+            patch("sentry.issues.derived.tasks._enqueue_regeneration") as enqueue,
+        ):
+            regenerate_stale_derived_data_batch(
+                target_hash="stale", group_id_start=1, group_id_end=3
+            )
+
+        regenerate.assert_called_once_with(
+            target_hash="stale",
+            group_id_start=1,
+            group_id_end=3,
+            timeout=BATCH_RETRIGGER_TIMEOUT,
+            resume_generated_at=None,
+            resume_pipeline_hash=None,
+            rows_found_before=0,
+            range_overflowed=False,
+        )
+        enqueue.assert_called_once_with(continuation)
+        assert already_spawned("regenerate_stale_derived_data_batch", "regenerate-adapter")
+
+    @patch("taskbroker_client.state.current_task")
+    def test_duplicate_activation_skips_implementation(self, mock_current_task: MagicMock) -> None:
+        mock_current_task.return_value = SimpleNamespace(id="regenerate-duplicate")
+        mark_spawned("regenerate_stale_derived_data_batch", "regenerate-duplicate")
+
+        with patch(
+            "sentry.issues.derived.tasks._regenerate_stale_derived_data_batch"
+        ) as regenerate:
+            regenerate_stale_derived_data_batch(group_id_start=1, group_id_end=2)
+
+        regenerate.assert_not_called()
+
+
 class HealSchedulerStateTest(TestCase):
     def test_cache_key(self) -> None:
         assert _state_cache.key("state") == "issues-derived-heal:state"
@@ -415,6 +508,10 @@ class HealStaleDerivedDataTest(DerivedDataTaskTestBase):
             target_hash=stale,
             group_id_start=group_ids[0],
             group_id_end=group_ids[0] + 1,
+            resume_generated_at=None,
+            resume_pipeline_hash=None,
+            rows_found_before=0,
+            range_overflowed=False,
         )
 
     def test_logs_progress_through_scheduling_stages(self) -> None:
@@ -1125,6 +1222,10 @@ class HealStaleDerivedDataTest(DerivedDataTaskTestBase):
             target_hash=stale,
             group_id_start=group_ids[0],
             group_id_end=group_ids[0] + 1,
+            resume_generated_at=None,
+            resume_pipeline_hash=None,
+            rows_found_before=0,
+            range_overflowed=False,
         )
         # Remaining budget is 2, so checks are capped there even though
         # check-task-count is higher.
@@ -1712,6 +1813,8 @@ class RegenerateStaleDerivedDataBatchTest(DerivedDataTaskTestBase):
             target_hash=stale,
             group_id_start=group_ids[1] + 1,
             group_id_end=group_ids[-1] + 1,
+            resume_generated_at=None,
+            resume_pipeline_hash=None,
             rows_found_before=2,
             range_overflowed=True,
         )
