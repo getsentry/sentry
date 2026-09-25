@@ -298,6 +298,9 @@ export function getMutateSeerProjectsSettingsOptions({
           jsonUpdates.automationTuning = 'medium';
         }
       }
+      if (data.prIteration !== undefined) {
+        jsonUpdates.prIteration = data.prIteration;
+      }
 
       const shouldUpdate = (item: SeerProjectSettingResponse) =>
         data.selectedIds === 'all' || data.selectedIds.includes(item.projectId);

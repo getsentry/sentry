@@ -314,6 +314,11 @@ export function SeerProjectTable() {
                     </InfiniteTable.RowCell>
                     <InfiniteTable.RowCell justify="center">
                       <AutoSaveForm
+                        // Remount when the saved value changes, e.g. from the bulk
+                        // toggle in the header. Once this switch has been clicked the
+                        // form ignores new initial values, so it would keep showing
+                        // the old state.
+                        key={String(item.prIteration)}
                         name="prIteration"
                         schema={seerProjectSettingsSchema}
                         initialValue={item.prIteration}
