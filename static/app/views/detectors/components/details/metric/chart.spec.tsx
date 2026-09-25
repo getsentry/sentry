@@ -1,7 +1,17 @@
 import {MetricDetectorFixture} from 'sentry-fixture/detectors';
+import {EventsStatsFixture} from 'sentry-fixture/events';
+import {
+  GroupOpenPeriodActivityFixture,
+  GroupOpenPeriodFixture,
+} from 'sentry-fixture/groupOpenPeriod';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  renderHookWithProviders,
+  screen,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import {
   DataConditionGroupLogicType,
@@ -12,7 +22,10 @@ import {
   AlertRuleSensitivity,
   AlertRuleThresholdType,
 } from 'sentry/views/alerts/rules/metric/types';
-import {MetricDetectorDetailsChart} from 'sentry/views/detectors/components/details/metric/chart';
+import {
+  MetricDetectorDetailsChart,
+  useMetricDetectorChart,
+} from 'sentry/views/detectors/components/details/metric/chart';
 
 describe('MetricDetectorDetailsChart', () => {
   const detector = MetricDetectorFixture();
@@ -110,6 +123,63 @@ describe('MetricDetectorDetailsChart', () => {
       render(<MetricDetectorDetailsChart detector={anomalyDetector} />, {organization});
 
       expect(await screen.findByText(CUTOFF_MESSAGE)).toBeInTheDocument();
+    });
+  });
+});
+
+describe('useMetricDetectorChart', () => {
+  const detector = MetricDetectorFixture();
+
+  beforeEach(() => {
+    MockApiClient.clearMockResponses();
+  });
+
+  it('extends an active open period to the end of the chart', async () => {
+    const intervalSeconds = detector.dataSources[0].queryObj.snubaQuery.timeWindow;
+    const lastBucketStartSeconds = Date.parse('2026-09-22T17:30:00Z') / 1000;
+    const openPeriod = GroupOpenPeriodFixture({
+      end: null,
+      isOpen: true,
+      start: '2026-09-22T17:29:00Z',
+      activities: [
+        GroupOpenPeriodActivityFixture({
+          dateCreated: '2026-09-22T17:29:00Z',
+          type: 'opened',
+          value: 'medium',
+        }),
+      ],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: EventsStatsFixture({
+        data: [
+          [lastBucketStartSeconds - intervalSeconds, [{count: 10}]],
+          [lastBucketStartSeconds, [{count: 20}]],
+        ],
+      }),
+    });
+
+    const {result} = renderHookWithProviders(() =>
+      useMetricDetectorChart({detector, openPeriods: [openPeriod]})
+    );
+
+    await waitFor(() => {
+      const chartEndTimestampMs = result.current.chartProps?.series[0]?.data.at(-1)?.name;
+      const openPeriodSeries = result.current.chartProps?.additionalSeries?.find(
+        series => series.name === 'Open Periods'
+      );
+
+      expect(chartEndTimestampMs).toEqual(expect.any(Number));
+      expect(openPeriodSeries).toMatchObject({
+        data: expect.arrayContaining([
+          expect.objectContaining({
+            end: chartEndTimestampMs,
+            id: openPeriod.id,
+            type: 'open-period-start',
+          }),
+        ]),
+      });
     });
   });
 });
