@@ -12,6 +12,7 @@ LABEL = "Trigger: getsentry tests"
 # PRs and should dispatch getsentry tests without the manual trigger label.
 TRUSTED_BOT_AUTHORS = frozenset(
     {
+        "sentry[bot]",
         "sentry-junior[bot]",
     }
 )
