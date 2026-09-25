@@ -1,13 +1,20 @@
-import {Form} from 'sentry/components/forms/form';
+import {mutationOptions, useQuery} from '@tanstack/react-query';
+import {z} from 'zod';
+
+import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
+import {Stack} from '@sentry/scraps/layout';
+import {Heading} from '@sentry/scraps/text';
+
+import {BooleanField} from 'sentry/components/forms/fields/booleanField';
+import {RadioField} from 'sentry/components/forms/fields/radioField';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {Panel} from 'sentry/components/panels/panel';
-import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 
-import {getOption, getOptionField} from './options';
+import {getOption} from './options';
 
 const optionsAvailable = [
   'system.url-prefix',
@@ -25,15 +32,111 @@ type Field = ReturnType<typeof getOption>;
 
 type FieldDef = {
   field: Field;
-  value: string | undefined;
+  value: boolean | number | string | undefined;
 };
 
+type OptionValue = boolean | number | string;
+
+const disabledReasons: Record<string, string> = {
+  diskPriority:
+    'This setting is defined in config.yml and may not be changed via the web UI.',
+  smtpDisabled: 'SMTP mail has been disabled, so this option is unavailable',
+};
+
+function AdminOptionField({name, option}: {name: string; option: FieldDef}) {
+  const definition = {...getOption(name), ...option.field};
+  const rawInitialValue =
+    option.value === undefined || option.value === ''
+      ? (definition.defaultValue?.() ?? '')
+      : option.value;
+  const kind =
+    definition.component === BooleanField
+      ? 'boolean'
+      : definition.component === RadioField
+        ? 'radio'
+        : 'text';
+  const initialValue =
+    kind === 'boolean' ? Boolean(rawInitialValue) : String(rawInitialValue);
+  const disabled = definition.disabled
+    ? (disabledReasons[definition.disabledReason ?? ''] ?? true)
+    : false;
+  const saveOption = mutationOptions({
+    mutationFn: (data: Record<string, OptionValue>) =>
+      fetchMutation<Record<string, FieldDef>>({
+        url: getApiUrl('/internal/options/'),
+        method: 'PUT',
+        data,
+      }),
+  });
+
+  return (
+    <AutoSaveForm
+      name={name}
+      schema={z.object({[name]: z.union([z.boolean(), z.string()])})}
+      initialValue={initialValue}
+      mutationOptions={saveOption}
+    >
+      {field => {
+        if (kind === 'boolean') {
+          return (
+            <field.Layout.Row
+              label={definition.label}
+              hintText={definition.help}
+              required={definition.required}
+            >
+              <field.Switch
+                checked={field.state.value === true}
+                onChange={field.handleChange}
+                disabled={disabled}
+              />
+            </field.Layout.Row>
+          );
+        }
+
+        if (kind === 'radio') {
+          return (
+            <field.Layout.Stack
+              label={definition.label}
+              hintText={definition.help}
+              required={definition.required}
+            >
+              <field.Radio.Group
+                value={typeof field.state.value === 'string' ? field.state.value : ''}
+                onChange={field.handleChange}
+                disabled={disabled}
+              >
+                {definition.choices?.map(([value, label]) => (
+                  <field.Radio.Item key={value} value={value}>
+                    {label}
+                  </field.Radio.Item>
+                ))}
+              </field.Radio.Group>
+            </field.Layout.Stack>
+          );
+        }
+
+        return (
+          <field.Layout.Row
+            label={definition.label}
+            hintText={definition.help}
+            required={definition.required}
+          >
+            <field.Input
+              value={typeof field.state.value === 'string' ? field.state.value : ''}
+              onChange={field.handleChange}
+              disabled={disabled}
+              placeholder={definition.placeholder}
+            />
+          </field.Layout.Row>
+        );
+      }}
+    </AutoSaveForm>
+  );
+}
+
 export default function AdminSettings() {
-  const {data, isPending, isError} = useApiQuery<Record<string, FieldDef>>(
-    [getApiUrl('/internal/options/')],
-    {
-      staleTime: 0,
-    }
+  const {data, isPending, isError} = useQuery(
+    apiOptions.as<Record<string, FieldDef>>()('/internal/options/', {staleTime: 0})
   );
 
   if (isError) {
@@ -44,51 +147,33 @@ export default function AdminSettings() {
     return <LoadingIndicator />;
   }
 
-  const initialData: Record<string, React.ReactNode> = {};
   const fields: Record<string, React.ReactNode> = {};
   for (const key of optionsAvailable) {
     const option = data[key] ?? ({field: {}, value: undefined} as FieldDef);
-
-    if (option.value === undefined || option.value === '') {
-      const defn = getOption(key);
-      initialData[key] = defn.defaultValue ? defn.defaultValue() : '';
-    } else {
-      initialData[key] = option.value;
-    }
-    fields[key] = getOptionField(key, option.field);
+    fields[key] = <AdminOptionField key={key} name={key} option={option} />;
   }
 
   return (
-    <div>
-      <h3>{t('Settings')}</h3>
+    <Stack gap="xl">
+      <Heading as="h3" size="lg">
+        {t('Settings')}
+      </Heading>
 
-      <Form
-        apiMethod="PUT"
-        apiEndpoint="/internal/options/"
-        initialData={initialData}
-        saveOnBlur
-      >
-        <Panel>
-          <PanelHeader>{t('General')}</PanelHeader>
-          {fields['system.url-prefix']}
-          {fields['system.admin-email']}
-          {fields['system.support-email']}
-          {fields['system.security-email']}
-        </Panel>
+      <FieldGroup title={t('General')}>
+        {fields['system.url-prefix']}
+        {fields['system.admin-email']}
+        {fields['system.support-email']}
+        {fields['system.security-email']}
+      </FieldGroup>
 
-        <Panel>
-          <PanelHeader>{t('Security & Abuse')}</PanelHeader>
-          {fields['auth.allow-registration']}
-          {fields['auth.ip-rate-limit']}
-          {fields['auth.user-rate-limit']}
-          {fields['api.rate-limit.org-create']}
-        </Panel>
+      <FieldGroup title={t('Security & Abuse')}>
+        {fields['auth.allow-registration']}
+        {fields['auth.ip-rate-limit']}
+        {fields['auth.user-rate-limit']}
+        {fields['api.rate-limit.org-create']}
+      </FieldGroup>
 
-        <Panel>
-          <PanelHeader>{t('Beacon')}</PanelHeader>
-          {fields['beacon.anonymous']}
-        </Panel>
-      </Form>
-    </div>
+      <FieldGroup title={t('Beacon')}>{fields['beacon.anonymous']}</FieldGroup>
+    </Stack>
   );
 }
