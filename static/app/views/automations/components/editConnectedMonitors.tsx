@@ -333,7 +333,6 @@ function EditConnectedMonitorsContent({
   const [monitorMode, setMonitorMode] = useState<MonitorMode>(initialMode);
   const {form} = useContext(FormContext);
   const errorContext = useContext(AutomationBuilderErrorContext);
-  const organization = useOrganization();
 
   const handleModeChange = useCallback(
     (newMode: MonitorMode) => {
