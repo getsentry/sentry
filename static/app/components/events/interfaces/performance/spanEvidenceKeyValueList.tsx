@@ -463,7 +463,11 @@ export function SpanEvidenceKeyValueList({
   const issueType = getIssueTypeFromOccurrenceType(typeId);
   const requiresSpanInfo = isTransactionBased(typeId) && isOccurrenceBased(typeId);
 
-  if (!issueType || (requiresSpanInfo && !spanInfo)) {
+  if (
+    !issueType ||
+    (requiresSpanInfo && !spanInfo) ||
+    (requiresSpanInfo && spanInfo!.offendingSpans.length === 0)
+  ) {
     return (
       <DefaultSpanEvidence
         theme={theme}

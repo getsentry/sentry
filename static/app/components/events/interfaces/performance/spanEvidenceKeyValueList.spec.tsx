@@ -657,6 +657,43 @@ describe('SpanEvidenceKeyValueList', () => {
       expect(screen.getByRole('link', {name: 'More Samples'})).toBeInTheDocument();
     });
 
+    it('does not crash when offenderSpanIds reference spans not in the event', () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/',
+        body: [],
+      });
+
+      // Build an event where the occurrence's offenderSpanIds point to a span
+      // ID that has no corresponding span in the event's span entries. This
+      // simulates the crash described in JAVASCRIPT-3BN3 where
+      // getSpanInfoFromTransactionEvent would produce an offendingSpans array
+      // containing undefined, causing 'sentry_tags' in span to throw.
+      const builderWithMissingSpan = new TransactionEventBuilder(
+        'a1',
+        '/',
+        IssueType.PERFORMANCE_SLOW_DB_QUERY
+      );
+      builderWithMissingSpan.getEventFixture().projectID = '123';
+      // Inject a span ID that doesn't exist in the event's span entries
+      const missingSpanId = 'deadbeefdeadbeef';
+      builderWithMissingSpan.getEventFixture().occurrence!.evidenceData!.offenderSpanIds =
+        [missingSpanId];
+
+      expect(() =>
+        render(
+          <SpanEvidenceKeyValueList
+            event={builderWithMissingSpan.getEventFixture()}
+            projectSlug={projectSlug}
+          />,
+          {
+            organization: OrganizationFixture({
+              features: ['visibility-explore-view'],
+            }),
+          }
+        )
+      ).not.toThrow();
+    });
+
     it('renders span-specific missing query source copy', () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/',
