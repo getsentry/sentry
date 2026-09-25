@@ -89,7 +89,6 @@ function RequestBodySection({data, event, meta}: RequestBodyProps) {
   ) {
     return (
       <KeyValueTableCard
-        variant="label"
         title={t('Body')}
         contentItems={getTransformedData(data.data, meta?.data).map(d => {
           const [key, value] = d.data;
