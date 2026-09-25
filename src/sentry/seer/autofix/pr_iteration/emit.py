@@ -30,11 +30,6 @@ from sentry.analytics.events.pr_iteration_events import (
 )
 from sentry.models.group import Group
 from sentry.seer.agent.client_models import SeerRunState
-from sentry.seer.autofix.autofix_agent import (
-    get_iterations,
-    get_latest_iteration_index,
-    iteration_repos,
-)
 from sentry.seer.autofix.pr_iteration.current_iteration import triggered_iteration_id
 from sentry.seer.autofix.pr_iteration.details_store import (
     claim_iteration,
@@ -42,6 +37,11 @@ from sentry.seer.autofix.pr_iteration.details_store import (
     remove_iteration,
     untriggered_iteration,
     update_iteration,
+)
+from sentry.seer.autofix.pr_iteration.iterations import (
+    get_iterations,
+    get_latest_iteration_index,
+    iteration_repos,
 )
 from sentry.seer.autofix.pr_iteration.logs import LogCtxIteration, PrIterationLogContext
 from sentry.seer.autofix.pr_iteration.pause import PauseReason

@@ -23,7 +23,6 @@ from sentry.seer.autofix.analytics import record_autofix_event
 from sentry.seer.autofix.artifact_schemas import FixabilityAssessment, RootCauseArtifact
 from sentry.seer.autofix.autofix_agent import (
     STEP_CONFIGS,
-    get_latest_iteration_index,
     should_open_autofix_pr_as_draft,
     trigger_autofix_agent,
     trigger_coding_agent_handoff,
@@ -43,6 +42,7 @@ from sentry.seer.autofix.pr_iteration.completion import (
     record_failed_tool_calls,
 )
 from sentry.seer.autofix.pr_iteration.completion_reactions import react_to_completed_iteration
+from sentry.seer.autofix.pr_iteration.iterations import get_latest_iteration_index
 from sentry.seer.autofix.pr_iteration.tracing import set_pr_iteration_attributes
 from sentry.seer.autofix.pr_ready_for_review import (
     emit_pr_ready_for_review,
