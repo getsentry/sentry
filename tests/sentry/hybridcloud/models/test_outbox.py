@@ -275,10 +275,7 @@ class ControlOutboxDrainTest(TransactionTestCase):
             self.outbox.save()
         mock_send.side_effect = self.terminate_connection
 
-        with (
-            self.options({"hybrid_cloud.authentication.disabled_user_shards": []}),
-            pytest.raises(OutboxDatabaseError),
-        ):
+        with pytest.raises(OutboxDatabaseError):
             self.outbox.drain_shard()
 
         mock_send.assert_called_once()
