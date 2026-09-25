@@ -42,20 +42,27 @@ jobs:
           client-id: ${{ vars.SENTRY_INTERNAL_APP_ID }}
           private-key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-      - name: Get changed files
-        id: changes
-        uses: dorny/paths-filter@7b450fff21473bca461d4b92ce414b9d0420d706 # v4.0.2
         with:
-          token: ${{ github.token }}
-          # Enable listing of files matching each filter.
-          # Paths to files will be available in `${FILTER_NAME}_files` output variable.
-          list-files: json
+          fetch-depth: ${{ github.event_name == 'pull_request' && '100' || '2' }}
 
-          # It doesn't make sense to lint deleted files.
-          # Therefore we specify we are only interested in added or modified files.
-          filters: |
-            all:
-              - added|modified: '**/*'
+      - name: Get changed files
+        env:
+          EVENT_BEFORE: ${{ github.event.before }}
+        run: |
+          changed_files="$RUNNER_TEMP/pre-commit-files"
+          if [[ "$GITHUB_EVENT_NAME" == 'pull_request' ]]; then
+            if merge_base=$(git merge-base HEAD^1 HEAD^2); then
+              git diff --name-only -z --diff-filter=AMR "$merge_base" HEAD^2 > "$changed_files"
+            else
+              echo '::warning::Could not determine the PR merge base; running prek on all tracked files'
+              git ls-files -z > "$changed_files"
+            fi
+          elif [[ -n "$EVENT_BEFORE" ]] && \
+            git rev-parse --verify "$EVENT_BEFORE^{commit}" >/dev/null 2>&1; then
+            git diff --name-only -z --diff-filter=AMR "$EVENT_BEFORE" HEAD > "$changed_files"
+          else
+            git ls-files -z > "$changed_files"
+          fi
 
       - uses: ./.github/actions/setup-node-pnpm
 
@@ -79,11 +86,17 @@ jobs:
           .venv/bin/prek prepare-hooks
 
       - name: Run prek on PR commits
-        env:
-          ALL_FILES: ${{ steps.changes.outputs.all_files }}
         run: |
-          jq '.[]' --raw-output <<< "$ALL_FILES" |
-            xargs .venv/bin/prek run -q --files
+          changed_files="$RUNNER_TEMP/pre-commit-files"
+          # This is the serialized path-list byte length. Keep it below a
+          # conservative portion of ARG_MAX; larger PRs use prek's all-files mode.
+          changed_files_bytes=$(wc -c < "$changed_files")
+          if (( changed_files_bytes > 100000 )); then
+            echo '::warning::Too many changed files for a scoped pre-commit run; running all files'
+            .venv/bin/prek run -q --all-files
+          else
+            xargs -0 -r .venv/bin/prek run -q --files < "$changed_files"
+          fi
 
       - name: Apply any pre-commit fixed files
         # note: this runs "always" or else it's skipped when prek fails
