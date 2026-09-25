@@ -207,6 +207,82 @@ describe('ProjectPageFilter', () => {
     expect(await screen.findByRole('button', {name: 'project-2'})).toBeInTheDocument();
   });
 
+  it('keeps selected environments when they are available in the newly selected project', async () => {
+    ProjectsStore.loadInitialData([
+      ProjectFixture({
+        id: '1',
+        slug: 'project-1',
+        isMember: true,
+        environments: ['prod', 'staging'],
+      }),
+      ProjectFixture({
+        id: '2',
+        slug: 'project-2',
+        isMember: true,
+        environments: ['prod'],
+      }),
+    ]);
+    PageFiltersStore.onInitializeUrlState({
+      projects: [2],
+      environments: ['prod'],
+      datetime: {start: null, end: null, period: '14d', utc: null},
+    });
+
+    const {router} = render(<ProjectPageFilter />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/issues/',
+          query: {project: '2', environment: 'prod'},
+        },
+      },
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'project-2'}));
+    await userEvent.click(screen.getByRole('row', {name: 'project-1'}));
+
+    expect(router.location.query).toEqual({project: '1', environment: 'prod'});
+    expect(PageFiltersStore.getState().selection.environments).toEqual(['prod']);
+  });
+
+  it('removes selected environments when they are not available in the newly selected project', async () => {
+    ProjectsStore.loadInitialData([
+      ProjectFixture({
+        id: '1',
+        slug: 'project-1',
+        isMember: true,
+        environments: ['prod', 'staging'],
+      }),
+      ProjectFixture({
+        id: '2',
+        slug: 'project-2',
+        isMember: true,
+        environments: ['prod'],
+      }),
+    ]);
+    PageFiltersStore.onInitializeUrlState({
+      projects: [1],
+      environments: ['prod', 'staging'],
+      datetime: {start: null, end: null, period: '14d', utc: null},
+    });
+
+    const {router} = render(<ProjectPageFilter />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/issues/',
+          query: {project: '1', environment: ['prod', 'staging']},
+        },
+      },
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'project-1'}));
+    await userEvent.click(screen.getByRole('row', {name: 'project-2'}));
+
+    expect(router.location.query).toEqual({project: '2', environment: 'prod'});
+    expect(PageFiltersStore.getState().selection.environments).toEqual(['prod']);
+  });
+
   it('clicking My Projects when All Projects is active selects only non-member projects', async () => {
     // Start with All Projects active from URL
     PageFiltersStore.onInitializeUrlState({
