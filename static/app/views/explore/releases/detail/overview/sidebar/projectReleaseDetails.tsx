@@ -188,15 +188,9 @@ const StyledTextOverflow = styled(TextOverflow)`
 
 const ButtonContainer = styled('div')`
   display: flex;
+  align-items: center;
   justify-content: flex-end;
-  min-width: 0;
-  position: relative;
-  width: 100%;
-
-  & > * {
-    position: absolute;
-    right: 0;
-  }
+  height: 1lh;
 `;
 
 const FinalizeButton = styled(Button)`
