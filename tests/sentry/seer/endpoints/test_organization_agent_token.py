@@ -325,11 +325,26 @@ def _matrix_cases() -> tuple[tuple[PublicGetEndpoint, MatrixAuthentication], ...
     return tuple(cases)
 
 
+def _approvable_scopes(endpoint: PublicMutationEndpoint) -> frozenset[str]:
+    return frozenset(
+        endpoint.allowed_scopes
+        - agent_token.readonly_scopes()
+        - settings.SENTRY_TOKEN_ONLY_SCOPES
+        # Roles only grant these once their rollout flag is on, so an owner
+        # cannot approve them yet.
+        - settings.GRANULAR_SCOPES
+    )
+
+
 def _mutation_matrix_cases() -> tuple[tuple[PublicMutationEndpoint, MatrixAuthentication], ...]:
+    # A mutation gated only on read scopes has nothing to approve, so its approved
+    # agent token case is identical to the plain agent token case.
     return tuple(
         (endpoint, authentication)
         for endpoint in PUBLIC_MUTATION_ENDPOINTS
         for authentication in MatrixAuthentication
+        if authentication is not MatrixAuthentication.APPROVED_AGENT_TOKEN
+        or _approvable_scopes(endpoint)
     )
 
 
@@ -1190,6 +1205,7 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             "conversation_id": uuid4().hex,
             "external_issue_id": "1",
             "profile_id": uuid4().hex,
+            "run_id": "1",
             "snapshot_id": "1",
             "trace_id": uuid4().hex,
         }
@@ -1319,6 +1335,12 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             flags[feature] = True
         if endpoint.endpoint_name == "OrganizationProjectDetectorIndexEndpoint":
             flags.update(METRIC_SUBSCRIPTION_FEATURE_FLAGS)
+        if endpoint.endpoint_name.startswith("SearchAgent"):
+            flags["organizations:gen-ai-features"] = True
+            flags["organizations:gen-ai-search-agent-translate"] = True
+        if endpoint.endpoint_name == "SearchAgentTranslateEndpoint":
+            flags["organizations:gen-ai-features"] = True
+            flags["organizations:seer-explorer"] = True
         if endpoint.endpoint_name.startswith("CustomInboundFilter"):
             flags["projects:custom-inbound-filters"] = True
         if "Replay" in endpoint.endpoint_name:
@@ -1745,6 +1767,14 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
                 **self._resource("symbol_source"),
                 "name": "Updated permission matrix source",
             },
+            ("SearchAgentStartEndpoint", "POST"): {
+                "project_ids": [self.project.id],
+                "natural_language_query": "slowest http requests in the last day",
+            },
+            ("SearchAgentTranslateEndpoint", "POST"): {
+                "project_ids": [self.project.id],
+                "natural_language_query": "slowest http requests in the last day",
+            },
             ("TeamDetailsEndpoint", "PUT"): {"name": self.team.name},
             ("TeamProjectsEndpoint", "POST"): {"name": "Permission Matrix Team Project"},
         }
@@ -1945,6 +1975,11 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
                 "sentry.api.endpoints.organization_profiling_profiles.proxy_profiling_service",
                 return_value=HttpResponse(status=200),
             )
+        elif endpoint.endpoint_name == "SearchAgentStateEndpoint":
+            downstream_scope = patch(
+                "sentry.seer.endpoints.search_agent_state.fetch_search_agent_state",
+                return_value={"session": {"status": "processing"}},
+            )
         elif endpoint.endpoint_name == "ProjectProfilingProfileEndpoint":
             downstream_scope = patch(
                 "sentry.api.endpoints.project_profiling_profile.get_from_profiling_service",
@@ -2022,14 +2057,7 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             approved_scopes: frozenset[str] = frozenset()
             requested_scopes: frozenset[str] | None = None
             if authentication is MatrixAuthentication.APPROVED_AGENT_TOKEN:
-                approved_scopes = frozenset(
-                    endpoint.allowed_scopes
-                    - agent_token.readonly_scopes()
-                    - settings.SENTRY_TOKEN_ONLY_SCOPES
-                    # Roles only grant these once their rollout flag is on, so an owner
-                    # cannot approve them yet.
-                    - settings.GRANULAR_SCOPES
-                )
+                approved_scopes = _approvable_scopes(endpoint)
                 assert approved_scopes, endpoint
             elif authentication is MatrixAuthentication.SCOPED_DOWN_AGENT_TOKEN:
                 requested_scopes = frozenset()
@@ -2067,6 +2095,17 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
                     "sentry.seer.endpoints.group_ai_autofix.has_project_connected_repos",
                     return_value=True,
                 )
+            )
+        elif endpoint.endpoint_name == "SearchAgentStartEndpoint":
+            downstream_scope = patch(
+                "sentry.seer.endpoints.search_agent_start.send_search_agent_start_request",
+                return_value=SimpleNamespace(seer_run_state_id=1, uuid=uuid4()),
+            )
+        elif endpoint.endpoint_name == "SearchAgentTranslateEndpoint":
+            downstream_scope = patch(
+                "sentry.seer.endpoints.trace_explorer_ai_translate_agentic."
+                "send_translate_agentic_request",
+                return_value={"responses": [], "unsupported_reason": None},
             )
         elif endpoint.endpoint_name == "SentryAppInstallationExternalIssueActionsEndpoint":
             downstream_scope = patch(
