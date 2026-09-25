@@ -10,6 +10,7 @@ from sentry.models.activity import Activity
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.models.organization import Organization
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 
@@ -506,6 +507,7 @@ class AssignedNotificationAPITest(APITestCase):
         self.validate_slack_message(msg, group, project, user3.id, mock_post, index=4)
         self.validate_slack_message(msg, group, project, user4.id, mock_post, index=5)
 
+    @with_feature("organizations:notification-platform.general-access")
     def test_auto_assigned_notification_for_sentry_app(self, mock_post: MagicMock) -> None:
         """
         Test that automated assignments from Sentry Apps (e.g., smart assignment)
