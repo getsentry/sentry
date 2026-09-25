@@ -121,6 +121,7 @@ class TestTicketingActivityHandler(BaseWorkflowTest):
             linked_id=external_issue.id,
         )
         assert group_link.relationship == GroupLink.Relationship.references
+        assert group_link.data == {"provider": "github"}
 
         create_issue_activity = Activity.objects.get(
             group_id=self.group.id, type=ActivityType.CREATE_ISSUE.value
@@ -180,6 +181,8 @@ class TestTicketingActivityHandler(BaseWorkflowTest):
                 "repo": "getsentry/sentry",
                 "project": "PROJ",
                 "issuetype": "Bug",
+                "title": "Overridden title",
+                "description": "Overridden description",
             },
         }
 
@@ -191,3 +194,5 @@ class TestTicketingActivityHandler(BaseWorkflowTest):
         call_data = mock_create.call_args.args[0]
         assert call_data["project"] == "PROJ"
         assert call_data["issuetype"] == "Bug"
+        assert call_data["title"] == f"[Code Changes] {self.group.title}"
+        assert "Sentry Issue:" in call_data["description"]
