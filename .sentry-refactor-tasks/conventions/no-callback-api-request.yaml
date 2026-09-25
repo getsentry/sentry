@@ -67,6 +67,8 @@ examples:
 include:
   - 'static/app/**/*.tsx'
   - 'static/app/**/*.ts'
+  - 'static/gsApp/**/*.tsx'
+  - 'static/gsApp/**/*.ts'
 exclude:
   - '**/__fixtures__/**'
   - '**/__mocks__/**'
@@ -74,4 +76,4 @@ exclude:
   - '**/*.test.*'
   - '**/test/**'
 
-prefilter: "grep -rl --include='*.tsx' --include='*.ts' -E 'api\\.request\\(|api\\.requestPromise\\(' {repo_path}/static/"
+prefilter: "grep -rl --include='*.tsx' --include='*.ts' -E 'api\\.request\\(|api\\.requestPromise\\(' {repo_path}/static/app/ {repo_path}/static/gsApp/"
