@@ -227,9 +227,9 @@ describe('ConversationsOverviewPage', () => {
 
   it('does not apply the table search to agent charts', async () => {
     const chartRequest = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events-stats/`,
+      url: `/organizations/${organization.slug}/events-timeseries/`,
       match: [MockApiClient.matchQuery({referrer: 'api.dashboards.widget.bar-chart'})],
-      body: {data: []},
+      body: {timeSeries: []},
     });
 
     render(<ConversationsOverviewPage />, {

@@ -1,5 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
+import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 import {WidgetFixture} from 'sentry-fixture/widget';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -57,12 +58,9 @@ describe('useSpansSeriesQuery', () => {
     PageFiltersStore.onInitializeUrlState(pageFiltersWithDates);
 
     const mockRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
+      url: '/organizations/org-slug/events-timeseries/',
       body: {
-        data: [
-          [1, [{count: 100}]],
-          [2, [{count: 200}]],
-        ],
+        timeSeries: [TimeSeriesFixture({yAxis: 'count()'})],
       },
     });
 
@@ -77,7 +75,7 @@ describe('useSpansSeriesQuery', () => {
 
     await waitFor(() => {
       expect(mockRequest).toHaveBeenCalledWith(
-        '/organizations/org-slug/events-stats/',
+        '/organizations/org-slug/events-timeseries/',
         expect.objectContaining({
           query: expect.objectContaining({
             start: '2026-01-14T00:00:00',
@@ -104,9 +102,9 @@ describe('useSpansSeriesQuery', () => {
     });
 
     const mockRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
+      url: '/organizations/org-slug/events-timeseries/',
       body: {
-        data: [[1, [{count: 100}]]],
+        timeSeries: [TimeSeriesFixture({yAxis: 'count()'})],
       },
     });
 
@@ -124,7 +122,7 @@ describe('useSpansSeriesQuery', () => {
 
     await waitFor(() => {
       expect(mockRequest).toHaveBeenCalledWith(
-        '/organizations/org-slug/events-stats/',
+        '/organizations/org-slug/events-timeseries/',
         expect.objectContaining({
           query: expect.objectContaining({
             query: expect.stringContaining('release:"1.0.0"'),
@@ -158,9 +156,9 @@ describe('useSpansSeriesQuery', () => {
     });
 
     const mockRequest1 = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
+      url: '/organizations/org-slug/events-timeseries/',
       body: {
-        data: [[1, [{count: 100}]]],
+        timeSeries: [TimeSeriesFixture({yAxis: 'count()'})],
       },
       match: [
         function (_url: string, options: Record<string, any>) {
@@ -173,9 +171,9 @@ describe('useSpansSeriesQuery', () => {
     });
 
     const mockRequest2 = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
+      url: '/organizations/org-slug/events-timeseries/',
       body: {
-        data: [[1, [{count: 250}]]],
+        timeSeries: [TimeSeriesFixture({yAxis: 'avg(transaction.duration)'})],
       },
       match: [
         function (_url: string, options: Record<string, any>) {
@@ -218,9 +216,9 @@ describe('useSpansSeriesQuery', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
+      url: '/organizations/org-slug/events-timeseries/',
       body: {
-        data: [[1, [{count: 100}]]],
+        timeSeries: [TimeSeriesFixture({yAxis: 'count()'})],
       },
     });
 
@@ -252,7 +250,7 @@ describe('useSpansSeriesQuery', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
+      url: '/organizations/org-slug/events-timeseries/',
       body: {
         detail: 'Internal server error',
       },
@@ -291,7 +289,7 @@ describe('useSpansSeriesQuery', () => {
     });
 
     const mockRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
+      url: '/organizations/org-slug/events-timeseries/',
       body: {},
     });
 
@@ -336,12 +334,9 @@ describe('useSpansSeriesQuery', () => {
     });
 
     const mockRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
+      url: '/organizations/org-slug/events-timeseries/',
       body: {
-        data: [
-          [1, [{count: 100}]],
-          [2, [{count: 200}]],
-        ],
+        timeSeries: [TimeSeriesFixture({yAxis: 'count()'})],
       },
     });
 
@@ -382,12 +377,9 @@ describe('useSpansSeriesQuery', () => {
     });
 
     const mockRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
+      url: '/organizations/org-slug/events-timeseries/',
       body: {
-        data: [
-          [1, [{count: 100}]],
-          [2, [{count: 200}]],
-        ],
+        timeSeries: [TimeSeriesFixture({yAxis: 'count()'})],
       },
     });
 
@@ -404,7 +396,7 @@ describe('useSpansSeriesQuery', () => {
       expect(mockRequest).toHaveBeenCalled();
     });
     expect(mockRequest).toHaveBeenCalledWith(
-      '/organizations/org-slug/events-stats/',
+      '/organizations/org-slug/events-timeseries/',
       expect.objectContaining({
         query: expect.objectContaining({
           yAxis: ['avg_if(``,span.duration)'],
@@ -430,12 +422,9 @@ describe('useSpansSeriesQuery', () => {
     });
 
     const mockRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
+      url: '/organizations/org-slug/events-timeseries/',
       body: {
-        data: [
-          [1, [{count: 100}]],
-          [2, [{count: 200}]],
-        ],
+        timeSeries: [TimeSeriesFixture({yAxis: 'count()'})],
       },
     });
 
@@ -452,7 +441,7 @@ describe('useSpansSeriesQuery', () => {
       expect(mockRequest).toHaveBeenCalled();
     });
     expect(mockRequest).toHaveBeenCalledWith(
-      '/organizations/org-slug/events-stats/',
+      '/organizations/org-slug/events-timeseries/',
       expect.objectContaining({
         query: expect.objectContaining({
           yAxis: ['avg(span.duration)'],
@@ -483,11 +472,17 @@ describe('useSpansSeriesQuery', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
+      url: '/organizations/org-slug/events-timeseries/',
       body: {
-        data: [
-          [1, [{count: 100}]],
-          [2, [{count: 200}]],
+        timeSeries: [
+          TimeSeriesFixture({
+            yAxis: 'p95(span.duration)',
+            meta: {
+              valueType: 'duration',
+              valueUnit: DurationUnit.MILLISECOND,
+              interval: 1_800_000,
+            },
+          }),
         ],
       },
     });
@@ -534,12 +529,9 @@ describe('useSpansSeriesQuery', () => {
     });
 
     const mockRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
+      url: '/organizations/org-slug/events-timeseries/',
       body: {
-        data: [
-          [1, [{count: 100}]],
-          [2, [{count: 200}]],
-        ],
+        timeSeries: [TimeSeriesFixture({yAxis: 'count()'})],
       },
     });
 
@@ -556,10 +548,11 @@ describe('useSpansSeriesQuery', () => {
       expect(mockRequest).toHaveBeenCalled();
     });
     expect(mockRequest).toHaveBeenCalledWith(
-      '/organizations/org-slug/events-stats/',
+      '/organizations/org-slug/events-timeseries/',
       expect.objectContaining({
         query: expect.objectContaining({
-          orderby: '-avg(span.duration)',
+          sort: '-avg(span.duration)',
+          groupBy: expect.not.arrayContaining(['avg_if(``,span.duration)']),
           field: expect.not.arrayContaining(['avg_if(``,span.duration)']),
         }),
       })

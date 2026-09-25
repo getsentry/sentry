@@ -1,5 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
+import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 import {WidgetFixture} from 'sentry-fixture/widget';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -24,23 +25,24 @@ describe('spansWidgetQueries', () => {
 
   it('calculates the confidence for a single series', async () => {
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
+      url: '/organizations/org-slug/events-timeseries/',
       body: {
-        data: [
-          [1, [{count: 1}]],
-          [2, [{count: 2}]],
-          [3, [{count: 3}]],
-        ],
-        meta: {
-          dataScanned: 'partial',
-          accuracy: {
-            confidence: [
-              {timestamp: 1, value: 'low'},
-              {timestamp: 2, value: 'low'},
-              {timestamp: 3, value: 'low'},
+        timeSeries: [
+          TimeSeriesFixture({
+            yAxis: 'count()',
+            meta: {
+              valueType: 'integer',
+              valueUnit: null,
+              interval: 1000,
+              dataScanned: 'partial',
+            },
+            values: [
+              {timestamp: 1000, value: 1, confidence: 'low'},
+              {timestamp: 2000, value: 2, confidence: 'low'},
+              {timestamp: 3000, value: 3, confidence: 'low'},
             ],
-          },
-        },
+          }),
+        ],
       },
     });
 
@@ -72,40 +74,28 @@ describe('spansWidgetQueries', () => {
       ],
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
+      url: '/organizations/org-slug/events-timeseries/',
       body: {
-        a: {
-          meta: {
-            accuracy: {
-              confidence: [
-                {timestamp: 1, value: 'high'},
-                {timestamp: 2, value: 'high'},
-                {timestamp: 3, value: 'high'},
-              ],
-            },
-          },
-          data: [
-            [1, [{count: 1}]],
-            [2, [{count: 2}]],
-            [3, [{count: 3}]],
-          ],
-        },
-        b: {
-          meta: {
-            accuracy: {
-              confidence: [
-                {timestamp: 1, value: 'high'},
-                {timestamp: 2, value: 'high'},
-                {timestamp: 3, value: 'high'},
-              ],
-            },
-          },
-          data: [
-            [1, [{count: 1}]],
-            [2, [{count: 2}]],
-            [3, [{count: 3}]],
-          ],
-        },
+        timeSeries: [
+          TimeSeriesFixture({
+            yAxis: 'a',
+            meta: {valueType: 'integer', valueUnit: null, interval: 1000},
+            values: [
+              {timestamp: 1000, value: 1, confidence: 'high'},
+              {timestamp: 2000, value: 2, confidence: 'high'},
+              {timestamp: 3000, value: 3, confidence: 'high'},
+            ],
+          }),
+          TimeSeriesFixture({
+            yAxis: 'b',
+            meta: {valueType: 'integer', valueUnit: null, interval: 1000},
+            values: [
+              {timestamp: 1000, value: 1, confidence: 'high'},
+              {timestamp: 2000, value: 2, confidence: 'high'},
+              {timestamp: 3000, value: 3, confidence: 'high'},
+            ],
+          }),
+        ],
       },
     });
 
@@ -135,12 +125,18 @@ describe('spansWidgetQueries', () => {
     });
 
     const normalModeMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
+      url: '/organizations/org-slug/events-timeseries/',
       body: {
-        data: [
-          [1, [{count: 1}]],
-          [2, [{count: 2}]],
-          [3, [{count: 3}]],
+        timeSeries: [
+          TimeSeriesFixture({
+            yAxis: 'a',
+            meta: {valueType: 'integer', valueUnit: null, interval: 1000},
+            values: [
+              {timestamp: 1000, value: 1},
+              {timestamp: 2000, value: 2},
+              {timestamp: 3000, value: 3},
+            ],
+          }),
         ],
       },
       match: [
@@ -165,7 +161,7 @@ describe('spansWidgetQueries', () => {
     expect(await screen.findByText('1')).toBeInTheDocument();
 
     expect(normalModeMock).toHaveBeenCalledWith(
-      '/organizations/org-slug/events-stats/',
+      '/organizations/org-slug/events-timeseries/',
       expect.objectContaining({
         query: expect.objectContaining({
           sampling: 'NORMAL',
@@ -226,9 +222,9 @@ describe('spansWidgetQueries', () => {
   });
 
   it('skips the request and surfaces an error for an invalid series _if filter', async () => {
-    const eventsStatsMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
-      body: {},
+    const eventsTimeseriesMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {timeSeries: []},
     });
     widget = WidgetFixture({
       displayType: DisplayType.LINE,
@@ -261,6 +257,6 @@ describe('spansWidgetQueries', () => {
     );
 
     expect(await screen.findByText('idle:Invalid series filter')).toBeInTheDocument();
-    expect(eventsStatsMock).not.toHaveBeenCalled();
+    expect(eventsTimeseriesMock).not.toHaveBeenCalled();
   });
 });

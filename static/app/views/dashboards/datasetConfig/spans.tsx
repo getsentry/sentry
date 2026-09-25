@@ -3,12 +3,7 @@ import pickBy from 'lodash/pickBy';
 import {Link} from '@sentry/scraps/link';
 
 import type {TagCollection} from 'sentry/types/group';
-import type {
-  EventsStats,
-  GroupedMultiSeriesEventsStats,
-  MultiSeriesEventsStats,
-  Organization,
-} from 'sentry/types/organization';
+import type {Organization} from 'sentry/types/organization';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
 import {emptyStringValue} from 'sentry/utils/discover/emptyFieldValues';
@@ -31,6 +26,7 @@ import {
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
   NO_ARGUMENT_SPAN_AGGREGATES,
 } from 'sentry/utils/fields';
+import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {WIDGET_BUILDER_ATTRIBUTE_STALE_TIME} from 'sentry/views/dashboards/constants';
@@ -54,12 +50,7 @@ import {
   type WidgetQuery,
 } from 'sentry/views/dashboards/types';
 import {getWidgetTableRowExploreUrlFunction} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
-import {
-  isEventsStats,
-  isGroupedMultiSeriesEventsStats,
-  isMultiSeriesEventsStats,
-} from 'sentry/views/dashboards/utils/isEventsStats';
-import {transformEventsResponseToSeries} from 'sentry/views/dashboards/utils/transformEventsResponseToSeries';
+import {transformTimeSeriesResponseToSeries} from 'sentry/views/dashboards/utils/transformTimeSeriesResponseToSeries';
 import {SpansSearchBar} from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/spansSearchBar';
 import {isPerformanceScoreBreakdownChart} from 'sentry/views/dashboards/widgetBuilder/utils/isPerformanceScoreBreakdownChart';
 import {transformPerformanceScoreBreakdownSeries} from 'sentry/views/dashboards/widgetBuilder/utils/transformPerformanceScoreBreakdownSeries';
@@ -67,6 +58,7 @@ import {
   useSpansSeriesQuery,
   useSpansTableQuery,
 } from 'sentry/views/dashboards/widgetCard/hooks/useSpansWidgetQuery';
+import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {useTraceItemSearchQueryBuilderProps} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
@@ -206,88 +198,39 @@ function useSpansSearchBarDataProvider(props: SearchBarDataProviderProps): Searc
 }
 
 /**
- * Generic helper to extract metadata (units or types) from events-stats series data.
- * Handles both MultiSeriesEventsStats and GroupedMultiSeriesEventsStats responses.
+ * Generic helper to extract metadata (units or types) from time series data.
+ * Values the user set in `fieldMeta` take precedence over the response meta.
  */
 function extractSeriesMetadata<T>({
   data,
   getFieldMetaValue,
-  getMetaField,
+  getTimeSeriesMetaValue,
   widgetQuery,
 }: {
-  data: EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats;
+  data: EventsTimeSeriesResponse;
   getFieldMetaValue: (meta: NonNullable<WidgetQuery['fieldMeta']>[number] | null) => T;
-  getMetaField: (seriesMeta: EventsStats['meta'], aggregate: string) => T;
+  getTimeSeriesMetaValue: (meta: TimeSeries['meta']) => T;
   widgetQuery: WidgetQuery;
 }): Record<string, T> {
   const result: Record<string, T> = {};
 
-  // Initialize from fieldMeta if available
   widgetQuery.fieldMeta?.forEach((meta, index) => {
     if (meta && widgetQuery.fields?.[index]) {
       result[widgetQuery.fields[index]] = getFieldMetaValue(meta);
     }
   });
 
-  if (isEventsStats(data)) {
-    // Plain EventsStats: single aggregate, no grouping. Meta is at the top level.
-    if (data.meta) {
-      widgetQuery.aggregates?.forEach(aggregate => {
-        if (aggregate && !(aggregate in result)) {
-          result[aggregate] = getMetaField(data.meta, aggregate);
-        }
-      });
+  data.timeSeries.forEach(timeSeries => {
+    if (!(timeSeries.yAxis in result)) {
+      result[timeSeries.yAxis] = getTimeSeriesMetaValue(timeSeries.meta);
     }
-  } else if (isMultiSeriesEventsStats(data)) {
-    // If there's only one aggregate and multiple groupings, series names are group names
-    // In this case, we can use the first meta value for all series
-    const firstMeta = widgetQuery.fieldMeta?.find(meta => meta !== null);
-    const isSingleAggregateMultiGroup =
-      firstMeta &&
-      widgetQuery.aggregates?.length === 1 &&
-      widgetQuery.columns?.length > 0;
-
-    if (isSingleAggregateMultiGroup) {
-      // Use hardcoded config for all series
-      Object.keys(data).forEach(seriesName => {
-        // Don't overwrite fieldMeta values
-        if (!(seriesName in result)) {
-          result[seriesName] = getFieldMetaValue(firstMeta);
-        }
-      });
-    } else {
-      Object.keys(data).forEach(seriesName => {
-        const seriesData = data[seriesName];
-        if (!seriesData?.meta) {
-          return;
-        }
-        widgetQuery.aggregates?.forEach(aggregate => {
-          // Multi-series can be keyed by aggregate or series name depending on aggregate count
-          const key = widgetQuery.aggregates?.length > 1 ? aggregate : seriesName;
-          // Don't overwrite fieldMeta values
-          if (seriesData.meta && !(key in result)) {
-            result[key] = getMetaField(seriesData.meta, aggregate);
-          }
-        });
-      });
-    }
-  } else if (isGroupedMultiSeriesEventsStats(data)) {
-    Object.keys(data).forEach(groupName => {
-      widgetQuery.aggregates?.forEach(aggregate => {
-        const seriesData = data[groupName]?.[aggregate] as EventsStats;
-        // Don't overwrite fieldMeta values
-        if (seriesData?.meta && aggregate && !(aggregate in result)) {
-          result[aggregate] = getMetaField(seriesData.meta, aggregate);
-        }
-      });
-    });
-  }
+  });
 
   return result;
 }
 
 export const SpansConfig: DatasetConfig<
-  EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats,
+  EventsTimeSeriesResponse,
   TableData | EventsTableData
 > = {
   defaultCategoryField: 'transaction',
@@ -350,7 +293,7 @@ export const SpansConfig: DatasetConfig<
       data,
       widgetQuery,
       getFieldMetaValue: meta => meta?.valueUnit as DataUnit,
-      getMetaField: (seriesMeta, aggregate) => seriesMeta?.units?.[aggregate] as DataUnit,
+      getTimeSeriesMetaValue: meta => meta.valueUnit as DataUnit,
     });
   },
   getSeriesResultType: (data, widgetQuery) => {
@@ -358,7 +301,7 @@ export const SpansConfig: DatasetConfig<
       data,
       widgetQuery,
       getFieldMetaValue: meta => meta?.valueType as AggregationOutputType,
-      getMetaField: (seriesMeta, aggregate) => seriesMeta?.fields?.[aggregate]!,
+      getTimeSeriesMetaValue: meta => meta.valueType as AggregationOutputType,
     });
   },
 };
@@ -555,17 +498,13 @@ function renderInternalErrorCount(widget?: Widget, dashboardFilters?: DashboardF
   };
 }
 
-function transformSeries(
-  data: EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats,
-  widgetQuery: WidgetQuery
-) {
-  let eventsStats = data;
+function transformSeries(data: EventsTimeSeriesResponse, widgetQuery: WidgetQuery) {
   // Kind of a hack, but performance score breakdown charts need a special transformation to display correctly.
-  if (
-    isMultiSeriesEventsStats(eventsStats) &&
-    isPerformanceScoreBreakdownChart(widgetQuery)
-  ) {
-    eventsStats = transformPerformanceScoreBreakdownSeries(eventsStats);
+  if (isPerformanceScoreBreakdownChart(widgetQuery)) {
+    return transformTimeSeriesResponseToSeries(
+      transformPerformanceScoreBreakdownSeries(data),
+      widgetQuery
+    );
   }
-  return transformEventsResponseToSeries(eventsStats, widgetQuery);
+  return transformTimeSeriesResponseToSeries(data, widgetQuery);
 }

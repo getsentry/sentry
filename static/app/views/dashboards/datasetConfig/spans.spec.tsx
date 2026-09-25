@@ -1,20 +1,18 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ThemeFixture} from 'sentry-fixture/theme';
+import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 import {UserFixture} from 'sentry-fixture/user';
 import {WidgetFixture} from 'sentry-fixture/widget';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import type {
-  EventsStats,
-  GroupedMultiSeriesEventsStats,
-  MultiSeriesEventsStats,
-  Organization,
-} from 'sentry/types/organization';
+import type {Organization} from 'sentry/types/organization';
 import type {EventViewOptions} from 'sentry/utils/discover/eventView';
 import {EventView} from 'sentry/utils/discover/eventView';
+import {DurationUnit, SizeUnit} from 'sentry/utils/discover/fields';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
+import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {SpansConfig} from 'sentry/views/dashboards/datasetConfig/spans';
 import {DisplayType, type WidgetQuery} from 'sentry/views/dashboards/types';
 
@@ -66,98 +64,53 @@ describe('SpansConfig', () => {
     });
   });
 
-  it('surfaces types and units correctly for multi-series (grouped) responses with a single aggregate', () => {
-    // Meta is copied for all series in the response
-    const commonMockedMeta: EventsStats['meta'] = {
-      isMetricsData: false,
-      units: {'count(span.duration)': 'millisecond'},
-      fields: {'count(span.duration)': 'integer'},
-      tips: {},
-    };
-    // Multi-series response with multiple grouped series
-    const multiSeriesData: MultiSeriesEventsStats = {
-      'GET /api/users': {
-        order: 0,
-        data: [[1234567890, [{count: 100}]]],
-        meta: commonMockedMeta,
-      },
-      'POST /api/data': {
-        order: 1,
-        data: [[1234567890, [{count: 250}]]],
-        meta: commonMockedMeta,
-      },
-    };
-
-    const widgetQuery: WidgetQuery = {
-      name: '',
-      fields: [],
-      columns: ['transaction'], // Grouped by transaction
-      fieldAliases: [],
-      aggregates: ['count(span.duration)'],
-      conditions: '',
-      orderby: '-count(span.duration)',
-    };
-
-    const resultTypes = SpansConfig.getSeriesResultType!(multiSeriesData, widgetQuery);
-    expect(resultTypes['GET /api/users']).toBe('integer');
-    expect(resultTypes['POST /api/data']).toBe('integer');
-
-    const resultUnits = SpansConfig.getSeriesResultUnit!(multiSeriesData, widgetQuery);
-    expect(resultUnits['GET /api/users']).toBe('millisecond');
-    expect(resultUnits['POST /api/data']).toBe('millisecond');
-  });
-
-  it('surfaces types and units correctly for multi-series (grouped) responses with a multiple aggregates', () => {
-    // Meta is copied for all series in the response
-    const commonMockedMeta: EventsStats['meta'] = {
-      isMetricsData: false,
-      units: {'count(span.duration)': null, 'p50(span.duration)': 'millisecond'},
-      fields: {'count(span.duration)': 'integer', 'p50(span.duration)': 'duration'},
-      tips: {},
-    };
-    // Multi-series response with multiple aggregates and grouped series
-    const multiSeriesData: GroupedMultiSeriesEventsStats = {
-      'GET /api/users': {
-        order: 0,
-        'count(span.duration)': {
-          data: [[1234567890, [{count: 100}]]],
-          meta: commonMockedMeta,
-        },
-        'p50(span.duration)': {
-          data: [[1234567890, [{count: 100}]]],
-          meta: commonMockedMeta,
-        },
-      },
-      'POST /api/data': {
-        order: 1,
-        'count(span.duration)': {
-          data: [[1234567890, [{count: 250}]]],
-          meta: commonMockedMeta,
-        },
-        'p50(span.duration)': {
-          data: [[1234567890, [{count: 100}]]],
-          meta: commonMockedMeta,
-        },
-      },
+  it('surfaces types and units from the response, preferring user-set field meta', () => {
+    const data: EventsTimeSeriesResponse = {
+      timeSeries: ['GET /api/users', 'POST /api/data'].flatMap((transaction, index) => [
+        TimeSeriesFixture({
+          yAxis: 'count(span.duration)',
+          groupBy: [{key: 'transaction', value: transaction}],
+          meta: {valueType: 'integer', valueUnit: null, interval: 60_000, order: index},
+        }),
+        TimeSeriesFixture({
+          yAxis: 'p50(span.duration)',
+          groupBy: [{key: 'transaction', value: transaction}],
+          meta: {
+            valueType: 'duration',
+            valueUnit: DurationUnit.MILLISECOND,
+            interval: 60_000,
+            order: index,
+          },
+        }),
+        TimeSeriesFixture({
+          yAxis: 'sum(value)',
+          groupBy: [{key: 'transaction', value: transaction}],
+          meta: {valueType: 'number', valueUnit: null, interval: 60_000, order: index},
+        }),
+      ]),
     };
 
     const widgetQuery: WidgetQuery = {
       name: '',
-      fields: [],
-      columns: ['transaction'], // Grouped by transaction
+      fields: ['transaction', 'count(span.duration)', 'p50(span.duration)', 'sum(value)'],
+      columns: ['transaction'],
       fieldAliases: [],
-      aggregates: ['count(span.duration)', 'p50(span.duration)'],
+      aggregates: ['count(span.duration)', 'p50(span.duration)', 'sum(value)'],
+      fieldMeta: [null, null, null, {valueType: 'size', valueUnit: SizeUnit.BYTE}],
       conditions: '',
       orderby: '-count(span.duration)',
     };
 
-    const resultTypes = SpansConfig.getSeriesResultType!(multiSeriesData, widgetQuery);
-    expect(resultTypes['count(span.duration)']).toBe('integer');
-    expect(resultTypes['p50(span.duration)']).toBe('duration');
-
-    const resultUnits = SpansConfig.getSeriesResultUnit!(multiSeriesData, widgetQuery);
-    expect(resultUnits['count(span.duration)']).toBeNull();
-    expect(resultUnits['p50(span.duration)']).toBe('millisecond');
+    expect(SpansConfig.getSeriesResultType!(data, widgetQuery)).toEqual({
+      'count(span.duration)': 'integer',
+      'p50(span.duration)': 'duration',
+      'sum(value)': 'size',
+    });
+    expect(SpansConfig.getSeriesResultUnit!(data, widgetQuery)).toEqual({
+      'count(span.duration)': null,
+      'p50(span.duration)': 'millisecond',
+      'sum(value)': 'byte',
+    });
   });
 
   it('renders internal error count as a link to explore with error filter', () => {

@@ -1,26 +1,15 @@
 import {useCallback, useState} from 'react';
 
 import type {PageFilters} from 'sentry/types/core';
-import type {
-  Confidence,
-  EventsStats,
-  GroupedMultiSeriesEventsStats,
-  MultiSeriesEventsStats,
-} from 'sentry/types/organization';
-import {dedupeArray} from 'sentry/utils/dedupeArray';
-import {defined} from 'sentry/utils/defined';
+import type {Confidence} from 'sentry/types/organization';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
 import {getDynamicText} from 'sentry/utils/getDynamicText';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/utils/timeSeries/determineSeriesSampleCount';
+import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {SpansConfig} from 'sentry/views/dashboards/datasetConfig/spans';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
-import {isEventsStats} from 'sentry/views/dashboards/utils/isEventsStats';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
-import {
-  convertEventsStatsToTimeSeriesData,
-  transformToSeriesMap,
-} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
 import type {
   GenericWidgetQueriesResult,
@@ -28,7 +17,7 @@ import type {
 } from './genericWidgetQueries';
 import {useGenericWidgetQueries} from './genericWidgetQueries';
 
-type SeriesResult = EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats;
+type SeriesResult = EventsTimeSeriesResponse;
 type TableResult = TableData | EventsTableData;
 
 type SpansWidgetQueriesProps = {
@@ -57,49 +46,15 @@ type SpansWidgetQueriesImplProps = SpansWidgetQueriesProps & {
 export function SpansWidgetQueries(props: SpansWidgetQueriesProps) {
   const getConfidenceInformation = useCallback(
     (result: SeriesResult) => {
-      let seriesConfidence: Confidence | null;
-      let seriesSampleCount: number | undefined;
-      let seriesIsSampled: boolean | null;
-      let seriesDataScanned: 'full' | 'partial' | undefined;
+      const series = result.timeSeries ?? [];
+      const isTopN = (props.widget.queries[0]?.columns.length ?? 0) > 0;
+      const samplingMeta = determineSeriesSampleCountAndIsSampled(series, isTopN);
 
-      if (isEventsStats(result)) {
-        const [_order, timeSeries] = convertEventsStatsToTimeSeriesData(
-          props.widget.queries[0]?.aggregates[0] ?? '',
-          result
-        );
-
-        seriesConfidence = combineConfidenceForSeries([timeSeries]);
-
-        const {
-          dataScanned: calculatedDataScanned,
-          sampleCount: calculatedSampleCount,
-          isSampled: calculatedIsSampled,
-        } = determineSeriesSampleCountAndIsSampled([timeSeries], false);
-        seriesDataScanned = calculatedDataScanned;
-        seriesSampleCount = calculatedSampleCount;
-        seriesIsSampled = calculatedIsSampled;
-      } else {
-        const dedupedYAxes = dedupeArray(props.widget.queries[0]?.aggregates ?? []);
-        const seriesMap = transformToSeriesMap(result, dedupedYAxes);
-        const series = dedupedYAxes.flatMap(yAxis => seriesMap[yAxis]).filter(defined);
-        const {
-          dataScanned: calculatedDataScanned,
-          sampleCount: calculatedSampleCount,
-          isSampled: calculatedIsSampled,
-        } = determineSeriesSampleCountAndIsSampled(
-          series,
-          Object.keys(result).some(seriesName => seriesName.toLowerCase() !== 'other')
-        );
-        seriesDataScanned = calculatedDataScanned;
-        seriesSampleCount = calculatedSampleCount;
-        seriesConfidence = combineConfidenceForSeries(series);
-        seriesIsSampled = calculatedIsSampled;
-      }
       return {
-        seriesDataScanned,
-        seriesConfidence,
-        seriesSampleCount,
-        seriesIsSampled,
+        seriesDataScanned: samplingMeta.dataScanned,
+        seriesConfidence: combineConfidenceForSeries(series),
+        seriesSampleCount: samplingMeta.sampleCount,
+        seriesIsSampled: samplingMeta.isSampled,
       };
     },
     [props.widget.queries]
