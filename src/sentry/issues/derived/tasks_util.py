@@ -3,11 +3,11 @@ from __future__ import annotations
 import logging
 import random
 import time
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from math import ceil
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol
 
 from django.db.models import Max, Min
 from django.db.utils import OperationalError
@@ -17,6 +17,10 @@ from sentry.issues.models.groupderiveddata import GroupDerivedData
 from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawned
 from sentry.utils import metrics
 from sentry.utils.db import statement_timeout
+
+if TYPE_CHECKING:
+    from sentry.issues.derived.processing import GenerationId
+    from sentry.issues.derived.promote import PromotionResult
 
 logger = logging.getLogger(__name__)
 
@@ -82,6 +86,41 @@ def _record_check_result(result: CheckResult) -> None:
         "issues.derived.check_group",
         sample_rate=1.0,
         tags={"result": outcome},
+    )
+
+
+def _record_batch_metrics(
+    processed: Mapping[PromotionResult, int],
+    *,
+    metric_name: str,
+    tag_extra: dict[str, str] | None = None,
+) -> None:
+    for result, count in processed.items():
+        tags = {"result": result.value}
+        if tag_extra:
+            tags.update(tag_extra)
+        metrics.incr(metric_name, amount=count, sample_rate=1.0, tags=tags)
+
+
+def _resume_generation_id(
+    group_id: int,
+    resume_generated_at: str | None,
+    resume_pipeline_hash: str | None,
+) -> GenerationId | None:
+    """Reconstruct a ``GenerationId`` from resume kwargs, or ``None`` if either is missing.
+
+    Tasks accept ``resume_generated_at`` / ``resume_pipeline_hash`` as separate
+    scalars (rather than a single ``GenerationId``) because tasks serialize
+    kwargs as JSON. This helper re-hydrates them at task entry.
+    """
+    from sentry.issues.derived.processing import GenerationId
+
+    if resume_generated_at is None or resume_pipeline_hash is None:
+        return None
+    return GenerationId(
+        group_id,
+        datetime.fromisoformat(resume_generated_at).replace(tzinfo=timezone.utc),
+        resume_pipeline_hash,
     )
 
 
