@@ -60,7 +60,6 @@ function Row({
   const {
     subject,
     subjectNode,
-    subjectIcon,
     subjectDataTestId,
     meta,
     value = null,
@@ -70,10 +69,10 @@ function Row({
   } = item;
 
   const renderValue = (v: KeyValueListDataItem['value']) =>
-    item.isContextData || isContextData ? (
-      <ContextDataValue value={v} meta={meta} raw={raw} subjectIcon={subjectIcon} />
+    isContextData ? (
+      <ContextDataValue value={v} meta={meta} raw={raw} />
     ) : (
-      <PreformattedValue value={v} meta={meta} subjectIcon={subjectIcon} />
+      <PreformattedValue value={v} meta={meta} />
     );
 
   const rendered =
@@ -88,7 +87,7 @@ function Row({
   return (
     <tr>
       <td className="key">{subjectNode ?? subject}</td>
-      <td className="val" data-test-id={subjectDataTestId}>
+      <td data-test-id={subjectDataTestId}>
         <TableValue>
           {actionButton ? (
             <ValueWithButton>
@@ -130,17 +129,14 @@ const Table = styled('table')<{margin: boolean}>`
 
 const TableValue = styled('div')`
   pre {
-    box-sizing: border-box;
+    /* <pre> defaults to white-space: pre, which suppresses the soft-wrap
+       opportunities word-break relies on. */
     white-space: pre-wrap;
     margin: 2px 0;
     word-break: break-word;
     padding: 8px 10px;
     font-size: 12px;
     overflow: visible;
-  }
-
-  pre .val-string:first-child {
-    padding-left: 0;
   }
 
   pre > pre {
