@@ -562,6 +562,76 @@ class PreprodArtifactBaseArtifactTest(PreprodArtifactModelTestBase):
         result = head_artifact.get_base_artifact_for_commit().first()
         assert result == base_artifact_old
 
+    def test_get_base_artifact_multiple_commit_comparisons_excludes_different_repo(self) -> None:
+        """Test that a same-head_sha base comparison from a different repo is excluded.
+
+        Reproduces the case where a base SHA is uploaded under two different repos. The
+        wrong-repo comparison is older, so an oldest-wins lookup without a repo filter would
+        incorrectly select it; the matching-repo comparison must win instead.
+        """
+        # Wrong-repo base comparison, created first so it is the oldest.
+        wrong_repo_base_commit_comparison = self.create_commit_comparison(
+            organization=self.organization,
+            head_sha="b" * 40,
+            base_sha="c" * 40,
+            provider="github",
+            head_repo_name="owner/other-repo",
+            base_repo_name="owner/other-repo",
+            head_ref="main",
+            base_ref="develop",
+        )
+
+        self.create_preprod_artifact(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.app",
+            artifact_type=PreprodArtifact.ArtifactType.APK,
+            commit_comparison=wrong_repo_base_commit_comparison,
+        )
+
+        # Matching-repo base comparison, created second so it is the newest.
+        matching_repo_base_commit_comparison = self.create_commit_comparison(
+            organization=self.organization,
+            head_sha="b" * 40,
+            base_sha="d" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+            base_repo_name="owner/repo",
+            head_ref="main",
+            base_ref="develop",
+        )
+
+        matching_repo_base_artifact = self.create_preprod_artifact(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.app",
+            artifact_type=PreprodArtifact.ArtifactType.APK,
+            commit_comparison=matching_repo_base_commit_comparison,
+        )
+
+        head_commit_comparison = self.create_commit_comparison(
+            organization=self.organization,
+            head_sha="a" * 40,
+            base_sha="b" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+            base_repo_name="owner/repo",
+            head_ref="feature/test",
+            base_ref="main",
+        )
+
+        head_artifact = self.create_preprod_artifact(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.app",
+            artifact_type=PreprodArtifact.ArtifactType.APK,
+            commit_comparison=head_commit_comparison,
+        )
+
+        # Only the base comparison from the head's repo should be considered.
+        result = head_artifact.get_base_artifact_for_commit().first()
+        assert result == matching_repo_base_artifact
+
     def test_get_head_artifacts_for_commit_single_artifact(self) -> None:
         """Test getting head artifacts when there's only one head artifact."""
         # Create base commit comparison
@@ -1295,6 +1365,18 @@ class PreprodArtifactBatchBaseArtifactTest(PreprodArtifactModelTestBase):
         result = PreprodArtifact.get_base_artifacts_for_commit([head_artifact])
 
         assert len(result) == 1
+        assert result[head_artifact.id] == base_artifact
+
+        result = PreprodArtifact.get_base_artifacts_for_commit(
+            [head_artifact], require_snapshot_metrics=True
+        )
+        assert result == {}
+
+        self.create_preprod_snapshot_metrics(preprod_artifact=base_artifact)
+
+        result = PreprodArtifact.get_base_artifacts_for_commit(
+            [head_artifact], require_snapshot_metrics=True
+        )
         assert result[head_artifact.id] == base_artifact
 
     def test_get_base_artifacts_for_commit_multiple_artifacts(self) -> None:

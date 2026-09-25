@@ -26,6 +26,7 @@ export interface UseSpanSearchQueryBuilderProps {
   datetime?: PageFilterDatetime;
   defaultToAskSeerOnFreeTextSearch?: SearchQueryBuilderProps['defaultToAskSeerOnFreeTextSearch'];
   disableLoadingTags?: boolean;
+  disableRecentSearches?: boolean;
   disallowNegation?: boolean;
   getFilterTokenWarning?: (key: string) => React.ReactNode;
   onBlur?: (query: string, state: CallbackSearchState) => void;
@@ -145,7 +146,7 @@ export function useSpanSearchQueryBuilderProps(props: UseSpanSearchQueryBuilderP
       invalidFilterKeys: localInvalidFilterKeys,
     };
   }, [
-    props.validatedSearchQueryData?.query.fields,
+    props.validatedSearchQueryData,
     spanBooleanAttributes,
     spanNumberAttributes,
     spanStringAttributesWithSemver,

@@ -8,6 +8,7 @@ from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
 from sentry.preprod.vcs.pr_comments.snapshot_templates import (
     _selected_types_query,
+    format_approved_without_base_snapshot_pr_comment,
     format_missing_base_snapshot_pr_comment,
     format_snapshot_pr_comment,
     format_solo_snapshot_pr_comment,
@@ -202,6 +203,49 @@ class FormatSnapshotPrCommentFailedTest(SnapshotPrCommentTestBase):
 
         assert "Comparison failed" in result
         assert "com.example.head" in result
+
+    def test_failed_with_base_manifest_missing_shows_no_base(self) -> None:
+        head_artifact, head_metrics = self._create_artifact_with_metrics(app_id="com.example.head")
+        base_artifact, base_metrics = self._create_artifact_with_metrics(app_id="com.example.base")
+
+        comparison = self._create_comparison(
+            head_metrics, base_metrics, state=PreprodSnapshotComparison.State.FAILED
+        )
+        comparison.error_code = PreprodSnapshotComparison.ErrorCode.BASE_MANIFEST_MISSING
+        comparison.save(update_fields=["error_code"])
+
+        result = format_snapshot_pr_comment(
+            [head_artifact],
+            {head_artifact.id: head_metrics},
+            {head_metrics.id: comparison},
+            {head_artifact.id: base_artifact},
+            {},
+            project=self.project,
+        )
+
+        assert "❌ No base snapshot found" in result
+        assert "Comparison failed" not in result
+
+    def test_approved_failed_comparison_shows_approved(self) -> None:
+        head_artifact, head_metrics = self._create_artifact_with_metrics(app_id="com.example.head")
+        base_artifact, base_metrics = self._create_artifact_with_metrics(app_id="com.example.base")
+        comparison = self._create_comparison(
+            head_metrics, base_metrics, state=PreprodSnapshotComparison.State.FAILED
+        )
+        approval = self._create_approval(head_artifact)
+
+        result = format_snapshot_pr_comment(
+            [head_artifact],
+            {head_artifact.id: head_metrics},
+            {head_metrics.id: comparison},
+            {head_artifact.id: base_artifact},
+            {},
+            approvals_by_artifact_id={head_artifact.id: approval},
+            project=self.project,
+        )
+
+        assert "✅ Approved (comparison failed)" in result
+        assert "❌ Comparison failed" not in result
 
 
 @cell_silo_test
@@ -611,6 +655,23 @@ class FormatSoloPrCommentTest(SnapshotPrCommentTestBase):
             format_missing_base_snapshot_pr_comment(
                 [], {}, project=self.project, base_sha="abc123" + "0" * 34
             )
+
+    def test_approved_without_base_shows_approved_message(self) -> None:
+        artifact, metrics = self._create_artifact_with_metrics(image_count=2)
+        base_sha = "abc123" + "0" * 34
+
+        result = format_approved_without_base_snapshot_pr_comment(
+            [artifact], {artifact.id: metrics}, project=self.project, base_sha=base_sha
+        )
+
+        assert "## Sentry Snapshot Testing" in result
+        assert "2 uploaded" in result
+        assert (
+            f"Base commit `{base_sha}` did not produce snapshots to compare against. "
+            "These snapshots were approved without a comparison." in result
+        )
+        assert "Did its snapshot job fail?" not in result
+        assert f"/settings/projects/{self.project.slug}/snapshots/" in result
 
 
 @cell_silo_test

@@ -8,18 +8,31 @@ from scm.errors import ResourceNotFound
 from scm.types import ReviewComment
 
 from sentry.models.pullrequest import PullRequest
-from sentry.seer.agent.client_models import MemoryBlock, Message, RepoPRState, SeerRunState
+from sentry.models.repository import Repository
+from sentry.seer.agent.client_models import (
+    AgentFilePatch,
+    FilePatch,
+    MemoryBlock,
+    Message,
+    RepoPRState,
+    SeerRunState,
+)
 from sentry.seer.autofix.autofix_agent import (
     PrIterationNoPullRequestException,
 )
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.pr_iteration.check_suites import CheckSuiteAutofixRun
 from sentry.seer.autofix.pr_iteration.details_store import open_iterations
-from sentry.seer.autofix.pr_iteration.emit import open_pr_iteration_details
+from sentry.seer.autofix.pr_iteration.emit import (
+    BLOCKED_OUTCOMES_DATA_KEY,
+    PrIterationOutcome,
+    bootstrap_iteration,
+)
 from sentry.seer.autofix.pr_iteration.feedback import Feedback, serialize_feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import (
     ConsumeTask,
     ConsumeTriggerSource,
+    Decision,
     TriggerDecision,
 )
 from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import (
@@ -31,7 +44,10 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrReviewCommentFeedbackSource,
 )
 from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
-from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
+from sentry.seer.autofix.pr_iteration.logs import (
+    LogCtxIteration,
+    PrIterationLogContext,
+)
 from sentry.seer.autofix.pr_iteration.pause import (
     PAUSED_EXTRA,
     PauseReason,
@@ -40,11 +56,11 @@ from sentry.seer.autofix.pr_iteration.pause import (
 )
 from sentry.seer.autofix.pr_iteration.queue import (
     QueuedAutofixFeedback,
+    enqueue_autofix_feedback,
     peek_queued_autofix_feedback,
-    try_enqueue_autofix_feedback,
 )
 from sentry.seer.autofix.pr_iteration.run_markers import record_run_extras
-from sentry.seer.models import SeerApiError
+from sentry.seer.models import SeerApiError, SeerPermissionError
 from sentry.seer.models.run import SeerRun
 from sentry.tasks.seer.pr_iteration import (
     ALREADY_PAUSED_PR_ITERATION_COMMENT,
@@ -65,6 +81,7 @@ from sentry.testutils.cases import TestCase
 TASK_PATH = "sentry.tasks.seer.pr_iteration"
 CHECK_SUITE_SOURCE_PATH = "sentry.seer.autofix.pr_iteration.feedback_sources.check_suite"
 PAUSE_PATH = "sentry.seer.autofix.pr_iteration.pause"
+PR_STATE_PATH = "sentry.seer.autofix.pr_iteration.pr_state"
 
 
 class _CommentScmStub:
@@ -87,6 +104,9 @@ class TriggerPrIterationFromCommentTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.group = self.create_group(project=self.project)
+        self.create_seer_run(
+            organization=self.organization, seer_run_state_id=67890, user_id=self.user.id
+        )
         self.repo = self.create_repo(
             project=self.project,
             provider="integrations:github",
@@ -153,7 +173,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
     @patch(f"{TASK_PATH}._add_comment_reaction")
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access", return_value=True)
     @patch(f"{TASK_PATH}.trigger_consume_pr_iteration_feedback")
-    @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback", return_value=True)
+    @patch(f"{TASK_PATH}.enqueue_autofix_feedback", return_value=True)
     @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
     def test_triggers_agent_when_authorized(
         self,
@@ -281,7 +301,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
     @patch(f"{TASK_PATH}.metrics")
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access", return_value=False)
     @patch(f"{TASK_PATH}.trigger_consume_pr_iteration_feedback")
-    @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback", return_value=True)
+    @patch(f"{TASK_PATH}.enqueue_autofix_feedback", return_value=True)
     @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
     def test_skips_when_no_write_access(
         self,
@@ -304,7 +324,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
     @patch(f"{TASK_PATH}.default_cache")
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access")
     @patch(f"{TASK_PATH}.trigger_consume_pr_iteration_feedback")
-    @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback", return_value=True)
+    @patch(f"{TASK_PATH}.enqueue_autofix_feedback", return_value=True)
     @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
     def test_skips_when_no_agent_state(
         self,
@@ -334,7 +354,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
     @patch(f"{TASK_PATH}.default_cache")
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access")
     @patch(f"{TASK_PATH}.trigger_consume_pr_iteration_feedback")
-    @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback", return_value=True)
+    @patch(f"{TASK_PATH}.enqueue_autofix_feedback", return_value=True)
     @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
     def test_comments_ineligible_when_run_has_no_repo_pr_states(
         self,
@@ -380,7 +400,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
     @patch(f"{TASK_PATH}.default_cache")
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access")
     @patch(f"{TASK_PATH}.trigger_consume_pr_iteration_feedback")
-    @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback", return_value=True)
+    @patch(f"{TASK_PATH}.enqueue_autofix_feedback", return_value=True)
     @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
     def test_skips_ineligible_comment_when_already_posted(
         self,
@@ -418,7 +438,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
     @patch(f"{TASK_PATH}._add_comment_reaction")
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access", return_value=True)
     @patch(f"{TASK_PATH}.trigger_consume_pr_iteration_feedback")
-    @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback", return_value=True)
+    @patch(f"{TASK_PATH}.enqueue_autofix_feedback", return_value=True)
     @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
     def test_triggers_comment_reaction(
         self,
@@ -444,7 +464,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
     @patch(f"{TASK_PATH}._add_comment_reaction")
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access", return_value=True)
     @patch(f"{TASK_PATH}.trigger_consume_pr_iteration_feedback")
-    @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback", return_value=True)
+    @patch(f"{TASK_PATH}.enqueue_autofix_feedback", return_value=True)
     @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
     def test_does_not_queue_or_ack_feedback_on_a_stopped_run(
         self,
@@ -457,9 +477,6 @@ class TriggerPrIterationFromCommentTest(TestCase):
         # `@sentry stop iterating` already stopped this run, so consume would
         # drop anything queued here. Nothing is queued and nothing is written to
         # the PR: an :eyes: would promise an iteration that never comes.
-        self.create_seer_run(
-            organization=self.organization, seer_run_state_id=67890, user_id=self.user.id
-        )
         pause_pr_iteration(
             run_id=67890,
             organization_id=self.organization.id,
@@ -479,7 +496,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
     @patch(f"{TASK_PATH}.make_scm", side_effect=ValueError("boom"))
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access")
     @patch(f"{TASK_PATH}.trigger_consume_pr_iteration_feedback")
-    @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback", return_value=True)
+    @patch(f"{TASK_PATH}.enqueue_autofix_feedback", return_value=True)
     @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
     def test_emits_no_metric_when_scm_init_fails(
         self,
@@ -505,7 +522,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
     @patch(f"{TASK_PATH}._add_comment_reaction")
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access", return_value=True)
     @patch(f"{TASK_PATH}.trigger_consume_pr_iteration_feedback")
-    @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback", return_value=True)
+    @patch(f"{TASK_PATH}.enqueue_autofix_feedback", return_value=True)
     @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
     def test_iterates_past_max_iterations(
         self,
@@ -804,6 +821,22 @@ class PausePrIterationFromCommentTest(TestCase):
         )
 
 
+def _step_checkpoints(mock_metrics: MagicMock) -> list[str]:
+    return [
+        call.kwargs["tags"]["checkpoint"]
+        for call in mock_metrics.incr.call_args_list
+        if call.args and call.args[0] == "autofix.pr_iteration.step"
+    ]
+
+
+def _step_feedback_kinds(mock_metrics: MagicMock) -> list[str]:
+    return [
+        call.kwargs["tags"]["feedback_kind"]
+        for call in mock_metrics.incr.call_args_list
+        if call.args and call.args[0] == "autofix.pr_iteration.step"
+    ]
+
+
 class ConsumeQueuedAutofixFeedbackTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -872,6 +905,16 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
             )
         )
 
+    def _bot_review_feedback(self, review_id: int, login: str) -> Feedback:
+        return Feedback(
+            source=GithubPrReviewBodyFeedbackSource(
+                review_id=review_id,
+                body="fix it",
+                user={"id": review_id, "login": login},
+                author_is_bot=True,
+            )
+        )
+
     def _check_suite_feedback(self, *, updated_at: str | None = "2024-01-01T00:00:00Z") -> Feedback:
         check_suite: dict[str, Any] = {
             "id": 1,
@@ -909,6 +952,70 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
 
     def _call(self) -> None:
         consume_queued_autofix_feedback(run_id=67890, organization_id=self.organization.id)
+
+    def _state_with_open_pr(self) -> SeerRunState:
+        state = self._state()
+        state.repo_pr_states = {
+            "owner/repo": RepoPRState(repo_name="owner/repo", pr_number=7, commit_sha="abc")
+        }
+        Repository.objects.create(
+            organization_id=self.organization.id,
+            name="owner/repo",
+            provider="integrations:github",
+            external_id="1",
+        )
+        return state
+
+    @patch(f"{PR_STATE_PATH}.metrics.incr")
+    @patch(f"{TASK_PATH}.pause_pr_iteration")
+    @patch(f"{PR_STATE_PATH}.GetPullRequestProtocol", object)
+    @patch(f"{PR_STATE_PATH}.scm_actions.get_pull_request")
+    @patch(f"{PR_STATE_PATH}.make_scm")
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_a_closed_pr_stops_the_iteration_before_it_starts(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_trigger: MagicMock,
+        mock_make_scm: MagicMock,
+        mock_get_pull_request: MagicMock,
+        mock_pause: MagicMock,
+        mock_incr: MagicMock,
+    ) -> None:
+        """The run is paused rather than left to re-check on every later trigger."""
+        mock_fetch.return_value = self._state_with_open_pr()
+        mock_get_pull_request.return_value = {"data": {"state": "closed"}}
+
+        self._call()
+
+        mock_trigger.assert_not_called()
+        mock_pop.assert_not_called()
+        assert mock_pause.call_args.kwargs["reason"] == PauseReason.PR_CLOSED
+        mock_incr.assert_any_call("autofix.pr_iteration.pr_closed", tags={"gate": "consume"})
+
+    @patch(f"{PR_STATE_PATH}.GetPullRequestProtocol", object)
+    @patch(f"{PR_STATE_PATH}.scm_actions.get_pull_request")
+    @patch(f"{PR_STATE_PATH}.make_scm")
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_an_open_pr_still_iterates(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_trigger: MagicMock,
+        mock_make_scm: MagicMock,
+        mock_get_pull_request: MagicMock,
+    ) -> None:
+        mock_fetch.return_value = self._state_with_open_pr()
+        mock_pop.return_value = [self._ui_queued()]
+        mock_get_pull_request.return_value = {"data": {"state": "open"}}
+
+        self._call()
+
+        mock_trigger.assert_called_once()
 
     @patch(f"{TASK_PATH}.trigger_autofix_agent")
     @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
@@ -989,12 +1096,24 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         mock_pop: MagicMock,
         mock_trigger: MagicMock,
     ) -> None:
-        self.create_seer_run(
+        mock_fetch.return_value = self._state()
+        seer_run = self.create_seer_run(
             organization=self.organization, seer_run_state_id=67890, user_id=self.user.id
         )
-        try_enqueue_autofix_feedback(
+        # The row the batch is recorded against: callers open it before queuing.
+        bootstrap_iteration(
+            logger=MagicMock(),
+            run_state=self._state(),
+            organization_id=self.organization.id,
+            group_id=self.group.id,
+        )
+        enqueue_autofix_feedback(
             log_ctx=PrIterationLogContext(
-                MagicMock(), run_state=self._state(), organization_id=self.organization.id
+                MagicMock(),
+                iteration=LogCtxIteration.TRIGGERED,
+                run_state=self._state(),
+                organization_id=self.organization.id,
+                group_id=None,
             ),
             run_id=67890,
             organization_id=self.organization.id,
@@ -1006,16 +1125,27 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         with record_run_extras(SeerRun.objects.get(seer_run_state_id=67890)) as extras:
             extras[PAUSED_EXTRA] = {"paused_at": "2024-01-01T00:00:00+00:00"}
 
-        with patch(f"{PAUSE_PATH}.metrics") as mock_metrics:
+        with (
+            patch(f"{PAUSE_PATH}.metrics") as mock_metrics,
+            patch("sentry.analytics.record") as mock_record,
+        ):
             self._call()
 
-        mock_fetch.assert_not_called()
         mock_pop.assert_not_called()
         mock_trigger.assert_not_called()
         assert peek_queued_autofix_feedback(67890) == []
         mock_metrics.incr.assert_any_call(
             "autofix.pr_iteration.paused.blocked", tags={"gate": "consume"}
         )
+        # The consume that wakes up after the pause records the dropped batch
+        # instead of leaving it silent, with the pause reason as the outcome.
+        blocked = mock_record.call_args.args[0]
+        assert blocked.type == "ai.autofix.pr_iteration.feedback_batch.blocked"
+        assert blocked.outcome == PrIterationOutcome.PAUSED_USER_STOP.value
+        (iteration,) = open_iterations(seer_run)
+        assert iteration.data[BLOCKED_OUTCOMES_DATA_KEY] == [
+            PrIterationOutcome.PAUSED_USER_STOP.value
+        ]
 
     @patch(f"{TASK_PATH}.trigger_autofix_agent")
     @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
@@ -1048,6 +1178,53 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
 
         mock_pop.assert_not_called()
         mock_trigger.assert_not_called()
+
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_returns_when_previous_push_has_not_landed(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_trigger: MagicMock,
+    ) -> None:
+        state = self._state(
+            blocks=[
+                MemoryBlock(
+                    id="iter0",
+                    message=Message(role="assistant"),
+                    timestamp="2024-01-01T00:00:00Z",
+                    merged_file_patches=[
+                        AgentFilePatch(
+                            repo_name="owner/repo",
+                            patch=FilePatch(path="src/sentry/foo.py", type="M", added=1, removed=0),
+                        )
+                    ],
+                )
+            ]
+        )
+        mock_fetch.return_value = state
+
+        self._call()
+
+        mock_pop.assert_not_called()
+        mock_trigger.assert_not_called()
+
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_drains_when_previous_iteration_had_no_code_changes(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_trigger: MagicMock,
+    ) -> None:
+        mock_fetch.return_value = self._state()
+        mock_pop.return_value = [self._ui_queued()]
+
+        self._call()
+
+        mock_trigger.assert_called_once()
 
     @patch(f"{TASK_PATH}.trigger_autofix_agent")
     @patch(f"{TASK_PATH}.fetch_run_status", side_effect=SeerApiError("nope", 500))
@@ -1159,9 +1336,8 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         mock_pop: MagicMock,
         mock_trigger: MagicMock,
     ) -> None:
-        # consume no longer enforces the cap; a queued comment past the old limit
-        # still triggers an iteration. Automatic loops are bounded upstream (the
-        # review trigger and the check-suite hard cap), not here.
+        # The cap only holds back automated feedback, so a person's comment past
+        # it still triggers an iteration.
         mock_fetch.return_value = self._state(
             blocks=[self._iteration_block(1), self._iteration_block(2)]
         )
@@ -1402,6 +1578,328 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
 
         mock_pop.assert_not_called()
 
+    @patch(f"{TASK_PATH}.metrics")
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_consumed_counts_the_survivors_not_the_raw_pop(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        _mock_trigger: MagicMock,
+        mock_metrics: MagicMock,
+    ) -> None:
+        mock_fetch.return_value = self._state()
+        mock_pop.return_value = [
+            self._queued(self._review_feedback(777)),
+            self._queued(self._review_feedback(777)),
+        ]
+
+        self._call()
+
+        mock_metrics.incr.assert_any_call(
+            "autofix.pr_iteration.step",
+            amount=1,
+            tags={
+                "checkpoint": "consumed",
+                "referrer": AutofixReferrer.GITHUB_PR_COMMENT.value,
+                "feedback_kind": "manual",
+            },
+            sample_rate=1.0,
+        )
+
+    @patch(f"{TASK_PATH}.metrics")
+    @patch(f"{TASK_PATH}.count_queued_autofix_feedback", return_value=3)
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_a_run_still_processing_counts_no_checkpoint(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        _mock_count: MagicMock,
+        mock_metrics: MagicMock,
+    ) -> None:
+        mock_fetch.return_value = self._state(status="processing")
+
+        self._call()
+
+        assert _step_checkpoints(mock_metrics) == []
+
+    @patch(f"{TASK_PATH}.metrics")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback", return_value=[])
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_an_empty_queue_counts_no_checkpoint(
+        self,
+        mock_fetch: MagicMock,
+        _mock_pop: MagicMock,
+        mock_metrics: MagicMock,
+    ) -> None:
+        mock_fetch.return_value = self._state()
+
+        self._call()
+
+        assert _step_checkpoints(mock_metrics) == []
+
+    @patch(f"{TASK_PATH}.metrics")
+    @patch(f"{TASK_PATH}.trigger_autofix_agent", side_effect=SeerPermissionError("no access"))
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_sent_to_seer_counts_when_the_agent_call_raises(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        _mock_trigger: MagicMock,
+        mock_metrics: MagicMock,
+    ) -> None:
+        mock_fetch.return_value = self._state()
+        mock_pop.return_value = [self._ui_queued()]
+
+        self._call()
+
+        assert _step_checkpoints(mock_metrics) == ["consumed", "sent_to_seer"]
+        mock_metrics.incr.assert_any_call(
+            "autofix.pr_iteration.step",
+            tags={
+                "checkpoint": "sent_to_seer",
+                "referrer": AutofixReferrer.GITHUB_PR_COMMENT.value,
+                "feedback_kind": "manual",
+            },
+            sample_rate=1.0,
+        )
+
+    @patch(f"{TASK_PATH}.metrics")
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_an_automated_batch_is_tagged_automated(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        _mock_trigger: MagicMock,
+        mock_metrics: MagicMock,
+    ) -> None:
+        mock_fetch.return_value = self._state_on_head()
+        mock_pop.return_value = [self._queued(self._check_suite_feedback())]
+
+        self._call()
+
+        assert _step_feedback_kinds(mock_metrics) == ["automated", "automated"]
+
+    @patch(f"{TASK_PATH}.metrics")
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_a_batch_of_both_is_tagged_mixed(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        _mock_trigger: MagicMock,
+        mock_metrics: MagicMock,
+    ) -> None:
+        mock_fetch.return_value = self._state_on_head()
+        mock_pop.return_value = [
+            self._queued(self._check_suite_feedback()),
+            self._queued(self._review_feedback(777)),
+        ]
+
+        self._call()
+
+        assert _step_feedback_kinds(mock_metrics) == ["mixed", "mixed"]
+
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_automated_feedback_at_the_hard_cap_is_dropped(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_trigger: MagicMock,
+    ) -> None:
+        # The completion hook schedules this drain without the automated-iteration
+        # check, so the drain has to hold the cap itself.
+        mock_fetch.return_value = self._state_on_head(
+            blocks=[self._iteration_block(1), self._iteration_block(2)]
+        )
+        mock_pop.return_value = [self._queued(self._check_suite_feedback())]
+
+        with self.options({"autofix.pr-iteration.max-iterations": 2}):
+            self._call()
+
+        mock_trigger.assert_not_called()
+
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_a_bot_review_at_the_hard_cap_is_dropped(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_trigger: MagicMock,
+    ) -> None:
+        mock_fetch.return_value = self._state(
+            blocks=[self._iteration_block(1), self._iteration_block(2)]
+        )
+        mock_pop.return_value = [self._queued(self._bot_review_feedback(1, "review-bot[bot]"))]
+
+        with self.options({"autofix.pr-iteration.max-iterations": 2}):
+            self._call()
+
+        mock_trigger.assert_not_called()
+
+    @patch(f"{TASK_PATH}.assign_user_for_exhausted_cap")
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_dropping_ci_at_the_hard_cap_hands_the_pr_to_a_person(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        _mock_trigger: MagicMock,
+        mock_assign: MagicMock,
+    ) -> None:
+        mock_fetch.return_value = self._state_on_head(
+            blocks=[self._iteration_block(1), self._iteration_block(2)]
+        )
+        older = self._check_suite_feedback(updated_at="2024-01-01T00:00:00Z")
+        newer = self._check_suite_feedback(updated_at="2024-01-01T01:00:00Z")
+        assert isinstance(newer.source, CheckSuiteFeedbackSource)
+        mock_pop.return_value = [self._queued(older), self._queued(newer)]
+
+        with self.options({"autofix.pr-iteration.max-iterations": 2}):
+            self._call()
+
+        mock_assign.assert_called_once_with(newer.source.event, newer.source.autofix_run)
+
+    @patch(f"{TASK_PATH}.assign_user_for_exhausted_cap", side_effect=RuntimeError("github down"))
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_a_failed_handoff_does_not_fail_the_drain(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_trigger: MagicMock,
+        _mock_assign: MagicMock,
+    ) -> None:
+        mock_fetch.return_value = self._state_on_head(
+            blocks=[self._iteration_block(1), self._iteration_block(2)]
+        )
+        mock_pop.return_value = [self._queued(self._check_suite_feedback())]
+
+        with self.options({"autofix.pr-iteration.max-iterations": 2}):
+            self._call()
+
+        mock_trigger.assert_not_called()
+
+    @patch(f"{TASK_PATH}.assign_user_for_exhausted_cap")
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_no_handoff_when_a_person_is_in_the_batch_at_the_hard_cap(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        _mock_trigger: MagicMock,
+        mock_assign: MagicMock,
+    ) -> None:
+        mock_fetch.return_value = self._state_on_head(
+            blocks=[self._iteration_block(1), self._iteration_block(2)]
+        )
+        mock_pop.return_value = [
+            self._queued(self._check_suite_feedback()),
+            self._queued(self._review_feedback(777)),
+        ]
+
+        with self.options({"autofix.pr-iteration.max-iterations": 2}):
+            self._call()
+
+        mock_assign.assert_not_called()
+
+    @patch(f"{TASK_PATH}.assign_user_for_exhausted_cap")
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_no_handoff_when_ci_is_dropped_because_the_project_turned_pr_iteration_off(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        _mock_trigger: MagicMock,
+        mock_assign: MagicMock,
+    ) -> None:
+        self.project.update_option("sentry:seer_pr_iteration", False)
+        mock_fetch.return_value = self._state_on_head()
+        mock_pop.return_value = [self._queued(self._check_suite_feedback())]
+
+        self._call()
+
+        mock_assign.assert_not_called()
+
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_automated_feedback_at_the_hard_cap_rides_along_with_a_person(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_trigger: MagicMock,
+    ) -> None:
+        mock_fetch.return_value = self._state_on_head(
+            blocks=[self._iteration_block(1), self._iteration_block(2)]
+        )
+        check_suite = self._check_suite_feedback()
+        review = self._review_feedback(777)
+        mock_pop.return_value = [self._queued(check_suite), self._queued(review)]
+
+        with self.options({"autofix.pr-iteration.max-iterations": 2}):
+            self._call()
+
+        mock_trigger.assert_called_once()
+        _, kwargs = mock_trigger.call_args
+        assert [f.feedback_id for f in kwargs["feedback"]] == [
+            check_suite.feedback_id,
+            review.feedback_id,
+        ]
+
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_automated_feedback_is_dropped_when_the_project_turned_pr_iteration_off(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_trigger: MagicMock,
+    ) -> None:
+        self.project.update_option("sentry:seer_pr_iteration", False)
+        mock_fetch.return_value = self._state_on_head()
+        review = self._review_feedback(777)
+        mock_pop.return_value = [
+            self._queued(self._check_suite_feedback()),
+            self._queued(review),
+        ]
+
+        self._call()
+
+        mock_trigger.assert_called_once()
+        _, kwargs = mock_trigger.call_args
+        assert [f.feedback_id for f in kwargs["feedback"]] == [review.feedback_id]
+
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_nothing_runs_when_the_project_turned_pr_iteration_off_and_only_ci_is_queued(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_trigger: MagicMock,
+    ) -> None:
+        self.project.update_option("sentry:seer_pr_iteration", False)
+        mock_fetch.return_value = self._state_on_head()
+        mock_pop.return_value = [self._queued(self._check_suite_feedback())]
+
+        self._call()
+
+        mock_trigger.assert_not_called()
+
     @patch(f"{TASK_PATH}.trigger_autofix_agent", side_effect=RuntimeError("seer is down"))
     @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
     @patch(f"{TASK_PATH}.fetch_run_status")
@@ -1514,6 +2012,7 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         assert mock_trigger.call_args.kwargs["commit_author"] == {
             "name": "octocat",
             "email": "583231+octocat@users.noreply.github.com",
+            "scm_login": "octocat",
         }
 
         # Two different commenters in one batch: no single author to attribute to.
@@ -1538,13 +2037,8 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         assert mock_trigger.call_args.kwargs["commit_author"] is None
 
     def _open_iteration_row(self) -> None:
-        open_pr_iteration_details(
-            log_ctx=PrIterationLogContext(
-                MagicMock(),
-                run_state=self._state(),
-                organization_id=self.organization.id,
-                group_id=self.group.id,
-            ),
+        bootstrap_iteration(
+            logger=MagicMock(),
             run_state=self._state(),
             organization_id=self.organization.id,
             group_id=self.group.id,
@@ -1649,6 +2143,62 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         assert row.data["feedback_count"] == 1
         assert row.data["dropped_count"] == 0
 
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_the_drain_records_the_review_bots_it_consumed(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        _mock_trigger: MagicMock,
+    ) -> None:
+        seer_run = self.create_seer_run(organization=self.organization, seer_run_state_id=67890)
+        mock_fetch.return_value = self._state_on_head()
+        mock_pop.return_value = [
+            self._queued(self._bot_review_feedback(1, "coderabbitai[bot]")),
+            self._queued(self._bot_review_feedback(2, "coderabbitai[bot]")),
+            self._queued(self._bot_review_feedback(3, "seer-by-sentry[bot]")),
+            self._queued(self._check_suite_feedback()),
+            self._ui_queued(),
+        ]
+        self._open_iteration_row()
+
+        self._call()
+
+        (row,) = open_iterations(seer_run)
+        assert row.data["feedback_bot_logins"] == ["coderabbitai[bot]", "seer-by-sentry[bot]"]
+
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_a_dropped_bot_review_contributes_no_login(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        _mock_trigger: MagicMock,
+    ) -> None:
+        seer_run = self.create_seer_run(organization=self.organization, seer_run_state_id=67890)
+        already_processed = self._bot_review_feedback(700, "seer-by-sentry[bot]")
+        block = MemoryBlock(
+            id="b1",
+            message=Message(
+                role="assistant", metadata={"feedback": serialize_feedback([already_processed])}
+            ),
+            timestamp="2024-01-01T00:00:00Z",
+        )
+        mock_fetch.return_value = self._state(blocks=[block])
+        mock_pop.return_value = [
+            self._queued(already_processed),
+            self._queued(self._bot_review_feedback(701, "coderabbitai[bot]")),
+        ]
+        self._open_iteration_row()
+
+        self._call()
+
+        (row,) = open_iterations(seer_run)
+        assert row.data["dropped_count"] == 1
+        assert row.data["feedback_bot_logins"] == ["coderabbitai[bot]"]
+
 
 class TriggerConsumePrIterationFeedbackTest(TestCase):
     def setUp(self) -> None:
@@ -1657,11 +2207,25 @@ class TriggerConsumePrIterationFeedbackTest(TestCase):
 
     def _log_ctx(self) -> PrIterationLogContext:
         return PrIterationLogContext(
-            self.log, run_state=self._state(), organization_id=self.organization.id
+            self.log,
+            iteration=LogCtxIteration.TRIGGERED,
+            run_state=self._state(),
+            organization_id=self.organization.id,
+            group_id=None,
         )
 
     def _feedback(self) -> Feedback:
         return Feedback(source=UserUIFeedbackSource(user_id=1, user_feedback="fix it"))
+
+    def _bot_feedback(self) -> Feedback:
+        return Feedback(
+            source=GithubPrReviewBodyFeedbackSource(
+                review_id=1,
+                body="fix it",
+                user={"id": 1, "login": "review-bot[bot]"},
+                author_is_bot=True,
+            )
+        )
 
     def _state(self) -> SeerRunState:
         return SeerRunState(
@@ -1676,23 +2240,24 @@ class TriggerConsumePrIterationFeedbackTest(TestCase):
         *,
         decision: TriggerDecision | None = None,
         delay: int | None = None,
-        bypass: bool = False,
-    ) -> None:
-        feedback = self._feedback()
+        source: str = ConsumeTriggerSource.FEEDBACK,
+        feedback: Feedback | None = None,
+    ) -> TriggerDecision:
+        feedback = feedback or self._feedback()
         ctx: AbstractContextManager[Any] = (
             patch.object(type(feedback.source), "should_trigger", return_value=decision)
             if decision is not None
             else nullcontext()
         )
         with ctx:
-            trigger_consume_pr_iteration_feedback(
+            return trigger_consume_pr_iteration_feedback(
                 log_ctx=self._log_ctx(),
                 run_id=67890,
                 organization_id=self.organization.id,
                 feedback=feedback,
                 run_state=self._state(),
                 delay=delay,
-                bypass=bypass,
+                source=source,
             )
 
     @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
@@ -1707,12 +2272,74 @@ class TriggerConsumePrIterationFeedbackTest(TestCase):
         )
 
         with patch(f"{PAUSE_PATH}.metrics") as mock_metrics:
-            self._trigger(bypass=True)
+            self._trigger(source=ConsumeTriggerSource.GREEN_CHECK_SUITE_DEFER)
 
         mock_apply.assert_not_called()
         mock_metrics.incr.assert_any_call(
             "autofix.pr_iteration.paused.blocked", tags={"gate": "trigger_consume"}
         )
+
+    @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
+    def test_a_gate_still_names_who_asked(self, mock_apply: MagicMock) -> None:
+        """``trigger_source`` is the only producer field, so a gate carries it too."""
+        self.create_seer_run(
+            organization=self.organization, seer_run_state_id=67890, user_id=self.user.id
+        )
+        pause_pr_iteration(
+            run_id=67890,
+            organization_id=self.organization.id,
+            reason=PauseReason.USER_STOP,
+        )
+
+        self._trigger(source=ConsumeTriggerSource.GREEN_CHECK_SUITE_DEFER)
+
+        mock_apply.assert_not_called()
+        (_, kwargs) = self.log.info.call_args
+        assert kwargs["extra"]["reason"] == "paused"
+        assert kwargs["extra"]["trigger_source"] == ConsumeTriggerSource.GREEN_CHECK_SUITE_DEFER
+
+    def _pause(self, reason: PauseReason) -> None:
+        self.create_seer_run(
+            organization=self.organization, seer_run_state_id=67890, user_id=self.user.id
+        )
+        pause_pr_iteration(run_id=67890, organization_id=self.organization.id, reason=reason)
+        bootstrap_iteration(
+            logger=MagicMock(),
+            run_state=self._state(),
+            organization_id=self.organization.id,
+            group_id=self.group.id,
+        )
+
+    @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
+    def test_a_run_paused_by_an_error_records_that_reason(self, mock_apply: MagicMock) -> None:
+        self._pause(PauseReason.RUN_ERRORED)
+
+        with patch("sentry.analytics.record") as mock_record:
+            self._trigger(source=ConsumeTriggerSource.GREEN_CHECK_SUITE_DEFER)
+
+        assert mock_record.call_args.args[0].outcome == "paused_run_errored"
+
+    @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
+    def test_a_run_someone_stopped_records_that_reason(self, mock_apply: MagicMock) -> None:
+        self._pause(PauseReason.USER_STOP)
+
+        with patch("sentry.analytics.record") as mock_record:
+            self._trigger(source=ConsumeTriggerSource.GREEN_CHECK_SUITE_DEFER)
+
+        assert mock_record.call_args.args[0].outcome == "paused_user_stop"
+
+    @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
+    def test_a_paused_run_records_once_however_much_ci_lands(self, mock_apply: MagicMock) -> None:
+        self._pause(PauseReason.RUN_ERRORED)
+
+        with patch("sentry.analytics.record") as mock_record:
+            self._trigger(source=ConsumeTriggerSource.GREEN_CHECK_SUITE_DEFER)
+            self._trigger(source=ConsumeTriggerSource.GREEN_CHECK_SUITE_DEFER)
+            self._trigger(source=ConsumeTriggerSource.GREEN_CHECK_SUITE_DEFER)
+
+        # Nothing drains a paused run, so every check suite on the PR arrives
+        # here. The batch is one batch however many of them there are.
+        assert mock_record.call_count == 1
 
     @patch(f"{TASK_PATH}.block_iteration_for_missing_permissions", return_value=True)
     @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
@@ -1748,7 +2375,7 @@ class TriggerConsumePrIterationFeedbackTest(TestCase):
     def test_missing_permissions_skips_scheduling_even_with_bypass(
         self, mock_apply: MagicMock, _mock_block: MagicMock
     ) -> None:
-        self._trigger(bypass=True)
+        self._trigger(source=ConsumeTriggerSource.GREEN_CHECK_SUITE_DEFER)
 
         mock_apply.assert_not_called()
 
@@ -1756,7 +2383,7 @@ class TriggerConsumePrIterationFeedbackTest(TestCase):
     def test_bypass_ignores_should_trigger(self, mock_apply: MagicMock) -> None:
         self._trigger(
             decision=TriggerDecision(task=None, reason="no_trigger"),
-            bypass=True,
+            source=ConsumeTriggerSource.GREEN_CHECK_SUITE_DEFER,
         )
 
         mock_apply.assert_called_once()
@@ -1766,6 +2393,56 @@ class TriggerConsumePrIterationFeedbackTest(TestCase):
         assert task_kwargs["trigger_source"] == ConsumeTriggerSource.GREEN_CHECK_SUITE_DEFER
         assert task_kwargs["trigger_id"]
         assert mock_apply.call_args.kwargs["countdown"] is None
+
+    @patch(
+        f"{TASK_PATH}.automated_iteration_allowed",
+        return_value=Decision(ok=False, reason="hard_cap_reached"),
+    )
+    @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
+    def test_bypass_still_answers_to_the_run_gate(
+        self, mock_apply: MagicMock, _mock_run_gate: MagicMock
+    ) -> None:
+        decision = self._trigger(
+            feedback=self._bot_feedback(), source=ConsumeTriggerSource.GREEN_CHECK_SUITE_DEFER
+        )
+
+        mock_apply.assert_not_called()
+        assert decision == TriggerDecision(task=None, reason="hard_cap_reached")
+
+    @patch(
+        f"{TASK_PATH}.automated_iteration_allowed",
+        return_value=Decision(ok=False, reason="hard_cap_reached"),
+    )
+    @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
+    def test_a_person_is_not_held_by_the_run_gate(
+        self, mock_apply: MagicMock, mock_run_gate: MagicMock
+    ) -> None:
+        self._trigger(source=ConsumeTriggerSource.UI_CONSUME)
+
+        mock_run_gate.assert_not_called()
+        mock_apply.assert_called_once()
+
+    @patch(
+        f"{TASK_PATH}.automated_iteration_allowed",
+        return_value=Decision(ok=False, reason="project_disabled"),
+    )
+    @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
+    def test_run_gate_runs_before_should_trigger(
+        self, mock_apply: MagicMock, _mock_run_gate: MagicMock
+    ) -> None:
+        feedback = self._bot_feedback()
+        with patch.object(type(feedback.source), "should_trigger") as mock_should_trigger:
+            decision = trigger_consume_pr_iteration_feedback(
+                log_ctx=self._log_ctx(),
+                run_id=67890,
+                organization_id=self.organization.id,
+                feedback=feedback,
+                run_state=self._state(),
+            )
+
+        mock_should_trigger.assert_not_called()
+        mock_apply.assert_not_called()
+        assert decision == TriggerDecision(task=None, reason="project_disabled")
 
     @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
     def test_triggers_when_should_trigger_true(self, mock_apply: MagicMock) -> None:
@@ -1787,9 +2464,24 @@ class TriggerConsumePrIterationFeedbackTest(TestCase):
 
     @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
     def test_no_task_scheduled_at_the_hard_cap(self, mock_apply: MagicMock) -> None:
-        self._trigger(decision=TriggerDecision(task=None, reason="hard_cap_reached"))
+        decision = self._trigger(decision=TriggerDecision(task=None, reason="hard_cap_reached"))
 
         mock_apply.assert_not_called()
+        assert decision == TriggerDecision(task=None, reason="hard_cap_reached")
+
+    @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
+    def test_a_paused_run_returns_a_refusal(self, mock_apply: MagicMock) -> None:
+        self.create_seer_run(
+            organization=self.organization, seer_run_state_id=67890, user_id=self.user.id
+        )
+        pause_pr_iteration(
+            run_id=67890, organization_id=self.organization.id, reason=PauseReason.USER_STOP
+        )
+
+        decision = self._trigger()
+
+        mock_apply.assert_not_called()
+        assert decision == TriggerDecision(task=None, reason="paused")
 
     @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
     def test_queues_later_task_with_countdown(self, mock_apply: MagicMock) -> None:

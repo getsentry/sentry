@@ -51,6 +51,7 @@ export function DashboardChatPanel({
   // Expand history automatically when updating triggered by user input
   useEffect(() => {
     if (isUpdating) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setIsHistoryExpanded(true);
     }
   }, [isUpdating]);
@@ -60,6 +61,7 @@ export function DashboardChatPanel({
     if (chatContainerRef.current) {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [blocks.length, pendingUserInput, widgetErrors?.length]);
 
   const handleSubmit = useCallback(() => {

@@ -1,8 +1,8 @@
-import {RuleTester} from '@typescript-eslint/rule-tester';
+import {RuleTester} from 'oxlint/plugins-dev';
 
 import {noRawCssInStyled} from './noRawCssInStyled';
 
-const ruleTester = new RuleTester();
+const ruleTester = new RuleTester({languageOptions: {parserOptions: {lang: 'ts'}}});
 
 ruleTester.run('no-raw-css-in-styled', noRawCssInStyled, {
   valid: [

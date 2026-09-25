@@ -4,9 +4,8 @@ import {Global} from '@emotion/react';
 
 import {Stack} from '@sentry/scraps/layout';
 
-import type {ExtendedToken} from 'sentry/utils/marked/marked';
-import {MarkedLexer} from 'sentry/utils/marked/marked';
-
+import type {ExtendedToken} from './marked';
+import {MarkedLexer} from './marked';
 import {Token} from './token';
 import {streamingAnimationStyles, useStreamingAnimation} from './useStreamingAnimation';
 
@@ -20,7 +19,7 @@ export type MarkdownComponents = Partial<{
     WithDefault<{children: ReactNode; level: 1 | 2 | 3 | 4 | 5 | 6}>
   >;
   HorizontalRule: ComponentType<WithDefault<Record<PropertyKey, unknown>>>;
-  Html: ComponentType<WithDefault<{html: string}>>;
+  Html: ComponentType<WithDefault<{html: TrustedHTML}>>;
   Image: ComponentType<{src: string; alt?: string; title?: string | null}>;
   InlineCode: ComponentType<WithDefault<{children: string}>>;
   LineBreak: ComponentType<WithDefault<Record<PropertyKey, unknown>>>;
@@ -178,6 +177,7 @@ export function Markdown({raw, components = {}, variant = 'static'}: MarkdownPro
     if (changed) {
       prevTextLensRef.current = nextLens;
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [isStreaming, elements]);
 
   return (

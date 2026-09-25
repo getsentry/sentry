@@ -8,9 +8,9 @@ import {
   useState,
 } from 'react';
 import {useTheme} from '@emotion/react';
-import {Replayer, ReplayerEvents} from '@sentry-internal/rrweb';
-import type {Mirror} from '@sentry-internal/rrweb-snapshot';
 import * as Sentry from '@sentry/react';
+import {Replayer, ReplayerEvents} from '@sentry/rrweb';
+import type {Mirror} from '@sentry/rrweb-snapshot';
 
 import {useReplayHighlighting} from 'sentry/components/replays/useReplayHighlighting';
 import {VideoReplayerWithInteractions} from 'sentry/components/replays/videoReplayerWithInteractions';
@@ -233,6 +233,7 @@ export function Provider({
     []
   );
 
+  // oxlint-disable-next-line react/refs
   const isFinished = getCurrentPlayerTime() === finishedAtMS;
   const setReplayFinished = useCallback(() => {
     setFinishedAtMS(getCurrentPlayerTime());
@@ -569,6 +570,7 @@ export function Provider({
         instance.destroy();
       }
     };
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [rootEl, isVideoReplay, initVideoRoot, videoEvents, replay]);
 
   // For non-video (e.g. rrweb) replays, initialize the player
@@ -630,6 +632,7 @@ export function Provider({
 
   useEffect(() => {
     if (!isBuffering && buffer.target !== -1) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setBufferTime({target: -1, previous: -1});
     }
   }, [isBuffering, buffer.target]);

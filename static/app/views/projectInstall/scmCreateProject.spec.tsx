@@ -8,6 +8,7 @@ import {RepositoryFixture} from 'sentry-fixture/repository';
 import {TeamFixture} from 'sentry-fixture/team';
 
 import {
+  act,
   render,
   renderGlobalModal,
   screen,
@@ -38,6 +39,7 @@ jest.mock('@tanstack/react-virtual', () => ({
         size: 36,
       })),
     getTotalSize: () => count * 36,
+    measure: jest.fn(),
     measureElement: jest.fn(),
     scrollToIndex: jest.fn(),
   })),
@@ -322,10 +324,13 @@ describe('ScmCreateProject', () => {
     // platform, and project-details sections are all present at once.
     expect(await screen.findByRole('heading', {name: 'Repository'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Platform'})).toBeInTheDocument();
-    expect(screen.getByRole('heading', {name: 'Project name'})).toBeInTheDocument();
+    expect(screen.getByRole('textbox', {name: 'Project name'})).toBeInTheDocument();
 
     // Nothing is filled in yet, so the primary action stays disabled.
-    expect(screen.getByRole('button', {name: 'Create project'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Create project'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
   });
 
   it('hides the repository section for members without a connected integration', async () => {
@@ -364,10 +369,11 @@ describe('ScmCreateProject', () => {
     render(<ScmCreateProject />, {organization});
 
     const createButton = await screen.findByRole('button', {name: 'Create project'});
-    expect(createButton).toBeDisabled();
+    expect(createButton).toHaveAttribute('aria-disabled', 'true');
 
-    // Fresh wizard: platform and project name are both missing.
-    await userEvent.hover(createButton);
+    // Fresh wizard: platform and project name are both missing, and keyboard
+    // focus alone must reach the tooltip that says so.
+    act(() => createButton.focus());
     expect(
       await screen.findByText('Please fill out all the required fields')
     ).toBeInTheDocument();
@@ -389,7 +395,7 @@ describe('ScmCreateProject', () => {
 
     const projectName = screen.getByPlaceholderText('project-name');
     expect(projectName).toHaveValue('python-django');
-    await userEvent.type(screen.getByLabelText('Select a Team'), '{keyDown}');
+    await userEvent.type(screen.getByLabelText('Team'), '{keyDown}');
     await userEvent.click(await screen.findByText('#selected-team'));
 
     await userEvent.click(screen.getByText('Django'));
@@ -437,10 +443,9 @@ describe('ScmCreateProject', () => {
       initialRouterConfig: returningRouterConfig,
     });
 
-    expect(
-      await screen.findByRole('heading', {name: 'Project name'})
-    ).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('project-name')).toHaveValue('my-restored-name');
+    expect(await screen.findByRole('textbox', {name: 'Project name'})).toHaveValue(
+      'my-restored-name'
+    );
   });
 
   it('re-derives a restored untouched name on a platform change', async () => {
@@ -539,6 +544,25 @@ describe('ScmCreateProject', () => {
       expect(router.location.pathname).toContain('/python/getting-started/');
     });
     expect(router.location.query.projectCreationVariant).toBe('scm');
+  });
+
+  it('creates the project on Enter in the project name field', async () => {
+    persistWizardSession();
+    const {createRequest} = mockProjectCreation('python', 'python');
+
+    render(<ScmCreateProject />, {
+      organization,
+      initialRouterConfig: returningRouterConfig,
+    });
+
+    await userEvent.type(
+      await screen.findByRole('textbox', {name: 'Project name'}),
+      '{Enter}'
+    );
+
+    await waitFor(() => {
+      expect(createRequest).toHaveBeenCalled();
+    });
   });
 
   it('forwards the selected products to getting-started as the product query', async () => {
@@ -1058,7 +1082,10 @@ describe('ScmCreateProject', () => {
     await waitFor(() => {
       expect(screen.getByPlaceholderText('project-name')).toHaveValue('python');
     });
-    expect(screen.getByRole('button', {name: 'Create project'})).toBeEnabled();
+    expect(screen.getByRole('button', {name: 'Create project'})).toHaveAttribute(
+      'aria-disabled',
+      'false'
+    );
 
     await userEvent.click(screen.getByRole('button', {name: 'Create project'}));
 
@@ -1107,7 +1134,10 @@ describe('ScmCreateProject', () => {
     await waitFor(() => {
       expect(screen.getByPlaceholderText('project-name')).toHaveValue('python');
     });
-    expect(screen.getByRole('button', {name: 'Create project'})).toBeEnabled();
+    expect(screen.getByRole('button', {name: 'Create project'})).toHaveAttribute(
+      'aria-disabled',
+      'false'
+    );
     const tracing = await screen.findByRole('checkbox', {name: /Tracing/});
     await userEvent.click(tracing);
     expect(tracing).toBeChecked();
@@ -1120,7 +1150,10 @@ describe('ScmCreateProject', () => {
       screen.queryByRole('radio', {name: 'Python Language'})
     ).not.toBeInTheDocument();
     expect(screen.getByPlaceholderText('project-name')).toHaveValue('');
-    expect(screen.getByRole('button', {name: 'Create project'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Create project'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
     await userEvent.click(screen.getByText('Search SDKs...'));
     await userEvent.keyboard('Python');
     await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Python'}));

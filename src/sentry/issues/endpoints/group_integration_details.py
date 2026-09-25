@@ -17,6 +17,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.serializers import Serializer, serialize
+from sentry.api.utils import to_valid_int_id
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
@@ -68,6 +69,7 @@ from sentry.signals import integration_issue_created, integration_issue_linked
 from sentry.types.activity import ActivityType
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
+from sentry.utils.urls import urlsplit_best_effort
 
 MISSING_FEATURE_MESSAGE = "Your organization does not have access to this feature."
 
@@ -386,8 +388,18 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             "LinkExternalIssueRequest",
             fields={
                 "externalIssue": serializers.CharField(
-                    help_text="The identifier of the existing external issue to link, "
-                    "as understood by the provider (such as a Jira issue key)."
+                    help_text="The identifier or full URL of the existing external issue to link. "
+                    "URL support depends on the selected integration."
+                ),
+                "repo": serializers.CharField(
+                    required=False,
+                    help_text="The repository containing the external issue, in owner/name format. "
+                    "Required by GitHub, GitHub Enterprise, and Bitbucket integrations.",
+                ),
+                "comment": serializers.CharField(
+                    required=False,
+                    help_text="An optional comment to post to the external issue when linking, "
+                    "if supported by the integration.",
                 ),
             },
         ),
@@ -424,8 +436,8 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         elif not self._has_issue_feature(group.organization, request.user):
             return Response({"detail": MISSING_FEATURE_MESSAGE}, status=400)
 
-        external_issue_id = request.data.get("externalIssue")
-        if not external_issue_id:
+        external_issue = request.data.get("externalIssue")
+        if not external_issue:
             return Response({"externalIssue": ["Issue ID is required"]}, status=400)
 
         organization_id = group.project.organization_id
@@ -449,7 +461,24 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             installation = self._get_installation(integration, organization_id)
 
             try:
-                data = installation.get_issue(external_issue_id, data=request.data)
+                link_data = request.data.copy()
+                if isinstance(external_issue, str):
+                    scheme, netloc, _, _ = urlsplit_best_effort(external_issue.strip())
+                    if scheme and netloc:
+                        url_data = installation.get_issue_link_data(external_issue)
+                        if (
+                            link_data.get("repo")
+                            and url_data.get("repo")
+                            and str(link_data["repo"]).casefold() != url_data["repo"].casefold()
+                        ):
+                            raise IntegrationFormError(
+                                {"repo": "Repository does not match the issue URL"}
+                            )
+                        link_data.update(url_data)
+                data = installation.get_issue(link_data["externalIssue"], data=link_data)
+            except IntegrationConfigurationError as exc:
+                lifecycle.record_halt(exc)
+                return Response({"non_field_errors": [str(exc)]}, status=400)
             except IntegrationFormError as exc:
                 lifecycle.record_halt(exc)
                 return Response(dict(exc.field_errors or {}), status=400)
@@ -481,9 +510,12 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             else:
                 external_issue.update(**defaults)
 
-            installation.store_issue_last_defaults(group.project, request.user, request.data)
+            installation.store_issue_last_defaults(group.project, request.user, link_data)
             try:
-                installation.after_link_issue(external_issue, data=request.data)
+                installation.after_link_issue(external_issue, data=link_data)
+            except IntegrationConfigurationError as exc:
+                lifecycle.record_halt(exc)
+                return Response({"non_field_errors": [str(exc)]}, status=400)
             except IntegrationFormError as exc:
                 lifecycle.record_halt(exc)
                 return Response(dict(exc.field_errors or {}), status=400)
@@ -573,9 +605,10 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
 
         # note here externalIssue refers to `ExternalIssue.id` whereas above
         # it refers to the id from the provider
-        external_issue_id = request.GET.get("externalIssue")
-        if not external_issue_id:
+        raw_external_issue_id = request.GET.get("externalIssue")
+        if not raw_external_issue_id:
             return Response({"detail": "External ID required"}, status=400)
+        external_issue_id = to_valid_int_id("externalIssue", raw_external_issue_id)
 
         organization_id = group.project.organization_id
         result = integration_service.organization_context(

@@ -75,6 +75,20 @@ const COLUMNS = [
     key: 'automation_steps',
     sortKey: 'stoppingPoint',
   },
+  {
+    title: (
+      <Flex gap="sm" align="center">
+        {t('Auto-Iterate on PRs')}
+        <InfoTip
+          title={t(
+            'After opening a PR, Seer automatically pushes fixes when CI checks fail. You can still ask Seer to iterate on a PR yourself.'
+          )}
+        />
+      </Flex>
+    ),
+    key: 'pr_iteration',
+    sortKey: undefined,
+  },
 ];
 
 export function ProjectTableHeader({mutableSearch, onSortClick, settings, sort}: Props) {
@@ -85,8 +99,11 @@ export function ProjectTableHeader({mutableSearch, onSortClick, settings, sort}:
   const listItemCheckboxState = useListItemCheckboxContext();
   const {countSelected, endpointOptionsRef, selectAll, selectedIds} =
     listItemCheckboxState;
+  // oxlint-disable-next-line react/refs
   const endpointOptions = endpointOptionsRef.current;
+  // oxlint-disable-next-line react/refs
   const rawQuery = endpointOptions?.query?.query;
+  // oxlint-disable-next-line react/refs
   const queryString = typeof rawQuery === 'string' ? rawQuery : undefined;
 
   const projectIds = useMemo(
@@ -212,9 +229,11 @@ export function ProjectTableHeader({mutableSearch, onSortClick, settings, sort}:
             <Flex justify="start" width="100%" wrap="wrap" gap="md">
               {tn('Selected %s project.', 'Selected %s projects.', countSelected)}
               <a onClick={selectAll}>
+                {/* oxlint-disable-next-line react/refs */}
                 {queryString
                   ? tct('Select all [count] projects that match: [queryString].', {
                       count: listItemCheckboxState.hits,
+                      // oxlint-disable-next-line react/refs
                       queryString: <var>{queryString}</var>,
                     })
                   : t('Select all %s projects.', listItemCheckboxState.hits)}
@@ -227,9 +246,11 @@ export function ProjectTableHeader({mutableSearch, onSortClick, settings, sort}:
       <ListItemSelectedState selected="all">
         <InfiniteTable.HeaderBanner>
           <Alert variant="info" system>
+            {/* oxlint-disable-next-line react/refs */}
             {queryString
               ? tct('Selected all [count] projects matching: [queryString].', {
                   count: countSelected,
+                  // oxlint-disable-next-line react/refs
                   queryString: <var>{queryString}</var>,
                 })
               : countSelected > settings.length

@@ -537,6 +537,9 @@ const appConfig: Configuration = {
   },
   output: {
     crossOriginLoading: 'anonymous',
+    // 'continue' rather than the default 'stop': if the policy name is missing
+    // from the CSP allowlist, keep loading chunks instead of failing to boot.
+    trustedTypes: {policyName: 'sentry-bundler', onPolicyCreationFailure: 'continue'},
     // Clean the output dir before emit, but keep the service-worker assets
     // emitted by the separate `workerConfig` compiler below. Both compilers
     // write to this same `dist` path and run in parallel, so without `keep`
@@ -990,4 +993,28 @@ if (env.WEBPACK_CACHE_PATH) {
 }
 
 const configs = [appConfig, workerConfig];
+
+// Configure JSON stats explicitly; the CLI defaults to errors and warnings.
+// Keep module detail for bundle analysis without embedding source text.
+if (env.RSPACK_STATS) {
+  for (const config of configs) {
+    config.stats = {
+      all: false,
+      modules: true,
+      nestedModules: true,
+      source: false,
+      assets: true,
+      chunks: true,
+      chunkRelations: true,
+      chunkGroups: true,
+      entrypoints: true,
+      hash: true,
+      timings: true,
+      version: true,
+      errors: true,
+      warnings: true,
+    };
+  }
+}
+
 export default configs;

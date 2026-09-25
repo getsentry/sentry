@@ -113,6 +113,7 @@ export function ProjectSessionsAnrRequest({
         0
       );
 
+      // oxlint-disable-next-line react/set-state-in-effect
       setTotalSessions(totalUsers);
       onTotalValuesChange(totalUsers);
 
@@ -198,8 +199,10 @@ export function ProjectSessionsAnrRequest({
         : null;
 
       setTimeseriesData(timeseriesData_);
+      // eslint-disable react-you-might-not-need-an-effect/no-derived-state
       setPreviousTimeseriesData(previousTimeseriesData_);
       setBadBehaviourSeries(badBehaviourSeries_);
+      // eslint-enable react-you-might-not-need-an-effect/no-derived-state
     }
   }, [
     data,

@@ -11,7 +11,6 @@ import {
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {useCustomMeasurements} from 'sentry/utils/useCustomMeasurements';
-import {useParams} from 'sentry/utils/useParams';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {WidgetBuilderSlideout} from 'sentry/views/dashboards/widgetBuilder/components/widgetBuilderSlideout';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
@@ -24,7 +23,6 @@ import {
 jest.mock('sentry/utils/useCustomMeasurements');
 jest.mock('sentry/views/explore/hooks/useTraceItemAttributes');
 jest.mock('sentry/actionCreators/indicator');
-jest.mock('sentry/utils/useParams');
 
 describe('WidgetBuilderSlideout', () => {
   let organization!: ReturnType<typeof OrganizationFixture>;
@@ -42,8 +40,6 @@ describe('WidgetBuilderSlideout', () => {
     jest
       .mocked(useTraceMetricItemAttributes)
       .mockReturnValue({attributes: {}, secondaryAliases: {}, isLoading: false});
-
-    jest.mocked(useParams).mockReturnValue({widgetIndex: undefined});
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/recent-searches/',
@@ -316,10 +312,14 @@ describe('WidgetBuilderSlideout', () => {
     );
 
     await userEvent.type(await screen.findByPlaceholderText('Add Alias'), 'test alias');
+    expect(screen.getByPlaceholderText('Add Alias')).toHaveValue('test alias');
+
     await userEvent.click(await screen.findByRole('button', {name: 'Transactions'}));
     await userEvent.click(await screen.findByRole('option', {name: 'Errors'}));
 
-    expect(await screen.findByPlaceholderText('Add Alias')).toHaveValue('');
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('Add Alias')).toHaveValue('');
+    });
   }, 10_000);
 
   it('clears the alias when display type changes', async () => {
@@ -356,13 +356,16 @@ describe('WidgetBuilderSlideout', () => {
       await screen.findByPlaceholderText('Add Alias'),
       'test alias again'
     );
+    expect(screen.getByPlaceholderText('Add Alias')).toHaveValue('test alias again');
 
-    await userEvent.click(await screen.findByText('Table'));
-    await userEvent.click(await screen.findByText('Area'));
-    await userEvent.click(await screen.findByText('Area'));
-    await userEvent.click(await screen.findByText('Table'));
+    await userEvent.click(await screen.findByRole('button', {name: 'Table'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'Area'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Area'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'Table'}));
 
-    expect(await screen.findByPlaceholderText('Add Alias')).toHaveValue('');
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('Add Alias')).toHaveValue('');
+    });
   }, 10_000);
 
   it('only renders thresholds for big number widgets', async () => {
@@ -397,8 +400,6 @@ describe('WidgetBuilderSlideout', () => {
   });
 
   it('calls the save method with the index if it is defined', async () => {
-    jest.mocked(useParams).mockReturnValue({widgetIndex: '1'});
-
     const onSave = jest.fn();
     render(
       <WidgetBuilderProvider>
@@ -415,6 +416,10 @@ describe('WidgetBuilderSlideout', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+        initialRouterConfig: {
+          route: '/dashboards/:widgetIndex/',
+          location: {pathname: '/dashboards/1/'},
+        },
       }
     );
 
@@ -423,9 +428,96 @@ describe('WidgetBuilderSlideout', () => {
     expect(onSave).toHaveBeenCalledWith({index: 1, widget: expect.any(Object)});
   });
 
-  it('passes undefined as the index for onSave if the index is not defined', async () => {
-    jest.mocked(useParams).mockReturnValue({widgetIndex: undefined});
+  it('saves the selected threshold interval', async () => {
+    const onSave = jest.fn();
+    render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderSlideout
+          dashboard={DashboardFixture([])}
+          dashboardFilters={{release: undefined}}
+          onClose={jest.fn()}
+          onQueryConditionChange={jest.fn()}
+          onSave={onSave}
+          setIsPreviewDraggable={jest.fn()}
+          openWidgetTemplates={false}
+          setOpenWidgetTemplates={jest.fn()}
+        />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          route: '/dashboards/:widgetIndex/',
+          location: {
+            pathname: '/dashboards/1/',
+            query: {
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.LINE,
+              yAxis: ['count()'],
+              thresholds: '{"max_values":{"max1":100,"max2":200},"unit":null}',
+            },
+          },
+        },
+      }
+    );
 
+    await userEvent.click(await screen.findByRole('textbox', {name: 'Interval'}));
+    await userEvent.click(screen.getByText('1 hour'));
+    await userEvent.click(screen.getByRole('button', {name: 'Update Widget'}));
+
+    await waitFor(() => {
+      expect(onSave).toHaveBeenCalledWith({
+        index: 1,
+        widget: expect.objectContaining({
+          thresholds: expect.objectContaining({
+            timeWindow: '1h',
+          }),
+        }),
+      });
+    });
+  });
+
+  it('omits the threshold time window when Fixed is selected', async () => {
+    const onSave = jest.fn();
+    render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderSlideout
+          dashboard={DashboardFixture([])}
+          dashboardFilters={{release: undefined}}
+          onClose={jest.fn()}
+          onQueryConditionChange={jest.fn()}
+          onSave={onSave}
+          setIsPreviewDraggable={jest.fn()}
+          openWidgetTemplates={false}
+          setOpenWidgetTemplates={jest.fn()}
+        />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          route: '/dashboards/:widgetIndex/',
+          location: {
+            pathname: '/dashboards/1/',
+            query: {
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.LINE,
+              yAxis: ['count()'],
+              thresholds:
+                '{"max_values":{"max1":100,"max2":200},"unit":null,"timeWindow":"10m"}',
+            },
+          },
+        },
+      }
+    );
+
+    await userEvent.click(await screen.findByRole('textbox', {name: 'Interval'}));
+    await userEvent.click(screen.getByText('Fixed'));
+    await userEvent.click(screen.getByRole('button', {name: 'Update Widget'}));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(onSave.mock.calls[0]?.[0].widget.thresholds).not.toHaveProperty('timeWindow');
+  });
+
+  it('passes undefined as the index for onSave if the index is not defined', async () => {
     const onSave = jest.fn();
 
     // This is the case where we're adding a new widget
@@ -478,7 +570,7 @@ describe('WidgetBuilderSlideout', () => {
     expect(screen.getByText('Widget Library')).toBeInTheDocument();
   });
 
-  it('should render appropriate breadcrumbs if library widget is customized', async () => {
+  it('should render a back button to the library if a library widget is customized', async () => {
     const onSave = jest.fn();
     const {rerender} = render(
       <WidgetBuilderProvider>
@@ -518,8 +610,61 @@ describe('WidgetBuilderSlideout', () => {
       </WidgetBuilderProvider>
     );
 
-    expect(await screen.findByText('Widget Library')).toBeInTheDocument();
-    expect(await screen.findByText('Custom Widget Builder')).toBeInTheDocument();
+    expect(
+      await screen.findByRole('button', {name: 'Back to Widget Library'})
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', {name: 'Custom Widget Builder'})
+    ).toBeInTheDocument();
+  });
+
+  it('should return to the widget library when the back button is clicked', async () => {
+    const setOpenWidgetTemplates = jest.fn();
+    const {rerender} = render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderSlideout
+          dashboard={DashboardFixture([])}
+          dashboardFilters={{release: undefined}}
+          onClose={jest.fn()}
+          onQueryConditionChange={jest.fn()}
+          onSave={jest.fn()}
+          setIsPreviewDraggable={jest.fn()}
+          openWidgetTemplates
+          setOpenWidgetTemplates={setOpenWidgetTemplates}
+        />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+      }
+    );
+
+    await userEvent.click(screen.getByText('Duration Distribution'));
+    await userEvent.click(screen.getByText('Customize'));
+
+    rerender(
+      <WidgetBuilderProvider>
+        <WidgetBuilderSlideout
+          dashboard={DashboardFixture([])}
+          dashboardFilters={{release: undefined}}
+          onClose={jest.fn()}
+          onQueryConditionChange={jest.fn()}
+          onSave={jest.fn()}
+          setIsPreviewDraggable={jest.fn()}
+          openWidgetTemplates={false}
+          setOpenWidgetTemplates={setOpenWidgetTemplates}
+        />
+      </WidgetBuilderProvider>
+    );
+
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Back to Widget Library'})
+    );
+
+    expect(setOpenWidgetTemplates).toHaveBeenCalledWith(true);
+    // customizeFromLibrary resets, so the back button unmounts
+    expect(
+      screen.queryByRole('button', {name: 'Back to Widget Library'})
+    ).not.toBeInTheDocument();
   });
 
   it('should show deprecation alert when flag enabled', async () => {
@@ -529,7 +674,6 @@ describe('WidgetBuilderSlideout', () => {
         'performance-transaction-deprecation-banner',
       ],
     });
-    jest.mocked(useParams).mockReturnValue({widgetIndex: '1'});
     render(
       <WidgetBuilderProvider>
         <WidgetBuilderSlideout
@@ -546,8 +690,9 @@ describe('WidgetBuilderSlideout', () => {
       {
         organization: organizationWithFeature,
         initialRouterConfig: {
+          route: '/dashboards/:widgetIndex/',
           location: {
-            pathname: '/dashboards/',
+            pathname: '/dashboards/1/',
             query: {
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.LINE,
@@ -568,7 +713,6 @@ describe('WidgetBuilderSlideout', () => {
   });
 
   it('should not show deprecation alert when flag enabled', async () => {
-    jest.mocked(useParams).mockReturnValue({widgetIndex: '1'});
     render(
       <WidgetBuilderProvider>
         <WidgetBuilderSlideout
@@ -585,8 +729,9 @@ describe('WidgetBuilderSlideout', () => {
       {
         organization,
         initialRouterConfig: {
+          route: '/dashboards/:widgetIndex/',
           location: {
-            pathname: '/dashboards/',
+            pathname: '/dashboards/1/',
             query: {
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.LINE,
@@ -833,6 +978,42 @@ describe('WidgetBuilderSlideout', () => {
     await waitFor(() => {
       expect(screen.getByRole('radio', {name: 'Equation'})).toBeChecked();
     });
+  });
+
+  it('shows the optional group by selector for Trace Metrics equations', async () => {
+    render(
+      <WidgetBuilderSlideout
+        dashboard={DashboardFixture([])}
+        dashboardFilters={{release: undefined}}
+        onClose={jest.fn()}
+        onQueryConditionChange={jest.fn()}
+        onSave={jest.fn()}
+        setIsPreviewDraggable={jest.fn()}
+        openWidgetTemplates={false}
+        setOpenWidgetTemplates={jest.fn()}
+      />,
+      {
+        organization: OrganizationFixture({
+          features: ['tracemetrics-enabled'],
+        }),
+        initialRouterConfig: {
+          location: {
+            pathname: '/dashboards/',
+            query: {
+              dataset: WidgetType.TRACEMETRICS,
+              displayType: DisplayType.TABLE,
+              field: [
+                'equation|sum(value,alpha_metric,counter,none) + avg(value,beta_metric,counter,none)',
+              ],
+            },
+          },
+        },
+        additionalWrapper: WidgetBuilderProvider,
+      }
+    );
+
+    expect(await screen.findByText('Group by')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Add Group'})).toBeInTheDocument();
   });
 
   it('should not show the group by selector if the widget is an issue and a chart display type', async () => {

@@ -142,6 +142,7 @@ function PipelineModal<
           {pipeline.error && (
             <Alert
               variant="danger"
+              role="alert"
               trailingItems={
                 <Alert.Button onClick={pipeline.restart}>{t('Start over')}</Alert.Button>
               }
@@ -196,6 +197,7 @@ export function openPipelineModal<
         description={description}
       />
     ),
-    {onClose, closeEvents: 'none'}
+    // Not 'all': a backdrop click must not lose a half-finished install flow.
+    {onClose, closeEvents: 'escape-key'}
   );
 }

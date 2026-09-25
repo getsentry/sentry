@@ -1,24 +1,27 @@
 import {Button} from '@sentry/scraps/button';
+import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 
 import Feature from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {Confirm} from 'sentry/components/confirm';
-import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {Hovercard} from 'sentry/components/hovercard';
-import {IconAdd} from 'sentry/icons';
+import {IconAdd, IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
+import {
+  DASHBOARD_SAVING_MESSAGE,
+  UNSAVED_FILTERS_MESSAGE,
+} from 'sentry/views/dashboards/constants';
 import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
-import {EditAccessSelector} from 'sentry/views/dashboards/editAccessSelector';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 
 import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
-import type {DashboardDetails, DashboardPermissions} from './types';
+import type {DashboardDetails} from './types';
 import {DashboardState, MAX_WIDGETS} from './types';
 
 type Props = {
@@ -33,17 +36,18 @@ type Props = {
   widgetLimitReached: boolean;
   hasUnsavedFilters?: boolean;
   isSaving?: boolean;
-  onChangeEditAccess?: (newDashboardPermissions: DashboardPermissions) => void;
 };
 
 export function DashboardActionBar({
   dashboard,
   dashboardState,
+  hasUnsavedFilters = false,
+  isSaving = false,
   onAddWidget,
   onCancel,
-  onChangeEditAccess,
   onCommit,
   onDelete,
+  onEdit,
   widgetLimitReached,
 }: Props) {
   const organization = useOrganization();
@@ -73,7 +77,9 @@ export function DashboardActionBar({
         </Button>
         <Confirm
           priority="danger"
-          message={t('Are you sure you want to delete this dashboard?')}
+          message={tct('Are you sure you want to delete the [title] dashboard?', {
+            title: <strong>{dashboard.title}</strong>,
+          })}
           onConfirm={onDelete}
         >
           <Button size="sm" variant="danger" data-test-id="dashboard-delete">
@@ -151,9 +157,9 @@ export function DashboardActionBar({
     <DashboardEditFeature>
       {hasFeature => {
         const showAddWidget = hasFeature && !isPrebuiltDashboard;
-        const showEditAccess = !isPrebuiltDashboard;
+        const showEdit = hasEditAccess && !isPrebuiltDashboard;
 
-        if (!showAddWidget && !showEditAccess) {
+        if (!showAddWidget && !showEdit) {
           return null;
         }
 
@@ -166,11 +172,23 @@ export function DashboardActionBar({
                 widgetLimitReached={widgetLimitReached}
               />
             )}
-            {showEditAccess && (
-              <EditAccessSelector
-                dashboard={dashboard}
-                onChangeEditAccess={onChangeEditAccess}
-              />
+            {showEdit && (
+              <Button
+                size="sm"
+                icon={<IconEdit />}
+                onClick={onEdit}
+                disabled={hasUnsavedFilters || isSaving}
+                tooltipProps={{
+                  title: isSaving
+                    ? DASHBOARD_SAVING_MESSAGE
+                    : hasUnsavedFilters
+                      ? UNSAVED_FILTERS_MESSAGE
+                      : undefined,
+                }}
+                data-test-id="dashboard-edit"
+              >
+                {t('Edit')}
+              </Button>
             )}
           </DashboardControls>
         );

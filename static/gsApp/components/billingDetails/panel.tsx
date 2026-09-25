@@ -57,7 +57,9 @@ export function BillingDetailsPanel({
 
   useEffect(() => {
     if (expandInitially && !isLoading && !hasSomeBillingDetails(billingDetails)) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setIsEditing(true);
+      // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
       setExpandInitially(false);
     }
   }, [isLoading, billingDetails, expandInitially]);

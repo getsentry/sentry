@@ -11,7 +11,7 @@ import {TeamFixture} from 'sentry-fixture/team';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {setWindowLocation} from 'sentry-test/utils';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
@@ -21,6 +21,7 @@ import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {IssueCategory} from 'sentry/types/group';
 import GroupDetails from 'sentry/views/issueDetails/groupDetails';
+import * as GroupDetailsLayoutModule from 'sentry/views/issueDetails/groupDetailsLayout';
 
 const SAMPLE_EVENT_ALERT_TEXT =
   'You are viewing a sample error. Configure Sentry to start viewing real errors.';
@@ -222,7 +223,76 @@ describe('groupDetails', () => {
     PageFiltersStore.reset();
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
+    jest.restoreAllMocks();
   });
+
+  it.each(['button', 'Escape'])(
+    'keeps the Seer drawer closed after closing with %s',
+    async close => {
+      // Keep the real page/drawer lifecycle without rendering unrelated issue content.
+      jest
+        .spyOn(GroupDetailsLayoutModule, 'GroupDetailsLayout')
+        .mockImplementation(MockComponent);
+      const organization = {
+        ...defaultInit.organization,
+        hideAiFeatures: false,
+        features: ['gen-ai-features'],
+      };
+      const query = {
+        project: group.project.id,
+        statsPeriod: '14d',
+        seerDrawer: 'true',
+        seerDrawerAction: 'retry_code_changes',
+      };
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${group.id}/autofix/`,
+        body: {autofix: null},
+      });
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
+        body: {code_mapping_repos: [], preference: null},
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/onboarding-check/`,
+        body: {isSeerConfigured: false},
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/integrations/coding-agents/`,
+        body: {integrations: []},
+      });
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/autofix-repos/`,
+        body: [],
+      });
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/seer/repos/`,
+        body: [],
+      });
+      const {router} = createWrapper(
+        {
+          ...initialRouterConfig,
+          location: LocationFixture({...initialRouterConfig.location, query}),
+        },
+        organization
+      );
+
+      const closeButton = await screen.findByRole('button', {name: 'Close Drawer'});
+      if (close === 'button') {
+        await userEvent.click(closeButton);
+      } else {
+        await userEvent.keyboard('{Escape}');
+      }
+      await waitFor(() => {
+        expect(router.location.query).toEqual({
+          project: group.project.id,
+          statsPeriod: '14d',
+        });
+        expect(
+          screen.queryByRole('complementary', {name: 'Seer drawer'})
+        ).not.toBeInTheDocument();
+      });
+    }
+  );
 
   it('renders', async () => {
     act(() => ProjectsStore.reset());
@@ -258,6 +328,24 @@ describe('groupDetails', () => {
     expect(
       await screen.findByText('The issue you were looking for was not found.')
     ).toBeInTheDocument();
+  });
+
+  it('retries the issue request after an initial load failure', async () => {
+    const url = `/organizations/${defaultInit.organization.slug}/issues/${group.id}/`;
+    MockApiClient.addMockResponse({url, statusCode: 500});
+    setWindowLocation(`http://localhost/?project=${group.project.id}`);
+
+    render(<GroupDetails />, {
+      organization: defaultInit.organization,
+      initialRouterConfig,
+    });
+
+    const retryButton = await screen.findByRole('button', {name: 'Retry'});
+    const retryRequest = MockApiClient.addMockResponse({url, body: group});
+    await userEvent.click(retryButton);
+
+    expect(await screen.findByText(group.shortId)).toBeInTheDocument();
+    expect(retryRequest).toHaveBeenCalledTimes(1);
   });
 
   it('renders MissingProjectMembership when trying to access issue in project the user does not belong to', async () => {

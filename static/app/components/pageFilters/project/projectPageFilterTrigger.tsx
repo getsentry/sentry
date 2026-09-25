@@ -41,8 +41,8 @@ export function ProjectPageFilterTrigger({
   const isMyProjectsSelected =
     isMemberProjectsSelected && memberProjects.length > 0 && totalProjects > 1;
 
-  const isAllProjectsSelected =
-    value.length === 0 || (totalProjects > 1 && containsAllProjects);
+  const isAllProjectsSelected = totalProjects > 1 && containsAllProjects;
+  const isNoProjectsSelected = value.length === 0 && !isMyProjectsSelected;
 
   const selectedProjects = value
     .slice(0, 2) // we only need to know about the first two projects
@@ -65,7 +65,9 @@ export function ProjectPageFilterTrigger({
     ? t('All Projects')
     : isMyProjectsSelected
       ? t('My Projects')
-      : enumeratedLabel;
+      : isNoProjectsSelected
+        ? t('No Projects')
+        : enumeratedLabel;
 
   // Number of projects that aren't listed in the trigger label
   const remainingCount = isAllProjectsSelected
@@ -81,7 +83,8 @@ export function ProjectPageFilterTrigger({
       icon={
         ready &&
         !isAllProjectsSelected &&
-        !isMyProjectsSelected && (
+        !isMyProjectsSelected &&
+        !isNoProjectsSelected && (
           <PlatformList
             platforms={projectsToShow.map(p => p.platform ?? 'other').reverse()}
           />

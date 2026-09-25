@@ -3,7 +3,10 @@ import type {
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
+import {
+  getDataCollectionStep,
+  getUploadSourceMapsStep,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {
   getInstallCodeBlock,
   getSdkInitSnippet,
@@ -97,6 +100,10 @@ export const onboarding: OnboardingConfig = {
       guideLink:
         'https://docs.sentry.io/platforms/javascript/guides/gcp-functions/sourcemaps/',
       ...params,
+    }),
+    getDataCollectionStep({
+      docsLink:
+        'https://docs.sentry.io/platforms/javascript/guides/gcp-functions/configuration/options/#dataCollection',
     }),
   ],
   verify: (params: DocsParams) => [

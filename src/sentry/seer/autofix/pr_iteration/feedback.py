@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Collection, Sequence
 from datetime import datetime
 from typing import Annotated, Any
 
@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field, ValidationError, root_validator
 
 from sentry import options
 from sentry.seer.agent.client_models import MemoryBlock, SeerRunState
+from sentry.seer.autofix.pr_iteration.feedback_sources.base import Decision
 from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import CheckSuiteFeedbackSource
 from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrCommentFeedbackSource,
@@ -16,6 +17,7 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrReviewCommentFeedbackSource,
 )
 from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
+from sentry.seer.autofix.pr_iteration.project_setting import pr_iteration_enabled_for_group
 from sentry.utils import json
 
 FeedbackSource = Annotated[
@@ -95,6 +97,29 @@ def blocks_feedback(blocks: Sequence[MemoryBlock]) -> list[Feedback]:
     ]
 
 
+def feedback_kind(items: Collection[Feedback]) -> str:
+    """Whether a batch is manual, automated, or both — the ``feedback_kind`` metrics tag."""
+    kinds = {item.source.is_automated for item in items}
+    if not kinds:
+        return "unknown"
+    if len(kinds) != 1:
+        return "mixed"
+    return "automated" if kinds.pop() else "manual"
+
+
+def latest_iteration_feedback_kind(run_state: SeerRunState) -> str:
+    """``feedback_kind`` for the run's most recent PR iteration."""
+    from sentry.seer.autofix.autofix_agent import get_iterations
+
+    try:
+        iterations = get_iterations(run_state)
+    except Exception:
+        return "unknown"
+    if not iterations:
+        return "unknown"
+    return feedback_kind(blocks_feedback(iterations[-1].blocks))
+
+
 def iteration_is_automated(iteration_blocks: Sequence[MemoryBlock]) -> bool:
     """Whether a PR iteration was driven *only* by automated feedback.
 
@@ -128,3 +153,21 @@ def automated_iteration_cap_reached(run_state: SeerRunState) -> bool:
         return False
 
     return all(iteration_is_automated(iteration.blocks) for iteration in last_iterations)
+
+
+def automated_iteration_allowed(run_state: SeerRunState) -> Decision:
+    """Whether the run allows another automated iteration right now.
+
+    False when the project has PR iteration turned off or the run has hit the
+    automated iteration cap. Only automated feedback (CI, bots) is checked
+    against this: callers skip it for feedback from a person, which is never
+    held back by either.
+    """
+    group_id = run_state.metadata.get("group_id") if run_state.metadata else None
+    if group_id is not None and not pr_iteration_enabled_for_group(group_id):
+        return Decision(ok=False, reason="project_disabled")
+
+    if automated_iteration_cap_reached(run_state):
+        return Decision(ok=False, reason="hard_cap_reached")
+
+    return Decision(ok=True, reason="run_allows")

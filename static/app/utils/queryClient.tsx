@@ -13,9 +13,20 @@ import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {selectJson} from 'sentry/utils/api/apiOptions';
 import {normalizeQueryKey} from 'sentry/utils/api/apiQueryKey';
 import type {ApiQueryKey, QueryKeyEndpointOptions} from 'sentry/utils/api/apiQueryKey';
+import type {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 
 const nonRetryCodes = new Set<number | undefined>([400, 401, 402, 403, 404]);
+
+/**
+ * Whether refetching after `err` could plausibly succeed. A client error -- a
+ * malformed query, a resource the viewer can't see -- fails identically on
+ * every attempt, so surfaces that offer a manual Retry should hide it for
+ * these rather than leaving the reader to press a button that can't help.
+ */
+export function isRetryableRequestError(err: unknown): boolean {
+  return !(err instanceof RequestError && nonRetryCodes.has(err.status));
+}
 
 // Overrides to the default react-query options.
 // See https://tanstack.com/query/v5/docs/framework/react/guides/important-defaults
@@ -26,7 +37,7 @@ export const DEFAULT_QUERY_CLIENT_CONFIG: QueryClientConfig = {
       refetchOnWindowFocus: false,
       retry: (failureCount, err) => {
         // Disable retries for client errors that won't succeed on retry
-        if (err instanceof RequestError && nonRetryCodes.has(err.status)) {
+        if (!isRetryableRequestError(err)) {
           return false;
         }
 
@@ -145,7 +156,7 @@ export function setApiQueryData<TResponseData>(
 
 type ApiMutationVariables = {
   method: 'PUT' | 'POST' | 'PATCH' | 'DELETE';
-  url: string;
+  url: ReturnType<typeof getApiUrl>;
   data?: Record<string, unknown>;
   options?: Pick<
     QueryKeyEndpointOptions,

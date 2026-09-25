@@ -106,7 +106,10 @@ export interface CallRecord {
   body?: string;
   /** Whether `body` was cut short. */
   body_truncated?: boolean;
-  /** Transport-level failure (no HTTP response), e.g. `ConnectError`. */
+  /**
+   * Why the call failed: a transport-level failure with no HTTP response (`ConnectError`), or a
+   * reason a caller rejected a response it did get.
+   */
   error?: string;
   /**
    * What the agent said it was trying to accomplish. Carried beside `title`, never instead of it.
@@ -125,6 +128,8 @@ export interface CallRecord {
   parent?: number | null;
   path?: string;
   path_params?: Record<string, string>;
+  /** Which external provider served this call, if any. */
+  provider?: string;
   /**
    * `path` with its params interpolated and the query string appended — the literal path that was
    * requested. Seer carries the query only here, so this is the whole URL.
@@ -254,9 +259,9 @@ export type SeerExplorerRunId = number | string;
 
 export type SeerExplorerResponse = {
   session: {
-    blocks: Block[];
     status: 'processing' | 'completed' | 'error' | 'awaiting_user_input';
     updated_at: string;
+    blocks?: Block[];
     failure_reason?: 'timeout' | 'stalled' | null;
     owner_user_id?: number | null;
     pending_user_input?: PendingUserInput | null;

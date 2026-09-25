@@ -8,6 +8,7 @@ from django.test import SimpleTestCase
 from django.utils import timezone
 
 from sentry.api.event_search import (
+    MAX_REGEX_PATTERN_LENGTH,
     AggregateFilter,
     AggregateKey,
     ParenExpression,
@@ -114,6 +115,15 @@ def result_transformer(result):
 
         if token["type"] == "keyExplicitBooleanTag":
             return SearchKey(name=f"tags[{token['key']['value']},boolean]")
+
+        if token["type"] == "keyExplicitArrayTag":
+            return SearchKey(name=f"tags[{token['key']['value']},array]")
+
+        if token["type"] == "keyArrayIncludes":
+            # The `[*]` membership suffix carries the operation, not the key
+            # name, so the backend key drops it and resolves to the inner
+            # (array tag or simple) key, matching visit_array_includes_key.
+            return node_visitor(token["key"])
 
         if token["type"] == "keyExplicitFlag":
             return SearchKey(name=f"flags[{token['key']['value']}]")
@@ -1490,6 +1500,208 @@ def test_handles_starts_with_wildcard_op_translations(query, expected) -> None:
     assert isinstance(filters[0], SearchFilter)
     actual = filters[0].to_query_string()
     assert actual == expected
+
+
+regex_config = SearchConfig.create_from(default_config, allow_regex=True)
+
+
+@pytest.mark.parametrize(
+    ["query", "expected_operator", "expected_value"],
+    [
+        pytest.param("span.op://^test$//", "=", "^test$", id="anchored"),
+        pytest.param("span.op://api///", "=", "api/", id="trailing slash in the pattern"),
+        pytest.param("span.op://5//", "=", "5", id="numeric-looking pattern"),
+        pytest.param("span.op://>5//", "=", ">5", id="operator-looking pattern"),
+        pytest.param("!span.op://^test$//", "!=", "^test$", id="negated"),
+        pytest.param("span.op://a*b//", "=", "a*b", id="quantifier"),
+        pytest.param("span.op://a\\*b//", "=", "a\\*b", id="escaped asterisk"),
+        pytest.param("span.op://\\pL+//", "=", "\\pL+", id="unicode class"),
+        pytest.param("span.op://a b|c//", "=", "a b|c", id="unquoted spaces"),
+        pytest.param("span.op://[0-9]//", "=", "[0-9]", id="lone character class"),
+    ],
+)
+def test_parses_regex_op_without_rewriting_the_pattern(
+    query, expected_operator, expected_value
+) -> None:
+    filters = parse_search_query(query, config=regex_config)
+    assert len(filters) == 1
+    assert isinstance(filters[0], SearchFilter)
+    assert filters[0].operator == expected_operator
+    assert filters[0].value.is_regex is True
+    assert filters[0].value.is_wildcard() is False
+    assert filters[0].value.value == expected_value
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        pytest.param("!span.op://^test$//", id="negated"),
+        pytest.param("span.op://^(foo|bar) baz$//", id="parens and spaces"),
+        pytest.param('span.op://"quoted"//', id="embedded quotes"),
+        pytest.param(r"span.op://https?://example\.com///", id="embedded and trailing slashes"),
+    ],
+)
+def test_round_trips_a_regex_op_through_to_query_string(query) -> None:
+    filters = parse_search_query(query, config=regex_config)
+    assert len(filters) == 1
+    assert isinstance(filters[0], SearchFilter)
+    assert parse_search_query(filters[0].to_query_string(), config=regex_config) == filters
+
+
+@pytest.mark.parametrize(
+    ["query", "expected_message"],
+    [
+        pytest.param(
+            "span.op://[a-//",
+            "span.op: Invalid regex (RE2 syntax): missing ]: [a-",
+            id="unterminated character set",
+        ),
+        pytest.param(
+            "span.op://foo(?=bar)//",
+            "span.op: Invalid regex (RE2 syntax): invalid perl operator: (?=",
+            id="lookahead",
+        ),
+    ],
+)
+def test_rejects_an_invalid_regex_pattern(query, expected_message) -> None:
+    with pytest.raises(InvalidSearchQuery) as err:
+        parse_search_query(query, config=regex_config)
+    assert str(err.value) == expected_message
+
+
+def test_parses_a_regex_value_on_an_array_includes_key_as_its_array_attribute() -> None:
+    filters = parse_search_query("tags[foo,array][*]://^a//", config=regex_config)
+
+    assert filters == [
+        SearchFilter(
+            key=SearchKey(name="tags[foo,array]"),
+            operator="=",
+            value=SearchValue("^a", use_raw_value=True, is_regex=True),
+        )
+    ]
+
+
+def test_parses_a_regex_value_alongside_aggregate_and_plain_filters() -> None:
+    filters = parse_search_query("count():>5 message://^ERROR// env:prod", config=regex_config)
+
+    assert filters == [
+        AggregateFilter(key=AggregateKey(name="count()"), operator=">", value=SearchValue(5.0)),
+        SearchFilter(
+            key=SearchKey(name="message"),
+            operator="=",
+            value=SearchValue("^ERROR", use_raw_value=True, is_regex=True),
+        ),
+        SearchFilter(key=SearchKey(name="env"), operator="=", value=SearchValue("prod")),
+    ]
+
+
+def test_parses_a_regex_value_as_a_literal_when_the_config_does_not_allow_regex() -> None:
+    filters = parse_search_query("transaction://api/users//")
+
+    assert filters == [
+        SearchFilter(
+            key=SearchKey(name="transaction"), operator="=", value=SearchValue("//api/users//")
+        )
+    ]
+
+
+def test_parses_a_quoted_regex_value_as_a_literal() -> None:
+    filters = parse_search_query('message:"//api/users//"', config=regex_config)
+
+    assert filters == [
+        SearchFilter(
+            key=SearchKey(name="message"), operator="=", value=SearchValue("//api/users//")
+        )
+    ]
+
+
+def test_ends_a_regex_value_at_the_first_delimiter_followed_by_a_space() -> None:
+    filters = parse_search_query("message://a// b//", config=regex_config)
+
+    assert filters == [
+        SearchFilter(
+            key=SearchKey(name="message"),
+            operator="=",
+            value=SearchValue("a", use_raw_value=True, is_regex=True),
+        ),
+        SearchFilter(key=SearchKey(name="message"), operator="=", value=SearchValue("b//")),
+    ]
+
+
+def test_parses_a_regex_pattern_at_the_length_limit() -> None:
+    pattern = "a" * MAX_REGEX_PATTERN_LENGTH
+
+    filters = parse_search_query(f"message://{pattern}//", config=regex_config)
+
+    assert filters == [
+        SearchFilter(
+            key=SearchKey(name="message"),
+            operator="=",
+            value=SearchValue(pattern, use_raw_value=True, is_regex=True),
+        )
+    ]
+
+
+@pytest.mark.parametrize(
+    ["query", "key", "length"],
+    [
+        pytest.param("message://{pattern}//", "message", MAX_REGEX_PATTERN_LENGTH + 1, id="plain"),
+        pytest.param(
+            "!message://{pattern}// env:prod",
+            "message",
+            MAX_REGEX_PATTERN_LENGTH + 1,
+            id="negated then another filter",
+        ),
+        pytest.param(
+            "tags[foo,array][*]://{pattern}//",
+            "tags[foo,array]",
+            MAX_REGEX_PATTERN_LENGTH + 1,
+            id="array key",
+        ),
+        pytest.param(
+            "url://a.com/ OR url://{pattern}//",
+            "url",
+            MAX_REGEX_PATTERN_LENGTH + 1,
+            id="unquoted literal before a pattern",
+        ),
+        pytest.param("message://{pattern}//", "message", 2000, id="too long to scan"),
+        pytest.param(
+            "message://{pattern} {pattern}//", "message", 2000, id="too long to scan with spaces"
+        ),
+        pytest.param(
+            "tags[foo,array][*]://{pattern}//",
+            "tags[foo,array]",
+            2000,
+            id="too long to scan on an array key",
+        ),
+    ],
+)
+def test_rejects_a_regex_pattern_over_the_length_limit(query: str, key: str, length: int) -> None:
+    with pytest.raises(InvalidSearchQuery) as err:
+        parse_search_query(query.format(pattern="a" * length), config=regex_config)
+
+    assert str(err.value) == (
+        f"{key}: Regex patterns are limited to {MAX_REGEX_PATTERN_LENGTH} characters. "
+        'To search for a literal value that starts with //, quote it: "//..."'
+    )
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        pytest.param("url://{value}", id="unclosed"),
+        pytest.param("url:=//{value}//", id="explicit operator"),
+        pytest.param('url:"//{value}//"', id="quoted"),
+    ],
+)
+def test_parses_a_long_literal_that_starts_with_the_regex_delimiter(query: str) -> None:
+    value = "a" * (MAX_REGEX_PATTERN_LENGTH + 1)
+
+    filters = parse_search_query(query.format(value=value), config=regex_config)
+
+    assert [(f.key.name, f.value.is_regex) for f in filters if isinstance(f, SearchFilter)] == [
+        ("url", False)
+    ]
 
 
 @pytest.mark.parametrize(

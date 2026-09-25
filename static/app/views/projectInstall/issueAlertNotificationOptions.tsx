@@ -309,17 +309,22 @@ function useNotificationPicker(resolveRestore: RestoreResolver) {
       // the setup CTA and do NOT latch, so this effect re-runs after a
       // refetch delivers it. Don't half-apply the restore, so the picker
       // can't look submittable with an unresolved integration.
+      // oxlint-disable-next-line react/set-state-in-effect
       setShouldRenderSetupButton(true);
       return;
     }
 
     if (outcome.kind === 'apply') {
+      // eslint-disable react-you-might-not-need-an-effect/no-derived-state
       setProvider(outcome.provider);
       setIntegration(outcome.integration);
+      // eslint-enable react-you-might-not-need-an-effect/no-derived-state
       // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
       setActions(outcome.actions);
+      // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
       setShouldRenderSetupButton(outcome.shouldRenderSetupButton);
       if (outcome.channel) {
+        // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
         setChannel(outcome.channel);
       }
       hasInitializedSelection.current = true;

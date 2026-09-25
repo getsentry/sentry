@@ -22,6 +22,11 @@ import {
 } from 'sentry/components/charts/useChartXRangeSelection';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {isChartHovered, truncationFormatter} from 'sentry/components/charts/utils';
+import {
+  DROPPED_DATA_SERIES_ID,
+  useDroppedDataBand,
+} from 'sentry/components/droppedData/useDroppedDataBand';
+import type {AnnotationBucket, DroppedData} from 'sentry/components/droppedData/utils';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import type {
@@ -69,6 +74,7 @@ export interface TimeSeriesWidgetVisualizationProps extends Partial<LoadableChar
    * An array of `Plottable` objects. This can be any object that implements the `Plottable` interface.
    */
   plottables: Plottable[];
+
   /**
    * Sets the range of the Y axis.
    *
@@ -86,6 +92,13 @@ export interface TimeSeriesWidgetVisualizationProps extends Partial<LoadableChar
    * The props for the chart x range selection on drag.
    */
   chartXRangeSelection?: Partial<ChartXRangeSelectionProps>;
+
+  /**
+   * Dropped-data annotations rendered as a severity band between the plot and
+   * the x-axis line. The band is hidden when `visible` is false or no bucket has
+   * dropped data. `onClick` is called with the clicked bucket.
+   */
+  droppedData?: DroppedData;
 
   /**
    * A mapping of time series field name to boolean. If the value is `false`, the series is hidden from view
@@ -108,6 +121,11 @@ export interface TimeSeriesWidgetVisualizationProps extends Partial<LoadableChar
    * Array of `Release` objects. If provided, they are plotted on line and area visualizations as vertical lines
    */
   releases?: Release[];
+
+  /**
+   * Returns extra HTML to append to the tooltip's series block.
+   */
+  renderTooltipSeriesDetails?: (seriesNames: string[], timestamp: number) => string;
 
   /**
    * Defines the legend's visibility.
@@ -139,6 +157,17 @@ export interface TimeSeriesWidgetVisualizationProps extends Partial<LoadableChar
    * Default: `auto`
    */
   showYAxis?: 'auto' | 'never';
+
+  /**
+   * Truncate the legend's "+n more" menu labels to the width the legend row
+   * already caps its own at, instead of letting the menu size to its content.
+   *
+   * For charts in a box narrow enough to clip the menu. A Seer embed's card is
+   * one, and the series names it charts are model-written, so the menu came out
+   * wider than the card and was cut off (CW-2052). A full-width surface has the
+   * room and should keep the untruncated names, which is the default.
+   */
+  truncateLegendMenuLabels?: boolean;
 }
 
 export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizationProps) {
@@ -350,6 +379,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           formatTooltipValue(value, fieldType, unitForType[fieldType] ?? undefined)
         );
       },
+      renderSeriesDetails: props.renderTooltipSeriesDetails,
       truncate: false,
       utc: utc ?? false,
     })(deDupedParams, asyncTicket);
@@ -399,6 +429,25 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   if (releaseBubbleYAxis) {
     yAxes.push(releaseBubbleYAxis);
+  }
+
+  // `useReleaseBubbles` returns an empty object when there are no bubbles to draw.
+  const releaseBandHeight =
+    'offset' in releaseBubbleXAxis ? releaseBubbleXAxis.offset : 0;
+  const releaseGridBottom = 'bottom' in releaseBubbleGrid ? releaseBubbleGrid.bottom : 0;
+
+  const {droppedDataSeries, droppedDataBandHeight, droppedDataYAxis} = useDroppedDataBand(
+    {
+      chartRef,
+      droppedData: props.droppedData,
+      bandOffset: releaseBandHeight,
+      utc,
+      yAxisIndex: yAxes.length,
+    }
+  );
+
+  if (droppedDataYAxis) {
+    yAxes.push(droppedDataYAxis);
   }
 
   const showYAxisProp = props.showYAxis ?? 'auto';
@@ -471,6 +520,12 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   const hasCustomTicks = customTicks && customTicks.length > 0;
 
+  // Release bubbles and the dropped-data band each reserve space below the plot,
+  // so the axis line moves down by their combined height and the grid shrinks by
+  // the same amount.
+  const xAxisBandOffset = releaseBandHeight + droppedDataBandHeight;
+  const gridBandBottom = releaseGridBottom + droppedDataBandHeight;
+
   const xAxis = showXAxis
     ? {
         animation: false,
@@ -496,7 +551,8 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         // When customValues are provided, suppress auto-tick generation
         // so ECharts only renders our timezone-aligned ticks.
         splitNumber: hasCustomTicks ? 0 : X_AXIS_SPLIT_NUMBER,
-        ...releaseBubbleXAxis,
+        axisLine: {onZero: xAxisBandOffset === 0},
+        offset: xAxisBandOffset,
       }
     : HIDDEN_AXIS;
 
@@ -614,7 +670,9 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     {}
   );
 
-  const allSeries = [...seriesFromPlottables, releaseSeries].filter(defined);
+  const allSeries = [...seriesFromPlottables, releaseSeries, droppedDataSeries].filter(
+    defined
+  );
 
   const runHandler = (
     batch: {dataIndex: number; seriesIndex?: number},
@@ -641,6 +699,10 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   };
 
   const handleClick: EChartClickHandler = event => {
+    if (event.seriesId === DROPPED_DATA_SERIES_ID) {
+      props.droppedData?.onClick?.(event.data as AnnotationBucket);
+      return;
+    }
     runHandler(event, 'onClick');
   };
 
@@ -673,10 +735,12 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           items={chartLegendItems}
           selected={normalizedLegendSelection}
           onSelectionChange={handleLegendSelectionChange}
+          truncateMenuLabels={props.truncateLegendMenuLabels}
         />
       )}
       <Container flex="1 1 0%" minHeight="0">
         <BaseChart
+          // oxlint-disable-next-line react/refs
           ref={mergeRefs(props.ref, props.chartRef, chartRef, handleChartRef)}
           autoHeightResize
           renderer="canvas"
@@ -688,9 +752,8 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
             left: 2,
             top: 10,
             right: 8,
-            bottom: 0,
+            bottom: gridBandBottom,
             containLabel: true,
-            ...releaseBubbleGrid,
             ...xAxisGrid,
           }}
           legend={
@@ -715,6 +778,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           xAxis={xAxis}
           yAxes={chartYAxes}
           {...chartZoomProps}
+          // oxlint-disable-next-line react/refs
           onDataZoom={props.onZoom ?? onDataZoom}
           toolBox={toolBox ?? chartZoomProps.toolBox}
           brush={brush}

@@ -3,22 +3,25 @@ import {useQuery} from '@tanstack/react-query';
 import {Text} from '@sentry/scraps/text';
 
 import {Duration} from 'sentry/components/duration/duration';
+import {ReplayActivityScore} from 'sentry/components/replays/replayActivityScore';
 import {ReplayBadge} from 'sentry/components/replays/replayBadge';
+import {ReplayErrorCount} from 'sentry/components/replays/replayErrorCount';
+import {ReplayPlatformIcons} from 'sentry/components/replays/replayPlatformIcon';
 import {QueryEmbedCard} from 'sentry/components/seer/markdown/embeds/components/queryEmbed/queryEmbedCard';
 import {QUERY_EMBED_ROW_LIMIT} from 'sentry/components/seer/markdown/embeds/components/queryEmbed/queryEmbedConstants';
 import {
   QueryEmbedTable,
   type QueryEmbedColumn,
 } from 'sentry/components/seer/markdown/embeds/components/queryEmbed/queryEmbedTable';
+import {IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {formatNumber} from 'sentry/utils/number/formatNumber';
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
 import {replayListApiOptions} from 'sentry/utils/replays/replayListApiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {ReplayListRecord} from 'sentry/views/explore/replays/types';
 
-import {ReplaysQueryLink} from './replaysQueryLink';
-import type {ReplaysQueryData} from './replaysQueryUtils';
+import {getReplaysQueryTitle} from './replaysQueryLink';
+import {getReplaysQueryHref, type ReplaysQueryData} from './replaysQueryUtils';
 
 /**
  * An archived replay keeps its id but loses everything measured about it, so
@@ -34,13 +37,28 @@ function archivedFallback() {
 
 const COLUMNS: Array<QueryEmbedColumn<ReplayListRecord>> = [
   {
+    // The only flexible track: every other column sizes to its content, so
+    // this one absorbs whatever width is left over.
     key: 'replay',
     label: t('Replay'),
+    width: 'minmax(0, 1fr)',
     render: replay => <ReplayBadge replay={replay} />,
+  },
+  {
+    key: 'platform',
+    label: t('Platform'),
+    width: 'max-content',
+    render: replay =>
+      replay.is_archived ? (
+        archivedFallback()
+      ) : (
+        <ReplayPlatformIcons browser={replay.browser} os={replay.os} />
+      ),
   },
   {
     key: 'duration',
     label: t('Duration'),
+    width: 'max-content',
     render: replay =>
       replay.is_archived || !replay.duration ? (
         archivedFallback()
@@ -51,21 +69,23 @@ const COLUMNS: Array<QueryEmbedColumn<ReplayListRecord>> = [
   {
     key: 'count_errors',
     label: t('Errors'),
+    width: 'max-content',
     render: replay =>
       replay.is_archived ? (
         archivedFallback()
       ) : (
-        <Text ellipsis>{formatNumber(replay.count_errors ?? 0)}</Text>
+        <ReplayErrorCount count={replay.count_errors} />
       ),
   },
   {
-    key: 'count_rage_clicks',
-    label: t('Rage clicks'),
+    key: 'activity',
+    label: t('Activity'),
+    width: 'max-content',
     render: replay =>
       replay.is_archived ? (
         archivedFallback()
       ) : (
-        <Text ellipsis>{formatNumber(replay.count_rage_clicks ?? 0)}</Text>
+        <ReplayActivityScore score={replay.activity} />
       ),
   },
 ];
@@ -101,9 +121,12 @@ export default function ReplaysQueryBlock({data}: {data: ReplaysQueryData}) {
 
   return (
     <QueryEmbedCard
-      link={<ReplaysQueryLink data={data} />}
+      href={getReplaysQueryHref(data, organization)}
+      icon={IconPlay}
+      linkLabel={t('View Replays')}
       query={data.query}
       testId="seer-replays-query-embed"
+      title={getReplaysQueryTitle(data)}
     >
       <QueryEmbedTable
         columns={COLUMNS}

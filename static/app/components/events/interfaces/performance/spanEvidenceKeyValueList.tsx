@@ -13,7 +13,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ClippedBox} from 'sentry/components/clippedBox';
 import {getKeyValueListData as getRegressionIssueKeyValueList} from 'sentry/components/events/eventStatisticalDetector/eventRegressionSummary';
-import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
 import {
   extractSpanURLString,
   formatChangingQueryParameters,
@@ -36,6 +35,7 @@ import {
   SpanSubTimingName,
 } from 'sentry/components/events/interfaces/spans/utils';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
+import {KeyValueTableDataList} from 'sentry/components/tables/keyValueTable';
 import {IconGraph} from 'sentry/icons/iconGraph';
 import {t} from 'sentry/locale';
 import type {Entry, EntryRequest, Event, EventTransaction} from 'sentry/types/event';
@@ -59,11 +59,11 @@ import {
   StackTraceMiniFrame,
 } from 'sentry/views/insights/database/components/stackTraceMiniFrame';
 import {SpanFields} from 'sentry/views/insights/types';
-import {SpanSummaryLink} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/components/spanSummaryLink';
+import {SpanSummaryLink} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/components/spanSummaryLink';
 import {
   getSearchInExploreTarget,
   TraceDrawerActionKind,
-} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
+} from 'sentry/views/performance/traceDetails/traceDrawer/details/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
 
@@ -460,8 +460,7 @@ export function SpanEvidenceKeyValueList({
   const spanInfo = getSpanInfoFromTransactionEvent(event);
 
   const typeId = event.occurrence?.type;
-  const issueType =
-    event.perfProblem?.issueType ?? getIssueTypeFromOccurrenceType(typeId);
+  const issueType = getIssueTypeFromOccurrenceType(typeId);
   const requiresSpanInfo = isTransactionBased(typeId) && isOccurrenceBased(typeId);
 
   if (!issueType || (requiresSpanInfo && !spanInfo)) {
@@ -568,7 +567,8 @@ function SlowDBQueryEvidence({
   );
 
   return (
-    <KeyValueList
+    <KeyValueTableDataList
+      margin
       shouldSort={false}
       data={[
         makeTransactionNameRow(event, organization, location, projectSlug),
@@ -660,7 +660,7 @@ function DefaultSpanEvidence({
 }
 
 function PresortedKeyValueList({data}: {data: KeyValueListData}) {
-  return <KeyValueList shouldSort={false} data={data} />;
+  return <KeyValueTableDataList margin shouldSort={false} data={data} />;
 }
 
 const makeTransactionNameRow = (

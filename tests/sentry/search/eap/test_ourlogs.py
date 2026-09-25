@@ -1,4 +1,4 @@
-from unittest import TestCase
+from unittest import TestCase, mock
 
 import pytest
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
@@ -13,20 +13,33 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
     AndFilter,
     ComparisonFilter,
+    NotFilter,
     OrFilter,
     TraceItemFilter,
 )
 
+from sentry import features
+from sentry.exceptions import InvalidSearchQuery
+from sentry.models.organization import Organization
 from sentry.search.eap.ourlogs.definitions import OURLOG_DEFINITIONS
 from sentry.search.eap.resolver import SearchResolver
+from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
+from sentry.testutils.helpers.features import with_feature
+from sentry.users.services.user import RpcUser
 
 
 class SearchResolverQueryTest(TestCase):
     def setUp(self) -> None:
         self.resolver = SearchResolver(
             params=SnubaParams(), config=SearchResolverConfig(), definitions=OURLOG_DEFINITIONS
+        )
+        self.organization = Organization(id=1, slug="org-slug")
+        self.regex_resolver = SearchResolver(
+            params=SnubaParams(organization=self.organization),
+            config=SearchResolverConfig(),
+            definitions=OURLOG_DEFINITIONS,
         )
 
     def test_freetext_search_query(self) -> None:
@@ -305,6 +318,175 @@ class SearchResolverQueryTest(TestCase):
         )
         assert having is None
 
+    def test_span_id_query(self) -> None:
+        where, having, _ = self.resolver.resolve_query("span_id:9dd6c84c33259a6d")
+        assert where == TraceItemFilter(
+            comparison_filter=ComparisonFilter(
+                key=AttributeKey(name="sentry.span_id", type=AttributeKey.Type.TYPE_STRING),
+                op=ComparisonFilter.OP_EQUALS,
+                value=AttributeValue(val_str="9dd6c84c33259a6d"),
+            )
+        )
+        assert having is None
+
+    def test_parent_span_id_query(self) -> None:
+        """Older SDKs send the emitting span as an attribute instead of the log's span_id field."""
+        where, having, _ = self.resolver.resolve_query("trace.parent_span_id:9dd6c84c33259a6d")
+        assert where == TraceItemFilter(
+            comparison_filter=ComparisonFilter(
+                key=AttributeKey(
+                    name="sentry.trace.parent_span_id", type=AttributeKey.Type.TYPE_STRING
+                ),
+                op=ComparisonFilter.OP_EQUALS,
+                value=AttributeValue(val_str="9dd6c84c33259a6d"),
+            )
+        )
+        assert having is None
+
+    @with_feature("organizations:ourlogs-regex-searches")
+    def test_regex_query(self) -> None:
+        where, having, _ = self.regex_resolver.resolve_query("message://^ERROR//")
+        assert where == TraceItemFilter(
+            comparison_filter=ComparisonFilter(
+                key=AttributeKey(name="sentry.body", type=AttributeKey.Type.TYPE_STRING),
+                op=ComparisonFilter.OP_REGEXP,
+                value=AttributeValue(val_str="^ERROR"),
+            )
+        )
+        assert having is None
+
+    @with_feature("organizations:ourlogs-regex-searches")
+    def test_regex_query_negated(self) -> None:
+        where, having, _ = self.regex_resolver.resolve_query("!message://^ERROR//")
+        assert where == TraceItemFilter(
+            not_filter=NotFilter(
+                filters=[
+                    TraceItemFilter(
+                        comparison_filter=ComparisonFilter(
+                            key=AttributeKey(
+                                name="sentry.body", type=AttributeKey.Type.TYPE_STRING
+                            ),
+                            op=ComparisonFilter.OP_REGEXP,
+                            value=AttributeValue(val_str="^ERROR"),
+                        )
+                    )
+                ]
+            )
+        )
+        assert having is None
+
+    @with_feature("organizations:ourlogs-regex-searches")
+    def test_regex_query_on_an_attribute(self) -> None:
+        where, having, _ = self.regex_resolver.resolve_query("foo://ba[rz]//")
+        assert where == TraceItemFilter(
+            comparison_filter=ComparisonFilter(
+                key=AttributeKey(name="foo", type=AttributeKey.Type.TYPE_STRING),
+                op=ComparisonFilter.OP_REGEXP,
+                value=AttributeValue(val_str="ba[rz]"),
+            )
+        )
+        assert having is None
+
+    @with_feature("organizations:ourlogs-regex-searches")
+    def test_regex_query_keeps_the_pattern_verbatim(self) -> None:
+        """Regex metacharacters must not be rewritten the way wildcard patterns are."""
+        where, _, _ = self.regex_resolver.resolve_query("message://a*b%c_d\\*e//")
+        assert where == TraceItemFilter(
+            comparison_filter=ComparisonFilter(
+                key=AttributeKey(name="sentry.body", type=AttributeKey.Type.TYPE_STRING),
+                op=ComparisonFilter.OP_REGEXP,
+                value=AttributeValue(val_str="a*b%c_d\\*e"),
+            )
+        )
+
+    @with_feature("organizations:ourlogs-regex-searches")
+    def test_regex_query_is_case_insensitive_when_requested(self) -> None:
+        resolver = SearchResolver(
+            params=SnubaParams(organization=self.organization, case_insensitive=True),
+            config=SearchResolverConfig(),
+            definitions=OURLOG_DEFINITIONS,
+        )
+        where, _, _ = resolver.resolve_query("message://^[A-Z]rror//")
+        assert where == TraceItemFilter(
+            comparison_filter=ComparisonFilter(
+                key=AttributeKey(name="sentry.body", type=AttributeKey.Type.TYPE_STRING),
+                op=ComparisonFilter.OP_REGEXP,
+                value=AttributeValue(val_str="(?i)^[A-Z]rror"),
+            )
+        )
+
+    @with_feature("organizations:ourlogs-regex-searches")
+    def test_regex_query_raises_when_the_key_is_backed_by_a_filter_alias(self) -> None:
+        with pytest.raises(InvalidSearchQuery) as err:
+            self.regex_resolver.resolve_query("release://^1\\.2//")
+        assert str(err.value) == "Cannot use regular expressions with release"
+
+    @with_feature("organizations:ourlogs-regex-searches")
+    def test_regex_query_raises_when_the_key_is_backed_by_a_virtual_column(self) -> None:
+        with pytest.raises(InvalidSearchQuery) as err:
+            self.regex_resolver.resolve_query("project://^sen//")
+        assert str(err.value) == "Cannot use regular expressions with project"
+
+    @with_feature("organizations:ourlogs-regex-searches")
+    def test_regex_query_raises_on_a_virtual_column_in_a_timeseries_request(self) -> None:
+        resolver = SearchResolver(
+            params=SnubaParams(organization=self.organization, granularity_secs=60),
+            config=SearchResolverConfig(),
+            definitions=OURLOG_DEFINITIONS,
+        )
+        with pytest.raises(InvalidSearchQuery) as err:
+            resolver.resolve_query("project://^sen//")
+        assert str(err.value) == "Cannot use regular expressions with project"
+
+    @with_feature("organizations:ourlogs-regex-searches")
+    def test_regex_query_raises_when_the_attribute_is_not_a_string(self) -> None:
+        with pytest.raises(InvalidSearchQuery) as err:
+            self.regex_resolver.resolve_query("tags[foo,boolean]://tru.//")
+        assert "not a string attribute" in str(err.value)
+
+    def test_regex_value_is_a_literal_without_the_feature(self) -> None:
+        regex_shaped, _, _ = self.regex_resolver.resolve_query("message://^ERROR//")
+        quoted, _, _ = self.regex_resolver.resolve_query('message:"//^ERROR//"')
+
+        assert regex_shaped == quoted
+
+    def test_regex_feature_is_checked_with_the_requesting_user_as_actor(self) -> None:
+        """The flag's rollout targets user emails, which only resolve when an actor is passed."""
+        user = RpcUser(id=7, email="user@example.com")
+        resolver = SearchResolver(
+            params=SnubaParams(organization=self.organization, user=user),
+            config=SearchResolverConfig(),
+            definitions=OURLOG_DEFINITIONS,
+        )
+
+        with mock.patch.object(features, "has", return_value=True) as has:
+            where, _, _ = resolver.resolve_query("message://^ERROR//")
+
+        assert (
+            mock.call("organizations:ourlogs-regex-searches", self.organization, actor=user)
+            in has.call_args_list
+        )
+        assert where == TraceItemFilter(
+            comparison_filter=ComparisonFilter(
+                key=AttributeKey(name="sentry.body", type=AttributeKey.Type.TYPE_STRING),
+                op=ComparisonFilter.OP_REGEXP,
+                value=AttributeValue(val_str="^ERROR"),
+            )
+        )
+
+    @with_feature("organizations:ourlogs-regex-searches")
+    def test_regex_value_is_a_literal_outside_logs(self) -> None:
+        resolver = SearchResolver(
+            params=SnubaParams(organization=self.organization),
+            config=SearchResolverConfig(),
+            definitions=SPAN_DEFINITIONS,
+        )
+
+        regex_shaped, _, _ = resolver.resolve_query("span.op://^db//")
+        quoted, _, _ = resolver.resolve_query('span.op:"//^db//"')
+
+        assert regex_shaped == quoted
+
     def test_internal_trace_id_resolves_with_normalizer(self) -> None:
         """Using the internal name 'sentry.trace_id' resolves with normalizer."""
         where, having, _ = self.resolver.resolve_query(
@@ -318,6 +500,20 @@ class SearchResolverQueryTest(TestCase):
             )
         )
         assert having is None
+
+    def test_wildcard_on_virtual_column_rejected(self) -> None:
+        with pytest.raises(InvalidSearchQuery, match="Cannot use wildcards with project"):
+            self.resolver.resolve_query("project:*sen*")
+
+    def test_wildcard_on_virtual_column_rejected_for_timeseries_request(self) -> None:
+        resolver = SearchResolver(
+            params=SnubaParams(granularity_secs=60),
+            config=SearchResolverConfig(),
+            definitions=OURLOG_DEFINITIONS,
+        )
+
+        with pytest.raises(InvalidSearchQuery, match="Cannot use wildcards with project"):
+            resolver.resolve_query("project:*sen*")
 
 
 def test_count_default_argument() -> None:

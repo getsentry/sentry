@@ -24,24 +24,28 @@ from sentry.seer.autofix.pr_iteration.constants import (
     FAILING_CHECK_SUITE_FLAGS,
     GREEN_CHECK_SUITE_FLAGS,
 )
+from sentry.seer.autofix.pr_iteration.emit import bootstrap_iteration
 from sentry.seer.autofix.pr_iteration.feedback import Feedback
+from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTriggerSource
 from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import (
     CheckSuiteFeedbackSource,
     MissingCheckSuiteAutofixRun,
 )
 from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
 from sentry.seer.autofix.pr_iteration.queue import (
+    enqueue_autofix_feedback,
     peek_queued_autofix_feedback,
-    try_enqueue_autofix_feedback,
 )
 from sentry.seer.autofix.pr_iteration.ready_for_review import mark_ready_for_review
 from sentry.seer.autofix.pr_iteration.review_request import request_review_from_context
 from sentry.seer.autofix.pr_iteration.run_markers import get_run_marker
 from sentry.utils import metrics
+from sentry.utils.tracing import start_span, trace
 
 logger = logging.getLogger(__name__)
 
 
+@trace
 def _retrigger_deferred_iteration(
     log_ctx: PrIterationLogContext, resolved: ResolvedGreenCheckSuite
 ) -> None:
@@ -64,7 +68,7 @@ def _retrigger_deferred_iteration(
     if is_github_rate_limit_sensitive(resolved.organization.slug):
         log_ctx.info(
             "autofix.pr_iteration.feedback.trigger",
-            triggered_by="green_check_suite",
+            trigger_source=ConsumeTriggerSource.GREEN_CHECK_SUITE_DEFER,
             outcome="not_triggered",
             reason="rate_limit_sensitive",
             countdown=None,
@@ -86,7 +90,7 @@ def _retrigger_deferred_iteration(
     if parked is None:
         log_ctx.info(
             "autofix.pr_iteration.feedback.trigger",
-            triggered_by="green_check_suite",
+            trigger_source=ConsumeTriggerSource.GREEN_CHECK_SUITE_DEFER,
             outcome="not_triggered",
             reason="no_parked_feedback",
             countdown=None,
@@ -98,7 +102,7 @@ def _retrigger_deferred_iteration(
     if should_defer_pr_iteration(resolved):
         log_ctx.info(
             "autofix.pr_iteration.feedback.trigger",
-            triggered_by="green_check_suite",
+            trigger_source=ConsumeTriggerSource.GREEN_CHECK_SUITE_DEFER,
             outcome="not_triggered",
             reason="still_deferred",
             countdown=None,
@@ -116,13 +120,24 @@ def _retrigger_deferred_iteration(
         organization_id=resolved.organization.id,
         feedback=parked.feedback,
         run_state=run_state,
-        bypass=True,
-        triggered_by="green_check_suite",
+        source=ConsumeTriggerSource.GREEN_CHECK_SUITE_DEFER,
     )
 
 
 @scm_event_stream.listen_for(event_type="check_suite")
 def pr_iteration_from_check_suite_listener(check_suite_event: CheckSuiteEvent):
+    with (
+        sentry_sdk.isolation_scope(),
+        start_span(
+            name="pr_iteration.check_suite_listener",
+            op="function",
+            transaction=True,
+        ),
+    ):
+        return _handle_check_suite_event(check_suite_event)
+
+
+def _handle_check_suite_event(check_suite_event: CheckSuiteEvent):
     if check_suite_event.action != "completed":
         return None
 
@@ -143,8 +158,14 @@ def pr_iteration_from_check_suite_listener(check_suite_event: CheckSuiteEvent):
             return None
 
         run_state = resolved.autofix_run.run_state
-        log_ctx = PrIterationLogContext.for_run(
-            logger, run_state, resolved.organization.id, resolved.autofix_run.group_id
+        # A green suite carries no feedback of its own: it pre-empts an iteration
+        # some earlier feedback already deferred, so it never opens a row.
+        log_ctx = bootstrap_iteration(
+            logger=logger,
+            run_state=run_state,
+            organization_id=resolved.organization.id,
+            group_id=resolved.autofix_run.group_id,
+            create=False,
         )
         # Peek the queue for parked check-suite feedback on this head, then
         # ``should_defer_pr_iteration`` (GitHub sweep) only if something is
@@ -214,8 +235,11 @@ def pr_iteration_from_check_suite_listener(check_suite_event: CheckSuiteEvent):
     feedback = Feedback(source=source)
     # One identity for both decisions below, so the queue line and the trigger
     # line of a single check suite are found by the same search.
-    log_ctx = PrIterationLogContext.for_run(
-        logger, agent_state, organization_id, autofix_run.group_id
+    log_ctx = bootstrap_iteration(
+        logger=logger,
+        run_state=agent_state,
+        organization_id=organization_id,
+        group_id=autofix_run.group_id,
     )
 
     # Report failures here rather than only in the SCM event stream so they
@@ -224,7 +248,7 @@ def pr_iteration_from_check_suite_listener(check_suite_event: CheckSuiteEvent):
     # failure; increment the metric so a counter still exists after the SCM
     # ``run_listener.failed`` tag goes quiet.
     try:
-        enqueued = try_enqueue_autofix_feedback(
+        enqueue_autofix_feedback(
             log_ctx=log_ctx,
             run_id=agent_state.run_id,
             organization_id=organization_id,
@@ -233,12 +257,6 @@ def pr_iteration_from_check_suite_listener(check_suite_event: CheckSuiteEvent):
             referrer=AutofixReferrer.GITHUB_CHECK_SUITE,
             run_state=agent_state,
         )
-        if not enqueued:
-            # Feedback is rejected for a stale head or for the iteration hard cap.
-            # In the cap case the run would otherwise just go quiet, so hand the PR
-            # to a human instead (the handler re-checks which case applies).
-            assign_user_for_exhausted_cap(source.event, autofix_run)
-            return None
 
         # Defer Now/Later/skip to `should_trigger` (incomplete check runs schedule
         # a delayed consume rather than dropping the scheduled task entirely). It logs
@@ -249,13 +267,17 @@ def pr_iteration_from_check_suite_listener(check_suite_event: CheckSuiteEvent):
         # stream.py is loaded in AppConfig.ready before options init.
         from sentry.tasks.seer.pr_iteration import trigger_consume_pr_iteration_feedback
 
-        trigger_consume_pr_iteration_feedback(
+        decision = trigger_consume_pr_iteration_feedback(
             log_ctx=log_ctx,
             run_id=agent_state.run_id,
             organization_id=organization_id,
             feedback=feedback,
             run_state=agent_state,
         )
+        if decision.task is None and decision.reason == "hard_cap_reached":
+            # Nothing will drain this suite and the run would otherwise just go
+            # quiet, so hand the PR to a human instead.
+            assign_user_for_exhausted_cap(source.event, autofix_run)
     except Exception as e:
         sentry_sdk.capture_exception(e)
         metrics.incr(

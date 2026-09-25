@@ -11,7 +11,7 @@ import logging
 import re
 import time
 from collections.abc import Callable, Mapping, Sequence
-from typing import Any, NotRequired, TypedDict
+from typing import Any, Literal, NotRequired, TypedDict
 
 import orjson
 from django.conf import settings
@@ -132,6 +132,8 @@ class AgentPrStateRequest(TypedDict):
 
 
 class AgentRunOptions(TypedDict):
+    enable_code_mode_tools: NotRequired[Literal["off", "on", "only"]]
+    enable_assisted_query_code_mode: NotRequired[bool]
     enable_frontend_code_search: NotRequired[bool | None]
     is_context_engine_enabled: NotRequired[bool]
     enable_bash_mode: NotRequired[bool]
@@ -139,7 +141,6 @@ class AgentRunOptions(TypedDict):
     enable_tool_summary: NotRequired[bool]
     embed_widgets: NotRequired[list[dict[str, Any]] | None]
     enable_streaming: NotRequired[bool]
-    is_agentic_triage_sort: NotRequired[bool]
 
 
 class SeerFeatureRunRequest(TypedDict):
@@ -147,6 +148,7 @@ class SeerFeatureRunRequest(TypedDict):
     payload: dict[str, Any]
     agent_run_options: NotRequired[AgentRunOptions]
     user_org_context: NotRequired[UserOrgContext]
+    proxy_headers: NotRequired[dict[str, str] | None]
     referrer: str
 
 
@@ -352,17 +354,25 @@ def get_agent_state_from_pr_id(
     body = AgentPrStateRequest(organization_id=organization_id, provider=provider, pr_id=pr_id)
     response = make_agent_state_pr_request(body)
 
+    if response.status == 404:
+        metrics.incr("seer.agent.state_from_pr", tags={"outcome": "no_run_for_org"})
+        return None
+
     if response.status >= 400:
+        metrics.incr("seer.agent.state_from_pr", tags={"outcome": "error"})
         raise SeerApiError("Seer request failed", response.status)
 
     result = response.json()
     if not result:
+        metrics.incr("seer.agent.state_from_pr", tags={"outcome": "empty_response"})
         return None
 
     session = result.get("session")
     if session is None:
+        metrics.incr("seer.agent.state_from_pr", tags={"outcome": "no_run_for_pr"})
         return None
 
+    metrics.incr("seer.agent.state_from_pr", tags={"outcome": "found"})
     return SeerRunState(**session)
 
 

@@ -12,6 +12,7 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 
 from sentry import audit_log, features
+from sentry.api.permissions import enforce_scope
 from sentry.issues import grouptype
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -29,6 +30,7 @@ logger = logging.getLogger(__name__)
 # Only those with organization write permissions can edit system-created detectors (e.g. error detectors).
 SYSTEM_CREATED_DETECTOR_REQUIRED_SCOPES = {"org:write"}
 USER_CREATED_DETECTOR_REQUIRED_SCOPES = {"org:write", "alerts:write"}
+ORGANIZATION_WORKFLOW_WRITE_SCOPES = ("org:write", "org:admin", "alerts:write")
 
 
 def is_system_created_detector(detector: Detector) -> bool:
@@ -166,6 +168,73 @@ def validate_workflows_exist(
     return workflows
 
 
+def enforce_workflow_access(
+    workflow: Workflow, organization: Organization, request: Request
+) -> None:
+    """Enforce workflow access using its existing detector connections."""
+    if is_workflow_connected_to_all_projects_detector(workflow):
+        if not should_include_all_projects_detector_workflows_or_raise(request, organization):
+            raise PermissionDenied
+        return
+
+    connected_projects = Project.objects.filter(
+        detector__detectorworkflow__workflow=workflow
+    ).distinct()
+    if connected_projects.exists() and not any(
+        request.access.has_project_access(project) for project in connected_projects
+    ):
+        raise PermissionDenied
+
+
+def can_edit_workflows(workflows: Sequence[Workflow], request: Request) -> bool:
+    """
+    Check write permissions after enforcing access to each workflow.
+
+    Organization alert writers can edit workflows. Otherwise, every workflow must
+    have connections and the caller must be able to edit every connection.
+    """
+    workflow_ids = {workflow.id for workflow in workflows}
+    if not workflow_ids:
+        return False
+
+    if any(request.access.has_scope(scope) for scope in ORGANIZATION_WORKFLOW_WRITE_SCOPES):
+        return True
+
+    detector_workflows = list(
+        DetectorWorkflow.objects.filter(workflow_id__in=workflow_ids).select_related(
+            "detector", "detector__project"
+        )
+    )
+    connected_workflow_ids = {
+        detector_workflow.workflow_id for detector_workflow in detector_workflows
+    }
+
+    return workflow_ids == connected_workflow_ids and all(
+        can_edit_detector_workflow_connections(detector_workflow.detector, request)
+        for detector_workflow in detector_workflows
+    )
+
+
+def validate_workflow_connections(
+    workflow_ids: list[int],
+    organization: Organization,
+    request: Request,
+    detector_id: DetectorId | None = None,
+) -> None:
+    workflows = validate_workflows_exist(workflow_ids, organization)
+    if detector_id is not None:
+        # Retaining or removing an existing connection only requires permission
+        # on the detector. Check workflow permissions for new connections.
+        workflows = workflows.exclude(detectorworkflow__detector_id=detector_id)
+
+    new_workflows = list(workflows)
+    for workflow in new_workflows:
+        enforce_workflow_access(workflow, organization, request)
+
+    if new_workflows and not can_edit_workflows(new_workflows, request):
+        raise PermissionDenied
+
+
 def connect_workflows_to_detectors(
     request: Request,
     organization: Organization,
@@ -227,7 +296,9 @@ def connect_detectors_to_workflows(
     update: bool = False,
 ) -> None:
     if workflow_ids is not None:
-        validate_workflows_exist(workflow_ids, organization)
+        validate_workflow_connections(
+            workflow_ids, organization, request, detector_id if update else None
+        )
 
         def get_detector_workflows_to_add(
             detector_id: DetectorId, workflow_ids: set[WorkflowId]
@@ -414,11 +485,22 @@ def should_include_all_projects_detector(request: Request, organization: Organiz
 def should_include_all_projects_detector_workflows(
     request: Request, organization: Organization
 ) -> bool:
-    """
-    The flag is always required to show these workflows, but if it isn't a GET request, also check
-    that the caller has org:write. alerts:write is not sufficient to connect an all projects detector.
-    """
     return features.has("organizations:workflow-engine-all-projects-detector", organization) and (
         request.method == "GET"
         or can_edit_all_project_detector_workflow_connections(request=request)
     )
+
+
+def should_include_all_projects_detector_workflows_or_raise(
+    request: Request, organization: Organization
+) -> bool:
+    """
+    The flag is always required to show these workflows, but if it isn't a GET request, also check
+    that the caller has org:write. alerts:write is not sufficient to connect an all projects detector.
+    """
+    if not features.has("organizations:workflow-engine-all-projects-detector", organization):
+        return False
+    if request.method == "GET":
+        return True
+    enforce_scope(request, "org:write")
+    return True

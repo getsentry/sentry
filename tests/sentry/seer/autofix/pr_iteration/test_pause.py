@@ -4,7 +4,10 @@ from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.pr_iteration.feedback import Feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
-from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
+from sentry.seer.autofix.pr_iteration.logs import (
+    LogCtxIteration,
+    PrIterationLogContext,
+)
 from sentry.seer.autofix.pr_iteration.pause import (
     PAUSED_EXTRA,
     PauseReason,
@@ -13,8 +16,8 @@ from sentry.seer.autofix.pr_iteration.pause import (
     pause_pr_iteration,
 )
 from sentry.seer.autofix.pr_iteration.queue import (
+    enqueue_autofix_feedback,
     peek_queued_autofix_feedback,
-    try_enqueue_autofix_feedback,
 )
 from sentry.testutils.cases import TestCase
 
@@ -29,7 +32,7 @@ class PausePrIterationTest(TestCase):
             organization=self.organization, seer_run_state_id=RUN_ID, user_id=self.user.id
         )
 
-    def _enqueue(self, run_id: int = RUN_ID) -> bool:
+    def _enqueue(self, run_id: int = RUN_ID) -> None:
         run_state = SeerRunState(
             run_id=run_id,
             blocks=[],
@@ -37,9 +40,13 @@ class PausePrIterationTest(TestCase):
             updated_at="2024-01-01T00:00:00Z",
             repo_pr_states={},
         )
-        return try_enqueue_autofix_feedback(
+        enqueue_autofix_feedback(
             log_ctx=PrIterationLogContext(
-                MagicMock(), run_state=run_state, organization_id=self.organization.id
+                MagicMock(),
+                iteration=LogCtxIteration.TRIGGERED,
+                run_state=run_state,
+                organization_id=self.organization.id,
+                group_id=None,
             ),
             run_id=run_id,
             organization_id=self.organization.id,
@@ -57,7 +64,7 @@ class PausePrIterationTest(TestCase):
         return is_pr_iteration_paused(run_id=run_id, organization_id=self.organization.id)
 
     def test_pause_writes_marker_and_empties_queue(self) -> None:
-        assert self._enqueue() is True
+        self._enqueue()
         assert len(peek_queued_autofix_feedback(RUN_ID)) == 1
 
         assert (
@@ -117,7 +124,7 @@ class PausePrIterationTest(TestCase):
         def delete_run(*args: object, **kwargs: object) -> None:
             self.seer_run.delete()
 
-        assert self._enqueue() is True
+        self._enqueue()
 
         with patch("sentry.seer.autofix.pr_iteration.pause.get_run_extra", side_effect=delete_run):
             assert (
@@ -146,7 +153,7 @@ class PausePrIterationTest(TestCase):
         other_run = self.create_seer_run(
             organization=self.organization, seer_run_state_id=OTHER_RUN_ID, user_id=self.user.id
         )
-        assert self._enqueue(OTHER_RUN_ID) is True
+        self._enqueue(OTHER_RUN_ID)
 
         pause_pr_iteration(
             run_id=RUN_ID, organization_id=self.organization.id, reason=PauseReason.USER_STOP

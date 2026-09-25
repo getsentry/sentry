@@ -20,13 +20,15 @@ The `ToolCall` renders a single step an agent took, within a `ThinkingBlock`.
 Unlike the collapsible `ThinkingBlock` it lives in, a tool call is **not** itself
 a disclosure — it has no chevron and its detail is always visible. A leading
 glyph communicates lifecycle `status` (a spinner while running, a semantic icon
-once settled — see `ToolCallIndicator`), and an optional `reference` chip trails
-the title.
+once settled — see `ToolCallIndicator`), and an optional `reference` link follows
+the title text.
 
 ## Anatomy
 
 A tool call is a single title line: the status glyph, the `title`, and an
-optional trailing `reference` chip pointing at the entity the call acted on.
+optional `reference` link pointing at the entity the call acted on. The link
+flows inline right after the title text, so in a narrow container it wraps with
+the title rather than claiming a column of its own.
 
 <Storybook.Demo align="stretch">
   <Container width="100%" background="secondary" radius="md" padding="lg">
@@ -110,13 +112,14 @@ value, or on failure the error itself. Like `input`, it is a slot.
 />
 ```
 
-## Overflow
+## Clipped output
 
 `input` and `output` cap at a max height once their content grows past a few
 lines — a large JSON body should not push every later message off screen. A
 short value is unaffected: the cap (and its `Show More` affordance) only
 appears once content actually exceeds it, so it never adds an empty gap under
-a one-line result.
+a one-line result. The clipped example below shows the gradient overlay and
+centered `Show More` button over a long tool call result.
 
 <Storybook.Demo align="stretch">
   <Container width="100%" background="secondary" radius="md" padding="lg">
@@ -175,8 +178,7 @@ a one-line result.
 ## Status
 
 The leading glyph reflects the call's lifecycle. A `failure` keeps that glyph and
-additionally hoists a chip into the trailing result slot — where a successful
-call shows its `reference` — carrying the `failureLabel` (typically the HTTP
+additionally hoists a chip into the trailing result slot, carrying the `failureLabel` (typically the HTTP
 status code, e.g. `502`), so the outcome reads on the right rather than only as a
 small glyph on the far left.
 
@@ -220,7 +222,7 @@ Pass `notifications` to surface short status lines beneath a call.
 
 ## Links
 
-Give a `reference` chip a `to` to render it as a real link (an anchor supporting
+Give a `reference` a `to` to render it as a real link (an anchor supporting
 middle/cmd-click and keyboard access) rather than an `onClick` button.
 
 <Storybook.Demo align="stretch">
@@ -238,6 +240,34 @@ middle/cmd-click and keyboard access) rather than an `onClick` button.
   title="Read trace waterfall"
   status="success"
   reference={{label: 'Trace', value: 'a3805648', to: '/traces/a3805648/'}}
+/>
+```
+
+## Narrow containers
+
+The `reference` flows inline after the title, so a long title in a narrow panel
+wraps together with its link instead of being squeezed into a column beside it.
+
+<Storybook.Demo align="stretch">
+  <Container width="300px" background="secondary" radius="md" padding="lg">
+    <ToolCall
+      title="Retrieving span 91225316d1e54127 in trace 2f41db5c12ee46ceb385a23e27bc06e3"
+      status="success"
+      reference={{value: 'View span', to: '/traces/2f41db5c/'}}
+    />
+    <ToolCall
+      title="Retrieving span 9b9617775af020e0 in trace 869694f977e140e1be71e7433d7842b0"
+      status="success"
+      reference={{value: 'View span', to: '/traces/869694f9/'}}
+    />
+  </Container>
+</Storybook.Demo>
+
+```jsx
+<ToolCall
+  title="Retrieving span 91225316d1e54127 in trace 2f41db5c12ee46ceb385a23e27bc06e3"
+  status="success"
+  reference={{value: 'View span', to: '/traces/2f41db5c/'}}
 />
 ```
 
