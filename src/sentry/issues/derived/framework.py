@@ -12,7 +12,12 @@ from datetime import datetime
 from enum import IntEnum, StrEnum
 from typing import Any, ClassVar, Final, Literal, Protocol, runtime_checkable
 
-_MISSING = object()
+
+class _Missing:
+    pass
+
+
+_MISSING = _Missing()
 
 
 class DerivedDataError(ValueError):
@@ -161,6 +166,9 @@ class Feature[T]:
     JSON-blob features use ``to_json`` / ``from_json``; column-backed
     features use ``to_column`` / ``from_column``.
 
+    A typed codec lets the type checker infer ``T`` without an explicit
+    ``Feature[T]`` argument. Defaults and factories must produce that type.
+
     Increment ``version`` whenever the feature's aggregation logic changes
     meaningfully so that stale derived data can be detected.
     """
@@ -169,12 +177,12 @@ class Feature[T]:
         self,
         name: str,
         *,
-        default: Any = _MISSING,
-        default_factory: Callable[[], Any] | None = None,
+        default: T | _Missing = _MISSING,
+        default_factory: Callable[[], T] | None = None,
         codec: Codec[T] | None = None,
         version: int = 0,
     ) -> None:
-        if default is _MISSING and default_factory is None:
+        if isinstance(default, _Missing) and default_factory is None:
             raise ValueError("Must provide default or default_factory")
         self.name: Final[str] = name
         self._version: Final[int] = version
@@ -191,6 +199,7 @@ class Feature[T]:
     def initial_value(self) -> T:
         if self._default_factory is not None:
             return self._default_factory()
+        assert not isinstance(self._default, _Missing)
         return self._default
 
     def _convert[U](
