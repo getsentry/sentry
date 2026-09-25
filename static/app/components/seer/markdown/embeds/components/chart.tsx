@@ -60,8 +60,14 @@ export function ChartContent({
 }) {
   const metadata = UNIT_METADATA[yAxisUnit];
 
+  // Category axes are only meaningful for bar charts. When the LLM pairs
+  // x_axis:'category' with a line/area visualization, fall back to 'time'
+  // so the chart renders gracefully instead of throwing.
+  const effectiveXAxis =
+    xAxis === 'category' && visualization !== 'bar' ? 'time' : xAxis;
+
   const visualizationComponent =
-    xAxis === 'category' ? (
+    effectiveXAxis === 'category' ? (
       <CategoricalSeriesWidgetVisualization
         plottables={series.map((item, index) => {
           const categoricalSeries: CategoricalSeries = {
@@ -81,24 +87,18 @@ export function ChartContent({
       <TimeSeriesWidgetVisualization
         onZoom={() => {}}
         pageFilters={{
-          datetime: {
-            start: new Date(
-              Math.min(
-                ...series.flatMap(item =>
-                  item.data.map(point => Date.parse(String(point.x)))
-                )
-              )
-            ).toISOString(),
-            end: new Date(
-              Math.max(
-                ...series.flatMap(item =>
-                  item.data.map(point => Date.parse(String(point.x)))
-                )
-              )
-            ).toISOString(),
-            period: null,
-            utc: true,
-          },
+          datetime: (() => {
+            const allTimestamps = series
+              .flatMap(item => item.data.map(point => Date.parse(String(point.x))))
+              .filter(t => !isNaN(t));
+            const now = Date.now();
+            return {
+              start: new Date(allTimestamps.length > 0 ? Math.min(...allTimestamps) : now).toISOString(),
+              end: new Date(allTimestamps.length > 0 ? Math.max(...allTimestamps) : now).toISOString(),
+              period: null,
+              utc: true,
+            };
+          })(),
           environments: [],
           projects: [],
         }}
@@ -109,6 +109,7 @@ export function ChartContent({
                 timestamp: Date.parse(String(point.x)),
                 value: normalizeValue(point.y, yAxisUnit),
               }))
+              .filter(point => !isNaN(point.timestamp))
               .toSorted((left, right) => left.timestamp - right.timestamp);
             const timeSeries: TimeSeries = {
               yAxis: `seer-chart-series-${index}`,
