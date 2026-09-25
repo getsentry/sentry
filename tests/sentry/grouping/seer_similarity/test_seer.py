@@ -1,5 +1,5 @@
 from time import time
-from unittest.mock import ANY, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 from sentry import options
 from sentry.grouping.ingest.seer import maybe_check_seer_for_matching_grouphash
@@ -10,7 +10,7 @@ from sentry.testutils.cases import TestCase
 
 
 class MaybeCheckSeerForMatchingGroupHashTest(TestCase):
-    @patch("sentry.grouping.ingest.seer.get_similarity_data_from_seer", return_value=([], "v1"))
+    @patch("sentry.grouping.ingest.seer.get_similarity_data_from_seer", return_value=([], "v2.1"))
     def test_simple(self, mock_get_similarity_data: MagicMock) -> None:
         self.project.update_option("sentry:similarity_backfill_completed", int(time()))
 
@@ -59,14 +59,14 @@ class MaybeCheckSeerForMatchingGroupHashTest(TestCase):
                 "exception_type": "FailedToFetchError",
                 "k": 1,
                 "referrer": "ingest",
-                "model": GroupingVersion.V1,
+                "model": GroupingVersion.V2_1,
                 "training_mode": False,
                 "platform": "python",
-                "skip_fallback": False,
+                "skip_fallback": True,
             },
             {
                 "platform": "python",
-                "model_version": "v1",
+                "model_version": "v2.1",
                 "training_mode": False,
                 "hybrid_fingerprint": False,
             },
@@ -142,8 +142,8 @@ class MaybeCheckSeerForMatchingGroupHashTest(TestCase):
 
             mock_get_similar_issues.assert_not_called()
 
-    @patch("sentry.grouping.ingest.seer.get_similarity_data_from_seer", return_value=([], "v1"))
-    def test_bypassed_platform_calls_seer_regardless_of_length(
+    @patch("sentry.grouping.ingest.seer.get_similarity_data_from_seer", return_value=([], "v2.1"))
+    def test_previously_bypassed_platform_obeys_length_limit(
         self, mock_get_similarity_data: MagicMock
     ) -> None:
         self.project.update_option("sentry:similarity_backfill_completed", int(time()))
@@ -189,25 +189,4 @@ class MaybeCheckSeerForMatchingGroupHashTest(TestCase):
                 new_event, new_grouphash, new_event.get_grouping_variants(), group_hashes
             )
 
-            mock_get_similarity_data.assert_called_with(
-                {
-                    "event_id": new_event.event_id,
-                    "hash": new_event.get_primary_hash(),
-                    "project_id": self.project.id,
-                    "stacktrace": ANY,
-                    "exception_type": "FailedToFetchError",
-                    "k": 1,
-                    "referrer": "ingest",
-                    "model": GroupingVersion.V1,
-                    "training_mode": False,
-                    "platform": "python",
-                    "skip_fallback": False,
-                },
-                {
-                    "platform": "python",
-                    "model_version": "v1",
-                    "training_mode": False,
-                    "hybrid_fingerprint": False,
-                },
-                viewer_context={"organization_id": self.project.organization_id},
-            )
+            mock_get_similarity_data.assert_not_called()

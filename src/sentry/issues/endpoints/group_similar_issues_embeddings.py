@@ -19,7 +19,7 @@ from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
 from sentry.seer.signed_seer_api import SeerViewerContext
-from sentry.seer.similarity.config import get_grouping_model_version, should_skip_seer_fallback
+from sentry.seer.similarity.config import get_grouping_model_version
 from sentry.seer.similarity.similar_issues import get_similarity_data_from_seer
 from sentry.seer.similarity.types import SeerSimilarIssueData, SimilarIssuesEmbeddingsRequest
 from sentry.seer.similarity.utils import (
@@ -98,13 +98,13 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
         latest_event = group.get_latest_event()
         stacktrace_string = ""
 
-        model_version = get_grouping_model_version(group.project)
+        model_version = get_grouping_model_version()
 
         if latest_event and event_content_has_stacktrace(latest_event):
             variants = latest_event.get_grouping_variants(normalize_stacktraces=True)
 
             if not stacktrace_exceeds_limits(
-                latest_event, variants, ReferrerOptions.SIMILAR_ISSUES_TAB, model_version
+                latest_event, variants, ReferrerOptions.SIMILAR_ISSUES_TAB
             ):
                 grouping_info = get_grouping_info_from_variants_legacy(variants)
                 try:
@@ -126,7 +126,7 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
             "model": model_version,
             "training_mode": False,
             "platform": latest_event.platform or "unknown",
-            "skip_fallback": should_skip_seer_fallback(group.project),
+            "skip_fallback": True,
         }
         # Add optional parameters
         if request.GET.get("k"):
