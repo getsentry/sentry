@@ -175,7 +175,11 @@ function ConnectMonitorsDrawer({
         ids: newDetectorIds,
         includeIssueStreamDetectors: true,
       }).queryKey,
-      old => ({headers: old?.headers ?? {}, json: newDetectors})
+      old => ({
+        headers: old?.headers ?? {},
+        status: old?.status ?? 200,
+        json: newDetectors,
+      })
     );
 
     setLocalDetectorIds(newDetectorIds);

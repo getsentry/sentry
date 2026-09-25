@@ -629,7 +629,7 @@ export default function SentryApplicationDetails() {
       );
 
       const found = listData?.json.find(item => item.slug === appSlug);
-      return found ? {json: found, headers: {}} : undefined;
+      return found ? {json: found, headers: {}, status: 200} : undefined;
     },
   });
 
@@ -907,6 +907,7 @@ function SentryAppEditForm({
     queryClient.setQueryData(sentryAppTokensQueryOptions.queryKey, {
       json: updatedTokens,
       headers: {},
+      status: 200,
     });
     setNewTokens(updatedNewTokens);
   };
@@ -917,6 +918,7 @@ function SentryAppEditForm({
     queryClient.setQueryData(sentryAppTokensQueryOptions.queryKey, {
       json: updatedTokens,
       headers: {},
+      status: 200,
     });
   };
 
@@ -978,6 +980,7 @@ function SentryAppEditForm({
       queryClient.setQueryData(sentryAppQueryOptions.queryKey, {
         json: {...app, avatars},
         headers: {},
+        status: 200,
       });
     }
   };

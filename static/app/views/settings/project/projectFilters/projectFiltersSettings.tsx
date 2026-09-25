@@ -628,7 +628,7 @@ export function ProjectFiltersSettings({project, params}: Props) {
   });
   const {data: currentProject = project} = useQuery({
     ...detailedProjectQueryOptions,
-    initialData: {headers: {}, json: project},
+    initialData: {headers: {}, status: 200, json: project},
   });
 
   const updateProject = useUpdateProject(project);

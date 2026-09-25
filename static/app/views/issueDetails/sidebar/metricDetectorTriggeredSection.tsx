@@ -659,11 +659,12 @@ function SeerInvestigationSection({
       queryClient.setQueryData(candidateOptions.queryKey, {
         json: {items: [{status: 'view', investigationId: launchedInvestigation.id}]},
         headers: {},
+        status: 200,
       });
       queryClient.setQueryData(
         getInvestigationDetailQueryOptions(organization.slug, launchedInvestigation.id)
           .queryKey,
-        {json: launchedInvestigation, headers: {}}
+        {json: launchedInvestigation, headers: {}, status: 200}
       );
       navigate(
         normalizeUrl(

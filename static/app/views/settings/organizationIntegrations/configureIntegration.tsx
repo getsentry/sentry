@@ -420,6 +420,7 @@ function ConfigureIntegration() {
               externalId: cachedIntegration.externalId ?? '',
             },
             headers: {},
+            status: 200,
           }
         : undefined;
     },

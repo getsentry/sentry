@@ -116,7 +116,7 @@ export function validateEventParamsOptions({
         if (error instanceof RequestError) {
           const parsedData = EventValidationSchema.safeParse(error.responseJSON ?? {});
           if (parsedData.success) {
-            return {headers: {}, json: parsedData.data};
+            return {headers: {}, status: 200, json: parsedData.data};
           }
         }
         throw error;

@@ -31,7 +31,7 @@ describe('useUpdateProject', () => {
       projectSlug: project.slug,
     });
 
-    queryClient.setQueryData(queryKey, {headers: {}, json: detailedProject});
+    queryClient.setQueryData(queryKey, {headers: {}, status: 200, json: detailedProject});
 
     const mock = MockApiClient.addMockResponse({
       url: projectEndpoint,
@@ -128,7 +128,7 @@ describe('useUpdateProject', () => {
       projectSlug: project.slug,
     });
 
-    queryClient.setQueryData(queryKey, {headers: {}, json: project});
+    queryClient.setQueryData(queryKey, {headers: {}, status: 200, json: project});
 
     MockApiClient.addMockResponse({
       url: projectEndpoint,
@@ -168,7 +168,7 @@ describe('useUpdateProject', () => {
       projectSlug: project.slug,
     });
 
-    queryClient.setQueryData(queryKey, {headers: {}, json: project});
+    queryClient.setQueryData(queryKey, {headers: {}, status: 200, json: project});
 
     MockApiClient.addMockResponse({
       url: projectEndpoint,

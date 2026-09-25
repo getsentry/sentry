@@ -78,6 +78,7 @@ describe('OverviewIssueAssignee', () => {
     queryClient.setQueryData(overviewOptions.queryKey, {
       json: overviewResponse,
       headers: {},
+      status: 200,
     });
 
     render(

@@ -55,6 +55,7 @@ export function SentryAppUpdateModal(props: Props) {
     onSuccess: updatedSentryApp => {
       queryClient.setQueryData(sentryAppQueryOptions.queryKey, previous => ({
         headers: previous?.headers ?? {},
+        status: previous?.status ?? 200,
         json: updatedSentryApp,
       }));
       closeModal();

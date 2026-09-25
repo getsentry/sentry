@@ -114,7 +114,7 @@ export function useUpdateProjectMutationOptions(project: Project) {
         queryClient.setQueryData(queryKey, prev =>
           prev
             ? {...prev, json: updatedDetailedProject}
-            : {headers: {}, json: updatedDetailedProject}
+            : {headers: {}, status: 200, json: updatedDetailedProject}
         );
       }
 
@@ -123,7 +123,9 @@ export function useUpdateProjectMutationOptions(project: Project) {
     onSuccess: updatedProject => {
       ProjectsStore.onUpdateSuccess(updatedProject);
       queryClient.setQueryData(queryKey, prev =>
-        prev ? {...prev, json: updatedProject} : {headers: {}, json: updatedProject}
+        prev
+          ? {...prev, json: updatedProject}
+          : {headers: {}, status: 200, json: updatedProject}
       );
     },
     onError: (_error, _variables, context) => {

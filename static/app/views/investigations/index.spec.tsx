@@ -215,6 +215,7 @@ describe('Explore Investigations', () => {
     const unrelatedDetail = InvestigationFixture({id: 'existing'});
     queryClient.setQueryData(unrelatedOptions.queryKey, {
       headers: {},
+      status: 200,
       json: unrelatedDetail,
     });
     await screen.findByText('Sorry, no investigations match your filters.');
@@ -348,6 +349,7 @@ describe('Explore Investigations', () => {
     const detailOptions = getInvestigationDetailQueryOptions('org-slug', '1');
     queryClient.setQueryData(detailOptions.queryKey, {
       headers: {Link: 'preserved'},
+      status: 200,
       json: investigation satisfies InvestigationDetail,
     });
     await userEvent.click(
@@ -357,6 +359,7 @@ describe('Explore Investigations', () => {
     await waitFor(() =>
       expect(queryClient.getQueryData(detailOptions.queryKey)).toEqual({
         headers: {Link: 'preserved'},
+        status: 200,
         json: {...investigation, isFavorited: true},
       })
     );
@@ -378,6 +381,7 @@ describe('Explore Investigations', () => {
     const unrelatedDetail = InvestigationFixture({id: 'existing'});
     queryClient.setQueryData(unrelatedOptions.queryKey, {
       headers: {},
+      status: 200,
       json: unrelatedDetail,
     });
     await screen.findByText('Database latency investigation');
@@ -473,6 +477,7 @@ describe('Explore Investigations', () => {
     const detailOptions = getInvestigationDetailQueryOptions('org-slug', '1');
     queryClient.setQueryData(detailOptions.queryKey, {
       headers: {},
+      status: 200,
       json: investigation satisfies InvestigationDetail,
     });
     await userEvent.click(
@@ -508,6 +513,7 @@ describe('Explore Investigations', () => {
     queryClient.setQueryData(candidateOptions.queryKey, {
       json: {items: [{status: 'view', investigationId: '1'}]},
       headers: {},
+      status: 200,
     });
     await userEvent.click(
       await screen.findByLabelText('More options for Database latency investigation')
