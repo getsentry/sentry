@@ -284,7 +284,9 @@ def test_iteration() -> None:
 
 def test_get_api_meta_with_non_numeric_keys() -> None:
     inst = Exception.to_python({"values": [{"type": "ValueError"}, {"type": "TypeError"}]})
-    meta = {"values": {"0": {}, "": {}, "1": {}, "invalid": {}}}
+    meta: dict[str, dict[str, dict[str, object]]] = {
+        "values": {"0": {}, "": {}, "1": {}, "invalid": {}}
+    }
     
     result = inst.get_api_meta(meta)
     
