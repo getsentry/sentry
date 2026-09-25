@@ -111,7 +111,6 @@ class SetResolvedInReleaseNotificationData(ActivityNotificationData):
 class AssignedNotificationData(ActivityNotificationData):
     assignee_label: str
     assignee_url: str | None = None
-    # True if the assignment was automated by a Sentry App (e.g., smart assignment)
     is_automated: bool = False
 
 
