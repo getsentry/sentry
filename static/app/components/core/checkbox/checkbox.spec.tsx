@@ -34,6 +34,41 @@ describe('Checkbox', () => {
     expect(screen.getByRole<HTMLInputElement>('checkbox').indeterminate).toBe(true);
   });
 
+  it('uses aria-disabled when a disabled checkbox has a tooltip', async () => {
+    const onChange = jest.fn();
+    render(
+      <label>
+        <Checkbox
+          disabled
+          onChange={onChange}
+          tooltipProps={{title: 'Requires admin access'}}
+        />
+        Enable feature
+      </label>
+    );
+
+    const checkbox = screen.getByRole('checkbox', {name: 'Enable feature'});
+    expect(checkbox).toHaveAttribute('aria-disabled', 'true');
+    expect(checkbox).toBeEnabled();
+
+    await userEvent.tab();
+    expect(checkbox).toHaveFocus();
+    expect(await screen.findByText('Requires admin access')).toBeInTheDocument();
+    expect(checkbox).toHaveAccessibleDescription('Requires admin access');
+
+    await userEvent.keyboard(' ');
+    expect(checkbox).not.toBeChecked();
+    await userEvent.click(checkbox);
+    expect(checkbox).not.toBeChecked();
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it('uses native disabled when a disabled checkbox has no tooltip', () => {
+    render(<Checkbox disabled aria-label="Enable feature" />);
+
+    expect(screen.getByRole('checkbox', {name: 'Enable feature'})).toBeDisabled();
+  });
+
   describe('controlled checkbox', () => {
     it('toggles on click', async () => {
       render(<ControlledCheckbox />);
