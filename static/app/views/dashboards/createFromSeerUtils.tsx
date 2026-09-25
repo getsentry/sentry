@@ -25,20 +25,21 @@ type WidgetArtifact = {
   display_type: Widget['displayType'];
   interval: string;
   layout: {h: number; min_h: number; w: number; x: number; y: number};
-  queries: Widget['queries'];
   title: string;
   widget_type: Widget['widgetType'];
   description?: string;
   limit?: number;
+  queries?: Widget['queries'];
 };
 
 /**
  * Converts a Seer-generated widget artifact (snake_case) to a frontend Widget (camelCase).
  */
 function normalizeWidgetCase(raw: WidgetArtifact): Widget {
-  const {display_type, widget_type, ...rest} = raw;
+  const {display_type, widget_type, queries, ...rest} = raw;
   return {
     ...rest,
+    queries: queries ?? [],
     displayType: display_type,
     widgetType: widget_type,
     layout: raw.layout
