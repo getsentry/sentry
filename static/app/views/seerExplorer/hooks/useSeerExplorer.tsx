@@ -210,9 +210,10 @@ export const useSeerExplorer = () => {
     query?: string;
   } | null>(null);
   const previousPRStatesRef = useRef<Record<string, RepoPRState>>({});
-  // The most recent chat message or user-input response per conversation. Only its outcome
-  // may roll back that conversation's session data, so an older request settling late can't
-  // restore a stale snapshot over a newer one.
+  // The most recent in-flight chat message or user-input response per conversation. Only its
+  // outcome may roll back that conversation's session data, so an older request settling late
+  // can't restore a stale snapshot over a newer one. Entries are removed once that request
+  // settles, so the map only ever holds conversations with a request in flight.
   const latestRequestIdByRunRef = useRef(new Map<SeerExplorerRunId | null, string>());
   // The conversation on screen, read by request callbacks: only its requests may change
   // the error alert, so a request settling in a background chat can't hide or replace it.
@@ -226,6 +227,14 @@ export const useSeerExplorer = () => {
   }) => latestRequestIdByRunRef.current.get(params.runId) === params.requestId;
   const isCurrentRun = (requestRunId: SeerExplorerRunId | null) =>
     currentRunIdRef.current === requestRunId;
+  const forgetSettledRequest = (params: {
+    requestId: string;
+    runId: SeerExplorerRunId | null;
+  }) => {
+    if (isLatestRequest(params)) {
+      latestRequestIdByRunRef.current.delete(params.runId);
+    }
+  };
 
   /**
    * Optimistically marks the session as processing (prevents isPolling flicker on a new
@@ -360,6 +369,9 @@ export const useSeerExplorer = () => {
         setRequestError({runId: params.runId, query: params.query});
       }
     },
+    onSettled: (_data, _error, params) => {
+      forgetSettledRequest(params);
+    },
   });
 
   const {mutate: userInputMutate} = useMutation<
@@ -410,6 +422,9 @@ export const useSeerExplorer = () => {
       if (isCurrentRun(params.runId)) {
         setRequestError({runId: params.runId});
       }
+    },
+    onSettled: (_data, _error, params) => {
+      forgetSettledRequest(params);
     },
   });
 
