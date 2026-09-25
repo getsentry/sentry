@@ -69,7 +69,7 @@ class RepositoryMetadataUpdatedHandlerTest(TestCase):
         self.org_integrations = context.organization_integrations
 
     def _handle(self, payload: dict[str, Any]) -> None:
-        RepositoryMetadataUpdatedHandler()(
+        RepositoryMetadataUpdatedHandler("repository.metadata.updated")(
             payload, DELIVERY_ID, self.rpc_integration, self.org_integrations
         )
 
@@ -231,7 +231,7 @@ class RepositoryDeletedHandlerTest(TestCase):
         self.org_integrations = context.organization_integrations
 
     def _handle(self, payload: dict[str, Any]) -> None:
-        RepositoryDeletedHandler()(
+        RepositoryDeletedHandler("repository.deleted")(
             payload, DELIVERY_ID, self.rpc_integration, self.org_integrations
         )
 
@@ -297,7 +297,7 @@ class RepositoryCreatedHandlerTest(TestCase):
         self.org_integrations = context.organization_integrations
 
     def _handle(self) -> None:
-        RepositoryCreatedHandler()(
+        RepositoryCreatedHandler("repository.created")(
             _payload(), DELIVERY_ID, self.rpc_integration, self.org_integrations
         )
 

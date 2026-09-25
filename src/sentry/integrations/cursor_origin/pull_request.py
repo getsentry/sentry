@@ -5,6 +5,7 @@ from collections.abc import Mapping, Sequence
 from typing import Any
 
 from sentry.integrations.cursor_origin.authors import get_or_create_commit_author
+from sentry.integrations.cursor_origin.code_review import handle_code_review
 from sentry.integrations.cursor_origin.handlers import WebhookEventHandler
 from sentry.integrations.cursor_origin.repository import active_repositories
 from sentry.integrations.cursor_origin.webhook_types import PullRequestEvent
@@ -55,6 +56,7 @@ class PullRequestLifecycleHandler(WebhookEventHandler):
 
         for repo in repositories:
             self._record(repo, event, delivery_id)
+            handle_code_review(self.event_type, event, repo, integration)
 
     def _record(self, repo: Repository, event: PullRequestEvent, delivery_id: str) -> None:
         pull_request = event.pull_request

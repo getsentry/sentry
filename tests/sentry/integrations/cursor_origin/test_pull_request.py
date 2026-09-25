@@ -71,8 +71,8 @@ class PullRequestLifecycleHandlerTest(TestCase):
         self.rpc_integration = context.integration
         self.org_integrations = context.organization_integrations
 
-    def _handle(self, payload: dict[str, Any]) -> None:
-        PullRequestLifecycleHandler()(
+    def _handle(self, payload: dict[str, Any], event_type: str = "pull_request.created") -> None:
+        PullRequestLifecycleHandler(event_type)(
             payload, DELIVERY_ID, self.rpc_integration, self.org_integrations
         )
 
