@@ -856,7 +856,7 @@ describe('ScmCreateProject', () => {
                     integrationId: slackIntegration.id,
                     config: {
                       targetType: 'specific',
-                      targetIdentifier: '',
+                      targetIdentifier: 'C123',
                       targetDisplay: '#alerts',
                     },
                     data: {},
