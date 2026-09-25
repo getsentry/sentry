@@ -558,7 +558,7 @@ class TestGetEligibleProjects(NightShiftFixtures, TestCase):
 
         assert [ep.project for ep in result] == [opens_pr]
 
-    def test_cron_respects_org_allowed_project_slugs_manual_ignores(self) -> None:
+    def test_org_wide_runs_respect_allowed_project_slugs(self) -> None:
         org = self.create_organization()
         for slug in ("keep", "drop"):
             self._make_eligible(self.create_project(organization=org, slug=slug))
@@ -570,7 +570,31 @@ class TestGetEligibleProjects(NightShiftFixtures, TestCase):
             manual_result = _get_eligible_projects(org, "manual")
 
         assert [ep.project.slug for ep in cron_result] == ["keep"]
-        assert sorted(ep.project.slug for ep in manual_result) == ["drop", "keep"]
+        assert [ep.project.slug for ep in manual_result] == ["keep"]
+
+    def test_org_wide_runs_respect_empty_allowed_project_slugs(self) -> None:
+        org = self.create_organization()
+        self._make_eligible(self.create_project(organization=org))
+
+        with self.options(
+            {"seer.night_shift.org_tweaks": {str(org.id): {"allowed_project_slugs": []}}}
+        ):
+            assert _get_eligible_projects(org, "cron") == []
+            assert _get_eligible_projects(org, "manual") == []
+
+    def test_explicit_manual_project_bypasses_allowed_project_slugs(self) -> None:
+        org = self.create_organization()
+        target = self._make_eligible(self.create_project(organization=org))
+        self._make_eligible(self.create_project(organization=org))
+
+        with self.options(
+            {"seer.night_shift.org_tweaks": {str(org.id): {"allowed_project_slugs": []}}}
+        ):
+            cron_result = _get_eligible_projects(org, "cron", project_ids=[target.id])
+            manual_result = _get_eligible_projects(org, "manual", project_ids=[target.id])
+
+        assert cron_result == []
+        assert [ep.project for ep in manual_result] == [target]
 
     def test_skips_project_missing_from_preferences_lookup(self) -> None:
         """project_map and preferences come from separate queries, so a
@@ -1384,7 +1408,34 @@ class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCa
 @django_db_all
 class TestRunNightShiftForOrgManualPath(NightShiftFixtures, TestCase):
     """Manual-path coverage for run_night_shift_for_org — invoked from the
-    project-settings "Run Now" endpoint with source="manual" and project_ids."""
+    admin and project-settings "Run Now" endpoints with source="manual"."""
+
+    def test_org_wide_manual_run_respects_allowed_project_slugs(self) -> None:
+        org = self.create_organization()
+        allowed = self._make_eligible(self.create_project(organization=org, slug="allowed"))
+        self._make_eligible(self.create_project(organization=org, slug="excluded"))
+
+        with (
+            self.options(
+                {
+                    "seer.night_shift.org_tweaks": {
+                        str(org.id): {"allowed_project_slugs": [allowed.slug]}
+                    }
+                }
+            ),
+            patch(
+                "sentry.tasks.seer.night_shift.cron.fixability_score_strategy",
+                return_value=[],
+            ) as mock_score,
+        ):
+            run_id = run_night_shift_for_org(org.id, options={"source": "manual", "dry_run": True})
+
+        mock_score.assert_called_once()
+        assert [p.id for p in mock_score.call_args.args[0]] == [allowed.id]
+        run = SeerWorkflowRun.objects.get(id=run_id)
+        assert run.extras["options"]["source"] == "manual"
+        assert run.extras["options"]["dry_run"] is True
+        assert run.schedule_id is None
 
     def test_inactive_org_skipped(self) -> None:
         org = self.create_organization()
