@@ -117,10 +117,6 @@ interface AssigneeSelectorDropdownProps {
    */
   showLabel?: boolean;
   /**
-   * Maximum number of teams/users to display in the dropdown
-   */
-  sizeLimit?: number;
-  /**
    * Optional trigger for the assignee selector. If nothing passed in,
    * the default trigger will be used
    */
@@ -297,7 +293,6 @@ export function AssigneeSelectorDropdown({
   onClear,
   owners,
   showLabel = false,
-  sizeLimit = 150,
   trigger,
   additionalMenuFooterItems,
 }: AssigneeSelectorDropdownProps) {
@@ -682,7 +677,7 @@ export function AssigneeSelectorDropdown({
             {additionalMenuFooterItems}
           </Flex>
         )}
-        sizeLimit={sizeLimit}
+        sizeLimit={150}
         sizeLimitMessage="Use search to find more users and teams..."
         strategy="fixed"
       />
