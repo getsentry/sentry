@@ -22,6 +22,7 @@ import {
   getHighlightContextData,
   getHighlightTagData,
 } from 'sentry/components/events/highlights/util';
+import {TreeKey, TreeValue} from 'sentry/components/keyValueTree/styles';
 import {IconAdd, IconInfo, IconSearch, IconSubtract} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -572,6 +573,11 @@ const EditPreviewContextItem = styled(ContextCardContent)`
 `;
 
 const EditPreviewTagItem = styled(EventTagsTreeRow)`
+  /* The adjacent remove button makes these rows taller than the tree's own, so the
+     key and value have slack to centre in rather than sitting against the top. */
+  ${TreeKey}, ${TreeValue} {
+    align-self: center;
+  }
   &:nth-child(4n-2) {
     background-color: ${p => p.theme.tokens.background.secondary};
   }
