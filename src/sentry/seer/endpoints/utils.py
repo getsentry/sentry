@@ -14,6 +14,9 @@ if TYPE_CHECKING:
     from sentry.models.organization import Organization
 
 
+SEER_PERMISSION_DENIED = "You are not authorized to perform this action"
+
+
 class ResolvedSeerRun(NamedTuple):
     seer_run_state_id: int
     # None for legacy runs created before SeerRun mirroring, which have no row.

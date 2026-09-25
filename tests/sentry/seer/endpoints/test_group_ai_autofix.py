@@ -307,7 +307,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.data
         assert response.data["autofix"]["blocks"][0]["message"]["metadata"] is None
 
-    @patch("sentry.seer.endpoints.group_ai_autofix.get_blocked_pr_iteration_permissions")
+    @patch("sentry.seer.autofix.pr_iteration.ui_state.get_blocked_pr_iteration_permissions")
     @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_agent_state")
     def test_get_no_warnings_when_no_missing_permissions(
         self, mock_get_explorer_state, mock_get_perms
@@ -328,7 +328,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert response.data["autofix"]["warnings"] == []
         mock_get_perms.assert_called_once()
 
-    @patch("sentry.seer.endpoints.group_ai_autofix.get_blocked_pr_iteration_permissions")
+    @patch("sentry.seer.autofix.pr_iteration.ui_state.get_blocked_pr_iteration_permissions")
     @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_agent_state")
     def test_get_returns_github_permission_warnings(self, mock_get_explorer_state, mock_get_perms):
         group = self.create_group()
@@ -366,8 +366,8 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             }
         ]
 
-    @patch("sentry.seer.endpoints.group_ai_autofix.get_blocked_pr_iteration_permissions")
-    @patch("sentry.seer.endpoints.group_ai_autofix.peek_queued_autofix_feedback")
+    @patch("sentry.seer.autofix.pr_iteration.ui_state.get_blocked_pr_iteration_permissions")
+    @patch("sentry.seer.autofix.pr_iteration.ui_state.peek_queued_autofix_feedback")
     @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_agent_state")
     def test_actionable_feedback_reads_the_consume_decision(
         self, mock_get_explorer_state, mock_peek, mock_get_perms
@@ -1069,10 +1069,10 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         action_log.assert_not_logged(TriggerAutofixAction, group_id=group.id)
 
     @with_feature("organizations:autofix-pr-iteration-manual")
-    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_consume_pr_iteration_feedback")
-    @patch("sentry.seer.endpoints.group_ai_autofix.enqueue_autofix_feedback")
+    @patch("sentry.seer.autofix.pr_iteration.manual_trigger.trigger_consume_pr_iteration_feedback")
+    @patch("sentry.seer.autofix.pr_iteration.manual_trigger.enqueue_autofix_feedback")
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
-    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_run_state")
+    @patch("sentry.seer.autofix.pr_iteration.manual_trigger.get_autofix_run_state")
     def test_pr_iteration(self, mock_run_state, mock_trigger_explorer, mock_enqueue, mock_consume):
         group = self.create_group()
         self.create_seer_run(organization=self.organization, seer_run_state_id=123)
@@ -1110,8 +1110,8 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             "organizations:autofix-pr-iteration": True,
         }
     )
-    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_consume_pr_iteration_feedback")
-    @patch("sentry.seer.endpoints.group_ai_autofix.enqueue_autofix_feedback")
+    @patch("sentry.seer.autofix.pr_iteration.manual_trigger.trigger_consume_pr_iteration_feedback")
+    @patch("sentry.seer.autofix.pr_iteration.manual_trigger.enqueue_autofix_feedback")
     def test_pr_iteration_requires_manual_feature_flag(self, mock_enqueue, mock_consume):
         group = self.create_group()
 
@@ -1142,8 +1142,8 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         mock_trigger_explorer.assert_not_called()
 
     @with_feature("organizations:autofix-pr-iteration-manual")
-    @patch("sentry.seer.endpoints.group_ai_autofix.enqueue_autofix_feedback")
-    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_run_state")
+    @patch("sentry.seer.autofix.pr_iteration.manual_trigger.enqueue_autofix_feedback")
+    @patch("sentry.seer.autofix.pr_iteration.manual_trigger.get_autofix_run_state")
     def test_pr_iteration_requires_existing_pr(self, mock_run_state, mock_enqueue):
         group = self.create_group()
         mock_run_state.return_value = SeerRunState(
@@ -1166,8 +1166,8 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         mock_enqueue.assert_not_called()
 
     @with_feature("organizations:autofix-pr-iteration-manual")
-    @patch("sentry.seer.endpoints.group_ai_autofix.enqueue_autofix_feedback")
-    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_run_state")
+    @patch("sentry.seer.autofix.pr_iteration.manual_trigger.enqueue_autofix_feedback")
+    @patch("sentry.seer.autofix.pr_iteration.manual_trigger.get_autofix_run_state")
     def test_pr_iteration_rejected_when_paused(self, mock_run_state, mock_enqueue):
         group = self.create_group()
         self.create_seer_run(
@@ -1198,9 +1198,9 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         mock_enqueue.assert_not_called()
 
     @with_feature("organizations:autofix-pr-iteration-manual")
-    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_consume_pr_iteration_feedback")
-    @patch("sentry.seer.endpoints.group_ai_autofix.enqueue_autofix_feedback")
-    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_run_state")
+    @patch("sentry.seer.autofix.pr_iteration.manual_trigger.trigger_consume_pr_iteration_feedback")
+    @patch("sentry.seer.autofix.pr_iteration.manual_trigger.enqueue_autofix_feedback")
+    @patch("sentry.seer.autofix.pr_iteration.manual_trigger.get_autofix_run_state")
     def test_pr_iteration_allowed_when_push_failed_onto_open_pr(
         self, mock_run_state, mock_enqueue, mock_consume
     ):
@@ -1562,7 +1562,7 @@ class GroupAutofixConditionalGetTest(APITestCase):
         assert response["ETag"] == current
         assert response.data["autofix"]["run_id"] == 888
 
-    @patch("sentry.seer.endpoints.group_ai_autofix.peek_queued_autofix_feedback")
+    @patch("sentry.seer.autofix.pr_iteration.ui_state.peek_queued_autofix_feedback")
     @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_agent_state")
     def test_queued_feedback_changes_the_etag(self, mock_get_explorer_state, mock_peek):
         mock_get_explorer_state.return_value = self._run_state()
