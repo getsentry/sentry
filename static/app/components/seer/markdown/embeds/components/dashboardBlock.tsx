@@ -192,6 +192,11 @@ function DashboardPreview({
 
 export default function DashboardBlock({id, title}: EmbedOutput<'dashboard'>) {
   const organization = useOrganization();
+
+  if (!id) {
+    return null;
+  }
+
   const href = normalizeUrl(`/organizations/${organization.slug}/dashboard/${id}/`);
   const {data, isError, isPending} = useQuery({
     ...dashboardDetailsApiOptions(organization, id),
