@@ -5,7 +5,10 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {BlockComponent} from 'sentry/views/seerExplorer/components/chat';
-import {blockRendersToolContent} from 'sentry/views/seerExplorer/components/chat/toolUse';
+import {
+  blockRendersToolContent,
+  findLatestTodos,
+} from 'sentry/views/seerExplorer/components/chat/toolUse';
 import type {
   AgentWriteApproval,
   Block,
@@ -237,9 +240,13 @@ describe('ToolUseBlock', () => {
         })
       );
     });
-    expect(respondToUserInput).toHaveBeenCalledWith(APPROVAL_ID, {
-      decision: 'approve',
-    });
+    expect(respondToUserInput).toHaveBeenCalledWith(
+      APPROVAL_ID,
+      {
+        decision: 'approve',
+      },
+      {onError: expect.any(Function)}
+    );
   });
 
   it('allows an active approval with invalid grant data to be rejected', async () => {
@@ -261,9 +268,13 @@ describe('ToolUseBlock', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Reject'}));
 
-    expect(respondToUserInput).toHaveBeenCalledWith(APPROVAL_ID, {
-      decision: 'reject',
-    });
+    expect(respondToUserInput).toHaveBeenCalledWith(
+      APPROVAL_ID,
+      {
+        decision: 'reject',
+      },
+      {onError: expect.any(Function)}
+    );
   });
 
   it('does not resume with approval when only some scopes are granted', async () => {
@@ -296,10 +307,14 @@ describe('ToolUseBlock', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Approve'}));
 
     await waitFor(() => {
-      expect(respondToUserInput).toHaveBeenCalledWith(APPROVAL_ID, {
-        decision: 'reject',
-        reason: 'insufficient_scope',
-      });
+      expect(respondToUserInput).toHaveBeenCalledWith(
+        APPROVAL_ID,
+        {
+          decision: 'reject',
+          reason: 'insufficient_scope',
+        },
+        {onError: expect.any(Function)}
+      );
     });
 
     expect(
@@ -364,9 +379,13 @@ describe('ToolUseBlock', () => {
     });
 
     await waitFor(() => {
-      expect(respondToUserInput).toHaveBeenCalledWith(APPROVAL_ID, {
-        decision: 'approve',
-      });
+      expect(respondToUserInput).toHaveBeenCalledWith(
+        APPROVAL_ID,
+        {
+          decision: 'approve',
+        },
+        {onError: expect.any(Function)}
+      );
     });
 
     expect(
@@ -393,14 +412,39 @@ describe('ToolUseBlock', () => {
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Reject'}));
-    expect(respondToUserInput).toHaveBeenCalledWith(APPROVAL_ID, {
-      decision: 'reject',
-    });
+    expect(respondToUserInput).toHaveBeenCalledWith(
+      APPROVAL_ID,
+      {
+        decision: 'reject',
+      },
+      {onError: expect.any(Function)}
+    );
     expect(approveRequest).not.toHaveBeenCalled();
     expect(
       screen.getByText('Access not granted for reading and writing Projects')
     ).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Approve'})).not.toBeInTheDocument();
+  });
+
+  it('shows the approval prompt again when the response fails to send', async () => {
+    const respondToUserInput = jest.fn(
+      (_inputId: string, _data?: unknown, options?: {onError?: () => void}) =>
+        options?.onError?.()
+    );
+    render(
+      <BlockComponent
+        block={createAgentApprovalBlock()}
+        blockIndex={0}
+        pendingInput={createPendingAgentApproval()}
+        respondToUserInput={respondToUserInput}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Reject'}));
+
+    expect(respondToUserInput).toHaveBeenCalled();
+    expect(screen.getByRole('button', {name: 'Reject'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Approve'})).toBeInTheDocument();
   });
 
   it('renders todo list for todo_write tool calls', () => {
@@ -1482,7 +1526,7 @@ describe('blockRendersToolContent', () => {
       links: [{kind: 'get_issue_details', params: {is_error: true}}],
     });
 
-    expect(blockRendersToolContent(block, [block])).toBe(false);
+    expect(blockRendersToolContent(block, findLatestTodos([block]))).toBe(false);
   });
 
   it('counts a link that did not error', () => {
@@ -1490,7 +1534,7 @@ describe('blockRendersToolContent', () => {
       links: [{kind: 'get_issue_details', params: {issueId: '4521'}}],
     });
 
-    expect(blockRendersToolContent(block, [block])).toBe(true);
+    expect(blockRendersToolContent(block, findLatestTodos([block]))).toBe(true);
   });
 
   it('ignores todos superseded by a later block', () => {
@@ -1503,7 +1547,7 @@ describe('blockRendersToolContent', () => {
     });
     const blocks = [stale, newest];
 
-    expect(blockRendersToolContent(stale, blocks)).toBe(false);
-    expect(blockRendersToolContent(newest, blocks)).toBe(true);
+    expect(blockRendersToolContent(stale, findLatestTodos(blocks))).toBe(false);
+    expect(blockRendersToolContent(newest, findLatestTodos(blocks))).toBe(true);
   });
 });

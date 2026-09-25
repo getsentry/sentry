@@ -1,7 +1,83 @@
+import type {Theme} from '@emotion/react';
+
+import {t} from 'sentry/locale';
+import {Outcome} from 'sentry/types/core';
 import {defined} from 'sentry/utils/defined';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import type {Annotation} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 
 const CONFIGURED_CLIENT_DISCARD_REASONS = new Set(['before_send', 'sample_rate']);
+
+const OUTCOME_LABELS: Partial<Record<Outcome, string>> = {
+  [Outcome.CLIENT_DISCARD]: t('Client discard'),
+  [Outcome.FILTERED]: t('Inbound filter'),
+  [Outcome.INVALID]: t('Invalid or malformed'),
+  [Outcome.RATE_LIMITED]: t('Rate limited'),
+  [Outcome.ABUSE]: t('Abuse limit'),
+  [Outcome.CARDINALITY_LIMITED]: t('Cardinality limit'),
+};
+
+export function outcomeLabel(outcome: string): string {
+  return OUTCOME_LABELS[outcome as Outcome] ?? outcome;
+}
+
+const REASON_TITLES: Record<string, string> = {
+  backpressure: t('SDK backpressure drop'),
+  before_send: t('Dropped by before send'),
+  buffer_overflow: t('SDK buffer overflow'),
+  network_error: t('Unretried network error'),
+  queue_overflow: t('SDK queue overflow'),
+  ratelimit_backoff: t('SDK rate-limit backoff'),
+  sample_rate: t('Dropped by sample rate'),
+  send_error: t('SDK send failure'),
+  'filtered-transaction': t('Filtered transaction'),
+  'legacy-browsers': t('Legacy browser filter'),
+  'web-crawlers': t('Web crawler filter'),
+  internal: t('Sentry processing error'),
+  invalid_dsc: t('Invalid trace context'),
+  invalid_json: t('Malformed JSON payload'),
+  invalid_transaction: t('Invalid transaction data'),
+  missing_dsc: t('Missing trace context'),
+  'too_large:event': t('Event payload too large'),
+  'too_large:profile': t('Profile payload too large'),
+  'too_large:span': t('Span payload too large'),
+  'too_large:transaction': t('Transaction payload too large'),
+  generic: t('Generic rate limit'),
+  project_abuse_limit: t('Project abuse limit'),
+};
+
+export function reasonTitle(reason: string): string {
+  return REASON_TITLES[reason] ?? reason;
+}
+
+export function hasDroppedData(
+  droppedAnnotations: Annotation[] | undefined
+): droppedAnnotations is Annotation[] {
+  return (
+    defined(droppedAnnotations) &&
+    droppedAnnotations.some(annotation => !isConfiguredDrop(annotation))
+  );
+}
+
+export function getOutcomeColors(
+  outcomes: string[],
+  theme: Theme
+): Record<string, string> {
+  const palette = theme.chart.getColorPalette(Math.max(outcomes.length - 1, 0));
+
+  return outcomes.reduce<Record<string, string>>((acc, outcome, index) => {
+    acc[outcome] = palette[index % palette.length]!;
+    return acc;
+  }, {});
+}
+
+// Shares run tiny (a reason can be a sliver of all traffic), so floor the
+// display at 0.01% rather than rounding to 0%. Matches the drop tooltip.
+const SHARE_MIN_VALUE = 0.0001;
+
+export function formatDroppedShare(ratio: number): string {
+  return formatPercentage(ratio, 2, {minimumValue: SHARE_MIN_VALUE});
+}
 
 function isConfiguredDrop({outcome, reason}: Annotation): boolean {
   if (outcome === 'filtered') {
@@ -46,13 +122,6 @@ export interface AnnotationBucket {
   end: number;
   ratio: number;
   start: number;
-}
-
-export interface DroppedData {
-  accepted?: Annotation[];
-  dropped?: Annotation[];
-  onClick?: (bucket: AnnotationBucket) => void;
-  visible?: boolean;
 }
 
 interface VolumeDraft {

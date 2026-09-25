@@ -4,13 +4,13 @@ import logging
 from dataclasses import dataclass, field
 
 from sentry import features, options
-from sentry.db.models.utils import is_model_attr_cached
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.models.activity import Activity
 from sentry.models.group import Group
+from sentry.models.organization import Organization
 from sentry.options.rollout import in_rollout_group
 from sentry.services.eventstore.models import GroupEvent
 from sentry.utils import metrics
@@ -24,7 +24,7 @@ from sentry.workflow_engine.defaults.detectors import (
 from sentry.workflow_engine.models import DataPacket, Detector
 from sentry.workflow_engine.models.detector_group import DetectorGroup
 from sentry.workflow_engine.processors import DetectorEvaluation, ProcessDetectorsResult
-from sentry.workflow_engine.processors.evaluation_logging import emit_detector_evaluation_logs
+from sentry.workflow_engine.processors.evaluations.tracking import emit_evaluations
 from sentry.workflow_engine.types import (
     DetectorGroupKey,
     DetectorId,
@@ -291,20 +291,63 @@ def create_issue_platform_payload(result: DetectorEvaluation, detector_type: str
     )
 
 
-def _get_detector_organization_id(detector: Detector) -> int | None:
-    if detector.project_id is not None:
-        if is_model_attr_cached(detector, "project"):
-            project = detector.project
-            return project.organization_id if project is not None else None
-        return None
+def _get_detector_organization(detector: Detector) -> Organization | None:
+    """
+    Lookup the detector's organization through the organization cache.
 
-    return detector.config.get("organization_id", None)
+    First this checks to see if we have the org id through the detector cache,
+    then check to see if it's an issue-stream detector.
+
+    If no org is found, return none.
+    """
+    org = None
+    organization_id = getattr(detector, "project_organization_id", None)
+
+    if organization_id is None:
+        organization_id = detector.config.get("organization_id")
+
+    if organization_id is not None:
+        try:
+            org = Organization.objects.get_from_cache(id=organization_id)
+        except Organization.DoesNotExist:
+            pass
+
+    return org
+
+
+def _emit_detector_evaluations(
+    detector: Detector,
+    result: ProcessDetectorsResult,
+) -> None:
+    organization = _get_detector_organization(detector)
+
+    if organization is not None:
+        emit_evaluations(
+            organization=organization,
+            result=result,
+        )
+    else:
+        metrics.incr(
+            "workflow_engine.process_detector.error",
+            tags={
+                "error": "organization_missing",
+            },
+        )
 
 
 @trace
 def process_detectors[T](
-    data_packet: DataPacket[T], detectors: list[Detector]
+    data_packet: DataPacket[T],
+    detectors: list[Detector],
 ) -> list[tuple[Detector, dict[DetectorGroupKey, DetectorEvaluation]]]:
+    """
+    This is a core method in workflow_engine. It evaluates the detectors
+    associated with each data packet, using the each individual detector_handler.
+
+    Once the evaluation is complete, each is stored in EAP for 7d (21d for metric detectors).
+
+    Finally, the triggered detectors create issues via the Issue Platform.
+    """
     results: list[tuple[Detector, dict[DetectorGroupKey, DetectorEvaluation]]] = []
 
     for detector in detectors:
@@ -323,9 +366,8 @@ def process_detectors[T](
         ):
             detector_results = handler._evaluate(data_packet)
 
-        emit_detector_evaluation_logs(
-            logger,
-            organization_id=_get_detector_organization_id(detector),
+        _emit_detector_evaluations(
+            detector=detector,
             result=ProcessDetectorsResult(
                 detector_id=detector.id,
                 detector_type=detector.type,

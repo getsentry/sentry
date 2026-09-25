@@ -142,13 +142,14 @@ export function getJsDataCollectionDocsLink(
   return `https://docs.sentry.io/platforms/javascript/guides/${slug}/configuration/options/#dataCollection`;
 }
 
-/**
- * Shown without an init wrapper because agent and MCP monitoring span several
- * init shapes (`Sentry.init`, `Sentry.withSentry`, `instrumentAgentWithSentry`).
- */
-export const GEN_AI_DATA_COLLECTION_SNIPPET = `dataCollection: {
-  genAI: { inputs: false, outputs: false },
-},`;
+// Turns off generative AI content in the `Sentry.init` options. Cloudflare
+// agent setups show a `defineCloudflareOptions` variant instead.
+export const GEN_AI_DATA_COLLECTION_SNIPPET = `Sentry.init({
+  // ...
+  dataCollection: {
+    genAI: { inputs: false, outputs: false },
+  },
+});`;
 
 const DEFAULT_DATA_COLLECTION_SNIPPET = `Sentry.init({
   // ...

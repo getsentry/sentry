@@ -80,6 +80,10 @@ const iOSDeviceMapping: Record<string, string> = {
   'iPhone18,3': 'iPhone 17',
   'iPhone18,4': 'iPhone Air',
   'iPhone18,5': 'iPhone 17e',
+  'iPhone19,2': 'iPhone 18 Pro',
+  'iPhone19,3': 'iPhone 18 Pro Max',
+  'iPhone19,7': 'iPhone 18 Pro Max',
+  'iPhone19,4': 'iPhone Duo',
   // iPad Pro
   'iPad6,7': 'iPad Pro 12.9-inch (1st generation)',
   'iPad6,8': 'iPad Pro 12.9-inch (1st generation)',

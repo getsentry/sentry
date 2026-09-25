@@ -2,6 +2,7 @@ import {IntegrationProviderFixture} from 'sentry-fixture/integrationProvider';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {
+  act,
   render,
   renderGlobalModal,
   screen,
@@ -110,5 +111,32 @@ describe('AddIntegrationButton', () => {
         onComplete: expect.any(Function),
       })
     );
+  });
+
+  it('keeps the button focusable with a tooltip when the provider cannot be added', async () => {
+    const openPipelineModalSpy = jest
+      .spyOn(pipelineModal, 'openPipelineModal')
+      .mockImplementation(() => {});
+
+    render(
+      <AddIntegrationButton
+        provider={{...provider, canAdd: false}}
+        onAddIntegration={jest.fn()}
+        organization={OrganizationFixture()}
+      />
+    );
+
+    const button = screen.getByRole('button', {name: 'Add integration'});
+    expect(button).toHaveAttribute('aria-disabled', 'true');
+
+    act(() => button.focus());
+    expect(
+      await screen.findByText(
+        `Integration cannot be added on Sentry. Enable this integration via the ${provider.name} instance.`
+      )
+    ).toBeInTheDocument();
+
+    await userEvent.click(button);
+    expect(openPipelineModalSpy).not.toHaveBeenCalled();
   });
 });

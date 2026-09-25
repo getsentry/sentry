@@ -29,7 +29,9 @@ describe('TermsAndConditions', () => {
   });
 
   it('renders redesign changes', async () => {
-    render(<TermsAndConditions {...routerProps} subscription={subscription} />);
+    render(<TermsAndConditions {...routerProps} subscription={subscription} />, {
+      organization,
+    });
     expect(await screen.findByText('Terms of Service')).toBeInTheDocument();
 
     // Expect no text at top of 'Terms & Conditions' section
