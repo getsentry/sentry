@@ -5,8 +5,9 @@ from collections.abc import Generator, Iterable, Iterator, MutableMapping
 from itertools import zip_longest
 from typing import Any, TypedDict
 
+from sentry_sdk import traces
+
 from sentry.apidocs.omissions import sentry_schema_serializer
-from sentry.utils.tracing import trace
 
 
 class DeviceResponseType(TypedDict, total=False):
@@ -96,7 +97,7 @@ class ReplayDetailsResponse(TypedDict, total=False):
     has_viewed: bool
 
 
-@trace
+@traces.trace
 def process_raw_response(
     response: list[dict[str, Any]], fields: list[str]
 ) -> list[ReplayDetailsResponse]:
