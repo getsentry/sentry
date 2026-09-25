@@ -6,10 +6,6 @@ type MobilePromptBannerParams = {
   matchedUserAgentString: string;
 };
 
-type PlatformParam = {
-  platform: PlatformKey;
-};
-
 type PlatformCategory = {
   category: string;
   source?: string;
@@ -99,17 +95,9 @@ export type GrowthEventParameters = {
   'growth.metric_alert_preset_use_template': {
     preset: string;
   };
-  'growth.onboarding_clicked_instrument_app': {source?: string};
-  'growth.onboarding_clicked_setup_platform_later': PlatformParam & {
-    project_id: string;
-  };
   'growth.onboarding_clicked_skip': {source?: string};
   'growth.onboarding_load_choose_platform': Record<string, unknown>;
   'growth.onboarding_quick_start_cta': SampleEventParam;
-  'growth.onboarding_set_up_your_project': PlatformParam;
-  'growth.onboarding_start_onboarding': {
-    source?: string;
-  };
   'growth.onboarding_take_to_error': {
     platform?: string;
   };
@@ -181,21 +169,16 @@ export const growthEventMap: Record<GrowthAnalyticsKey, string | null> = {
   'growth.clicked_sidebar': 'Growth: Clicked Sidebar',
   'growth.onboarding_load_choose_platform':
     'Growth: Onboarding Load Choose Platform Page',
-  'growth.onboarding_set_up_your_project': 'Growth: Onboarding Click Set Up Your Project',
   'growth.select_platform': 'Growth: Onboarding Choose Platform',
   'growth.platformpicker_category': 'Growth: Onboarding Platform Category',
   'growth.platformpicker_search': 'Growth: Onboarding Platform Search',
   'growth.metric_alert_preset_use_template': 'Growth: Metric Alert Preset Use Template',
   'growth.metric_alert_preset_sidebar_clicked':
     'Growth: Metric Alert Preset Sidebar Clicked',
-  'growth.onboarding_start_onboarding': 'Growth: Onboarding Start Onboarding',
   'growth.onboarding_clicked_skip': 'Growth: Onboarding Clicked Skip',
   'growth.onboarding_take_to_error': 'Growth: Onboarding Take to Error',
   'growth.onboarding_view_full_docs': 'Growth: Onboarding View Full Docs',
   'growth.onboarding_view_sample_event': 'Growth: Onboarding View Sample Event',
-  'growth.onboarding_clicked_instrument_app': 'Growth: Onboarding Clicked Instrument App',
-  'growth.onboarding_clicked_setup_platform_later':
-    'Growth: Onboarding Clicked Setup Platform Later',
   'growth.onboarding_quick_start_cta': 'Growth: Quick Start Onboarding CTA',
   'invite_request.approved': 'Invite Request Approved',
   'invite_request.denied': 'Invite Request Denied',
