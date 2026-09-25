@@ -1,9 +1,21 @@
 from dataclasses import asdict
+from typing import Any
 from unittest import mock
 
+from arroyo.backends.kafka import KafkaPayload
+from arroyo.backends.local.backend import LocalBroker
+from arroyo.backends.local.storages.memory import MemoryMessageStorage
+from arroyo.types import Partition
+from arroyo.types import Topic as ArroyoTopic
+from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
+from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
+
+from sentry.conf.types.kafka_definition import Topic
+from sentry.models.group import GroupStatus
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import Feature
 from sentry.testutils.helpers.options import override_options
+from sentry.utils.kafka_config import get_topic_definition
 from sentry.workflow_engine.models import DataConditionGroup
 from sentry.workflow_engine.processors.evaluations import (
     DataConditionEvaluation,
@@ -11,11 +23,16 @@ from sentry.workflow_engine.processors.evaluations import (
     DeferredWorkflowEvaluationResult,
     EvaluationPhase,
     EvaluationType,
+    ProcessDetectorsResult,
     ProcessWorkflowsResult,
     WorkflowEvaluation,
     WorkflowEvaluationArtifact,
     WorkflowEvaluationBatch,
     WorkflowEvaluationOutcome,
+)
+from sentry.workflow_engine.processors.evaluations.eap import (
+    EAP_ITEMS_CODEC,
+    emit_evaluation_to_eap,
 )
 from sentry.workflow_engine.processors.evaluations.logging import (
     redact_pii_from_artifact,
@@ -420,3 +437,83 @@ class TestWorkflowEvaluationArtifact(TestCase):
                 "organization_id": self.organization.id,
             },
         )
+
+    def _emit_evaluation_to_eap(
+        self, result: ProcessDetectorsResult | ProcessWorkflowsResult
+    ) -> TraceItem:
+        storage = MemoryMessageStorage[KafkaPayload]()
+        broker = LocalBroker(storage)
+        topic = ArroyoTopic(get_topic_definition(Topic.SNUBA_ITEMS)["real_topic_name"])
+        broker.create_topic(topic, partitions=1)
+
+        with mock.patch(
+            "sentry.workflow_engine.processors.evaluations.eap._eap_producer",
+            broker.get_producer(),
+        ):
+            emit_evaluation_to_eap(self.organization, result)
+
+        message = broker.consume(Partition(topic, 0), 0)
+        assert message is not None
+        return EAP_ITEMS_CODEC.decode(message.payload.value)
+
+    def test_eap_emitter_stores_compact_issue_state(self) -> None:
+        condition = self.create_data_condition()
+        condition.update(comparison={"email": "customer@example.com"})
+        condition_evaluation = DataConditionEvaluation(
+            condition=condition,
+            result=True,
+            triggered=True,
+            data="customer@example.com",
+        )
+        self.group.status = GroupStatus.RESOLVED
+        self.event_data = WorkflowEventData(
+            event=self.event.for_group(self.group),
+            group=self.group,
+            group_state={
+                "id": self.group.id,
+                "is_new": True,
+                "is_regression": False,
+                "is_new_group_environment": True,
+            },
+            has_escalated=True,
+        )
+        evaluation = self._build_evaluation(
+            triggered=True,
+            condition_evaluations=[condition_evaluation],
+        )
+
+        trace_item = self._emit_evaluation_to_eap(
+            self._build_batch_result({evaluation.workflow_id: evaluation})
+        )
+
+        assert trace_item.organization_id == self.organization.id
+        assert trace_item.project_id == self.project.id
+        assert trace_item.item_type == TraceItemType.TRACE_ITEM_TYPE_LOG
+        assert trace_item.attributes["event_id"].string_value == self.event.event_id
+        assert trace_item.attributes["event_kind"].string_value == "group_event"
+        assert trace_item.attributes["is_new"].bool_value is True
+        assert trace_item.attributes["is_regression"].bool_value is False
+        assert trace_item.attributes["is_resolved"].bool_value is True
+        assert trace_item.attributes["has_escalated"].bool_value is True
+
+        def values_by_key(value: Any) -> dict[str, Any]:
+            return {item.key: item.value for item in value.kvlist_value.values}
+
+        trigger_evaluation = values_by_key(trace_item.attributes["trigger_evaluation"])
+        conditions = trigger_evaluation["condition_evaluations"].array_value.values
+        stored_condition = values_by_key(conditions[0])
+        assert "comparison" not in stored_condition
+        assert "input" not in stored_condition
+
+    def test_eap_emitter_stores_empty_detector_outcome(self) -> None:
+        result = ProcessDetectorsResult(
+            detector_id=self.detector.id,
+            detector_type=self.detector.type,
+            project_id=self.project.id,
+            evaluations={},
+        )
+        trace_item = self._emit_evaluation_to_eap(result)
+
+        assert trace_item.attributes["evaluation_type"].string_value == "detector"
+        assert trace_item.attributes["detector_id"].int_value == self.detector.id
+        assert trace_item.attributes["outcome"].string_value == "no_results"
