@@ -1,4 +1,5 @@
 import logging
+from collections.abc import Collection
 from datetime import datetime, timedelta
 
 from django.conf import settings
@@ -26,13 +27,12 @@ class TsTzRange(models.Func):
     output_field = DateTimeRangeField()
 
 
+def get_group_types_without_open_periods() -> Collection[int]:
+    return options.get("workflow_engine.group.type_id.open_periods_type_denylist")
+
+
 def should_create_open_periods(type_id: int) -> bool:
-    grouptypes_without_open_periods = options.get(
-        "workflow_engine.group.type_id.open_periods_type_denylist"
-    )
-    if type_id in grouptypes_without_open_periods:
-        return False
-    return True
+    return type_id not in get_group_types_without_open_periods()
 
 
 @cell_silo_model
