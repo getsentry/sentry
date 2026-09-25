@@ -50,11 +50,14 @@ describe('FullSpanDescription', () => {
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
-    const queryCodeSnippet = await screen.findByText(
-      /select users from my_table limit 1;/i
+    const queryCodeSnippet = screen.getByText(
+      (_, element) =>
+        element?.tagName === 'CODE' && element.className.includes('language-sql')
     );
     expect(queryCodeSnippet).toBeInTheDocument();
-    expect(queryCodeSnippet).toHaveClass('language-sql');
+    expect(queryCodeSnippet?.textContent?.replace(/\s+/g, ' ').trim()).toMatch(
+      /select users from my_table limit 1;/i
+    );
   });
 
   it('uses the correct code formatting for MongoDB queries', async () => {
@@ -79,10 +82,13 @@ describe('FullSpanDescription', () => {
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
     const queryCodeSnippet = screen.getByText(
-      /\{ "insert": "my_cool_collection😎", "a": \{\} \}/i
+      (_, element) =>
+        element?.tagName === 'CODE' && element.className.includes('language-json')
     );
     expect(queryCodeSnippet).toBeInTheDocument();
-    expect(queryCodeSnippet).toHaveClass('language-json');
+    expect(queryCodeSnippet?.textContent?.replace(/\s+/g, ' ').trim()).toMatch(
+      /\{ "insert": "my_cool_collection😎", "a": \{\} \}/i
+    );
   });
 
   it('successfully handles truncated MongoDB queries', async () => {
@@ -109,9 +115,12 @@ describe('FullSpanDescription', () => {
 
     // The last truncated entry will have a null value assigned and the JSON document is properly closed
     const queryCodeSnippet = screen.getByText(
-      /\{ "insert": "my_cool_collection😎", "a": \{\}, "uh_oh": "the_query_is_truncated", "ohno\*": null \}/i
+      (_, element) =>
+        element?.tagName === 'CODE' && element.className.includes('language-json')
     );
     expect(queryCodeSnippet).toBeInTheDocument();
-    expect(queryCodeSnippet).toHaveClass('language-json');
+    expect(queryCodeSnippet?.textContent?.replace(/\s+/g, ' ').trim()).toMatch(
+      /\{ "insert": "my_cool_collection😎", "a": \{\}, "uh_oh": "the_query_is_truncated", "ohno\*": null \}/i
+    );
   });
 });

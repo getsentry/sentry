@@ -65,7 +65,9 @@ describe('laravel onboarding docs', () => {
     ).toBeInTheDocument();
 
     // Renders logging.php configuration instructions
-    expect(screen.getByText(textWithMarkupMatcher(/'sentry_logs'/))).toBeInTheDocument();
+    expect(
+      screen.getAllByText(textWithMarkupMatcher(/'sentry_logs'/))[0]
+    ).toBeInTheDocument();
     expect(
       screen.getByText(textWithMarkupMatcher(/'driver' => 'sentry_logs'/))
     ).toBeInTheDocument();

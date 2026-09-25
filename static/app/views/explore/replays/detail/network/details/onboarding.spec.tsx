@@ -60,12 +60,11 @@ describe('Setup', () => {
         '  ],',
         '})',
       ].join('\n');
-      const snippetElem = screen.getByText(
-        "networkRequestHeaders: ['X-Custom-Header'],",
-        {exact: false}
-      );
-      // Using toHaveTextContent would be nice here, but it loses the newlines.
-      expect(snippetElem.innerHTML).toBe(expectedSnippet);
+      const snippetElem = screen
+        .getByText("networkRequestHeaders: ['X-Custom-Header'],", {exact: false})
+        .closest('code');
+      // textContent (unlike toHaveTextContent) preserves the newlines.
+      expect(snippetElem?.textContent).toBe(expectedSnippet);
     });
   });
 

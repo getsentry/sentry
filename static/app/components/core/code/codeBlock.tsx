@@ -1,7 +1,6 @@
-import {Fragment, useEffect, useRef, useState} from 'react';
+import {Fragment, useState} from 'react';
 import {css, ThemeProvider, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import Prism from 'prismjs';
 
 import {Button} from '@sentry/scraps/button';
 import {Container} from '@sentry/scraps/layout';
@@ -9,8 +8,18 @@ import {useTranslation} from '@sentry/scraps/translationContext';
 
 import {IconCopy} from 'sentry/icons';
 import {darkTheme} from 'sentry/utils/theme/theme';
+import type {SyntaxHighlightLine} from 'sentry/utils/usePrismTokens';
+import {usePrismTokens} from 'sentry/utils/usePrismTokens';
 
-import {getPrismLanguage, loadPrismLanguage} from './prism';
+type SyntaxToken = SyntaxHighlightLine[number];
+
+function defaultRenderToken(token: SyntaxToken, key: number) {
+  return (
+    <span key={key} className={token.className}>
+      {token.children}
+    </span>
+  );
+}
 
 interface CodeBlockProps {
   children: string;
@@ -49,11 +58,6 @@ interface CodeBlockProps {
    */
   linesToHighlight?: number[];
   /**
-   * Fires after the code snippet is highlighted and all DOM nodes are available
-   * @param element The root element of the code snippet
-   */
-  onAfterHighlight?: (element: HTMLElement) => void;
-  /**
    * Fires with the user presses the copy button.
    */
   onCopy?: (copiedCode: string) => void;
@@ -66,6 +70,12 @@ interface CodeBlockProps {
    */
   onTabClick?: (tab: string) => void;
   ref?: React.Ref<HTMLDivElement>;
+  /**
+   * Overrides how a single highlighted token is rendered. Used to inject
+   * interactive content (e.g. the onboarding auth-token generator) in place of
+   * a placeholder without post-processing the DOM.
+   */
+  renderToken?: (token: SyntaxToken, key: number) => React.ReactNode;
   selectedTab?: string;
   tabs?: Array<{
     label: string;
@@ -92,61 +102,27 @@ export function CodeBlock({
   linesToHighlight,
   icon,
   isRounded = true,
-  onAfterHighlight,
   onCopy,
   onSelectAndCopy,
   onTabClick,
   ref: forwardedRef,
+  renderToken = defaultRenderToken,
   selectedTab,
   tabs,
   wrapMode = 'scroll',
 }: CodeBlockProps) {
   const {t} = useTranslation();
-  const ref = useRef<HTMLModElement | null>(null);
   const theme = useTheme();
 
-  const [lineHighlightLoaded, setLineHighlightLoaded] = useState(false);
-
-  // https://prismjs.com/plugins/line-highlight/
-  useEffect(() => {
-    async function loadLineHighlight() {
-      await import('prismjs/plugins/line-highlight/prism-line-highlight');
-      setLineHighlightLoaded(true);
-    }
-
-    if (linesToHighlight) {
-      loadLineHighlight();
-    }
-  }, [linesToHighlight]);
-
-  useEffect(() => {
-    const element = ref.current;
-    if (!element) {
-      return;
-    }
-
-    // Skip if no language or if language is not a valid Prism language (e.g. "text")
-    if (!language || !getPrismLanguage(language)) {
-      return;
-    }
-
-    if (language in Prism.languages) {
-      Prism.highlightElement(element, false, () => onAfterHighlight?.(element));
-      return;
-    }
-
-    loadPrismLanguage(language, {
-      onLoad: () =>
-        Prism.highlightElement(element, false, () => onAfterHighlight?.(element)),
-    });
-    // oxlint-disable-next-line react/exhaustive-effect-dependencies
-  }, [children, language, onAfterHighlight, lineHighlightLoaded]);
+  // Render syntax highlighting as React nodes (via Prism.tokenize) rather than
+  // letting Prism write to innerHTML, which Trusted Types blocks.
+  const lines = usePrismTokens({code: children, language: language ?? ''});
 
   const [tooltipState, setTooltipState] = useState<'copy' | 'copied' | 'error'>('copy');
 
   const handleCopy = () => {
     navigator.clipboard
-      .writeText(ref.current?.textContent ?? '')
+      .writeText(children)
       .then(() => {
         setTooltipState('copied');
       })
@@ -216,18 +192,28 @@ export function CodeBlock({
         reserveCopyButtonSpace={alwaysShowCopyButton && hasFloatingHeader}
         wrapMode={wrapMode}
       >
-        <pre
-          className={`language-${String(language)}`}
-          data-line={linesToHighlight?.join(',')}
-        >
+        <pre className={`language-${String(language)}`}>
           <Code
-            ref={ref}
             className={`language-${String(language)}`}
             onCopy={onSelectAndCopy}
             disableUserSelection={disableUserSelection}
             wrapMode={wrapMode}
           >
-            {children}
+            {lines.map((line, i) => {
+              const newline = i < lines.length - 1 ? '\n' : '';
+              const tokens = line.map(renderToken);
+              return linesToHighlight?.includes(i + 1) ? (
+                <Fragment key={i}>
+                  <HighlightedLine>{tokens}</HighlightedLine>
+                  {newline}
+                </Fragment>
+              ) : (
+                <Fragment key={i}>
+                  {tokens}
+                  {newline}
+                </Fragment>
+              );
+            })}
           </Code>
         </pre>
       </ScrollWrapper>
@@ -377,4 +363,14 @@ const Code = styled('code')<{
         overflow-wrap: anywhere;
       }
     `}
+`;
+
+// Highlighted lines stay in the inline flow (the surrounding `\n` text nodes
+// still produce the line breaks and keep textContent faithful), but stretch to
+// full width so the background reads as a highlighted row.
+const HighlightedLine = styled('span')`
+  display: inline-block;
+  width: 100%;
+  background: var(--prism-highlight-background, rgba(255, 255, 255, 0.08));
+  box-shadow: inset 3px 0 0 var(--prism-highlight-accent, currentColor);
 `;
