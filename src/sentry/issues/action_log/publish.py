@@ -54,6 +54,7 @@ class ActionContext:
 
 
 _action_context: ContextVar[ActionContext | None] = ContextVar("action_context", default=None)
+_MAX_BULK_ACTIONS = 5_000
 
 
 def _get_outbox_identifier() -> int:
@@ -61,6 +62,15 @@ def _get_outbox_identifier() -> int:
     # typically one or two rows. Even with 10k rows, the collision probability for
     # positive signed bigint is about 1 in 184 billion.
     return secrets.randbelow(2**63 - 1) + 1
+
+
+def _get_bulk_outbox_identifiers(count: int) -> list[int]:
+    if count <= 0:
+        return []
+    start = _get_outbox_identifier()
+    if start > 2**63 - count:
+        start -= count - 1
+    return [start + offset for offset in range(count)]
 
 
 @contextmanager
@@ -80,40 +90,18 @@ def get_action_context() -> ActionContext | None:
     return _action_context.get()
 
 
-def publish_action(
+def _prepare_action_payload(
     action: GroupAction,
     *,
     source: str,
     group_id: int,
     project: Project,
-    actor: GroupActionActor = SYSTEM_ACTOR,
-    force_async_derived: bool = False,
-    idempotency_key: str | None = None,
-) -> None:
-    """
-    Record an issue action.
-
-    Use this for shallow endpoint-level actions where the request is in scope
-    (VIEW, COMMENT, TRIGGER_AUTOFIX). For mutation sites deeper in the stack,
-    prefer publish_action_from_context().
-
-    If *force_async_derived* is True, derived data processing is deferred
-    entirely to the async task. Useful for latency-sensitive paths.
-
-    If *idempotency_key* is set, the GroupActionLogEntry is created if and only if there
-    does not already exist a GALE with that group id & idempotency key; else it's a no-op.
-
-    Log publishing is managed by an outbox that flushes on commit by
-    default. Wrap in ``outbox_context(flush=False)`` to defer the drain.
-    """
-    # Deferred imports: keep this module free of Django/outbox/features deps at
-    # load time so it can be imported from models without creating cycles.
-    from django.db import router, transaction
-
+    actor: GroupActionActor,
+    force_async_derived: bool,
+    idempotency_key: str | None,
+) -> GroupActionLogPayload | None:
+    # Deferred Sentry imports keep this module safe to import from models.
     from sentry import features
-    from sentry.hybridcloud.models.outbox import outbox_context
-    from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
-    from sentry.issues.models.groupactionlogoutbox import GroupActionLogOutbox
     from sentry.utils import metrics
 
     for callback in _publish_callbacks.get():
@@ -148,7 +136,9 @@ def publish_action(
     )
 
     if not write_to_db:
-        return
+        return None
+
+    metrics.incr("issues.action_log.outbox_write", tags={"route": "dedicated"})
 
     payload: GroupActionLogPayload = {
         "group_id": group_id,
@@ -164,8 +154,59 @@ def publish_action(
     if idempotency_key is not None:
         payload["idempotency_key"] = idempotency_key
 
+    return payload
+
+
+def publish_action(
+    action: GroupAction,
+    *,
+    source: str,
+    group_id: int,
+    project: Project,
+    actor: GroupActionActor = SYSTEM_ACTOR,
+    force_async_derived: bool = False,
+    idempotency_key: str | None = None,
+) -> None:
+    """
+    Record an issue action.
+
+    Use this for shallow endpoint-level actions where the request is in scope
+    (VIEW, COMMENT, TRIGGER_AUTOFIX). For mutation sites deeper in the stack,
+    prefer publish_action_from_context().
+
+    If *force_async_derived* is True, derived data processing is deferred
+    entirely to the async task. Useful for latency-sensitive paths.
+
+    If *idempotency_key* is set, the GroupActionLogEntry is created if and only if there
+    does not already exist a GALE with that group id & idempotency key; else it's a no-op.
+
+    Log publishing is managed by an outbox that flushes on commit by
+    default. Wrap in ``outbox_context(flush=False)`` to defer the drain.
+    """
+    # Deferred imports keep this module free of Django/features deps at load time so it can be
+    # imported from models without creating cycles.
+    from django.db import router, transaction
+
+    from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
+    from sentry.issues.models.groupactionlogoutbox import GroupActionLogOutbox
+    from sentry.utils import metrics
+
+    payload = _prepare_action_payload(
+        action,
+        source=source,
+        group_id=group_id,
+        project=project,
+        actor=actor,
+        force_async_derived=force_async_derived,
+        idempotency_key=idempotency_key,
+    )
+    if payload is None:
+        return
+
+    action_name = action.get_type().name.lower()
+    outbox_model = GroupActionLogOutbox
     # Flush on commit by default; callers can wrap in outbox_context(flush=False) to defer.
-    with outbox_context(transaction.atomic(router.db_for_write(GroupActionLogOutbox))):
+    with outbox_context(transaction.atomic(router.db_for_write(outbox_model))):
         with metrics.timer(
             "issues.action_log.enqueue.duration",
             tags={
@@ -174,7 +215,7 @@ def publish_action(
                 "derived_strategy": "async" if force_async_derived else "inline",
             },
         ):
-            outbox = GroupActionLogOutbox(
+            outbox = outbox_model(
                 shard_scope=OutboxScope.GROUP_SCOPE,
                 shard_identifier=group_id,
                 category=OutboxCategory.GROUP_ACTION_LOG_EVENT,
@@ -227,14 +268,16 @@ def publish_actions_from_context_bulk(
     force_async_derived: bool = False,
 ) -> None:
     """
-    Record multiple issue actions using the current ActionContext. See docstring for
-    publish_action_from_context. The distinction is that this is a function to publish
-    multiple GroupActions at once while only flushing the Outbox once.
+    Record up to 5,000 issue actions using the current ActionContext. See docstring for
+    publish_action_from_context. The distinction is that this publishes multiple GroupActions
+    at once while scheduling at most one Outbox drain per shard.
 
     Input is a sequence of tuples of (GroupAction, Project, GroupID, IdempotencyKey)
     """
     if len(actions) == 0:
         return
+    if len(actions) > _MAX_BULK_ACTIONS:
+        raise ValueError(f"cannot publish more than {_MAX_BULK_ACTIONS} actions at once")
 
     ctx = get_action_context()
     if ctx is None:
@@ -251,25 +294,51 @@ def publish_actions_from_context_bulk(
         source = ctx.source
         actor = ctx.actor
 
-    with outbox_context(flush=False):
-        for apgi in actions[:-1]:
-            publish_action(
-                apgi[0],
-                source=source,
-                group_id=apgi[2],
-                project=apgi[1],
-                actor=actor,
-                force_async_derived=force_async_derived,
-                idempotency_key=apgi[3],
-            )
+    # Deferred imports keep this module free of Django/features deps at load time so it can be
+    # imported from models without creating cycles.
+    from django.db import router, transaction
 
-    # Flushes the outbox by default.
-    publish_action(
-        actions[-1][0],
-        source=source,
-        group_id=actions[-1][2],
-        project=actions[-1][1],
-        actor=actor,
-        force_async_derived=force_async_derived,
-        idempotency_key=actions[-1][3],
-    )
+    from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
+    from sentry.issues.models.groupactionlogoutbox import GroupActionLogOutbox
+
+    payloads: list[GroupActionLogPayload] = []
+    for action, project, group_id, idempotency_key in actions:
+        payload = _prepare_action_payload(
+            action,
+            source=source,
+            group_id=group_id,
+            project=project,
+            actor=actor,
+            force_async_derived=force_async_derived,
+            idempotency_key=idempotency_key,
+        )
+        if payload is not None:
+            payloads.append(payload)
+
+    if not payloads:
+        return
+
+    using = router.db_for_write(GroupActionLogOutbox)
+    with outbox_context(transaction.atomic(using=using)):
+        object_identifiers = _get_bulk_outbox_identifiers(len(payloads))
+
+        outboxes = [
+            GroupActionLogOutbox(
+                shard_scope=OutboxScope.GROUP_SCOPE,
+                shard_identifier=payload["group_id"],
+                category=OutboxCategory.GROUP_ACTION_LOG_EVENT,
+                object_identifier=object_identifier,
+                payload=payload,
+            )
+            for object_identifier, payload in zip(object_identifiers, payloads)
+        ]
+        GroupActionLogOutbox.objects.bulk_create(outboxes)
+        # bulk_create bypasses OutboxBase.save(), so record the saved metric explicitly.
+        outboxes[0].record_saved_metric(len(outboxes))
+
+        # Ensure each affected shard is drained after the transaction commits.
+        outboxes_by_shard = {
+            (outbox.shard_scope, outbox.shard_identifier): outbox for outbox in outboxes
+        }
+        for outbox in outboxes_by_shard.values():
+            outbox.schedule_drain_on_commit()

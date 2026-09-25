@@ -3,7 +3,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from django.contrib.auth.models import AnonymousUser
-from django.db import router, transaction
+from django.db import connections, router, transaction
+from django.test.utils import CaptureQueriesContext
 
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.hybridcloud.models.outbox import CellOutbox, OutboxFlushError, outbox_context
@@ -286,6 +287,124 @@ class TestPublishActionFromContext(TestCase):
 
 
 class TestPublishActionsFromContextBulk(TestCase):
+    def test_rejects_more_than_5000_actions(self) -> None:
+        action = (ViewAction(), self.project, self.group.id, None)
+
+        with pytest.raises(ValueError, match="cannot publish more than 5000 actions at once"):
+            publish_actions_from_context_bulk([action] * 5_001)
+
+    def test_bulk_inserts_outboxes(self) -> None:
+        from sentry.issues.action_log import action_context_scope, publish_actions_from_context_bulk
+
+        using = router.db_for_write(GroupActionLogOutbox)
+        table = GroupActionLogOutbox._meta.db_table
+        with (
+            self.feature("projects:issue-action-log-write-to-db"),
+            action_context_scope(source="web"),
+            outbox_context(flush=False),
+            patch("sentry.issues.models.groupactionlogoutbox.metrics.incr") as metrics_incr,
+            CaptureQueriesContext(connections[using]) as queries,
+        ):
+            publish_actions_from_context_bulk(
+                [
+                    (ViewAction(), self.group.project, self.group.id, None),
+                    (ResolveAction(), self.group.project, self.group.id, None),
+                ],
+            )
+
+        sql = [query["sql"] for query in queries.captured_queries]
+        insert_queries = [
+            query
+            for query in sql
+            if f'INSERT INTO "{table}"' in query and '"force_async_derived"' in query
+        ]
+        assert not any("nextval" in query for query in sql)
+        assert len(insert_queries) == 1
+
+        outboxes = list(
+            GroupActionLogOutbox.objects.filter(
+                category=OutboxCategory.GROUP_ACTION_LOG_EVENT
+            ).order_by("id")
+        )
+        assert len(outboxes) == 2
+        identifiers = [outbox.object_identifier for outbox in outboxes]
+        assert identifiers == list(range(identifiers[0], identifiers[0] + len(identifiers)))
+        metrics_incr.assert_any_call(
+            "outbox.saved",
+            2,
+            tags={
+                "category": "GROUP_ACTION_LOG_EVENT",
+                "silo": "region",
+                "type": "GroupActionLogOutbox",
+            },
+        )
+
+    def test_schedules_one_drain(self) -> None:
+        from sentry.issues.action_log import action_context_scope, publish_actions_from_context_bulk
+
+        project = self.group.project
+        group_id = self.group.id
+        with self.feature("projects:issue-action-log-write-to-db"):
+            with (
+                action_context_scope(source="web"),
+                patch(
+                    "sentry.issues.models.groupactionlogoutbox.transaction.on_commit"
+                ) as on_commit,
+            ):
+                publish_actions_from_context_bulk(
+                    [
+                        (ViewAction(), project, group_id, None),
+                        (ResolveAction(), project, group_id, None),
+                    ],
+                )
+
+        on_commit.assert_called_once()
+
+    def test_schedules_one_drain_per_shard(self) -> None:
+        from sentry.issues.action_log import action_context_scope, publish_actions_from_context_bulk
+
+        other_group = self.create_group(project=self.group.project)
+        project = self.group.project
+        group_id = self.group.id
+        with self.feature("projects:issue-action-log-write-to-db"):
+            with (
+                action_context_scope(source="web"),
+                patch(
+                    "sentry.issues.models.groupactionlogoutbox.transaction.on_commit"
+                ) as on_commit,
+            ):
+                publish_actions_from_context_bulk(
+                    [
+                        (ViewAction(), project, group_id, None),
+                        (ResolveAction(), project, group_id, None),
+                        (ViewAction(), project, other_group.id, None),
+                    ],
+                )
+
+        assert on_commit.call_count == 2
+
+    def test_flush_false_does_not_schedule_drain(self) -> None:
+        from sentry.issues.action_log import action_context_scope, publish_actions_from_context_bulk
+
+        project = self.group.project
+        group_id = self.group.id
+        with self.feature("projects:issue-action-log-write-to-db"):
+            with (
+                action_context_scope(source="web"),
+                outbox_context(flush=False),
+                patch(
+                    "sentry.issues.models.groupactionlogoutbox.transaction.on_commit"
+                ) as on_commit,
+            ):
+                publish_actions_from_context_bulk(
+                    [
+                        (ViewAction(), project, group_id, None),
+                        (ResolveAction(), project, group_id, None),
+                    ],
+                )
+
+        on_commit.assert_not_called()
+
     def test_multiple_writes(self) -> None:
         from sentry.issues.action_log import action_context_scope, publish_actions_from_context_bulk
 
