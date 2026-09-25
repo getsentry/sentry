@@ -113,7 +113,7 @@ describe('EventNavigation', () => {
       expect(discoverButton).toHaveAttribute(
         'href',
         expect.stringContaining(
-          `/organizations/${organization.slug}/explore/discover/results/`
+          `/organizations/${organization.slug}/explore/errors/results/`
         )
       );
 

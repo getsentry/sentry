@@ -141,7 +141,7 @@ describe('ProjectDetail > ProjectIssues', () => {
     await userEvent.click(link);
 
     expect(router.location.pathname).toBe(
-      `/organizations/${organization.slug}/explore/discover/results/`
+      `/organizations/${organization.slug}/explore/errors/results/`
     );
     expect(router.location.query).toEqual({
       display: 'top5',

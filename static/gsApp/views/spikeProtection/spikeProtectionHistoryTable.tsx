@@ -24,7 +24,6 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
-import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 import {
   formatUsageWithUnits,
   getFormatUsageOptions,
@@ -181,7 +180,7 @@ function SpikeRow({
           to={{
             pathname: makeDiscoverPathname({
               organization,
-              path: '/homepage/',
+              path: '/',
             }),
             query: {
               project: [project.id],
@@ -190,9 +189,7 @@ function SpikeRow({
             },
           }}
         >
-          {getDiscoverDeprecation(organization)
-            ? t('Open in Explore')
-            : t('Open in Discover')}
+          {t('Open in Explore')}
         </DiscoverButton>
       </SimpleTable.RowCell>
     </SimpleTable.Row>

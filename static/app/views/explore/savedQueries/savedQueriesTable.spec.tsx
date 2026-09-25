@@ -561,7 +561,7 @@ describe('SavedQueriesTable with discover-queries-in-all-queries', () => {
     // makeDiscoverPathname puts discover under the explore base path.
     expect(link).toHaveAttribute(
       'href',
-      expect.stringContaining('explore/discover/results/')
+      expect.stringContaining('explore/errors/results/')
     );
   });
 });
