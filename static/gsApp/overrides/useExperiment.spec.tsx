@@ -1,9 +1,14 @@
 import * as Amplitude from '@amplitude/analytics-browser';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
+import {registerOverride} from 'sentry/overrideRegistry';
 import {ConfigStore} from 'sentry/stores/configStore';
+import {OnboardingWithoutContext} from 'sentry/views/onboarding/onboarding';
 
 import {_resetExposureTracking, useExperiment} from 'getsentry/overrides/useExperiment';
 
@@ -103,8 +108,8 @@ describe('useExperiment (gsApp)', () => {
 
   it('sets the Amplitude experiment group property on exposure', async () => {
     const org = OrganizationFixture({
-      features: ['onboarding-scm-experiment'],
-      experiments: {'onboarding-scm-experiment': 'active'},
+      features: ['test-experiment'],
+      experiments: {'test-experiment': 'active'},
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/experiment-exposure/`,
@@ -112,7 +117,7 @@ describe('useExperiment (gsApp)', () => {
       statusCode: 204,
     });
 
-    render(<TestComponent feature="onboarding-scm-experiment" reportExposure />, {
+    render(<TestComponent feature="test-experiment" reportExposure />, {
       organization: org,
     });
 
@@ -124,7 +129,7 @@ describe('useExperiment (gsApp)', () => {
     // transform matches getsentry/experiments/tasks.py.
     const identifyInstance = jest.mocked(Amplitude.Identify).mock.results[0]!.value;
     expect(identifyInstance.set).toHaveBeenCalledWith(
-      'experiment_onboarding_scm_experiment',
+      'experiment_test_experiment',
       'active'
     );
     expect(Amplitude.groupIdentify).toHaveBeenCalledWith(
@@ -295,4 +300,118 @@ describe('useExperiment (gsApp)', () => {
 
     await waitFor(() => expect(mockExposure).toHaveBeenCalledTimes(2));
   });
+});
+
+describe('Hosted onboarding experiment exposure', () => {
+  beforeAll(() => {
+    registerOverride('react-hook:use-experiment', useExperiment);
+  });
+
+  beforeEach(() => {
+    _resetExposureTracking();
+  });
+
+  afterEach(() => {
+    MockApiClient.clearMockResponses();
+    sessionStorage.clear();
+  });
+
+  it.each([
+    {step: 'welcome', staged: false, active: false, old: false, exposed: false},
+    {step: 'scm-connect', staged: false, active: true, old: false, exposed: false},
+    {
+      step: 'scm-platform-features',
+      staged: false,
+      active: true,
+      old: false,
+      exposed: false,
+    },
+    {step: 'scm-messaging', staged: false, active: true, old: false, exposed: false},
+    {step: 'setup-docs', staged: false, active: false, old: false, exposed: false},
+    {step: 'scm-messaging', staged: true, active: true, old: false, exposed: true},
+    {step: 'setup-docs', staged: true, active: false, old: false, exposed: true},
+    {step: 'setup-docs', staged: true, active: true, old: false, exposed: true},
+    {step: 'setup-docs', staged: true, active: true, old: true, exposed: false},
+  ])(
+    'reports messaging exposure=$exposed at $step (staged=$staged, active=$active, old=$old)',
+    async ({step, staged, active, old, exposed}) => {
+      const feature = 'onboarding-scm-messaging-experiment';
+      const organization = OrganizationFixture({
+        features: active ? [feature] : [],
+        experiments: {[feature]: active ? 'active' : 'control'},
+        dateCreated: new Date(
+          Date.now() - (old ? 8 : 1) * 24 * 60 * 60 * 1000
+        ).toISOString(),
+      });
+      const project = ProjectFixture({platform: 'other'});
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/keys/`,
+        body: ProjectKeysFixture(),
+      });
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/overview/`,
+        body: project,
+      });
+      for (const endpoint of [
+        'config/integrations',
+        'integrations',
+        'repos',
+        'projects',
+      ]) {
+        MockApiClient.addMockResponse({
+          url: `/organizations/${organization.slug}/${endpoint}/`,
+          body: endpoint === 'config/integrations' ? {providers: []} : [],
+        });
+      }
+      const exposure = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/experiment-exposure/`,
+        method: 'POST',
+        statusCode: 204,
+      });
+
+      render(
+        <OnboardingContextProvider
+          initialValue={
+            staged
+              ? {
+                  selectedPlatform: {
+                    key: 'other',
+                    name: 'Other',
+                    link: 'https://docs.sentry.io/platforms/',
+                    type: 'platform',
+                    language: 'other',
+                    category: 'all',
+                  },
+                  createdProject: {slug: project.slug, messagingSelection: undefined},
+                }
+              : undefined
+          }
+        >
+          <OnboardingWithoutContext />
+        </OnboardingContextProvider>,
+        {
+          organization,
+          initialRouterConfig: {
+            location: {pathname: `/onboarding/${organization.slug}/${step}/`},
+            route: '/onboarding/:orgId/:step/',
+          },
+        }
+      );
+
+      await screen.findByTestId('targeted-onboarding');
+      if (exposed) {
+        await waitFor(() => {
+          expect(exposure).toHaveBeenCalledWith(
+            `/organizations/${organization.slug}/experiment-exposure/`,
+            expect.objectContaining({
+              data: {experimentName: feature, assignment: active ? 'active' : 'control'},
+            })
+          );
+        });
+        expect(exposure).toHaveBeenCalledTimes(1);
+      } else {
+        expect(exposure).not.toHaveBeenCalled();
+      }
+    }
+  );
 });
