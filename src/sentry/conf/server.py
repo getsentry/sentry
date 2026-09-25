@@ -614,6 +614,7 @@ if ENVIRONMENT == "development":
         "dompurify",  # DOMPurify's own policy: markdown and sanitized HTML
         "sentry-bundler",  # rspack chunk loading (output.trustedTypes)
         "sentry-script-url",  # service worker registration
+        "svelte-trusted-html",  # Svelte runtime inside @sentry/rrweb-player (replays)
         "rspack-dev-server#overlay",  # dev-only: the dev-server error overlay
     ]
     # Point this at a Sentry project to receive the reports, e.g. in
