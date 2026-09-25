@@ -289,7 +289,7 @@ def test_get_api_meta_with_non_numeric_keys() -> None:
     }
 
     result = inst.get_api_meta(meta)
-    
+
     assert "0" in result["values"]
     assert "1" in result["values"]
     assert "" not in result["values"]
