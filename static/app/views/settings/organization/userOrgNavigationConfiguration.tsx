@@ -17,7 +17,7 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
         {
           path: `${userSettingsPathPrefix}/details/`,
           title: t('Account Details'),
-          keywords: [t('user settings'), t('account settings')],
+          keywords: [t('user settings'), t('account settings'), t('timezone')],
           description: t(
             'Change your account details and preferences (e.g. timezone/clock, avatar, language)'
           ),
@@ -25,12 +25,13 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
         {
           path: `${userSettingsPathPrefix}/security/`,
           title: t('Security'),
+          keywords: [t('2fa'), t('2 factor')],
           description: t('Change your account password and/or two factor authentication'),
         },
         {
           path: `${userSettingsPathPrefix}/notifications/`,
           title: t('Notifications'),
-          keywords: [t('weekly report')],
+          keywords: [t('weekly report'), t('delivery method')],
           description: t('Configure what email notifications to receive'),
         },
         {
@@ -76,7 +77,14 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
         {
           path: `${organizationSettingsPathPrefix}/`,
           title: t('General Settings'),
-          keywords: [t('slug'), t('org slug'), t('organization slug')],
+          keywords: [
+            t('slug'),
+            t('org slug'),
+            t('organization slug'),
+            // CLI/CI environment variable whose value is the org slug. Fixed
+            // product token, not translatable prose.
+            'SENTRY_ORG',
+          ],
           index: true,
           description: t('Configure general settings for an organization'),
           id: 'general',
@@ -291,7 +299,9 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
           keywords: [
             t('integration'),
             t('internal integration'),
+            t('internal integrations'),
             t('developer settings'),
+            t('developer platform'),
             t('webhooks'),
             t('api key'),
             t('api keys'),
@@ -313,10 +323,16 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
             t('auth'),
             t('auth token'),
             t('auth tokens'),
+            t('auth-tokens'),
             t('api token'),
             t('api key'),
             t('api keys'),
             t('token'),
+            t('create new token'),
+            t('organization auth tokens'),
+            t('organisation tokens'),
+            t('sentry auth token'),
+            t('authorization token'),
             t('credentials'),
             t('user auth tokens'),
             'SENTRY_AUTH_TOKEN',
@@ -331,10 +347,14 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
             t('auth'),
             t('auth token'),
             t('auth tokens'),
+            t('auth-tokens'),
             t('api token'),
             t('api key'),
             t('api keys'),
             t('token'),
+            t('create new token'),
+            t('sentry auth token'),
+            t('authorization token'),
             t('credentials'),
             t('user auth tokens'),
             'SENTRY_AUTH_TOKEN',
