@@ -306,7 +306,7 @@ describe('ActivitySection', () => {
     expect(screen.getByText('10min ago')).toBeInTheDocument();
   });
 
-  it('renders activity actor markers', async () => {
+  it('renders activity actors and MCP sources', async () => {
     const activityGroup = GroupFixture({
       id: '1338',
       activity: [
@@ -316,6 +316,7 @@ describe('ActivitySection', () => {
           commentId: 'note-1',
           data: {text: 'User note'},
           dateCreated: '2020-01-01T00:00:00',
+          source: 'mcp:claude-code',
           user,
         },
         {
@@ -323,6 +324,7 @@ describe('ActivitySection', () => {
           id: 'resolved-1',
           data: {},
           dateCreated: '2020-01-02T00:00:00',
+          source: 'mcp:cursor',
           user: null,
         },
       ],
@@ -337,6 +339,8 @@ describe('ActivitySection', () => {
 
     expect(await screen.findByText('User note')).toBeInTheDocument();
     expect(screen.getByText(`${user.name} commented`)).toBeInTheDocument();
+    expect(screen.getByText('via Claude Code')).toBeInTheDocument();
+    expect(screen.getByText('via Cursor')).toBeInTheDocument();
     expect(screen.getByTestId('user-activity-actor')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Comment Actions'})).toBeInTheDocument();
   });
