@@ -157,9 +157,10 @@ test-selective:
 	python3 .github/workflows/scripts/selective-testing/fetch-coverage.py \
 		--output .cache/coverage.db
 	mkdir -p .cache && > .cache/selected-tests.txt
+	git diff --name-only "$$(git merge-base origin/master HEAD)" > .cache/changed-files
 	python3 .github/workflows/scripts/compute-sentry-selected-tests.py \
 		--coverage-db .cache/coverage.db \
-		--changed-files "$$(git diff --name-only $$(git merge-base origin/master HEAD))" \
+		--changed-files-file .cache/changed-files \
 		--output .cache/selected-tests.txt
 	python3 .github/workflows/scripts/selective-testing/confirm-test-selection.py \
 		.cache/selected-tests.txt

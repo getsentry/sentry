@@ -6,6 +6,7 @@ from __future__ import annotations
 import importlib.util
 import io
 import sys
+import tempfile
 from pathlib import Path
 from unittest import mock
 
@@ -25,7 +26,7 @@ def _run(json_input: str) -> dict[str, str]:
     buf = io.StringIO()
     with mock.patch("sys.stdin", io.StringIO(json_input)):
         with mock.patch("sys.stdout", buf):
-            main()
+            main([])
     return dict(line.split("=", 1) for line in buf.getvalue().strip().split("\n"))
 
 
@@ -78,3 +79,16 @@ class TestParsePrFiles:
         out = _run(page1 + "\n" + page2)
         assert out["files"] == "a.py b.py"
         assert out["previous-filenames"] == ""
+
+    def test_writes_values_to_files(self):
+        json_input = """[
+            {"filename": "b.py", "status": "renamed", "previous_filename": "a.py"},
+            {"filename": "c.py", "status": "modified"}
+        ]"""
+        with tempfile.TemporaryDirectory() as output_directory:
+            with mock.patch("sys.stdin", io.StringIO(json_input)):
+                main(["--output-directory", output_directory])
+
+            output_path = Path(output_directory)
+            assert (output_path / "sentry-changed-files").read_text() == "b.py c.py"
+            assert (output_path / "sentry-previous-filenames").read_text() == "a.py"
