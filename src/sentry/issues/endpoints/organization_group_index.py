@@ -58,7 +58,7 @@ from sentry.apidocs.parameters import (
 from sentry.apidocs.response_types import DetailResponse, ValidationErrorResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ALLOWED_FUTURE_DELTA
-from sentry.exceptions import InvalidSearchQuery
+from sentry.exceptions import InvalidParams, InvalidSearchQuery
 from sentry.models.environment import Environment
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupenvironment import GroupEnvironment
@@ -290,7 +290,18 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
         environments: Sequence[Environment],
         extra_query_kwargs: None | Mapping[str, Any] = None,
     ) -> tuple[CursorResult[Group], Mapping[str, Any]]:
-        return search_issues(request, organization, projects, environments, extra_query_kwargs)
+        try:
+            start, end = get_date_range_from_stats_period(request.GET, optional=True)
+        except InvalidParams as exc:
+            raise ValidationError(str(exc)) from exc
+
+        return search_issues(
+            request,
+            organization,
+            projects,
+            environments,
+            {"date_from": start, "date_to": end, **(extra_query_kwargs or {})},
+        )
 
     @extend_schema(
         operation_id="listOrganizationIssues",
@@ -503,6 +514,9 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
             GlobalParams.ENVIRONMENT,
             OrganizationParams.PROJECT,
             IssueParams.MUTATE_ISSUE_ID_LIST,
+            GlobalParams.STATS_PERIOD,
+            GlobalParams.START,
+            GlobalParams.END,
             IssueParams.DEFAULT_QUERY,
             IssueParams.VIEW_ID,
             IssueParams.ORGANIZATION_VIEW_SORT,
@@ -554,6 +568,9 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
             GlobalParams.ENVIRONMENT,
             OrganizationParams.PROJECT,
             IssueParams.DELETE_ISSUE_ID_LIST,
+            GlobalParams.STATS_PERIOD,
+            GlobalParams.START,
+            GlobalParams.END,
             IssueParams.DEFAULT_QUERY,
             IssueParams.VIEW_ID,
             IssueParams.ORGANIZATION_VIEW_SORT,
