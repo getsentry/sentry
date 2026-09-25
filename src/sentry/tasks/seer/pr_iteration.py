@@ -350,7 +350,7 @@ def comment_on_missing_permissions(
     organization_id: int,
     repo_name: str,
     pr_number: int,
-    pr_id: int | None,
+    pr_id: str | None,
     integration_id: int,
     repository_id: int | None = None,
     *args: Any,

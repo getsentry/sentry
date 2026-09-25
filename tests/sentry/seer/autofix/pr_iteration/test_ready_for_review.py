@@ -112,7 +112,7 @@ class EmitPrReadyForReviewTest(TestCase):
                 name: RepoPRState(
                     repo_name=name,
                     provider="github",
-                    pr_id=555,
+                    pr_id="555",
                     pr_number=PR_NUMBER,
                     pr_url=f"https://github.com/{name}/pull/{PR_NUMBER}",
                     pr_creation_status="completed",
@@ -142,6 +142,19 @@ class EmitPrReadyForReviewTest(TestCase):
         payload = format_pull_requests_payload(state)
 
         assert {pr["repo_name"] for pr in payload} == {"owner/repo", "owner/other-repo"}
+
+    def test_format_pull_requests_payload_keeps_numeric_pr_id_an_int(self) -> None:
+        payload = format_pull_requests_payload(self._run_state())
+
+        assert payload[0]["pull_request"]["pr_id"] == 555
+
+    def test_format_pull_requests_payload_passes_string_pr_id_through(self) -> None:
+        state = self._run_state()
+        state.repo_pr_states[REPO_NAME].pr_id = "pr_01abc"
+
+        payload = format_pull_requests_payload(state)
+
+        assert payload[0]["pull_request"]["pr_id"] == "pr_01abc"
 
 
 class MarkReadyForReviewTest(TestCase):
