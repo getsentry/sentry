@@ -143,6 +143,7 @@ export function Composer({
   value: inputValue,
   plugins,
   onChange,
+  onKeyDown,
   minHeight,
   placeholder,
   style,
@@ -363,7 +364,14 @@ export function Composer({
           return;
         }
 
-        if ((event.key === 'Enter' || event.key === 'Tab') && focusedKey !== null) {
+        if (
+          (event.key === 'Enter' || event.key === 'Tab') &&
+          !event.shiftKey &&
+          !event.ctrlKey &&
+          !event.metaKey &&
+          !event.altKey &&
+          focusedKey !== null
+        ) {
           event.preventDefault();
           selectSuggestion(focusedKey);
           return;
@@ -375,6 +383,7 @@ export function Composer({
           setActiveTrigger(null);
         }
       }
+      onKeyDown?.(event);
     },
     onKeyUp: (event: React.KeyboardEvent<HTMLDivElement>) => {
       if (!event.defaultPrevented) {

@@ -123,7 +123,9 @@ export function MentionComposer(props: MentionComposerProps) {
                   onKeyDown={event => {
                     if (
                       event.key === 'Enter' &&
-                      (event.metaKey || event.ctrlKey) &&
+                      !event.shiftKey &&
+                      !event.altKey &&
+                      !event.defaultPrevented &&
                       field.state.value.text.trim() !== ''
                     ) {
                       event.preventDefault();
