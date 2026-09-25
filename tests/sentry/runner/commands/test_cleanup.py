@@ -28,7 +28,7 @@ from sentry.runner.commands.cleanup import (
     run_bulk_query_deletes,
     task_execution,
 )
-from sentry.seer.models.night_shift import SeerNightShiftRunResult
+from sentry.seer.models.agentic_triage import SeerAgenticTriageRunResult
 from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunPullRequest
 from sentry.seer.models.workflow import (
     SeerWorkflowRun,
@@ -369,14 +369,14 @@ class SeerRunCleanupTest(TestCase):
         assert not SeerRunPullRequest.objects.filter(id=link.id).exists()
 
     @assume_test_silo_mode(SiloMode.CELL)
-    def test_night_shift_links_survive_with_null_seer_run(self) -> None:
+    def test_agentic_triage_links_survive_with_null_seer_run(self) -> None:
         run = self.create_seer_run(
             organization=self.organization, last_triggered_at=before_now(days=31)
         )
-        night_shift_run = SeerWorkflowRun.objects.create(organization=self.organization)
-        shard = SeerWorkflowRunExecution.objects.create(run=night_shift_run, seer_run=run)
-        result = SeerNightShiftRunResult.objects.create(
-            run=night_shift_run,
+        agentic_triage_run = SeerWorkflowRun.objects.create(organization=self.organization)
+        shard = SeerWorkflowRunExecution.objects.create(run=agentic_triage_run, seer_run=run)
+        result = SeerAgenticTriageRunResult.objects.create(
+            run=agentic_triage_run,
             kind=SeerWorkflowStrategy.AGENTIC_TRIAGE,
             result_seer_run=run,
         )

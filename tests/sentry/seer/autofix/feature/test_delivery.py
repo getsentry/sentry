@@ -181,7 +181,7 @@ class TestDeliverAutofixFeatureResult(TestCase):
         assert self.agent_run.extras["status"] == "completed"
         assert "error_message" not in self.agent_run.extras
 
-    def test_night_shift_run_is_not_matched(self) -> None:
+    def test_agentic_triage_run_is_not_matched(self) -> None:
         seer_run = self.create_seer_run(organization=self.organization, type="feature_run")
         self.create_seer_agent_run(run=seer_run, source="night_shift", group=self.group)
 

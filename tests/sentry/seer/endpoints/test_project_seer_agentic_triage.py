@@ -4,7 +4,7 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 
 
-class ProjectSeerNightShiftTest(APITestCase):
+class ProjectSeerAgenticTriageTest(APITestCase):
     endpoint = "sentry-api-0-project-seer-night-shift"
     method = "post"
 
@@ -18,7 +18,7 @@ class ProjectSeerNightShiftTest(APITestCase):
         # options (including project tweaks) are resolved by build_run_options
         # inside the task, scoped to project_ids.
         with patch(
-            "sentry.seer.endpoints.project_seer_night_shift.run_night_shift_for_org",
+            "sentry.seer.endpoints.project_seer_agentic_triage.run_agentic_triage_for_org",
             return_value=42,
         ) as mock_task:
             response = self.get_success_response(
@@ -39,7 +39,7 @@ class ProjectSeerNightShiftTest(APITestCase):
     @with_feature("organizations:seer-night-shift")
     def test_triggers_task_with_dry_run(self) -> None:
         with patch(
-            "sentry.seer.endpoints.project_seer_night_shift.run_night_shift_for_org",
+            "sentry.seer.endpoints.project_seer_agentic_triage.run_agentic_triage_for_org",
             return_value=None,
         ) as mock_task:
             response = self.get_success_response(
@@ -60,7 +60,7 @@ class ProjectSeerNightShiftTest(APITestCase):
 
     def test_without_feature_returns_404(self) -> None:
         with patch(
-            "sentry.seer.endpoints.project_seer_night_shift.run_night_shift_for_org"
+            "sentry.seer.endpoints.project_seer_agentic_triage.run_agentic_triage_for_org"
         ) as mock_task:
             response = self.get_response(self.organization.slug, self.project.slug)
 

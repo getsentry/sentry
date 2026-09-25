@@ -18,9 +18,9 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.seer_night_shift_run import (  # noqa: F401 -- registers serializer
-    SeerNightShiftRunResponse,
-    SeerNightShiftRunSerializer,
+from sentry.api.serializers.models.seer_agentic_triage_run import (  # noqa: F401 -- registers serializer
+    SeerAgenticTriageRunResponse,
+    SeerAgenticTriageRunSerializer,
 )
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
@@ -73,7 +73,7 @@ class OrganizationSeerWorkflowsEndpoint(OrganizationEndpoint):
 
         visible_runs = Q(pk__in=[])
         if triage_enabled:
-            # Historical Night Shift runs may not have a workflow config.
+            # Historical Agentic triage runs may not have a workflow config.
             visible_runs |= Q(workflow_config__strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE) | Q(
                 workflow_config__isnull=True
             )
@@ -123,7 +123,7 @@ class OrganizationSeerWorkflowsEndpoint(OrganizationEndpoint):
 def serialize_workflow_page(
     runs: Sequence[SeerWorkflowRun],
     request: Request,
-) -> list[SeerNightShiftRunResponse | MonitorCleanupRunResponse]:
+) -> list[SeerAgenticTriageRunResponse | MonitorCleanupRunResponse]:
     cleanup = [
         run
         for run in runs
@@ -131,9 +131,9 @@ def serialize_workflow_page(
         and run.workflow_config.strategy == SeerWorkflowStrategy.DUPLICATE_MONITORS
     ]
     triage = [run for run in runs if run not in cleanup]
-    results: dict[str, SeerNightShiftRunResponse | MonitorCleanupRunResponse] = {
+    results: dict[str, SeerAgenticTriageRunResponse | MonitorCleanupRunResponse] = {
         result["id"]: result
-        for result in serialize(triage, request.user, SeerNightShiftRunSerializer())
+        for result in serialize(triage, request.user, SeerAgenticTriageRunSerializer())
     }
     prefetch_related_objects(cleanup, "executions__seer_run__agent")
     for run in cleanup:

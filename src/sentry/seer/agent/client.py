@@ -570,7 +570,7 @@ class SeerAgentClient:
         synchronously (mirror -> FAILED, raises SeerApiError, no retry).
 
         flush=False: leave the row for the async outbox runner to drain and
-        retry. Use for background callers (e.g. night shift).
+        retry. Use for background callers (e.g. agentic triage).
 
         Explicit agent_run_options override any options derived from organization
         configuration.

@@ -12,16 +12,16 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
 from sentry.models.project import Project
-from sentry.tasks.seer.night_shift.cron import (
-    SeerNightShiftRunOptionsPartial,
-    run_night_shift_for_org,
+from sentry.tasks.seer.agentic_triage.cron import (
+    SeerAgenticTriageRunOptionsPartial,
+    run_agentic_triage_for_org,
 )
 
-logger = logging.getLogger("sentry.seer.endpoints.project_seer_night_shift")
+logger = logging.getLogger("sentry.seer.endpoints.project_seer_agentic_triage")
 
 
 @cell_silo_endpoint
-class ProjectSeerNightShiftEndpoint(ProjectEndpoint):
+class ProjectSeerAgenticTriageEndpoint(ProjectEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }
@@ -47,13 +47,13 @@ class ProjectSeerNightShiftEndpoint(ProjectEndpoint):
         )
 
         # The project's tweaks (and any per-org overrides) are resolved by
-        # build_run_options inside run_night_shift_for_org, which scopes them to
+        # build_run_options inside run_agentic_triage_for_org, which scopes them to
         # the single project_id below.
-        options: SeerNightShiftRunOptionsPartial = {
+        options: SeerAgenticTriageRunOptionsPartial = {
             "source": "manual",
             "dry_run": dry_run,
         }
-        run_id = run_night_shift_for_org(
+        run_id = run_agentic_triage_for_org(
             project.organization_id,
             options=options,
             project_ids=[project.id],

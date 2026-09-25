@@ -53,7 +53,8 @@ class AutofixReferrer(enum.StrEnum):
     ISSUE_SUMMARY_POST_PROCESS_FIXABILITY = "issue_summary.post_process_fixability"
     SLACK = "slack"
     ON_COMPLETION_HOOK = "autofix.on_completion_hook"
-    NIGHT_SHIFT = "night_shift"
+    AGENTIC_TRIAGE = "night_shift"
+    NIGHT_SHIFT = AGENTIC_TRIAGE
     CLI = "api.cli"
     LINEAR_AGENT = "api.linear_agent"
     MCP = "api.mcp"
@@ -70,7 +71,8 @@ class AutofixReferrer(enum.StrEnum):
 class SeerAutomationSource(enum.Enum):
     ISSUE_DETAILS = "issue_details"
     POST_PROCESS = "post_process"
-    NIGHT_SHIFT = "night_shift"
+    AGENTIC_TRIAGE = "night_shift"
+    NIGHT_SHIFT = AGENTIC_TRIAGE
 
 
 class CodingAgentStatus(enum.StrEnum):
