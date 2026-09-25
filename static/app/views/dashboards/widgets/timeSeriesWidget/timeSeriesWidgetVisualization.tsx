@@ -57,7 +57,6 @@ import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/compon
 import {formatTooltipValue} from './formatters/formatTooltipValue';
 import {formatXAxisTimestamp} from './formatters/formatXAxisTimestamp';
 import {formatYAxisValue} from './formatters/formatYAxisValue';
-import {Area} from './plottables/area';
 import type {Plottable} from './plottables/plottable';
 import {assignPlottablesToYAxes} from './assignPlottablesToYAxes';
 import {createReleaseSeriesOptions} from './createReleaseSeriesOptions';
@@ -586,48 +585,34 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   // Keep track of what color in the chosen palette we're assigning
   let seriesColorIndex = 0;
-  const seriesFromPlottables: SeriesOption[] = props.plottables.flatMap(
-    (plottable, index) => {
-      let color: string | undefined;
+  const seriesFromPlottables: SeriesOption[] = props.plottables.flatMap(plottable => {
+    let color: string | undefined;
 
-      if (plottable.needsColor) {
-        // For any timeseries in need of a color, pull from the chart palette
-        color = palette[seriesColorIndex % palette.length]!; // Mod the index in case the number of plottables exceeds the palette length
-        // oxlint-disable-next-line react/immutability
-        seriesColorIndex += 1;
-      }
-
-      const yAxisPosition = getYAxisPosition(plottable);
-      // TODO: Type checking would be welcome here, but `plottingOptions` is unknown, since it depends on the implementation of the `Plottable` interface
-      const seriesOfPlottable = plottable.toSeries({
-        color,
-        yAxisPosition,
-        unit: unitForType[plottable.dataType ?? FALLBACK_TYPE],
-        theme,
-        maxOffset: thresholdMaxOffset,
-      });
-
-      if (plottable instanceof Area) {
-        // With equal z, ECharts draws every outline above every fill. Keep each
-        // area's segments together, in input order within its stack (including
-        // hidden series), but put the primary/left stack above the secondary one.
-        // Use [3, 3.5) for right and [3.5, 4) for left, below markers at z=5.
-        const stackZ = yAxisPosition === 'left' ? 3.5 : 3;
-        for (const series of seriesOfPlottable) {
-          series.z = stackZ + index / (2 * props.plottables.length);
-        }
-      }
-
-      seriesIndexToPlottableMapRanges.push({
-        min: seriesIndex,
-        max: seriesIndex + seriesOfPlottable.length,
-        value: plottable,
-      });
-      seriesIndex += seriesOfPlottable.length;
-
-      return seriesOfPlottable;
+    if (plottable.needsColor) {
+      // For any timeseries in need of a color, pull from the chart palette
+      color = palette[seriesColorIndex % palette.length]!; // Mod the index in case the number of plottables exceeds the palette length
+      // oxlint-disable-next-line react/immutability
+      seriesColorIndex += 1;
     }
-  );
+
+    // TODO: Type checking would be welcome here, but `plottingOptions` is unknown, since it depends on the implementation of the `Plottable` interface
+    const seriesOfPlottable = plottable.toSeries({
+      color,
+      yAxisPosition: getYAxisPosition(plottable),
+      unit: unitForType[plottable.dataType ?? FALLBACK_TYPE],
+      theme,
+      maxOffset: thresholdMaxOffset,
+    });
+
+    seriesIndexToPlottableMapRanges.push({
+      min: seriesIndex,
+      max: seriesIndex + seriesOfPlottable.length,
+      value: plottable,
+    });
+    seriesIndex += seriesOfPlottable.length;
+
+    return seriesOfPlottable;
+  });
 
   const seriesIndexToPlottableRangeMap = new RangeMap<Plottable>(
     seriesIndexToPlottableMapRanges
