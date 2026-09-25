@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from sentry.incidents.grouptype import (
     MetricIssueDetectorHandler,
     SessionsAggregate,
@@ -385,3 +387,37 @@ class TestGetAnomalyDetectionIssueTitle(TestCase):
             )
             == "eap_metrics"
         )
+
+
+class TestMetricIssueFingerprint(BaseMetricIssueTest):
+    ROTATION_FEATURE = "organizations:workflow-engine-rotate-activation-id"
+
+    CRITICAL = 10
+    RESOLVED = 1
+
+    def fingerprint(self, value: int, time_jump: int) -> list[str]:
+        result = self.process_packet_and_return_result(
+            self.create_subscription_packet(value, time_jump)
+        )
+
+        assert result is not None
+        return list(result.fingerprint)
+
+    def legacy_key(self) -> str:
+        return f"detector:{self.detector.id}"
+
+    def test_each_activation__gets_its_own_fingerprint(self) -> None:
+        with self.feature(self.ROTATION_FEATURE), freeze_time() as frozen_time:
+            first_firing = self.fingerprint(self.CRITICAL, 1)
+            first_resolve = self.fingerprint(self.RESOLVED, 2)
+
+            frozen_time.shift(timedelta(seconds=1))
+
+            second_firing = self.fingerprint(self.CRITICAL, 3)
+
+        assert first_firing[0].startswith(f"{self.legacy_key()}:activation:")
+
+        # The resolve has to match the firing it closes, or the issue is stranded open.
+        assert first_resolve == first_firing
+
+        assert second_firing != first_firing
