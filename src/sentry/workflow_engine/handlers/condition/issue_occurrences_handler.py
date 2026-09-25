@@ -2,13 +2,18 @@ from typing import Any
 
 from sentry.tasks.post_process import fetch_buffered_group_stats
 from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.preview import UnsupportedPreviewBehavior
 from sentry.workflow_engine.registry import condition_handler_registry
-from sentry.workflow_engine.types import DataConditionHandler, WorkflowEventData
+from sentry.workflow_engine.types import (
+    ActionFilterDataConditionHandler,
+    DataConditionHandler,
+    WorkflowEventData,
+)
 
 
 @condition_handler_registry.register(Condition.ISSUE_OCCURRENCES)
-class IssueOccurrencesConditionHandler(DataConditionHandler[WorkflowEventData]):
-    group = DataConditionHandler.Group.ACTION_FILTER
+class IssueOccurrencesConditionHandler(ActionFilterDataConditionHandler[WorkflowEventData]):
+    preview_behavior = UnsupportedPreviewBehavior("Issue occurrence counts require event data")
     subgroup = DataConditionHandler.Subgroup.ISSUE_ATTRIBUTES
     label_template = "The issue has happened at least {value} times"
 
