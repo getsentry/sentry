@@ -1,19 +1,15 @@
-from unittest.mock import ANY, MagicMock, patch
+from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 import orjson
 import pytest
 import responses
 
-from sentry.incidents.models.alert_rule import AlertRule, AlertRuleTriggerAction
-from sentry.integrations.services.integration.serial import serialize_integration
 from sentry.integrations.slack.sdk_client import SLACK_DATADOG_METRIC
 from sentry.integrations.slack.tasks import (
-    find_channel_id_for_alert_rule,
     find_channel_id_for_rule,
     post_message,
 )
-from sentry.integrations.slack.utils.channel import SlackChannelIdData
 from sentry.integrations.slack.utils.rule_status import RedisRuleStatus
 from sentry.models.rule import Rule
 from sentry.testutils.cases import TestCase
@@ -43,33 +39,6 @@ class SlackTasksTest(TestCase):
             "chat_deleteScheduledMessage", body={"ok": True}
         ) as self.mock_delete:
             yield
-
-    def metric_alert_data(self):
-        return {
-            "aggregate": "count()",
-            "query": "",
-            "timeWindow": "300",
-            "resolveThreshold": 100,
-            "thresholdType": 0,
-            "triggers": [
-                {
-                    "label": "critical",
-                    "alertThreshold": 200,
-                    "actions": [
-                        {
-                            "type": "slack",
-                            "targetIdentifier": "my-channel",
-                            "targetType": "specific",
-                            "integration": self.integration.id,
-                        }
-                    ],
-                },
-            ],
-            "projects": [self.project.slug],
-            "owner": self.user.id,
-            "name": "New Rule",
-            "organization_id": self.organization.id,
-        }
 
     @responses.activate
     @patch.object(RedisRuleStatus, "set_value", return_value=None)
@@ -286,196 +255,6 @@ class SlackTasksTest(TestCase):
         assert updated_rule.label == "Updated Rule with Owner"
         assert updated_rule.owner_user_id == self.user.id
         assert updated_rule.owner_team_id is None
-
-    @responses.activate
-    @patch.object(RedisRuleStatus, "set_value", return_value=None)
-    @patch(
-        "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
-        return_value=SlackChannelIdData("#", "chan-id", False),
-    )
-    def test_task_new_alert_rule(
-        self, mock_get_channel_id: MagicMock, mock_set_value: MagicMock
-    ) -> None:
-        alert_rule_data = self.metric_alert_data()
-
-        data = {
-            "data": alert_rule_data,
-            "uuid": self.uuid,
-            "organization_id": self.organization.id,
-            "user_id": self.user.id,
-        }
-
-        with self.tasks():
-            find_channel_id_for_alert_rule(**data)
-
-        rule = AlertRule.objects.get(name="New Rule")
-        assert rule.created_by_id == self.user.id
-        mock_set_value.assert_called_with("success", rule.id)
-        mock_get_channel_id.assert_called_with(
-            serialize_integration(self.integration), "my-channel", 180
-        )
-
-        trigger_action = AlertRuleTriggerAction.objects.get(integration_id=self.integration.id)
-        assert trigger_action.target_identifier == "chan-id"
-
-    @responses.activate
-    @patch.object(RedisRuleStatus, "set_value", return_value=None)
-    @patch(
-        "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
-        return_value=SlackChannelIdData("#", None, False),
-    )
-    def test_task_failed_id_lookup(
-        self, mock_get_channel_id: MagicMock, mock_set_value: MagicMock
-    ) -> None:
-        alert_rule_data = self.metric_alert_data()
-
-        data = {
-            "data": alert_rule_data,
-            "uuid": self.uuid,
-            "organization_id": self.organization.id,
-        }
-
-        with self.tasks():
-            find_channel_id_for_alert_rule(**data)
-
-        assert not AlertRule.objects.filter(name="New Rule").exists()
-        mock_set_value.assert_called_with("failed")
-        mock_get_channel_id.assert_called_with(
-            serialize_integration(self.integration), "my-channel", 180
-        )
-
-    @responses.activate
-    @patch.object(RedisRuleStatus, "set_value", return_value=None)
-    @patch(
-        "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
-        return_value=SlackChannelIdData("#", None, True),
-    )
-    def test_task_timeout_id_lookup(
-        self, mock_get_channel_id: MagicMock, mock_set_value: MagicMock
-    ) -> None:
-        alert_rule_data = self.metric_alert_data()
-
-        data = {
-            "data": alert_rule_data,
-            "uuid": self.uuid,
-            "organization_id": self.organization.id,
-        }
-
-        with self.tasks():
-            find_channel_id_for_alert_rule(**data)
-
-        assert not AlertRule.objects.filter(name="New Rule").exists()
-        mock_set_value.assert_called_with("failed")
-        mock_get_channel_id.assert_called_with(
-            serialize_integration(self.integration), "my-channel", 180
-        )
-
-    @responses.activate
-    @patch.object(RedisRuleStatus, "set_value", return_value=None)
-    @patch(
-        "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
-        return_value=SlackChannelIdData("#", "channel", False),
-    )
-    @patch(
-        "sentry.integrations.slack.tasks.find_channel_id_for_alert_rule.AlertRuleSerializer",
-        side_effect=Exception("something broke!"),
-    )
-    def test_task_encounters_serialization_exception(
-        self, mock_serializer, mock_get_channel_id, mock_set_value
-    ):
-        data = self.metric_alert_data()
-        # Ensure this field is removed, to avoid known serialization issue
-        data["triggers"][0]["actions"][0]["inputChannelId"] = ""
-
-        # Catch the exception we've side-effected in the serializer
-        with pytest.raises(Exception, match="something broke!"):
-            with self.tasks():
-                find_channel_id_for_alert_rule(
-                    data=data,
-                    uuid=self.uuid,
-                    organization_id=self.organization.id,
-                    user_id=self.user.id,
-                )
-
-        assert not AlertRule.objects.filter(name="New Rule").exists()
-        mock_get_channel_id.assert_called_with(
-            serialize_integration(self.integration),
-            data["triggers"][0]["actions"][0]["targetIdentifier"],
-            180,
-        )
-        # Ensure the field has been removed
-        assert "inputChannelId" not in data["triggers"][0]["actions"][0]
-        mock_serializer.assert_called_with(context=ANY, data=data, instance=ANY)
-        # If we failed at serialization, don't stay in pending.
-        mock_set_value.assert_called_with("failed")
-
-    @responses.activate
-    @patch.object(RedisRuleStatus, "set_value", return_value=None)
-    @patch(
-        "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
-        return_value=SlackChannelIdData("#", "chan-id", False),
-    )
-    def test_task_existing_metric_alert(
-        self, mock_get_channel_id: MagicMock, mock_set_value: MagicMock
-    ) -> None:
-        alert_rule_data = self.metric_alert_data()
-        alert_rule = self.create_alert_rule(
-            organization=self.organization, projects=[self.project], name="New Rule", user=self.user
-        )
-
-        data = {
-            "data": alert_rule_data,
-            "uuid": self.uuid,
-            "organization_id": self.organization.id,
-            "alert_rule_id": alert_rule.id,
-        }
-
-        with self.tasks():
-            find_channel_id_for_alert_rule(**data)
-
-        rule = AlertRule.objects.get(name="New Rule")
-        mock_set_value.assert_called_with("success", rule.id)
-        mock_get_channel_id.assert_called_with(
-            serialize_integration(self.integration), "my-channel", 180
-        )
-
-        trigger_action = AlertRuleTriggerAction.objects.get(integration_id=self.integration.id)
-        assert trigger_action.target_identifier == "chan-id"
-        assert AlertRule.objects.get(id=alert_rule.id)
-
-    @responses.activate
-    @patch.object(RedisRuleStatus, "set_value", return_value=None)
-    @patch(
-        "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
-        return_value=SlackChannelIdData("#", "chan-id", False),
-    )
-    def test_task_existing_metric_alert_with_sdk(
-        self, mock_get_channel_id: MagicMock, mock_set_value: MagicMock
-    ) -> None:
-        alert_rule_data = self.metric_alert_data()
-        alert_rule = self.create_alert_rule(
-            organization=self.organization, projects=[self.project], name="New Rule", user=self.user
-        )
-
-        data = {
-            "data": alert_rule_data,
-            "uuid": self.uuid,
-            "organization_id": self.organization.id,
-            "alert_rule_id": alert_rule.id,
-        }
-
-        with self.tasks():
-            find_channel_id_for_alert_rule(**data)
-
-        rule = AlertRule.objects.get(name="New Rule")
-        mock_set_value.assert_called_with("success", rule.id)
-        mock_get_channel_id.assert_called_with(
-            serialize_integration(self.integration), "my-channel", 180
-        )
-
-        trigger_action = AlertRuleTriggerAction.objects.get(integration_id=self.integration.id)
-        assert trigger_action.target_identifier == "chan-id"
-        assert AlertRule.objects.get(id=alert_rule.id)
 
     @patch("sentry.integrations.slack.sdk_client.metrics")
     @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
