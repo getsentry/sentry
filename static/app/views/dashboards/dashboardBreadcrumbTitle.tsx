@@ -185,7 +185,9 @@ function DashboardTitle({
   };
   const menuItems = [
     ...(canRename ? [renameItem] : []),
-    ...(isPrebuiltDashboard ? [duplicateItem] : []),
+    // Duplicating writes a new dashboard rather than changing this one, so it
+    // asks for no edit access — only something already saved to copy from.
+    ...(isPersisted ? [duplicateItem] : []),
     ...(isPrebuiltDashboard || !isPersisted ? [] : [permissionsItem]),
     ...(canViewRevisions ? [revisionItem] : []),
     ...(organization.features.includes('dashboards-import') && isPersisted
@@ -312,27 +314,6 @@ export function DashboardBreadcrumbTitle({
       setIsFavorited(isFavorited);
     }
   };
-  if (!isPrebuiltDashboard) {
-    return (
-      <DashboardTitle
-        canDelete={canDelete}
-        canRename={canRename}
-        canViewRevisions={canViewRevisions}
-        dashboard={dashboard}
-        duplicateDashboard={duplicateDashboard}
-        isFavorited={isFavorited}
-        isPersisted={isPersisted}
-        isPrebuiltDashboard={isPrebuiltDashboard}
-        onDelete={onDelete}
-        onToggleFavorite={handleToggleFavorite}
-        openDashboardRevisions={openDashboardRevisions}
-        openEditAccess={openEditAccess}
-        openRename={openRename}
-        organization={organization}
-      />
-    );
-  }
-
   return (
     <DashboardCreateLimitWrapper>
       {({hasReachedDashboardLimit, isLoading, limitMessage}) => (

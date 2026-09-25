@@ -388,6 +388,58 @@ describe('DashboardBreadcrumbTitle revision history', () => {
   });
 });
 
+describe('DashboardBreadcrumbTitle duplicate', () => {
+  afterEach(() => {
+    MockApiClient.clearMockResponses();
+  });
+
+  it('offers duplicate on a custom dashboard', async () => {
+    renderTitle();
+
+    await openActionsMenu();
+
+    expect(
+      await screen.findByRole('menuitemradio', {name: 'Duplicate'})
+    ).toBeInTheDocument();
+  });
+
+  it('offers duplicate on a prebuilt dashboard', async () => {
+    renderTitle({dashboard: {prebuiltId: PrebuiltDashboardId.WEB_VITALS}});
+
+    await openActionsMenu();
+
+    expect(
+      await screen.findByRole('menuitemradio', {name: 'Duplicate'})
+    ).toBeInTheDocument();
+  });
+
+  it('offers duplicate without edit access, since it writes a new dashboard', async () => {
+    renderTitle({
+      organization: {access: ['org:read'], features: ['dashboards-edit']},
+      dashboard: {
+        createdBy: UserFixture({id: '99', email: 'someone-else@example.com'}),
+        permissions: {isEditableByEveryone: false, teamsWithEditAccess: []},
+      },
+    });
+
+    await openActionsMenu();
+
+    expect(
+      await screen.findByRole('menuitemradio', {name: 'Duplicate'})
+    ).toBeInTheDocument();
+  });
+
+  it('does not offer duplicate on a dashboard that has never been saved', async () => {
+    renderTitle({dashboard: {id: ''}});
+
+    await openActionsMenu();
+
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'Duplicate'})
+    ).not.toBeInTheDocument();
+  });
+});
+
 describe('DashboardBreadcrumbTitle delete', () => {
   afterEach(() => {
     MockApiClient.clearMockResponses();

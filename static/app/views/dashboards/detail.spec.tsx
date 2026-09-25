@@ -732,9 +732,7 @@ describe('Dashboards > Detail', () => {
         screen.getByRole('menuitemradio', {name: 'Show version history'})
       ).toBeVisible();
       expect(screen.getByRole('menuitemradio', {name: 'Export'})).toBeVisible();
-      expect(
-        screen.queryByRole('menuitemradio', {name: 'Duplicate'})
-      ).not.toBeInTheDocument();
+      expect(screen.getByRole('menuitemradio', {name: 'Duplicate'})).toBeVisible();
 
       // The redesigned BreadcrumbList hides its slash dividers from the a11y tree
       // (unlike the legacy breadcrumbs, whose divider surfaced as a visible img),
