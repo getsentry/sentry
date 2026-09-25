@@ -10,16 +10,17 @@ import {AskSeerButton} from 'sentry/views/seerExplorer/components/askSeerButton'
 
 const theme = ThemeFixture();
 
-function renderActions(width = 0) {
-  jest.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(width);
-
-  return render(
+function ExampleTopBarActions() {
+  return (
     <Flex containerType="inline-size">
       <SearchButton />
       <AskSeerButton />
-    </Flex>,
-    {organization: OrganizationFixture()}
+    </Flex>
   );
+}
+
+function mockContainerWidth(width: number) {
+  jest.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(width);
 }
 
 describe('top bar actions', () => {
@@ -28,7 +29,8 @@ describe('top bar actions', () => {
   });
 
   it('shows tooltips for icon-only actions', async () => {
-    renderActions();
+    mockContainerWidth(0);
+    render(<ExampleTopBarActions />, {organization: OrganizationFixture()});
 
     const searchButton = screen.getByRole('button', {name: 'Command Palette'});
     const askSeerButton = screen.getByRole('button', {name: 'Ask Seer'});
@@ -43,7 +45,8 @@ describe('top bar actions', () => {
   });
 
   it('keeps Command Palette compact and exposes the Ask Seer shortcut in its tooltip at sm', async () => {
-    renderActions(Number.parseFloat(theme.container.sm));
+    mockContainerWidth(Number.parseFloat(theme.container.sm));
+    render(<ExampleTopBarActions />, {organization: OrganizationFixture()});
 
     const askSeerButton = screen.getByRole('button', {name: 'Ask Seer'});
     expect(screen.getByRole('button', {name: 'Command Palette'})).toBeInTheDocument();

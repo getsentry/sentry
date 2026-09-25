@@ -15,8 +15,7 @@ from snuba_sdk.entity import Entity
 from snuba_sdk.function import Function
 from snuba_sdk.query import Limit, Query
 
-from sentry import features, options, search
-from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
+from sentry import options
 from sentry.issues.grouptype import ReplayRageClickType
 from sentry.issues.search import group_types_from
 from sentry.models.group import Group, GroupStatus
@@ -29,7 +28,6 @@ from sentry.snuba.referrer import Referrer
 from sentry.tasks.seer.night_shift.models import TriageAction, TriageResult
 from sentry.tasks.seer.night_shift.skip_cache import recently_skipped
 from sentry.types.group import PriorityLevel
-from sentry.utils.cursors import Cursor
 from sentry.utils.snuba import raw_snql_query
 
 logger = logging.getLogger("sentry.tasks.seer.night_shift")
@@ -62,11 +60,7 @@ def fixability_score_strategy(
 ) -> list[ScoredCandidate]:
     """Scores candidates across all projects combined — a busy project can eat
     the whole max_candidates budget. See fixability_score_strategy_per_project."""
-    if features.has(
-        "organizations:agentic-triage-sort", projects[0].organization
-    ):  # Assume all projects are in the same org
-        return _fetch_and_score_agentic(projects, max_candidates, NIGHT_SHIFT_ISSUE_FETCH_LIMIT)
-    return _fetch_and_score(projects, max_candidates, NIGHT_SHIFT_ISSUE_FETCH_LIMIT)
+    return _fetch_and_score_agentic(projects, max_candidates, NIGHT_SHIFT_ISSUE_FETCH_LIMIT)
 
 
 def fixability_score_strategy_per_project(
@@ -80,10 +74,7 @@ def fixability_score_strategy_per_project(
     )
     selected: list[ScoredCandidate] = []
     for project in projects:
-        if features.has("organizations:agentic-triage-sort", project.organization):
-            selected.extend(_fetch_and_score_agentic([project], max_candidates, fetch_limit))
-        else:
-            selected.extend(_fetch_and_score([project], max_candidates, fetch_limit))
+        selected.extend(_fetch_and_score_agentic([project], max_candidates, fetch_limit))
     return selected
 
 
@@ -210,94 +201,6 @@ def _agentic_triage_score(
     return scores
 
 
-def _fetch_and_score(
-    projects: Sequence[Project],
-    max_candidates: int,
-    fetch_limit: int,
-) -> list[ScoredCandidate]:
-    """
-    Fetch top recommended unresolved issues that haven't been triaged by Seer yet.
-    Issues with a fixability score above the threshold are taken first (sorted by
-    fixability), then backfilled with unscored issues in their original recommended
-    sort order.
-
-    Recently-skipped issues can't be excluded at query time, so a single page of
-    results can be whittled well below fetch_limit. We page through additional
-    results (up to NIGHT_SHIFT_MAX_SEARCH_PAGES) until we've gathered a full
-    page's worth of non-skipped candidates or run out of issues.
-    """
-    # Default types + LowValueSpan
-    type_ids = sorted(group_types_from([]) | {LowValueSpanConfigurationType.type_id})
-    occurrence_cutoff = timezone.now() - NIGHT_SHIFT_OCCURRENCE_LOOKBACK
-    search_filters = [
-        SearchFilter(SearchKey("status"), "=", SearchValue([GroupStatus.UNRESOLVED])),
-        SearchFilter(SearchKey("issue.seer_last_run"), "=", SearchValue("")),
-        SearchFilter(SearchKey("issue.type"), "=", SearchValue(type_ids)),
-        SearchFilter(SearchKey("last_seen"), ">=", SearchValue(occurrence_cutoff)),
-    ]
-
-    scored: list[ScoredCandidate] = []
-    unscored: list[ScoredCandidate] = []
-    kept = 0
-    cursor: Cursor | None = None
-
-    for page in range(NIGHT_SHIFT_MAX_SEARCH_PAGES):
-        result = search.backend.query(
-            projects=projects,
-            sort_by="recommended",
-            limit=fetch_limit,
-            cursor=cursor,
-            search_filters=search_filters,
-            referrer=Referrer.SEER_NIGHT_SHIFT_FIXABILITY_SCORE_STRATEGY.value,
-        )
-
-        skipped_ids = recently_skipped(g.id for g in result.results)
-        kept += len(result.results) - len(skipped_ids)
-
-        logger.info(
-            "night_shift.search_results",
-            extra={
-                "projects": [project.id for project in projects],
-                "num_projects": len(projects),
-                "page": page,
-                "num_results": len(result.results),
-                "num_skip_filtered": len(skipped_ids),
-                "num_kept_after_skip_filter": len(result.results) - len(skipped_ids),
-            },
-        )
-
-        for group in result.results:
-            if group.id in skipped_ids:
-                continue
-            if not is_issue_category_eligible(group):
-                continue
-
-            candidate = ScoredCandidate(
-                group=group,
-                fixability=group.seer_fixability_score,
-                times_seen=group.times_seen,
-            )
-
-            if candidate.fixability is None:
-                unscored.append(candidate)
-            elif candidate.fixability >= FIXABILITY_SCORE_THRESHOLD:
-                scored.append(candidate)
-
-        if kept >= fetch_limit or not result.next:
-            break
-
-        cursor = result.next
-
-    scored.sort(key=lambda c: c.fixability or 0.0, reverse=True)
-    selected = (scored + unscored)[:max_candidates]
-
-    for c in selected:
-        if c.fixability is not None:
-            sentry_sdk.metrics.distribution("night_shift.fixability_score", c.fixability)
-
-    return selected
-
-
 def _fetch_and_score_agentic(
     projects: Sequence[Project],
     max_candidates: int,
@@ -399,6 +302,10 @@ def _fetch_and_score_agentic(
             "num_without_snuba_data": len(without_data),
         },
     )
+
+    for c in selected:
+        if c.fixability is not None:
+            sentry_sdk.metrics.distribution("night_shift.fixability_score", c.fixability)
 
     return selected
 

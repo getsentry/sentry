@@ -18,6 +18,9 @@
  * Add new types here as new context-aware components are registered.
  */
 export type LLMContextNodeType =
+  | 'alert-builder'
+  | 'alert-detail'
+  | 'alert-list'
   | 'autofix'
   | 'chart'
   | 'dashboard'
@@ -25,6 +28,7 @@ export type LLMContextNodeType =
   | 'issue-list'
   | 'logs-explorer'
   | 'metrics-explorer'
+  | 'monitor-builder'
   | 'monitor-detail'
   | 'monitor-list'
   | 'navigation'

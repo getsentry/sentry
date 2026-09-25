@@ -4,6 +4,7 @@ import cloneDeep from 'lodash/cloneDeep';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
+import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
@@ -22,23 +23,34 @@ import {
   type GridColumnSort,
 } from 'sentry/components/tables/gridEditable';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconCopy, IconDelete, IconStar} from 'sentry/icons';
+import {
+  IconCopy,
+  IconDelete,
+  IconEllipsis,
+  IconGroup,
+  IconInput,
+  IconStar,
+} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {useUser} from 'sentry/utils/useUser';
+import {useUserTeams} from 'sentry/utils/useUserTeams';
 import {withApi} from 'sentry/utils/withApi';
 import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
-import {EditAccessSelector} from 'sentry/views/dashboards/editAccessSelector';
+import {useOpenEditAccessModal} from 'sentry/views/dashboards/editAccessModal';
 import {useDeleteDashboard} from 'sentry/views/dashboards/hooks/useDeleteDashboard';
 import {useDuplicateDashboard} from 'sentry/views/dashboards/hooks/useDuplicateDashboard';
 import {useToggleDashboardFavorite} from 'sentry/views/dashboards/hooks/useToggleDashboardFavorite';
+import {useOpenRenameDashboardModal} from 'sentry/views/dashboards/renameDashboardModal';
 import type {
   DashboardDetails,
   DashboardListItem,
   DashboardPermissions,
 } from 'sentry/views/dashboards/types';
 import {PREBUILT_DASHBOARD_LABEL} from 'sentry/views/dashboards/types';
+import {checkUserHasEditAccess} from 'sentry/views/dashboards/utils/checkUserHasEditAccess';
 
 type Props = {
   api: Client;
@@ -54,7 +66,6 @@ enum ResponseKeys {
   NAME = 'title',
   WIDGETS = 'widgetDisplay',
   OWNER = 'createdBy',
-  ACCESS = 'permissions',
   CREATED = 'dateCreated',
   FAVORITE = 'isFavorited',
   DESCRIPTION = 'description',
@@ -95,65 +106,112 @@ function FavoriteButton({isFavorited, dashboard}: FavoriteButtonProps) {
 
 function DashboardRowActions({
   dashboard,
+  onChangeEditAccess,
   onDelete,
   onDuplicate,
+  onRename,
+  organization,
 }: {
   dashboard: DashboardListItem;
+  onChangeEditAccess: (newDashboardPermissions: DashboardPermissions) => void;
   onDelete: ReturnType<typeof useDeleteDashboard>;
   onDuplicate: ReturnType<typeof useDuplicateDashboard>;
+  onRename: () => void;
+  organization: Organization;
 }) {
+  const openEditAccess = useOpenEditAccessModal(dashboard, onChangeEditAccess);
+  const openRename = useOpenRenameDashboardModal(dashboard, onRename, 'table');
+  const currentUser = useUser();
+  const {teams: userTeams} = useUserTeams();
+  const isPrebuiltDashboard = defined(dashboard.prebuiltId);
+  // Renaming and deleting both write to the dashboard, so both answer to the
+  // same permission the detail page enforces.
+  const hasEditAccess = checkUserHasEditAccess(
+    currentUser,
+    userTeams,
+    organization,
+    dashboard.permissions,
+    dashboard.createdBy
+  );
+
   return (
-    <Flex gap="xs">
-      <DashboardCreateLimitWrapper>
-        {({
-          hasReachedDashboardLimit,
-          isLoading: isLoadingDashboardsLimit,
-          limitMessage,
-        }) => (
-          <StyledButton
-            onClick={e => {
-              e.stopPropagation();
+    <DashboardCreateLimitWrapper>
+      {({hasReachedDashboardLimit, isLoading, limitMessage}) => {
+        const isDuplicateDisabled = hasReachedDashboardLimit || isLoading;
+        const items: MenuItemProps[] = [
+          ...(isPrebuiltDashboard || !hasEditAccess
+            ? []
+            : [
+                {
+                  key: 'rename',
+                  label: t('Rename'),
+                  leadingItems: <IconInput />,
+                  onAction: openRename,
+                },
+              ]),
+          {
+            key: 'duplicate',
+            label: t('Duplicate'),
+            leadingItems: <IconCopy />,
+            disabled: isDuplicateDisabled,
+            tooltip: isDuplicateDisabled ? limitMessage : undefined,
+            onAction: () =>
               openConfirmModal({
                 message: t('Are you sure you want to duplicate this dashboard?'),
                 onConfirm: () => onDuplicate(dashboard, 'table'),
-              });
-            }}
-            variant="transparent"
-            aria-label={t('Duplicate Dashboard')}
-            data-test-id="dashboard-duplicate"
-            icon={<IconCopy />}
+              }),
+          },
+          ...(isPrebuiltDashboard
+            ? []
+            : [
+                {
+                  key: 'view-permissions',
+                  label: t('View Permissions'),
+                  leadingItems: <IconGroup />,
+                  onAction: openEditAccess,
+                },
+              ]),
+          ...(hasEditAccess && !isPrebuiltDashboard
+            ? [
+                {
+                  key: 'delete',
+                  label: t('Delete'),
+                  leadingItems: <IconDelete />,
+                  priority: 'danger' as const,
+                  onAction: () =>
+                    openConfirmModal({
+                      message: tct(
+                        'Are you sure you want to delete the [title] dashboard?',
+                        {title: <strong>{dashboard[ResponseKeys.NAME]}</strong>}
+                      ),
+                      priority: 'danger' as const,
+                      onConfirm: () => onDelete(dashboard, 'table'),
+                    }),
+                },
+              ]
+            : []),
+        ];
+
+        return (
+          <DropdownMenu
+            trigger={triggerProps => (
+              <Button
+                {...triggerProps}
+                aria-label={t('Dashboard actions')}
+                size="sm"
+                variant="transparent"
+                icon={<IconEllipsis />}
+                data-test-id="dashboard-actions"
+              />
+            )}
+            items={items}
+            position="bottom-end"
             size="sm"
-            disabled={hasReachedDashboardLimit || isLoadingDashboardsLimit}
-            tooltipProps={{
-              title: limitMessage,
-            }}
+            strategy="fixed"
           />
-        )}
-      </DashboardCreateLimitWrapper>
-      <StyledButton
-        onClick={e => {
-          e.stopPropagation();
-          openConfirmModal({
-            message: t('Are you sure you want to delete this dashboard?'),
-            priority: 'danger',
-            onConfirm: () => onDelete(dashboard, 'table'),
-          });
-        }}
-        variant="transparent"
-        aria-label={t('Delete Dashboard')}
-        data-test-id="dashboard-delete"
-        icon={<IconDelete />}
-        size="sm"
-        disabled={defined(dashboard.prebuiltId)}
-        tooltipProps={{
-          title: defined(dashboard.prebuiltId)
-            ? tct('[label] dashboards cannot be deleted', {
-                label: PREBUILT_DASHBOARD_LABEL,
-              })
-            : undefined,
-        }}
-      />
-    </Flex>
+        );
+      }}
+    </DashboardCreateLimitWrapper>
   );
 }
 
@@ -172,6 +230,19 @@ function DashboardTable({
   const handleDeleteDashboard = useDeleteDashboard({
     onSuccess: onDashboardsChange,
   });
+  const handleChangeEditAccess =
+    (dashboard: DashboardListItem) => (newDashboardPermissions: DashboardPermissions) => {
+      const dashboardCopy = cloneDeep(dashboard);
+      dashboardCopy.permissions = newDashboardPermissions;
+
+      updateDashboardPermissions(api, organization.slug, dashboardCopy).then(
+        (newDashboard: DashboardDetails) => {
+          onDashboardsChange();
+          addSuccessMessage(t('Dashboard Edit Access updated.'));
+          return newDashboard;
+        }
+      );
+    };
   const hasUserLastVisited = organization.features.includes(
     'dashboards-user-last-visited'
   );
@@ -197,9 +268,6 @@ function DashboardTable({
           : [{key: ResponseKeys.OWNER, name: t('Owner'), width: COL_WIDTH_UNDEFINED}]),
         ...(isOnlyPrebuilt
           ? []
-          : [{key: ResponseKeys.ACCESS, name: t('Access'), width: COL_WIDTH_UNDEFINED}]),
-        ...(isOnlyPrebuilt
-          ? []
           : [
               {key: ResponseKeys.CREATED, name: t('Created'), width: COL_WIDTH_UNDEFINED},
             ]),
@@ -214,7 +282,6 @@ function DashboardTable({
         {key: ResponseKeys.NAME, name: t('Name'), width: COL_WIDTH_UNDEFINED},
         {key: ResponseKeys.WIDGETS, name: t('Widgets'), width: COL_WIDTH_UNDEFINED},
         {key: ResponseKeys.OWNER, name: t('Owner'), width: COL_WIDTH_UNDEFINED},
-        {key: ResponseKeys.ACCESS, name: t('Access'), width: COL_WIDTH_UNDEFINED},
         {key: ResponseKeys.CREATED, name: t('Created'), width: COL_WIDTH_UNDEFINED},
       ];
 
@@ -288,31 +355,6 @@ function DashboardTable({
       );
     }
 
-    if (column.key === ResponseKeys.ACCESS) {
-      /* Handles POST request for Edit Access Selector Changes */
-      const onChangeEditAccess = (newDashboardPermissions: DashboardPermissions) => {
-        const dashboardCopy = cloneDeep(dataRow);
-        dashboardCopy.permissions = newDashboardPermissions;
-
-        updateDashboardPermissions(api, organization.slug, dashboardCopy).then(
-          (newDashboard: DashboardDetails) => {
-            onDashboardsChange();
-            addSuccessMessage(t('Dashboard Edit Access updated.'));
-            return newDashboard;
-          }
-        );
-      };
-
-      return (
-        <EditAccessSelector
-          dashboard={dataRow}
-          onChangeEditAccess={onChangeEditAccess}
-          listOnly
-          disabled={defined(dataRow.prebuiltId)} // Prebuilt dashboards cannot be edited
-        />
-      );
-    }
-
     // TODO: only last visited will show renderActions. Delete ternary below
     // when hasUserLastVisited is cleaned up.
     if (column.key === ResponseKeys.CREATED) {
@@ -330,8 +372,11 @@ function DashboardTable({
           {hasUserLastVisited ? undefined : (
             <DashboardRowActions
               dashboard={dataRow}
+              onChangeEditAccess={handleChangeEditAccess(dataRow)}
               onDelete={handleDeleteDashboard}
               onDuplicate={handleDuplicateDashboard}
+              onRename={onDashboardsChange}
+              organization={organization}
             />
           )}
         </Flex>
@@ -352,8 +397,11 @@ function DashboardTable({
           </DateSelected>
           <DashboardRowActions
             dashboard={dataRow}
+            onChangeEditAccess={handleChangeEditAccess(dataRow)}
             onDelete={handleDeleteDashboard}
             onDuplicate={handleDuplicateDashboard}
+            onRename={onDashboardsChange}
+            organization={organization}
           />
         </Flex>
       );
@@ -424,9 +472,4 @@ const DateSelected = styled('div')`
 const DateStatus = styled('span')`
   color: ${p => p.theme.tokens.content.primary};
   padding-left: ${p => p.theme.space.md};
-`;
-
-const StyledButton = styled(Button)`
-  border: none;
-  box-shadow: none;
 `;

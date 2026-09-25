@@ -6,7 +6,7 @@ import type {Query} from 'history';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton, type LinkButtonProps} from '@sentry/scraps/button';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {TooltipContext} from '@sentry/scraps/tooltip';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
@@ -88,6 +88,7 @@ export function ReplayPreviewPlayer({
     ) {
       markAsViewed({projectSlug: replayRecord.project_id, replayId: replayRecord.id});
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [isFetching, isPlaying, markAsViewed, organization, replayRecord]);
 
   return (
@@ -99,7 +100,13 @@ export function ReplayPreviewPlayer({
           )}
         </StyledAlert>
       )}
-      <Flex justify="between" align="center" marginBottom="md" position="relative">
+      <Grid
+        columns="minmax(0, 1fr) auto"
+        align="center"
+        gap="md"
+        marginBottom="md"
+        position="relative"
+      >
         <ReplaySessionColumn.Component
           to={{
             pathname: makeReplaysPathname({path: `/${replayId}/`, organization}),
@@ -110,7 +117,7 @@ export function ReplayPreviewPlayer({
           columnIndex={0}
           showDropdownFilters={false}
         />
-        <ContainedLinkButton
+        <LinkButton
           size="sm"
           to={{
             pathname: makeReplaysPathname({
@@ -128,8 +135,8 @@ export function ReplayPreviewPlayer({
           {...fullReplayButtonProps}
         >
           {t('See Full Replay')}
-        </ContainedLinkButton>
-      </Flex>
+        </LinkButton>
+      </Grid>
       <PreviewPlayerContainer ref={fullscreenRef} isSidebarOpen={isSidebarOpen}>
         {/* oxlint-disable-next-line react/refs */}
         <TooltipContext value={{container: fullscreenRef.current}}>
@@ -240,10 +247,4 @@ const ContextContainer = styled('div')`
 
 const StyledAlert = styled(Alert)`
   margin: ${p => p.theme.space.md} 0;
-`;
-
-const ContainedLinkButton = styled(LinkButton)`
-  position: absolute;
-  right: 0;
-  top: 3px;
 `;

@@ -178,7 +178,7 @@ export function LineHeight() {
           borderBottom="accent"
           style={{boxSizing: 'border-box'}}
         >
-          <Text size="md" density={token as any} variant="accent">
+          <Text size="md" density={token} variant="accent">
             Aa
           </Text>
         </Flex>

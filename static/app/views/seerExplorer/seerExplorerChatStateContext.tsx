@@ -11,6 +11,7 @@ import {
 import {sessionStorageWrapper} from 'sentry/utils/sessionStorage';
 import {useSeerExplorerPolling} from 'sentry/views/seerExplorer/hooks/useSeerExplorerPolling';
 import type {SeerExplorerRunId} from 'sentry/views/seerExplorer/types';
+import {SeerExplorerDeepLinkParamProvider} from 'sentry/views/seerExplorer/utils';
 
 export type PollingState =
   | 'polling'
@@ -108,7 +109,11 @@ export function SeerExplorerChatStateProvider({children}: {children: ReactNode})
     <SeerExplorerChatDispatchContext.Provider value={dispatch}>
       <SeerExplorerChatStateContext.Provider value={state}>
         <SeerExplorerChatStatePolling runId={state.runId} dispatch={dispatch}>
-          {children}
+          {/* Wraps every Explorer surface (drawer, sidebar, popped-out window), which the
+              deep link listeners need to share what they've already handled. */}
+          <SeerExplorerDeepLinkParamProvider>
+            {children}
+          </SeerExplorerDeepLinkParamProvider>
         </SeerExplorerChatStatePolling>
       </SeerExplorerChatStateContext.Provider>
     </SeerExplorerChatDispatchContext.Provider>

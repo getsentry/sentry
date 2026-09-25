@@ -4,7 +4,10 @@ from unittest.mock import patch
 from django.urls import reverse
 
 from sentry import audit_log
-from sentry.api.endpoints.project_custom_inbound_filters import MAX_CONDITIONS_PER_FILTER
+from sentry.api.endpoints.project_custom_inbound_filters import (
+    MAX_CONDITION_VALUE_CHARS_PER_FILTER,
+    MAX_CONDITIONS_PER_FILTER,
+)
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.custominboundfilter import CustomInboundFilter
 from sentry.silo.base import SiloMode
@@ -137,7 +140,7 @@ class CustomInboundFiltersTest(APITestCase):
                     {"type": "log_message", "value": ["Rate limit*"]},
                 ],
                 "A filter on error data cannot use the log_message condition. "
-                "It accepts error_type, error_message, release.",
+                "It accepts error_type, error_message, release, ip_address.",
             ),
             (
                 "log",
@@ -146,7 +149,7 @@ class CustomInboundFiltersTest(APITestCase):
                     {"type": "log_message", "value": ["Rate limit*"]},
                 ],
                 "A filter on log data cannot use the error_type condition. "
-                "It accepts log_message, release.",
+                "It accepts log_message, release, ip_address.",
             ),
             (
                 "span",
@@ -154,7 +157,8 @@ class CustomInboundFiltersTest(APITestCase):
                     {"type": "release", "value": ["1.*"]},
                     {"type": "metric_name", "value": ["counter.*"]},
                 ],
-                "A filter on span data cannot use the metric_name condition. It accepts release.",
+                "A filter on span data cannot use the metric_name condition. "
+                "It accepts release, ip_address.",
             ),
             (
                 "all",
@@ -162,7 +166,8 @@ class CustomInboundFiltersTest(APITestCase):
                     {"type": "release", "value": ["1.*"]},
                     {"type": "error_message", "value": ["TypeError*"]},
                 ],
-                "A filter on all data cannot use the error_message condition. It accepts release.",
+                "A filter on all data cannot use the error_message condition. "
+                "It accepts release, ip_address.",
             ),
         ]
 
@@ -213,6 +218,40 @@ class CustomInboundFiltersTest(APITestCase):
         custom_filter = CustomInboundFilter.objects.get(id=response.data["id"])
         assert response.data["dataType"] == "span"
         assert custom_filter.data_type == "span"
+
+    def test_post_ip_address(self) -> None:
+        """An IP condition reads the envelope, so every data type takes it."""
+        conditions = [{"type": "ip_address", "value": ["10.0.0.0/8", "2001:db8::1"]}]
+
+        with self.feature(self.features), outbox_runner():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                method="post",
+                name="Block the office",
+                dataType="all",
+                conditions=conditions,
+                status_code=201,
+            )
+
+        custom_filter = CustomInboundFilter.objects.get(id=response.data["id"])
+        assert response.data["conditions"] == conditions
+        assert custom_filter.conditions == conditions
+
+    def test_rejects_ip_address_that_does_not_parse(self) -> None:
+        with self.feature(self.features):
+            response = self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                method="post",
+                name="Typo",
+                dataType="error",
+                conditions=[{"type": "ip_address", "value": ["10.0.0.0/8", "10.0.0.*", "nope"]}],
+            )
+
+        assert str(response.data["conditions"][0]["value"][0]) == (
+            "10.0.0.*, nope is not an IP address or CIDR range."
+        )
 
     def test_catch_all_needs_no_ingestion_feature(self) -> None:
         """The catch-all filters whichever data types the organization ingests."""
@@ -332,6 +371,41 @@ class CustomInboundFiltersTest(APITestCase):
             )
 
         assert "no more than" in str(response.data["conditions"]["non_field_errors"][0])
+
+    def test_rejects_oversized_condition_values(self) -> None:
+        half = "a" * (MAX_CONDITION_VALUE_CHARS_PER_FILTER // 2)
+        conditions = [
+            {"type": "release", "value": [half]},
+            {"type": "error_message", "value": [half, "x"]},
+        ]
+
+        with self.feature(self.features):
+            response = self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                method="post",
+                dataType="error",
+                conditions=conditions,
+            )
+
+        assert str(response.data["conditions"][0]) == (
+            f"A filter's condition values can have at most "
+            f"{MAX_CONDITION_VALUE_CHARS_PER_FILTER} characters in total."
+        )
+        assert not CustomInboundFilter.objects.filter(project_id=self.project.id).exists()
+
+    def test_allows_condition_values_at_the_size_cap(self) -> None:
+        conditions = [{"type": "release", "value": ["a" * MAX_CONDITION_VALUE_CHARS_PER_FILTER]}]
+
+        with self.feature(self.features):
+            self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                method="post",
+                dataType="error",
+                conditions=conditions,
+                status_code=201,
+            )
 
     @patch(
         "sentry.api.endpoints.project_custom_inbound_filters.MAX_FILTERS_PER_PROJECT",
@@ -509,7 +583,7 @@ class CustomInboundFilterDetailsTest(APITestCase):
         assert (
             str(response.data["conditions"][0])
             == "A filter on error data cannot use the log_message condition. "
-            "It accepts error_type, error_message, release."
+            "It accepts error_type, error_message, release, ip_address."
         )
 
     def test_put_to_catch_all(self) -> None:
@@ -567,10 +641,66 @@ class CustomInboundFilterDetailsTest(APITestCase):
         assert (
             str(response.data["conditions"][0])
             == "A filter on all data cannot use the error_message condition. "
-            "It accepts release."
+            "It accepts release, ip_address."
         )
         error_filter.refresh_from_db()
         assert error_filter.data_type == "error"
+
+    def test_put_rejects_growing_past_the_size_cap(self) -> None:
+        with self.feature(self.features):
+            response = self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                self.custom_filter.id,
+                conditions=[
+                    {"type": "release", "value": ["a" * (MAX_CONDITION_VALUE_CHARS_PER_FILTER + 1)]}
+                ],
+            )
+
+        assert str(response.data["conditions"][0]) == (
+            f"A filter's condition values can have at most "
+            f"{MAX_CONDITION_VALUE_CHARS_PER_FILTER} characters in total."
+        )
+        self.custom_filter.refresh_from_db()
+        assert self.custom_filter.conditions == [{"type": "release", "value": ["1.*"]}]
+
+    def test_put_keeps_stored_oversized_filter_but_refuses_growth(self) -> None:
+        """A filter written before the cap can be edited at its size or smaller."""
+        stored_size = MAX_CONDITION_VALUE_CHARS_PER_FILTER + 10
+        self.custom_filter.update(conditions=[{"type": "release", "value": ["a" * stored_size]}])
+
+        with self.feature(self.features):
+            response = self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                self.custom_filter.id,
+                conditions=[{"type": "release", "value": ["b" * (stored_size + 1)]}],
+            )
+
+        assert str(response.data["conditions"][0]) == (
+            f"This filter already exceeds the {MAX_CONDITION_VALUE_CHARS_PER_FILTER} "
+            "character limit for condition values. It can shrink but not grow."
+        )
+
+        same_size = [
+            {"type": "release", "value": ["b" * (stored_size - 3)]},
+            {"type": "error_message", "value": ["c", "dd"]},
+        ]
+        with self.feature(self.features):
+            self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                self.custom_filter.id,
+                conditions=same_size,
+            )
+
+        self.custom_filter.refresh_from_db()
+        assert self.custom_filter.conditions == same_size
+
+        with self.feature(self.features):
+            self.get_success_response(
+                self.organization.slug, self.project.slug, self.custom_filter.id, active=False
+            )
 
     def test_get_returns_null_data_type_for_filter_written_before_the_column(self) -> None:
         self.custom_filter.update(data_type=None)

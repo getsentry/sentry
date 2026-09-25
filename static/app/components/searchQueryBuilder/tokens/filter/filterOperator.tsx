@@ -36,7 +36,7 @@ import {
   type Token,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
-import {getKeyName} from 'sentry/components/searchSyntax/utils';
+import {getKeyName, isRegexOperator} from 'sentry/components/searchSyntax/utils';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {type FieldDefinition} from 'sentry/utils/fields';
@@ -101,9 +101,11 @@ export function getOperatorInfo({
   filterToken,
   fieldDefinition,
   disallowNegation,
+  allowRegexOperators,
 }: {
   fieldDefinition: FieldDefinition | null;
   filterToken: TokenResult<Token.FILTER>;
+  allowRegexOperators?: boolean;
   disallowNegation?: boolean;
 }): {
   label: ReactNode;
@@ -221,11 +223,24 @@ export function getOperatorInfo({
     // membership and `!` negation reads as "does not include".
     const includesLabel = 'includes';
     const doesNotIncludeLabel = 'does not include';
-    const isNegated = operator === TermOperator.NOT_EQUAL;
+    const membershipLabel =
+      operator === TermOperator.NOT_EQUAL ? doesNotIncludeLabel : includesLabel;
+
+    const regexOps = getValidOpsForFilter({
+      filterToken,
+      fieldDefinition,
+      allowRegexOperators,
+    })
+      .filter(op => isRegexOperator(op))
+      .filter(op => !disallowNegation || !isNegationOperator(op));
 
     return {
       operator,
-      label: <OpLabel>{isNegated ? doesNotIncludeLabel : includesLabel}</OpLabel>,
+      label: (
+        <OpLabel>
+          {isRegexOperator(operator) ? OP_LABELS[operator] : membershipLabel}
+        </OpLabel>
+      ),
       options: [
         {
           value: TermOperator.DEFAULT,
@@ -241,13 +256,26 @@ export function getOperatorInfo({
                 textValue: doesNotIncludeLabel,
               },
             ]),
+        ...regexOps.map((op): SelectOption<TermOperator> => {
+          const optionOpLabel = OP_LABELS[op] ?? op;
+
+          return {
+            value: op,
+            label: <OpLabel>{optionOpLabel}</OpLabel>,
+            textValue: optionOpLabel,
+          };
+        }),
       ],
     };
   }
 
   const keyLabel = filterToken.key.text;
 
-  const validOps = getValidOpsForFilter({filterToken, fieldDefinition});
+  const validOps = getValidOpsForFilter({
+    filterToken,
+    fieldDefinition,
+    allowRegexOperators,
+  });
 
   return {
     operator,
@@ -270,8 +298,14 @@ export function getOperatorInfo({
 export function FilterOperator({state, item, token, onOpenChange}: FilterOperatorProps) {
   const organization = useOrganization();
   const {dispatch, query, focusOverride} = useSearchQueryBuilderState();
-  const {searchSource, recentSearches, disabled, disallowNegation, getFieldDefinition} =
-    useSearchQueryBuilderConfig();
+  const {
+    allowRegexOperators,
+    searchSource,
+    recentSearches,
+    disabled,
+    disallowNegation,
+    getFieldDefinition,
+  } = useSearchQueryBuilderConfig();
   const filterButtonProps = useFilterButtonProps({state, item});
   const {focusWithinProps} = useFocusWithin({});
 
@@ -281,8 +315,9 @@ export function FilterOperator({state, item, token, onOpenChange}: FilterOperato
         filterToken: token,
         fieldDefinition: getFieldDefinition(token.key.text),
         disallowNegation,
+        allowRegexOperators,
       }),
-    [token, getFieldDefinition, disallowNegation]
+    [token, getFieldDefinition, disallowNegation, allowRegexOperators]
   );
 
   const onlyOperator = token.filter === FilterType.IS || token.filter === FilterType.HAS;
@@ -300,6 +335,7 @@ export function FilterOperator({state, item, token, onOpenChange}: FilterOperato
       initialOpSettingRef.current = true;
       dispatch({type: 'RESET_FOCUS_OVERRIDE'});
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [dispatch, focusOverride, item.key, onOpenChange]);
 
   return (

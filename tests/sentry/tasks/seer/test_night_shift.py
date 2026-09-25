@@ -1,12 +1,13 @@
+import time
 from datetime import UTC, datetime
 from unittest.mock import Mock, patch
 
+import pytest
 from django.conf import settings
 from taskbroker_client.scheduler.config import crontab
 
 from sentry.hybridcloud.models.outbox import CellOutbox
 from sentry.hybridcloud.outbox.category import OutboxCategory
-from sentry.issues.search import group_types_from
 from sentry.models.group import Group
 from sentry.models.organization import OrganizationStatus
 from sentry.models.project import Project
@@ -22,8 +23,11 @@ from sentry.seer.models.workflow import (
     SeerWorkflowStrategy,
 )
 from sentry.tasks.seer.night_shift.cron import (
+    NightShiftShardPlan,
+    ShardDispatchStatus,
     _complete_run,
     _current_schedule_id,
+    _dispatch_pending_shards,
     _get_eligible_projects,
     _night_shift_cron_expr,
     _record_run_error,
@@ -34,25 +38,22 @@ from sentry.tasks.seer.night_shift.cron import (
 )
 from sentry.tasks.seer.night_shift.models import TriageAction
 from sentry.tasks.seer.night_shift.simple_triage import (
-    NIGHT_SHIFT_ISSUE_FETCH_LIMIT,
     NIGHT_SHIFT_MAX_SEARCH_PAGES,
     ScoredCandidate,
     fixability_score_strategy,
     fixability_score_strategy_per_project,
 )
 from sentry.tasks.seer.night_shift.skip_cache import key as skip_cache_key
-from sentry.tasks.seer.night_shift.skip_cache import mark_skipped
+from sentry.tasks.seer.night_shift.skip_cache import mark_skipped, recently_skipped
 from sentry.testutils.cases import SnubaTestCase, TestCase
+from sentry.testutils.factories import Factories
 from sentry.testutils.fixtures import Fixtures
 from sentry.testutils.helpers.datetime import before_now, freeze_time
+from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.utils.cursors import Cursor
 from sentry.utils.redis import redis_clusters
-
-
-def _cursor_result(results, has_next=False):
-    return Mock(results=results, next=Cursor(0, has_results=has_next))
 
 
 def _dispatched_feature_body(organization):
@@ -65,9 +66,83 @@ def _dispatched_feature_body(organization):
     return seer_run, outbox.payload["body"]
 
 
+@django_db_all
+@pytest.mark.parametrize("enabled,mode", [(False, "off"), (True, "only")])
+def test_code_mode_flag_applies_to_every_dispatched_shard(default_organization, enabled, mode):
+    run = Factories.create_seer_workflow_run(organization=default_organization)
+    plan = NightShiftShardPlan(payload={"candidates": []}, title="Triage")
+    shards = [
+        Factories.create_seer_workflow_run_execution(run=run, extras=plan.to_extras())
+        for _ in range(3)
+    ]
+
+    with with_feature(
+        {
+            "organizations:gen-ai-features": True,
+            "organizations:seer-night-shift-code-mode": enabled,
+        }
+    ):
+        status = _dispatch_pending_shards(run, default_organization, {}, time.monotonic())
+
+    assert status == ShardDispatchStatus.COMPLETE
+    for shard in shards:
+        shard.refresh_from_db()
+        assert shard.extras == {**plan.to_extras(), "enable_code_mode_tools": mode}
+        outbox = CellOutbox.objects.get(
+            category=OutboxCategory.SEER_RUN_CREATE, object_identifier=shard.seer_run_id
+        )
+        assert outbox.payload is not None
+        assert outbox.payload["body"]["agent_run_options"]["enable_code_mode_tools"] == mode
+
+
+@django_db_all
+def test_redispatch_preserves_recorded_code_mode_after_flag_is_disabled(default_organization):
+    run = Factories.create_seer_workflow_run(organization=default_organization)
+    plan = NightShiftShardPlan(payload={"candidates": []}, title="Triage")
+    shard = Factories.create_seer_workflow_run_execution(run=run, extras=plan.to_extras())
+
+    with with_feature(
+        {
+            "organizations:gen-ai-features": True,
+            "organizations:seer-night-shift-code-mode": True,
+        }
+    ):
+        assert (
+            _dispatch_pending_shards(run, default_organization, {}, time.monotonic())
+            == ShardDispatchStatus.COMPLETE
+        )
+    original_run, original_body = _dispatched_feature_body(default_organization)
+
+    with with_feature(
+        {
+            "organizations:gen-ai-features": True,
+            "organizations:seer-night-shift-code-mode": False,
+        }
+    ):
+        assert (
+            _dispatch_pending_shards(run, default_organization, {}, time.monotonic())
+            == ShardDispatchStatus.COMPLETE
+        )
+
+    seer_run, body = _dispatched_feature_body(default_organization)
+    shard.refresh_from_db()
+    assert seer_run.id == original_run.id == shard.seer_run_id
+    assert body == original_body
+    assert body["agent_run_options"]["enable_code_mode_tools"] == "only"
+    assert shard.extras["enable_code_mode_tools"] == "only"
+
+
 class NightShiftFixtures(Fixtures):
     """Shared night-shift test setup. Mixed into the test cases below so the
     project-eligibility and event-seeding logic lives in one place."""
+
+    @pytest.fixture(autouse=True)
+    def enable_night_shift(self):
+        with (
+            override_options({"seer.night_shift.enable": True}),
+            with_feature("organizations:seer-night-shift"),
+        ):
+            yield
 
     def _make_eligible(
         self, project, *, stopping_point=AutofixStoppingPoint.OPEN_PR.value, **tweak_overrides
@@ -108,7 +183,8 @@ class TestBuildRunOptions(TestCase):
 
         assert resolved["source"] == "cron"
         assert resolved["max_candidates"] == 8
-        assert resolved["intelligence_level"] == "high"
+        assert resolved["intelligence_level"] == "medium"
+        assert resolved["reasoning_effort"] == "medium"
 
     def test_org_overrides_apply_over_defaults(self) -> None:
         with self.options(
@@ -121,7 +197,8 @@ class TestBuildRunOptions(TestCase):
 
         assert resolved["max_candidates"] == 15
         # Unset org fields fall through to the global default.
-        assert resolved["intelligence_level"] == "high"
+        assert resolved["intelligence_level"] == "medium"
+        assert resolved["reasoning_effort"] == "medium"
 
     def test_project_tweaks_override_org_overrides(self) -> None:
         project = self.create_project(organization=self.organization)
@@ -582,6 +659,24 @@ class TestGetEligibleProjects(NightShiftFixtures, TestCase):
 class TestRunNightShiftForOrg(NightShiftFixtures, TestCase, SnubaTestCase):
     reset_snuba_data = False
 
+    def test_skips_org_run_when_globally_disabled(self) -> None:
+        org = self.create_organization()
+
+        with self.options({"seer.night_shift.enable": False}):
+            run_id = run_night_shift_for_org(org.id)
+
+        assert run_id is None
+        assert not SeerWorkflowRun.objects.filter(organization=org).exists()
+
+    def test_skips_org_run_when_feature_disabled(self) -> None:
+        org = self.create_organization()
+
+        with self.feature({"organizations:seer-night-shift": False}):
+            run_id = run_night_shift_for_org(org.id)
+
+        assert run_id is None
+        assert not SeerWorkflowRun.objects.filter(organization=org).exists()
+
     def test_nonexistent_org(self) -> None:
         with patch("sentry.tasks.seer.night_shift.cron.logger") as mock_logger:
             run_night_shift_for_org(999999999)
@@ -597,6 +692,26 @@ class TestRunNightShiftForOrg(NightShiftFixtures, TestCase, SnubaTestCase):
         assert first_run_id == second_run_id
         assert SeerWorkflowRun.objects.filter(organization=org).count() == 1
         assert mock_execute.call_count == 2
+
+    def test_completed_schedule_id_returns_same_run_without_quota(self) -> None:
+        org = self.create_organization()
+        schedule_id = "2024-07-22T22:00"
+
+        with (
+            patch(
+                "sentry.tasks.seer.night_shift.cron.quotas.backend.check_seer_quota",
+                side_effect=[True, False],
+            ),
+            patch("sentry.tasks.seer.night_shift.cron.run_night_shift_execution") as mock_execute,
+        ):
+            first_run_id = run_night_shift_for_org(org.id, schedule_id=schedule_id)
+            assert first_run_id is not None
+            _complete_run(SeerWorkflowRun.objects.get(id=first_run_id))
+            second_run_id = run_night_shift_for_org(org.id, schedule_id=schedule_id)
+
+        assert second_run_id == first_run_id
+        assert SeerWorkflowRun.objects.filter(organization=org).count() == 1
+        mock_execute.assert_called_once()
 
     def test_completed_run_ignores_stale_extras_update(self) -> None:
         org = self.create_organization()
@@ -736,6 +851,28 @@ class TestRunNightShiftForOrg(NightShiftFixtures, TestCase, SnubaTestCase):
 
         assert run_id is not None
         assert SeerWorkflowRun.objects.filter(id=run_id, organization=org).exists()
+
+    def test_no_seer_quota_does_not_resume_incomplete_run_without_executions(self) -> None:
+        org = self.create_organization()
+        schedule_id = "2024-07-22T22:00"
+
+        with (
+            patch(
+                "sentry.tasks.seer.night_shift.cron.quotas.backend.check_seer_quota",
+                side_effect=[True, False],
+            ),
+            patch("sentry.tasks.seer.night_shift.cron.run_night_shift_execution") as mock_execution,
+        ):
+            first_run_id = run_night_shift_for_org(org.id, schedule_id=schedule_id)
+            second_run_id = run_night_shift_for_org(org.id, schedule_id=schedule_id)
+
+        assert first_run_id is not None
+        assert second_run_id is None
+        run = SeerWorkflowRun.objects.get(id=first_run_id)
+        assert run.date_completed is None
+        assert not run.executions.exists()
+        assert SeerWorkflowRun.objects.filter(organization=org).count() == 1
+        mock_execution.assert_called_once()
 
     def test_free_cohort_skips_quota_check(self) -> None:
         org = self.create_organization()
@@ -1285,11 +1422,31 @@ class TestRunNightShiftForOrgManualPath(NightShiftFixtures, TestCase):
             "source": "manual",
             "max_candidates": 3,
             "dry_run": True,
-            "intelligence_level": "high",
-            "reasoning_effort": "high",
+            "intelligence_level": "medium",
+            "reasoning_effort": "medium",
             "extra_triage_instructions": "",
         }
         assert kwargs["project_ids"] == [project.id]
+
+    def test_enqueues_execution_when_requested(self) -> None:
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+
+        with patch("sentry.tasks.seer.night_shift.cron.run_night_shift_execution") as mock_execute:
+            run_id = run_night_shift_for_org(
+                org.id,
+                options={"source": "manual"},
+                project_ids=[project.id],
+                execute_in_task=True,
+            )
+
+        assert run_id is not None
+        run = SeerWorkflowRun.objects.get(id=run_id)
+        mock_execute.assert_not_called()
+        mock_execute.apply_async.assert_called_once_with(
+            args=[run_id],
+            kwargs={"options": run.extras["options"], "project_ids": [project.id]},
+        )
 
     def test_no_seer_quota_records_failed_run(self) -> None:
         org = self.create_organization()
@@ -1328,8 +1485,8 @@ class TestRunNightShiftForOrgManualPath(NightShiftFixtures, TestCase):
                 "source": "manual",
                 "max_candidates": 5,
                 "dry_run": True,
-                "intelligence_level": "high",
-                "reasoning_effort": "high",
+                "intelligence_level": "medium",
+                "reasoning_effort": "medium",
                 "extra_triage_instructions": "",
             },
             "target_project_ids": [project.id],
@@ -1368,7 +1525,7 @@ class TestRunNightShiftForOrgManualPath(NightShiftFixtures, TestCase):
 class TestFixabilityScoreStrategy(NightShiftFixtures, TestCase, SnubaTestCase):
     reset_snuba_data = False
 
-    def test_ranks_scored_above_threshold_first_then_preserves_recommended_order(self) -> None:
+    def test_ranks_scored_above_threshold_first_then_unscored(self) -> None:
         project = self.create_project()
         high = self._store_event_and_update_group(
             project, "high", seer_fixability_score=0.9, times_seen=5, priority=75
@@ -1410,149 +1567,144 @@ class TestFixabilityScoreStrategy(NightShiftFixtures, TestCase, SnubaTestCase):
 
         assert [candidate.group.id for candidate in result] == [recent.id]
 
-    def test_agentic_search_requires_recent_occurrence(self) -> None:
-        project = self.create_project()
-        recent = self._store_event_and_update_group(
-            project, "agentic-recent", timestamp=before_now(days=13)
-        )
-        self._store_event_and_update_group(
-            project,
-            "agentic-old",
-            timestamp=before_now(days=15),
-        )
-
-        with self.feature({"organizations:agentic-triage-sort": True}):
-            result = fixability_score_strategy([project], max_candidates=10)
-
-        assert [candidate.group.id for candidate in result] == [recent.id]
-
     def test_includes_low_value_span_issues_in_search(self) -> None:
         project = self.create_project()
         error_group = self.create_group(project=project)
         lvs_group = self.create_group(project=project, type=LowValueSpanConfigurationType.type_id)
 
         with patch(
-            "sentry.tasks.seer.night_shift.simple_triage.search.backend.query"
-        ) as mock_query:
-            mock_query.return_value = _cursor_result([error_group, lvs_group])
+            "sentry.tasks.seer.night_shift.simple_triage._agentic_triage_snuba_factors",
+            return_value={},
+        ):
             result = fixability_score_strategy([project], max_candidates=10)
 
         assert {c.group.id for c in result} == {error_group.id, lvs_group.id}
 
-        mock_query.assert_called_once()
-        type_filters = [
-            sf
-            for sf in mock_query.call_args.kwargs["search_filters"]
-            if sf.key.name == "issue.type"
-        ]
-        assert len(type_filters) == 1
-        # The default type set is widened to include low-value-span, not replaced by it.
-        assert set(type_filters[0].value.raw_value) == group_types_from([]) | {
-            LowValueSpanConfigurationType.type_id
-        }
-
     def test_per_project_fetch_limit_scales_with_max_candidates(self) -> None:
         project = self.create_project()
+        for _ in range(20):
+            self.create_group(project=project)
 
         with patch(
-            "sentry.tasks.seer.night_shift.simple_triage.search.backend.query"
-        ) as mock_query:
-            mock_query.return_value = _cursor_result([])
+            "sentry.tasks.seer.night_shift.simple_triage._agentic_triage_snuba_factors",
+            return_value={},
+        ) as mock_factors:
             fixability_score_strategy_per_project([project], max_candidates=5)
 
-        assert mock_query.call_args.kwargs["limit"] == 15
+        # fetch_limit = max_candidates * NIGHT_SHIFT_PER_PROJECT_FETCH_MULTIPLIER
+        assert len(mock_factors.call_args.args[0]) == 15
 
     def test_per_project_fetch_limit_caps_at_global_fetch_limit(self) -> None:
         project = self.create_project()
+        for _ in range(10):
+            self.create_group(project=project)
 
-        with patch(
-            "sentry.tasks.seer.night_shift.simple_triage.search.backend.query"
-        ) as mock_query:
-            mock_query.return_value = _cursor_result([])
+        with (
+            patch("sentry.tasks.seer.night_shift.simple_triage.NIGHT_SHIFT_ISSUE_FETCH_LIMIT", 4),
+            patch(
+                "sentry.tasks.seer.night_shift.simple_triage._agentic_triage_snuba_factors",
+                return_value={},
+            ) as mock_factors,
+        ):
             fixability_score_strategy_per_project([project], max_candidates=40)
 
-        assert mock_query.call_args.kwargs["limit"] == 100
+        assert len(mock_factors.call_args.args[0]) == 4
 
     def test_paginates_when_first_page_mostly_skipped(self) -> None:
         project = self.create_project()
+        # Ordered by -last_seen: page1 fills the first page, page2 spills over.
         page1 = [
-            self._store_event_and_update_group(project, f"p1-{i}", seer_fixability_score=None)
-            for i in range(3)
+            self.create_group(project=project, last_seen=before_now(minutes=i + 2))
+            for i in range(6)
         ]
-        page2 = [self._store_event_and_update_group(project, "p2-0", seer_fixability_score=None)]
-        mark_skipped(page1[1].id)
-        mark_skipped(page1[2].id)
+        page2 = [self.create_group(project=project, last_seen=before_now(minutes=20))]
+        for group in page1[1:]:
+            mark_skipped(group.id)
 
-        with patch(
-            "sentry.tasks.seer.night_shift.simple_triage.search.backend.query"
-        ) as mock_query:
-            mock_query.side_effect = [
-                _cursor_result(page1, has_next=True),
-                _cursor_result(page2),
-            ]
-            result = fixability_score_strategy([project], max_candidates=3)
+        with (
+            patch(
+                "sentry.tasks.seer.night_shift.simple_triage._agentic_triage_snuba_factors",
+                return_value={},
+            ),
+            patch(
+                "sentry.tasks.seer.night_shift.simple_triage.recently_skipped",
+                wraps=recently_skipped,
+            ) as mock_skipped,
+        ):
+            # max_candidates=2 -> fetch_limit of 6 per page.
+            result = fixability_score_strategy_per_project([project], max_candidates=2)
 
-        assert mock_query.call_count == 2
-        assert mock_query.call_args_list[0].kwargs["cursor"] is None
-        assert mock_query.call_args_list[1].kwargs["cursor"] is not None
+        # recently_skipped is called once per fetched page.
+        assert mock_skipped.call_count == 2
         assert {c.group.id for c in result} == {page1[0].id, page2[0].id}
 
     def test_stops_paginating_once_a_page_worth_of_candidates(self) -> None:
         project = self.create_project()
-        groups = [
-            Mock(id=i, seer_fixability_score=None, times_seen=1)
-            for i in range(NIGHT_SHIFT_ISSUE_FETCH_LIMIT)
-        ]
+        for _ in range(6):
+            self.create_group(project=project)
 
         with (
-            patch("sentry.tasks.seer.night_shift.simple_triage.search.backend.query") as mock_query,
             patch(
-                "sentry.tasks.seer.night_shift.simple_triage.is_issue_category_eligible",
-                return_value=True,
+                "sentry.tasks.seer.night_shift.simple_triage._agentic_triage_snuba_factors",
+                return_value={},
             ),
+            patch(
+                "sentry.tasks.seer.night_shift.simple_triage.recently_skipped",
+                wraps=recently_skipped,
+            ) as mock_skipped,
         ):
-            mock_query.return_value = _cursor_result(groups, has_next=True)
-            result = fixability_score_strategy([project], max_candidates=10)
+            result = fixability_score_strategy_per_project([project], max_candidates=2)
 
-        assert mock_query.call_count == 1
-        assert len(result) == 10
+        assert mock_skipped.call_count == 1
+        assert len(result) == 2
 
     def test_stops_at_a_page_of_non_skipped_even_when_all_dropped(self) -> None:
-        # A full page of non-skipped results is enough to stop, even when scoring
-        # later drops every issue as below-threshold — we page past skips, not
-        # past low fixability.
+        # A full page of non-skipped candidates is enough to stop, even when the
+        # fixability re-rank later drops every issue as below-threshold — we page
+        # past skips, not past low fixability.
         project = self.create_project()
-        groups = [
-            Mock(id=i, seer_fixability_score=0.0, times_seen=1)
-            for i in range(NIGHT_SHIFT_ISSUE_FETCH_LIMIT)
-        ]
+        for _ in range(6):
+            self.create_group(project=project, seer_fixability_score=0.0)
 
         with (
-            patch("sentry.tasks.seer.night_shift.simple_triage.search.backend.query") as mock_query,
             patch(
-                "sentry.tasks.seer.night_shift.simple_triage.is_issue_category_eligible",
-                return_value=True,
+                "sentry.tasks.seer.night_shift.simple_triage._agentic_triage_snuba_factors",
+                return_value={},
             ),
+            patch(
+                "sentry.tasks.seer.night_shift.simple_triage.recently_skipped",
+                wraps=recently_skipped,
+            ) as mock_skipped,
         ):
-            mock_query.return_value = _cursor_result(groups, has_next=True)
-            result = fixability_score_strategy([project], max_candidates=10)
+            result = fixability_score_strategy_per_project([project], max_candidates=2)
 
-        assert mock_query.call_count == 1
+        assert mock_skipped.call_count == 1
         assert result == []
 
     def test_pagination_is_bounded(self) -> None:
         project = self.create_project()
-        skipped = self._store_event_and_update_group(project, "skip", seer_fixability_score=None)
-        mark_skipped(skipped.id)
+        groups = [
+            self.create_group(project=project) for _ in range(NIGHT_SHIFT_MAX_SEARCH_PAGES * 3 + 1)
+        ]
+        for group in groups:
+            mark_skipped(group.id)
 
-        with patch(
-            "sentry.tasks.seer.night_shift.simple_triage.search.backend.query"
-        ) as mock_query:
-            mock_query.return_value = _cursor_result([skipped], has_next=True)
-            result = fixability_score_strategy([project], max_candidates=5)
+        with (
+            patch(
+                "sentry.tasks.seer.night_shift.simple_triage._agentic_triage_snuba_factors",
+                return_value={},
+            ) as mock_factors,
+            patch(
+                "sentry.tasks.seer.night_shift.simple_triage.recently_skipped",
+                wraps=recently_skipped,
+            ) as mock_skipped,
+        ):
+            # max_candidates=1 -> fetch_limit of 3 per page.
+            result = fixability_score_strategy_per_project([project], max_candidates=1)
 
-        assert mock_query.call_count == NIGHT_SHIFT_MAX_SEARCH_PAGES
+        assert mock_skipped.call_count == NIGHT_SHIFT_MAX_SEARCH_PAGES
         assert result == []
+        mock_factors.assert_not_called()
 
 
 class TestTriageActionFromFixabilityScore:

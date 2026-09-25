@@ -1,13 +1,18 @@
-import {useEffect, useMemo, type ComponentType, type ReactNode} from 'react';
+import {useEffect, useMemo, useRef, type ComponentType, type ReactNode} from 'react';
+import {useIsFetching, useQueryClient} from '@tanstack/react-query';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {Markdown} from '@sentry/scraps/markdown';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Markdown, type MarkdownProps} from '@sentry/scraps/markdown';
 import {Text} from '@sentry/scraps/text';
 
-import {getRepoPullRequestLink} from 'sentry/components/events/autofix/pullRequests';
+import {
+  getRepoPullRequestLink,
+  hasCreatedPullRequests,
+} from 'sentry/components/events/autofix/pullRequests';
 import {
   collectPatches,
+  explorerAutofixApiOptions,
   getAutofixArtifactFromSection,
   getOrderedAutofixSections,
   isCodeChangesArtifact,
@@ -112,6 +117,18 @@ interface AutofixContentProps extends Pick<Group, 'id' | 'shortId'> {
  * rather than echoing back run state, so a step can arrive as the write-up
  * alone. Missing detail collapses to the summary rather than an empty section.
  */
+const AUTOFIX_MARKDOWN_COMPONENTS: MarkdownProps['components'] = {
+  Paragraph: ({children}) => (
+    <Text as="p" size="md" density="comfortable" wordBreak="break-all">
+      {children}
+    </Text>
+  ),
+};
+
+function AutofixMarkdown({raw}: {raw: string}) {
+  return <Markdown raw={raw} components={AUTOFIX_MARKDOWN_COMPONENTS} />;
+}
+
 function AutofixStepBody({
   fiveWhys,
   reproductionSteps,
@@ -133,7 +150,7 @@ function AutofixStepBody({
     return <SolutionBody summary={result} steps={steps ?? []} />;
   }
 
-  return <Markdown raw={result} />;
+  return <AutofixMarkdown raw={result} />;
 }
 
 export const Autofix = defineSeerEmbed({
@@ -203,18 +220,48 @@ function useRefreshOnStepResult(groupId: string, section: AutofixSection | undef
     if (status === 'completed') {
       refreshAutofixProgressQueries();
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [step, status, refreshAutofixProgressQueries]);
 }
 
+/**
+ * Re-reads the run state once the agent stops working.
+ *
+ * The agent starts and finishes steps through the backend, and an idle run arms
+ * no poll to notice — so without this the embeds keep showing the run as it was
+ * before the agent touched it. Every embed for the issue shares the one query,
+ * so they refetch once between them.
+ */
+function useRefetchRunStateWhenAgentSettles(groupId: string, isBusy: boolean) {
+  const queryClient = useQueryClient();
+  const organization = useOrganization();
+  const wasBusy = useRef(isBusy);
+
+  useEffect(() => {
+    if (wasBusy.current && !isBusy) {
+      queryClient.invalidateQueries({
+        queryKey: explorerAutofixApiOptions(organization.slug, groupId).queryKey,
+      });
+    }
+    wasBusy.current = isBusy;
+  }, [groupId, isBusy, organization.slug, queryClient]);
+}
+
 function AutofixRefContent({id, shortId, step}: AutofixRefContentProps) {
+  const organization = useOrganization();
   const autofix = useExplorerAutofix({id, shortId});
   const {runState, isLoading, isPolling} = autofix;
-  const {sendMessage} = useAutofixChat();
+  const {isBusy, sendMessage} = useAutofixChat();
+  const isRefetching =
+    useIsFetching({
+      queryKey: explorerAutofixApiOptions(organization.slug, id).queryKey,
+    }) > 0;
 
   const sections = useMemo(() => getOrderedAutofixSections(runState), [runState]);
   const section = useMemo(() => findStepSection(sections, step), [sections, step]);
 
   useRefreshOnStepResult(id, section);
+  useRefetchRunStateWhenAgentSettles(id, !!isBusy);
 
   const handleRetry = () => {
     sendMessage?.(t('Retry the %s step for %s.', STEP_LABELS[step], shortId));
@@ -228,8 +275,26 @@ function AutofixRefContent({id, shortId, step}: AutofixRefContentProps) {
     sendMessage?.(t('Draft a pull request for %s.', shortId));
   };
 
+  /**
+   * A conversation can hold several embeds of the same step. Offering work
+   * based on whether the run already contains it, rather than on this embed's
+   * own section, is what keeps those copies agreeing — and stops a step being
+   * offered again once it has run.
+   */
   const nextStep = NEXT_STEP[step];
-  const canAct = !!sendMessage && !isPolling;
+  const pendingNextStep =
+    nextStep && !findStepSection(sections, nextStep) ? nextStep : undefined;
+  // A failed create also lands in `repo_pr_states`; that one should stay retryable.
+  const canCreatePR =
+    step === 'code_changes' && !hasCreatedPullRequests(runState?.repo_pr_states);
+
+  /**
+   * The run state lags the agent, so it cannot gate these alone. `isBusy`
+   * covers the agent working on a step that `isPolling` has not seen yet, and
+   * `isRefetching` covers the round trip after it settles, while the cached
+   * state still offers the step it just started.
+   */
+  const canAct = !!sendMessage && !isPolling && !isBusy && !isRefetching;
 
   return (
     <AutofixBlock id={id} shortId={shortId} step={step}>
@@ -242,9 +307,9 @@ function AutofixRefContent({id, shortId, step}: AutofixRefContentProps) {
             </Button>
           </Flex>
         )}
-        {section?.status === 'completed' && (
+        {section?.status === 'completed' && (canCreatePR || pendingNextStep) && (
           <Flex gap="sm">
-            {step === 'code_changes' && (
+            {canCreatePR && (
               <Button
                 size="sm"
                 variant="primary"
@@ -254,14 +319,14 @@ function AutofixRefContent({id, shortId, step}: AutofixRefContentProps) {
                 {t('Draft a pull request')}
               </Button>
             )}
-            {nextStep && (
+            {pendingNextStep && (
               <Button
                 size="sm"
                 variant="primary"
-                onClick={() => handleContinue(nextStep)}
+                onClick={() => handleContinue(pendingNextStep)}
                 disabled={!canAct}
               >
-                {t('Continue: %s', STEP_LABELS[nextStep])}
+                {t('Continue: %s', STEP_LABELS[pendingNextStep])}
               </Button>
             )}
           </Flex>
@@ -357,29 +422,29 @@ interface RootCauseBodyProps {
 function RootCauseBody({description, fiveWhys, reproductionSteps}: RootCauseBodyProps) {
   return (
     <Stack gap="lg">
-      <Markdown raw={description} />
+      <AutofixMarkdown raw={description} />
       {fiveWhys.length > 0 && (
         <ArtifactDetails>
           <Text bold>{t('Why did this happen?')}</Text>
-          <Container as="ul" margin="0">
+          <Stack as="ul" gap="md" margin="0">
             {fiveWhys.map((why, index) => (
               <li key={index}>
-                <Markdown raw={why} />
+                <AutofixMarkdown raw={why} />
               </li>
             ))}
-          </Container>
+          </Stack>
         </ArtifactDetails>
       )}
       {reproductionSteps && reproductionSteps.length > 0 && (
         <ArtifactDetails>
           <Text bold>{t('Reproduction Steps')}</Text>
-          <Container as="ol" margin="0">
+          <Stack as="ol" gap="md" margin="0">
             {reproductionSteps.map((step, index) => (
               <li key={index}>
-                <Markdown raw={step} />
+                <AutofixMarkdown raw={step} />
               </li>
             ))}
-          </Container>
+          </Stack>
         </ArtifactDetails>
       )}
     </Stack>
@@ -394,22 +459,22 @@ interface SolutionBodyProps {
 function SolutionBody({steps, summary}: SolutionBodyProps) {
   return (
     <Stack gap="lg">
-      <Markdown raw={summary} />
+      <AutofixMarkdown raw={summary} />
       {steps.length > 0 && (
         <ArtifactDetails>
           <Text bold>{t('Steps to Resolve')}</Text>
-          <Container as="ol" margin="0">
+          <Stack as="ol" gap="md" margin="0">
             {steps.map((step, index) => (
               <li key={index}>
                 <Stack>
-                  <Markdown raw={step.title} />
-                  <Text size="sm" variant="muted">
+                  <AutofixMarkdown raw={step.title} />
+                  <Text size="sm" variant="muted" wordBreak="break-all">
                     {step.description}
                   </Text>
                 </Stack>
               </li>
             ))}
-          </Container>
+          </Stack>
         </ArtifactDetails>
       )}
     </Stack>

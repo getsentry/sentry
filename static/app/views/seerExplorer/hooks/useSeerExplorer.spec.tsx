@@ -1,10 +1,13 @@
+import {useQueryClient, type QueryClient} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {getApiQueryData, setApiQueryData} from 'sentry/utils/queryClient';
 import * as llmContextModule from 'sentry/views/seerExplorer/contexts/llmContext';
 import {SeerExplorerChatStateProvider} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
+import type {SeerExplorerResponse} from 'sentry/views/seerExplorer/types';
 import * as seerExplorerUtils from 'sentry/views/seerExplorer/utils';
 
 import {useSeerExplorer} from './useSeerExplorer';
@@ -129,7 +132,7 @@ describe('useSeerExplorer', () => {
         getPageReferrer: () => '/dashboard/:dashboardId/',
       });
       const org = OrganizationFixture({
-        features: ['seer-explorer', 'seer-explorer-structured-context-rollout'],
+        features: ['seer-explorer'],
       });
       MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/seer/explorer-chat/`,
@@ -170,6 +173,10 @@ describe('useSeerExplorer', () => {
       '/explore/replays/:replaySlug/',
       '/monitors/',
       '/monitors/:detectorId/',
+      '/monitors/:detectorId/edit/',
+      '/monitors/alerts/',
+      '/monitors/alerts/:automationId/',
+      '/monitors/alerts/:automationId/edit/',
       '/monitors/crons/',
       '/monitors/errors/',
       '/monitors/metrics/',
@@ -181,7 +188,7 @@ describe('useSeerExplorer', () => {
         getPageReferrer: () => route,
       });
       const org = OrganizationFixture({
-        features: ['seer-explorer', 'seer-explorer-structured-context-rollout'],
+        features: ['seer-explorer'],
       });
       MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/seer/explorer-chat/`,
@@ -217,7 +224,7 @@ describe('useSeerExplorer', () => {
         getPageReferrer: () => '/settings/account/details/',
       });
       const org = OrganizationFixture({
-        features: ['seer-explorer', 'seer-explorer-structured-context-rollout'],
+        features: ['seer-explorer'],
       });
       MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/seer/explorer-chat/`,
@@ -324,6 +331,467 @@ describe('useSeerExplorer', () => {
         expect(result.current.isPolling).toBe(false);
       });
     });
+
+    it('keeps the existing chat and exposes the failed query when sending fails', async () => {
+      const runId = 'run-with-history';
+      const existingBlocks = [
+        {
+          id: 'user-1',
+          message: {role: 'user', content: 'First question'},
+          timestamp: '2024-01-01T00:00:00Z',
+          loading: false,
+        },
+        {
+          id: 'assistant-1',
+          message: {role: 'assistant', content: 'First answer'},
+          timestamp: '2024-01-01T00:00:01Z',
+          loading: false,
+        },
+      ];
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/${runId}/`,
+        method: 'GET',
+        body: {session: {blocks: existingBlocks, status: 'completed'}},
+      });
+      const postMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/${runId}/`,
+        method: 'POST',
+        statusCode: 500,
+        body: {detail: 'Server error'},
+      });
+
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
+        additionalWrapper: SeerExplorerChatStateProvider,
+      });
+      act(() => {
+        result.current.switchToRun(runId);
+      });
+      await waitFor(() => {
+        expect(result.current.sessionData?.blocks).toHaveLength(2);
+      });
+
+      act(() => {
+        result.current.sendMessage('Second question');
+      });
+
+      await waitFor(() => {
+        expect(result.current.requestError).toEqual({query: 'Second question'});
+      });
+      expect(postMock).toHaveBeenCalled();
+      expect(result.current.sessionData?.status).toBe('completed');
+      expect(result.current.sessionData?.blocks.map(b => b.message.content)).toEqual([
+        'First question',
+        'First answer',
+      ]);
+
+      // The error stays up until a later request succeeds.
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/${runId}/`,
+        method: 'POST',
+        body: {run_id: 1},
+      });
+      act(() => {
+        result.current.sendMessage('Second question');
+      });
+      expect(result.current.requestError).toEqual({query: 'Second question'});
+      await waitFor(() => {
+        expect(result.current.requestError).toBeNull();
+      });
+    });
+
+    it('keeps the chat and pending question when answering fails', async () => {
+      const runId = 'run-with-question';
+      const pendingInput = {
+        id: 'input-1',
+        input_type: 'ask_user_question' as const,
+        data: {questions: [{question: 'Which one?', options: [{label: 'A'}]}]},
+      };
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/${runId}/`,
+        method: 'GET',
+        body: {
+          session: {
+            blocks: [
+              {
+                id: 'user-1',
+                message: {role: 'user', content: 'First question'},
+                timestamp: '2024-01-01T00:00:00Z',
+                loading: false,
+              },
+            ],
+            status: 'awaiting_user_input',
+            pending_user_input: pendingInput,
+          },
+        },
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-update/${runId}/`,
+        method: 'POST',
+        statusCode: 500,
+        body: {detail: 'Server error'},
+      });
+      const onError = jest.fn();
+
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
+        additionalWrapper: SeerExplorerChatStateProvider,
+      });
+      act(() => {
+        result.current.switchToRun(runId);
+      });
+      await waitFor(() => {
+        expect(result.current.sessionData?.status).toBe('awaiting_user_input');
+      });
+
+      act(() => {
+        result.current.respondToUserInput('input-1', {answers: ['A']}, {onError});
+      });
+
+      await waitFor(() => {
+        expect(result.current.requestError).toEqual({});
+      });
+      expect(onError).toHaveBeenCalled();
+      expect(result.current.sessionData?.status).toBe('awaiting_user_input');
+      expect(result.current.sessionData?.pending_user_input).toEqual(pendingInput);
+      expect(result.current.sessionData?.blocks.map(b => b.message.content)).toEqual([
+        'First question',
+      ]);
+    });
+
+    it('keeps a newer send in another chat when an older send fails', async () => {
+      const runId = 'run-a';
+      let failOldSend!: () => void;
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/${runId}/`,
+        method: 'GET',
+        body: {session: {blocks: [], status: 'completed'}},
+      });
+      const oldSendMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/${runId}/`,
+        method: 'POST',
+        statusCode: 500,
+        body: {detail: 'Server error'},
+        asyncDelay: new Promise<void>(resolve => {
+          failOldSend = resolve;
+        }),
+      });
+      // The new chat's send stays in flight for the rest of the test.
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/`,
+        method: 'POST',
+        body: {run_id: 1},
+        asyncDelay: new Promise<void>(() => {}),
+      });
+
+      let queryClient!: QueryClient;
+      const {result} = renderHookWithProviders(
+        () => {
+          queryClient = useQueryClient();
+          return useSeerExplorer();
+        },
+        {
+          organization,
+          additionalWrapper: SeerExplorerChatStateProvider,
+        }
+      );
+      act(() => {
+        result.current.switchToRun(runId);
+      });
+      await waitFor(() => {
+        expect(result.current.sessionData?.status).toBe('completed');
+      });
+
+      act(() => {
+        result.current.sendMessage('Old chat question');
+      });
+      act(() => {
+        result.current.startNewSession();
+      });
+      act(() => {
+        result.current.sendMessage('New chat question');
+      });
+      expect(result.current.sessionData?.blocks[0]?.message.content).toBe(
+        'New chat question'
+      );
+
+      // Let the old request fail and its error handling run to completion.
+      await act(async () => {
+        failOldSend();
+        for (let i = 0; i < 5; i++) {
+          await new Promise(resolve => setTimeout(resolve, 0));
+        }
+      });
+      expect(oldSendMock).toHaveBeenCalled();
+
+      // The old failure must not drop the new chat's optimistic blocks or show its error.
+      expect(result.current.sessionData?.blocks[0]?.message.content).toBe(
+        'New chat question'
+      );
+      expect(result.current.requestError).toBeNull();
+
+      // The old chat's optimistic "processing" status is rolled back in the background.
+      expect(
+        getApiQueryData<SeerExplorerResponse>(
+          queryClient,
+          seerExplorerUtils.makeSeerExplorerQueryKey(organization.slug, runId)
+        )?.session?.status
+      ).toBe('completed');
+    });
+
+    it('keeps fresher session data when a send fails after the cache was refreshed', async () => {
+      const runId = 'run-refreshed';
+      const queryKey = seerExplorerUtils.makeSeerExplorerQueryKey(
+        organization.slug,
+        runId
+      );
+      const freshData: SeerExplorerResponse = {
+        session: {
+          blocks: [
+            {
+              id: 'user-1',
+              message: {role: 'user', content: 'Question'},
+              timestamp: '2024-01-01T00:00:00Z',
+              loading: false,
+            },
+            {
+              id: 'assistant-1',
+              message: {role: 'assistant', content: 'Answer from polling'},
+              timestamp: '2024-01-01T00:00:01Z',
+              loading: false,
+            },
+          ],
+          status: 'completed',
+          updated_at: '2024-01-01T00:00:01Z',
+        },
+      };
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/${runId}/`,
+        method: 'GET',
+        body: {session: {blocks: [], status: 'completed'}},
+      });
+
+      let queryClient!: QueryClient;
+      const {result} = renderHookWithProviders(
+        () => {
+          queryClient = useQueryClient();
+          return useSeerExplorer();
+        },
+        {
+          organization,
+          additionalWrapper: SeerExplorerChatStateProvider,
+        }
+      );
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/${runId}/`,
+        method: 'POST',
+        statusCode: 500,
+        // Polling stores fresher server data after the optimistic update, before the failure.
+        body: () => {
+          setApiQueryData<SeerExplorerResponse>(queryClient, queryKey, freshData);
+          return {detail: 'Server error'};
+        },
+      });
+      act(() => {
+        result.current.switchToRun(runId);
+      });
+      await waitFor(() => {
+        expect(result.current.sessionData?.status).toBe('completed');
+      });
+
+      act(() => {
+        result.current.sendMessage('Question');
+      });
+      await waitFor(() => {
+        expect(result.current.requestError).toEqual({query: 'Question'});
+      });
+
+      expect(getApiQueryData<SeerExplorerResponse>(queryClient, queryKey)).toEqual(
+        freshData
+      );
+    });
+
+    it('keeps the alert when an older send succeeds after a newer send failed', async () => {
+      const runId = 'run-stale';
+      let settleFirstSend!: () => void;
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/${runId}/`,
+        method: 'GET',
+        body: {session: {blocks: [], status: 'completed'}},
+      });
+      const firstSendMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/${runId}/`,
+        method: 'POST',
+        body: {run_id: 1},
+        asyncDelay: new Promise<void>(resolve => {
+          settleFirstSend = resolve;
+        }),
+      });
+
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
+        additionalWrapper: SeerExplorerChatStateProvider,
+      });
+      act(() => {
+        result.current.switchToRun(runId);
+      });
+      await waitFor(() => {
+        expect(result.current.sessionData?.status).toBe('completed');
+      });
+
+      act(() => {
+        result.current.sendMessage('First question');
+      });
+      await waitFor(() => {
+        expect(firstSendMock).toHaveBeenCalled();
+      });
+
+      // Mocks are matched newest first, so only the second send gets the failure.
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/${runId}/`,
+        method: 'POST',
+        statusCode: 500,
+        body: {detail: 'Server error'},
+      });
+      act(() => {
+        result.current.sendMessage('Second question');
+      });
+      await waitFor(() => {
+        expect(result.current.requestError).toEqual({query: 'Second question'});
+      });
+
+      // Let the first request succeed and its callbacks run to completion.
+      await act(async () => {
+        settleFirstSend();
+        for (let i = 0; i < 5; i++) {
+          await new Promise(resolve => setTimeout(resolve, 0));
+        }
+      });
+
+      expect(result.current.requestError).toEqual({query: 'Second question'});
+    });
+
+    // TanStack only calls per-call `mutate` callbacks for an observer's latest mutation, so
+    // a caller's rollback (e.g. showing an approval prompt again) never runs for a stale answer.
+    it('skips the caller rollback when an older answer fails after a newer one', async () => {
+      const runId = 'run-two-answers';
+      const updateUrl = `/organizations/${organization.slug}/seer/explorer-update/${runId}/`;
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/${runId}/`,
+        method: 'GET',
+        body: {session: {blocks: [], status: 'awaiting_user_input'}},
+      });
+      const onOlderAnswerError = jest.fn();
+
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
+        additionalWrapper: SeerExplorerChatStateProvider,
+      });
+      const olderAnswerMock = MockApiClient.addMockResponse({
+        url: updateUrl,
+        method: 'POST',
+        statusCode: 500,
+        // The user answers again while the older request is in flight, before it fails.
+        body: () => {
+          result.current.respondToUserInput('input-2', {decision: 'reject'});
+          return {detail: 'Server error'};
+        },
+        match: [
+          MockApiClient.matchData({
+            payload: {
+              type: 'user_input_response',
+              input_id: 'input-1',
+              response_data: {decision: 'approve'},
+            },
+          }),
+        ],
+      });
+      // The newer answer stays in flight for the rest of the test.
+      MockApiClient.addMockResponse({
+        url: updateUrl,
+        method: 'POST',
+        body: {run_id: 1},
+        asyncDelay: new Promise<void>(() => {}),
+        match: [
+          MockApiClient.matchData({
+            payload: {
+              type: 'user_input_response',
+              input_id: 'input-2',
+              response_data: {decision: 'reject'},
+            },
+          }),
+        ],
+      });
+      act(() => {
+        result.current.switchToRun(runId);
+      });
+      await waitFor(() => {
+        expect(result.current.sessionData?.status).toBe('awaiting_user_input');
+      });
+
+      await act(async () => {
+        result.current.respondToUserInput(
+          'input-1',
+          {decision: 'approve'},
+          {onError: onOlderAnswerError}
+        );
+        for (let i = 0; i < 5; i++) {
+          await new Promise(resolve => setTimeout(resolve, 0));
+        }
+      });
+
+      expect(olderAnswerMock).toHaveBeenCalled();
+      expect(onOlderAnswerError).not.toHaveBeenCalled();
+    });
+
+    it('clears the request error when switching conversations', async () => {
+      const runId = 'run-a';
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/${runId}/`,
+        method: 'GET',
+        body: {session: {blocks: [], status: 'completed'}},
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/${runId}/`,
+        method: 'POST',
+        statusCode: 500,
+        body: {detail: 'Server error'},
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/run-b/`,
+        method: 'GET',
+        body: {session: {blocks: [], status: 'completed'}},
+      });
+
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
+        additionalWrapper: SeerExplorerChatStateProvider,
+      });
+      act(() => {
+        result.current.switchToRun(runId);
+      });
+      await waitFor(() => {
+        expect(result.current.sessionData?.status).toBe('completed');
+      });
+
+      act(() => {
+        result.current.sendMessage('Will fail');
+      });
+      await waitFor(() => {
+        expect(result.current.requestError).toEqual({query: 'Will fail'});
+      });
+
+      act(() => {
+        result.current.switchToRun('run-b');
+      });
+      expect(result.current.requestError).toBeNull();
+
+      // Coming back to the original conversation does not bring the stale error back.
+      act(() => {
+        result.current.switchToRun(runId);
+      });
+      expect(result.current.requestError).toBeNull();
+    });
   });
 
   describe('switching sessions', () => {
@@ -410,6 +878,31 @@ describe('useSeerExplorer', () => {
       });
     });
 
+    it('reads a session that carries no blocks as an empty conversation', async () => {
+      // A run with no Seer state behind it (still mirroring, or failed to
+      // start) comes back as a status-only session. Reading `blocks` off it
+      // unguarded used to throw and take the whole page down with it.
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/789/`,
+        method: 'GET',
+        body: {session: {status: 'error'}},
+      });
+
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
+        additionalWrapper: SeerExplorerChatStateProvider,
+      });
+
+      act(() => {
+        result.current.switchToRun(789);
+      });
+
+      await waitFor(() => {
+        expect(result.current.sessionData?.status).toBe('error');
+      });
+      expect(result.current.sessionData?.blocks).toEqual([]);
+    });
+
     it('URL-encodes the runId when building explorer-update URLs', async () => {
       // A runId carrying path separators must be encoded so the same-origin
       // POST can't traverse to another endpoint.
@@ -445,6 +938,64 @@ describe('useSeerExplorer', () => {
       await waitFor(() => {
         expect(updateMock).toHaveBeenCalled();
       });
+    });
+
+    it('flags an errored session with no blocks as a load failure', async () => {
+      // Seer can hand back `{session: {status: 'error'}}` with nothing else. Without
+      // this flag the panel is indistinguishable from an idle new chat.
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/789/`,
+        method: 'GET',
+        body: {session: {status: 'error'}},
+      });
+
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
+        additionalWrapper: SeerExplorerChatStateProvider,
+      });
+
+      act(() => {
+        result.current.switchToRun(789);
+      });
+
+      await waitFor(() => {
+        expect(result.current.hasSessionLoadError).toBe(true);
+      });
+      // The request itself succeeded, so the transport-level flag stays false.
+      expect(result.current.isError).toBe(false);
+    });
+
+    it('does not flag an errored session that still has blocks to show', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/790/`,
+        method: 'GET',
+        body: {
+          session: {
+            status: 'error',
+            blocks: [
+              {
+                id: '1',
+                message: {role: 'user', content: 'Hello'},
+                timestamp: '2024-01-01T00:00:00Z',
+              },
+            ],
+          },
+        },
+      });
+
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
+        additionalWrapper: SeerExplorerChatStateProvider,
+      });
+
+      act(() => {
+        result.current.switchToRun(790);
+      });
+
+      await waitFor(() => {
+        expect(result.current.sessionData?.blocks).toHaveLength(1);
+      });
+      expect(result.current.hasSessionLoadError).toBe(false);
     });
   });
 

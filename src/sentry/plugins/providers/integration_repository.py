@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping, MutableMapping, Sequence
-from datetime import timezone
-from typing import Any, ClassVar, Generic, TypedDict, TypeVar, cast
+from datetime import datetime, timezone
+from typing import Any, ClassVar, Generic, Literal, TypedDict, TypeVar, cast
 
 from dateutil.parser import parse as parse_date
 from rest_framework import status
@@ -36,6 +36,25 @@ class RepositoryConfig(TypedDict):
     url: str
     config: dict[str, Any]
     integration_id: int
+
+
+class CommitPatchFile(TypedDict):
+    """One file a commit touched. `type` is a `CommitFileChange.type` choice."""
+
+    path: str
+    type: Literal["A", "D", "M"]
+
+
+class CommitData(TypedDict):
+    """A commit in the shape `Release.set_commits` consumes."""
+
+    id: str
+    repository: str
+    author_email: str
+    author_name: str
+    message: str
+    timestamp: datetime
+    patch_set: Sequence[CommitPatchFile]
 
 
 class RepoExistsError(SentryAPIException):
@@ -86,6 +105,10 @@ class IntegrationRepositoryProvider(Generic[InstT]):
 
     name: ClassVar[str]
     repo_provider: ClassVar[str]
+    # ``Repository.provider`` values written by the plugin that preceded this integration,
+    # where they differ from ``repo_provider``. Plugin-era rows have no integration_id and
+    # are adopted on install rather than duplicated.
+    legacy_provider_ids: ClassVar[tuple[str, ...]] = ()
 
     can_transfer_repositories: ClassVar[bool] = False
 
@@ -114,6 +137,47 @@ class IntegrationRepositoryProvider(Generic[InstT]):
             raise Integration.DoesNotExist("Integration matching query does not exist.")
 
         return cast(InstT, rpc_integration.get_installation(organization_id=organization_id))
+
+    @property
+    def owned_provider_ids(self) -> list[str]:
+        """Every ``Repository.provider`` value that belongs to this provider.
+
+        An external id is only unique per provider, so lookups by external id must be
+        restricted to these or they match another provider's repository with the same id.
+        """
+        return [self.id, self.repo_provider, *self.legacy_provider_ids]
+
+    def _adoptable_repositories(self, organization_id: int, **filters: Any) -> list[RpcRepository]:
+        """Repositories this provider may take over, narrowed by ``filters``.
+
+        Its own rows (including plugin-era ones) and rows that never had a provider. A row
+        belonging to another provider is a different repository that happens to share an
+        external id, and is left alone.
+
+        Adopting rewrites ``provider`` to this provider's id, so a plugin-era or
+        provider-less row is skipped when a row already holds ``(organization, provider,
+        external_id)`` for it — whatever that row's status. That row is the repository;
+        rewriting the other would violate the unique key.
+        """
+        candidates = [
+            *repository_service.get_repositories(
+                organization_id=organization_id, providers=self.owned_provider_ids, **filters
+            ),
+            *repository_service.get_repositories(
+                organization_id=organization_id, has_provider=False, **filters
+            ),
+        ]
+        taken = {
+            repo.external_id
+            for repo in repository_service.get_repositories(
+                organization_id=organization_id,
+                providers=[self.id],
+                external_id=filters.get("external_id"),
+            )
+        }
+        return [
+            repo for repo in candidates if repo.provider == self.id or repo.external_id not in taken
+        ]
 
     def create_repository(
         self,
@@ -152,10 +216,8 @@ class IntegrationRepositoryProvider(Generic[InstT]):
             return result, existing_repo
 
         # then check if there is a repository without an integration that matches
-        repositories = repository_service.get_repositories(
-            organization_id=organization.id,
-            has_integration=False,
-            external_id=external_id,
+        repositories = self._adoptable_repositories(
+            organization.id, external_id=external_id, has_integration=False
         )
         repo = repositories[0] if repositories else None
 
@@ -237,8 +299,7 @@ class IntegrationRepositoryProvider(Generic[InstT]):
         """Reactivates ``repo`` and overlays ``config`` onto it, mutating it in place and
         returning it. The caller persists it."""
         repo.status = ObjectStatus.ACTIVE
-        # legacy plugin repos carry the bare provider slug; adopting one moves it to this provider
-        repo.provider = self.id
+        repo.provider = self.id  # a plugin-era or provider-less row is ours now
 
         new_config = config.get("config") or {}
         repo.config = {**repo.config, **new_config}
@@ -256,7 +317,8 @@ class IntegrationRepositoryProvider(Generic[InstT]):
         Make every repo in ``configs`` exist on its integration: update the ones we already
         have, create the rest. Returns (created, updated, not_created) — newly created repos,
         existing repos that were updated (reactivated, relinked or transferred), and configs
-        that weren't created because a repo already existed for them.
+        that weren't created because a repo already existed for them. A repo that was already
+        active on its integration has its config refreshed but is not reported as updated.
         """
         configs_by_external_id: dict[str, RepositoryConfig] = {}
         for config in configs:
@@ -290,21 +352,26 @@ class IntegrationRepositoryProvider(Generic[InstT]):
         # mutates both in place via _apply_repo_config. unlinked/legacy rows (integration_id
         # is None) are adopted here and must not be reported as not-created.
         already_active = [
-            config
+            (repo, config)
             for repo, config in repos_to_update
             if (
                 repo.status == ObjectStatus.ACTIVE
                 and repo.integration_id == config["integration_id"]
             )
         ]
+        already_active_ids = {repo.id for repo, _ in already_active}
 
-        updated_repos = self._update_existing_repositories(organization, repos_to_update)
+        updated_repos = [
+            repo
+            for repo in self._update_existing_repositories(organization, repos_to_update)
+            if repo.id not in already_active_ids
+        ]
 
         transferred_repos, untransferable = self._transfer_repositories(
             organization, repos_to_transfer
         )
 
-        not_created = already_created + already_active + untransferable
+        not_created = already_created + [config for _, config in already_active] + untransferable
 
         return created_repos, updated_repos + transferred_repos, not_created
 
@@ -313,17 +380,14 @@ class IntegrationRepositoryProvider(Generic[InstT]):
     ) -> dict[str, RpcRepository]:
         """
         The org's repo for each external_id, on any integration of this provider or on none.
-        Includes repos created by the legacy plugin (bare provider slug, no integration).
+        Includes unlinked rows this provider may adopt: plugin-era ones and ones with no
+        provider (see ``_adoptable_repositories``).
         """
         provider_repos = repository_service.get_repositories(
             organization_id=organization.id,
             providers=[self.id],
         )
-        legacy_repos = repository_service.get_repositories(
-            organization_id=organization.id,
-            providers=[self.repo_provider],
-            has_integration=False,
-        )
+        legacy_repos = self._adoptable_repositories(organization.id, has_integration=False)
 
         found: dict[str, RpcRepository] = {}
         for repo in provider_repos + legacy_repos:

@@ -37,6 +37,24 @@ describe('NavigateToExternalLinkModal', () => {
     expect(link).toBeInTheDocument();
   });
 
+  // eslint-disable-next-line no-script-url
+  it.each(['javascript:alert(document.domain)', 'data:text/html,<script>1</script>'])(
+    'does not offer to navigate to %s',
+    linkText => {
+      renderGlobalModal();
+
+      act(() =>
+        openModal(modalProps => (
+          <NavigateToExternalLinkModal {...modalProps} linkText={linkText} />
+        ))
+      );
+
+      expect(screen.getByText(linkText)).toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: 'Continue'})).not.toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Cancel'})).toBeInTheDocument();
+    }
+  );
+
   it('navigates on continue button click', async () => {
     const closeModal = jest.fn();
     const linkText = 'http://test-url.com';

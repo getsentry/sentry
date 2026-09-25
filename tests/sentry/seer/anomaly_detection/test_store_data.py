@@ -1,20 +1,37 @@
 import logging
+from collections.abc import Sequence
 from datetime import UTC, datetime, timedelta
+from functools import cached_property
 from typing import Any
 
 import pytest
 
-from sentry.incidents.models.alert_rule import AlertRuleThresholdType
+from sentry.incidents.models.alert_rule import (
+    AlertRuleDetectionType,
+    AlertRuleSeasonality,
+    AlertRuleSensitivity,
+    AlertRuleThresholdType,
+)
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.seer.anomaly_detection.store_data import trim_leading_zeros
+from sentry.seer.anomaly_detection.types import TimeSeriesPoint
 from sentry.seer.anomaly_detection.utils import fetch_historical_data, format_historical_data
 from sentry.snuba import errors, metrics_performance
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery
 from sentry.snuba.spans_rpc import Spans
-from sentry.testutils.cases import BaseMetricsTestCase, PerformanceIssueTestCase, SpanTestCase
+from sentry.testutils.abstract import Abstract
+from sentry.testutils.cases import (
+    APITestCase,
+    BaseMetricsTestCase,
+    PerformanceIssueTestCase,
+    SpanTestCase,
+)
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.issue_detection.event_generators import get_event
+from sentry.users.models.user import User
 from sentry.utils.snuba import SnubaTSResult
-from tests.sentry.incidents.endpoints.test_organization_alert_rule_index import AlertRuleBase
 
 pytestmark = pytest.mark.sentry_metrics
 
@@ -31,6 +48,84 @@ def make_event(**kwargs: Any) -> dict[str, Any]:
     }
     result.update(kwargs)
     return result
+
+
+class AlertRuleBase(APITestCase):
+    __test__ = Abstract(__module__, __qualname__)
+
+    @cached_property
+    def organization(self) -> Organization:
+        return self.create_organization()
+
+    @cached_property
+    def project(self) -> Project:
+        return self.create_project(organization=self.organization)
+
+    @cached_property
+    def user(self) -> User:
+        return self.create_user()
+
+    @cached_property
+    def alert_rule_dict(self) -> dict[str, Any]:
+        return {
+            "aggregate": "count()",
+            "query": "",
+            "timeWindow": "5",
+            "resolveThreshold": 100,
+            "thresholdType": 0,
+            "triggers": [
+                {
+                    "label": "critical",
+                    "alertThreshold": 200,
+                    "actions": [
+                        {"type": "email", "targetType": "team", "targetIdentifier": self.team.id}
+                    ],
+                },
+                {
+                    "label": "warning",
+                    "alertThreshold": 150,
+                    "actions": [
+                        {"type": "email", "targetType": "team", "targetIdentifier": self.team.id},
+                        {"type": "email", "targetType": "user", "targetIdentifier": self.user.id},
+                    ],
+                },
+            ],
+            "projects": [self.project.slug],
+            "owner": self.user.id,
+            "name": "JustAValidTestRule",
+        }
+
+    @cached_property
+    def dynamic_alert_rule_dict(self) -> dict[str, Any]:
+        return {
+            "aggregate": "count()",
+            "query": "",
+            "time_window": 30,
+            "detection_type": AlertRuleDetectionType.DYNAMIC,
+            "sensitivity": AlertRuleSensitivity.LOW,
+            "seasonality": AlertRuleSeasonality.AUTO,
+            "thresholdType": 0,
+            "triggers": [
+                {
+                    "label": "critical",
+                    "alertThreshold": 0,
+                    "actions": [
+                        {"type": "email", "targetType": "team", "targetIdentifier": self.team.id}
+                    ],
+                },
+                {
+                    "label": "warning",
+                    "alertThreshold": 0,
+                    "actions": [
+                        {"type": "email", "targetType": "team", "targetIdentifier": self.team.id},
+                        {"type": "email", "targetType": "user", "targetIdentifier": self.user.id},
+                    ],
+                },
+            ],
+            "projects": [self.project.slug],
+            "owner": self.user.id,
+            "name": "JustAValidTestRule",
+        }
 
 
 @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
@@ -293,3 +388,53 @@ class AnomalyDetectionStoreDataTest(
         assert result
         assert self.time_1 in result.data.get("data").get("intervals")
         assert 1 in result.data.get("data").get("groups")[0].get("series").get("sum(session)")
+
+
+def build_daily_series(values: Sequence[float], start: datetime) -> list[TimeSeriesPoint]:
+    return [
+        TimeSeriesPoint(timestamp=(start + timedelta(days=i)).timestamp(), value=value)
+        for i, value in enumerate(values)
+    ]
+
+
+def test_trim_leading_zeros_trims_when_enough_real_data_remains() -> None:
+    data = build_daily_series([0] * 14 + [200000] * 14, before_now(days=28))
+
+    result = trim_leading_zeros(data)
+
+    assert result == data[14:]
+    assert result[0]["value"] == 200000
+
+
+def test_trim_leading_zeros_keeps_data_when_too_little_real_data_remains() -> None:
+    data = build_daily_series([0] * 25 + [200000] * 3, before_now(days=28))
+
+    result = trim_leading_zeros(data)
+
+    assert result == data
+
+
+def test_trim_leading_zeros_keeps_all_zero_series() -> None:
+    data = build_daily_series([0] * 28, before_now(days=28))
+
+    result = trim_leading_zeros(data)
+
+    assert result == data
+
+
+def test_trim_leading_zeros_keeps_series_without_leading_zeros() -> None:
+    data = build_daily_series([200000] * 28, before_now(days=28))
+
+    result = trim_leading_zeros(data)
+
+    assert result == data
+
+
+def test_trim_leading_zeros_preserves_zeros_after_real_data_starts() -> None:
+    values = [0] * 10 + [200000] * 5 + [0, 0] + [200000] * 11
+    data = build_daily_series(values, before_now(days=28))
+
+    result = trim_leading_zeros(data)
+
+    assert result == data[10:]
+    assert [point["value"] for point in result[5:7]] == [0, 0]

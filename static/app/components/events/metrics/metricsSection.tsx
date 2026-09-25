@@ -25,7 +25,7 @@ import {MetricsSamplesTable} from 'sentry/views/explore/metrics/metricInfoTabs/m
 import {canUseMetricsUI} from 'sentry/views/explore/metrics/metricsFlags';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
-import {TraceViewMetricsProviderWrapper} from 'sentry/views/performance/newTraceDetails/traceMetrics';
+import {TraceViewMetricsProviderWrapper} from 'sentry/views/performance/traceDetails/traceMetrics';
 
 export function MetricsSection({
   event,
@@ -139,6 +139,7 @@ function MetricsSectionContent({
         }
       );
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [location.query, traceId, group, event, project, openDrawer, navigate, location]);
 
   if (!result.data || result.data.length === 0 || error) {
@@ -151,6 +152,7 @@ function MetricsSectionContent({
         <MetricsSamplesTable
           source="issueDetails"
           overrideTableData={abbreviatedTableData}
+          overrideTableRoutingHint={result.meta?.routingHint}
         />
         {result.data && result.data.length > NUMBER_ABBREVIATED_METRICS ? (
           <div>

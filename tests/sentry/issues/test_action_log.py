@@ -590,7 +590,7 @@ class TestPublishActionWrite(TestCase):
         assert not CellOutbox.objects.filter(
             category=OutboxCategory.GROUP_ACTION_LOG_EVENT
         ).exists()
-        mock_timer.assert_called_once_with(
+        mock_timer.assert_any_call(
             "issues.action_log.enqueue.duration",
             tags={
                 "action": "view",
@@ -598,6 +598,23 @@ class TestPublishActionWrite(TestCase):
                 "derived_strategy": "async",
             },
         )
+
+    @patch("sentry.issues.action_log.publish.secrets.randbelow", return_value=12344)
+    def test_outbox_identifier_uses_secure_random_value(self, mock_randbelow: MagicMock) -> None:
+        with (
+            self.feature("projects:issue-action-log-write-to-db"),
+            outbox_context(flush=False),
+        ):
+            publish_action(
+                ViewAction(),
+                source=ActionSource.API,
+                group_id=self.group.id,
+                project=self.group.project,
+            )
+
+        outbox = GroupActionLogOutbox.objects.get()
+        assert outbox.object_identifier == 12345
+        mock_randbelow.assert_called_once_with(2**63 - 1)
 
     def test_outbox_flushes_on_commit(self) -> None:
         with (

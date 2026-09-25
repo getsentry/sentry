@@ -2,24 +2,39 @@ from __future__ import annotations
 
 import logging
 import random
-from datetime import datetime, timezone
+import time
+from collections.abc import Sequence
+from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
+from math import ceil
 from typing import Protocol
 
-from django.db import connections, router
 from django.db.models import Max, Min
+from django.db.utils import OperationalError
 
 from sentry.issues.derived.check import CheckFailure, CheckId, CheckInvalidated, CheckResult
 from sentry.issues.models.groupderiveddata import GroupDerivedData
 from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawned
 from sentry.utils import metrics
+from sentry.utils.db import statement_timeout
 
 logger = logging.getLogger(__name__)
 
 _MAX_CHECK_GROUPS = 10_000
+_GROUP_ID_RANGE_QUERY_TIMEOUT = timedelta(seconds=40)
+# Use exact boundaries below this requested row count; estimate density above it.
+_MAX_EXACT_RANGE_ROWS = 10_000
+# Each probe reads this many matching IDs and extrapolates the following number of ranges.
+_RANGE_DENSITY_SAMPLE_SIZE = 100
+_RANGES_PER_DENSITY_SAMPLE = 5
+# Bound total probe work for regions with large scheduling budgets.
+_MAX_RANGE_DENSITY_SAMPLES = 200
 
-# Safety valve on the number of group IDs one ``group_id_ranges_for_hash`` call may
-# walk, however large the requested chunking is.
-_MAX_SCANNED_GROUP_IDS = 2_000_000
+
+@dataclass(frozen=True)
+class GroupIdRangeResult:
+    ranges: list[tuple[int, int]]
+    drained: bool
 
 
 class _TaskState(Protocol):
@@ -105,82 +120,147 @@ def _pick_random_fresh_group_ranges(
     return ranges
 
 
-def group_id_ranges_for_hash(
-    pipeline_hash: str | None, *, chunk_size: int, max_chunks: int
+def _exact_group_id_ranges(
+    group_ids: Sequence[int], *, range_size: int, max_ranges: int
 ) -> list[tuple[int, int]]:
-    """Partition the group IDs of GroupDerivedData rows with a pipeline_hash into ranges.
-
-    Returns at most max_chunks of ascending disjoint [start, end) ranges, each
-    covering chunk_size group IDs but possibly the last.
-    """
-    if chunk_size <= 0 or max_chunks <= 0:
+    """Build exact ranges from ordered IDs, using an optional lookahead ID as the final end."""
+    if not group_ids:
         return []
 
-    # One boundary per chunk, plus one extra to close the final range (or, if we ran
-    # out of matching rows first, to tell us we did).
-    scan_limit = chunk_size * (max_chunks + 1)
-    if scan_limit > _MAX_SCANNED_GROUP_IDS:
-        logger.warning(
-            "group_id_ranges_for_hash.scan_budget_clamped",
-            extra={
-                "chunk_size": chunk_size,
-                "max_chunks": max_chunks,
-                "requested_scan_limit": scan_limit,
-                "max_scan_limit": _MAX_SCANNED_GROUP_IDS,
-            },
+    requested_rows = range_size * max_ranges
+    starts = group_ids[:requested_rows:range_size]
+    last_end = group_ids[requested_rows] if len(group_ids) > requested_rows else group_ids[-1] + 1
+    return list(zip(starts, [*starts[1:], last_end]))
+
+
+def _estimate_group_id_ranges(
+    density_sample: Sequence[int], *, range_size: int, range_count: int
+) -> list[tuple[int, int]]:
+    """Build contiguous ranges sized from the density of an ordered ID sample."""
+    sample_width = density_sample[-1] - density_sample[0] + 1
+    estimated_width = ceil(sample_width * range_size / len(density_sample))
+    first_group_id = density_sample[0]
+    return [
+        (
+            first_group_id + index * estimated_width,
+            first_group_id + (index + 1) * estimated_width,
         )
-        # Never clamp below two chunks: a lone boundary can't close a range, so we'd
-        # return nothing and the caller would take that to mean there was nothing to do.
-        scan_limit = max(_MAX_SCANNED_GROUP_IDS, chunk_size * 2)
+        for index in range(range_count)
+    ]
 
-    hash_predicate = "pipeline_hash IS NULL" if pipeline_hash is None else "pipeline_hash = %s"
-    # The LIMIT lives in the innermost subquery to encourage Postgres to enforce
-    # the limit before doing the window function stuff. ``cnt`` tells us whether we
-    # hit the limit, and pulls out the last row we saw so we can close the final
-    # chunk without a second query.
-    sql = f"""
-        SELECT group_id, rn, cnt FROM (
-            SELECT group_id,
-                   -- Ordered so the numbering is defined rather than dependent on the
-                   -- order the subquery happens to emit. count(*) stays unordered; an
-                   -- ORDER BY there would turn it into a running count.
-                   row_number() OVER (ORDER BY group_id) - 1 AS rn,
-                   count(*) OVER () AS cnt
-            FROM (
-                SELECT group_id
-                FROM {GroupDerivedData._meta.db_table}
-                WHERE {hash_predicate}
-                ORDER BY group_id
-                LIMIT %s
-            ) scanned
-        ) numbered
-        WHERE mod(rn, %s) = 0 OR rn = cnt - 1
-        ORDER BY rn
+
+def group_id_ranges_for_hash(
+    pipeline_hash: str | None, *, range_size: int, max_ranges: int, group_id_lower_bound: int = 0
+) -> GroupIdRangeResult:
+    """Estimate ranges covering GroupDerivedData rows with a pipeline_hash.
+
+    Returns at most max_ranges of ascending disjoint [start, end) ranges, each
+    targeting range_size group IDs. ``drained`` is true only when a valid query
+    found no rows at or above ``group_id_lower_bound``.
+
+    Imagine a sequence of GroupDerivedData rows with some stale (s):
+
+        s.......s.......s.......s...........ssssssss....
+        0       8       16      24          36..43
+
+    We can precisely query for ranges with an equal number of stale rows, but that requires
+    us to do a full index scan of those rows, and if we've been mutating, that can get
+    surprisingly slow, especially since we'd like to be able to divvy out 100s of thousands
+    of rows. Our range processing task also filters and is tolerant of variation, so instead
+    of trying to be exact, we approximate.
+
+    Simply cutting the ID span into N equal ranges can be rough. Asking for 3 above gives
+    [0,16) [16,32) [32,48), holding 2, 2, and 8 stale rows: one range has two thirds of the
+    work, and that's bad for our goal of great throughput.
+
+    Instead, we set a budget of how much we'd like to do, and take incremental 'core samples',
+    using each to size the ranges that follow it. Sampling 4 rows at a time and targeting 4
+    rows per range, the first sample reads 0, 8, 16, 24, four rows spanning 25 IDs, so we emit
+    [0,25). The next sample resumes there, skips the empty gap entirely, and lands on
+    36, 37, 38, 39, four rows spanning 4 IDs, so we emit [36,40). The last sample sees the end
+    of the data and falls back to exact boundaries, [40,44).
+
+    That's 4, 4, 4 instead of 2, 2, 8, for 3 small queries instead of a full scan. It's still
+    an estimate: an over-dense range is split by the worker, an under-dense one costs only a
+    scheduling slot. In production a sample is _RANGE_DENSITY_SAMPLE_SIZE rows and sizes
+    _RANGES_PER_DENSITY_SAMPLE ranges, rather than one.
+
+    Raises ``OperationalError`` if all density probes together exceed the query
+    budget. Callers must not interpret that as a drained hash.
     """
-    params: list[str | int] = [] if pipeline_hash is None else [pipeline_hash]
-    params += [scan_limit, chunk_size]
+    if range_size <= 0 or max_ranges <= 0:
+        return GroupIdRangeResult(ranges=[], drained=False)
 
-    using = router.db_for_read(GroupDerivedData)
-    with (
-        metrics.timer("issues.derived.group_id_range_query"),
-        connections[using].cursor() as cursor,
-    ):
-        cursor.execute(sql, params)
-        rows = cursor.fetchall()
+    matching_group_ids = (
+        GroupDerivedData.objects.filter(pipeline_hash=pipeline_hash)
+        .order_by("pipeline_hash", "group_id")
+        .values_list("group_id", flat=True)
+    )
+    using = matching_group_ids.db
+    matching_group_ids = matching_group_ids.using(using)
+    query_deadline = time.monotonic() + _GROUP_ID_RANGE_QUERY_TIMEOUT.total_seconds()
 
-    if not rows:
-        return []
+    with metrics.timer("issues.derived.group_id_range_query"):
 
-    scanned = rows[0][2]
-    boundaries = [group_id for group_id, rn, _ in rows if rn % chunk_size == 0]
+        def fetch_group_ids(start: int, limit: int) -> list[int]:
+            remaining_seconds = query_deadline - time.monotonic()
+            if remaining_seconds <= 0.001:
+                raise OperationalError("group ID range query budget exceeded")
 
-    if scanned == scan_limit:
-        # We got more than enough rows; the trailing boundary closes the last range.
-        ends = boundaries[1:]
-    else:
-        # We didn't fill out the final chunk, so the last row we scanned closes it.
-        ends = boundaries[1:] + [rows[-1][0] + 1]
-    return list(zip(boundaries, ends))[:max_chunks]
+            with statement_timeout(using, timedelta(seconds=remaining_seconds)):
+                return list(matching_group_ids.filter(group_id__gte=start)[:limit])
+
+        requested_rows = range_size * max_ranges
+        if requested_rows <= _MAX_EXACT_RANGE_ROWS:
+            group_ids = fetch_group_ids(group_id_lower_bound, requested_rows + 1)
+            if not group_ids:
+                return GroupIdRangeResult(ranges=[], drained=True)
+
+            return GroupIdRangeResult(
+                ranges=_exact_group_id_ranges(
+                    group_ids,
+                    range_size=range_size,
+                    max_ranges=max_ranges,
+                ),
+                drained=False,
+            )
+
+        result_ranges: list[tuple[int, int]] = []
+        next_group_id = group_id_lower_bound
+        density_sample_count = min(
+            ceil(max_ranges / _RANGES_PER_DENSITY_SAMPLE),
+            _MAX_RANGE_DENSITY_SAMPLES,
+        )
+        ranges_per_sample, samples_with_extra_range = divmod(max_ranges, density_sample_count)
+        # Ranges probably don't divide equally by samples, so we try to distribute the remainder
+        # cleanly.
+        range_counts = [ranges_per_sample + 1] * samples_with_extra_range + [ranges_per_sample] * (
+            density_sample_count - samples_with_extra_range
+        )
+
+        for ranges_for_sample in range_counts:
+            sampled_group_ids = fetch_group_ids(next_group_id, _RANGE_DENSITY_SAMPLE_SIZE + 1)
+            if not sampled_group_ids:
+                return GroupIdRangeResult(ranges=result_ranges, drained=not result_ranges)
+            if len(sampled_group_ids) <= _RANGE_DENSITY_SAMPLE_SIZE:
+                # We requested one extra, so this means we've got all the data and can exit.
+                starts = sampled_group_ids[::range_size]
+                ends = starts[1:] + [sampled_group_ids[-1] + 1]
+                result_ranges.extend(zip(starts, ends))
+                break
+
+            # trim the over-query
+            density_sample = sampled_group_ids[:-1]
+            # generate range_for_sample ranges based on density_sample.
+            estimated_ranges = _estimate_group_id_ranges(
+                density_sample,
+                range_size=range_size,
+                range_count=ranges_for_sample,
+            )
+            result_ranges.extend(estimated_ranges)
+            next_group_id = estimated_ranges[-1][1]
+
+    return GroupIdRangeResult(ranges=result_ranges[:max_ranges], drained=False)
 
 
 def _resume_check_id(

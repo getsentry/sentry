@@ -24,6 +24,8 @@ import * as qs from 'query-string';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {ThemeFixture} from 'sentry-fixture/theme';
 
+import {instrumentUserEvent} from 'sentry-test/instrumentedEnv/userEventIntegration';
+
 import {GlobalDrawer} from '@sentry/scraps/drawer';
 import {GlobalModal} from '@sentry/scraps/modal';
 
@@ -34,8 +36,6 @@ import {ProvideAriaRouter} from 'sentry/utils/provideAriaRouter';
 import {GlobalAlertProvider} from 'sentry/views/app/globalAlerts';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {LLMContextProvider} from 'sentry/views/seerExplorer/contexts/llmContext';
-
-import {instrumentUserEvent} from '../instrumentedEnv/userEventIntegration';
 
 import {initializeOrg} from './initializeOrg';
 import {SentryNuqsTestingAdapter} from './nuqsTestingAdapter';
@@ -269,6 +269,14 @@ class TestRouter {
       ...this.router.state.location,
       query,
     };
+  }
+
+  /**
+   * How the current location was reached: 'POP' (initial entry or back/forward),
+   * 'PUSH', or 'REPLACE'.
+   */
+  get historyAction() {
+    return this.router.state.historyAction;
   }
 
   navigate = (to: To | number, opts?: RouterNavigateOptions) => {
