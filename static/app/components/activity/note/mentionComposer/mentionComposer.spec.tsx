@@ -156,6 +156,22 @@ describe('MentionComposer', () => {
     expect(onSubmit).toHaveBeenCalledWith({text: '#missing', mentions: []});
   });
 
+  it('does not submit while suggestions are loading', async () => {
+    const onSubmit = jest.fn().mockResolvedValue(undefined);
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/members/',
+      body: () => new Promise(() => {}), // Never resolves
+    });
+
+    render(<MentionComposer mode="create" onSubmit={onSubmit} />);
+
+    await userEvent.type(getEditor(), '@query');
+    expect(await screen.findByText('Loading suggestions…')).toBeVisible();
+    await userEvent.keyboard('{Enter}');
+
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
   it.each(['native', 'tracked'])(
     'does not submit during %s IME composition',
     async composition => {
@@ -188,6 +204,54 @@ describe('MentionComposer', () => {
       expect(onSubmit).toHaveBeenCalledWith({text: 'Draft', mentions: []});
     }
   );
+
+  it('does not submit on Enter immediately after composition ends (Safari)', async () => {
+    const onSubmit = jest.fn().mockResolvedValue(undefined);
+    render(<MentionComposer mode="create" onSubmit={onSubmit} />);
+    const editor = getEditor();
+    await userEvent.type(editor, 'Draft');
+
+    act(() => {
+      editor.dispatchEvent(new CompositionEvent('compositionstart', {bubbles: true}));
+      editor.textContent = 'Draft日本語';
+      editor.dispatchEvent(
+        new InputEvent('input', {
+          bubbles: true,
+          data: '日本語',
+          inputType: 'insertCompositionText',
+          isComposing: true,
+        })
+      );
+    });
+
+    act(() => {
+      editor.dispatchEvent(
+        new CompositionEvent('compositionend', {
+          bubbles: true,
+          data: '日本語',
+        })
+      );
+    });
+
+    // Safari fires Enter immediately after compositionend with isComposing=false
+    act(() => {
+      editor.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          key: 'Enter',
+          bubbles: true,
+          cancelable: true,
+          isComposing: false,
+        })
+      );
+    });
+
+    // First Enter after composition should be blocked
+    expect(onSubmit).not.toHaveBeenCalled();
+
+    // Subsequent Enter should submit normally
+    await userEvent.keyboard('{Enter}');
+    expect(onSubmit).toHaveBeenCalledWith({text: 'Draft日本語', mentions: []});
+  });
 
   it('renders selected mentions in Markdown preview', async () => {
     render(<MentionComposer mode="create" onSubmit={noopSubmit} />);
