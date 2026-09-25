@@ -378,17 +378,13 @@ function EditConnectedMonitorsContent({
   ];
 
   const disabledChoices: Array<[MonitorMode, React.ReactNode?]> = [];
-  if (organization.features.includes('workflow-engine-all-projects-detector')) {
-    monitorModeChoices.push(['allProjects', t('Alert on all issues in all projects')]);
+  monitorModeChoices.push(['allProjects', t('Alert on all issues in all projects')]);
 
-    if (!canEditAllProjects) {
-      disabledChoices.push([
-        'allProjects',
-        t(
-          'Only organization owners and managers can create/modify global issue monitors.'
-        ),
-      ]);
-    }
+  if (!canEditAllProjects) {
+    disabledChoices.push([
+      'allProjects',
+      t('Only organization owners and managers can create/modify global issue monitors.'),
+    ]);
   }
 
   return (
