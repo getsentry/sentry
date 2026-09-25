@@ -499,6 +499,13 @@ class IntegrationProxyEvent(EventLifecycleMetric):
 
     interaction_type: IntegrationProxyEventType
 
+    provider: str
+    """
+    Reassigned once request validation resolves the integration. Terminal outcomes
+    pick the new value up because get_metric_tags() is evaluated per recorded event
+    rather than at construction; the started event keeps whatever was passed in.
+    """
+
     def get_metrics_domain(self) -> str:
         return "integration_proxy"
 
@@ -512,9 +519,13 @@ class IntegrationProxyEvent(EventLifecycleMetric):
     def get_metric_tags(self) -> Mapping[str, str]:
         return {
             "interaction_type": self.interaction_type,
+            "provider": self.provider,
         }
 
     def get_extras(self) -> Mapping[str, Any]:
+        # Deliberately omits provider. get_extras() is evaluated once, when the
+        # lifecycle is constructed, so it would freeze the pre-validation value.
+        # record_event merges tags into the log extras anyway.
         return {
             "interaction_type": self.interaction_type,
         }
