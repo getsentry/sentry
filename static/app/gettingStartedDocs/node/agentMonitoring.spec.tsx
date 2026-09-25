@@ -342,6 +342,13 @@ describe('node agentMonitoring onboarding', () => {
       ['manual', {integration: 'manual'}, 'Sentry.init({'],
       ['mastra', {integration: 'mastra'}, 'Sentry.init({'],
       ['flue', {integration: 'flue'}, 'Sentry.init({'],
+      // Flue on Cloudflare configures Sentry in the blueprint-generated sentry.ts,
+      // so it must not show the `defineCloudflareOptions` file it does not have.
+      [
+        'flue on Cloudflare',
+        {integration: 'flue', deploymentTarget: 'cloudflare'},
+        'blueprint-generated sentry.ts',
+      ],
       [
         'on Cloudflare',
         {integration: 'openai', deploymentTarget: 'cloudflare'},
@@ -366,6 +373,17 @@ describe('node agentMonitoring onboarding', () => {
       expect(code).toContain(wrapper);
       // GuidedSteps drops collapsible steps, so a collapsible step would never render.
       expect(dataCollectionSteps[0]!.collapsible).toBeFalsy();
+    });
+
+    it('does not show `defineCloudflareOptions` for Flue on Cloudflare', () => {
+      const steps = config.configure(
+        makeParams({integration: 'flue', deploymentTarget: 'cloudflare'})
+      );
+      const dataCollectionSteps = steps.filter(
+        step => step.title === DATA_COLLECTION_TITLE
+      );
+
+      expect(collectCode(dataCollectionSteps)).not.toContain('defineCloudflareOptions');
     });
 
     it('omits the step for Eve, which never configures the Sentry SDK', () => {

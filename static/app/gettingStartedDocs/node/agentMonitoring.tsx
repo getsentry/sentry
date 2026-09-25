@@ -75,6 +75,22 @@ const CLOUDFLARE_GEN_AI_DATA_COLLECTION_SNIPPET = `export default defineCloudfla
   },
 }));`;
 
+// Flue on Cloudflare has no `defineCloudflareOptions` file; the blueprint
+// generates a `sentry.ts` that holds the Sentry options.
+const FLUE_CLOUDFLARE_GEN_AI_DATA_COLLECTION_SNIPPET = `// In the Sentry options of the blueprint-generated sentry.ts
+dataCollection: {
+  genAI: { inputs: false, outputs: false },
+},`;
+
+function getGenAiDataCollectionSnippet(params: DocsParams): string {
+  if (getDeploymentTarget(params) !== DeploymentTarget.CLOUDFLARE) {
+    return GEN_AI_DATA_COLLECTION_SNIPPET;
+  }
+  return getAgentIntegration(params) === AgentIntegration.FLUE
+    ? FLUE_CLOUDFLARE_GEN_AI_DATA_COLLECTION_SNIPPET
+    : CLOUDFLARE_GEN_AI_DATA_COLLECTION_SNIPPET;
+}
+
 /**
  * The data collection step for agent monitoring, leading with generative AI
  * content. Returns no step for Eve, which never configures the Sentry SDK.
@@ -83,8 +99,6 @@ export function getAgentDataCollectionStep(params: DocsParams): OnboardingStep[]
   if (getAgentIntegration(params) === AgentIntegration.EVE) {
     return [];
   }
-
-  const isCloudflare = getDeploymentTarget(params) === DeploymentTarget.CLOUDFLARE;
 
   return [
     getDataCollectionStep({
@@ -95,9 +109,7 @@ export function getAgentDataCollectionStep(params: DocsParams): OnboardingStep[]
       description: t(
         'By default, the SDK sends the inputs and outputs of your LLM and tool calls, such as prompts, responses, and tool arguments. This gives you rich debugging context.'
       ),
-      code: isCloudflare
-        ? CLOUDFLARE_GEN_AI_DATA_COLLECTION_SNIPPET
-        : GEN_AI_DATA_COLLECTION_SNIPPET,
+      code: getGenAiDataCollectionSnippet(params),
     }),
   ];
 }
