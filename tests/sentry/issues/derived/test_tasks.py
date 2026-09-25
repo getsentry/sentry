@@ -11,6 +11,11 @@ from sentry.issues.action_log.publish import publish_action
 from sentry.issues.action_log.types import ActionSource, GroupActionActor, ViewAction
 from sentry.issues.derived.check import CheckId, CheckTimeout
 from sentry.issues.derived.gate import GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION
+from sentry.issues.derived.heal import (
+    RegenerationRequest,
+    RegenerationResult,
+    _discover_stale_pipeline_hashes,
+)
 from sentry.issues.derived.heal_state import (
     CURRENT_STATE_VERSION,
     HealSchedulerState,
@@ -21,9 +26,6 @@ from sentry.issues.derived.heal_state import (
 from sentry.issues.derived.processing import PIPELINE, GroupLogTimeout, process_group_log
 from sentry.issues.derived.tasks import (
     BATCH_RETRIGGER_TIMEOUT,
-    RegenerationRequest,
-    RegenerationResult,
-    _discover_stale_pipeline_hashes,
     _enqueue_fresh_check,
     _enqueue_regeneration,
     check_fresh_derived_data_batch,
@@ -342,7 +344,7 @@ class SpawnStateTest(TestCase):
 
 class HealTaskAdapterTest(TestCase):
     def test_delegates_with_task_enqueue_callbacks(self) -> None:
-        with patch("sentry.issues.derived.tasks._heal_stale_derived_data") as heal:
+        with patch("sentry.issues.derived.heal.heal_stale_derived_data") as heal:
             heal_stale_derived_data()
 
         heal.assert_called_once_with(
@@ -394,7 +396,7 @@ class RegenerateStaleDerivedDataBatchAdapterTest(TestCase):
 
         with (
             patch(
-                "sentry.issues.derived.tasks._regenerate_stale_derived_data_batch",
+                "sentry.issues.derived.heal.regenerate_stale_derived_data_batch",
                 return_value=result,
             ) as regenerate,
             patch("sentry.issues.derived.tasks._enqueue_regeneration") as enqueue,
@@ -421,9 +423,7 @@ class RegenerateStaleDerivedDataBatchAdapterTest(TestCase):
         mock_current_task.return_value = SimpleNamespace(id="regenerate-duplicate")
         mark_spawned("regenerate_stale_derived_data_batch", "regenerate-duplicate")
 
-        with patch(
-            "sentry.issues.derived.tasks._regenerate_stale_derived_data_batch"
-        ) as regenerate:
+        with patch("sentry.issues.derived.heal.regenerate_stale_derived_data_batch") as regenerate:
             regenerate_stale_derived_data_batch(group_id_start=1, group_id_end=2)
 
         regenerate.assert_not_called()
@@ -480,8 +480,8 @@ class HealSchedulerStateTest(TestCase):
 class HealStaleDerivedDataTest(DerivedDataTaskTestBase):
     def setUp(self) -> None:
         super().setUp()
-        load_state_patch = patch("sentry.issues.derived.tasks.load_state", return_value=None)
-        save_state_patch = patch("sentry.issues.derived.tasks.save_state")
+        load_state_patch = patch("sentry.issues.derived.heal.load_state", return_value=None)
+        save_state_patch = patch("sentry.issues.derived.heal.save_state")
         load_state_patch.start()
         save_state_patch.start()
         self.addCleanup(load_state_patch.stop)
@@ -532,7 +532,7 @@ class HealStaleDerivedDataTest(DerivedDataTaskTestBase):
                 }
             ),
             patch("sentry.issues.derived.tasks_util.random.randint", return_value=group_ids[1]),
-            patch("sentry.issues.derived.tasks.logger") as mock_logger,
+            patch("sentry.issues.derived.heal.logger") as mock_logger,
             patch.object(regenerate_stale_derived_data_batch, "delay"),
             patch.object(check_fresh_derived_data_batch, "delay"),
         ):
@@ -570,13 +570,13 @@ class HealStaleDerivedDataTest(DerivedDataTaskTestBase):
         with (
             override_options({"issues.derived.check-task-count": 0}),
             patch(
-                "sentry.issues.derived.tasks._discover_stale_pipeline_hashes", return_value=[]
+                "sentry.issues.derived.heal._discover_stale_pipeline_hashes", return_value=[]
             ) as discover,
             patch(
                 "sentry.issues.derived.tasks_util.group_id_ranges_for_hash",
                 return_value=GroupIdRangeResult(ranges=[], drained=True),
             ),
-            patch("sentry.issues.derived.tasks.metrics.incr") as mock_incr,
+            patch("sentry.issues.derived.heal.metrics.incr") as mock_incr,
         ):
             heal_stale_derived_data()
 
@@ -597,13 +597,13 @@ class HealStaleDerivedDataTest(DerivedDataTaskTestBase):
         )
         with (
             override_options({"issues.derived.check-task-count": 0}),
-            patch("sentry.issues.derived.tasks.load_state", return_value=state),
-            patch("sentry.issues.derived.tasks._discover_stale_pipeline_hashes", return_value=[]),
+            patch("sentry.issues.derived.heal.load_state", return_value=state),
+            patch("sentry.issues.derived.heal._discover_stale_pipeline_hashes", return_value=[]),
             patch(
                 "sentry.issues.derived.tasks_util.group_id_ranges_for_hash",
                 return_value=GroupIdRangeResult(ranges=[], drained=True),
             ),
-            patch("sentry.issues.derived.tasks.metrics.incr") as mock_incr,
+            patch("sentry.issues.derived.heal.metrics.incr") as mock_incr,
         ):
             heal_stale_derived_data()
 
@@ -629,9 +629,9 @@ class HealStaleDerivedDataTest(DerivedDataTaskTestBase):
                     "issues.derived.check-task-count": 0,
                 }
             ),
-            patch("sentry.issues.derived.tasks.load_state", return_value=state),
-            patch("sentry.issues.derived.tasks.save_state") as mock_save,
-            patch("sentry.issues.derived.tasks._discover_stale_pipeline_hashes") as discover,
+            patch("sentry.issues.derived.heal.load_state", return_value=state),
+            patch("sentry.issues.derived.heal.save_state") as mock_save,
+            patch("sentry.issues.derived.heal._discover_stale_pipeline_hashes") as discover,
             patch(
                 "sentry.issues.derived.tasks_util.group_id_ranges_for_hash",
                 side_effect=[
@@ -660,9 +660,9 @@ class HealStaleDerivedDataTest(DerivedDataTaskTestBase):
                     "issues.derived.check-task-count": 0,
                 }
             ),
-            patch("sentry.issues.derived.tasks.load_state", return_value=state),
-            patch("sentry.issues.derived.tasks.save_state") as mock_save,
-            patch("sentry.issues.derived.tasks._discover_stale_pipeline_hashes") as discover,
+            patch("sentry.issues.derived.heal.load_state", return_value=state),
+            patch("sentry.issues.derived.heal.save_state") as mock_save,
+            patch("sentry.issues.derived.heal._discover_stale_pipeline_hashes") as discover,
             patch(
                 "sentry.issues.derived.tasks_util.group_id_ranges_for_hash",
                 side_effect=[
@@ -681,7 +681,7 @@ class HealStaleDerivedDataTest(DerivedDataTaskTestBase):
         with (
             override_options({"issues.derived.heal-max-tasks": 1}),
             patch(
-                "sentry.issues.derived.tasks._discover_stale_pipeline_hashes",
+                "sentry.issues.derived.heal._discover_stale_pipeline_hashes",
                 side_effect=OperationalError,
             ),
             patch(
@@ -689,8 +689,8 @@ class HealStaleDerivedDataTest(DerivedDataTaskTestBase):
                 return_value=GroupIdRangeResult(ranges=[(1, 2)], drained=False),
             ),
             patch.object(regenerate_stale_derived_data_batch, "delay") as delay,
-            patch("sentry.issues.derived.tasks.save_state") as mock_save,
-            patch("sentry.issues.derived.tasks.logger") as mock_logger,
+            patch("sentry.issues.derived.heal.save_state") as mock_save,
+            patch("sentry.issues.derived.heal.logger") as mock_logger,
         ):
             heal_stale_derived_data()
 
@@ -715,7 +715,7 @@ class HealStaleDerivedDataTest(DerivedDataTaskTestBase):
                     "issues.derived.check-task-count": 0,
                 }
             ),
-            patch("sentry.issues.derived.tasks.load_state", return_value=state),
+            patch("sentry.issues.derived.heal.load_state", return_value=state),
             patch(
                 "sentry.issues.derived.tasks_util.group_id_ranges_for_hash",
                 side_effect=[
@@ -724,8 +724,8 @@ class HealStaleDerivedDataTest(DerivedDataTaskTestBase):
                 ],
             ),
             patch.object(regenerate_stale_derived_data_batch, "delay") as delay,
-            patch("sentry.issues.derived.tasks.metrics.incr") as mock_incr,
-            patch("sentry.issues.derived.tasks.logger") as mock_logger,
+            patch("sentry.issues.derived.heal.metrics.incr") as mock_incr,
+            patch("sentry.issues.derived.heal.logger") as mock_logger,
         ):
             heal_stale_derived_data()
 
@@ -757,7 +757,7 @@ class HealStaleDerivedDataTest(DerivedDataTaskTestBase):
                     "issues.derived.check-task-count": 0,
                 }
             ),
-            patch("sentry.issues.derived.tasks.load_state", return_value=state),
+            patch("sentry.issues.derived.heal.load_state", return_value=state),
             patch(
                 "sentry.issues.derived.tasks_util.group_id_ranges_for_hash",
                 side_effect=[
@@ -766,7 +766,7 @@ class HealStaleDerivedDataTest(DerivedDataTaskTestBase):
                 ],
             ),
             patch.object(regenerate_stale_derived_data_batch, "delay") as delay,
-            patch("sentry.issues.derived.tasks.logger") as mock_logger,
+            patch("sentry.issues.derived.heal.logger") as mock_logger,
         ):
             heal_stale_derived_data()
 
@@ -783,14 +783,14 @@ class HealStaleDerivedDataTest(DerivedDataTaskTestBase):
         stale_hash = self._pick_stale_hash()
         with (
             patch(
-                "sentry.issues.derived.tasks._discover_stale_pipeline_hashes",
+                "sentry.issues.derived.heal._discover_stale_pipeline_hashes",
                 return_value=[stale_hash],
             ),
             patch(
                 "sentry.issues.derived.tasks_util.group_id_ranges_for_hash",
                 side_effect=RuntimeError("range selection timed out"),
             ),
-            patch("sentry.issues.derived.tasks.save_state") as mock_save,
+            patch("sentry.issues.derived.heal.save_state") as mock_save,
         ):
             with pytest.raises(RuntimeError):
                 heal_stale_derived_data()
@@ -814,9 +814,9 @@ class HealStaleDerivedDataTest(DerivedDataTaskTestBase):
                     "issues.derived.check-task-count": 0,
                 }
             ),
-            patch("sentry.issues.derived.tasks.load_state", return_value=state),
-            patch("sentry.issues.derived.tasks.save_state") as first_save,
-            patch("sentry.issues.derived.tasks._discover_stale_pipeline_hashes") as discover,
+            patch("sentry.issues.derived.heal.load_state", return_value=state),
+            patch("sentry.issues.derived.heal.save_state") as first_save,
+            patch("sentry.issues.derived.heal._discover_stale_pipeline_hashes") as discover,
             patch(
                 "sentry.issues.derived.tasks_util.group_id_ranges_for_hash",
                 side_effect=[
@@ -840,9 +840,9 @@ class HealStaleDerivedDataTest(DerivedDataTaskTestBase):
                     "issues.derived.check-task-count": 0,
                 }
             ),
-            patch("sentry.issues.derived.tasks.load_state", return_value=persisted),
-            patch("sentry.issues.derived.tasks.save_state") as second_save,
-            patch("sentry.issues.derived.tasks._discover_stale_pipeline_hashes") as discover,
+            patch("sentry.issues.derived.heal.load_state", return_value=persisted),
+            patch("sentry.issues.derived.heal.save_state") as second_save,
+            patch("sentry.issues.derived.heal._discover_stale_pipeline_hashes") as discover,
             patch(
                 "sentry.issues.derived.tasks_util.group_id_ranges_for_hash",
                 side_effect=[
@@ -871,9 +871,9 @@ class HealStaleDerivedDataTest(DerivedDataTaskTestBase):
         }
         with (
             override_options(options),
-            patch("sentry.issues.derived.tasks.load_state", return_value=state),
-            patch("sentry.issues.derived.tasks.save_state") as first_save,
-            patch("sentry.issues.derived.tasks._discover_stale_pipeline_hashes") as discover,
+            patch("sentry.issues.derived.heal.load_state", return_value=state),
+            patch("sentry.issues.derived.heal.save_state") as first_save,
+            patch("sentry.issues.derived.heal._discover_stale_pipeline_hashes") as discover,
             patch(
                 "sentry.issues.derived.tasks_util.group_id_ranges_for_hash",
                 return_value=GroupIdRangeResult(ranges=[], drained=True),
@@ -887,10 +887,10 @@ class HealStaleDerivedDataTest(DerivedDataTaskTestBase):
 
         with (
             override_options(options),
-            patch("sentry.issues.derived.tasks.load_state", return_value=retired),
-            patch("sentry.issues.derived.tasks.save_state"),
+            patch("sentry.issues.derived.heal.load_state", return_value=retired),
+            patch("sentry.issues.derived.heal.save_state"),
             patch(
-                "sentry.issues.derived.tasks._discover_stale_pipeline_hashes",
+                "sentry.issues.derived.heal._discover_stale_pipeline_hashes",
                 return_value=[stale_hash],
             ) as discover,
             patch(
@@ -915,8 +915,8 @@ class HealStaleDerivedDataTest(DerivedDataTaskTestBase):
         )
         with (
             override_options({"issues.derived.heal-max-tasks": 1}),
-            patch("sentry.issues.derived.tasks.load_state", return_value=state),
-            patch("sentry.issues.derived.tasks.save_state") as mock_save,
+            patch("sentry.issues.derived.heal.load_state", return_value=state),
+            patch("sentry.issues.derived.heal.save_state") as mock_save,
             patch(
                 "sentry.issues.derived.tasks_util.group_id_ranges_for_hash",
                 return_value=GroupIdRangeResult(ranges=[(1, 2)], drained=False),
@@ -949,8 +949,8 @@ class HealStaleDerivedDataTest(DerivedDataTaskTestBase):
                     "issues.derived.check-task-count": 0,
                 }
             ),
-            patch("sentry.issues.derived.tasks.load_state", return_value=state),
-            patch("sentry.issues.derived.tasks.save_state") as mock_save,
+            patch("sentry.issues.derived.heal.load_state", return_value=state),
+            patch("sentry.issues.derived.heal.save_state") as mock_save,
             patch(
                 "sentry.issues.derived.tasks_util.group_id_ranges_for_hash",
                 side_effect=[
@@ -981,8 +981,8 @@ class HealStaleDerivedDataTest(DerivedDataTaskTestBase):
                     "issues.derived.check-task-count": 1,
                 }
             ),
-            patch("sentry.issues.derived.tasks.load_state", return_value=state),
-            patch("sentry.issues.derived.tasks.save_state") as mock_save,
+            patch("sentry.issues.derived.heal.load_state", return_value=state),
+            patch("sentry.issues.derived.heal.save_state") as mock_save,
             patch(
                 "sentry.issues.derived.tasks_util.group_id_ranges_for_hash",
                 side_effect=[
@@ -1831,7 +1831,7 @@ class RegenerateStaleDerivedDataBatchTest(DerivedDataTaskTestBase):
         with (
             override_options({"issues.derived.heal-batch-size": 2}),
             patch.object(regenerate_stale_derived_data_batch, "delay") as mock_delay,
-            patch("sentry.issues.derived.tasks.metrics.distribution") as distribution,
+            patch("sentry.issues.derived.heal.metrics.distribution") as distribution,
         ):
             regenerate_stale_derived_data_batch(
                 target_hash=stale,
@@ -1896,7 +1896,7 @@ class DiscoverStalePipelineHashesTest(DerivedDataTaskTestBase):
         assert _discover_stale_pipeline_hashes(PIPELINE.pipeline_hash, limit=5) == []
 
     def test_query_has_statement_timeout(self) -> None:
-        with patch("sentry.issues.derived.tasks.statement_timeout") as timeout:
+        with patch("sentry.issues.derived.heal.statement_timeout") as timeout:
             _discover_stale_pipeline_hashes(PIPELINE.pipeline_hash, limit=5)
 
         assert timeout.call_args.args[1] == timedelta(seconds=15)
