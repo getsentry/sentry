@@ -18,6 +18,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useExperiment} from 'sentry/utils/useExperiment';
+import {ONBOARDING_ENTER, ONBOARDING_STAGGER} from 'sentry/views/onboarding/animations';
 
 import {GridFooter} from './genericFooter';
 
@@ -89,18 +90,7 @@ export function FirstEventFooter({
             initial="initial"
             animate="animate"
             exit="exit"
-            variants={{
-              initial: {opacity: 0, y: -10},
-              animate: {
-                opacity: 1,
-                y: 0,
-                transition: {
-                  when: 'beforeChildren',
-                  staggerChildren: 0.35,
-                },
-              },
-              exit: {opacity: 0, y: 10},
-            }}
+            {...ONBOARDING_STAGGER}
           >
             {project.firstEvent ? (
               <IconCheckmark variant="success" />
@@ -176,11 +166,7 @@ const AnimatedText = styled(motion.div, {
     p.errorReceived ? p.theme.tokens.content.success : p.theme.colors.pink500};
 `;
 
-const indicatorAnimation: Variants = {
-  initial: {opacity: 0, y: -10},
-  animate: {opacity: 1, y: 0},
-  exit: {opacity: 0, y: 10},
-};
+const indicatorAnimation: Variants = ONBOARDING_ENTER.variants;
 
 const WaitingIndicator = styled(motion.div)`
   ${pulsingIndicatorStyles};
