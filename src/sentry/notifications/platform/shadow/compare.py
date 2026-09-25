@@ -1,22 +1,19 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Callable, Iterator, Mapping, Sequence
+from collections.abc import Callable, Iterator, Mapping
 from dataclasses import dataclass
 from enum import StrEnum
-from itertools import islice
 from typing import Any
 
 import orjson
 
-from sentry.notifications.platform.types import NotificationProviderKey, NotificationSource
+from sentry.notifications.platform.shadow.capture import ShadowPayload
+from sentry.notifications.platform.types import NotificationProviderKey
 
 MAX_VALUE_LENGTH = 300
 
 DISCORD_VOLATILE_EMBED_KEYS = frozenset({"timestamp"})
-
-type SlackAttachmentsAndText = tuple[str | Sequence[Mapping[str, Any]], str]
-type ShadowPayload = Mapping[str, Any] | SlackAttachmentsAndText
 
 
 class DiffKind(StrEnum):
@@ -102,11 +99,7 @@ _NORMALIZERS: dict[NotificationProviderKey, Callable[[ShadowPayload], Any]] = {
 }
 
 
-def normalize(
-    provider: NotificationProviderKey,
-    source: NotificationSource,
-    payload: ShadowPayload,
-) -> Any:
+def normalize(provider: NotificationProviderKey, payload: ShadowPayload) -> Any:
     normalizer = _NORMALIZERS.get(provider)
     if normalizer is None:
         return _to_jsonable(payload)
@@ -166,5 +159,5 @@ def _walk(legacy: Any, platform: Any, path: str) -> Iterator[DiffEntry]:
         yield _entry(path, DiffKind.VALUE, legacy, platform)
 
 
-def diff(legacy: Any, platform: Any, max_entries: int | None = None) -> list[DiffEntry]:
-    return list(islice(_walk(legacy, platform, "$"), max_entries))
+def diff(legacy: Any, platform: Any) -> list[DiffEntry]:
+    return list(_walk(legacy, platform, "$"))

@@ -163,8 +163,8 @@ def compare_with_platform(
 
     try:
         entries = diff(
-            normalize(legacy.provider, source, legacy.payload),
-            normalize(provider_key, source, platform_payload),
+            normalize(legacy.provider, legacy.payload),
+            normalize(provider_key, platform_payload),
         )
     except Exception as e:
         return _capture_shadow_error(e, ShadowOutcome.COMPARE_ERROR, source, provider_key)

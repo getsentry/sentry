@@ -12,7 +12,7 @@ from sentry.notifications.platform.shadow.compare import (
     normalize,
 )
 from sentry.notifications.platform.slack.provider import SlackRenderable
-from sentry.notifications.platform.types import NotificationProviderKey, NotificationSource
+from sentry.notifications.platform.types import NotificationProviderKey
 
 
 def test_diff_identical_payloads() -> None:
@@ -94,18 +94,6 @@ def test_diff_truncates_long_values() -> None:
     assert missing_entry.platform is DiffMarker.MISSING
 
 
-def test_diff_max_entries() -> None:
-    legacy = {f"k{i}": i for i in range(10)}
-    platform = {f"k{i}": -i for i in range(1, 10)}
-    assert len(diff(legacy, platform)) == 10
-    assert [entry.path for entry in diff(legacy, platform, max_entries=3)] == [
-        "$.k0",
-        "$.k1",
-        "$.k2",
-    ]
-    assert diff(legacy, platform, max_entries=0) == []
-
-
 def test_normalize_slack_metric_json_string_attachments() -> None:
     attachment_blocks = [
         {"type": "section", "text": {"type": "mrkdwn", "text": "124 events\nStarted"}},
@@ -114,12 +102,10 @@ def test_normalize_slack_metric_json_string_attachments() -> None:
     legacy_attachments = orjson.dumps([{"blocks": attachment_blocks, "color": "#FF0000"}]).decode()
     legacy = normalize(
         NotificationProviderKey.SLACK,
-        NotificationSource.METRIC_ALERT,
         (legacy_attachments, "<https://sentry.io|*Critical: Alert*>"),
     )
     platform = normalize(
         NotificationProviderKey.SLACK,
-        NotificationSource.METRIC_ALERT,
         SlackRenderable(
             blocks=[],
             attachments=[{"blocks": attachment_blocks, "color": "#FF0000"}],
@@ -138,12 +124,10 @@ def test_normalize_slack_metric_json_string_attachments() -> None:
 def test_normalize_slack_metric_surfaces_attachment_differences() -> None:
     legacy = normalize(
         NotificationProviderKey.SLACK,
-        NotificationSource.METRIC_ALERT,
         (orjson.dumps([{"blocks": [], "color": "#FF0000"}]).decode(), "alert"),
     )
     platform = normalize(
         NotificationProviderKey.SLACK,
-        NotificationSource.METRIC_ALERT,
         SlackRenderable(blocks=[], attachments=[{"blocks": []}], text="alert"),
     )
     assert diff(legacy, platform) == [
@@ -160,12 +144,10 @@ def test_normalize_slack_issue_blocks() -> None:
     blocks = [{"type": "section", "text": {"type": "mrkdwn", "text": "hello"}}]
     legacy = normalize(
         NotificationProviderKey.SLACK,
-        NotificationSource.ISSUE,
         {"blocks": blocks, "text": "hello", "color": "#E03E2F"},
     )
     platform = normalize(
         NotificationProviderKey.SLACK_STAGING,
-        NotificationSource.ISSUE,
         SlackRenderable(
             blocks=[SectionBlock(text=MarkdownTextObject(text="hello"))],
             text="hello",
@@ -177,7 +159,7 @@ def test_normalize_slack_issue_blocks() -> None:
 
 
 def test_normalize_slack_defaults_missing_keys() -> None:
-    assert normalize(NotificationProviderKey.SLACK, NotificationSource.ISSUE, {}) == {
+    assert normalize(NotificationProviderKey.SLACK, {}) == {
         "blocks": [],
         "attachments": [],
         "text": "",
@@ -203,7 +185,7 @@ def test_normalize_msteams_strips_integration_id() -> None:
             },
         ],
     }
-    normalized = normalize(NotificationProviderKey.MSTEAMS, NotificationSource.ISSUE, card)
+    normalized = normalize(NotificationProviderKey.MSTEAMS, card)
 
     assert "integrationId" not in orjson.dumps(normalized).decode()
     assert normalized["actions"][0]["data"] == {"actionType": "resolve", "groupId": 2}
@@ -221,12 +203,10 @@ def test_normalize_discord_strips_embed_timestamps() -> None:
 
     legacy = normalize(
         NotificationProviderKey.DISCORD,
-        NotificationSource.ISSUE,
         message("2026-09-24T10:00:00+00:00"),
     )
     platform = normalize(
         NotificationProviderKey.DISCORD,
-        NotificationSource.ISSUE,
         message("2026-09-24T10:00:05+00:00"),
     )
 
