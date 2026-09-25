@@ -11,6 +11,7 @@ from sentry.integrations.github_copilot.models import (
 )
 from sentry.models.pullrequest import PullRequestAttributionSignalType
 from sentry.seer.autofix.coding_agent import (
+    _record_claude_handoff_outcome,
     extract_result_from_events,
     poll_claude_code_agents,
     poll_github_copilot_agents,
@@ -768,6 +769,80 @@ class TestExtractResultFromEvents(TestCase):
         assert extracted.pr_number is None
 
 
+class TestRecordClaudeHandoffOutcome:
+    @patch("sentry.seer.autofix.coding_agent.set_span_data")
+    @patch("sentry.seer.autofix.coding_agent.start_span")
+    def test_records_pull_request_result(self, mock_start_span, mock_set_span_data):
+        span = MagicMock()
+        mock_start_span.return_value.__enter__.return_value = span
+        result = CodingAgentResult(
+            description="Created a pull request",
+            repo_provider="github",
+            repo_full_name="getsentry/sentry",
+            pr_number=123,
+            pr_url="https://github.com/getsentry/sentry/pull/123",
+        )
+
+        _record_claude_handoff_outcome(
+            session_id="sesn_123",
+            organization_id=1,
+            status=CodingAgentStatus.COMPLETED,
+            result=result,
+            run_id=2,
+            group_id=3,
+        )
+
+        mock_start_span.assert_called_once_with(
+            op="seer.coding_agent_handoff",
+            name="Claude coding agent handoff outcome",
+        )
+        attributes = {call.args[1]: call.args[2] for call in mock_set_span_data.call_args_list}
+        assert attributes == {
+            "anthropic.session.id": "sesn_123",
+            "seer.coding_agent.provider": "claude_code_agent",
+            "seer.coding_agent.status": "completed",
+            "seer.coding_agent.result_type": "pull_request",
+            "organization_id": 1,
+            "run_id": 2,
+            "group_id": 3,
+            "seer.repository.provider": "github",
+            "seer.repository.full_name": "getsentry/sentry",
+            "seer.pr.url": "https://github.com/getsentry/sentry/pull/123",
+            "seer.pr.number": 123,
+        }
+
+    @patch("sentry.seer.autofix.coding_agent.set_span_data")
+    @patch("sentry.seer.autofix.coding_agent.start_span")
+    def test_does_not_label_branch_result_as_pull_request(
+        self, mock_start_span, mock_set_span_data
+    ):
+        span = MagicMock()
+        mock_start_span.return_value.__enter__.return_value = span
+        result = CodingAgentResult(
+            description="Pushed a branch",
+            repo_provider="github",
+            repo_full_name="getsentry/sentry",
+            branch_name="seer/fix",
+            pr_url="https://github.com/getsentry/sentry/tree/seer/fix",
+        )
+
+        _record_claude_handoff_outcome(
+            session_id="sesn_123",
+            organization_id=1,
+            status=CodingAgentStatus.COMPLETED,
+            result=result,
+            run_id=None,
+            group_id=None,
+        )
+
+        attributes = {call.args[1]: call.args[2] for call in mock_set_span_data.call_args_list}
+        assert attributes["seer.coding_agent.result_type"] == "branch"
+        assert attributes["seer.branch.url"] == result.pr_url
+        assert attributes["seer.branch.name"] == result.branch_name
+        assert "seer.pr.url" not in attributes
+        assert "seer.pr.number" not in attributes
+
+
 class TestPollClaudeCodeAgents(TestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -903,12 +978,18 @@ class TestPollClaudeCodeAgents(TestCase):
         # The client builds the result without a number; the session scrape supplies it.
         assert call_kwargs["result"].pr_number == 999
 
+    @patch("sentry.seer.autofix.coding_agent._record_claude_handoff_outcome")
     @patch("sentry.seer.autofix.coding_agent.attribute_delegated_agent_pull_request")
     @patch(MOCK_SYNC_STATUS_PATH)
     @patch(MOCK_CLIENT_CLASS_PATH)
     @patch(MOCK_INTEGRATION_SERVICE_PATH)
     def test_attributes_pr_on_completion(
-        self, mock_integration_service, mock_import_string, mock_sync_status, mock_attribute
+        self,
+        mock_integration_service,
+        mock_import_string,
+        mock_sync_status,
+        mock_attribute,
+        mock_record_outcome,
     ):
         """A completed Claude session with a PR is attributed to the Claude agent, and both
         Seer's state and the Sentry-side SeerRunCodingAgentHandoff row are synced in one call."""
@@ -955,6 +1036,14 @@ class TestPollClaudeCodeAgents(TestCase):
         assert call_kwargs["organization_id"] == self.organization.id
         assert call_kwargs["status"] == CodingAgentStatus.COMPLETED
         assert call_kwargs["result"].pr_url == "https://github.com/getsentry/sentry/pull/999"
+        mock_record_outcome.assert_called_once_with(
+            session_id="claude-session-123",
+            organization_id=self.organization.id,
+            status=CodingAgentStatus.COMPLETED,
+            result=call_kwargs["result"],
+            run_id=self.run_id,
+            group_id=1,
+        )
 
     @patch("sentry.seer.autofix.coding_agent.attribute_delegated_agent_pull_request")
     @patch(MOCK_SYNC_STATUS_PATH)
