@@ -1,5 +1,5 @@
 from typing import Any, cast
-from unittest.mock import MagicMock, patch
+from unittest.mock import DEFAULT, MagicMock, patch
 
 import pytest
 from django.contrib.auth.models import AnonymousUser
@@ -43,6 +43,7 @@ from sentry.issues.action_log.types import (
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.issues.models.groupactionlogoutbox import GroupActionLogOutbox
 from sentry.issues.models.groupderiveddata import GroupDerivedData
+from sentry.locks import locks
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.seer.endpoints.seer_rpc import SeerRpcSignatureAuthentication
@@ -51,6 +52,7 @@ from sentry.testutils.helpers.action_log import CapturedAction, capture_action_l
 from sentry.testutils.outbox import outbox_runner
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus, PriorityLevel
+from sentry.utils.locking import UnableToAcquireLock
 
 
 def _make_request(
@@ -464,6 +466,15 @@ class TestExternalIssueLinkingActionLog(APITestCase, SnubaTestCase):
         )
         self.base_url = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/integrations/{self.integration.id}/"
 
+    def _assert_link_locked(self, *args: Any, **kwargs: Any) -> Any:
+        with pytest.raises(UnableToAcquireLock):
+            with locks.get(
+                f"external-issue-link:{self.organization.id}:{self.integration.id}:APP-123",
+                duration=300,
+            ).acquire():
+                pass
+        return DEFAULT
+
     def test_create_external_issue_emits_action(self) -> None:
         with capture_action_log() as log, self.feature("organizations:integrations-issue-basic"):
             response = self.client.post(
@@ -473,11 +484,26 @@ class TestExternalIssueLinkingActionLog(APITestCase, SnubaTestCase):
         log.assert_logged(CreateExternalIssueAction, group_id=self.group.id, provider="example")
 
     def test_link_external_issue_emits_action(self) -> None:
-        with capture_action_log() as log, self.feature("organizations:integrations-issue-basic"):
+        with (
+            capture_action_log() as log,
+            self.feature("organizations:integrations-issue-basic"),
+            patch.object(
+                Activity.objects,
+                "create",
+                wraps=Activity.objects.create,
+                side_effect=self._assert_link_locked,
+            ) as create_activity,
+            patch(
+                "sentry.issues.endpoints.group_integration_details.publish_action",
+                wraps=publish_action,
+                side_effect=self._assert_link_locked,
+            ),
+        ):
             response = self.client.put(
                 self.base_url, data={"externalIssue": "APP-123"}, format="json"
             )
         assert response.status_code == 201
+        create_activity.assert_called_once()
         log.assert_logged(LinkExternalIssueAction, group_id=self.group.id)
 
     def test_unlink_external_issue_emits_action(self) -> None:
@@ -496,7 +522,15 @@ class TestExternalIssueLinkingActionLog(APITestCase, SnubaTestCase):
             linked_id=external_issue.id,
             relationship=GroupLink.Relationship.references,
         )
-        with capture_action_log() as log, self.feature("organizations:integrations-issue-basic"):
+        with (
+            capture_action_log() as log,
+            self.feature("organizations:integrations-issue-basic"),
+            patch(
+                "sentry.issues.endpoints.group_integration_details.publish_action",
+                wraps=publish_action,
+                side_effect=self._assert_link_locked,
+            ),
+        ):
             response = self.client.delete(
                 f"{self.base_url}?externalIssue={external_issue.id}", format="json"
             )

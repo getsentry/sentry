@@ -550,6 +550,26 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
                                 "relationship": GroupLink.Relationship.references,
                             },
                         )
+
+                    if changed:
+                        source = resolve_action_source(request)
+                        actor = resolve_action_actor(request)
+
+                        with action_context_scope(source=source, actor=actor):
+                            self.create_issue_activity(
+                                request, group, installation, external_issue, new=False
+                            )
+
+                        publish_action(
+                            LinkExternalIssueAction(
+                                provider=integration.provider,
+                                external_issue_key=external_issue.key,
+                            ),
+                            source=source,
+                            group_id=group.id,
+                            project=group.project,
+                            actor=actor,
+                        )
             except IntegrationConfigurationError as exc:
                 lifecycle.record_halt(exc)
                 return Response({"non_field_errors": [str(exc)]}, status=400)
@@ -559,24 +579,6 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             except IntegrationError as e:
                 lifecycle.record_failure(e)
                 return Response({"non_field_errors": [str(e)]}, status=400)
-
-        if changed:
-            source = resolve_action_source(request)
-            actor = resolve_action_actor(request)
-
-            with action_context_scope(source=source, actor=actor):
-                self.create_issue_activity(request, group, installation, external_issue, new=False)
-
-            publish_action(
-                LinkExternalIssueAction(
-                    provider=integration.provider,
-                    external_issue_key=external_issue.key,
-                ),
-                source=source,
-                group_id=group.id,
-                project=group.project,
-                actor=actor,
-            )
 
         # TODO(jess): would be helpful to return serialized external issue
         # once we have description, title, etc
@@ -689,19 +691,19 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
                 ).exists():
                     external_issue.delete()
 
-        # Only record the action when a link was actually removed; the endpoint still
-        # returns 204 when nothing was linked to this group.
-        if deleted:
-            publish_action(
-                UnlinkExternalIssueAction(
-                    provider=integration.provider,
-                    external_issue_key=external_issue.key,
-                ),
-                source=resolve_action_source(request),
-                group_id=group.id,
-                project=group.project,
-                actor=resolve_action_actor(request),
-            )
+            # Only record the action when a link was actually removed; the endpoint still
+            # returns 204 when nothing was linked to this group.
+            if deleted:
+                publish_action(
+                    UnlinkExternalIssueAction(
+                        provider=integration.provider,
+                        external_issue_key=external_issue.key,
+                    ),
+                    source=resolve_action_source(request),
+                    group_id=group.id,
+                    project=group.project,
+                    actor=resolve_action_actor(request),
+                )
 
         return Response(status=204)
 
