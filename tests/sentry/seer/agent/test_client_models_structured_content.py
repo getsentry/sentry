@@ -7,7 +7,9 @@ the frontend; it is additive/optional so old seer responses (no field) still par
 
 from __future__ import annotations
 
-from sentry.seer.agent.client_models import ToolResult
+import pytest
+
+from sentry.seer.agent.client_models import MemoryBlock, ToolResult
 
 
 def test_structured_content_is_parsed_from_seer():
@@ -40,3 +42,32 @@ def test_structured_content_round_trips_to_the_frontend_dict():
     # The chat endpoint serializes the run state via .dict(); the field must survive with its
     # camelCase name so the frontend can read tool_result.structuredContent.
     assert result.dict()["structuredContent"] == payload
+
+
+@pytest.mark.parametrize("loading", [False, True])
+def test_embed_protocol_and_records_round_trip_to_frontend(loading):
+    record = {"id": "issued-id", "name": "chart", "body": {"title": "Requests"}}
+    payload = {
+        "id": "b1",
+        "message": {"role": "assistant", "content": '{% embed ref="issued-id" /%}'},
+        "timestamp": "2024-01-01T00:00:00Z",
+        "loading": loading,
+        "embed_protocol": "references-v1",
+        "tool_results": [
+            {
+                "tool_call_id": "t1",
+                "tool_call_function": "sentry_api_execute",
+                "structuredContent": {"embeds": [record]},
+            }
+        ],
+    }
+    block = MemoryBlock.parse_obj(payload).dict()
+    assert block["embed_protocol"] == "references-v1"
+    assert block["tool_results"][0]["structuredContent"]["embeds"] == [record]
+
+
+def test_legacy_block_defaults_to_no_embed_protocol():
+    block = MemoryBlock(
+        id="b1", message={"role": "assistant", "content": "hello"}, timestamp="2024-01-01"
+    )
+    assert block.dict()["embed_protocol"] is None

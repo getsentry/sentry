@@ -26,6 +26,7 @@ from sentry.seer.models import SeerApiError, SeerPermissionError
 from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.seer.sentry_data_models import HeaderAuthConnectionData
 from sentry.testutils.cases import TestCase
+from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import override_options, with_feature
 from sentry.testutils.requests import make_request
 from sentry.utils.prompts import seer_monitoring_provider_dont_ask_feature
@@ -2004,3 +2005,46 @@ class TestGetAvailableMonitoringProviders(TestCase):
         result = get_available_monitoring_providers(self.organization, self.user.id)
 
         assert "gcp" in self._result_by_provider(result)
+
+
+@pytest.mark.django_db(databases="__all__")
+@pytest.mark.parametrize(
+    "mode,embeds,protocol,expected",
+    [
+        ("only", True, "references-v1", "references-v1"),
+        ("only", True, None, None),
+        ("off", True, "references-v1", None),
+        ("on", True, "references-v1", None),
+        ("only", False, "references-v1", None),
+    ],
+)
+@pytest.mark.parametrize(
+    "method,args", [("start_run", ["question"]), ("continue_run", [789, "follow-up"])]
+)
+def test_embed_protocol_negotiation_reaches_seer(mode, embeds, protocol, expected, method, args):
+    user = Factories.create_user()
+    organization = Factories.create_organization(owner=user)
+    Factories.create_seer_run(organization=organization, seer_run_state_id=789, user_id=user.id)
+    response = MagicMock(status=200)
+    response.json.return_value = {"run_id": 123}
+    send = MagicMock(return_value=response)
+    with (
+        patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None)),
+        patch("sentry.seer.agent.client.collect_user_org_context", return_value={}),
+        patch("sentry.seer.agent.client.get_embed_widgets", return_value=[]),
+        patch("sentry.seer.agent.client.make_agent_chat_request", send),
+        patch("sentry.receivers.outbox.cell.make_agent_chat_request", send),
+    ):
+        client = SeerAgentClient(
+            organization,
+            user,
+            enable_code_mode_tools=mode,
+            enable_embeds=embeds,
+            embed_protocol=protocol,
+        )
+        getattr(client, method)(*args)
+
+    send.assert_called_once()
+    options = send.call_args.args[0]["agent_run_options"]
+    assert options.get("embed_protocol") == expected
+    assert ("embed_protocol" in options) == (method == "continue_run" or expected is not None)

@@ -180,6 +180,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
             enable_bash_mode=False,
             enable_coding=False,
             enable_code_mode_tools="off",
+            embed_protocol=None,
             reasoning_effort="medium",
         )
         mock_client.start_run.assert_called_once_with(
@@ -192,6 +193,40 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
             override_ce_enable=True,
             request=ANY,
         )
+
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
+    def test_post_forwards_embed_protocol_on_start(self, mock_client_class: MagicMock):
+        mock_client_class.return_value.start_run.return_value = MagicMock(
+            seer_run_state_id=456, uuid=uuid.uuid4()
+        )
+        response = self.client.post(
+            self.url, {"query": "hi", "embed_protocol": "references-v1"}, format="json"
+        )
+        assert response.status_code == 200
+        assert mock_client_class.call_args.kwargs["embed_protocol"] == "references-v1"
+
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
+    def test_post_forwards_embed_protocol_on_continue(self, mock_client_class: MagicMock):
+        run = self.create_seer_run(
+            organization=self.organization, seer_run_state_id=789, user_id=self.user.id
+        )
+        response = self.client.post(
+            f"{self.url}{run.seer_run_state_id}/",
+            {"query": "hi", "embed_protocol": "references-v1"},
+            format="json",
+        )
+        assert response.status_code == 200
+        assert mock_client_class.call_args.kwargs["embed_protocol"] == "references-v1"
+        mock_client_class.return_value.continue_run.assert_called_once()
+
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
+    def test_post_rejects_unknown_embed_protocol(self, mock_client_class: MagicMock):
+        response = self.client.post(
+            self.url, {"query": "hi", "embed_protocol": "unknown"}, format="json"
+        )
+        assert response.status_code == 400
+        assert "embed_protocol" in response.data
+        mock_client_class.assert_not_called()
 
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
     def test_post_forwards_page_location(self, mock_client_class: MagicMock) -> None:
@@ -271,6 +306,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
                 enable_bash_mode=False,
                 enable_coding=feature_enabled and option_enabled,
                 enable_code_mode_tools="off",
+                embed_protocol=None,
                 reasoning_effort="medium",
             )
 
@@ -298,6 +334,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
             enable_bash_mode=False,
             enable_coding=False,
             enable_code_mode_tools="off",
+            embed_protocol=None,
             reasoning_effort="medium",
         )
         mock_client.continue_run.assert_called_once_with(
@@ -497,6 +534,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
                 enable_bash_mode=False,
                 enable_coding=feature_enabled and option_enabled,
                 enable_code_mode_tools="off",
+                embed_protocol=None,
                 reasoning_effort="medium",
             )
 
@@ -776,3 +814,23 @@ class TestCodeModeSerializerField:
         serializer = SeerAgentChatSerializer(data=data)
         assert not serializer.is_valid()
         assert "override_code_mode_enable" in serializer.errors
+
+
+@pytest.mark.parametrize("protocol", ["references-v1", None])
+def test_embed_protocol_serializer_accepts_supported_values(protocol):
+    serializer = SeerAgentChatSerializer(data={"query": "test", "embed_protocol": protocol})
+    assert serializer.is_valid(), serializer.errors
+    assert serializer.validated_data["embed_protocol"] == protocol
+
+
+def test_embed_protocol_serializer_defaults_to_legacy():
+    serializer = SeerAgentChatSerializer(data={"query": "test"})
+    assert serializer.is_valid(), serializer.errors
+    assert serializer.validated_data["embed_protocol"] is None
+
+
+@pytest.mark.parametrize("protocol", ["unknown", "", True, 1, {}, []])
+def test_embed_protocol_serializer_rejects_invalid_values(protocol):
+    serializer = SeerAgentChatSerializer(data={"query": "test", "embed_protocol": protocol})
+    assert not serializer.is_valid()
+    assert "embed_protocol" in serializer.errors

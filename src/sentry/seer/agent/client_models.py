@@ -163,6 +163,7 @@ class MemoryBlock(BaseModel):
     message: Message
     timestamp: str
     loading: bool = False
+    embed_protocol: Literal["references-v1"] | None = None
     artifacts: list[Artifact] = []
     file_patches: list[AgentFilePatch] | None = None  # Incremental patches (per edit)
     merged_file_patches: list[AgentFilePatch] | None = (

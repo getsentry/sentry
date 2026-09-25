@@ -145,6 +145,9 @@ class SeerAgentChatSerializer(serializers.Serializer):
         allow_null=True,
         help_text="Override code mode tools: 'off', 'on', 'only', or boolean for backwards compat.",
     )
+    embed_protocol = serializers.ChoiceField(
+        choices=["references-v1"], required=False, allow_null=True, default=None
+    )
     ui_tools = serializers.CharField(
         required=False,
         allow_null=True,
@@ -332,6 +335,7 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
                 enable_bash_mode=override_bash_mode_enabled,
                 enable_coding=enable_coding,
                 enable_code_mode_tools=enable_code_mode_tools,
+                embed_protocol=validated_data["embed_protocol"],
                 reasoning_effort="medium",
             )
             if resolved is not None:

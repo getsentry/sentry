@@ -332,6 +332,7 @@ class SeerAgentClient:
         max_iterations: int | None = None,
         enable_embeds: bool = True,
         enable_streaming: bool | None = None,
+        embed_protocol: Literal["references-v1"] | None = None,
     ):
         self.organization = organization
         self.user = user
@@ -352,6 +353,9 @@ class SeerAgentClient:
         self.code_review_enabled = code_review_enabled
         self.max_iterations = max_iterations
         self.enable_embeds = enable_embeds
+        self.embed_protocol = (
+            embed_protocol if enable_embeds and enable_code_mode_tools == "only" else None
+        )
         self.enable_streaming = enable_streaming
         self.enable_assisted_query_code_mode = features.has(
             "organizations:seer-agent-enable-assisted-query-code-mode",
@@ -686,6 +690,8 @@ class SeerAgentClient:
         """
 
         opts = AgentRunOptions()
+        if self.embed_protocol is not None:
+            opts["embed_protocol"] = self.embed_protocol
 
         opts["enable_assisted_query_code_mode"] = self.enable_assisted_query_code_mode
 
@@ -783,6 +789,7 @@ class SeerAgentClient:
             raise SeerPermissionError(UNKNOWN_RUN_ID_FOR_GROUP)
 
         agent_run_options: dict[str, Any] = {
+            "embed_protocol": self.embed_protocol,
             "enable_coding": self.enable_coding,
             "enable_code_mode_tools": self.enable_code_mode_tools,
             "code_review_enabled": self.code_review_enabled,

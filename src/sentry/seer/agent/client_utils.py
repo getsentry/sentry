@@ -140,6 +140,7 @@ class AgentRunOptions(TypedDict):
     enable_coding: NotRequired[bool]
     enable_tool_summary: NotRequired[bool]
     embed_widgets: NotRequired[list[dict[str, Any]] | None]
+    embed_protocol: NotRequired[Literal["references-v1"] | None]
     enable_streaming: NotRequired[bool]
 
 
