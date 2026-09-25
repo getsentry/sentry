@@ -287,7 +287,7 @@
   },
   {
     "name": "chart",
-    "description": "Display numeric data as a compact Sentry-style chart. For line, area, and bar charts, prefer at least three points. Use x_axis \"time\" only with offset-bearing ISO 8601 timestamps. Category axes are supported for bar charts only. Duration values are milliseconds, percentage values are 0-100, and byte values are raw bytes.",
+    "description": "Display numeric data as a compact Sentry-style chart. For line, area, and bar charts, prefer at least three points. Use x_axis \"time\" with ISO 8601 timestamps; timestamps without an offset are read as UTC. Category axes always render as bars. Duration values are milliseconds, percentage values are 0-100, and byte values are raw bytes.",
     "level": ["block"],
     "body": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",

@@ -35,6 +35,13 @@ const DISPLAY_TYPES = {
   bar: DisplayType.BAR,
 } satisfies Record<TimeSeriesVisualization, DisplayType>;
 
+// The agent often copies offset-less times out of Sentry URLs, which Sentry reads
+// as UTC. `Date.parse` would read them as the viewer's local time instead.
+function parseTimestamp(x: string | number): number {
+  const value = String(x);
+  return Date.parse(/(Z|[+-]\d{2}(:?\d{2})?)$/i.test(value) ? value : `${value}Z`);
+}
+
 function getInterval(timestamps: number[]): number {
   const intervals = timestamps
     .slice(1)
@@ -60,6 +67,8 @@ export function ChartContent({
 }) {
   const metadata = UNIT_METADATA[yAxisUnit];
 
+  // The categorical visualization only draws bars, so a category line or area
+  // chart falls back to bars rather than dropping the agent's data.
   const visualizationComponent =
     xAxis === 'category' ? (
       <CategoricalSeriesWidgetVisualization
@@ -84,16 +93,12 @@ export function ChartContent({
           datetime: {
             start: new Date(
               Math.min(
-                ...series.flatMap(item =>
-                  item.data.map(point => Date.parse(String(point.x)))
-                )
+                ...series.flatMap(item => item.data.map(point => parseTimestamp(point.x)))
               )
             ).toISOString(),
             end: new Date(
               Math.max(
-                ...series.flatMap(item =>
-                  item.data.map(point => Date.parse(String(point.x)))
-                )
+                ...series.flatMap(item => item.data.map(point => parseTimestamp(point.x)))
               )
             ).toISOString(),
             period: null,
@@ -106,7 +111,7 @@ export function ChartContent({
           .map((item, index) => {
             const values = item.data
               .map(point => ({
-                timestamp: Date.parse(String(point.x)),
+                timestamp: parseTimestamp(point.x),
                 value: normalizeValue(point.y, yAxisUnit),
               }))
               .toSorted((left, right) => left.timestamp - right.timestamp);
