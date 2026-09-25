@@ -1,34 +1,71 @@
 import {AnnotationFixture} from 'sentry-fixture/annotation';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
-import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
+import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {useDroppedData} from 'sentry/components/droppedData/useDroppedData';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
+
+const organization = OrganizationFixture({
+  features: ['explore-data-fidelity-annotations'],
+});
 
 const droppedAnnotations = [AnnotationFixture({eventCount: 10})];
 const acceptedAnnotations = [AnnotationFixture({outcome: 'accepted', eventCount: 90})];
 
-const meta: EventsTimeSeriesResponse['meta'] = {
-  dataset: DiscoverDatasets.SPANS,
-  start: 0,
-  end: 60_000,
-  droppedAnnotations,
-  acceptedAnnotations,
-};
-
 describe('useDroppedData', () => {
-  it('reads the annotations from meta', () => {
-    const {result} = renderHookWithProviders(() => useDroppedData(meta));
-
-    expect(result.current.droppedAnnotations).toBe(droppedAnnotations);
-    expect(result.current.acceptedAnnotations).toBe(acceptedAnnotations);
+  beforeEach(() => {
+    PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
   });
 
-  it('returns no annotations without meta', () => {
-    const {result} = renderHookWithProviders(() => useDroppedData(undefined));
+  afterEach(() => {
+    PageFiltersStore.reset();
+  });
 
+  it('requests annotations and returns them', async () => {
+    const request = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-timeseries/`,
+      body: {
+        timeSeries: [],
+        meta: {droppedAnnotations, acceptedAnnotations},
+      },
+    });
+
+    const {result} = renderHookWithProviders(
+      () => useDroppedData({dataset: DiscoverDatasets.SPANS}),
+      {organization}
+    );
+
+    await waitFor(() => expect(result.current.isPending).toBe(false));
+
+    expect(request).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/events-timeseries/`,
+      expect.objectContaining({
+        query: expect.objectContaining({
+          dataset: DiscoverDatasets.SPANS,
+          includeAnnotations: 1,
+          referrer: 'api.explore.dropped-data-annotations',
+        }),
+      })
+    );
+    expect(result.current.droppedAnnotations).toEqual(droppedAnnotations);
+    expect(result.current.acceptedAnnotations).toEqual(acceptedAnnotations);
+  });
+
+  it('does not request annotations without the feature flag', () => {
+    const request = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-timeseries/`,
+      body: {timeSeries: [], meta: {}},
+    });
+
+    const {result} = renderHookWithProviders(
+      () => useDroppedData({dataset: DiscoverDatasets.SPANS}),
+      {organization: OrganizationFixture({features: []})}
+    );
+
+    expect(request).not.toHaveBeenCalled();
     expect(result.current.droppedAnnotations).toBeUndefined();
-    expect(result.current.acceptedAnnotations).toBeUndefined();
   });
 });

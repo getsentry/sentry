@@ -6,18 +6,20 @@ import {Text} from '@sentry/scraps/text';
 
 import {DroppedDataCategoryList} from 'sentry/components/droppedData/droppedDataCategoryList';
 import {DroppedDataChart} from 'sentry/components/droppedData/droppedDataChart';
+import {useDroppedData} from 'sentry/components/droppedData/useDroppedData';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import type {Annotation} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
+import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 
 interface DroppedDataDrawerProps {
-  acceptedAnnotations: Annotation[];
-  droppedAnnotations: Annotation[];
+  dataset: DiscoverDatasets;
 }
 
-export function DroppedDataDrawer({
-  droppedAnnotations,
-  acceptedAnnotations,
-}: DroppedDataDrawerProps) {
+export function DroppedDataDrawer({dataset}: DroppedDataDrawerProps) {
+  const {droppedAnnotations, acceptedAnnotations, isPending} = useDroppedData({
+    dataset,
+  });
+
   return (
     <Fragment>
       <DrawerHeader>
@@ -26,13 +28,17 @@ export function DroppedDataDrawer({
         </Text>
       </DrawerHeader>
       <DrawerBody>
-        <Stack gap="xl">
-          <DroppedDataChart droppedAnnotations={droppedAnnotations} />
-          <DroppedDataCategoryList
-            droppedAnnotations={droppedAnnotations}
-            acceptedAnnotations={acceptedAnnotations}
-          />
-        </Stack>
+        {isPending ? (
+          <LoadingIndicator />
+        ) : (
+          <Stack gap="xl">
+            <DroppedDataChart droppedAnnotations={droppedAnnotations ?? []} />
+            <DroppedDataCategoryList
+              droppedAnnotations={droppedAnnotations ?? []}
+              acceptedAnnotations={acceptedAnnotations ?? []}
+            />
+          </Stack>
+        )}
       </DrawerBody>
     </Fragment>
   );

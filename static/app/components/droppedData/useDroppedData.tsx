@@ -1,24 +1,37 @@
-import type {
-  Annotation,
-  EventsTimeSeriesResponse,
-} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
+import {useDroppedDataAnnotationsEnabled} from 'sentry/components/droppedData/useDroppedDataAnnotationsEnabled';
+import type {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {useFetchEventsTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
+import {useChartInterval} from 'sentry/utils/useChartInterval';
 
-interface DroppedData {
-  acceptedAnnotations?: Annotation[];
-  droppedAnnotations?: Annotation[];
+const REFERRER = 'api.explore.dropped-data-annotations';
+
+interface UseDroppedDataOptions {
+  dataset: DiscoverDatasets;
 }
 
-// TODO: this hook atm is very simple and almost needless. This is forward thinking to
-// when we soon have a dedicated endpoint. The usage then should look something like
-// this:
-// function useDroppedData(params: {dataset; query; interval; enabled}): {
-//   acceptedAnnotations?: Annotation[];
-//   droppedAnnotations?: Annotation[];
-//   isPending: boolean;
-// };
-export function useDroppedData(meta: EventsTimeSeriesResponse['meta']): DroppedData {
+/**
+ * Dropped and accepted annotations for the current page filters and chart
+ * interval
+ */
+export function useDroppedData({dataset}: UseDroppedDataOptions) {
+  const annotationsEnabled = useDroppedDataAnnotationsEnabled();
+  const [interval] = useChartInterval();
+
+  // TODO: change this hook to the dedicated endpoint when it's ready.
+  const {data, isPending} = useFetchEventsTimeSeries(
+    dataset,
+    {
+      yAxis: 'count()',
+      interval,
+      includeAnnotations: true,
+      enabled: annotationsEnabled,
+    },
+    REFERRER
+  );
+
   return {
-    droppedAnnotations: meta?.droppedAnnotations,
-    acceptedAnnotations: meta?.acceptedAnnotations,
+    droppedAnnotations: data?.meta?.droppedAnnotations,
+    acceptedAnnotations: data?.meta?.acceptedAnnotations,
+    isPending,
   };
 }

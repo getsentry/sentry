@@ -38,6 +38,7 @@ import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
 import {CHART_HEIGHT} from 'sentry/views/explore/settings';
 import {ConfidenceFooter} from 'sentry/views/explore/spans/charts/confidenceFooter';
+import {useSpansDataset} from 'sentry/views/explore/spans/spansQueryParams';
 import type {RawCounts} from 'sentry/views/explore/useRawCounts';
 import {
   combineConfidenceForSeries,
@@ -172,12 +173,10 @@ function Chart({
 }: ChartProps) {
   const {chartSelection, setChartSelection} = useChartSelection();
   const [interval, setInterval, intervalOptions] = useChartInterval();
-  const {droppedAnnotations, acceptedAnnotations} = useDroppedData(timeseriesResult.meta);
+  const dataset = useSpansDataset();
+  const {droppedAnnotations, acceptedAnnotations} = useDroppedData({dataset});
   const [isDroppedDataLayerOn, setIsDroppedDataLayerOn] = useState(true);
-  const openDroppedDataDrawer = useDroppedDataDrawer(
-    droppedAnnotations,
-    acceptedAnnotations
-  );
+  const openDroppedDataDrawer = useDroppedDataDrawer(dataset);
   const canShowDroppedData = hasDroppedData(droppedAnnotations);
   const showDroppedDataBand = canShowDroppedData && isDroppedDataLayerOn;
 
