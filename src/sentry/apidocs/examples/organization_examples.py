@@ -1,5 +1,14 @@
 from drf_spectacular.utils import OpenApiExample
 
+from sentry.apidocs.examples.world import (
+    ORGANIZATION,
+    ORGANIZATION_URL,
+    PROJECT_BACKEND,
+    PROJECT_FRONTEND,
+    REGION_URL,
+    TEAM_BACKEND,
+    ref,
+)
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 
 ORG_ROLE_LIST = [
@@ -193,21 +202,15 @@ class OrganizationExamples:
         OpenApiExample(
             "Retrieve an organization",
             value={
+                **ORGANIZATION,
                 "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
-                "dateCreated": "2018-11-06T21:19:55.101Z",
                 "hasAuthProvider": False,
-                "id": "2",
                 "isEarlyAdopter": False,
                 "allowMemberInvite": True,
                 "allowMemberProjectCreation": True,
                 "allowSuperuserAccess": False,
-                "links": {
-                    "organizationUrl": "https://the-interstellar-jurisdiction.sentry.io",
-                    "regionUrl": "https://us.sentry.io",
-                },
-                "name": "The Interstellar Jurisdiction",
+                "links": {"organizationUrl": ORGANIZATION_URL, "regionUrl": REGION_URL},
                 "require2FA": False,
-                "slug": "the-interstellar-jurisdiction",
                 "status": {"id": "active", "name": "active"},
             },
             status_codes=["200"],
@@ -219,11 +222,8 @@ class OrganizationExamples:
         OpenApiExample(
             "Update an organization",
             value={
-                "id": "2",
-                "slug": "the-interstellar-jurisdiction",
+                **ORGANIZATION,
                 "status": {"id": "active", "name": "active"},
-                "name": "The Interstellar Jurisdiction",
-                "dateCreated": "2018-11-06T21:19:55.101Z",
                 "isEarlyAdopter": False,
                 "allowMemberInvite": True,
                 "allowMemberProjectCreation": True,
@@ -231,10 +231,7 @@ class OrganizationExamples:
                 "require2FA": False,
                 "requiresSso": False,
                 "avatar": {"avatarType": "letter_avatar", "avatarUuid": None, "avatarUrl": None},
-                "links": {
-                    "organizationUrl": "https://the-interstellar-jurisdiction.sentry.io",
-                    "regionUrl": "https://us.sentry.io",
-                },
+                "links": {"organizationUrl": ORGANIZATION_URL, "regionUrl": REGION_URL},
                 "hasAuthProvider": False,
                 "access": [
                     "org:integrations",
@@ -312,10 +309,7 @@ class OrganizationExamples:
                 "isDynamicallySampled": False,
                 "teams": [
                     {
-                        "id": "1",
-                        "slug": "my-team",
-                        "name": "my-team",
-                        "dateCreated": "2019-06-17T18:56:19.729172Z",
+                        **TEAM_BACKEND,
                         "isMember": True,
                         "teamRole": "admin",
                         "flags": {"idp:provisioned": False},
@@ -344,11 +338,11 @@ class OrganizationExamples:
                 ],
                 "projects": [
                     {
-                        "team": {"id": "1", "slug": "my-team", "name": "my-team"},
-                        "teams": [{"id": "1", "slug": "my-team", "name": "my-team"}],
-                        "id": "1",
-                        "name": "node",
-                        "slug": "node",
+                        "team": ref(TEAM_BACKEND),
+                        "teams": [ref(TEAM_BACKEND)],
+                        "id": PROJECT_BACKEND["id"],
+                        "name": PROJECT_BACKEND["name"],
+                        "slug": PROJECT_BACKEND["slug"],
                         "isBookmarked": False,
                         "isMember": True,
                         "access": [
@@ -412,29 +406,15 @@ class OrganizationExamples:
             "List an organization's projects",
             value=[
                 {
-                    "slug": "prime-mover",
-                    "name": "Prime Mover",
-                    "dateCreated": "2018-11-06T21:19:58.536Z",
+                    **PROJECT_FRONTEND,
                     "firstEvent": None,
                     "access": [],
                     "hasAccess": True,
-                    "id": "3",
                     "isBookmarked": False,
                     "isMember": True,
-                    "platform": "",
-                    "platforms": [],
-                    "team": {
-                        "id": "2",
-                        "name": "Powerful Abolitionist",
-                        "slug": "powerful-abolitionist",
-                    },
-                    "teams": [
-                        {
-                            "id": "2",
-                            "name": "Powerful Abolitionist",
-                            "slug": "powerful-abolitionist",
-                        }
-                    ],
+                    "platforms": [PROJECT_FRONTEND["platform"]],
+                    "team": ref(TEAM_BACKEND),
+                    "teams": [ref(TEAM_BACKEND)],
                     "environments": ["local"],
                     "features": ["releases"],
                     "firstTransactionEvent": True,

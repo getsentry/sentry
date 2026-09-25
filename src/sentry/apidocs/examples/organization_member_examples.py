@@ -1,14 +1,11 @@
 from drf_spectacular.utils import OpenApiExample
 
+from sentry.apidocs.examples.world import MEMBER_INVITED, MEMBER_OWNER, USER_OWNER
+
 ORGANIZATION_MEMBER = {
-    "id": "57377908164",
-    "email": "sirpenguin@antarcticarocks.com",
-    "name": "Sir Penguin",
+    **MEMBER_OWNER,
     "user": {
-        "id": "280094367316",
-        "name": "Sir Penguin",
-        "username": "sirpenguin@antarcticarocks.com",
-        "email": "sirpenguin@antarcticarocks.com",
+        **USER_OWNER,
         "avatarUrl": "https://secure.gravatar.com/avatar/16aeb26c5fdba335c7078e9e9ddb5149?s=32&d=mm",
         "isActive": True,
         "isSuspended": False,
@@ -21,13 +18,7 @@ ORGANIZATION_MEMBER = {
         "isSuperuser": False,
         "isStaff": False,
         "experiments": {},
-        "emails": [
-            {
-                "id": "2153450836",
-                "email": "sirpenguin@antarcticarocks.com",
-                "is_verified": True,
-            }
-        ],
+        "emails": [{"id": "2153450836", "email": USER_OWNER["email"], "is_verified": True}],
         "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
         "canReset2fa": True,
     },
@@ -48,9 +39,7 @@ ORGANIZATION_MEMBER = {
 }
 
 INVITED_ORGANIZATION_MEMBER = {
-    "id": "57377908165",
-    "email": "rockhopper@antarcticarocks.com",
-    "name": "Rockhopper",
+    **MEMBER_INVITED,
     "user": None,
     "orgRole": "member",
     "pending": True,
