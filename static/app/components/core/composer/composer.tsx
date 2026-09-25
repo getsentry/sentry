@@ -143,6 +143,7 @@ export function Composer({
   value: inputValue,
   plugins,
   onChange,
+  onKeyDown,
   minHeight,
   placeholder,
   style,
@@ -154,6 +155,7 @@ export function Composer({
   const {inputRef, isComposingRef, requestValueSync, selectionToRestoreRef} =
     useEditorValueSync(inputValue);
   const dismissedRequestKeyRef = useRef<string | null>(null);
+  const justFinishedComposingRef = useRef(false);
   const [activeTrigger, setActiveTrigger] = useState<ActiveTrigger | null>(null);
 
   const sources = useMemo(
@@ -333,6 +335,7 @@ export function Composer({
     },
     onCompositionEnd: () => {
       isComposingRef.current = false;
+      justFinishedComposingRef.current = true;
       syncValueFromEditor();
     },
     onCompositionStart: () => {
@@ -357,15 +360,28 @@ export function Composer({
         return;
       }
 
+      if (event.key === 'Enter' && justFinishedComposingRef.current) {
+        justFinishedComposingRef.current = false;
+        event.preventDefault();
+        return;
+      }
+
       if (isOpen) {
         if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
           collectionProps.onKeyDown?.(event);
           return;
         }
 
-        if ((event.key === 'Enter' || event.key === 'Tab') && focusedKey !== null) {
+        if (
+          event.key === 'Enter' &&
+          !event.shiftKey &&
+          !event.ctrlKey &&
+          !event.metaKey
+        ) {
           event.preventDefault();
-          selectSuggestion(focusedKey);
+          if (focusedKey !== null) {
+            selectSuggestion(focusedKey);
+          }
           return;
         }
 
@@ -375,6 +391,7 @@ export function Composer({
           setActiveTrigger(null);
         }
       }
+      onKeyDown?.(event);
     },
     onKeyUp: (event: React.KeyboardEvent<HTMLDivElement>) => {
       if (!event.defaultPrevented) {

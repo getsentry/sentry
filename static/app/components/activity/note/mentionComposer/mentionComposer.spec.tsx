@@ -2,7 +2,7 @@ import {MemberFixture} from 'sentry-fixture/member';
 import {TeamFixture} from 'sentry-fixture/team';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {MentionComposer} from 'sentry/components/activity/note/mentionComposer/mentionComposer';
 import {TeamStore} from 'sentry/stores/teamStore';
@@ -73,7 +73,8 @@ describe('MentionComposer', () => {
     await userEvent.click(await screen.findByRole('option', {name: /Alice Example/}));
     await userEvent.type(textbox, 'and #front');
     await userEvent.keyboard('{Enter}');
-    await userEvent.click(screen.getByRole('button', {name: 'Comment'}));
+    expect(onSubmit).not.toHaveBeenCalled();
+    await userEvent.keyboard('{Enter}');
 
     expect(onSubmit).toHaveBeenCalledWith({
       text: 'Thanks **@Alice Example** and **#frontend** ',
@@ -83,17 +84,173 @@ describe('MentionComposer', () => {
     expect(screen.queryByRole('button', {name: 'Comment'})).not.toBeInTheDocument();
   });
 
-  it('keeps normal multiline text and submits with Ctrl+Enter', async () => {
+  it('keeps Shift+Enter as a newline and submits with Enter', async () => {
     const onSubmit = jest.fn().mockResolvedValue(undefined);
     render(<MentionComposer mode="create" onSubmit={onSubmit} />);
 
     const textbox = getEditor();
-    await userEvent.type(textbox, 'First line{Enter}Second line{Control>}{Enter}');
+    await userEvent.type(textbox, 'First line{Shift>}{Enter}{/Shift}Second line');
+    expect(onSubmit).not.toHaveBeenCalled();
+    await userEvent.keyboard('{Enter}');
 
     expect(onSubmit).toHaveBeenCalledWith({
       text: 'First line\nSecond line',
       mentions: [],
     });
+  });
+
+  it('does not submit with Alt+Enter', async () => {
+    const onSubmit = jest.fn().mockResolvedValue(undefined);
+    render(<MentionComposer mode="create" onSubmit={onSubmit} />);
+
+    await userEvent.type(getEditor(), 'Draft{Alt>}{Enter}{/Alt}');
+
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it.each(['Control', 'Meta'])(
+    'submits with %s+Enter while suggestions are open',
+    async modifier => {
+      const onSubmit = jest.fn().mockResolvedValue(undefined);
+      render(<MentionComposer mode="create" onSubmit={onSubmit} />);
+
+      await userEvent.type(getEditor(), '@ali');
+      await screen.findByRole('option', {name: /Alice Example/});
+      await userEvent.keyboard(`{${modifier}>}{Enter}{/${modifier}}`);
+
+      expect(onSubmit).toHaveBeenCalledWith({text: '@ali', mentions: []});
+    }
+  );
+
+  it('inserts a newline instead of selecting a suggestion with Shift+Enter', async () => {
+    const onSubmit = jest.fn().mockResolvedValue(undefined);
+    render(<MentionComposer mode="create" onSubmit={onSubmit} />);
+
+    await userEvent.type(getEditor(), '@ali');
+    await screen.findByRole('option', {name: /Alice Example/});
+    await userEvent.keyboard('{Shift>}{Enter}{/Shift}Next line');
+    expect(onSubmit).not.toHaveBeenCalled();
+    await userEvent.keyboard('{Enter}');
+
+    expect(onSubmit).toHaveBeenCalledWith({text: '@ali\nNext line', mentions: []});
+  });
+
+  it('does not submit empty comments', async () => {
+    const onSubmit = jest.fn().mockResolvedValue(undefined);
+    render(<MentionComposer mode="create" onSubmit={onSubmit} />);
+
+    await userEvent.type(getEditor(), '{Enter}   {Enter}');
+
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', {name: 'Comment'})).toBeDisabled();
+  });
+
+  it('submits with Enter when there are no matching suggestions', async () => {
+    const onSubmit = jest.fn().mockResolvedValue(undefined);
+    render(<MentionComposer mode="create" onSubmit={onSubmit} />);
+
+    await userEvent.type(getEditor(), '#missing');
+    expect(await screen.findByText('No suggestions found')).toBeVisible();
+    await userEvent.keyboard('{Enter}');
+
+    expect(onSubmit).toHaveBeenCalledWith({text: '#missing', mentions: []});
+  });
+
+  it('does not submit while suggestions are loading', async () => {
+    const onSubmit = jest.fn().mockResolvedValue(undefined);
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/members/',
+      body: () => new Promise(() => {}), // Never resolves
+    });
+
+    render(<MentionComposer mode="create" onSubmit={onSubmit} />);
+
+    await userEvent.type(getEditor(), '@query');
+    expect(await screen.findByText('Loading suggestions…')).toBeVisible();
+    await userEvent.keyboard('{Enter}');
+
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it.each(['native', 'tracked'])(
+    'does not submit during %s IME composition',
+    async composition => {
+      const onSubmit = jest.fn().mockResolvedValue(undefined);
+      render(<MentionComposer mode="create" onSubmit={onSubmit} />);
+      const editor = getEditor();
+      await userEvent.type(editor, 'Draft');
+
+      act(() => {
+        if (composition === 'tracked') {
+          editor.dispatchEvent(new CompositionEvent('compositionstart', {bubbles: true}));
+        }
+        editor.dispatchEvent(
+          new KeyboardEvent('keydown', {
+            key: 'Enter',
+            bubbles: true,
+            cancelable: true,
+            isComposing: composition === 'native',
+          })
+        );
+      });
+      expect(onSubmit).not.toHaveBeenCalled();
+
+      if (composition === 'tracked') {
+        act(() => {
+          editor.dispatchEvent(new CompositionEvent('compositionend', {bubbles: true}));
+        });
+      }
+      await userEvent.keyboard('{Enter}');
+      expect(onSubmit).toHaveBeenCalledWith({text: 'Draft', mentions: []});
+    }
+  );
+
+  it('does not submit on Enter immediately after composition ends (Safari)', async () => {
+    const onSubmit = jest.fn().mockResolvedValue(undefined);
+    render(<MentionComposer mode="create" onSubmit={onSubmit} />);
+    const editor = getEditor();
+    await userEvent.type(editor, 'Draft');
+
+    act(() => {
+      editor.dispatchEvent(new CompositionEvent('compositionstart', {bubbles: true}));
+      editor.textContent = 'Draft日本語';
+      editor.dispatchEvent(
+        new InputEvent('input', {
+          bubbles: true,
+          data: '日本語',
+          inputType: 'insertCompositionText',
+          isComposing: true,
+        })
+      );
+    });
+
+    act(() => {
+      editor.dispatchEvent(
+        new CompositionEvent('compositionend', {
+          bubbles: true,
+          data: '日本語',
+        })
+      );
+    });
+
+    // Safari fires Enter immediately after compositionend with isComposing=false
+    act(() => {
+      editor.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          key: 'Enter',
+          bubbles: true,
+          cancelable: true,
+          isComposing: false,
+        })
+      );
+    });
+
+    // First Enter after composition should be blocked
+    expect(onSubmit).not.toHaveBeenCalled();
+
+    // Subsequent Enter should submit normally
+    await userEvent.keyboard('{Enter}');
+    expect(onSubmit).toHaveBeenCalledWith({text: 'Draft日本語', mentions: []});
   });
 
   it('renders selected mentions in Markdown preview', async () => {
@@ -107,7 +264,7 @@ describe('MentionComposer', () => {
     expect(screen.getByText('@Alice Example').closest('strong')).toBeInTheDocument();
   });
 
-  it('submits an edited comment', async () => {
+  it.each(['Enter', 'Save button'])('submits an edited comment with %s', async method => {
     const onSubmit = jest.fn().mockResolvedValue(undefined);
     render(
       <MentionComposer
@@ -121,7 +278,11 @@ describe('MentionComposer', () => {
     const editor = getEditor('Edit comment');
     await userEvent.click(editor);
     await userEvent.keyboard('{End} updated');
-    await userEvent.click(screen.getByRole('button', {name: 'Save comment'}));
+    if (method === 'Enter') {
+      await userEvent.keyboard('{Enter}');
+    } else {
+      await userEvent.click(screen.getByRole('button', {name: 'Save comment'}));
+    }
 
     expect(onSubmit).toHaveBeenCalledWith({
       text: 'Existing comment updated',

@@ -263,4 +263,105 @@ describe('Composer', () => {
     await userEvent.keyboard('{End}');
     expect(await screen.findByText('No suggestions found')).toBeVisible();
   });
+
+  it('does not trigger onKeyDown when Enter is pressed while popup is loading', async () => {
+    const onKeyDown = jest.fn();
+    const loadingSource: ComposerSource<PersonSuggestion> = {
+      id: 'slow',
+      label: 'Slow',
+      trigger: '@',
+      queryOptions: () => ({
+        queryKey: ['test', 'loading'],
+        queryFn: () => new Promise<readonly PersonSuggestion[]>(() => {}), // Never resolves
+      }),
+      getId: () => '',
+      getText: () => '',
+    } as ComposerSource<PersonSuggestion>;
+
+    render(
+      <Composer
+        aria-label="Comment"
+        plugins={makePlugins([loadingSource])}
+        value={{text: '@que', mentions: []}}
+        onChange={() => {}}
+        onKeyDown={onKeyDown}
+      />
+    );
+
+    const textbox = getEditor();
+    await userEvent.click(textbox);
+    await userEvent.keyboard('{End}');
+
+    // Wait for popup to show loading state
+    expect(await screen.findByText('Loading suggestions…')).toBeVisible();
+
+    // Press Enter while loading - should not propagate to onKeyDown
+    await userEvent.keyboard('{Enter}');
+    expect(onKeyDown).not.toHaveBeenCalled();
+  });
+
+  it('blocks Enter immediately after composition ends (Safari IME)', () => {
+    const onKeyDown = jest.fn();
+    render(
+      <Composer
+        aria-label="Comment"
+        plugins={[MENTION_PLUGIN]}
+        value={{text: '', mentions: []}}
+        onChange={() => {}}
+        onKeyDown={onKeyDown}
+      />
+    );
+
+    const textbox = getEditor();
+
+    act(() => {
+      textbox.dispatchEvent(new CompositionEvent('compositionstart', {bubbles: true}));
+      textbox.textContent = '日本語';
+      textbox.dispatchEvent(
+        new InputEvent('input', {
+          bubbles: true,
+          data: '日本語',
+          inputType: 'insertCompositionText',
+          isComposing: true,
+        })
+      );
+    });
+
+    act(() => {
+      textbox.dispatchEvent(
+        new CompositionEvent('compositionend', {
+          bubbles: true,
+          data: '日本語',
+        })
+      );
+    });
+
+    // Safari fires Enter keydown after compositionend with isComposing=false
+    act(() => {
+      textbox.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          key: 'Enter',
+          bubbles: true,
+          cancelable: true,
+          isComposing: false, // Safari sets this to false
+        })
+      );
+    });
+
+    // This Enter should be blocked, not propagated to onKeyDown
+    expect(onKeyDown).not.toHaveBeenCalled();
+
+    // Subsequent Enter should work normally
+    act(() => {
+      textbox.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          key: 'Enter',
+          bubbles: true,
+          cancelable: true,
+        })
+      );
+    });
+
+    expect(onKeyDown).toHaveBeenCalledTimes(1);
+  });
 });
