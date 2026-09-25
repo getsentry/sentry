@@ -358,6 +358,7 @@ export enum InvalidReason {
   INVALID_DATE_FORMAT = 'invalid-date-format',
   PARENS_NOT_ALLOWED = 'parens-not-allowed',
   REGEX_PATTERN_TOO_LONG = 'regex-pattern-too-long',
+  INVALID_REGEX = 'invalid-regex',
 }
 
 /**
@@ -1157,6 +1158,14 @@ export class TokenConverter {
       };
     }
 
+    const invalidRegexReason = this.config.validateRegexPattern?.(value.value);
+    if (invalidRegexReason) {
+      return {
+        type: InvalidReason.INVALID_REGEX,
+        reason: `${this.config.invalidMessages[InvalidReason.INVALID_REGEX]}:\n${invalidRegexReason}`,
+      };
+    }
+
     return null;
   };
 
@@ -1569,6 +1578,11 @@ export type SearchConfig = {
    * If set to true, tag keys that don't exist in supportedTags will be consider invalid
    */
   validateKeys?: boolean;
+  /**
+   * Returns the reason a regex filter's pattern is not valid RE2, or null when it is.
+   * Undefined while the engine loads, which lets patterns through until it resolves.
+   */
+  validateRegexPattern?: (pattern: string) => string | null;
 };
 
 export const defaultConfig: SearchConfig = {
@@ -1646,6 +1660,7 @@ export const defaultConfig: SearchConfig = {
       'Regex patterns are limited to %s characters. To search for a literal value that starts with //, quote it: "//..."',
       MAX_REGEX_PATTERN_LENGTH
     ),
+    [InvalidReason.INVALID_REGEX]: t('Invalid regex (RE2 syntax)'),
   },
 };
 
