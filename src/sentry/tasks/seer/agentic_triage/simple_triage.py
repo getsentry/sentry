@@ -30,7 +30,7 @@ from sentry.tasks.seer.agentic_triage.skip_cache import recently_skipped
 from sentry.types.group import PriorityLevel
 from sentry.utils.snuba import raw_snql_query
 
-logger = logging.getLogger("sentry.tasks.seer.night_shift")
+logger = logging.getLogger("sentry.tasks.seer.agentic_triage")
 
 AGENTIC_TRIAGE_ISSUE_FETCH_LIMIT = 100
 # Scales the per-project fetch limit instead of using the flat limit above.

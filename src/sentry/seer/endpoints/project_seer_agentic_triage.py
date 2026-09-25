@@ -17,7 +17,7 @@ from sentry.tasks.seer.agentic_triage.cron import (
     run_agentic_triage_for_org,
 )
 
-logger = logging.getLogger("sentry.seer.endpoints.project_seer_night_shift")
+logger = logging.getLogger("sentry.seer.endpoints.project_seer_agentic_triage")
 
 
 @cell_silo_endpoint

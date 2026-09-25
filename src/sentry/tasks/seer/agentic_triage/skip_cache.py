@@ -9,7 +9,7 @@ from sentry_redis_tools.clients import RedisCluster
 
 from sentry.utils.redis import redis_clusters
 
-logger = logging.getLogger("sentry.tasks.seer.night_shift.skip_cache")
+logger = logging.getLogger(__name__)
 
 # Padded past 7 days so scheduling jitter cannot expire a key at the
 # 7-day boundary.

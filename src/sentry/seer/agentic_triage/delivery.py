@@ -45,7 +45,7 @@ from sentry.tasks.seer.agentic_triage.skip_cache import mark_skipped
 from sentry.types.activity import ActivityType
 from sentry.utils import json
 
-logger = logging.getLogger("sentry.seer.night_shift.delivery")
+logger = logging.getLogger(__name__)
 
 # Verdict reasons are LLM-generated free text; cap what we persist per row.
 REASON_MAX_CHARS = 2048

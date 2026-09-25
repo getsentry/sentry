@@ -73,7 +73,7 @@ from sentry.utils.hashlib import md5_text
 from sentry.utils.iterators import chunked
 from sentry.utils.query import RangeQuerySetWrapper
 
-logger = logging.getLogger("sentry.tasks.seer.night_shift")
+logger = logging.getLogger("sentry.tasks.seer.agentic_triage")
 
 AGENTIC_TRIAGE_SPREAD_DURATION = timedelta(hours=1)
 
