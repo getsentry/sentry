@@ -66,6 +66,7 @@ def _do_symbolicate_event(
     data: Event | None = None,
     has_attachments: bool = False,
     symbolicate_functions: list[SymbolicatorFunction] | None = None,
+    unprocessed_key: str | None = None,
 ) -> None:
     if data is None:
         data = processing.event_processing_store.get(cache_key)
@@ -98,6 +99,7 @@ def _do_symbolicate_event(
                 start_time=start_time,
                 has_attachments=has_attachments,
                 symbolicate_functions=symbolicate_functions,
+                unprocessed_key=unprocessed_key,
             )
             return
         # else:
@@ -109,6 +111,7 @@ def _do_symbolicate_event(
             data_has_changed=has_changed,
             from_symbolicate=True,
             has_attachments=has_attachments,
+            unprocessed_key=unprocessed_key,
         )
 
     symbolication_function = task_kind.function
@@ -228,6 +231,7 @@ def submit_symbolicate(
     start_time: float | None,
     has_attachments: bool = False,
     symbolicate_functions: list[SymbolicatorFunction] | None = None,
+    unprocessed_key: str | None = None,
 ) -> None:
     # Because of `mock` usage, we cannot just save a reference to the actual function
     # into the `TASK_FNS` dict. We actually have to access it at runtime from the global scope
@@ -247,6 +251,7 @@ def submit_symbolicate(
         event_id=event_id,
         has_attachments=has_attachments,
         symbolicate_functions=symbolicate_function_names,
+        unprocessed_key=unprocessed_key,
     )
 
 
@@ -274,6 +279,7 @@ def make_task_fn(name: str, queue: str, task_kind: SymbolicatorTaskKind) -> Symb
         data: Event | None = None,
         has_attachments: bool = False,
         symbolicate_functions: list[str] | None = None,
+        unprocessed_key: str | None = None,
         **kwargs: Any,
     ) -> None:
         """
@@ -301,6 +307,7 @@ def make_task_fn(name: str, queue: str, task_kind: SymbolicatorTaskKind) -> Symb
             data=data,
             has_attachments=has_attachments,
             symbolicate_functions=symbolicate_function_values,
+            unprocessed_key=unprocessed_key,
         )
 
     fn_name = name.split(".")[-1]

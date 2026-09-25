@@ -67,6 +67,7 @@ def submit_process(
     data_has_changed: bool = False,
     from_symbolicate: bool = False,
     has_attachments: bool = False,
+    unprocessed_key: str | None = None,
 ) -> None:
     if from_reprocessing:
         task = process_event_from_reprocessing
@@ -79,6 +80,7 @@ def submit_process(
         data_has_changed=data_has_changed,
         from_symbolicate=from_symbolicate,
         has_attachments=has_attachments,
+        unprocessed_key=unprocessed_key,
     )
 
 
@@ -96,6 +98,7 @@ def submit_save_event(
     start_time: float | None,
     data: MutableMapping[str, Any] | None,
     inline: bool = False,
+    unprocessed_key: str | None = None,
 ) -> None:
     if cache_key:
         data = None
@@ -112,6 +115,7 @@ def submit_save_event(
         "start_time": start_time,
         "event_id": event_id,
         "project_id": project_id,
+        "unprocessed_key": unprocessed_key,
     }
 
     if inline:
@@ -228,7 +232,7 @@ def _do_preprocess_event(
                 "symbolication_function": symbolication_function_name,
             },
         ):
-            reprocessing2.backup_unprocessed_event(data=original_data)
+            unprocessed_key = reprocessing2.backup_unprocessed_event(data=original_data)
 
             submit_symbolicate(
                 SymbolicatorTaskKind(
@@ -240,6 +244,7 @@ def _do_preprocess_event(
                 start_time=start_time,
                 has_attachments=has_attachments,
                 symbolicate_functions=symbolicate_functions,
+                unprocessed_key=unprocessed_key,
             )
             return
         # else: go directly to process, do not go through the symbolicate queue, do not collect 200
@@ -349,6 +354,7 @@ def do_process_event(
     data_has_changed: bool = False,
     from_symbolicate: bool = False,
     has_attachments: bool = False,
+    unprocessed_key: str | None = None,
 ) -> None:
     if data is None:
         data = processing.event_processing_store.get(cache_key)
@@ -382,6 +388,7 @@ def do_process_event(
             event_id=data_event_id,
             start_time=start_time,
             data=data,
+            unprocessed_key=unprocessed_key,
         )
 
     if is_process_disabled(project_id, data_event_id, data.get("platform") or "null"):
@@ -469,6 +476,7 @@ def process_event(
     data_has_changed: bool = False,
     from_symbolicate: bool = False,
     has_attachments: bool = False,
+    unprocessed_key: str | None = None,
     **kwargs: Any,
 ) -> None:
     """
@@ -489,6 +497,7 @@ def process_event(
         data_has_changed=data_has_changed,
         from_symbolicate=from_symbolicate,
         has_attachments=has_attachments,
+        unprocessed_key=unprocessed_key,
     )
 
 
@@ -505,6 +514,7 @@ def process_event_from_reprocessing(
     data_has_changed: bool = False,
     from_symbolicate: bool = False,
     has_attachments: bool = False,
+    unprocessed_key: str | None = None,
     **kwargs: Any,
 ) -> None:
     return do_process_event(
@@ -515,6 +525,7 @@ def process_event_from_reprocessing(
         data_has_changed=data_has_changed,
         from_symbolicate=from_symbolicate,
         has_attachments=has_attachments,
+        unprocessed_key=unprocessed_key,
     )
 
 
@@ -526,6 +537,7 @@ def _do_save_event(
     project_id: int | None = None,
     has_attachments: bool = False,
     consumer_type: str | None = None,
+    unprocessed_key: str | None = None,
     **kwargs: Any,
 ) -> None:
     """
@@ -616,6 +628,7 @@ def _do_save_event(
                     assume_normalized=True,
                     start_time=start_time,
                     cache_key=cache_key,
+                    unprocessed_key=unprocessed_key,
                     attachments=attachments,
                 )
                 # Put the updated event back into the cache so that post_process
