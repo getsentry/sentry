@@ -280,3 +280,17 @@ def test_iteration() -> None:
     assert inst[0].type == "ValueError"
     for exc in inst:
         assert exc.type == "ValueError"
+
+
+def test_get_api_meta_with_non_numeric_keys() -> None:
+    inst = Exception.to_python({"values": [{"type": "ValueError"}, {"type": "TypeError"}]})
+    meta: dict[str, dict[str, dict[str, object]]] = {
+        "values": {"0": {}, "": {}, "1": {}, "invalid": {}}
+    }
+
+    result = inst.get_api_meta(meta)
+
+    assert "0" in result["values"]
+    assert "1" in result["values"]
+    assert "" not in result["values"]
+    assert "invalid" not in result["values"]
