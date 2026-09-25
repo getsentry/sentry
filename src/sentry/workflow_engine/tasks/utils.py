@@ -1,3 +1,6 @@
+from collections.abc import Mapping
+from typing import Any
+
 from google.api_core.exceptions import DeadlineExceeded, RetryError, ServiceUnavailable
 
 from sentry import nodestore
@@ -73,6 +76,7 @@ def build_workflow_event_data_from_event(
     occurrence_id: str | None = None,
     group_state: GroupState | None = None,
     has_escalated: bool = False,
+    event_payload: Mapping[str, Any] | None = None,
 ) -> WorkflowEventData:
     """
     Build a WorkflowEventData object from individual parameters.
@@ -82,7 +86,17 @@ def build_workflow_event_data_from_event(
     group = Group.objects.get_from_cache(id=group_id)
     project_id = group.project_id
 
-    event = fetch_event(event_id, project_id)
+    if event_payload is None:
+        event = fetch_event(event_id, project_id)
+        metrics.incr("workflow_engine.process_workflows.event_source", tags={"source": "nodestore"})
+    else:
+        event = Event(event_id=event_id, project_id=project_id, data=event_payload)
+        project = Project.objects.get_from_cache(id=project_id)
+        project.set_cached_field_value(
+            "organization", Organization.objects.get_from_cache(id=project.organization_id)
+        )
+        event.project = project
+        metrics.incr("workflow_engine.process_workflows.event_source", tags={"source": "payload"})
     if event is None:
         raise EventNotFoundError(event_id, project_id)
 

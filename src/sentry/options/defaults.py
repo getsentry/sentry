@@ -3679,6 +3679,12 @@ register(
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "workflow_engine.inline-event-payload-sample-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Safe default limit for workflows. Should be high enough to cover almost all orgs,
 # low enough to have no concerns about stability impact.
 register(

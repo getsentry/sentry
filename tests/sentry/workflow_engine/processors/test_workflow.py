@@ -183,6 +183,31 @@ class TestProcessWorkflows(BaseWorkflowTest):
         )
         mock_fire_actions.assert_called_once()
 
+    @patch("sentry.workflow_engine.tasks.utils.nodestore.backend.get")
+    @patch("sentry.workflow_engine.processors.action.fire_actions")
+    def test_process_workflows_event_with_payload(
+        self, mock_fire_actions: MagicMock, mock_nodestore_get: MagicMock
+    ) -> None:
+        self.create_workflow_action(workflow=self.error_workflow)
+        event_payload = dict(self.event.data)
+
+        process_workflows_event(
+            event_id=self.event.event_id,
+            event_payload=event_payload,
+            group_id=self.group.id,
+            occurrence_id=self.group_event.occurrence_id,
+            group_state={
+                "id": 1,
+                "is_new": False,
+                "is_regression": True,
+                "is_new_group_environment": False,
+            },
+            has_escalated=False,
+        )
+
+        mock_nodestore_get.assert_not_called()
+        mock_fire_actions.assert_called_once()
+
     @with_feature("projects:servicehooks")
     @patch("sentry.sentry_apps.tasks.service_hooks.process_service_hook")
     def test_process_workflows_event__service_hooks_event_alert(

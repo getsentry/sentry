@@ -25,6 +25,7 @@ from sentry.killswitches import (
     killswitch_matches_context,
     value_matches,
 )
+from sentry.options.rollout import in_random_rollout
 from sentry.replays.lib.event_linking import transform_event_for_linking_payload
 from sentry.replays.lib.kafka import publish_replay_event
 from sentry.signals import event_processed, issue_unignored
@@ -1081,9 +1082,15 @@ def process_workflow_engine(job: PostProcessJob) -> None:
         return
 
     try:
+        event_payload = (
+            dict(job["event"].data)
+            if in_random_rollout("workflow_engine.inline-event-payload-sample-rate")
+            else None
+        )
         process_workflows_event.apply_async(
             kwargs=dict(
                 event_id=job["event"].event_id,
+                **({"event_payload": event_payload} if event_payload is not None else {}),
                 occurrence_id=job["event"].occurrence_id,
                 group_id=job["event"].group_id,
                 group_state=job["group_state"],

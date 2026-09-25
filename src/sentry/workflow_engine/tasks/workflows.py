@@ -1,5 +1,6 @@
 import random
 import time
+from collections.abc import Mapping
 from datetime import UTC, datetime
 from typing import Any
 
@@ -120,6 +121,7 @@ def process_workflows_event(
     group_state: GroupState,
     has_escalated: bool,
     start_timestamp_seconds: float | None = None,
+    event_payload: Mapping[str, Any] | None = None,
     **kwargs: dict[str, Any],
 ) -> None:
     with quiet_retriable_timeouts():
@@ -130,6 +132,7 @@ def process_workflows_event(
             group_state=group_state,
             has_escalated=has_escalated,
             start_timestamp_seconds=start_timestamp_seconds,
+            event_payload=event_payload,
         )
 
 
@@ -140,6 +143,7 @@ def _process_workflows_event(
     group_state: GroupState,
     has_escalated: bool,
     start_timestamp_seconds: float | None = None,
+    event_payload: Mapping[str, Any] | None = None,
 ) -> None:
     from sentry.workflow_engine.processors.workflow import process_workflows
 
@@ -154,6 +158,7 @@ def _process_workflows_event(
                 occurrence_id=occurrence_id,
                 group_state=group_state,
                 has_escalated=has_escalated,
+                event_payload=event_payload,
             )
         except (RetryError, OSError) as e:
             # We want to quietly retry these.
