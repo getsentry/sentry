@@ -260,7 +260,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
             "service_url": service_url,
             "user_id": user_id,
             "tenant_id": tenant_id,
-            "conversation_id": data["conversation"]["id"],
+            "conversation_id": data.get("conversation", {}).get("id", team_id),
             "external_id": team_id,
             "external_name": team_name,
             "installation_type": "team",
