@@ -1371,6 +1371,23 @@ describe('Threads', () => {
           `/projects/${organization.slug}/${project.slug}/events/${event.id}/apple-crash-report?minified=true&thread_id=${activeThreadId}&download=1`
         );
       });
+
+      it('selects the exception thread when no thread crashed', async () => {
+        const newEvent = merge({}, event, {
+          entries: [{}, {data: {values: [{crashed: false, stacktrace: null}]}}],
+        });
+        const threadsEntry = newEvent.entries[1]!.data as React.ComponentProps<
+          typeof Threads
+        >['data'];
+        render(<Threads {...props} data={threadsEntry} event={newEvent} />, {
+          organization,
+        });
+
+        expect(await screen.findByTestId('thread-selector')).toHaveTextContent(
+          'Thread #0'
+        );
+        expect(screen.getByText('ViewController.causeCrash')).toBeInTheDocument();
+      });
     });
   });
 });
