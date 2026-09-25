@@ -64,9 +64,9 @@ import {
 } from 'sentry/views/explore/logs/utils';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {TraceItemMetaInfo} from 'sentry/views/explore/utils';
-import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
-import {TraceLayoutTabKeys} from 'sentry/views/performance/newTraceDetails/useTraceLayoutTabs';
-import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
+import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/breadcrumbs';
+import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/traceUrl';
+import {TraceLayoutTabKeys} from 'sentry/views/performance/traceDetails/useTraceLayoutTabs';
 
 const {fmt} = Sentry.logger;
 
@@ -452,7 +452,7 @@ export function SpanIDRenderer(props: LogFieldRendererProps) {
   const location = stripLogParamsFromLocation(props.extra.location);
   const target = getTraceDetailsUrl({
     traceSlug: traceId,
-    spanId,
+    spanId: timestamp ? spanId : undefined,
     timestamp,
     organization: props.extra.organization,
     dateSelection: timestamp ? {} : normalizeDateTimeParams(props.extra.datetime),

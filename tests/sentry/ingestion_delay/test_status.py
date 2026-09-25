@@ -27,9 +27,11 @@ class GetIngestionDelayStatusTest(TestCase):
     ) -> IngestionDelayStatus:
         with (
             mock.patch("sentry.ingestion_delay.status.datetime") as mock_datetime,
-            mock.patch("sentry.ingestion_delay.status.measure_ingestion_delay") as mock_measure,
             mock.patch(
-                "sentry.ingestion_delay.status.has_accepted_outcomes", return_value=accepted
+                "sentry.ingestion_delay.status.get_ingestion_delay_measurement"
+            ) as mock_measure,
+            mock.patch(
+                "sentry.ingestion_delay.status.get_accepted_outcomes", return_value=accepted
             ) as mock_accepted,
         ):
             from datetime import UTC, datetime
@@ -53,7 +55,7 @@ class GetIngestionDelayStatusTest(TestCase):
         status = self._status(delay_seconds=60.0, ingested_seconds_ago=30)
 
         assert status.status == Status.HEALTHY
-        assert status.delay_seconds == 60.0
+        assert status.delay_seconds == 60.0 + STALL_MARGIN.total_seconds()
         assert status.complete_through == self.now - timedelta(seconds=60) - STALL_MARGIN
         assert not self.mock_accepted.called
 
@@ -63,7 +65,7 @@ class GetIngestionDelayStatusTest(TestCase):
         )  # stall margin is 60 seconds, so 119 < 60 + 60
 
         assert status.status == Status.HEALTHY
-        assert status.delay_seconds == 60.0
+        assert status.delay_seconds == 60.0 + STALL_MARGIN.total_seconds()
         assert status.complete_through == self.now - timedelta(seconds=60) - STALL_MARGIN
         assert not self.mock_accepted.called
 
@@ -71,7 +73,7 @@ class GetIngestionDelayStatusTest(TestCase):
         status = self._status(delay_seconds=60.0, ingested_seconds_ago=3600, accepted=True)
 
         assert status.status == Status.STALLED
-        assert status.delay_seconds == 60.0
+        assert status.delay_seconds == 60.0 + STALL_MARGIN.total_seconds()
         assert status.complete_through == self.now - timedelta(seconds=3600)
         assert self.mock_accepted.call_args.kwargs["start"] == self.now - timedelta(seconds=3600)
         assert (
@@ -83,7 +85,7 @@ class GetIngestionDelayStatusTest(TestCase):
         status = self._status(delay_seconds=60.0, ingested_seconds_ago=3600, accepted=False)
 
         assert status.status == Status.IDLE
-        assert status.delay_seconds == 60.0
+        assert status.delay_seconds == 60.0 + STALL_MARGIN.total_seconds()
         assert status.complete_through == self.now - timedelta(seconds=60) - STALL_MARGIN
         assert self.mock_accepted.call_args.kwargs["start"] == self.now - timedelta(seconds=3600)
         assert (
@@ -96,7 +98,7 @@ class GetIngestionDelayStatusTest(TestCase):
 
         assert status.status == Status.UNKNOWN
         assert status.complete_through is None
-        assert status.delay_seconds == 60.0
+        assert status.delay_seconds == 60.0 + STALL_MARGIN.total_seconds()
         assert self.mock_accepted.call_args.kwargs["start"] == self.now - timedelta(seconds=3600)
         assert (
             self.mock_accepted.call_args.kwargs["end"]

@@ -13,6 +13,7 @@ interface ConditionalAggregateFilterBarProps {
   onSearch: (query: string) => void;
   searchSource: string;
   ['data-test-id']?: string;
+  menuPresentation?: 'floating' | 'panel';
 }
 
 /**
@@ -23,6 +24,7 @@ export function ConditionalAggregateFilterBar({
   initialQuery,
   onSearch,
   searchSource,
+  menuPresentation,
   'data-test-id': dataTestId,
 }: ConditionalAggregateFilterBarProps) {
   const {
@@ -44,6 +46,7 @@ export function ConditionalAggregateFilterBar({
       <TraceItemSearchQueryBuilder
         {...spanSearchQueryBuilderProps}
         showSearchIcon={false}
+        menuPresentation={menuPresentation}
         // Parent panels (toolbar, slideover, modal) clip non-portaled menus; the full
         // width filter key menu anchors inside the bar, so turn it off for portaling.
         portalTarget={document.body}

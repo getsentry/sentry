@@ -14,6 +14,13 @@ import AMCheckout from 'getsentry/views/amCheckout';
 import {getCheckoutAPIData} from 'getsentry/views/amCheckout/utils';
 import {hasOnDemandBudgetsFeature} from 'getsentry/views/spendLimits/utils';
 
+function getSeerOption() {
+  const optionText = screen.getByText(/\/ active contributor \/ month/);
+  const option = optionText.closest('[role="checkbox"]');
+  expect(option).toBeInTheDocument();
+  return option!;
+}
+
 async function assertCheckoutSteps({
   tier,
   hasBillingCycleStep = true,
@@ -23,7 +30,7 @@ async function assertCheckoutSteps({
   hasBillingCycleStep?: boolean;
   hasBillingInfoStep?: boolean;
 }) {
-  expect(await screen.findByTestId('checkout-steps')).toBeInTheDocument();
+  expect(await screen.findByText('Select a plan')).toBeInTheDocument();
   [
     'Select a plan',
     [PlanTier.AM1, PlanTier.AM2].includes(tier)
@@ -479,7 +486,7 @@ describe('Default Tier Checkout', () => {
     // other categories use defaults
     expect(screen.getByTestId('replays-volume-item')).toHaveTextContent('50');
 
-    expect(screen.getByTestId('product-option-seer')).toBeChecked();
+    expect(getSeerOption()).toBeChecked();
   });
 
   it('prefills with existing subscription data with plan trial', async () => {
@@ -532,7 +539,7 @@ describe('Default Tier Checkout', () => {
     // other categories use defaults
     expect(screen.getByTestId('replays-volume-item')).toHaveTextContent('50');
 
-    expect(screen.getByTestId('product-option-seer')).not.toBeChecked();
+    expect(getSeerOption()).not.toBeChecked();
   });
 
   it('handles missing categories in subscription.categories', async () => {

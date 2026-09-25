@@ -12,7 +12,7 @@ Regenerate the classification rather than trusting a list — this migration's o
 
 ```bash
 cd "$(git rev-parse --show-toplevel)"
-EXCLUDE='components/breadcrumbs.spec.tsx|events/eventDrawer.tsx|groupDistributionCrumbs.tsx|widgetBuilderSlideout.tsx'
+EXCLUDE='components/breadcrumbs.spec.tsx|events/eventDrawer.tsx|groupDistributionCrumbs.tsx'
 for f in $(grep -rl "from 'sentry/components/breadcrumbs'" static/app | grep -Ev "$EXCLUDE" | sort); do
   printf '%-70s jsx=%s h1=%s LT=%s titleSlot=%s styled=%s\n' "${f#static/app/}" \
     "$(grep -c '<Breadcrumbs' "$f")" "$(grep -c 'as="h1"' "$f")" \
@@ -101,11 +101,10 @@ Two answer keys worth copying rather than re-deriving:
 
 ## Never migrated
 
-| File                                                                  | Why it stays                                                  |
-| --------------------------------------------------------------------- | ------------------------------------------------------------- |
-| `components/breadcrumbs.spec.tsx`                                     | The legacy component's own spec; goes when the component does |
-| `components/events/eventDrawer.tsx` (`NavigationCrumbs`)              | Renders outside the page `<h1>` and needs a `<nav>` landmark  |
-| `views/issueDetails/groupDistributions/groupDistributionCrumbs.tsx`   | Consumes `NavigationCrumbs`                                   |
-| `views/dashboards/widgetBuilder/components/widgetBuilderSlideout.tsx` | `<Breadcrumbs as="nav">` inside a slide-over panel            |
+| File                                                                | Why it stays                                                  |
+| ------------------------------------------------------------------- | ------------------------------------------------------------- |
+| `components/breadcrumbs.spec.tsx`                                   | The legacy component's own spec; goes when the component does |
+| `components/events/eventDrawer.tsx` (`NavigationCrumbs`)            | Renders outside the page `<h1>` and needs a `<nav>` landmark  |
+| `views/issueDetails/groupDistributions/groupDistributionCrumbs.tsx` | Consumes `NavigationCrumbs`                                   |
 
-`BreadcrumbList` renders a bare `<ol>` with no landmark mode, so those three are blocked on a component capability. `views/settings/components/settingsBreadcrumb/` is a separate route-driven system that derives crumbs from `useRoutes()` and receives titles via a context side-effect.
+`BreadcrumbList` renders a bare `<ol>` with no landmark mode, so those two are blocked on a component capability. `views/settings/components/settingsBreadcrumb/` is a separate route-driven system that derives crumbs from `useRoutes()` and receives titles via a context side-effect.

@@ -173,7 +173,7 @@ describe('SeerDrawer', () => {
       name: 'Start a new analysis from scratch',
     });
     expect(resetButton).toBeInTheDocument();
-    expect(resetButton).toBeEnabled();
+    expect(resetButton).not.toHaveAttribute('aria-disabled', 'true');
   });
 
   it('shows copy button disabled when no autofix run exists', async () => {
@@ -194,7 +194,7 @@ describe('SeerDrawer', () => {
       name: 'Copy analysis as Markdown',
     });
     expect(copyButton).toBeInTheDocument();
-    expect(copyButton).toBeDisabled();
+    expect(copyButton).toHaveAttribute('aria-disabled', 'true');
   });
 
   it('shows copy button enabled when autofix run exists', async () => {
@@ -217,7 +217,7 @@ describe('SeerDrawer', () => {
       name: 'Copy analysis as Markdown',
     });
     expect(copyButton).toBeInTheDocument();
-    expect(copyButton).toBeEnabled();
+    expect(copyButton).not.toHaveAttribute('aria-disabled', 'true');
   });
 
   it('renders reset button enabled with autofix data', async () => {
@@ -240,7 +240,7 @@ describe('SeerDrawer', () => {
       name: 'Start a new analysis from scratch',
     });
     expect(resetButton).toBeInTheDocument();
-    expect(resetButton).toBeEnabled();
+    expect(resetButton).not.toHaveAttribute('aria-disabled', 'true');
   });
 
   it('clicking reset triggers a new root cause analysis', async () => {

@@ -15,6 +15,17 @@ import {
 import type {DO_NOT_USE_ButtonProps as ButtonProps, ButtonSize} from './types';
 import {useButtonFunctionality} from './useButtonFunctionality';
 
+function preventKeyboardSubmit(
+  e: React.KeyboardEvent,
+  consumer?: React.KeyboardEventHandler
+) {
+  if (e.key === 'Enter' || e.key === ' ') {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+  consumer?.(e);
+}
+
 export type {ButtonProps};
 
 export function Button({
@@ -36,6 +47,11 @@ export function Button({
   const {hasChildren, accessibleLabel} = useButtonFunctionality(buttonProps);
   const {handleClick} = useClickTracking(buttonProps, 'button');
 
+  // When a tooltip is present, use aria-disabled instead of native disabled
+  // so the button stays focusable and the tooltip can open on keyboard focus.
+  const hasTooltip = !!tooltipProps?.title;
+  const useAriaDisabled = disabled && hasTooltip;
+
   return (
     <Tooltip
       skipWrapper
@@ -45,15 +61,19 @@ export function Button({
     >
       <StyledButton
         aria-label={accessibleLabel}
-        aria-disabled={disabled}
         aria-busy={busy}
-        disabled={disabled}
+        disabled={useAriaDisabled ? undefined : disabled}
         size={size}
         type={type}
         busy={busy}
         {...props}
+        {...(disabled !== undefined && {'aria-disabled': disabled})}
         shapeVariant={hasChildren ? 'rectangular' : 'square'}
         onClick={handleClick}
+        {...(useAriaDisabled && {
+          onKeyDown: (e: React.KeyboardEvent<HTMLButtonElement>) =>
+            preventKeyboardSubmit(e, props.onKeyDown),
+        })}
         role="button"
       >
         <Flex

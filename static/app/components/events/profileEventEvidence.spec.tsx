@@ -60,7 +60,7 @@ describe('ProfileEventEvidence', () => {
 
     expect(screen.getByRole('button', {name: 'View Transaction'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/explore/traces/trace/trace-id/?referrer=issue&statsPeriod=14d'
+      '/organizations/org-slug/explore/traces/trace/trace-id/?eventId=transaction-id&referrer=issue&statsPeriod=14d'
     );
   });
 });

@@ -1,4 +1,5 @@
-import type {MouseEvent, ReactNode} from 'react';
+import {Fragment, type MouseEvent, type ReactNode} from 'react';
+import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
@@ -13,13 +14,13 @@ import {ClippedDetail} from './clippedDetail';
 import {ToolCallIndicator, type ToolCallStatus} from './toolCallIndicator';
 
 /**
- * A compact chip referencing an entity a tool call produced or acted on (e.g.
+ * An inline link referencing an entity a tool call produced or acted on (e.g.
  * `Trace: a3805648`). Renders as a real link when given `to`, an interactive
- * button when given `onClick`, or a non-interactive display chip otherwise.
+ * button when given `onClick`, or non-interactive text otherwise.
  */
 export interface ToolCallReference {
   /**
-   * The referenced identifier, emphasized in the chip (e.g. a trace or span id).
+   * The referenced identifier, emphasized in the link (e.g. a trace or span id).
    */
   value: string;
   /**
@@ -31,13 +32,13 @@ export interface ToolCallReference {
    */
   label?: string;
   /**
-   * Fires when the chip is activated. When omitted (and no `to` is set) the chip
-   * is still rendered but non-interactive. Receives the event so callers can stop
+   * Fires when the reference is activated. When omitted (and no `to` is set) the
+   * reference is still rendered but non-interactive. Receives the event so callers can stop
    * propagation or record analytics; pair it with `to` to track a navigation.
    */
   onClick?: (event: MouseEvent<HTMLElement>) => void;
   /**
-   * Navigation target. When set, the chip renders as a real link (anchor) so it
+   * Navigation target. When set, the reference renders as a real link (anchor) so it
    * supports middle/cmd-click and keyboard access, rather than an `onClick` button.
    */
   to?: LocationDescriptor;
@@ -80,7 +81,8 @@ interface ToolCallProps {
    */
   output?: ReactNode;
   /**
-   * A trailing chip shown inline with the title. Typically the entity the call
+   * A link at the right edge of the title line, or inline after the title text in
+   * a narrow container. Typically the entity the call
    * acted on — the call's result.
    */
   reference?: ToolCallReference;
@@ -91,41 +93,124 @@ interface ToolCallProps {
 // under the headline rather than under the glyph.
 const GLYPH_SLOT_WIDTH = '16px';
 
+// Holds the status glyph. One title line tall (at the title's font size), so the
+// glyph centers on the first line of a wrapped title instead of the whole block.
+// Styled because `1lh` needs the title's font size, which no layout primitive sets.
+const GlyphSlot = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: ${GLYPH_SLOT_WIDTH};
+  height: 1lh;
+  font-size: ${p => p.theme.font.size.sm};
+`;
+
+// The title row: the title (with its reference) in the first column, the
+// failure chip in a trailing column. From the `sm` container width up,
+// `TitleFlow` dissolves so the title spans both rows and the reference takes the
+// trailing column's first row; the chip then auto-places into the next free row
+// of that column, stacking under the reference (or on the first row when there
+// is none). The font size matches the title so `1lh` measures one title line.
+const TitleGrid = styled('div')`
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  column-gap: ${p => p.theme.space.md};
+  font-size: ${p => p.theme.font.size.sm};
+
+  @container (min-width: ${p => p.theme.container.sm}) {
+    grid-template-rows: auto 1fr;
+  }
+`;
+
+// Below the breakpoint a block, so the reference flows inline right after the
+// title text and wraps with it. From the breakpoint up, `display: contents` lifts
+// the title (its first child) and the reference into `TitleGrid`'s cells.
+// Styled because no layout primitive can switch between block and contents.
+const TitleFlow = styled('div')`
+  grid-column: 1;
+
+  @container (min-width: ${p => p.theme.container.sm}) {
+    display: contents;
+
+    > :first-child {
+      grid-column: 1;
+      grid-row: 1 / span 2;
+    }
+  }
+`;
+
+// The reference button is `inline-flex`, whose baseline is its first item's —
+// the icon's bottom edge — so on the title's baseline it rides a few pixels
+// high, and `vertical-align: middle` (baseline + half x-height) overshoots low.
+// Instead, make the wrapper exactly one line tall, pin it to the top of the
+// line box, and center the button inside it. No layout primitive exposes
+// `vertical-align`, hence the styled wrapper.
+const InlineReference = styled('span')`
+  display: inline-flex;
+  align-items: center;
+  height: 1lh;
+  vertical-align: top;
+
+  @container (min-width: ${p => p.theme.container.sm}) {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: end;
+  }
+`;
+
+// `inherit` so the text takes the link button's accent color rather than
+// resetting to the default content color.
 function ChipContent({label, value}: {value: string; label?: string}) {
   return label ? (
-    <Text size="sm">
+    <Text size="sm" variant="inherit">
       {`${label}: `}
-      <Text size="sm" bold>
+      <Text size="sm" variant="inherit" bold>
         {value}
       </Text>
     </Text>
   ) : (
-    <Text size="sm" bold>
+    <Text size="sm" variant="inherit" bold>
       {value}
     </Text>
   );
 }
 
-function ReferenceChip({reference}: {reference: ToolCallReference}) {
+/**
+ * The reference, rendered as a `link`-variant button. `TitleGrid` places it: at
+ * the right edge in wide containers, inline after the title text in narrow ones.
+ * A trailing column in a narrow container squeezed the title into many short
+ * lines; inline, the title keeps the full width and the link wraps with it.
+ */
+function ReferenceLink({reference}: {reference: ToolCallReference}) {
   const {label, value, icon, onClick, to} = reference;
   // No explicit size: `Button`/`LinkButton` already scale their `icon` via
   // `IconDefaultsProvider`, and a hardcoded size here would fight that when the
-  // chip's button size ever changes.
+  // link's button size ever changes.
   const chipIcon = icon ?? <IconSpan />;
   const content = <ChipContent label={label} value={value} />;
 
   // A navigation target renders as a real anchor so middle/cmd-click and keyboard access work; an
-  // `onClick`-only chip stays a button; a chip with neither is a non-interactive display chip.
+  // `onClick`-only reference stays a button; one with neither is non-interactive.
   if (to) {
     return (
-      <LinkButton size="xs" icon={chipIcon} to={to} onClick={onClick}>
+      <LinkButton size="zero" variant="link" icon={chipIcon} to={to} onClick={onClick}>
         {content}
       </LinkButton>
     );
   }
 
   return (
-    <Button size="xs" icon={chipIcon} onClick={onClick} disabled={!onClick}>
+    <Button
+      size="zero"
+      variant="link"
+      icon={chipIcon}
+      onClick={onClick}
+      disabled={!onClick}
+    >
       {content}
     </Button>
   );
@@ -133,24 +218,27 @@ function ReferenceChip({reference}: {reference: ToolCallReference}) {
 
 /**
  * The hoisted failure marker. A failed call keeps its leading glyph but also
- * surfaces this danger chip in the trailing result slot, where a successful call
- * would show its `reference` — so the outcome is legible on the right rather than
+ * surfaces this danger chip in the trailing result slot, so the outcome is
+ * legible on the right rather than
  * only as a small glyph on the far left. The `label` is typically the HTTP status
  * code (e.g. `502`).
  */
 function FailureChip({label}: {label: ReactNode}) {
   return (
-    <Container
+    // A flex container blockifies the label, so `Text`'s `text-box-trim` trims it
+    // to the glyphs' ascent/descent. Otherwise the chip's height is the line box,
+    // whose descender room (unused by digits) reads as extra bottom padding.
+    <Flex
+      align="center"
       border="danger"
       radius="sm"
-      paddingLeft="sm"
-      paddingRight="sm"
+      padding="2xs sm"
       background="primary"
     >
       <Text size="sm" variant="danger" bold>
         {label}
       </Text>
-    </Container>
+    </Flex>
   );
 }
 
@@ -215,8 +303,10 @@ function getStatusLabel(
  *
  * Unlike the collapsible `ThinkingBlock` it lives in, a tool call is not itself a
  * disclosure — its detail is always visible. The lifecycle glyph
- * (`ToolCallIndicator`) leads the title; an optional `reference` chip and, on
- * failure, a `failureLabel` chip (the HTTP status) trail it. `input`, `output`,
+ * (`ToolCallIndicator`) leads the title, level with its first line; an optional
+ * `reference` link sits at the right edge (or inline after the title text in a
+ * narrow container) and, on failure, a `failureLabel` chip (the HTTP status)
+ * trails the row. `input`, `output`,
  * `notifications`, and `children` stack beneath the title, indented to align
  * under the headline.
  */
@@ -232,7 +322,6 @@ export function ToolCall({
 }: ToolCallProps) {
   const {t} = useTranslation();
   const isFailure = status === 'failure';
-  const hasTrailing = Boolean(reference) || isFailure;
   const hasDetail =
     Boolean(input) ||
     Boolean(output) ||
@@ -240,22 +329,36 @@ export function ToolCall({
     Boolean(children);
 
   return (
-    <Stack gap="xs" flex={1} minWidth={0} width="100%">
-      <Flex gap="md" align="center" width="100%">
-        <Flex width={GLYPH_SLOT_WIDTH} justify="center" flexShrink={0}>
+    <Stack gap="xs" flex={1} minWidth={0} width="100%" containerType="inline-size">
+      <Flex gap="md" align="start" width="100%">
+        <GlyphSlot>
           <ToolCallIndicator status={status} aria-label={getStatusLabel(status, t)} />
-        </Flex>
-        <Flex flex={1} minWidth={0} align="center" justify="between" gap="md">
-          <Text size="sm" variant="secondary" monospace>
-            {title}
-          </Text>
-          {hasTrailing ? (
-            <Flex align="center" gap="sm" flexShrink={0}>
-              {reference ? <ReferenceChip reference={reference} /> : null}
-              {isFailure ? <FailureChip label={failureLabel ?? t('Failed')} /> : null}
+        </GlyphSlot>
+        <TitleGrid>
+          <TitleFlow>
+            <Text size="sm" variant="secondary" monospace wordBreak="break-word">
+              {title}
+            </Text>
+            {reference ? (
+              <Fragment>
+                {' '}
+                <InlineReference>
+                  <ReferenceLink reference={reference} />
+                </InlineReference>
+              </Fragment>
+            ) : null}
+          </TitleFlow>
+          {isFailure ? (
+            <Flex
+              column="2"
+              justify="end"
+              // Stacked under the reference once it moves into this column.
+              paddingTop={reference ? {zero: '0', sm: 'xs'} : undefined}
+            >
+              <FailureChip label={failureLabel ?? t('Failed')} />
             </Flex>
           ) : null}
-        </Flex>
+        </TitleGrid>
       </Flex>
 
       {hasDetail ? (

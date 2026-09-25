@@ -28,7 +28,7 @@ from sentry.notifications.platform.templates.seer import (
     SeerAutofixPullRequest,
     SeerAutofixUpdate,
 )
-from sentry.notifications.platform.types import NotificationCategory, NotificationRenderedTemplate
+from sentry.notifications.platform.types import NotificationRenderedTemplate
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.testutils.cases import TestCase
 
@@ -409,9 +409,7 @@ class SeerAgentWriteApprovalSlackRendererTest(TestCase):
             scopes=["org:write"],
         )
 
-        renderer = SlackNotificationProvider.get_renderer(
-            data=data, category=NotificationCategory.SEER
-        )
+        renderer = SlackNotificationProvider.get_renderer(data=data)
         assert renderer is SeerAgentWriteApprovalSlackRenderer
         renderable = renderer.render(data=data, rendered_template=self.rendered_template)
 

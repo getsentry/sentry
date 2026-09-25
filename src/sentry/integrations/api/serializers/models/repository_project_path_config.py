@@ -1,14 +1,35 @@
+from typing import TypedDict
+
 from django.db.models import prefetch_related_objects
 
 from sentry.api.serializers import Serializer, register
-from sentry.integrations.api.serializers.models.integration import serialize_provider
+from sentry.integrations.api.serializers.models.integration import (
+    IntegrationProviderInfo,
+    serialize_provider,
+)
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcIntegration
 
 
+class RepositoryProjectPathConfigSerializerResponse(TypedDict):
+    id: str
+    projectId: str
+    projectSlug: str
+    repoId: str
+    repoName: str
+    integrationId: str | None
+    provider: IntegrationProviderInfo | None
+    stackRoot: str
+    sourceRoot: str
+    defaultBranch: str | None
+    automaticallyGenerated: bool
+
+
 @register(RepositoryProjectPathConfig)
-class RepositoryProjectPathConfigSerializer(Serializer):
+class RepositoryProjectPathConfigSerializer(
+    Serializer[RepositoryProjectPathConfigSerializerResponse]
+):
     def get_attrs(self, item_list, user, **kwargs):
         if not item_list:
             return {}
@@ -51,7 +72,9 @@ class RepositoryProjectPathConfigSerializer(Serializer):
             for item in item_list
         }
 
-    def serialize(self, obj, attrs, user, **kwargs):
+    def serialize(
+        self, obj, attrs, user, **kwargs
+    ) -> RepositoryProjectPathConfigSerializerResponse:
         integration = attrs.get("integration")
 
         provider = integration.get_provider() if integration else None
@@ -61,7 +84,7 @@ class RepositoryProjectPathConfigSerializer(Serializer):
         project = obj.project_repository.project
         repository = obj.project_repository.repository
 
-        return {
+        response: RepositoryProjectPathConfigSerializerResponse = {
             "id": str(obj.id),
             "projectId": str(project.id),
             "projectSlug": project.slug,
@@ -74,3 +97,4 @@ class RepositoryProjectPathConfigSerializer(Serializer):
             "defaultBranch": obj.default_branch,
             "automaticallyGenerated": obj.automatically_generated,
         }
+        return response

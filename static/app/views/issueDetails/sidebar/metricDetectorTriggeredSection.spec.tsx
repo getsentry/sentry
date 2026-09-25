@@ -102,6 +102,7 @@ describe('MetricDetectorTriggeredSection', () => {
     const organization = OrganizationFixture({
       slug: 'org-slug',
       features: ['investigations'],
+      openMembership: true,
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/investigations/candidates/',
@@ -137,6 +138,7 @@ describe('MetricDetectorTriggeredSection', () => {
     const organization = OrganizationFixture({
       slug: 'org-slug',
       features: ['investigations'],
+      openMembership: true,
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/investigations/candidates/',
@@ -168,6 +170,7 @@ describe('MetricDetectorTriggeredSection', () => {
     const organization = OrganizationFixture({
       slug: 'org-slug',
       features: ['investigations'],
+      openMembership: true,
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/investigations/candidates/',
@@ -210,6 +213,7 @@ describe('MetricDetectorTriggeredSection', () => {
     const organization = OrganizationFixture({
       slug: 'org-slug',
       features: ['investigations'],
+      openMembership: true,
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/investigations/candidates/',
@@ -263,6 +267,7 @@ describe('MetricDetectorTriggeredSection', () => {
     const organization = OrganizationFixture({
       slug: 'org-slug',
       features: ['investigations'],
+      openMembership: true,
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/investigations/candidates/',
@@ -280,15 +285,20 @@ describe('MetricDetectorTriggeredSection', () => {
     });
 
     expect(
+      screen.queryByRole('region', {name: 'Seer Investigation'})
+    ).not.toBeInTheDocument();
+    expect(
       await screen.findByText(
         'Launch a Seer investigation to understand what happened, identify what drove the breach, and get evidence-backed next steps.'
       )
     ).toBeInTheDocument();
     expect(screen.queryByTestId('investigation-summary')).not.toBeInTheDocument();
 
-    await userEvent.click(
-      await screen.findByRole('button', {name: 'Launch Investigation'})
-    );
+    const launchButton = await screen.findByRole('button', {
+      name: 'Launch Investigation',
+    });
+    expect(launchButton).toBeEnabled();
+    await userEvent.click(launchButton);
 
     await waitFor(() => {
       expect(launchMock).toHaveBeenCalledWith(
@@ -308,56 +318,125 @@ describe('MetricDetectorTriggeredSection', () => {
     expect(router.location.pathname).toBe('/explore/investigations/4567/');
   });
 
-  it('explains why launching is unavailable', async () => {
+  it('hides the investigation section for a closed-membership organization', () => {
     const organization = OrganizationFixture({
       slug: 'org-slug',
       features: ['investigations'],
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/investigations/candidates/',
-      method: 'POST',
-      body: {items: [{status: 'unavailable'}]},
-    });
-
-    render(<MetricIssueSeerInvestigationSection {...defaultProps} />, {organization});
-
-    const button = await screen.findByRole('button', {name: 'Launch Investigation'});
-    expect(button).toBeDisabled();
-    await userEvent.hover(button);
-    // Deliberately vague: naming the cause would reveal whether an issue the
-    // viewer cannot access exists.
-    expect(
-      await screen.findByText(
-        'Seer cannot investigate this issue. It may not be linked to an active monitor, or you may not have access.'
-      )
-    ).toBeInTheDocument();
-  });
-
-  it('explains that an issue with no open period cannot be investigated', async () => {
-    const organization = OrganizationFixture({
-      slug: 'org-slug',
-      features: ['investigations'],
+      openMembership: false,
     });
     const candidatesMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/investigations/candidates/',
       method: 'POST',
       body: {items: [{status: 'investigate'}]},
     });
-    MockApiClient.addMockResponse({
+    const openPeriodsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/open-periods/',
       body: [],
     });
 
     render(<MetricIssueSeerInvestigationSection {...defaultProps} />, {organization});
 
-    const button = await screen.findByRole('button', {name: 'Launch Investigation'});
-    expect(button).toBeDisabled();
-    // Open periods are already on the page, so naming this one gives nothing away.
-    await userEvent.hover(button);
     expect(
-      await screen.findByText('This issue has no open period to investigate.')
-    ).toBeInTheDocument();
-    // Without a source there is nothing to ask about.
+      screen.queryByRole('region', {name: 'Seer Investigation'})
+    ).not.toBeInTheDocument();
+    expect(candidatesMock).not.toHaveBeenCalled();
+    expect(openPeriodsMock).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    {description: 'unavailable', items: [{status: 'unavailable'}]},
+    {description: 'missing', items: []},
+  ])(
+    'hides the investigation section when the candidate is $description',
+    async ({items}) => {
+      const organization = OrganizationFixture({
+        slug: 'org-slug',
+        features: ['investigations'],
+        openMembership: true,
+      });
+      const candidatesMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/investigations/candidates/',
+        method: 'POST',
+        body: {items},
+      });
+
+      render(<MetricIssueSeerInvestigationSection {...defaultProps} />, {organization});
+
+      await waitFor(() => expect(candidatesMock).toHaveBeenCalled());
+      expect(
+        screen.queryByRole('region', {name: 'Seer Investigation'})
+      ).not.toBeInTheDocument();
+    }
+  );
+
+  it('hides the investigation section when the candidate lookup fails', async () => {
+    const organization = OrganizationFixture({
+      slug: 'org-slug',
+      features: ['investigations'],
+      openMembership: true,
+    });
+    const candidatesMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/candidates/',
+      method: 'POST',
+      statusCode: 500,
+    });
+
+    render(<MetricIssueSeerInvestigationSection {...defaultProps} />, {organization});
+
+    await waitFor(() => expect(candidatesMock).toHaveBeenCalled());
+    expect(
+      screen.queryByRole('region', {name: 'Seer Investigation'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('hides the investigation section when the existing investigation cannot be loaded', async () => {
+    const organization = OrganizationFixture({
+      slug: 'org-slug',
+      features: ['investigations'],
+      openMembership: true,
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/candidates/',
+      method: 'POST',
+      body: {items: [{status: 'view', investigationId: '4567'}]},
+    });
+    const detailMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/4567/',
+      statusCode: 404,
+    });
+
+    render(<MetricIssueSeerInvestigationSection {...defaultProps} />, {organization});
+
+    await waitFor(() => {
+      expect(detailMock).toHaveBeenCalled();
+      expect(
+        screen.queryByRole('region', {name: 'Seer Investigation'})
+      ).not.toBeInTheDocument();
+    });
+  });
+
+  it('hides the investigation section when the issue has no open period', async () => {
+    const organization = OrganizationFixture({
+      slug: 'org-slug',
+      features: ['investigations'],
+      openMembership: true,
+    });
+    const candidatesMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/candidates/',
+      method: 'POST',
+      body: {items: [{status: 'investigate'}]},
+    });
+    const openPeriodsMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/open-periods/',
+      body: [],
+    });
+
+    render(<MetricIssueSeerInvestigationSection {...defaultProps} />, {organization});
+
+    await waitFor(() => expect(openPeriodsMock).toHaveBeenCalledTimes(2));
+    expect(
+      screen.queryByRole('region', {name: 'Seer Investigation'})
+    ).not.toBeInTheDocument();
     expect(candidatesMock).not.toHaveBeenCalled();
   });
 
@@ -365,6 +444,7 @@ describe('MetricDetectorTriggeredSection', () => {
     const organization = OrganizationFixture({
       slug: 'org-slug',
       features: ['investigations'],
+      openMembership: true,
     });
     const event = {...defaultEvent, id: 'unlinked-event', eventID: 'unlinked-event'};
     MockApiClient.addMockResponse({
@@ -410,6 +490,7 @@ describe('MetricDetectorTriggeredSection', () => {
     const organization = OrganizationFixture({
       slug: 'org-slug',
       features: ['investigations'],
+      openMembership: true,
     });
     const event = {...defaultEvent, id: 'failed-event', eventID: 'failed-event'};
     const latestPeriodMock = MockApiClient.addMockResponse({
@@ -417,7 +498,7 @@ describe('MetricDetectorTriggeredSection', () => {
       body: [],
       match: [MockApiClient.matchQuery({groupId: defaultGroup.id, per_page: 1})],
     });
-    MockApiClient.addMockResponse({
+    const eventPeriodMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/open-periods/',
       statusCode: 500,
       match: [
@@ -433,9 +514,10 @@ describe('MetricDetectorTriggeredSection', () => {
       organization,
     });
 
+    await waitFor(() => expect(eventPeriodMock).toHaveBeenCalled());
     expect(
-      await screen.findByText('Unable to load investigation information.')
-    ).toBeInTheDocument();
+      screen.queryByRole('region', {name: 'Seer Investigation'})
+    ).not.toBeInTheDocument();
     expect(latestPeriodMock).not.toHaveBeenCalled();
   });
 
@@ -454,6 +536,7 @@ describe('MetricDetectorTriggeredSection', () => {
     const organization = OrganizationFixture({
       slug: 'org-slug',
       features: ['investigations'],
+      openMembership: true,
     });
     const event = EventFixture({occurrence: null});
     MockApiClient.addMockResponse({
