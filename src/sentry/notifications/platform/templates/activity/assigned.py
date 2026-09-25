@@ -35,10 +35,12 @@ def get_assigned_subject(data: AssignedNotificationData) -> list[NotificationTex
     else:
         blocks.append(PlainTextBlock(text="An Issue"))
 
-    if data.is_automated:
-        blocks.append(PlainTextBlock(text=f"was auto-assigned to {get_assignee_label(data)}"))
-    else:
-        blocks.append(PlainTextBlock(text=f"was assigned to {get_assignee_label(data)}"))
+    assignee_label = get_assignee_label(data)
+    assignment_verb = "auto-assigned" if data.is_automated else "assigned"
+    blocks.append(PlainTextBlock(text=f"was {assignment_verb} to {assignee_label}"))
+
+    # For non-automated assignments, show who did the assignment
+    if not data.is_automated:
         by_display = (
             data.assignee_label if data.assignee_label == "themselves" else data.activity_user_name
         )
