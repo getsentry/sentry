@@ -27,12 +27,17 @@ import {
 import type {DiscoverQueryRequestParams} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {SERIES_QUERY_DELIMITER} from 'sentry/utils/timeSeries/transformLegacySeriesToTimeSeries';
+import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
 import {SpansConfig} from 'sentry/views/dashboards/datasetConfig/spans';
-import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
+import {
+  getSeriesRequestData,
+  getTimeseriesQueryParams,
+} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
 import type {Widget} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {getSeriesQueryPrefix} from 'sentry/views/dashboards/utils/getSeriesQueryPrefix';
+import {shouldUseEventsTimeseries} from 'sentry/views/dashboards/utils/shouldUseEventsTimeseries';
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {HookWidgetQueryResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {
@@ -40,6 +45,7 @@ import {
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
+import {getTimeseriesWidgetQueryOptions} from 'sentry/views/dashboards/widgetCard/hooks/utils/getTimeseriesWidgetQueryOptions';
 import {
   getConditionalFilterInvalidSeriesMessageForAggregates,
   getValidAggregatesForRequest,
@@ -52,7 +58,8 @@ import {SpanFields} from 'sentry/views/insights/types';
 type SpansSeriesResponse =
   | EventsStats
   | MultiSeriesEventsStats
-  | GroupedMultiSeriesEventsStats;
+  | GroupedMultiSeriesEventsStats
+  | EventsTimeSeriesResponse;
 type SpansTableResponse = TableData | EventsTableData;
 
 /**
@@ -190,6 +197,10 @@ export function useSpansSeriesQuery(
   const hasConditionalAggregates = organization.features.includes(
     'explore-conditional-aggregates'
   );
+  const hasMeasuredIngestionDelayUi = organization.features.includes(
+    'measured-ingestion-delay-ui'
+  );
+  const isEventsTimeseriesEnabled = shouldUseEventsTimeseries(organization);
 
   // Apply dashboard filters
   const filteredWidget = useMemo(
@@ -235,54 +246,66 @@ export function useSpansSeriesQuery(
         requestData.sampling = samplingMode;
       }
 
-      // Transform requestData into proper query params
-      const {
-        organization: _org,
-        includeAllArgs: _includeAllArgs,
-        includePrevious: _includePrevious,
-        generatePathname: _generatePathname,
-        period,
-        ...restParams
-      } = requestData;
+      if (!isEventsTimeseriesEnabled) {
+        // Transform requestData into proper query params
+        const {
+          organization: _org,
+          includeAllArgs: _includeAllArgs,
+          includePrevious: _includePrevious,
+          generatePathname: _generatePathname,
+          period,
+          ...restParams
+        } = requestData;
 
-      const queryParams = {
-        ...restParams,
-        ...(period ? {statsPeriod: period} : {}),
-      };
+        const queryParams = {
+          ...restParams,
+          ...(period ? {statsPeriod: period} : {}),
+        };
 
-      if (queryParams.start) {
-        queryParams.start = getUtcDateString(queryParams.start);
+        if (queryParams.start) {
+          queryParams.start = getUtcDateString(queryParams.start);
+        }
+        if (queryParams.end) {
+          queryParams.end = getUtcDateString(queryParams.end);
+        }
+
+        return queryOptions({
+          ...apiOptions.as<SpansSeriesResponse>()(
+            '/organizations/$organizationIdOrSlug/events-stats/',
+            {
+              path: {organizationIdOrSlug: organization.slug},
+              method: 'GET' as const,
+              query: queryParams,
+              staleTime: getWidgetStaleTime(pageFilters),
+            }
+          ),
+          queryFn: (context): Promise<ApiResponse<SpansSeriesResponse>> => {
+            if (queue) {
+              return new Promise((resolve, reject) => {
+                const fetchFnRef = {
+                  current: () =>
+                    apiFetch<SpansSeriesResponse>(context).then(resolve, reject),
+                };
+                queue.addItem({fetchDataRef: fetchFnRef});
+              });
+            }
+            return apiFetch<SpansSeriesResponse>(context);
+          },
+          enabled: enabled && !skippedForInvalidConditionalFilter,
+          retry: false,
+          retryDelay: getRetryDelay,
+          placeholderData: keepPreviousData,
+        });
       }
-      if (queryParams.end) {
-        queryParams.end = getUtcDateString(queryParams.end);
-      }
 
-      return queryOptions({
-        ...apiOptions.as<SpansSeriesResponse>()(
-          '/organizations/$organizationIdOrSlug/events-stats/',
-          {
-            path: {organizationIdOrSlug: organization.slug},
-            method: 'GET' as const,
-            query: queryParams,
-            staleTime: getWidgetStaleTime(pageFilters),
-          }
-        ),
-        queryFn: (context): Promise<ApiResponse<SpansSeriesResponse>> => {
-          if (queue) {
-            return new Promise((resolve, reject) => {
-              const fetchFnRef = {
-                current: () =>
-                  apiFetch<SpansSeriesResponse>(context).then(resolve, reject),
-              };
-              queue.addItem({fetchDataRef: fetchFnRef});
-            });
-          }
-          return apiFetch<SpansSeriesResponse>(context);
-        },
+      return getTimeseriesWidgetQueryOptions({
+        organization,
+        pageFilters,
+        queue,
         enabled: enabled && !skippedForInvalidConditionalFilter,
-        retry: false,
-        retryDelay: getRetryDelay,
-        placeholderData: keepPreviousData,
+        query: getTimeseriesQueryParams(requestData, {
+          includeMeasuredIngestionDelayMetadata: hasMeasuredIngestionDelayUi,
+        }),
       });
     }),
   });
