@@ -863,7 +863,6 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /knip.config.ts                                        @getsentry/design-engineering
 # Agents + Skills
 /static/.cursor/BUGBOT.md                             @getsentry/design-engineering
-/static/CLAUDE.md                                     @getsentry/design-engineering
 /static/AGENTS.md                                     @getsentry/design-engineering
 /static/oxlint/                                       @getsentry/design-engineering
 /scripts/analyze-styled.ts                            @getsentry/design-engineering
