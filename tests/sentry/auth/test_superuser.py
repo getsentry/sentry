@@ -616,3 +616,61 @@ class SuperuserTestCase(TestCase):
         # only superuser write has permissions for POST
         assert not superuser_has_permission(request, frozenset())
         assert superuser_has_permission(request, frozenset(["superuser.write"]))
+
+    @override_settings(SENTRY_SELF_HOSTED=False, VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=True)
+    def test_requires_org_auth_non_member_org(self) -> None:
+        request = self.build_request()
+        superuser = Superuser(request, allowed_ips=(), current_datetime=self.current_datetime)
+        org = self.create_organization()
+        assert superuser.requires_org_auth(org)
+
+    @override_settings(SENTRY_SELF_HOSTED=False, VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=True)
+    def test_requires_org_auth_after_authorization(self) -> None:
+        request = self.build_request()
+        superuser = Superuser(request, allowed_ips=(), current_datetime=self.current_datetime)
+        org = self.create_organization()
+        assert superuser.requires_org_auth(org)
+        superuser.authorize_org(org.slug, "for_unit_test", "testing")
+        assert not superuser.requires_org_auth(org)
+
+    def test_requires_org_auth_self_hosted(self) -> None:
+        request = self.build_request()
+        superuser = Superuser(request, allowed_ips=(), current_datetime=self.current_datetime)
+        org = self.create_organization()
+        assert not superuser.requires_org_auth(org)
+
+    @override_settings(
+        SENTRY_SELF_HOSTED=False, VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=False
+    )
+    def test_requires_org_auth_validation_disabled(self) -> None:
+        request = self.build_request()
+        superuser = Superuser(request, allowed_ips=(), current_datetime=self.current_datetime)
+        org = self.create_organization()
+        assert not superuser.requires_org_auth(org)
+
+    @override_settings(SENTRY_SELF_HOSTED=False, VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=True)
+    def test_authorize_org_persists_to_session(self) -> None:
+        request = self.build_request()
+        superuser = Superuser(request, allowed_ips=(), current_datetime=self.current_datetime)
+        superuser.authorize_org("test-org", "for_unit_test", "testing")
+        data = request.session.get(SESSION_KEY)
+        assert data is not None
+        assert data["orgs"] == {"test-org": {"cat": "for_unit_test", "reason": "testing"}}
+
+    @override_settings(SENTRY_SELF_HOSTED=False, VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=True)
+    def test_populate_restores_authorized_orgs(self) -> None:
+        request = self.build_request()
+        superuser = Superuser(request, allowed_ips=(), current_datetime=self.current_datetime)
+        superuser.authorize_org("test-org", "for_unit_test", "testing")
+
+        superuser2 = Superuser(request, allowed_ips=(), current_datetime=self.current_datetime)
+        assert not superuser2.requires_org_auth(Mock(id=999, slug="test-org"))
+
+    @override_settings(SENTRY_SELF_HOSTED=False, VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=True)
+    def test_logout_clears_authorized_orgs(self) -> None:
+        request = self.build_request()
+        superuser = Superuser(request, allowed_ips=(), current_datetime=self.current_datetime)
+        superuser.authorize_org("test-org", "for_unit_test", "testing")
+        assert not superuser.requires_org_auth(Mock(id=999, slug="test-org"))
+        superuser.set_logged_out()
+        assert not request.session.get(SESSION_KEY)
