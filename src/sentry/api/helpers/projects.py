@@ -64,12 +64,15 @@ def filter_projects_by_permissions(
     filter_by_membership: bool = False,
     force_global_perms: bool = False,
     include_all_accessible: bool = False,
+    allow_staff_access: bool = True,
 ) -> list[Project]:
     """
     Filter ``projects`` down to the ones the request is allowed to read.
 
     ``include_all_accessible`` grants org-wide access to members of open-membership
-    organizations; otherwise access falls back to team membership.
+    organizations; otherwise access falls back to team membership. Set
+    ``allow_staff_access`` to false when an endpoint's default scope must retain
+    membership semantics during an active staff session.
     """
     with start_span(op="apply_project_permissions", name="apply_project_permissions") as span:
         set_span_data(span, "Project Count", len(projects))
@@ -82,7 +85,7 @@ def filter_projects_by_permissions(
         # like superuser because it fails due to staff having no scopes. The workaround is to create a lambda that
         # mimics checking for active projects like has_project_access without further validation.
         # NOTE: We must check staff before superuser or else _admin will fail when both cookies are active
-        if is_active_staff(request):
+        if allow_staff_access and is_active_staff(request):
             set_span_tag(span, "mode", "staff_fetch_all")
             proj_filter = lambda proj: proj.status == ObjectStatus.ACTIVE  # noqa: E731
         # Superuser should fetch all projects.
