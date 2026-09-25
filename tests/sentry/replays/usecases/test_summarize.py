@@ -239,6 +239,84 @@ def test_as_log_message_click() -> None:
     assert get_timestamp_unit(which(event)) == "ms"
 
 
+def test_as_log_message_click_no_message() -> None:
+    """ui.click payloads without a 'message' key must not raise KeyError."""
+    event = {
+        "type": 5,
+        "timestamp": 1756400639566,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "timestamp": 1756400639.566,
+                "type": "default",
+                "category": "ui.click",
+                # 'message' key intentionally absent
+                "data": {
+                    "nodeId": 1,
+                    "node": {"id": 1, "tagName": "button", "textContent": "", "attributes": {}},
+                },
+            },
+        },
+    }
+    assert as_log_message(event) == "User clicked on an element at 1756400639566.0"
+
+
+def test_as_log_message_dead_click_no_message() -> None:
+    """ui.slowClickDetected payloads classified as DEAD_CLICK without a 'message' key must not raise KeyError."""
+    event = {
+        "type": 5,
+        "timestamp": 1756176027605,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "type": "default",
+                # 'message' key intentionally absent
+                "timestamp": 1756176027.605,
+                "category": "ui.slowClickDetected",
+                "data": {
+                    "nodeId": 860,
+                    "node": {"id": 860, "tagName": "a", "textContent": "", "attributes": {}},
+                    "timeAfterClickMs": 7000,
+                    "endReason": "timeout",
+                    "clickCount": 1,
+                },
+            },
+        },
+    }
+    assert (
+        as_log_message(event)
+        == "User clicked on an element but the triggered action was slow to complete at 1756176027605.0"
+    )
+
+
+def test_as_log_message_rage_click_no_message() -> None:
+    """ui.slowClickDetected payloads classified as RAGE_CLICK without a 'message' key must not raise KeyError."""
+    event = {
+        "type": 5,
+        "timestamp": 1756175998029,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "type": "default",
+                # 'message' key intentionally absent
+                "timestamp": 1756175998.029,
+                "category": "ui.slowClickDetected",
+                "data": {
+                    "nodeId": 3868,
+                    "node": {"id": 3868, "tagName": "a", "textContent": "", "attributes": {}},
+                    "timeAfterClickMs": 7000,
+                    "endReason": "timeout",
+                    "clickCount": 5,
+                },
+            },
+        },
+    }
+    assert (
+        as_log_message(event)
+        == "User rage clicked on an element but the triggered action was slow to complete at 1756175998029.0"
+    )
+
+
 def test_as_log_message_tap() -> None:
     event = {
         "data": {
