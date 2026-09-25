@@ -95,10 +95,6 @@ type DisabledMemberTooltipProps = {children: React.ReactNode};
 type DashboardHeadersProps = {organization: Organization};
 
 type ReplayListPageHeaderProps = {children?: React.ReactNode};
-type ReplayOnboardingCTAProps = {
-  children: React.ReactNode;
-  organization: Organization;
-};
 type ProductUnavailableCTAProps = {organization: Organization};
 
 export type SuperuserAccessCategoryProps = {
@@ -214,7 +210,6 @@ type ComponentOverrides = {
   'component:product-unavailable-cta': () => React.ComponentType<ProductUnavailableCTAProps>;
   'component:replay-init': React.ComponentType;
   'component:replay-list-page-header': () => React.ComponentType<ReplayListPageHeaderProps> | null;
-  'component:replay-onboarding-cta': () => React.ComponentType<ReplayOnboardingCTAProps>;
   'component:replay-settings-alert': () => React.ComponentType | null;
   'component:scm-github-multi-org-install': () => React.ComponentType<ScmGithubMultiOrgInstallProps>;
   'component:seer-trial-cta': () => React.ComponentType | null;
