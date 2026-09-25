@@ -7,6 +7,13 @@ import {defined} from 'sentry/utils/defined';
 
 import {Value, ValueLink} from './value';
 
+/**
+ * - `code`: mono, secondary-color keys, for identifiers like tag and context keys.
+ * - `label`: sans, medium-weight, primary-color keys in roomier rows, for prose
+ *   labels like "Duration Impact".
+ */
+export type KeyValueTableVariant = 'code' | 'label';
+
 export interface KeyValueTableDataRowProps {
   /**
    * Specifies the item to display.
@@ -41,6 +48,10 @@ export interface KeyValueTableDataRowProps {
    * Metadata pertaining to content item
    */
   meta?: Record<string, any>;
+  /**
+   * Subject column typography and row padding. Defaults to `code`.
+   */
+  variant?: KeyValueTableVariant;
 }
 
 export function KeyValueTableDataRow({
@@ -51,6 +62,7 @@ export function KeyValueTableDataRow({
   disableFormattedData = false,
   isSuspectFlag = false,
   expandLeft,
+  variant = 'code',
   ...props
 }: KeyValueTableDataRowProps) {
   const {
@@ -60,6 +72,7 @@ export function KeyValueTableDataRow({
     action = {},
     actionButton,
     actionButtonAlwaysVisible,
+    subjectDataTestId,
   } = item;
 
   const hasErrors = errors.length > 0;
@@ -74,14 +87,16 @@ export function KeyValueTableDataRow({
       expandLeft={expandLeft}
       hasErrors={hasErrors}
       isSuspectFlag={isSuspectFlag}
+      variant={variant}
       {...props}
     >
       {subjectNode === undefined ? (
-        <KeyValueTableSubject>{subject}</KeyValueTableSubject>
+        <KeyValueTableSubject variant={variant}>{subject}</KeyValueTableSubject>
       ) : (
         subjectNode
       )}
       <KeyValueTableValueSection
+        data-test-id={subjectDataTestId}
         hasErrors={hasErrors}
         hasEmptySubject={subjectNode === null}
       >
@@ -126,12 +141,15 @@ const rowStateStyles = ({theme, hasErrors, isSuspectFlag}: RowState & {theme: Th
   `;
 };
 
-const RowWrapper = styled('div')<RowState & {expandLeft?: boolean}>`
+const RowWrapper = styled('div')<
+  RowState & {expandLeft?: boolean; variant?: KeyValueTableVariant}
+>`
   display: grid;
   grid-template-columns: ${p => (p.expandLeft ? '2fr 0.8fr' : 'subgrid')};
   grid-column: span 2;
   column-gap: ${p => p.theme.space.lg};
-  padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.sm};
+  padding: ${p => (p.variant === 'label' ? p.theme.space.sm : p.theme.space['2xs'])}
+    ${p => p.theme.space.sm};
   border-radius: 4px;
   ${rowStateStyles};
 
@@ -146,9 +164,13 @@ const RowWrapper = styled('div')<RowState & {expandLeft?: boolean}>`
   }
 `;
 
-export const KeyValueTableSubject = styled('div')`
+export const KeyValueTableSubject = styled('div')<{variant?: KeyValueTableVariant}>`
   grid-column: span 1;
-  font-family: ${p => p.theme.font.family.mono};
+  font-family: ${p =>
+    p.variant === 'label' ? p.theme.font.family.sans : p.theme.font.family.mono};
+  font-weight: ${p =>
+    p.variant === 'label' ? p.theme.font.weight.sans.medium : 'inherit'};
+  color: ${p => (p.variant === 'label' ? p.theme.tokens.content.primary : 'inherit')};
   word-break: break-word;
   min-width: 100px;
 `;
@@ -174,6 +196,10 @@ const ValueWrapper = styled('div')<{hasSuffix: boolean}>`
 `;
 
 const ActionButtonWrapper = styled('div')<{actionButtonAlwaysVisible?: boolean}>`
+  font-family: ${p => p.theme.font.family.sans};
+  /* Cancels RowWrapper's vertical padding so a button doesn't grow the row past its own height */
+  margin-block: calc(-1 * ${p => p.theme.space['2xs']});
+
   ${p =>
     !p.actionButtonAlwaysVisible &&
     css`

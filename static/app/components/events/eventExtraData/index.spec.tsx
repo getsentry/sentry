@@ -200,4 +200,12 @@ describe('EventExtraData', () => {
     expect(screen.getByText('isNewer')).toBeInTheDocument(); // key
     expect(screen.queryByText('\\n')).not.toBeInTheDocument(); // value
   });
+
+  it('renders values as raw JSON when the raw view is selected', async () => {
+    render(<EventExtraData event={EventFixture({context: {foo: {bar: 'baz'}}})} />);
+
+    await userEvent.click(screen.getByRole('radio', {name: 'Raw'}));
+
+    expect(screen.getByText('{"bar":"baz"}')).toBeInTheDocument();
+  });
 });

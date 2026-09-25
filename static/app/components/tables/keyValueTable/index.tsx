@@ -4,7 +4,6 @@ export {
   KeyValueTableCardPanel,
   KeyValueTableCardTitle,
 } from './keyValueTableCard';
-export {KeyValueTableDataList} from './keyValueTableDataList';
 export {
   KeyValueTableDataRow,
   type KeyValueTableDataRowProps,

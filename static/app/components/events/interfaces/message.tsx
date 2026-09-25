@@ -2,7 +2,8 @@ import styled from '@emotion/styled';
 
 import {renderLinksInText} from 'sentry/components/events/interfaces/crashContent/exception/utils';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
-import {KeyValueTableDataList} from 'sentry/components/tables/keyValueTable';
+import {StructuredData} from 'sentry/components/structuredEventData';
+import {KeyValueTableCard} from 'sentry/components/tables/keyValueTable';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
@@ -28,31 +29,30 @@ function renderParams(params: Props['data']['params'], meta: any) {
   // only format some parameters into the formatted string, but we want to
   // display all of them.
 
-  if (Array.isArray(params)) {
-    const arrayData = params.map((value, i) => {
-      const key = `#${i}`;
-      return {
-        key,
-        value,
-        subject: key,
-        meta: meta?.data?.params?.[i]?.[''],
-      };
-    });
-
-    return (
-      <KeyValueTableDataList margin data={arrayData} shouldSort={false} isContextData />
-    );
-  }
-
-  const objectData = Object.entries(params).map(([key, value]) => ({
-    key,
-    value,
-    subject: key,
-    meta: meta?.data?.params?.[key]?.[''],
-  }));
+  const entries = Array.isArray(params)
+    ? params.map((value, i) => [`#${i}`, value, meta?.data?.params?.[i]?.['']] as const)
+    : Object.entries(params).map(
+        ([key, value]) => [key, value, meta?.data?.params?.[key]?.['']] as const
+      );
 
   return (
-    <KeyValueTableDataList margin data={objectData} shouldSort={false} isContextData />
+    <KeyValueTableCard
+      variant="label"
+      contentItems={entries.map(([key, value, valueMeta]) => ({
+        item: {
+          key,
+          subject: key,
+          value: (
+            <StructuredData
+              withAnnotatedText
+              value={value}
+              maxDefaultDepth={2}
+              meta={valueMeta}
+            />
+          ),
+        },
+      }))}
+    />
   );
 }
 
