@@ -264,7 +264,7 @@ export function AttributesContent({
                 organization,
                 projectIds: getAttributeValue(attributes, 'project_id')?.toString(),
               })(content);
-              const name = content.originalAttribute?.original_attribute_key;
+              const name = content.original?.original_attribute_key;
               if (pin?.enabled && isEAPSpanNode(node) && name) {
                 const pinned = pin.attribute === name;
                 actions.push({

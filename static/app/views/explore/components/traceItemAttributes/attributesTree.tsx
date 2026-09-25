@@ -1,28 +1,36 @@
-import {Fragment, useMemo, useRef, useState} from 'react';
+import {Fragment, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
-import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
+import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
-import {RevealOnHover} from '@sentry/scraps/revealOnHover';
 import {Text} from '@sentry/scraps/text';
 
-import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
-import {IconEllipsis, IconPin} from 'sentry/icons';
+import {KeyValueTreeRow} from 'sentry/components/keyValueTree/keyValueTreeRow';
+import {
+  KeyValueTreeRowActions,
+  visitExternalLinkAction,
+} from 'sentry/components/keyValueTree/keyValueTreeRowActions';
+import {
+  TreeColumn as KeyValueTreeColumn,
+  TreeContainer as KeyValueTreeContainer,
+} from 'sentry/components/keyValueTree/styles';
+import {
+  buildKeyValueTree,
+  getKeyValueTreeColumns,
+  type KeyValueTreeContent,
+  type KeyValueTreeRowConfig,
+} from 'sentry/components/keyValueTree/utils';
+import {IconPin} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {type RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
-import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
-import {isValidUrl} from 'sentry/utils/string/isValidUrl';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 
 import {AttributesTreeValue} from './attributesTreeValue';
-
-const MAX_TREE_DEPTH = 4;
-const INVALID_BRANCH_REGEX = /\.{2,}/;
 
 interface Attribute {
   attribute_key: string;
@@ -31,22 +39,10 @@ interface Attribute {
   type: TraceItemResponseAttribute['type'];
 }
 
-type AttributesTree = Record<string, AttributesTreeContent>;
-
-export interface AttributesTreeContent {
-  subtree: AttributesTree;
-  value: string | number | null;
-  config?: AttributesTreeRowConfig;
-  // These will be omitted on pseudo attributes (see addToAttributeTree)
-  meta?: Record<any, any>;
-  originalAttribute?: Attribute;
-}
-
-interface AttributesTreeColumnData {
-  columns: React.ReactNode[];
-  runningTotal: number;
-  startIndex: number;
-}
+export type AttributesTreeContent = KeyValueTreeContent<
+  Attribute['attribute_value'],
+  Attribute
+>;
 
 type AttributeItem = {
   fieldKey: string;
@@ -80,7 +76,7 @@ interface AttributesTreeProps<
   attributes: TraceItemResponseAttribute[];
   // If provided, locks the number of columns to this number. If not provided, the number of columns will be dynamic based on width.
   columnCount?: number;
-  config?: AttributesTreeRowConfig;
+  config?: KeyValueTreeRowConfig;
   getAdjustedAttributeKey?: (attribute: TraceItemResponseAttribute) => string;
   getCustomActions?: (content: AttributesTreeContent) => MenuItemProps[];
   pinnedAttribute?: string | null;
@@ -92,133 +88,16 @@ interface AttributesTreeColumnsProps<
   columnCount: number;
 }
 
-export interface AttributesTreeRowConfig {
-  // Omits the dropdown of actions applicable to this attribute
-  disableActions?: boolean;
-  // Omit error styling from being displayed, even if context is invalid
-  disableErrors?: boolean;
-  // Displays attribute value as plain text, rather than a hyperlink if applicable
-  disableRichValue?: boolean;
-}
-
 interface AttributesTreeRowProps<
   RendererExtra extends RenderFunctionBaggage,
 > extends AttributesFieldRender<RendererExtra> {
   attributeKey: string;
   content: AttributesTreeContent;
-  config?: AttributesTreeRowConfig;
+  config?: KeyValueTreeRowConfig;
   getCustomActions?: (content: AttributesTreeContent) => MenuItemProps[];
-  isLast?: boolean;
+  hasStem?: boolean;
   pinnedAttribute?: string | null;
   spacerCount?: number;
-}
-
-function addToAttributeTree(
-  tree: AttributesTree,
-  attribute: Attribute,
-  meta: Record<any, any>,
-  originalAttribute: Attribute
-): AttributesTree {
-  const BRANCH_MATCHES_REGEX = /\./g;
-  if (!defined(attribute.attribute_key)) {
-    return tree;
-  }
-
-  const branchMatches = attribute.attribute_key.match(BRANCH_MATCHES_REGEX) ?? [];
-
-  const hasInvalidBranchCount =
-    branchMatches.length <= 0 || branchMatches.length > MAX_TREE_DEPTH;
-  const hasInvalidBranchSequence = INVALID_BRANCH_REGEX.test(attribute.attribute_key);
-
-  // Ignore attributes with 0, or >4 branches, as well as sequential dots (e.g. 'some..attribute')
-  if (hasInvalidBranchCount || hasInvalidBranchSequence) {
-    tree[attribute.attribute_key] = {
-      value: attribute.attribute_value,
-      subtree: tree[attribute.attribute_key]?.subtree ?? {},
-      meta,
-      originalAttribute,
-    };
-    return tree;
-  }
-  // E.g. 'device.model.version'
-  const splitIndex = attribute.attribute_key.indexOf('.'); // 6
-  const trunk = attribute.attribute_key.slice(0, splitIndex); // 'device'
-  const branch = attribute.attribute_key.slice(splitIndex + 1); // 'model.version'
-
-  if (tree[trunk] === undefined) {
-    tree[trunk] = {value: '', subtree: {}};
-  }
-  // Recurse with a pseudo attribute, e.g. 'model', to create nesting structure
-  const pseudoAttribute: Attribute = {
-    attribute_key: branch,
-    attribute_value: attribute.attribute_value,
-    original_attribute_key: attribute.original_attribute_key,
-    type: attribute.type,
-  };
-  tree[trunk].subtree = addToAttributeTree(
-    tree[trunk].subtree,
-    pseudoAttribute,
-    meta,
-    originalAttribute
-  );
-  return tree;
-}
-
-/**
- * Function to recursively create a flat list of all rows to be rendered for a given AttributeTree
- * @param props The props for rendering the root of the AttributeTree
- * @returns A list of TreeRow components to be rendered in this tree
- */
-function getAttributesTreeRows<RendererExtra extends RenderFunctionBaggage>({
-  attributeKey,
-  content,
-  spacerCount = 0,
-  uniqueKey,
-  renderers = {},
-  rendererExtra,
-  isLast = false,
-  config = {},
-  getCustomActions,
-  pinnedAttribute,
-}: AttributesTreeRowProps<RendererExtra> &
-  AttributesFieldRender<RendererExtra> & {
-    uniqueKey: string;
-  }): React.ReactNode[] {
-  const subtreeAttributes = Object.keys(content.subtree);
-  const subtreeRows = subtreeAttributes.reduce(
-    (rows: React.ReactNode[], attribute, i) => {
-      const branchRows = getAttributesTreeRows<RendererExtra>({
-        attributeKey: attribute,
-        content: content.subtree[attribute]!,
-        spacerCount: spacerCount + 1,
-        isLast: i === subtreeAttributes.length - 1,
-        uniqueKey: `${uniqueKey}-${i}`,
-        renderers,
-        config,
-        rendererExtra,
-        getCustomActions,
-        pinnedAttribute,
-      });
-      return rows.concat(branchRows);
-    },
-    []
-  );
-  return [
-    <AttributesTreeRow
-      key={`${attributeKey}-${spacerCount}-${uniqueKey}`}
-      attributeKey={attributeKey}
-      content={content}
-      spacerCount={spacerCount}
-      data-test-id="attribute-tree-row"
-      renderers={renderers}
-      rendererExtra={rendererExtra}
-      isLast={isLast}
-      config={config}
-      getCustomActions={getCustomActions}
-      pinnedAttribute={pinnedAttribute}
-    />,
-    ...subtreeRows,
-  ];
 }
 
 /**
@@ -240,69 +119,34 @@ function AttributesTreeColumns<RendererExtra extends RenderFunctionBaggage>({
       return [];
     }
 
-    // Convert attributes record to the format expected by addToAttributeTree
-    const visibleAttributes = attributes
-      .map(key => getAttribute(key, getAdjustedAttributeKey))
-      .filter(defined);
-
-    // Create the AttributeTree data structure using all the given attributes
-    const attributesTree = visibleAttributes.reduce<AttributesTree>(
-      (tree, attribute) => addToAttributeTree(tree, attribute, {}, attribute),
-      {}
-    );
-
-    // Create a list of AttributeTreeRow lists, containing every row to be rendered. They are grouped by
-    // root parent so that we do not split up roots/branches when forming columns
-    const attributeTreeRowGroups: React.ReactNode[][] = Object.entries(
-      attributesTree
-    ).map(([attributeKey, content], i) =>
-      getAttributesTreeRows({
-        attributeKey,
-        content,
-        uniqueKey: `${i}`,
-        renderers,
-        rendererExtra: renderExtra,
-        config,
-        getCustomActions,
-        pinnedAttribute,
+    const attributesTree = buildKeyValueTree(
+      attributes.flatMap(attribute => {
+        const shaped = getAttribute(attribute, getAdjustedAttributeKey);
+        return shaped
+          ? [{key: shaped.attribute_key, value: shaped.attribute_value, original: shaped}]
+          : [];
       })
     );
 
-    // Get the total number of TreeRow components to be rendered, and a goal size for each column
-    const attributeTreeRowTotal = attributeTreeRowGroups.reduce(
-      (sum, group) => sum + group.length,
-      0
-    );
-    const columnRowGoal = Math.ceil(attributeTreeRowTotal / columnCount);
-
-    // Iterate through the row groups, splitting rows into columns when we exceed the goal size
-    const data = attributeTreeRowGroups.reduce<AttributesTreeColumnData>(
-      ({startIndex, runningTotal, columns}, rowList, index) => {
-        // If it's the last entry, create a column with the remaining rows
-        if (index === attributeTreeRowGroups.length - 1) {
-          columns.push(
-            <TreeColumn key={columns.length} data-test-id="attribute-tree-column">
-              {attributeTreeRowGroups.slice(startIndex)}
-            </TreeColumn>
-          );
-          return {startIndex, runningTotal, columns};
-        }
-        // If we reach the goal column size, wrap rows in a TreeColumn.
-        if (runningTotal >= columnRowGoal) {
-          columns.push(
-            <TreeColumn key={columns.length} data-test-id="attribute-tree-column">
-              {attributeTreeRowGroups.slice(startIndex, index)}
-            </TreeColumn>
-          );
-          runningTotal = 0;
-          startIndex = index;
-        }
-        runningTotal += rowList.length;
-        return {startIndex, runningTotal, columns};
-      },
-      {startIndex: 0, runningTotal: 0, columns: []}
-    );
-    return data.columns;
+    return getKeyValueTreeColumns(attributesTree, columnCount).map((rows, index) => (
+      <TreeColumn key={index} data-test-id="attribute-tree-column">
+        {rows.map(row => (
+          <AttributesTreeRow
+            key={row.uniqueKey}
+            attributeKey={row.treeKey}
+            content={row.content}
+            spacerCount={row.spacerCount}
+            hasStem={row.hasStem}
+            data-test-id="attribute-tree-row"
+            renderers={renderers}
+            rendererExtra={renderExtra}
+            config={config}
+            getCustomActions={getCustomActions}
+            pinnedAttribute={pinnedAttribute}
+          />
+        ))}
+      </TreeColumn>
+    ));
   }, [
     attributes,
     columnCount,
@@ -338,76 +182,62 @@ function AttributesTreeRow<RendererExtra extends RenderFunctionBaggage>({
   content,
   attributeKey,
   spacerCount = 0,
-  isLast = false,
+  hasStem = false,
   config = {},
   getCustomActions,
   pinnedAttribute,
+  renderers,
+  rendererExtra,
   ...props
 }: AttributesTreeRowProps<RendererExtra>) {
-  const originalAttribute = content.originalAttribute;
-  const hasErrors = false; // No error handling in this simplified version
-  const hasStem = !isLast && isEmptyObject(content.subtree);
+  const originalAttribute = content.original;
 
   if (!originalAttribute) {
     return (
-      <TreeRow hasErrors={hasErrors} {...props}>
-        <TreeKeyTrunk spacerCount={spacerCount}>
-          {spacerCount > 0 && (
-            <Fragment>
-              <TreeSpacer spacerCount={spacerCount} hasStem={hasStem} />
-              <TreeBranchIcon hasErrors={hasErrors} />
-            </Fragment>
-          )}
-          <TreeKey hasErrors={hasErrors}>{attributeKey}</TreeKey>
-        </TreeKeyTrunk>
-        <TreeValueTrunk />
-      </TreeRow>
+      <KeyValueTreeRow
+        {...props}
+        hasStem={hasStem}
+        label={attributeKey}
+        spacerCount={spacerCount}
+      />
     );
   }
 
-  const attributeActions = config?.disableActions ? null : (
-    <AttributesTreeRowDropdown content={content} getCustomActions={getCustomActions} />
-  );
-
   return (
-    <RevealOnHover>
-      {revealOnHoverProps => (
-        <TreeRow hasErrors={hasErrors} {...props} {...revealOnHoverProps}>
-          <TreeKeyTrunk spacerCount={spacerCount}>
-            {spacerCount > 0 && (
-              <Fragment>
-                <TreeSpacer spacerCount={spacerCount} hasStem={hasStem} />
-                <TreeBranchIcon hasErrors={hasErrors} />
-              </Fragment>
-            )}
-            <TreeSearchKey aria-hidden>{originalAttribute.attribute_key}</TreeSearchKey>
-            <TreeKey
-              hasErrors={hasErrors}
-              title={originalAttribute.attribute_key}
-              data-test-id={`tree-key-${content.originalAttribute?.original_attribute_key}`}
-            >
-              <Flex align="center" gap="xs">
-                <Text>{attributeKey}</Text>
-                {pinnedAttribute === originalAttribute.original_attribute_key && (
-                  <IconPin size="xs" isSolid aria-label={t('Pinned attribute')} />
-                )}
-              </Flex>
-            </TreeKey>
-          </TreeKeyTrunk>
-          <TreeValueTrunk>
-            <TreeValue hasErrors={hasErrors}>
-              <AttributesTreeValue
-                config={config}
-                content={content}
-                renderers={props.renderers}
-                rendererExtra={props.rendererExtra}
-              />
-            </TreeValue>
-            {attributeActions}
-          </TreeValueTrunk>
-        </TreeRow>
-      )}
-    </RevealOnHover>
+    <KeyValueTreeRow
+      {...props}
+      actions={
+        config?.disableActions ? undefined : (
+          <AttributesTreeRowDropdown
+            content={content}
+            getCustomActions={getCustomActions}
+          />
+        )
+      }
+      hasStem={hasStem}
+      fullKey={originalAttribute.attribute_key}
+      label={
+        <Flex
+          align="center"
+          gap="xs"
+          data-test-id={`tree-key-${originalAttribute.original_attribute_key}`}
+        >
+          <Text>{attributeKey}</Text>
+          {pinnedAttribute === originalAttribute.original_attribute_key && (
+            <IconPin size="xs" isSolid aria-label={t('Pinned attribute')} />
+          )}
+        </Flex>
+      }
+      spacerCount={spacerCount}
+      value={
+        <AttributesTreeValue
+          config={config}
+          content={content}
+          renderers={renderers}
+          rendererExtra={rendererExtra}
+        />
+      }
+    />
   );
 }
 
@@ -419,7 +249,6 @@ function AttributesTreeRowDropdown({
   getCustomActions?: (content: AttributesTreeContent) => MenuItemProps[];
 }) {
   const {copy} = useCopyToClipboard();
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   let customActions: MenuItemProps[] = [];
   if (getCustomActions) {
@@ -436,37 +265,10 @@ function AttributesTreeRowDropdown({
           successMessage: t('Attribute value copied to clipboard'),
         }),
     },
+    visitExternalLinkAction(content.value),
   ];
 
-  // Add external link option if the value is a URL
-  if (isValidUrl(String(content.value))) {
-    items.push({
-      key: 'external-link',
-      label: t('Visit this external link'),
-      onAction: () => {
-        openNavigateToExternalLinkModal({linkText: String(content.value)});
-      },
-    });
-  }
-
-  return (
-    <RevealOnHover.Action visible={isMenuOpen}>
-      <TreeValueDropdown
-        preventOverflowOptions={{padding: 4}}
-        position="bottom-end"
-        size="xs"
-        isOpen={isMenuOpen}
-        onOpenChange={setIsMenuOpen}
-        triggerProps={{
-          'aria-label': t('Attribute Actions Menu'),
-          icon: <IconEllipsis />,
-          showChevron: false,
-          className: 'attribute-button',
-        }}
-        items={items}
-      />
-    </RevealOnHover.Action>
-  );
+  return <KeyValueTreeRowActions ariaLabel={t('Attribute Actions Menu')} items={items} />;
 }
 
 /**
@@ -493,118 +295,10 @@ function getAttribute(
   };
 }
 
-const TreeContainer = styled('div')<{columnCount: number}>`
-  display: grid;
-  grid-template-columns: repeat(${p => p.columnCount}, 1fr);
-  align-items: start;
+const TreeContainer = styled(KeyValueTreeContainer)`
   white-space: normal;
 `;
 
-const TreeColumn = styled('div')`
-  display: grid;
+const TreeColumn = styled(KeyValueTreeColumn)`
   grid-template-columns: minmax(min-content, max-content) auto;
-  grid-column-gap: ${p => p.theme.space['2xl']};
-  &:not(:first-child) {
-    border-left: 1px solid ${p => p.theme.tokens.border.secondary};
-    padding-left: ${p => p.theme.space.xl};
-    margin-left: -1px;
-  }
-  &:not(:last-child) {
-    border-right: 1px solid ${p => p.theme.tokens.border.secondary};
-    padding-right: ${p => p.theme.space.xl};
-  }
-`;
-
-const TreeRow = styled('div')<{hasErrors: boolean}>`
-  border-radius: ${p => p.theme.space.xs};
-  padding-left: ${p => p.theme.space.md};
-  position: relative;
-  display: grid;
-  align-items: center;
-  grid-column: span 2;
-  column-gap: ${p => p.theme.space.lg};
-  grid-template-columns: subgrid;
-  :nth-child(odd) {
-    background-color: ${p =>
-      p.hasErrors ? p.theme.colors.red100 : p.theme.tokens.background.secondary};
-  }
-  color: ${p => (p.hasErrors ? p.theme.colors.red500 : p.theme.tokens.content.secondary)};
-  background-color: ${p =>
-    p.hasErrors ? p.theme.colors.red100 : p.theme.tokens.background.primary};
-  box-shadow: inset 0 0 0 1px
-    ${p => (p.hasErrors ? p.theme.colors.red200 : 'transparent')};
-`;
-
-const TreeSpacer = styled('div')<{hasStem: boolean; spacerCount: number}>`
-  grid-column: span 1;
-  /* Allows TreeBranchIcons to appear connected vertically */
-  border-right: 1px solid
-    ${p => (p.hasStem ? p.theme.tokens.border.primary : 'transparent')};
-  margin-right: -1px;
-  height: 100%;
-  width: ${p => (p.spacerCount - 1) * 20 + 3}px;
-`;
-
-const TreeBranchIcon = styled('div')<{hasErrors: boolean}>`
-  border: 1px solid
-    ${p => (p.hasErrors ? p.theme.colors.red200 : p.theme.tokens.border.primary)};
-  border-width: 0 0 1px 1px;
-  border-radius: 0 0 0 5px;
-  grid-column: span 1;
-  height: 12px;
-  align-self: start;
-  margin-right: ${p => p.theme.space.xs};
-`;
-
-const TreeKeyTrunk = styled('div')<{spacerCount: number}>`
-  grid-column: 1 / 2;
-  display: grid;
-  height: 100%;
-  align-items: center;
-  grid-template-columns: ${p => (p.spacerCount > 0 ? 'auto 1rem 1fr' : '1fr')};
-`;
-
-const TreeValueTrunk = styled('div')`
-  grid-column: 2 / 3;
-  display: grid;
-  height: 100%;
-  align-items: center;
-  min-height: 22px;
-  grid-template-columns: minmax(0, 1fr) auto;
-  grid-column-gap: ${p => p.theme.space.xs};
-`;
-
-const TreeValue = styled('div')<{hasErrors?: boolean}>`
-  padding: ${p => p.theme.space['2xs']} 0;
-  align-self: start;
-  font-family: ${p => p.theme.font.family.mono};
-  font-size: ${p => p.theme.font.size.sm};
-  word-break: break-word;
-  grid-column: span 1;
-  color: ${p => (p.hasErrors ? 'inherit' : p.theme.tokens.content.primary)};
-`;
-
-const TreeKey = styled(TreeValue)<{hasErrors?: boolean}>`
-  color: ${p => (p.hasErrors ? 'inherit' : p.theme.tokens.content.secondary)};
-`;
-
-/**
- * Hidden element to allow browser searching for exact key name
- */
-const TreeSearchKey = styled('span')`
-  font-size: 0;
-  position: absolute;
-`;
-
-const TreeValueDropdown = styled(DropdownMenu)`
-  display: block;
-  margin: 1px;
-  height: 20px;
-  .attribute-button {
-    height: 20px;
-    min-height: 20px;
-    padding: 0 ${p => p.theme.space.sm};
-    border-radius: ${p => p.theme.space.xs};
-    z-index: 1;
-  }
 `;

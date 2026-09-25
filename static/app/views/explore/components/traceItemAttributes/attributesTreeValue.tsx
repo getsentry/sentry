@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
+import type {KeyValueTreeRowConfig} from 'sentry/components/keyValueTree/utils';
 import {ExternalLink} from 'sentry/components/links/externalLink';
 import {StructuredEventData} from 'sentry/components/structuredEventData';
 import {type RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
@@ -10,11 +11,7 @@ import {InlineJsonHighlight} from 'sentry/views/explore/components/traceItemAttr
 import {getAttributeItem} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import {TraceItemMetaInfo} from 'sentry/views/explore/utils';
 
-import type {
-  AttributesFieldRender,
-  AttributesTreeContent,
-  AttributesTreeRowConfig,
-} from './attributesTree';
+import type {AttributesFieldRender, AttributesTreeContent} from './attributesTree';
 
 function tryParseJson(value: unknown) {
   if (typeof value !== 'string') {
@@ -43,9 +40,9 @@ export function AttributesTreeValue<RendererExtra extends RenderFunctionBaggage>
   rendererExtra: renderExtra,
 }: {
   content: AttributesTreeContent;
-  config?: AttributesTreeRowConfig;
+  config?: KeyValueTreeRowConfig;
 } & AttributesFieldRender<RendererExtra>) {
-  const {originalAttribute} = content;
+  const {original: originalAttribute} = content;
   if (!originalAttribute) {
     return null;
   }

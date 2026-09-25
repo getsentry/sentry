@@ -10,10 +10,7 @@ import {hasEveryAccess} from 'sentry/components/acl/access';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {ContextCardContent} from 'sentry/components/events/contexts/contextCard';
 import {getContextMeta} from 'sentry/components/events/contexts/utils';
-import {
-  TreeColumn,
-  TreeContainer,
-} from 'sentry/components/events/eventTags/eventTagsTree';
+import {TreeColumn} from 'sentry/components/events/eventTags/eventTagsTree';
 import {EventTagsTreeRow} from 'sentry/components/events/eventTags/eventTagsTreeRow';
 import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
 import {EditHighlightsModal} from 'sentry/components/events/highlights/editHighlightsModal';
@@ -22,6 +19,7 @@ import {
   getHighlightContextData,
   getHighlightTagData,
 } from 'sentry/components/events/highlights/util';
+import {TreeContainer} from 'sentry/components/keyValueTree/styles';
 import {LoadingError} from 'sentry/components/loadingError';
 import {Placeholder} from 'sentry/components/placeholder';
 import {IconEdit} from 'sentry/icons';
@@ -158,7 +156,7 @@ function HighlightsData({highlightsProject, event, project}: HighlightsDataProps
   );
   const contextReplayId = contextReplayItem?.value ?? EMPTY_HIGHLIGHT_DEFAULT;
 
-  const tagReplayItem = highlightTagItems.find(e => e.originalTag.key === 'replayId');
+  const tagReplayItem = highlightTagItems.find(e => e.original.key === 'replayId');
   const tagReplayId = tagReplayItem?.value ?? EMPTY_HIGHLIGHT_DEFAULT;
 
   // if the id doesn't exist for either tag or context, it's rendered as '--'
@@ -180,7 +178,7 @@ function HighlightsData({highlightsProject, event, project}: HighlightsDataProps
   }
   if (tagReplayItem && replayFetchError) {
     tagReplayItem.value = EMPTY_HIGHLIGHT_DEFAULT;
-    tagReplayItem.originalTag.value = EMPTY_HIGHLIGHT_DEFAULT;
+    tagReplayItem.original.value = EMPTY_HIGHLIGHT_DEFAULT;
   }
 
   const highlightContextRows = highlightContextDataItems.reduce<React.ReactNode[]>(
@@ -206,7 +204,7 @@ function HighlightsData({highlightsProject, event, project}: HighlightsDataProps
       key={`highlight-tag-${i}`}
       content={content}
       event={event}
-      tagKey={content.originalTag.key}
+      tagKey={content.original.key}
       project={highlightsProject}
       config={{
         disableActions: content.value === EMPTY_HIGHLIGHT_DEFAULT,
