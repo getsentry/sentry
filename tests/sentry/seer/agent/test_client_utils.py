@@ -625,3 +625,13 @@ class GetAgentStateFromPrIdTest(TestCase):
         with mock.patch(self._REQUEST, return_value=mock.Mock(status=503)):
             with pytest.raises(SeerUnavailableError):
                 get_agent_state_from_pr_id(1, "integrations:github", 2)
+
+    def test_sends_pr_id_as_string(self) -> None:
+        for pr_id in (2, "2", "pr_01abc"):
+            with mock.patch(self._REQUEST, return_value=mock.Mock(status=404)) as m:
+                assert get_agent_state_from_pr_id(1, "integrations:github", pr_id) is None
+            assert m.call_args.args[0] == {
+                "organization_id": 1,
+                "provider": "integrations:github",
+                "pr_id": str(pr_id),
+            }

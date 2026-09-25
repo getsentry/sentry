@@ -111,7 +111,7 @@ def _state(**pr_numbers: int | None) -> SeerRunState:
             repo_name.replace("__", "/"): RepoPRState(
                 repo_name=repo_name.replace("__", "/"),
                 pr_number=pr_number,
-                pr_id=4242 if pr_number is not None else None,
+                pr_id="4242" if pr_number is not None else None,
             )
             for repo_name, pr_number in pr_numbers.items()
         },
@@ -164,7 +164,7 @@ class BlockIterationForMissingPermissionsTest(TestCase):
             organization_id=self.organization.id,
             repo_name=REPO_NAME,
             pr_number=7,
-            pr_id=4242,
+            pr_id="4242",
             integration_id=INTEGRATION_ID,
             repository_id=123,
         )
@@ -258,7 +258,7 @@ class PostMissingPermissionsCommentTest(TestCase):
             run_id=RUN_ID,
             repo_name=REPO_NAME,
             pr_number=7,
-            pr_id=4242,
+            pr_id="4242",
             integration_id=integration_id,
             queued_repository_id=queued_repository_id,
             log_ctx=_log_ctx(_state(getsentry__sentry=7)),
@@ -331,7 +331,7 @@ class PostMissingPermissionsCommentTest(TestCase):
         marker = get_missing_permissions_marker(self.seer_run, REPO_NAME)
         assert marker is not None
         assert marker["missing_tiers"] == ["pr_iteration"]
-        assert marker["pr_id"] == 4242
+        assert marker["pr_id"] == "4242"
 
     def test_stays_silent_once_marked(self, mock_get_perms) -> None:
         mock_get_perms.return_value = {REPO_NAME: _perms()}
@@ -527,7 +527,7 @@ class CommentedMetricTagTest(TestCase):
             run_id=RUN_ID,
             repo_name=REPO_NAME,
             pr_number=7,
-            pr_id=4242,
+            pr_id="4242",
             integration_id=INTEGRATION_ID,
             log_ctx=_log_ctx(_state(getsentry__sentry=7)),
         )
