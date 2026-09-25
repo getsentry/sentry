@@ -16,8 +16,7 @@
           "enum": ["absolute", "relative"]
         }
       },
-      "required": ["value", "format"],
-      "additionalProperties": false
+      "required": ["value"]
     },
     "examples": [
       {
@@ -51,8 +50,7 @@
           "type": "string"
         }
       },
-      "required": ["href", "title"],
-      "additionalProperties": false
+      "required": ["href", "title"]
     },
     "examples": [
       {
@@ -81,8 +79,7 @@
           "minLength": 1
         }
       },
-      "required": ["id"],
-      "additionalProperties": false
+      "required": ["id"]
     },
     "examples": [
       {
@@ -106,8 +103,7 @@
           "type": "string"
         }
       },
-      "required": ["value"],
-      "additionalProperties": false
+      "required": ["value"]
     },
     "examples": [
       {
@@ -137,8 +133,7 @@
           "type": "string"
         }
       },
-      "required": ["id", "type", "name"],
-      "additionalProperties": false
+      "required": ["id", "type", "name"]
     },
     "examples": [
       {
@@ -184,8 +179,7 @@
           "minLength": 1
         }
       },
-      "required": ["id"],
-      "additionalProperties": false
+      "required": ["id"]
     },
     "examples": [
       {
@@ -223,8 +217,7 @@
           "description": "ISO 8601 timestamp with a timezone offset (for example, Z or +00:00)"
         }
       },
-      "required": ["id"],
-      "additionalProperties": false
+      "required": ["id"]
     },
     "examples": [
       {
@@ -266,8 +259,7 @@
           ]
         }
       },
-      "required": ["version"],
-      "additionalProperties": false
+      "required": ["version"]
     },
     "examples": [
       {
@@ -285,114 +277,206 @@
     "level": ["block"],
     "body": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
-      "type": "object",
-      "properties": {
-        "title": {
-          "type": "string",
-          "minLength": 1
-        },
-        "subtitle": {
-          "type": "string"
-        },
-        "visualization": {
-          "default": "line",
-          "type": "string",
-          "enum": ["line", "area", "bar"]
-        },
-        "x_axis": {
-          "default": "time",
-          "type": "string",
-          "enum": ["time", "category"]
-        },
-        "y_axis_unit": {
-          "default": "number",
-          "type": "string",
-          "enum": ["number", "percentage", "duration", "bytes"]
-        },
-        "series": {
-          "minItems": 1,
-          "maxItems": 5,
-          "type": "array",
-          "items": {
-            "anyOf": [
-              {
-                "type": "object",
-                "properties": {
-                  "label": {
-                    "type": "string",
-                    "description": "Legend label for the series"
-                  },
-                  "data": {
-                    "minItems": 1,
-                    "maxItems": 200,
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "properties": {
-                        "x": {
-                          "anyOf": [
-                            {
-                              "type": "string"
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "title": {
+              "type": "string",
+              "minLength": 1
+            },
+            "subtitle": {
+              "type": "string"
+            },
+            "y_axis_unit": {
+              "default": "number",
+              "type": "string",
+              "enum": ["number", "percentage", "duration", "bytes"]
+            },
+            "visualization": {
+              "default": "line",
+              "type": "string",
+              "enum": ["line", "area", "bar"]
+            },
+            "x_axis": {
+              "default": "time",
+              "type": "string",
+              "const": "time"
+            },
+            "series": {
+              "minItems": 1,
+              "maxItems": 5,
+              "type": "array",
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "label": {
+                        "type": "string",
+                        "description": "Legend label for the series"
+                      },
+                      "data": {
+                        "minItems": 1,
+                        "maxItems": 200,
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "x": {
+                              "type": "string",
+                              "format": "date-time",
+                              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
                             },
-                            {
+                            "y": {
                               "type": "number"
                             }
-                          ]
-                        },
-                        "y": {
-                          "type": "number"
+                          },
+                          "required": ["x", "y"]
                         }
-                      },
-                      "required": ["x", "y"],
-                      "additionalProperties": false
-                    }
-                  }
-                },
-                "required": ["label", "data"],
-                "additionalProperties": false
-              },
-              {
-                "type": "object",
-                "properties": {
-                  "name": {
-                    "type": "string",
-                    "description": "Legacy alias for label"
+                      }
+                    },
+                    "required": ["label", "data"]
                   },
-                  "data": {
-                    "minItems": 1,
-                    "maxItems": 200,
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "properties": {
-                        "x": {
-                          "anyOf": [
-                            {
-                              "type": "string"
+                  {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "description": "Legacy alias for label"
+                      },
+                      "data": {
+                        "minItems": 1,
+                        "maxItems": 200,
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "x": {
+                              "type": "string",
+                              "format": "date-time",
+                              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
                             },
-                            {
+                            "y": {
                               "type": "number"
                             }
-                          ]
-                        },
-                        "y": {
-                          "type": "number"
+                          },
+                          "required": ["x", "y"]
                         }
-                      },
-                      "required": ["x", "y"],
-                      "additionalProperties": false
-                    }
+                      }
+                    },
+                    "required": ["name", "data"]
                   }
-                },
-                "required": ["name", "data"],
-                "additionalProperties": false
+                ]
               }
-            ]
-          }
+            }
+          },
+          "required": ["title", "series"]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "title": {
+              "type": "string",
+              "minLength": 1
+            },
+            "subtitle": {
+              "type": "string"
+            },
+            "y_axis_unit": {
+              "default": "number",
+              "type": "string",
+              "enum": ["number", "percentage", "duration", "bytes"]
+            },
+            "visualization": {
+              "type": "string",
+              "const": "bar"
+            },
+            "x_axis": {
+              "type": "string",
+              "const": "category"
+            },
+            "series": {
+              "minItems": 1,
+              "maxItems": 5,
+              "type": "array",
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "label": {
+                        "type": "string",
+                        "description": "Legend label for the series"
+                      },
+                      "data": {
+                        "minItems": 1,
+                        "maxItems": 200,
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "x": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "number"
+                                }
+                              ]
+                            },
+                            "y": {
+                              "type": "number"
+                            }
+                          },
+                          "required": ["x", "y"]
+                        }
+                      }
+                    },
+                    "required": ["label", "data"]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "description": "Legacy alias for label"
+                      },
+                      "data": {
+                        "minItems": 1,
+                        "maxItems": 200,
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "x": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "number"
+                                }
+                              ]
+                            },
+                            "y": {
+                              "type": "number"
+                            }
+                          },
+                          "required": ["x", "y"]
+                        }
+                      }
+                    },
+                    "required": ["name", "data"]
+                  }
+                ]
+              }
+            }
+          },
+          "required": ["title", "visualization", "x_axis", "series"]
         }
-      },
-      "required": ["title", "visualization", "x_axis", "y_axis_unit", "series"],
-      "additionalProperties": false
+      ]
     },
     "examples": [
       {
@@ -486,13 +570,11 @@
                 "type": "string"
               }
             },
-            "required": ["title", "description"],
-            "additionalProperties": false
+            "required": ["title", "description"]
           }
         }
       },
-      "required": ["step", "result", "id", "shortId"],
-      "additionalProperties": false
+      "required": ["step", "result", "id", "shortId"]
     },
     "examples": [
       {
@@ -560,8 +642,7 @@
           "minLength": 1
         }
       },
-      "required": ["id", "kind"],
-      "additionalProperties": false
+      "required": ["id", "kind"]
     },
     "examples": [
       {
@@ -614,8 +695,7 @@
           "minLength": 1
         }
       },
-      "required": ["id"],
-      "additionalProperties": false
+      "required": ["id"]
     },
     "examples": [
       {
@@ -644,8 +724,7 @@
           "minLength": 1
         }
       },
-      "required": ["id"],
-      "additionalProperties": false
+      "required": ["id"]
     },
     "examples": [
       {
@@ -685,8 +764,7 @@
           "minLength": 1
         }
       },
-      "required": ["id", "dataset"],
-      "additionalProperties": false
+      "required": ["id", "dataset"]
     },
     "examples": [
       {
@@ -721,8 +799,7 @@
           "minLength": 1
         }
       },
-      "required": ["traceId"],
-      "additionalProperties": false
+      "required": ["traceId"]
     },
     "examples": [
       {
@@ -756,8 +833,7 @@
           "minLength": 1
         }
       },
-      "required": ["traceId"],
-      "additionalProperties": false
+      "required": ["traceId"]
     },
     "examples": [
       {
@@ -786,8 +862,7 @@
           "minLength": 1
         }
       },
-      "required": ["projectSlug", "profileId"],
-      "additionalProperties": false
+      "required": ["projectSlug", "profileId"]
     },
     "examples": [
       {
@@ -840,8 +915,7 @@
           }
         }
       },
-      "required": ["id", "issueId", "view"],
-      "additionalProperties": false
+      "required": ["id", "issueId"]
     },
     "examples": [
       {
@@ -925,8 +999,7 @@
           "minLength": 1
         }
       },
-      "required": ["id", "view"],
-      "additionalProperties": false
+      "required": ["id"]
     },
     "examples": [
       {
@@ -1024,9 +1097,7 @@
           "type": "string",
           "minLength": 1
         }
-      },
-      "required": ["query"],
-      "additionalProperties": false
+      }
     },
     "examples": [
       {
@@ -1117,9 +1188,7 @@
           "type": "string",
           "minLength": 1
         }
-      },
-      "required": ["query", "mode"],
-      "additionalProperties": false
+      }
     },
     "examples": [
       {
@@ -1234,9 +1303,7 @@
           "type": "string",
           "minLength": 1
         }
-      },
-      "required": ["query", "mode"],
-      "additionalProperties": false
+      }
     },
     "examples": [
       {
@@ -1352,9 +1419,7 @@
           "type": "string",
           "minLength": 1
         }
-      },
-      "required": ["query", "mode"],
-      "additionalProperties": false
+      }
     },
     "examples": [
       {
@@ -1417,8 +1482,7 @@
           "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
         }
       },
-      "required": ["id"],
-      "additionalProperties": false
+      "required": ["id"]
     },
     "examples": [
       {
@@ -1491,9 +1555,7 @@
           "type": "string",
           "minLength": 1
         }
-      },
-      "required": ["query"],
-      "additionalProperties": false
+      }
     },
     "examples": [
       {
@@ -1561,9 +1623,7 @@
           "type": "string",
           "minLength": 1
         }
-      },
-      "required": ["query"],
-      "additionalProperties": false
+      }
     },
     "examples": [
       {
@@ -1673,8 +1733,7 @@
           ]
         }
       },
-      "required": ["query", "mode", "name", "type"],
-      "additionalProperties": false
+      "required": ["name", "type"]
     },
     "examples": [
       {
@@ -1719,8 +1778,7 @@
           ]
         }
       },
-      "required": ["step", "id", "shortId", "runId"],
-      "additionalProperties": false
+      "required": ["step", "id", "shortId", "runId"]
     },
     "examples": [
       {
