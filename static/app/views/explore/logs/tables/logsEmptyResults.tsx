@@ -37,7 +37,7 @@ export function LogsEmptyResults({
     );
 
     return (
-      <DataTable.Status>
+      <DataTable.Empty>
         <EmptyStateWarning variant="accent">
           <EmptyStateText size="xl">{t('No logs found yet')}</EmptyStateText>
           <EmptyStateText size="md">
@@ -74,12 +74,12 @@ export function LogsEmptyResults({
             </Button>
           </Container>
         </EmptyStateWarning>
-      </DataTable.Status>
+      </DataTable.Empty>
     );
   }
 
   return (
-    <DataTable.Status>
+    <DataTable.Empty>
       <EmptyStateWarning variant="accent">
         <EmptyStateText size="xl">{t('No logs found')}</EmptyStateText>
         <EmptyStateText size="md">
@@ -95,6 +95,6 @@ export function LogsEmptyResults({
           )}
         </EmptyStateText>
       </EmptyStateWarning>
-    </DataTable.Status>
+    </DataTable.Empty>
   );
 }
