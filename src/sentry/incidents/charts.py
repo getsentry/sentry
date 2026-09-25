@@ -30,6 +30,9 @@ CRASH_FREE_USERS = "percentage(users_crashed, users) AS _crash_rate_alert_aggreg
 SESSION_AGGREGATE_TO_FIELD = {
     CRASH_FREE_SESSIONS: "sum(session)",
     CRASH_FREE_USERS: "count_unique(user)",
+    # Unaliased forms used by the workflow engine path
+    "percentage(sessions_crashed, sessions)": "sum(session)",
+    "percentage(users_crashed, users)": "count_unique(user)",
 }
 
 
