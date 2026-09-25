@@ -61,10 +61,6 @@ class ProjectPermission(OrganizationPermission):
         allowed_scopes = set(self.scope_map.get(request.method, []))
         if not request.access.has_any_project_scope(project, allowed_scopes):
             return False
-        # Organization-level scopes only. Asking per scope would mean a
-        # `has_project_scope` call each, and each of those queries the project's teams
-        # and reports its own team-role metric. A request admitted solely by a team
-        # role therefore records nothing rather than costing a query per scope.
         record_scope_version(request, allowed_scopes, request.access.scopes)
         return True
 

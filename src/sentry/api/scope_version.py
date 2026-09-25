@@ -11,12 +11,11 @@ from __future__ import annotations
 from collections.abc import Collection, Iterable
 from typing import Literal
 
+from django.conf import settings
 from django.http.request import HttpRequest
 from rest_framework.request import Request
 
 ScopeVersion = Literal["v1", "v2"]
-
-DEPRECATED_SCOPES = frozenset({"org:read", "project:read", "member:read"})
 
 REQUEST_ATTR = "scope_version"
 
@@ -33,7 +32,7 @@ def record_scope_version(
     satisfying = set(allowed_scopes).intersection(granted_scopes)
     if not satisfying:
         return
-    version: ScopeVersion = "v1" if satisfying & DEPRECATED_SCOPES else "v2"
+    version: ScopeVersion = "v1" if satisfying & settings.DEPRECATED_SCOPES else "v2"
     setattr(_underlying(request), REQUEST_ATTR, version)
 
 
