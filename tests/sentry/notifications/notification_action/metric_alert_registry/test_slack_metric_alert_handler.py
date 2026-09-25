@@ -343,7 +343,7 @@ class TestSlackMetricAlertHandlerInvokeRegistry(MetricAlertHandlerBase):
         )
 
         notification_data = metric_alert_notification_data_factory(
-            IssueNotificationContext(invocation)
+            IssueNotificationContext(invocation), chart_url=None
         )
         assert notification_data.notes == "Check the runbook"
         assert notification_data.new_status == IncidentStatus.CLOSED.value

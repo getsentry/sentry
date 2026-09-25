@@ -22,6 +22,7 @@ from sentry.notifications.notification_action.metric_alert_registry.handlers.uti
 from sentry.notifications.notification_action.registry import metric_alert_handler_registry
 from sentry.notifications.notification_action.types import BaseMetricAlertHandler
 from sentry.notifications.platform.service import NotificationService
+from sentry.notifications.platform.shadow.capture import record_platform_send
 from sentry.notifications.platform.target import IntegrationNotificationTarget
 from sentry.notifications.platform.templates.metric_alert import MetricAlertNotificationData
 from sentry.notifications.platform.threading import ThreadingOptions, ThreadKey
@@ -139,6 +140,7 @@ class SlackMetricAlertHandler(BaseMetricAlertHandler):
         detector_serialized_response = get_detector_serializer(detector)
 
         if NotificationService.has_access(organization, NotificationSource.METRIC_ALERT):
+            record_platform_send()
             _send_via_notification_platform(
                 notification_context=notification_context,
                 alert_context=alert_context,

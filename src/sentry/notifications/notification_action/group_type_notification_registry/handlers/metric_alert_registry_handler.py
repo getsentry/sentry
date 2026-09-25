@@ -11,6 +11,8 @@ from sentry.notifications.notification_action.registry import (
     metric_alert_handler_registry,
 )
 from sentry.notifications.notification_action.types import LegacyRegistryHandler
+from sentry.notifications.platform.shadow.runner import shadow_read
+from sentry.notifications.platform.types import NotificationSource
 from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.models import Action, DataConditionGroupAction
 from sentry.workflow_engine.types import ActionInvocation
@@ -25,7 +27,8 @@ class MetricAlertRegistryHandler(LegacyRegistryHandler):
     def handle_workflow_action(invocation: ActionInvocation) -> None:
         try:
             handler = metric_alert_handler_registry.get(invocation.action.type)
-            handler.invoke_legacy_registry(invocation)
+            with shadow_read(invocation, NotificationSource.METRIC_ALERT):
+                handler.invoke_legacy_registry(invocation)
         except NoRegistrationExistsError:
             # Fall through silently: execute_via_group_type_registry catches this
             # and routes to the issue alert handler for action types (e.g. WEBHOOK,

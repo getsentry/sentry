@@ -41,6 +41,8 @@ from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.slack.utils.threads import NotificationActionThreadUtils
 from sentry.models.group import Group
 from sentry.models.organization import Organization
+from sentry.notifications.platform.shadow.capture import record_legacy_render
+from sentry.notifications.platform.types import NotificationProviderKey
 from sentry.notifications.utils.open_period import open_period_start_for_group
 from sentry.workflow_engine.endpoints.serializers.detector_serializer import (
     DetectorSerializerResponse,
@@ -157,6 +159,7 @@ def _build_notification_payload(
     text = str(attachment["text"])
     blocks = {"blocks": attachment["blocks"], "color": attachment["color"]}
     attachments = orjson.dumps([blocks]).decode()
+    record_legacy_render(NotificationProviderKey.SLACK, (attachments, text), chart_url=chart_url)
 
     return attachments, text
 

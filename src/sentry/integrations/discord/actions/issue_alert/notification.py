@@ -11,6 +11,8 @@ from sentry.integrations.messaging.metrics import (
     MessagingInteractionType,
 )
 from sentry.integrations.types import IntegrationProviderSlug
+from sentry.notifications.platform.shadow.capture import record_legacy_render
+from sentry.notifications.platform.types import NotificationProviderKey
 from sentry.rules.actions import IntegrationEventAction
 from sentry.rules.base import CallbackFuture
 from sentry.services.eventstore.models import GroupEvent
@@ -53,6 +55,7 @@ class DiscordNotifyServiceAction(IntegrationEventAction):
             message = DiscordIssuesMessageBuilder(
                 event.group, event=event, tags=tags, rules=rules
             ).build(notification_uuid=notification_uuid)
+            record_legacy_render(NotificationProviderKey.DISCORD, message)
 
             client = DiscordClient()
             with MessagingInteractionEvent(

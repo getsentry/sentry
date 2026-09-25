@@ -1,9 +1,5 @@
 import logging
 
-import sentry_sdk
-
-from sentry import features
-from sentry.incidents.charts import build_metric_alert_chart
 from sentry.incidents.grouptype import MetricIssue
 from sentry.integrations.metric_alerts import incident_attachment_info
 from sentry.models.activity import Activity
@@ -17,11 +13,13 @@ from sentry.notifications.notification_action.types import (
     ActivityHandlerValidationError,
     BaseMetricAlertHandler,
 )
+from sentry.notifications.platform.shadow.runner import shadow_read
 from sentry.notifications.platform.templates.issue import (
     IssueNotificationData,
     SerializableRuleProxy,
 )
 from sentry.notifications.platform.templates.metric_alert import MetricAlertNotificationData
+from sentry.notifications.platform.types import NotificationSource
 from sentry.notifications.utils.issue_notification_context import IssueNotificationContext
 from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.types import ActionInvocation
@@ -92,7 +90,8 @@ def execute_via_issue_alert_handler(invocation: ActionInvocation) -> None:
     """
     try:
         handler = issue_alert_handler_registry.get(invocation.action.type)
-        handler.invoke_legacy_registry(invocation)
+        with shadow_read(invocation, NotificationSource.ISSUE):
+            handler.invoke_legacy_registry(invocation)
     except NoRegistrationExistsError:
         logger.exception(
             "No notification handler found for action type: %s",
@@ -114,7 +113,8 @@ def execute_via_metric_alert_handler(invocation: ActionInvocation) -> None:
     """
     try:
         handler = metric_alert_handler_registry.get(invocation.action.type)
-        handler.invoke_legacy_registry(invocation)
+        with shadow_read(invocation, NotificationSource.METRIC_ALERT):
+            handler.invoke_legacy_registry(invocation)
     except NoRegistrationExistsError:
         logger.exception(
             "No notification handler found for action type: %s",
@@ -161,11 +161,9 @@ def issue_notification_data_factory(invocation: ActionInvocation) -> IssueNotifi
 
 def metric_alert_notification_data_factory(
     issue_notif_context: IssueNotificationContext,
+    *,
+    chart_url: str | None,
 ) -> MetricAlertNotificationData:
-    from sentry.notifications.notification_action.metric_alert_registry.handlers.utils import (
-        get_detector_serializer,
-    )
-
     notification_context = issue_notif_context.notification_context
     alert_context = issue_notif_context.alert_context
     metric_issue_context = issue_notif_context.metric_issue_context
@@ -186,22 +184,6 @@ def metric_alert_notification_data_factory(
         notification_uuid=issue_notif_context.notification_uuid,
         referrer=referrer,
     )
-
-    detector_serialized_response = get_detector_serializer(issue_notif_context.detector)
-
-    chart_url = None
-    if features.has("organizations:metric-alert-chartcuterie", organization):
-        try:
-            chart_url = build_metric_alert_chart(
-                organization=organization,
-                snuba_query=metric_issue_context.snuba_query,
-                alert_context=alert_context,
-                open_period_context=open_period_context,
-                subscription=metric_issue_context.subscription,
-                detector_serialized_response=detector_serialized_response,
-            )
-        except Exception as e:
-            sentry_sdk.capture_exception(e)
 
     return MetricAlertNotificationData(
         group_id=metric_issue_context.id,

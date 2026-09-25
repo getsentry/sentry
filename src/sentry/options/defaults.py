@@ -3517,6 +3517,24 @@ register(
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Sample rate (0.0 - 1.0) per NotificationSource value for comparing the payload of an alert sent
+# through the legacy path with the notification platform's render of it. Independent of the
+# platform-rollout options above.
+register(
+    "notifications.platform.shadow-render.sample-rates",
+    type=Dict,
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Maximum number of diff entries included in a shadow-render mismatch log
+register(
+    "notifications.platform.shadow-render.max-diff-entries",
+    type=Int,
+    default=20,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Notification Options - End
 
 

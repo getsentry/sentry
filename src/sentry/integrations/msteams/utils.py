@@ -13,6 +13,8 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import RpcIntegration, integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
+from sentry.notifications.platform.shadow.capture import record_legacy_render
+from sentry.notifications.platform.types import NotificationProviderKey
 
 from .client import MsTeamsClient, MsTeamsPreInstallClient, get_token_data
 
@@ -127,6 +129,7 @@ def send_incident_alert_notification(
         date_started=open_period_context.date_started,
         notification_uuid=notification_uuid,
     )
+    record_legacy_render(NotificationProviderKey.MSTEAMS, attachment)
     success = integration_service.send_msteams_incident_alert_notification(
         integration_id=notification_context.integration_id,
         channel=notification_context.target_identifier,
