@@ -21,7 +21,7 @@ from sentry.apidocs.constants import RESPONSE_BAD_REQUEST
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, ReleaseParams
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.models.deploy import Deploy
-from sentry.models.environment import Environment
+from sentry.models.environment import Environment, EnvironmentProject
 from sentry.models.organization import Organization
 from sentry.models.release import Release
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
@@ -92,7 +92,15 @@ def create_deploy(
 ) -> Deploy:
     result = serializer.validated_data
     release_projects = list(release.projects.all())
-    projects = result.get("projects", release_projects)
+    # Deduplicate while preserving order to avoid DB errors on bulk upserts
+    # that reject multiple rows conflicting on the same unique constraint.
+    seen_ids: set[int] = set()
+    unique_projects = []
+    for p in result.get("projects", release_projects):
+        if p.id not in seen_ids:
+            seen_ids.add(p.id)
+            unique_projects.append(p)
+    projects = unique_projects
     invalid_projects = {project.slug for project in projects} - {
         project.slug for project in release_projects
     }
@@ -104,8 +112,10 @@ def create_deploy(
     env = Environment.objects.get_or_create(
         name=result["environment"], organization_id=organization.id
     )[0]
-    for project in projects:
-        env.add_project(project)
+    EnvironmentProject.objects.bulk_create(
+        [EnvironmentProject(project=project, environment=env) for project in projects],
+        ignore_conflicts=True,
+    )
 
     deploy = Deploy.objects.create(
         organization_id=organization.id,
@@ -125,13 +135,20 @@ def create_deploy(
         last_deploy_id=deploy.id,
     )
 
-    for project in projects:
-        ReleaseProjectEnvironment.objects.update_or_create(
-            release=release,
-            environment=env,
-            project=project,
-            defaults={"last_deploy_id": deploy.id},
-        )
+    ReleaseProjectEnvironment.objects.bulk_create(
+        [
+            ReleaseProjectEnvironment(
+                release=release,
+                environment=env,
+                project=project,
+                last_deploy_id=deploy.id,
+            )
+            for project in projects
+        ],
+        update_conflicts=True,
+        update_fields=["last_deploy_id"],
+        unique_fields=["project_id", "release_id", "environment_id"],
+    )
 
     Deploy.notify_if_ready(deploy.id)
 
