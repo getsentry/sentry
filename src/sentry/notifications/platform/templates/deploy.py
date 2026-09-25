@@ -147,8 +147,10 @@ def build_deploy_body(data: DeployReleaseData) -> list[NotificationSection]:
     max_body_blocks = SLACK_MAX_BLOCKS - slack_overhead
 
     # Defensive check: ensure projects don't exceed the available budget
-    # Reserve at least 2 blocks for commits section if possible
-    max_project_blocks = max_body_blocks - len(summary_sections) - 2
+    # Reserve space for commits section: 2 blocks when there are commits (header + at least one),
+    # or 1 block when there are no commits (just the placeholder message)
+    commits_section_reserve = 2 if data.repo_name_to_commits else 1
+    max_project_blocks = max_body_blocks - len(summary_sections) - commits_section_reserve
     if len(project_sections) > max_project_blocks and max_project_blocks > 1:
         # Keep the "Projects:" header (first section) and truncate the rest
         # Reserve 1 slot for the truncation notice itself
