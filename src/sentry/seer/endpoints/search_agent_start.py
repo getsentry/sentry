@@ -4,6 +4,7 @@ import logging
 from typing import Any
 
 from django.conf import settings
+from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -13,8 +14,27 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.examples.search_agent_examples import SearchAgentExamples
+from sentry.apidocs.omissions import sentry_schema_serializer
+from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.response_types import (
+    DetailResponse,
+    ValidationErrorResponse,
+    as_validation_errors,
+)
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
 from sentry.seer.agent.client_utils import collect_user_org_context, enqueue_seer_run
+from sentry.seer.endpoints.search_agent_types import (
+    SEARCH_AGENT_STRATEGIES,
+    SearchAgentStartResponse,
+)
 from sentry.seer.endpoints.trace_explorer_ai_setup import OrganizationTraceExplorerAIPermission
 from sentry.seer.models import SeerApiError
 from sentry.seer.models.run import SeerRun, SeerRunType
@@ -24,22 +44,28 @@ from sentry.seer.signed_seer_api import SearchAgentStartRequest, SeerViewerConte
 logger = logging.getLogger(__name__)
 
 
+@sentry_schema_serializer(
+    omit_from_public_schema={
+        "options": "Internal model and UI tuning knobs used by the Sentry frontend.",
+    }
+)
 class SearchAgentStartSerializer(serializers.Serializer):
     project_ids = serializers.ListField(
         child=serializers.IntegerField(),
         required=True,
         allow_empty=False,
-        help_text="List of project IDs to search in.",
+        help_text="The IDs of the projects to search in.",
     )
     natural_language_query = serializers.CharField(
         required=True,
         allow_blank=False,
-        help_text="Natural language query to translate.",
+        help_text="The natural language query to translate, e.g. `slowest http requests in the last day`.",
     )
-    strategy = serializers.CharField(
+    strategy = serializers.ChoiceField(
+        choices=SEARCH_AGENT_STRATEGIES,
         required=False,
         default="Traces",
-        help_text="Search strategy to use (Traces, Issues, Logs, Errors, Metrics).",
+        help_text="The dataset to generate a query for.",
     )
     options = serializers.DictField(
         required=False,
@@ -106,6 +132,7 @@ def send_search_agent_start_request(
 
 
 @cell_silo_endpoint
+@extend_schema(tags=["Seer Agent"])
 class SearchAgentStartEndpoint(OrganizationEndpoint):
     """
     Endpoint to start an async search agent and return a run_id for polling.
@@ -116,22 +143,47 @@ class SearchAgentStartEndpoint(OrganizationEndpoint):
     """
 
     publish_status = {
-        "POST": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
     }
     owner = ApiOwner.ML_AI
 
     permission_classes = (OrganizationTraceExplorerAIPermission,)
 
-    def post(self, request: Request, organization: Organization) -> Response:
+    @extend_schema(
+        operation_id="startSearchAgentRun",
+        summary="Start a Search Agent Run",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG],
+        request=SearchAgentStartSerializer,
+        responses={
+            200: inline_sentry_response_serializer(
+                "SearchAgentStartResponse", SearchAgentStartResponse
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=SearchAgentExamples.START_RESPONSE,
+    )
+    def post(
+        self, request: Request, organization: Organization
+    ) -> (
+        Response[SearchAgentStartResponse]
+        | Response[DetailResponse]
+        | Response[ValidationErrorResponse]
+    ):
         """
-        Start an async search agent and return a run_id for polling.
+        Start Seer's search agent, which translates a natural language query into a
+        Sentry search query for the given dataset in the background.
 
-        Returns:
-            {"run_id": int, "sentry_run_id": str}
+        Returns immediately with a `sentry_run_id`. Poll
+        [Retrieve a Search Agent Run](/api/seer-agent/retrieve-a-search-agent-run/) with it
+        until `session.status` is `completed` or `error`. Requires Seer to be enabled for the
+        organization.
         """
         serializer = SearchAgentStartSerializer(data=request.data)
         if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response(as_validation_errors(serializer), status=status.HTTP_400_BAD_REQUEST)
 
         validated_data = serializer.validated_data
         natural_language_query = validated_data["natural_language_query"]
@@ -216,10 +268,10 @@ class SearchAgentStartEndpoint(OrganizationEndpoint):
                 ),
             )
             return Response(
-                {
-                    "run_id": result.seer_run_state_id,
-                    "sentry_run_id": str(result.uuid),
-                }
+                SearchAgentStartResponse(
+                    run_id=result.seer_run_state_id,
+                    sentry_run_id=str(result.uuid),
+                )
             )
 
         except SeerApiError as e:
