@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, Mock, patch
 import pytest
 from django.core.exceptions import ValidationError
 
+from sentry.db.models.fields.bounded import BoundedBigAutoField
 from sentry.db.models.fields.slug import IdOrSlugLookup, SentryOrgSlugField, SentrySlugField
 from sentry.testutils.cases import TestCase
 
@@ -72,7 +73,22 @@ class IdOrSlugLookupTests(TestCase):
         sql, params = lookup.as_sql(self.compiler, self.connection)
 
         self.assertEqual(sql, '"table"."id" = %s')
-        self.assertEqual(params, ["123"])
+        self.assertEqual(params, [123])
+
+    @patch("sentry.db.models.fields.slug.IdOrSlugLookup.process_rhs")
+    @patch("sentry.db.models.fields.slug.IdOrSlugLookup.process_lhs")
+    def test_as_sql_with_out_of_range_numeric_rhs(
+        self, mock_process_lhs: MagicMock, mock_process_rhs: MagicMock
+    ) -> None:
+        value = str(BoundedBigAutoField.MAX_VALUE + 1)
+        mock_process_lhs.return_value = ('"table"."id"', [])
+        mock_process_rhs.return_value = ("%s", [value])
+
+        lookup = IdOrSlugLookup("id__id_or_slug", value)
+        sql, params = lookup.as_sql(self.compiler, self.connection)
+
+        assert sql == "0 = 1"
+        assert params == []
 
     @patch("sentry.db.models.fields.slug.IdOrSlugLookup.process_rhs")
     @patch("sentry.db.models.fields.slug.IdOrSlugLookup.process_lhs")
