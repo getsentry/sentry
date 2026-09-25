@@ -1,10 +1,12 @@
 import {useMemo} from 'react';
-import styled from '@emotion/styled';
+import {css} from '@emotion/react';
+import sortBy from 'lodash/sortBy';
+
+import {Container, Grid} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import type {StructedEventDataConfig} from 'sentry/components/structuredEventData';
 import {StructuredEventData} from 'sentry/components/structuredEventData';
-import {KeyValueTableDataList} from 'sentry/components/tables/keyValueTable';
-import type {KeyValueListData} from 'sentry/types/group';
 import type {PlatformKey} from 'sentry/types/platform';
 
 type Props = {
@@ -85,39 +87,68 @@ const getStructuredDataConfig = ({
 };
 
 export function FrameVariables({data, meta, platform}: Props) {
-  const transformedData = useMemo<KeyValueListData>(() => {
-    const config = getStructuredDataConfig({platform});
-    if (!data) {
-      return [];
-    }
+  const keys = useMemo(
+    () => (data ? sortBy(Object.keys(data).reverse(), key => key.toLowerCase()) : []),
+    [data]
+  );
 
-    return Object.keys(data)
-      .reverse()
-      .map<KeyValueListData[number]>(key => ({
-        key,
-        subject: key,
-        value: (
-          <StructuredEventData
-            config={config}
-            data={data[key]}
-            meta={meta?.[key]}
-            withAnnotatedText
-          />
-        ),
-      }));
-  }, [data, meta, platform]);
+  if (!data || keys.length === 0) {
+    return null;
+  }
 
-  return <FrameVariablesTable data={transformedData} />;
+  const config = getStructuredDataConfig({platform});
+
+  return (
+    <Grid columns="175px minmax(0, 1fr)" gap="md" role="table" width="100%">
+      {keys.map(key => (
+        <Grid
+          key={key}
+          align="start"
+          borderTop="primary"
+          column="1 / -1"
+          columns="subgrid"
+          gap="md lg"
+          padding="md xl"
+          role="row"
+        >
+          <Container padding="md 0 md xl" role="cell">
+            <Text as="div" bold density="comfortable" wordBreak="break-word">
+              {key}
+            </Text>
+          </Container>
+          <Container
+            minWidth="0"
+            padding="md lg"
+            radius="sm"
+            background="secondary"
+            role="cell"
+            css={css`
+              > pre {
+                background: transparent;
+                border-radius: 0;
+              }
+            `}
+          >
+            <Text monospace size="sm" wordBreak="break-word" wrap="pre-wrap">
+              {textProps => (
+                <Container overflow="visible">
+                  {layoutProps => (
+                    <StructuredEventData
+                      {...textProps}
+                      {...layoutProps}
+                      className={`${textProps.className} ${layoutProps.className}`}
+                      config={config}
+                      data={data[key]}
+                      meta={meta?.[key]}
+                      withAnnotatedText
+                    />
+                  )}
+                </Container>
+              )}
+            </Text>
+          </Container>
+        </Grid>
+      ))}
+    </Grid>
+  );
 }
-
-const FrameVariablesTable = styled(KeyValueTableDataList)`
-  td {
-    border-top: 1px solid ${p => p.theme.tokens.border.primary};
-  }
-
-  td.key {
-    width: 145px;
-    max-width: 145px;
-    padding-left: 20px;
-  }
-`;

@@ -1,6 +1,6 @@
 import {EventFixture} from 'sentry-fixture/event';
 
-import {render, screen, within} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {EventGroupVariantType} from 'sentry/types/event';
 
@@ -63,19 +63,13 @@ describe('Grouping Variant', () => {
     );
 
     expect(
-      within(screen.getByText('Parent Span Hashes').closest('tr') as HTMLElement)
-        .getByText('[')
-        .closest('td')
-    ).toHaveTextContent('[]');
-    expect(
-      within(
-        screen.getByText('Source Span Hashes').closest('tr') as HTMLElement
-      ).getByText('hash1')
+      screen.getByRole('row', {name: /^Parent Span Hashes \[\s*\]$/})
     ).toBeInTheDocument();
     expect(
-      within(
-        screen.getByText('Offender Span Hashes').closest('tr') as HTMLElement
-      ).getByText('hash2')
+      screen.getByRole('row', {name: /^Source Span Hashes \[\s*hash1\s*\]$/})
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('row', {name: /^Offender Span Hashes \[\s*hash2\s*\]$/})
     ).toBeInTheDocument();
   });
 
@@ -89,19 +83,13 @@ describe('Grouping Variant', () => {
     );
 
     expect(
-      within(screen.getByText('Parent Span Hashes').closest('tr') as HTMLElement)
-        .getByText('[')
-        .closest('td')
-    ).toHaveTextContent('[]');
-    expect(
-      within(
-        screen.getByText('Source Span Hashes').closest('tr') as HTMLElement
-      ).getByText('hash1')
+      screen.getByRole('row', {name: /^Parent Span Hashes \[\s*\]$/})
     ).toBeInTheDocument();
     expect(
-      within(
-        screen.getByText('Offender Span Hashes').closest('tr') as HTMLElement
-      ).getByText('hash2')
+      screen.getByRole('row', {name: /^Source Span Hashes \[\s*hash1\s*\]$/})
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('row', {name: /^Offender Span Hashes \[\s*hash2\s*\]$/})
     ).toBeInTheDocument();
   });
 });

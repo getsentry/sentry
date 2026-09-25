@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import type {KeyValueListData, KeyValueListDataItem} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
@@ -33,18 +34,24 @@ export function KeyValueTableDataList({
   const rows = shouldSort ? sortBy(data, [({key}) => key?.toLowerCase()]) : data;
 
   return (
-    <Table margin={margin} className={className} {...props}>
-      <tbody>
-        {rows.map((item, index) => (
-          <Row
-            key={`${item.key}-${index}`}
-            item={item}
-            isContextData={isContextData}
-            raw={raw}
-          />
-        ))}
-      </tbody>
-    </Table>
+    <Grid
+      className={className}
+      columns="175px minmax(0, 1fr)"
+      gap="md"
+      marginBottom={margin ? '2xl' : undefined}
+      role="table"
+      width="100%"
+      {...props}
+    >
+      {rows.map((item, index) => (
+        <Row
+          key={`${item.key}-${index}`}
+          item={item}
+          isContextData={isContextData}
+          raw={raw}
+        />
+      ))}
+    </Grid>
   );
 }
 
@@ -61,7 +68,6 @@ function Row({
     subject,
     subjectNode,
     subjectIcon,
-    subjectDataTestId,
     meta,
     value = null,
     action,
@@ -86,49 +92,31 @@ function Row({
     );
 
   return (
-    <tr>
-      <td className="key">{subjectNode ?? subject}</td>
-      <td className="val" data-test-id={subjectDataTestId}>
-        <TableValue>
+    <Grid align="start" column="1 / -1" columns="subgrid" gap="md lg" role="row">
+      <Container role="cell">
+        <Text as="div" bold density="comfortable" wordBreak="break-word">
+          {subjectNode ?? subject}
+        </Text>
+      </Container>
+      <Container minWidth="0" role="cell">
+        <ValueWrapper>
           {actionButton ? (
-            <ValueWithButton>
+            <ValueWithActionButton>
               {rendered}
               <Flex align="start" height="100%">
                 {actionButton}
               </Flex>
-            </ValueWithButton>
+            </ValueWithActionButton>
           ) : (
             rendered
           )}
-        </TableValue>
-      </td>
-    </tr>
+        </ValueWrapper>
+      </Container>
+    </Grid>
   );
 }
 
-const Table = styled('table')<{margin: boolean}>`
-  width: 100%;
-  max-width: 100%;
-  margin-bottom: ${p => (p.margin ? '20px' : 0)};
-
-  td {
-    max-width: 500px;
-    vertical-align: top;
-    line-height: 1;
-  }
-
-  td.key {
-    font-weight: 600;
-    font-size: 13px;
-    width: 175px;
-    max-width: 175px;
-    word-wrap: break-word;
-    padding: 10px 15px 10px 10px;
-    line-height: 1.4;
-  }
-`;
-
-const TableValue = styled('div')`
+const ValueWrapper = styled('div')`
   pre {
     box-sizing: border-box;
     white-space: pre-wrap;
@@ -150,21 +138,30 @@ const TableValue = styled('div')`
   }
 `;
 
-const ValueWithButton = styled('div')`
-  display: grid;
-  align-items: center;
-  gap: ${p => p.theme.space.md};
+function ValueWithActionButton({children}: {children: React.ReactNode}) {
+  return (
+    <Grid
+      align="center"
+      background="secondary"
+      columns={{zero: '1fr', xs: '1fr max-content'}}
+      gap="md"
+      margin="2xs 0"
+      radius="md"
+    >
+      {gridProps => (
+        <ValueWithActionButtonContent {...gridProps}>
+          {children}
+        </ValueWithActionButtonContent>
+      )}
+    </Grid>
+  );
+}
+
+const ValueWithActionButtonContent = styled('div')`
   font-size: ${p => p.theme.font.size.sm};
-  background: ${p => p.theme.tokens.background.secondary};
   padding: ${p => p.theme.space.md} 10px;
-  margin: ${p => p.theme.space['2xs']} 0;
-  border-radius: ${p => p.theme.radius.md};
   pre {
     padding: 0 !important;
     margin: 0 !important;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    grid-template-columns: 1fr max-content;
   }
 `;
