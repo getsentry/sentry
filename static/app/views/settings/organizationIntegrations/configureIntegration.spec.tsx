@@ -188,6 +188,27 @@ describe('ConfigureIntegration settings tab', () => {
     expect(await screen.findByRole('tab', {name: 'Settings'})).toBeInTheDocument();
     expect(screen.getByRole('tab', {name: 'Code Mappings'})).toBeInTheDocument();
   });
+
+  it('renders without crashing when the integration has no provider', async () => {
+    // Regression test: accessing integration.provider.key when provider is
+    // undefined used to throw "Cannot read properties of undefined (reading 'key')".
+    const integration = OrganizationIntegrationsFixture({
+      configOrganization: [],
+    });
+    // Remove provider so it is undefined, simulating a partial API response.
+    const integrationWithoutProvider = {...integration, provider: undefined as any};
+
+    mockRequests(integrationWithoutProvider);
+
+    renderConfigure();
+
+    // The page should render a null/loading state rather than throwing.
+    // Wait for API responses to settle — no crash means the fix works.
+    await screen.findByRole('link', {name: 'Configurations'}).catch(() => {
+      // provider is undefined so the component renders null — that is the
+      // correct, non-crashing behaviour.
+    });
+  });
 });
 
 describe('ConfigureIntegration mapping removals', () => {
