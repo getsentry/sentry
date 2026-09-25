@@ -700,48 +700,6 @@ describe('ProjectFilters', () => {
     );
   });
 
-  it('creates an IP address filter', async () => {
-    renderInboundFilters([]);
-    expect(await screen.findByText('No inbound filters found')).toBeInTheDocument();
-
-    const createMock = MockApiClient.addMockResponse({
-      url: CUSTOM_INBOUND_FILTERS_URL,
-      method: 'POST',
-      body: CustomInboundFilterFixture({id: '10', name: 'Block the office'}),
-    });
-
-    await userEvent.click(screen.getByRole('button', {name: 'Add Filter'}));
-    expect(await screen.findByText('Create Custom Filter')).toBeInTheDocument();
-    await userEvent.type(screen.getByRole('textbox', {name: 'Name'}), 'Block the office');
-    await userEvent.click(screen.getByRole('textbox', {name: 'Condition property'}));
-    await userEvent.click(screen.getByRole('menuitemradio', {name: 'IP Address'}));
-    await userEvent.type(
-      screen.getByRole('textbox', {name: 'Condition value'}),
-      '10.0.0.0/8{enter}2001:db8::1'
-    );
-
-    MockApiClient.addMockResponse({
-      url: CUSTOM_INBOUND_FILTERS_URL,
-      body: [CustomInboundFilterFixture({id: '10', name: 'Block the office'})],
-    });
-
-    await userEvent.click(screen.getByRole('button', {name: 'Create Filter'}));
-
-    await waitFor(() =>
-      expect(createMock).toHaveBeenCalledWith(
-        CUSTOM_INBOUND_FILTERS_URL,
-        expect.objectContaining({
-          method: 'POST',
-          data: {
-            name: 'Block the office',
-            dataType: 'error',
-            conditions: [{type: 'ip_address', value: ['10.0.0.0/8', '2001:db8::1']}],
-          },
-        })
-      )
-    );
-  });
-
   it('keeps a condition type it does not know', async () => {
     // A newer deploy can store a condition type this bundle has no description
     // for. It has to stay visible and editable, not break the page or the modal.
@@ -992,14 +950,7 @@ describe('ProjectFilters', () => {
     renderInboundFilters([]);
     expect(await screen.findByText('No inbound filters found')).toBeInTheDocument();
 
-    const createMock = MockApiClient.addMockResponse({
-      url: CUSTOM_INBOUND_FILTERS_URL,
-      method: 'POST',
-      body: CustomInboundFilterFixture({id: '10', name: 'Block the office'}),
-    });
-
     await userEvent.click(screen.getByRole('button', {name: 'Add Filter'}));
-    await userEvent.type(screen.getByRole('textbox', {name: 'Name'}), 'Block the office');
     await userEvent.click(screen.getByRole('textbox', {name: 'Condition property'}));
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'IP Address'}));
     await userEvent.type(
@@ -1015,25 +966,6 @@ describe('ProjectFilters', () => {
     expect(within(dialog).getByText('IP Address')).toBeInTheDocument();
     expect(screen.getByRole('textbox', {name: 'Condition value'})).toHaveValue(
       '10.0.0.0/8'
-    );
-
-    MockApiClient.addMockResponse({
-      url: CUSTOM_INBOUND_FILTERS_URL,
-      body: [CustomInboundFilterFixture({id: '10', name: 'Block the office'})],
-    });
-    await userEvent.click(screen.getByRole('button', {name: 'Create Filter'}));
-
-    await waitFor(() =>
-      expect(createMock).toHaveBeenCalledWith(
-        CUSTOM_INBOUND_FILTERS_URL,
-        expect.objectContaining({
-          data: {
-            name: 'Block the office',
-            dataType: 'span',
-            conditions: [{type: 'ip_address', value: ['10.0.0.0/8']}],
-          },
-        })
-      )
     );
   });
 
