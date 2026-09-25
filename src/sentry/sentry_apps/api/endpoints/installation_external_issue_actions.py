@@ -1,3 +1,5 @@
+from typing import NotRequired
+
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -30,6 +32,10 @@ from sentry.sentry_apps.external_requests.utils import validate_sentry_app_uri
 from sentry.sentry_apps.services.cell import sentry_app_cell_service
 from sentry.sentry_apps.utils.errors import SentryAppPublicErrorBody
 from sentry.users.services.user.serial import serialize_generic_user
+
+
+class SentryAppExternalIssueActionResponse(PlatformExternalIssueSerializerResponse):
+    changed: NotRequired[bool]
 
 
 class SentryAppInstallationExternalIssueActionsSerializer(serializers.Serializer):
@@ -76,7 +82,7 @@ class SentryAppInstallationExternalIssueActionsEndpoint(
         request=SentryAppInstallationExternalIssueActionsSerializer,
         responses={
             200: inline_sentry_response_serializer(
-                "PlatformExternalIssueResponse", PlatformExternalIssueSerializerResponse
+                "SentryAppExternalIssueActionResponse", SentryAppExternalIssueActionResponse
             ),
             400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
@@ -88,7 +94,7 @@ class SentryAppInstallationExternalIssueActionsEndpoint(
     def post(
         self, request: Request, installation
     ) -> (
-        Response[PlatformExternalIssueSerializerResponse]
+        Response[SentryAppExternalIssueActionResponse]
         | Response[DetailResponse]
         | Response[ValidationErrorResponse]
         | Response[SentryAppPublicErrorBody]
@@ -142,8 +148,8 @@ class SentryAppInstallationExternalIssueActionsEndpoint(
         if not result.external_issue:
             return Response({"detail": "Failed to create external issue"}, status=500)
 
-        body: PlatformExternalIssueSerializerResponse = serialize(
-            objects=result.external_issue, serializer=PlatformExternalIssueSerializer()
+        body = SentryAppExternalIssueActionResponse(
+            **serialize(objects=result.external_issue, serializer=PlatformExternalIssueSerializer())
         )
         if result.changed is not None:
             body["changed"] = result.changed
