@@ -4,6 +4,8 @@ from datetime import datetime
 from typing import Any
 from unittest.mock import MagicMock, Mock, patch
 
+from django.test import override_settings
+
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.integrations.messaging.message_builder import (
     build_attachment_text,
@@ -996,6 +998,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
                         return True
         return False
 
+    @override_settings(SENTRY_SELF_HOSTED=False)
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
     @with_feature({"organizations:gen-ai-features": True})
     def test_autofix_button_shown_when_all_conditions_met(self, mock_quota: MagicMock) -> None:
@@ -1003,6 +1006,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         blocks = SlackIssuesMessageBuilder(group).build()
         assert self._has_autofix_button(blocks)
 
+    @override_settings(SENTRY_SELF_HOSTED=False)
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
     @with_feature({"organizations:gen-ai-features": True})
     def test_autofix_button_hidden_on_unfurl(self, mock_quota: MagicMock) -> None:
@@ -1010,6 +1014,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         blocks = SlackIssuesMessageBuilder(group, is_unfurl=True).build()
         assert not self._has_autofix_button(blocks)
 
+    @override_settings(SENTRY_SELF_HOSTED=False)
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
     @with_feature({"organizations:gen-ai-features": True})
     def test_autofix_button_hidden_when_no_other_actions(self, mock_quota: MagicMock) -> None:

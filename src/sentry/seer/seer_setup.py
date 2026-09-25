@@ -10,6 +10,7 @@ from sentry.seer.constants import (
 )
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
+from sentry.utils.settings import is_self_hosted
 
 
 def get_supported_scm_providers(organization: Organization | None = None) -> list[str]:
@@ -23,12 +24,18 @@ def get_supported_scm_providers(organization: Organization | None = None) -> lis
     return providers
 
 
+def is_seer_available() -> bool:
+    return not is_self_hosted()
+
+
 def has_seer_access(
     organization: Organization | RpcOrganization,
     actor: User | AnonymousUser | RpcUser | None = None,
 ) -> bool:
-    return features.has("organizations:gen-ai-features", organization, actor=actor) and not bool(
-        organization.get_option("sentry:hide_ai_features")
+    return (
+        is_seer_available()
+        and features.has("organizations:gen-ai-features", organization, actor=actor)
+        and not bool(organization.get_option("sentry:hide_ai_features"))
     )
 
 
@@ -36,6 +43,9 @@ def has_seer_access_with_detail(
     organization: Organization | RpcOrganization,
     actor: User | AnonymousUser | RpcUser | None = None,
 ) -> tuple[bool, str | None]:
+    if not is_seer_available():
+        return False, "Seer is not available on this installation."
+
     if not features.has("organizations:gen-ai-features", organization, actor=actor):
         return False, "Feature flag not enabled"
 

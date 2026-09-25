@@ -25,6 +25,7 @@ from sentry.testutils.requests import make_request
 from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
 
 
+@override_settings(SENTRY_SELF_HOSTED=False)
 class TestHasSeerAgentAccessWithDetail(TestCase):
     def setUp(self) -> None:
         super().setUp()

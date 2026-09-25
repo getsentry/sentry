@@ -1,5 +1,7 @@
 from unittest.mock import ANY, MagicMock, patch
 
+from django.test import override_settings
+
 from sentry.integrations.messaging.metrics import SeerSlackHaltReason
 from sentry.seer.entrypoints.slack.analytics import (
     SlackSeerAgentConversation,
@@ -803,6 +805,7 @@ REACTION_TASK_KWARGS = {
 }
 
 
+@override_settings(SENTRY_SELF_HOSTED=False)
 class ProcessReactionForSlackTest(TestCase):
     def setUp(self):
         super().setUp()

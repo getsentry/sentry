@@ -1,5 +1,7 @@
 from unittest.mock import patch
 
+from django.test import override_settings
+
 from sentry.hybridcloud.models.outbox import CellOutbox
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.models.pullrequest import PullRequestLifecycleState
@@ -21,6 +23,7 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import Factories
 
 
+@override_settings(SENTRY_SELF_HOSTED=False)
 class OrganizationSeerWorkflowsTest(APITestCase):
     endpoint = "sentry-api-0-organization-seer-workflows"
 
@@ -428,12 +431,18 @@ class OrganizationSeerWorkflowsTest(APITestCase):
             )
 
 
+@override_settings(SENTRY_SELF_HOSTED=False)
 class OrganizationSeerMonitorCleanupTest(APITestCase):
     endpoint = "sentry-api-0-organization-seer-workflows"
     method = "post"
 
     def setUp(self) -> None:
         super().setUp()
+        rate_limit_patcher = patch(
+            "sentry.middleware.ratelimit.get_rate_limit_value", return_value=None
+        )
+        rate_limit_patcher.start()
+        self.addCleanup(rate_limit_patcher.stop)
         self.keep = self.create_detector(project=self.project, type="metric_issue", name="Keep")
         self.duplicate = self.create_detector(
             project=self.project, type="metric_issue", name="Copy"

@@ -4,6 +4,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 from django.conf import settings
+from django.test import override_settings
 from taskbroker_client.scheduler.config import crontab
 
 from sentry.hybridcloud.models.outbox import CellOutbox
@@ -655,6 +656,7 @@ class TestGetEligibleProjects(NightShiftFixtures, TestCase):
         assert result[0].automation_tuning is None
 
 
+@override_settings(SENTRY_SELF_HOSTED=False)
 @django_db_all
 class TestRunNightShiftForOrg(NightShiftFixtures, TestCase, SnubaTestCase):
     reset_snuba_data = False
@@ -970,6 +972,7 @@ class TestRunNightShiftForOrg(NightShiftFixtures, TestCase, SnubaTestCase):
         assert [p.id for p in mock_score.call_args.args[0]] == [enabled.id]
 
 
+@override_settings(SENTRY_SELF_HOSTED=False)
 @django_db_all
 class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCase):
     """Coverage for the dispatch path, which hands triage off to Seer's

@@ -8,6 +8,7 @@ import orjson
 from django.conf import settings
 from django.core.cache import cache
 from django.db import OperationalError
+from django.test import override_settings
 
 from sentry.analytics.events.pr_metrics_events import PrCloseMetricsEvent
 from sentry.integrations.github.webhook import PullRequestEventWebhook
@@ -2172,6 +2173,7 @@ class HandleCheckEventsForPrMetricsTest(TestCase):
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
 
+@override_settings(SENTRY_SELF_HOSTED=False)
 @with_feature(["organizations:pr-metrics", "organizations:gen-ai-features"])
 @cell_silo_test
 class HandleWebhookForPrMetricsJudgeForwardTest(TestCase):
