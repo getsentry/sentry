@@ -2080,6 +2080,21 @@ class TestMaybeReactToCompletedIteration(TestCase):
 
     @patch(f"{REACT_PATH}.is_github_rate_limit_sensitive", return_value=False)
     @patch(f"{REACT_PATH}._resolve_review_comment_threads")
+    @patch(f"{REACT_PATH}.make_scm")
+    @patch(f"{REACT_PATH}._add_comment_reaction")
+    def test_skips_review_resolve_when_iteration_made_no_changes(
+        self, mock_react, mock_make_scm, mock_resolve, mock_sensitive
+    ):
+        # The iteration committed nothing, so the thread stays open.
+        state = self._state_with([self._review_source()])
+        state.blocks[0].merged_file_patches = []
+
+        self._run(state)
+
+        mock_resolve.assert_not_called()
+
+    @patch(f"{REACT_PATH}.is_github_rate_limit_sensitive", return_value=False)
+    @patch(f"{REACT_PATH}._resolve_review_comment_threads")
     @patch(f"{REACT_PATH}._delete_own_comment_eyes_reaction")
     @patch(f"{REACT_PATH}.make_scm")
     @patch(f"{REACT_PATH}._add_comment_reaction")
