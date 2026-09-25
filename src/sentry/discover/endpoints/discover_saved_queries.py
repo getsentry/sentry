@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sentry_sdk
 from django.db.models import (
     Case,
     DateTimeField,
@@ -46,6 +47,7 @@ from sentry.discover.models import (
     DatasetSourcesTypes,
     DiscoverSavedQuery,
     DiscoverSavedQueryLastVisited,
+    DiscoverSavedQueryStarred,
     DiscoverSavedQueryTypes,
 )
 from sentry.models.organization import Organization
@@ -101,19 +103,20 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
             return self.respond(status=404)
 
         queryset = (
-            DiscoverSavedQuery.objects.filter(organization=organization)
-            .prefetch_related("projects")
-            .extra(select={"lower_name": "lower(name)"})
-        ).exclude(is_homepage=True)
+            (
+                DiscoverSavedQuery.objects.filter(organization=organization)
+                .prefetch_related("projects")
+                .extra(select={"lower_name": "lower(name)"})
+                # Hide transactions saved queries for everyone since they've been migrated to spans and
+                # the transactions dataset has been deprecated
+            )
+            .exclude(is_homepage=True)
+            .exclude(dataset=DiscoverSavedQueryTypes.TRANSACTION_LIKE)
+        )
         # Hide saved queries whose project scope the caller cannot access. The detail endpoint
         # enforces this via `check_object_permissions`; without this filter the list endpoint
         # would leak the body of queries belonging to projects the caller has no access to.
         queryset = filter_to_accessible_discover_queries(request, queryset)
-
-        # Hide transactions saved queries if organizations has the discover transactions
-        # deprecation flag enabled
-        if features.has("organizations:deprecate-discover", organization, actor=request.user):
-            queryset = queryset.exclude(dataset=DiscoverSavedQueryTypes.TRANSACTION_LIKE)
 
         query = request.query_params.get("query")
         if query:
@@ -268,6 +271,18 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
         )
 
         model.set_projects(data["project_ids"])
+
+        try:
+            if (
+                self.has_migrate_feature(organization, request)
+                and request.user.is_authenticated
+                and request.data.get("starred")
+            ):
+                DiscoverSavedQueryStarred.objects.insert_starred_query(
+                    organization, request.user.id, model, starred=True
+                )
+        except Exception as err:
+            sentry_sdk.capture_exception(err)
 
         return Response(
             serialize(model, serializer=DiscoverSavedQueryModelSerializer()), status=201

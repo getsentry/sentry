@@ -9,14 +9,21 @@ from sentry.integrations.example import ExampleIntegration
 from sentry.integrations.mixins import ResolveSyncAction
 from sentry.integrations.models import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
-from sentry.integrations.tasks.sync_status_inbound import sync_status_inbound
+from sentry.integrations.tasks.sync_status_inbound import (
+    get_resolutions_and_activity_data_for_groups,
+    sync_status_inbound,
+)
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupresolution import GroupResolution
+from sentry.models.release import ReleaseStatus
 from sentry.signals import issue_unresolved
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
+from sentry.testutils.factories import Factories
+from sentry.testutils.helpers.features import Feature, with_feature
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
@@ -34,6 +41,101 @@ fake_activity_data = {
     "provider_key": "test",
     "integration_id": 123456,
 }
+
+
+@django_db_all
+@pytest.mark.parametrize("finalized_order", [False, True], ids=["flag-off", "flag-on"])
+@pytest.mark.parametrize(
+    "latest_version, anchor_status, expected_resolution_version, expected_anchor_version",
+    [
+        pytest.param("app@1.0.2", ReleaseStatus.OPEN, "app@1.0.2", "app@1.0.2", id="semver"),
+        pytest.param("build-sha", ReleaseStatus.OPEN, "app@1.0.1", "app@1.0.0", id="date"),
+        pytest.param("build-sha", None, "app@1.0.1", "app@1.0.0", id="date-null-status"),
+        pytest.param(
+            "build-sha", ReleaseStatus.ARCHIVED, "build-sha", None, id="date-no-eligible-anchor"
+        ),
+    ],
+)
+def test_resolve_next_release_skips_archived_successor(
+    factories: Factories,
+    default_group: Group,
+    finalized_order: bool,
+    latest_version: str,
+    anchor_status: int | None,
+    expected_resolution_version: str,
+    expected_anchor_version: str | None,
+) -> None:
+    project = default_group.project
+    now = django_timezone.now()
+    anchor = factories.create_release(
+        project=project,
+        version="app@1.0.0",
+        date_added=now - timedelta(days=3),
+        status=anchor_status,
+    )
+    factories.create_group_release(project=project, group=default_group, release=anchor).update(
+        last_seen=now - timedelta(hours=2)
+    )
+    archived = factories.create_release(
+        project=project,
+        version="app@999.9+999.9",
+        date_added=now - timedelta(days=2),
+        status=ReleaseStatus.ARCHIVED,
+    )
+    factories.create_group_release(project=project, group=default_group, release=archived).update(
+        last_seen=now - timedelta(hours=1)
+    )
+    factories.create_release(
+        project=project, version="app@1.0.1", date_added=now - timedelta(days=1)
+    )
+    # A non-semver latest release sends inbound sync through date ordering,
+    # even when subsequent semver events use version comparisons.
+    factories.create_release(project=project, version=latest_version, date_added=now)
+    with assume_test_silo_mode(SiloMode.CONTROL):
+        integration = factories.create_integration(
+            organization=project.organization,
+            provider="example",
+            external_id="123456",
+            oi_params={
+                "config": {
+                    "sync_status_inbound": True,
+                    "resolution_strategy": "resolve_next_release",
+                }
+            },
+        )
+    factories.create_integration_external_issue(
+        group=default_group, integration=integration, key=TEST_ISSUE_KEY
+    )
+
+    with (
+        Feature({"organizations:release-resolution-finalized-order": finalized_order}),
+        mock.patch.object(
+            ExampleIntegration, "get_resolve_sync_action", return_value=ResolveSyncAction.RESOLVE
+        ),
+    ):
+        sync_status_inbound(
+            integration_id=integration.id,
+            organization_id=project.organization_id,
+            issue_key=TEST_ISSUE_KEY,
+            data=fake_data,
+        )
+
+    default_group.refresh_from_db()
+    assert default_group.status == GroupStatus.RESOLVED
+    newer = factories.create_release(project=project, version="app@1.0.3")
+    with Feature({"organizations:release-resolution-finalized-order": finalized_order}):
+        assert GroupResolution.has_resolution(default_group, anchor)
+        assert not GroupResolution.has_resolution(default_group, newer)
+
+    resolution = GroupResolution.objects.get(group=default_group)
+    assert resolution.release.version == expected_resolution_version
+    assert resolution.current_release_version == expected_anchor_version
+    activity = Activity.objects.get(
+        group=default_group, type=ActivityType.SET_RESOLVED_IN_RELEASE.value
+    )
+    assert activity.ident == str(resolution.id)
+    assert activity.data["inNextRelease"] is True
+    assert archived.version not in activity.data.values()
 
 
 class TestSyncStatusInbound(TestCase):
@@ -253,6 +355,43 @@ class TestSyncStatusInbound(TestCase):
         )
         assert activity is not None
         assert activity.ident == str(resolution.id)
+
+    @with_feature("organizations:release-resolution-finalized-order")
+    @mock.patch(
+        "sentry.integrations.tasks.sync_status_inbound.get_current_release_version_of_group"
+    )
+    def test_resolve_next_release_uses_finalized_release_order(
+        self, mock_get_current_release_version: mock.MagicMock
+    ) -> None:
+        now = django_timezone.now()
+        current_release = self.create_release(
+            project=self.project,
+            version="current release",
+            date_added=now - timedelta(minutes=30),
+            date_released=now - timedelta(minutes=30),
+        )
+        next_release = self.create_release(
+            project=self.project,
+            version="next release",
+            date_added=now - timedelta(minutes=60),
+            date_released=now - timedelta(minutes=10),
+        )
+        self.create_release(
+            project=self.project,
+            version="late registered old release",
+            date_added=now,
+            date_released=now - timedelta(minutes=60),
+        )
+        mock_get_current_release_version.return_value = current_release.version
+
+        resolutions, _, _ = get_resolutions_and_activity_data_for_groups(
+            affected_groups=[self.group],
+            resolution_strategy="resolve_next_release",
+            activity_data={},
+            organization_id=self.organization.id,
+        )
+
+        assert resolutions[self.group.id]["release"] == next_release
 
     @mock.patch.object(ExampleIntegration, "get_resolve_sync_action")
     def test_resolve_current_release(self, mock_get_resolve_sync_action: mock.MagicMock) -> None:

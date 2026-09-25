@@ -1,11 +1,12 @@
 from collections.abc import Generator
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, call, patch
 
 import pytest
 from slack_sdk.errors import SlackApiError
 from slack_sdk.web import SlackResponse
 from slack_sdk.webhook import WebhookResponse
 
+from sentry.integrations.messaging.linkage import UnlinkIdentityView
 from sentry.integrations.slack.views.link_identity import (
     SUCCESS_LINKED_MESSAGE,
     build_linking_url,
@@ -304,6 +305,28 @@ class SlackIntegrationUnlinkIdentityTest(SlackIntegrationLinkIdentityTestBase):
         assert not Identity.objects.filter(external_id="new-slack-id", user=self.user).exists()
         assert self.mock_webhook.call_count == 1
 
+    def test_unlinks_staging_identity(self) -> None:
+        # The Slack identity provider registers some identities as `slack_staging`; the
+        # resolved idp, not the view's `slack` slug, must scope the delete.
+        staging = self.create_provider_integration(
+            provider="slack_staging", external_id="TSTAGING", metadata=self.integration.metadata
+        )
+        self.create_organization_integration(
+            organization_id=self.organization.id, integration=staging
+        )
+        staging_idp = self.create_identity_provider(type="slack_staging", external_id="TSTAGING")
+        self.create_identity(
+            user=self.user, identity_provider=staging_idp, external_id="staging-slack-id"
+        )
+
+        response = self.client.post(
+            build_unlinking_url(staging.id, "staging-slack-id", self.channel_id, self.response_url)
+        )
+
+        assert response.status_code == 200
+        assert not Identity.objects.filter(idp=staging_idp, external_id="staging-slack-id").exists()
+        assert Identity.objects.filter(idp=self.idp, external_id=self.external_id).exists()
+
     def test_user_with_multiple_organizations(self) -> None:
         # Create a second organization where the user is _not_ a member.
         self.create_organization_integration(
@@ -315,3 +338,72 @@ class SlackIntegrationUnlinkIdentityTest(SlackIntegrationLinkIdentityTestBase):
         self.client.post(self.unlinking_url)
         assert not Identity.objects.filter(external_id="new-slack-id", user=self.user).exists()
         assert self.mock_webhook.call_count == 1
+
+    def test_cannot_unlink_another_user(self) -> None:
+        other_user = self.create_user()
+        self.create_member(organization=self.organization, user=other_user)
+        other_identity = self.create_identity(other_user, self.idp, "other-slack-id")
+        self.login_as(other_user)
+
+        with (
+            patch.object(UnlinkIdentityView, "record_analytic") as record_analytic,
+            patch.object(UnlinkIdentityView, "_send_nudge_notification") as send_nudge,
+            patch.object(UnlinkIdentityView, "capture_metric") as capture_metric,
+        ):
+            response = self.client.post(self.unlinking_url)
+
+        assert response.status_code == 404
+        assert Identity.objects.filter(idp=self.idp, user=self.user).exists()
+        assert Identity.objects.filter(id=other_identity.id).exists()
+        self.mock_webhook.assert_not_called()
+        self.mock_post.assert_not_called()
+        record_analytic.assert_not_called()
+        send_nudge.assert_not_called()
+        assert call("success.post") not in capture_metric.call_args_list
+
+    def test_cannot_unlink_user_in_another_organization(self) -> None:
+        other_user = self.create_user()
+        other_organization = self.create_organization(owner=other_user)
+        self.create_organization_integration(
+            organization_id=other_organization.id, integration=self.integration
+        )
+        self.login_as(other_user)
+
+        response = self.client.post(self.unlinking_url)
+
+        assert response.status_code == 404
+        assert Identity.objects.filter(idp=self.idp, user=self.user).exists()
+        self.mock_webhook.assert_not_called()
+        self.mock_post.assert_not_called()
+
+    def test_no_identity(self) -> None:
+        url = build_unlinking_url(
+            self.integration.id, "missing-slack-id", self.channel_id, self.response_url
+        )
+
+        response = self.client.post(url)
+
+        assert response.status_code == 404
+        assert Identity.objects.filter(idp=self.idp, user=self.user).exists()
+        self.mock_webhook.assert_not_called()
+        self.mock_post.assert_not_called()
+
+    def test_replayed_unlink(self) -> None:
+        assert self.client.post(self.unlinking_url).status_code == 200
+        self.mock_webhook.reset_mock()
+
+        response = self.client.post(self.unlinking_url)
+
+        assert response.status_code == 404
+        self.mock_webhook.assert_not_called()
+        self.mock_post.assert_not_called()
+
+    def test_preserves_identity_for_another_provider(self) -> None:
+        other_idp = self.create_identity_provider(type="slack", external_id="other-workspace")
+        other_identity = self.create_identity(self.user, other_idp, self.external_id)
+
+        response = self.client.post(self.unlinking_url)
+
+        assert response.status_code == 200
+        assert not Identity.objects.filter(idp=self.idp, user=self.user).exists()
+        assert Identity.objects.filter(id=other_identity.id).exists()

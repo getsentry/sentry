@@ -50,12 +50,10 @@ function renderTitle() {
   render(
     <DashboardBreadcrumbTitle
       dashboard={dashboard}
-      hasUnsavedFilters={false}
       isEditing={false}
       isPreview={false}
-      isSaving={false}
       onChange={jest.fn()}
-      onEdit={jest.fn()}
+      onChangeEditAccess={jest.fn()}
     />,
     {organization}
   );
@@ -63,12 +61,31 @@ function renderTitle() {
 }
 
 describe('DashboardBreadcrumbTitle actions', () => {
-  it('keeps the acceptance-test hook on the edit action', async () => {
+  afterEach(() => {
+    MockApiClient.clearMockResponses();
+  });
+
+  it('opens the permissions modal from the actions menu', async () => {
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/teams/', body: []});
+
+    renderTitle();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Dashboard actions'}));
+    await userEvent.click(
+      await screen.findByRole('menuitemradio', {name: 'View Permissions'})
+    );
+
+    expect(
+      await screen.findByRole('heading', {name: 'View Permissions'})
+    ).toBeInTheDocument();
+  });
+
+  it('no longer offers the edit action in the menu', async () => {
     renderTitle();
 
     await userEvent.click(screen.getByRole('button', {name: 'Dashboard actions'}));
 
-    expect(screen.getByTestId('dashboard-edit')).toHaveTextContent('Edit');
+    expect(screen.queryByRole('menuitemradio', {name: 'Edit'})).not.toBeInTheDocument();
   });
 });
 

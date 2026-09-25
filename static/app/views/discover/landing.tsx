@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
+import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import {LinkButton} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Grid, Stack} from '@sentry/scraps/layout';
@@ -11,7 +12,6 @@ import type {SelectValue} from '@sentry/scraps/select';
 import {Switch} from '@sentry/scraps/switch';
 
 import Feature from 'sentry/components/acl/feature';
-import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -188,15 +188,20 @@ function DiscoverLanding() {
     >
       <SentryDocumentTitle title={t('Errors')} orgSlug={organization.slug}>
         <Stack flex={1}>
-          <TopBar.Slot name="title">
-            <Breadcrumbs
-              crumbs={[
+          <TopBar.Slot name="breadcrumbs">
+            <BreadcrumbList
+              items={[
                 {
+                  type: 'link',
                   label: t('Errors'),
                   to: getDiscoverLandingUrl(organization),
                 },
-                {label: t('Saved Queries')},
               ]}
+            />
+          </TopBar.Slot>
+          <TopBar.Slot name="title">
+            <BreadcrumbList.Title
+              item={{type: 'page-title', label: t('Saved Queries')}}
             />
           </TopBar.Slot>
           <Layout.Body>

@@ -459,13 +459,15 @@ class BaseMetricAlertHandler(ABC):
         open_period_context = issue_notification_context.open_period_context
         trigger_status = issue_notification_context.trigger_status
 
+        logged_notification_context = asdict(notification_context)
+        logged_notification_context.pop("notes")
         logger.info(
             "notification_action.execute_via_metric_alert_handler",
             extra={
                 "action_id": invocation.action.id,
                 "detector_id": invocation.detector.id,
                 "event_data": asdict(invocation.event_data),
-                "notification_context": asdict(notification_context),
+                "notification_context": logged_notification_context,
                 "alert_context": asdict(alert_context),
                 "metric_issue_context": asdict(metric_issue_context),
                 "open_period_context": open_period_context.dict(),

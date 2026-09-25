@@ -35,12 +35,13 @@ Sentry.init({
     Sentry.browserProfilingIntegration()
   ],
   // Tracing
-  tracesSampleRate: 1.0, //  Capture 100% of the transactions
+  tracesSampleRate: 1.0, //  Capture 100% of traces
   // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
   tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/],
   // Set profileSessionSampleRate to 1.0 to profile during every session.
   // The decision, whether to profile or not, is made once per session (when the SDK is initialized).
-  profileSessionSampleRate: 1.0
+  profileSessionSampleRate: 1.0,
+  profileLifecycle: "trace"
 });`;
 
 const getDefaultProfilingHeaderContent = (): ContentBlock[] => [
@@ -241,7 +242,7 @@ export const profilingFullStack = <
     nodeProfilingIntegration(),
   ],
   // Tracing must be enabled for profiling to work
-  tracesSampleRate: 1.0, //  Capture 100% of the transactions${
+  tracesSampleRate: 1.0, //  Capture 100% of traces${
     params.profilingOptions?.defaultProfilingMode === 'continuous'
       ? `
   // Set sampling rate for profiling - this is evaluated only once per SDK.init call

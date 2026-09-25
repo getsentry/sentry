@@ -41,7 +41,6 @@ import {
 } from 'sentry/utils/discover/fields';
 import {DisplayModes, SavedQueryDatasets, TOP_N} from 'sentry/utils/discover/types';
 import {downloadFromHref} from 'sentry/utils/downloadFromHref';
-import {getTitle} from 'sentry/utils/events';
 import {DISCOVER_FIELDS, FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {
@@ -142,11 +141,9 @@ export function decodeColumnOrder(
 
 export function generateTitle({
   eventView,
-  event,
   isHomepage,
 }: {
   eventView: EventView;
-  event?: Event;
   isHomepage?: boolean;
 }) {
   const titles = [t('Errors')];
@@ -158,12 +155,6 @@ export function generateTitle({
   const eventViewName = eventView.name;
   if (typeof eventViewName === 'string' && String(eventViewName).trim().length > 0) {
     titles.push(String(eventViewName).trim());
-  }
-
-  const eventTitle = event ? getTitle(event).title : undefined;
-
-  if (eventTitle) {
-    titles.push(eventTitle);
   }
 
   titles.reverse();

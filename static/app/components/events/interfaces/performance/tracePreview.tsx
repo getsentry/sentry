@@ -16,21 +16,21 @@ import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
-import {IssuesTraceWaterfall} from 'sentry/views/performance/newTraceDetails/issuesTraceWaterfall';
-import {getTraceLinkForIssue} from 'sentry/views/performance/newTraceDetails/issuesTraceWaterfallOverlay';
-import {useIssuesTraceTree} from 'sentry/views/performance/newTraceDetails/traceApi/useIssuesTraceTree';
-import {useTrace} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
-import {useTraceRootEvent} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
-import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
+import {IssuesTraceWaterfall} from 'sentry/views/performance/traceDetails/issuesTraceWaterfall';
+import {getTraceLinkForIssue} from 'sentry/views/performance/traceDetails/issuesTraceWaterfallOverlay';
+import {useIssuesTraceTree} from 'sentry/views/performance/traceDetails/traceApi/useIssuesTraceTree';
+import {useTrace} from 'sentry/views/performance/traceDetails/traceApi/useTrace';
+import {useTraceRootEvent} from 'sentry/views/performance/traceDetails/traceApi/useTraceRootEvent';
+import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/breadcrumbs';
 import {
   getInitialTracePreferences,
   type TracePreferencesState,
-} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
-import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
-import {useTraceEventView} from 'sentry/views/performance/newTraceDetails/useTraceEventView';
-import {useTraceQueryParams} from 'sentry/views/performance/newTraceDetails/useTraceQueryParams';
-import {useTraceStateAnalytics} from 'sentry/views/performance/newTraceDetails/useTraceStateAnalytics';
+} from 'sentry/views/performance/traceDetails/traceState/tracePreferences';
+import {TraceStateProvider} from 'sentry/views/performance/traceDetails/traceState/traceStateProvider';
 import {getTraceTargetFromEvent} from 'sentry/views/performance/traceDetails/traceTarget';
+import {useTraceEventView} from 'sentry/views/performance/traceDetails/useTraceEventView';
+import {useTraceQueryParams} from 'sentry/views/performance/traceDetails/useTraceQueryParams';
+import {useTraceStateAnalytics} from 'sentry/views/performance/traceDetails/useTraceStateAnalytics';
 
 import {TraceLinkedIssues} from './traceLinkedIssues';
 

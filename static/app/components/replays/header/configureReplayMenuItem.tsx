@@ -1,7 +1,8 @@
 import type {Key} from '@react-types/shared';
 import * as Sentry from '@sentry/react';
 
-import type {MenuItemProps} from 'sentry/components/dropdownMenu';
+import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
+
 import {IconOpen, IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';

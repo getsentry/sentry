@@ -339,8 +339,10 @@ export class Client {
     let didSuccessfullyRetry = false;
 
     if (isSudoRequired) {
+      const extra = response?.responseJSON?.detail?.extra;
       openSudo({
         isSuperuser: code === SUPERUSER_REQUIRED,
+        orgSlug: extra?.orgSlug,
         sudo: code === SUDO_REQUIRED,
         retryRequest: async () => {
           try {

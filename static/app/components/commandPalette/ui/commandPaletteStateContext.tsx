@@ -195,6 +195,7 @@ export function CommandPaletteHotkeys() {
       return;
     }
     dispatch({type: 'reset on open'});
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [location.pathname, dispatch]);
 
   useHotkeys([

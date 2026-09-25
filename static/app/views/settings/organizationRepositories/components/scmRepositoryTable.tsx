@@ -8,21 +8,21 @@ import {
   useState,
 } from 'react';
 import styled from '@emotion/styled';
-import {useVirtualizer} from '@tanstack/react-virtual';
 import sortBy from 'lodash/sortBy';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex, Grid, useResponsivePropValue} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {StatusIndicator} from '@sentry/scraps/statusIndicator';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {Panel} from 'sentry/components/panels/panel';
 import {Placeholder} from 'sentry/components/placeholder';
 import {ProjectList} from 'sentry/components/projectList';
+import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
 import {TimeSince} from 'sentry/components/timeSince';
 import {
   IconChevron,
@@ -33,7 +33,7 @@ import {
   IconSliders,
 } from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
-import type {IntegrationProvider} from 'sentry/types/integrations';
+import type {IntegrationProvider, Repository} from 'sentry/types/integrations';
 import {highlightFuseMatches} from 'sentry/utils/highlightFuseMatches';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 import type {
@@ -48,6 +48,39 @@ export interface InstallationWrapperProps {
 
 const REPO_LIST_MAX_HEIGHT = 400;
 const ESTIMATED_REPO_ROW_HEIGHT = 32;
+
+function EmptyRepositoryMessage({
+  isLoading,
+  manageUrl,
+  repositories,
+  repoMatches,
+}: {
+  repositories: Repository[];
+  isLoading?: boolean;
+  manageUrl?: string;
+  repoMatches?: ScmRepoMatches;
+}) {
+  if (isLoading) {
+    return (
+      <Flex align="center" gap="sm">
+        <StatusIndicator variant="accent" />
+        <Text variant="muted">{t('Loading repositories')}</Text>
+      </Flex>
+    );
+  }
+  if (repoMatches !== undefined && repositories.length > 0) {
+    return <Text variant="muted">{t('No repositories match your search')}</Text>;
+  }
+  return (
+    <Text variant="muted">
+      {manageUrl
+        ? tct('No repositories available. [link:Manage repository access]', {
+            link: <ExternalLink href={manageUrl} />,
+          })
+        : t('No repositories available.')}
+    </Text>
+  );
+}
 
 interface ScmRepositoryTableProps {
   /**
@@ -526,36 +559,13 @@ function VirtualizedRepoList({
     [visibleRepos]
   );
 
-  const virtualizer = useVirtualizer({
+  const {totalSize, virtualItems, virtualizer} = useVirtualRows({
     count: visibleRepos.length,
     getScrollElement: () => scrollRef.current,
     estimateSize: () => ESTIMATED_REPO_ROW_HEIGHT,
     overscan: 6,
     getItemKey,
   });
-
-  const renderEmptyMessage = () => {
-    if (isLoading) {
-      return (
-        <Flex align="center" gap="sm">
-          <StatusIndicator variant="accent" />
-          <Text variant="muted">{t('Loading repositories')}</Text>
-        </Flex>
-      );
-    }
-    if (repoMatches !== undefined && repositories.length > 0) {
-      return <Text variant="muted">{t('No repositories match your search')}</Text>;
-    }
-    return (
-      <Text variant="muted">
-        {manageUrl
-          ? tct('No repositories available. [link:Manage repository access]', {
-              link: <ExternalLink href={manageUrl} />,
-            })
-          : t('No repositories available.')}
-      </Text>
-    );
-  };
 
   const outerColumn = nested ? '1/-1' : undefined;
   const outerColumns = nested ? 'subgrid' : '1fr';
@@ -564,16 +574,21 @@ function VirtualizedRepoList({
   const items =
     visibleRepos.length === 0 ? (
       <Flex column={contentColumn} padding="md xl" justify="center">
-        {renderEmptyMessage()}
+        <EmptyRepositoryMessage
+          isLoading={isLoading}
+          manageUrl={manageUrl}
+          repositories={repositories}
+          repoMatches={repoMatches}
+        />
       </Flex>
     ) : (
       <Grid
         column={outerColumn}
         columns={outerColumns}
         position="relative"
-        style={{height: virtualizer.getTotalSize()}}
+        style={{height: totalSize}}
       >
-        {virtualizer.getVirtualItems().map(virtualItem => {
+        {virtualItems.map(virtualItem => {
           const repo = visibleRepos[virtualItem.index]!;
           const nameMatch = repoMatches?.[repo.id]?.find(m => m.key === 'name');
           const isLast = virtualItem.index === visibleRepos.length - 1;

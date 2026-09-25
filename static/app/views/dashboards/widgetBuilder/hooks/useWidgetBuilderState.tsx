@@ -229,6 +229,71 @@ function generateSortField(aggregates: Column[], aggregateIndex: number): string
     : generateFieldAsString(target);
 }
 
+function getSortYAxisIndex(sort: Sort[] | undefined, yAxis: Column[] = []): number {
+  const sortValue = sort?.[0]?.field;
+  if (!sortValue) {
+    return -1;
+  }
+  return yAxis.findIndex(
+    (field, index) =>
+      generateFieldAsString(field) === sortValue ||
+      generateSortField(yAxis, index) === sortValue
+  );
+}
+
+/**
+ * When a y-axis edit/delete removes the current sort field, keep the sort on
+ * the same series index (shifted down if an earlier series was deleted).
+ */
+function retargetYAxisSort(
+  nextYAxis: Column[],
+  previousYAxis: Column[] | undefined,
+  sort: Sort[],
+  deletedIndex?: number
+): Sort[] {
+  if (nextYAxis.length === 0) {
+    return [];
+  }
+  const oldIndex = getSortYAxisIndex(sort, previousYAxis ?? []);
+  let nextIndex = oldIndex < 0 ? 0 : oldIndex;
+  if (deletedIndex !== undefined && deletedIndex < nextIndex) {
+    nextIndex -= 1;
+  }
+  if (nextIndex >= nextYAxis.length) {
+    nextIndex = nextYAxis.length - 1;
+  }
+  return [
+    {
+      kind: sort[0]?.kind ?? 'desc',
+      field: generateSortField(nextYAxis, Math.max(0, nextIndex)),
+    },
+  ];
+}
+
+function getUpdatedTimeseriesSort(
+  nextYAxis: Column[],
+  previousYAxis: Column[] | undefined,
+  fields: Column[] | undefined,
+  dataset: WidgetType | undefined,
+  sort: Sort[] | undefined,
+  deletedIndex?: number
+): Sort[] | null {
+  if (nextYAxis.length === 0) {
+    return null;
+  }
+  if (!fields?.length) {
+    return [];
+  }
+  if (
+    (dataset === WidgetType.TRACEMETRICS || dataset === WidgetType.SPANS) &&
+    sort?.length &&
+    !isSortFieldStillAvailable(sort, nextYAxis, fields)
+  ) {
+    return retargetYAxisSort(nextYAxis, previousYAxis, sort, deletedIndex);
+  }
+  return null;
+}
+
 /**
  * Validate the current sort against a new set of aggregates for categorical
  * bar charts. Returns the corrected sort if the current sort field is invalid,
@@ -337,7 +402,15 @@ export function useWidgetBuilderState(): {
   const [yAxis, setYAxis] = useSeededQueryState('yAxis', parseAsColumns);
   const [query, setQuery] = useSeededQueryState('query', parseAsQueries);
   // oxlint-disable-next-line react/refs
-  const [sort, setSort] = useSeededQueryState('sort', parseAsWidgetSorts(datasetRef));
+  const [sort, setRawSort] = useSeededQueryState('sort', parseAsWidgetSorts(datasetRef));
+  const setSort = useCallback<typeof setRawSort>(
+    (value, options) =>
+      setRawSort(
+        value ? value.map(s => ({...s, field: normalizeSortField(s.field)})) : value,
+        options
+      ),
+    [setRawSort]
+  );
   const [limit, setLimit] = useSeededQueryState('limit', parseAsLimit);
   const [legendAlias, setLegendAlias] = useSeededQueryState(
     'legendAlias',
@@ -682,6 +755,11 @@ export function useWidgetBuilderState(): {
           }
           if (!doesDisplayTypeSupportThresholds(action.payload)) {
             setThresholds(undefined, options);
+          } else if (!usesTimeSeriesData(action.payload) && thresholds?.timeWindow) {
+            // Big Number compares thresholds against one aggregate for the entire
+            // dashboard time range, not interval-sized buckets, so it cannot scale
+            // thresholds using a time window.
+            setThresholds({...thresholds, timeWindow: undefined}, options);
           }
           if (!usesTimeSeriesData(action.payload)) {
             setAxisRange(undefined, options);
@@ -928,24 +1006,15 @@ export function useWidgetBuilderState(): {
             }
           }
 
-          // If there are yAxis fields but no groupings, clear the sort
-          if (action.payload.length > 0 && (!fields || fields.length === 0)) {
-            setSort([], options);
-          } else if (
-            action.payload.length > 0 &&
-            dataset === WidgetType.TRACEMETRICS &&
-            sort?.length &&
-            !checkTraceMetricSortUsed(sort, action.payload, fields)
-          ) {
-            setSort(
-              [
-                {
-                  kind: 'desc',
-                  field: generateSortField(action.payload, 0),
-                },
-              ],
-              options
-            );
+          const nextSort = getUpdatedTimeseriesSort(
+            action.payload,
+            yAxis,
+            fields,
+            dataset,
+            sort
+          );
+          if (nextSort) {
+            setSort(nextSort, options);
           }
           break;
         }
@@ -1165,24 +1234,16 @@ export function useWidgetBuilderState(): {
               }
             }
 
-            // Replicate SET_Y_AXIS sort reconciliation
-            if (newYAxis.length > 0 && (!fields || fields.length === 0)) {
-              setSort([], options);
-            } else if (
-              newYAxis.length > 0 &&
-              dataset === WidgetType.TRACEMETRICS &&
-              sort?.length &&
-              !checkTraceMetricSortUsed(sort, newYAxis, fields)
-            ) {
-              setSort(
-                [
-                  {
-                    kind: 'desc',
-                    field: generateFieldAsString(newYAxis[0]!),
-                  },
-                ],
-                options
-              );
+            const nextSort = getUpdatedTimeseriesSort(
+              newYAxis,
+              yAxis,
+              fields,
+              dataset,
+              sort,
+              deleteIndex
+            );
+            if (nextSort) {
+              setSort(nextSort, options);
             }
           } else {
             // Table / other: fields list is flat, delete by index
@@ -1258,6 +1319,7 @@ export function useWidgetBuilderState(): {
       legendType,
       linkedDashboards,
       selectedAggregate,
+      thresholds,
     ]
   );
 
@@ -1352,14 +1414,20 @@ function deserializeLinkedDashboards(linkedDashboards: string[]): LinkedDashboar
 export function serializeSorts(dataset?: WidgetType) {
   return function (sorts: Sort[]): string[] {
     return sorts.map(sort => {
+      const field = normalizeSortField(sort.field);
       // All issue fields do not use '-' regardless of order
       if (dataset === WidgetType.ISSUE) {
-        return sort.field;
+        return field;
       }
       const direction = sort.kind === 'desc' ? '-' : '';
-      return `${direction}${sort.field}`;
+      return `${direction}${field}`;
     });
   };
+}
+
+function normalizeSortField(field: string): string {
+  const parsedField = explodeField({field});
+  return parsedField.kind === 'function' ? generateFieldAsString(parsedField) : field;
 }
 
 function deserializeSorts(dataset?: WidgetType) {
@@ -1370,11 +1438,11 @@ function deserializeSorts(dataset?: WidgetType) {
         REVERSED_ORDER_FIELD_SORT_LIST.includes(sort.field)
       ) {
         return {
-          field: sort.field,
+          field: normalizeSortField(sort.field),
           kind: 'desc',
         };
       }
-      return sort;
+      return {...sort, field: normalizeSortField(sort.field)};
     });
   };
 }
@@ -1500,17 +1568,12 @@ const parseAsAxisRange = createParser({
   serialize: (value: AxisRange) => value,
 });
 
-function checkTraceMetricSortUsed(
+function isSortFieldStillAvailable(
   sort: Sort[],
   yAxis: Column[] = [],
   fields: Column[] = []
 ): boolean {
   const sortValue = sort[0]?.field;
   const sortInFields = fields?.some(field => generateFieldAsString(field) === sortValue);
-  const sortInYAxis = yAxis?.some(
-    (field, i) =>
-      generateFieldAsString(field) === sortValue ||
-      generateSortField(yAxis, i) === sortValue
-  );
-  return sortInFields || sortInYAxis;
+  return sortInFields || getSortYAxisIndex(sort, yAxis) >= 0;
 }

@@ -10,6 +10,8 @@ import {EXPLORE_AGENTS_SUB_PATH} from 'sentry/views/explore/conversations/settin
 import {
   MAX_STARRED_SAVED_QUERIES_IN_NAV,
   useGetSavedQueries,
+  getSavedQueryDatasetLabel,
+  isExploreSavedQuery,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
 import {ExploreSavedQueryNavigationItems} from 'sentry/views/navigation/secondary/sections/explore/exploreSavedQueryNavigationItems';
@@ -74,7 +76,7 @@ function ExploreSecondaryNavigationImpl() {
   if (organization.openMembership && organization.features.includes('investigations')) {
     navItems.push({
       label: 'Investigations',
-      badge: 'beta',
+      badge: 'alpha',
       to: `${baseUrl}/investigations/`,
     });
   }
@@ -88,7 +90,10 @@ function ExploreSecondaryNavigationImpl() {
     starredQueries: (starredQueries ?? []).map(query => ({
       id: query.id,
       name: query.name,
-      dataset: query.dataset,
+      dataset: isExploreSavedQuery(query)
+        ? getSavedQueryDatasetLabel(query.dataset)
+        : 'Errors',
+      queryType: query.queryType,
     })),
   });
 
@@ -224,7 +229,7 @@ function ExploreSecondaryNavigationImpl() {
                     to={`${baseUrl}/investigations/`}
                     activeTo={`${baseUrl}/investigations/`}
                     analyticsItemName="explore_investigations"
-                    trailingItems={<FeatureBadge type="beta" />}
+                    trailingItems={<FeatureBadge type="alpha" />}
                   >
                     {t('Investigations')}
                   </SecondaryNavigation.Link>

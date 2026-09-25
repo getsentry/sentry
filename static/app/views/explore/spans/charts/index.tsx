@@ -6,6 +6,8 @@ import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {DroppedDataLayerControl} from 'sentry/components/droppedData/droppedDataLayerControl';
+import {useDroppedData} from 'sentry/components/droppedData/useDroppedData';
 import {IconClock, IconContract, IconExpand, IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
@@ -168,6 +170,7 @@ function Chart({
 }: ChartProps) {
   const {chartSelection, setChartSelection} = useChartSelection();
   const [interval, setInterval, intervalOptions] = useChartInterval();
+  const droppedData = useDroppedData(timeseriesResult.meta);
   const {
     dismiss: dismissChartSelectionAlert,
     isDismissed: isChartSelectionAlertDismissed,
@@ -262,6 +265,12 @@ function Chart({
 
   const Actions = visualize.visible ? (
     <Fragment>
+      {droppedData.hasDroppedData ? (
+        <DroppedDataLayerControl
+          showDroppedData={droppedData.showDroppedData}
+          onChange={droppedData.setShowDroppedData}
+        />
+      ) : null}
       <Tooltip title={t('Type of chart displayed in this visualization (ex. line)')}>
         <CompactSelect
           trigger={triggerProps => (
@@ -333,6 +342,7 @@ function Chart({
             <ChartVisualization
               chartInfo={chartInfo}
               chartRef={chartRef}
+              droppedData={droppedData.chartProps}
               chartXRangeSelection={{
                 initialSelection: initialChartSelection,
                 onSelectionEnd: () => {

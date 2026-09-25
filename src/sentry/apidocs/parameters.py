@@ -996,6 +996,14 @@ class EventParams:
 
 
 class ProjectParams:
+    CUSTOM_INBOUND_FILTER_ID = OpenApiParameter(
+        name="filter_id",
+        location="path",
+        required=True,
+        type=str,
+        description="The ID of the custom inbound filter.",
+    )
+
     FILTER_ID = OpenApiParameter(
         name="filter_id",
         location="path",
@@ -1257,7 +1265,6 @@ class DashboardParams:
             "owned",
             "shared",
             "showHidden",
-            "showUserHidden",
         ],
         description="Filter the dashboards returned. Repeat this parameter to apply multiple filters.",
     )

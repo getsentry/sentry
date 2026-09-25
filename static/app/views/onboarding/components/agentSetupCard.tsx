@@ -6,11 +6,13 @@ import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Separator} from '@sentry/scraps/separator';
 import {Heading, Text} from '@sentry/scraps/text';
 
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {List} from 'sentry/components/list';
 import {ListItem} from 'sentry/components/list/listItem';
 import {IconBot} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {selectText} from 'sentry/utils/selectText';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {AgentInfo} from 'sentry/views/onboarding/components/agentInfo';
 import {SETUP_CARD_ICON_SIZE, SETUP_CARD_MARKER_PX} from 'sentry/views/onboarding/consts';
 
@@ -39,6 +41,10 @@ export function AgentSetupCard({
   onSelectSnippet,
   prompt,
 }: AgentSetupCardProps) {
+  const organization = useOrganization();
+  const installCommand = onboardingCode
+    ? `${INSTALL_PLUGIN_COMMAND} ${organization.slug}#${onboardingCode}`
+    : INSTALL_PLUGIN_COMMAND;
   const installCommandRef = useRef<HTMLDivElement>(null);
   const promptRef = useRef<HTMLDivElement>(null);
 
@@ -81,11 +87,19 @@ export function AgentSetupCard({
       <Flex area="icon" align="center" justify="center">
         <IconBot size={SETUP_CARD_ICON_SIZE} variant="secondary" />
       </Flex>
-      <Flex area="title" align="center" gap="md" wrap="wrap">
-        <Heading as="h3" size="lg">
-          {t('Set up with your coding agent')}
-        </Heading>
-        <Tag variant="info">{t('Recommended')}</Tag>
+      <Flex area="title" align="center" justify="between" gap="md" wrap="wrap">
+        <Flex align="center" gap="md" wrap="wrap">
+          <Heading as="h3" size="lg">
+            {t('Set up with your coding agent')}
+          </Heading>
+          <Tag variant="info">{t('Recommended')}</Tag>
+        </Flex>
+        <FeedbackButton
+          size="xs"
+          feedbackOptions={{
+            tags: {'feedback.source': 'onboarding-agent-setup'},
+          }}
+        />
       </Flex>
 
       <Stack area="meta" gap="xs" paddingTop="md" paddingBottom="2xl">
@@ -119,7 +133,7 @@ export function AgentSetupCard({
                 onCopy={() => onCopyCommand('install_command')}
                 wrapMode="wrap"
               >
-                {INSTALL_PLUGIN_COMMAND}
+                {installCommand}
               </CodeBlock>
             </Stack>
             <Flex

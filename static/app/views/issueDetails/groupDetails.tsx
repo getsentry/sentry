@@ -315,6 +315,7 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
     if (defined(group)) {
       GroupStore.loadInitialData([group]);
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [groupId, group]);
 
   useSyncGroupStore(groupId, environments);
@@ -416,8 +417,8 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
 
   const refetchData = useCallback(() => {
     refetchEvent();
-    refetchGroup();
-  }, [refetchGroup, refetchEvent]);
+    refetchGroupCall();
+  }, [refetchGroupCall, refetchEvent]);
 
   // Refetch when group is stale
   useEffect(() => {
@@ -574,7 +575,8 @@ type IssueView =
   | 'replays'
   | 'attachments'
   | 'distributions'
-  | 'distributions-tag-detail';
+  | 'distributions-tag-detail'
+  | 'autofix';
 
 const ISSUE_VIEW_PREAMBLES: Record<IssueView, string> = {
   'specific-event':
@@ -591,6 +593,8 @@ const ISSUE_VIEW_PREAMBLES: Record<IssueView, string> = {
     'Sentry issue tag detail page. The user is drilling into a specific tag distribution. You can get issue tag values for the tagKey below to see exact counts and percentages.',
   'issue-overview':
     'Sentry issue detail page. Shows a single grouped issue with its latest event.',
+  autofix:
+    "Sentry issue autofix tab. The user is viewing Seer's analysis of this issue — root cause, proposed solution, code changes and any pull requests it opened.",
 };
 
 function getIssueDetailContextHint(view: IssueView): string {
@@ -684,6 +688,8 @@ function GroupDetailsContentInner({
     issueView = 'replays';
   } else if (currentTab === Tab.ATTACHMENTS) {
     issueView = 'attachments';
+  } else if (currentTab === Tab.AUTOFIX) {
+    issueView = 'autofix';
   } else if (currentTab === Tab.DISTRIBUTIONS) {
     issueView = tagKey ? 'distributions-tag-detail' : 'distributions';
   }

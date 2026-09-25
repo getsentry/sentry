@@ -2,13 +2,16 @@ import {Fragment} from 'react';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {
+  DropdownButton,
+  DropdownMenu,
+  type MenuItemProps,
+} from '@sentry/scraps/dropdownMenu';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
 import {ConfirmDelete} from 'sentry/components/confirmDelete';
-import {DropdownButton} from 'sentry/components/dropdownButton';
-import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {IdBadge} from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';

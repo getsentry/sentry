@@ -219,7 +219,7 @@ describe('EventGraph', () => {
       '/organizations/org-slug/events-stats/',
       expect.objectContaining({
         query: expect.objectContaining({
-          query: [persistantQuery, query].join(' '),
+          query: `${persistantQuery} (${query})`,
         }),
       })
     );

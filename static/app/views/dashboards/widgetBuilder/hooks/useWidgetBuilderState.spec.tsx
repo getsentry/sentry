@@ -655,6 +655,27 @@ describe('useWidgetBuilderState', () => {
       });
     });
 
+    it('removes the threshold time window when switching to a big number', () => {
+      const {result} = renderWidgetBuilderState({
+        dataset: WidgetType.ERRORS,
+        displayType: DisplayType.LINE,
+        thresholds:
+          '{"max_values":{"max1":200,"max2":300},"unit":null,"timeWindow":"10m"}',
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DISPLAY_TYPE,
+          payload: DisplayType.BIG_NUMBER,
+        });
+      });
+
+      expect(result.current.state.thresholds).toEqual({
+        max_values: {max1: 200, max2: 300},
+        unit: null,
+      });
+    });
+
     it('resets thresholds when switching to a display type that does not support thresholds', () => {
       const {result} = renderWidgetBuilderState({
         dataset: WidgetType.ERRORS,
@@ -833,14 +854,14 @@ describe('useWidgetBuilderState', () => {
       act(() => {
         result.current.dispatch({
           type: BuilderStateAction.SET_DATASET,
-          payload: WidgetType.METRICS,
+          payload: WidgetType.TRACEMETRICS,
         });
       });
 
       flushUrlUpdates();
 
       expect(router.location.query).toEqual(
-        expect.objectContaining({dataset: WidgetType.METRICS})
+        expect.objectContaining({dataset: WidgetType.TRACEMETRICS})
       );
     });
 
@@ -1527,6 +1548,59 @@ describe('useWidgetBuilderState', () => {
   });
 
   describe('sort', () => {
+    it('normalizes aggregate argument separators in the builder state and URL', () => {
+      const {result, router} = renderWidgetBuilderState({
+        dataset: WidgetType.TRACEMETRICS,
+        sort: ['-sum_if(`environment:"prod, us"`, value, alpha_metric, counter, none)'],
+      });
+
+      expect(result.current.state.sort).toEqual([
+        {
+          field: 'sum_if(`environment:"prod, us"`,value,alpha_metric,counter,none)',
+          kind: 'desc',
+        },
+      ]);
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_SORT,
+          payload: [
+            {
+              field: 'sum_if(`environment:prod`, value, alpha_metric, counter, none)',
+              kind: 'asc',
+            },
+          ],
+        });
+      });
+
+      expect(result.current.state.sort).toEqual([
+        {
+          field: 'sum_if(`environment:prod`,value,alpha_metric,counter,none)',
+          kind: 'asc',
+        },
+      ]);
+      flushUrlUpdates();
+      expect(router.location.query.sort).toBe(
+        'sum_if(`environment:prod`,value,alpha_metric,counter,none)'
+      );
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_STATE,
+          payload: {
+            sort: ['-sum_if(`environment:staging`, value, alpha_metric, counter, none)'],
+          },
+        });
+      });
+
+      expect(result.current.state.sort).toEqual([
+        {
+          field: 'sum_if(`environment:staging`,value,alpha_metric,counter,none)',
+          kind: 'desc',
+        },
+      ]);
+    });
+
     it('can decode and update sorts', () => {
       const {result} = renderWidgetBuilderState({
         sort: ['-testField'],
@@ -1708,6 +1782,81 @@ describe('useWidgetBuilderState', () => {
       expect(result.current.state.sort).toEqual([
         {kind: 'desc', field: 'sum(value,my.metric,counter,none)'},
       ]);
+    });
+
+    it('retargets sort when SET_Y_AXIS applies a spans series filter', () => {
+      const {result} = renderWidgetBuilderState({
+        dataset: WidgetType.SPANS,
+        displayType: DisplayType.LINE,
+        field: ['transaction'],
+        yAxis: ['avg(span.duration)'],
+        sort: ['-avg(span.duration)'],
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_Y_AXIS,
+          payload: [
+            {
+              kind: 'function',
+              function: ['avg_if', '`span.op:db`', 'span.duration'],
+            },
+          ] as Column[],
+        });
+      });
+
+      expect(result.current.state.sort).toEqual([
+        {kind: 'desc', field: 'avg_if(`span.op:db`,span.duration)'},
+      ]);
+    });
+
+    it('retargets sort onto the edited series when SET_Y_AXIS changes a non-first y-axis', () => {
+      const {result} = renderWidgetBuilderState({
+        dataset: WidgetType.SPANS,
+        displayType: DisplayType.LINE,
+        field: ['transaction'],
+        yAxis: ['avg(span.duration)', 'p95(span.duration)'],
+        sort: ['-p95(span.duration)'],
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_Y_AXIS,
+          payload: [
+            {
+              kind: 'function',
+              function: ['avg', 'span.duration'],
+            },
+            {
+              kind: 'function',
+              function: ['p95_if', '`span.op:db`', 'span.duration'],
+            },
+          ] as Column[],
+        });
+      });
+
+      expect(result.current.state.sort).toEqual([
+        {kind: 'desc', field: 'p95_if(`span.op:db`,span.duration)'},
+      ]);
+    });
+
+    it('retargets sort to equation[N] when DELETE_AGGREGATE leaves an equation', () => {
+      const {result} = renderWidgetBuilderState({
+        dataset: WidgetType.SPANS,
+        displayType: DisplayType.LINE,
+        field: ['transaction'],
+        yAxis: ['count(span.duration)', 'equation|count(span.duration) / 5'],
+        sort: ['-count(span.duration)'],
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.DELETE_AGGREGATE,
+          payload: 0,
+        });
+      });
+
+      expect(result.current.state.sort).toEqual([{kind: 'desc', field: 'equation[0]'}]);
     });
 
     it('preserves trace metric args when switching from line to categorical bar', () => {

@@ -1,6 +1,8 @@
 import styled from '@emotion/styled';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';
+import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import type {SelectValue} from '@sentry/scraps/select';
@@ -9,8 +11,6 @@ import {openModal} from 'sentry/actionCreators/modal';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {CustomIgnoreCountModal} from 'sentry/components/customIgnoreCountModal';
 import {CustomIgnoreDurationModal} from 'sentry/components/customIgnoreDurationModal';
-import type {MenuItemProps} from 'sentry/components/dropdownMenu';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconChevron} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import type {GroupStatusResolution, IgnoredStatusDetails} from 'sentry/types/group';
