@@ -26,36 +26,30 @@ describe('seerEmbedsToJsonSchemas', () => {
     const chart = seerEmbedsToJsonSchemas().find(widget => widget.name === 'chart');
 
     expect(chart?.body).toMatchObject({
-      anyOf: [
+      required: ['title', 'series'],
+      allOf: [
         {
-          required: ['title', 'series'],
-          properties: {
-            x_axis: {const: 'time', default: 'time'},
-            series: {
-              items: {
-                anyOf: [
-                  {
-                    properties: {
-                      data: {
-                        items: {
-                          properties: {
-                            x: {type: 'string', pattern: expect.any(String)},
-                          },
+          if: {properties: {x_axis: {const: 'category'}}, required: ['x_axis']},
+          then: {
+            properties: {visualization: {const: 'bar'}},
+            required: ['visualization'],
+          },
+          else: {
+            properties: {
+              series: {
+                items: {
+                  properties: {
+                    data: {
+                      items: {
+                        properties: {
+                          x: {type: 'string', pattern: expect.any(String)},
                         },
                       },
                     },
                   },
-                  expect.any(Object),
-                ],
+                },
               },
             },
-          },
-        },
-        {
-          required: ['title', 'visualization', 'x_axis', 'series'],
-          properties: {
-            x_axis: {const: 'category'},
-            visualization: {const: 'bar'},
           },
         },
       ],

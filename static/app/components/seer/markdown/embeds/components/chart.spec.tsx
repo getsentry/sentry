@@ -225,6 +225,40 @@ describe('Chart embed', () => {
     expect(screen.getByText('Last three hours')).not.toBeVisible();
   });
 
+  it('renders historical category charts with legacy names and extra fields', () => {
+    render(
+      <ExampleChartEmbed
+        body={{
+          title: 'Historical chart',
+          visualization: 'bar',
+          x_axis: 'category',
+          extra: 'ignored',
+          series: [
+            {
+              name: 'Errors',
+              data: [
+                {x: 200, y: 12},
+                {x: 'other', y: 4},
+              ],
+            },
+          ],
+        }}
+      />
+    );
+
+    expect(screen.getByText('Historical chart')).toBeInTheDocument();
+    expect(screen.getByTestId('seer-chart-embed')).toBeInTheDocument();
+    expect(jest.mocked(BaseChart).mock.calls.at(-1)![0].series).toEqual([
+      expect.objectContaining({
+        type: 'bar',
+        data: [
+          ['200', 12],
+          ['other', 4],
+        ],
+      }),
+    ]);
+  });
+
   it('renders the legacy series name field', () => {
     render(
       <ExampleChartEmbed

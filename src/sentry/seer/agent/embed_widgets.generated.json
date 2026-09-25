@@ -277,204 +277,149 @@
     "level": ["block"],
     "body": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
-      "anyOf": [
-        {
-          "type": "object",
-          "properties": {
-            "title": {
-              "type": "string",
-              "minLength": 1
-            },
-            "subtitle": {
-              "type": "string"
-            },
-            "y_axis_unit": {
-              "default": "number",
-              "type": "string",
-              "enum": ["number", "percentage", "duration", "bytes"]
-            },
-            "visualization": {
-              "default": "line",
-              "type": "string",
-              "enum": ["line", "area", "bar"]
-            },
-            "x_axis": {
-              "default": "time",
-              "type": "string",
-              "const": "time"
-            },
-            "series": {
-              "minItems": 1,
-              "maxItems": 5,
-              "type": "array",
-              "items": {
-                "anyOf": [
-                  {
-                    "type": "object",
-                    "properties": {
-                      "label": {
-                        "type": "string",
-                        "description": "Legend label for the series"
-                      },
-                      "data": {
-                        "minItems": 1,
-                        "maxItems": 200,
-                        "type": "array",
-                        "items": {
-                          "type": "object",
-                          "properties": {
-                            "x": {
-                              "type": "string",
-                              "format": "date-time",
-                              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
-                            },
-                            "y": {
-                              "type": "number"
-                            }
-                          },
-                          "required": ["x", "y"]
-                        }
-                      }
-                    },
-                    "required": ["label", "data"]
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
-                      "name": {
-                        "type": "string",
-                        "description": "Legacy alias for label"
-                      },
-                      "data": {
-                        "minItems": 1,
-                        "maxItems": 200,
-                        "type": "array",
-                        "items": {
-                          "type": "object",
-                          "properties": {
-                            "x": {
-                              "type": "string",
-                              "format": "date-time",
-                              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
-                            },
-                            "y": {
-                              "type": "number"
-                            }
-                          },
-                          "required": ["x", "y"]
-                        }
-                      }
-                    },
-                    "required": ["name", "data"]
-                  }
-                ]
-              }
-            }
-          },
-          "required": ["title", "series"]
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "minLength": 1
         },
-        {
-          "type": "object",
-          "properties": {
-            "title": {
-              "type": "string",
-              "minLength": 1
-            },
-            "subtitle": {
-              "type": "string"
-            },
-            "y_axis_unit": {
-              "default": "number",
-              "type": "string",
-              "enum": ["number", "percentage", "duration", "bytes"]
-            },
-            "visualization": {
-              "type": "string",
-              "const": "bar"
-            },
-            "x_axis": {
-              "type": "string",
-              "const": "category"
-            },
-            "series": {
-              "minItems": 1,
-              "maxItems": 5,
-              "type": "array",
-              "items": {
-                "anyOf": [
-                  {
-                    "type": "object",
-                    "properties": {
-                      "label": {
-                        "type": "string",
-                        "description": "Legend label for the series"
-                      },
-                      "data": {
-                        "minItems": 1,
-                        "maxItems": 200,
-                        "type": "array",
-                        "items": {
-                          "type": "object",
-                          "properties": {
-                            "x": {
-                              "anyOf": [
-                                {
-                                  "type": "string"
-                                },
-                                {
-                                  "type": "number"
-                                }
-                              ]
-                            },
-                            "y": {
-                              "type": "number"
-                            }
-                          },
-                          "required": ["x", "y"]
-                        }
-                      }
-                    },
-                    "required": ["label", "data"]
+        "subtitle": {
+          "type": "string"
+        },
+        "visualization": {
+          "default": "line",
+          "type": "string",
+          "enum": ["line", "area", "bar"]
+        },
+        "x_axis": {
+          "default": "time",
+          "type": "string",
+          "enum": ["time", "category"]
+        },
+        "y_axis_unit": {
+          "default": "number",
+          "type": "string",
+          "enum": ["number", "percentage", "duration", "bytes"]
+        },
+        "series": {
+          "minItems": 1,
+          "maxItems": 5,
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "description": "Legend label for the series"
                   },
-                  {
-                    "type": "object",
-                    "properties": {
-                      "name": {
-                        "type": "string",
-                        "description": "Legacy alias for label"
-                      },
-                      "data": {
-                        "minItems": 1,
-                        "maxItems": 200,
-                        "type": "array",
-                        "items": {
-                          "type": "object",
-                          "properties": {
-                            "x": {
-                              "anyOf": [
-                                {
-                                  "type": "string"
-                                },
-                                {
-                                  "type": "number"
-                                }
-                              ]
+                  "data": {
+                    "minItems": 1,
+                    "maxItems": 200,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "x": {
+                          "anyOf": [
+                            {
+                              "type": "string"
                             },
-                            "y": {
+                            {
                               "type": "number"
                             }
-                          },
-                          "required": ["x", "y"]
+                          ]
+                        },
+                        "y": {
+                          "type": "number"
+                        }
+                      },
+                      "required": ["x", "y"]
+                    }
+                  }
+                },
+                "required": ["label", "data"]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Legacy alias for label"
+                  },
+                  "data": {
+                    "minItems": 1,
+                    "maxItems": 200,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "x": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "number"
+                            }
+                          ]
+                        },
+                        "y": {
+                          "type": "number"
+                        }
+                      },
+                      "required": ["x", "y"]
+                    }
+                  }
+                },
+                "required": ["name", "data"]
+              }
+            ]
+          }
+        }
+      },
+      "required": ["title", "series"],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "x_axis": {
+                "const": "category"
+              }
+            },
+            "required": ["x_axis"]
+          },
+          "then": {
+            "properties": {
+              "visualization": {
+                "const": "bar"
+              }
+            },
+            "required": ["visualization"]
+          },
+          "else": {
+            "properties": {
+              "series": {
+                "items": {
+                  "properties": {
+                    "data": {
+                      "items": {
+                        "properties": {
+                          "x": {
+                            "$schema": "https://json-schema.org/draft/2020-12/schema",
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                          }
                         }
                       }
-                    },
-                    "required": ["name", "data"]
+                    }
                   }
-                ]
+                }
               }
             }
-          },
-          "required": ["title", "visualization", "x_axis", "series"]
+          }
         }
       ]
     },

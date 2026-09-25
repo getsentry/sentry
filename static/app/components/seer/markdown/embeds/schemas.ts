@@ -8,27 +8,26 @@ const isoTimestampSchema = z.iso.datetime({offset: true});
 // and every consumer reads them as UTC, so the agent copies that form back.
 const pageFilterTimestampSchema = z.iso.datetime({offset: true, local: true});
 
-function chartSeriesSchema(x: z.ZodType<string | number>) {
-  const data = z
-    .array(z.object({x, y: z.number()}))
-    .min(1)
-    .max(200);
-  return z
-    .array(
-      z.union([
-        z.object({label: z.string().describe('Legend label for the series'), data}),
-        z.object({name: z.string().describe('Legacy alias for label'), data}),
-      ])
-    )
-    .min(1)
-    .max(5);
-}
+const chartSeriesDataSchema = z
+  .array(
+    z.object({
+      x: z.union([z.string(), z.number()]),
+      y: z.number(),
+    })
+  )
+  .min(1)
+  .max(200);
 
-const chartFields = {
-  title: z.string().min(1),
-  subtitle: z.string().optional(),
-  y_axis_unit: z.enum(['number', 'percentage', 'duration', 'bytes']).default('number'),
-};
+const chartSeriesSchema = z.union([
+  z.object({
+    label: z.string().describe('Legend label for the series'),
+    data: chartSeriesDataSchema,
+  }),
+  z.object({
+    name: z.string().describe('Legacy alias for label'),
+    data: chartSeriesDataSchema,
+  }),
+]);
 
 // Agents often emit bare numbers for IDs; keep as a plain union (no .transform)
 // so gen:embed-widgets can still export JSON Schema.
@@ -86,7 +85,7 @@ export interface SeerEmbedExample {
 interface SeerEmbedSchema {
   description: string;
   level: SeerEmbedLevel[];
-  schema: z.ZodType;
+  schema: z.ZodObject;
   examples?: SeerEmbedExample[];
   /**
    * Org feature(s) the widget is offered behind. Gates generation only: it
@@ -295,20 +294,43 @@ export const SEER_EMBED_SCHEMAS = {
       'timestamps. Category axes are supported for bar charts only. ' +
       'Duration values are milliseconds, percentage values are 0-100, and byte values are raw bytes.',
     level: ['block'],
-    schema: z.union([
-      z.object({
-        ...chartFields,
+    schema: z
+      .object({
+        title: z.string().min(1),
+        subtitle: z.string().optional(),
         visualization: z.enum(['line', 'area', 'bar']).default('line'),
-        x_axis: z.literal('time').default('time'),
-        series: chartSeriesSchema(isoTimestampSchema),
+        x_axis: z.enum(['time', 'category']).default('time'),
+        y_axis_unit: z
+          .enum(['number', 'percentage', 'duration', 'bytes'])
+          .default('number'),
+        series: z.array(chartSeriesSchema).min(1).max(5),
+      })
+      .superRefine((chart, context) => {
+        if (chart.x_axis === 'category' && chart.visualization !== 'bar') {
+          context.addIssue({
+            code: 'custom',
+            message: 'Category axes are only supported for bar charts',
+            path: ['x_axis'],
+          });
+        }
+
+        if (chart.x_axis === 'time') {
+          chart.series.forEach((series, seriesIndex) => {
+            series.data.forEach((point, pointIndex) => {
+              if (
+                typeof point.x !== 'string' ||
+                !isoTimestampSchema.safeParse(point.x).success
+              ) {
+                context.addIssue({
+                  code: 'custom',
+                  message: 'Time-axis values must be ISO 8601 timestamps',
+                  path: ['series', seriesIndex, 'data', pointIndex, 'x'],
+                });
+              }
+            });
+          });
+        }
       }),
-      z.object({
-        ...chartFields,
-        visualization: z.literal('bar'),
-        x_axis: z.literal('category'),
-        series: chartSeriesSchema(z.union([z.string(), z.number()])),
-      }),
-    ]),
     examples: [
       {
         label: 'Error volume',
@@ -1136,11 +1158,42 @@ export function seerEmbedsToJsonSchemas(): Array<{
 }> {
   return Object.entries(SEER_EMBED_SCHEMAS).map(([name, entry]) => {
     const def: SeerEmbedSchema = entry;
+    const body = z.toJSONSchema(def.schema, {io: 'input'});
+    if (name === 'chart') {
+      // superRefine is not exported. Apply its rules to new generation without
+      // changing the reader used by historical conversations.
+      body.allOf = [
+        {
+          if: {properties: {x_axis: {const: 'category'}}, required: ['x_axis']},
+          then: {
+            properties: {visualization: {const: 'bar'}},
+            required: ['visualization'],
+          },
+          else: {
+            properties: {
+              series: {
+                items: {
+                  properties: {
+                    data: {
+                      items: {
+                        properties: {
+                          x: z.toJSONSchema(isoTimestampSchema, {io: 'input'}),
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      ];
+    }
     return {
       name,
       description: def.description,
       level: [...def.level],
-      body: z.toJSONSchema(def.schema, {io: 'input'}),
+      body,
       ...(def.examples && {
         examples: def.examples.map(e => ({label: e.label, data: e.data})),
       }),
