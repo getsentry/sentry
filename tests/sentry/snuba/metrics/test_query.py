@@ -582,6 +582,15 @@ def test_validate_metric_field_mri() -> None:
         )
 
 
+def test_use_case_id_invalid_namespace_raises_invalid_params() -> None:
+    from sentry.snuba.metrics.query import MetricsQuery
+
+    # "invalid_namespace" is not a valid UseCaseID value, so _use_case_id should
+    # raise InvalidParams (HTTP 400), not a plain ValueError (HTTP 500).
+    with pytest.raises(InvalidParams, match="Can't find correct use_case_id based on metric MRI"):
+        MetricsQuery._use_case_id("d:invalid_namespace/some.metric@none")
+
+
 @pytest.mark.parametrize(
     "select, interval, series",
     [
