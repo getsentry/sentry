@@ -35,18 +35,11 @@ const DISPLAY_TYPES = {
   bar: DisplayType.BAR,
 } satisfies Record<TimeSeriesVisualization, DisplayType>;
 
-/**
- * Ensures an ISO 8601 timestamp string is interpreted as UTC by `Date.parse`.
- * The AI model frequently omits the timezone offset (e.g. `2026-09-25T13:00:00`
- * instead of `2026-09-25T13:00:00Z`). Without a suffix, `Date.parse` treats the
- * string as local time on most runtimes, shifting the chart by the viewer's UTC
- * offset. Appending `Z` forces UTC interpretation.
- */
-function normalizeTimestamp(x: string | number): number {
-  if (typeof x === 'string' && !x.endsWith('Z') && !/[+-]\d{2}:\d{2}$/.test(x)) {
-    return Date.parse(`${x}Z`);
-  }
-  return Date.parse(String(x));
+// The agent often copies offset-less times out of Sentry URLs, which Sentry reads
+// as UTC. `Date.parse` would read them as the viewer's local time instead.
+function parseTimestamp(x: string | number): number {
+  const value = String(x);
+  return Date.parse(/(Z|[+-]\d{2}(:?\d{2})?)$/i.test(value) ? value : `${value}Z`);
 }
 
 function getInterval(timestamps: number[]): number {
@@ -74,6 +67,8 @@ export function ChartContent({
 }) {
   const metadata = UNIT_METADATA[yAxisUnit];
 
+  // The categorical visualization only draws bars, so a category line or area
+  // chart falls back to bars rather than dropping the agent's data.
   const visualizationComponent =
     xAxis === 'category' ? (
       <CategoricalSeriesWidgetVisualization
@@ -98,16 +93,12 @@ export function ChartContent({
           datetime: {
             start: new Date(
               Math.min(
-                ...series.flatMap(item =>
-                  item.data.map(point => normalizeTimestamp(point.x))
-                )
+                ...series.flatMap(item => item.data.map(point => parseTimestamp(point.x)))
               )
             ).toISOString(),
             end: new Date(
               Math.max(
-                ...series.flatMap(item =>
-                  item.data.map(point => normalizeTimestamp(point.x))
-                )
+                ...series.flatMap(item => item.data.map(point => parseTimestamp(point.x)))
               )
             ).toISOString(),
             period: null,
@@ -120,7 +111,7 @@ export function ChartContent({
           .map((item, index) => {
             const values = item.data
               .map(point => ({
-                timestamp: normalizeTimestamp(point.x),
+                timestamp: parseTimestamp(point.x),
                 value: normalizeValue(point.y, yAxisUnit),
               }))
               .toSorted((left, right) => left.timestamp - right.timestamp);
