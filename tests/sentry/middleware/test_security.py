@@ -181,7 +181,7 @@ class SecurityHeadersMiddlewareTest(TestCase):
 
         assert processed_response["Content-Security-Policy-Report-Only"] == (
             "require-trusted-types-for 'script'; "
-            "trusted-types dompurify sentry-bundler sentry-script-url"
+            "trusted-types dompurify sentry-bundler sentry-script-url svelte-trusted-html"
         )
 
     @override_settings(TRUSTED_TYPES_ENABLED=True, CSP_REPORT_ONLY=False, TRUSTED_TYPES_POLICIES=[])

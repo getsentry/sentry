@@ -599,6 +599,8 @@ TRUSTED_TYPES_POLICIES: list[str] = [
     "dompurify",
     "sentry-bundler",
     "sentry-script-url",
+    # Created by the Svelte runtime inside @sentry/rrweb-player (replay playback).
+    "svelte-trusted-html",
 ]
 TRUSTED_TYPES_REPORT_URI: str | None = None
 
