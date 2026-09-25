@@ -41,6 +41,10 @@ NO_EXTENSION_FRAME_FILENAMES = [
 
 
 class TestFrameInfo:
+    def test_java_package_exception_is_unsupported_frame_info(self) -> None:
+        # Endpoint derive-code-mappings catches UnsupportedFrameInfo as HTTP 400.
+        assert issubclass(DoesNotFollowJavaPackageNamingConvention, UnsupportedFrameInfo)
+
     def test_frame_filename_repr(self) -> None:
         path = "getsentry/billing/tax/manager.py"
         frame_info = create_frame_info({"filename": path})

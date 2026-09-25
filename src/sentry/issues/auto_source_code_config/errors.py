@@ -14,5 +14,5 @@ class MissingModuleOrAbsPath(Exception):
     pass
 
 
-class DoesNotFollowJavaPackageNamingConvention(Exception):
+class DoesNotFollowJavaPackageNamingConvention(UnsupportedFrameInfo):
     pass
