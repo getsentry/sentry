@@ -58,7 +58,7 @@ export const makeSeerExplorerQueryKey = (
  * Registry of custom tool formatters.
  * Add new tools here to customize their display.
  */
-const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
+export const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
   telemetry_index_list_nodes: (args, isLoading) => {
     const keyword = args.keyword || 'items';
     return isLoading ? `Scanning for ${keyword}...` : `Scanned for ${keyword}`;
@@ -77,10 +77,11 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
   telemetry_live_search: (args, isLoading, resultMetadata) => {
     const question = args.question || 'data';
     const dataset = args.dataset || 'spans';
-    const projectSlugs = args.project_slugs;
+    const projectSlugs: string[] = args.project_slugs
+      ? ([] as string[]).concat(args.project_slugs)
+      : [];
 
-    const projectInfo =
-      projectSlugs && projectSlugs.length > 0 ? ` in ${projectSlugs.join(', ')}` : '';
+    const projectInfo = projectSlugs.length > 0 ? ` in ${projectSlugs.join(', ')}` : '';
 
     if (dataset === 'issues') {
       return isLoading

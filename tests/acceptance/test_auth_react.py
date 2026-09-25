@@ -6,7 +6,6 @@ from sentry.auth.authenticators.recovery_code import RecoveryCodeInterface
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.helpers import override_options
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import no_silo_test
 from sentry.users.models.user import User
 
@@ -390,7 +389,6 @@ class ReactAuthTest(AcceptanceTestCase):
         self.wait_for_authenticated_organization(sso_organization.slug)
 
     @override_options({"auth.v2.enabled": True})
-    @with_feature("organizations:authv2-rollout")
     def test_switch_to_sso_required_organization(self) -> None:
         user = self.create_login_user("org-a")
         password_organization = self.organization

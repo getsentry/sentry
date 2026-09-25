@@ -1,12 +1,13 @@
-import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import partition from 'lodash/partition';
 import sortBy from 'lodash/sortBy';
 import {PlatformIcon} from 'platformicons';
+import {z} from 'zod';
 
-import {Button} from '@sentry/scraps/button';
+import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Radio} from '@sentry/scraps/radio';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -162,10 +163,6 @@ export function FrameworkSuggestionModal({
   const isCreatingProjectAndRules = useIsCreatingProjectAndRules();
   const createProjectAndRulesError = useCreateProjectAndRulesError();
 
-  const [selectedFramework, setSelectedFramework] = useState<
-    OnboardingSelectedSDK | undefined
-  >(selectedPlatform);
-
   const frameworks = platforms.filter(
     platform =>
       createablePlatforms.has(platform.id) &&
@@ -237,46 +234,37 @@ export function FrameworkSuggestionModal({
     }
   }, [selectedPlatform.key, organization, newOrg, isScmFlow, analyticsFlow]);
 
-  const handleConfigure = useCallback(() => {
-    if (!selectedFramework) {
-      return;
-    }
-
-    if (isScmFlow) {
-      trackScmPlatformSelected(
-        analyticsFlow,
-        organization,
-        selectedFramework.key,
-        'manual'
-      );
-    } else if (newOrg) {
-      trackAnalytics('onboarding.select_framework_modal_configure_sdk_button_clicked', {
-        platform: selectedPlatform.key,
-        framework: selectedFramework.key,
-        organization,
-      });
-    } else {
-      trackAnalytics(
-        'project_creation.select_framework_modal_configure_sdk_button_clicked',
-        {
+  const handleConfigure = useCallback(
+    (selectedFramework: OnboardingSelectedSDK) => {
+      if (isScmFlow) {
+        trackScmPlatformSelected(
+          analyticsFlow,
+          organization,
+          selectedFramework.key,
+          'manual'
+        );
+      } else if (newOrg) {
+        trackAnalytics('onboarding.select_framework_modal_configure_sdk_button_clicked', {
           platform: selectedPlatform.key,
           framework: selectedFramework.key,
           organization,
-          variant: 'legacy',
-        }
-      );
-    }
+        });
+      } else {
+        trackAnalytics(
+          'project_creation.select_framework_modal_configure_sdk_button_clicked',
+          {
+            platform: selectedPlatform.key,
+            framework: selectedFramework.key,
+            organization,
+            variant: 'legacy',
+          }
+        );
+      }
 
-    onConfigure(selectedFramework);
-  }, [
-    selectedPlatform,
-    selectedFramework,
-    organization,
-    onConfigure,
-    newOrg,
-    isScmFlow,
-    analyticsFlow,
-  ]);
+      onConfigure(selectedFramework);
+    },
+    [selectedPlatform, organization, onConfigure, newOrg, isScmFlow, analyticsFlow]
+  );
 
   const handleSkip = useCallback(() => {
     if (isScmFlow) {
@@ -301,18 +289,23 @@ export function FrameworkSuggestionModal({
     onSkip();
   }, [selectedPlatform, organization, onSkip, newOrg, isScmFlow, analyticsFlow]);
 
-  const handleClick = useCallback(() => {
-    if (selectedFramework?.key === selectedPlatform.key) {
-      handleSkip();
-    } else {
-      handleConfigure();
-    }
-  }, [handleSkip, handleConfigure, selectedFramework, selectedPlatform]);
-
-  const debounceHandleClick = useMemo(
-    () => debounce(handleClick, 2000, {leading: true, trailing: false}),
-    [handleClick]
+  const handleSubmit = useCallback(
+    (selectedFramework: OnboardingSelectedSDK) => {
+      if (selectedFramework.key === selectedPlatform.key) {
+        handleSkip();
+      } else {
+        handleConfigure(selectedFramework);
+      }
+    },
+    [handleSkip, handleConfigure, selectedPlatform]
   );
+
+  const debouncedSubmit = useMemo(
+    () => debounce(handleSubmit, 2000, {leading: true, trailing: false}),
+    [handleSubmit]
+  );
+
+  useEffect(() => () => debouncedSubmit.cancel(), [debouncedSubmit]);
 
   const listEntries: PlatformIntegration[] = [
     ...topFrameworksOrdered,
@@ -330,6 +323,35 @@ export function FrameworkSuggestionModal({
     ...listEntries,
   ];
 
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {framework: selectedPlatform.key},
+    validators: {
+      onDynamic: z.object({
+        framework: z.enum(listEntriesWithVanilla.map(platform => platform.id)),
+      }),
+    },
+    onSubmit: ({value}) => {
+      if (isCreatingProjectAndRules) {
+        return;
+      }
+      const platform = listEntriesWithVanilla.find(entry => entry.id === value.framework);
+      if (!platform) {
+        return;
+      }
+      debouncedSubmit({
+        key: platform.id,
+        type: platform.type,
+        language: platform.language,
+        category:
+          categoryList.find(category => category.platforms?.has(platform.id))?.id ??
+          'all',
+        link: platform.link,
+        name: platform.name,
+      });
+    },
+  });
+
   useEffect(() => {
     const documentElement = document.querySelector('[role="dialog"] [role="document"]');
     if (
@@ -342,7 +364,7 @@ export function FrameworkSuggestionModal({
   }, [listEntriesWithVanilla.length]);
 
   return (
-    <Fragment>
+    <form.AppForm form={form}>
       <Header>
         <CloseButton onClick={closeModal} />
       </Header>
@@ -352,80 +374,75 @@ export function FrameworkSuggestionModal({
         <Description>{languageDescriptions[selectedPlatform.key]}</Description>
         <ProjectCreationErrorAlert error={createProjectAndRulesError} />
         <StyledPanel>
-          <StyledPanelBody>
-            <CollapsePanel
-              items={listEntriesWithVanilla.length}
-              collapseCount={COLLAPSE_COUNT}
-              buttonTitle={tn(
-                'Hidden Framework',
-                'Hidden Frameworks',
-                listEntriesWithVanilla.length - COLLAPSE_COUNT
+          <StyledPanelBody role="radiogroup" aria-label={t('Framework')}>
+            <form.AppField name="framework">
+              {field => (
+                <CollapsePanel
+                  items={listEntriesWithVanilla.length}
+                  collapseCount={COLLAPSE_COUNT}
+                  buttonTitle={tn(
+                    'Hidden Framework',
+                    'Hidden Frameworks',
+                    listEntriesWithVanilla.length - COLLAPSE_COUNT
+                  )}
+                >
+                  {({isExpanded, showMoreButton}) => {
+                    const items = isExpanded
+                      ? listEntriesWithVanilla
+                      : listEntriesWithVanilla.slice(0, COLLAPSE_COUNT);
+                    return (
+                      <Fragment>
+                        <PlatformList>
+                          {items.map((platform, index) => (
+                            <PlatformListItem key={platform.id}>
+                              <RadioLabel index={index}>
+                                <RadioBox
+                                  size="sm"
+                                  autoFocus={platform.id === selectedPlatform.key}
+                                  name={field.name}
+                                  value={platform.id}
+                                  checked={field.state.value === platform.id}
+                                  onChange={() => field.handleChange(platform.id)}
+                                  onBlur={field.handleBlur}
+                                  onKeyDown={event => {
+                                    // Radios do not consistently submit on Enter across browsers.
+                                    if (event.key === 'Enter') {
+                                      event.preventDefault();
+                                      event.currentTarget.form?.requestSubmit();
+                                    }
+                                  }}
+                                />
+                                <PlatformListItemIcon
+                                  size={24}
+                                  platform={platform.id}
+                                  alt=""
+                                />
+                                {platform.name}
+                              </RadioLabel>
+                            </PlatformListItem>
+                          ))}
+                        </PlatformList>
+                        {showMoreButton && (
+                          <ShowMoreButtonWrapper>{showMoreButton}</ShowMoreButtonWrapper>
+                        )}
+                      </Fragment>
+                    );
+                  }}
+                </CollapsePanel>
               )}
-            >
-              {({isExpanded, showMoreButton}) => {
-                const items = isExpanded
-                  ? listEntriesWithVanilla
-                  : listEntriesWithVanilla.slice(0, COLLAPSE_COUNT);
-                return (
-                  <Fragment>
-                    <PlatformList>
-                      {items.map((platform, index) => {
-                        const platformCategory =
-                          categoryList.find(category => {
-                            return category.platforms?.has(platform.id);
-                          })?.id ?? 'all';
-
-                        return (
-                          <PlatformListItem key={platform.id}>
-                            <RadioLabel
-                              index={index}
-                              onClick={() =>
-                                setSelectedFramework({
-                                  key: platform.id,
-                                  type: platform.type,
-                                  language: platform.language,
-                                  category: platformCategory,
-                                  link: platform.link,
-                                  name: platform.name,
-                                })
-                              }
-                            >
-                              <RadioBox
-                                size="sm"
-                                checked={selectedFramework?.key === platform.id}
-                                readOnly
-                              />
-                              <PlatformListItemIcon
-                                size={24}
-                                platform={platform.id}
-                                alt=""
-                              />
-                              {platform.name}
-                            </RadioLabel>
-                          </PlatformListItem>
-                        );
-                      })}
-                    </PlatformList>
-                    {showMoreButton && (
-                      <ShowMoreButtonWrapper>{showMoreButton}</ShowMoreButtonWrapper>
-                    )}
-                  </Fragment>
-                );
-              }}
-            </CollapsePanel>
+            </form.AppField>
           </StyledPanelBody>
         </StyledPanel>
       </Body>
       <Footer>
-        <Button
-          variant="primary"
-          onClick={debounceHandleClick}
+        <form.SubmitButton
           busy={isCreatingProjectAndRules}
+          disabled={isCreatingProjectAndRules}
         >
           {t('Configure SDK')}
-        </Button>
+        </form.SubmitButton>
       </Footer>
-    </Fragment>
+    </form.AppForm>
   );
 }
 
@@ -575,6 +592,11 @@ export const modalCss = css`
     flex-direction: column;
     max-height: 80vh;
     min-height: 550px;
+  }
+  [role='document'] > form {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
   }
   section {
     display: flex;

@@ -41,7 +41,7 @@ const commonStyles = ({theme, type}: {type: Props['type']} & {theme: Theme}) => 
     type === 'error'
       ? theme.colors.red100 + ' !important'
       : type === 'warning'
-        ? 'var(--background-warning-default, rgba(245, 176, 0, 0.09)) !important'
+        ? theme.tokens.background.transparent.warning.muted + ' !important'
         : 'inherit'
   };
   &:nth-of-type(2n-1) {

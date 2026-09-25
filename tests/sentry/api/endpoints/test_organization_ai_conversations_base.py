@@ -44,6 +44,7 @@ class BaseAIConversationsTestCase(BaseSpansTestCase, SpanTestCase, APITestCase):
         user_email=None,
         user_username=None,
         user_ip=None,
+        origin=None,
         input_messages=None,
         output_messages=None,
         system_instructions=None,
@@ -141,6 +142,8 @@ class BaseAIConversationsTestCase(BaseSpansTestCase, SpanTestCase, APITestCase):
             span_data["sentry.user.username"] = user_username
         if user_ip is not None:
             span_data["sentry.user.ip"] = user_ip
+        if origin is not None:
+            span_data["sentry.origin"] = origin
 
         extra_data = {
             "description": description or "default",

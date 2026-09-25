@@ -43,7 +43,7 @@ def _serialize_base_role(
         "id": str(obj.id),
         "name": obj.name,
         "desc": obj.desc,
-        "scopes": obj.scopes,
+        "scopes": organization.get_role_scopes(obj),
         "allowed": obj in allowed_roles,  # backward compatibility
         "isAllowed": obj in allowed_roles,
         "isRetired": is_retired_role,

@@ -1,26 +1,41 @@
-import type {Crumb} from 'sentry/components/breadcrumbs';
-import {Breadcrumbs} from 'sentry/components/breadcrumbs';
+import {Fragment} from 'react';
+
+import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
+
+import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import {useLocation} from 'sentry/utils/useLocation';
 import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
+import {TopBar} from 'sentry/views/navigation/topBar';
 
 interface Props {
   organization: Organization;
-  projectSlug: string;
   title: string;
 }
 
 export function BuilderBreadCrumbs({title, organization}: Props) {
-  const crumbs: Crumb[] = [
-    {
-      to: makeMonitorBasePathname(organization.slug),
-      label: t('Monitors'),
-      preservePageFilters: true,
-    },
-    {
-      label: title,
-    },
-  ];
+  const location = useLocation();
 
-  return <Breadcrumbs crumbs={crumbs} />;
+  return (
+    <Fragment>
+      <TopBar.Slot name="breadcrumbs">
+        <BreadcrumbList
+          items={[
+            {
+              type: 'link',
+              label: t('Monitors'),
+              to: {
+                pathname: makeMonitorBasePathname(organization.slug),
+                query: extractSelectionParameters(location.query),
+              },
+            },
+          ]}
+        />
+      </TopBar.Slot>
+      <TopBar.Slot name="title">
+        <BreadcrumbList.Title item={{type: 'page-title', label: title}} />
+      </TopBar.Slot>
+    </Fragment>
+  );
 }

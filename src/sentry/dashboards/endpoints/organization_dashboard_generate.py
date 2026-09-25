@@ -135,7 +135,7 @@ class DashboardGenerateSerializer(serializers.Serializer[dict[str, Any]]):
 
 class OrganizationDashboardGeneratePermission(OrganizationPermission):
     scope_map = {
-        "POST": ["org:read"],
+        "POST": ["org:read", "dashboard:read"],
     }
 
 

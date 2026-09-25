@@ -4,7 +4,10 @@ import {
   InvestigationHypothesesFixture,
   InvestigationHypothesisFixture,
 } from 'sentry/views/investigations/fixtures';
-import {HypothesisList} from 'sentry/views/investigations/hypotheses/hypothesisList';
+import {
+  HypothesisList,
+  HypothesisListPlaceholder,
+} from 'sentry/views/investigations/hypotheses/hypothesisList';
 
 describe('HypothesisList', () => {
   it('renders one card per hypothesis', () => {
@@ -75,5 +78,15 @@ describe('HypothesisList', () => {
     );
 
     expect(await screen.findAllByRole('button', {name: /Actions for/})).toHaveLength(3);
+  });
+
+  it('reserves a single card while the first hypotheses are on their way', () => {
+    render(<HypothesisListPlaceholder />);
+
+    const row = screen.getByTestId('investigation-hypotheses-placeholder');
+    expect(row).toHaveAttribute('aria-busy', 'true');
+    expect(
+      within(row).getAllByTestId('investigation-hypothesis-placeholder')
+    ).toHaveLength(1);
   });
 });

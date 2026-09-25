@@ -36,6 +36,7 @@ import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
+import {useIsSeerExplorerSidebarEnabled} from 'sentry/views/seerExplorer/utils';
 
 import {ProjectCard} from './projectCard';
 import {Resources} from './resources';
@@ -44,6 +45,8 @@ import {getTeamParams} from './utils';
 function ProjectCardList({projects}: {projects: Project[]}) {
   const organization = useOrganization();
   const hasProjectAccess = organization.access.includes('project:read');
+  // Sidebar mode scrolls the content pane instead of the window, even when Seer is closed.
+  const isSidebarMode = useIsSeerExplorerSidebarEnabled();
 
   // By default react-lazyload will only check for intesecting components on scroll
   // This forceCheck call is necessary to recalculate when filtering projects
@@ -65,6 +68,7 @@ function ProjectCardList({projects}: {projects: Project[]}) {
           debounce={50}
           height={330}
           offset={400}
+          overflow={isSidebarMode}
           unmountIfInvisible
           key={project.slug}
         >

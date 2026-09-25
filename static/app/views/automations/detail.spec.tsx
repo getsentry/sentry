@@ -85,7 +85,20 @@ describe('AutomationDetail', () => {
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/workflows/123/stats/',
-      body: [],
+      body: {
+        meta: {dataset: 'workflow', start: 0, end: 60 * 60 * 1000},
+        timeSeries: [
+          {
+            yAxis: 'count()',
+            values: [],
+            meta: {
+              interval: 60 * 60 * 1000,
+              valueType: 'integer',
+              valueUnit: null,
+            },
+          },
+        ],
+      },
     });
 
     MockApiClient.addMockResponse({
@@ -358,7 +371,10 @@ describe('AutomationDetail', () => {
 
     await screen.findByRole('heading', {name: /Test Automation/i});
 
-    expect(screen.getByRole('button', {name: 'Disable'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Disable'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
     expect(screen.getByRole('button', {name: 'Edit'})).toHaveAttribute(
       'aria-disabled',
       'true'
@@ -390,9 +406,11 @@ describe('AutomationDetail', () => {
     await waitFor(() =>
       expect(screen.getByRole('button', {name: 'Disable'})).toBeEnabled()
     );
-    expect(screen.getByRole('button', {name: 'Edit'})).not.toHaveAttribute(
-      'aria-disabled',
-      'true'
+    await waitFor(() =>
+      expect(screen.getByRole('button', {name: 'Edit'})).not.toHaveAttribute(
+        'aria-disabled',
+        'true'
+      )
     );
   });
 
