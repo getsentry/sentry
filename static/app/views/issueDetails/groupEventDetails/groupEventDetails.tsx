@@ -6,6 +6,7 @@ import {withMeta} from 'sentry/components/events/meta/metaProxy';
 import {LoadingError} from 'sentry/components/loadingError';
 import {useSentryAppComponentsData} from 'sentry/stores/useSentryAppComponentsData';
 import type {GroupActivityReprocess, GroupReprocessing} from 'sentry/types/group';
+import {IssueType} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -15,6 +16,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {usePrevious} from 'sentry/utils/usePrevious';
 import {useProjectFromSlug} from 'sentry/utils/useProjectFromSlug';
+import {SourceMapIssueDetails} from 'sentry/views/issueDetails/configurationIssues/sourceMapIssues/sourceMapIssueDetails';
 import {GroupEventDetailsContent} from 'sentry/views/issueDetails/groupEventDetails/groupEventDetailsContent';
 import {GroupEventDetailsLoading} from 'sentry/views/issueDetails/groupEventDetails/groupEventDetailsLoading';
 import {ReprocessingProgress} from 'sentry/views/issueDetails/reprocessingProgress';
@@ -39,6 +41,8 @@ function GroupEventDetails() {
     data: event,
     isPending: isLoadingEvent,
     isError: isEventError,
+    error: eventError,
+    refetch: refetchEvent,
   } = useGroupEvent({
     groupId: params.groupId,
     eventId: params.eventId,
@@ -112,7 +116,18 @@ function GroupEventDetails() {
     return <LoadingError onRetry={refetchGroup} />;
   }
 
-  const content = isLoadingEvent ? (
+  const isSourceMapIssue = group.issueType === IssueType.SOURCEMAP_CONFIGURATION;
+
+  const content = isSourceMapIssue ? (
+    <SourceMapIssueDetails
+      group={group}
+      project={project}
+      event={eventWithMeta}
+      isEventPending={isLoadingEvent}
+      eventError={eventError}
+      onRetryEvent={refetchEvent}
+    />
+  ) : isLoadingEvent ? (
     <GroupEventDetailsLoading />
   ) : (
     <GroupEventDetailsContent group={group} event={eventWithMeta} project={project} />
@@ -124,8 +139,10 @@ function GroupEventDetails() {
     <AnalyticsArea name="issue_details">
       <VisuallyCompleteWithData
         id="IssueDetails-EventBody"
-        hasData={!isLoadingEvent && !isEventError && defined(eventWithMeta)}
-        isLoading={isLoadingEvent}
+        hasData={
+          isSourceMapIssue || (!isLoadingEvent && !isEventError && defined(eventWithMeta))
+        }
+        isLoading={!isSourceMapIssue && isLoadingEvent}
       >
         <div data-test-id="group-event-details">
           {groupReprocessingStatus === ReprocessingStatus.REPROCESSING ? (
