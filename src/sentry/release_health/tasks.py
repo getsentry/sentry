@@ -242,8 +242,10 @@ def _handle_release_adoption(
                     adopted=current_time,
                     last_seen=current_time,
                 )
+        except Project.DoesNotExist:
+            metrics.incr("sentry.tasks.process_projects_with_sessions.project_not_found")
+            return rpe
         except (
-            Project.DoesNotExist,
             Environment.DoesNotExist,
             Release.DoesNotExist,
             ReleaseEnvironment.DoesNotExist,
