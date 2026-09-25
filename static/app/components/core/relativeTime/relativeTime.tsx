@@ -114,7 +114,7 @@ export function RelativeTime({
           {label}
         </Tooltip.Header>
       )}
-      <Tooltip.Grid columns="max-content 1fr max-content">
+      <Tooltip.Grid dl columns="max-content 1fr max-content" gap="2xs sm" align="center">
         {!isViewerUtc && (
           <TimestampRow
             date={date}

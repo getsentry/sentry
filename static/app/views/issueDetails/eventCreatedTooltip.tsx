@@ -2,6 +2,9 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import {DescriptionList} from '@sentry/scraps/descriptionList';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {AutoSelectText} from 'sentry/components/autoSelectText';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -40,9 +43,9 @@ export function EventCreatedTooltip({event}: Props) {
   const dateReceived = event.dateReceived ? moment(event.dateReceived) : null;
 
   return (
-    <DescriptionList>
-      <dt>{t('Occurred')}</dt>
-      <dd>
+    <Tooltip.Grid dl terms="strong">
+      <DescriptionList.Term>{t('Occurred')}</DescriptionList.Term>
+      <DescriptionList.Details>
         {dateCreated ? (
           <AutoSelectText>
             {dateCreated.format('ll')} {dateCreated.format(format)}
@@ -50,17 +53,17 @@ export function EventCreatedTooltip({event}: Props) {
         ) : (
           <NotApplicableText>{t('n/a')}</NotApplicableText>
         )}
-      </dd>
+      </DescriptionList.Details>
       {dateReceived && (
         <Fragment>
-          <dt>{t('Received')}</dt>
-          <dd>
+          <DescriptionList.Term>{t('Received')}</DescriptionList.Term>
+          <DescriptionList.Details>
             <AutoSelectText>
               {dateReceived.format('ll')} {dateReceived.format(format)}
             </AutoSelectText>
-          </dd>
-          <dt>{t('Latency')}</dt>
-          <dd>
+          </DescriptionList.Details>
+          <DescriptionList.Term>{t('Latency')}</DescriptionList.Term>
+          <DescriptionList.Details>
             <AutoSelectText>
               {dateCreated ? (
                 formatDateDelta(dateCreated, dateReceived)
@@ -68,20 +71,12 @@ export function EventCreatedTooltip({event}: Props) {
                 <NotApplicableText>{t('n/a')}</NotApplicableText>
               )}
             </AutoSelectText>
-          </dd>
+          </DescriptionList.Details>
         </Fragment>
       )}
-    </DescriptionList>
+    </Tooltip.Grid>
   );
 }
-
-const DescriptionList = styled('dl')`
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  gap: ${p => p.theme.space.sm} ${p => p.theme.space.md};
-  text-align: left;
-  margin: 0;
-`;
 
 const NotApplicableText = styled('span')`
   color: ${p => p.theme.tokens.content.secondary};

@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {DescriptionList} from '@sentry/scraps/descriptionList';
+
 import {useSearchQueryBuilderConfig} from 'sentry/components/searchQueryBuilder/context';
 import {getKeyLabel} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/utils';
 import {t} from 'sentry/locale';
@@ -57,11 +59,11 @@ export function KeyDescription({size = 'sm', tag}: KeyDescriptionProps) {
       </DescriptionKeyLabel>
       {description ? <p>{description}</p> : null}
       <Separator />
-      <DescriptionList>
-        <Term>{t('Type')}</Term>
-        <Details>
+      <DescriptionList gap="xs">
+        <DescriptionList.Term>{t('Type')}</DescriptionList.Term>
+        <DescriptionList.Details>
           <ValueType fieldDefinition={fieldDefinition} fieldKind={tag.kind} />
-        </Details>
+        </DescriptionList.Details>
       </DescriptionList>
     </DescriptionWrapper>
   );
@@ -93,17 +95,3 @@ const Separator = styled('hr')`
   border-top: 1px solid ${p => p.theme.tokens.border.primary};
   margin: ${p => p.theme.space.md} 0;
 `;
-
-const DescriptionList = styled('dl')`
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  gap: ${p => p.theme.space.xs};
-  margin: 0;
-`;
-
-const Term = styled('dt')`
-  color: ${p => p.theme.tokens.content.secondary};
-  font-weight: ${p => p.theme.font.weight.sans.regular};
-`;
-
-const Details = styled('dd')``;

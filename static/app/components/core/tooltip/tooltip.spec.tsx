@@ -301,6 +301,24 @@ describe('Tooltip', () => {
       expect(document.querySelector('[data-tooltip-section]')).not.toBeInTheDocument();
     });
 
+    it('re-applies the overlay padding on a dl section it pulled out', async () => {
+      // The seven description list tooltips depend on this netting out to the
+      // padding they had before they became sections: the overlay pulls the
+      // section to its edges, and the section insets its own content by the
+      // same amount.
+      await showTooltip(
+        <Tooltip.Grid dl>
+          <Tooltip.Row leadingItems="Occurred">Jan 1, 2026</Tooltip.Row>
+        </Tooltip.Grid>
+      );
+
+      const section = document.querySelector('[data-tooltip-section]');
+      expect(section).toBeInTheDocument();
+      expect(getEmotionRules(section as HTMLElement).join('')).toContain(
+        `padding: ${theme.space.md} ${theme.space.lg};`
+      );
+    });
+
     it('reads a grid from the left, undoing the overlay centring', async () => {
       // The overlay centres text for the sentence case. A card is a set of
       // rows, so the grid resets it and cells only state an alignment when
@@ -483,6 +501,72 @@ describe('Tooltip', () => {
       expect(screen.getByText('row cell').parentElement?.className).toBe(
         referenceClassName
       );
+    });
+
+    it('renders rows as a term and its details when the grid is a dl', async () => {
+      render(
+        <Tooltip
+          title={
+            <Tooltip.Grid dl columns="max-content 1fr max-content">
+              <Tooltip.Row leadingItems="UTC" trailingItems="11:42 AM">
+                Sep 23, 2026
+              </Tooltip.Row>
+            </Tooltip.Grid>
+          }
+        >
+          <button>My Button</button>
+        </Tooltip>
+      );
+
+      await userEvent.hover(screen.getByText('My Button'));
+
+      const definitions = await screen.findAllByRole('definition');
+      expect(screen.getByRole('term')).toHaveTextContent('UTC');
+      expect(definitions[0]).toHaveTextContent('Sep 23, 2026');
+      expect(definitions[1]).toHaveTextContent('11:42 AM');
+    });
+
+    it('puts a handler on the section itself rather than a wrapper', async () => {
+      // A wrapper box between the overlay and the section would stop the
+      // overlay's direct-child rule matching, so the section would re-apply
+      // padding the overlay never cancelled.
+      const onPointerUp = jest.fn();
+      render(
+        <Tooltip
+          title={
+            <Tooltip.Grid dl onPointerUp={onPointerUp}>
+              <Tooltip.Row leadingItems="Occurred">Jan 1, 2026</Tooltip.Row>
+            </Tooltip.Grid>
+          }
+        >
+          <button>My Button</button>
+        </Tooltip>
+      );
+
+      await userEvent.hover(screen.getByText('My Button'));
+
+      const section = await screen.findByRole('term');
+      const overlay = document.querySelector('[data-tooltip]');
+      expect(section.closest('[data-tooltip-section]')?.parentElement).toBe(overlay);
+    });
+
+    it('renders rows without description list roles when the grid is not a dl', async () => {
+      render(
+        <Tooltip
+          title={
+            <Tooltip.Grid>
+              <Tooltip.Row>plain cell</Tooltip.Row>
+            </Tooltip.Grid>
+          }
+        >
+          <button>My Button</button>
+        </Tooltip>
+      );
+
+      await userEvent.hover(screen.getByText('My Button'));
+
+      expect(await screen.findByText('plain cell')).toBeInTheDocument();
+      expect(screen.queryByRole('term')).not.toBeInTheDocument();
     });
   });
 });

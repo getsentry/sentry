@@ -4,10 +4,10 @@ import countBy from 'lodash/countBy';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Badge} from '@sentry/scraps/badge';
+import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {CountTooltipContent} from 'sentry/components/replays/countTooltipContent';
 import {t} from 'sentry/locale';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import type {RawReplayError} from 'sentry/utils/replays/types';
@@ -61,14 +61,14 @@ export function ErrorCounts({replayErrors}: Props) {
           <Tooltip
             key={projectSlug}
             title={
-              <ColumnTooltipContent>
-                <dt>{projectSlug}</dt>
-                <dd>
+              <Tooltip.Grid dl gap="md 2xl" nowrap terms="strong">
+                <DescriptionList.Term>{projectSlug}</DescriptionList.Term>
+                <DescriptionList.Details>
                   {Object.entries(counts)
                     .map(([level, count]) => `${level}: ${count}`)
                     .join(', ')}
-                </dd>
-              </ColumnTooltipContent>
+                </DescriptionList.Details>
+              </Tooltip.Grid>
             }
           >
             <StyledLink to={getLink({projectSlug})}>
@@ -93,18 +93,18 @@ export function ErrorCounts({replayErrors}: Props) {
   return (
     <Tooltip
       title={
-        <ColumnTooltipContent>
+        <Tooltip.Grid dl gap="md 2xl" nowrap terms="strong">
           {Object.entries(countsPerProject).map(([projectSlug, counts]) => (
             <Fragment key={projectSlug}>
-              <dt>{projectSlug}</dt>
-              <dd>
+              <DescriptionList.Term>{projectSlug}</DescriptionList.Term>
+              <DescriptionList.Details>
                 {Object.entries(counts)
                   .map(([level, count]) => `${level}: ${count}`)
                   .join(', ')}
-              </dd>
+              </DescriptionList.Details>
             </Fragment>
           ))}
-        </ColumnTooltipContent>
+        </Tooltip.Grid>
       }
     >
       <StyledLink to={getLink({})}>
@@ -138,10 +138,6 @@ const Count = styled('span')`
 
 const ErrorCount = styled(Count)`
   color: ${p => p.theme.tokens.content.secondary};
-`;
-
-const ColumnTooltipContent = styled(CountTooltipContent)`
-  grid-template-columns: max-content max-content;
 `;
 
 const StyledLink = styled(Link)`

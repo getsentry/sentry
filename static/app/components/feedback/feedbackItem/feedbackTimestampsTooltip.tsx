@@ -2,6 +2,9 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import {DescriptionList} from '@sentry/scraps/descriptionList';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {AutoSelectText} from 'sentry/components/autoSelectText';
 import {t} from 'sentry/locale';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
@@ -22,9 +25,9 @@ export function FeedbackTimestampsTooltip({feedbackItem}: Props) {
   const dateResolved = resolvedActivity ? moment(resolvedActivity.dateCreated) : null;
 
   return (
-    <DescriptionList>
-      <dt>{t('Created')}</dt>
-      <dd>
+    <Tooltip.Grid dl nowrap terms="strong">
+      <DescriptionList.Term>{t('Created')}</DescriptionList.Term>
+      <DescriptionList.Details>
         {dateFirstSeen ? (
           <AutoSelectText>
             {dateFirstSeen.format('ll')} {dateFirstSeen.format(format)}
@@ -32,29 +35,20 @@ export function FeedbackTimestampsTooltip({feedbackItem}: Props) {
         ) : (
           <NotApplicableText>{t('n/a')}</NotApplicableText>
         )}
-      </dd>
+      </DescriptionList.Details>
       {dateResolved && (
         <Fragment>
-          <dt>{t('Resolved')}</dt>
-          <dd>
+          <DescriptionList.Term>{t('Resolved')}</DescriptionList.Term>
+          <DescriptionList.Details>
             <AutoSelectText>
               {dateResolved.format('ll')} {dateResolved.format(format)}
             </AutoSelectText>
-          </dd>
+          </DescriptionList.Details>
         </Fragment>
       )}
-    </DescriptionList>
+    </Tooltip.Grid>
   );
 }
-
-const DescriptionList = styled('dl')`
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  gap: ${p => p.theme.space.sm} ${p => p.theme.space.md};
-  text-align: left;
-  margin: 0;
-  white-space: nowrap;
-`;
 
 const NotApplicableText = styled('span')`
   color: ${p => p.theme.tokens.content.secondary};
