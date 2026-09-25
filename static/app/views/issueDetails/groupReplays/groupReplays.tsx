@@ -5,6 +5,7 @@ import type {Location, Query} from 'history';
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
+import {LoadingError} from 'sentry/components/loadingError';
 import {Placeholder} from 'sentry/components/placeholder';
 import {
   SelectedReplayIndexProvider,
@@ -33,9 +34,11 @@ import {t, tn} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {EventView} from 'sentry/utils/discover/eventView';
+import {isRetryableRequestError} from 'sentry/utils/queryClient';
 import {useReplayCountForIssues} from 'sentry/utils/replayCount/useReplayCountForIssues';
 import {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import {useReplayList} from 'sentry/utils/replays/hooks/useReplayList';
+import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
 import {useCleanQueryParamsOnRouteLeave} from 'sentry/utils/useCleanQueryParamsOnRouteLeave';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -89,7 +92,7 @@ function GroupReplaysContent({group}: Props) {
   const organization = useOrganization();
   const location = useLocation();
 
-  const {eventView, fetchError, isFetching} = useReplaysFromIssue({
+  const {eventView, fetchError, isFetching, refetch} = useReplaysFromIssue({
     group,
     location,
     organization,
@@ -112,6 +115,18 @@ function GroupReplaysContent({group}: Props) {
   const {getReplayCountForIssue} = useReplayCountForIssues({
     statsPeriod: '90d',
   });
+
+  if (fetchError) {
+    return (
+      <StyledLayoutPage flex={1} padding="2xl 3xl">
+        <ReplayFilterMessage />
+        <LoadingError
+          message={getRequestErrorUserMessage(fetchError)}
+          onRetry={isRetryableRequestError(fetchError) ? () => refetch() : undefined}
+        />
+      </StyledLayoutPage>
+    );
+  }
 
   if (!eventView) {
     // Shown on load and no replay data available
