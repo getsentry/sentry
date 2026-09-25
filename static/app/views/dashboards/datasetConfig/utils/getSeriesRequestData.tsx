@@ -3,6 +3,8 @@ import trimStart from 'lodash/trimStart';
 import type {EventsStatsOptions} from 'sentry/actionCreators/events';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
+import {toArray} from 'sentry/utils/array/toArray';
+import {getUtcDateString} from 'sentry/utils/dates';
 import {
   getAggregateAlias,
   getEquationAliasIndex,
@@ -143,4 +145,55 @@ export function getSeriesRequestData(
   }
 
   return requestData;
+}
+
+// Converts `getSeriesRequestData` output, which is shaped for
+// `/events-stats/` into `/events-timeseries/` query params
+export function getTimeseriesQueryParams(
+  requestData: EventsStatsOptions<true>,
+  {
+    includeMeasuredIngestionDelayMetadata,
+  }: {includeMeasuredIngestionDelayMetadata?: boolean} = {}
+) {
+  const {
+    interval,
+    start,
+    end,
+    period,
+    project,
+    environment,
+    query,
+    yAxis,
+    field,
+    orderby,
+    topEvents,
+    excludeOther,
+    referrer,
+    dataset,
+    sampling,
+    queryExtras,
+  } = requestData;
+
+  return {
+    interval,
+    ...(period ? {statsPeriod: period} : {}),
+    ...(start ? {start: getUtcDateString(start)} : {}),
+    ...(end ? {end: getUtcDateString(end)} : {}),
+    project,
+    environment,
+    query,
+    yAxis: yAxis ? [...new Set(toArray(yAxis))] : undefined,
+    groupBy: field,
+    field,
+    sort: orderby || undefined,
+    topEvents,
+    excludeOther: excludeOther ? '1' : undefined,
+    referrer,
+    dataset,
+    sampling,
+    includeMeasuredIngestionDelayMetadata: includeMeasuredIngestionDelayMetadata
+      ? '1'
+      : undefined,
+    ...queryExtras,
+  };
 }
