@@ -170,7 +170,7 @@ function useTrackAnalytics({
       trackAiQueryOutcome({
         dataset: 'spans',
         mode: Mode.AGGREGATE,
-        orgSlug: organization.slug,
+        organization,
         referrer: 'spans',
         resultCount: aggregatesTableResult.result.data?.length ?? 0,
         runId: aiQueryRunId,
@@ -306,7 +306,7 @@ function useTrackAnalytics({
       trackAiQueryOutcome({
         dataset: 'spans',
         mode: Mode.SAMPLES,
-        orgSlug: organization.slug,
+        organization,
         referrer: 'spans',
         resultCount: spansTableResult.result.data?.length ?? 0,
         runId: aiQueryRunId,
@@ -501,7 +501,7 @@ function useTrackAnalytics({
       trackAiQueryOutcome({
         dataset: 'spans',
         mode: Mode.SAMPLES,
-        orgSlug: organization.slug,
+        organization,
         referrer: 'traces',
         resultCount: tracesTableResult.result.data?.json?.data?.length ?? 0,
         runId: aiQueryRunId,
@@ -767,7 +767,7 @@ export function useLogAnalytics({
       trackAiQueryOutcome({
         dataset: 'logs',
         mode,
-        orgSlug: organization.slug,
+        organization,
         referrer: 'logs',
         resultCount: resultLengthBox.current,
         runId: aiQueryRunId,
@@ -859,7 +859,7 @@ export function useLogAnalytics({
       trackAiQueryOutcome({
         dataset: 'logs',
         mode,
-        orgSlug: organization.slug,
+        organization,
         referrer: 'logs',
         resultCount: aggregatesResultLengthBox.current,
         runId: aiQueryRunId,
@@ -1041,7 +1041,7 @@ export function useMetricsPanelAnalytics({
       trackAiQueryOutcome({
         dataset: 'tracemetrics',
         mode,
-        orgSlug: organization.slug,
+        organization,
         referrer: 'tracemetrics',
         resultCount: resultLengthBox.current,
         runId: aiQueryRunId,
@@ -1099,7 +1099,7 @@ export function useMetricsPanelAnalytics({
       trackAiQueryOutcome({
         dataset: 'tracemetrics',
         mode,
-        orgSlug: organization.slug,
+        organization,
         referrer: 'tracemetrics',
         resultCount: aggregatesResultLengthBox.current,
         runId: aiQueryRunId,

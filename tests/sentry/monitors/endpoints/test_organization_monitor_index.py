@@ -730,6 +730,147 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
         resp = self.get_response(self.organization.slug, **data_member)
         assert resp.status_code == 403
 
+    def test_create_denied_without_projects(self) -> None:
+        self.organization.update_option("sentry:alerts_member_write", False)
+        member = self.create_user()
+        self.create_member(user=member, organization=self.organization, role="member", teams=[])
+        self.login_as(member)
+
+        self.get_error_response(
+            self.organization.slug,
+            project=self.project.slug,
+            name="No Project Access",
+            type="cron_job",
+            config={"schedule_type": "crontab", "schedule": "@daily"},
+            status_code=403,
+        )
+        assert not Monitor.objects.filter(organization_id=self.organization.id).exists()
+
+    def test_config_validation_precedes_write_permission(self) -> None:
+        self.organization.update_option("sentry:alerts_member_write", False)
+        member = self.create_user()
+        self.create_member(
+            user=member, organization=self.organization, role="member", teams=[self.team]
+        )
+        self.login_as(member)
+
+        response = self.get_error_response(
+            self.organization.slug,
+            project=self.project.slug,
+            name="Invalid Schedule",
+            config={"schedule_type": "crontab", "schedule": "invalid schedule"},
+            status_code=400,
+        )
+        assert response.data["config"]["schedule"] == ["Schedule is invalid"]
+        assert not Monitor.objects.filter(organization_id=self.organization.id).exists()
+
+    @override_settings(MAX_MONITORS_PER_ORG=0)
+    def test_monitor_limit_validation_precedes_write_permission(self) -> None:
+        self.organization.update_option("sentry:alerts_member_write", False)
+        member = self.create_user()
+        self.create_member(
+            user=member, organization=self.organization, role="member", teams=[self.team]
+        )
+        self.login_as(member)
+
+        response = self.get_error_response(
+            self.organization.slug,
+            project=self.project.slug,
+            name="Over Monitor Limit",
+            config={"schedule_type": "crontab", "schedule": "@daily"},
+            status_code=400,
+        )
+        assert response.data["nonFieldErrors"] == ["You may not exceed 0 monitors per organization"]
+        assert not Monitor.objects.filter(organization_id=self.organization.id).exists()
+
+    def test_create_requires_project(self) -> None:
+        response = self.get_error_response(
+            self.organization.slug,
+            name="Missing Project",
+            config={"schedule_type": "crontab", "schedule": "@daily"},
+            status_code=400,
+        )
+        assert response.data["project"] == ["This field is required."]
+        assert not Monitor.objects.filter(organization_id=self.organization.id).exists()
+
+    def test_team_admin_can_create_with_mixed_project_access(self) -> None:
+        self.organization.update_option("sentry:alerts_member_write", False)
+        admin_team = self.create_team(organization=self.organization)
+        member_team = self.create_team(organization=self.organization)
+        admin_project = self.create_project(organization=self.organization, teams=[admin_team])
+        self.create_project(organization=self.organization, teams=[member_team])
+        member = self.create_user()
+        self.create_member(
+            user=member,
+            organization=self.organization,
+            role="member",
+            team_roles=[(admin_team, "admin"), (member_team, "contributor")],
+        )
+        self.login_as(member)
+
+        response = self.get_success_response(
+            self.organization.slug,
+            project=admin_project.slug,
+            name="Mixed Project Access",
+            type="cron_job",
+            config={"schedule_type": "crontab", "schedule": "@daily"},
+            status_code=201,
+        )
+        monitor = Monitor.objects.get(slug=response.data["slug"])
+        assert monitor.project_id == admin_project.id
+
+    def test_team_admin_cannot_authorize_creation_with_query_project(self) -> None:
+        self.organization.update_option("sentry:alerts_member_write", False)
+        admin_team = self.create_team(organization=self.organization)
+        member_team = self.create_team(organization=self.organization)
+        admin_project = self.create_project(organization=self.organization, teams=[admin_team])
+        member_project = self.create_project(organization=self.organization, teams=[member_team])
+        member = self.create_user()
+        self.create_member(
+            user=member,
+            organization=self.organization,
+            role="member",
+            team_roles=[(admin_team, "admin"), (member_team, "contributor")],
+        )
+        self.login_as(member)
+
+        self.get_error_response(
+            self.organization.slug,
+            qs_params={"project": admin_project.id},
+            project=member_project.id,
+            name="Read Only Project",
+            type="cron_job",
+            config={"schedule_type": "crontab", "schedule": "@daily"},
+            status_code=403,
+        )
+        assert not Monitor.objects.filter(organization_id=self.organization.id).exists()
+
+    def test_team_admin_cannot_create_in_readable_nonmember_project(self) -> None:
+        self.organization.update_option("sentry:alerts_member_write", False)
+        self.organization.flags.allow_joinleave = True
+        self.organization.save()
+        admin_team = self.create_team(organization=self.organization)
+        self.create_project(organization=self.organization, teams=[admin_team])
+        other_project = self.create_project(organization=self.organization)
+        member = self.create_user()
+        self.create_member(
+            user=member,
+            organization=self.organization,
+            role="member",
+            team_roles=[(admin_team, "admin")],
+        )
+        self.login_as(member)
+
+        self.get_error_response(
+            self.organization.slug,
+            project=other_project.slug,
+            name="Nonmember Project",
+            type="cron_job",
+            config={"schedule_type": "crontab", "schedule": "@daily"},
+            status_code=403,
+        )
+        assert not Monitor.objects.filter(organization_id=self.organization.id).exists()
+
     def test_owner_team_not_member_denied(self) -> None:
         """
         Test that members cannot assign a team they are not a member of as owner.

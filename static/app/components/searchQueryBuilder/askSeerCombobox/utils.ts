@@ -14,10 +14,12 @@ import {
   wildcardOperators,
   WildcardOperators,
 } from 'sentry/components/searchSyntax/parser';
+import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {isEquation, stripEquationPrefix} from 'sentry/utils/discover/fields';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {getConversationsUrlForExternalUse} from 'sentry/views/explore/conversations/utils/urlParams';
 import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
 import type {CrossEvent} from 'sentry/views/explore/queryParams/crossEvent';
 
@@ -37,7 +39,7 @@ function extractErrorReason(err: Error): string {
 export function trackAiQueryOutcome({
   dataset,
   mode,
-  orgSlug,
+  organization,
   referrer,
   resultCount,
   runId,
@@ -45,7 +47,7 @@ export function trackAiQueryOutcome({
 }: {
   dataset: 'spans' | 'errors' | 'logs' | 'tracemetrics' | 'issues';
   mode: Mode | 'samples' | 'aggregate';
-  orgSlug: string;
+  organization: Organization;
   referrer: string;
   resultCount: number;
   runId: number | string;
@@ -62,14 +64,24 @@ export function trackAiQueryOutcome({
       : error instanceof Error
         ? extractErrorReason(error)
         : undefined;
+
+  const conversationUrl = getConversationsUrlForExternalUse('sentry', runId);
+  const codeMode = organization.features.includes('seer-assisted-query-codemode');
+  const crossEventEnabled = organization.features.includes(
+    'seer-assisted-query-cross-event-explorer'
+  );
+
   const attributes = {
     dataset,
     mode: mode.toString(),
-    org_slug: orgSlug,
+    org_slug: organization.slug,
     referrer,
     run_id: runId,
+    conversation_url: conversationUrl,
     outcome,
     error_reason: errorReason,
+    code_mode: codeMode,
+    cross_event_enabled: crossEventEnabled,
   };
 
   Sentry.logger.info('assisted_query.outcome', {

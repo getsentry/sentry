@@ -9,6 +9,7 @@ import {Heading} from '@sentry/scraps/text';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {ResultGrid} from 'sentry/components/resultGrid';
 import {IconChevron} from 'sentry/icons';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 
 import {openAdminConfirmModal} from 'admin/components/adminConfirmationModal';
@@ -55,18 +56,19 @@ export function CustomerIntegrationDebugDetails({orgId}: Props) {
       priority: 'danger',
       modalSpecificContent:
         "Reconcile this organization's integrations with its current plan. Supported integrations will be enabled and their grace periods cleared.",
-      onConfirm: data => {
-        api.request(`/_admin/customers/${orgId}/integrations/reset/`, {
-          method: 'POST',
-          data,
-          success: () => {
-            addSuccessMessage('Integrations reset successfully.');
-            setRefreshKey(value => value + 1);
-          },
-          error: error => {
-            addErrorMessage(error.responseText || 'Failed to reset integrations.');
-          },
-        });
+      onConfirm: async data => {
+        try {
+          await api.requestPromise(`/_admin/customers/${orgId}/integrations/reset/`, {
+            method: 'POST',
+            data,
+          });
+          addSuccessMessage('Integrations reset successfully.');
+          setRefreshKey(value => value + 1);
+        } catch (error) {
+          const responseText =
+            error instanceof RequestError ? error.responseText : undefined;
+          addErrorMessage(responseText || 'Failed to reset integrations.');
+        }
       },
     });
   };
