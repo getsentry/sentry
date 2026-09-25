@@ -11,6 +11,7 @@ from sentry.integrations.cursor_origin.code_review import review_event
 from sentry.integrations.cursor_origin.pull_request import PullRequestLifecycleHandler
 from sentry.integrations.cursor_origin.webhook_types import PullRequestEvent
 from sentry.integrations.services.integration import integration_service
+from sentry.models.organization import Organization
 from sentry.models.organizationcontributors import OrganizationContributors
 from sentry.models.repositorysettings import CodeReviewTrigger
 from sentry.testutils.cases import TestCase
@@ -198,6 +199,16 @@ class CodeReviewFromWebhookTest(TestCase):
         contributor = OrganizationContributors.objects.get(organization_id=self.organization.id)
         assert contributor.alias == "sa_01example[bot]"
         assert contributor.is_bot
+
+    @with_feature(FEATURES)
+    def test_a_deleted_organization_is_skipped(self) -> None:
+        with patch(
+            "sentry.integrations.cursor_origin.code_review.Organization.objects.get_from_cache",
+            side_effect=Organization.DoesNotExist,
+        ):
+            self._handle("pull_request.created")
+
+        self.mock_seer.assert_not_called()
 
     @with_feature(FEATURES - {"organizations:seer-cursor-origin-support"})
     def test_nothing_happens_without_the_origin_flag(self) -> None:

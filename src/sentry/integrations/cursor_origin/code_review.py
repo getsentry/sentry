@@ -52,7 +52,10 @@ def handle_code_review(
     if review is None:
         return
 
-    organization = Organization.objects.get_from_cache(id=repo.organization_id)
+    try:
+        organization = Organization.objects.get_from_cache(id=repo.organization_id)
+    except Organization.DoesNotExist:
+        return
     if not features.has("organizations:seer-cursor-origin-support", organization):
         return
 
