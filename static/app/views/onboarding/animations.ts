@@ -27,6 +27,8 @@ export const ONBOARDING_STAGGER: OnboardingMotion = {
 };
 
 /**
+ * @public Consumed by the SCM onboarding connect step (#125255).
+ *
  * Put on a list whose items should enter one after another. The list itself
  * does not move, so an item's own entry is the only thing on screen.
  */
