@@ -171,19 +171,13 @@ function DashboardRowActions({
                 onConfirm: () => onDuplicate(dashboard, 'table'),
               }),
           },
-          ...(hasEditAccess
+          ...(hasEditAccess && !isPrebuiltDashboard
             ? [
                 {
                   key: 'delete',
                   label: t('Delete'),
                   leadingItems: <IconDelete />,
                   priority: 'danger' as const,
-                  disabled: isPrebuiltDashboard,
-                  tooltip: isPrebuiltDashboard
-                    ? tct('[label] dashboards cannot be deleted', {
-                        label: PREBUILT_DASHBOARD_LABEL,
-                      })
-                    : undefined,
                   onAction: () =>
                     openConfirmModal({
                       message: tct(

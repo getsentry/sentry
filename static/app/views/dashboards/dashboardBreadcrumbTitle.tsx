@@ -33,11 +33,7 @@ import {useOpenEditAccessModal} from 'sentry/views/dashboards/editAccessModal';
 import {exportDashboard} from 'sentry/views/dashboards/exportDashboard';
 import {useDuplicateDashboard} from 'sentry/views/dashboards/hooks/useDuplicateDashboard';
 import {useOpenRenameDashboardModal} from 'sentry/views/dashboards/renameDashboardModal';
-import {
-  PREBUILT_DASHBOARD_LABEL,
-  type DashboardDetails,
-  type DashboardPermissions,
-} from 'sentry/views/dashboards/types';
+import type {DashboardDetails, DashboardPermissions} from 'sentry/views/dashboards/types';
 import {checkUserHasEditAccess} from 'sentry/views/dashboards/utils/checkUserHasEditAccess';
 
 /**
@@ -169,10 +165,6 @@ function DashboardTitle({
     label: t('Delete'),
     leadingItems: <IconDelete />,
     priority: 'danger',
-    disabled: isPrebuiltDashboard,
-    tooltip: isPrebuiltDashboard
-      ? tct('[label] dashboards cannot be deleted', {label: PREBUILT_DASHBOARD_LABEL})
-      : undefined,
     onAction: () => {
       openConfirmModal({
         message: tct('Are you sure you want to delete the [title] dashboard?', {
@@ -282,14 +274,11 @@ export function DashboardBreadcrumbTitle({
   const isPersisted = Boolean(dashboard.id);
   // Deleting used to sit behind the Edit button, which `controls.tsx` already
   // gates on edit access. Surfacing it here has to keep that gate, or moving it
-  // would hand the action to people who could not reach it before.
-  //
-  // Otherwise this matches the manage table: prebuilt dashboards keep the entry
-  // but disabled, since the endpoint refuses to delete them. The only case the
-  // table never meets is a dashboard that has yet to be saved, which has
-  // nothing to delete — a prebuilt one always has a record behind it.
+  // would hand the action to people who could not reach it before. Prebuilt
+  // dashboards drop out for the same reason they cannot be renamed: the
+  // endpoint refuses, so offering it at all would only be something to explain.
   const canDelete =
-    hasEditAccess && defined(onDelete) && (isPersisted || isPrebuiltDashboard);
+    !isPrebuiltDashboard && isPersisted && hasEditAccess && defined(onDelete);
   const canViewRevisions =
     Boolean(dashboard.id) &&
     !isPrebuiltDashboard &&

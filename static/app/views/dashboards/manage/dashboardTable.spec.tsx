@@ -14,6 +14,7 @@ import {
 
 import DashboardTable from 'sentry/views/dashboards/manage/dashboardTable';
 import {DisplayType, type DashboardListItem} from 'sentry/views/dashboards/types';
+import {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 
 async function openRowActions(rowIndex: number) {
   await userEvent.click(screen.getAllByTestId('dashboard-actions')[rowIndex]!);
@@ -309,6 +310,32 @@ describe('Dashboards - DashboardTable', () => {
       await screen.findByRole('heading', {name: 'View Permissions'})
     ).toBeInTheDocument();
     expect(screen.getByRole('checkbox', {name: 'Select All'})).toBeChecked();
+  });
+
+  it('offers neither rename nor delete on a prebuilt dashboard', async () => {
+    render(
+      <DashboardTable
+        onDashboardsChange={jest.fn()}
+        organization={organization}
+        dashboards={[
+          DashboardListItemFixture({
+            id: '4',
+            title: 'Web Vitals',
+            prebuiltId: PrebuiltDashboardId.WEB_VITALS,
+          }),
+        ]}
+        location={location}
+        isOnlyPrebuilt
+      />
+    );
+
+    await openRowActions(0);
+
+    // The endpoint refuses both on a prebuilt dashboard, so neither is offered
+    // rather than one being hidden and the other shown but disabled.
+    expect(await screen.findByRole('menuitemradio', {name: 'Duplicate'})).toBeVisible();
+    expect(screen.queryByRole('menuitemradio', {name: 'Rename'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('menuitemradio', {name: 'Delete'})).not.toBeInTheDocument();
   });
 
   it('hides the actions that write to a dashboard without edit access', async () => {

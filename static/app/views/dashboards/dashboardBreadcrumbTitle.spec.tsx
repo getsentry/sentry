@@ -469,30 +469,16 @@ describe('DashboardBreadcrumbTitle delete', () => {
     expect(onDelete).not.toHaveBeenCalled();
   });
 
-  it('offers delete on a prebuilt dashboard but disabled', async () => {
+  it('offers neither rename nor delete on a prebuilt dashboard', async () => {
     renderTitle({dashboard: {prebuiltId: PrebuiltDashboardId.WEB_VITALS}});
 
     await openActionsMenu();
 
-    expect(await screen.findByRole('menuitemradio', {name: 'Delete'})).toHaveAttribute(
-      'aria-disabled',
-      'true'
-    );
-  });
-
-  it('still offers delete on a prebuilt dashboard with no id yet', async () => {
-    renderTitle({
-      dashboard: {id: '', prebuiltId: PrebuiltDashboardId.WEB_VITALS},
-    });
-
-    await openActionsMenu();
-
-    // The id-less guard exists for a dashboard that was never saved. A prebuilt
-    // one always has a record behind it, so it keeps the entry either way.
-    expect(await screen.findByRole('menuitemradio', {name: 'Delete'})).toHaveAttribute(
-      'aria-disabled',
-      'true'
-    );
+    // The endpoint refuses both on a prebuilt dashboard, so neither is offered
+    // rather than one being hidden and the other shown but disabled.
+    expect(await screen.findByRole('menuitemradio', {name: 'Duplicate'})).toBeVisible();
+    expect(screen.queryByRole('menuitemradio', {name: 'Rename'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('menuitemradio', {name: 'Delete'})).not.toBeInTheDocument();
   });
 
   it('does not offer delete on a dashboard that has never been saved', async () => {
