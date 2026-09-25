@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
 
 from django.conf import settings
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -13,7 +13,18 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.examples.search_agent_examples import SearchAgentExamples
+from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.response_types import DetailResponse
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
+from sentry.seer.endpoints.search_agent_types import SearchAgentStateResponse
 from sentry.seer.endpoints.trace_explorer_ai_setup import OrganizationTraceExplorerAIPermission
 from sentry.seer.endpoints.utils import resolve_seer_run
 from sentry.seer.models import SeerApiError
@@ -29,7 +40,7 @@ logger = logging.getLogger(__name__)
 
 def fetch_search_agent_state(
     run_id: int, organization_id: int, viewer_context: SeerViewerContext | None = None
-) -> dict[str, Any]:
+) -> SearchAgentStateResponse:
     """
     Fetch the current state of a search agent run from Seer.
 
@@ -43,6 +54,7 @@ def fetch_search_agent_state(
 
 
 @cell_silo_endpoint
+@extend_schema(tags=["Seer Agent"])
 class SearchAgentStateEndpoint(OrganizationEndpoint):
     """
     Endpoint to poll for search agent state by run_id.
@@ -56,31 +68,51 @@ class SearchAgentStateEndpoint(OrganizationEndpoint):
     """
 
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
     }
     owner = ApiOwner.ML_AI
 
     permission_classes = (OrganizationTraceExplorerAIPermission,)
 
-    def get(self, request: Request, organization: Organization, run_id: str) -> Response:
+    @extend_schema(
+        operation_id="getSearchAgentRun",
+        summary="Retrieve a Search Agent Run",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            OpenApiParameter(
+                name="run_id",
+                location=OpenApiParameter.PATH,
+                required=True,
+                type=str,
+                description="The `sentry_run_id` returned when the run was started. The numeric `run_id` is also accepted.",
+            ),
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "SearchAgentStateResponse", SearchAgentStateResponse
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=SearchAgentExamples.STATE_RESPONSE,
+    )
+    def get(
+        self, request: Request, organization: Organization, run_id: str
+    ) -> Response[SearchAgentStateResponse] | Response[DetailResponse]:
         """
-        Get the current state of a search agent run.
+        Retrieve the current state of a search agent run started with
+        [Start a Search Agent Run](/api/seer-agent/start-a-search-agent-run/).
 
-        Args:
-            run_id: The run ID returned from /search-agent/start/
+        Poll until `session.status` is `completed` or `error`:
 
-        Returns:
-            {
-                "session": {
-                    "run_id": int,
-                    "status": "processing" | "completed" | "error",
-                    "current_step": {"key": str} | null,
-                    "completed_steps": [{"key": str}, ...],
-                    "updated_at": str,
-                    "final_response": {...} | null,  // Present when completed
-                    "unsupported_reason": str | null  // Present on error
-                }
-            }
+        - `processing`: the agent is still working. `current_step` and `completed_steps` show its progress.
+        - `completed`: `session.final_response` holds the generated queries, in the same shape as
+          [Translate a Natural Language Query](/api/seer-agent/translate-a-natural-language-query/).
+        - `error`: the query could not be translated. `session.unsupported_reason` explains why when available.
+
+        While the run is still being created, `session` only contains `status`.
         """
         has_feature = features.has(
             "organizations:gen-ai-search-agent-translate", organization, actor=request.user
@@ -93,8 +125,9 @@ class SearchAgentStateEndpoint(OrganizationEndpoint):
 
         has_seer_access, detail = has_seer_access_with_detail(organization, actor=request.user)
         if not has_seer_access:
+            # detail is always set when access is denied
             return Response(
-                {"detail": detail},
+                DetailResponse(detail=detail or ""),
                 status=status.HTTP_403_FORBIDDEN,
             )
 

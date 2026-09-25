@@ -166,6 +166,14 @@ class SearchAgentStartEndpointTest(APITestCase):
         mock_send_request.assert_not_called()
 
     @patch("sentry.seer.endpoints.search_agent_start.send_search_agent_start_request")
+    def test_invalid_strategy(self, mock_send_request: MagicMock) -> None:
+        response = self._post(strategy="traces")
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "strategy" in response.data
+        mock_send_request.assert_not_called()
+
+    @patch("sentry.seer.endpoints.search_agent_start.send_search_agent_start_request")
     @patch("django.conf.settings.SEER_AUTOFIX_URL", "https://seer.example.com")
     def test_start_without_feature_flags(self, mock_send_request: MagicMock) -> None:
         """Options are False when the org has none of the flags."""

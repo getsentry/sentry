@@ -4,6 +4,7 @@ import logging
 from typing import Any
 
 from django.conf import settings
+from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -13,8 +14,27 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.examples.search_agent_examples import SearchAgentExamples
+from sentry.apidocs.omissions import sentry_schema_serializer
+from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.response_types import (
+    DetailResponse,
+    ValidationErrorResponse,
+    as_validation_errors,
+)
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
 from sentry.seer.agent.client_utils import collect_user_org_context
+from sentry.seer.endpoints.search_agent_types import (
+    SEARCH_AGENT_STRATEGIES,
+    SearchAgentTranslateResponse,
+)
 from sentry.seer.endpoints.trace_explorer_ai_setup import OrganizationTraceExplorerAIPermission
 from sentry.seer.models import SeerApiError
 from sentry.seer.seer_setup import has_seer_access_with_detail
@@ -27,22 +47,28 @@ from sentry.seer.signed_seer_api import (
 logger = logging.getLogger(__name__)
 
 
+@sentry_schema_serializer(
+    omit_from_public_schema={
+        "options": "Internal model and UI tuning knobs used by the Sentry frontend.",
+    }
+)
 class SearchAgentTranslateSerializer(serializers.Serializer):
     project_ids = serializers.ListField(
         child=serializers.IntegerField(),
         required=True,
         allow_empty=False,
-        help_text="List of project IDs to search in.",
+        help_text="The IDs of the projects to search in.",
     )
     natural_language_query = serializers.CharField(
         required=True,
         allow_blank=False,
-        help_text="Natural language query to translate.",
+        help_text="The natural language query to translate, e.g. `slowest http requests in the last day`.",
     )
-    strategy = serializers.CharField(
+    strategy = serializers.ChoiceField(
+        choices=SEARCH_AGENT_STRATEGIES,
         required=False,
         default="Traces",
-        help_text="Search strategy to use.",
+        help_text="The dataset to generate a query for.",
     )
     options = serializers.DictField(
         required=False,
@@ -70,7 +96,7 @@ def send_translate_agentic_request(
     metric_context: dict[str, Any] | None = None,
     viewer_context: SeerViewerContext | None = None,
     options: dict[str, Any] | None = None,
-) -> Any:
+) -> SearchAgentTranslateResponse:
     """
     Sends a request to seer to translate a natural language query using the agentic search API.
     """
@@ -100,25 +126,56 @@ def send_translate_agentic_request(
 
 
 @cell_silo_endpoint
+@extend_schema(tags=["Seer Agent"])
 class SearchAgentTranslateEndpoint(OrganizationEndpoint):
     """
     Endpoint to call Seer's agentic search API for translating natural language queries.
     """
 
     publish_status = {
-        "POST": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
     }
     owner = ApiOwner.ML_AI
 
     permission_classes = (OrganizationTraceExplorerAIPermission,)
 
-    def post(self, request: Request, organization: Organization) -> Response:
+    @extend_schema(
+        operation_id="translateSearchAgentQuery",
+        summary="Translate a Natural Language Query",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG],
+        request=SearchAgentTranslateSerializer,
+        responses={
+            200: inline_sentry_response_serializer(
+                "SearchAgentTranslateResponse", SearchAgentTranslateResponse
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=SearchAgentExamples.TRANSLATE_RESPONSE,
+    )
+    def post(
+        self, request: Request, organization: Organization
+    ) -> (
+        Response[SearchAgentTranslateResponse]
+        | Response[DetailResponse]
+        | Response[ValidationErrorResponse]
+    ):
         """
-        Request to translate a natural language query using the agentic search API.
+        Translate a natural language query into Sentry search queries for the given dataset,
+        waiting for Seer's search agent to finish. For long-running queries, prefer
+        [Start a Search Agent Run](/api/seer-agent/start-a-search-agent-run/) and poll for the result.
+
+        Each entry in `responses` is a query to run against the dataset, with its
+        `group_by`, `visualization` (aggregates to chart), `sort`, and time range
+        (`stats_period`, or `start` and `end`). If the query can't be translated,
+        `responses` is empty and `unsupported_reason` explains why. Requires Seer to be
+        enabled for the organization.
         """
         serializer = SearchAgentTranslateSerializer(data=request.data)
         if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response(as_validation_errors(serializer), status=status.HTTP_400_BAD_REQUEST)
 
         validated_data = serializer.validated_data
         natural_language_query = validated_data["natural_language_query"]
