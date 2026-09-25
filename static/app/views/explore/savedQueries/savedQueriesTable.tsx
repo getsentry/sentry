@@ -231,7 +231,18 @@ export function SavedQueriesTable({
                 <SavedEntityTable.CellName
                   to={getSavedQueryTraceItemUrl({savedQuery: query, organization})}
                 >
-                  {query.name}
+                  <Tooltip
+                    title={query.name}
+                    showOnlyOnOverflow
+                    containerDisplayMode="block"
+                    style={{
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {query.name}
+                  </Tooltip>
                 </SavedEntityTable.CellName>
               </SavedEntityTable.Cell>
               {showDatasetColumn && (
