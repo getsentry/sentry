@@ -126,6 +126,7 @@ class SearchAgentTranslateEndpoint(OrganizationEndpoint):
         options = validated_data.get("options") or {}
         model_name = options.get("model_name")
         metric_context = options.get("metric_context")
+        code_mode_toggle = bool(options.get("code_mode"))
 
         projects = self.get_projects(
             request, organization, project_ids=set(validated_data["project_ids"])
@@ -156,6 +157,26 @@ class SearchAgentTranslateEndpoint(OrganizationEndpoint):
         timezone = user_org_context.get("user_timezone")
 
         viewer_context = SeerViewerContext(organization_id=organization.id, user_id=request.user.id)
+        options["cross_event"] = features.has(
+            "organizations:seer-assisted-query-cross-event-explorer",
+            organization,
+            actor=request.user,
+        )
+        options["project_expansion"] = features.has(
+            "organizations:seer-assisted-query-project-expansion",
+            organization,
+            actor=request.user,
+        )
+        options["reflection_step"] = features.has(
+            "organizations:seer-assisted-query-reflection",
+            organization,
+            actor=request.user,
+        )
+        options["code_mode"] = code_mode_toggle and features.has(
+            "organizations:seer-assisted-query-codemode",
+            organization,
+            actor=request.user,
+        )
         data = send_translate_agentic_request(
             organization.id,
             organization.slug,
