@@ -29,6 +29,7 @@ import {
   type CustomComboboxMenu,
   type CustomComboboxMenuProps,
 } from 'sentry/components/searchQueryBuilder/tokens/combobox';
+import {HighlightedRegexPattern} from 'sentry/components/searchQueryBuilder/tokens/filter/highlightedRegexPattern';
 import {parseMultiSelectFilterValue} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/string/parser';
 import {SpecificDatePicker} from 'sentry/components/searchQueryBuilder/tokens/filter/specificDatePicker';
 import {useFrozenSuggestionSectionItems} from 'sentry/components/searchQueryBuilder/tokens/filter/useFrozenSuggestionSectionItems';
@@ -1424,6 +1425,9 @@ export function SearchQueryBuilderValueCombobox({
         inputValue={inputValue}
         filterValue={filterValue}
         placeholder={placeholder}
+        renderInputValue={
+          isRegexValue ? value => <HighlightedRegexPattern pattern={value} /> : undefined
+        }
         token={token}
         inputLabel={t('Edit filter value')}
         keepVisibleRef={ref}
