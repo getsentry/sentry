@@ -216,9 +216,7 @@ describe('Discover > Homepage', () => {
       organization,
     });
 
-    await userEvent.click(
-      await screen.findByRole('button', {name: 'Discover Context Menu'})
-    );
+    await userEvent.click(await screen.findByRole('button', {name: 'Save as'}));
     expect(
       await screen.findByRole('menuitemradio', {name: 'Remove Default'})
     ).toBeInTheDocument();
@@ -248,9 +246,7 @@ describe('Discover > Homepage', () => {
       organization,
     });
 
-    await userEvent.click(
-      await screen.findByRole('button', {name: 'Discover Context Menu'})
-    );
+    await userEvent.click(await screen.findByRole('button', {name: 'Save as'}));
     expect(
       await screen.findByRole('menuitemradio', {name: 'Set as Default'})
     ).not.toHaveAttribute('aria-disabled', 'true');
@@ -409,9 +405,7 @@ describe('Discover > Homepage', () => {
       organization,
     });
 
-    await userEvent.click(
-      await screen.findByRole('button', {name: 'Discover Context Menu'})
-    );
+    await userEvent.click(await screen.findByRole('button', {name: 'Save as'}));
     expect(
       await screen.findByRole('menuitemradio', {name: 'Set as Default'})
     ).not.toHaveAttribute('aria-disabled', 'true');
@@ -469,9 +463,7 @@ describe('Discover > Homepage', () => {
       organization,
     });
 
-    await userEvent.click(
-      await screen.findByRole('button', {name: 'Discover Context Menu'})
-    );
+    await userEvent.click(await screen.findByRole('button', {name: 'Save as'}));
     expect(
       await screen.findByRole('menuitemradio', {name: 'Remove Default'})
     ).toBeInTheDocument();
@@ -491,9 +483,7 @@ describe('Discover > Homepage', () => {
       `/organizations/${organization.slug}/explore/discover/homepage/?${queryParams.toString()}`
     );
 
-    await userEvent.click(
-      await screen.findByRole('button', {name: 'Discover Context Menu'})
-    );
+    await userEvent.click(await screen.findByRole('button', {name: 'Save as'}));
     expect(
       await screen.findByRole('menuitemradio', {name: 'Set as Default'})
     ).toBeInTheDocument();

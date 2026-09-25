@@ -937,9 +937,7 @@ describe('Results', () => {
         organization,
       });
 
-      await userEvent.click(
-        await screen.findByRole('button', {name: 'Discover Context Menu'})
-      );
+      await userEvent.click(await screen.findByRole('button', {name: 'Save as'}));
       await userEvent.click(
         await screen.findByRole('menuitemradio', {name: 'Set as Default'})
       );
@@ -1029,9 +1027,7 @@ describe('Results', () => {
 
       // The saved query matches the homepage, so the context menu offers the
       // "Remove Default" reset action rather than "Set as Default".
-      await userEvent.click(
-        await screen.findByRole('button', {name: 'Discover Context Menu'})
-      );
+      await userEvent.click(await screen.findByRole('button', {name: 'Save as'}));
       expect(
         await screen.findByRole('menuitemradio', {name: 'Remove Default'})
       ).toBeInTheDocument();
@@ -1071,15 +1067,11 @@ describe('Results', () => {
       });
 
       await screen.findAllByText(getTransactionViews(organization)[0]!.name);
-      await userEvent.click(
-        await screen.findByRole('button', {name: 'Discover Context Menu'})
-      );
+      await userEvent.click(await screen.findByRole('button', {name: 'Save as'}));
       await userEvent.click(
         await screen.findByRole('menuitemradio', {name: 'Set as Default'})
       );
-      await userEvent.click(
-        await screen.findByRole('button', {name: 'Discover Context Menu'})
-      );
+      await userEvent.click(await screen.findByRole('button', {name: 'Save as'}));
       expect(
         await screen.findByRole('menuitemradio', {name: 'Remove Default'})
       ).toBeInTheDocument();
@@ -1101,9 +1093,7 @@ describe('Results', () => {
       router.navigate(`${router.location.pathname}?${updatedParams.toString()}`);
 
       await screen.findByText('Previous Period');
-      await userEvent.click(
-        await screen.findByRole('button', {name: 'Discover Context Menu'})
-      );
+      await userEvent.click(await screen.findByRole('button', {name: 'Save as'}));
       expect(
         await screen.findByRole('menuitemradio', {name: 'Set as Default'})
       ).toBeInTheDocument();
@@ -1238,9 +1228,7 @@ describe('Results', () => {
         organization,
       });
 
-      await userEvent.click(
-        await screen.findByRole('button', {name: 'Discover Context Menu'})
-      );
+      await userEvent.click(await screen.findByRole('button', {name: 'Save as'}));
       expect(
         await screen.findByRole('menuitemradio', {name: 'Set as Default'})
       ).not.toHaveAttribute('aria-disabled', 'true');
@@ -1547,6 +1535,41 @@ describe('Results', () => {
       expect(
         await screen.findByRole('option', {name: 'transaction.status:ok'})
       ).toBeInTheDocument();
+    });
+  });
+
+  describe('Save as', () => {
+    it('groups saving, monitors and dashboards in one dropdown', async () => {
+      const organization = OrganizationFixture({
+        features: ['discover-basic', 'discover-query', 'dashboards-edit'],
+      });
+
+      renderMockRequests();
+      ProjectsStore.loadInitialData([ProjectFixture()]);
+
+      render(<Results />, {
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/explore/discover/results/`,
+            query: generateFields(),
+          },
+          route: '/organizations/:orgId/explore/discover/results/',
+        },
+        organization,
+      });
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Save as'}));
+
+      expect(screen.getByRole('menuitemradio', {name: 'New Query'})).toBeInTheDocument();
+      expect(
+        screen.getByRole('menuitemradio', {name: 'Create a Monitor'})
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('menuitemradio', {name: 'Dashboard widget'})
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Create Monitor'})
+      ).not.toBeInTheDocument();
     });
   });
 

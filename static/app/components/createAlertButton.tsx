@@ -42,18 +42,21 @@ type CreateAlertFromViewButtonProps = Omit<LinkButtonProps, 'aria-label' | 'to'>
 };
 
 /**
- * Provide a button that can create an alert from an event view.
- * Emits incompatible query issues on click
+ * Builds the metric monitor creation URL for a Discover event view.
  */
-export function CreateAlertFromViewButton({
+export function getCreateAlertFromViewUrl({
   projects,
   eventView,
   organization,
   referrer,
-  onClick,
   alertType,
-  ...buttonProps
-}: CreateAlertFromViewButtonProps) {
+}: {
+  eventView: EventView;
+  organization: Organization;
+  projects: Project[];
+  alertType?: AlertType;
+  referrer?: string;
+}): LocationDescriptor {
   const project = projects.find(p => p.id === `${eventView.project[0]}`);
   const queryParams = eventView.generateQueryStringObject();
   if (queryParams.query?.includes(`project:${project?.slug}`)) {
@@ -68,7 +71,7 @@ export function CreateAlertFromViewButton({
       AlertWizardRuleTemplates[alertType]
     : DEFAULT_WIZARD_TEMPLATE;
 
-  const to = getMetricMonitorUrl({
+  return getMetricMonitorUrl({
     project,
     environment: queryParams.environment,
     aggregate: queryParams.yAxis ?? alertTemplate.aggregate,
@@ -77,6 +80,32 @@ export function CreateAlertFromViewButton({
     query: decodeScalar(queryParams.query),
     referrer,
     eventTypes: alertTemplate.eventTypes,
+  });
+}
+
+export function canCreateAlerts(organization: Organization, projects: Project[]) {
+  return (
+    isDemoModeActive() ||
+    hasEveryAccess(['alerts:write'], {organization}) ||
+    projects.some(p => hasEveryAccess(['alerts:write'], {project: p}))
+  );
+}
+
+export function CreateAlertFromViewButton({
+  projects,
+  eventView,
+  organization,
+  referrer,
+  onClick,
+  alertType,
+  ...buttonProps
+}: CreateAlertFromViewButtonProps) {
+  const to = getCreateAlertFromViewUrl({
+    projects,
+    eventView,
+    organization,
+    referrer,
+    alertType,
   });
 
   const handleClick = () => {
@@ -130,10 +159,7 @@ export function CreateAlertButton({
     {settingsLink: <Link to={`/settings/${organization.slug}/`} />}
   );
 
-  const canCreateAlert =
-    isDemoModeActive() ||
-    hasEveryAccess(['alerts:write'], {organization}) ||
-    projects.some(p => hasEveryAccess(['alerts:write'], {project: p}));
+  const canCreateAlert = canCreateAlerts(organization, projects);
 
   return (
     <LinkButton

@@ -1,19 +1,15 @@
-import {memo} from 'react';
-import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
-import {FocusScope} from '@react-aria/focus';
-import {AnimatePresence} from 'framer-motion';
+import {memo, useState} from 'react';
 import type {Location} from 'history';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
-import {Grid, Stack} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
 
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {Hovercard} from 'sentry/components/hovercard';
-import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization, SavedQuery} from 'sentry/types/organization';
@@ -23,7 +19,6 @@ import type {EventView} from 'sentry/utils/discover/eventView';
 import {getDiscoverQueriesUrl} from 'sentry/utils/discover/urls';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {useOverlay} from 'sentry/utils/useOverlay';
 import {withApi} from 'sentry/utils/withApi';
 import {withProjects} from 'sentry/utils/withProjects';
 
@@ -42,68 +37,61 @@ const renderDisabled = (p: any) => (
   </Hovercard>
 );
 
-type SaveAsDropdownProps = {
-  disabled: boolean;
-  modifiedHandleCreateQuery: (
-    e: React.MouseEvent | React.FormEvent<HTMLFormElement>
-  ) => void;
-  onChangeInput: (e: React.FormEvent<HTMLInputElement>) => void;
-  queryName: string;
+type SaveQueryModalProps = ModalRenderProps & {
+  onSave: (queryName: string) => Promise<void>;
 };
 
-export function SaveAsDropdown({
-  queryName,
-  disabled,
-  onChangeInput,
-  modifiedHandleCreateQuery,
-}: SaveAsDropdownProps) {
-  const {isOpen, triggerProps, overlayProps, arrowProps} = useOverlay({
-    position: 'bottom',
-  });
-  const theme = useTheme();
+export function SaveQueryModal({
+  Header,
+  Body,
+  Footer,
+  closeModal,
+  onSave,
+}: SaveQueryModalProps) {
+  const [queryName, setQueryName] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!queryName || isSaving) {
+      return;
+    }
+    setIsSaving(true);
+    try {
+      await onSave(queryName);
+      closeModal();
+    } catch {
+      // handleCreateQuery already shows an error message
+      setIsSaving(false);
+    }
+  };
 
   return (
-    <div>
-      <Button
-        {...triggerProps}
-        size="sm"
-        variant="primary"
-        aria-label={t('Save as')}
-        disabled={disabled}
-      >
-        {t('Save as')}
-      </Button>
-      <AnimatePresence>
-        {isOpen && (
-          <PositionWrapper zIndex={theme.zIndex.dropdown} {...overlayProps}>
-            <StyledOverlay arrowProps={arrowProps} animated>
-              <FocusScope contain restoreFocus autoFocus>
-                <form onSubmit={modifiedHandleCreateQuery}>
-                  <Stack gap="md">
-                    <Input
-                      type="text"
-                      name="query_name"
-                      placeholder={t('Display name')}
-                      value={queryName || ''}
-                      onChange={onChangeInput}
-                      disabled={disabled}
-                    />
-                    <SaveAsButton
-                      type="submit"
-                      onClick={modifiedHandleCreateQuery}
-                      variant="primary"
-                      disabled={disabled || !queryName}
-                    >
-                      {t('Save for Organization')}
-                    </SaveAsButton>
-                  </Stack>
-                </form>
-              </FocusScope>
-            </StyledOverlay>
-          </PositionWrapper>
-        )}
-      </AnimatePresence>
-    </div>
+    <form onSubmit={handleSubmit}>
+      <Header closeButton>
+        <h4>{t('New Query')}</h4>
+      </Header>
+      <Body>
+        <Input
+          autoFocus
+          type="text"
+          name="query_name"
+          placeholder={t('Display name')}
+          value={queryName}
+          onChange={e => setQueryName(e.currentTarget.value)}
+        />
+      </Body>
+      <Footer>
+        <Flex gap="md" justify="end">
+          <Button onClick={closeModal} disabled={isSaving}>
+            {t('Cancel')}
+          </Button>
+          <Button type="submit" variant="primary" disabled={!queryName || isSaving}>
+            {t('Save for Organization')}
+          </Button>
+        </Flex>
+      </Footer>
+    </form>
   );
 }
 
@@ -163,24 +151,6 @@ const SavedQueryButtonGroup = memo(function SavedQueryButtonGroupImpl({
     </Grid>
   );
 });
-
-const StyledOverlay = styled(Overlay)`
-  padding: ${p => p.theme.space.md};
-`;
-
-const SaveAsButton = styled(Button)`
-  width: 100%;
-`;
-
-export const IconUpdate = styled('div')`
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-
-  margin-right: ${p => p.theme.space.sm};
-  border-radius: 5px;
-  background-color: ${p => p.theme.colors.yellow400};
-`;
 
 function SavedQueryButtonGroupWithNavigate(props: Omit<Props, 'navigate'>) {
   const navigate = useNavigate();
