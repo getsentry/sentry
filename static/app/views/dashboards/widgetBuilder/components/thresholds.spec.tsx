@@ -9,6 +9,121 @@ import {
 import {SpanFields} from 'sentry/views/insights/types';
 
 describe('Thresholds', () => {
+  it.each(['15', '0', '0.5'])(
+    'uses the displayed unit when entering the first threshold (%s)',
+    async value => {
+      const {router} = render(
+        <WidgetBuilderProvider>
+          <Thresholds dataType="duration" dataUnit="second" />
+        </WidgetBuilderProvider>
+      );
+
+      expect(screen.getAllByText('second')).toHaveLength(3);
+      await userEvent.type(screen.getByLabelText('First Maximum'), value);
+
+      await waitFor(() => {
+        expect(JSON.parse(router.location.query.thresholds as string)).toEqual({
+          max_values: {max1: Number(value)},
+          unit: 'second',
+        });
+      });
+    }
+  );
+
+  it('initializes the unit after choosing polarity and after clearing thresholds', async () => {
+    const {router} = render(
+      <WidgetBuilderProvider>
+        <Thresholds dataType="duration" dataUnit="second" />
+      </WidgetBuilderProvider>
+    );
+
+    await userEvent.click(screen.getByRole('radio', {name: 'Higher is better'}));
+    await userEvent.type(screen.getByLabelText('Second Maximum'), '15');
+
+    await waitFor(() => {
+      expect(JSON.parse(router.location.query.thresholds as string)).toEqual({
+        max_values: {max2: 15},
+        unit: 'second',
+        preferredPolarity: '+',
+      });
+    });
+
+    await userEvent.clear(screen.getByLabelText('Second Maximum'));
+    await userEvent.type(screen.getByLabelText('First Maximum'), '30');
+
+    await waitFor(() => {
+      expect(JSON.parse(router.location.query.thresholds as string)).toEqual({
+        max_values: {max1: 30},
+        unit: 'second',
+        preferredPolarity: '+',
+      });
+    });
+  });
+
+  it('preserves a unit selected before entering a value', async () => {
+    const {router} = render(
+      <WidgetBuilderProvider>
+        <Thresholds dataType="duration" dataUnit="millisecond" />
+      </WidgetBuilderProvider>
+    );
+
+    await userEvent.click(screen.getAllByText('millisecond')[0]!);
+    await userEvent.click(screen.getByText('second'));
+    await userEvent.type(screen.getByLabelText('First Maximum'), '15');
+
+    await waitFor(() => {
+      expect(JSON.parse(router.location.query.thresholds as string)).toEqual({
+        max_values: {max1: 15},
+        unit: 'second',
+      });
+    });
+  });
+
+  it('keeps unitless thresholds unitless', async () => {
+    const {router} = render(
+      <WidgetBuilderProvider>
+        <Thresholds dataType="integer" />
+      </WidgetBuilderProvider>
+    );
+
+    await userEvent.type(screen.getByLabelText('First Maximum'), '15');
+
+    await waitFor(() => {
+      expect(JSON.parse(router.location.query.thresholds as string)).toEqual({
+        max_values: {max1: 15},
+        unit: null,
+      });
+    });
+  });
+
+  it('preserves the base unit when editing existing thresholds with a null unit', async () => {
+    const {router} = render(
+      <WidgetBuilderProvider>
+        <Thresholds dataType="duration" dataUnit="second" />
+      </WidgetBuilderProvider>,
+      {
+        initialRouterConfig: {
+          location: {
+            pathname: '/mock-pathname/',
+            query: {
+              thresholds: '{"max_values":{"max1":100},"unit":null}',
+            },
+          },
+        },
+      }
+    );
+
+    expect(screen.getByLabelText('First Maximum')).toHaveValue(100);
+    await userEvent.type(screen.getByLabelText('Second Maximum'), '200');
+
+    await waitFor(() => {
+      expect(JSON.parse(router.location.query.thresholds as string)).toEqual({
+        max_values: {max1: 100, max2: 200},
+        unit: null,
+      });
+    });
+  });
+
   it('sets thresholds to undefined if the thresholds are fully wiped', async () => {
     const {router} = render(
       <WidgetBuilderProvider>
@@ -236,7 +351,7 @@ describe('Thresholds', () => {
 
     await waitFor(() => {
       expect(router.location.query.thresholds).toBe(
-        '{"max_values":{"max1":0.5,"max2":100.5456},"unit":null}'
+        '{"max_values":{"max1":0.5,"max2":100.5456},"unit":"millisecond"}'
       );
     });
   });
