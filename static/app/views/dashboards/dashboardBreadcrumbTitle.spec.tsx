@@ -8,8 +8,10 @@ import {
   screen,
   userEvent,
   waitFor,
+  within,
 } from 'sentry-test/reactTestingLibrary';
 
+import {PrebuiltDashboardId} from './utils/prebuiltConfigs';
 import {DashboardBreadcrumbTitle} from './dashboardBreadcrumbTitle';
 
 const REVISIONS_URL = '/organizations/org-slug/dashboards/1/revisions/';
@@ -39,25 +41,41 @@ function makeSnapshot() {
   };
 }
 
-function renderTitle() {
-  const organization = OrganizationFixture({features: ['dashboards-edit']});
+function renderTitle({
+  dashboard: dashboardOverrides,
+  organization: organizationOverrides,
+}: {
+  dashboard?: Partial<Parameters<typeof DashboardFixture>[1]>;
+  organization?: Partial<Parameters<typeof OrganizationFixture>[0]>;
+} = {}) {
+  const organization = OrganizationFixture({
+    features: ['dashboards-edit'],
+    ...organizationOverrides,
+  });
   const dashboard = DashboardFixture([], {
     id: '1',
     title: 'My Dashboard',
     createdBy: UserFixture({name: 'Dashboard Owner', email: 'owner@example.com'}),
+    ...dashboardOverrides,
   });
+  const onRename = jest.fn();
 
   render(
     <DashboardBreadcrumbTitle
       dashboard={dashboard}
-      isEditing={false}
       isPreview={false}
-      onChange={jest.fn()}
+      onRename={onRename}
       onChangeEditAccess={jest.fn()}
     />,
     {organization}
   );
   renderGlobalModal();
+
+  return {onRename};
+}
+
+async function openActionsMenu() {
+  await userEvent.click(screen.getByRole('button', {name: 'Dashboard actions'}));
 }
 
 describe('DashboardBreadcrumbTitle actions', () => {
@@ -83,9 +101,117 @@ describe('DashboardBreadcrumbTitle actions', () => {
   it('no longer offers the edit action in the menu', async () => {
     renderTitle();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Dashboard actions'}));
+    await openActionsMenu();
 
     expect(screen.queryByRole('menuitemradio', {name: 'Edit'})).not.toBeInTheDocument();
+  });
+});
+
+describe('DashboardBreadcrumbTitle rename', () => {
+  afterEach(() => {
+    MockApiClient.clearMockResponses();
+  });
+
+  async function openRenameModal() {
+    await openActionsMenu();
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Rename'}));
+    return screen.findByRole('dialog');
+  }
+
+  it('renames the dashboard without sending its widgets', async () => {
+    const updateMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/1/',
+      method: 'PUT',
+      body: {id: '1', title: 'Renamed Dashboard'},
+    });
+
+    const {onRename} = renderTitle();
+
+    const dialog = await openRenameModal();
+    expect(within(dialog).getByRole('textbox')).toHaveValue('My Dashboard');
+
+    await userEvent.clear(within(dialog).getByRole('textbox'));
+    await userEvent.type(within(dialog).getByRole('textbox'), 'Renamed Dashboard');
+    await userEvent.click(within(dialog).getByRole('button', {name: 'Save Changes'}));
+
+    await waitFor(() => expect(updateMock).toHaveBeenCalled());
+
+    // The whole point of the narrow PUT: a rename must not be able to clobber
+    // widgets with a stale copy of them.
+    expect(updateMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/dashboards/1/',
+      expect.objectContaining({
+        method: 'PUT',
+        data: {title: 'Renamed Dashboard'},
+      })
+    );
+    await waitFor(() => expect(onRename).toHaveBeenCalledWith('Renamed Dashboard'));
+  });
+
+  it('keeps the modal open and does not report a rename that failed', async () => {
+    const updateMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/1/',
+      method: 'PUT',
+      statusCode: 409,
+      body: {detail: 'Dashboard with that title already exists.'},
+    });
+
+    const {onRename} = renderTitle();
+
+    const dialog = await openRenameModal();
+    await userEvent.clear(within(dialog).getByRole('textbox'));
+    await userEvent.type(within(dialog).getByRole('textbox'), 'Taken Name');
+    await userEvent.click(within(dialog).getByRole('button', {name: 'Save Changes'}));
+
+    await waitFor(() => expect(updateMock).toHaveBeenCalled());
+
+    // The failure is reported by `updateDashboardTitle` as a toast, so the only
+    // thing to assert here is that the rename did not take: the modal stays put
+    // for another attempt and the page is never told the title changed.
+    expect(onRename).not.toHaveBeenCalled();
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+  });
+
+  it('rejects an empty title', async () => {
+    const updateMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/1/',
+      method: 'PUT',
+      body: {},
+    });
+
+    const {onRename} = renderTitle();
+
+    const dialog = await openRenameModal();
+    await userEvent.clear(within(dialog).getByRole('textbox'));
+    await userEvent.click(within(dialog).getByRole('button', {name: 'Save Changes'}));
+
+    expect(
+      await screen.findByText('Please set a title for this dashboard')
+    ).toBeInTheDocument();
+    expect(updateMock).not.toHaveBeenCalled();
+    expect(onRename).not.toHaveBeenCalled();
+  });
+
+  it('does not offer rename on a prebuilt dashboard', async () => {
+    renderTitle({dashboard: {prebuiltId: PrebuiltDashboardId.WEB_VITALS}});
+
+    await openActionsMenu();
+
+    expect(screen.queryByRole('menuitemradio', {name: 'Rename'})).not.toBeInTheDocument();
+  });
+
+  it('does not offer rename without edit access', async () => {
+    renderTitle({
+      organization: {access: ['org:read'], features: ['dashboards-edit']},
+      dashboard: {
+        createdBy: UserFixture({id: '99', email: 'someone-else@example.com'}),
+        permissions: {isEditableByEveryone: false, teamsWithEditAccess: []},
+      },
+    });
+
+    await openActionsMenu();
+
+    expect(screen.queryByRole('menuitemradio', {name: 'Rename'})).not.toBeInTheDocument();
   });
 });
 

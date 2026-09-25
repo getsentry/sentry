@@ -13,6 +13,7 @@ import {
   IconDownload,
   IconEllipsis,
   IconGroup,
+  IconInput,
   IconStar,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -23,12 +24,16 @@ import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useUser} from 'sentry/utils/useUser';
+import {useUserTeams} from 'sentry/utils/useUserTeams';
 import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
 import {useOpenDashboardRevisions} from 'sentry/views/dashboards/dashboardRevisions';
 import {useOpenEditAccessModal} from 'sentry/views/dashboards/editAccessModal';
 import {exportDashboard} from 'sentry/views/dashboards/exportDashboard';
 import {useDuplicateDashboard} from 'sentry/views/dashboards/hooks/useDuplicateDashboard';
+import {useOpenRenameDashboardModal} from 'sentry/views/dashboards/renameDashboardModal';
 import type {DashboardDetails, DashboardPermissions} from 'sentry/views/dashboards/types';
+import {checkUserHasEditAccess} from 'sentry/views/dashboards/utils/checkUserHasEditAccess';
 
 /**
  * Star/unstar the dashboard. Sits beside the actions menu rather than inside it —
@@ -67,37 +72,53 @@ function DashboardFavoriteButton({
 
 interface DashboardBreadcrumbTitleProps {
   dashboard: DashboardDetails;
-  isEditing: boolean;
   isPreview: boolean;
-  onChange: (title: string) => void;
+  /**
+   * Called with the committed title once a rename succeeds. The modal has
+   * already persisted it for a saved dashboard; this keeps the page's own copy
+   * — and any edit session in progress — in step.
+   */
+  onRename: (title: string) => void;
   onChangeEditAccess?: (newDashboardPermissions: DashboardPermissions) => void;
 }
 
 function DashboardTitle({
+  canRename,
   dashboard,
   duplicateDashboard,
   duplicateDisabledReason = null,
   isDuplicateDisabled = false,
   isFavorited,
+  isPersisted,
   isPrebuiltDashboard,
   canViewRevisions,
   onToggleFavorite,
   openDashboardRevisions,
   openEditAccess,
+  openRename,
   organization,
 }: {
+  canRename: boolean;
   canViewRevisions: boolean;
   dashboard: DashboardDetails;
   duplicateDashboard: ReturnType<typeof useDuplicateDashboard>;
   isFavorited: boolean | undefined;
+  isPersisted: boolean;
   isPrebuiltDashboard: boolean;
   onToggleFavorite: () => void;
   openDashboardRevisions: () => void;
   openEditAccess: () => void;
+  openRename: () => void;
   organization: Organization;
   duplicateDisabledReason?: ReactNode;
   isDuplicateDisabled?: boolean;
 }) {
+  const renameItem = {
+    key: 'rename',
+    label: t('Rename'),
+    leadingItems: <IconInput />,
+    onAction: openRename,
+  };
   const revisionItem = {
     key: 'revisions',
     label: t('Show version history'),
@@ -129,11 +150,17 @@ function DashboardTitle({
       });
     },
   };
+  // A dashboard that has not been saved yet has no id, and every action here
+  // but renaming needs one — `exportDashboard` even reads the id back out of
+  // the URL, which on /dashboards/new/ has none to find.
   const menuItems = [
+    ...(canRename ? [renameItem] : []),
     ...(isPrebuiltDashboard ? [duplicateItem] : []),
-    ...(isPrebuiltDashboard ? [] : [permissionsItem]),
+    ...(isPrebuiltDashboard || !isPersisted ? [] : [permissionsItem]),
     ...(canViewRevisions ? [revisionItem] : []),
-    ...(organization.features.includes('dashboards-import') ? [exportItem] : []),
+    ...(organization.features.includes('dashboards-import') && isPersisted
+      ? [exportItem]
+      : []),
   ];
 
   return (
@@ -153,15 +180,17 @@ function DashboardTitle({
                 items: menuItems,
               }
             : null,
-          {
-            type: 'button',
-            element: (
-              <DashboardFavoriteButton
-                isFavorited={isFavorited}
-                onToggle={onToggleFavorite}
-              />
-            ),
-          },
+          isPersisted
+            ? {
+                type: 'button',
+                element: (
+                  <DashboardFavoriteButton
+                    isFavorited={isFavorited}
+                    onToggle={onToggleFavorite}
+                  />
+                ),
+              }
+            : null,
         ],
       }}
     />
@@ -170,13 +199,12 @@ function DashboardTitle({
 
 export function DashboardBreadcrumbTitle({
   dashboard,
-  isEditing,
   isPreview,
-  onChange,
+  onRename,
   onChangeEditAccess,
 }: DashboardBreadcrumbTitleProps) {
   // Lives here rather than in `DashboardFavoriteButton` because the button
-  // unmounts while editing or previewing, and a toggle never writes back to
+  // unmounts while previewing, and a toggle never writes back to
   // `dashboard.isFavorited` — remounting from the prop would revert the star.
   const [isFavorited, setIsFavorited] = useState(dashboard.isFavorited);
   const api = useApi();
@@ -185,6 +213,9 @@ export function DashboardBreadcrumbTitle({
   const organization = useOrganization();
   const openDashboardRevisions = useOpenDashboardRevisions(dashboard);
   const openEditAccess = useOpenEditAccessModal(dashboard, onChangeEditAccess);
+  const openRename = useOpenRenameDashboardModal(dashboard, onRename, 'details');
+  const currentUser = useUser();
+  const {teams: userTeams} = useUserTeams();
   const duplicateDashboard = useDuplicateDashboard({
     onSuccess: newDashboard => {
       navigate(
@@ -192,22 +223,6 @@ export function DashboardBreadcrumbTitle({
       );
     },
   });
-
-  if (isEditing) {
-    return (
-      <BreadcrumbList.Title
-        item={{
-          type: 'editable-title',
-          value: dashboard.title,
-          onChange,
-          isDisabled: false,
-          errorMessage: t('Please set a title for this dashboard'),
-          autoSelect: true,
-          'aria-label': t('Edit Dashboard Name'),
-        }}
-      />
-    );
-  }
 
   if (isPreview) {
     return (
@@ -221,6 +236,17 @@ export function DashboardBreadcrumbTitle({
   }
 
   const isPrebuiltDashboard = defined(dashboard.prebuiltId);
+  // A prebuilt dashboard's title is fixed — the backend rejects a change to it.
+  const canRename =
+    !isPrebuiltDashboard &&
+    checkUserHasEditAccess(
+      currentUser,
+      userTeams,
+      organization,
+      dashboard.permissions,
+      dashboard.createdBy
+    );
+  const isPersisted = Boolean(dashboard.id);
   const canViewRevisions =
     Boolean(dashboard.id) &&
     !isPrebuiltDashboard &&
@@ -248,14 +274,17 @@ export function DashboardBreadcrumbTitle({
   if (!isPrebuiltDashboard) {
     return (
       <DashboardTitle
+        canRename={canRename}
         canViewRevisions={canViewRevisions}
         dashboard={dashboard}
         duplicateDashboard={duplicateDashboard}
         isFavorited={isFavorited}
+        isPersisted={isPersisted}
         isPrebuiltDashboard={isPrebuiltDashboard}
         onToggleFavorite={handleToggleFavorite}
         openDashboardRevisions={openDashboardRevisions}
         openEditAccess={openEditAccess}
+        openRename={openRename}
         organization={organization}
       />
     );
@@ -265,16 +294,19 @@ export function DashboardBreadcrumbTitle({
     <DashboardCreateLimitWrapper>
       {({hasReachedDashboardLimit, isLoading, limitMessage}) => (
         <DashboardTitle
+          canRename={canRename}
           canViewRevisions={canViewRevisions}
           dashboard={dashboard}
           duplicateDashboard={duplicateDashboard}
           duplicateDisabledReason={limitMessage}
           isDuplicateDisabled={hasReachedDashboardLimit || isLoading}
           isFavorited={isFavorited}
+          isPersisted={isPersisted}
           isPrebuiltDashboard={isPrebuiltDashboard}
           onToggleFavorite={handleToggleFavorite}
           openDashboardRevisions={openDashboardRevisions}
           openEditAccess={openEditAccess}
+          openRename={openRename}
           organization={organization}
         />
       )}

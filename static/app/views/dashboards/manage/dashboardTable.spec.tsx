@@ -317,6 +317,44 @@ describe('Dashboards - DashboardTable', () => {
     expect(screen.getByRole('checkbox', {name: 'Select All'})).toBeChecked();
   });
 
+  it('renames a dashboard from the row actions menu', async () => {
+    const renameMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/2/',
+      method: 'PUT',
+      body: {id: '2', title: 'Renamed Dashboard'},
+    });
+    const onDashboardsChange = jest.fn();
+
+    render(
+      <DashboardTable
+        onDashboardsChange={onDashboardsChange}
+        organization={organization}
+        dashboards={dashboards}
+        location={location}
+        isOnlyPrebuilt={false}
+      />
+    );
+
+    renderGlobalModal();
+
+    await openRowActions(1);
+    await userEvent.click(
+      await screen.findByRole('menuitemradio', {name: 'Rename Dashboard'})
+    );
+
+    const dialog = await screen.findByRole('dialog');
+    await userEvent.clear(within(dialog).getByRole('textbox'));
+    await userEvent.type(within(dialog).getByRole('textbox'), 'Renamed Dashboard');
+    await userEvent.click(within(dialog).getByRole('button', {name: 'Save Changes'}));
+
+    await waitFor(() => expect(renameMock).toHaveBeenCalled());
+    expect(renameMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/dashboards/2/',
+      expect.objectContaining({method: 'PUT', data: {title: 'Renamed Dashboard'}})
+    );
+    await waitFor(() => expect(onDashboardsChange).toHaveBeenCalled());
+  });
+
   it('renders favorite column', async () => {
     const favoriteMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/2/favorite/',

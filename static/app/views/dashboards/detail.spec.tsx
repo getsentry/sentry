@@ -540,7 +540,7 @@ describe('Dashboards > Detail', () => {
       expect(mockVisit).toHaveBeenCalledTimes(1);
     });
 
-    it('updates the starred dashboard title after renaming', async () => {
+    it('renames from the actions menu without touching widgets', async () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/',
         body: [DashboardFixture([], {id: '1', title: 'Custom Errors'})],
@@ -565,12 +565,9 @@ describe('Dashboards > Detail', () => {
         );
       });
 
-      await activateDashboardEditMode();
-      const titleInput = screen.getByRole('textbox');
-      await userEvent.clear(titleInput);
-      await userEvent.type(titleInput, 'Renamed Dashboard');
+      renderGlobalModal({organization: initialData.organization});
 
-      MockApiClient.addMockResponse({
+      const renameMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
         method: 'PUT',
         body: DashboardFixture(widgets, {id: '1', title: 'Renamed Dashboard'}),
@@ -581,13 +578,28 @@ describe('Dashboards > Detail', () => {
         match: [MockApiClient.matchQuery({filter: 'onlyFavorites'})],
       });
 
-      await userEvent.click(screen.getByRole('button', {name: 'Save and Finish'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Dashboard actions'}));
+      await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Rename'}));
 
-      await waitFor(() => {
-        expect(screen.getByLabelText('Starred dashboard title')).toHaveTextContent(
-          'Renamed Dashboard'
-        );
-      });
+      const dialog = await screen.findByRole('dialog');
+      await userEvent.clear(within(dialog).getByRole('textbox'));
+      await userEvent.type(within(dialog).getByRole('textbox'), 'Renamed Dashboard');
+      await userEvent.click(within(dialog).getByRole('button', {name: 'Save Changes'}));
+
+      await waitFor(() => expect(renameMock).toHaveBeenCalled());
+
+      // Renaming never enters an edit session, so it must not carry widgets.
+      expect(renameMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/dashboards/1/',
+        expect.objectContaining({
+          method: 'PUT',
+          data: {title: 'Renamed Dashboard'},
+        })
+      );
+
+      // `onRename` feeds the new title back through `onDashboardUpdate`, so the
+      // header reflects it without a refetch.
+      expect(await screen.findByText('Renamed Dashboard')).toBeInTheDocument();
     });
 
     it('appends dashboard-level filters to series request', async () => {

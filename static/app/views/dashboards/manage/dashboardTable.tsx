@@ -23,7 +23,14 @@ import {
   type GridColumnSort,
 } from 'sentry/components/tables/gridEditable';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconCopy, IconDelete, IconEllipsis, IconGroup, IconStar} from 'sentry/icons';
+import {
+  IconCopy,
+  IconDelete,
+  IconEllipsis,
+  IconGroup,
+  IconInput,
+  IconStar,
+} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
@@ -34,6 +41,7 @@ import {useOpenEditAccessModal} from 'sentry/views/dashboards/editAccessModal';
 import {useDeleteDashboard} from 'sentry/views/dashboards/hooks/useDeleteDashboard';
 import {useDuplicateDashboard} from 'sentry/views/dashboards/hooks/useDuplicateDashboard';
 import {useToggleDashboardFavorite} from 'sentry/views/dashboards/hooks/useToggleDashboardFavorite';
+import {useOpenRenameDashboardModal} from 'sentry/views/dashboards/renameDashboardModal';
 import type {
   DashboardDetails,
   DashboardListItem,
@@ -98,13 +106,16 @@ function DashboardRowActions({
   onChangeEditAccess,
   onDelete,
   onDuplicate,
+  onRename,
 }: {
   dashboard: DashboardListItem;
   onChangeEditAccess: (newDashboardPermissions: DashboardPermissions) => void;
   onDelete: ReturnType<typeof useDeleteDashboard>;
   onDuplicate: ReturnType<typeof useDuplicateDashboard>;
+  onRename: () => void;
 }) {
   const openEditAccess = useOpenEditAccessModal(dashboard, onChangeEditAccess);
+  const openRename = useOpenRenameDashboardModal(dashboard, onRename, 'table');
   const isPrebuiltDashboard = defined(dashboard.prebuiltId);
 
   return (
@@ -115,6 +126,12 @@ function DashboardRowActions({
           ...(isPrebuiltDashboard
             ? []
             : [
+                {
+                  key: 'rename',
+                  label: t('Rename Dashboard'),
+                  leadingItems: <IconInput />,
+                  onAction: openRename,
+                },
                 {
                   key: 'view-permissions',
                   label: t('View Permissions'),
@@ -339,6 +356,7 @@ function DashboardTable({
               onChangeEditAccess={handleChangeEditAccess(dataRow)}
               onDelete={handleDeleteDashboard}
               onDuplicate={handleDuplicateDashboard}
+              onRename={onDashboardsChange}
             />
           )}
         </Flex>
@@ -362,6 +380,7 @@ function DashboardTable({
             onChangeEditAccess={handleChangeEditAccess(dataRow)}
             onDelete={handleDeleteDashboard}
             onDuplicate={handleDuplicateDashboard}
+            onRename={onDashboardsChange}
           />
         </Flex>
       );
