@@ -35,7 +35,6 @@ class AiAutofixPrIterationFeedbackBatchCompletedEvent(analytics.Event):
     group_id: int
     run_id: int
     referrer: str | None
-    iteration_index: int
 
     # Why the drain that claimed this iteration ran, written at claim time.
     trigger_source: str | None
@@ -79,7 +78,6 @@ class AiAutofixPrIterationFeedbackBatchBlockedEvent(analytics.Event):
     project_id: int
     group_id: int
     run_id: int
-    iteration_index: int
 
     # How long the batch had been waiting when the gate stopped it.
     duration_ms: int
