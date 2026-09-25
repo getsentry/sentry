@@ -21,12 +21,7 @@ from sentry.types.activity import ActivityType
 
 
 def get_assignee_label(data: AssignedNotificationData) -> str:
-    # For "themselves" assignments, check if it's automated
     if data.assignee_label == "themselves":
-        # For automated assignments to themselves, show "itself" instead of proxy email
-        if data.is_automated:
-            return "itself"
-        # For human self-assignments, show the user's name
         return data.activity_user_name or "themselves"
     return data.assignee_label
 
