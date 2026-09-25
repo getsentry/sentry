@@ -35,7 +35,7 @@ export const FALLBACK_FEATURE_META: Record<ProductSolution, FeatureMeta> = {
     alwaysEnabled: true,
     volume: t('5,000 errors / mo'),
     volumeTooltip: t(
-      'Free plan includes 5,000 errors / month. Upgrade to Team or Business to send more.'
+      'Your Free plan includes 5,000 errors / month. Upgrade to Team or Business to send more.'
     ),
   },
   [ProductSolution.PERFORMANCE_MONITORING]: {
@@ -46,7 +46,7 @@ export const FALLBACK_FEATURE_META: Record<ProductSolution, FeatureMeta> = {
     ),
     volume: t('5M spans / mo'),
     volumeTooltip: t(
-      'Free plan includes 5M spans / month. Upgrade to Team or Business to send more.'
+      'Your Free plan includes 5M spans / month. Upgrade to Team or Business to send more.'
     ),
   },
   [ProductSolution.SESSION_REPLAY]: {
@@ -55,7 +55,7 @@ export const FALLBACK_FEATURE_META: Record<ProductSolution, FeatureMeta> = {
     description: t('Watch real user sessions to see what went wrong'),
     volume: t('50 replays / mo'),
     volumeTooltip: t(
-      'Free plan includes 50 replays / month. Upgrade to Team or Business to send more.'
+      'Your Free plan includes 50 replays / month. Upgrade to Team or Business to send more.'
     ),
   },
   [ProductSolution.LOGS]: {
@@ -64,7 +64,7 @@ export const FALLBACK_FEATURE_META: Record<ProductSolution, FeatureMeta> = {
     description: t('See logs in context with errors and performance issues'),
     volume: t('5 GB logs / mo'),
     volumeTooltip: t(
-      'Free plan includes 5 GB logs / month. Upgrade to Team or Business to send more.'
+      'Your Free plan includes 5 GB logs / month. Upgrade to Team or Business to send more.'
     ),
   },
   [ProductSolution.PROFILING]: {
@@ -84,7 +84,7 @@ export const FALLBACK_FEATURE_META: Record<ProductSolution, FeatureMeta> = {
     ),
     volume: t('5 GB / mo'),
     volumeTooltip: t(
-      'Free plan includes 5 GB metrics / month. Upgrade to Team or Business to send more.'
+      'Your Free plan includes 5 GB metrics / month. Upgrade to Team or Business to send more.'
     ),
   },
 };
