@@ -5,7 +5,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {getDashboardRevisionsQueryKey} from 'sentry/views/dashboards/hooks/useDashboardRevisions';
 import {getStarredDashboardsQueryKey} from 'sentry/views/dashboards/hooks/useGetStarredDashboards';
 
-export type RenameDashboardVariables = {
+type RenameDashboardVariables = {
   dashboardId: string;
   title: string;
 };
