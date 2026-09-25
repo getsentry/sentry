@@ -1,4 +1,5 @@
 import {
+  getStateFromQuery,
   normalizeDateTimeParams,
   parseStatsPeriod,
 } from 'sentry/components/pageFilters/parse';
@@ -214,6 +215,35 @@ describe('normalizeDateTimeParams', () => {
 
     expect(normalizeDateTimeParams({utc: null})).toEqual({statsPeriod: '14d'});
     expect(normalizeDateTimeParams({utc: undefined})).toEqual({statsPeriod: '14d'});
+  });
+});
+
+describe('getStateFromQuery', () => {
+  describe('project parsing', () => {
+    it('filters out non-numeric project IDs when given an array', () => {
+      const state = getStateFromQuery({project: ['123', 'abc']});
+      expect(state.project).toEqual([123]);
+    });
+
+    it('returns an empty array when all project IDs in the array are non-numeric', () => {
+      const state = getStateFromQuery({project: ['abc', 'xyz']});
+      expect(state.project).toEqual([]);
+    });
+
+    it('keeps all valid numeric project IDs in the array', () => {
+      const state = getStateFromQuery({project: ['123', '456']});
+      expect(state.project).toEqual([123, 456]);
+    });
+
+    it('returns empty array for a single non-numeric scalar project ID', () => {
+      const state = getStateFromQuery({project: 'abc'});
+      expect(state.project).toEqual([]);
+    });
+
+    it('returns the project ID for a valid scalar project ID', () => {
+      const state = getStateFromQuery({project: '123'});
+      expect(state.project).toEqual([123]);
+    });
   });
 });
 

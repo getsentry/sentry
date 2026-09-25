@@ -143,7 +143,7 @@ function getProject(maybe: ParamValue) {
   }
 
   if (Array.isArray(maybe)) {
-    return maybe.map(p => parseInt(p, 10));
+    return maybe.map(p => parseInt(p, 10)).filter(id => !isNaN(id));
   }
 
   const projectFromQueryIdInt = parseInt(maybe, 10);
