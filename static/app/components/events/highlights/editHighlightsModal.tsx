@@ -27,6 +27,7 @@ import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {DetailedProject} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {splitIntoColumns} from 'sentry/utils/array/splitIntoColumns';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -118,24 +119,19 @@ function EditPreviewHighlightSection({
   ));
 
   const rows = [...highlightTagRows, ...highlightContextRows];
-  const columns: React.ReactNode[] = [];
-  const columnSize = Math.ceil(rows.length / previewColumnCount);
-  for (let i = 0; i < rows.length; i += columnSize) {
-    columns.push(
-      <EditPreviewColumn key={`edit-highlight-column-${i}`}>
-        {rows.slice(i, i + columnSize)}
-      </EditPreviewColumn>
-    );
-  }
   return (
-    <EditHighlightPreview columnCount={previewColumnCount} {...props}>
-      {columns.length > 0 ? (
-        columns
-      ) : (
-        <EmptyHighlightMessage data-test-id="highlights-empty-preview">
-          {t('Promote tags or context keys to highlights for quicker debugging!')}
-        </EmptyHighlightMessage>
-      )}
+    <EditHighlightPreview {...props}>
+      <Grid align="start" columns={`repeat(${previewColumnCount}, minmax(0, 1fr))`}>
+        {rows.length > 0 ? (
+          splitIntoColumns(rows, previewColumnCount).map((column, index) => (
+            <EditPreviewColumn key={index}>{column}</EditPreviewColumn>
+          ))
+        ) : (
+          <EmptyHighlightMessage data-test-id="highlights-empty-preview">
+            {t('Promote tags or context keys to highlights for quicker debugging!')}
+          </EmptyHighlightMessage>
+        )}
+      </Grid>
     </EditHighlightPreview>
   );
 }
@@ -158,42 +154,8 @@ function EditTagHighlightSection({
   const tagData = event.tags
     .filter(tag => tag.key?.includes(tagFilter))
     .map(tag => tag.key);
-  const tagColumnSize = Math.ceil(tagData.length / columnCount);
-  const tagColumns: React.ReactNode[] = [];
   const highlightTagsSet = new Set(highlightTags);
 
-  for (let i = 0; i < tagData.length; i += tagColumnSize) {
-    tagColumns.push(
-      <EditHighlightColumn key={`tag-column-${i}`}>
-        <Stack gap="2xs">
-          {tagData.slice(i, i + tagColumnSize).map((tagKey, j) => {
-            const isDisabled = highlightTagsSet.has(tagKey);
-            return (
-              <EditTagContainer key={`tag-${i}-${j}`}>
-                <EditButton
-                  aria-label={`Add ${tagKey} tag to highlights`}
-                  icon={<IconAdd />}
-                  onClick={() => onAddTag(tagKey)}
-                  disabled={isDisabled}
-                  tooltipProps={{
-                    title: isDisabled && t('Already highlighted'),
-                    delay: 500,
-                  }}
-                />
-                <HighlightKey
-                  disabled={isDisabled}
-                  aria-disabled={isDisabled}
-                  data-test-id="highlight-tag-option"
-                >
-                  {tagKey}
-                </HighlightKey>
-              </EditTagContainer>
-            );
-          })}
-        </Stack>
-      </EditHighlightColumn>
-    );
-  }
   return (
     <EditHighlightSection {...props}>
       <Subtitle>
@@ -205,15 +167,43 @@ function EditTagHighlightSection({
           data-test-id="highlights-tag-search"
         />
       </Subtitle>
-      <EditHighlightSectionContent columnCount={columnCount}>
-        {tagColumns.length > 0 ? (
-          tagColumns
-        ) : (
+      <Grid columns={`repeat(${columnCount}, minmax(0, 1fr))`}>
+        {splitIntoColumns(tagData, columnCount).map((columnTagKeys, index) => (
+          <EditHighlightColumn key={index}>
+            <Stack gap="2xs">
+              {columnTagKeys.map((tagKey, j) => {
+                const isDisabled = highlightTagsSet.has(tagKey);
+                return (
+                  <EditTagContainer key={j}>
+                    <EditButton
+                      aria-label={`Add ${tagKey} tag to highlights`}
+                      icon={<IconAdd />}
+                      onClick={() => onAddTag(tagKey)}
+                      disabled={isDisabled}
+                      tooltipProps={{
+                        title: isDisabled && t('Already highlighted'),
+                        delay: 500,
+                      }}
+                    />
+                    <HighlightKey
+                      disabled={isDisabled}
+                      aria-disabled={isDisabled}
+                      data-test-id="highlight-tag-option"
+                    >
+                      {tagKey}
+                    </HighlightKey>
+                  </EditTagContainer>
+                );
+              })}
+            </Stack>
+          </EditHighlightColumn>
+        ))}
+        {tagData.length === 0 && (
           <EmptyHighlightMessage extraMargin data-test-id="highlights-empty-tags">
             {t('No matching event tags found.')}
           </EmptyHighlightMessage>
         )}
-      </EditHighlightSectionContent>
+      </Grid>
     </EditHighlightSection>
   );
 }
@@ -259,21 +249,27 @@ function EditContextHighlightSection({
       return [contextType, filteredContextKeys];
     })
     .filter(([_contextType, contextKeys]) => contextKeys.length !== 0);
-  const ctxColumnSize = Math.ceil(filteredCtxItems.length / columnCount);
-  const contextColumns: React.ReactNode[] = [];
-  for (let i = 0; i < filteredCtxItems.length; i += ctxColumnSize) {
-    contextColumns.push(
-      <EditHighlightColumn key={`ctx-column-${i}`}>
-        {filteredCtxItems
-          .slice(i, i + ctxColumnSize)
-          .map(([contextType, contextKeys], j) => {
-            return (
-              <EditContextContainer key={`ctxv-item-${i}-${j}`}>
+  return (
+    <EditHighlightSection {...props}>
+      <Subtitle>
+        <SubtitleText>{t('Context')}</SubtitleText>
+        <SectionFilterInput
+          placeholder={t('Search Context')}
+          value={ctxFilter}
+          onChange={e => setCtxFilter(e.target.value)}
+          data-test-id="highlights-context-search"
+        />
+      </Subtitle>
+      <Grid columns={`repeat(${columnCount}, minmax(0, 1fr))`}>
+        {splitIntoColumns(filteredCtxItems, columnCount).map((columnCtxItems, index) => (
+          <EditHighlightColumn key={index}>
+            {columnCtxItems.map(([contextType, contextKeys]) => (
+              <EditContextContainer key={contextType}>
                 <ContextType>{contextType}</ContextType>
-                {contextKeys.map((contextKey, k) => {
+                {contextKeys.map(contextKey => {
                   const isDisabled = ctxDisableMap[contextType]?.has(contextKey) ?? false;
                   return (
-                    <Fragment key={`ctx-key-${i}-${j}-${k}`}>
+                    <Fragment key={contextKey}>
                       <EditButton
                         aria-label={`Add ${contextKey} from ${contextType} context to highlights`}
                         icon={<IconAdd />}
@@ -295,32 +291,15 @@ function EditContextHighlightSection({
                   );
                 })}
               </EditContextContainer>
-            );
-          })}
-      </EditHighlightColumn>
-    );
-  }
-
-  return (
-    <EditHighlightSection {...props}>
-      <Subtitle>
-        <SubtitleText>{t('Context')}</SubtitleText>
-        <SectionFilterInput
-          placeholder={t('Search Context')}
-          value={ctxFilter}
-          onChange={e => setCtxFilter(e.target.value)}
-          data-test-id="highlights-context-search"
-        />
-      </Subtitle>
-      <EditHighlightSectionContent columnCount={columnCount}>
-        {contextColumns.length > 0 ? (
-          contextColumns
-        ) : (
+            ))}
+          </EditHighlightColumn>
+        ))}
+        {filteredCtxItems.length === 0 && (
           <EmptyHighlightMessage extraMargin data-test-id="highlights-empty-context">
             {t('No matching event context found.')}
           </EmptyHighlightMessage>
         )}
-      </EditHighlightSectionContent>
+      </Grid>
     </EditHighlightSection>
   );
 }
@@ -512,13 +491,10 @@ const FooterInfo = styled('div')`
   gap: ${p => p.theme.space.md};
 `;
 
-const EditHighlightPreview = styled('div')<{columnCount: number}>`
+const EditHighlightPreview = styled('div')`
   border: 1px dashed ${p => p.theme.tokens.border.primary};
   border-radius: 4px;
   padding: ${p => p.theme.space.md};
-  display: grid;
-  grid-template-columns: repeat(${p => p.columnCount}, minmax(0, 1fr));
-  align-items: start;
   margin: 0 -${p => p.theme.space.md};
   font-size: ${p => p.theme.font.size.sm};
 `;
@@ -533,11 +509,6 @@ const EmptyHighlightMessage = styled('div')<{extraMargin?: boolean}>`
 
 const EditHighlightSection = styled('div')`
   margin-top: 25px;
-`;
-
-const EditHighlightSectionContent = styled('div')<{columnCount: number}>`
-  display: grid;
-  grid-template-columns: repeat(${p => p.columnCount}, minmax(0, 1fr));
 `;
 
 const EditHighlightColumn = styled('div')`

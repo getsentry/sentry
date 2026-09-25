@@ -10,12 +10,8 @@ import {hasEveryAccess} from 'sentry/components/acl/access';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {ContextCardContent} from 'sentry/components/events/contexts/contextCard';
 import {getContextMeta} from 'sentry/components/events/contexts/utils';
-import {
-  TreeColumn,
-  TreeContainer,
-} from 'sentry/components/events/eventTags/eventTagsTree';
+import {TreeColumn} from 'sentry/components/events/eventTags/eventTagsTree';
 import {EventTagsTreeRow} from 'sentry/components/events/eventTags/eventTagsTreeRow';
-import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
 import {EditHighlightsModal} from 'sentry/components/events/highlights/editHighlightsModal';
 import {
   EMPTY_HIGHLIGHT_DEFAULT,
@@ -29,8 +25,10 @@ import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {DetailedProject, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {splitIntoColumns} from 'sentry/utils/array/splitIntoColumns';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {useReplayData} from 'sentry/utils/replays/hooks/useReplayData';
+import {useContainerColumnCount} from 'sentry/utils/useContainerColumnCount';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/context';
@@ -123,7 +121,7 @@ function HighlightsData({highlightsProject, event, project}: HighlightsDataProps
   const organization = useOrganization();
   const location = useLocation();
   const containerRef = useRef<HTMLDivElement>(null);
-  const columnCount = useIssueDetailsColumnCount(containerRef);
+  const columnCount = useContainerColumnCount(containerRef);
   const {openEditHighlightsModal, editProps} = useOpenEditHighlightsModal({
     highlightsProject,
     event,
@@ -217,18 +215,14 @@ function HighlightsData({highlightsProject, event, project}: HighlightsDataProps
   ));
 
   const rows = [...highlightTagRows, ...highlightContextRows];
-  const columns: React.ReactNode[] = [];
-  const columnSize = Math.ceil(rows.length / columnCount);
-  for (let i = 0; i < rows.length; i += columnSize) {
-    columns.push(
-      <HighlightColumn key={`highlight-column-${i}`}>
-        {rows.slice(i, i + columnSize)}
-      </HighlightColumn>
-    );
-  }
 
   return (
-    <HighlightContainer columnCount={columnCount} ref={containerRef}>
+    <Grid
+      align="start"
+      columns={`repeat(${columnCount}, 1fr)`}
+      marginBottom="xl"
+      ref={containerRef}
+    >
       {hasDisabledHighlights ? (
         <EmptyHighlights align="center" justify="center">
           <EmptyHighlightsContent>
@@ -243,9 +237,11 @@ function HighlightsData({highlightsProject, event, project}: HighlightsDataProps
           </EmptyHighlightsContent>
         </EmptyHighlights>
       ) : (
-        columns
+        splitIntoColumns(rows, columnCount).map((column, index) => (
+          <HighlightColumn key={index}>{column}</HighlightColumn>
+        ))
       )}
-    </HighlightContainer>
+    </Grid>
   );
 }
 
@@ -289,13 +285,15 @@ export function HighlightsDataSection({event, project}: HighlightsDataSectionPro
 
 function HighlightsDataLoading() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const columnCount = useIssueDetailsColumnCount(containerRef);
+  const columnCount = useContainerColumnCount(containerRef);
 
   return (
-    <HighlightContainer
-      columnCount={columnCount}
-      ref={containerRef}
+    <Grid
+      align="start"
+      columns={`repeat(${columnCount}, 1fr)`}
       data-test-id="highlights-loading"
+      marginBottom="xl"
+      ref={containerRef}
     >
       {Array.from({length: columnCount}, (_, columnIndex) => (
         <HighlightColumn key={columnIndex}>
@@ -317,14 +315,9 @@ function HighlightsDataLoading() {
           ))}
         </HighlightColumn>
       ))}
-    </HighlightContainer>
+    </Grid>
   );
 }
-
-const HighlightContainer = styled(TreeContainer)<{columnCount: number}>`
-  margin-top: 0;
-  margin-bottom: ${p => p.theme.space.xl};
-`;
 
 const EmptyHighlights = styled(Flex)`
   padding: ${p => p.theme.space.xl} ${p => p.theme.space.md};

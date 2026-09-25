@@ -7,7 +7,6 @@ import {RevealOnHover} from '@sentry/scraps/revealOnHover';
 import {Text} from '@sentry/scraps/text';
 
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
-import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
 import {IconEllipsis, IconPin} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
@@ -15,6 +14,7 @@ import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {type RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {isValidUrl} from 'sentry/utils/string/isValidUrl';
+import {useContainerColumnCount} from 'sentry/utils/useContainerColumnCount';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
@@ -321,7 +321,7 @@ export function AttributesTree<RendererExtra extends RenderFunctionBaggage>(
   props: AttributesTreeProps<RendererExtra>
 ) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const widthBasedColumnCount = useIssueDetailsColumnCount(containerRef);
+  const widthBasedColumnCount = useContainerColumnCount(containerRef);
   const columnCount = props.columnCount ?? widthBasedColumnCount;
   return (
     <TreeContainer
