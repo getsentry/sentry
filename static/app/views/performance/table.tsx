@@ -11,6 +11,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {ColumnLabel} from 'sentry/components/tables/columnLabel';
 import type {GridColumn} from 'sentry/components/tables/gridEditable';
 import {COL_WIDTH_UNDEFINED, GridEditable} from 'sentry/components/tables/gridEditable';
 import {IconStar} from 'sentry/icons';
@@ -472,13 +473,8 @@ export function Table({
     column: TableColumn<keyof TableDataRow>,
     title: ColumnTitle
   ): React.ReactNode {
-    const label = title.title || column.name;
-    const content = title.tooltip ? (
-      <Tooltip title={title.tooltip} showUnderline>
-        {label}
-      </Tooltip>
-    ) : (
-      label
+    const content = (
+      <ColumnLabel column={{name: title.title || column.name}} tooltip={title.tooltip} />
     );
 
     return column.name.startsWith('user_misery') ? (

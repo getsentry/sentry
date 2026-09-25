@@ -15,6 +15,7 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
+import {ColumnLabel} from 'sentry/components/tables/columnLabel';
 import {
   COL_WIDTH_UNDEFINED,
   GridEditable,
@@ -43,10 +44,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
-import {
-  getColumnSort,
-  renderHeadCell,
-} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
+import {getColumnSort} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
 import {SpanIdCell} from 'sentry/views/insights/common/components/tableCells/spanIdCell';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
@@ -257,7 +255,7 @@ export function SampledEventsTable({
                 </Fragment>
               );
             }
-            return renderHeadCell({column});
+            return <ColumnLabel column={column} />;
           },
           renderBodyCell: (column, row) =>
             renderBodyCell(column, row, meta, location, navigate, organization, theme),
