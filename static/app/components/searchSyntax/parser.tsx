@@ -1162,7 +1162,7 @@ export class TokenConverter {
     if (invalidRegexReason) {
       return {
         type: InvalidReason.INVALID_REGEX,
-        reason: `${this.config.invalidMessages[InvalidReason.INVALID_REGEX]}: ${invalidRegexReason}`,
+        reason: `${this.config.invalidMessages[InvalidReason.INVALID_REGEX]}:\n${invalidRegexReason}`,
       };
     }
 

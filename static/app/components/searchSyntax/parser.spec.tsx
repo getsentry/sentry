@@ -702,7 +702,7 @@ describe('searchSyntax/parser', () => {
 
       expect(filter.invalid).toEqual({
         type: InvalidReason.INVALID_REGEX,
-        reason: 'Invalid regex (RE2 syntax): invalid or unsupported Perl syntax',
+        reason: 'Invalid regex (RE2 syntax):\ninvalid or unsupported Perl syntax',
       });
     });
 
