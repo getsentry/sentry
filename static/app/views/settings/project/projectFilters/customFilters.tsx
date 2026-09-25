@@ -98,11 +98,13 @@ type DataTypeSpec = {
   // type. Offering a data type without it lets the user build a filter the API
   // rejects on save, so mirror the gating here.
   feature?: string;
+  // Shown in the filter table, whose data type column already says "Data Type".
+  tableLabel?: string;
 };
 
 // Declaration order is the order of the data type dropdown.
 const DATA_TYPES: Record<FilterDataType, DataTypeSpec> = {
-  all: {label: t('All Data Types')},
+  all: {label: t('All Data Types'), tableLabel: t('All')},
   error: {label: t('Errors')},
   metric: {label: t('Metrics'), feature: 'tracemetrics-ingestion'},
   log: {label: t('Logs'), feature: 'ourlogs-ingestion'},
@@ -260,7 +262,8 @@ function getFilterDataType(filter: CustomInboundFilter): FilterDataType {
 
 function getDataTypeLabel(filter: CustomInboundFilter): string {
   const dataType = getFilterDataType(filter);
-  return DATA_TYPES[dataType]?.label ?? dataType;
+  const spec = DATA_TYPES[dataType];
+  return spec?.tableLabel ?? spec?.label ?? dataType;
 }
 
 // One editable row per condition, with its values one per line.
