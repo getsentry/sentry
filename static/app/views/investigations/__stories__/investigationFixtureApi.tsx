@@ -44,20 +44,21 @@ type InvestigationFixtureApiProps = {
 
 type FixtureApiConfig = Omit<InvestigationFixtureApiProps, 'children'>;
 
-type FixtureResponse = {
+export type FixtureResponse = {
   body: unknown;
   headers?: Record<string, string>;
 };
 
 type FixtureHandlerResult = Promise<FixtureResponse> | typeof NO_MATCH;
-type FixtureHandler = (
+export type FixtureHandler = (
   path: string,
   options: Readonly<RequestOptions> & {includeAllArgs?: boolean}
 ) => FixtureHandlerResult;
 
 type RequestPromise = typeof QUERY_API_CLIENT.requestPromise;
 
-const NO_MATCH = Symbol('NO_MATCH');
+/** Returned by a handler that does not own the request, so the next one runs. */
+export const NO_MATCH = Symbol('NO_MATCH');
 const fixtureHandlers = new Map<string, FixtureHandler>();
 let originalRequestPromise: RequestPromise | null = null;
 
@@ -78,20 +79,6 @@ export function InvestigationFixtureApi({
   pageLinks,
   titleGenerations = {},
 }: InvestigationFixtureApiProps) {
-  const outerOrganization = useOrganization();
-  const [queryClient] = useState(
-    () =>
-      new QueryClient({
-        ...DEFAULT_QUERY_CLIENT_CONFIG,
-        defaultOptions: {
-          ...DEFAULT_QUERY_CLIENT_CONFIG.defaultOptions,
-          queries: {
-            ...DEFAULT_QUERY_CLIENT_CONFIG.defaultOptions?.queries,
-            retry: false,
-          },
-        },
-      })
-  );
   const [handler] = useState(() =>
     createFixtureHandler({
       organizationSlug,
@@ -105,6 +92,61 @@ export function InvestigationFixtureApi({
       pageLinks,
       titleGenerations,
     })
+  );
+
+  return (
+    <InvestigationFixtureApiProvider
+      organizationSlug={organizationSlug}
+      handler={handler}
+      featureEnabled={featureEnabled}
+      openMembership={openMembership}
+    >
+      {children}
+    </InvestigationFixtureApiProvider>
+  );
+}
+
+type InvestigationFixtureApiProviderProps = {
+  children: ReactNode;
+  /**
+   * Serves every request the story makes. Returning {@link NO_MATCH} falls
+   * through to the next registered handler, and finally to the real client.
+   */
+  handler: FixtureHandler;
+  organizationSlug: string;
+  featureEnabled?: boolean;
+  openMembership?: boolean;
+};
+
+/**
+ * The plumbing every investigation story needs: a fixture organization, a
+ * story-scoped query client, and one handler installed on the API client for
+ * as long as the story is mounted.
+ *
+ * {@link InvestigationFixtureApi} pairs this with a handler backed by static
+ * fixtures; a handler can just as well resolve its responses from something
+ * else, such as the recorded run a replay story plays back.
+ */
+export function InvestigationFixtureApiProvider({
+  children,
+  handler,
+  organizationSlug,
+  featureEnabled = true,
+  openMembership = true,
+}: InvestigationFixtureApiProviderProps) {
+  const outerOrganization = useOrganization();
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        ...DEFAULT_QUERY_CLIENT_CONFIG,
+        defaultOptions: {
+          ...DEFAULT_QUERY_CLIENT_CONFIG.defaultOptions,
+          queries: {
+            ...DEFAULT_QUERY_CLIENT_CONFIG.defaultOptions?.queries,
+            retry: false,
+          },
+        },
+      })
   );
   const [ready, setReady] = useState(false);
   const organization = {
