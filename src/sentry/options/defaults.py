@@ -2532,6 +2532,11 @@ register("hybridcloud.regionsiloclient.retries", default=5, flags=FLAG_AUTOMATOR
 register("hybridcloud.rpc.retries", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("hybridcloud.integrationproxy.retries", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register(
+    "hybridcloud.integration_proxy.raise_on_stream_interrupt",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "hybridcloud.rpc.method_retry_overrides",
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
