@@ -18,4 +18,4 @@ def emit_evaluations(
     emit_evaluation_logs(organization, result)
 
     if features.has("organizations:workflow-engine-evaluation-artifacts-eap", organization):
-        emit_evaluation_to_eap(result)
+        emit_evaluation_to_eap(organization, result)
