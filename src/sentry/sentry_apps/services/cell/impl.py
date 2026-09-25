@@ -17,6 +17,7 @@ from sentry.issues.action_log.types import (
     LinkPlatformExternalIssueAction,
     UnlinkPlatformExternalIssueAction,
 )
+from sentry.locks import locks
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -48,6 +49,7 @@ from sentry.sentry_apps.utils.errors import (
 )
 from sentry.tsdb.base import TSDBModel
 from sentry.users.services.user import RpcUser
+from sentry.utils.locking import UnableToAcquireLock
 
 COMPONENT_TYPES = ["stacktrace-link", "issue-link"]
 
@@ -303,18 +305,19 @@ class DatabaseBackedSentryAppCellService(SentryAppCellService):
         """
         Matches: src/sentry/sentry_apps/api/endpoints/installation_external_issue_details.py @ DELETE
         """
+        external_issues = PlatformExternalIssue.objects.select_related(
+            "group",
+            "group__project",
+            "group__project__organization",
+            "project",
+            "project__organization",
+        ).filter(
+            id=external_issue_id,
+            group__project__organization_id=organization_id,
+            service_type=installation.sentry_app.slug,
+        )
         try:
-            platform_external_issue = PlatformExternalIssue.objects.select_related(
-                "group",
-                "group__project",
-                "group__project__organization",
-                "project",
-                "project__organization",
-            ).get(
-                id=external_issue_id,
-                group__project__organization_id=organization_id,
-                service_type=installation.sentry_app.slug,
-            )
+            platform_external_issue = external_issues.get()
         except PlatformExternalIssue.DoesNotExist:
             return RpcEmptyResult(
                 success=False,
@@ -349,19 +352,45 @@ class DatabaseBackedSentryAppCellService(SentryAppCellService):
                 ),
             )
 
-        publish_action(
-            UnlinkPlatformExternalIssueAction(
-                service_type=platform_external_issue.service_type,
-                display_name=platform_external_issue.display_name,
-                web_url=platform_external_issue.web_url,
-            ),
-            source=ActionSource.API,
-            group_id=platform_external_issue.group_id,
-            project=issue_project,
-            actor=_get_external_issue_action_actor(installation, user),
-        )
+        try:
+            lock = locks.get(
+                f"platform-external-issue-link:{platform_external_issue.group_id}:{platform_external_issue.service_type}",
+                duration=300,
+                name="platform_external_issue_link",
+            ).acquire()
+        except UnableToAcquireLock:
+            return RpcEmptyResult(
+                success=False,
+                error=RpcSentryAppError(
+                    message="This issue link is being updated. Try again.", status_code=409
+                ),
+            )
 
-        deletions.exec_sync(platform_external_issue)
+        with lock:
+            try:
+                platform_external_issue = external_issues.get()
+            except PlatformExternalIssue.DoesNotExist:
+                return RpcEmptyResult(
+                    success=False,
+                    error=RpcSentryAppError(
+                        message="Could not find the corresponding external issue from given external_issue_id",
+                        status_code=404,
+                    ),
+                )
+
+            publish_action(
+                UnlinkPlatformExternalIssueAction(
+                    service_type=platform_external_issue.service_type,
+                    display_name=platform_external_issue.display_name,
+                    web_url=platform_external_issue.web_url,
+                ),
+                source=ActionSource.API,
+                group_id=platform_external_issue.group_id,
+                project=issue_project,
+                actor=_get_external_issue_action_actor(installation, user),
+            )
+
+            deletions.exec_sync(platform_external_issue)
 
         return RpcEmptyResult()
 
