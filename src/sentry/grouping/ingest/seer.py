@@ -174,7 +174,8 @@ def _event_content_is_seer_eligible(event: Event) -> bool:
 def _stacktrace_exceeds_limits(
     event: Event, variants: dict[str, BaseVariant], training_mode: bool = False
 ) -> bool:
-    if stacktrace_exceeds_limits(event, variants, ReferrerOptions.INGEST):
+    model_version = get_grouping_model_version(event.project)
+    if stacktrace_exceeds_limits(event, variants, ReferrerOptions.INGEST, model_version):
         record_did_call_seer_metric(
             event, call_made=False, blocker="stacktrace-too-long", training_mode=training_mode
         )
@@ -309,7 +310,7 @@ def _build_seer_request(
         get_stacktrace_string(get_grouping_info_from_variants_legacy(variants)),
     )
 
-    model_version = get_grouping_model_version()
+    model_version = get_grouping_model_version(event.project)
 
     request_data: SimilarIssuesEmbeddingsRequest = {
         "event_id": event.event_id,
@@ -672,7 +673,7 @@ def maybe_check_seer_for_matching_grouphash(
 
             timestamp = timezone.now()
 
-            model_version = get_grouping_model_version()
+            model_version = get_grouping_model_version(event.project)
 
             gh_metadata.update(
                 # Technically the time of the metadata record creation and the time of the Seer
@@ -703,10 +704,10 @@ def maybe_send_seer_for_new_model_training(
     variants: dict[str, BaseVariant],
 ) -> None:
     """
-    Send a training_mode=true request to Seer for the current non-stable model
+    Send a training_mode=true request to Seer for the project's current non-stable model
     version if the existing grouphash hasn't been sent to that version yet.
 
-    This only happens while a next model is configured. It helps
+    This only happens for projects using the configured next model. It helps
     build data for existing groups without affecting production grouping decisions.
 
     Args:
@@ -720,7 +721,7 @@ def maybe_send_seer_for_new_model_training(
         gh_metadata.seer_latest_training_model if gh_metadata else None
     )
 
-    if not should_send_to_seer_for_training(grouphash_seer_latest_training_model):
+    if not should_send_to_seer_for_training(event.project, grouphash_seer_latest_training_model):
         return
 
     # Honor all checks like rate limits, circuit breaker, etc.
@@ -771,4 +772,6 @@ def maybe_send_seer_for_new_model_training(
     # We update seer_latest_training_model (not seer_model) to preserve the original
     # grouping decision metadata.
     if gh_metadata:
-        gh_metadata.update(seer_latest_training_model=get_grouping_model_version().value)
+        gh_metadata.update(
+            seer_latest_training_model=get_grouping_model_version(event.project).value
+        )

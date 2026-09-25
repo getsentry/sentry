@@ -98,13 +98,13 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
         latest_event = group.get_latest_event()
         stacktrace_string = ""
 
-        model_version = get_grouping_model_version()
+        model_version = get_grouping_model_version(group.project)
 
         if latest_event and event_content_has_stacktrace(latest_event):
             variants = latest_event.get_grouping_variants(normalize_stacktraces=True)
 
             if not stacktrace_exceeds_limits(
-                latest_event, variants, ReferrerOptions.SIMILAR_ISSUES_TAB
+                latest_event, variants, ReferrerOptions.SIMILAR_ISSUES_TAB, model_version
             ):
                 grouping_info = get_grouping_info_from_variants_legacy(variants)
                 try:

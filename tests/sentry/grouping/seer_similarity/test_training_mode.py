@@ -26,6 +26,50 @@ class MaybeSendSeerForNewModelTrainingTest(TestCase):
             maybe_send_seer_for_new_model_training(self.event, self.grouphash, self.variants)
             mock_get_similarity_data.assert_not_called()
 
+    def test_training_respects_each_projects_selected_model(self) -> None:
+        stable_project = self.create_project()
+        stable_event = save_new_event({"message": "Still on the stable model"}, stable_project)
+        stable_grouphash = GroupHash.objects.get(
+            hash=stable_event.get_primary_hash(), project_id=stable_project.id
+        )
+        selected_versions = {
+            self.project.id: GroupingVersion.V2_1,
+            stable_project.id: GroupingVersion.V1,
+        }
+
+        with (
+            patch("sentry.seer.similarity.config.SEER_GROUPING_STABLE_VERSION", GroupingVersion.V1),
+            patch("sentry.seer.similarity.config.SEER_GROUPING_NEXT_VERSION", GroupingVersion.V2_1),
+            patch(
+                "sentry.seer.similarity.config.get_grouping_model_version",
+                side_effect=lambda project: selected_versions[project.id],
+            ) as select_model,
+            patch("sentry.grouping.ingest.seer.get_grouping_model_version", select_model),
+            patch("sentry.grouping.ingest.seer.should_call_seer_for_grouping", return_value=True),
+            patch(
+                "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
+                return_value=([], "v2.1"),
+            ) as get_similarity_data,
+        ):
+            maybe_send_seer_for_new_model_training(self.event, self.grouphash, self.variants)
+            maybe_send_seer_for_new_model_training(
+                stable_event, stable_grouphash, stable_event.get_grouping_variants()
+            )
+
+        get_similarity_data.assert_called_once()
+        payload = get_similarity_data.call_args.args[0]
+        assert payload["project_id"] == self.project.id
+        assert payload["model"] == GroupingVersion.V2_1
+        assert payload["training_mode"] is True
+        assert (
+            GroupHashMetadata.objects.get(grouphash=self.grouphash).seer_latest_training_model
+            == "v2.1"
+        )
+        assert (
+            GroupHashMetadata.objects.get(grouphash=stable_grouphash).seer_latest_training_model
+            is None
+        )
+
     def test_does_not_retrain_old_hash_after_promotion(self) -> None:
         metadata, _ = GroupHashMetadata.objects.get_or_create(grouphash=self.grouphash)
         metadata.seer_model = "v1"

@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, Mock, patch
 
 from sentry.grouping.api import get_contributing_variant_and_component
 from sentry.grouping.variants import BaseVariant, CustomFingerprintVariant
+from sentry.seer.similarity.types import GroupingVersion
 from sentry.seer.similarity.utils import (
     BASE64_ENCODED_PREFIXES,
     IGNORED_FILENAMES,
@@ -884,7 +885,12 @@ class StacktraceExceedsLimitsTest(TestCase):
             variants = self.event.get_grouping_variants(normalize_stacktraces=True)
 
             # Should pass because string length (50 chars) < max_token_count (10000)
-            assert stacktrace_exceeds_limits(self.event, variants, ReferrerOptions.INGEST) is False
+            assert (
+                stacktrace_exceeds_limits(
+                    self.event, variants, ReferrerOptions.INGEST, GroupingVersion.V2_1
+                )
+                is False
+            )
 
     def test_blocks_when_token_count_exceeds_limit(self) -> None:
         """
@@ -899,7 +905,12 @@ class StacktraceExceedsLimitsTest(TestCase):
             variants = self.event.get_grouping_variants(normalize_stacktraces=True)
 
             # Should be blocked because token count will exceed 100
-            assert stacktrace_exceeds_limits(self.event, variants, ReferrerOptions.INGEST) is True
+            assert (
+                stacktrace_exceeds_limits(
+                    self.event, variants, ReferrerOptions.INGEST, GroupingVersion.V2_1
+                )
+                is True
+            )
 
     def test_passes_when_string_long_but_tokens_under_limit(self) -> None:
         """
@@ -918,7 +929,12 @@ class StacktraceExceedsLimitsTest(TestCase):
             variants = self.event.get_grouping_variants(normalize_stacktraces=True)
 
             # Should pass because token count is under the limit despite long string
-            assert stacktrace_exceeds_limits(self.event, variants, ReferrerOptions.INGEST) is False
+            assert (
+                stacktrace_exceeds_limits(
+                    self.event, variants, ReferrerOptions.INGEST, GroupingVersion.V2_1
+                )
+                is False
+            )
 
     def test_uses_cached_stacktrace_string(self) -> None:
         """
@@ -932,7 +948,9 @@ class StacktraceExceedsLimitsTest(TestCase):
             variants = self.event.get_grouping_variants(normalize_stacktraces=True)
 
             with patch("sentry.seer.similarity.utils.get_stacktrace_string") as mock_get_stacktrace:
-                stacktrace_exceeds_limits(self.event, variants, ReferrerOptions.INGEST)
+                stacktrace_exceeds_limits(
+                    self.event, variants, ReferrerOptions.INGEST, GroupingVersion.V2_1
+                )
                 # Should not call get_stacktrace_string since we have cached value
                 mock_get_stacktrace.assert_not_called()
 
@@ -949,7 +967,12 @@ class StacktraceExceedsLimitsTest(TestCase):
             variants = self.event.get_grouping_variants(normalize_stacktraces=True)
 
             # No cached stacktrace_string, so it should generate one
-            assert stacktrace_exceeds_limits(self.event, variants, ReferrerOptions.INGEST) is False
+            assert (
+                stacktrace_exceeds_limits(
+                    self.event, variants, ReferrerOptions.INGEST, GroupingVersion.V2_1
+                )
+                is False
+            )
 
     def test_ignores_events_not_grouped_on_stacktrace(self) -> None:
         """
@@ -966,7 +989,12 @@ class StacktraceExceedsLimitsTest(TestCase):
             assert isinstance(contributing_variant, CustomFingerprintVariant)
 
             # Should return False because it's not grouped on stacktrace
-            assert stacktrace_exceeds_limits(self.event, variants, ReferrerOptions.INGEST) is False
+            assert (
+                stacktrace_exceeds_limits(
+                    self.event, variants, ReferrerOptions.INGEST, GroupingVersion.V2_1
+                )
+                is False
+            )
 
     def test_previously_bypassed_platforms_obey_length_limit(self) -> None:
         for platform in ["python", "javascript", "node", "go", "php", "ruby"]:
@@ -980,7 +1008,10 @@ class StacktraceExceedsLimitsTest(TestCase):
                 variants = self.event.get_grouping_variants(normalize_stacktraces=True)
 
                 assert (
-                    stacktrace_exceeds_limits(self.event, variants, ReferrerOptions.INGEST) is True
+                    stacktrace_exceeds_limits(
+                        self.event, variants, ReferrerOptions.INGEST, GroupingVersion.V2_1
+                    )
+                    is True
                 )
 
 

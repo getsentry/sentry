@@ -27,6 +27,7 @@ from sentry.seer.autofix.utils import (
     is_seer_seat_based_tier_enabled,
     update_seer_project_settings,
 )
+from sentry.seer.similarity.types import GroupingVersion
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.utils import metrics
 from sentry.utils.safe import get_path
@@ -332,6 +333,7 @@ def stacktrace_exceeds_limits(
     event: Event | GroupEvent,
     variants: dict[str, BaseVariant],
     referrer: ReferrerOptions,
+    model_version: GroupingVersion,
 ) -> bool:
     """
     Check if a stacktrace exceeds length limits for Seer similarity analysis.
