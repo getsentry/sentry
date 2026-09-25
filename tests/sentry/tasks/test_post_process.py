@@ -83,7 +83,7 @@ from sentry.uptime.autodetect.ranking import get_organization_bucket_key
 from sentry.uptime.utils import get_cluster
 from sentry.users.services.user.service import user_service
 from sentry.utils import json
-from sentry.utils.cache import cache
+from sentry.utils.cache import cache, cache_key_for_event
 from sentry.utils.sdk_crashes.sdk_crash_detection_config import SdkName
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
@@ -3501,6 +3501,195 @@ class PostProcessGroupErrorTest(
     PipelineKillswitchTestMixin,
     CheckIfFlagsSentTestMixin,
 ):
+    @override_options(
+        {
+            "post_process.require-pending-token": True,
+            "post_process.read-from-nodestore-sample-rate": 0.5,
+            "post_process.delete-processing-store-in-save-event": True,
+        }
+    )
+    @patch("sentry.options.rollout.random.random", return_value=0.25)
+    @patch("sentry.tasks.post_process.run_post_process_job")
+    def test_reads_processed_event_from_nodestore_once(
+        self, mock_run_post_process_job: MagicMock, mock_random: MagicMock
+    ) -> None:
+        event = self.create_event(
+            data={"message": "from nodestore", "tags": [["source", "nodestore"]]},
+            project_id=self.project.id,
+        )
+        cache_key = cache_key_for_event({"event_id": event.event_id, "project": event.project_id})
+
+        with (
+            patch.object(event_processing_store, "get") as mock_processing_store_get,
+            patch.object(event_processing_store, "delete_by_key") as mock_processing_store_delete,
+        ):
+            for _ in range(2):
+                post_process_group(
+                    is_new=True,
+                    is_regression=False,
+                    is_new_group_environment=True,
+                    cache_key=cache_key,
+                    group_id=event.group_id,
+                    project_id=event.project_id,
+                    event_id=event.event_id,
+                )
+
+        mock_processing_store_get.assert_not_called()
+        mock_processing_store_delete.assert_not_called()
+        assert mock_random.call_count == 2
+        mock_run_post_process_job.assert_called_once()
+        assert ["source", "nodestore"] in mock_run_post_process_job.call_args.args[0]["event"].data[
+            "tags"
+        ]
+
+    @override_options(
+        {
+            "post_process.require-pending-token": True,
+            "post_process.read-from-nodestore-sample-rate": 0.5,
+        }
+    )
+    @patch("sentry.options.rollout.random.random", return_value=0.75)
+    @patch("sentry.tasks.post_process.run_post_process_job")
+    def test_unsampled_event_reads_processing_store(
+        self, mock_run_post_process_job: MagicMock, mock_random: MagicMock
+    ) -> None:
+        event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
+        cache_key = write_event_to_cache(event)
+
+        with patch.object(
+            event_processing_store, "get", wraps=event_processing_store.get
+        ) as mock_processing_store_get:
+            post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=True,
+                cache_key=cache_key,
+                group_id=event.group_id,
+                project_id=event.project_id,
+                event_id=event.event_id,
+            )
+
+        mock_random.assert_called_once()
+        mock_processing_store_get.assert_called_once_with(cache_key)
+        mock_run_post_process_job.assert_called_once()
+
+    @override_options(
+        {
+            "post_process.require-pending-token": True,
+            "post_process.read-from-nodestore-sample-rate": 1.0,
+        }
+    )
+    @patch("sentry.tasks.post_process.run_post_process_job")
+    def test_missing_event_id_uses_processing_store(
+        self, mock_run_post_process_job: MagicMock
+    ) -> None:
+        event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
+        cache_key = write_event_to_cache(event)
+
+        with patch.object(
+            event_processing_store, "get", wraps=event_processing_store.get
+        ) as mock_processing_store_get:
+            post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=True,
+                cache_key=cache_key,
+                group_id=event.group_id,
+                project_id=event.project_id,
+            )
+
+        mock_processing_store_get.assert_called_once_with(cache_key)
+        mock_run_post_process_job.assert_called_once()
+
+    @override_options(
+        {
+            "post_process.require-pending-token": True,
+            "post_process.read-from-nodestore-sample-rate": 0.5,
+        }
+    )
+    @patch("sentry.options.rollout.random.random", side_effect=[0.75, 0.25])
+    @patch("sentry.tasks.post_process.run_post_process_job")
+    def test_token_suppresses_replay_across_payload_stores(
+        self, mock_run_post_process_job: MagicMock, mock_random: MagicMock
+    ) -> None:
+        event = self.create_event(data={}, project_id=self.project.id)
+        cache_key = write_event_to_cache(event)
+        kwargs = dict(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            cache_key=cache_key,
+            group_id=event.group_id,
+            project_id=event.project_id,
+            event_id=event.event_id,
+        )
+
+        post_process_group(**kwargs)
+        post_process_group(**kwargs)
+
+        assert mock_random.call_count == 2
+        mock_run_post_process_job.assert_called_once()
+
+    @override_options({"post_process.require-pending-token": True})
+    @patch("sentry.tasks.post_process.run_post_process_job")
+    def test_missing_token_skips_without_deleting_payload(
+        self, mock_run_post_process_job: MagicMock
+    ) -> None:
+        event = self.create_event(data={}, project_id=self.project.id)
+        assert post_process_module.consume_post_process_token(event.project_id, event.event_id)
+        cache_key = write_event_to_cache(event)
+
+        self.call_post_process_group(True, False, True, event, cache_key)
+
+        mock_run_post_process_job.assert_not_called()
+        assert event_processing_store.get(cache_key) is not None
+
+    @override_options({"post_process.read-from-nodestore-sample-rate": 1.0})
+    @patch("sentry.tasks.post_process.run_post_process_job")
+    def test_token_warmup_uses_redis_and_allows_legacy_tasks(
+        self, mock_run_post_process_job: MagicMock
+    ) -> None:
+        event = self.create_event(data={}, project_id=self.project.id)
+        cache_key = write_event_to_cache(event)
+        kwargs = dict(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            cache_key=cache_key,
+            group_id=event.group_id,
+            project_id=event.project_id,
+            event_id=event.event_id,
+        )
+        with patch.object(
+            event_processing_store, "get", wraps=event_processing_store.get
+        ) as mock_get:
+            post_process_group(**kwargs)
+        mock_get.assert_called_once_with(cache_key)
+        assert not post_process_module.consume_post_process_token(event.project_id, event.event_id)
+
+        # Old producers have no token. Redis remains the gate during warmup.
+        write_event_to_cache(event)
+        post_process_group(**kwargs)
+        assert mock_run_post_process_job.call_count == 2
+
+    @override_options({"post_process.require-pending-token": True})
+    @patch("sentry.tasks.post_process.run_post_process_job")
+    def test_token_redis_error_propagates(self, mock_run_post_process_job: MagicMock) -> None:
+        event = self.create_event(data={}, project_id=self.project.id)
+        cache_key = write_event_to_cache(event)
+        with (
+            patch.object(
+                post_process_module,
+                "consume_post_process_token",
+                side_effect=RuntimeError("Redis unavailable"),
+            ),
+            pytest.raises(RuntimeError, match="Redis unavailable"),
+        ):
+            self.call_post_process_group(True, False, True, event, cache_key)
+
+        mock_run_post_process_job.assert_not_called()
+        assert event_processing_store.get(cache_key) is not None
+
     @patch("sentry.seer.autofix.utils.is_seer_seat_based_tier_enabled", return_value=True)
     @patch("sentry.tasks.seer.autofix.generate_issue_summary_only.delay")
     @with_feature({"organizations:gen-ai-features": True})

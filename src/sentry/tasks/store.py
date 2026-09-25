@@ -544,6 +544,10 @@ def _do_save_event(
     else:
         processing_store = processing.event_processing_store
 
+    delete_processing_store_in_save_event = options.get(
+        "post_process.delete-processing-store-in-save-event"
+    )
+
     if cache_key and data is None:
         data = processing_store.get(cache_key)
         if data is not None:
@@ -618,16 +622,15 @@ def _do_save_event(
                     cache_key=cache_key,
                     attachments=attachments,
                 )
-                # Put the updated event back into the cache so that post_process
-                # has the most recent data.
-
                 # We don't need to update the event in the processing_store for transaction events
                 # because they're not used in post_process.
                 if consumer_type != ConsumerType.Transactions:
                     data = manager.get_data()
                     if not isinstance(data, dict):
                         data = dict(data.items())
-                    processing_store.store(data)
+                    if not delete_processing_store_in_save_event:
+                        # Post-process still needs the updated payload in Redis.
+                        processing_store.store(data)
 
         except HashDiscarded:
             # Delete the event payload from cache since it won't show up in post-processing.
@@ -642,11 +645,15 @@ def _do_save_event(
             raise
 
         finally:
-            if consumer_type == ConsumerType.Transactions and event_id:
-                # we won't use the transaction data in post_process
-                # so we can delete it from the cache now.
-                if cache_key:
-                    processing_store.delete_by_key(cache_key)
+            if cache_key and (
+                (consumer_type == ConsumerType.Transactions and event_id)
+                or delete_processing_store_in_save_event
+            ):
+                # NB: Delete even on errors (above). There is no retry policy on
+                # save_event tasks.
+                processing_store.delete_by_key(cache_key)
+
+                if consumer_type == ConsumerType.Transactions:
                     track_sampled_event(
                         data["event_id"],
                         ConsumerType.Transactions,
