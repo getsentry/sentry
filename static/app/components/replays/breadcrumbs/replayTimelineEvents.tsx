@@ -177,7 +177,7 @@ function Event({
 
   return (
     <IconPosition style={{marginLeft: `${markerWidth / 2}px`}}>
-      <Tooltip title={title} maxWidth={tooltipWidth} containerDisplayMode="grid">
+      <Tooltip title={title} maxWidth="none" containerDisplayMode="grid">
         <IconNode
           colorTokens={sortedUniqueColorTokens}
           frameCount={frameCount}
