@@ -59,11 +59,13 @@ function renderTitle({
     ...dashboardOverrides,
   });
   const onRename = jest.fn();
+  const onDelete = jest.fn();
 
   render(
     <DashboardBreadcrumbTitle
       dashboard={dashboard}
       isPreview={false}
+      onDelete={onDelete}
       onRename={onRename}
       onChangeEditAccess={jest.fn()}
     />,
@@ -71,7 +73,7 @@ function renderTitle({
   );
   renderGlobalModal();
 
-  return {onRename};
+  return {onRename, onDelete};
 }
 
 async function openActionsMenu() {
@@ -187,6 +189,39 @@ describe('DashboardBreadcrumbTitle rename', () => {
 
     expect(
       await screen.findByText('Please set a title for this dashboard')
+    ).toBeInTheDocument();
+    expect(updateMock).not.toHaveBeenCalled();
+    expect(onRename).not.toHaveBeenCalled();
+  });
+
+  it('caps typed input at the length the backend accepts', async () => {
+    renderTitle();
+
+    const dialog = await openRenameModal();
+    const input = within(dialog).getByRole('textbox');
+    await userEvent.clear(input);
+    await userEvent.paste('a'.repeat(300));
+
+    expect(input).toHaveValue('a'.repeat(255));
+  });
+
+  it('rejects a title that was already over the limit when opened', async () => {
+    const updateMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/1/',
+      method: 'PUT',
+      body: {},
+    });
+
+    // `maxLength` only governs what gets typed in, so a title that arrived
+    // over the limit would otherwise submit unchanged and 400 with no
+    // explanation attached to the field.
+    const {onRename} = renderTitle({dashboard: {title: 'a'.repeat(300)}});
+
+    const dialog = await openRenameModal();
+    await userEvent.click(within(dialog).getByRole('button', {name: 'Save Changes'}));
+
+    expect(
+      await screen.findByText('Dashboard names cannot be longer than 255 characters')
     ).toBeInTheDocument();
     expect(updateMock).not.toHaveBeenCalled();
     expect(onRename).not.toHaveBeenCalled();
@@ -350,5 +385,89 @@ describe('DashboardBreadcrumbTitle revision history', () => {
     await openRevisionHistory();
 
     expect(await screen.findAllByRole('radio')).toHaveLength(11);
+  });
+});
+
+describe('DashboardBreadcrumbTitle delete', () => {
+  afterEach(() => {
+    MockApiClient.clearMockResponses();
+  });
+
+  it('deletes the dashboard once confirmed', async () => {
+    const {onDelete} = renderTitle();
+
+    await openActionsMenu();
+    await userEvent.click(
+      await screen.findByRole('menuitemradio', {name: 'Delete Dashboard'})
+    );
+
+    const dialog = await screen.findByRole('dialog');
+    await userEvent.click(within(dialog).getByRole('button', {name: 'Confirm'}));
+
+    expect(onDelete).toHaveBeenCalled();
+  });
+
+  it('does not delete when the confirmation is dismissed', async () => {
+    const {onDelete} = renderTitle();
+
+    await openActionsMenu();
+    await userEvent.click(
+      await screen.findByRole('menuitemradio', {name: 'Delete Dashboard'})
+    );
+
+    const dialog = await screen.findByRole('dialog');
+    await userEvent.click(within(dialog).getByRole('button', {name: 'Cancel'}));
+
+    expect(onDelete).not.toHaveBeenCalled();
+  });
+
+  it('offers delete on a prebuilt dashboard but disabled', async () => {
+    renderTitle({dashboard: {prebuiltId: PrebuiltDashboardId.WEB_VITALS}});
+
+    await openActionsMenu();
+
+    expect(
+      await screen.findByRole('menuitemradio', {name: 'Delete Dashboard'})
+    ).toHaveAttribute('aria-disabled', 'true');
+  });
+
+  it('still offers delete on a prebuilt dashboard with no id yet', async () => {
+    renderTitle({
+      dashboard: {id: '', prebuiltId: PrebuiltDashboardId.WEB_VITALS},
+    });
+
+    await openActionsMenu();
+
+    // The id-less guard exists for a dashboard that was never saved. A prebuilt
+    // one always has a record behind it, so it keeps the entry either way.
+    expect(
+      await screen.findByRole('menuitemradio', {name: 'Delete Dashboard'})
+    ).toHaveAttribute('aria-disabled', 'true');
+  });
+
+  it('does not offer delete on a dashboard that has never been saved', async () => {
+    renderTitle({dashboard: {id: ''}});
+
+    await openActionsMenu();
+
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'Delete Dashboard'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('does not offer delete without edit access', async () => {
+    renderTitle({
+      organization: {access: ['org:read'], features: ['dashboards-edit']},
+      dashboard: {
+        createdBy: UserFixture({id: '99', email: 'someone-else@example.com'}),
+        permissions: {isEditableByEveryone: false, teamsWithEditAccess: []},
+      },
+    });
+
+    await openActionsMenu();
+
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'Delete Dashboard'})
+    ).not.toBeInTheDocument();
   });
 });

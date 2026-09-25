@@ -23,7 +23,7 @@ export interface RenameableDashboard {
   title: string;
 }
 
-// Matches the `title` column on the backend serializer.
+// Matches `max_length` on the backend serializer, which 400s past it.
 const MAX_TITLE_LENGTH = 255;
 
 const schema = z.object({
@@ -31,7 +31,10 @@ const schema = z.object({
     .string()
     .trim()
     .min(1, t('Please set a title for this dashboard'))
-    .max(MAX_TITLE_LENGTH),
+    .max(
+      MAX_TITLE_LENGTH,
+      t('Dashboard names cannot be longer than %s characters', MAX_TITLE_LENGTH)
+    ),
 });
 
 interface RenameDashboardModalProps extends ModalRenderProps {

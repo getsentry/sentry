@@ -1194,6 +1194,7 @@ class DashboardDetail extends Component<Props, State> {
                 <DashboardBreadcrumbTitle
                   dashboard={modifiedDashboard ?? dashboard}
                   isPreview={this.isPreview}
+                  onDelete={this.onDelete(dashboard)}
                   onRename={this.onRename}
                   onChangeEditAccess={this.onChangeEditAccess}
                 />
@@ -1321,7 +1322,6 @@ class DashboardDetail extends Component<Props, State> {
                       onCancel={this.onCancel}
                       onCommit={this.onCommit}
                       onAddWidget={this.onAddWidget}
-                      onDelete={this.onDelete(dashboard)}
                       dashboardState={dashboardState}
                       widgetLimitReached={widgetLimitReached}
                       isSaving={isCommittingChanges}

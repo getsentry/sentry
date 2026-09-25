@@ -10,13 +10,14 @@ import {openConfirmModal} from 'sentry/components/confirm';
 import {
   IconClock,
   IconCopy,
+  IconDelete,
   IconDownload,
   IconEllipsis,
   IconGroup,
   IconInput,
   IconStar,
 } from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
@@ -32,7 +33,11 @@ import {useOpenEditAccessModal} from 'sentry/views/dashboards/editAccessModal';
 import {exportDashboard} from 'sentry/views/dashboards/exportDashboard';
 import {useDuplicateDashboard} from 'sentry/views/dashboards/hooks/useDuplicateDashboard';
 import {useOpenRenameDashboardModal} from 'sentry/views/dashboards/renameDashboardModal';
-import type {DashboardDetails, DashboardPermissions} from 'sentry/views/dashboards/types';
+import {
+  PREBUILT_DASHBOARD_LABEL,
+  type DashboardDetails,
+  type DashboardPermissions,
+} from 'sentry/views/dashboards/types';
 import {checkUserHasEditAccess} from 'sentry/views/dashboards/utils/checkUserHasEditAccess';
 
 /**
@@ -80,9 +85,12 @@ interface DashboardBreadcrumbTitleProps {
    */
   onRename: (title: string) => void;
   onChangeEditAccess?: (newDashboardPermissions: DashboardPermissions) => void;
+  /** Deletes the dashboard and navigates away. Omitted where there is nothing to delete. */
+  onDelete?: () => void;
 }
 
 function DashboardTitle({
+  canDelete,
   canRename,
   dashboard,
   duplicateDashboard,
@@ -92,12 +100,14 @@ function DashboardTitle({
   isPersisted,
   isPrebuiltDashboard,
   canViewRevisions,
+  onDelete,
   onToggleFavorite,
   openDashboardRevisions,
   openEditAccess,
   openRename,
   organization,
 }: {
+  canDelete: boolean;
   canRename: boolean;
   canViewRevisions: boolean;
   dashboard: DashboardDetails;
@@ -112,6 +122,7 @@ function DashboardTitle({
   organization: Organization;
   duplicateDisabledReason?: ReactNode;
   isDuplicateDisabled?: boolean;
+  onDelete?: () => void;
 }) {
   const renameItem = {
     key: 'rename',
@@ -153,6 +164,25 @@ function DashboardTitle({
   // A dashboard that has not been saved yet has no id, and every action here
   // but renaming needs one — `exportDashboard` even reads the id back out of
   // the URL, which on /dashboards/new/ has none to find.
+  const deleteItem: MenuItemProps = {
+    key: 'delete',
+    label: t('Delete Dashboard'),
+    leadingItems: <IconDelete />,
+    priority: 'danger',
+    disabled: isPrebuiltDashboard,
+    tooltip: isPrebuiltDashboard
+      ? tct('[label] dashboards cannot be deleted', {label: PREBUILT_DASHBOARD_LABEL})
+      : undefined,
+    onAction: () => {
+      openConfirmModal({
+        message: tct('Are you sure you want to delete the [title] dashboard?', {
+          title: <strong>{dashboard.title}</strong>,
+        }),
+        priority: 'danger',
+        onConfirm: onDelete,
+      });
+    },
+  };
   const menuItems = [
     ...(canRename ? [renameItem] : []),
     ...(isPrebuiltDashboard ? [duplicateItem] : []),
@@ -161,6 +191,7 @@ function DashboardTitle({
     ...(organization.features.includes('dashboards-import') && isPersisted
       ? [exportItem]
       : []),
+    ...(canDelete ? [deleteItem] : []),
   ];
 
   return (
@@ -200,6 +231,7 @@ function DashboardTitle({
 export function DashboardBreadcrumbTitle({
   dashboard,
   isPreview,
+  onDelete,
   onRename,
   onChangeEditAccess,
 }: DashboardBreadcrumbTitleProps) {
@@ -236,17 +268,26 @@ export function DashboardBreadcrumbTitle({
   }
 
   const isPrebuiltDashboard = defined(dashboard.prebuiltId);
+  const hasEditAccess = checkUserHasEditAccess(
+    currentUser,
+    userTeams,
+    organization,
+    dashboard.permissions,
+    dashboard.createdBy
+  );
   // A prebuilt dashboard's title is fixed — the backend rejects a change to it.
-  const canRename =
-    !isPrebuiltDashboard &&
-    checkUserHasEditAccess(
-      currentUser,
-      userTeams,
-      organization,
-      dashboard.permissions,
-      dashboard.createdBy
-    );
+  const canRename = !isPrebuiltDashboard && hasEditAccess;
   const isPersisted = Boolean(dashboard.id);
+  // Deleting used to sit behind the Edit button, which `controls.tsx` already
+  // gates on edit access. Surfacing it here has to keep that gate, or moving it
+  // would hand the action to people who could not reach it before.
+  //
+  // Otherwise this matches the manage table: prebuilt dashboards keep the entry
+  // but disabled, since the endpoint refuses to delete them. The only case the
+  // table never meets is a dashboard that has yet to be saved, which has
+  // nothing to delete — a prebuilt one always has a record behind it.
+  const canDelete =
+    hasEditAccess && defined(onDelete) && (isPersisted || isPrebuiltDashboard);
   const canViewRevisions =
     Boolean(dashboard.id) &&
     !isPrebuiltDashboard &&
@@ -274,6 +315,7 @@ export function DashboardBreadcrumbTitle({
   if (!isPrebuiltDashboard) {
     return (
       <DashboardTitle
+        canDelete={canDelete}
         canRename={canRename}
         canViewRevisions={canViewRevisions}
         dashboard={dashboard}
@@ -281,6 +323,7 @@ export function DashboardBreadcrumbTitle({
         isFavorited={isFavorited}
         isPersisted={isPersisted}
         isPrebuiltDashboard={isPrebuiltDashboard}
+        onDelete={onDelete}
         onToggleFavorite={handleToggleFavorite}
         openDashboardRevisions={openDashboardRevisions}
         openEditAccess={openEditAccess}
@@ -294,6 +337,7 @@ export function DashboardBreadcrumbTitle({
     <DashboardCreateLimitWrapper>
       {({hasReachedDashboardLimit, isLoading, limitMessage}) => (
         <DashboardTitle
+          canDelete={canDelete}
           canRename={canRename}
           canViewRevisions={canViewRevisions}
           dashboard={dashboard}
@@ -303,6 +347,7 @@ export function DashboardBreadcrumbTitle({
           isFavorited={isFavorited}
           isPersisted={isPersisted}
           isPrebuiltDashboard={isPrebuiltDashboard}
+          onDelete={onDelete}
           onToggleFavorite={handleToggleFavorite}
           openDashboardRevisions={openDashboardRevisions}
           openEditAccess={openEditAccess}
