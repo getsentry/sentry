@@ -6,12 +6,18 @@ import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
 import {useConfigureReplayMenuItem} from 'sentry/components/replays/header/configureReplayMenuItem';
 
-function renderMenuItem({sdkName, isMobile}: {isMobile: boolean; sdkName: string}) {
+function renderMenuItem({
+  sdkName,
+  isMobile,
+}: {
+  isMobile: boolean;
+  sdkName: string | null | undefined;
+}) {
   const {result} = renderHookWithProviders(useConfigureReplayMenuItem, {
     organization: OrganizationFixture(),
     initialProps: {
       isMobile,
-      replayRecord: ReplayRecordFixture({sdk: {name: sdkName, version: '8.0.0'}}),
+      replayRecord: ReplayRecordFixture({sdk: {name: sdkName ?? null, version: '8.0.0'}}),
     },
   });
 
@@ -80,6 +86,22 @@ describe('useConfigureReplayMenuItem', () => {
       expect(captureSpy).toHaveBeenCalledWith(
         'Unknown mobile platform in configure card: sentry.unknown.platform'
       );
+      expect(item.children).toHaveLength(3);
+      expect(item.children?.every(child => child.disabled === true)).toBe(true);
+    });
+
+    it('silently disables documentation links when sdk name is null', () => {
+      const item = renderMenuItem({sdkName: null, isMobile: true});
+
+      expect(captureSpy).not.toHaveBeenCalled();
+      expect(item.children).toHaveLength(3);
+      expect(item.children?.every(child => child.disabled === true)).toBe(true);
+    });
+
+    it('silently disables documentation links when sdk name is undefined', () => {
+      const item = renderMenuItem({sdkName: undefined, isMobile: true});
+
+      expect(captureSpy).not.toHaveBeenCalled();
       expect(item.children).toHaveLength(3);
       expect(item.children?.every(child => child.disabled === true)).toBe(true);
     });
