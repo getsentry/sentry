@@ -1,4 +1,5 @@
-from typing import Any
+from typing import Any, NotRequired, TypedDict
+from uuid import UUID
 
 import sentry_sdk
 from django.http import HttpResponse
@@ -210,7 +211,13 @@ CHUNKS_PROJECT_PARAM = OpenApiParameter(
 )
 
 
-class OrganizationProfilingChunksQuerySerializer(serializers.Serializer):
+class OrganizationProfilingChunksQuery(TypedDict):
+    profiler_id: NotRequired[UUID]
+
+
+class OrganizationProfilingChunksQuerySerializer(
+    serializers.Serializer[Any, OrganizationProfilingChunksQuery]
+):
     profiler_id = serializers.UUIDField(
         format="hex",
         help_text="The continuous-profiler ID to fetch chunks for.",

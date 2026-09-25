@@ -1,3 +1,5 @@
+from typing import Any, NotRequired, TypedDict
+
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
@@ -23,13 +25,22 @@ class EnvironmentField(serializers.Field):
         return environment
 
 
-class EnvironmentSerializer(serializers.Serializer):
+class EnvironmentData(TypedDict):
+    isHidden: NotRequired[bool]
+
+
+class EnvironmentSerializer(serializers.Serializer[Any, EnvironmentData]):
     isHidden = serializers.BooleanField(
         help_text="Specify `true` to make the environment visible or `false` to make the environment hidden."
     )
 
 
-class BulkEnvironmentSerializer(serializers.Serializer):
+class BulkEnvironmentData(TypedDict):
+    environmentNames: NotRequired[list[str]]
+    isHidden: NotRequired[bool]
+
+
+class BulkEnvironmentSerializer(serializers.Serializer[Any, BulkEnvironmentData]):
     environmentNames = serializers.ListField(
         child=serializers.CharField(),
         required=True,
