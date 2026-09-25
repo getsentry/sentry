@@ -1,10 +1,18 @@
 from datetime import datetime, timezone
 from enum import IntEnum
-from typing import Any, Literal
+from typing import Any, Literal, assert_type
 
 import pytest
 
-from sentry.issues.derived.features import IssueStatus
+from sentry.issues.derived.features import (
+    HAS_OPEN_FIX_PR,
+    LAST_PROGRESSED_AT,
+    NO_CHANGE_RECONCILE_IDS,
+    PROGRESS,
+    STATUS,
+    VIEW_COUNT,
+    IssueStatus,
+)
 from sentry.issues.derived.framework import (
     AggregatorResult,
     BoolCodec,
@@ -30,6 +38,28 @@ class EntryType(IntEnum):
     FIRST = 1
     SECOND = 2
     THIRD = 3
+
+
+def test_feature_types_are_inferred_from_codecs() -> None:
+    assert_type(HAS_OPEN_FIX_PR, Feature[bool])
+    assert_type(VIEW_COUNT, Feature[int])
+    assert_type(NO_CHANGE_RECONCILE_IDS, Feature[list[int]])
+    assert_type(STATUS, Feature[IssueStatus])
+    assert_type(PROGRESS, Feature[IssueProgressState | None])
+    assert_type(LAST_PROGRESSED_AT, Feature[datetime | None])
+
+    assert HAS_OPEN_FIX_PR.initial_value() is False
+    assert PROGRESS.initial_value() is IssueProgressState.IDENTIFIED
+    assert LAST_PROGRESSED_AT.initial_value() is None
+
+
+def test_inferred_feature_default_factory_creates_independent_values() -> None:
+    feature = Feature("items", default_factory=list, codec=IntListCodec())
+    assert_type(feature, Feature[list[int]])
+
+    first = feature.initial_value()
+    first.append(1)
+    assert feature.initial_value() == []
 
 
 def test_mutation_checking_catches_in_place_mutation() -> None:
