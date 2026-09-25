@@ -579,6 +579,10 @@ def _do_save_event(
             metrics.incr(
                 "events.failed", tags={"reason": "cache", "stage": "post"}, skip_internal=False
             )
+            # Same as the discard case below: the event will never reach nodestore, so
+            # its unprocessed copy is unreachable. This task does not retry.
+            if event_id and project_id:
+                reprocessing2.delete_unprocessed_event(project_id, event_id)
             return
 
         all_attachments = []
@@ -633,6 +637,12 @@ def _do_save_event(
             # Delete the event payload from cache since it won't show up in post-processing.
             if cache_key:
                 processing_store.delete_by_key(cache_key)
+
+            # Clean up the unprocessed copy from nodestore as it won't go through
+            # reprocessing. No-op if the unprocessed copy was stored in rc-processing as
+            # it will expire on its own.
+            if event_id:
+                reprocessing2.delete_unprocessed_event(project_id, event_id)
 
             # Mark all the attachments as `rate_limited`, so they are being properly cleaned up in the `finally` block:
             for attachment in all_attachments:

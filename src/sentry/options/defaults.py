@@ -1083,6 +1083,16 @@ register(
 # Killswitch to stop storing any reprocessing payloads.
 register("store.reprocessing-force-disable", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
+# Rollout for writing the unprocessed copy of an event straight to nodestore during
+# preprocessing, instead of parking it in the processing store for event manager to
+# promote to a subkey at save time.
+register(
+    "store.reprocessing-nodestore-backup.rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 register(
     "store.ingest-events-raw-task.inline-save-event",
     type=Bool,

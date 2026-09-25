@@ -162,16 +162,33 @@ class CannotReprocess(Exception):
         Exception.__init__(self, reason)
 
 
+def unprocessed_node_id(project_id: int, event_id: str) -> str:
+    """
+    Nodestore id holding the unprocessed copy of an event.
+    """
+    return Event.generate_node_id(project_id, event_id) + ":u"
+
+
 def backup_unprocessed_event(data: Mapping[str, Any]) -> None:
     """
-    Backup unprocessed event payload into redis. Only call if event should be
-    able to be reprocessed.
+    Backup unprocessed event payload. Only call if event should be able to be
+    reprocessed.
     """
 
     if options.get("store.reprocessing-force-disable"):
         return
 
-    event_processing_store.store(dict(data), unprocessed=True)
+    if in_random_rollout("store.reprocessing-nodestore-backup.rollout"):
+        nodestore.backend.set(unprocessed_node_id(data["project"], data["event_id"]), dict(data))
+    else:
+        event_processing_store.store(dict(data), unprocessed=True)
+
+
+def delete_unprocessed_event(project_id: int, event_id: str) -> None:
+    """
+    Drop the unprocessed copy of an event that will never be saved.
+    """
+    nodestore.backend.delete(unprocessed_node_id(project_id, event_id))
 
 
 @dataclass
@@ -191,8 +208,14 @@ def pull_event_data(project_id: int, event_id: str) -> ReprocessableEvent:
         raise CannotReprocess("event.not_found")
 
     with start_span(op="reprocess_events.nodestore.get", name="reprocess_events.nodestore.get"):
+        # Events that went through the processing store carry their unprocessed copy as a
+        # subkey of the node.
         node_id = Event.generate_node_id(project_id, event_id)
         data = nodestore.backend.get(node_id, subkey="unprocessed")
+        if data is None:
+            # If the data isn't there as a subkey, check whether it was saved to nodestore
+            # as its own node.
+            data = nodestore.backend.get(unprocessed_node_id(project_id, event_id))
 
     # Check data after checking presence of event to avoid too many instances.
     if data is None:
