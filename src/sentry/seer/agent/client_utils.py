@@ -19,7 +19,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.db import router, transaction
 from django.utils.timezone import now
 from rest_framework.request import Request
-from urllib3 import BaseHTTPResponse, HTTPConnectionPool, Retry
+from urllib3 import BaseHTTPResponse, HTTPConnectionPool
 
 from sentry import features
 from sentry.constants import ObjectStatus
@@ -233,16 +233,12 @@ def make_agent_state_pr_request(
     body: AgentPrStateRequest,
     connection_pool: HTTPConnectionPool | None = None,
     viewer_context: SeerViewerContext | None = None,
-    retries: Retry | None = None,
-    timeout: float | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         connection_pool or agent_connection_pool,
         "/v1/automation/explorer/state/pr",
         body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
         viewer_context=viewer_context,
-        retries=retries,
-        timeout=timeout,
     )
 
 
@@ -352,34 +348,17 @@ def enqueue_seer_run(
     return run
 
 
-# Retry the PR-state lookup on server errors, waiting 0s, 1s, then 2s. It only
-# reads, so repeating the POST is safe (urllib3 skips POSTs unless told to).
-# Timed-out attempts are retried too, so each attempt gets 10s instead of the
-# usual 30s: four attempts plus the waits must fit in the tasks' 60s deadline.
-AGENT_STATE_PR_TIMEOUT = 10
-AGENT_STATE_PR_RETRIES = Retry(
-    total=3,
-    backoff_factor=0.5,
-    status_forcelist=range(500, 600),
-    allowed_methods=frozenset({"POST"}),
-    respect_retry_after_header=False,
-    raise_on_status=False,
-)
-
-
 def get_agent_state_from_pr_id(
     organization_id: int, provider: str, pr_id: int
 ) -> SeerRunState | None:
     """
     Look up the Seer run that owns a pull request, or None if there isn't one.
 
-    Server errors are retried a few times; if Seer is still failing after that,
-    this raises ``SeerUnavailableError`` so callers can try again later.
+    A server error raises ``SeerUnavailableError`` so the calling task can try
+    again later.
     """
     body = AgentPrStateRequest(organization_id=organization_id, provider=provider, pr_id=pr_id)
-    response = make_agent_state_pr_request(
-        body, retries=AGENT_STATE_PR_RETRIES, timeout=AGENT_STATE_PR_TIMEOUT
-    )
+    response = make_agent_state_pr_request(body)
 
     if response.status >= 500:
         metrics.incr("seer.agent.state_from_pr", tags={"outcome": "unavailable"})

@@ -1304,9 +1304,9 @@ def _resolve_run_for_pr_comment(
     return ResolvedPrCommentRun(agent_state=agent_state, scm=scm, actor_user=actor_user)
 
 
-# Seer outages (a deploy, say) can outlast the quick retries on the request
-# itself, so tasks that start with a Seer lookup try again every minute for five
-# minutes. Once those run out, the worker reports NoRetriesRemainingError. Other
+# When a Seer lookup gets a server error (during a deploy, say), tasks that
+# start with one try again every minute for five minutes, giving Seer time to
+# recover. Once those run out, the worker reports NoRetriesRemainingError. Other
 # errors, including hitting the processing deadline, are not retried.
 SEER_UNAVAILABLE_RETRY = Retry(on=(SeerUnavailableError,), times=6, delay=60)
 
