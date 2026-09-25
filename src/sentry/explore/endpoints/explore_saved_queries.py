@@ -570,11 +570,14 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
         model.set_projects(data["project_ids"])
 
         try:
-            if "starred" in request.data and request.data["starred"]:
+            if data["starred"]:
                 ExploreSavedQueryStarred.objects.insert_starred_query(
                     organization, request.user, model, starred=True
                 )
         except Exception as err:
             sentry_sdk.capture_exception(err)
 
-        return Response(serialize(model, serializer=ExploreSavedQueryModelSerializer()), status=201)
+        return Response(
+            serialize(model, request.user, serializer=ExploreSavedQueryModelSerializer()),
+            status=201,
+        )
