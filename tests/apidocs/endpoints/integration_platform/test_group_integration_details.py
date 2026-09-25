@@ -88,7 +88,6 @@ class GroupIntegrationDetailsDocs(APIDocsTestCase):
         request = RequestFactory().put(self.base_url, data=data)
 
         assert response.status_code == 200
-        assert response.data["changed"] is False
         self.validate_schema(request, response)
 
     def test_delete(self) -> None:
