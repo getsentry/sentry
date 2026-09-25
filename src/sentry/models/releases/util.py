@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import logging
 from collections import namedtuple
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from datetime import datetime
-from typing import TYPE_CHECKING, Self
+from typing import TYPE_CHECKING, Any, Self
 
-from django.db import models
+from django.db import connections, models
 from django.db.models import Case, Exists, F, Func, OuterRef, Q, Subquery, Value, When
 from django.db.models.signals import pre_save
 from sentry_relay.exceptions import RelayError
@@ -22,6 +22,20 @@ if TYPE_CHECKING:
     from sentry.models.release import Release  # noqa: F401
 
 logger = logging.getLogger(__name__)
+
+MAX_RESERVED_IDS = 100_000
+
+
+def reserve_ids(model: type[models.Model], count: int, using: str) -> list[int]:
+    """Pk values claimed ahead of insert from the sequence on `using`, the write database."""
+    if not 1 <= count <= MAX_RESERVED_IDS:
+        raise ValueError(f"Cannot reserve {count} ids, expected 1 to {MAX_RESERVED_IDS}.")
+
+    sequence = f"{model._meta.db_table}_id_seq"
+    with connections[using].cursor() as cursor:
+        cursor.execute("SELECT nextval(%s) FROM generate_series(1, %s);", [sequence, count])
+        rows = cursor.fetchall()
+    return [row_id for (row_id,) in rows]
 
 
 def release_order_date(
@@ -46,6 +60,18 @@ class SemverFilter:
 
 
 class ReleaseQuerySet(BaseQuerySet["Release"]):
+    def bulk_create(self, objs: Iterable[Release], *args: Any, **kwds: Any) -> list[Release]:
+        releases = list(objs)
+        if not releases:
+            return super().bulk_create(releases, *args, **kwds)
+
+        self._for_write = True
+        ids = reserve_ids(self.model, len(releases), self.db)
+        for release, release_id in zip(releases, ids):
+            release.id = release_id
+            release.new_id = release_id
+        return super().bulk_create(releases, *args, **kwds)
+
     def annotate_prerelease_column(self) -> Self:
         """
         Adds a `prerelease_case` column to the queryset which is used to properly sort
@@ -305,7 +331,8 @@ class ReleaseQuerySet(BaseQuerySet["Release"]):
 
 
 def parse_semver_pre_save(instance, **kwargs):
-    if instance.id:
+    # `Release.save()` claims the id before `pre_save`, so a set id doesn't mean the row exists.
+    if not instance._state.adding:
         return
     ReleaseQuerySet.massage_semver_cols_into_release_object_data(instance.__dict__)
 

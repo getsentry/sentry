@@ -1199,10 +1199,7 @@ describe('Investigation detail', () => {
     const toggle = await screen.findByRole('button', {name: 'Toggle Latency query'});
     expect(toggle).toHaveAttribute('aria-expanded', 'true');
     expect(screen.getByText('820ms')).toBeVisible();
-    expect(screen.getByRole('button', {name: 'Show query'})).toHaveAttribute(
-      'aria-disabled',
-      'true'
-    );
+    expect(screen.queryByRole('button', {name: 'Show query'})).not.toBeInTheDocument();
     expect(screen.getByTestId('query-cell')).toContainElement(
       screen.getByRole('button', {name: 'Cell actions for Latency query'})
     );
@@ -1224,45 +1221,6 @@ describe('Investigation detail', () => {
     );
     expect(screen.getByRole('menuitemradio', {name: 'Refine'})).toBeVisible();
     expect(toggle).toHaveAttribute('aria-expanded', 'false');
-  });
-
-  it('shows and hides saved queries without collapsing the result', async () => {
-    const investigation = investigationWithQueryResult();
-    investigation.blocks[1]!.output = {
-      ...InvestigationQueryOutputFixture(),
-      queryLinks: [
-        {kind: 'telemetry', params: {query: 'transaction:/api/checkout'}},
-        {kind: 'telemetry', params: {query: 'transaction:/api/checkout'}},
-        {kind: 'telemetry', params: {query: 'span.op:db'}},
-        {kind: 'telemetry', params: {query: 42}},
-        {kind: 'telemetry', params: {query: ' '}},
-        null,
-      ],
-    };
-    MockApiClient.addMockResponse({url: detailUrl, body: investigation});
-
-    renderView();
-
-    const showQuery = await screen.findByRole('button', {name: 'Show query'});
-    expect(showQuery).not.toHaveAttribute('aria-disabled', 'true');
-    expect(screen.queryByText('transaction:/api/checkout')).not.toBeInTheDocument();
-
-    await userEvent.click(showQuery);
-
-    expect(screen.getAllByText('transaction:/api/checkout')).toHaveLength(1);
-    expect(screen.getByText('transaction:/api/checkout')).toBeVisible();
-    expect(screen.getByText('span.op:db')).toBeVisible();
-    expect(screen.getByRole('button', {name: 'Toggle Latency query'})).toHaveAttribute(
-      'aria-expanded',
-      'true'
-    );
-    expect(screen.getByRole('table')).toBeVisible();
-
-    await userEvent.click(screen.getByRole('button', {name: 'Hide query'}));
-
-    expect(screen.queryByText('transaction:/api/checkout')).not.toBeInTheDocument();
-    expect(screen.queryByText('span.op:db')).not.toBeInTheDocument();
-    expect(screen.getByRole('table')).toBeVisible();
   });
 
   it('renders the outer query title as non-editable text', async () => {

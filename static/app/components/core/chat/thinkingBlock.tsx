@@ -27,7 +27,7 @@ function useElapsedTime(startTime: Date, endTime: Date | undefined): number {
     return () => clearInterval(id);
   }, [endTime]);
 
-  return (endTime ?? now).getTime() - startTime.getTime();
+  return Math.max(0, (endTime ?? now).getTime() - startTime.getTime());
 }
 
 /**

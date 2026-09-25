@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useId, useMemo, useRef, useState} from 'react';
+import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 
@@ -16,14 +16,7 @@ import {Duration} from 'sentry/components/duration';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {ChartContent} from 'sentry/components/seer/markdown/embeds/components/chart';
 import {ALL_SEER_EMBED_SCHEMAS} from 'sentry/components/seer/markdown/embeds/schemas';
-import {
-  IconArrow,
-  IconClose,
-  IconCompass,
-  IconEllipsis,
-  IconReturn,
-  IconSeer,
-} from 'sentry/icons';
+import {IconArrow, IconClose, IconEllipsis, IconReturn, IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
@@ -308,10 +301,7 @@ function QueryResult({
   progressState: CellProgressState;
 }) {
   const [expanded, setExpanded] = useState(true);
-  const [showQuery, setShowQuery] = useState(false);
-  const queryDetailsId = useId();
   const output = getQueryOutput(block.output);
-  const queries = output?.queries ?? [];
   const chart =
     output?.preferredView === 'chart' ? getRenderableChart(output.chart) : null;
   const title = block.title || chart?.title || t('Untitled query');
@@ -336,30 +326,7 @@ function QueryResult({
         <QueryToolbar width="100%" padding="md lg" data-test-id="query-cell-toolbar">
           <QueryDisclosureTitle
             aria-label={t('Toggle %s', title)}
-            trailingItems={
-              <Flex align="center" gap="md">
-                {expanded ? (
-                  <Button
-                    size="xs"
-                    variant="link"
-                    icon={<IconCompass size="xs" />}
-                    disabled={queries.length === 0}
-                    tooltipProps={{
-                      title:
-                        queries.length === 0
-                          ? t('Query details are not available for this result.')
-                          : undefined,
-                    }}
-                    aria-expanded={showQuery}
-                    aria-controls={queryDetailsId}
-                    onClick={() => setShowQuery(value => !value)}
-                  >
-                    {showQuery ? t('Hide query') : t('Show query')}
-                  </Button>
-                ) : null}
-                {actions}
-              </Flex>
-            }
+            trailingItems={actions}
           >
             <Text
               data-test-id="query-cell-title"
@@ -384,23 +351,6 @@ function QueryResult({
               gap="lg"
               data-test-id="query-cell-result"
             >
-              {showQuery ? (
-                <Stack id={queryDetailsId} gap="md">
-                  {queries.map(query => (
-                    <Flex key={query} align="center" gap="md">
-                      <Text variant="muted">{t('Query:')}</Text>
-                      <Container
-                        border="primary"
-                        radius="md"
-                        padding="xs sm"
-                        minWidth={0}
-                      >
-                        <Text wordBreak="break-word">{query}</Text>
-                      </Container>
-                    </Flex>
-                  ))}
-                </Stack>
-              ) : null}
               {(chartHeaderTitle && chartHeaderTitle !== title) || chartHeaderMetadata ? (
                 <Stack gap="2xs" data-test-id="query-cell-header">
                   {chartHeaderTitle && chartHeaderTitle !== title ? (
@@ -1175,7 +1125,7 @@ function getTextOutput(output: unknown): string | null {
 type RenderableQueryOutput = Pick<
   InvestigationQueryOutput,
   'chart' | 'preferredView' | 'tableMarkdown' | 'isEmpty'
-> & {queries: string[]};
+>;
 
 function getQueryOutput(output: unknown): RenderableQueryOutput | null {
   if (
@@ -1194,20 +1144,6 @@ function getQueryOutput(output: unknown): RenderableQueryOutput | null {
       : null;
   return {
     chart,
-    queries: [
-      ...new Set(
-        'queryLinks' in output && Array.isArray(output.queryLinks)
-          ? output.queryLinks.flatMap(link =>
-              isRecord(link) &&
-              isRecord(link.params) &&
-              typeof link.params.query === 'string' &&
-              link.params.query.trim()
-                ? [link.params.query.trim()]
-                : []
-            )
-          : []
-      ),
-    ],
     isEmpty: 'isEmpty' in output && output.isEmpty === true,
     preferredView: output.preferredView,
     tableMarkdown: output.tableMarkdown,

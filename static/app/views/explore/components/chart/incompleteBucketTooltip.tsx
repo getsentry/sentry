@@ -38,7 +38,7 @@ export function useIncompleteBucketTooltipDetails(
   const theme = useTheme();
   const organization = useOrganization();
   const hasFeature = organization.features.includes('measured-ingestion-delay-ui');
-  const {completeThrough} = chartInfo.timeseriesResult.meta ?? {};
+  const completeThrough = chartInfo.timeseriesResult.meta?.ingestion?.completeThrough;
 
   return useMemo<SeriesDetailsRenderer | undefined>(() => {
     if (!hasFeature || !defined(completeThrough)) {

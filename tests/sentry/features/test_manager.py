@@ -341,6 +341,7 @@ class FeatureManagerTest(TestCase):
             self.user,
             projects=[entity_project, default_project],
             organization=self.organization,
+            skip_experiment_exposure=False,
         )
 
     def test_has_for_batch_uses_organization_entity_result(self) -> None:
@@ -361,8 +362,30 @@ class FeatureManagerTest(TestCase):
 
         assert result == {project: True for project in projects}
         entity_handler.batch_has.assert_called_once_with(
-            [feature_name], self.user, projects=None, organization=self.organization
+            [feature_name],
+            self.user,
+            projects=None,
+            organization=self.organization,
+            skip_experiment_exposure=False,
         )
+
+    def test_has_for_batch_passes_skip_experiment_exposure_to_entity_handler(self) -> None:
+        feature_name = "organizations:feature"
+        entity_handler = mock.Mock(spec=features.FeatureHandler)
+        entity_handler.batch_has.return_value = {}
+
+        manager = features.FeatureManager()
+        manager.add(feature_name, OrganizationFeature)
+        manager.add_entity_handler(entity_handler)
+
+        manager.has_for_batch(
+            feature_name,
+            self.organization,
+            [self.project],
+            skip_experiment_exposure=True,
+        )
+
+        assert entity_handler.batch_has.call_args.kwargs["skip_experiment_exposure"] is True
 
     def test_batch_has(self) -> None:
         manager = features.FeatureManager()
