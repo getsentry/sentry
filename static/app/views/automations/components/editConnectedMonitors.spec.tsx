@@ -73,10 +73,7 @@ describe('EditConnectedMonitors', () => {
 
   it('disables the all projects option with a message when the user cannot edit', async () => {
     render(<EditConnectedMonitors connectedIds={[]} setConnectedIds={jest.fn()} />, {
-      organization: OrganizationFixture({
-        features: ['workflow-engine-all-projects-detector'],
-        access: [],
-      }),
+      organization: OrganizationFixture({access: []}),
     });
 
     const allProjectsRadio = await screen.findByRole('radio', {
@@ -97,11 +94,7 @@ describe('EditConnectedMonitors', () => {
       <Form model={model}>
         <EditConnectedMonitors connectedIds={[]} setConnectedIds={jest.fn()} />
       </Form>,
-      {
-        organization: OrganizationFixture({
-          features: ['workflow-engine-all-projects-detector'],
-        }),
-      }
+      {organization: OrganizationFixture()}
     );
 
     await userEvent.click(
@@ -259,11 +252,7 @@ describe('EditConnectedMonitors', () => {
           setConnectedIds={jest.fn()}
         />
       </Form>,
-      {
-        organization: OrganizationFixture({
-          features: ['workflow-engine-all-projects-detector'],
-        }),
-      }
+      {organization: OrganizationFixture()}
     );
 
     expect(
@@ -300,11 +289,7 @@ describe('EditConnectedMonitors', () => {
             setConnectedIds={jest.fn()}
           />
         </Form>,
-        {
-          organization: OrganizationFixture({
-            features: ['workflow-engine-all-projects-detector'],
-          }),
-        }
+        {organization: OrganizationFixture()}
       );
 
       expect(

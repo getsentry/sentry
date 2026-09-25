@@ -4,9 +4,9 @@ import {useTheme} from '@emotion/react';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {getOutcomeColors} from 'sentry/components/droppedData/droppedDataChart';
 import {
   formatDroppedShare,
+  getOutcomeColors,
   outcomeLabel,
   reasonTitle,
 } from 'sentry/components/droppedData/utils';
@@ -261,21 +261,18 @@ function CategorySectionRow({
 }
 
 interface DroppedDataCategoryListProps {
-  acceptedDataAnnotations: Annotation[];
-  droppedDataAnnotations: Annotation[];
+  acceptedAnnotations: Annotation[];
+  droppedAnnotations: Annotation[];
 }
 
 export function DroppedDataCategoryList({
-  droppedDataAnnotations,
-  acceptedDataAnnotations,
+  droppedAnnotations,
+  acceptedAnnotations,
 }: DroppedDataCategoryListProps) {
   const theme = useTheme();
-  const sections = annotationsToCategorySections(
-    droppedDataAnnotations,
-    acceptedDataAnnotations
-  );
+  const sections = annotationsToCategorySections(droppedAnnotations, acceptedAnnotations);
   const totalBuckets = new Set(
-    [...droppedDataAnnotations, ...acceptedDataAnnotations].map(a => a.start)
+    [...droppedAnnotations, ...acceptedAnnotations].map(a => a.start)
   ).size;
   const colors = getOutcomeColors(sections.map(section => section.label).sort(), theme);
 
