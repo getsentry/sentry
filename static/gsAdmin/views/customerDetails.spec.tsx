@@ -1371,6 +1371,123 @@ describe('Customer Details', () => {
     });
   });
 
+  describe('test organization flag', () => {
+    const testOrg = OrganizationFixture({features: ['admin-set-test-flag']});
+    async function openActions() {
+      render(<CustomerDetails />, {
+        initialRouterConfig: {
+          location: {pathname: `/customers/${testOrg.slug}`},
+          route: '/customers/:orgId',
+        },
+        organization: testOrg,
+      });
+      await screen.findByRole('heading', {name: 'Customers'});
+      await userEvent.click(
+        screen.getAllByRole('button', {name: 'Customers Actions'})[0]!
+      );
+    }
+
+    beforeEach(() => {
+      ConfigStore.set('user', UserFixture({permissions: new Set(['billing.admin'])}));
+    });
+
+    it.each([false, true])(
+      'changes isTest from %s and refreshes the badge',
+      async isTest => {
+        setUpMocks(testOrg, {isTest});
+        const update = MockApiClient.addMockResponse({
+          url: `/_admin/customers/${testOrg.slug}/test-flag/`,
+          method: 'PUT',
+          body: {isTest: !isTest},
+        });
+        await openActions();
+        await userEvent.click(
+          screen.getByRole('option', {
+            name: isTest ? 'Remove test organization flag' : 'Mark as test organization',
+          })
+        );
+        renderGlobalModal();
+        await userEvent.type(
+          screen.getByRole('textbox', {name: 'Notes'}),
+          'Internal testing'
+        );
+        setUpMocks(testOrg, {isTest: !isTest});
+        await userEvent.click(
+          screen.getByRole('button', {name: isTest ? 'Remove test flag' : 'Mark as test'})
+        );
+        await waitFor(() => {
+          expect(update).toHaveBeenCalledWith(
+            `/_admin/customers/${testOrg.slug}/test-flag/`,
+            expect.objectContaining({
+              method: 'PUT',
+              data: {isTest: !isTest, notes: 'Internal testing'},
+            })
+          );
+          expect(!!screen.queryByText('Test Organization')).toBe(!isTest);
+        });
+      }
+    );
+
+    it('hides the action when the feature is disabled', async () => {
+      setUpMocks({...testOrg, features: []}, {isTest: false});
+      await openActions();
+      expect(
+        screen.queryByRole('option', {name: 'Mark as test organization'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('requires billing admin permissions', async () => {
+      ConfigStore.set('user', UserFixture({permissions: new Set()}));
+      setUpMocks(testOrg, {isTest: false});
+      await openActions();
+      expect(
+        screen.getByRole('option', {name: 'Mark as test organization'})
+      ).toHaveAttribute('aria-disabled', 'true');
+    });
+
+    it('disables the action when the backend does not expose the flag', async () => {
+      setUpMocks(testOrg, {isTest: undefined});
+      await openActions();
+      expect(
+        screen.getByRole('option', {name: 'Mark as test organization'})
+      ).toHaveAttribute('aria-disabled', 'true');
+    });
+
+    it('does not update on cancel', async () => {
+      setUpMocks(testOrg, {isTest: false});
+      const update = MockApiClient.addMockResponse({
+        url: `/_admin/customers/${testOrg.slug}/test-flag/`,
+        method: 'PUT',
+      });
+      await openActions();
+      await userEvent.click(
+        screen.getByRole('option', {name: 'Mark as test organization'})
+      );
+      renderGlobalModal();
+      await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
+      expect(update).not.toHaveBeenCalled();
+      expect(screen.queryByText('Test Organization')).not.toBeInTheDocument();
+    });
+
+    it('keeps the current flag when saving fails', async () => {
+      setUpMocks(testOrg, {isTest: false});
+      const update = MockApiClient.addMockResponse({
+        url: `/_admin/customers/${testOrg.slug}/test-flag/`,
+        method: 'PUT',
+        statusCode: 403,
+        body: {detail: 'Requires billing.admin permissions.'},
+      });
+      await openActions();
+      await userEvent.click(
+        screen.getByRole('option', {name: 'Mark as test organization'})
+      );
+      renderGlobalModal();
+      await userEvent.click(screen.getByRole('button', {name: 'Mark as test'}));
+      await waitFor(() => expect(update).toHaveBeenCalled());
+      expect(screen.queryByText('Test Organization')).not.toBeInTheDocument();
+    });
+  });
+
   describe('billing platform migration', () => {
     const migrationOrg = OrganizationFixture();
 

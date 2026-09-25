@@ -32,6 +32,7 @@ import {useParams} from 'sentry/utils/useParams';
 import {addGiftBudgetAction} from 'admin/components/addGiftBudgetAction';
 import {AddGiftEventsAction} from 'admin/components/addGiftEventsAction';
 import {triggerAddToStartupProgramModal} from 'admin/components/addToStartupProgramAction';
+import type {AdminConfirmParams} from 'admin/components/adminConfirmationModal';
 import {CancelSubscriptionAction} from 'admin/components/cancelSubscriptionAction';
 import {triggerChangeBalanceModal} from 'admin/components/changeBalanceAction';
 import {openChangeDashboardsParallelLimitModal} from 'admin/components/changeDashboardsParallelLimitModal';
@@ -192,6 +193,24 @@ export function CustomerDetails() {
     refetchOrganization();
     refetchBillingConfig();
   };
+
+  const onSetTestFlagMutation = useMutation({
+    mutationFn: (params: AdminConfirmParams & {isTest: boolean}) =>
+      fetchMutation<{isTest: boolean}>({
+        url: getApiUrl('/_admin/customers/$organizationIdOrSlug/test-flag/', {
+          path: {organizationIdOrSlug: orgId},
+        }),
+        method: 'PUT',
+        data: params,
+      }),
+    onSuccess: async () => {
+      await refetchSubscription();
+      addSuccessMessage('Test organization flag updated.');
+    },
+    onError: () => {
+      addErrorMessage('Could not update the test organization flag. Try again.');
+    },
+  });
 
   const onToggleBillingPlatformMigrationMutation = useMutation({
     mutationFn: (params: Record<string, any>) =>
@@ -354,6 +373,12 @@ export function CustomerDetails() {
 
   const badges: BadgeItem[] = [
     {
+      name: 'Test Organization',
+      level: 'warning',
+      help: 'This organization is marked for internal testing. Billing is unchanged.',
+      visible: subscription.isTest === true,
+    },
+    {
       name: 'Suspended',
       level: 'danger',
       help: subscription.suspensionReason,
@@ -485,6 +510,26 @@ export function CustomerDetails() {
                 onSuccess: reloadData,
               }),
             ...actionRequiresBillingAdmin,
+          },
+          {
+            key: 'setTestFlag',
+            visible: orgFeatures.includes('admin-set-test-flag'),
+            name: subscription.isTest
+              ? 'Remove test organization flag'
+              : 'Mark as test organization',
+            help: 'Change the internal test marker without changing plans or invoices. ARR filtering is managed separately.',
+            disabled:
+              !isBillingAdmin ||
+              subscription.isTest === undefined ||
+              onSetTestFlagMutation.isPending,
+            disabledReason: isBillingAdmin
+              ? 'The test flag is unavailable or an update is in progress.'
+              : 'Requires billing admin permissions.',
+            confirmModalOpts: {
+              confirmText: subscription.isTest ? 'Remove test flag' : 'Mark as test',
+            },
+            onAction: params =>
+              onSetTestFlagMutation.mutate({...params, isTest: !subscription.isTest}),
           },
           {
             key: 'toggleBillingPlatformMigration',
