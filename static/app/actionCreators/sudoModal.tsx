@@ -5,6 +5,7 @@ type OpenSudoModalOptions = ModalOptions & {
   isSuperuser?: boolean;
   needsReload?: boolean;
   onClose?: () => void;
+  orgSlug?: string;
   retryRequest?: () => Promise<any>;
   sudo?: boolean;
 };

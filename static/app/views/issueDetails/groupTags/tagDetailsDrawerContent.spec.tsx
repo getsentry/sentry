@@ -160,7 +160,7 @@ describe('TagDetailsDrawerContent', () => {
       interval: '1m',
       name: 'RequestError: GET /issues/ 404',
       project: '2',
-      query: 'issue:JAVASCRIPT-6QS user.username:david',
+      query: 'issue:JAVASCRIPT-6QS (user.username:david)',
       queryDataset: 'error-events',
       statsPeriod: '14d',
       yAxis: ['count()', 'count_unique(user)'],

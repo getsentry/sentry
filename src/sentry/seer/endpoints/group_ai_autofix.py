@@ -71,8 +71,8 @@ from sentry.seer.autofix.pr_iteration.pause import (
     pause_reason_from_marker,
 )
 from sentry.seer.autofix.pr_iteration.queue import (
+    enqueue_autofix_feedback,
     peek_queued_autofix_feedback,
-    try_enqueue_autofix_feedback,
 )
 from sentry.seer.autofix.pr_iteration.run_markers import get_run_extra
 from sentry.seer.autofix.steps import AutofixStep
@@ -490,7 +490,7 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                     group_id=group.id,
                 )
 
-                try_enqueue_autofix_feedback(
+                enqueue_autofix_feedback(
                     log_ctx=log_ctx,
                     run_id=resolved_run_id,
                     organization_id=group.organization.id,

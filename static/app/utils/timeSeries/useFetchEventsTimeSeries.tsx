@@ -213,6 +213,12 @@ export interface Annotation {
   byteSize?: number;
 }
 
+interface IngestionMeta {
+  status: 'healthy' | 'stalled' | 'idle' | 'unknown';
+  completeThrough?: number;
+  delaySeconds?: number;
+}
+
 export type EventsTimeSeriesResponse = {
   timeSeries: TimeSeries[];
   meta?: {
@@ -220,9 +226,7 @@ export type EventsTimeSeriesResponse = {
     end: number;
     start: number;
     acceptedAnnotations?: Annotation[];
-    completeThrough?: number;
     droppedAnnotations?: Annotation[];
-    estimatedIngestionDelaySeconds?: number;
-    ingestionDelayStatus?: 'healthy' | 'stalled' | 'idle' | 'unknown';
+    ingestion?: IngestionMeta;
   };
 };

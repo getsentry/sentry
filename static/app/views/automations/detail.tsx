@@ -37,10 +37,7 @@ import {ConnectedMonitorsList} from 'sentry/views/automations/components/connect
 import {ConnectedProjectsList} from 'sentry/views/automations/components/connectedProjectsList';
 import {DisabledAlert} from 'sentry/views/automations/components/disabledAlert';
 import {useAutomationQuery, useUpdateAutomation} from 'sentry/views/automations/hooks';
-import {
-  getNoAlertWritePermissionTooltip,
-  useCanEditAutomation,
-} from 'sentry/views/automations/hooks/useCanEditAutomation';
+import {useAutomationEditPermission} from 'sentry/views/automations/hooks/useCanEditAutomation';
 import {getAutomationActionsWarning} from 'sentry/views/automations/hooks/utils';
 import {
   makeAutomationBasePathname,
@@ -290,8 +287,11 @@ export default function AutomationDetail() {
 function Actions({automation, size}: {automation: Automation; size?: 'sm'}) {
   const organization = useOrganization();
   const {mutate: updateAutomation, isPending: isUpdating} = useUpdateAutomation();
-  const canEdit = useCanEditAutomation(automation.id);
-  const permissionTooltipText = canEdit ? undefined : getNoAlertWritePermissionTooltip();
+  const {
+    canEdit,
+    disabledReason,
+    isPending: isPermissionPending,
+  } = useAutomationEditPermission(automation.id);
 
   const toggleDisabled = () => {
     const newEnabled = !automation.enabled;
@@ -315,16 +315,16 @@ function Actions({automation, size}: {automation: Automation; size?: 'sm'}) {
         variant="secondary"
         size={size}
         onClick={toggleDisabled}
-        busy={isUpdating}
+        busy={isUpdating || isPermissionPending}
         disabled={!canEdit}
-        tooltipProps={{title: permissionTooltipText}}
+        tooltipProps={{title: disabledReason}}
       >
         {automation.enabled ? t('Disable') : t('Enable')}
       </Button>
       <LinkButton
         to={makeAutomationEditPathname(organization.slug, automation.id)}
         disabled={!canEdit}
-        tooltipProps={{title: permissionTooltipText}}
+        tooltipProps={{title: disabledReason}}
         variant="primary"
         icon={<IconEdit />}
         size={size}

@@ -1,0 +1,58 @@
+---
+source: tests/sentry/grouping/test_grouphash_metadata.py::test_metadata_from_variants
+---
+hash_basis: stacktrace
+hashing_metadata: {
+  "num_stacktraces": 1,
+  "stacktrace_location": "exception",
+  "stacktrace_type": "system"
+}
+---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "stacktrace",
+    "is_hybrid_fingerprint": "False"
+  },
+  "grouping.grouphashmetadata.event_hashing_metadata.stacktrace": {
+    "chained_exception": "False",
+    "stacktrace_location": "exception",
+    "stacktrace_type": "system"
+  }
+}
+---
+contributing variants:
+  system*
+    hash: "f36868ba2e7766bad6639173f423f075"
+    contributing component: exception
+    hint: None
+    root_component:
+      system*
+        exception*
+          stacktrace*
+            frame*
+              module*
+                "GameBootstrap"
+              function*
+                "GameBootstrap.Start()"
+            frame*
+              module*
+                "UnityEngine.MonoBehaviour"
+              function*
+                "UnityEngine.MonoBehaviour.StartCoroutine(System.Collections.IEnumerator)"
+            frame*
+              module*
+                "UnityEngine.SetupCoroutine"
+              function*
+                "UnityEngine.SetupCoroutine.InvokeMoveNext(System.Collections.IEnumerator, System.IntPtr)"
+            frame*
+              module*
+                "EnemySpawner+<SpawnWaves>d__4"
+              function*
+                "EnemySpawner+<SpawnWaves>d__4.MoveNext()"
+            frame*
+              module*
+                "CombatSystem"
+              function*
+                "CombatSystem.ApplyDamage(UnityEngine.GameObject, System.Int32)"
+          type*
+            "System.NullReferenceException"
