@@ -29,7 +29,11 @@ interface EditAutomationActionsProps {
 export function EditAutomationActions({automation, form}: EditAutomationActionsProps) {
   const organization = useOrganization();
   const navigate = useNavigate();
-  const {canEdit, disabledReason} = useAutomationEditPermission(automation.id);
+  const {
+    canEdit,
+    disabledReason,
+    isPending: isPermissionPending,
+  } = useAutomationEditPermission(automation.id);
   const {mutateAsync: deleteAutomation, isPending: isDeleting} =
     useDeleteAutomationMutation();
   const {mutate: updateAutomation, isPending: isUpdating} = useUpdateAutomation();
@@ -69,6 +73,7 @@ export function EditAutomationActions({automation, form}: EditAutomationActionsP
           variant="secondary"
           size="sm"
           onClick={toggleDisabled}
+          busy={isPermissionPending}
           disabled={!canEdit || isUpdating}
           tooltipProps={{title: disabledReason}}
         >
@@ -77,6 +82,7 @@ export function EditAutomationActions({automation, form}: EditAutomationActionsP
         <Button
           variant="danger"
           onClick={handleDelete}
+          busy={isPermissionPending}
           disabled={!canEdit || isDeleting}
           tooltipProps={{title: disabledReason}}
           size="sm"
@@ -97,7 +103,7 @@ export function EditAutomationActions({automation, form}: EditAutomationActionsP
               type="submit"
               variant="primary"
               size="sm"
-              busy={form.isSaving}
+              busy={form.isSaving || isPermissionPending}
               disabled={!canEdit}
               tooltipProps={{title: disabledReason}}
             >

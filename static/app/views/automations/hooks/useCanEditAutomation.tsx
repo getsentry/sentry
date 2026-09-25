@@ -58,46 +58,66 @@ function useAutomationAccess() {
   return {canEditAllProjects, canEditOrganization, organization, writableProjectIds};
 }
 
-export function useCanEditAutomation(automationId: string): boolean {
-  return useAutomationEditPermission(automationId).canEdit;
-}
-
 export function useAutomationEditPermission(automationId: string): {
   canEdit: boolean;
   disabledReason: ReactNode;
+  isPending: boolean;
 } {
   const {canEditAllProjects, canEditOrganization, organization, writableProjectIds} =
     useAutomationAccess();
-  const {data: projectScope} = useQuery(
+  const shouldFetchProjectScope =
+    !canEditAllProjects && (canEditOrganization || writableProjectIds.size > 0);
+  const {
+    data: projectScope,
+    isError,
+    isPending,
+  } = useQuery(
     workflowProjectScopeApiOptions({
       organization,
       automationId,
-      enabled:
-        !canEditAllProjects && (canEditOrganization || writableProjectIds.size > 0),
+      enabled: shouldFetchProjectScope,
     })
   );
 
   if (canEditAllProjects) {
-    return {canEdit: true, disabledReason: undefined};
+    return {canEdit: true, disabledReason: undefined, isPending: false};
+  }
+
+  if (shouldFetchProjectScope && isPending) {
+    return {canEdit: false, disabledReason: undefined, isPending: true};
+  }
+
+  if (isError) {
+    return {
+      canEdit: false,
+      disabledReason: t('Could not verify your edit permissions. Refresh and try again.'),
+      isPending: false,
+    };
   }
 
   if (projectScope?.includesAllProjects) {
     return {
       canEdit: false,
       disabledReason: getNoAllProjectsWritePermissionTooltip(),
+      isPending: false,
     };
   }
 
   if (canEditOrganization) {
     return projectScope
-      ? {canEdit: true, disabledReason: undefined}
-      : {canEdit: false, disabledReason: getNoAlertWritePermissionTooltip()};
+      ? {canEdit: true, disabledReason: undefined, isPending: false}
+      : {
+          canEdit: false,
+          disabledReason: getNoAlertWritePermissionTooltip(),
+          isPending: false,
+        };
   }
 
   const canEdit = canEditAutomationProjectScope(projectScope, writableProjectIds);
   return {
     canEdit,
     disabledReason: canEdit ? undefined : getNoAlertWritePermissionTooltip(),
+    isPending: false,
   };
 }
 

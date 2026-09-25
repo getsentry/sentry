@@ -20,7 +20,11 @@ type DisabledAlertProps = {
 export function DisabledAlert({automation}: DisabledAlertProps) {
   const {mutate: updateAutomation, isPending: isEnabling} = useUpdateAutomation();
 
-  const {canEdit, disabledReason} = useAutomationEditPermission(automation.id);
+  const {
+    canEdit,
+    disabledReason,
+    isPending: isPermissionPending,
+  } = useAutomationEditPermission(automation.id);
 
   if (automation.enabled) {
     return null;
@@ -44,6 +48,7 @@ export function DisabledAlert({automation}: DisabledAlertProps) {
               size="xs"
               icon={<IconPlay />}
               onClick={handleEnable}
+              busy={isPermissionPending}
               disabled={isEnabling || !canEdit}
               aria-label={t('Enable')}
             >

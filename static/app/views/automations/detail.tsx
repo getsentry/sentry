@@ -287,7 +287,11 @@ export default function AutomationDetail() {
 function Actions({automation, size}: {automation: Automation; size?: 'sm'}) {
   const organization = useOrganization();
   const {mutate: updateAutomation, isPending: isUpdating} = useUpdateAutomation();
-  const {canEdit, disabledReason} = useAutomationEditPermission(automation.id);
+  const {
+    canEdit,
+    disabledReason,
+    isPending: isPermissionPending,
+  } = useAutomationEditPermission(automation.id);
 
   const toggleDisabled = () => {
     const newEnabled = !automation.enabled;
@@ -311,7 +315,7 @@ function Actions({automation, size}: {automation: Automation; size?: 'sm'}) {
         variant="secondary"
         size={size}
         onClick={toggleDisabled}
-        busy={isUpdating}
+        busy={isUpdating || isPermissionPending}
         disabled={!canEdit}
         tooltipProps={{title: disabledReason}}
       >
