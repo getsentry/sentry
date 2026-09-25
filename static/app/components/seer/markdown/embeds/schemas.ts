@@ -394,7 +394,9 @@ export const SEER_EMBED_SCHEMAS = {
       steps: z
         .array(z.object({title: z.string(), description: z.string()}))
         .optional()
-        .describe('solution only: the ordered steps needed to resolve the issue.'),
+        .describe(
+          'solution only: ordered steps to resolve the issue. Each element MUST be an object with "title" (string) and "description" (string) — never a plain string.'
+        ),
     }),
     examples: [
       {
