@@ -28,6 +28,12 @@ export function getNavigationConfiguration({
           path: `${pathPrefix}/`,
           index: true,
           title: t('General Settings'),
+          keywords: [
+            t('slug'),
+            t('project slug'),
+            t('project name'),
+            t('rename project'),
+          ],
           description: t('Configure general settings for a project'),
         },
         {
@@ -184,6 +190,8 @@ export function getNavigationConfiguration({
             'SENTRY_DSN',
             'Sentry DSN',
             'NEXT_PUBLIC_SENTRY_DSN',
+            'VITE_SENTRY_DSN',
+            'EXPO_PUBLIC_SENTRY_DSN',
             t('auth'),
             t('token'),
             t('client key'),
