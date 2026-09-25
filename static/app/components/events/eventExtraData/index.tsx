@@ -67,7 +67,7 @@ export function EventExtraData({event}: Props) {
         </SegmentedControl>
       }
     >
-      <KeyValueTableCard contentItems={contentItems} sortAlphabetically />
+      <KeyValueTableCard contentItems={contentItems} sortAlphabetically variant="label" />
     </FoldSection>
   );
 }
