@@ -175,6 +175,7 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
                               ...location,
                               query: {
                                 ...location.query,
+                                cursor: undefined,
                                 // If selecting the issue open period, remove the stats period query param
                                 statsPeriod:
                                   relative === defaultStatsPeriod?.statsPeriod
@@ -212,7 +213,10 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
                         group={group}
                         handleSearch={query => {
                           navigate(
-                            {...location, query: {...location.query, query}},
+                            {
+                              ...location,
+                              query: {...location.query, query, cursor: undefined},
+                            },
                             {replace: true}
                           );
                         }}
