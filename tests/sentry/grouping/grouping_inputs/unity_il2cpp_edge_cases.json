@@ -1,0 +1,55 @@
+{
+  "platform": "native",
+  "exception": {
+    "values": [
+      {
+        "type": "SIGABRT",
+        "value": "Abort",
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "unrelated_native_app_source_under_assets_dir",
+              "package": "/opt/othergame/bin/othergame",
+              "abs_path": "/src/othergame/Assets/textures.cpp",
+              "in_app": true
+            },
+            {
+              "function": "unrelated_native_app_source_under_package_cache_dir",
+              "package": "/opt/othergame/lib/libother.so",
+              "abs_path": "/src/othergame/Library/PackageCache/vendor/bar.cpp",
+              "in_app": true
+            },
+            {
+              "function": "developer_own_libgame_binary_not_unity_gameactivity_glue",
+              "package": "/data/app/~~zZ4mN8pQrS==/com.othercompany.app-qQ7vB2xYtK==/lib/arm64/libgame.so",
+              "in_app": true
+            },
+            {
+              "function": "windows_il2cpp_project_source_with_backslash_paths",
+              "package": "D:\\build\\SpaceGame\\GameAssembly.dll",
+              "abs_path": "D:\\Projects\\SpaceGame\\Assets\\Scripts\\EnemySpawner.cs"
+            },
+            {
+              "function": "linux_il2cpp_project_source",
+              "package": "/opt/SpaceGame/GameAssembly.so",
+              "abs_path": "/home/builder/SpaceGame/Assets/Scripts/EnemySpawner.cs"
+            },
+            {
+              "function": "registry_package_source_under_runtime_dir_never_restored",
+              "package": "/opt/SpaceGame/GameAssembly.so",
+              "abs_path": "/home/builder/SpaceGame/Library/PackageCache/com.unity.inputsystem@1.7.0/InputSystem/Runtime/InputAction.cs"
+            },
+            {
+              "function": "legacy_ios_engine_binary_unity_6000_0_and_older",
+              "package": "/private/var/containers/Bundle/Application/1E8D8F0C-6E2E-4E0B-9E0F-7C9D4A0B2F31/SpaceGame.app/Frameworks/libiPhone-lib.dylib"
+            },
+            {
+              "function": "windows_sentry_native_sdk",
+              "package": "D:\\build\\SpaceGame\\sentry.dll"
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

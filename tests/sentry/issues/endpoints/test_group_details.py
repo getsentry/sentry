@@ -518,6 +518,11 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
 class GroupDetailsReconcileStatusTest(APITestCase, SnubaTestCase):
     def setUp(self) -> None:
         super().setUp()
+        self._options_ctx = self.options(
+            {"issues.derived_data.status_reconciliation.enabled": True}
+        )
+        self._options_ctx.__enter__()
+        self.addCleanup(lambda: self._options_ctx.__exit__(None, None, None))
         self.login_as(user=self.user)
 
     def _get(self, group: Group) -> None:
@@ -528,8 +533,12 @@ class GroupDetailsReconcileStatusTest(APITestCase, SnubaTestCase):
     @with_feature("projects:issue-status-reconciliation")
     @mock.patch("sentry.issues.derived.check.metrics")
     @mock.patch("sentry.issues.derived.check.logger")
-    def test_diverged_closed_logs_and_skips_action(
-        self, mock_logger: mock.MagicMock, mock_metrics: mock.MagicMock
+    @mock.patch("sentry.issues.derived.tasks.reconcile_group_status.apply_async")
+    def test_diverged_closed_logs_and_dispatches_reconcile(
+        self,
+        mock_apply_async: mock.MagicMock,
+        mock_logger: mock.MagicMock,
+        mock_metrics: mock.MagicMock,
     ) -> None:
         group = self.create_group(status=GroupStatus.IGNORED, substatus=GroupSubStatus.FOREVER)
         self.create_group_derived_data(group=group, data={"status": "open"})
@@ -538,6 +547,7 @@ class GroupDetailsReconcileStatusTest(APITestCase, SnubaTestCase):
             self._get(group)
 
         log.assert_not_logged(ReconcileStatusAction)
+        mock_apply_async.assert_called_once_with(kwargs={"group_id": group.id}, countdown=5 * 60)
         mock_logger.info.assert_called_once_with(
             "issues.status_reconciliation.diverged",
             extra={
@@ -562,8 +572,12 @@ class GroupDetailsReconcileStatusTest(APITestCase, SnubaTestCase):
     @with_feature("projects:issue-status-reconciliation")
     @mock.patch("sentry.issues.derived.check.metrics")
     @mock.patch("sentry.issues.derived.check.logger")
-    def test_diverged_open_logs_and_skips_action(
-        self, mock_logger: mock.MagicMock, mock_metrics: mock.MagicMock
+    @mock.patch("sentry.issues.derived.tasks.reconcile_group_status.apply_async")
+    def test_diverged_open_logs_and_dispatches_reconcile(
+        self,
+        mock_apply_async: mock.MagicMock,
+        mock_logger: mock.MagicMock,
+        mock_metrics: mock.MagicMock,
     ) -> None:
         group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
         self.create_group_derived_data(group=group, data={"status": "closed"})
@@ -572,6 +586,7 @@ class GroupDetailsReconcileStatusTest(APITestCase, SnubaTestCase):
             self._get(group)
 
         log.assert_not_logged(ReconcileStatusAction)
+        mock_apply_async.assert_called_once_with(kwargs={"group_id": group.id}, countdown=5 * 60)
         mock_logger.info.assert_called_once_with(
             "issues.status_reconciliation.diverged",
             extra={
@@ -595,7 +610,10 @@ class GroupDetailsReconcileStatusTest(APITestCase, SnubaTestCase):
 
     @with_feature("projects:issue-status-reconciliation")
     @mock.patch("sentry.issues.derived.check.metrics")
-    def test_aligned_status_skips(self, mock_metrics: mock.MagicMock) -> None:
+    @mock.patch("sentry.issues.derived.tasks.reconcile_group_status.apply_async")
+    def test_aligned_status_skips(
+        self, mock_apply_async: mock.MagicMock, mock_metrics: mock.MagicMock
+    ) -> None:
         group = self.create_group(status=GroupStatus.RESOLVED, substatus=None)
         self.create_group_derived_data(group=group, data={"status": "closed"})
 
@@ -603,11 +621,38 @@ class GroupDetailsReconcileStatusTest(APITestCase, SnubaTestCase):
             self._get(group)
 
         log.assert_not_logged(ReconcileStatusAction)
+        mock_apply_async.assert_not_called()
         mock_metrics.incr.assert_any_call(
             "issues.status_reconciliation.checked",
             sample_rate=1.0,
             tags={"result": "aligned", "source": "read_path"},
         )
+
+    @override_options({"issues.derived_data.status_reconciliation.enabled": False})
+    @with_feature("projects:issue-status-reconciliation")
+    @mock.patch("sentry.issues.derived.tasks.reconcile_group_status.apply_async")
+    def test_disabled_reconciliation_does_not_schedule(
+        self, mock_apply_async: mock.MagicMock
+    ) -> None:
+        group = self.create_group(status=GroupStatus.RESOLVED, substatus=None)
+        self.create_group_derived_data(group=group, data={"status": "open"})
+
+        self._get(group)
+
+        mock_apply_async.assert_not_called()
+
+    @with_feature("projects:issue-status-reconciliation")
+    @mock.patch("sentry.issues.derived.tasks.reconcile_group_status.apply_async")
+    def test_derived_not_expected_correct_does_not_schedule(
+        self, mock_apply_async: mock.MagicMock
+    ) -> None:
+        group = self.create_group(status=GroupStatus.RESOLVED, substatus=None)
+        group.project.update_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION, False)
+        self.create_group_derived_data(group=group, data={"status": "open"})
+
+        self._get(group)
+
+        mock_apply_async.assert_not_called()
 
     @with_feature("projects:issue-status-reconciliation")
     def test_no_derived_data_skips(self) -> None:

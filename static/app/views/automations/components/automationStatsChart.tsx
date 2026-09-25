@@ -14,7 +14,7 @@ import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelFooter} from 'sentry/components/panels/panelFooter';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
-import type {Automation, AutomationStats} from 'sentry/types/workflowEngine/automations';
+import type {Automation} from 'sentry/types/workflowEngine/automations';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getUtcDateString, getUtcToLocalDateObject} from 'sentry/utils/dates';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -30,37 +30,8 @@ type WorkflowStatsResponse = {
     end: number;
     start: number;
   };
-  timeSeries: TimeSeries[];
+  timeSeries: [TimeSeries];
 };
-
-type WorkflowStatsApiResponse = AutomationStats[] | WorkflowStatsResponse;
-
-type WorkflowStats = {
-  values: TimeSeries['values'];
-  timeframe?: WorkflowStatsResponse['meta'];
-};
-
-function normalizeWorkflowStatsResponse(
-  response: WorkflowStatsApiResponse | undefined
-): WorkflowStats | undefined {
-  if (!response) {
-    return undefined;
-  }
-
-  if (Array.isArray(response)) {
-    return {
-      values: response.map(({date, count}) => ({
-        timestamp: Date.parse(date),
-        value: count,
-      })),
-    };
-  }
-
-  return {
-    timeframe: response.meta,
-    values: response.timeSeries[0]?.values ?? [],
-  };
-}
 
 export function AutomationStatsChart({
   automationId,
@@ -73,11 +44,11 @@ export function AutomationStatsChart({
   const organization = useOrganization();
   const chartZoomProps = useChartZoom({saveOnZoom: true});
   const {
-    data: statsResponse,
+    data: stats,
     isPending,
     isError,
   } = useQuery(
-    apiOptions.as<WorkflowStatsApiResponse>()(
+    apiOptions.as<WorkflowStatsResponse>()(
       '/organizations/$organizationIdOrSlug/workflows/$workflowId/stats/',
       {
         path: {organizationIdOrSlug: organization.slug, workflowId: automationId},
@@ -92,9 +63,8 @@ export function AutomationStatsChart({
     )
   );
 
-  const stats = normalizeWorkflowStatsResponse(statsResponse);
   const totalAlertsTriggered =
-    stats?.values.reduce((acc, curr) => acc + (curr.value ?? 0), 0) ?? 0;
+    stats?.timeSeries[0].values.reduce((acc, curr) => acc + (curr.value ?? 0), 0) ?? 0;
 
   return (
     <Panel>
@@ -121,18 +91,14 @@ export function AutomationStatsChart({
             yAxis={{
               minInterval: 1,
             }}
-            xAxis={
-              stats.timeframe
-                ? {
-                    min: stats.timeframe.start,
-                    max: stats.timeframe.end,
-                  }
-                : undefined
-            }
+            xAxis={{
+              min: stats.meta.start,
+              max: stats.meta.end,
+            }}
             series={[
               {
                 seriesName: t('Alerts Triggered'),
-                data: stats.values.map(({timestamp, value}) => ({
+                data: stats.timeSeries[0].values.map(({timestamp, value}) => ({
                   name: timestamp,
                   value: value ?? 0,
                 })),

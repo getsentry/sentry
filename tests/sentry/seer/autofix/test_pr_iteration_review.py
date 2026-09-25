@@ -226,7 +226,7 @@ class TriggerPrIterationFromReviewTest(TestCase):
         # exercises. The mocks are exposed as ``self.mock_*``.
         for attr, target in (
             ("mock_get_state", "get_agent_state_from_pr_id"),
-            ("mock_enqueue", "try_enqueue_autofix_feedback"),
+            ("mock_enqueue", "enqueue_autofix_feedback"),
             ("mock_consume", "consume_queued_autofix_feedback.apply_async"),
             ("mock_make_scm", "make_scm"),
             ("mock_actions", "scm_actions"),
@@ -687,11 +687,12 @@ class TriggerPrIterationFromReviewTest(TestCase):
 
         self.mock_enqueue.assert_not_called()
 
-    def test_skips_bot_review_when_automated_streak_capped(self) -> None:
-        # A bot review past the automated-iteration streak cap is dropped before
-        # enqueueing or :eyes:-acking any inline comment — otherwise reviewers see
-        # an ack for feedback that never produces an iteration. (Iterations with no
-        # human feedback count as automated, so two bare iterations trip a cap of 2.)
+    def test_bot_review_past_the_automated_streak_cap_is_queued_but_not_consumed(self) -> None:
+        # Feedback is always queued. Past the cap the trigger refuses to schedule
+        # a consume for a bot review, so none of its inline comments get an
+        # :eyes: ack for an iteration that isn't coming. (Iterations with no
+        # human feedback count as automated, so two bare iterations trip a cap
+        # of 2.)
         self.mock_get_state.return_value = self._agent_state(
             blocks=[self._iteration_block(1), self._iteration_block(2)]
         )
@@ -702,12 +703,9 @@ class TriggerPrIterationFromReviewTest(TestCase):
         with self.options({"autofix.pr-iteration.max-iterations": 2}):
             self._run(author_is_bot=True)
 
-        self.mock_actions.get_review_comments.assert_not_called()
-        self.mock_enqueue.assert_not_called()
+        self.mock_enqueue.assert_called()
         self.mock_consume.assert_not_called()
         self.mock_actions.create_review_comment_reaction.assert_not_called()
-        # The cap drops the bot, not the write-access gate.
-        self.mock_actions.get_repository_user_permission.assert_not_called()
 
     def test_bot_review_capped_when_prior_iterations_recorded_bot_feedback(self) -> None:
         # Bot reviews recorded as automated feedback trip the cap, so bot-vs-agent
@@ -725,7 +723,6 @@ class TriggerPrIterationFromReviewTest(TestCase):
         with self.options({"autofix.pr-iteration.max-iterations": 2}):
             self._run(author_is_bot=True)
 
-        self.mock_enqueue.assert_not_called()
         self.mock_consume.assert_not_called()
         self.mock_actions.create_review_comment_reaction.assert_not_called()
 

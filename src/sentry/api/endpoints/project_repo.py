@@ -1,6 +1,7 @@
 from typing import Any, TypedDict
 
-from drf_spectacular.utils import extend_schema, inline_serializer
+from django.db.models import Count
+from drf_spectacular.utils import OpenApiParameter, extend_schema, inline_serializer
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -9,6 +10,12 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
+from sentry.api.paginator import OffsetPaginator
+from sentry.api.serializers import serialize
+from sentry.api.serializers.models.project_repository import (
+    ProjectRepositorySerializer,
+    ProjectRepositorySerializerResponse,
+)
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_NOT_FOUND
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.response_types import (
@@ -16,6 +23,7 @@ from sentry.apidocs.response_types import (
     ValidationErrorResponse,
     as_validation_errors,
 )
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.models.project import Project
 from sentry.models.projectrepository import ProjectRepository, ProjectRepositorySource
@@ -63,9 +71,70 @@ class ProjectRepoSerializer(serializers.Serializer[ProjectRepository]):
 class ProjectRepoEndpoint(ProjectEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {
+        "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
     }
     permission_classes = (ProjectPermission,)
+
+    @extend_schema(
+        operation_id="listProjectRepositories",
+        summary="List Repositories Linked to a Project",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
+            OpenApiParameter(
+                name="includeMappingCount",
+                location="query",
+                required=False,
+                type=str,
+                description=(
+                    "When set to `1`, each row includes a `mappingCount` field "
+                    "with the number of code path mappings for that repository. "
+                    "Omitted by default to keep the response lightweight."
+                ),
+            ),
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "ProjectRepoListResponse",
+                list[ProjectRepositorySerializerResponse],
+            ),
+        },
+    )
+    def get(
+        self, request: Request, project: Project
+    ) -> Response[list[ProjectRepositorySerializerResponse]]:
+        """
+        List all repositories linked to a project.
+
+        Pass `?includeMappingCount=1` to include the number of code path mappings
+        per repository. Omitting it keeps the query cheaper for callers that
+        only need the list of connections.
+        """
+        include_mapping_count = request.GET.get("includeMappingCount") == "1"
+
+        qs = (
+            ProjectRepository.objects.filter(
+                project=project,
+                repository__status=ObjectStatus.ACTIVE,
+            )
+            .select_related("repository")
+            .order_by("repository__name", "id")
+        )
+
+        if include_mapping_count:
+            qs = qs.annotate(mapping_count=Count("repositoryprojectpathconfig"))
+
+        return self.paginate(
+            request=request,
+            queryset=qs,
+            paginator_cls=OffsetPaginator,
+            on_results=lambda items: serialize(
+                items,
+                request.user,
+                ProjectRepositorySerializer(include_mapping_count=include_mapping_count),
+            ),
+        )
 
     @extend_schema(
         operation_id="linkProjectRepository",
