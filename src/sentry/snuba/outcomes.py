@@ -3,6 +3,7 @@ from __future__ import annotations
 import itertools
 from abc import ABC, abstractmethod
 from collections.abc import Mapping, MutableMapping, Sequence
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Generic, NotRequired, TypeVar
 from typing import TypedDict as TypingTypedDict
@@ -14,16 +15,22 @@ from snuba_sdk.conditions import Condition, Op
 from snuba_sdk.entity import Entity
 from snuba_sdk.expressions import Granularity, Limit, Offset
 from snuba_sdk.function import Function
+from snuba_sdk.orderby import Direction, OrderBy
 from snuba_sdk.query import Query
 
+from sentry.api.utils import get_date_range_from_params
 from sentry.constants import DataCategory
+from sentry.exceptions import InvalidParams
 from sentry.models.project import Project
 from sentry.release_health.base import AllowedResolution
 from sentry.search.utils import InvalidQuery
+from sentry.snuba.metrics.utils import to_intervals
 from sentry.snuba.sessions_v2 import (
+    MAX_POINTS,
     InvalidField,
     SimpleGroupBy,
     get_constrained_date_range,
+    get_now,
     isoformat_z,
 )
 from sentry.utils.outcomes import Outcome
@@ -223,6 +230,53 @@ TS_COL = "time"
 
 ONE_HOUR = 3600
 
+#: Snuba rejects any query with a higher limit, so a result with this many rows
+#: means rows were dropped.
+MAX_SNUBA_LIMIT = 10000
+
+AUTO_INTERVAL = "auto"
+
+#: Rollups the server can pick for ``interval=auto``, finest first. Each one is
+#: a whole number of hours that divides one day, the same rule an explicit
+#: interval must follow.
+AUTO_ROLLUPS = (3600, 7200, 10800, 14400, 21600, 28800, 43200, 86400)
+
+
+def _resolve_auto_rollup(
+    date_params: Mapping[str, Any], group_count: int | None
+) -> tuple[datetime, datetime, int]:
+    """Pick the finest rollup whose series fits under the Snuba row limit.
+
+    A series has at most ``group_count`` times ``buckets`` rows. Without a group
+    count only the bucket cap applies. When no rollup fits, the coarsest one is
+    returned so the caller can report the truncation.
+    """
+    start, end = get_date_range_from_params(date_params)
+    now = get_now()
+    if start > now:
+        start = now
+
+    coarsest_allowed = None
+    for rollup in AUTO_ROLLUPS:
+        adjusted_start, adjusted_end, num_intervals = to_intervals(start, end, rollup)
+        if num_intervals > MAX_POINTS:
+            continue
+        coarsest_allowed = (adjusted_start, adjusted_end, rollup)
+        if group_count is None or group_count * num_intervals <= MAX_SNUBA_LIMIT:
+            return coarsest_allowed
+    if coarsest_allowed is None:
+        raise InvalidParams(
+            "Your date range would create too many results. Use a smaller date range."
+        )
+    return coarsest_allowed
+
+
+def _interval_name(rollup: int) -> str:
+    for unit_seconds, unit in ((86400, "d"), (3600, "h"), (60, "m")):
+        if rollup % unit_seconds == 0:
+            return f"{rollup // unit_seconds}{unit}"
+    return f"{rollup}s"
+
 
 class QueryDefinition:
     """
@@ -293,9 +347,14 @@ class QueryDefinition:
             "statsPeriod": stats_period,
         }
 
-        self.start, self.end, self.rollup = get_constrained_date_range(
-            date_params, allowed_resolution
-        )
+        self.auto_interval = interval == AUTO_INTERVAL
+        self._date_params = date_params
+        if self.auto_interval:
+            self.start, self.end, self.rollup = _resolve_auto_rollup(date_params, None)
+        else:
+            self.start, self.end, self.rollup = get_constrained_date_range(
+                date_params, allowed_resolution
+            )
         self.dataset, self.match = _outcomes_dataset(self.rollup)
         self.select_params = []
         for key in fields:
@@ -331,13 +390,33 @@ class QueryDefinition:
         for key in self.query_groupby:
             self.group_by.append(Column(key))
 
-        condition_data = {
+        self._condition_data = {
             "outcome": outcome,
             "key_id": key_id,
             "category": category,
             "reason": reason,
         }
-        self.conditions = self.get_conditions(condition_data, params)
+        self._params = params
+        self.conditions = self.get_conditions(self._condition_data, self._params)
+
+    @property
+    def interval_name(self) -> str:
+        return _interval_name(self.rollup)
+
+    def apply_auto_rollup(self, group_count: int) -> bool:
+        """Re-pick the rollup for ``interval=auto`` once the group count is known.
+
+        Returns True when the rollup changed. The query window and the timestamp
+        conditions are then realigned to the new rollup.
+        """
+        if not self.auto_interval:
+            return False
+        start, end, rollup = _resolve_auto_rollup(self._date_params, group_count)
+        if rollup == self.rollup:
+            return False
+        self.start, self.end, self.rollup = start, end, rollup
+        self.conditions = self.get_conditions(self._condition_data, self._params)
+        return True
 
     def get_conditions(self, query: Mapping[str, Any], params: Mapping[Any, Any]) -> list[Any]:
         query_conditions = [
@@ -362,33 +441,53 @@ class QueryDefinition:
         return query_conditions
 
 
-def run_outcomes_query_totals(
+@dataclass(frozen=True)
+class OutcomesQueryResult:
+    rows: ResultSet
+    #: Rows Snuba returned before categories were merged. This is the count the
+    #: row limit applies to.
+    raw_row_count: int
+
+    @property
+    def is_truncated(self) -> bool:
+        return self.raw_row_count >= MAX_SNUBA_LIMIT
+
+
+def fetch_outcomes_totals(
     query: QueryDefinition,
     *,
     tenant_ids: Mapping[str, int | str],
-) -> ResultSet:
+) -> OutcomesQueryResult:
     snql_query = Query(
         match=Entity(query.match),
         select=query.select_params,
         groupby=query.group_by,
         where=query.conditions,
-        limit=Limit(10000),
+        limit=Limit(MAX_SNUBA_LIMIT),
         offset=Offset(0),
         granularity=Granularity(query.rollup),
     )
     request = Request(
         dataset=query.dataset.value, app_id="default", query=snql_query, tenant_ids=tenant_ids
     )
-    result = raw_snql_query(request, referrer="outcomes.totals")
-    return _format_rows(result["data"], query)
+    rows = raw_snql_query(request, referrer="outcomes.totals")["data"]
+    return OutcomesQueryResult(rows=_format_rows(rows, query), raw_row_count=len(rows))
 
 
-def run_outcomes_query_timeseries(
+def run_outcomes_query_totals(
+    query: QueryDefinition,
+    *,
+    tenant_ids: Mapping[str, int | str],
+) -> ResultSet:
+    return fetch_outcomes_totals(query, tenant_ids=tenant_ids).rows
+
+
+def fetch_outcomes_timeseries(
     query: QueryDefinition,
     *,
     tenant_ids: Mapping[str, int | str],
     referrer: str = "outcomes.timeseries",
-) -> ResultSet:
+) -> OutcomesQueryResult:
     """
     Runs an outcomes query. By default the referrer is `outcomes.timeseries` and this should not change
     unless there is a very specific reason to do so. Eg. getsentry uses this function for billing
@@ -399,15 +498,27 @@ def run_outcomes_query_timeseries(
         select=query.select_params,
         groupby=query.group_by + [Column(TS_COL)],
         where=query.conditions,
-        limit=Limit(10000),
+        # Rows past the limit are dropped. Ordering by time makes that drop
+        # deterministic and tail-shaped instead of engine-defined.
+        orderby=[OrderBy(Column(TS_COL), Direction.ASC)],
+        limit=Limit(MAX_SNUBA_LIMIT),
         offset=Offset(0),
         granularity=Granularity(query.rollup),
     )
     request = Request(
         dataset=query.dataset.value, app_id="default", query=snql_query, tenant_ids=tenant_ids
     )
-    result_timeseries = raw_snql_query(request, referrer=referrer)
-    return _format_rows(result_timeseries["data"], query)
+    rows = raw_snql_query(request, referrer=referrer)["data"]
+    return OutcomesQueryResult(rows=_format_rows(rows, query), raw_row_count=len(rows))
+
+
+def run_outcomes_query_timeseries(
+    query: QueryDefinition,
+    *,
+    tenant_ids: Mapping[str, int | str],
+    referrer: str = "outcomes.timeseries",
+) -> ResultSet:
+    return fetch_outcomes_timeseries(query, tenant_ids=tenant_ids, referrer=referrer).rows
 
 
 def _format_rows(rows: ResultSet, query: QueryDefinition) -> ResultSet:
@@ -582,11 +693,19 @@ class _StatsGroup(TypingTypedDict):
     series: NotRequired[dict[str, Any]]
 
 
+class StatsApiMeta(TypingTypedDict):
+    #: The resolution of `intervals`. It differs from the request for `interval=auto`.
+    interval: str
+    #: True when the series hit the Snuba row limit and rows were dropped.
+    isTruncated: bool
+
+
 class StatsApiResponse(TypingTypedDict):
     start: str
     end: str
     intervals: NotRequired[list[str]]
     groups: list[_StatsGroup]
+    meta: NotRequired[StatsApiMeta]
 
 
 def massage_outcomes_result(
