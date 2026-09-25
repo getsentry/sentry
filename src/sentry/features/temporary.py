@@ -426,8 +426,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:seat-based-seer-entitlement-service", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Organizations with usage-based Seer enabled through billing platform.
     manager.add("organizations:token-billed-seer-enabled", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
-    # Render Sentry App schema-backed forms using the backend JSON form adapter.
-    manager.add("organizations:sentry-app-schema-form-migration", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True, default=True)
     # Enable new SentryApp webhook request endpoint
     # Enable static ClickHouse sampling for `OrganizationTagsEndpoint`
     manager.add("organizations:tag-key-sample-n", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
