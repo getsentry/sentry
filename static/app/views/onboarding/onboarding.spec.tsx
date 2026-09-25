@@ -894,9 +894,7 @@ describe('Onboarding', () => {
       renderOnboarding('scm-connect');
 
       // Should auto-select the existing integration and show connected view
-      expect(
-        await screen.findByText('Connected to GitHub / getsentry')
-      ).toBeInTheDocument();
+      expect(await screen.findByText('getsentry')).toBeInTheDocument();
     });
 
     it('continue without a repo advances to next step without skipping onboarding', async () => {

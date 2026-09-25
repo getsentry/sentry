@@ -25,9 +25,6 @@ const productionEntryPoints = [
   // TODO: Remove when the autofixRef embed consumes it (#122099)
   'static/app/components/seer/autofixChatContext.tsx',
   'static/app/components/brandPageLayout/**/*.{ts,tsx}',
-  // TODO: Remove when the SCM onboarding connect step consumes them (#125255)
-  'static/app/components/onboarding/scm/scmStepLayout.tsx',
-  'static/app/components/onboarding/scm/scmPickerSection.tsx',
   // React authentication routes are discovered dynamically by the frontend route registry
   'static/app/views/authV2/authLogin/**/*.{ts,tsx}',
 ];
