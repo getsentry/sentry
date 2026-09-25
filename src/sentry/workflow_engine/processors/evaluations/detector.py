@@ -1,4 +1,4 @@
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any, TypedDict
 
@@ -11,7 +11,7 @@ from sentry.workflow_engine.types import (
     DetectorResult,
 )
 
-from .base import BaseWorkflowEngineEvaluation, BaseWorkflowEngineEvaluationArtifact, EvaluationType
+from .base import BaseWorkflowEngineEvaluation, BaseWorkflowEngineEvaluationArtifact
 from .condition_group import DataConditionGroupEvaluation, DataConditionGroupEvaluationArtifact
 
 
@@ -34,6 +34,7 @@ class DetectorEvaluationOutcome(StrEnum):
 class DetectorEvaluationArtifact(BaseWorkflowEngineEvaluationArtifact):
     event_id: str | None
     group_key: DetectorGroupKey
+    outcome: DetectorEvaluationOutcome
     priority: int
     trigger_evaluation: DataConditionGroupEvaluationArtifact
 
@@ -86,6 +87,7 @@ class DetectorEvaluation(
             error=error,
             event_id=str(event_id) if event_id else None,
             group_key=self.data["group_key"],
+            outcome=self.outcome,
             priority=self.priority.value,
             trigger_evaluation=self.data["trigger_group_evaluation"].to_artifact(),
         )
@@ -114,29 +116,5 @@ class ProcessDetectorsResult:
             return DetectorEvaluationOutcome.COMPLETED
         return DetectorEvaluationOutcome.NO_RESULTS
 
-    @property
-    def artifact_data(self) -> dict[str, object]:
-        return {
-            "evaluation_type": EvaluationType.DETECTOR,
-            "detector_id": self.detector_id,
-            "detector_type": self.detector_type,
-            "project_id": self.project_id,
-            "outcome": self.outcome,
-            "error": self.evaluation_error.msg if self.evaluation_error else None,
-        }
-
-    def to_artifact(self) -> dict[str, object]:
-        return self.artifact_data
-
-    def evaluation_artifacts(self) -> list[dict[str, object]]:
-        if not self.evaluations:
-            return [self.to_artifact()]
-
-        return [
-            {
-                **self.artifact_data,
-                **asdict(evaluation.to_artifact()),
-                "outcome": evaluation.outcome,
-            }
-            for evaluation in self.evaluations.values()
-        ]
+    def evaluation_artifacts(self) -> tuple[DetectorEvaluationArtifact, ...]:
+        return tuple(evaluation.to_artifact() for evaluation in self.evaluations.values())

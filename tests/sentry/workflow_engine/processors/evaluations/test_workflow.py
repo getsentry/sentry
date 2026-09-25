@@ -13,6 +13,8 @@ from sentry.workflow_engine.processors.evaluations import (
     EvaluationType,
     ProcessWorkflowsResult,
     WorkflowEvaluation,
+    WorkflowEvaluationArtifact,
+    WorkflowEvaluationBatch,
     WorkflowEvaluationOutcome,
 )
 from sentry.workflow_engine.processors.evaluations.logging import (
@@ -23,6 +25,18 @@ from sentry.workflow_engine.processors.evaluations.tracking import emit_evaluati
 from sentry.workflow_engine.types import ConditionError, WorkflowEventData
 
 LOGGING_MODULE = "sentry.workflow_engine.processors.evaluations.logging"
+
+
+class EmptyDelayedWorkflowEvaluationBatch(WorkflowEvaluationBatch):
+    @property
+    def evaluation_phase(self) -> EvaluationPhase:
+        return EvaluationPhase.DELAYED
+
+    def evaluated_workflow_ids(self) -> set[int]:
+        return set()
+
+    def evaluation_artifacts(self) -> tuple[WorkflowEvaluationArtifact, ...]:
+        return ()
 
 
 class TestWorkflowEvaluationArtifact(TestCase):
@@ -47,6 +61,7 @@ class TestWorkflowEvaluationArtifact(TestCase):
         error: ConditionError | None = None,
         deferred: bool = False,
         workflow_id: int = 10,
+        condition_evaluations: list[DataConditionEvaluation] | None = None,
         filter_group_evaluations: list[DataConditionGroupEvaluation] | None = None,
     ) -> WorkflowEvaluation:
         trigger_evaluation = DataConditionGroupEvaluation(
@@ -54,7 +69,7 @@ class TestWorkflowEvaluationArtifact(TestCase):
             triggered=triggered,
             error=error,
             data={
-                "condition_evaluations": [],
+                "condition_evaluations": condition_evaluations or [],
                 "logic_type": DataConditionGroup.Type.ANY,
             },
         )
@@ -124,6 +139,16 @@ class TestWorkflowEvaluationArtifact(TestCase):
             },
             "filter_evaluations": [],
         }
+
+    def test_process_result_returns_workflow_artifact_dataclasses(self) -> None:
+        evaluation = self._build_evaluation()
+
+        artifacts = self._build_batch_result(
+            {evaluation.workflow_id: evaluation}
+        ).evaluation_artifacts()
+
+        assert artifacts == (evaluation.to_artifact(),)
+        assert isinstance(artifacts[0], WorkflowEvaluationArtifact)
 
     def test_to_artifact_includes_deferred_conditions(self) -> None:
         evaluation = self._build_evaluation(deferred=True)
@@ -201,6 +226,35 @@ class TestWorkflowEvaluationArtifact(TestCase):
         assert redact_pii_from_artifact(artifact) == {
             "trigger_evaluation": {"condition_evaluations": [{"input": None, "input_type": "dict"}]}
         }
+
+    def test_emitter_redacts_raw_workflow_event_input(self) -> None:
+        condition = self.create_data_condition()
+        condition_evaluation = DataConditionEvaluation(
+            condition=condition,
+            result=True,
+            triggered=True,
+            data=self.event_data,
+        )
+        evaluation = self._build_evaluation(
+            triggered=True,
+            condition_evaluations=[condition_evaluation],
+        )
+
+        with (
+            Feature({"organizations:workflow-engine-log-evaluations": True}),
+            override_options({"workflow_engine.evaluation_logs_direct_to_sentry": False}),
+            mock.patch(f"{LOGGING_MODULE}.logger") as mock_logger,
+        ):
+            emit_evaluations(
+                organization=self.organization,
+                result=self._build_batch_result({evaluation.workflow_id: evaluation}),
+            )
+
+        logged_condition = mock_logger.info.call_args.kwargs["extra"]["trigger_evaluation"][
+            "condition_evaluations"
+        ][0]
+        assert logged_condition["input"] is None
+        assert logged_condition["input_type"] == "WorkflowEventData"
 
     def test_condition_artifact_includes_string_input(self) -> None:
         condition = self.create_data_condition()
@@ -315,16 +369,40 @@ class TestWorkflowEvaluationArtifact(TestCase):
             11,
         ]
 
-    def test_emitter_logs_empty_batch_outcome(self) -> None:
+    def test_emitter_logs_empty_delayed_batch_outcome(self) -> None:
         with (
             Feature({"organizations:workflow-engine-log-evaluations": True}),
             mock.patch(f"{LOGGING_MODULE}.logger") as mock_logger,
         ):
             emit_evaluations(
                 organization=self.organization,
-                result=self._build_batch_result(
-                    outcome=WorkflowEvaluationOutcome.NO_WORKFLOWS,
-                ),
+                result=EmptyDelayedWorkflowEvaluationBatch(),
+            )
+
+        mock_logger.info.assert_called_once_with(
+            "workflow_engine.process_workflows.evaluation",
+            extra={
+                "evaluation_type": EvaluationType.WORKFLOW,
+                "evaluation_phase": EvaluationPhase.DELAYED,
+                "outcome": WorkflowEvaluationOutcome.NO_WORKFLOWS,
+                "error": None,
+                "organization_id": self.organization.id,
+            },
+        )
+
+    def test_emitter_logs_empty_batch_outcome(self) -> None:
+        result = self._build_batch_result(
+            outcome=WorkflowEvaluationOutcome.NO_WORKFLOWS,
+        )
+        assert result.evaluation_artifacts() == ()
+
+        with (
+            Feature({"organizations:workflow-engine-log-evaluations": True}),
+            mock.patch(f"{LOGGING_MODULE}.logger") as mock_logger,
+        ):
+            emit_evaluations(
+                organization=self.organization,
+                result=result,
             )
 
         mock_logger.info.assert_called_once_with(

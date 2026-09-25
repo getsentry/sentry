@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Iterable, Iterator, Mapping, Sequence
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from functools import cached_property
 from typing import Any
@@ -55,7 +55,10 @@ from sentry.workflow_engine.processors.evaluations import (
     WorkflowEvaluationOutcome,
 )
 from sentry.workflow_engine.processors.evaluations.tracking import emit_evaluations
-from sentry.workflow_engine.processors.evaluations.workflow import WorkflowEvaluationArtifact
+from sentry.workflow_engine.processors.evaluations.workflow import (
+    WorkflowEvaluationArtifact,
+    WorkflowEvaluationBatch,
+)
 from sentry.workflow_engine.processors.log_util import track_batch_performance
 from sentry.workflow_engine.processors.workflow_fire_history import create_workflow_fire_histories
 from sentry.workflow_engine.types import (
@@ -586,7 +589,7 @@ class _ConditionEvaluationStats:
 
 
 @dataclass(frozen=True)
-class DelayedWorkflowEvaluationResult:
+class DelayedWorkflowEvaluationResult(WorkflowEvaluationBatch):
     artifacts: list[WorkflowEvaluationArtifact]
     groups_to_fire: dict[GroupId, set[DataConditionGroup]]
     stats: _ConditionEvaluationStats
@@ -605,11 +608,15 @@ class DelayedWorkflowEvaluationResult:
     # Condition-level detail is omitted; all conditions not in if_dcg_passed are assumed failed.
     if_dcg_failed: dict[WorkflowId, dict[GroupId, list[DataConditionGroupId]]]
 
+    @property
+    def evaluation_phase(self) -> EvaluationPhase:
+        return EvaluationPhase.DELAYED
+
     def evaluated_workflow_ids(self) -> set[WorkflowId]:
         return set(self.workflow_ids)
 
-    def evaluation_artifacts(self) -> list[dict[str, object]]:
-        return [asdict(artifact) for artifact in self.artifacts]
+    def evaluation_artifacts(self) -> tuple[WorkflowEvaluationArtifact, ...]:
+        return tuple(self.artifacts)
 
     def iter_per_workflow_log_dicts(self) -> Iterator[dict[str, Any]]:
         """Yield one log-ready dict per workflow, keeping each entry bounded in size."""
