@@ -1160,11 +1160,42 @@ export function seerEmbedsToJsonSchemas(): Array<{
 }> {
   return Object.entries(SEER_EMBED_SCHEMAS).map(([name, entry]) => {
     const def: SeerEmbedSchema = entry;
+    const body = z.toJSONSchema(def.schema, {io: 'input'});
+    if (name === 'chart') {
+      // superRefine is not exported. Apply its rules to new generation without
+      // changing the reader used by historical conversations.
+      body.allOf = [
+        {
+          if: {properties: {x_axis: {const: 'category'}}, required: ['x_axis']},
+          then: {
+            properties: {visualization: {const: 'bar'}},
+            required: ['visualization'],
+          },
+          else: {
+            properties: {
+              series: {
+                items: {
+                  properties: {
+                    data: {
+                      items: {
+                        properties: {
+                          x: z.toJSONSchema(isoTimestampSchema, {io: 'input'}),
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      ];
+    }
     return {
       name,
       description: def.description,
       level: [...def.level],
-      body: z.toJSONSchema(def.schema),
+      body,
       ...(def.examples && {
         examples: def.examples.map(e => ({label: e.label, data: e.data})),
       }),
