@@ -35,7 +35,6 @@ def get_assigned_subject(data: AssignedNotificationData) -> list[NotificationTex
     else:
         blocks.append(PlainTextBlock(text="An Issue"))
 
-    # For automated assignments from Sentry Apps, use "was auto-assigned" instead of "by {proxy_email}"
     if data.is_automated:
         blocks.append(PlainTextBlock(text=f"was auto-assigned to {get_assignee_label(data)}"))
     else:
