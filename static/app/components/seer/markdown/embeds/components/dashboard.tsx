@@ -22,6 +22,11 @@ function DashboardLink({
   title,
 }: EmbedOutput<'dashboard'> & ResourceLinkFormatProps) {
   const organization = useOrganization();
+
+  if (!id) {
+    return null;
+  }
+
   const href = normalizeUrl(`/organizations/${organization.slug}/dashboard/${id}/`);
 
   return (

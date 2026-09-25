@@ -191,6 +191,13 @@ function DashboardPreview({
 }
 
 export default function DashboardBlock({id, title}: EmbedOutput<'dashboard'>) {
+  if (!id) {
+    return null;
+  }
+  return <DashboardBlockInner id={id} title={title} />;
+}
+
+function DashboardBlockInner({id, title}: {id: string; title?: string}) {
   const organization = useOrganization();
   const href = normalizeUrl(`/organizations/${organization.slug}/dashboard/${id}/`);
   const {data, isError, isPending} = useQuery({
