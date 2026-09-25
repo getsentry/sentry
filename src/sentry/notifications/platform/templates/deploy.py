@@ -37,6 +37,8 @@ from sentry.users.services.user.service import user_service
 
 TEXT_DELIMITER = " · "
 MAX_SUBJECT_PROJECTS = 2
+# Slack enforces a hard limit of 50 blocks per chat.postMessage call.
+SLACK_MAX_BLOCKS = 50
 
 
 class DeployReleaseCommit(TypedDict):
@@ -133,24 +135,71 @@ def build_deploy_body(data: DeployReleaseData) -> list[NotificationSection]:
                 )
             project_sections.append(ParagraphSection(blocks=release_project_blocks))
 
+    # Compute how many Slack blocks SlackRenderer will add outside the body:
+    #   - 1 HeaderBlock for the subject (always)
+    #   - 1 ContextBlock for the footer (when non-empty)
+    #   - 1 ActionsBlock for actions (when non-empty)
+    slack_overhead = (
+        1  # subject HeaderBlock — always present
+        + int(bool(build_deploy_footer(data)))
+        + int(bool(build_deploy_actions(data)))
+    )
+    max_body_blocks = SLACK_MAX_BLOCKS - slack_overhead
+
     commits_sections: list[NotificationSection] = []
     if data.repo_name_to_commits:
-        commits_sections.append(ParagraphSection(blocks=[BoldTextBlock(text="Repositories:")]))
-        for repo_name, commits in data.repo_name_to_commits.items():
-            commits_sections.append(ParagraphSection(blocks=[BoldTextBlock(text=repo_name)]))
-            repo_sections: list[NotificationSection] = []
-            for commit in commits:
-                commit_blocks = [
-                    PlainTextBlock(commit["message"]),
-                    PlainTextBlock(text=TEXT_DELIMITER),
-                    ItalicTextBlock(text=commit["author_name"]),
-                    PlainTextBlock(text=TEXT_DELIMITER),
-                    ItalicTextBlock(text=format_datetime(commit["date"])),
-                    PlainTextBlock(text=TEXT_DELIMITER),
-                    CodeTextBlock(text=commit["sha"]),
-                ]
-                repo_sections.append(ParagraphSection(blocks=commit_blocks))
-            commits_sections.extend(repo_sections)
+        # How many slots are available for the entire commits_sections list, after reserving
+        # space for summary and project sections.
+        commits_budget = max_body_blocks - len(summary_sections) - len(project_sections)
+
+        total_commits = sum(len(c) for c in data.repo_name_to_commits.values())
+        shown_commits = 0
+        truncated = False
+
+        # Only open the "Repositories:" section when there is budget for the header AND at
+        # least one more entry.  With budget == 1 we skip the header and use that single
+        # remaining slot for the truncation notice below.
+        if commits_budget >= 2:
+            commits_sections.append(ParagraphSection(blocks=[BoldTextBlock(text="Repositories:")]))
+            for repo_name, commits in data.repo_name_to_commits.items():
+                if truncated:
+                    break
+                # Reserve 1 slot for a potential truncation notice before adding the repo header.
+                if len(commits_sections) >= commits_budget - 1:
+                    truncated = True
+                    break
+                commits_sections.append(ParagraphSection(blocks=[BoldTextBlock(text=repo_name)]))
+                for commit in commits:
+                    # Reserve 1 slot for a potential truncation notice before adding each commit.
+                    if len(commits_sections) >= commits_budget - 1:
+                        truncated = True
+                        break
+                    commit_blocks = [
+                        PlainTextBlock(commit["message"]),
+                        PlainTextBlock(text=TEXT_DELIMITER),
+                        ItalicTextBlock(text=commit["author_name"]),
+                        PlainTextBlock(text=TEXT_DELIMITER),
+                        ItalicTextBlock(text=format_datetime(commit["date"])),
+                        PlainTextBlock(text=TEXT_DELIMITER),
+                        CodeTextBlock(text=commit["sha"]),
+                    ]
+                    commits_sections.append(ParagraphSection(blocks=commit_blocks))
+                    shown_commits += 1
+        elif commits_budget == 1:
+            # Only 1 slot available — skip the header and use it for the truncation notice.
+            truncated = True
+
+        if truncated and len(commits_sections) < commits_budget:
+            omitted = total_commits - shown_commits
+            commits_sections.append(
+                ParagraphSection(
+                    blocks=[
+                        ItalicTextBlock(
+                            text=f"{omitted} more commit{pluralize(omitted)} not shown."
+                        )
+                    ]
+                )
+            )
     else:
         commits_sections.append(
             ParagraphSection(
@@ -162,11 +211,14 @@ def build_deploy_body(data: DeployReleaseData) -> list[NotificationSection]:
             )
         )
 
-    return [
+    body = [
         *summary_sections,
         *project_sections,
         *commits_sections,
     ]
+    # Hard cap as a safety net: ensure the total body never exceeds the Slack block limit
+    # regardless of how many project or summary sections were generated.
+    return body[:max_body_blocks]
 
 
 def build_deploy_actions(data: DeployReleaseData) -> list[NotificationRenderedAction]:
