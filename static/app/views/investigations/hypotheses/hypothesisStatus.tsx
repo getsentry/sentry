@@ -121,7 +121,7 @@ export function HypothesisStatus({hypothesis}: HypothesisStatusProps) {
         variant={variant}
         animationIterationCount={variant === 'accent' ? 'infinite' : 0}
       />
-      <Text size="sm" variant={variant}>
+      <Text size="xs" variant={variant}>
         {label}
       </Text>
     </Flex>
