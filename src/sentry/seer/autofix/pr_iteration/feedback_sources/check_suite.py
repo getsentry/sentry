@@ -23,6 +23,7 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.base import (
     FeedbackSourceBase,
     TriggerDecision,
 )
+from sentry.seer.autofix.pr_iteration.iterations import get_iterations
 from sentry.utils import metrics
 from sentry.utils.tracing import trace
 
@@ -39,7 +40,6 @@ class MissingCheckSuiteAutofixRun(Exception):
 
 def _processed_check_suite_attempts(run_state: SeerRunState) -> set[tuple[int, str] | int]:
     """Attempt keys already turned into feedback on this run (for consume dedupe)."""
-    from sentry.seer.autofix.autofix_agent import get_iterations
     from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import _blocks_feedback
 
     keys: set[tuple[int, str] | int] = set()

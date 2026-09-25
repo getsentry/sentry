@@ -17,6 +17,7 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrReviewCommentFeedbackSource,
 )
 from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
+from sentry.seer.autofix.pr_iteration.iterations import get_iterations
 from sentry.seer.autofix.pr_iteration.project_setting import pr_iteration_enabled_for_group
 from sentry.utils import json
 
@@ -109,8 +110,6 @@ def feedback_kind(items: Collection[Feedback]) -> str:
 
 def latest_iteration_feedback_kind(run_state: SeerRunState) -> str:
     """``feedback_kind`` for the run's most recent PR iteration."""
-    from sentry.seer.autofix.autofix_agent import get_iterations
-
     try:
         iterations = get_iterations(run_state)
     except Exception:
@@ -142,8 +141,6 @@ def automated_iteration_cap_reached(run_state: SeerRunState) -> bool:
     streak is unbroken for N iterations we stop triggering further automated ones
     — they'd loop forever without human input.
     """
-    from sentry.seer.autofix.autofix_agent import get_iterations
-
     cap = options.get("autofix.pr-iteration.max-iterations")
     if cap <= 0:
         return False
