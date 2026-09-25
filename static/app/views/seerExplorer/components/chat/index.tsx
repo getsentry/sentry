@@ -1,3 +1,4 @@
+import {memo} from 'react';
 import {motion} from 'framer-motion';
 
 import {Container} from '@sentry/scraps/layout';
@@ -6,6 +7,7 @@ import {unreachable} from 'sentry/utils/unreachable';
 import type {
   Block,
   PendingUserInput,
+  RespondToUserInputOptions,
   SeerExplorerRunId,
 } from 'sentry/views/seerExplorer/types';
 
@@ -23,12 +25,20 @@ interface BlockProps {
   pendingInput?: PendingUserInput | null;
   readOnly?: boolean;
   ref?: React.Ref<HTMLDivElement>;
-  respondToUserInput?: (inputId: string, responseData?: Record<string, unknown>) => void;
+  respondToUserInput?: (
+    inputId: string,
+    responseData?: Record<string, unknown>,
+    options?: RespondToUserInputOptions
+  ) => void;
   runId?: SeerExplorerRunId;
   showThinking?: boolean;
 }
 
-export function BlockComponent({onClick, ref, ...props}: BlockProps) {
+export const BlockComponent = memo(function BlockComponent({
+  onClick,
+  ref,
+  ...props
+}: BlockProps) {
   return (
     <Container
       width="100%"
@@ -43,7 +53,7 @@ export function BlockComponent({onClick, ref, ...props}: BlockProps) {
       </motion.div>
     </Container>
   );
-}
+});
 
 function BlockVariant(props: Omit<BlockProps, 'onClick' | 'ref'>) {
   const {block} = props;

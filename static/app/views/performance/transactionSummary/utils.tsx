@@ -15,8 +15,8 @@ import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
-import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
-import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
+import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/breadcrumbs';
+import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/traceUrl';
 
 export enum DisplayModes {
   DURATION_PERCENTILE = 'durationpercentile',

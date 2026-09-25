@@ -48,11 +48,18 @@ jobs:
         id: upload
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_SNAPSHOTS_AUTH_TOKEN }}
+          SENTRY_DSN: ${{ secrets.SENTRY_SNAPSHOTS_DSN }}
           HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
           HEAD_REF: ${{ github.event.workflow_run.head_branch }}
           REPO_NAME: ${{ github.repository }}
         run: |
           set -euo pipefail
+          SENTRY_PROJECT_ID="${SENTRY_DSN%%[?#]*}"
+          SENTRY_PROJECT_ID="${SENTRY_PROJECT_ID##*/}"
+          if [[ ! "$SENTRY_PROJECT_ID" =~ ^[0-9]+$ ]]; then
+            echo "SENTRY_SNAPSHOTS_DSN must end in a numeric project ID" >&2
+            exit 1
+          fi
           PR_NUMBER=$(jq -r '.pr_number // ""' "$VCS_METADATA_FILE")
           BASE_REF=$(jq -r '.base_ref // ""' "$VCS_METADATA_FILE")
           BASE_SHA=$(jq -r '.base_sha // ""' "$VCS_METADATA_FILE")
@@ -64,7 +71,7 @@ jobs:
 
           args=(snapshots upload "$SNAPSHOT_OUTPUT_DIR" \
             --app-id sentry-frontend \
-            --project sentry-frontend \
+            --project "$SENTRY_PROJECT_ID" \
             --vcs-provider github \
             --head-repo-name "$REPO_NAME" \
             --base-repo-name "$REPO_NAME")

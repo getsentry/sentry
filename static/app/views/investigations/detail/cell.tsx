@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useId, useMemo, useRef, useState} from 'react';
+import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 
@@ -15,15 +15,9 @@ import {openConfirmModal} from 'sentry/components/confirm';
 import {Duration} from 'sentry/components/duration';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {ChartContent} from 'sentry/components/seer/markdown/embeds/components/chart';
+import {SeerEmbedBlock} from 'sentry/components/seer/markdown/embeds/components/seerEmbedBlock';
 import {ALL_SEER_EMBED_SCHEMAS} from 'sentry/components/seer/markdown/embeds/schemas';
-import {
-  IconArrow,
-  IconClose,
-  IconCompass,
-  IconEllipsis,
-  IconReturn,
-  IconSeer,
-} from 'sentry/icons';
+import {IconArrow, IconClose, IconEllipsis, IconReturn, IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
@@ -35,6 +29,7 @@ import {
   useStopInvestigationExecutionMutation,
   useUpdateInvestigationBlockPromptMutation,
 } from 'sentry/views/investigations/api';
+import {InvestigationCellPlaceholder} from 'sentry/views/investigations/detail/cellPlaceholder';
 import type {
   InvestigationBlock,
   InvestigationBlockKind,
@@ -67,7 +62,15 @@ export function InvestigationCell({
     ? (block.currentExecution?.id ?? null)
     : null;
   const autoOpenedExecutionId = useRef(activeExecutionId);
-  const [panelOpen, setPanelOpen] = useState(Boolean(activeExecutionId));
+  const awaitingInput = block.currentExecution?.status === 'awaiting_input';
+  // A cell that has nothing in it yet is showing a placeholder, so opening the
+  // Seer panel over it would bury that. A cell waiting on an answer is the
+  // exception — the question lives in the panel. Runs started from this page
+  // still open it, through `openPanel` and the effects below.
+  const [panelOpen, setPanelOpen] = useState(
+    Boolean(activeExecutionId) && (hasRenderableContent(block) || awaitingInput)
+  );
+  const askedForInputId = useRef(awaitingInput ? activeExecutionId : null);
   const [traceExecutionId, setTraceExecutionId] = useState<string | null>(
     activeExecutionId
   );
@@ -115,10 +118,31 @@ export function InvestigationCell({
       return;
     }
     autoOpenedExecutionId.current = activeExecutionId;
+    // eslint-disable react-you-might-not-need-an-effect/no-derived-state
     setPanelOpen(true);
     setTraceExecutionId(activeExecutionId);
     setShowPrompt(false);
+    // eslint-enable react-you-might-not-need-an-effect/no-derived-state
   }, [activeExecutionId]);
+
+  // A cell that was already on screen can stop for a question part way through
+  // its run. The execution is the same one, so the effect above stays quiet and
+  // the question would sit unseen behind the placeholder. Opens once per
+  // execution, so closing the panel keeps it closed.
+  useEffect(() => {
+    if (!awaitingInput || !activeExecutionId) {
+      return;
+    }
+    if (askedForInputId.current === activeExecutionId) {
+      return;
+    }
+    askedForInputId.current = activeExecutionId;
+    // eslint-disable react-you-might-not-need-an-effect/no-derived-state
+    setPanelOpen(true);
+    setTraceExecutionId(activeExecutionId);
+    setShowPrompt(false);
+    // eslint-enable react-you-might-not-need-an-effect/no-derived-state
+  }, [awaitingInput, activeExecutionId]);
 
   function openPanel() {
     setPanelOpen(true);
@@ -166,7 +190,9 @@ export function InvestigationCell({
         position="bottom-end"
         usePortal
         triggerProps={{
-          size: 'xs',
+          // A query cell's header is SeerEmbedBlock's band, which is sized to its
+          // `zero` toggle; an `xs` trigger would make it taller than an embed's.
+          size: block.kind === 'query' ? 'zero' : 'xs',
           variant: 'transparent',
           showChevron: false,
           icon: <IconEllipsis size="xs" />,
@@ -255,6 +281,12 @@ function CellResult({
       <CellExecutionAlert block={block} />
       {markdown ? (
         <SeerMarkdown raw={markdown} />
+      ) : isBlockWorking(block) ? (
+        // The text this stands in for ends with the space below its last
+        // paragraph, so the placeholder has to carry that space itself.
+        <Container paddingBottom="xl">
+          <InvestigationCellPlaceholder title={block.title} />
+        </Container>
       ) : (
         <CellProgress state={progressState} />
       )}
@@ -271,11 +303,7 @@ function QueryResult({
   block: InvestigationBlock;
   progressState: CellProgressState;
 }) {
-  const [expanded, setExpanded] = useState(true);
-  const [showQuery, setShowQuery] = useState(false);
-  const queryDetailsId = useId();
   const output = getQueryOutput(block.output);
-  const queries = output?.queries ?? [];
   const chart =
     output?.preferredView === 'chart' ? getRenderableChart(output.chart) : null;
   const title = block.title || chart?.title || t('Untitled query');
@@ -287,115 +315,36 @@ function QueryResult({
 
   return (
     <CellHoverSurface width="100%">
-      <Disclosure
-        width="100%"
-        border="primary"
-        radius="md"
-        background="secondary"
-        overflow="hidden"
-        expanded={expanded}
-        onExpandedChange={setExpanded}
-        data-test-id="query-cell"
-      >
-        <QueryToolbar width="100%" padding="md lg" data-test-id="query-cell-toolbar">
-          <QueryDisclosureTitle
-            aria-label={t('Toggle %s', title)}
-            trailingItems={
-              <Flex align="center" gap="md">
-                {expanded ? (
-                  <Button
-                    size="xs"
-                    variant="link"
-                    icon={<IconCompass size="xs" />}
-                    disabled={queries.length === 0}
-                    tooltipProps={{
-                      title:
-                        queries.length === 0
-                          ? t('Query details are not available for this result.')
-                          : undefined,
-                    }}
-                    aria-expanded={showQuery}
-                    aria-controls={queryDetailsId}
-                    onClick={() => setShowQuery(value => !value)}
-                  >
-                    {showQuery ? t('Hide query') : t('Show query')}
-                  </Button>
-                ) : null}
-                {actions}
-              </Flex>
-            }
-          >
-            <Text
-              data-test-id="query-cell-title"
-              size="md"
-              density="compressed"
-              align="center"
-              wrap="normal"
-              bold
-              tabular
-            >
-              {title}
-            </Text>
-          </QueryDisclosureTitle>
-        </QueryToolbar>
-        <QueryDisclosureContent>
-          {expanded ? (
-            <Stack
-              width="100%"
-              background="primary"
-              borderTop="primary"
-              padding="lg"
-              gap="lg"
-              data-test-id="query-cell-result"
-            >
-              {showQuery ? (
-                <Stack id={queryDetailsId} gap="md">
-                  {queries.map(query => (
-                    <Flex key={query} align="center" gap="md">
-                      <Text variant="muted">{t('Query:')}</Text>
-                      <Container
-                        border="primary"
-                        radius="md"
-                        padding="xs sm"
-                        minWidth={0}
-                      >
-                        <Text wordBreak="break-word">{query}</Text>
-                      </Container>
-                    </Flex>
-                  ))}
-                </Stack>
-              ) : null}
-              {(chartHeaderTitle && chartHeaderTitle !== title) || chartHeaderMetadata ? (
-                <Stack gap="2xs" data-test-id="query-cell-header">
-                  {chartHeaderTitle && chartHeaderTitle !== title ? (
-                    <Heading as="h3" size="md">
-                      {chartHeaderTitle}
-                    </Heading>
-                  ) : null}
-                  {chartHeaderMetadata ? (
-                    <Text size="sm" variant="muted">
-                      {chartHeaderMetadata}
-                    </Text>
-                  ) : null}
-                </Stack>
-              ) : null}
-              <Container width="100%" overflow="hidden">
-                <CellExecutionAlert block={block} />
-                {chart ? (
-                  <ChartContent data={chart} showHeader={false} />
-                ) : output?.tableMarkdown ? (
-                  <SeerMarkdown
-                    raw={output.tableMarkdown}
-                    components={{Table: FlushTable}}
-                  />
-                ) : (
-                  <CellProgress state={progressState} />
-                )}
-              </Container>
-            </Stack>
-          ) : null}
-        </QueryDisclosureContent>
-      </Disclosure>
+      <SeerEmbedBlock testId="query-cell" title={title} actions={actions}>
+        {(chartHeaderTitle && chartHeaderTitle !== title) || chartHeaderMetadata ? (
+          <Stack gap="2xs" data-test-id="query-cell-header">
+            {chartHeaderTitle && chartHeaderTitle !== title ? (
+              <Heading as="h3" size="md">
+                {chartHeaderTitle}
+              </Heading>
+            ) : null}
+            {chartHeaderMetadata ? (
+              <Text size="sm" variant="muted">
+                {chartHeaderMetadata}
+              </Text>
+            ) : null}
+          </Stack>
+        ) : null}
+        <Container width="100%" overflow="hidden">
+          <CellExecutionAlert block={block} />
+          {chart ? (
+            <ChartContent data={chart} showHeader={false} />
+          ) : output?.tableMarkdown ? (
+            <SeerMarkdown raw={output.tableMarkdown} components={{Table: FlushTable}} />
+          ) : isBlockWorking(block) ? (
+            // The result's own header lands here, not the cell title the
+            // card's header above already shows.
+            <InvestigationCellPlaceholder />
+          ) : (
+            <CellProgress state={progressState} />
+          )}
+        </Container>
+      </SeerEmbedBlock>
     </CellHoverSurface>
   );
 }
@@ -482,6 +431,12 @@ function getCellProgressState(
 }
 
 export function shouldDisplayInvestigationBlock(block: InvestigationBlock) {
+  // Seer names a cell before it fills it, so a cell it has started can be shown
+  // right away. A cell that is only queued stays hidden — it may never produce
+  // anything.
+  if (isBlockWorking(block) && block.title.trim()) {
+    return true;
+  }
   if (block.kind === 'text') {
     return Boolean((getTextOutput(block.output) ?? block.content).trim());
   }
@@ -1093,6 +1048,24 @@ function getExecutionTitle(status: InvestigationExecutionStatus | undefined) {
   return t('Analysis complete');
 }
 
+function hasRenderableContent(block: InvestigationBlock) {
+  return Boolean(block.output) || Boolean(block.content.trim());
+}
+
+/**
+ * Whether Seer has a run going for this cell — queued, working, paused on a
+ * question, or stopping. These are the four the server itself treats as live.
+ *
+ * `notRun` is the one unfinished state left out: nothing has been dispatched
+ * for the cell, and an auto-run cell whose dependency failed never will be.
+ */
+export function isBlockWorking(block: InvestigationBlock) {
+  return (
+    isExecutionActive(block.outputStatus) ||
+    isExecutionActive(block.currentExecution?.status)
+  );
+}
+
 function isExecutionActive(status: InvestigationExecutionStatus | undefined) {
   return Boolean(
     status && ['pending', 'running', 'awaiting_input', 'stopping'].includes(status)
@@ -1111,7 +1084,7 @@ function getTextOutput(output: unknown): string | null {
 type RenderableQueryOutput = Pick<
   InvestigationQueryOutput,
   'chart' | 'preferredView' | 'tableMarkdown' | 'isEmpty'
-> & {queries: string[]};
+>;
 
 function getQueryOutput(output: unknown): RenderableQueryOutput | null {
   if (
@@ -1130,20 +1103,6 @@ function getQueryOutput(output: unknown): RenderableQueryOutput | null {
       : null;
   return {
     chart,
-    queries: [
-      ...new Set(
-        'queryLinks' in output && Array.isArray(output.queryLinks)
-          ? output.queryLinks.flatMap(link =>
-              isRecord(link) &&
-              isRecord(link.params) &&
-              typeof link.params.query === 'string' &&
-              link.params.query.trim()
-                ? [link.params.query.trim()]
-                : []
-            )
-          : []
-      ),
-    ],
     isEmpty: 'isEmpty' in output && output.isEmpty === true,
     preferredView: output.preferredView,
     tableMarkdown: output.tableMarkdown,
@@ -1208,37 +1167,6 @@ function getChartMetadata(chart: ReturnType<typeof getRenderableChart>) {
 function getSeriesName(series: {label: string} | {name: string}) {
   return 'label' in series ? series.label : series.name;
 }
-
-const QueryToolbar = styled(Container)`
-  &:hover {
-    background: ${p => p.theme.tokens.background.tertiary};
-  }
-
-  && > div {
-    padding: 0;
-    background: transparent;
-  }
-`;
-
-const QueryDisclosureTitle = styled(Disclosure.Title)`
-  && {
-    height: auto;
-    min-height: 0;
-    padding: 0;
-    gap: ${p => p.theme.space.xs};
-  }
-
-  > span > [aria-hidden] {
-    order: 1;
-    margin: 0;
-  }
-`;
-
-const QueryDisclosureContent = styled(Disclosure.Content)`
-  && {
-    padding: 0;
-  }
-`;
 
 const CellActions = styled(Flex)`
   opacity: 0;

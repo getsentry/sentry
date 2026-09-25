@@ -30,6 +30,33 @@ describe('getAgentSetupPrompt', () => {
       expect(prompt).toContain('https://docs.sentry.io/ai/agent-plugin/');
     }
   );
+
+  it.each([
+    'node',
+    'javascript-nextjs',
+    'node-cloudflare-workers',
+    'node-cloudflare-pages',
+    'bun',
+    'deno',
+    'python',
+    'python-fastapi',
+    'php-laravel',
+    'other',
+    undefined,
+  ] as const)(
+    'delegates data collection guidance to the instrument skill on %s',
+    platform => {
+      const prompt = getAgentSetupPrompt({
+        organizationSlug: OrganizationFixture().slug,
+        project: ProjectFixture({platform}),
+        dsn: ProjectKeysFixture()[0]!.dsn.public,
+      });
+
+      expect(prompt).toContain('https://skills.sentry.dev/instrument');
+      expect(prompt).not.toContain('which AI inputs and outputs the SDK sends');
+      expect(prompt).not.toContain('#dataCollection');
+    }
+  );
 });
 
 describe('ManualInstrumentationNote', () => {

@@ -11,7 +11,8 @@ from django.test import RequestFactory, override_settings
 from django.urls import reverse
 from rest_framework import status
 
-from sentry.integrations.cursor_origin.handlers import HANDLERS, InstallationUpdatedHandler
+from sentry.integrations.cursor_origin.handlers import InstallationUpdatedHandler
+from sentry.integrations.cursor_origin.webhook import HANDLERS
 from sentry.integrations.middleware.hybrid_cloud.parser import SHED_INBOUND_KILLSWITCH
 from sentry.middleware.integrations.parsers.cursor_origin import CursorOriginRequestParser
 from sentry.silo.base import SiloMode
@@ -128,7 +129,7 @@ class CursorOriginRequestParserTest(TestCase):
     def test_an_event_no_handler_reads_is_dropped(self) -> None:
         self._integration()
 
-        response = self._parser(**_headers("repository.created")).get_response()
+        response = self._parser(**_headers("repository.check_run.created")).get_response()
 
         assert response.status_code == status.HTTP_202_ACCEPTED
         assert_no_webhook_payloads()

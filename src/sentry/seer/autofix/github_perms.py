@@ -7,9 +7,13 @@ from typing import TYPE_CHECKING
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration import RpcIntegration, integration_service
+from sentry.integrations.utils.github_permission_tiers import (
+    PermissionTier,
+    get_missing_permission_tiers,
+)
 from sentry.integrations.utils.github_permissions import (
     get_github_permissions_update_url,
-    get_missing_github_app_permissions,
+    is_permissions_snapshot_stale,
 )
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
@@ -24,9 +28,11 @@ logger = logging.getLogger(__name__)
 @dataclass(frozen=True)
 class MissingGithubPermissions:
     integration: RpcIntegration
-    # Required permissions the installation does not hold. Never empty: an
-    # install with everything it needs is not reported as missing anything.
-    missing_scopes: list[str]
+    # Feature tiers the installation falls short of, highest order first. Never
+    # empty: an install with everything it needs is not reported as missing
+    # anything. Their presence is the "missing permissions" signal; each tier
+    # names a feature that stops working.
+    missing_tiers: list[PermissionTier]
     # The Repository row this was resolved for, so callers can log an id
     # instead of the repo's full name.
     repository_id: int
@@ -117,9 +123,10 @@ def get_blocked_pr_iteration_permissions(
 def get_missing_permissions_by_repo(
     organization: Organization, repo_names: Collection[str]
 ) -> dict[str, MissingGithubPermissions]:
-    """Map each of `repo_names` whose GitHub App install is missing a required
-    permission to what it is missing. Repos with a complete install, no active
-    org-scoped GitHub repository row, or no integration are absent.
+    """Map each of `repo_names` whose GitHub App install is missing a feature
+    tier to the tiers it is missing. Repos with a complete install, no active
+    org-scoped GitHub repository row, no integration, or an install whose
+    permissions we do not know are absent.
     """
     if not repo_names:
         return {}
@@ -155,17 +162,85 @@ def get_missing_permissions_by_repo(
             )
             continue
 
-        missing = get_missing_github_app_permissions(integration.metadata)
-        missing_scopes = [permission["expected"]["scope"] for permission in (missing or [])]
-        if missing_scopes:
+        integration = _with_fresh_permissions(organization, integration, repository_id)
+        if integration is None:
+            continue
+
+        # None is not "holds nothing", it is "we never learned what this install
+        # holds" -- token refresh writes whatever GitHub returned, including a
+        # missing permissions payload. Checking it would report every tier as
+        # missing and ask the user to grant permissions they may already have.
+        permissions = integration.metadata.get("permissions")
+        if permissions is None:
+            _warn_unresolved(
+                organization,
+                "permissions_unknown",
+                repository_id=repository_id,
+                integration_id=integration_id,
+            )
+            continue
+
+        missing_tiers = get_missing_permission_tiers(permissions)
+        if missing_tiers:
             missing_by_repo[repo_name] = MissingGithubPermissions(
-                integration=integration, missing_scopes=missing_scopes, repository_id=repository_id
+                integration=integration, missing_tiers=missing_tiers, repository_id=repository_id
             )
 
     for repo_name in set(repo_names) - resolved:
         _warn_unresolved(organization, "no_repository_row", scm_repo_full_name=repo_name)
 
     return missing_by_repo
+
+
+def _with_fresh_permissions(
+    organization: Organization, integration: RpcIntegration, repository_id: int
+) -> RpcIntegration | None:
+    """`integration` with a permissions snapshot recent enough to judge, or None.
+
+    A snapshot older than the app's permissions change was read against the old
+    required set, so it cannot say whether this install is missing anything now.
+    Mint a fresh installation token and re-read instead of commenting off it.
+
+    This is self-limiting rather than a per-call cost: the refresh rewrites
+    ``last_refresh_at``, so an integration takes this path once and every later
+    call short-circuits on the first line.
+
+    None when the refresh fails or the snapshot is still stale afterwards. The
+    caller reads that as "nothing missing", which is deliberate -- staying quiet
+    beats telling someone to accept permissions we cannot confirm they lack.
+    """
+    if not is_permissions_snapshot_stale(integration.metadata):
+        return integration
+
+    try:
+        refreshed = integration_service.refresh_github_permissions(
+            integration_id=integration.id, organization_id=organization.id
+        )
+    except Exception:
+        # Minting the token talks to GitHub, so this fails for reasons that have
+        # nothing to do with permissions. Treat it as "cannot tell" rather than
+        # letting a GitHub blip fail the task that called us.
+        refreshed = None
+
+    if refreshed is None or is_permissions_snapshot_stale(refreshed.metadata):
+        _warn_unresolved(
+            organization,
+            "stale_permissions_snapshot",
+            repository_id=repository_id,
+            integration_id=integration.id,
+            refreshed=refreshed is not None,
+        )
+        return None
+
+    logger.info(
+        "autofix.github_perms.permissions_refreshed",
+        extra={
+            "organization_id": organization.id,
+            "integration_id": integration.id,
+            "repository_id": repository_id,
+        },
+    )
+    return refreshed
 
 
 def _warn_unresolved(organization: Organization, reason: str, **fields: object) -> None:

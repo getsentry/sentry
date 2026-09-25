@@ -16,7 +16,7 @@ import {getInterval, type DateTimeObject} from 'sentry/components/charts/utils';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
-import type {DataCategoryExact} from 'sentry/types/core';
+import {Outcome, type DataCategoryExact} from 'sentry/types/core';
 import type {DataPoint, ECharts} from 'sentry/types/echarts';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -25,6 +25,7 @@ import {defined} from 'sentry/utils/defined';
 import {getDynamicText} from 'sentry/utils/getDynamicText';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
+import {getReasonGroupName} from 'sentry/views/organizationStats/getReasonGroupName';
 
 enum SeriesName {
   ACCEPTED = 'Accepted',
@@ -232,29 +233,21 @@ export function populateChartData(
       };
 
       if (point.by.outcome === 'filtered') {
-        if (point.by.reason?.startsWith('Sampled:')) {
-          if (filteredData['dynamic-sampling'] === undefined) {
-            filteredData['dynamic-sampling'] = {
-              seriesName: 'Dynamic Sampling',
-              data: [],
-            };
-          }
+        // Reasons that carry a per-filter or per-rule suffix, such as a custom
+        // inbound filter id, share one series. Admins see the kind of filter,
+        // not the customer's individual filters.
+        const group = getReasonGroupName(Outcome.FILTERED, point.by.reason ?? '');
+        if (filteredData[group] === undefined) {
+          filteredData[group] = {
+            seriesName: startCase(group),
+            data: [],
+          };
+        }
 
-          if (dateIndex >= filteredData['dynamic-sampling'].data.length) {
-            filteredData['dynamic-sampling'].data.push(dataObject);
-          } else {
-            filteredData['dynamic-sampling'].data[dateIndex]!.value += dataObject.value;
-          }
+        if (dateIndex >= filteredData[group].data.length) {
+          filteredData[group].data.push(dataObject);
         } else {
-          // dynamically adding filtered reasons into graph
-          if (filteredData[point.by.reason] === undefined) {
-            filteredData[point.by.reason] = {
-              seriesName: startCase(point.by.reason?.replace(/-|_/g, ' ')),
-              data: [],
-            };
-          }
-
-          filteredData[point.by.reason]!.data.push(dataObject);
+          filteredData[group].data[dateIndex]!.value += dataObject.value;
         }
 
         if (dateIndex >= totalFiltered!.data.length) {

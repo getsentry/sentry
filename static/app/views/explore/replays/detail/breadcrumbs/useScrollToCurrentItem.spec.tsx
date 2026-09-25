@@ -1,4 +1,3 @@
-import type {Virtualizer} from '@tanstack/react-virtual';
 import {ReplayClickFrameFixture} from 'sentry-fixture/replay/replayBreadcrumbFrameData';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
@@ -17,11 +16,13 @@ const frames = hydrateBreadcrumbs(
   ]
 );
 
-function makeVirtualizer() {
+function makeVirtualizer(
+  scrollElement: HTMLElement | null = document.createElement('div')
+) {
   const scrollToIndex = jest.fn();
   return {
     scrollToIndex,
-    virtualizer: {scrollToIndex} as unknown as Virtualizer<HTMLDivElement, Element>,
+    virtualizer: {scrollElement, scrollToIndex},
   };
 }
 
@@ -73,15 +74,15 @@ describe('useScrollToCurrentItem', () => {
     expect(scrollToIndex).not.toHaveBeenCalled();
   });
 
-  it('does not scroll when virtualizer is null', () => {
-    const {scrollToIndex} = makeVirtualizer();
+  it('does not scroll when the virtualizer has no scroll element', () => {
+    const {scrollToIndex, virtualizer} = makeVirtualizer(null);
 
     renderHookWithProviders(() =>
       useScrollToCurrentItem({
         autoScrollEnabled: true,
         currentTime: 1500,
         frames,
-        virtualizer: null,
+        virtualizer,
       })
     );
 

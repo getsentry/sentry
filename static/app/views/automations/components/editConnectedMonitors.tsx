@@ -11,6 +11,7 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {RadioGroup, type RadioOption} from 'sentry/components/forms/controls/radioGroup';
 import {SentryProjectSelectorField} from 'sentry/components/forms/fields/sentryProjectSelectorField';
 import {FormContext} from 'sentry/components/forms/formContext';
+import {LoadingError} from 'sentry/components/loadingError';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -332,7 +333,6 @@ function EditConnectedMonitorsContent({
   const [monitorMode, setMonitorMode] = useState<MonitorMode>(initialMode);
   const {form} = useContext(FormContext);
   const errorContext = useContext(AutomationBuilderErrorContext);
-  const organization = useOrganization();
 
   const handleModeChange = useCallback(
     (newMode: MonitorMode) => {
@@ -377,17 +377,13 @@ function EditConnectedMonitorsContent({
   ];
 
   const disabledChoices: Array<[MonitorMode, React.ReactNode?]> = [];
-  if (organization.features.includes('workflow-engine-all-projects-detector')) {
-    monitorModeChoices.push(['allProjects', t('Alert on all issues in all projects')]);
+  monitorModeChoices.push(['allProjects', t('Alert on all issues in all projects')]);
 
-    if (!canEditAllProjects) {
-      disabledChoices.push([
-        'allProjects',
-        t(
-          'Only organization owners and managers can create/modify global issue monitors.'
-        ),
-      ]);
-    }
+  if (!canEditAllProjects) {
+    disabledChoices.push([
+      'allProjects',
+      t('Only organization owners and managers can create/modify global issue monitors.'),
+    ]);
   }
 
   return (
@@ -429,11 +425,13 @@ function EditConnectedMonitorsContent({
 export function EditConnectedMonitors({connectedIds, setConnectedIds}: Props) {
   const {form} = useContext(FormContext);
   const [firstLoad, setFirstLoad] = useState(true);
-  const {connectedDetectors, isLoading} = useConnectedDetectors();
+  const {connectedDetectors, isError, isLoading, refetch} =
+    useConnectedDetectors(connectedIds);
+  const hasUnresolvedDetectors = connectedDetectors.length !== connectedIds.length;
   const initialMode = getInitialMonitorMode(connectedDetectors);
 
   useEffect(() => {
-    if (isLoading || !firstLoad) {
+    if (isLoading || isError || hasUnresolvedDetectors || !firstLoad) {
       return;
     }
     // oxlint-disable-next-line react/set-state-in-effect
@@ -457,7 +455,16 @@ export function EditConnectedMonitors({connectedIds, setConnectedIds}: Props) {
     if (form && selectedProjectIds.length > 0) {
       form.setValue('projectIds', selectedProjectIds);
     }
-  }, [connectedIds, connectedDetectors, form, firstLoad, isLoading, initialMode]);
+  }, [
+    connectedIds,
+    connectedDetectors,
+    form,
+    firstLoad,
+    hasUnresolvedDetectors,
+    isError,
+    isLoading,
+    initialMode,
+  ]);
 
   if (isLoading && firstLoad) {
     return (
@@ -469,6 +476,23 @@ export function EditConnectedMonitors({connectedIds, setConnectedIds}: Props) {
           )}
         >
           <Placeholder width="100%" height="200px" />
+        </FormSection>
+      </WorkflowEngineContainer>
+    );
+  }
+
+  // If we didn't resolve the detectors for whatever reason, display a loading error. If we used a
+  // fallback, changing other parts of the alert could be modifying connected detectors without warning.
+  if (firstLoad && (isError || hasUnresolvedDetectors)) {
+    return (
+      <WorkflowEngineContainer>
+        <FormSection
+          title={t('Source')}
+          description={t(
+            'Get alerted when new issues are detected or an issue changes state.'
+          )}
+        >
+          <LoadingError onRetry={refetch} />
         </FormSection>
       </WorkflowEngineContainer>
     );

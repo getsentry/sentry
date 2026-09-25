@@ -551,7 +551,8 @@ CSP_OBJECT_SRC = [
     "'none'",
 ]
 CSP_WORKER_SRC = [
-    "'none'",
+    "'self'",  # service worker
+    "blob:",  # session replay workers
 ]
 CSP_BASE_URI = [
     "'none'",
@@ -592,6 +593,10 @@ CSP_REPORT_ONLY = True
 COOP_ENABLED = False
 COOP_REPORT_ONLY = True
 COOP_REPORT_TO: str | None = None
+
+TRUSTED_TYPES_ENABLED = False
+TRUSTED_TYPES_POLICIES: list[str] = []
+TRUSTED_TYPES_REPORT_URI: str | None = None
 
 STATIC_ROOT = os.path.realpath(os.path.join(PROJECT_ROOT, "static"))
 STATIC_URL = "/_static/{version}/"
@@ -1900,6 +1905,9 @@ SENTRY_SCOPES = {
     "event:admin",
     "alerts:read",
     "alerts:write",
+    "dashboard:read",
+    "dashboard:write",
+    "dashboard:delete",
     # openid, profile, and email aren't prefixed to maintain compliance with the OIDC spec.
     # https://auth0.com/docs/get-started/apis/scopes/openid-connect-scopes.
     "openid",
@@ -1914,6 +1922,7 @@ SENTRY_READONLY_SCOPES = {
     "project:read",
     "event:read",
     "alerts:read",
+    "dashboard:read",
 }
 
 SENTRY_SCOPE_HIERARCHY_MAPPING = {
@@ -1939,6 +1948,9 @@ SENTRY_SCOPE_HIERARCHY_MAPPING = {
     "event:admin": {"event:read", "event:write", "event:admin"},
     "alerts:read": {"alerts:read"},
     "alerts:write": {"alerts:read", "alerts:write"},
+    "dashboard:read": {"dashboard:read"},
+    "dashboard:write": {"dashboard:read", "dashboard:write"},
+    "dashboard:delete": {"dashboard:read", "dashboard:write", "dashboard:delete"},
     "openid": {"openid"},
     "profile": {"profile"},
     "email": {"email"},
@@ -1951,6 +1963,28 @@ SENTRY_TOKEN_ONLY_SCOPES = frozenset(
     [
         "org:ci",  # CI workflows, releases, source maps, and code mappings
         "project:distribution",  # App distribution/preprod artifacts
+    ]
+)
+
+# Scopes that endpoints already accept, but that roles only grant once
+# `organizations:granular-permission-scopes` is enabled. Until that rollout finishes
+# they are not universally grantable, so they stay out of the public API schema and
+# out of the Seer agent token flow. Drop an entry when its rollout completes.
+GRANULAR_SCOPES = frozenset(
+    [
+        "dashboard:read",
+        "dashboard:write",
+        "dashboard:delete",
+    ]
+)
+
+# Broad read scopes being retired in favour of granular ones. API attribution tags
+# whether a caller still holds one (see sentry.api.caller_scopes).
+DEPRECATED_SCOPES = frozenset(
+    [
+        "org:read",
+        "project:read",
+        "member:read",
     ]
 )
 
@@ -1998,6 +2032,11 @@ SENTRY_SCOPE_SETS = (
     (
         ("alerts:write", "Read and write alerts"),
         ("alerts:read", "Read alerts"),
+    ),
+    (
+        ("dashboard:delete", "Read, write, and delete access to dashboards."),
+        ("dashboard:write", "Read and write access to dashboards."),
+        ("dashboard:read", "Read access to dashboards."),
     ),
     (("openid", "Confirms authentication status and provides basic information."),),
     (
@@ -2178,6 +2217,137 @@ SENTRY_TEAM_ROLES: tuple[RoleDict, ...] = (
             "alerts:write",
         },
         "is_minimum_role_for": "admin",
+    },
+)
+
+# Copy of SENTRY_ROLES that also grants granular scopes (e.g. dashboard:*). Used in
+# place of SENTRY_ROLES when `organizations:granular-permission-scopes` is enabled.
+# Keep the two in sync until the flag is removed; the goal is to eventually delete
+# SENTRY_ROLES and rename this to take its place.
+SENTRY_GRANULAR_ROLES: tuple[RoleDict, ...] = (
+    {
+        "id": "member",
+        "name": "Member",
+        "desc": "Members can view and act on events, as well as view most other data within the organization. By default, they can invite members to the organization unless the organization has disabled this feature.",
+        "scopes": {
+            "event:read",
+            "event:write",
+            "event:admin",
+            "project:releases",
+            "project:read",
+            "org:read",
+            "member:invite",
+            "member:read",
+            "team:read",
+            "alerts:read",
+            "alerts:write",
+            "dashboard:read",
+            "dashboard:write",
+            "dashboard:delete",
+        },
+    },
+    {
+        "id": "admin",
+        "name": "Admin",
+        "desc": (
+            """
+            Admin privileges on any teams of which they're a member. They can
+            create new teams and projects, as well as remove teams and projects
+            on which they already hold membership (or all teams, if open
+            membership is enabled). Additionally, they can manage memberships of
+            teams that they are members of. By default, they can invite members
+            to the organization unless the organization has disabled this feature.
+            """
+        ),
+        "scopes": {
+            "event:read",
+            "event:write",
+            "event:admin",
+            "org:read",
+            "member:read",
+            "member:invite",
+            "project:read",
+            "project:write",
+            "project:admin",
+            "project:releases",
+            "team:read",
+            "team:write",
+            "team:admin",
+            "org:integrations",
+            "alerts:read",
+            "alerts:write",
+            "dashboard:read",
+            "dashboard:write",
+            "dashboard:delete",
+        },
+        "is_retired": True,
+    },
+    {
+        "id": "manager",
+        "name": "Manager",
+        "desc": "Gains admin access on all teams as well as the ability to add and remove members.",
+        "scopes": {
+            "event:read",
+            "event:write",
+            "event:admin",
+            "member:invite",
+            "member:read",
+            "member:write",
+            "member:admin",
+            "project:read",
+            "project:write",
+            "project:admin",
+            "project:releases",
+            "team:read",
+            "team:write",
+            "team:admin",
+            "org:read",
+            "org:write",
+            "org:integrations",
+            "alerts:read",
+            "alerts:write",
+            "dashboard:read",
+            "dashboard:write",
+            "dashboard:delete",
+        },
+        "is_global": True,
+    },
+    {
+        "id": "owner",
+        "name": "Owner",
+        "desc": (
+            """
+            Unrestricted access to the organization, its data, and its settings.
+            Can add, modify, and delete projects and members, as well as make
+            billing and plan changes.
+            """
+        ),
+        "scopes": {
+            "org:read",
+            "org:write",
+            "org:admin",
+            "org:integrations",
+            "member:invite",
+            "member:read",
+            "member:write",
+            "member:admin",
+            "team:read",
+            "team:write",
+            "team:admin",
+            "project:read",
+            "project:write",
+            "project:admin",
+            "project:releases",
+            "event:read",
+            "event:write",
+            "event:admin",
+            "alerts:read",
+            "alerts:write",
+            "dashboard:read",
+            "dashboard:write",
+            "dashboard:delete",
+        },
+        "is_global": True,
     },
 )
 

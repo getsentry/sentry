@@ -74,6 +74,7 @@ import {WheelWidgetVisualization} from 'sentry/views/dashboards/widgets/wheelWid
 import {WidgetError} from 'sentry/views/dashboards/widgets/widget/widgetError';
 import {Actions} from 'sentry/views/discover/table/cellAction';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
+import {navigationTypeSuppressesThresholds} from 'sentry/views/insights/browser/webVitals/navigationType/utils';
 import {SpanFields} from 'sentry/views/insights/types';
 import type {SpanResponse} from 'sentry/views/insights/types';
 
@@ -350,7 +351,14 @@ function BigNumberComponent({
   loading,
   tableResults,
   widget,
+  dashboardFilters,
 }: TableComponentProps): React.ReactNode {
+  const organization = useOrganization({allowNull: true});
+  // Page load thresholds don't transfer to the other navigation types.
+  const thresholds = navigationTypeSuppressesThresholds(dashboardFilters, organization)
+    ? undefined
+    : (widget.thresholds ?? undefined);
+
   if (tableResults === undefined || loading) {
     return <BigNumber>{'\u2014'}</BigNumber>;
   }
@@ -393,10 +401,10 @@ function BigNumberComponent({
         value={value}
         type={meta.fields?.[field] ?? null}
         unit={(meta.units?.[field] as DataUnit) ?? null}
-        thresholds={widget.thresholds ?? undefined}
+        thresholds={thresholds}
         // TODO: preferredPolarity has been added to ThresholdsConfig as a property,
         // we should remove this prop fromBigNumberWidgetVisualization
-        preferredPolarity={widget.thresholds?.preferredPolarity ?? '-'}
+        preferredPolarity={thresholds?.preferredPolarity ?? '-'}
       />
     );
   });

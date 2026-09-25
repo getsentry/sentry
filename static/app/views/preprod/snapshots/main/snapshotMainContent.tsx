@@ -158,9 +158,11 @@ export function SnapshotMainContent({
       return;
     }
     const cardIndex = (cardOffsets[singleViewIndex] ?? 0) + variantIndex;
+    // eslint-disable react-you-might-not-need-an-effect/no-derived-state
     // oxlint-disable-next-line react/set-state-in-effect
     setCurrentCardIndex(cardIndex);
     setScrollProgress(totalCards <= 1 ? 100 : (cardIndex / (totalCards - 1)) * 100);
+    // eslint-enable react-you-might-not-need-an-effect/no-derived-state
   }, [viewMode, singleViewIndex, variantIndex, totalCards, cardOffsets]);
 
   const handleOpenSnapshot = useCallback(

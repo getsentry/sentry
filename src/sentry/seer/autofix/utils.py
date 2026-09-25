@@ -691,6 +691,7 @@ class SeerProjectSettingsUpdate(TypedDict, total=False):
     automation_tuning: str
     scanner_automation: bool
     auto_create_pr: bool
+    pr_iteration: bool
 
 
 def update_seer_project_settings(project_ids: list[int], data: SeerProjectSettingsUpdate) -> None:
@@ -738,6 +739,9 @@ def update_seer_project_settings(project_ids: list[int], data: SeerProjectSettin
         _set_or_clear(
             "sentry:seer_automation_handoff_auto_create_pr", data["auto_create_pr"], default=False
         )
+
+    if "pr_iteration" in data:
+        _set_or_clear("sentry:seer_pr_iteration", data["pr_iteration"], default=True)
 
     if "automation_tuning" in data:
         _set_or_clear(

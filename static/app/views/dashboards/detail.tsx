@@ -72,6 +72,7 @@ import {convertWidgetToQueryParams} from 'sentry/views/dashboards/widgetBuilder/
 import {getDefaultWidget} from 'sentry/views/dashboards/widgetBuilder/utils/getDefaultWidget';
 import {getDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
 import {ReleasesDrawerFields} from 'sentry/views/explore/releases/drawer/utils';
+import {NavigationTypeGate} from 'sentry/views/insights/browser/webVitals/navigationType/navigationTypeGate';
 import {TOP_BAR_HEIGHT_CSS_VAR} from 'sentry/views/navigation/constants';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
@@ -792,6 +793,29 @@ class DashboardDetail extends Component<Props, State> {
     }
   };
 
+  /**
+   * A rename is its own transaction — the modal has already persisted it for a
+   * saved dashboard. What is left is catching up the copies held in memory.
+   *
+   * `modifiedDashboard` is the draft an edit session saves wholesale on "Save
+   * and Finish", so leaving its title stale there would quietly undo a rename
+   * made mid-edit. Only the title is patched; pending widget edits stay.
+   */
+  onRename = (newTitle: string) => {
+    const {dashboard} = this.props;
+    const {modifiedDashboard} = this.state;
+
+    if (modifiedDashboard) {
+      this.setState({modifiedDashboard: {...modifiedDashboard, title: newTitle}});
+    }
+
+    // An unsaved dashboard has nothing to write back to; its title reaches the
+    // server with the create request.
+    if (dashboard.id) {
+      this.props.onDashboardUpdate?.({...dashboard, title: newTitle});
+    }
+  };
+
   /* Handles POST request for Edit Access Selector Changes */
   onChangeEditAccess = (newDashboardPermissions: DashboardPermissions) => {
     const {dashboard, api, organization} = this.props;
@@ -1107,17 +1131,19 @@ class DashboardDetail extends Component<Props, State> {
               />
             </Stack>
             <PrebuiltDashboardOnboardingGate prebuiltId={dashboard.prebuiltId}>
-              <Dashboard
-                dashboard={modifiedDashboard ?? dashboard}
-                isEditingDashboard={this.isEditingDashboard}
-                widgetLimitReached={widgetLimitReached}
-                onUpdate={this.handleUpdateEditStateWidgets}
-                handleUpdateWidgetList={this.handleUpdateWidgetList}
-                handleAddCustomWidget={this.handleAddCustomWidget}
-                isEmbedded={this.isEmbedded}
-                isPreview={this.isPreview}
-                widgetLegendState={this.state.widgetLegendState}
-              />
+              <NavigationTypeGate prebuiltId={dashboard.prebuiltId}>
+                <Dashboard
+                  dashboard={modifiedDashboard ?? dashboard}
+                  isEditingDashboard={this.isEditingDashboard}
+                  widgetLimitReached={widgetLimitReached}
+                  onUpdate={this.handleUpdateEditStateWidgets}
+                  handleUpdateWidgetList={this.handleUpdateWidgetList}
+                  handleAddCustomWidget={this.handleAddCustomWidget}
+                  isEmbedded={this.isEmbedded}
+                  isPreview={this.isPreview}
+                  widgetLegendState={this.state.widgetLegendState}
+                />
+              </NavigationTypeGate>
             </PrebuiltDashboardOnboardingGate>
           </NoProjectMessage>
         </Stack>
@@ -1167,14 +1193,9 @@ class DashboardDetail extends Component<Props, State> {
               <TopBar.Slot name="title">
                 <DashboardBreadcrumbTitle
                   dashboard={modifiedDashboard ?? dashboard}
-                  isEditing={this.isEditingDashboard}
                   isPreview={this.isPreview}
-                  onChange={newTitle =>
-                    this.setModifiedDashboard({
-                      ...(modifiedDashboard ?? dashboard),
-                      title: newTitle,
-                    })
-                  }
+                  onDelete={this.onDelete(dashboard)}
+                  onRename={this.onRename}
                   onChangeEditAccess={this.onChangeEditAccess}
                 />
               </TopBar.Slot>
@@ -1301,7 +1322,6 @@ class DashboardDetail extends Component<Props, State> {
                       onCancel={this.onCancel}
                       onCommit={this.onCommit}
                       onAddWidget={this.onAddWidget}
-                      onDelete={this.onDelete(dashboard)}
                       dashboardState={dashboardState}
                       widgetLimitReached={widgetLimitReached}
                       isSaving={isCommittingChanges}
@@ -1316,27 +1336,30 @@ class DashboardDetail extends Component<Props, State> {
                 <Fragment>
                   <WidgetQueryQueueProvider>
                     <PrebuiltDashboardOnboardingGate prebuiltId={dashboard.prebuiltId}>
-                      <Dashboard
-                        dashboard={modifiedDashboard ?? dashboard}
-                        isEditingDashboard={this.isEditingDashboard}
-                        widgetLimitReached={widgetLimitReached}
-                        onUpdate={this.handleUpdateEditStateWidgets}
-                        handleUpdateWidgetList={this.handleUpdateWidgetList}
-                        handleAddCustomWidget={this.handleAddCustomWidget}
-                        onAddWidget={this.onAddWidget}
-                        isEmbedded={this.isEmbedded}
-                        isPreview={this.isPreview}
-                        widgetLegendState={this.state.widgetLegendState}
-                        onEditWidget={this.onEditWidget}
-                        newlyAddedWidget={newlyAddedWidget}
-                        onNewWidgetScrollComplete={this.handleScrollToNewWidgetComplete}
-                        widgetInterval={this.props.widgetInterval}
-                      />
+                      <NavigationTypeGate prebuiltId={dashboard.prebuiltId}>
+                        <Dashboard
+                          dashboard={modifiedDashboard ?? dashboard}
+                          isEditingDashboard={this.isEditingDashboard}
+                          widgetLimitReached={widgetLimitReached}
+                          onUpdate={this.handleUpdateEditStateWidgets}
+                          handleUpdateWidgetList={this.handleUpdateWidgetList}
+                          handleAddCustomWidget={this.handleAddCustomWidget}
+                          onAddWidget={this.onAddWidget}
+                          isEmbedded={this.isEmbedded}
+                          isPreview={this.isPreview}
+                          widgetLegendState={this.state.widgetLegendState}
+                          onEditWidget={this.onEditWidget}
+                          newlyAddedWidget={newlyAddedWidget}
+                          onNewWidgetScrollComplete={this.handleScrollToNewWidgetComplete}
+                          widgetInterval={this.props.widgetInterval}
+                        />
+                      </NavigationTypeGate>
                     </PrebuiltDashboardOnboardingGate>
                   </WidgetQueryQueueProvider>
 
                   <WidgetBuilderV2
                     isOpen={this.state.isWidgetBuilderOpen}
+                    widgetInterval={this.props.widgetInterval}
                     openWidgetTemplates={this.state.openWidgetTemplates ?? false}
                     setOpenWidgetTemplates={this.handleChangeWidgetBuilderView}
                     onClose={this.handleCloseWidgetBuilder}

@@ -333,11 +333,9 @@ class GroupActionLogEntrySerializer(Serializer):
         ):
             data.pop("current_release_version", None)
 
-        comment_id = _serialized_comment_id(obj)
         return {
-            # TODO(shashjar): Preserve the legacy id until clients have switched to commentId.
-            "id": comment_id if comment_id is not None else str(obj.id),
-            "commentId": comment_id,
+            "id": str(obj.id),
+            "commentId": _serialized_comment_id(obj),
             "type": type_display,
             "user": attrs["user"],
             "sentry_app": attrs["sentry_app"],

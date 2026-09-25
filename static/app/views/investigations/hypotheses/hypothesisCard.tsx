@@ -1,22 +1,27 @@
+import {useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Disclosure} from '@sentry/scraps/disclosure';
+import {Button} from '@sentry/scraps/button';
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {IconEllipsis} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {Timeline} from 'sentry/components/timeline';
+import {IconChevron, IconEllipsis} from 'sentry/icons';
+import {t, tn} from 'sentry/locale';
+import {HypothesisEvidencePlaceholder} from 'sentry/views/investigations/hypotheses/hypothesisPlaceholder';
 import {
-  getEvidenceSectionLabel,
   getHypothesisCardBorder,
-  getVerificationStepStatusLabel,
   HypothesisStatus,
 } from 'sentry/views/investigations/hypotheses/hypothesisStatus';
-import type {
-  InvestigationHypothesis,
-  InvestigationVerificationStep,
-} from 'sentry/views/investigations/types';
+import type {InvestigationHypothesis} from 'sentry/views/investigations/types';
+
+/** States where missing checks mean "not yet"; anything else finished without them. */
+const PENDING_EVIDENCE_STATUSES = new Set<string>(['pending', 'investigating']);
+
+/** While verifying, past this many checks only one shows until the rest are asked for. */
+const MAX_UNCOLLAPSED_STEPS = 2;
 
 type HypothesisCardProps = {
   hypothesis: InvestigationHypothesis;
@@ -48,9 +53,34 @@ export function HypothesisCard({
   hypothesis,
   isPrimary = false,
 }: HypothesisCardProps) {
+  const theme = useTheme();
   const steps = [...(hypothesis.verificationSteps ?? [])].sort(
     (a, b) => a.order - b.order
   );
+  // Once a verdict lands the checks are supporting detail, so they fold away
+  // entirely; while verifying, one check stays out to show where the agent is.
+  const isTerminal = !PENDING_EVIDENCE_STATUSES.has(hypothesis.effectiveStatus);
+  // Remembers which phase the steps were opened in, so a card that reaches its
+  // verdict while expanded starts collapsed again.
+  const [expandedWhileTerminal, setExpandedWhileTerminal] = useState<boolean | null>(
+    null
+  );
+  const showAllSteps = expandedWhileTerminal === isTerminal;
+  const isCollapsible = isTerminal || steps.length > MAX_UNCOLLAPSED_STEPS;
+  const currentStep =
+    steps.find(step => step.status === 'running') ?? steps[steps.length - 1];
+  const visibleSteps =
+    !isCollapsible || showAllSteps
+      ? steps
+      : isTerminal || !currentStep
+        ? []
+        : [currentStep];
+  const hiddenStepCount = steps.length - visibleSteps.length;
+  const dotColorConfig = {
+    icon: theme.tokens.graphics.neutral.moderate,
+    iconBorder: 'transparent',
+    title: theme.tokens.content.primary,
+  };
 
   return (
     <Card
@@ -103,15 +133,81 @@ export function HypothesisCard({
       ) : null}
 
       {steps.length > 0 ? (
-        <Stack gap="sm">
-          <Text size="sm" bold>
-            {getEvidenceSectionLabel(steps)}
-          </Text>
-          <EvidenceList as="ul" gap="sm" padding="0">
-            {steps.map(step => (
-              <VerificationStepRow key={step.id} step={step} />
-            ))}
-          </EvidenceList>
+        <EvidenceList as="ol" aria-label={t('Verification steps')}>
+          {isCollapsible ? (
+            <Timeline.Item
+              as="li"
+              icon={<Timeline.Dot />}
+              colorConfig={dotColorConfig}
+              title={
+                <Button
+                  variant="link"
+                  aria-expanded={showAllSteps}
+                  onClick={() =>
+                    setExpandedWhileTerminal(showAllSteps ? null : isTerminal)
+                  }
+                >
+                  <Flex as="span" align="center" gap="xs">
+                    <StepTitle size="sm" variant="muted" bold={false}>
+                      {showAllSteps
+                        ? t('Show less')
+                        : isTerminal
+                          ? tn('Show %s step', 'Show all %s steps', steps.length)
+                          : tn(
+                              'Show %s more step',
+                              'Show %s more steps',
+                              hiddenStepCount
+                            )}
+                    </StepTitle>
+                    <IconChevron
+                      size="xs"
+                      variant="muted"
+                      direction={showAllSteps ? 'up' : 'right'}
+                    />
+                  </Flex>
+                </Button>
+              }
+            />
+          ) : null}
+          {visibleSteps.map(step => {
+            const isRunning = step.status === 'running';
+            return (
+              <Timeline.Item
+                key={step.id}
+                as="li"
+                aria-current={isRunning ? 'step' : undefined}
+                icon={<Timeline.Dot />}
+                colorConfig={{
+                  ...dotColorConfig,
+                  // The step the agent is on is picked out; the rest are
+                  // markers on the way there.
+                  icon: isRunning
+                    ? theme.tokens.graphics.neutral.vibrant
+                    : theme.tokens.graphics.neutral.moderate,
+                }}
+                title={
+                  // A check reads as a line of evidence rather than a heading,
+                  // so it keeps the card's smaller, lighter type instead of the
+                  // timeline's bold default.
+                  <StepTitle
+                    size="sm"
+                    bold={false}
+                    variant={isRunning ? 'primary' : 'muted'}
+                    wordBreak="break-word"
+                  >
+                    {step.title}
+                  </StepTitle>
+                }
+              />
+            );
+          })}
+        </EvidenceList>
+      ) : null}
+
+      {/* Holds the space for checks that are still on their way. */}
+      {steps.length === 0 && PENDING_EVIDENCE_STATUSES.has(hypothesis.effectiveStatus) ? (
+        <Stack paddingTop="md">
+          <HypothesisEvidencePlaceholder />
         </Stack>
       ) : null}
     </Card>
@@ -129,126 +225,6 @@ const HypothesisTitle = styled(Heading)`
 
 const HypothesisDescription = styled(Text)`
   line-height: 16px;
-`;
-
-function VerificationStepRow({step}: {step: InvestigationVerificationStep}) {
-  const failed = step.status === 'failed';
-  // A step's own error is more specific than the generic failure label, so it
-  // wins when both are present.
-  const detail =
-    step.result || step.error?.message || getVerificationStepStatusLabel(step.status);
-  // A step that has produced something can be opened for how the agent got
-  // there. One that has not is a bare row — there is no finding to unpack yet,
-  // and a chevron would promise one.
-  const hasRun = Boolean(step.result) || Boolean(step.error);
-  const summary = (
-    // A full flex-basis so the summary takes the row's spare width rather than
-    // splitting it with the chevron and wrapping in half the space it has.
-    <Stack gap="2xs" flex="1 1 100%" minWidth="0">
-      <Text size="sm" wordBreak="break-word">
-        {step.title}
-      </Text>
-      {/*
-       * The agent writes these in terms of what it read, so a finding is mostly
-       * symbols: `module/file.py::function_name`, dotted paths, issue short IDs.
-       * None of them carry a break opportunity, and one long enough to outrun
-       * the column would otherwise push its own text out through the card edge
-       * rather than wrap inside it.
-       */}
-      <Text
-        size="xs"
-        variant={failed ? 'danger' : 'muted'}
-        density="comfortable"
-        wordBreak="break-word"
-      >
-        {detail}
-      </Text>
-    </Stack>
-  );
-
-  return (
-    <Container
-      as="li"
-      border={failed ? 'danger' : 'primary'}
-      radius="sm"
-      // The toggle owns the row padding for a step that can be opened, so the
-      // container only insets it far enough to keep the hover highlight off
-      // the border. A bare row has no toggle and pads itself.
-      padding={hasRun ? 'xs' : 'md lg'}
-      background="primary"
-    >
-      {hasRun ? (
-        <Disclosure size="xs">
-          {/*
-           * The summary is the toggle's children, not `leadingItems`: the
-           * leading slot renders outside the button, which would leave the
-           * chevron alone as the click target on a row several hundred pixels
-           * wide. As children it sits inside the full-width stretched button,
-           * so the whole row opens the step — and it names the toggle without
-           * a separate aria-label.
-           */}
-          <StepDisclosureTitle>{summary}</StepDisclosureTitle>
-          <Disclosure.Content>
-            <Stack gap="sm">
-              <Stack gap="2xs">
-                <Text size="xs" variant="muted" bold>
-                  {t('Objective')}
-                </Text>
-                <Text size="xs" density="comfortable" wordBreak="break-word">
-                  {step.objective}
-                </Text>
-              </Stack>
-              <Stack gap="2xs">
-                <Text size="xs" variant="muted" bold>
-                  {t('Method')}
-                </Text>
-                <Text size="xs" density="comfortable" wordBreak="break-word">
-                  {step.method}
-                </Text>
-              </Stack>
-            </Stack>
-          </Disclosure.Content>
-        </Disclosure>
-      ) : (
-        summary
-      )}
-    </Container>
-  );
-}
-
-/**
- * Lets the step's toggle hold the two-line summary that makes the whole row
- * clickable.
- *
- * `Button` is sized as a single-line control — fixed height, `nowrap`, contents
- * centred — which is right for a label and wrong for a block of title-plus-
- * result that wraps. `&&` rather than a plain rule because these compete with
- * the button's own class at equal specificity, and emotion's insertion order
- * between the two is not something to rely on.
- */
-const StepDisclosureTitle = styled(Disclosure.Title)`
-  && {
-    height: auto;
-    min-height: 0;
-    padding-block: ${p => p.theme.space.xs};
-    white-space: normal;
-    text-align: left;
-  }
-
-  /* Button wraps its contents in a span carrying the same single-line sizing. */
-  && > span {
-    width: 100%;
-    height: auto;
-    white-space: normal;
-    align-items: flex-start;
-    justify-content: flex-start;
-  }
-
-  /* The chevron belongs beside the title, not centred against a block whose
-   * height depends on how far the result wraps. */
-  && > span > :first-child {
-    margin-top: 1px;
-  }
 `;
 
 /**
@@ -285,7 +261,25 @@ const Card = styled(Stack)`
   }
 `;
 
-// `ul` markers would otherwise sit in the card's padding next to each step.
-const EvidenceList = styled(Stack)`
+/**
+ * The checks as a connected timeline — the same `Timeline` the breadcrumbs and
+ * open periods draw, with a dot marker instead of an icon. `ol` markers would
+ * otherwise sit in the card's padding beside each step.
+ */
+const EvidenceList = styled(Timeline.Container)`
   list-style: none;
+  padding: 0;
+  /* Margin, not padding: the connecting line is drawn down the container's box,
+   * so padding here would show a stub of it above the first marker. */
+  margin: ${p => p.theme.space.md} 0 0;
+`;
+
+/**
+ * A check's title is smaller than the timeline's own, which is sized for a
+ * heading. Holding its line box at the marker's height — the 20px icon box plus
+ * its 1px ring — keeps the two centred on each other. Left to its shorter
+ * natural line box, the title rides above the dot.
+ */
+const StepTitle = styled(Text)`
+  line-height: 22px;
 `;

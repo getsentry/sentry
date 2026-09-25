@@ -7,7 +7,7 @@ import {z} from 'zod';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormOptions, FieldGroup, useScrapsForm} from '@sentry/scraps/form';
 import {InfoText} from '@sentry/scraps/info';
 import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
@@ -51,7 +51,8 @@ type ConditionType =
   | 'error_type'
   | 'metric_name'
   | 'log_message'
-  | 'release';
+  | 'release'
+  | 'ip_address';
 
 type CustomInboundFilterCondition = {
   type: ConditionType;
@@ -98,11 +99,13 @@ type DataTypeSpec = {
   // type. Offering a data type without it lets the user build a filter the API
   // rejects on save, so mirror the gating here.
   feature?: string;
+  // Shown in the filter table, whose data type column already says "Data Type".
+  tableLabel?: string;
 };
 
 // Declaration order is the order of the data type dropdown.
 const DATA_TYPES: Record<FilterDataType, DataTypeSpec> = {
-  all: {label: t('All Data Types')},
+  all: {label: t('All Data Types'), tableLabel: t('All')},
   error: {label: t('Errors')},
   metric: {label: t('Metrics'), feature: 'tracemetrics-ingestion'},
   log: {label: t('Logs'), feature: 'ourlogs-ingestion'},
@@ -115,13 +118,16 @@ type ConditionSpec = {
   description: string | Record<FilterDataType, string>;
   label: string;
   placeholder: string;
-  // The data type whose field this condition reads. Absent for `release`, which
-  // every data type carries, so it stays on offer whatever the filter targets.
+  // The data type whose field this condition reads. Absent for `release` and
+  // `ip_address`, which every data type carries, so they stay on offer whatever
+  // the filter targets.
   dataType?: FilterDataType;
 };
 
 // Declaration order is the order of the property dropdown, and the first
-// condition of a data type is the one a new row starts with. Keep `release` last.
+// condition of a data type is the one a new row starts with. Keep the conditions
+// every data type carries last, `release` first among them: it is the default
+// for the catch-all.
 const CONDITIONS: Record<ConditionType, ConditionSpec> = {
   error_message: {
     dataType: 'error',
@@ -161,6 +167,13 @@ const CONDITIONS: Record<ConditionType, ConditionSpec> = {
       metric: t('Matches the release attribute of the metric.'),
       span: t('Matches the release attribute of the span.'),
     },
+  },
+  ip_address: {
+    label: t('IP Address'),
+    placeholder: t('IP address or CIDR range, e.g. 203.0.113.7 or 10.0.0.0/8'),
+    description: t(
+      'Matches the IP address the data was sent from. Takes single addresses and CIDR ranges, not glob patterns.'
+    ),
   },
 };
 
@@ -260,7 +273,8 @@ function getFilterDataType(filter: CustomInboundFilter): FilterDataType {
 
 function getDataTypeLabel(filter: CustomInboundFilter): string {
   const dataType = getFilterDataType(filter);
-  return DATA_TYPES[dataType]?.label ?? dataType;
+  const spec = DATA_TYPES[dataType];
+  return spec?.tableLabel ?? spec?.label ?? dataType;
 }
 
 // One editable row per condition, with its values one per line.
@@ -288,14 +302,29 @@ function formValuesToConditions(
   }));
 }
 
-function getErrorDetail(error: unknown, fallback: string): string {
-  if (error instanceof RequestError) {
-    const detail = error.responseJSON?.detail;
-    if (typeof detail === 'string') {
-      return detail;
-    }
+// The API answers with either `{detail: string}` or a DRF validation error, which
+// nests messages under field names and list indexes, e.g.
+// `{conditions: [{}, {value: ['... is not an IP address or CIDR range.']}]}`. Both
+// shapes have their messages as string leaves.
+function collectErrorMessages(value: unknown): string[] {
+  if (typeof value === 'string') {
+    return [value];
   }
-  return fallback;
+  if (Array.isArray(value)) {
+    return value.flatMap(collectErrorMessages);
+  }
+  if (value && typeof value === 'object') {
+    return Object.values(value).flatMap(collectErrorMessages);
+  }
+  return [];
+}
+
+function getErrorDetail(error: unknown, fallback: string): string {
+  if (!(error instanceof RequestError)) {
+    return fallback;
+  }
+  const messages = [...new Set(collectErrorMessages(error.responseJSON))];
+  return messages.length > 0 ? messages.join(' ') : fallback;
 }
 
 function getMatchDescription(property: string, dataType: FilterDataType): string {
@@ -413,6 +442,7 @@ function CustomFilterModal({
     dataTypeOptions,
     filter ? defaultValues.dataType : undefined
   );
+  const theme = useTheme();
 
   const form = useScrapsForm({
     ...defaultFormOptions,
@@ -463,11 +493,14 @@ function CustomFilterModal({
                     onChange={value => {
                       dataTypeField.handleChange(value);
                       // Carry existing rows over to the new data type. A row
-                      // whose property the new data type does not read falls
-                      // back to the default one; release rows stay as they are.
+                      // whose property the new data type does not offer falls
+                      // back to the default one; the rest stay as they are.
+                      const offered = new Set(
+                        getPropertyOptions(value).map(option => option.value)
+                      );
                       form.setFieldValue('conditions', conditions =>
                         conditions.map(condition =>
-                          condition.property === 'release'
+                          offered.has(condition.property)
                             ? condition
                             : {
                                 ...condition,
@@ -496,6 +529,9 @@ function CustomFilterModal({
                           )}
                         </Text>
                       )}
+                      {/* The value textarea grows with its lines, so the row aligns
+                          to the top and the single-line cells center on the control
+                          height to line up with the first line. */}
                       <Stack gap="sm">
                         {conditions.map((condition, index) => (
                           <Grid
@@ -515,12 +551,14 @@ function CustomFilterModal({
                                 />
                               )}
                             </form.AppField>
-                            <InfoText
-                              variant="muted"
-                              title={getMatchDescription(condition.property, dataType)}
-                            >
-                              {t('matches')}
-                            </InfoText>
+                            <Flex align="center" height={theme.form.md.height}>
+                              <InfoText
+                                variant="muted"
+                                title={getMatchDescription(condition.property, dataType)}
+                              >
+                                {t('matches')}
+                              </InfoText>
+                            </Flex>
                             <form.AppField name={`conditions[${index}].value`}>
                               {valueField => (
                                 <valueField.TextArea
@@ -537,14 +575,16 @@ function CustomFilterModal({
                                 />
                               )}
                             </form.AppField>
-                            <Button
-                              size="sm"
-                              variant="transparent"
-                              icon={<IconDelete />}
-                              aria-label={t('Remove condition')}
-                              disabled={conditions.length === 1}
-                              onClick={() => conditionsField.removeValue(index)}
-                            />
+                            <Flex align="center" height={theme.form.md.height}>
+                              <Button
+                                size="sm"
+                                variant="transparent"
+                                icon={<IconDelete />}
+                                aria-label={t('Remove condition')}
+                                disabled={conditions.length === 1}
+                                onClick={() => conditionsField.removeValue(index)}
+                              />
+                            </Flex>
                           </Grid>
                         ))}
                       </Stack>
@@ -960,7 +1000,7 @@ export function CustomFilters({project}: {project: Project}) {
   const visibleFilters = filters.filter(filter => matchesQuery(filter, query));
 
   return (
-    <Stack gap="lg">
+    <FieldGroup title={t('Filter Rules')}>
       <Flex gap="md" align="center">
         <Flex flex={1}>
           <InputGroup style={{width: '100%'}}>
@@ -1134,7 +1174,7 @@ export function CustomFilters({project}: {project: Project}) {
           </CustomFiltersTable>
         </Container>
       )}
-    </Stack>
+    </FieldGroup>
   );
 }
 

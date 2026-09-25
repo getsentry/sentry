@@ -123,8 +123,6 @@ def create_deploy(
     Release.objects.filter(id=release.id).update(
         total_deploys=F("total_deploys") + 1,
         last_deploy_id=deploy.id,
-        # Dual-write while `new_last_deploy_id` is a shadow column; drop once swapped in.
-        new_last_deploy_id=deploy.id,
     )
 
     for project in projects:
