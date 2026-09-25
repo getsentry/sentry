@@ -694,5 +694,39 @@ describe('searchSyntax/parser', () => {
 
       expect(filter.invalid).toBeNull();
     });
+
+    it('flags a pattern that validateRegexPattern rejects', () => {
+      const filter = parseRegexFilter('message://(?=a)b//', {
+        validateRegexPattern: () => false,
+      });
+
+      expect(filter.invalid).toEqual(
+        expect.objectContaining({type: InvalidReason.INVALID_REGEX})
+      );
+    });
+
+    it('does not flag a pattern that validateRegexPattern accepts', () => {
+      const filter = parseRegexFilter('message://^a.*b//', {
+        validateRegexPattern: () => true,
+      });
+
+      expect(filter.invalid).toBeNull();
+    });
+
+    it('does not flag a pattern when no validateRegexPattern is configured', () => {
+      const filter = parseRegexFilter('message://(?=a)b//');
+
+      expect(filter.invalid).toBeNull();
+    });
+
+    it('does not run validateRegexPattern on an empty pattern', () => {
+      const validateRegexPattern = jest.fn(() => false);
+      const filter = parseRegexFilter('message:////', {validateRegexPattern});
+
+      expect(filter.invalid).toEqual(
+        expect.objectContaining({type: InvalidReason.FILTER_MUST_HAVE_VALUE})
+      );
+      expect(validateRegexPattern).not.toHaveBeenCalled();
+    });
   });
 });

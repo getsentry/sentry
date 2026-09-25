@@ -23,6 +23,7 @@ import {
   useQueryBuilderState,
   type QueryBuilderActions,
 } from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderState';
+import {useRegexPatternValidator} from 'sentry/components/searchQueryBuilder/hooks/useRegexPatternValidator';
 import type {
   FieldDefinitionGetter,
   FilterKeySection,
@@ -289,10 +290,13 @@ export function SearchQueryBuilderProvider({
 
   const invalidFilterKeyMessage = invalidMessages?.[InvalidReason.INVALID_KEY];
 
+  const validateRegexPattern = useRegexPatternValidator(Boolean(allowRegexOperators));
+
   const parseQuery = useCallback(
     (query: string) =>
       parseQueryBuilderValue(query, getFieldDefinitionWithTagMetadata, {
         allowRegexOperators,
+        validateRegexPattern,
         getFilterTokenWarning,
         disallowFreeText,
         disallowLogicalOperators,
@@ -317,6 +321,7 @@ export function SearchQueryBuilderProvider({
       invalidMessages,
       stableInvalidFilterKeys,
       filterKeyAliases,
+      validateRegexPattern,
     ]
   );
 
