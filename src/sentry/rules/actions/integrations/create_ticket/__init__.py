@@ -1,11 +1,10 @@
 from .base import TicketEventAction
 from .form import IntegrationNotifyServiceForm
-from .utils import build_description, create_issue, create_link
+from .utils import build_description, create_issue
 
 __all__ = (
     "build_description",
     "create_issue",
-    "create_link",
     "IntegrationNotifyServiceForm",
     "TicketEventAction",
 )
