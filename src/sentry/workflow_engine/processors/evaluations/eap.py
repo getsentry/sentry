@@ -15,7 +15,6 @@ from sentry_kafka_schemas.codecs import Codec
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
-from sentry import quotas
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.models.activity import Activity
 from sentry.models.group import GroupStatus
@@ -176,7 +175,7 @@ def emit_evaluation_to_eap(
         topic = get_topic_definition(Topic.SNUBA_ITEMS)["real_topic_name"]
         timestamp = Timestamp()
         timestamp.FromDatetime(timezone.now())
-        retention_days = quotas.backend.get_event_retention(organization=organization) or 90
+        retention_days = 7  # TODO - We'll probably need to store metric issues for longer
 
         for attributes in _evaluation_attributes(result):
             project_id = attributes.get("project_id")
