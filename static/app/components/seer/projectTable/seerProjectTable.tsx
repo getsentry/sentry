@@ -3,6 +3,7 @@ import {css} from '@emotion/react';
 import {
   infiniteQueryOptions,
   useInfiniteQuery,
+  useIsMutating,
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
@@ -52,6 +53,7 @@ import {
 import {
   getMutateSeerProjectSettingsOptions,
   getInfiniteSeerProjectsSettingsQueryOptions,
+  getSeerProjectsSettingsMutationKey,
   seerProjectSettingsSchema,
 } from 'sentry/utils/seer/seerProjectSettings';
 import {
@@ -80,6 +82,21 @@ export function SeerProjectTable() {
   const location = useLocation();
   const organization = useOrganization();
   const canWrite = useCanWriteSettings();
+
+  // Each row control is a form that keeps its own copy of the saved value, and
+  // once it has been used it stops picking up new values from the list. So after
+  // a bulk edit we bump this number, which is used as the row forms' `key`: React
+  // then replaces them with fresh forms that read the new values. Single-row
+  // saves don't bump it, so a row keeps its form (and its error handling) while
+  // its own save is in flight.
+  const [bulkEditVersion, setBulkEditVersion] = useState(0);
+  // Row controls are locked while a bulk edit is saving, so no row save can still
+  // be running when the forms are replaced. The header does the reverse.
+  const isBulkSaving =
+    useIsMutating({
+      mutationKey: getSeerProjectsSettingsMutationKey(organization.slug),
+    }) > 0;
+  const isRowDisabled = !canWrite || isBulkSaving;
 
   // Query Values
   const [agentFilter, setAgentFilter] = useQueryState(
@@ -210,6 +227,7 @@ export function SeerProjectTable() {
             sort={sortBy}
             onSortClick={setSort}
             mutableSearch={mutableSearch}
+            onBulkEditSuccess={() => setBulkEditVersion(version => version + 1)}
           />
 
           {isPending ? (
@@ -273,6 +291,7 @@ export function SeerProjectTable() {
                     </InfiniteTable.RowCell>
                     <InfiniteTable.RowCell overflow="visible">
                       <AgentSelectCell
+                        key={bulkEditVersion}
                         projectSlug={item.projectSlug}
                         initialValue={coalesePreferredAgent(
                           item.agent,
@@ -280,12 +299,13 @@ export function SeerProjectTable() {
                         )}
                         agentSelectOptions={agentSelectOptions}
                         knownAgents={knownAgents}
-                        disabled={!canWrite}
+                        disabled={isRowDisabled}
                       />
                     </InfiniteTable.RowCell>
                     <InfiniteTable.RowCell>
                       <Stack align="stretch" flex="1">
                         <AutoSaveForm
+                          key={bulkEditVersion}
                           name="stoppingPoint"
                           schema={seerProjectSettingsSchema}
                           initialValue={coaleseStoppingPoint(
@@ -300,7 +320,7 @@ export function SeerProjectTable() {
                         >
                           {field => (
                             <field.Select
-                              disabled={!canWrite}
+                              disabled={isRowDisabled}
                               menuPortalTarget={document.body}
                               onChange={field.handleChange}
                               options={stoppingPointOptions}
@@ -314,6 +334,7 @@ export function SeerProjectTable() {
                     </InfiniteTable.RowCell>
                     <InfiniteTable.RowCell justify="center">
                       <AutoSaveForm
+                        key={bulkEditVersion}
                         name="prIteration"
                         schema={seerProjectSettingsSchema}
                         initialValue={item.prIteration}
@@ -329,7 +350,7 @@ export function SeerProjectTable() {
                             size="sm"
                             checked={field.state.value}
                             onChange={field.handleChange}
-                            disabled={!canWrite}
+                            disabled={isRowDisabled}
                           />
                         )}
                       </AutoSaveForm>

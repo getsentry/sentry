@@ -213,6 +213,339 @@ describe('SeerProjectTable', () => {
     );
   });
 
+  /**
+   * Sets up two projects whose settings live in `server.settings`. The list,
+   * bulk-save and row-save mocks all read and write that array, so a refetch
+   * after a save sees the change, like a real server.
+   */
+  function mockTwoProjects() {
+    const otherProject = ProjectFixture({id: '3', slug: 'other-project'});
+    ProjectsStore.loadInitialData([project, otherProject]);
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/coding-agents/`,
+      body: {integrations: []},
+    });
+    const baseSetting = {
+      agent: 'seer',
+      integrationId: null,
+      autoCreatePr: null,
+      automationTuning: 'medium',
+      scannerAutomation: false,
+      reposCount: 1,
+    };
+    const server = {
+      settings: [
+        {
+          ...baseSetting,
+          projectId: '2',
+          projectSlug: 'project-slug',
+          stoppingPoint: 'root_cause',
+          prIteration: true,
+        },
+        {
+          ...baseSetting,
+          projectId: '3',
+          projectSlug: 'other-project',
+          stoppingPoint: 'code_changes',
+          prIteration: false,
+        },
+      ],
+    };
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/projects/`,
+      body: () => server.settings,
+    });
+    const bulkPut = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/projects/`,
+      method: 'PUT',
+      body: (_url: string, options: {data: Record<string, unknown>}) => {
+        const {query: _query, ...updates} = options.data;
+        server.settings = server.settings.map(setting => ({...setting, ...updates}));
+        return {};
+      },
+    });
+    const rowPuts = Object.fromEntries(
+      ['project-slug', 'other-project'].map(slug => [
+        slug,
+        MockApiClient.addMockResponse({
+          url: `/projects/${organization.slug}/${slug}/seer/settings/`,
+          method: 'PUT',
+          body: (_url: string, options: {data: Record<string, unknown>}) => {
+            server.settings = server.settings.map(setting =>
+              setting.projectSlug === slug ? {...setting, ...options.data} : setting
+            );
+            return {};
+          },
+        }),
+      ])
+    );
+    return {server, bulkPut, rowPuts};
+  }
+
+  /**
+   * Returns a promise to pass as a mock's `asyncDelay`, plus a function that
+   * lets the response through.
+   */
+  function makeDelay() {
+    let release = () => {};
+    const promise = new Promise<void>(resolve => {
+      release = resolve;
+    });
+    return {promise, release};
+  }
+
+  async function selectAllProjects() {
+    // The first checkbox in the table is the header's "select all".
+    await userEvent.click(screen.getAllByRole('checkbox')[0]!);
+  }
+
+  it('toggles PR iteration for all selected projects', async () => {
+    const {bulkPut} = mockTwoProjects();
+
+    render(<ExampleSeerProjectTable />, {organization});
+
+    await screen.findByRole('checkbox', {name: 'Auto-iterate on PRs for other-project'});
+    await selectAllProjects();
+
+    // One selected project has PR iteration on, so the bulk toggle reads as on.
+    const bulkToggle = await screen.findByRole('checkbox', {
+      name: 'Auto-iterate on PRs for selected projects',
+    });
+    expect(bulkToggle).toBeChecked();
+
+    await userEvent.click(bulkToggle);
+    await waitFor(() =>
+      expect(bulkPut).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({data: expect.objectContaining({prIteration: false})})
+      )
+    );
+    await waitFor(() => expect(bulkToggle).not.toBeChecked());
+    expect(
+      screen.getByRole('checkbox', {name: 'Auto-iterate on PRs for project-slug'})
+    ).not.toBeChecked();
+
+    await waitFor(() => expect(bulkToggle).toBeEnabled());
+    await userEvent.click(bulkToggle);
+    await waitFor(() =>
+      expect(bulkPut).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({data: expect.objectContaining({prIteration: true})})
+      )
+    );
+    await waitFor(() => expect(bulkToggle).toBeChecked());
+    expect(
+      screen.getByRole('checkbox', {name: 'Auto-iterate on PRs for other-project'})
+    ).toBeChecked();
+  });
+
+  it('updates a row switch that was already clicked when the bulk toggle is used', async () => {
+    const {bulkPut, rowPuts} = mockTwoProjects();
+
+    render(<ExampleSeerProjectTable />, {organization});
+
+    const getRowToggle = () =>
+      screen.getByRole('checkbox', {name: 'Auto-iterate on PRs for other-project'});
+    await screen.findByRole('checkbox', {name: 'Auto-iterate on PRs for other-project'});
+    await userEvent.click(getRowToggle());
+    await waitFor(() => expect(rowPuts['other-project']).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(getRowToggle()).toBeEnabled());
+    await userEvent.click(getRowToggle());
+    await waitFor(() => expect(rowPuts['other-project']).toHaveBeenCalledTimes(2));
+    await selectAllProjects();
+
+    // One selected project has PR iteration on, so the bulk toggle reads as on.
+    const bulkToggle = await screen.findByRole('checkbox', {
+      name: 'Auto-iterate on PRs for selected projects',
+    });
+    expect(bulkToggle).toBeChecked();
+
+    await waitFor(() => expect(bulkToggle).toBeEnabled());
+    await userEvent.click(bulkToggle);
+    await waitFor(() =>
+      expect(bulkPut).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({data: expect.objectContaining({prIteration: false})})
+      )
+    );
+    await waitFor(() => expect(bulkToggle).not.toBeChecked());
+    expect(
+      screen.getByRole('checkbox', {name: 'Auto-iterate on PRs for project-slug'})
+    ).not.toBeChecked();
+
+    await waitFor(() => expect(bulkToggle).toBeEnabled());
+    await userEvent.click(bulkToggle);
+    await waitFor(() =>
+      expect(bulkPut).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({data: expect.objectContaining({prIteration: true})})
+      )
+    );
+    await waitFor(() => expect(bulkToggle).toBeChecked());
+    expect(
+      screen.getByRole('checkbox', {name: 'Auto-iterate on PRs for other-project'})
+    ).toBeChecked();
+  });
+
+  it('updates an automation steps dropdown that was already changed when the bulk menu is used', async () => {
+    const {bulkPut, rowPuts} = mockTwoProjects();
+
+    render(<ExampleSeerProjectTable />, {organization});
+
+    // Change project-slug's row from "Root Cause" to "PR drafted".
+    await userEvent.click(await screen.findByText('Stop after Root Cause'));
+    await userEvent.click(
+      await screen.findByRole('menuitemradio', {name: 'Stop after PR drafted'})
+    );
+    await waitFor(() =>
+      expect(rowPuts['project-slug']).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({stoppingPoint: 'open_pr'}),
+        })
+      )
+    );
+
+    await selectAllProjects();
+    const bulkMenu = await screen.findByRole('button', {name: 'Automation Steps'});
+    await waitFor(() => expect(bulkMenu).toBeEnabled());
+    await userEvent.click(bulkMenu);
+    await userEvent.click(
+      await screen.findByRole('menuitemradio', {name: 'Stop after Plan'})
+    );
+    await waitFor(() =>
+      expect(bulkPut).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({stoppingPoint: 'code_changes'}),
+        })
+      )
+    );
+
+    // Both rows, including the one changed by hand, now show the bulk value.
+    await waitFor(() => expect(screen.getAllByText('Stop after Plan')).toHaveLength(2));
+    expect(screen.queryByText('Stop after PR drafted')).not.toBeInTheDocument();
+  });
+
+  it('resets a row switch and marks it invalid when its save fails', async () => {
+    mockTwoProjects();
+    const failedPut = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/project-slug/seer/settings/`,
+      method: 'PUT',
+      statusCode: 500,
+    });
+
+    render(<ExampleSeerProjectTable />, {organization});
+
+    const rowToggle = await screen.findByRole('checkbox', {
+      name: 'Auto-iterate on PRs for project-slug',
+    });
+    expect(rowToggle).toBeChecked();
+
+    await userEvent.click(rowToggle);
+    await waitFor(() => expect(failedPut).toHaveBeenCalled());
+
+    // The row keeps its form through its own save, so the form can put the old
+    // value back and show that the save failed.
+    await waitFor(() =>
+      expect(
+        screen.getByRole('checkbox', {name: 'Auto-iterate on PRs for project-slug'})
+      ).toHaveAttribute('aria-invalid', 'true')
+    );
+    expect(
+      screen.getByRole('checkbox', {name: 'Auto-iterate on PRs for project-slug'})
+    ).toBeChecked();
+  });
+
+  it('keeps a row switch in place while its own save is in flight', async () => {
+    mockTwoProjects();
+    const delay = makeDelay();
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/project-slug/seer/settings/`,
+      method: 'PUT',
+      asyncDelay: delay.promise,
+    });
+
+    render(<ExampleSeerProjectTable />, {organization});
+
+    const rowToggle = await screen.findByRole('checkbox', {
+      name: 'Auto-iterate on PRs for project-slug',
+    });
+    await userEvent.click(rowToggle);
+
+    // The click writes the new value into the table's data straight away. The
+    // row must keep the same switch through that, because the switch's form is
+    // what undoes the change and shows an error if the save then fails.
+    await waitFor(() => expect(rowToggle).not.toBeChecked());
+    expect(rowToggle).toBeInTheDocument();
+
+    delay.release();
+    await waitFor(() => expect(rowToggle).toBeEnabled());
+    expect(rowToggle).toBeInTheDocument();
+  });
+
+  it('disables the bulk controls while a row is saving', async () => {
+    mockTwoProjects();
+    const delay = makeDelay();
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/project-slug/seer/settings/`,
+      method: 'PUT',
+      asyncDelay: delay.promise,
+    });
+
+    render(<ExampleSeerProjectTable />, {organization});
+
+    await screen.findByRole('checkbox', {name: 'Auto-iterate on PRs for project-slug'});
+    await selectAllProjects();
+    const bulkToggle = await screen.findByRole('checkbox', {
+      name: 'Auto-iterate on PRs for selected projects',
+    });
+    expect(bulkToggle).toBeEnabled();
+
+    await userEvent.click(
+      screen.getByRole('checkbox', {name: 'Auto-iterate on PRs for project-slug'})
+    );
+
+    await waitFor(() => expect(bulkToggle).toBeDisabled());
+    expect(screen.getByRole('button', {name: 'Automation Steps'})).toBeDisabled();
+
+    delay.release();
+    await waitFor(() => expect(bulkToggle).toBeEnabled());
+    expect(screen.getByRole('button', {name: 'Automation Steps'})).toBeEnabled();
+  });
+
+  it('disables the row controls while a bulk edit is saving', async () => {
+    mockTwoProjects();
+    const delay = makeDelay();
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/projects/`,
+      method: 'PUT',
+      asyncDelay: delay.promise,
+    });
+
+    render(<ExampleSeerProjectTable />, {organization});
+
+    const rowToggle = await screen.findByRole('checkbox', {
+      name: 'Auto-iterate on PRs for other-project',
+    });
+    await selectAllProjects();
+    await userEvent.click(
+      await screen.findByRole('checkbox', {
+        name: 'Auto-iterate on PRs for selected projects',
+      })
+    );
+
+    await waitFor(() => expect(rowToggle).toBeDisabled());
+
+    delay.release();
+    await waitFor(() =>
+      expect(
+        screen.getByRole('checkbox', {name: 'Auto-iterate on PRs for other-project'})
+      ).toBeEnabled()
+    );
+  });
+
   it('disables adding a project without organization write access', async () => {
     render(<ExampleSeerProjectTable />, {
       organization: OrganizationFixture({slug: organization.slug, access: []}),
