@@ -370,13 +370,8 @@ class DatabaseBackedSentryAppCellService(SentryAppCellService):
             try:
                 platform_external_issue = external_issues.get()
             except PlatformExternalIssue.DoesNotExist:
-                return RpcEmptyResult(
-                    success=False,
-                    error=RpcSentryAppError(
-                        message="Could not find the corresponding external issue from given external_issue_id",
-                        status_code=404,
-                    ),
-                )
+                # Another request completed the unlink after we authorized it.
+                return RpcEmptyResult()
 
             publish_action(
                 UnlinkPlatformExternalIssueAction(

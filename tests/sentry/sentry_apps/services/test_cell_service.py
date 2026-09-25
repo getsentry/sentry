@@ -484,9 +484,8 @@ class TestSentryAppCellService(TestCase):
             )
 
         get_lock.assert_called_once()
-        assert result.success is False
-        assert result.error is not None
-        assert result.error.status_code == 404
+        assert result.success is True
+        assert result.error is None
         log.assert_not_logged()
 
     @responses.activate
