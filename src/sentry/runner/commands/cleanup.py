@@ -104,6 +104,10 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
 
     configure()
 
+    progress_logger = logging.getLogger("sentry.cleanup.progress")
+    progress_logger.setLevel(logging.INFO)
+    last_progress_log: dict[str, float] = {}
+
     from sentry import options
     from sentry.utils import metrics
 
@@ -130,9 +134,22 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
                 op="cleanup",
                 name=f"{TRANSACTION_PREFIX}.multiprocess_worker",
                 transaction=True,
-                custom_sampling_context={"sample_rate": 0.5 * settings.SENTRY_BACKEND_APM_SAMPLING},
+                custom_sampling_context={
+                    "sample_rate": 0.05 * settings.SENTRY_BACKEND_APM_SAMPLING
+                },
             ):
                 task_execution(model_name, chunk, project_id)
+                if chunk:
+                    now = time.monotonic()
+                    if (
+                        model_name not in last_progress_log
+                        or now - last_progress_log[model_name] >= 300  # 5 min
+                    ):
+                        progress_logger.info(
+                            "cleanup.progress",
+                            extra={"model": model_name, "last_id": chunk[-1]},
+                        )
+                        last_progress_log[model_name] = now
         except Exception:
             metrics.incr(
                 "cleanup.error",

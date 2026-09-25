@@ -58,6 +58,7 @@ export const platformOptionGroups = [
   {
     label: t('Other platforms'),
     options: platforms
+      .filter(platform => !platform.hidden)
       .filter(platform => !popularPlatformCategories.has(platform.id))
       .toSorted((a, b) => comparePlatformNames(a.name, b.name))
       .map(toPlatformOption),

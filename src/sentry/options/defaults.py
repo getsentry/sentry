@@ -689,6 +689,14 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Disable install-triggered GitLab webhook repairs without affecting settings updates.
+register(
+    "gitlab.webhook-update-on-install.enabled",
+    default=True,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Slack Integration
 register("slack.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("slack.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
@@ -1408,6 +1416,12 @@ register(
     default=0.10,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "seer.smart_assignment.prefetch_rollout_rate",
+    type=Float,
+    default=0.5,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Fuzzy resolution always runs after an exact email miss so its proposal can be
 # inspected. This controls whether that proposal is used in the delivered prediction.
 register(
@@ -1432,9 +1446,21 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "issues.action_log.use_db_sequence_for_outbox_identifier",
+    "issues.derived_data.status_reconciliation.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "issues.derived_data.status_reconciliation.dry_run",
     type=Bool,
     default=True,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "issues.action_log.use_db_sequence_for_outbox_identifier",
+    type=Bool,
+    default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -2565,6 +2591,10 @@ register(
         "bitbucket",
         "bitbucket_server",
         "gitlab",
+        "jira",
+        "jira_server",
+        "vsts",
+        "msteams",
     ],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -2574,7 +2604,7 @@ register(
 # before falling back to the scheduler.
 register(
     "hybridcloud.webhookpayload.max_chain_depth",
-    default=1,
+    default=8,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Break glass for inbound webhook floods. Matching webhooks are dropped with a
@@ -3673,6 +3703,15 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Whether the data source by detector and source id cache is enabled
+# When disabled, detector handlers query directly instead of using the cache
+register(
+    "workflow_engine.data_source_by_detector_and_source_id_cache.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Restrict uptime issue creation for specific host provider identifiers. Items
 # in this list map to the `host_provider_id` column in the UptimeSubscription
 # table.
@@ -3714,6 +3753,14 @@ register(
     "uptime.config-drift.cycle-hours",
     type=Int,
     default=24,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Whether the drift sweep republishes the configs it finds missing, rather than only counting them.
+register(
+    "uptime.config-drift.repair",
+    type=Bool,
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -4159,13 +4206,17 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# SCM
-
 register(
-    "sentry.scm.stream.rollout",
-    type=Float,
-    default=0.0,
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+    "warmup.url_resolver.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "warmup.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Cap on consecutive automated PR iterations (check suites + bot re-reviews);
@@ -4423,5 +4474,13 @@ register(
     "ingestion-delay.measurement-lookback-minutes",
     type=Int,
     default=60,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# How long an ingestion delay measurement is cached, in seconds. 0 disables the cache.
+register(
+    "ingestion-delay.measurement-cache-seconds",
+    type=Int,
+    default=30,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

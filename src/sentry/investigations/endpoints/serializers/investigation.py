@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
-from collections.abc import Set as AbstractSet
 from datetime import datetime
 from typing import Any, NotRequired, TypedDict, override
 
@@ -10,7 +9,6 @@ from django.contrib.auth.models import AnonymousUser
 from django.db.models import Count, Q
 
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.investigations.endpoints.base import investigation_ids_with_project_access
 from sentry.investigations.endpoints.serializers.block import (
     InvestigationBlockSerializer,
     InvestigationBlockSerializerResponse,
@@ -111,9 +109,6 @@ class InvestigationDetailsSerializerResponse(InvestigationSerializerResponse):
 
 @register(Investigation)
 class InvestigationSerializer(Serializer):
-    def __init__(self, accessible_project_ids: AbstractSet[int] | None = None) -> None:
-        self.summary_accessible_project_ids = accessible_project_ids
-
     @override
     def get_attrs(
         self,
@@ -136,19 +131,12 @@ class InvestigationSerializer(Serializer):
                 ).values_list("investigation_id", flat=True)
             )
 
-        summary_visible_ids = (
-            investigation_ids_with_project_access(item_list, self.summary_accessible_project_ids)
-            if self.summary_accessible_project_ids is not None
-            else set()
-        )
-
         orchestration_by_investigation = orchestration_summaries_by_investigation(item_list)
 
         return {
             investigation: {
                 "block_count": block_counts.get(investigation.id, 0),
                 "is_favorited": investigation.id in favorited_ids,
-                "summary_visible": investigation.id in summary_visible_ids,
                 "orchestration": orchestration_by_investigation.get(investigation.id),
             }
             for investigation in item_list
@@ -163,12 +151,11 @@ class InvestigationSerializer(Serializer):
         **kwargs: Any,
     ) -> InvestigationSerializerResponse:
         source = investigation_source(obj)
-        summary_visible = attrs["summary_visible"]
         return {
             "id": str(obj.id),
             "title": obj.title,
-            "summary": obj.summary if summary_visible else None,
-            "summaryDescription": obj.summary_description if summary_visible else None,
+            "summary": obj.summary,
+            "summaryDescription": obj.summary_description,
             "status": obj.status,
             "sourceType": source.get("type", InvestigationSourceType.MANUAL),
             "createdBy": (str(obj.created_by_id) if obj.created_by_id is not None else None),
@@ -189,10 +176,6 @@ class InvestigationDetailsSerializer(InvestigationSerializer):
     omits the nested collections so list reads stay cheap.
     """
 
-    def __init__(self, accessible_project_ids: AbstractSet[int]) -> None:
-        super().__init__(accessible_project_ids)
-        self.accessible_project_ids = accessible_project_ids
-
     def _blocks_by_investigation(
         self, item_list: Sequence[Investigation], user: User | RpcUser | AnonymousUser
     ) -> MutableMapping[int, list[InvestigationBlockSerializerResponse]]:
@@ -204,7 +187,7 @@ class InvestigationDetailsSerializer(InvestigationSerializer):
         serialized = serialize(
             blocks,
             user,
-            InvestigationBlockSerializer(accessible_project_ids=self.accessible_project_ids),
+            InvestigationBlockSerializer(),
         )
 
         by_investigation: MutableMapping[int, list[InvestigationBlockSerializerResponse]] = (

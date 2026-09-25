@@ -613,9 +613,9 @@ describe('ScmMessagingProviderRow', () => {
       await waitFor(() =>
         expect(screen.queryByText('channel-picker')).not.toBeInTheDocument()
       );
-      expect(
-        screen.getByRole('button', {name: /Choose destination/})
-      ).toBeInTheDocument();
+      // The picker unmounted the control that had focus, so the row hands it
+      // back rather than letting it fall to the body.
+      expect(screen.getByRole('button', {name: /Choose destination/})).toHaveFocus();
     });
 
     it('passes only eligible integrations to the picker when a provider has mixed installations', async () => {
@@ -756,9 +756,14 @@ describe('ScmMessagingProviderRow', () => {
       renderRow(connectedSlack, selectedSlackSetup);
 
       await userEvent.click(screen.getByRole('button', {name: /Remove/}));
+
+      expect(screen.getByText('Remove this destination?')).toBeInTheDocument();
+      expect(screen.getByRole('img', {name: 'Slack'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Cancel'})).toHaveFocus();
+
       await userEvent.click(screen.getByRole('button', {name: /Cancel/}));
 
-      expect(screen.getByRole('button', {name: /Edit/})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: /Edit/})).toHaveFocus();
       expect(screen.queryByText('You can reconnect at any time')).not.toBeInTheDocument();
     });
 

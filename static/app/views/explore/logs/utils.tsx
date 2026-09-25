@@ -61,7 +61,7 @@ import {
 } from 'sentry/views/explore/queryParams/visualize';
 import {generateTargetQuery} from 'sentry/views/explore/utils';
 import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 const {warn, fmt} = Sentry.logger;
 
 export function getLogSeverityLevel(

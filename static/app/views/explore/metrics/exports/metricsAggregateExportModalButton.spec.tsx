@@ -166,12 +166,18 @@ describe('MetricsAggregateExportModalButton', () => {
   it('disables the button when the table has no rows', () => {
     renderButton({rows: []});
 
-    expect(screen.getByRole('button', {name: 'Export'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Export'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
   });
 
   it('disables the button when the table errored', () => {
     renderButton({isError: true});
 
-    expect(screen.getByRole('button', {name: 'Export'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Export'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
   });
 });

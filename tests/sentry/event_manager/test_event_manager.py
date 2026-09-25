@@ -127,6 +127,31 @@ class EventManagerTestMixin:
         return event
 
 
+@django_db_all
+@pytest.mark.parametrize("promotion_fails", [False, True])
+def test_generic_event_promotes_pending_attachments(
+    default_project: Project, promotion_fails: bool
+) -> None:
+    manager = EventManager(make_event(type="generic"))
+    manager.normalize()
+
+    with mock.patch(
+        "sentry.event_manager.save_pending_attachments",
+        autospec=True,
+        side_effect=RuntimeError("Attachment storage unavailable") if promotion_fails else None,
+    ) as save:
+        event = manager.save(default_project.id)
+
+    assert event.get_event_type() == "generic"
+    assert nodestore.backend.get(Event.generate_node_id(default_project.id, event.event_id))
+    save.assert_called_once_with(
+        project=default_project,
+        event_id=event.event_id,
+        group_id=None,
+        source="save_generic_events",
+    )
+
+
 class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, PerformanceIssueTestCase):
     def test_ephemeral_interfaces_removed_on_save(self) -> None:
         manager = EventManager(make_event(platform="python"))
@@ -651,7 +676,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert group.is_resolved()
 
         resolved_at = before_now(minutes=4)
-        activity = Activity.objects.create(
+        Activity.objects.create(
             group=group,
             project=group.project,
             type=ActivityType.SET_RESOLVED.value,
@@ -660,7 +685,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
         GroupOpenPeriod.objects.get(group=group, date_ended__isnull=True).close_open_period(
             resolution_time=resolved_at,
-            resolution_activity=activity,
         )
 
         manager = EventManager(

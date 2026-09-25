@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ipaddress
 from collections.abc import Mapping
 from typing import Any, TypedDict
 
@@ -25,9 +26,9 @@ from sentry.apidocs.response_types import (
 )
 from sentry.ingest.inbound_filters import get_supported_condition_types
 from sentry.models.custominboundfilter import (
+    ConditionType,
     CustomInboundFilter,
-    CustomInboundFilterConditionType,
-    CustomInboundFilterDataType,
+    DataType,
 )
 from sentry.models.project import Project
 from sentry.tasks.relay import schedule_invalidate_project_config
@@ -37,9 +38,9 @@ MAX_FILTERS_PER_PROJECT = 50
 
 
 # Ingestion feature an organization needs before a filter can target a data type.
-_REQUIRED_FEATURE_BY_DATA_TYPE: Mapping[CustomInboundFilterDataType, str] = {
-    CustomInboundFilterDataType.LOG: "organizations:ourlogs-ingestion",
-    CustomInboundFilterDataType.METRIC: "organizations:tracemetrics-ingestion",
+_REQUIRED_FEATURE_BY_DATA_TYPE: Mapping[DataType, str] = {
+    DataType.LOG: "organizations:ourlogs-ingestion",
+    DataType.METRIC: "organizations:tracemetrics-ingestion",
 }
 
 
@@ -58,14 +59,22 @@ class CustomInboundFilterResponse(TypedDict):
     dateUpdated: str
 
 
+def _is_ip_address_or_range(value: str) -> bool:
+    try:
+        ipaddress.ip_network(value, strict=False)
+    except ValueError:
+        return False
+    return True
+
+
 class CustomInboundFilterConditionSerializer(serializers.Serializer[CustomInboundFilterCondition]):
     type = serializers.ChoiceField(
-        choices=[condition_type.value for condition_type in CustomInboundFilterConditionType],
+        choices=[condition_type.value for condition_type in ConditionType],
         help_text=(
-            "The field the condition matches against. Which types a filter accepts depends on "
-            "its `dataType`: `error` accepts `error_type`, `error_message` and `release`; "
-            "`log` accepts `log_message` and `release`; `metric` accepts `metric_name` and "
-            "`release`; `span` and `all` accept `release` only."
+            "The field the condition matches against. Every `dataType` accepts `release` and "
+            "`ip_address`. In addition, `error` accepts `error_type` and `error_message`, "
+            "`log` accepts `log_message`, and `metric` accepts `metric_name`. `span` and "
+            "`all` accept no other types."
         ),
     )
     value = serializers.ListField(
@@ -76,6 +85,17 @@ class CustomInboundFilterConditionSerializer(serializers.Serializer[CustomInboun
             "pattern matches, so multiple values act as OR."
         ),
     )
+
+    def validate(self, attrs: CustomInboundFilterCondition) -> CustomInboundFilterCondition:
+        # Relay drops an entry it cannot parse as an address or range, so a typo would
+        # silently disable part of the filter.
+        if attrs["type"] == ConditionType.IP_ADDRESS:
+            invalid = [value for value in attrs["value"] if not _is_ip_address_or_range(value)]
+            if invalid:
+                raise serializers.ValidationError(
+                    {"value": f"{', '.join(invalid)} is not an IP address or CIDR range."}
+                )
+        return attrs
 
 
 class CustomInboundFilterSerializer(serializers.ModelSerializer[CustomInboundFilter]):
@@ -94,7 +114,7 @@ class CustomInboundFilterSerializer(serializers.ModelSerializer[CustomInboundFil
     )
     dataType = serializers.ChoiceField(
         source="data_type",
-        choices=[data_type.value for data_type in CustomInboundFilterDataType],
+        choices=[data_type.value for data_type in DataType],
         help_text=(
             "The data the filter matches against. `all` is the catch-all: it filters every "
             "data type Sentry ingests, including ones added later, and accepts only the "
@@ -130,9 +150,7 @@ class CustomInboundFilterSerializer(serializers.ModelSerializer[CustomInboundFil
         organization = self.context["project"].organization
         request = self.context["request"]
 
-        required_feature = _REQUIRED_FEATURE_BY_DATA_TYPE.get(
-            CustomInboundFilterDataType(data_type)
-        )
+        required_feature = _REQUIRED_FEATURE_BY_DATA_TYPE.get(DataType(data_type))
         if required_feature and not features.has(
             required_feature, organization, actor=request.user
         ):
@@ -158,7 +176,7 @@ class CustomInboundFilterSerializer(serializers.ModelSerializer[CustomInboundFil
         if conditions is None:
             return attrs
 
-        data_type = CustomInboundFilterDataType(raw_data_type)
+        data_type = DataType(raw_data_type)
         supported = get_supported_condition_types(data_type)
         unsupported = sorted({condition["type"] for condition in conditions} - set(supported))
         if unsupported:
