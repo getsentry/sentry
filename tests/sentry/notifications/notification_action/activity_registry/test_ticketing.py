@@ -1,9 +1,12 @@
+from contextlib import AbstractContextManager
 from unittest import mock
 
 import pytest
 
 from sentry.integrations.github.integration import GitHubIntegration
 from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource, action_context_scope
+from sentry.issues.action_log.types import CreateExternalIssueAction
 from sentry.models.activity import Activity
 from sentry.models.grouplink import GroupLink
 from sentry.models.repository import Repository
@@ -11,6 +14,7 @@ from sentry.notifications.notification_action.activity_registry.ticketing import
     TicketingActivityHandler,
 )
 from sentry.notifications.notification_action.registry import activity_handler_registry
+from sentry.testutils.helpers.action_log import capture_action_log
 from sentry.types.activity import ActivityType
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.types import ActionInvocation
@@ -84,7 +88,9 @@ class TestTicketingActivityHandler(BaseWorkflowTest):
             workflow_id=self.workflow.id,
         )
 
-    def _mock_github_create_issue(self, number: int = 321) -> mock.MagicMock:
+    def _mock_github_create_issue(
+        self, number: int = 321
+    ) -> AbstractContextManager[mock.MagicMock | mock.AsyncMock]:
         """Mock only the HTTP-calling create_issue method on the real GitHubIntegration."""
         return mock.patch.object(
             GitHubIntegration,
@@ -98,10 +104,23 @@ class TestTicketingActivityHandler(BaseWorkflowTest):
         )
 
     def test_invoke_action_creates_ticket(self) -> None:
-        with self._mock_github_create_issue() as mock_create:
+        with (
+            self._mock_github_create_issue() as mock_create,
+            action_context_scope(ActionSource.SYSTEM),
+            capture_action_log() as action_log,
+        ):
             TicketingActivityHandler.invoke_action(
                 invocation=self._create_invocation(self.activity), activity=self.activity
             )
+
+        action_log.assert_logged(
+            CreateExternalIssueAction,
+            group_id=self.group.id,
+            source=ActionSource.SYSTEM,
+            actor=SYSTEM_ACTOR,
+            provider="github",
+            external_issue_key="getsentry/sentry#321",
+        )
 
         call_data = mock_create.call_args.args[0]
         assert call_data["title"] == f"[Code Changes] {self.group.title}"
