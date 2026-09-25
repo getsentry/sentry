@@ -181,10 +181,6 @@ export type Plan = {
       {
         plural: string;
         singular: string;
-        /**
-         * Set for billing platform line items whose quantities are money spent
-         * rather than a volume.
-         */
         unitType?: 'microCents';
       }
     >
