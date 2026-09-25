@@ -469,9 +469,10 @@ class OutboxBase(Model):
                     if connection.in_atomic_block:
                         raise
 
-                    # Token issuance has already committed. If the connection dies during
-                    # replication, retry the idempotent token update once in a new transaction
-                    # so we reacquire the shard lock and read the current token state.
+                    # The transaction containing the source operation and outbox creation
+                    # has already committed. If the db connection dies during the outbox
+                    # process(), retry the idempotent update once in a new transaction
+                    # so we reacquire the shard lock.
                     retry_on_disconnect = False
                     connection.close()
         except (DatabaseError, InterfaceError) as e:
