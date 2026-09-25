@@ -30,6 +30,10 @@ class WarmupEndpointTest(APITestCase):
             response = self.client.get(url)
             assert response.status_code == status.HTTP_200_OK
 
+        with self.options({"warmup.url_resolver.light.enabled": True}):
+            response = self.client.get(url)
+            assert response.status_code == status.HTTP_200_OK
+
         with self.options({"warmup.url_resolver.enabled": False}):
             response = self.client.get(url)
             assert response.status_code == status.HTTP_200_OK

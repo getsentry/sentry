@@ -4212,8 +4212,9 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
 register(
-    "warmup.enabled",
+    "warmup.url_resolver.light.enabled",
     type=Bool,
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,

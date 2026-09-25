@@ -42,6 +42,10 @@ def _iter_url_resolvers(resolver: URLResolver) -> Iterator[URLResolver]:
 
 
 def _warm_up_url_resolver(languages: list[str]) -> None:
+    if options.get("warmup.url_resolver.light.enabled"):
+        with translation.override(settings.LANGUAGE_CODE):
+            reverse("sentry-warmup")
+
     if not options.get("warmup.url_resolver.enabled"):
         return
 

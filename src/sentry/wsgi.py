@@ -32,13 +32,12 @@ environ = {
     "wsgi.url_scheme": "https",
 }
 
-if options.get("warmup.enabled"):
-    try:
-        host = urlsplit(options.get("system.url-prefix")).netloc
-    except Exception:
-        host = None
-    if host:
-        environ["HTTP_HOST"] = host
+try:
+    host = urlsplit(options.get("system.url-prefix")).netloc
+except Exception:
+    host = None
+if host:
+    environ["HTTP_HOST"] = host
 
 # Trigger a warmup of the application
 application(
