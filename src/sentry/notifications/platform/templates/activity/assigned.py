@@ -21,9 +21,11 @@ from sentry.types.activity import ActivityType
 
 
 def get_assignee_label(data: AssignedNotificationData) -> str:
-    if data.assignee_label == "themselves":
-        return data.activity_user_name or "themselves"
-    return data.assignee_label
+    return (
+        (data.activity_user_name or "a user")
+        if data.assignee_label == "themselves"
+        else data.assignee_label
+    )
 
 
 def get_assigned_subject(data: AssignedNotificationData) -> list[NotificationTextBlock]:

@@ -1,6 +1,7 @@
 from urllib.parse import urlencode
 
 from sentry.notifications.platform.target import GenericNotificationTarget
+from sentry.notifications.platform.templates.activity.assigned import get_assigned_subject
 from sentry.notifications.platform.templates.activity.base import (
     ACTIVITY_NOTIFICATION_REFERRER,
     ACTIVITY_TYPE_TO_SOURCE,
@@ -9,6 +10,7 @@ from sentry.notifications.platform.templates.activity.base import (
     EXAMPLE_PROJECT_URL,
     EXAMPLE_USER_SETTINGS_URL,
     ActivityNotificationData,
+    AssignedNotificationData,
     SetResolvedInReleaseNotificationData,
     build_activity_notification_data,
     build_footer,
@@ -313,12 +315,6 @@ class ActivitySetResolvedAlertBaseTest(TestCase):
 class ActivityAssignedAlertBaseTest(TestCase):
     def test_automated_assignment_subject(self) -> None:
         """Test that automated Sentry App assignments show 'auto-assigned' without proxy email"""
-        from sentry.notifications.platform.templates.activity.assigned import get_assigned_subject
-        from sentry.notifications.platform.templates.activity.base import (
-            AssignedNotificationData,
-            create_activity_notification_example,
-        )
-
         data_dict = create_activity_notification_example(
             ActivityType.ASSIGNED,
             activity_data={
