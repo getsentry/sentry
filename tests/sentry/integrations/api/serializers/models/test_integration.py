@@ -181,7 +181,70 @@ class IntegrationSerializerTest(TestCase):
             {"key": tier.key, "description": tier.description} for tier in reversed(TIERS)
         ]
 
-    def test_non_github_provider_has_no_missing_features(self) -> None:
+    def test_slack_missing_mentions_feature(self) -> None:
+        integration = self.create_provider_integration(
+            provider="slack",
+            external_id="T123",
+            name="Workspace",
+            metadata={"scopes": ["channels:history", "chat:write"]},
+        )
+
+        result = serialize(integration, self.user)
+
+        assert result["outOfDate"] is True
+        assert result["missingFeatures"] == [
+            {
+                "key": "seer_mentions",
+                "description": (
+                    "Mention @Sentry in Slack to ask any questions and investigate issues."
+                ),
+            }
+        ]
+
+    def test_slack_missing_features_when_scopes_are_absent(self) -> None:
+        integration = self.create_provider_integration(
+            provider="slack", external_id="T123", name="Workspace", metadata={}
+        )
+
+        result = serialize(integration, self.user)
+
+        assert result["outOfDate"] is True
+        assert [feature["key"] for feature in result["missingFeatures"]] == ["seer_mentions"]
+
+    def test_slack_missing_features_when_scopes_are_null(self) -> None:
+        integration = self.create_provider_integration(
+            provider="slack", external_id="T123", name="Workspace", metadata={"scopes": None}
+        )
+
+        result = serialize(integration, self.user)
+
+        assert result["outOfDate"] is True
+        assert [feature["key"] for feature in result["missingFeatures"]] == ["seer_mentions"]
+
+    def test_slack_missing_features_when_scopes_are_empty(self) -> None:
+        integration = self.create_provider_integration(
+            provider="slack", external_id="T123", name="Workspace", metadata={"scopes": []}
+        )
+
+        result = serialize(integration, self.user)
+
+        assert result["outOfDate"] is True
+        assert [feature["key"] for feature in result["missingFeatures"]] == ["seer_mentions"]
+
+    def test_slack_mentions_scope_satisfies_upgrade(self) -> None:
+        integration = self.create_provider_integration(
+            provider="slack",
+            external_id="T123",
+            name="Workspace",
+            metadata={"scopes": ["app_mentions:read"]},
+        )
+
+        result = serialize(integration, self.user)
+
+        assert result["outOfDate"] is False
+        assert result["missingFeatures"] == []
+
+    def test_provider_without_permissions_model_has_no_missing_features(self) -> None:
         integration = self.create_provider_integration(
             provider="opsgenie", external_id="opsgenie:2", name="Team B", metadata={}
         )
