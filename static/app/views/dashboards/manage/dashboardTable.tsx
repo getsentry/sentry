@@ -149,16 +149,6 @@ function DashboardRowActions({
                   onAction: openRename,
                 },
               ]),
-          ...(isPrebuiltDashboard
-            ? []
-            : [
-                {
-                  key: 'view-permissions',
-                  label: t('View Permissions'),
-                  leadingItems: <IconGroup />,
-                  onAction: openEditAccess,
-                },
-              ]),
           {
             key: 'duplicate',
             label: t('Duplicate'),
@@ -171,6 +161,16 @@ function DashboardRowActions({
                 onConfirm: () => onDuplicate(dashboard, 'table'),
               }),
           },
+          ...(isPrebuiltDashboard
+            ? []
+            : [
+                {
+                  key: 'view-permissions',
+                  label: t('View Permissions'),
+                  leadingItems: <IconGroup />,
+                  onAction: openEditAccess,
+                },
+              ]),
           ...(hasEditAccess && !isPrebuiltDashboard
             ? [
                 {

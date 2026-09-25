@@ -388,6 +388,32 @@ describe('DashboardBreadcrumbTitle revision history', () => {
   });
 });
 
+describe('DashboardBreadcrumbTitle menu order', () => {
+  afterEach(() => {
+    MockApiClient.clearMockResponses();
+  });
+
+  // Kept deliberately in step with the dashboards table, so the same dashboard
+  // offers its actions in the same order wherever it is acted on.
+  it('orders its actions the same way the dashboards table does', async () => {
+    renderTitle({organization: {features: ['dashboards-edit', 'dashboards-import']}});
+
+    await openActionsMenu();
+    await screen.findByRole('menuitemradio', {name: 'Rename'});
+
+    expect(
+      screen.getAllByRole('menuitemradio').map(item => item.textContent?.trim())
+    ).toEqual([
+      'Rename',
+      'Duplicate',
+      'View Permissions',
+      'Show version history',
+      'Export',
+      'Delete',
+    ]);
+  });
+});
+
 describe('DashboardBreadcrumbTitle duplicate', () => {
   afterEach(() => {
     MockApiClient.clearMockResponses();

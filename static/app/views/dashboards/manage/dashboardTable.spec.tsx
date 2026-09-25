@@ -312,6 +312,27 @@ describe('Dashboards - DashboardTable', () => {
     expect(screen.getByRole('checkbox', {name: 'Select All'})).toBeChecked();
   });
 
+  // Kept deliberately in step with the dashboard detail page, so the same
+  // dashboard offers its actions in the same order wherever it is acted on.
+  it('orders its actions the same way the detail page does', async () => {
+    render(
+      <DashboardTable
+        onDashboardsChange={jest.fn()}
+        organization={organization}
+        dashboards={dashboards}
+        location={location}
+        isOnlyPrebuilt={false}
+      />
+    );
+
+    await openRowActions(1);
+    await screen.findByRole('menuitemradio', {name: 'Rename'});
+
+    expect(
+      screen.getAllByRole('menuitemradio').map(item => item.textContent?.trim())
+    ).toEqual(['Rename', 'Duplicate', 'View Permissions', 'Delete']);
+  });
+
   it('offers neither rename nor delete on a prebuilt dashboard', async () => {
     render(
       <DashboardTable
