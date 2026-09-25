@@ -122,31 +122,37 @@ describe('Sentry Application Dashboard', () => {
       expect(webhookRequestMock).toHaveBeenCalledTimes(1);
     });
 
-    it('shows the request log for users with org integrations access', async () => {
-      renderDashboard(OrganizationFixture({access: ['org:read', 'org:integrations']}));
+    it.each(['org:write', 'org:admin'] as const)(
+      'shows the request log with %s access',
+      async scope => {
+        renderDashboard(OrganizationFixture({access: ['org:read', scope]}));
 
-      expect(await screen.findByTestId('request-item')).toBeInTheDocument();
-      expect(webhookRequestMock).toHaveBeenCalledTimes(1);
-    });
+        expect(await screen.findByTestId('request-item')).toBeInTheDocument();
+        expect(webhookRequestMock).toHaveBeenCalledTimes(1);
+      }
+    );
 
-    it('does not request or render the request log for users with only org read access', async () => {
-      renderDashboard(OrganizationFixture({access: ['org:read']}));
+    it.each(['org:read', 'org:integrations'] as const)(
+      'does not request or render the request log with %s access',
+      async scope => {
+        renderDashboard(OrganizationFixture({access: ['org:read', scope]}));
 
-      expect(await screen.findByTestId('installs')).toHaveTextContent('Total installs5');
-      expect(await screen.findByText('Integration Views')).toBeInTheDocument();
-      expect(await screen.findByText('Component Interactions')).toBeInTheDocument();
-      await waitFor(() => expect(screen.getAllByTestId('chart')).toHaveLength(3));
-      expect(statsMock).toHaveBeenCalledTimes(1);
-      expect(interactionMock).toHaveBeenCalledTimes(1);
-      expect(screen.getByRole('heading', {name: 'Request Log'})).toBeInTheDocument();
-      expect(
-        screen.getByText(
-          'Only organization admins and members with integration management access can view the request log.'
-        )
-      ).toBeInTheDocument();
-      expect(screen.queryByTestId('request-item')).not.toBeInTheDocument();
-      expect(webhookRequestMock).not.toHaveBeenCalled();
-    });
+        expect(await screen.findByTestId('installs')).toHaveTextContent(
+          'Total installs5'
+        );
+        expect(await screen.findByText('Integration Views')).toBeInTheDocument();
+        expect(await screen.findByText('Component Interactions')).toBeInTheDocument();
+        await waitFor(() => expect(screen.getAllByTestId('chart')).toHaveLength(3));
+        expect(statsMock).toHaveBeenCalledTimes(1);
+        expect(interactionMock).toHaveBeenCalledTimes(1);
+        expect(screen.getByRole('heading', {name: 'Request Log'})).toBeInTheDocument();
+        expect(
+          screen.getByText('You need organization write access to view the request log.')
+        ).toBeInTheDocument();
+        expect(screen.queryByTestId('request-item')).not.toBeInTheDocument();
+        expect(webhookRequestMock).not.toHaveBeenCalled();
+      }
+    );
 
     it('shows the request log for active superusers without org admin access', async () => {
       renderDashboard(OrganizationFixture({access: ['org:read', 'org:superuser']}));
@@ -247,26 +253,46 @@ describe('Sentry Application Dashboard', () => {
       });
     });
 
-    it('shows the request log for users with only org read access', async () => {
-      renderDashboard(OrganizationFixture({access: ['org:read']}));
-      // The mock response has 1 request
-      expect(await screen.findByTestId('request-item')).toBeInTheDocument();
-      const requestLog = within(screen.getByTestId('request-item'));
-      // Make sure that the summary info is displayed
-      expect(requestLog.getByText('400')).toBeInTheDocument();
-      expect(requestLog.getByText('issue.assigned')).toBeInTheDocument();
-      expect(webhookRequestMock).toHaveBeenCalledTimes(1);
-      expect(screen.queryByTestId('org-permission-alert')).not.toBeInTheDocument();
-      expect(requestLog.getByText('Issue')).toBeInTheDocument();
-      expect(requestLog.getByRole('link', {name: '42'})).toHaveAttribute(
-        'href',
-        '/organizations/org-slug/issues/42/'
-      );
-      expect(requestLog.getByText('150.00ms')).toBeInTheDocument();
+    it.each(['org:write', 'org:admin', 'org:superuser'] as const)(
+      'shows the request log with %s access',
+      async scope => {
+        renderDashboard(OrganizationFixture({access: ['org:read', scope]}));
+        // The mock response has 1 request
+        expect(await screen.findByTestId('request-item')).toBeInTheDocument();
+        const requestLog = within(screen.getByTestId('request-item'));
+        // Make sure that the summary info is displayed
+        expect(requestLog.getByText('400')).toBeInTheDocument();
+        expect(requestLog.getByText('issue.assigned')).toBeInTheDocument();
+        expect(webhookRequestMock).toHaveBeenCalledTimes(1);
+        expect(screen.queryByTestId('org-permission-alert')).not.toBeInTheDocument();
+        expect(requestLog.getByText('Issue')).toBeInTheDocument();
+        expect(requestLog.getByRole('link', {name: '42'})).toHaveAttribute(
+          'href',
+          '/organizations/org-slug/issues/42/'
+        );
+        expect(requestLog.getByText('150.00ms')).toBeInTheDocument();
 
-      // Does not show the integration views
-      expect(screen.queryByText('Integration Views')).not.toBeInTheDocument();
-    });
+        // Does not show the integration views
+        expect(screen.queryByText('Integration Views')).not.toBeInTheDocument();
+      }
+    );
+
+    it.each(['org:read', 'org:integrations'] as const)(
+      'does not request or render the request log with %s access',
+      async scope => {
+        renderDashboard(OrganizationFixture({access: ['org:read', scope]}));
+
+        expect(
+          await screen.findByText(
+            'You need organization write access to view the request log.'
+          )
+        ).toBeInTheDocument();
+        expect(await screen.findByTestId('chart')).toBeInTheDocument();
+        expect(interactionMock).toHaveBeenCalledTimes(1);
+        expect(screen.queryByTestId('request-item')).not.toBeInTheDocument();
+        expect(webhookRequestMock).not.toHaveBeenCalled();
+      }
+    );
 
     it('shows an empty message if there are no requests', async () => {
       MockApiClient.addMockResponse({
@@ -323,14 +349,36 @@ describe('Sentry Application Dashboard', () => {
       });
     });
 
-    it('shows the request log without fetching stats or interactions', async () => {
-      renderDashboard();
+    it.each(['org:write', 'org:admin', 'org:superuser'] as const)(
+      'shows the request log with %s access without fetching stats or interactions',
+      async scope => {
+        renderDashboard(OrganizationFixture({access: ['org:read', scope]}));
 
-      expect(await screen.findByTestId('request-item')).toBeInTheDocument();
-      expect(screen.queryByText('Integration Views')).not.toBeInTheDocument();
-      expect(screen.queryByText('Component Interactions')).not.toBeInTheDocument();
-      expect(statsMock).not.toHaveBeenCalled();
-      expect(interactionMock).not.toHaveBeenCalled();
-    });
+        expect(await screen.findByTestId('request-item')).toBeInTheDocument();
+        expect(screen.queryByText('Integration Views')).not.toBeInTheDocument();
+        expect(screen.queryByText('Component Interactions')).not.toBeInTheDocument();
+        expect(statsMock).not.toHaveBeenCalled();
+        expect(interactionMock).not.toHaveBeenCalled();
+      }
+    );
+
+    it.each(['org:read', 'org:integrations'] as const)(
+      'does not request or render the request log with %s access',
+      async scope => {
+        const requestMock = MockApiClient.addMockResponse({
+          url: `/sentry-apps/${sentryApp.slug}/webhook-requests/`,
+          body: [webhookRequest],
+        });
+        renderDashboard(OrganizationFixture({access: ['org:read', scope]}));
+
+        expect(
+          await screen.findByText(
+            'You need organization write access to view the request log.'
+          )
+        ).toBeInTheDocument();
+        expect(screen.queryByTestId('request-item')).not.toBeInTheDocument();
+        expect(requestMock).not.toHaveBeenCalled();
+      }
+    );
   });
 });
