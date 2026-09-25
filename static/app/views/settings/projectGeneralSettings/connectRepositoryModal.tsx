@@ -173,6 +173,7 @@ export function ConnectRepositoryModal({
             <LockedProjectField project={project} />
             <IconArrow direction="right" />
             <Select
+              aria-label={t('Repository')}
               options={groupedOptions}
               value={selectedOption?.value ?? null}
               onChange={option => setSelectedOption(option as RepoSelectOption | null)}
