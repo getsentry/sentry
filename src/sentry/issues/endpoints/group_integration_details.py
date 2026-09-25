@@ -71,9 +71,20 @@ from sentry.types.activity import ActivityType
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.utils.locking import UnableToAcquireLock
+from sentry.utils.locking.lock import Lock
 from sentry.utils.urls import urlsplit_best_effort
 
 MISSING_FEATURE_MESSAGE = "Your organization does not have access to this feature."
+
+
+def _get_external_issue_link_lock(
+    organization_id: int, integration_id: int, external_issue_key: str
+) -> Lock:
+    return locks.get(
+        f"external-issue-link:{organization_id}:{integration_id}:{external_issue_key}",
+        duration=300,
+        name="external_issue_link",
+    )
 
 
 class IntegrationIssueConfigResponse(IntegrationSerializerResponse, total=False):
@@ -502,10 +513,8 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
 
             external_issue_key = installation.make_external_key(data)
             try:
-                lock = locks.get(
-                    f"external-issue-link:{organization_id}:{integration.id}:{external_issue_key}",
-                    duration=300,
-                    name="external_issue_link",
+                lock = _get_external_issue_link_lock(
+                    organization_id, integration.id, external_issue_key
                 ).acquire()
             except UnableToAcquireLock as exc:
                 lifecycle.record_halt(exc)
@@ -663,10 +672,8 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             return Response(status=204)
 
         try:
-            lock = locks.get(
-                f"external-issue-link:{organization_id}:{integration.id}:{external_issue.key}",
-                duration=300,
-                name="external_issue_link",
+            lock = _get_external_issue_link_lock(
+                organization_id, integration.id, external_issue.key
             ).acquire()
         except UnableToAcquireLock:
             return Response({"detail": "This issue link is being updated. Try again."}, status=409)
