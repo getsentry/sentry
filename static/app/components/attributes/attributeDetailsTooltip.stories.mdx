@@ -1,0 +1,75 @@
+---
+title: Attribute details tooltip
+description: What an attribute is, shown on hovering its name in a table of attributes.
+category: patterns
+source: sentry/components/attributes/attributeDetailsTooltip
+---
+
+import {Stack} from '@sentry/scraps/layout';
+
+import {AttributeDetailsTooltip} from 'sentry/components/attributes/attributeDetailsTooltip';
+import {FieldValueType} from 'sentry/utils/fields';
+import * as Storybook from 'sentry/stories';
+
+A key/value table of attributes names each attribute by its key alone, which says
+nothing about what the attribute holds or where it came from. Hovering the key
+answers that: its value type, what it describes, whether a privacy rule redacted
+its value, and whether Sentry defines it rather than the instrumented app.
+
+The name renders through `InfoText`, so it carries the muted dotted underline that
+marks text as something to hover, and takes focus from the keyboard.
+
+## Anatomy
+
+`attributeKey` is looked up in the field definition registry named by
+`fieldDefinitionType`. An attribute found there is one Sentry defines, so its own
+description and a Sentry credit are shown. One that is not is a custom attribute,
+described as a tag and credited to nobody.
+
+<Storybook.Demo>
+  <Stack gap="xl" align="start">
+    <AttributeDetailsTooltip attributeKey="logger.name" fieldDefinitionType="log" />
+    <AttributeDetailsTooltip
+      attributeKey="checkout.cart_size"
+      defaultValueType={FieldValueType.INTEGER}
+      fieldDefinitionType="log"
+    />
+    <AttributeDetailsTooltip
+      attributeKey="user.email"
+      fieldDefinitionType="log"
+      isScrubbed
+    />
+  </Stack>
+</Storybook.Demo>
+
+```jsx
+<AttributeDetailsTooltip attributeKey="logger.name" fieldDefinitionType="log" />
+```
+
+## Props
+
+- `defaultValueType` is the type shown when the registry has no definition to take
+  one from, e.g. the type a custom attribute was stored with. It never overrides a
+  definition, which types an attribute more precisely than its storage does — a
+  byte count as a size rather than an integer.
+- `name` renames the attribute, for when the canonical key reads worse than the
+  name the table shows — `code.line.number` over the
+  `tags[code.line.number,number]` it is stored under.
+- `children` narrows what renders inline while the tooltip keeps the whole name,
+  which is how a tree renders one segment of a dotted key per row.
+
+<Storybook.Demo>
+  <AttributeDetailsTooltip
+    attributeKey="tags[code.line.number,number]"
+    fieldDefinitionType="log"
+    name="code.line.number"
+  >
+    number
+  </AttributeDetailsTooltip>
+</Storybook.Demo>
+
+## Integration
+
+`AttributesTree` opts in per product through `config.attributeDetailsType`, which is
+the registry its attributes belong to. Logs pass `"log"`. Without it, keys render as
+plain text with the browser tooltip naming them in full.

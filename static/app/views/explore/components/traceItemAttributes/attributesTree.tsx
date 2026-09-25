@@ -7,17 +7,20 @@ import {RevealOnHover} from '@sentry/scraps/revealOnHover';
 import {Text} from '@sentry/scraps/text';
 
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
+import {AttributeDetailsTooltip} from 'sentry/components/attributes/attributeDetailsTooltip';
 import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
 import {IconEllipsis, IconPin} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {type RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
+import type {GetFieldDefinitionType} from 'sentry/utils/fields';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {isValidUrl} from 'sentry/utils/string/isValidUrl';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import {ATTRIBUTE_VALUE_TYPES, hasScrubbedValue} from 'sentry/views/explore/utils';
 
 import {AttributesTreeValue} from './attributesTreeValue';
 
@@ -93,6 +96,12 @@ interface AttributesTreeColumnsProps<
 }
 
 export interface AttributesTreeRowConfig {
+  /**
+   * When provided, hovering an attribute key describes the attribute, reading
+   * its description from this registry. Otherwise keys show their full name in
+   * a plain browser tooltip.
+   */
+  attributeDetailsType?: GetFieldDefinitionType;
   // Omits the dropdown of actions applicable to this attribute
   disableActions?: boolean;
   // Omit error styling from being displayed, even if context is invalid
@@ -369,6 +378,8 @@ function AttributesTreeRow<RendererExtra extends RenderFunctionBaggage>({
     <AttributesTreeRowDropdown content={content} getCustomActions={getCustomActions} />
   );
 
+  const attributeDetailsType = config?.attributeDetailsType;
+
   return (
     <RevealOnHover>
       {revealOnHoverProps => (
@@ -383,11 +394,26 @@ function AttributesTreeRow<RendererExtra extends RenderFunctionBaggage>({
             <TreeSearchKey aria-hidden>{originalAttribute.attribute_key}</TreeSearchKey>
             <TreeKey
               hasErrors={hasErrors}
-              title={originalAttribute.attribute_key}
+              title={attributeDetailsType ? undefined : originalAttribute.attribute_key}
               data-test-id={`tree-key-${content.originalAttribute?.original_attribute_key}`}
             >
               <Flex align="center" gap="xs">
-                <Text>{attributeKey}</Text>
+                {attributeDetailsType ? (
+                  <AttributeDetailsTooltip
+                    attributeKey={originalAttribute.original_attribute_key}
+                    name={originalAttribute.attribute_key}
+                    fieldDefinitionType={attributeDetailsType}
+                    defaultValueType={ATTRIBUTE_VALUE_TYPES[originalAttribute.type]}
+                    isScrubbed={hasScrubbedValue(
+                      props.rendererExtra.traceItemMeta,
+                      originalAttribute.original_attribute_key
+                    )}
+                  >
+                    {attributeKey}
+                  </AttributeDetailsTooltip>
+                ) : (
+                  <Text>{attributeKey}</Text>
+                )}
                 {pinnedAttribute === originalAttribute.original_attribute_key && (
                   <IconPin size="xs" isSolid aria-label={t('Pinned attribute')} />
                 )}
