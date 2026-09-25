@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import pytest
 
 from sentry.dynamic_sampling.rules.utils import apply_dynamic_factor
@@ -38,12 +40,22 @@ class HasDynamicSamplingTestCase(TestCase):
 
     def test_positive(self) -> None:
         org1 = self.create_organization("test-org")
-        with self.feature("organizations:dynamic-sampling"):
+        with patch("sentry.quotas.backend.get_blended_sample_rate", return_value=0.5):
+            assert has_dynamic_sampling(org1)
+
+    def test_zero_rate_is_enabled(self) -> None:
+        org1 = self.create_organization("test-org")
+        with patch("sentry.quotas.backend.get_blended_sample_rate", return_value=0.0):
+            assert has_dynamic_sampling(org1)
+
+    def test_full_rate_is_enabled(self) -> None:
+        org1 = self.create_organization("test-org")
+        with patch("sentry.quotas.backend.get_blended_sample_rate", return_value=1.0):
             assert has_dynamic_sampling(org1)
 
     def test_negative(self) -> None:
         org1 = self.create_organization("test-org")
-        with self.feature({"organizations:dynamic-sampling": False}):
+        with patch("sentry.quotas.backend.get_blended_sample_rate", return_value=None):
             assert not has_dynamic_sampling(org1)
 
 
@@ -85,7 +97,7 @@ class IsProjectModeSamplingTestCase(TestCase):
 
 
 class GetOrgSampleRateTest(TestCase):
-    @with_feature(["organizations:dynamic-sampling", "organizations:dynamic-sampling-custom"])
+    @with_feature("organizations:dynamic-sampling-custom")
     def test_get_org_sample_rate_from_target_sample_rate(self) -> None:
         org1 = self.create_organization("test-org")
 
@@ -97,7 +109,7 @@ class GetOrgSampleRateTest(TestCase):
         assert success
         assert sample_rate == 0.5
 
-    @with_feature(["organizations:dynamic-sampling", "organizations:dynamic-sampling-custom"])
+    @with_feature("organizations:dynamic-sampling-custom")
     def test_get_org_sample_rate_from_target_sample_rate_missing(self) -> None:
         org1 = self.create_organization("test-org")
 
@@ -105,7 +117,7 @@ class GetOrgSampleRateTest(TestCase):
         assert not success
         assert sample_rate == 1.0
 
-    @with_feature(["organizations:dynamic-sampling", "organizations:dynamic-sampling-custom"])
+    @with_feature("organizations:dynamic-sampling-custom")
     def test_get_org_sample_rate_from_target_sample_rate_missing_default(self) -> None:
         org1 = self.create_organization("test-org")
 
@@ -113,7 +125,6 @@ class GetOrgSampleRateTest(TestCase):
         assert not success
         assert sample_rate == 0.7
 
-    @with_feature("organizations:dynamic-sampling")
     def test_get_org_sample_rate_without_custom_dynamic_sampling_returns_default(self) -> None:
         org1 = self.create_organization("test-org")
         OrganizationOption.objects.create(

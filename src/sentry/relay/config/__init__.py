@@ -15,6 +15,7 @@ from sentry.constants import (
     ObjectStatus,
 )
 from sentry.dynamic_sampling import generate_rules
+from sentry.dynamic_sampling.utils import has_dynamic_sampling
 from sentry.grouping.api import get_grouping_config_dict_for_project
 from sentry.ingest.inbound_filters import (
     FilterStatKeys,
@@ -219,7 +220,7 @@ def get_dynamic_sampling_config(timeout: TimeChecker, project: Project) -> Mappi
         # This killswitch will cause extra load, and should only be used for AM1->AM2 migration.
         return None
 
-    if features.has("organizations:dynamic-sampling", project.organization):
+    if has_dynamic_sampling(project.organization):
         return {"version": 2, "rules": generate_rules(project)}
 
     return None

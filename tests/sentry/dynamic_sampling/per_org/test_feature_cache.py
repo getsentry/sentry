@@ -14,8 +14,6 @@ from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 from sentry.models.organization import OrganizationStatus
 from sentry.testutils.cases import TestCase
 
-FEATURE = "organizations:dynamic-sampling"
-
 
 class FeatureCacheTest(TestCase):
     def setUp(self) -> None:
@@ -47,20 +45,23 @@ class FeatureCacheTest(TestCase):
         assert inactive_org.id not in org_ids
         assert with_inactive_project.id not in org_ids
 
-    def test_refresh_caches_only_orgs_with_the_feature(self) -> None:
-        with_feature = self._org_with_project()
-        without_feature = self._org_with_project()
+    def test_refresh_caches_only_orgs_with_a_quota_rate(self) -> None:
+        with_rate = self._org_with_project()
+        without_rate = self._org_with_project()
 
-        with self.feature({FEATURE: [with_feature.slug]}):
+        with patch(
+            "sentry.quotas.backend.get_blended_sample_rate",
+            side_effect=lambda organization_id: 0.5 if organization_id == with_rate.id else None,
+        ):
             assert cache_dynamic_sampling_feature_flags() == 1
 
-        assert get_orgs_with_dynamic_sampling() == [with_feature.id]
-        assert without_feature.id not in (get_orgs_with_dynamic_sampling() or [])
+        assert get_orgs_with_dynamic_sampling() == [with_rate.id]
+        assert without_rate.id not in (get_orgs_with_dynamic_sampling() or [])
 
     def test_refresh_sets_the_ttl(self) -> None:
-        org = self._org_with_project()
+        self._org_with_project()
 
-        with self.feature({FEATURE: [org.slug]}):
+        with patch("sentry.quotas.backend.get_blended_sample_rate", return_value=0.5):
             cache_dynamic_sampling_feature_flags()
 
         ttl = get_redis_client_for_ds().ttl(ORGS_WITH_DYNAMIC_SAMPLING_CACHE_KEY)
@@ -68,19 +69,19 @@ class FeatureCacheTest(TestCase):
 
     def test_an_empty_refresh_keeps_the_previous_entry(self) -> None:
         org = self._org_with_project()
-        with self.feature({FEATURE: [org.slug]}):
+        with patch("sentry.quotas.backend.get_blended_sample_rate", return_value=0.5):
             cache_dynamic_sampling_feature_flags()
 
-        with self.feature({FEATURE: []}):
+        with patch("sentry.quotas.backend.get_blended_sample_rate", return_value=None):
             assert cache_dynamic_sampling_feature_flags() == 0
 
         assert get_orgs_with_dynamic_sampling() == [org.id]
 
-    def test_refresh_raises_when_the_feature_cannot_be_evaluated(self) -> None:
+    def test_refresh_raises_when_the_quota_service_fails(self) -> None:
         self._org_with_project()
 
         with (
-            patch("sentry.features.batch_has_for_organizations", return_value=None),
+            patch("sentry.quotas.backend.get_blended_sample_rate", side_effect=RuntimeError),
             pytest.raises(RuntimeError),
         ):
             cache_dynamic_sampling_feature_flags()

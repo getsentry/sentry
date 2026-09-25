@@ -4,9 +4,9 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
-from sentry import features
 from sentry.dynamic_sampling.rules.helpers.time_to_adoptions import Platform
 from sentry.dynamic_sampling.rules.utils import BOOSTED_RELEASES_LIMIT, get_redis_client_for_ds
+from sentry.dynamic_sampling.utils import has_dynamic_sampling
 from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.tasks.relay import schedule_invalidate_project_config
@@ -377,7 +377,7 @@ def record_latest_release(project: Project, release: Release, environment: str |
     Dynamic Sampling - Boosting latest release functionality
     """
 
-    if not features.has("organizations:dynamic-sampling", project.organization):
+    if not has_dynamic_sampling(project.organization):
         return
 
     def on_release_boosted() -> None:

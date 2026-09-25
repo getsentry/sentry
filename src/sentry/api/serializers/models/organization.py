@@ -460,6 +460,7 @@ class OrganizationSummarySerializer(Serializer[OrganizationSummarySerializerResp
                 feature_type=features.OrganizationFeature, api_expose_only=True
             ).keys()
             if feature.startswith(_ORGANIZATION_SCOPE_PREFIX)
+            and feature != "organizations:dynamic-sampling"
         ]
         feature_set = set()
 
@@ -513,6 +514,9 @@ class OrganizationSummarySerializer(Serializer[OrganizationSummarySerializerResp
             feature_set.add("open-membership")
         if not getattr(obj.flags, "disable_shared_issues"):
             feature_set.add("shared-issues")
+
+        if has_dynamic_sampling(obj):
+            feature_set.add("dynamic-sampling")
 
         return sorted(feature_set)
 

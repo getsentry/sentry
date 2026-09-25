@@ -1,22 +1,22 @@
 from django.contrib.auth.models import AnonymousUser
+from django.core.exceptions import ObjectDoesNotExist
 
-from sentry import features
+from sentry import features, quotas
 from sentry.constants import SAMPLING_MODE_DEFAULT, TARGET_SAMPLE_RATE_DEFAULT
 from sentry.dynamic_sampling.types import DynamicSamplingMode
 from sentry.models.organization import Organization
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 
-DYNAMIC_SAMPLING_FEATURE = "organizations:dynamic-sampling"
 
-
-def has_dynamic_sampling(
-    organization: Organization | None, actor: User | RpcUser | AnonymousUser | None = None
-) -> bool:
+def has_dynamic_sampling(organization: Organization | None) -> bool:
     # If an organization can't be fetched, we will assume it has no dynamic sampling.
-    return organization is not None and features.has(
-        DYNAMIC_SAMPLING_FEATURE, organization, actor=actor
-    )
+    if organization is None:
+        return False
+    try:
+        return quotas.backend.get_blended_sample_rate(organization_id=organization.id) is not None
+    except ObjectDoesNotExist:
+        return False
 
 
 def has_custom_dynamic_sampling(

@@ -139,7 +139,7 @@ SOME_EXCEPTION = RuntimeError("foo")
 @mock.patch("sentry.relay.config.experimental.logger")
 def test_get_experimental_config_dyn_sampling(mock_logger, _, default_project) -> None:
     keys = ProjectKey.objects.filter(project=default_project)
-    with Feature({"organizations:dynamic-sampling": True}):
+    with mock.patch("sentry.quotas.backend.get_blended_sample_rate", return_value=0.5):
         # Does not raise:
         cfg = get_project_config(default_project, project_keys=keys)
     # Check that the "sampling" key is missing from config. It used to be called
