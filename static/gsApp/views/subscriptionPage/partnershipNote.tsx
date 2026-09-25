@@ -28,7 +28,7 @@ export function PartnershipNote({subscription}: Props) {
                 subscription.partner?.partnership.supportNote || '',
                 // The note links out to the partner's support site; `target` is
                 // not in DOMPurify's default allowlist.
-                {ADD_ATTR: ['target']}
+                {ADD_ATTR: ['target'], RETURN_TRUSTED_TYPE: true}
               ),
             }}
           />
