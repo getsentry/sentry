@@ -803,8 +803,13 @@ class GitlabWebhookEndpoint(Endpoint):
                         interaction_type=event_handler.event_type,
                         domain=IntegrationDomain.SOURCE_CODE_MANAGEMENT,
                         provider_key=event_handler.provider,
-                    ).capture(),
+                    ).capture() as lifecycle,
                 ):
-                    event_handler(event, integration=integration, organization=organization)
+                    try:
+                        event_handler(event, integration=integration, organization=organization)
+                    except Http404 as e:
+                        # Expected when payload fields are missing; record as halt, not error.
+                        lifecycle.record_halt(e)
+                        raise
 
         return HttpResponse(status=204)

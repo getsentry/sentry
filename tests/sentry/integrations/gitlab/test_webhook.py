@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch
 
 import orjson
+from django.http import Http404
 
 from fixtures.gitlab import (
     EXTERNAL_ID,
@@ -27,7 +28,11 @@ from sentry.models.grouplink import GroupLink
 from sentry.models.pullrequest import PullRequest, PullRequestLifecycleState
 from sentry.seer.code_review.webhooks.merge_request import handle_merge_request_event
 from sentry.silo.base import SiloMode
-from sentry.testutils.asserts import assert_failure_metric, assert_success_metric
+from sentry.testutils.asserts import (
+    assert_failure_metric,
+    assert_halt_metric,
+    assert_success_metric,
+)
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of
 from sentry.types.activity import ActivityType
 
@@ -235,6 +240,26 @@ class WebhookTest(GitLabTestCase):
         assert response.status_code == 500
 
         assert_failure_metric(mock_record, error)
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_push_event_missing_project_id_is_recorded_as_halt(
+        self, mock_record: MagicMock
+    ) -> None:
+        # Build a push payload that has no project.id field so get_repo raises Http404.
+        payload = orjson.loads(PUSH_EVENT)
+        del payload["project"]["id"]
+
+        response = self.client.post(
+            self.url,
+            data=orjson.dumps(payload),
+            content_type="application/json",
+            HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
+            HTTP_X_GITLAB_EVENT="Push Hook",
+        )
+        # Http404 propagates and Django returns a 404 response.
+        assert response.status_code == 404
+
+        assert_halt_metric(mock_record, Http404())
 
     def test_push_event_multiple_organizations_one_missing_repo(self) -> None:
         # Create a repo on the primary organization
