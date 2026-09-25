@@ -113,7 +113,7 @@ const rowStateStyles = ({theme, hasErrors, isSuspectFlag}: RowState & {theme: Th
   const [content, tint] = hasErrors
     ? [theme.colors.red500, theme.colors.red100]
     : isSuspectFlag
-      ? [theme.colors.yellow500, theme.colors.yellow100]
+      ? [theme.tokens.content.warning, theme.tokens.background.transparent.warning.muted]
       : [theme.tokens.content.secondary, null];
 
   return css`
@@ -146,14 +146,14 @@ const RowWrapper = styled('div')<RowState & {expandLeft?: boolean}>`
   }
 `;
 
-export const KeyValueTableSubject = styled('div')`
+const KeyValueTableSubject = styled('div')`
   grid-column: span 1;
   font-family: ${p => p.theme.font.family.mono};
   word-break: break-word;
   min-width: 100px;
 `;
 
-export const KeyValueTableValueSection = styled('div')<{
+const KeyValueTableValueSection = styled('div')<{
   hasEmptySubject: boolean;
   hasErrors: boolean;
 }>`

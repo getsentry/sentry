@@ -78,6 +78,18 @@ describe('KeyValueTable', () => {
   );
 
   it.snapshot(
+    'card-children',
+    () => (
+      <div style={{padding: 8, width: 500}}>
+        <KeyValueTableCard title="Body" contentItems={contentItems.slice(0, 2)}>
+          <pre>{'{\n  "primary": "alpha"\n}'}</pre>
+        </KeyValueTableCard>
+      </div>
+    ),
+    {tags: {area: 'core', variant: 'card'}}
+  );
+
+  it.snapshot(
     'card-row-states',
     () => (
       <div style={{padding: 8, width: 500}}>
@@ -119,7 +131,7 @@ describe('KeyValueTable', () => {
     'card-expand-left',
     () => (
       <div style={{padding: 8, width: 500}}>
-        <KeyValueTableCard contentItems={contentItems} expandLeft />
+        <KeyValueTableCard contentItems={contentItems} itemProps={{expandLeft: true}} />
       </div>
     ),
     {tags: {area: 'core', variant: 'card'}}
