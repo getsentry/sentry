@@ -39,6 +39,8 @@ class SetResolvedByAgeActivityTemplate(NotificationTemplate[ActivityNotification
 
         return NotificationRenderedTemplate(
             subject=get_status_change_subject(data),
+            email_headers=data.email_headers,
+            email_subject_prefix=data.email_subject_prefix,
             body=[
                 ParagraphSection(
                     blocks=[
