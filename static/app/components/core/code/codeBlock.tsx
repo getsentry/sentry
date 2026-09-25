@@ -1,6 +1,7 @@
 import {Fragment, useEffect, useRef, useState} from 'react';
 import {css, ThemeProvider, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import dompurify from 'dompurify';
 import Prism from 'prismjs';
 
 import {Button} from '@sentry/scraps/button';
@@ -11,6 +12,31 @@ import {IconCopy} from 'sentry/icons';
 import {darkTheme} from 'sentry/utils/theme/theme';
 
 import {getPrismLanguage, loadPrismLanguage} from './prism';
+
+/**
+ * Highlight `code` into `element` without letting Prism assign a raw string to
+ * innerHTML (which Trusted Types blocks). Prism escapes the code as it builds
+ * its token spans, so its output is safe HTML; DOMPurify re-mints it as
+ * TrustedHTML through the already-allowlisted `dompurify` policy, and the
+ * innerHTML write then satisfies Trusted Types. Prism's completion hooks (e.g.
+ * the line-highlight plugin) are fired manually, as highlightElement would.
+ */
+function highlightElementSafely(
+  element: HTMLElement,
+  code: string,
+  language: string,
+  onAfterHighlight?: (el: HTMLElement) => void
+) {
+  const grammar = Prism.languages[language];
+  if (!grammar) {
+    return;
+  }
+  element.innerHTML = dompurify.sanitize(Prism.highlight(code, grammar, language), {
+    RETURN_TRUSTED_TYPE: true,
+  }) as unknown as string;
+  Prism.hooks?.run('complete', {element});
+  onAfterHighlight?.(element);
+}
 
 interface CodeBlockProps {
   children: string;
@@ -126,18 +152,23 @@ export function CodeBlock({
     }
 
     // Skip if no language or if language is not a valid Prism language (e.g. "text")
-    if (!language || !getPrismLanguage(language)) {
+    if (!language) {
       return;
     }
 
-    if (language in Prism.languages) {
-      Prism.highlightElement(element, false, () => onAfterHighlight?.(element));
+    const fullLanguage = getPrismLanguage(language);
+    if (!fullLanguage) {
+      return;
+    }
+
+    if (fullLanguage in Prism.languages) {
+      highlightElementSafely(element, children, fullLanguage, onAfterHighlight);
       return;
     }
 
     loadPrismLanguage(language, {
       onLoad: () =>
-        Prism.highlightElement(element, false, () => onAfterHighlight?.(element)),
+        highlightElementSafely(element, children, fullLanguage, onAfterHighlight),
     });
     // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [children, language, onAfterHighlight, lineHighlightLoaded]);
