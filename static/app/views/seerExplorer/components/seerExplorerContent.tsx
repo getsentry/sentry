@@ -57,6 +57,7 @@ import {usePRWidgetData} from 'sentry/views/seerExplorer/components/prWidget';
 import {ReauthMonitoringProviderBlock} from 'sentry/views/seerExplorer/components/reauthMonitoringProviderBlock';
 import {SeerExplorerHeader} from 'sentry/views/seerExplorer/components/seerExplorerHeader';
 import {UpdateSlackAlert} from 'sentry/views/seerExplorer/components/updateSlackAlert';
+import {useInputHistory} from 'sentry/views/seerExplorer/hooks/useInputHistory';
 import {usePendingUserInput} from 'sentry/views/seerExplorer/hooks/usePendingUserInput';
 import {useSeerExplorer} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
 import type {
@@ -242,6 +243,14 @@ export function SeerExplorerContent({
     runId === null ? null : `${INPUT_STORAGE_KEY_PREFIX}:${runId}`,
     ''
   );
+
+  // Up/Down recall of recent messages, shared across every conversation.
+  const {addToHistory, handleHistoryKeyDown} = useInputHistory({
+    userId: user.id,
+    value: inputValue,
+    setValue: setInputValue,
+    textAreaRef: textareaRef,
+  });
 
   const readOnly =
     sessionData?.owner_user_id !== undefined &&
@@ -492,12 +501,16 @@ export function SeerExplorerContent({
       return;
     }
     sendMessage(inputValue.trim(), blocks.length);
+    addToHistory(inputValue);
     clearInput();
     userScrolledUpRef.current = false;
-  }, [canSendMessage, inputValue, sendMessage, blocks.length, clearInput]);
+  }, [canSendMessage, inputValue, sendMessage, blocks.length, addToHistory, clearInput]);
 
   const handleInputKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.nativeEvent.isComposing) {
+      return;
+    }
+    if (handleHistoryKeyDown(e)) {
       return;
     }
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -613,7 +626,10 @@ export function SeerExplorerContent({
   const prevIsTimedOutRef = useRef(false);
   useEffect(() => {
     if (isTimedOut && !prevIsTimedOutRef.current) {
-      trackAnalytics('seer.explorer.timed_out', {organization, run_id: runId});
+      trackAnalytics('seer.explorer.timed_out', {
+        organization,
+        run_id: runId,
+      });
     }
     prevIsTimedOutRef.current = isTimedOut;
   }, [isTimedOut, organization, runId]);
@@ -665,7 +681,11 @@ export function SeerExplorerContent({
         containerType="inline-size"
       >
         {renderHeader ? (
-          renderHeader({children: headerContent, isPoppedOut, onClose: handleClose})
+          renderHeader({
+            children: headerContent,
+            isPoppedOut,
+            onClose: handleClose,
+          })
         ) : (
           <SidebarHeaderShell onClose={handleClose}>{headerContent}</SidebarHeaderShell>
         )}

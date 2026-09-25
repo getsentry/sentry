@@ -155,7 +155,9 @@ describe('SeerExplorerContent', () => {
       );
 
       await userEvent.click(
-        await screen.findByRole('button', {name: /See thinking and tool calls/})
+        await screen.findByRole('button', {
+          name: /See thinking and tool calls/,
+        })
       );
 
       expect(screen.getByText('Let me search for issues...')).toBeVisible();
@@ -784,6 +786,118 @@ describe('SeerExplorerContent', () => {
       await userEvent.keyboard('{Enter}');
 
       expect(sendMessage).toHaveBeenCalledWith('New message', 3);
+    });
+  });
+
+  describe('Input History', () => {
+    function renderContent() {
+      return render(
+        <PictureInPictureProvider>
+          <SeerExplorerSessionsProvider>
+            <SeerExplorerContent
+              getPageReferrer={mockGetPageReferrer}
+              onClose={() => {}}
+            />
+          </SeerExplorerSessionsProvider>
+        </PictureInPictureProvider>,
+        {organization}
+      );
+    }
+
+    beforeEach(() => {
+      localStorage.clear();
+    });
+
+    it('recalls sent messages with ArrowUp and ArrowDown from an empty input', async () => {
+      renderContent();
+
+      const textarea = await screen.findByTestId('seer-explorer-input');
+      await userEvent.type(textarea, 'first{Enter}');
+      await userEvent.type(textarea, 'second{Enter}');
+
+      await userEvent.keyboard('{ArrowUp}');
+      expect(textarea).toHaveValue('second');
+      await userEvent.keyboard('{ArrowUp}');
+      expect(textarea).toHaveValue('first');
+      // Stays on the oldest entry.
+      await userEvent.keyboard('{ArrowUp}');
+      expect(textarea).toHaveValue('first');
+
+      await userEvent.keyboard('{ArrowDown}');
+      expect(textarea).toHaveValue('second');
+      await userEvent.keyboard('{ArrowDown}');
+      expect(textarea).toHaveValue('');
+    });
+
+    it('shares history across conversations', async () => {
+      const {unmount} = renderContent();
+      await userEvent.type(
+        await screen.findByTestId('seer-explorer-input'),
+        'other run{Enter}'
+      );
+      unmount();
+
+      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
+        ...defaultHookReturn,
+        runId: 456,
+      });
+      renderContent();
+
+      const textarea = await screen.findByTestId('seer-explorer-input');
+      await userEvent.click(textarea);
+      await userEvent.keyboard('{ArrowUp}');
+      expect(textarea).toHaveValue('other run');
+    });
+
+    it('keeps only the last 25 messages', async () => {
+      localStorage.setItem(
+        `seer-explorer-input-history:${UserFixture().id}`,
+        JSON.stringify(Array.from({length: 25}, (_, i) => `message ${i}`))
+      );
+      renderContent();
+
+      const textarea = await screen.findByTestId('seer-explorer-input');
+      await userEvent.type(textarea, 'newest{Enter}');
+
+      const history = JSON.parse(
+        localStorage.getItem(`seer-explorer-input-history:${UserFixture().id}`)!
+      );
+      expect(history).toHaveLength(25);
+      expect(history[0]).toBe('message 1');
+      expect(history[24]).toBe('newest');
+    });
+
+    it('ignores ArrowUp and ArrowDown when the input has text', async () => {
+      localStorage.setItem(
+        `seer-explorer-input-history:${UserFixture().id}`,
+        JSON.stringify(['sent'])
+      );
+      renderContent();
+
+      const textarea = await screen.findByTestId('seer-explorer-input');
+      await userEvent.type(textarea, 'draft');
+
+      await userEvent.keyboard('{ArrowUp}');
+      expect(textarea).toHaveValue('draft');
+      await userEvent.keyboard('{ArrowDown}');
+      expect(textarea).toHaveValue('draft');
+    });
+
+    it('stops browsing once a recalled message is edited', async () => {
+      localStorage.setItem(
+        `seer-explorer-input-history:${UserFixture().id}`,
+        JSON.stringify(['older', 'newer'])
+      );
+      renderContent();
+
+      const textarea = await screen.findByTestId('seer-explorer-input');
+      await userEvent.click(textarea);
+      await userEvent.keyboard('{ArrowUp}');
+      expect(textarea).toHaveValue('newer');
+
+      await userEvent.type(textarea, '!');
+      await userEvent.keyboard('{ArrowUp}');
+      expect(textarea).toHaveValue('newer!');
     });
   });
 
