@@ -133,6 +133,7 @@ def test_move_to_process_event_inline_save_event_still_submits_process_event(
         data_has_changed=False,
         from_symbolicate=False,
         has_attachments=False,
+        unprocessed_key=None,
     )
     assert mock_save_event.call_count == 0
     assert mock_save_event.delay.call_count == 0
@@ -179,6 +180,7 @@ def test_move_to_save_event_inline(
         start_time=None,
         event_id=EVENT_ID,
         project_id=default_project.id,
+        unprocessed_key=None,
     )
     assert mock_save_event.delay.call_count == 0
 
@@ -208,7 +210,12 @@ def test_process_event_mutate_and_save(
     assert "extra" not in event
 
     mock_save_event.delay.assert_called_once_with(
-        cache_key="e:1", data=None, start_time=1, event_id=EVENT_ID, project_id=default_project.id
+        cache_key="e:1",
+        data=None,
+        start_time=1,
+        event_id=EVENT_ID,
+        project_id=default_project.id,
+        unprocessed_key=None,
     )
 
 
@@ -234,7 +241,12 @@ def test_process_event_no_mutate_and_save(
     assert mock_event_processing_store.store.call_count == 0
 
     mock_save_event.delay.assert_called_once_with(
-        cache_key="e:1", data=None, start_time=1, event_id=EVENT_ID, project_id=default_project.id
+        cache_key="e:1",
+        data=None,
+        start_time=1,
+        event_id=EVENT_ID,
+        project_id=default_project.id,
+        unprocessed_key=None,
     )
 
 
@@ -261,7 +273,12 @@ def test_process_event_unprocessed(
     assert event["unprocessed"] is True
 
     mock_save_event.delay.assert_called_once_with(
-        cache_key="e:1", data=None, start_time=1, event_id=EVENT_ID, project_id=default_project.id
+        cache_key="e:1",
+        data=None,
+        start_time=1,
+        event_id=EVENT_ID,
+        project_id=default_project.id,
+        unprocessed_key=None,
     )
 
 
@@ -365,7 +382,12 @@ def test_scrubbing_after_processing(
     assert event["extra"] == {"ooo": "[Filtered]", "ooo2": "event preprocessor"}
 
     mock_save_event.delay.assert_called_once_with(
-        cache_key="e:1", data=None, start_time=1, event_id=EVENT_ID, project_id=default_project.id
+        cache_key="e:1",
+        data=None,
+        start_time=1,
+        event_id=EVENT_ID,
+        project_id=default_project.id,
+        unprocessed_key=None,
     )
 
 
@@ -435,6 +457,7 @@ def test_store_consumer_type(
         start_time=1,
         event_id=EVENT_ID,
         project_id=default_project.id,
+        unprocessed_key=None,
     )
 
     transaction_data = {
