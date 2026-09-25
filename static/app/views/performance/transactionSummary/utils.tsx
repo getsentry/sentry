@@ -59,9 +59,7 @@ export function normalizeSearchConditions(query: string): MutableSearch {
 }
 
 // normalizes search conditions by removing any redundant search conditions, but retains any transaction name
-export function normalizeSearchConditionsWithTransactionName(
-  query: string
-): MutableSearch {
+function normalizeSearchConditionsWithTransactionName(query: string): MutableSearch {
   const filterParams = new MutableSearch(query);
 
   // remove any event.type queries since it is implied to apply to only transactions

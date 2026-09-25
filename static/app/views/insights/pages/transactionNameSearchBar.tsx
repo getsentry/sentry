@@ -22,6 +22,12 @@ import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {SpanFields} from 'sentry/views/insights/types';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
+const TRANSACTION_SUGGESTION_FEATURES = [
+  'visibility-explore-view',
+  'ourlogs-enabled',
+  'tracemetrics-enabled',
+];
+
 type SearchBarProps = {
   onSearch: (query: string) => void;
   organization: Organization;
@@ -45,6 +51,12 @@ export function TransactionNameSearchBar(props: SearchBarProps) {
   const [transactions, setTransactions] = useState<string[] | null>(null);
   const [debouncedSearch, setDebouncedSearch, {cancel: cancelSuggestions}] =
     useDebouncedState('', {wait: DEFAULT_DEBOUNCE_DURATION, leading: true});
+  // The trace items attributes endpoint that fills the autocomplete dropdown is gated by these features.
+  // Since self-hosted users may not necessarily have these features today, we need to block them from
+  // making the request
+  const canFetchSuggestions = TRANSACTION_SUGGESTION_FEATURES.some(feature =>
+    organization.features.includes(feature)
+  );
   const getTraceItemAttributeValues = useGetTraceItemAttributeValues({
     traceItemType: TraceItemDataset.SPANS,
     type: 'string',
@@ -71,7 +83,12 @@ export function TransactionNameSearchBar(props: SearchBarProps) {
   );
 
   useEffect(() => {
-    if (!isDropdownOpen || isDebouncing || debouncedSearch.length < 3) {
+    if (
+      !canFetchSuggestions ||
+      !isDropdownOpen ||
+      isDebouncing ||
+      debouncedSearch.length < 3
+    ) {
       return;
     }
 
@@ -105,7 +122,13 @@ export function TransactionNameSearchBar(props: SearchBarProps) {
       // The shared request can finish, but this effect no longer owns the results.
       ignore = true;
     };
-  }, [debouncedSearch, getTraceItemAttributeValues, isDebouncing, isDropdownOpen]);
+  }, [
+    canFetchSuggestions,
+    debouncedSearch,
+    getTraceItemAttributeValues,
+    isDebouncing,
+    isDropdownOpen,
+  ]);
 
   const closeDropdown = useCallback(() => {
     cancelSuggestions();
@@ -123,7 +146,7 @@ export function TransactionNameSearchBar(props: SearchBarProps) {
       onSearch('');
     }
 
-    if (query.length < 3) {
+    if (!canFetchSuggestions || query.length < 3) {
       closeDropdown();
       return;
     }
