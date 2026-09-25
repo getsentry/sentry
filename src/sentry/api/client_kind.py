@@ -236,14 +236,15 @@ def _record_attribution_span(
         if user_agent is not None:
             set_span_data(span, ATTRIBUTE_NAMES.USER_AGENT_ORIGINAL, user_agent)
 
-    # A token's own scopes; a session's come from the member's role.
-    scopes = request.auth.get_scopes() if request.auth else request.access.scopes
+    # A token's own scopes; otherwise the access resolved for the request. Not every
+    # `request.auth` is a token: HMAC signature authentication sets it to a string.
+    get_token_scopes = getattr(request.auth, "get_scopes", None)
+    scopes = get_token_scopes() if get_token_scopes else request.access.scopes
     tags = {ATTRIBUTE_NAMES.HTTP_ROUTE: route, "client_kind": client_kind.value}
-    for name, value in (
-        ("api.has_deprecated_scopes", has_deprecated_scopes(scopes)),
-        ("api.has_granular_scopes", has_granular_scopes(scopes)),
-    ):
-        metrics.incr(name, tags={**tags, "value": str(value).lower()})
+    if has_deprecated_scopes(scopes):
+        metrics.incr("api.has_deprecated_scopes", tags=tags)
+    if has_granular_scopes(scopes):
+        metrics.incr("api.has_granular_scopes", tags=tags)
 
 
 def get_user_agent(request: Request) -> str | None:
