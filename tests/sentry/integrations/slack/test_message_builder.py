@@ -358,6 +358,33 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
 
         assert SlackIssuesMessageBuilder(group).build() == test_message
 
+    def test_build_group_block_uses_event_environment(self) -> None:
+        development = self.create_environment(self.project, name="development")
+        production = self.create_environment(self.project, name="production")
+        first_rule = self.create_project_rule(
+            project=self.project,
+            name="development rule",
+            environment_id=development.id,
+        )
+        second_rule = self.create_project_rule(
+            project=self.project,
+            name="production rule",
+            environment_id=production.id,
+        )
+        event = self.store_event(
+            data={"message": "Hello world", "environment": production.name},
+            project_id=self.project.id,
+        )
+        assert event.group
+
+        blocks = SlackIssuesMessageBuilder(
+            event.group, event.for_group(event.group), rules=[first_rule, second_rule]
+        ).build()
+
+        title_text = blocks["blocks"][0]["text"]["text"]
+        assert "environment=production" in title_text
+        assert "environment=development" not in title_text
+
     def test_build_group_block_noa(self) -> None:
         rule = self.create_project_rule(project=self.project)
 
