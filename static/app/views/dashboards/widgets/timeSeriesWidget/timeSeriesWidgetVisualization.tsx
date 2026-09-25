@@ -597,10 +597,11 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         seriesColorIndex += 1;
       }
 
+      const yAxisPosition = getYAxisPosition(plottable);
       // TODO: Type checking would be welcome here, but `plottingOptions` is unknown, since it depends on the implementation of the `Plottable` interface
       const seriesOfPlottable = plottable.toSeries({
         color,
-        yAxisPosition: getYAxisPosition(plottable),
+        yAxisPosition,
         unit: unitForType[plottable.dataType ?? FALLBACK_TYPE],
         theme,
         maxOffset: thresholdMaxOffset,
@@ -608,10 +609,12 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
       if (plottable instanceof Area) {
         // With equal z, ECharts draws every outline above every fill. Keep each
-        // area's segments together, in input order (including hidden series).
-        // Stay within [3, 4) so areas don't overtake markers at z=5.
+        // area's segments together, in input order within its stack (including
+        // hidden series), but put the primary/left stack above the secondary one.
+        // Use [3, 3.5) for right and [3.5, 4) for left, below markers at z=5.
+        const stackZ = yAxisPosition === 'left' ? 3.5 : 3;
         for (const series of seriesOfPlottable) {
-          series.z = 3 + index / props.plottables.length;
+          series.z = stackZ + index / (2 * props.plottables.length);
         }
       }
 
