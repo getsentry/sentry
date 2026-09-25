@@ -23,6 +23,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
     TraceItemFilter,
 )
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
+from sentry_sdk import traces
 from snuba_sdk import Column, Condition, Direction, Entity, Function, Op, OrderBy, Query, Request
 
 from sentry import features, options
@@ -74,7 +75,6 @@ from sentry.utils.snuba import (
     nest_groups,
     raw_snql_query,
 )
-from sentry.utils.tracing import set_span_data, start_span
 
 logger = logging.getLogger(__name__)
 
@@ -622,19 +622,20 @@ class SnubaTagStorage(TagStorage):
             end = snuba.quantize_time(end, key_hash)
             cache_key += f":{duration}@{end.isoformat()}"
 
-            with start_span(
-                op="cache.get", name="sentry.tagstore.cache.__get_tag_keys_for_projects"
+            with traces.start_span(
+                name="sentry.tagstore.cache.__get_tag_keys_for_projects",
+                attributes={"sentry.op": "cache.get"},
             ) as span:
                 result = cache.get(cache_key, None)
 
-                set_span_data(span, "cache.key", [cache_key])
+                span.set_attribute("cache.key", [cache_key])
 
                 if result is not None:
-                    set_span_data(span, "cache.hit", True)
-                    set_span_data(span, "cache.item_size", len(str(result)))
+                    span.set_attribute("cache.hit", True)
+                    span.set_attribute("cache.item_size", len(str(result)))
                     metrics.incr("testing.tagstore.cache_tag_key.hit")
                 else:
-                    set_span_data(span, "cache.hit", False)
+                    span.set_attribute("cache.hit", False)
                     metrics.incr("testing.tagstore.cache_tag_key.miss")
 
         if result is None:
@@ -652,12 +653,13 @@ class SnubaTagStorage(TagStorage):
                 **kwargs,
             )
             if should_cache:
-                with start_span(
-                    op="cache.put", name="sentry.tagstore.cache.__get_tag_keys_for_projects"
+                with traces.start_span(
+                    name="sentry.tagstore.cache.__get_tag_keys_for_projects",
+                    attributes={"sentry.op": "cache.put"},
                 ) as span:
                     cache.set(cache_key, result, 300)
-                    set_span_data(span, "cache.key", [cache_key])
-                    set_span_data(span, "cache.item_size", len(str(result)))
+                    span.set_attribute("cache.key", repr([cache_key]))
+                    span.set_attribute("cache.item_size", len(str(result)))
                     metrics.incr("testing.tagstore.cache_tag_key.len", amount=len(result))
 
         ctor: _KeyCallable[TagKey, Never] | _KeyCallable[GroupTagKey, Never]
