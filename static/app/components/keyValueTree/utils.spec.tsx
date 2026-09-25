@@ -1,6 +1,5 @@
 import {
   buildKeyValueTree,
-  distributeRowGroupsIntoColumns,
   getKeyValueTreeColumns,
 } from 'sentry/components/keyValueTree/utils';
 
@@ -66,12 +65,30 @@ describe('getKeyValueTreeColumns', () => {
 
     const [column] = getKeyValueTreeColumns(tree, 1);
 
-    expect(column?.map(row => [row.treeKey, row.spacerCount, row.isLast])).toEqual([
+    expect(column?.map(row => [row.treeKey, row.spacerCount, row.hasStem])).toEqual([
       ['device', 0, false],
       ['model', 1, false],
-      ['version', 2, true],
-      ['family', 1, true],
-      ['os', 0, false],
+      ['version', 2, false],
+      ['family', 1, false],
+      ['os', 0, true],
+    ]);
+  });
+
+  it('returns no columns when the tree is empty', () => {
+    const columns = getKeyValueTreeColumns(new Map(), 3);
+
+    expect(columns).toEqual([]);
+  });
+
+  it('draws a stem on a childless branch when a sibling follows it', () => {
+    const tree = buildKeyValueTree([item('os.name', 'macOS'), item('os.version', '15')]);
+
+    const [column] = getKeyValueTreeColumns(tree, 1);
+
+    expect(column?.map(row => [row.treeKey, row.hasStem])).toEqual([
+      ['os', false],
+      ['name', true],
+      ['version', false],
     ]);
   });
 
@@ -88,32 +105,6 @@ describe('getKeyValueTreeColumns', () => {
     expect(columns.map(column => column.map(row => row.treeKey))).toEqual([
       ['a', 'b', 'c'],
       ['d', 'e', 'f'],
-    ]);
-  });
-});
-
-describe('distributeRowGroupsIntoColumns', () => {
-  it('returns no columns when there are no row groups', () => {
-    const columns = distributeRowGroupsIntoColumns([], 3);
-
-    expect(columns).toEqual([]);
-  });
-
-  it('keeps every group in one column when the column count is one', () => {
-    const columns = distributeRowGroupsIntoColumns([['a'], ['b', 'c'], ['d']], 1);
-
-    expect(columns).toEqual([[['a'], ['b', 'c'], ['d']]]);
-  });
-
-  it('splits groups into columns without breaking up a group when there are multiple columns', () => {
-    const columns = distributeRowGroupsIntoColumns(
-      [['a', 'a1', 'a2'], ['b'], ['c', 'c1'], ['d']],
-      2
-    );
-
-    expect(columns).toEqual([
-      [['a', 'a1', 'a2'], ['b']],
-      [['c', 'c1'], ['d']],
     ]);
   });
 });

@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import classNames from 'classnames';
+import {mergeProps} from '@react-aria/utils';
 
 import {RevealOnHover} from '@sentry/scraps/revealOnHover';
 
@@ -19,12 +19,10 @@ export interface KeyValueTreeRowProps {
   /** Rendered beside the value, e.g. an actions dropdown or error indicators. */
   actions?: React.ReactNode;
   className?: string;
+  /** Unabbreviated key, shown on hover and offscreen so browser search still matches it. */
+  fullKey?: string;
   hasErrors?: boolean;
   hasStem?: boolean;
-  labelTestId?: string;
-  labelTitle?: string;
-  /** Unabbreviated key, rendered offscreen so browser search still matches it. */
-  searchKey?: string;
   spacerCount?: number;
   /** Omitted by trunk rows, which only label the branches nested underneath them. */
   value?: React.ReactNode;
@@ -32,53 +30,34 @@ export interface KeyValueTreeRowProps {
 
 export function KeyValueTreeRow({
   actions,
+  fullKey,
   hasErrors = false,
   hasStem = false,
   label,
-  labelTestId,
-  labelTitle,
-  searchKey,
   spacerCount = 0,
   value,
   ...props
 }: KeyValueTreeRowProps) {
-  const keyTrunk = (
-    <TreeKeyTrunk spacerCount={spacerCount}>
-      {spacerCount > 0 && (
-        <Fragment>
-          <TreeSpacer spacerCount={spacerCount} hasStem={hasStem} />
-          <TreeBranchIcon hasErrors={hasErrors} />
-        </Fragment>
-      )}
-      {searchKey === undefined ? null : (
-        <TreeSearchKey aria-hidden>{searchKey}</TreeSearchKey>
-      )}
-      <TreeKey hasErrors={hasErrors} title={labelTitle} data-test-id={labelTestId}>
-        {label}
-      </TreeKey>
-    </TreeKeyTrunk>
-  );
-
-  if (value === undefined) {
-    return (
-      <TreeRow hasErrors={hasErrors} {...props}>
-        {keyTrunk}
-        <TreeValueTrunk />
-      </TreeRow>
-    );
-  }
-
   return (
     <RevealOnHover>
       {revealOnHoverProps => (
-        <TreeRow
-          hasErrors={hasErrors}
-          {...props}
-          className={classNames(props.className, revealOnHoverProps.className)}
-        >
-          {keyTrunk}
+        <TreeRow hasErrors={hasErrors} {...mergeProps(props, revealOnHoverProps)}>
+          <TreeKeyTrunk spacerCount={spacerCount}>
+            {spacerCount > 0 && (
+              <Fragment>
+                <TreeSpacer spacerCount={spacerCount} hasStem={hasStem} />
+                <TreeBranchIcon hasErrors={hasErrors} />
+              </Fragment>
+            )}
+            {fullKey && <TreeSearchKey aria-hidden>{fullKey}</TreeSearchKey>}
+            <TreeKey hasErrors={hasErrors} title={fullKey}>
+              {label}
+            </TreeKey>
+          </TreeKeyTrunk>
           <TreeValueTrunk>
-            <TreeValue hasErrors={hasErrors}>{value}</TreeValue>
+            {value === undefined ? null : (
+              <TreeValue hasErrors={hasErrors}>{value}</TreeValue>
+            )}
             {actions}
           </TreeValueTrunk>
         </TreeRow>

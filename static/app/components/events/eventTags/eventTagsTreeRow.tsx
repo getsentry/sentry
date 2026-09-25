@@ -1,10 +1,8 @@
-import {useState} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {ExternalLink, Link} from '@sentry/scraps/link';
-import {RevealOnHover} from '@sentry/scraps/revealOnHover';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
@@ -14,13 +12,13 @@ import {EventTagsValue} from 'sentry/components/events/eventTags/eventTagsValue'
 import {AnnotatedTextErrors} from 'sentry/components/events/meta/annotatedText/annotatedTextErrors';
 import {KeyValueTreeRow} from 'sentry/components/keyValueTree/keyValueTreeRow';
 import {
-  TREE_VALUE_DROPDOWN_BUTTON_CLASS,
-  TreeValueDropdown,
-} from 'sentry/components/keyValueTree/styles';
+  KeyValueTreeRowActions,
+  visitExternalLinkAction,
+} from 'sentry/components/keyValueTree/keyValueTreeRowActions';
+import type {KeyValueTreeRowConfig} from 'sentry/components/keyValueTree/utils';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {Version} from 'sentry/components/version';
 import {VersionHoverCard} from 'sentry/components/versionHoverCard';
-import {IconEllipsis} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {DetailedProject} from 'sentry/types/project';
@@ -41,22 +39,13 @@ import {
 import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 import {getSizeBuildPath} from 'sentry/views/preprod/utils/buildLinkUtils';
 
-export interface EventTagTreeRowConfig {
-  // Omits the dropdown of actions applicable to this tag
-  disableActions?: boolean;
-  // Omit error styling from being displayed, even if context is invalid
-  disableErrors?: boolean;
-  // Displays tag value as plain text, rather than a hyperlink if applicable
-  disableRichValue?: boolean;
-}
-
-export interface EventTagsTreeRowProps {
+interface EventTagsTreeRowProps {
   content: TagTreeContent;
   event: Event;
   project: DetailedProject;
   tagKey: string;
-  config?: EventTagTreeRowConfig;
-  isLast?: boolean;
+  config?: KeyValueTreeRowConfig;
+  hasStem?: boolean;
   spacerCount?: number;
 }
 
@@ -66,14 +55,13 @@ export function EventTagsTreeRow({
   tagKey,
   project,
   spacerCount = 0,
-  isLast = false,
+  hasStem = false,
   config = {},
   ...props
 }: EventTagsTreeRowProps) {
   const originalTag = content.original;
   const tagErrors = content.meta?.value?.['']?.err ?? [];
   const hasTagErrors = tagErrors.length > 0 && !config?.disableErrors;
-  const hasStem = !isLast && content.subtree.size === 0;
 
   if (!originalTag) {
     return (
@@ -101,9 +89,8 @@ export function EventTagsTreeRow({
       actions={config?.disableActions ? undefined : tagActions}
       hasErrors={hasTagErrors}
       hasStem={hasStem}
+      fullKey={originalTag.key}
       label={tagKey}
-      labelTitle={originalTag.key}
-      searchKey={originalTag.key}
       spacerCount={spacerCount}
       value={
         <EventTagsTreeValue
@@ -127,7 +114,6 @@ function EventTagsTreeRowDropdown({
   const hasExploreEnabled = organization.features.includes('visibility-explore-view');
   const {copy} = useCopyToClipboard();
   const {mutate: saveTag} = useUpdateProject(project);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const originalTag = content.original;
 
   if (!originalTag) {
@@ -293,34 +279,10 @@ function EventTagsTreeRowDropdown({
             }
           : undefined,
     },
-    {
-      key: 'external-link',
-      label: t('Visit this external link'),
-      hidden: !isValidUrl(content.value),
-      onAction: () => {
-        openNavigateToExternalLinkModal({linkText: content.value});
-      },
-    },
+    visitExternalLinkAction(content.value),
   ];
 
-  return (
-    <RevealOnHover.Action visible={isMenuOpen}>
-      <TreeValueDropdown
-        preventOverflowOptions={{padding: 4}}
-        position="bottom-end"
-        size="xs"
-        isOpen={isMenuOpen}
-        onOpenChange={setIsMenuOpen}
-        triggerProps={{
-          'aria-label': t('Tag Actions Menu'),
-          icon: <IconEllipsis />,
-          showChevron: false,
-          className: TREE_VALUE_DROPDOWN_BUTTON_CLASS,
-        }}
-        items={items}
-      />
-    </RevealOnHover.Action>
-  );
+  return <KeyValueTreeRowActions ariaLabel={t('Tag Actions Menu')} items={items} />;
 }
 
 function EventTagsTreeValue({

@@ -4,7 +4,16 @@ const INVALID_BRANCH_REGEX = /\.{2,}/;
 
 export type KeyValueTreeValue = number | string | null;
 
-export type KeyValueTree<Value extends KeyValueTreeValue, Original> = Map<
+export interface KeyValueTreeRowConfig {
+  /** Omits the dropdown of actions applicable to this row. */
+  disableActions?: boolean;
+  /** Omits error styling, even when the value's metadata reports errors. */
+  disableErrors?: boolean;
+  /** Renders the value as plain text rather than a hyperlink where applicable. */
+  disableRichValue?: boolean;
+}
+
+type KeyValueTree<Value extends KeyValueTreeValue, Original> = Map<
   string,
   KeyValueTreeContent<Value, Original>
 >;
@@ -17,16 +26,17 @@ export interface KeyValueTreeContent<Value extends KeyValueTreeValue, Original> 
   original?: Original;
 }
 
-export interface KeyValueTreeItem<Value extends KeyValueTreeValue, Original> {
+interface KeyValueTreeItem<Value extends KeyValueTreeValue, Original> {
   key: string;
   original: Original;
   value: Value;
   meta?: Record<string, any>;
 }
 
-export interface KeyValueTreeRowDescriptor<Value extends KeyValueTreeValue, Original> {
+interface KeyValueTreeRowDescriptor<Value extends KeyValueTreeValue, Original> {
   content: KeyValueTreeContent<Value, Original>;
-  isLast: boolean;
+  /** Whether to draw the vertical line connecting this row's branch icon to the next. */
+  hasStem: boolean;
   spacerCount: number;
   treeKey: string;
   uniqueKey: string;
@@ -94,7 +104,7 @@ function flattenKeyValueTreeRows<Value extends KeyValueTreeValue, Original>(
         content,
         treeKey,
         spacerCount: descriptor.spacerCount + 1,
-        isLast: index === branches.length - 1,
+        hasStem: index < branches.length - 1 && content.subtree.size === 0,
         // Encoding the trunk's key with the branch index keeps every row's key unique
         uniqueKey: `${descriptor.uniqueKey}-${index}`,
       })
@@ -106,7 +116,7 @@ function flattenKeyValueTreeRows<Value extends KeyValueTreeValue, Original>(
  * Splits groups of rows into roughly even columns without separating any group,
  * so a root row always stays in the same column as its branches.
  */
-export function distributeRowGroupsIntoColumns<Row>(
+function distributeRowGroupsIntoColumns<Row>(
   rowGroups: Row[][],
   columnCount: number
 ): Row[][][] {
@@ -142,7 +152,7 @@ export function getKeyValueTreeColumns<Value extends KeyValueTreeValue, Original
       content,
       treeKey,
       spacerCount: 0,
-      isLast: false,
+      hasStem: content.subtree.size === 0,
       uniqueKey: `${index}`,
     })
   );

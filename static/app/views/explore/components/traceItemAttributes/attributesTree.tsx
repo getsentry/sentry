@@ -1,38 +1,38 @@
-import {Fragment, useMemo, useRef, useState} from 'react';
+import {Fragment, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
-import {RevealOnHover} from '@sentry/scraps/revealOnHover';
 import {Text} from '@sentry/scraps/text';
 
-import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
 import {KeyValueTreeRow} from 'sentry/components/keyValueTree/keyValueTreeRow';
 import {
-  TREE_VALUE_DROPDOWN_BUTTON_CLASS,
+  KeyValueTreeRowActions,
+  visitExternalLinkAction,
+} from 'sentry/components/keyValueTree/keyValueTreeRowActions';
+import {
   TreeColumn as KeyValueTreeColumn,
   TreeContainer as KeyValueTreeContainer,
-  TreeValueDropdown,
 } from 'sentry/components/keyValueTree/styles';
 import {
   buildKeyValueTree,
   getKeyValueTreeColumns,
   type KeyValueTreeContent,
+  type KeyValueTreeRowConfig,
 } from 'sentry/components/keyValueTree/utils';
-import {IconEllipsis, IconPin} from 'sentry/icons';
+import {IconPin} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {type RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
-import {isValidUrl} from 'sentry/utils/string/isValidUrl';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 
 import {AttributesTreeValue} from './attributesTreeValue';
 
-export interface Attribute {
+interface Attribute {
   attribute_key: string;
   attribute_value: string | number | null;
   original_attribute_key: string;
@@ -76,7 +76,7 @@ interface AttributesTreeProps<
   attributes: TraceItemResponseAttribute[];
   // If provided, locks the number of columns to this number. If not provided, the number of columns will be dynamic based on width.
   columnCount?: number;
-  config?: AttributesTreeRowConfig;
+  config?: KeyValueTreeRowConfig;
   getAdjustedAttributeKey?: (attribute: TraceItemResponseAttribute) => string;
   getCustomActions?: (content: AttributesTreeContent) => MenuItemProps[];
   pinnedAttribute?: string | null;
@@ -88,23 +88,14 @@ interface AttributesTreeColumnsProps<
   columnCount: number;
 }
 
-export interface AttributesTreeRowConfig {
-  // Omits the dropdown of actions applicable to this attribute
-  disableActions?: boolean;
-  // Omit error styling from being displayed, even if context is invalid
-  disableErrors?: boolean;
-  // Displays attribute value as plain text, rather than a hyperlink if applicable
-  disableRichValue?: boolean;
-}
-
 interface AttributesTreeRowProps<
   RendererExtra extends RenderFunctionBaggage,
 > extends AttributesFieldRender<RendererExtra> {
   attributeKey: string;
   content: AttributesTreeContent;
-  config?: AttributesTreeRowConfig;
+  config?: KeyValueTreeRowConfig;
   getCustomActions?: (content: AttributesTreeContent) => MenuItemProps[];
-  isLast?: boolean;
+  hasStem?: boolean;
   pinnedAttribute?: string | null;
   spacerCount?: number;
 }
@@ -129,14 +120,12 @@ function AttributesTreeColumns<RendererExtra extends RenderFunctionBaggage>({
     }
 
     const attributesTree = buildKeyValueTree(
-      attributes
-        .map(attribute => getAttribute(attribute, getAdjustedAttributeKey))
-        .filter(defined)
-        .map(attribute => ({
-          key: attribute.attribute_key,
-          value: attribute.attribute_value,
-          original: attribute,
-        }))
+      attributes.flatMap(attribute => {
+        const shaped = getAttribute(attribute, getAdjustedAttributeKey);
+        return shaped
+          ? [{key: shaped.attribute_key, value: shaped.attribute_value, original: shaped}]
+          : [];
+      })
     );
 
     return getKeyValueTreeColumns(attributesTree, columnCount).map((rows, index) => (
@@ -147,7 +136,7 @@ function AttributesTreeColumns<RendererExtra extends RenderFunctionBaggage>({
             attributeKey={row.treeKey}
             content={row.content}
             spacerCount={row.spacerCount}
-            isLast={row.isLast}
+            hasStem={row.hasStem}
             data-test-id="attribute-tree-row"
             renderers={renderers}
             rendererExtra={renderExtra}
@@ -193,7 +182,7 @@ function AttributesTreeRow<RendererExtra extends RenderFunctionBaggage>({
   content,
   attributeKey,
   spacerCount = 0,
-  isLast = false,
+  hasStem = false,
   config = {},
   getCustomActions,
   pinnedAttribute,
@@ -202,7 +191,6 @@ function AttributesTreeRow<RendererExtra extends RenderFunctionBaggage>({
   ...props
 }: AttributesTreeRowProps<RendererExtra>) {
   const originalAttribute = content.original;
-  const hasStem = !isLast && content.subtree.size === 0;
 
   if (!originalAttribute) {
     return (
@@ -227,17 +215,19 @@ function AttributesTreeRow<RendererExtra extends RenderFunctionBaggage>({
         )
       }
       hasStem={hasStem}
+      fullKey={originalAttribute.attribute_key}
       label={
-        <Flex align="center" gap="xs">
+        <Flex
+          align="center"
+          gap="xs"
+          data-test-id={`tree-key-${originalAttribute.original_attribute_key}`}
+        >
           <Text>{attributeKey}</Text>
           {pinnedAttribute === originalAttribute.original_attribute_key && (
             <IconPin size="xs" isSolid aria-label={t('Pinned attribute')} />
           )}
         </Flex>
       }
-      labelTestId={`tree-key-${originalAttribute.original_attribute_key}`}
-      labelTitle={originalAttribute.attribute_key}
-      searchKey={originalAttribute.attribute_key}
       spacerCount={spacerCount}
       value={
         <AttributesTreeValue
@@ -259,7 +249,6 @@ function AttributesTreeRowDropdown({
   getCustomActions?: (content: AttributesTreeContent) => MenuItemProps[];
 }) {
   const {copy} = useCopyToClipboard();
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   let customActions: MenuItemProps[] = [];
   if (getCustomActions) {
@@ -276,37 +265,10 @@ function AttributesTreeRowDropdown({
           successMessage: t('Attribute value copied to clipboard'),
         }),
     },
+    visitExternalLinkAction(content.value),
   ];
 
-  // Add external link option if the value is a URL
-  if (isValidUrl(String(content.value))) {
-    items.push({
-      key: 'external-link',
-      label: t('Visit this external link'),
-      onAction: () => {
-        openNavigateToExternalLinkModal({linkText: String(content.value)});
-      },
-    });
-  }
-
-  return (
-    <RevealOnHover.Action visible={isMenuOpen}>
-      <TreeValueDropdown
-        preventOverflowOptions={{padding: 4}}
-        position="bottom-end"
-        size="xs"
-        isOpen={isMenuOpen}
-        onOpenChange={setIsMenuOpen}
-        triggerProps={{
-          'aria-label': t('Attribute Actions Menu'),
-          icon: <IconEllipsis />,
-          showChevron: false,
-          className: TREE_VALUE_DROPDOWN_BUTTON_CLASS,
-        }}
-        items={items}
-      />
-    </RevealOnHover.Action>
-  );
+  return <KeyValueTreeRowActions ariaLabel={t('Attribute Actions Menu')} items={items} />;
 }
 
 /**

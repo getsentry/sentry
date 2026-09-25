@@ -2,10 +2,7 @@ import {Fragment, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {
-  type EventTagTreeRowConfig,
-  EventTagsTreeRow,
-} from 'sentry/components/events/eventTags/eventTagsTreeRow';
+import {EventTagsTreeRow} from 'sentry/components/events/eventTags/eventTagsTreeRow';
 import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
 import {
   TreeColumn as KeyValueTreeColumn,
@@ -15,6 +12,7 @@ import {
   buildKeyValueTree,
   getKeyValueTreeColumns,
   type KeyValueTreeContent,
+  type KeyValueTreeRowConfig,
 } from 'sentry/components/keyValueTree/utils';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
@@ -30,7 +28,7 @@ interface EventTagsTreeProps {
   projectSlug: Project['slug'];
   tags: EventTagWithMeta[];
   /** Applied to every row; e.g. `disableActions` for read-only surfaces. */
-  config?: EventTagTreeRowConfig;
+  config?: KeyValueTreeRowConfig;
 }
 
 /**
@@ -75,7 +73,7 @@ function TagTreeColumns({
             tagKey={row.treeKey}
             content={row.content}
             spacerCount={row.spacerCount}
-            isLast={row.isLast}
+            hasStem={row.hasStem}
             data-test-id="tag-tree-row"
             event={event}
             project={project}

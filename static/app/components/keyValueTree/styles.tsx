@@ -106,17 +106,8 @@ export const TreeSearchKey = styled('span')`
   position: absolute;
 `;
 
-export const TREE_VALUE_DROPDOWN_BUTTON_CLASS = 'tree-value-dropdown-button';
-
 export const TreeValueDropdown = styled(DropdownMenu)`
   display: block;
   margin: 1px;
   height: 20px;
-  .${TREE_VALUE_DROPDOWN_BUTTON_CLASS} {
-    height: 20px;
-    min-height: 20px;
-    padding: 0 ${p => p.theme.space.sm};
-    border-radius: ${p => p.theme.space.xs};
-    z-index: 1;
-  }
 `;
