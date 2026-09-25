@@ -6,14 +6,12 @@ from typing import TYPE_CHECKING, cast
 
 from sentry import features, options
 from sentry.utils.sdk import sdk_logger
+from sentry.workflow_engine.processors.delayed_workflow import DelayedWorkflowEvaluationResult
 from sentry.workflow_engine.processors.evaluations.detector import ProcessDetectorsResult
 from sentry.workflow_engine.processors.evaluations.workflow import ProcessWorkflowsResult
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
-    from sentry.workflow_engine.processors.delayed_workflow import (
-        DelayedWorkflowEvaluationResult,
-    )
 
 
 DETECTOR_EVALUATION_LOG_PREFIX = "workflow_engine.process_detectors.evaluation"
