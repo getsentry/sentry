@@ -161,7 +161,7 @@ class WorkflowEvaluation(
             ],
             group_id=event_data.group.id,
             outcome=self.outcome,
-            project_id=event_data.event.project.id,
+            project_id=event_data.event.project_id,
             trigger_evaluation=self.data.get("trigger_group_eval").to_artifact(),
             triggered_action_ids=triggered_action_ids,
             workflow_id=self.workflow_id,

@@ -52,7 +52,7 @@ def should_log(
 
 
 def redact_pii_from_artifact(artifact: dict[str, object]) -> dict[str, object]:
-    return cast(dict[str, object], _serialize_log_value(artifact))
+    return _serialize_log_value(artifact)
 
 
 def _serialize_log_value(value: object, field_name: str | None = None) -> object:
