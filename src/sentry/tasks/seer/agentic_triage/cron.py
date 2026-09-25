@@ -29,6 +29,7 @@ from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.project import Project
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.agent.client_utils import AgentRunOptions
+from sentry.seer.agentic_triage.models import AgenticTriagePayload, TriageCandidate, TriageTweaks
 from sentry.seer.autofix.constants import (
     AutofixAutomationTuningSettings,
 )
@@ -40,7 +41,7 @@ from sentry.seer.autofix.utils import (
     is_seer_seat_based_tier_enabled,
 )
 from sentry.seer.models import SeerPermissionError
-from sentry.seer.models.night_shift import SeerNightShiftRunErrorType
+from sentry.seer.models.agentic_triage import SeerAgenticTriageRunErrorType
 from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.seer.models.run import SeerRun
 from sentry.seer.models.workflow import (
@@ -49,33 +50,32 @@ from sentry.seer.models.workflow import (
     SeerWorkflowRunExecution,
     SeerWorkflowStrategy,
 )
-from sentry.seer.night_shift.models import NightShiftPayload, TriageCandidate, TriageTweaks
 from sentry.seer.workflows.schemas import WorkflowRunSource
 from sentry.tasks.base import instrumented_task
-from sentry.tasks.seer.night_shift.simple_triage import (
+from sentry.tasks.seer.agentic_triage.simple_triage import (
     fixability_score_strategy,
     fixability_score_strategy_per_project,
     priority_label,
 )
-from sentry.tasks.seer.night_shift.tweaks import (
+from sentry.tasks.seer.agentic_triage.tweaks import (
     DEFAULT_EXTRA_TRIAGE_INSTRUCTIONS,
     DEFAULT_INTELLIGENCE_LEVEL,
     DEFAULT_REASONING_EFFORT,
+    AgenticTriageTweaks,
     IntelligenceLevel,
-    NightShiftTweaks,
     ReasoningEffort,
     default_max_candidates,
-    get_night_shift_org_tweaks,
-    get_night_shift_tweaks,
+    get_agentic_triage_org_tweaks,
+    get_agentic_triage_tweaks,
 )
 from sentry.taskworker.namespaces import seer_tasks
 from sentry.utils.hashlib import md5_text
 from sentry.utils.iterators import chunked
 from sentry.utils.query import RangeQuerySetWrapper
 
-logger = logging.getLogger("sentry.tasks.seer.night_shift")
+logger = logging.getLogger("sentry.tasks.seer.agentic_triage")
 
-NIGHT_SHIFT_SPREAD_DURATION = timedelta(hours=1)
+AGENTIC_TRIAGE_SPREAD_DURATION = timedelta(hours=1)
 
 BATCH_FEATURE_NAMES = [
     "organizations:seer-night-shift",
@@ -88,8 +88,8 @@ PER_ORG_FEATURE_NAMES = [
 ]
 
 
-class SeerNightShiftRunOptions(TypedDict):
-    """Fully-resolved options for a night shift run. Persisted directly onto
+class SeerAgenticTriageRunOptions(TypedDict):
+    """Fully-resolved options for an agentic triage run. Persisted directly onto
     SeerWorkflowRun.extras["options"]. Construct via build_run_options."""
 
     source: WorkflowRunSource
@@ -100,7 +100,7 @@ class SeerNightShiftRunOptions(TypedDict):
     extra_triage_instructions: str
 
 
-class SeerNightShiftRunOptionsPartial(TypedDict, total=False):
+class SeerAgenticTriageRunOptionsPartial(TypedDict, total=False):
     """Caller-facing options dict — every field is optional. Missing fields
     are filled in by build_run_options with shared defaults."""
 
@@ -113,7 +113,7 @@ class SeerNightShiftRunOptionsPartial(TypedDict, total=False):
 
 
 @dataclasses.dataclass(frozen=True)
-class NightShiftShardPlan:
+class AgenticTriageShardPlan:
     payload: dict[str, Any]
     title: str
 
@@ -121,7 +121,7 @@ class NightShiftShardPlan:
         return {"payload": self.payload, "title": self.title}
 
     @classmethod
-    def from_extras(cls, extras: Mapping[str, object]) -> NightShiftShardPlan | None:
+    def from_extras(cls, extras: Mapping[str, object]) -> AgenticTriageShardPlan | None:
         payload = extras.get("payload")
         title = extras.get("title")
         if not isinstance(payload, dict) or not isinstance(title, str):
@@ -137,13 +137,14 @@ class ShardDispatchStatus(StrEnum):
 
 
 @instrumented_task(
-    name="sentry.tasks.seer.night_shift.schedule_night_shift",
+    name="sentry.tasks.seer.agentic_triage.schedule_agentic_triage",
+    alias="sentry.tasks.seer.night_shift.schedule_night_shift",
     namespace=seer_tasks,
     processing_deadline_duration=30 * 60,
 )
-def schedule_night_shift(
+def schedule_agentic_triage(
     *,
-    run_options: SeerNightShiftRunOptionsPartial | None = None,
+    run_options: SeerAgenticTriageRunOptionsPartial | None = None,
     **kwargs: Any,
 ) -> None:
     """
@@ -161,9 +162,9 @@ def schedule_night_shift(
 
     schedule_id: str | None = None
     if run_options is None:
-        schedule_id = _current_schedule_id(datetime.now(tz=UTC), _night_shift_cron_expr())
+        schedule_id = _current_schedule_id(datetime.now(tz=UTC), _agentic_triage_cron_expr())
 
-    logger.info("night_shift.schedule_start", extra={"schedule_id": schedule_id})
+    logger.info("agentic_triage.schedule_start", extra={"schedule_id": schedule_id})
     start_time = time.monotonic()
 
     seer_org_ids: set[int] = set()
@@ -187,24 +188,24 @@ def schedule_night_shift(
         seer_org_ids |= free_cohort_org_ids
         if free_cohort_org_ids:
             logger.info(
-                "night_shift.free_cohort_org_ids",
+                "agentic_triage.free_cohort_org_ids",
                 extra={
                     "num_free_cohort_org_ids": len(free_cohort_org_ids),
                     "sample_org_ids": sorted(free_cohort_org_ids)[:10],
                 },
             )
     except Exception:
-        logger.exception("night_shift.free_cohort_org_ids_failed")
+        logger.exception("agentic_triage.free_cohort_org_ids_failed")
 
     logger.info(
-        "night_shift.schedule_org_ids_collected",
+        "agentic_triage.schedule_org_ids_collected",
         extra={
             "num_seer_org_ids": len(seer_org_ids),
             "elapsed_seconds": time.monotonic() - start_time,
         },
     )
 
-    spread_seconds = int(NIGHT_SHIFT_SPREAD_DURATION.total_seconds())
+    spread_seconds = int(AGENTIC_TRIAGE_SPREAD_DURATION.total_seconds())
     batch_index = 0
     task_kwargs: dict[str, Any] = {}
     if run_options is not None:
@@ -222,7 +223,7 @@ def schedule_night_shift(
         eligible = _get_eligible_orgs_from_batch(org_batch)
         for org in eligible:
             delay = int(md5_text(str(org.id)).hexdigest(), 16) % spread_seconds
-            run_night_shift_for_org.apply_async(
+            run_agentic_triage_for_org.apply_async(
                 args=[org.id],
                 kwargs=task_kwargs,
                 countdown=delay,
@@ -232,7 +233,7 @@ def schedule_night_shift(
 
         if chunk_index % 10 == 0:
             logger.info(
-                "night_shift.schedule_chunk_processed",
+                "agentic_triage.schedule_chunk_processed",
                 extra={
                     "chunk_index": chunk_index,
                     "orgs_dispatched_so_far": batch_index,
@@ -240,10 +241,10 @@ def schedule_night_shift(
                 },
             )
 
-    sentry_sdk.metrics.count("night_shift.orgs_dispatched", batch_index)
+    sentry_sdk.metrics.count("agentic_triage.orgs_dispatched", batch_index)
 
     logger.info(
-        "night_shift.schedule_complete",
+        "agentic_triage.schedule_complete",
         extra={
             "orgs_dispatched": batch_index,
             "elapsed_seconds": time.monotonic() - start_time,
@@ -276,22 +277,22 @@ def _prepare_scheduled_run(
     log_extra = {
         "organization_id": organization.id,
         "schedule_id": schedule_id,
-        "night_shift_run_id": run.id,
+        "agentic_triage_run_id": run.id,
     }
     if run.date_completed is not None:
-        logger.info("night_shift.duplicate_run_skipped", extra=log_extra)
-        sentry_sdk.metrics.count("night_shift.duplicate_run_skipped", 1)
+        logger.info("agentic_triage.duplicate_run_skipped", extra=log_extra)
+        sentry_sdk.metrics.count("agentic_triage.duplicate_run_skipped", 1)
         return run, False
 
-    logger.info("night_shift.incomplete_run_resumed", extra=log_extra)
-    sentry_sdk.metrics.count("night_shift.incomplete_run_resumed", 1)
+    logger.info("agentic_triage.incomplete_run_resumed", extra=log_extra)
+    sentry_sdk.metrics.count("agentic_triage.incomplete_run_resumed", 1)
     return run, True
 
 
-def _dispatch_night_shift_run(
+def _dispatch_agentic_triage_run(
     run: SeerWorkflowRun,
     *,
-    resolved_options: SeerNightShiftRunOptions,
+    resolved_options: SeerAgenticTriageRunOptions,
     project_ids: list[int] | None,
     execute_in_task: bool,
 ) -> None:
@@ -300,27 +301,28 @@ def _dispatch_night_shift_run(
         task_kwargs["project_ids"] = project_ids
 
     if execute_in_task:
-        run_night_shift_execution.apply_async(args=[run.id], kwargs=task_kwargs)
+        run_agentic_triage_execution.apply_async(args=[run.id], kwargs=task_kwargs)
     else:
-        run_night_shift_execution(run.id, **task_kwargs)
+        run_agentic_triage_execution(run.id, **task_kwargs)
 
 
 @instrumented_task(
-    name="sentry.tasks.seer.night_shift.run_night_shift_for_org",
+    name="sentry.tasks.seer.agentic_triage.run_agentic_triage_for_org",
+    alias="sentry.tasks.seer.night_shift.run_night_shift_for_org",
     namespace=seer_tasks,
     processing_deadline_duration=5 * 60,
 )
-def run_night_shift_for_org(
+def run_agentic_triage_for_org(
     organization_id: int,
     *,
-    options: SeerNightShiftRunOptionsPartial | None = None,
+    options: SeerAgenticTriageRunOptionsPartial | None = None,
     project_ids: list[int] | None = None,
     triggering_user_id: int | None = None,
     execute_in_task: bool = False,
     schedule_id: str | None = None,
     **kwargs: Any,
 ) -> int | None:
-    """Run night shift for one organization. `options` is a partial dict —
+    """Run agentic triage for one organization. `options` is a partial dict —
     any missing fields are filled in by build_run_options. Cron dispatches
     with no options (all defaults); manual triggers (project settings "Run
     Now", admin endpoint) pass `{"source": "manual", ...}` and may scope the
@@ -335,15 +337,15 @@ def run_night_shift_for_org(
     if organization is None:
         return None
 
-    if not _is_night_shift_enabled(organization):
-        logger.info("night_shift.disabled", extra={"organization_id": organization.id})
+    if not _is_agentic_triage_enabled(organization):
+        logger.info("agentic_triage.disabled", extra={"organization_id": organization.id})
         return None
 
     sentry_sdk.set_tags(
         {"organization_id": organization.id, "organization_slug": organization.slug}
     )
 
-    # Free-cohort orgs receive Night Shift without a subscription.
+    # Free-cohort orgs receive Agentic triage without a subscription.
     has_seer_quota = is_free_cohort_org(organization) or quotas.backend.check_seer_quota(
         org_id=organization.id,
         data_category=DataCategory.SEER_AUTOFIX,
@@ -358,7 +360,7 @@ def run_night_shift_for_org(
         if existing_run is None or (
             existing_run.date_completed is None and not existing_run.executions.exists()
         ):
-            logger.info("night_shift.no_seer_quota", extra={"organization_id": organization.id})
+            logger.info("agentic_triage.no_seer_quota", extra={"organization_id": organization.id})
             return None
 
     # Manual project runs scope to a single project, whose tweaks feed the run
@@ -388,10 +390,10 @@ def run_night_shift_for_org(
             extras=extras,
         )
         if not has_seer_quota:
-            logger.info("night_shift.no_seer_quota", extra={"organization_id": organization.id})
+            logger.info("agentic_triage.no_seer_quota", extra={"organization_id": organization.id})
             _record_run_error(
                 run,
-                SeerNightShiftRunErrorType.NO_QUOTA,
+                SeerAgenticTriageRunErrorType.NO_QUOTA,
                 "No Seer quota available",
             )
             return run.id
@@ -405,7 +407,7 @@ def run_night_shift_for_org(
         if not should_execute:
             return run.id
 
-    _dispatch_night_shift_run(
+    _dispatch_agentic_triage_run(
         run,
         resolved_options=resolved_options,
         project_ids=project_ids,
@@ -414,30 +416,31 @@ def run_night_shift_for_org(
     return run.id
 
 
-def _is_night_shift_enabled(organization: Organization) -> bool:
+def _is_agentic_triage_enabled(organization: Organization) -> bool:
     return options.get("seer.night_shift.enable") and features.has(
         "organizations:seer-night-shift", organization
     )
 
 
 @instrumented_task(
-    name="sentry.tasks.seer.night_shift.run_night_shift_execution",
+    name="sentry.tasks.seer.agentic_triage.run_agentic_triage_execution",
+    alias="sentry.tasks.seer.night_shift.run_night_shift_execution",
     namespace=seer_tasks,
     processing_deadline_duration=5 * 60,
 )
-def run_night_shift_execution(
+def run_agentic_triage_execution(
     run_id: int,
     *,
-    options: SeerNightShiftRunOptionsPartial | None = None,
+    options: SeerAgenticTriageRunOptionsPartial | None = None,
     project_ids: list[int] | None = None,
     **kwargs: Any,
 ) -> None:
-    """Heavy phase of a night shift run: eligibility, triage, and optional
+    """Heavy phase of an agentic triage run: eligibility, triage, and optional
     autofix dispatch. Single code path used by both sync invocation (from
-    run_night_shift_for_org) and async dispatch (apply_async)."""
+    run_agentic_triage_for_org) and async dispatch (apply_async)."""
     run = SeerWorkflowRun.objects.select_related("organization").filter(id=run_id).first()
     if run is None:
-        logger.info("night_shift.missing_run", extra={"night_shift_run_id": run_id})
+        logger.info("agentic_triage.missing_run", extra={"agentic_triage_run_id": run_id})
         return None
 
     organization = run.organization
@@ -449,7 +452,7 @@ def run_night_shift_execution(
     log_extra: dict[str, object] = {
         "organization_id": organization.id,
         "organization_slug": organization.slug,
-        "night_shift_run_id": run.id,
+        "agentic_triage_run_id": run.id,
     }
     if project_ids is not None:
         log_extra["project_ids"] = project_ids
@@ -458,17 +461,17 @@ def run_night_shift_execution(
     )
 
     if run.date_completed is not None:
-        logger.info("night_shift.execute_already_complete", extra=log_extra)
+        logger.info("agentic_triage.execute_already_complete", extra=log_extra)
         return None
 
     start_time = time.monotonic()
-    logger.info("night_shift.execute.start", extra=log_extra)
+    logger.info("agentic_triage.execute.start", extra=log_extra)
 
     if run.executions.exists():
         dispatch_status = _dispatch_pending_shards(run, organization, log_extra, start_time)
         if dispatch_status is not ShardDispatchStatus.COMPLETE:
             logger.info(
-                "night_shift.shard_dispatch_incomplete",
+                "agentic_triage.shard_dispatch_incomplete",
                 extra={**log_extra, "reason": dispatch_status.value},
             )
             return None
@@ -482,26 +485,26 @@ def run_night_shift_execution(
     except Exception:
         _fail_run(
             run,
-            error_type=SeerNightShiftRunErrorType.ELIGIBLE_PROJECTS_FAILED,
+            error_type=SeerAgenticTriageRunErrorType.ELIGIBLE_PROJECTS_FAILED,
             message="Failed to get eligible projects",
-            event="night_shift.failed_to_get_eligible_projects",
+            event="agentic_triage.failed_to_get_eligible_projects",
             extra=log_extra,
         )
         return None
 
-    sentry_sdk.metrics.distribution("night_shift.eligible_projects", len(eligible))
+    sentry_sdk.metrics.distribution("agentic_triage.eligible_projects", len(eligible))
     # Stamped so zero-shard runs are distinguishable: no eligible projects vs. no candidates.
     _update_run_extras(run, {"num_eligible_projects": len(eligible)})
 
     if not eligible:
-        logger.info("night_shift.no_eligible_projects", extra=log_extra)
+        logger.info("agentic_triage.no_eligible_projects", extra=log_extra)
         _complete_run(run)
         return None
 
     shard_plans, num_candidates = _build_shard_plans(organization, eligible, resolved_options)
     _update_run_extras(run, {"num_candidates": num_candidates})
     if not shard_plans:
-        logger.info("night_shift.no_candidates", extra=log_extra)
+        logger.info("agentic_triage.no_candidates", extra=log_extra)
         _complete_run(run)
         return None
 
@@ -509,18 +512,18 @@ def run_night_shift_execution(
     dispatch_status = _dispatch_pending_shards(run, organization, log_extra, start_time)
     if dispatch_status is not ShardDispatchStatus.COMPLETE:
         logger.info(
-            "night_shift.shard_dispatch_incomplete",
+            "agentic_triage.shard_dispatch_incomplete",
             extra={**log_extra, "reason": dispatch_status.value},
         )
         return None
     _complete_run(run)
 
 
-def _night_shift_cron_expr() -> str:
-    schedule = settings.TASKWORKER_SCHEDULES["seer-night-shift"]["schedule"]
+def _agentic_triage_cron_expr() -> str:
+    schedule = settings.TASKWORKER_SCHEDULES["seer-agentic-triage"]["schedule"]
     if not isinstance(schedule, crontab):
         raise TypeError(
-            "The seer-night-shift schedule must use taskbroker_client.scheduler.config.crontab"
+            "The seer-agentic-triage schedule must use taskbroker_client.scheduler.config.crontab"
         )
     return str(schedule)
 
@@ -531,12 +534,12 @@ def _current_schedule_id(now: datetime, cron_expr: str) -> str:
     return next(CronSim(cron_expr, base, reverse=True)).strftime("%Y-%m-%dT%H:%M")
 
 
-def _run_option_defaults(data: Mapping[str, Any]) -> SeerNightShiftRunOptions:
+def _run_option_defaults(data: Mapping[str, Any]) -> SeerAgenticTriageRunOptions:
     """Fill in defaults for any missing fields. Accepts any mapping so it can
     normalize both partial caller input and loosely-typed dicts read back from
     run.extras (which may predate later schema additions)."""
     max_candidates = data.get("max_candidates")
-    return SeerNightShiftRunOptions(
+    return SeerAgenticTriageRunOptions(
         source=data.get("source", "cron"),
         max_candidates=default_max_candidates() if max_candidates is None else max_candidates,
         dry_run=data.get("dry_run", False),
@@ -548,7 +551,7 @@ def _run_option_defaults(data: Mapping[str, Any]) -> SeerNightShiftRunOptions:
     )
 
 
-# Run-option fields that a NightShiftTweaks layer can override. `enabled` is
+# Run-option fields that an AgenticTriageTweaks layer can override. `enabled` is
 # intentionally excluded — it gates eligibility, it is not a run option.
 _TWEAK_RUN_OPTION_FIELDS = (
     "max_candidates",
@@ -558,11 +561,11 @@ _TWEAK_RUN_OPTION_FIELDS = (
 )
 
 
-def _tweaks_to_partial(tweaks: NightShiftTweaks) -> dict[str, Any]:
-    """Project a NightShiftTweaks (org- or project-scoped) onto a run-options
+def _tweaks_to_partial(tweaks: AgenticTriageTweaks) -> dict[str, Any]:
+    """Project an AgenticTriageTweaks (org- or project-scoped) onto a run-options
     partial, contributing only the fields that were *explicitly* set on it.
 
-    NightShiftTweaks fills every unset field with a default, so reading
+    AgenticTriageTweaks fills every unset field with a default, so reading
     attributes directly would emit all fields and clobber lower-precedence
     layers. `exclude_unset` keeps only the fields the payload actually
     specified, so defaults (and lower layers) show through."""
@@ -575,7 +578,7 @@ def build_run_options(
     organization_id: int,
     manual_overrides: Mapping[str, Any] | None = None,
     project_id: int | None = None,
-) -> SeerNightShiftRunOptions:
+) -> SeerAgenticTriageRunOptions:
     """Resolve a fully-populated set of run options, layering by precedence
     (highest wins):
 
@@ -590,13 +593,13 @@ def build_run_options(
     manual project runs additionally pass `project_id` + at least
     `source="manual"`. Unknown keys are ignored."""
     layered: dict[str, Any] = {}
-    org_tweaks = get_night_shift_org_tweaks(organization_id)
+    org_tweaks = get_agentic_triage_org_tweaks(organization_id)
     if org_tweaks is not None:
         layered.update(_tweaks_to_partial(org_tweaks))
     if project_id is not None:
         project = Project.objects.filter(id=project_id, organization_id=organization_id).first()
         if project is not None:
-            layered.update(_tweaks_to_partial(get_night_shift_tweaks(project)))
+            layered.update(_tweaks_to_partial(get_agentic_triage_tweaks(project)))
     layered.update(manual_overrides or {})
     return _run_option_defaults(layered)
 
@@ -608,7 +611,7 @@ def _get_eligible_orgs_from_batch(
     Check feature flags for a batch of orgs.
     Returns orgs that have all required feature flags enabled.
     """
-    # enable_seer_coding off => night shift can't open a PR for the org.
+    # enable_seer_coding off => agentic triage can't open a PR for the org.
     enable_coding = OrganizationOption.objects.get_value_bulk(
         orgs, "sentry:enable_seer_coding", ENABLE_SEER_CODING_DEFAULT
     )
@@ -671,7 +674,7 @@ def _complete_run(run: SeerWorkflowRun) -> None:
 
 
 def _record_run_error(
-    run: SeerWorkflowRun, error_type: SeerNightShiftRunErrorType, message: str
+    run: SeerWorkflowRun, error_type: SeerAgenticTriageRunErrorType, message: str
 ) -> None:
     _update_run_extras(run, {"error_type": error_type.value, "error_message": message})
 
@@ -679,7 +682,7 @@ def _record_run_error(
 def _fail_run(
     run: SeerWorkflowRun,
     *,
-    error_type: SeerNightShiftRunErrorType,
+    error_type: SeerAgenticTriageRunErrorType,
     message: str,
     event: str,
     extra: dict[str, object],
@@ -692,7 +695,7 @@ def _fail_run(
 @dataclasses.dataclass(frozen=True)
 class EligibleProject:
     project: Project
-    tweaks: NightShiftTweaks
+    tweaks: AgenticTriageTweaks
     stopping_point: AutofixStoppingPoint
     connected_repos: list[str]
     # None for seat-based orgs, regardless of the project's own setting.
@@ -705,7 +708,7 @@ def _get_eligible_projects(
     project_ids: list[int] | None = None,
 ) -> list[EligibleProject]:
     """Return active projects that have automation enabled and connected repos,
-    each paired with its parsed night shift tweaks.
+    each paired with its parsed agentic triage tweaks.
 
     When project_ids is provided, the org's projects are restricted to that set.
     Manual triggers bypass the tweaks.enabled gate — the user explicitly asked
@@ -715,7 +718,7 @@ def _get_eligible_projects(
     if project_ids is not None:
         project_qs = project_qs.filter(id__in=project_ids)
     if source == "cron":
-        org_tweaks = get_night_shift_org_tweaks(organization.id)
+        org_tweaks = get_agentic_triage_org_tweaks(organization.id)
         if org_tweaks is not None and org_tweaks.allowed_project_slugs is not None:
             project_qs = project_qs.filter(slug__in=org_tweaks.allowed_project_slugs)
     project_map = {p.id: p for p in project_qs}
@@ -731,7 +734,7 @@ def _get_eligible_projects(
         pref = preferences.get(pid)
         if pref is None:
             continue
-        tweaks = get_night_shift_tweaks(project)
+        tweaks = get_agentic_triage_tweaks(project)
         stopping_point = AutofixStoppingPoint(
             pref.automated_run_stopping_point or SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
         )
@@ -746,13 +749,13 @@ def _get_eligible_projects(
         if is_legacy_org and is_seer_autotriggered_autofix_rate_limited(project):
             reasons.append("autofix_rate_limited")
         if stopping_point != AutofixStoppingPoint.OPEN_PR:
-            # Night shift's only output is a PR, so a project that stops
+            # Agentic triage's only output is a PR, so a project that stops
             # short of open_pr can never produce a usable result.
             reasons.append("not_pr_producing")
 
         if reasons:
             logger.info(
-                "night_shift.project_filtered",
+                "agentic_triage.project_filtered",
                 extra={
                     "organization_id": organization.id,
                     "project_id": pid,
@@ -782,15 +785,15 @@ def _should_use_per_project_quotas(source: WorkflowRunSource, organization_id: i
     own quota. Manual runs bypass allowed_project_slugs, so never per-project."""
     if source != "cron":
         return False
-    org_tweaks = get_night_shift_org_tweaks(organization_id)
+    org_tweaks = get_agentic_triage_org_tweaks(organization_id)
     return org_tweaks is not None and org_tweaks.allowed_project_slugs is not None
 
 
 def _build_shard_plans(
     organization: Organization,
     eligible: Sequence[EligibleProject],
-    resolved_options: SeerNightShiftRunOptions,
-) -> tuple[list[NightShiftShardPlan], int]:
+    resolved_options: SeerAgenticTriageRunOptions,
+) -> tuple[list[AgenticTriageShardPlan], int]:
     eligible_projects = [ep.project for ep in eligible]
     repos_by_project = {ep.project.id: ep.connected_repos for ep in eligible}
     tuning_by_project = {
@@ -806,9 +809,9 @@ def _build_shard_plans(
 
     shard_size = max(1, options.get("seer.night_shift.shard_size"))
     chunks = list(chunked(scored, shard_size))
-    shard_plans: list[NightShiftShardPlan] = []
+    shard_plans: list[AgenticTriageShardPlan] = []
     for shard_index, chunk in enumerate(chunks):
-        payload = NightShiftPayload(
+        payload = AgenticTriagePayload(
             candidates=[
                 TriageCandidate(
                     group_id=candidate.group.id,
@@ -837,13 +840,13 @@ def _build_shard_plans(
         ) % {"count": num_candidates}
         if len(chunks) > 1:
             title += f" — part {shard_index + 1} of {len(chunks)}"
-        shard_plans.append(NightShiftShardPlan(payload=payload.dict(), title=title))
+        shard_plans.append(AgenticTriageShardPlan(payload=payload.dict(), title=title))
 
     return shard_plans, len(scored)
 
 
 def _maybe_create_shard_plan(
-    run: SeerWorkflowRun, shard_plans: Sequence[NightShiftShardPlan]
+    run: SeerWorkflowRun, shard_plans: Sequence[AgenticTriageShardPlan]
 ) -> None:
     using = router.db_for_write(SeerWorkflowRunExecution)
     with transaction.atomic(using=using):
@@ -869,10 +872,10 @@ def _dispatch_pending_shards(
     try:
         client = SeerAgentClient(organization)
     except SeerPermissionError:
-        logger.info("night_shift.no_seer_access", extra=log_extra)
+        logger.info("agentic_triage.no_seer_access", extra=log_extra)
         _record_run_error(
             run,
-            SeerNightShiftRunErrorType.NO_SEER_ACCESS,
+            SeerAgenticTriageRunErrorType.NO_SEER_ACCESS,
             "Organization does not have Seer access",
         )
         return ShardDispatchStatus.NO_SEER_ACCESS
@@ -894,16 +897,16 @@ def _dispatch_pending_shards(
                 dispatched += 1
                 continue
 
-            shard_plan = NightShiftShardPlan.from_extras(shard.extras)
+            shard_plan = AgenticTriageShardPlan.from_extras(shard.extras)
             if shard_plan is None:
                 logger.error(
-                    "night_shift.invalid_shard_plan",
+                    "agentic_triage.invalid_shard_plan",
                     extra={**log_extra, "shard_index": shard_index},
                 )
                 _record_run_error(
                     run,
-                    SeerNightShiftRunErrorType.INVALID_SHARD_PLAN,
-                    "Invalid Night Shift shard plan",
+                    SeerAgenticTriageRunErrorType.INVALID_SHARD_PLAN,
+                    "Invalid agentic triage shard plan",
                 )
                 return ShardDispatchStatus.INVALID_SHARD_PLAN
 
@@ -927,7 +930,7 @@ def _dispatch_pending_shards(
                 )
             except Exception:
                 logger.exception(
-                    "night_shift.shard_dispatch_failed",
+                    "agentic_triage.shard_dispatch_failed",
                     extra={
                         **log_extra,
                         "shard_index": shard_index,
@@ -939,14 +942,14 @@ def _dispatch_pending_shards(
 
     if dispatched != len(planned_shards):
         failed_shards = len(planned_shards) - dispatched
-        sentry_sdk.metrics.count("night_shift.shard_dispatch_failure", failed_shards)
+        sentry_sdk.metrics.count("agentic_triage.shard_dispatch_failure", failed_shards)
         _record_run_error(
             run,
-            SeerNightShiftRunErrorType.SHARD_DISPATCH_FAILED,
+            SeerAgenticTriageRunErrorType.SHARD_DISPATCH_FAILED,
             f"Failed to dispatch {failed_shards} of {len(planned_shards)} triage shards",
         )
         logger.warning(
-            "night_shift.partial_dispatch_failure",
+            "agentic_triage.partial_dispatch_failure",
             extra={
                 **log_extra,
                 "num_shards": len(planned_shards),
@@ -955,9 +958,11 @@ def _dispatch_pending_shards(
         )
         return ShardDispatchStatus.PARTIAL_FAILURE
 
-    sentry_sdk.metrics.distribution("night_shift.org_run_duration", time.monotonic() - start_time)
+    sentry_sdk.metrics.distribution(
+        "agentic_triage.org_run_duration", time.monotonic() - start_time
+    )
     logger.info(
-        "night_shift.feature_dispatched",
+        "agentic_triage.feature_dispatched",
         extra={
             **log_extra,
             "num_eligible_projects": (run.extras or {}).get("num_eligible_projects"),

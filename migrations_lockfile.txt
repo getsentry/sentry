@@ -33,7 +33,7 @@ releases: 0004_cleanup_failed_safe_deletes
 
 replays: 0001_squashed_0007_organizationmember_replay_access
 
-seer: 0036_disable_autofix_issue_data_fk_constraints
+seer: 0037_rename_agentic_triage_result
 
 sentry: 1185_backfill_release_new_id
 

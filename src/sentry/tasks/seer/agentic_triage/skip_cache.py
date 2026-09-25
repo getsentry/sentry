@@ -11,8 +11,8 @@ from sentry.utils.redis import redis_clusters
 
 logger = logging.getLogger(__name__)
 
-# Padded past 7 days so nightly-run jitter can't expire a key right at the
-# 7-day boundary; guarantees the next 7 nightly runs suppress the issue.
+# Padded past 7 days so scheduling jitter cannot expire a key at the
+# 7-day boundary. Preserve the key prefix to honor existing skip decisions.
 SKIP_TTL_SECONDS = int(timedelta(days=7, hours=12).total_seconds())
 KEY_PREFIX = "seer:night-shift:skip:"
 
@@ -22,7 +22,7 @@ def mark_skipped(group_id: int) -> None:
         _client().set(key(group_id), "1", ex=SKIP_TTL_SECONDS)
     except Exception:
         logger.exception(
-            "seer.night_shift.skip_cache.mark_skipped_failed",
+            "seer.agentic_triage.skip_cache.mark_skipped_failed",
             extra={"group_id": group_id},
         )
 
@@ -38,7 +38,7 @@ def recently_skipped(group_ids: Iterable[int]) -> set[int]:
             pipeline.get(key(gid))
         values = pipeline.execute()
     except Exception:
-        logger.exception("seer.night_shift.skip_cache.recently_skipped_failed")
+        logger.exception("seer.agentic_triage.skip_cache.recently_skipped_failed")
         return set()
 
     return {gid for gid, val in zip(ids, values) if val is not None}

@@ -873,7 +873,7 @@ class TestTriggerAutofixAgent(TestCase):
             trigger_autofix_agent(
                 group=self.group,
                 step=AutofixStep.CODE_CHANGES,
-                referrer=AutofixReferrer.NIGHT_SHIFT,
+                referrer=AutofixReferrer.AGENTIC_TRIAGE,
                 allow_free_cohort=True,
             )
 
@@ -898,7 +898,7 @@ class TestTriggerAutofixAgent(TestCase):
             trigger_autofix_agent(
                 group=self.group,
                 step=AutofixStep.CODE_CHANGES,
-                referrer=AutofixReferrer.NIGHT_SHIFT,
+                referrer=AutofixReferrer.AGENTIC_TRIAGE,
                 allow_free_cohort=True,
             )
 
@@ -1827,7 +1827,7 @@ class TestTriggerPushChanges(TestCase):
         self.create_seer_run(
             organization=self.organization,
             seer_run_state_id=123,
-            referrer=AutofixReferrer.NIGHT_SHIFT.value,
+            referrer=AutofixReferrer.AGENTIC_TRIAGE.value,
         )
 
         payload = self._push(mock_post)

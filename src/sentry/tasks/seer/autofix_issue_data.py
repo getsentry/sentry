@@ -33,7 +33,7 @@ MAX_REVIEWS_PER_ORG_PER_RUN = 20
 ISSUES_PER_JUDGE_TASK = 10
 ORG_STAGGER_SPREAD_DURATION = timedelta(hours=1)
 
-SYSTEM_PROMPT = """Night Shift reviews software issues and may trigger Autofix to investigate
+SYSTEM_PROMPT = """Agentic triage reviews software issues and may trigger Autofix to investigate
 and open a pull request. Your job is to identify issues where opening a pull request would be
 wasteful because the issue cannot be fixed in the relevant codebase.
 
@@ -81,7 +81,7 @@ def _select_candidates(organization_id: int) -> list[SeerAutofixIssueData]:
 def schedule_judging() -> None:
     """Twice-daily cron entry point for negative-label curation.
 
-    Finds orgs that had a Night Shift run in the last 48 hours, keeps those that
+    Finds orgs that had an agentic triage run in the last 48 hours, keeps those that
     are active and have the feature flag, and dispatches one
     `schedule_judging_for_org` task per org. That task samples the org's
     unreviewed rows and fans out the per-issue Opus judge calls. The 48-hour

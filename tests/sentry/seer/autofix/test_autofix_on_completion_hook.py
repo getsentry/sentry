@@ -363,7 +363,7 @@ class TestStoppingPointFromRun(TestCase):
     def test_group_and_referrer_ignores_other_feature_runs(self) -> None:
         self._create_run(
             123,
-            extras={"referrer": AutofixReferrer.NIGHT_SHIFT.value},
+            extras={"referrer": AutofixReferrer.AGENTIC_TRIAGE.value},
             source="night_shift",
         )
         assert _group_and_referrer_from_run(self.organization, 123) == (None, None)
@@ -376,7 +376,7 @@ class TestStoppingPointFromRun(TestCase):
         self._create_run(
             123,
             extras={
-                "referrer": AutofixReferrer.NIGHT_SHIFT.value,
+                "referrer": AutofixReferrer.AGENTIC_TRIAGE.value,
                 "stopping_point": AutofixStoppingPoint.CODE_CHANGES.value,
             },
         )
@@ -387,7 +387,7 @@ class TestStoppingPointFromRun(TestCase):
 
         AutofixOnCompletionHook.execute(self.organization, 123)
 
-        assert mock_trigger.call_args.kwargs["referrer"] == AutofixReferrer.NIGHT_SHIFT
+        assert mock_trigger.call_args.kwargs["referrer"] == AutofixReferrer.AGENTIC_TRIAGE
 
     @patch("sentry.seer.autofix.on_completion_hook.trigger_autofix_agent")
     def test_state_metadata_takes_precedence_over_the_run_mirror(self, mock_trigger) -> None:
@@ -1608,14 +1608,14 @@ class TestAutofixOnCompletionHookHandoff(TestCase):
             run_id=123,
             group=self.group,
             handoff_config=handoff_config,
-            referrer=AutofixReferrer.NIGHT_SHIFT,
+            referrer=AutofixReferrer.AGENTIC_TRIAGE,
         )
 
         mock_trigger.assert_called_once()
         call_kwargs = mock_trigger.call_args.kwargs
         assert call_kwargs["run_id"] == 123
         assert call_kwargs["integration_id"] == 123
-        assert call_kwargs["referrer"] == AutofixReferrer.NIGHT_SHIFT
+        assert call_kwargs["referrer"] == AutofixReferrer.AGENTIC_TRIAGE
 
 
 class AutofixOnCompletionHookTest(TestCase):

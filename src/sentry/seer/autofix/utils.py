@@ -995,7 +995,7 @@ def is_seer_seat_based_tier_enabled(organization: Organization) -> bool:
 
 def is_free_cohort_org(organization: Organization) -> bool:
     """Check if org is in the agentic triage free cohort — selected non-paying
-    orgs that receive night shift and autofix without a Seer subscription.
+    orgs that receive agentic triage and autofix without a Seer subscription.
 
     Returns True when the kill switch is NOT engaged (flag disabled = cohort
     active), the org is NOT on a paid seat-based Seer plan, and the org

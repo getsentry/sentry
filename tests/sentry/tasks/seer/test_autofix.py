@@ -73,7 +73,7 @@ class TestGenerateIssueSummaryOnly(SentryTestCase):
 
 
 class TestAutofixIssueDataJudge(SentryTestCase):
-    def _create_night_shift_run(self, organization, **kwargs):
+    def _create_agentic_triage_run(self, organization, **kwargs):
         config = SeerWorkflowConfig.get_or_create_for_strategy(
             organization.id, SeerWorkflowStrategy.AGENTIC_TRIAGE
         )
@@ -83,15 +83,15 @@ class TestAutofixIssueDataJudge(SentryTestCase):
         return run
 
     @patch("sentry.tasks.seer.autofix_issue_data.schedule_judging_for_org.apply_async")
-    def test_schedule_judging_dispatches_recent_night_shift_orgs(
+    def test_schedule_judging_dispatches_recent_agentic_triage_orgs(
         self, mock_apply_async: MagicMock
     ) -> None:
         recent_org = self.create_organization()
         stale_org = self.create_organization()
         unflagged_org = self.create_organization()
-        self._create_night_shift_run(recent_org)
-        self._create_night_shift_run(stale_org, date_added=timezone.now() - timedelta(hours=49))
-        self._create_night_shift_run(unflagged_org)
+        self._create_agentic_triage_run(recent_org)
+        self._create_agentic_triage_run(stale_org, date_added=timezone.now() - timedelta(hours=49))
+        self._create_agentic_triage_run(unflagged_org)
 
         with self.feature({FEATURE_FLAG: [recent_org.slug, stale_org.slug]}):
             schedule_judging()

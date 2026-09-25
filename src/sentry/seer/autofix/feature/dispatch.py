@@ -57,7 +57,7 @@ def trigger_autofix_feature(
     from sentry.seer.autofix.on_completion_hook import AutofixOnCompletionHook
 
     is_new_run = args.existing_run_id is None
-    # Free cohort orgs bypass quota only when called from night shift
+    # Free cohort orgs bypass quota only when called from agentic triage
     # (allow_free_cohort=True). Not exposed via the API.
     skip_quota = is_new_run and args.allow_free_cohort and is_free_cohort_org(group.organization)
     if is_new_run and not skip_quota:

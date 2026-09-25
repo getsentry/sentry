@@ -524,11 +524,11 @@ def trigger_autofix_agent(
         step: Which autofix step to run
         run_id: Existing run ID to continue, or None for new run
         stopping_point: Where to stop the automated pipeline (only used for new runs)
-        allow_free_cohort: Internal-only flag set by night shift to bypass
+        allow_free_cohort: Internal-only flag set by agentic triage to bypass
             quota for free cohort orgs. Not exposed via the API.
     """
     # check billing quota for triggering a new autofix run
-    # Free cohort orgs bypass quota only when called from night shift
+    # Free cohort orgs bypass quota only when called from agentic triage
     # (allow_free_cohort=True). The API endpoint never sets this flag,
     # so manual triggers still require quota.
     if run_id is None:
@@ -544,7 +544,7 @@ def trigger_autofix_agent(
     # If autofix-should-run-repo-checks is enabled,
     # we should force bash tools on as it is dependent on bash tools
     enable_bash_mode = enable_bash_mode or (
-        referrer == AutofixReferrer.NIGHT_SHIFT
+        referrer == AutofixReferrer.AGENTIC_TRIAGE
         and features.has("organizations:autofix-should-run-repo-checks", group.organization)
     )
 
@@ -1011,7 +1011,7 @@ def trigger_push_changes(
 
 # Kept in sync with the automated SeerAutomationSource entries in issue_summary.referrer_map.
 AUTOMATED_AUTOFIX_REFERRERS = frozenset(
-    {AutofixReferrer.ISSUE_SUMMARY_POST_PROCESS_FIXABILITY, AutofixReferrer.NIGHT_SHIFT}
+    {AutofixReferrer.ISSUE_SUMMARY_POST_PROCESS_FIXABILITY, AutofixReferrer.AGENTIC_TRIAGE}
 )
 
 

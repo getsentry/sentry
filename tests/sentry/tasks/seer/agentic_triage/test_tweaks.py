@@ -1,17 +1,17 @@
 from unittest.mock import patch
 
 from sentry import options
-from sentry.tasks.seer.night_shift.tweaks import (
-    NightShiftTweaks,
-    get_night_shift_org_tweaks,
-    get_night_shift_tweaks,
+from sentry.tasks.seer.agentic_triage.tweaks import (
+    AgenticTriageTweaks,
+    get_agentic_triage_org_tweaks,
+    get_agentic_triage_tweaks,
 )
 from sentry.testutils.cases import TestCase
 
 
-class GetNightShiftTweaksTest(TestCase):
+class GetAgenticTriageTweaksTest(TestCase):
     def test_unset_returns_defaults(self) -> None:
-        tweaks = get_night_shift_tweaks(self.project)
+        tweaks = get_agentic_triage_tweaks(self.project)
 
         assert tweaks.enabled is True
         assert tweaks.max_candidates == options.get("seer.night_shift.issues_per_org")
@@ -19,7 +19,7 @@ class GetNightShiftTweaksTest(TestCase):
     def test_empty_object_returns_defaults(self) -> None:
         self.project.update_option("sentry:seer_nightshift_tweaks", {})
 
-        tweaks = get_night_shift_tweaks(self.project)
+        tweaks = get_agentic_triage_tweaks(self.project)
 
         assert tweaks.enabled is True
         assert tweaks.max_candidates == options.get("seer.night_shift.issues_per_org")
@@ -30,9 +30,9 @@ class GetNightShiftTweaksTest(TestCase):
             {"enabled": True, "max_candidates": 25},
         )
 
-        tweaks = get_night_shift_tweaks(self.project)
+        tweaks = get_agentic_triage_tweaks(self.project)
 
-        assert tweaks == NightShiftTweaks(enabled=True, max_candidates=25)
+        assert tweaks == AgenticTriageTweaks(enabled=True, max_candidates=25)
 
     def test_partial_override_falls_back_to_option(self) -> None:
         self.project.update_option(
@@ -41,7 +41,7 @@ class GetNightShiftTweaksTest(TestCase):
         )
 
         with self.options({"seer.night_shift.issues_per_org": 42}):
-            tweaks = get_night_shift_tweaks(self.project)
+            tweaks = get_agentic_triage_tweaks(self.project)
 
         assert tweaks.enabled is True
         assert tweaks.max_candidates == 42
@@ -52,7 +52,7 @@ class GetNightShiftTweaksTest(TestCase):
             {"max_candidates": 7},
         )
 
-        tweaks = get_night_shift_tweaks(self.project)
+        tweaks = get_agentic_triage_tweaks(self.project)
 
         assert tweaks.enabled is True
         assert tweaks.max_candidates == 7
@@ -64,9 +64,9 @@ class GetNightShiftTweaksTest(TestCase):
         )
 
         with patch(
-            "sentry.tasks.seer.night_shift.tweaks.sentry_sdk.capture_exception"
+            "sentry.tasks.seer.agentic_triage.tweaks.sentry_sdk.capture_exception"
         ) as mock_capture:
-            tweaks = get_night_shift_tweaks(self.project)
+            tweaks = get_agentic_triage_tweaks(self.project)
 
         mock_capture.assert_called_once()
         assert tweaks.enabled is True
@@ -79,24 +79,24 @@ class GetNightShiftTweaksTest(TestCase):
         )
 
         with patch(
-            "sentry.tasks.seer.night_shift.tweaks.sentry_sdk.capture_exception"
+            "sentry.tasks.seer.agentic_triage.tweaks.sentry_sdk.capture_exception"
         ) as mock_capture:
-            tweaks = get_night_shift_tweaks(self.project)
+            tweaks = get_agentic_triage_tweaks(self.project)
 
         mock_capture.assert_called_once()
         assert tweaks.enabled is True
         assert tweaks.max_candidates == options.get("seer.night_shift.issues_per_org")
 
 
-class GetNightShiftOrgTweaksTest(TestCase):
+class GetAgenticTriageOrgTweaksTest(TestCase):
     def test_unset_returns_none(self) -> None:
-        assert get_night_shift_org_tweaks(self.organization.id) is None
+        assert get_agentic_triage_org_tweaks(self.organization.id) is None
 
     def test_returns_overrides_for_matching_org(self) -> None:
         with self.options(
             {"seer.night_shift.org_tweaks": {str(self.organization.id): {"max_candidates": 20}}}
         ):
-            tweaks = get_night_shift_org_tweaks(self.organization.id)
+            tweaks = get_agentic_triage_org_tweaks(self.organization.id)
 
         assert tweaks is not None
         assert tweaks.max_candidates == 20
@@ -108,7 +108,7 @@ class GetNightShiftOrgTweaksTest(TestCase):
                 "seer.night_shift.issues_per_org": 42,
             }
         ):
-            tweaks = get_night_shift_org_tweaks(self.organization.id)
+            tweaks = get_agentic_triage_org_tweaks(self.organization.id)
 
         assert tweaks is not None
         assert tweaks.max_candidates == 20
@@ -119,7 +119,7 @@ class GetNightShiftOrgTweaksTest(TestCase):
         with self.options(
             {"seer.night_shift.org_tweaks": {str(self.organization.id + 1): {"max_candidates": 20}}}
         ):
-            assert get_night_shift_org_tweaks(self.organization.id) is None
+            assert get_agentic_triage_org_tweaks(self.organization.id) is None
 
     def test_non_dict_override_reports_and_returns_none(self) -> None:
         with (
@@ -127,10 +127,10 @@ class GetNightShiftOrgTweaksTest(TestCase):
                 {"seer.night_shift.org_tweaks": {str(self.organization.id): "not-a-dict"}}
             ),
             patch(
-                "sentry.tasks.seer.night_shift.tweaks.sentry_sdk.capture_exception"
+                "sentry.tasks.seer.agentic_triage.tweaks.sentry_sdk.capture_exception"
             ) as mock_capture,
         ):
-            assert get_night_shift_org_tweaks(self.organization.id) is None
+            assert get_agentic_triage_org_tweaks(self.organization.id) is None
 
         mock_capture.assert_called_once()
 
@@ -144,9 +144,9 @@ class GetNightShiftOrgTweaksTest(TestCase):
                 }
             ),
             patch(
-                "sentry.tasks.seer.night_shift.tweaks.sentry_sdk.capture_exception"
+                "sentry.tasks.seer.agentic_triage.tweaks.sentry_sdk.capture_exception"
             ) as mock_capture,
         ):
-            assert get_night_shift_org_tweaks(self.organization.id) is None
+            assert get_agentic_triage_org_tweaks(self.organization.id) is None
 
         mock_capture.assert_called_once()
