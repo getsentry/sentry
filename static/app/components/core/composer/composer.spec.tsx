@@ -266,14 +266,17 @@ describe('Composer', () => {
 
   it('does not trigger onKeyDown when Enter is pressed while popup is loading', async () => {
     const onKeyDown = jest.fn();
-    const loadingSource: TestComposerSource = {
+    const loadingSource: ComposerSource<PersonSuggestion> = {
       id: 'slow',
       label: 'Slow',
       trigger: '@',
-      getSuggestions: () => new Promise(() => {}), // Never resolves
+      queryOptions: () => ({
+        queryKey: ['test', 'loading'],
+        queryFn: () => new Promise<readonly PersonSuggestion[]>(() => {}), // Never resolves
+      }),
       getId: () => '',
       getText: () => '',
-    };
+    } as ComposerSource<PersonSuggestion>;
 
     render(
       <Composer
