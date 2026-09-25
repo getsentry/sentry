@@ -8,7 +8,7 @@ from typing import Any
 
 from django.db.models import F
 from sentry_conventions.attributes import ATTRIBUTE_NAMES
-from sentry_sdk import trace
+from sentry_sdk import traces
 
 from sentry.ai_monitoring.message_normalizer import (
     FILTERED,
@@ -210,7 +210,7 @@ def fallback_title_from_message(message: str) -> str:
     return _finalize_title(" ".join(words[:TITLE_MAX_WORDS]) + "...")
 
 
-@trace
+@traces.trace
 def generate_title_with_seer(first_user_message: str, organization: Organization) -> str | None:
     try:
         result = run_oneshot(
