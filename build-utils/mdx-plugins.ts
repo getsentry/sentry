@@ -5,6 +5,7 @@ import remarkGfm from 'remark-gfm';
 import remarkMdxFrontmatter from 'remark-mdx-frontmatter';
 
 import {remarkUnwrapMdxParagraphs} from './remark-unwrap-mdx-paragraphs.ts';
+import {remarkStoryHeadings} from './story-headings.ts';
 
 /**
  * Shared remark plugins for MDX processing.
@@ -13,6 +14,7 @@ import {remarkUnwrapMdxParagraphs} from './remark-unwrap-mdx-paragraphs.ts';
  * Order matters — plugins run in array order.
  */
 export const remarkPlugins = [
+  remarkStoryHeadings,
   remarkUnwrapMdxParagraphs,
   remarkFrontmatter,
   remarkMdxFrontmatter,

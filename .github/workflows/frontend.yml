@@ -61,6 +61,9 @@ jobs:
           echo "::remove-matcher owner=masters::"
           echo "::add-matcher::.github/tsc.json"
 
+      - name: MDX heading index tests
+        run: node --test build-utils/story-headings.test.ts
+
       - name: tsc
         id: tsc
         run: pnpm run typecheck

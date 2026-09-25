@@ -234,6 +234,7 @@
     "@jest/environment": "30.5.1",
     "@jest/environment-jsdom-abstract": "30.5.1",
     "@jest/types": "30.5.1",
+    "@mdx-js/mdx": "3.1.1",
     "@sentry/jest-environment": "8.0.0",
     "@sentry/rrweb-types": "2.44.0",
     "@swc-contrib/mut-cjs-exports": "15.0.0",

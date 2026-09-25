@@ -16,7 +16,10 @@ import {Overlay} from 'sentry/components/overlay';
 import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/tokens/useSearchTokenCombobox';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {storyFrontmatterIndex} from 'sentry/stories/storyManifest.generated';
+import {
+  storyFrontmatterIndex,
+  storyHeadingIndex,
+} from 'sentry/stories/storyManifest.generated';
 import type {StoryTreeNode} from 'sentry/stories/view/storyTree';
 import {
   COMPONENT_SUBCATEGORY_CONFIG,
@@ -29,19 +32,76 @@ import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
+interface SearchItem {
+  key: string;
+  label: string;
+  node: StoryTreeNode;
+  title: string;
+  hash?: string;
+}
+
 interface SearchSection {
   key: string;
   label: string;
-  options: StoryTreeNode[];
+  options: SearchItem[];
 }
 
-function isSearchSection(item: StoryTreeNode | SearchSection): item is SearchSection {
+function searchItems(nodes: StoryTreeNode[], query: string): SearchItem[] {
+  const items = nodes.flatMap(node => {
+    const page: SearchItem = {
+      key: node.filesystemPath,
+      label: node.label,
+      title: node.label,
+      node,
+    };
+    // Keep the empty-query menu compact. Sections are discovery results, not
+    // additional pages in the navigation tree.
+    if (!query.trim()) {
+      return [page];
+    }
+    return [
+      page,
+      ...(storyHeadingIndex[node.filesystemPath] ?? []).map(heading => ({
+        key: `${node.filesystemPath}#${heading.id}`,
+        label: [node.label, ...heading.parents, heading.title].join(' › '),
+        title: heading.title,
+        node,
+        hash: `#${encodeURIComponent(heading.id)}`,
+      })),
+    ];
+  });
+  const term = query.trim().toLowerCase();
+  if (!term) {
+    return items;
+  }
+  return items
+    .map(item => {
+      const title = item.title.toLowerCase();
+      const match = fzf(item.label, term, false);
+      return {
+        item,
+        score: match.score,
+        rank: title === term ? 2 : title.startsWith(term) ? 1 : 0,
+      };
+    })
+    .filter(({score}) => score > 0)
+    .sort(
+      (a, b) =>
+        b.rank - a.rank ||
+        Number(!!a.item.hash) - Number(!!b.item.hash) ||
+        b.score - a.score
+    )
+    .map(({item}) => item);
+}
+
+function isSearchSection(item: SearchItem | SearchSection): item is SearchSection {
   return 'options' in item;
 }
 
 export function StorySearch() {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const hierarchy = useStoryHierarchy();
+  const [inputValue, setInputValue] = useState('');
   useHotkeys([{match: '/', callback: () => inputRef.current?.focus()}]);
 
   const sectionedItems = useMemo(() => {
@@ -63,7 +123,7 @@ export function StorySearch() {
           sections.push({
             key: section,
             label: SECTION_CONFIG[section].label,
-            options: allCoreNodes,
+            options: searchItems(allCoreNodes, inputValue),
           });
         }
       } else if (section === 'product' && data.stories.length > 0) {
@@ -71,27 +131,29 @@ export function StorySearch() {
         sections.push({
           key: section,
           label: SECTION_CONFIG[section].label,
-          options: flattenedStories,
+          options: searchItems(flattenedStories, inputValue),
         });
       } else if (data.stories.length > 0) {
         // Other sections (principles, patterns) don't need flattening
         sections.push({
           key: section,
           label: SECTION_CONFIG[section].label,
-          options: data.stories,
+          options: searchItems(data.stories, inputValue),
         });
       }
     }
 
-    return sections;
-  }, [hierarchy]);
+    return sections.filter(section => section.options.length > 0);
+  }, [hierarchy, inputValue]);
 
   return (
     <SearchComboBox
       label={t('Search stories')}
       menuTrigger="focus"
       inputRef={inputRef}
-      defaultItems={sectionedItems}
+      items={sectionedItems}
+      inputValue={inputValue}
+      onInputChange={setInputValue}
     >
       {item => {
         if (isSearchSection(item)) {
@@ -105,7 +167,7 @@ export function StorySearch() {
               }
             >
               {item.options.map(storyItem => {
-                const meta = storyFrontmatterIndex[storyItem.filesystemPath];
+                const meta = storyFrontmatterIndex[storyItem.node.filesystemPath];
                 const subcategoryKey = item.key === 'core' ? meta?.category : undefined;
                 const subcategoryLabel = subcategoryKey
                   ? (
@@ -118,7 +180,7 @@ export function StorySearch() {
 
                 return (
                   <Item
-                    key={storyItem.filesystemPath}
+                    key={storyItem.key}
                     textValue={storyItem.label}
                     {...({
                       label: storyItem.label,
@@ -138,7 +200,7 @@ export function StorySearch() {
 
         return (
           <Item
-            key={item.filesystemPath}
+            key={item.key}
             textValue={item.label}
             {...({label: item.label, hideCheck: true} as any)}
           />
@@ -167,27 +229,22 @@ function SearchInput(
   );
 }
 
-type SearchComboBoxItem<T extends StoryTreeNode> = T | SearchSection;
+type SearchComboBoxItem = SearchItem | SearchSection;
 
 interface SearchComboBoxProps extends Omit<
-  AriaComboBoxProps<SearchComboBoxItem<StoryTreeNode>>,
+  AriaComboBoxProps<SearchComboBoxItem>,
   'children'
 > {
-  children: CollectionChildren<SearchComboBoxItem<StoryTreeNode>>;
-  defaultItems: Array<SearchComboBoxItem<StoryTreeNode>>;
+  children: CollectionChildren<SearchComboBoxItem>;
   inputRef: React.RefObject<HTMLInputElement | null>;
+  inputValue: string;
+  items: SearchSection[];
   description?: string | null;
   label?: string;
 }
 
-function filter(textValue: string, inputValue: string): boolean {
-  const match = fzf(textValue, inputValue.toLowerCase(), false);
-  return match.score > 0;
-}
-
 function SearchComboBox(props: SearchComboBoxProps) {
-  const [inputValue, setInputValue] = useState('');
-  const {inputRef} = props;
+  const {inputRef, inputValue} = props;
   const listBoxRef = useRef<HTMLUListElement | null>(null);
   const popoverRef = useRef<HTMLDivElement | null>(null);
   const navigate = useNavigate();
@@ -197,38 +254,37 @@ function SearchComboBox(props: SearchComboBoxProps) {
     if (!key) {
       return;
     }
-    const node = getStoryTreeNodeFromKey(key, props);
-    if (!node) {
+    const item = props.items
+      .flatMap(section => section.options)
+      .find(option => option.key === key);
+    if (!item) {
       return;
     }
     navigate({
       pathname: normalizeUrl(
-        `/organizations/${organization.slug}/scraps/${node.category}/${node.slug}/`
+        `/organizations/${organization.slug}/scraps/${item.node.category}/${item.node.slug}/`
       ),
+      hash: item.hash ?? '',
     });
   };
 
   const state = useComboBoxState({
     ...props,
-    inputValue,
-    onInputChange: setInputValue,
-    defaultFilter: filter,
     shouldCloseOnBlur: true,
     allowsEmptyCollection: true,
     onChange: handleValueChange,
   });
 
-  const {inputProps, listBoxProps, labelProps} = useSearchTokenCombobox<
-    SearchComboBoxItem<StoryTreeNode>
-  >(
-    {
-      ...props,
-      inputRef,
-      listBoxRef,
-      popoverRef,
-    },
-    state
-  );
+  const {inputProps, listBoxProps, labelProps} =
+    useSearchTokenCombobox<SearchComboBoxItem>(
+      {
+        ...props,
+        inputRef,
+        listBoxRef,
+        popoverRef,
+      },
+      state
+    );
 
   return (
     <StorySearchContainer>
@@ -308,20 +364,3 @@ const StyledOverlay = styled(Overlay)`
     padding-block-end: calc(${p => p.theme.space.md} + 1px);
   }
 `;
-
-function getStoryTreeNodeFromKey(
-  key: Key,
-  props: SearchComboBoxProps
-): StoryTreeNode | undefined {
-  for (const category of props.defaultItems) {
-    if (isSearchSection(category)) {
-      for (const node of category.options) {
-        const match = node.find(item => item.filesystemPath === key);
-        if (match) {
-          return match;
-        }
-      }
-    }
-  }
-  return undefined;
-}
