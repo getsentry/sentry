@@ -14,7 +14,7 @@ describe('getDetectorOpenInDestination', () => {
   });
 
   describe('Errors dataset', () => {
-    it('returns "Open in Discover" for errors dataset', () => {
+    it('returns "Open in Explore" for errors dataset', () => {
       const detector = MetricDetectorFixture({
         dataSources: [
           SnubaQueryDataSourceFixture({
@@ -44,7 +44,7 @@ describe('getDetectorOpenInDestination', () => {
         statsPeriod: '7d',
       });
 
-      expect(result?.buttonText).toBe('Open in Discover');
+      expect(result?.buttonText).toBe('Open in Explore');
       expect(result?.to).toEqual(
         expect.objectContaining({
           pathname: expect.stringContaining('/errors/results/'),

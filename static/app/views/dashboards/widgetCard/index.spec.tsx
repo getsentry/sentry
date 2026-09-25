@@ -151,7 +151,7 @@ describe('Dashboards > WidgetCard', () => {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders with Open in Discover button and opens the Query Selector Modal when clicked', async () => {
+  it('renders with Open in Explore button and opens the Query Selector Modal when clicked', async () => {
     const spy = jest.spyOn(modal, 'openDashboardWidgetQuerySelectorModal');
     renderWithProviders(
       <WidgetCard
@@ -168,14 +168,14 @@ describe('Dashboards > WidgetCard', () => {
     );
 
     await userEvent.click(await screen.findByLabelText('Widget actions'));
-    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Open in Discover'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Open in Explore'}));
     expect(spy).toHaveBeenCalledWith({
       organization,
       widget: multipleQueryWidget,
     });
   });
 
-  it('renders with Open in Discover button', async () => {
+  it('renders with Open in Explore button', async () => {
     renderWithProviders(
       <WidgetCard
         api={api}
@@ -191,7 +191,7 @@ describe('Dashboards > WidgetCard', () => {
     );
 
     await userEvent.click(await screen.findByLabelText('Widget actions'));
-    expect(screen.getByRole('menuitemradio', {name: 'Open in Discover'})).toHaveAttribute(
+    expect(screen.getByRole('menuitemradio', {name: 'Open in Explore'})).toHaveAttribute(
       'href',
       '/organizations/org-slug/explore/errors/results/?environment=prod&field=count%28%29&field=failure_count%28%29&name=Errors&project=1&query=event.type%3Aerror&queryDataset=error-events&statsPeriod=14d&yAxis=count%28%29&yAxis=failure_count%28%29'
     );
@@ -216,7 +216,7 @@ describe('Dashboards > WidgetCard', () => {
     expect(await screen.findByText('Valid widget description')).toBeInTheDocument();
   });
 
-  it('renders Discover button with prepended fields pulled from equations', async () => {
+  it('renders Open in Explore button with prepended fields pulled from equations', async () => {
     renderWithProviders(
       <WidgetCard
         api={api}
@@ -246,13 +246,13 @@ describe('Dashboards > WidgetCard', () => {
     );
 
     await userEvent.click(await screen.findByLabelText('Widget actions'));
-    expect(screen.getByRole('menuitemradio', {name: 'Open in Discover'})).toHaveAttribute(
+    expect(screen.getByRole('menuitemradio', {name: 'Open in Explore'})).toHaveAttribute(
       'href',
       '/organizations/org-slug/explore/errors/results/?environment=prod&field=count_if%28transaction.duration%2Cequals%2C300%29&field=failure_count%28%29&field=count%28%29&field=equation%7C%28count%28%29%20%2B%20failure_count%28%29%29%20%2F%20count_if%28transaction.duration%2Cequals%2C300%29&name=Errors&project=1&query=event.type%3Aerror&queryDataset=error-events&statsPeriod=14d&yAxis=equation%7C%28count%28%29%20%2B%20failure_count%28%29%29%20%2F%20count_if%28transaction.duration%2Cequals%2C300%29'
     );
   });
 
-  it('renders button to open Discover with Top N', async () => {
+  it('renders button to open Explore with Top N', async () => {
     renderWithProviders(
       <WidgetCard
         api={api}
@@ -280,13 +280,13 @@ describe('Dashboards > WidgetCard', () => {
 
     await userEvent.click(await screen.findByLabelText('Widget actions'));
     // TOP_N is converted to AREA, so the discover URL no longer has display=top5
-    expect(screen.getByRole('menuitemradio', {name: 'Open in Discover'})).toHaveAttribute(
+    expect(screen.getByRole('menuitemradio', {name: 'Open in Explore'})).toHaveAttribute(
       'href',
       '/organizations/org-slug/explore/errors/results/?environment=prod&field=transaction&field=count%28%29&name=Errors&project=1&query=event.type%3Aerror&queryDataset=error-events&statsPeriod=14d&yAxis=count%28%29'
     );
   });
 
-  it('allows Open in Discover when the widget contains custom measurements', async () => {
+  it('allows Open in Explore when the widget contains custom measurements', async () => {
     renderWithProviders(
       <WidgetCard
         api={api}
@@ -314,7 +314,7 @@ describe('Dashboards > WidgetCard', () => {
     );
 
     await userEvent.click(await screen.findByLabelText('Widget actions'));
-    expect(screen.getByRole('menuitemradio', {name: 'Open in Discover'})).toHaveAttribute(
+    expect(screen.getByRole('menuitemradio', {name: 'Open in Explore'})).toHaveAttribute(
       'href',
       '/organizations/org-slug/explore/errors/results/?environment=prod&field=p99%28measurements.custom.measurement%29&name=Errors&project=1&query=&queryDataset=error-events&statsPeriod=14d&yAxis=p99%28measurements.custom.measurement%29'
     );

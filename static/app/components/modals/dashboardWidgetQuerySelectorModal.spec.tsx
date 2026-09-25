@@ -91,7 +91,7 @@ describe('Modals -> AddDashboardWidgetModal', () => {
     expect(
       screen.getByDisplayValue('title:/organizations/:orgId/insights/summary/')
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Open in Discover'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Open in Explore'})).toBeInTheDocument();
   });
 
   it('renders a multiple query selections when the widget only has multiple queries', () => {
