@@ -204,6 +204,7 @@ export interface Block {
   todos?: TodoItem[] | null;
   tool_links?: Array<ToolLink | null> | null;
   tool_results?: Array<ToolResult | null> | null;
+  tool_summary?: string | null;
 }
 
 export interface ExplorerSession {
