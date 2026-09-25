@@ -14,8 +14,6 @@ Also includes some utility functions for validating assignments.
 
 from __future__ import annotations
 
-from typing import Literal
-
 from django.db import models
 from pydantic import BaseModel, Field
 
