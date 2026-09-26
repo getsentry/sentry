@@ -43,6 +43,7 @@ class WebhookTest(GitLabTestCase):
     def assert_pull_request(self, pull: PullRequest, author: CommitAuthor) -> None:
         assert pull.title
         assert pull.external_id == 90
+        assert pull.external_id_str == "90"
         assert pull.message
         assert pull.date_added
         assert pull.author == author
