@@ -160,7 +160,7 @@ class PullRequestAuthor(OriginModel):
 
 
 class PullRequest(OriginModel):
-    # Origin's provider-global id (`pr_…`), stored as `PullRequest.external_id_str`.
+    # Origin's provider-global id (`pr_…`), stored as `PullRequest.external_id`.
     id: str = Field(min_length=1)
     number: str = Field(min_length=1)
     title: str
