@@ -158,7 +158,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
             key="7",
         )
         if external_id is not None:
-            pr.update(external_id_str=external_id)
+            pr.update(external_id=external_id)
         return pr
 
     def _call(self) -> None:
@@ -249,8 +249,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
             self.mock_make_scm.return_value, "7"
         )
         pr.refresh_from_db()
-        assert pr.external_id_str == "555"
-        assert pr.external_id == 555
+        assert pr.external_id == "555"
 
     @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
     def test_looks_up_a_non_numeric_provider_id(
@@ -267,8 +266,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
             self.organization.id, "integrations:github", "pr_01abc"
         )
         pr.refresh_from_db()
-        assert pr.external_id_str == "pr_01abc"
-        assert pr.external_id is None
+        assert pr.external_id == "pr_01abc"
 
     @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
     def test_returns_when_get_pull_request_fails(
