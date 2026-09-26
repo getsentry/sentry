@@ -11,7 +11,7 @@ import {
 } from '@sentry/scraps/button';
 import {Checkbox, type CheckboxProps} from '@sentry/scraps/checkbox';
 import {Text} from '@sentry/scraps/text';
-import {useTranslation} from '@sentry/scraps/translationContext';
+import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 import {ControlContext} from './control';
 

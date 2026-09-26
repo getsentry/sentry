@@ -2,7 +2,7 @@ import {CompactSelect} from '@sentry/scraps/compactSelect';
 import type {SelectKey, SelectOption} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
-import {useTranslation} from '@sentry/scraps/translationContext';
+import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 export interface BreadcrumbItemSelectProjectsProps<Value extends SelectKey = string> {
   onChange: (value: SelectOption<Value>) => void;

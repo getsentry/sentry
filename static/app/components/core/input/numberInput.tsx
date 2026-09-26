@@ -10,7 +10,7 @@ import {useNumberFieldState} from '@react-stately/numberfield';
 import {Button} from '@sentry/scraps/button';
 import type {InputStylesProps} from '@sentry/scraps/input';
 import {InputGroup} from '@sentry/scraps/input';
-import {useTranslation} from '@sentry/scraps/translationContext';
+import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 import {IconChevron} from 'sentry/icons/iconChevron';
 
