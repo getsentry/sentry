@@ -7,7 +7,7 @@ const productionEntryPoints = [
   'static/app/index.tsx',
   // scraps has all index.tsx file as separate entry points
   'static/app/components/core/*/index.tsx',
-  // defined in rspack.config.ts pipelines
+  // defined in rsbuild.config.ts pipelines
   'static/app/utils/setupStatics.tsx',
   'static/app/serviceWorker/worker/worker.ts',
   // scripts are entry points

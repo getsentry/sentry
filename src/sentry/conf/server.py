@@ -2368,16 +2368,16 @@ SENTRY_API_RESPONSE_DELAY = 150 if IS_DEV else None
 
 # Watchers for various application purposes (such as compiling static media)
 # XXX(dcramer): this doesn't work outside of a source distribution as the
-# rspack.config.ts is not part of Sentry's datafiles
+# rsbuild.config.ts is not part of Sentry's datafiles
 SENTRY_WATCHERS = (
     (
         "webpack",
         [
-            os.path.join(NODE_MODULES_ROOT, ".bin", "rspack"),
-            "serve",
+            os.path.join(NODE_MODULES_ROOT, ".bin", "rsbuild"),
+            "dev",
             "--config={}".format(
                 os.path.normpath(
-                    os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "rspack.config.ts")
+                    os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "rsbuild.config.ts")
                 )
             ),
         ],

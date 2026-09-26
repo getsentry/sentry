@@ -3,6 +3,8 @@ import fs from 'node:fs';
 import {createRequire} from 'node:module';
 import path from 'node:path';
 
+import {defineConfig} from '@rsbuild/core';
+import type {ProxyOptions, RsbuildConfig} from '@rsbuild/core';
 import {RsdoctorRspackPlugin} from '@rsdoctor/rspack-plugin';
 import type {
   Configuration,
@@ -1017,4 +1019,91 @@ if (env.RSPACK_STATS) {
   }
 }
 
-export default configs;
+// Rsbuild owns the dev server and multi-environment lifecycle. Keep the compiler
+// customization here: Django's entrypoint names, asset layout, and the worker's
+// shared output directory are part of the contract with the backend.
+const server = appConfig.devServer || undefined;
+const rsbuildConfig: RsbuildConfig = {
+  root: import.meta.dirname,
+  mode: WEBPACK_MODE,
+  dev: {
+    assetPrefix:
+      typeof appConfig.output?.publicPath === 'string'
+        ? appConfig.output.publicPath
+        : '/',
+    hmr: SHOULD_HOT_MODULE_RELOAD,
+    liveReload: !SENTRY_DEVSERVER_NGROK,
+    // Rsbuild defaults the WebSocket host and port to window.location, which
+    // also works when ngrok/Coder terminates HTTPS in front of the dev server.
+    client: {overlay: false},
+  },
+  server: {
+    host: server?.host,
+    port: typeof server?.port === 'number' ? server.port : undefined,
+    headers: server?.headers as Record<string, string> | undefined,
+    compress: server?.compress,
+    https:
+      server?.server &&
+      typeof server.server === 'object' &&
+      server.server.type === 'https'
+        ? server.server.options
+        : undefined,
+    historyApiFallback: server?.historyApiFallback as NonNullable<
+      RsbuildConfig['server']
+    >['historyApiFallback'],
+    htmlFallback: false,
+    publicDir:
+      server?.static && !IS_UI_DEV_ONLY
+        ? {
+            name: 'src/sentry/static/sentry',
+            watch: true,
+            copyOnBuild: false,
+          }
+        : false,
+    proxy: Array.isArray(server?.proxy)
+      ? (server.proxy.map(rule => {
+          if (typeof rule === 'function') {
+            return rule() as ProxyOptions;
+          }
+          const {context, logger: _logger, ...options} = rule;
+          return {
+            ...options,
+            pathFilter: context,
+          };
+        }) as ProxyOptions[])
+      : undefined,
+  },
+  environments: {
+    app: {
+      source: {
+        entry: {
+          app: {import: ['sentry/utils/setupStatics', 'sentry'], html: false},
+          gsAdmin: {
+            import: ['sentry/utils/setupStatics', path.join(staticPrefix, 'gsAdmin')],
+            html: false,
+          },
+          sentry: {import: 'less/sentry.less', html: false},
+        },
+      },
+      output: {target: 'web', distPath: {root: distPath}, cleanDistPath: false},
+      tools: {
+        htmlPlugin: false,
+        rspack: config => ({...config, ...appConfig, devServer: undefined}),
+      },
+    },
+    'service-worker': {
+      source: {
+        entry: {
+          'service-worker': {import: 'sentry/serviceWorker/worker/worker', html: false},
+        },
+      },
+      output: {target: 'web-worker', distPath: {root: distPath}, cleanDistPath: false},
+      tools: {
+        htmlPlugin: false,
+        rspack: config => ({...config, ...workerConfig, devServer: undefined}),
+      },
+    },
+  },
+};
+
+export default defineConfig(rsbuildConfig);
