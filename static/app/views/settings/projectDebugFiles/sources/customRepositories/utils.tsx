@@ -9,6 +9,7 @@ export const customRepoTypeLabel = {
   [CustomRepoType.HTTP]: 'SymbolServer (HTTP)',
   [CustomRepoType.S3]: 'Amazon S3',
   [CustomRepoType.GCS]: 'Google Cloud Storage',
+  [CustomRepoType.AZURE]: 'Azure Blob Storage',
 };
 
 export const dropDownItems = [
@@ -19,6 +20,10 @@ export const dropDownItems = [
   {
     key: CustomRepoType.GCS,
     label: customRepoTypeLabel[CustomRepoType.GCS],
+  },
+  {
+    key: CustomRepoType.AZURE,
+    label: customRepoTypeLabel[CustomRepoType.AZURE],
   },
   {
     key: CustomRepoType.HTTP,

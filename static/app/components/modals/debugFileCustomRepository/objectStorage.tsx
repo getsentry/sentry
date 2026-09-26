@@ -14,6 +14,7 @@ import {
 } from 'sentry/data/debugFileSources';
 import {t, tct} from 'sentry/locale';
 import type {
+  CustomRepoAzure,
   CustomRepoFormData,
   CustomRepoGCS,
   CustomRepoS3,
@@ -23,6 +24,7 @@ import {uniqueId} from 'sentry/utils/guid';
 
 type S3SubmitData = Extract<CustomRepoFormData, {type: CustomRepoType.S3}>;
 type GcsSubmitData = Extract<CustomRepoFormData, {type: CustomRepoType.GCS}>;
+type AzureSubmitData = Extract<CustomRepoFormData, {type: CustomRepoType.AZURE}>;
 
 const LAYOUT_OPTIONS = Object.entries(DEBUG_SOURCE_LAYOUTS).map(([value, label]) => ({
   value,
@@ -55,6 +57,11 @@ type S3Props = ModalProps & {
 type GcsProps = ModalProps & {
   onSubmit: (data: GcsSubmitData) => Promise<void>;
   sourceConfig?: CustomRepoGCS;
+};
+
+type AzureProps = ModalProps & {
+  onSubmit: (data: AzureSubmitData) => Promise<void>;
+  sourceConfig?: CustomRepoAzure;
 };
 
 function Title({type, isEditing}: {isEditing: boolean; type: CustomRepoType}) {
@@ -438,6 +445,238 @@ export function GcsRepository({Header, Body, Footer, onSubmit, sourceConfig}: Gc
                     }
                   )}
                 </Text>
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+          <form.AppField name="prefix">
+            {field => (
+              <field.Layout.Stack
+                label={t('Root Path')}
+                hintText={t(
+                  'The path at which files are located within this repository.'
+                )}
+              >
+                <field.Input
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  placeholder="/"
+                />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+          <form.AppField name="layoutType">
+            {field => (
+              <field.Layout.Stack
+                label={t('Directory Layout')}
+                hintText={t('The layout of the folder structure.')}
+              >
+                <field.Select
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  options={LAYOUT_OPTIONS}
+                />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+          <form.AppField name="layoutCasing">
+            {field => (
+              <field.Layout.Stack
+                label={t('Path Casing')}
+                hintText={t('The case of files and folders.')}
+              >
+                <field.Select
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  options={CASING_OPTIONS}
+                />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+        </Stack>
+      </Body>
+      <Footer>
+        <form.SubmitButton>{t('Save changes')}</form.SubmitButton>
+      </Footer>
+    </form.AppForm>
+  );
+}
+
+export function AzureRepository({
+  Header,
+  Body,
+  Footer,
+  onSubmit,
+  sourceConfig,
+}: AzureProps) {
+  const {
+    client_secret,
+    layout,
+    name,
+    account,
+    container,
+    tenant_id,
+    client_id,
+    prefix,
+    id,
+    ...preservedConfig
+  } = sourceConfig ?? {};
+
+  const secretAlreadySet = typeof client_secret === 'object';
+
+  const schema = z.object({
+    id: z.string(),
+    name: z.string().min(1, t('Name is required')),
+    account: z
+      .string()
+      .min(1, t('Storage Account is required'))
+      .regex(/^[a-z0-9]{3,24}$/, t('Must be 3-24 lowercase letters and numbers')),
+    container: z.string().min(1, t('Container is required')),
+    tenant_id: z.string().min(1, t('Tenant ID is required')),
+    client_id: z.string().min(1, t('Client ID is required')),
+    client_secret: secretAlreadySet
+      ? z.string()
+      : z.string().min(1, t('Client Secret is required')),
+    prefix: z.string(),
+    layoutType: z.string(),
+    layoutCasing: z.string(),
+  });
+
+  const defaultValues: z.input<typeof schema> = {
+    id: id ?? uniqueId(),
+    name: name ?? '',
+    account: account ?? '',
+    container: container ?? '',
+    tenant_id: tenant_id ?? '',
+    client_id: client_id ?? '',
+    client_secret: '',
+    prefix: prefix ?? '',
+    layoutType: layout?.type ?? 'native',
+    layoutCasing: layout?.casing ?? 'default',
+  };
+
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues,
+    validators: {onDynamic: schema},
+    onSubmit: ({value}) => {
+      const parsedValue = schema.parse(value);
+      const data: AzureSubmitData = {
+        ...preservedConfig,
+        id: parsedValue.id,
+        name: parsedValue.name,
+        account: parsedValue.account,
+        container: parsedValue.container,
+        tenant_id: parsedValue.tenant_id,
+        client_id: parsedValue.client_id,
+        type: CustomRepoType.AZURE,
+        'layout.type': parsedValue.layoutType,
+        'layout.casing': parsedValue.layoutCasing,
+        prefix: parsedValue.prefix || undefined,
+        ...(parsedValue.client_secret
+          ? {client_secret: parsedValue.client_secret}
+          : secretAlreadySet
+            ? {client_secret: {'hidden-secret': true}}
+            : {}),
+      };
+      return onSubmit(data);
+    },
+  });
+
+  return (
+    <form.AppForm form={form}>
+      <Header closeButton>
+        <Title type={CustomRepoType.AZURE} isEditing={!!sourceConfig} />
+      </Header>
+      <Body>
+        <Stack gap="xl">
+          <form.AppField name="name">
+            {field => (
+              <field.Layout.Stack
+                label={t('Name')}
+                hintText={t('A display name for this repository')}
+                required
+              >
+                <field.Input
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  placeholder={t('New Repository')}
+                />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+          <form.AppField name="account">
+            {field => (
+              <field.Layout.Stack
+                label={t('Storage Account')}
+                hintText={t('Name of the Azure storage account.')}
+                required
+              >
+                <field.Input
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  placeholder="storageaccount"
+                />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+          <form.AppField name="container">
+            {field => (
+              <field.Layout.Stack
+                label={t('Container')}
+                hintText={t('Name of the blob container.')}
+                required
+              >
+                <field.Input
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  placeholder="symbols"
+                />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+          <form.AppField name="tenant_id">
+            {field => (
+              <field.Layout.Stack
+                label={t('Tenant ID')}
+                hintText={t('The Microsoft Entra tenant (directory) ID.')}
+                required
+              >
+                <field.Input
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  placeholder="00000000-0000-0000-0000-000000000000"
+                />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+          <form.AppField name="client_id">
+            {field => (
+              <field.Layout.Stack
+                label={t('Client ID')}
+                hintText={tct(
+                  'Application (client) ID of a service principal with the [role] role on the container.',
+                  {role: <code>Storage Blob Data Reader</code>}
+                )}
+                required
+              >
+                <field.Input
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  placeholder="00000000-0000-0000-0000-000000000000"
+                />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+          <form.AppField name="client_secret">
+            {field => (
+              <field.Layout.Stack label={t('Client Secret')} required={!secretAlreadySet}>
+                <field.Input
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  placeholder={
+                    secretAlreadySet ? t('(Client Secret unchanged)') : undefined
+                  }
+                />
               </field.Layout.Stack>
             )}
           </form.AppField>
