@@ -7,6 +7,7 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -125,6 +126,7 @@ class SourceSerializer(serializers.Serializer):
             ("http", "SymbolServer (HTTP)"),
             ("gcs", "Google Cloud Storage"),
             ("s3", "Amazon S3"),
+            ("azure", "Azure Blob Storage"),
         ],
         required=True,
         help_text="The type of the source.",
@@ -194,7 +196,7 @@ class SourceSerializer(serializers.Serializer):
     )
     prefix = serializers.CharField(
         required=False,
-        help_text="The GCS or [S3](https://docs.aws.amazon.com/AmazonS3/latest/userguide/using-prefixes.html) prefix. Optional for GCS and S3 sourcse, invalid for HTTP.",
+        help_text="The GCS, Azure or [S3](https://docs.aws.amazon.com/AmazonS3/latest/userguide/using-prefixes.html) prefix. Optional for GCS, Azure and S3 sources, invalid for HTTP.",
     )
     client_email = serializers.CharField(
         required=False,
@@ -204,6 +206,26 @@ class SourceSerializer(serializers.Serializer):
         required=False,
         help_text="The GCS private key. Required for GCS sources if not using impersonated tokens. Invalid for all others.",
     )
+    account = serializers.CharField(
+        required=False,
+        help_text="The Azure storage account name. Required for Azure sources, invalid for all others.",
+    )
+    container = serializers.CharField(
+        required=False,
+        help_text="The Azure blob container name. Required for Azure sources, invalid for all others.",
+    )
+    tenant_id = serializers.CharField(
+        required=False,
+        help_text="The Microsoft Entra tenant ID. Required for Azure sources, invalid for all others.",
+    )
+    client_id = serializers.CharField(
+        required=False,
+        help_text="The Microsoft Entra application (client) ID. Required for Azure sources, invalid for all others.",
+    )
+    client_secret = serializers.CharField(
+        required=False,
+        help_text="The Microsoft Entra client secret. Required for Azure sources, invalid for all others.",
+    )
 
     def validate(self, data):
         if data["type"] == "http":
@@ -211,6 +233,18 @@ class SourceSerializer(serializers.Serializer):
             allowed = required + ["username", "password"]
         elif data["type"] == "s3":
             required = ["type", "name", "bucket", "region", "access_key", "secret_key", "layout"]
+            allowed = required + ["prefix"]
+        elif data["type"] == "azure":
+            required = [
+                "type",
+                "name",
+                "account",
+                "container",
+                "tenant_id",
+                "client_id",
+                "client_secret",
+                "layout",
+            ]
             allowed = required + ["prefix"]
         else:
             required = ["type", "name", "bucket", "client_email", "layout"]
@@ -244,6 +278,12 @@ class _SymbolSourceErrorResponse(TypedDict):
     with existing API consumers."""
 
     error: str
+
+
+def _can_use_source_type(project: Project, source: Any) -> bool:
+    return source.get("type") != "azure" or features.has(
+        "organizations:azure-symbol-sources", project.organization
+    )
 
 
 @extend_schema(tags=["Projects"])
@@ -352,6 +392,9 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
 
         source = request.data
 
+        if not _can_use_source_type(project, source):
+            return Response(status=400)
+
         if "id" in source:
             id = source["id"]
         else:
@@ -396,6 +439,9 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
         """
         id = request.GET.get("id")
         source = request.data
+
+        if not _can_use_source_type(project, source):
+            return Response(status=400)
 
         custom_symbol_sources_json = project.get_option("sentry:symbol_sources") or []
         sources = parse_sources(custom_symbol_sources_json, filter_appconnect=False)
