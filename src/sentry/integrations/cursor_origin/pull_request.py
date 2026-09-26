@@ -82,6 +82,7 @@ class PullRequestLifecycleHandler(WebhookEventHandler):
                 "provider_updated_at": pull_request.updated_at,
                 "state": state,
                 "draft": pull_request.draft,
+                "external_id_str": pull_request.id,
             },
             event_state=state,
             event_updated_at=pull_request.updated_at,

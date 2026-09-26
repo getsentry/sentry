@@ -1416,6 +1416,7 @@ class PullRequestEventWebhookTest(APITestCase):
 
         pr = PullRequest.objects.get(repository_id=repo.id, key="1")
         assert pr.external_id == 34778301
+        assert pr.external_id_str == "34778301"
 
     @patch("sentry.integrations.github.webhook.PullRequestEventWebhook.__call__")
     def test_github_delivery_id_extracted_and_passed_to_processors(

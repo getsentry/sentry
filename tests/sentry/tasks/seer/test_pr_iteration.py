@@ -151,14 +151,14 @@ class TriggerPrIterationFromCommentTest(TestCase):
             timestamp="2024-01-01T00:00:00Z",
         )
 
-    def _stored_pr(self, *, external_id: int | None = None) -> PullRequest:
+    def _stored_pr(self, *, external_id: str | None = None) -> PullRequest:
         pr = self.create_pull_request(
             repository_id=self.repo.id,
             organization_id=self.organization.id,
             key="7",
         )
         if external_id is not None:
-            pr.update(external_id=external_id)
+            pr.update(external_id_str=external_id)
         return pr
 
     def _call(self) -> None:
@@ -228,12 +228,12 @@ class TriggerPrIterationFromCommentTest(TestCase):
         # The issue_comment payload carries only the PR number; a stored
         # ``external_id`` is what keeps that from costing a round-trip.
         mock_get_state.return_value = None
-        self._stored_pr(external_id=555)
+        self._stored_pr(external_id="555")
 
         self._call()
 
         self.mock_actions.get_pull_request.assert_not_called()
-        mock_get_state.assert_called_once_with(self.organization.id, "integrations:github", 555)
+        mock_get_state.assert_called_once_with(self.organization.id, "integrations:github", "555")
 
     @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
     def test_writes_external_id_back_on_a_miss(
@@ -249,20 +249,25 @@ class TriggerPrIterationFromCommentTest(TestCase):
             self.mock_make_scm.return_value, "7"
         )
         pr.refresh_from_db()
+        assert pr.external_id_str == "555"
         assert pr.external_id == 555
 
     @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
-    def test_returns_when_the_provider_id_is_not_an_integer(
+    def test_looks_up_a_non_numeric_provider_id(
         self,
         mock_get_state: MagicMock,
     ) -> None:
-        self.mock_actions.get_pull_request.return_value = {"data": {"internal_id": "not-a-number"}}
+        mock_get_state.return_value = None
+        self.mock_actions.get_pull_request.return_value = {"data": {"internal_id": "pr_01abc"}}
         pr = self._stored_pr()
 
         self._call()
 
-        mock_get_state.assert_not_called()
+        mock_get_state.assert_called_once_with(
+            self.organization.id, "integrations:github", "pr_01abc"
+        )
         pr.refresh_from_db()
+        assert pr.external_id_str == "pr_01abc"
         assert pr.external_id is None
 
     @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
