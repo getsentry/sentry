@@ -18,11 +18,18 @@ import {
 } from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {AggregationKey} from 'sentry/utils/fields';
+import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {DashboardFilters, Widget, WidgetQuery} from 'sentry/views/dashboards/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
+import {isEventsTimeSeriesResponse} from 'sentry/views/dashboards/utils/isEventsStats';
 import {transformEventsResponseToSeries} from 'sentry/views/dashboards/utils/transformEventsResponseToSeries';
+import {
+  getTimeSeriesResultTypes,
+  getTimeSeriesResultUnits,
+  transformTimeSeriesResponseToSeries,
+} from 'sentry/views/dashboards/utils/transformTimeSeriesResponseToSeries';
 import {EventsSearchBar} from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/eventsSearchBar';
 import {
   useErrorsSeriesQuery,
@@ -87,7 +94,10 @@ function useEventsSearchBarDataProvider(
 }
 
 export const ErrorsConfig: DatasetConfig<
-  EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats,
+  | EventsStats
+  | MultiSeriesEventsStats
+  | GroupedMultiSeriesEventsStats
+  | EventsTimeSeriesResponse,
   TableData | EventsTableData
 > = {
   defaultCategoryField: 'title',
@@ -118,7 +128,14 @@ export const ErrorsConfig: DatasetConfig<
   useSeriesQuery: useErrorsSeriesQuery,
   useTableQuery: useErrorsTableQuery,
   transformTable: transformEventsResponseToTable,
-  transformSeries: transformEventsResponseToSeries,
+  transformSeries: (data, widgetQuery) =>
+    isEventsTimeSeriesResponse(data)
+      ? transformTimeSeriesResponseToSeries(data, widgetQuery)
+      : transformEventsResponseToSeries(data, widgetQuery),
+  getSeriesResultType: data =>
+    isEventsTimeSeriesResponse(data) ? getTimeSeriesResultTypes(data) : {},
+  getSeriesResultUnit: data =>
+    isEventsTimeSeriesResponse(data) ? getTimeSeriesResultUnits(data) : {},
   filterAggregateParams,
 };
 
