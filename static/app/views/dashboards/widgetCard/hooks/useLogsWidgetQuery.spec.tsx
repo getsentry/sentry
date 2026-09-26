@@ -1,5 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
+import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 import {WidgetFixture} from 'sentry-fixture/widget';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -65,6 +66,49 @@ describe('useLogsSeriesQuery', () => {
         })
       );
     });
+  });
+
+  it('makes a request to the events-timeseries endpoint when enabled', async () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.LINE,
+      queries: [
+        {
+          name: 'test',
+          fields: ['count()'],
+          aggregates: ['count()'],
+          columns: [],
+          conditions: '',
+          orderby: '',
+        },
+      ],
+    });
+
+    const mockRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {timeSeries: [TimeSeriesFixture({yAxis: 'count()'})]},
+    });
+
+    const {result} = renderHookWithProviders(() =>
+      useLogsSeriesQuery({
+        widget,
+        organization: OrganizationFixture({
+          features: ['dashboards-widgets-use-events-timeseries'],
+        }),
+        pageFilters,
+        enabled: true,
+      })
+    );
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(mockRequest).toHaveBeenCalledWith(
+      '/organizations/org-slug/events-timeseries/',
+      expect.objectContaining({
+        query: expect.objectContaining({yAxis: ['count()'], dataset: 'ourlogs'}),
+      })
+    );
+    expect(result.current.timeseriesResults?.map(({seriesName}) => seriesName)).toEqual([
+      'test : count()',
+    ]);
   });
 
   it('applies dashboard filters to widget query', async () => {
