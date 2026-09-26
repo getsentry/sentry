@@ -366,7 +366,7 @@ function getInstallValue({
   sentryAppInstalls: SentryAppInstallation[];
 }) {
   if (isSentryApp(integration)) {
-    const install = sentryAppInstalls.find(sa => sa.app.slug === integration.slug);
+    const install = sentryAppInstalls.find(sa => sa?.app?.slug === integration.slug);
     if (install) {
       return install.status === 'pending' ? 1 : 2;
     }

@@ -1,9 +1,12 @@
 import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
+import {SentryAppFixture} from 'sentry-fixture/sentryApp';
+import {SentryAppInstallationFixture} from 'sentry-fixture/sentryAppInstallation';
 
 import {
   getAlertText,
   getIntegrationNoun,
   getIntegrationSourceUrl,
+  sortIntegrations,
 } from 'sentry/utils/integrationUtil';
 
 describe('getIntegrationSourceUrl()', () => {
@@ -95,5 +98,42 @@ describe('getAlertText()', () => {
       },
     });
     expect(getAlertText([integration])).toBeUndefined();
+  });
+});
+
+describe('sortIntegrations()', () => {
+  it('does not throw when sentryAppInstalls contains null entries', () => {
+    const sentryApp = SentryAppFixture({slug: 'my-app'});
+    const validInstall = SentryAppInstallationFixture({
+      app: {slug: 'my-app', uuid: 'uuid-1'},
+    });
+
+    expect(() =>
+      sortIntegrations({
+        list: [sentryApp],
+        // Simulate a null entry from the API alongside a valid installation
+        sentryAppInstalls: [null as any, validInstall],
+        integrationInstalls: [],
+      })
+    ).not.toThrow();
+  });
+
+  it('correctly identifies installed sentry apps even when sentryAppInstalls contains null entries', () => {
+    const installedApp = SentryAppFixture({slug: 'installed-app', popularity: 1});
+    const uninstalledApp = SentryAppFixture({slug: 'uninstalled-app', popularity: 1});
+    const validInstall = SentryAppInstallationFixture({
+      app: {slug: 'installed-app', uuid: 'uuid-1'},
+      status: 'installed',
+    });
+
+    const sorted = sortIntegrations({
+      list: [uninstalledApp, installedApp],
+      sentryAppInstalls: [null as any, validInstall],
+      integrationInstalls: [],
+    });
+
+    // installed app should sort before uninstalled app
+    expect(sorted[0]!.slug).toBe('installed-app');
+    expect(sorted[1]!.slug).toBe('uninstalled-app');
   });
 });
