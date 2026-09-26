@@ -11,19 +11,22 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeEventPathname} from './eventPathnames';
 
 export function getEventLinkTitle({
-  id,
+  id: rawId,
   shortId,
 }: Pick<EmbedOutput<'event'>, 'id' | 'shortId'>) {
-  const shortEventId = getShortEventId(id);
+  const shortEventId = getShortEventId(String(rawId));
   return shortId ? t('%s event %s', shortId, shortEventId) : t('Event %s', shortEventId);
 }
 
 export function EventLink({
   format,
-  id,
-  issueId,
+  id: rawId,
+  issueId: rawIssueId,
   shortId,
 }: EmbedOutput<'event'> & ResourceLinkFormatProps) {
+  // LLMs sometimes emit numeric values; coerce to string once at the boundary.
+  const id = String(rawId);
+  const issueId = String(rawIssueId);
   const organization = useOrganization();
   const href = makeEventPathname({
     organizationSlug: organization.slug,
