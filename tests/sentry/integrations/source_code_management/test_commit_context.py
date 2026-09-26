@@ -14,7 +14,7 @@ from sentry.integrations.source_code_management.commit_context import (
 from sentry.integrations.source_code_management.metrics import SCMIntegrationInteractionType
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.repository import Repository
-from sentry.shared_integrations.exceptions import ApiError, ApiHostError
+from sentry.shared_integrations.exceptions import ApiError, ApiHostError, IntegrationConfigurationError
 from sentry.testutils.asserts import assert_failure_metric, assert_halt_metric, assert_slo_metric
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
@@ -119,6 +119,22 @@ class TestCommitContextIntegrationSLO(TestCase):
         assert len(mock_record.mock_calls) == 2
         assert_slo_metric(mock_record, EventLifecycleOutcome.FAILURE)
         assert_failure_metric(mock_record, Identity.DoesNotExist())
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_get_blame_for_files_integration_configuration_error(
+        self, mock_record: MagicMock
+    ) -> None:
+        """Test that IntegrationConfigurationError from get_client() is caught and returns []"""
+        self.integration.get_client = Mock(
+            side_effect=IntegrationConfigurationError("Identity not found.")
+        )
+
+        result = self.integration.get_blame_for_files([self.source_line], {})
+
+        assert result == []
+        assert len(mock_record.mock_calls) == 2
+        assert_slo_metric(mock_record, EventLifecycleOutcome.FAILURE)
+        assert_failure_metric(mock_record, IntegrationConfigurationError("Identity not found."))
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_get_blame_for_files_invalid_identity(self, mock_record: MagicMock) -> None:
