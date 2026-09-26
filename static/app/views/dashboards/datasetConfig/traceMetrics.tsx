@@ -378,6 +378,7 @@ export const TraceMetricsConfig: DatasetConfig<
           widgetQuery,
           timeSeries,
         }),
+        timeSeries,
       };
     });
   },

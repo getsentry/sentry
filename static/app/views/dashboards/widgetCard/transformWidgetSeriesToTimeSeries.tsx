@@ -1,4 +1,3 @@
-import type {Series} from 'sentry/types/echarts';
 import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
 import {
   SERIES_NAME_PART_DELIMITER,
@@ -7,6 +6,7 @@ import {
 } from 'sentry/utils/timeSeries/transformLegacySeriesToTimeSeries';
 import {formatTraceMetricsFunction} from 'sentry/views/dashboards/datasetConfig/traceMetrics';
 import {WidgetType, type Widget, type WidgetQuery} from 'sentry/views/dashboards/types';
+import type {WidgetSeries} from 'sentry/views/dashboards/utils/transformTimeSeriesResponseToSeries';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {formatTimeSeriesLabelForWidgetQuery} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabelForWidgetQuery';
 
@@ -22,7 +22,7 @@ interface TransformedSeries {
  * query configuration, and computes a display label that matches the chart legend.
  */
 export function transformWidgetSeriesToTimeSeries(
-  series: Series,
+  series: WidgetSeries,
   widget: Widget,
   timeseriesResultsTypes?: Record<string, AggregationOutputType>,
   timeseriesResultsUnits?: Record<string, DataUnit>
@@ -82,7 +82,7 @@ export function transformWidgetSeriesToTimeSeries(
     aggregates[0] ??
     '';
 
-  const timeSeries = transformLegacySeriesToTimeSeries(
+  const timeSeriesFromLegacySeries = transformLegacySeriesToTimeSeries(
     effectiveSeries,
     timeseriesResultsTypes,
     timeseriesResultsUnits,
@@ -91,9 +91,29 @@ export function transformWidgetSeriesToTimeSeries(
     effectiveQueryName
   );
 
-  if (!timeSeries) {
+  if (!timeSeriesFromLegacySeries) {
     return null;
   }
+
+  // If there exists a timeSeries payload, we merge it with the
+  // legacy series, since timeSeries carries metadata that the
+  // legacy series does not. ie incomplete buckets, etc.
+  const timeSeries: TimeSeries = series.timeSeries
+    ? {
+        ...timeSeriesFromLegacySeries,
+        values: series.timeSeries.values.map(item => ({
+          ...item,
+          value: item.value ?? 0,
+        })),
+        meta: {
+          ...series.timeSeries.meta,
+          // Use the widget's value type and unit, not the response, since some datasets
+          // override them (e.g., mobile app size is always bytes)
+          valueType: timeSeriesFromLegacySeries.meta.valueType,
+          valueUnit: timeSeriesFromLegacySeries.meta.valueUnit,
+        },
+      }
+    : timeSeriesFromLegacySeries;
 
   const label = formatTimeSeriesLabelForWidgetQuery(timeSeries, widget, widgetQuery);
 

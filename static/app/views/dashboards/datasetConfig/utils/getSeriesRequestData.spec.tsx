@@ -4,7 +4,10 @@ import {WidgetFixture} from 'sentry-fixture/widget';
 import {WidgetQueryFixture} from 'sentry-fixture/widgetQuery';
 
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
+import {
+  getSeriesRequestData,
+  getTimeseriesQueryParams,
+} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
 import {DisplayType} from 'sentry/views/dashboards/types';
 
 describe('utils', () => {
@@ -347,6 +350,46 @@ describe('utils', () => {
       );
 
       expect(requestData.field).toContain('count_unique_user');
+    });
+  });
+
+  describe('getTimeseriesQueryParams', () => {
+    it('maps request data to events-timeseries params', () => {
+      const widget = WidgetFixture({
+        displayType: DisplayType.LINE,
+        limit: 5,
+        queries: [
+          WidgetQueryFixture({
+            fields: ['transaction', 'count()', 'count()'],
+            aggregates: ['count()', 'count()'],
+            columns: ['transaction'],
+            orderby: '-count()',
+          }),
+        ],
+      });
+      const requestData = getSeriesRequestData(
+        widget,
+        0,
+        OrganizationFixture(),
+        PageFiltersFixture(),
+        DiscoverDatasets.SPANS
+      );
+
+      const params = getTimeseriesQueryParams(requestData, {
+        includeMeasuredIngestionDelayMetadata: true,
+      });
+
+      expect(params).toEqual(
+        expect.objectContaining({
+          yAxis: ['count()'],
+          groupBy: ['transaction', 'count()', 'count()'],
+          field: ['transaction', 'count()', 'count()'],
+          sort: '-count()',
+          topEvents: 5,
+          excludeOther: '1',
+          includeMeasuredIngestionDelayMetadata: '1',
+        })
+      );
     });
   });
 });
