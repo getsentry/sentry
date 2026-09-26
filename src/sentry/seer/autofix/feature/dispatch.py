@@ -106,13 +106,12 @@ def trigger_autofix_feature(
     if args.stopping_point is not None:
         extras["stopping_point"] = args.stopping_point.value
 
-    user_org_context = collect_user_org_context(args.user, group.organization)
     if is_new_run:
         run = client.start_feature_run(
             feature_id=FEATURE_ID,
             payload=payload.dict(),
             referrer=args.referrer.value,
-            user_org_context=user_org_context,
+            user_org_context=collect_user_org_context(args.user, group.organization),
             proxy_headers=get_proxy_headers(),
             agent_run_options=AgentRunOptions(
                 is_context_engine_enabled=False,
@@ -139,7 +138,6 @@ def trigger_autofix_feature(
             existing_agent_run=existing_agent_run,
             payload=payload.dict(),
             referrer=args.referrer.value,
-            user_org_context=user_org_context,
             proxy_headers=get_proxy_headers(),
             agent_run_options=AgentRunOptions(
                 is_context_engine_enabled=False,
