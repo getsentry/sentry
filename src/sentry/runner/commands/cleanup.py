@@ -5,7 +5,7 @@ import logging
 import os
 import time
 from collections.abc import Callable, Sequence
-from datetime import timedelta
+from datetime import datetime, timedelta
 from multiprocessing import JoinableQueue as Queue
 from multiprocessing import Process
 from typing import TYPE_CHECKING, Any, Final, Literal, TypeAlias, TypeVar
@@ -70,9 +70,12 @@ def get_organization(value: str) -> int | None:
 # an identity on an object() isn't guaranteed to work between parent
 # and child proc
 _STOP_WORKER: Final = "91650ec271ae4b3e8a67cdc909d80f8c"
-_WorkQueue: TypeAlias = (
-    "Queue[Literal['91650ec271ae4b3e8a67cdc909d80f8c'] | tuple[str, tuple[int, ...], int | None]]"
+_WorkItem: TypeAlias = (
+    "tuple[str, tuple[int, ...]]"
+    " | tuple[str, tuple[int, ...], int | None]"
+    " | tuple[str, tuple[int, ...], int | None, datetime | None]"
 )
+_WorkQueue: TypeAlias = "Queue[Literal['91650ec271ae4b3e8a67cdc909d80f8c'] | _WorkItem]"
 
 
 API_TOKEN_TTL_IN_DAYS = 30
@@ -117,12 +120,16 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
             task_queue.task_done()
             return
 
-        # Handle both old format (model_name, chunk) and new format (model_name, chunk, project_id)
+        # Keep accepting work queued by older cleanup processes during an upgrade.
         if len(j) == 2:
-            model_name, chunk = j  # type: ignore[unreachable]
+            model_name, chunk = j
             project_id = None
-        else:
+            cutoff = None
+        elif len(j) == 3:
             model_name, chunk, project_id = j
+            cutoff = None
+        else:
+            model_name, chunk, project_id, cutoff = j
 
         if options.get("cleanup.abort_execution"):
             logger.warning("Cleanup worker aborting due to cleanup.abort_execution flag")
@@ -138,7 +145,7 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
                     "sample_rate": 0.05 * settings.SENTRY_BACKEND_APM_SAMPLING
                 },
             ):
-                task_execution(model_name, chunk, project_id)
+                task_execution(model_name, chunk, project_id, cutoff)
                 if chunk:
                     now = time.monotonic()
                     if (
@@ -178,7 +185,9 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
             task_queue.task_done()
 
 
-def task_execution(model_name: str, chunk: tuple[int, ...], project_id: int | None) -> None:
+def task_execution(
+    model_name: str, chunk: tuple[int, ...], project_id: int | None, cutoff: datetime | None = None
+) -> None:
     """
     Execute deletion for a chunk of objects.
 
@@ -211,9 +220,13 @@ def task_execution(model_name: str, chunk: tuple[int, ...], project_id: int | No
     )
 
     model = import_string(model_name)
+    query: dict[str, Any] = {"id__in": chunk}
+    if cutoff is not None:
+        query["timestamp__lt"] = cutoff
+
     task = deletions.get(
         model=model,
-        query={"id__in": chunk},
+        query=query,
         skip_models=skip_child_relations_models,
         transaction_id=uuid4().hex,
     )
@@ -888,6 +901,7 @@ def _schedule_bulk_delete_chunks(
     model_tp: type[BaseModel],
     project_id: int | None,
     context_str: str = "",
+    cutoff: datetime | None = None,
 ) -> tuple[int, int]:
     """
     Schedule chunks from a BulkDeleteQuery into the task queue.
@@ -900,7 +914,7 @@ def _schedule_bulk_delete_chunks(
     total_objects = 0
 
     for chunk in q.iterator(chunk_size=DELETES_BY_PROJECT_CHUNK_SIZE):
-        task_queue.put((imp, chunk, project_id))
+        task_queue.put((imp, chunk, project_id, cutoff))
         chunk_count += 1
         total_objects += len(chunk)
 
@@ -927,6 +941,7 @@ def run_bulk_deletes_in_deletes(
 ) -> None:
     from sentry import options
     from sentry.db.deletion import BulkDeleteQuery
+    from sentry.models.files.file import File
     from sentry.utils import metrics
 
     if options.get("cleanup.abort_execution"):
@@ -940,14 +955,24 @@ def run_bulk_deletes_in_deletes(
             debug_output(f"Removing {model_tp.__name__} for days={days} project={project or '*'}")
             models_attempted.add(model_tp.__name__.lower())
             try:
-                q = BulkDeleteQuery(
-                    model=model_tp,
-                    dtfield=dtfield,
-                    days=days,
-                    project_id=project_id,
-                    order_by=order_by,
-                )
-                _schedule_bulk_delete_chunks(task_queue, q, model_tp, project_id)
+                if model_tp is File:
+                    query = BulkDeleteQuery(
+                        model=model_tp,
+                        project_id=project_id,
+                        order_by=order_by,
+                    )
+                    cutoff = timezone.now() - timedelta(days=days)
+                else:
+                    query = BulkDeleteQuery(
+                        model=model_tp,
+                        dtfield=dtfield,
+                        days=days,
+                        project_id=project_id,
+                        order_by=order_by,
+                    )
+                    cutoff = None
+
+                _schedule_bulk_delete_chunks(task_queue, query, model_tp, project_id, cutoff=cutoff)
 
             except Exception:
                 capture_exception(tags={"model": model_tp.__name__})

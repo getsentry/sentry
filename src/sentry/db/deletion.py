@@ -91,11 +91,18 @@ class BulkDeleteQuery:
     def iterator(
         self, chunk_size: int = 100, batch_size: int = 10000
     ) -> Generator[tuple[int, ...]]:
-        assert self.days is not None
-        assert self.dtfield is not None
-
-        cutoff = timezone.now() - timedelta(days=self.days)
-        queryset = self.model.objects.filter(**{f"{self.dtfield}__lt": cutoff})
+        queryset = self.model.objects.all()
+        if self.dtfield is not None and self.days is not None:
+            cutoff = timezone.now() - timedelta(days=self.days)
+            queryset = queryset.filter(**{f"{self.dtfield}__lt": cutoff})
+        else:
+            assert self.dtfield is None and self.days is None
+            # Bound the ID-only scan to rows present when it starts. New rows
+            # will be considered by the next cleanup run.
+            max_pk = queryset.order_by("-pk").values_list("pk", flat=True).first()
+            if max_pk is None:
+                return
+            queryset = queryset.filter(pk__lte=max_pk)
 
         if self.project_id:
             queryset = queryset.filter(project_id=self.project_id)  # type: ignore[misc]
