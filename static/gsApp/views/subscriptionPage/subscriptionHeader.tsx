@@ -33,7 +33,9 @@ export function SubscriptionHeader(props: Props) {
   const {subscription, organization} = props;
   const hasBillingPerms = hasPermissions(organization, 'org:billing');
   const isDisabled = isDisabledByPartner(subscription);
-  const planIcon = getPlanIcon(subscription.planDetails);
+  const planIcon = subscription.planDetails
+    ? getPlanIcon(subscription.planDetails)
+    : null;
 
   return (
     <Stack gap="xl" background="secondary">
@@ -46,14 +48,16 @@ export function SubscriptionHeader(props: Props) {
           direction={{zero: 'column', xl: 'row'}}
           gap="xl"
         >
-          <Flex align="center" gap="sm">
-            {isValidElement(planIcon)
-              ? cloneElement(planIcon, {size: 'md'} as SVGIconProps)
-              : null}
-            <Text size="2xl" bold>
-              {tct('[planName] plan', {planName: subscription.planDetails.name})}
-            </Text>
-          </Flex>
+          {subscription.planDetails && (
+            <Flex align="center" gap="sm">
+              {isValidElement(planIcon)
+                ? cloneElement(planIcon, {size: 'md'} as SVGIconProps)
+                : null}
+              <Text size="2xl" bold>
+                {tct('[planName] plan', {planName: subscription.planDetails.name})}
+              </Text>
+            </Flex>
+          )}
           <Flex gap="md">
             {subscription.canSelfServe && hasBillingPerms && (
               <LinkButton
