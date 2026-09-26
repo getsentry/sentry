@@ -457,6 +457,7 @@
           "enum": ["root_cause", "solution", "code_changes", "pr_iteration"]
         },
         "result": {
+          "default": "",
           "type": "string"
         },
         "id": {
@@ -497,7 +498,7 @@
           }
         }
       },
-      "required": ["step", "result", "id", "shortId"],
+      "required": ["step", "result", "id"],
       "additionalProperties": false
     },
     "examples": [
