@@ -1,10 +1,22 @@
 from unittest import mock
 
+from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
 
 from sentry import options
-from sentry.notifications.platform.email.provider import EmailNotificationProvider, EmailRenderer
+from sentry.models.activity import Activity
+from sentry.models.groupemailthread import GroupEmailThread
+from sentry.notifications.platform.email.provider import (
+    EmailNotificationProvider,
+    EmailRenderer,
+)
+from sentry.notifications.platform.email.utils import build_email_subject_prefix
 from sentry.notifications.platform.target import GenericNotificationTarget
+from sentry.notifications.platform.templates.activity.assigned import AssignedActivityTemplate
+from sentry.notifications.platform.templates.activity.base import (
+    AssignedNotificationData,
+    build_activity_notification_data,
+)
 from sentry.notifications.platform.types import (
     BoldTextBlock,
     LinkTextBlock,
@@ -20,6 +32,7 @@ from sentry.notifications.platform.types import (
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.notifications.platform import MockNotification, MockNotificationTemplate
+from sentry.types.activity import ActivityType
 
 
 def validate_text_block(
@@ -154,6 +167,36 @@ class EmailRendererTest(TestCase):
         assert "<script>" not in str(html_content)
         assert "&lt;script&gt;" in str(html_content)
 
+    def test_subject_prefix(self) -> None:
+        rendered_template = NotificationRenderedTemplate(
+            subject="Test subject",
+            body=[],
+            email_subject_prefix="[Project] ",
+        )
+
+        email = EmailRenderer.render(data=self.data, rendered_template=rendered_template)
+
+        assert email.subject == "[Project] Test subject"
+
+    def test_subject_uses_first_line(self) -> None:
+        rendered_template = NotificationRenderedTemplate(
+            subject="Test subject",
+            body=[],
+            email_subject_prefix="[Project]\nInjected: ",
+        )
+
+        email = EmailRenderer.render(data=self.data, rendered_template=rendered_template)
+
+        assert email.subject == "[Project]"
+
+    def test_subject_prefix_uses_project_option_with_global_fallback(self) -> None:
+        with self.options({"mail.subject-prefix": "[Global]"}):
+            assert build_email_subject_prefix(self.project) == "[Global] "
+
+            self.project.update_option("mail:subject_prefix", "[Project]")
+
+            assert build_email_subject_prefix(self.project) == "[Project] "
+
 
 class EmailNotificationProviderTest(TestCase):
     def setUp(self) -> None:
@@ -181,3 +224,76 @@ class EmailNotificationProviderTest(TestCase):
         mock_send_messages.assert_called_once()
         [sent_message] = mock_send_messages.call_args[0][0]
         assert sent_message.to == [self.email]
+
+    @mock.patch("sentry.notifications.platform.email.provider.send_messages")
+    def test_activity_email_preserves_legacy_headers(
+        self, mock_send_messages: mock.MagicMock
+    ) -> None:
+        group = self.create_group(project=self.project, logger="example.logger", level=30)
+        activity = Activity.objects.create_group_activity(
+            group,
+            ActivityType.ASSIGNED,
+            user=self.user,
+            data={"assignee": str(self.user.id), "assigneeType": "user"},
+        )
+        data = build_activity_notification_data(activity=activity, target=self.target)
+        assert isinstance(data, AssignedNotificationData)
+        rendered_template = AssignedActivityTemplate().render(data)
+        email = EmailRenderer.render(data=data, rendered_template=rendered_template)
+
+        EmailNotificationProvider.send(target=self.target, renderable=email)
+
+        [sent_message] = mock_send_messages.call_args[0][0]
+        assert sent_message.extra_headers == {
+            "X-SMTPAPI": '{"category":"assigned_activity"}',
+            "X-Sentry-Project": self.project.slug,
+            "X-Sentry-Logger": "example.logger",
+            "X-Sentry-Logger-Level": "warning",
+            "X-Sentry-Reply-To": mock.ANY,
+            "List-Id": (
+                f"<{self.project.slug}.{self.organization.slug}."
+                f"{settings.SENTRY_MAIL_LIST_NAMESPACE}>"
+            ),
+            "Message-Id": mock.ANY,
+            "Reply-To": mock.ANY,
+        }
+        assert (
+            sent_message.extra_headers["Reply-To"]
+            == sent_message.extra_headers["X-Sentry-Reply-To"]
+        )
+        assert GroupEmailThread.objects.filter(email=self.email, group=group).exists()
+
+    @mock.patch("sentry.notifications.platform.email.provider.send_messages")
+    def test_activity_email_preserves_reply_and_thread_headers(
+        self, mock_send_messages: mock.MagicMock
+    ) -> None:
+        group = self.create_group(project=self.project)
+        activity = Activity.objects.create_group_activity(
+            group,
+            ActivityType.ASSIGNED,
+            user=self.user,
+            data={"assignee": str(self.user.id), "assigneeType": "user"},
+        )
+        data = build_activity_notification_data(activity=activity, target=self.target)
+        assert isinstance(data, AssignedNotificationData)
+        rendered_template = AssignedActivityTemplate().render(data)
+
+        with self.options({"mail.enable-replies": True}):
+            email = EmailRenderer.render(data=data, rendered_template=rendered_template)
+            EmailNotificationProvider.send(target=self.target, renderable=email)
+            first_message_id = email.extra_headers["Message-Id"]
+            mock_send_messages.reset_mock()
+
+            data = build_activity_notification_data(activity=activity, target=self.target)
+            assert isinstance(data, AssignedNotificationData)
+            rendered_template = AssignedActivityTemplate().render(data)
+            email = EmailRenderer.render(data=data, rendered_template=rendered_template)
+            EmailNotificationProvider.send(target=self.target, renderable=email)
+
+        [sent_message] = mock_send_messages.call_args[0][0]
+        assert (
+            sent_message.extra_headers["Reply-To"]
+            == sent_message.extra_headers["X-Sentry-Reply-To"]
+        )
+        assert sent_message.extra_headers["In-Reply-To"] == first_message_id
+        assert sent_message.extra_headers["References"] == first_message_id

@@ -90,6 +90,8 @@ class AssignedActivityTemplate(NotificationTemplate[AssignedNotificationData]):
     def render(self, data: AssignedNotificationData) -> NotificationRenderedTemplate:
         return NotificationRenderedTemplate(
             subject=get_assigned_subject(data),
+            email_headers=data.email_headers,
+            email_subject_prefix=data.email_subject_prefix,
             body=[
                 ParagraphSection(blocks=get_assigned_body_blocks(data=data)),
                 *get_issue_description(data=data),

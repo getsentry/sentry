@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from sentry.models.activity import Activity
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.notifications.platform.strategies.utils import get_targets_from_participant_map
@@ -15,6 +16,7 @@ from sentry.notifications.utils.participants import get_participants_for_release
 @dataclass(frozen=True)
 class DeployReleaseStrategy(NotificationStrategy):
     projects: frozenset[Project]
+    activity: Activity
     organization: Organization
     committer_user_ids: frozenset[int]
 
@@ -25,5 +27,7 @@ class DeployReleaseStrategy(NotificationStrategy):
             commited_user_ids=set(self.committer_user_ids),
         )
         return get_targets_from_participant_map(
-            participant_map, organization_id=self.organization.id
+            participant_map,
+            organization_id=self.organization.id,
+            project=self.activity.project,
         )
