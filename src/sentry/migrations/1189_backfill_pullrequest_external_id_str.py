@@ -18,15 +18,14 @@ def backfill_external_id_str(apps: StateApps, schema_editor: BaseDatabaseSchemaE
         step=BATCH_SIZE,
         result_value_getter=lambda row: row.id,
     )
-    for batch in chunked(rows, BATCH_SIZE):
-        pending_ids = [
-            row.id for row in batch if row.external_id is not None and row.external_id_str is None
-        ]
-        if pending_ids:
-            # The IS NULL guard leaves anything a webhook wrote since the read alone.
-            PullRequest.objects.filter(id__in=pending_ids, external_id_str__isnull=True).update(
-                external_id_str=Cast("external_id", TextField())
-            )
+    pending_ids = (
+        row.id for row in rows if row.external_id is not None and row.external_id_str is None
+    )
+    for batch in chunked(pending_ids, BATCH_SIZE):
+        # The IS NULL guard leaves anything a webhook wrote since the read alone.
+        PullRequest.objects.filter(id__in=batch, external_id_str__isnull=True).update(
+            external_id_str=Cast("external_id", TextField())
+        )
 
 
 class Migration(CheckedMigration):
