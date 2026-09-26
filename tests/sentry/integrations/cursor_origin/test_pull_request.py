@@ -81,8 +81,7 @@ class PullRequestLifecycleHandlerTest(TestCase):
 
         pull_request = self._pull_requests()[0]
         assert pull_request.key == "17"
-        assert pull_request.external_id_str == "pr_01example"
-        assert pull_request.external_id is None
+        assert pull_request.external_id == "pr_01example"
         assert pull_request.title == "Add launch telemetry"
         assert pull_request.message == "Adds structured launch telemetry."
         assert pull_request.state == PullRequestLifecycleState.OPEN
