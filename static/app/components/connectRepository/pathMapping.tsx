@@ -41,6 +41,8 @@ const schema = z.object({
   branch: z.string(),
 });
 
+const STACK_ROOT_PLACEHOLDER = 'src/';
+const SOURCE_ROOT_PLACEHOLDER = 'src/app';
 const PREVIEW_SUFFIX = 'views/index.tsx';
 
 const PATH_RATIO = 35;
@@ -142,7 +144,7 @@ function PathMappingEdit({
                   <field.Input
                     value={field.state.value}
                     onChange={field.handleChange}
-                    placeholder={t('src/')}
+                    placeholder={STACK_ROOT_PLACEHOLDER}
                   />
                 </field.Layout.Stack>
               )}
@@ -172,7 +174,7 @@ function PathMappingEdit({
                   <field.Input
                     value={field.state.value}
                     onChange={field.handleChange}
-                    placeholder={t('src/app')}
+                    placeholder={SOURCE_ROOT_PLACEHOLDER}
                   />
                 </field.Layout.Stack>
               )}
@@ -350,12 +352,12 @@ function PathMappingPreview({stackRoot, sourceRoot}: PathMappingPreviewProps) {
         </Text>
 
         <Text monospace variant="muted">
-          {stackRoot && <AccentPathSegment value={stackRoot} />}
+          <AccentPathSegment value={stackRoot || STACK_ROOT_PLACEHOLDER} />
           {PREVIEW_SUFFIX}
         </Text>
         <IconArrow direction="right" />
         <Text monospace variant="muted">
-          {sourceRoot && <AccentPathSegment value={sourceRoot} />}
+          <AccentPathSegment value={sourceRoot || SOURCE_ROOT_PLACEHOLDER} />
           {PREVIEW_SUFFIX}
         </Text>
       </Grid>

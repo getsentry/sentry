@@ -80,24 +80,21 @@ describe('PathMapping', () => {
     );
   });
 
-  it('renders preview and updates it as stack root changes', async () => {
-    render(
-      <PathMapping
-        {...defaultProps}
-        editing
-        isNew
-        stackRoot=""
-        sourceRoot=""
-        branch="main"
-      />
-    );
+  it('renders preview using placeholder example and updates on input', async () => {
+    render(<PathMapping {...defaultProps} editing isNew />);
 
     expect(screen.getByText('In your stack trace')).toBeInTheDocument();
     expect(screen.getByText('Sentry opens in your repo')).toBeInTheDocument();
 
-    const stackInput = screen.getByRole('textbox', {name: /stack trace prefix/i});
-    await userEvent.type(stackInput, 'src/');
-
+    // Preview shows placeholder values while inputs are empty
     expect(screen.getByText('src/')).toBeInTheDocument();
+    expect(screen.getByText('src/app')).toBeInTheDocument();
+
+    // Typing updates the stack root in the preview
+    await userEvent.type(
+      screen.getByRole('textbox', {name: /stack trace prefix/i}),
+      'lib/'
+    );
+    expect(screen.getByText('lib/')).toBeInTheDocument();
   });
 });
