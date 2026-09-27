@@ -11,8 +11,13 @@ export const sanitizeBranch = (value: string) =>
 export const resolveBranch = (branch: string) =>
   sanitizeBranch(branch).replace(/[./]+$/, '') || DEFAULT_BRANCH;
 
-export const normalizeRoot = (root: string) =>
-  root === '' ? '' : root.endsWith('/') ? root : `${root}/`;
+export const normalizeRoot = (root: string) => {
+  const trimmed = root
+    .trim()
+    .replace(/\/{2,}/g, '/')
+    .replace(/\/$/, '');
+  return trimmed === '' ? '' : `${trimmed}/`;
+};
 
 const schema = z.object({
   stackRoot: z.string(),
