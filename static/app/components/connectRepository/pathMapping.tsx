@@ -9,8 +9,9 @@ import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconArrow, IconBranch, IconChevron, IconDelete} from 'sentry/icons';
+import {IconArrow, IconBranch, IconChevron, IconDelete, IconSentry} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 
 import {
   DEFAULT_BRANCH,
@@ -32,6 +33,7 @@ interface PathMappingProps extends PathMappingValue {
   onChange: (value: PathMappingValue) => void;
   onDelete: () => void;
   onExpandToggle: () => void;
+  providerKey?: string;
 }
 
 // Non-transforming schema used only for the form's onDynamic validator.
@@ -54,6 +56,7 @@ export function PathMapping({
   onChange,
   onDelete,
   onExpandToggle,
+  providerKey,
   ...value
 }: PathMappingProps) {
   const showSummary = !(editing && isNew);
@@ -69,13 +72,16 @@ export function PathMapping({
         />
       )}
       {showSummary && editing && <Container borderTop="muted" />}
-      {editing && <PathMappingEdit {...value} onChange={onChange} />}
+      {editing && (
+        <PathMappingEdit {...value} providerKey={providerKey} onChange={onChange} />
+      )}
     </Stack>
   );
 }
 
 interface PathMappingEditProps extends PathMappingValue {
   onChange: (value: PathMappingValue) => void;
+  providerKey?: string;
 }
 
 function PathMappingEdit({
@@ -83,6 +89,7 @@ function PathMappingEdit({
   sourceRoot,
   stackRoot,
   onChange,
+  providerKey,
 }: PathMappingEditProps) {
   const form = useScrapsForm({
     ...defaultFormOptions,
@@ -124,7 +131,7 @@ function PathMappingEdit({
             )}
           </form.AppField>
 
-          <Grid columns="1fr auto 1fr" gap="xl" align="center">
+          <Grid columns="1fr auto 1fr" gap="xl" align="start">
             <form.AppField
               name="stackRoot"
               listeners={{
@@ -135,6 +142,7 @@ function PathMappingEdit({
                 <field.Layout.Stack
                   label={
                     <Flex gap="xs" align="center">
+                      <IconSentry size="xs" />
                       {t('Stack trace prefix')}
                       <Tag variant="muted">{t('Match')}</Tag>
                     </Flex>
@@ -150,7 +158,9 @@ function PathMappingEdit({
               )}
             </form.AppField>
 
-            <IconArrow direction="right" size="sm" />
+            <Container paddingTop="3xl">
+              <IconArrow direction="right" size="sm" />
+            </Container>
 
             <form.AppField
               name="sourceRoot"
@@ -163,6 +173,7 @@ function PathMappingEdit({
                 <field.Layout.Stack
                   label={
                     <Flex gap="xs" align="center">
+                      {providerKey && getIntegrationIcon(providerKey, 'xs')}
                       {t('Repository prefix')}
                       <Tag variant="muted">{t('Replace with')}</Tag>
                     </Flex>
@@ -181,8 +192,8 @@ function PathMappingEdit({
             </form.AppField>
           </Grid>
 
-          <Stack gap="md">
-            <Text bold>{t('Preview example')}</Text>
+          <Stack gap="md" paddingTop="xl">
+            <Text bold>{t('Preview')}</Text>
             <form.Subscribe
               selector={state => ({
                 stackRoot: state.values.stackRoot,
@@ -342,7 +353,7 @@ interface PathMappingPreviewProps {
 function PathMappingPreview({stackRoot, sourceRoot}: PathMappingPreviewProps) {
   return (
     <Container background="secondary" radius="md" padding="xl">
-      <Grid columns="1fr auto 1fr" gap="lg xl" align="center">
+      <Grid columns="auto auto 1fr" gap="lg xl" align="center">
         <Text bold variant="muted">
           {t('In your stack trace')}
         </Text>
@@ -351,12 +362,12 @@ function PathMappingPreview({stackRoot, sourceRoot}: PathMappingPreviewProps) {
           {t('Sentry opens in your repo')}
         </Text>
 
-        <Text monospace variant="muted">
+        <Text monospace variant="muted" ellipsis>
           <AccentPathSegment value={stackRoot || STACK_ROOT_PLACEHOLDER} />
           {PREVIEW_SUFFIX}
         </Text>
         <IconArrow direction="right" />
-        <Text monospace variant="muted">
+        <Text monospace variant="muted" ellipsis>
           <AccentPathSegment value={sourceRoot || SOURCE_ROOT_PLACEHOLDER} />
           {PREVIEW_SUFFIX}
         </Text>

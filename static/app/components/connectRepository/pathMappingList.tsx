@@ -14,6 +14,7 @@ import type {PathMappingValue} from './type';
 interface PathMappingListProps {
   onChange: (pathMappings: PathMappingValue[]) => void;
   pathMappings?: PathMappingValue[];
+  providerKey?: string;
 }
 
 interface Entry {
@@ -52,7 +53,11 @@ const clearNewOnCollapse = (entries: Entry[], collapsingId: number | null) =>
           : entry
       );
 
-export function PathMappingList({pathMappings, onChange}: PathMappingListProps) {
+export function PathMappingList({
+  pathMappings,
+  onChange,
+  providerKey,
+}: PathMappingListProps) {
   const [entries, setEntries] = useState<Entry[]>(() => {
     const seeded = (pathMappings ?? []).map((value, index) => ({
       id: index,
@@ -145,6 +150,7 @@ export function PathMappingList({pathMappings, onChange}: PathMappingListProps) 
             {...entry.value}
             editing={openId === entry.id}
             isNew={entry.isNew}
+            providerKey={providerKey}
             onChange={value => handleChange(entry.id, value)}
             onDelete={() => handleDelete(entry.id)}
             onExpandToggle={() => toggle(entry.id)}

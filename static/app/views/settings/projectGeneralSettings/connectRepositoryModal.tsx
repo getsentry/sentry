@@ -25,6 +25,7 @@ const REPOS_STALE_TIME_MS = 60_000;
 
 type RepoSelectOption = SelectValue<string> & {
   defaultBranch?: string | null;
+  providerKey?: string;
 };
 
 type RepoGroup = {
@@ -83,6 +84,7 @@ function useGroupedRepoOptions(orgSlug: string): {
           label: repo.name,
           leadingItems: getIntegrationIcon(integration.provider.key, 'sm'),
           defaultBranch: repo.defaultBranch,
+          providerKey: integration.provider.key,
         })),
       })),
       isReposPending: results.some(r => r.isPending),
@@ -193,7 +195,13 @@ export function ConnectRepositoryModal({
           </Grid>
 
           {selectedOption ? (
-            <PathMappingList key={selectedOption.value} onChange={setPathMappings} />
+            <Container paddingTop="2xl">
+              <PathMappingList
+                key={selectedOption.value}
+                providerKey={selectedOption.providerKey}
+                onChange={setPathMappings}
+              />
+            </Container>
           ) : (
             <Stack gap="xs" paddingTop="2xl">
               <Text size="sm" bold>
