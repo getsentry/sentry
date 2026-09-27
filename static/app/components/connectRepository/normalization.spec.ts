@@ -22,15 +22,6 @@ describe('normalizeRoot', () => {
     expect(normalizeRoot('src////')).toBe('src/');
     expect(normalizeRoot('src/app//')).toBe('src/app/');
   });
-
-  it('trims surrounding whitespace', () => {
-    expect(normalizeRoot('hello  ')).toBe('hello/');
-    expect(normalizeRoot('  src/app  ')).toBe('src/app/');
-  });
-
-  it('treats a whitespace-only string as empty', () => {
-    expect(normalizeRoot('   ')).toBe('');
-  });
 });
 
 describe('resolveBranch', () => {

@@ -12,11 +12,8 @@ export const resolveBranch = (branch: string) =>
   sanitizeBranch(branch).replace(/[./]+$/, '') || DEFAULT_BRANCH;
 
 export const normalizeRoot = (root: string) => {
-  const trimmed = root
-    .trim()
-    .replace(/\/{2,}/g, '/')
-    .replace(/\/$/, '');
-  return trimmed === '' ? '' : `${trimmed}/`;
+  const cleaned = root.replace(/\/{2,}/g, '/').replace(/\/$/, '');
+  return cleaned === '' ? '' : `${cleaned}/`;
 };
 
 const schema = z.object({
