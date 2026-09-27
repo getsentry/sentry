@@ -191,6 +191,29 @@ describe('PathMappingList', () => {
     });
   });
 
+  describe('defaultBranch', () => {
+    it('seeds the initial row with the provided default branch', () => {
+      const onChange = jest.fn();
+      renderList({defaultBranch: 'master', onChange});
+
+      expect(onChange).toHaveBeenLastCalledWith([
+        expect.objectContaining({branch: 'master'}),
+      ]);
+    });
+
+    it('seeds new rows added via "Add another path" with the provided default branch', async () => {
+      const onChange = jest.fn();
+      renderList({pathMappings: [MAPPINGS[0]!], defaultBranch: 'master', onChange});
+
+      await userEvent.click(screen.getByRole('button', {name: 'Add another path'}));
+
+      expect(onChange).toHaveBeenLastCalledWith([
+        MAPPINGS[0],
+        expect.objectContaining({stackRoot: '', sourceRoot: '', branch: 'master'}),
+      ]);
+    });
+  });
+
   describe('field normalization', () => {
     it('adds a trailing slash to the stack root on blur', async () => {
       const onChange = jest.fn();

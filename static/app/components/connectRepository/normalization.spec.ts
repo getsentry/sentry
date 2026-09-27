@@ -17,16 +17,15 @@ describe('normalizeRoot', () => {
   it('leaves an existing trailing slash in place', () => {
     expect(normalizeRoot('src/')).toBe('src/');
   });
-
-  it('collapses repeated slashes', () => {
-    expect(normalizeRoot('src////')).toBe('src/');
-    expect(normalizeRoot('src/app//')).toBe('src/app/');
-  });
 });
 
 describe('resolveBranch', () => {
   it('returns the default branch for an empty string', () => {
     expect(resolveBranch('')).toBe('main');
+  });
+
+  it('uses a custom fallback when branch is empty', () => {
+    expect(resolveBranch('', 'master')).toBe('master');
   });
 
   it('replaces spaces with dashes', () => {

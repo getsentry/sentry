@@ -204,6 +204,7 @@ export function ConnectRepositoryModal({
               <PathMappingList
                 key={selectedOption.value}
                 providerKey={selectedOption.providerKey}
+                defaultBranch={selectedOption.defaultBranch ?? undefined}
                 onChange={setPathMappings}
               />
             </Container>

@@ -7,12 +7,13 @@ import {Text} from '@sentry/scraps/text';
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 
-import {normalizedPathMappingSchema} from './normalization';
+import {DEFAULT_BRANCH, normalizedPathMappingSchema} from './normalization';
 import {PathMapping} from './pathMapping';
 import type {PathMappingValue} from './type';
 
 interface PathMappingListProps {
   onChange: (pathMappings: PathMappingValue[]) => void;
+  defaultBranch?: string;
   pathMappings?: PathMappingValue[];
   providerKey?: string;
 }
@@ -57,14 +58,20 @@ export function PathMappingList({
   pathMappings,
   onChange,
   providerKey,
+  defaultBranch,
 }: PathMappingListProps) {
+  const newRowValue: PathMappingValue = {
+    ...EMPTY_MAPPING,
+    branch: defaultBranch ?? DEFAULT_BRANCH,
+  };
+
   const [entries, setEntries] = useState<Entry[]>(() => {
     const seeded = (pathMappings ?? []).map((value, index) => ({
       id: index,
       isNew: false,
       value,
     }));
-    return seeded.length > 0 ? seeded : [{id: 0, isNew: true, value: EMPTY_MAPPING}];
+    return seeded.length > 0 ? seeded : [{id: 0, isNew: true, value: newRowValue}];
   });
 
   // IDs start after the initial entries so that subsequent additions never
@@ -95,7 +102,7 @@ export function PathMappingList({
       // Deleting the last mapping reseeds a fresh open row — matching mount behavior.
       if (remaining.length === 0) {
         setOpenId(freshId);
-        return [{id: freshId, isNew: true, value: EMPTY_MAPPING}];
+        return [{id: freshId, isNew: true, value: newRowValue}];
       }
       setOpenId(open => (open === id ? null : open));
       return remaining;
@@ -113,7 +120,7 @@ export function PathMappingList({
     const id = nextId();
     setEntries(prev => [
       ...clearNewOnCollapse(prev, openId),
-      {id, isNew: true, value: EMPTY_MAPPING},
+      {id, isNew: true, value: newRowValue},
     ]);
     setOpenId(id);
   };
@@ -151,6 +158,7 @@ export function PathMappingList({
             editing={openId === entry.id}
             isNew={entry.isNew}
             providerKey={providerKey}
+            defaultBranch={defaultBranch}
             onChange={value => handleChange(entry.id, value)}
             onDelete={() => handleDelete(entry.id)}
             onExpandToggle={() => toggle(entry.id)}

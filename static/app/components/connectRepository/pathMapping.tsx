@@ -33,6 +33,7 @@ interface PathMappingProps extends PathMappingValue {
   onChange: (value: PathMappingValue) => void;
   onDelete: () => void;
   onExpandToggle: () => void;
+  defaultBranch?: string;
   providerKey?: string;
 }
 
@@ -56,6 +57,7 @@ export function PathMapping({
   onChange,
   onDelete,
   onExpandToggle,
+  defaultBranch,
   providerKey,
   ...value
 }: PathMappingProps) {
@@ -73,7 +75,12 @@ export function PathMapping({
       )}
       {showSummary && editing && <Container borderTop="muted" />}
       {editing && (
-        <PathMappingEdit {...value} providerKey={providerKey} onChange={onChange} />
+        <PathMappingEdit
+          {...value}
+          providerKey={providerKey}
+          defaultBranch={defaultBranch}
+          onChange={onChange}
+        />
       )}
     </Stack>
   );
@@ -81,6 +88,7 @@ export function PathMapping({
 
 interface PathMappingEditProps extends PathMappingValue {
   onChange: (value: PathMappingValue) => void;
+  defaultBranch?: string;
   providerKey?: string;
 }
 
@@ -89,8 +97,10 @@ function PathMappingEdit({
   sourceRoot,
   stackRoot,
   onChange,
+  defaultBranch,
   providerKey,
 }: PathMappingEditProps) {
+  const branchFallback = defaultBranch ?? DEFAULT_BRANCH;
   const form = useScrapsForm({
     ...defaultFormOptions,
     defaultValues: {stackRoot, sourceRoot, branch},
@@ -98,7 +108,7 @@ function PathMappingEdit({
     listeners: {
       onChange: ({formApi}) => {
         const values = formApi.state.values;
-        onChange({...values, branch: resolveBranch(values.branch)});
+        onChange({...values, branch: resolveBranch(values.branch, branchFallback)});
       },
     },
     onSubmit: () => {},
@@ -120,7 +130,7 @@ function PathMappingEdit({
                       <InputGroup.Input
                         {...baseProps}
                         value={field.state.value}
-                        placeholder={DEFAULT_BRANCH}
+                        placeholder={branchFallback}
                         onChange={e => field.handleChange(sanitizeBranch(e.target.value))}
                       />
                       <InputGroup.TrailingItems>{indicator}</InputGroup.TrailingItems>

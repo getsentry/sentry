@@ -127,6 +127,15 @@ describe('ConnectRepositoryModal', () => {
     expect(screen.getByRole('button', {name: 'Save'})).toBeEnabled();
   });
 
+  it('seeds the branch field with the repository default branch', async () => {
+    renderModal();
+
+    await userEvent.click(screen.getByText('Search repositories'));
+    await userEvent.click(await screen.findByText('getsentry/relay'));
+
+    expect(screen.getByRole('textbox', {name: /branch/i})).toHaveValue('master');
+  });
+
   it('supports adding another path inside the modal', async () => {
     renderModal();
 
