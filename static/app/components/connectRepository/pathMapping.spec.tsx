@@ -154,14 +154,7 @@ describe('PathMapping', () => {
     );
   });
 
-  it('shows preview headings', () => {
-    render(<PathMapping {...defaultProps} editing isNew />);
-
-    expect(screen.getByText('In your stack trace')).toBeInTheDocument();
-    expect(screen.getByText('Sentry opens in your repo')).toBeInTheDocument();
-  });
-
-  it('updates preview when stack root changes', async () => {
+  it('renders preview and updates it as stack root changes', async () => {
     render(
       <PathMapping
         {...defaultProps}
@@ -172,6 +165,9 @@ describe('PathMapping', () => {
         branch="main"
       />
     );
+
+    expect(screen.getByText('In your stack trace')).toBeInTheDocument();
+    expect(screen.getByText('Sentry opens in your repo')).toBeInTheDocument();
 
     const stackInput = screen.getByRole('textbox', {name: /stack trace prefix/i});
     await userEvent.type(stackInput, 'src/');
