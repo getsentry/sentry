@@ -172,6 +172,6 @@ describe('PathMapping', () => {
     const stackInput = screen.getByRole('textbox', {name: /stack trace prefix/i});
     await userEvent.type(stackInput, 'src/');
 
-    expect(screen.getAllByText('src/')).toHaveLength(2);
+    expect(screen.getByText('src/')).toBeInTheDocument();
   });
 });
