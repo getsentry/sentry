@@ -83,45 +83,31 @@ describe('ConnectRepositoryModal', () => {
     });
   });
 
-  it('includes the project name in the title', () => {
+  it('renders initial modal state', async () => {
     renderModal();
     expect(
       screen.getByText(`Connect a repository to ${project.slug}`)
     ).toBeInTheDocument();
-  });
-
-  it('shows the project name as a locked read-only field', () => {
-    renderModal();
-    const input = screen.getByRole('textbox', {name: /project/i});
-    expect(input).toBeDisabled();
-  });
-
-  it('lists repos from mock integration in the dropdown', async () => {
-    renderModal();
-    await userEvent.click(screen.getByText('Search repositories'));
-    expect(await screen.findByText('getsentry/sentry')).toBeInTheDocument();
-    expect(screen.getByText('getsentry/relay')).toBeInTheDocument();
-  });
-
-  it('shows paths placeholder before a repo is chosen', async () => {
-    renderModal();
+    expect(screen.getByRole('textbox', {name: /project/i})).toBeDisabled();
     expect(
       await screen.findByText('Select a repository first to configure code paths')
     ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Save'})).toBeDisabled();
   });
 
-  it('Save button is disabled', async () => {
+  it('allows selecting a repository', async () => {
     renderModal();
-    await waitFor(() =>
-      expect(screen.getByRole('button', {name: 'Save'})).toBeDisabled()
-    );
-  });
 
-  it('shows the selected repo in the combobox after picking', async () => {
-    renderModal();
     await userEvent.click(screen.getByText('Search repositories'));
-    await userEvent.click(await screen.findByText('getsentry/sentry'));
+    expect(await screen.findByText('getsentry/sentry')).toBeInTheDocument();
+    expect(screen.getByText('getsentry/relay')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByText('getsentry/sentry'));
     expect(screen.getByText('getsentry/sentry')).toBeInTheDocument();
+    expect(screen.queryByText('getsentry/relay')).not.toBeInTheDocument();
+    expect(
+      await screen.findByText('Select a repository first to configure code paths')
+    ).not.toBeInTheDocument();
   });
 
   it('Cancel closes the modal', async () => {
@@ -129,5 +115,8 @@ describe('ConnectRepositoryModal', () => {
     renderModal(closeModal);
     await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
     expect(closeModal).toHaveBeenCalled();
+    expect(
+      screen.queryByText(`Connect a repository to ${project.slug}`)
+    ).not.toBeInTheDocument();
   });
 });
