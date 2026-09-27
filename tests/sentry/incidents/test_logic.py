@@ -3628,3 +3628,40 @@ class TestGetAlertResolution(TestCase):
         time_window = -5
         result = get_alert_resolution(time_window, self.organization)
         assert result == timedelta(minutes=DEFAULT_ALERT_RULE_RESOLUTION)
+
+
+class TestGetColumnFromAggregate(TestCase):
+    def test_equation_returns_none(self) -> None:
+        # Equation aggregates must not be passed to resolve_field, which cannot
+        # handle the equation syntax and raises InvalidSearchQuery.
+        equation = (
+            "equation|"
+            "( sum_if(`outcome:success`,value,wispr_agent.stream.outcome,counter,none) )"
+            " / "
+            "( sum(value,wispr_agent.stream.outcome,counter,none) )"
+            " * 100"
+        )
+        from sentry.incidents.logic import get_column_from_aggregate
+
+        result = get_column_from_aggregate(equation, allow_mri=False)
+        assert result is None
+
+    def test_equation_does_not_raise(self) -> None:
+        # Ensure no InvalidSearchQuery is raised for equation strings.
+        from sentry.incidents.logic import get_column_from_aggregate
+        from sentry.search.events.fields import InvalidSearchQuery
+
+        equation = "equation|sum(value,foo.bar,counter,none) / count() * 100"
+        try:
+            get_column_from_aggregate(equation, allow_mri=False)
+        except InvalidSearchQuery:
+            raise AssertionError(
+                "get_column_from_aggregate raised InvalidSearchQuery for an equation aggregate"
+            )
+
+    def test_normal_aggregate_still_works(self) -> None:
+        from sentry.incidents.logic import get_column_from_aggregate
+
+        # A regular function should still resolve without error.
+        result = get_column_from_aggregate("count()", allow_mri=False)
+        assert result is None

@@ -1799,6 +1799,13 @@ def get_column_from_aggregate(
     allow_eap: bool = False,
     match: Match[str] | None = None,
 ) -> str | None:
+    # Equations are not a single function with a column — they are composite expressions.
+    # resolve_field cannot handle equation syntax (e.g. the `|`, backticks, and parentheses
+    # in "equation|sum_if(...) / sum(...)") and will raise InvalidSearchQuery. Return None
+    # early so callers treat equations as having no extractable column.
+    if is_equation(aggregate):
+        return None
+
     # These functions exist as SnQLFunction definitions and are not supported in the older
     # logic for resolving functions. We parse these using `fields.is_function`, otherwise
     # they will fail using the old resolve_field logic.
