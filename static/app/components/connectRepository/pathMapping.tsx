@@ -325,6 +325,14 @@ const ArrowWrapper = styled(Flex)`
   }
 `;
 
+const PreviewFlex = styled(Flex)`
+  align-items: flex-end;
+  @container (max-width: ${p => p.theme.container['2xs']}) {
+    flex-direction: column;
+    align-items: stretch;
+  }
+`;
+
 const PreviewArrow = styled(Flex)`
   align-items: center;
   @container (max-width: ${p => p.theme.container['2xs']}) {
@@ -377,8 +385,8 @@ function PathMappingPreview({stackRoot, sourceRoot}: PathMappingPreviewProps) {
       padding="xl"
       style={{containerType: 'inline-size'}}
     >
-      <Flex gap="xl" wrap="wrap">
-        <Stack gap="sm" style={{flex: 1}}>
+      <PreviewFlex gap="xl">
+        <Stack gap="sm">
           <Text bold variant="muted">
             {t('In your stack trace')}
           </Text>
@@ -390,7 +398,7 @@ function PathMappingPreview({stackRoot, sourceRoot}: PathMappingPreviewProps) {
         <PreviewArrow>
           <IconArrow direction="right" />
         </PreviewArrow>
-        <Stack gap="sm" style={{flex: 1}}>
+        <Stack gap="sm" style={{flex: 1, minWidth: 0}}>
           <Text bold variant="muted">
             {t('Sentry opens in your repo')}
           </Text>
@@ -399,7 +407,7 @@ function PathMappingPreview({stackRoot, sourceRoot}: PathMappingPreviewProps) {
             {PREVIEW_SUFFIX}
           </Text>
         </Stack>
-      </Flex>
+      </PreviewFlex>
     </Container>
   );
 }
