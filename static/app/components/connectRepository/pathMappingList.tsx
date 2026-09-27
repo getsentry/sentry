@@ -1,4 +1,4 @@
-import {useRef, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -71,12 +71,15 @@ export function PathMappingList({pathMappings, onChange}: PathMappingListProps) 
     entries.length === 1 && entries[0]!.isNew ? entries[0]!.id : null
   );
 
+  // Report filled entries to the parent after every entries change.
+  // Calling onChange inside a setEntries updater would update a different
+  // component during the render phase, which React disallows.
+  useEffect(() => {
+    onChange(entries.map(entry => entry.value).filter(hasContent));
+  }, [entries, onChange]);
+
   const handleChange = (id: number, value: PathMappingValue) => {
-    setEntries(prev => {
-      const next = prev.map(entry => (entry.id === id ? {...entry, value} : entry));
-      onChange(next.map(entry => entry.value).filter(hasContent));
-      return next;
-    });
+    setEntries(prev => prev.map(entry => (entry.id === id ? {...entry, value} : entry)));
   };
 
   const handleDelete = (id: number) => {
@@ -86,11 +89,9 @@ export function PathMappingList({pathMappings, onChange}: PathMappingListProps) 
       const remaining = prev.filter(entry => entry.id !== id);
       // Deleting the last mapping reseeds a fresh open row — matching mount behavior.
       if (remaining.length === 0) {
-        onChange([]);
         setOpenId(freshId);
         return [{id: freshId, isNew: true, value: EMPTY_MAPPING}];
       }
-      onChange(remaining.map(entry => entry.value).filter(hasContent));
       setOpenId(open => (open === id ? null : open));
       return remaining;
     });

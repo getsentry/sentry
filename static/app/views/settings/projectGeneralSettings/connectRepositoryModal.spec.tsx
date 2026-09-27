@@ -93,20 +93,60 @@ describe('ConnectRepositoryModal', () => {
       await screen.findByText('Select a repository first to configure code paths')
     ).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Save'})).toBeDisabled();
+    expect(
+      screen.queryByRole('textbox', {name: /stack trace prefix/i})
+    ).not.toBeInTheDocument();
   });
 
-  it('allows selecting a repository', async () => {
+  it('shows the path list after selecting a repository and gates Save on path content', async () => {
     renderModal();
 
     await userEvent.click(screen.getByText('Search repositories'));
     expect(await screen.findByText('getsentry/sentry')).toBeInTheDocument();
     expect(screen.getByText('getsentry/relay')).toBeInTheDocument();
-
     await userEvent.click(screen.getByText('getsentry/sentry'));
-    expect(screen.getByText('getsentry/sentry')).toBeInTheDocument();
-    expect(screen.queryByText('getsentry/relay')).not.toBeInTheDocument();
+
     expect(
       screen.queryByText('Select a repository first to configure code paths')
     ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('textbox', {name: /stack trace prefix/i})
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Save'})).toBeDisabled();
+
+    await userEvent.type(
+      screen.getByRole('textbox', {name: /stack trace prefix/i}),
+      'src/'
+    );
+    expect(screen.getByRole('button', {name: 'Save'})).toBeDisabled();
+
+    await userEvent.type(
+      screen.getByRole('textbox', {name: /repository prefix/i}),
+      'app/'
+    );
+    expect(screen.getByRole('button', {name: 'Save'})).toBeEnabled();
+  });
+
+  it('supports adding another path inside the modal', async () => {
+    renderModal();
+
+    await userEvent.click(screen.getByText('Search repositories'));
+    await userEvent.click(await screen.findByText('getsentry/sentry'));
+
+    await userEvent.type(
+      screen.getByRole('textbox', {name: /stack trace prefix/i}),
+      'src/'
+    );
+    await userEvent.type(
+      screen.getByRole('textbox', {name: /repository prefix/i}),
+      'app/'
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Add another path'}));
+
+    expect(screen.getByText(/Paths \(2\)/)).toBeInTheDocument();
+    expect(
+      screen.getByRole('textbox', {name: /stack trace prefix/i})
+    ).toBeInTheDocument();
   });
 });

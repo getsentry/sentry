@@ -9,6 +9,8 @@ import type {SelectValue} from '@sentry/scraps/select';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {PathMappingList} from 'sentry/components/connectRepository/pathMappingList';
+import type {PathMappingValue} from 'sentry/components/connectRepository/type';
 import {ScmVirtualizedMenuList} from 'sentry/components/onboarding/scm/scmVirtualizedMenuList';
 import {IconLock} from 'sentry/icons';
 import {IconArrow} from 'sentry/icons/iconArrow';
@@ -138,7 +140,12 @@ export function ConnectRepositoryModal({
 }: Props) {
   const organization = useOrganization();
   const [selectedOption, setSelectedOption] = useState<RepoSelectOption | null>(null);
+  const [pathMappings, setPathMappings] = useState<PathMappingValue[]>([]);
   const {groupedOptions, isPending} = useGroupedRepoOptions(organization.slug);
+
+  const canSave = pathMappings.some(
+    mapping => mapping.stackRoot.trim() !== '' && mapping.sourceRoot.trim() !== ''
+  );
 
   return (
     <Fragment>
@@ -176,7 +183,10 @@ export function ConnectRepositoryModal({
               aria-label={t('Repository')}
               options={groupedOptions}
               value={selectedOption?.value ?? null}
-              onChange={option => setSelectedOption(option as RepoSelectOption | null)}
+              onChange={option => {
+                setSelectedOption(option as RepoSelectOption | null);
+                setPathMappings([]);
+              }}
               placeholder={t('Search repositories')}
               isLoading={isPending}
               searchable
@@ -184,18 +194,22 @@ export function ConnectRepositoryModal({
             />
           </Grid>
 
-          <Stack gap="xs" paddingTop="2xl">
-            <Text size="sm" bold>
-              {t('Paths')}
-            </Text>
-            {!selectedOption && <PathsPlaceholder />}
-          </Stack>
+          {selectedOption ? (
+            <PathMappingList key={selectedOption.value} onChange={setPathMappings} />
+          ) : (
+            <Stack gap="xs" paddingTop="2xl">
+              <Text size="sm" bold>
+                {t('Paths')}
+              </Text>
+              <PathsPlaceholder />
+            </Stack>
+          )}
         </Stack>
       </Body>
       <Footer>
         <Flex justify="end" gap="md">
           <Button onClick={closeModal}>{t('Cancel')}</Button>
-          <Button variant="primary" disabled>
+          <Button variant="primary" disabled={!canSave}>
             {t('Save')}
           </Button>
         </Flex>
