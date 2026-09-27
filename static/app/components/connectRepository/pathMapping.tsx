@@ -106,7 +106,7 @@ function PathMappingEdit({
 
   return (
     <form.AppForm form={form}>
-      <Container padding="xl" style={{containerType: 'inline-size'}}>
+      <FormContainer padding="xl">
         <Stack gap="xl">
           <form.AppField name="branch">
             {field => (
@@ -214,7 +214,7 @@ function PathMappingEdit({
             </form.Subscribe>
           </Stack>
         </Stack>
-      </Container>
+      </FormContainer>
     </form.AppForm>
   );
 }
@@ -313,6 +313,14 @@ const AccentHighlight = styled(Container)`
   background: ${p => p.theme.tokens.background.transparent.accent.muted};
 `;
 
+const FormContainer = styled(Container)`
+  container-type: inline-size;
+`;
+
+const PreviewContainer = styled(Container)`
+  container-type: inline-size;
+`;
+
 const ResponsivePrefixGrid = styled(Grid)`
   @container (max-width: ${p => p.theme.container['2xs']}) {
     grid-template-columns: 1fr;
@@ -379,12 +387,7 @@ interface PathMappingPreviewProps {
 
 function PathMappingPreview({stackRoot, sourceRoot}: PathMappingPreviewProps) {
   return (
-    <Container
-      background="secondary"
-      radius="md"
-      padding="xl"
-      style={{containerType: 'inline-size'}}
-    >
+    <PreviewContainer background="secondary" radius="md" padding="xl">
       <PreviewFlex gap="xl">
         <Stack gap="sm">
           <Text bold variant="muted">
@@ -408,6 +411,6 @@ function PathMappingPreview({stackRoot, sourceRoot}: PathMappingPreviewProps) {
           </Text>
         </Stack>
       </PreviewFlex>
-    </Container>
+    </PreviewContainer>
   );
 }
