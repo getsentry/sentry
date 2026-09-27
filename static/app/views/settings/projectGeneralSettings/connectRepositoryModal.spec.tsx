@@ -3,7 +3,7 @@ import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 // Mock the virtualizer so all menu items render in JSDOM (no layout engine).
 jest.mock('@tanstack/react-virtual', () => ({
