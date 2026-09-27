@@ -527,6 +527,22 @@ describe('getWidgetExploreUrl', () => {
   });
 });
 
+describe('getWidgetExploreUrl with empty queries', () => {
+  const organization = OrganizationFixture();
+  const selection = PageFiltersFixture();
+
+  it('returns null when the widget has no queries', () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.TABLE,
+      widgetType: WidgetType.SPANS,
+      queries: [],
+    });
+
+    const url = getWidgetExploreUrl(widget, undefined, selection, organization);
+    expect(url).toBeNull();
+  });
+});
+
 describe('getWidgetTableRowExploreUrlFunction', () => {
   const organization = OrganizationFixture();
   const selection = PageFiltersFixture();

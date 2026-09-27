@@ -113,6 +113,10 @@ export function getWidgetExploreUrl(
   preferMode?: Mode,
   referrer?: string
 ): string | null {
+  if (!widget.queries.length) {
+    return null;
+  }
+
   const traceItemDataset = getTraceItemDatasetFromWidgetType(widget.widgetType);
 
   if (widget.queries.length > 1) {
