@@ -75,7 +75,7 @@ export function PathMappingList({pathMappings, onChange}: PathMappingListProps) 
   // Calling onChange inside a setEntries updater would update a different
   // component during the render phase, which React disallows.
   useEffect(() => {
-    onChange(entries.map(entry => entry.value).filter(hasContent));
+    onChange(entries.map(entry => entry.value));
   }, [entries, onChange]);
 
   const handleChange = (id: number, value: PathMappingValue) => {

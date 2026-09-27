@@ -143,9 +143,7 @@ export function ConnectRepositoryModal({
   const [pathMappings, setPathMappings] = useState<PathMappingValue[]>([]);
   const {groupedOptions, isPending} = useGroupedRepoOptions(organization.slug);
 
-  const canSave = pathMappings.some(
-    mapping => mapping.stackRoot.trim() !== '' && mapping.sourceRoot.trim() !== ''
-  );
+  const canSave = selectedOption !== null && pathMappings.length > 0;
 
   return (
     <Fragment>

@@ -112,13 +112,13 @@ describe('ConnectRepositoryModal', () => {
     expect(
       screen.getByRole('textbox', {name: /stack trace prefix/i})
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Save'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Save'})).toBeEnabled();
 
     await userEvent.type(
       screen.getByRole('textbox', {name: /stack trace prefix/i}),
       'src/'
     );
-    expect(screen.getByRole('button', {name: 'Save'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Save'})).toBeEnabled();
 
     await userEvent.type(
       screen.getByRole('textbox', {name: /repository prefix/i}),

@@ -139,7 +139,11 @@ function PathMappingEdit({
                   }
                   hintText={t('The start of the paths in your stack traces.')}
                 >
-                  <field.Input value={field.state.value} onChange={field.handleChange} />
+                  <field.Input
+                    value={field.state.value}
+                    onChange={field.handleChange}
+                    placeholder={t('src/')}
+                  />
                 </field.Layout.Stack>
               )}
             </form.AppField>
@@ -165,7 +169,11 @@ function PathMappingEdit({
                     'What to replace it with, so the path points to your repo.'
                   )}
                 >
-                  <field.Input value={field.state.value} onChange={field.handleChange} />
+                  <field.Input
+                    value={field.state.value}
+                    onChange={field.handleChange}
+                    placeholder={t('src/app')}
+                  />
                 </field.Layout.Stack>
               )}
             </form.AppField>

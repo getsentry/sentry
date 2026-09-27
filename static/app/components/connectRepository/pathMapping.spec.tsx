@@ -67,6 +67,19 @@ describe('PathMapping', () => {
     expect(screen.getByRole('textbox', {name: /repository prefix/i})).toBeInTheDocument();
   });
 
+  it('shows placeholders on the prefix inputs', () => {
+    render(<PathMapping {...defaultProps} editing isNew />);
+
+    expect(screen.getByRole('textbox', {name: /stack trace prefix/i})).toHaveAttribute(
+      'placeholder',
+      'src/'
+    );
+    expect(screen.getByRole('textbox', {name: /repository prefix/i})).toHaveAttribute(
+      'placeholder',
+      'src/app'
+    );
+  });
+
   it('renders preview and updates it as stack root changes', async () => {
     render(
       <PathMapping

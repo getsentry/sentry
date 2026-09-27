@@ -125,7 +125,9 @@ describe('PathMappingList', () => {
 
       expect(screen.getByText(/Paths \(1\)/)).toBeInTheDocument();
       expect(screen.getByRole('textbox', {name: /stack trace prefix/i})).toHaveValue('');
-      expect(onChange).toHaveBeenLastCalledWith([]);
+      expect(onChange).toHaveBeenLastCalledWith([
+        expect.objectContaining({stackRoot: '', sourceRoot: ''}),
+      ]);
     });
   });
 
