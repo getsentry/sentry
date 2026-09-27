@@ -49,7 +49,6 @@ const PREVIEW_SUFFIX = 'views/index.tsx';
 
 const PATH_RATIO = 35;
 const BRANCH_RATIO = 30;
-const MOBILE_BREAKPOINT = '400px';
 
 export function PathMapping({
   editing,
@@ -315,20 +314,20 @@ const AccentHighlight = styled(Container)`
 `;
 
 const ResponsivePrefixGrid = styled(Grid)`
-  @container (max-width: ${MOBILE_BREAKPOINT}) {
+  @container (max-width: ${p => p.theme.container['2xs']}) {
     grid-template-columns: 1fr;
   }
 `;
 
 const ArrowWrapper = styled(Flex)`
-  @container (max-width: ${MOBILE_BREAKPOINT}) {
+  @container (max-width: ${p => p.theme.container['2xs']}) {
     justify-content: center;
   }
 `;
 
 const PreviewArrow = styled(Flex)`
   align-items: center;
-  @container (max-width: ${MOBILE_BREAKPOINT}) {
+  @container (max-width: ${p => p.theme.container['2xs']}) {
     display: none;
   }
 `;
