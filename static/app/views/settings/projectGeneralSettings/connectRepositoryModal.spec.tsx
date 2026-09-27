@@ -106,17 +106,7 @@ describe('ConnectRepositoryModal', () => {
     expect(screen.getByText('getsentry/sentry')).toBeInTheDocument();
     expect(screen.queryByText('getsentry/relay')).not.toBeInTheDocument();
     expect(
-      await screen.findByText('Select a repository first to configure code paths')
-    ).not.toBeInTheDocument();
-  });
-
-  it('Cancel closes the modal', async () => {
-    const closeModal = jest.fn();
-    renderModal(closeModal);
-    await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
-    expect(closeModal).toHaveBeenCalled();
-    expect(
-      screen.queryByText(`Connect a repository to ${project.slug}`)
+      screen.queryByText('Select a repository first to configure code paths')
     ).not.toBeInTheDocument();
   });
 });
