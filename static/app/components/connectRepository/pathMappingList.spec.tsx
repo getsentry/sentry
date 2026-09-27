@@ -238,6 +238,8 @@ describe('PathMappingList', () => {
         screen.getByRole('textbox', {name: /stack trace prefix/i}),
         'src/'
       );
+      // Clear the pre-seeded default branch before typing a custom value.
+      await userEvent.clear(screen.getByRole('textbox', {name: /branch/i}));
       await userEvent.type(screen.getByRole('textbox', {name: /branch/i}), 'my branch');
 
       expect(onChange).toHaveBeenLastCalledWith([
