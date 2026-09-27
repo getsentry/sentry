@@ -12,11 +12,14 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {IconArrow, IconBranch, IconChevron, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
-export interface PathMappingValue {
-  branch: string;
-  sourceRoot: string;
-  stackRoot: string;
-}
+import {
+  DEFAULT_BRANCH,
+  normalizedPathMappingSchema,
+  normalizeRoot,
+  resolveBranch,
+  sanitizeBranch,
+} from './normalization';
+import type {PathMappingValue} from './type';
 
 interface PathMappingProps extends PathMappingValue {
   /**
@@ -31,30 +34,11 @@ interface PathMappingProps extends PathMappingValue {
   onExpandToggle: () => void;
 }
 
-const DEFAULT_BRANCH = 'main';
-
-const sanitizeBranch = (value: string) =>
-  value
-    .replace(/[^\w/.-]+/g, '-')
-    .replace(/\/{2,}/g, '/')
-    .replace(/^[./]+/, '');
-
-const resolveBranch = (branch: string) =>
-  sanitizeBranch(branch).replace(/[./]+$/, '') || DEFAULT_BRANCH;
-
-const normalizeRoot = (root: string) =>
-  root === '' ? '' : root.endsWith('/') ? root : `${root}/`;
-
+// Non-transforming schema used only for the form's onDynamic validator.
 const schema = z.object({
   stackRoot: z.string(),
   sourceRoot: z.string(),
   branch: z.string(),
-});
-
-export const normalizedPathMappingSchema = schema.extend({
-  stackRoot: z.string().transform(normalizeRoot),
-  sourceRoot: z.string().transform(normalizeRoot),
-  branch: z.string().transform(resolveBranch),
 });
 
 const PREVIEW_SUFFIX = 'views/index.tsx';
