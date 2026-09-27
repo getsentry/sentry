@@ -3634,6 +3634,8 @@ class TestGetColumnFromAggregate(TestCase):
     def test_equation_returns_none(self) -> None:
         # Equation aggregates must not be passed to resolve_field, which cannot
         # handle the equation syntax and raises InvalidSearchQuery.
+        from sentry.incidents.logic import get_column_from_aggregate
+
         equation = (
             "equation|"
             "( sum_if(`outcome:success`,value,wispr_agent.stream.outcome,counter,none) )"
@@ -3641,23 +3643,16 @@ class TestGetColumnFromAggregate(TestCase):
             "( sum(value,wispr_agent.stream.outcome,counter,none) )"
             " * 100"
         )
-        from sentry.incidents.logic import get_column_from_aggregate
-
         result = get_column_from_aggregate(equation, allow_mri=False)
         assert result is None
 
-    def test_equation_does_not_raise(self) -> None:
-        # Ensure no InvalidSearchQuery is raised for equation strings.
+    def test_equation_short_form_returns_none(self) -> None:
+        # Shorter equation form should also return None without raising.
         from sentry.incidents.logic import get_column_from_aggregate
-        from sentry.search.events.fields import InvalidSearchQuery
 
         equation = "equation|sum(value,foo.bar,counter,none) / count() * 100"
-        try:
-            get_column_from_aggregate(equation, allow_mri=False)
-        except InvalidSearchQuery:
-            raise AssertionError(
-                "get_column_from_aggregate raised InvalidSearchQuery for an equation aggregate"
-            )
+        result = get_column_from_aggregate(equation, allow_mri=False)
+        assert result is None
 
     def test_normal_aggregate_still_works(self) -> None:
         from sentry.incidents.logic import get_column_from_aggregate
