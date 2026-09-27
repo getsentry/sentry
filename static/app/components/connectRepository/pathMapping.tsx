@@ -150,7 +150,7 @@ function PathMappingEdit({
                   label={
                     <Flex gap="xs" align="center">
                       {t('Stack trace prefix')}
-                      <Tag>{t('Match')}</Tag>
+                      <Tag variant="muted">{t('Match')}</Tag>
                     </Flex>
                   }
                   hintText={t('The start of the paths in your stack traces.')}
@@ -174,7 +174,7 @@ function PathMappingEdit({
                   label={
                     <Flex gap="xs" align="center">
                       {t('Repository prefix')}
-                      <Tag>{t('Replace with')}</Tag>
+                      <Tag variant="muted">{t('Replace with')}</Tag>
                     </Flex>
                   }
                   hintText={t(
