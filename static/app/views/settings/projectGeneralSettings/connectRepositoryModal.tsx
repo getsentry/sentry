@@ -1,4 +1,5 @@
 import {Fragment, useMemo, useState} from 'react';
+import styled from '@emotion/styled';
 import {useQueries, useQuery} from '@tanstack/react-query';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
@@ -177,21 +178,25 @@ export function ConnectRepositoryModal({
             <Text size="sm" bold>
               {t('Repository')}
             </Text>
-            <LockedProjectField project={project} />
+            <SelectorCell>
+              <LockedProjectField project={project} />
+            </SelectorCell>
             <IconArrow direction="right" />
-            <Select
-              aria-label={t('Repository')}
-              options={groupedOptions}
-              value={selectedOption?.value ?? null}
-              onChange={option => {
-                setSelectedOption(option as RepoSelectOption | null);
-                setPathMappings([]);
-              }}
-              placeholder={t('Search repositories')}
-              isLoading={isPending}
-              searchable
-              components={{MenuList: ScmVirtualizedMenuList}}
-            />
+            <SelectorCell>
+              <Select
+                aria-label={t('Repository')}
+                options={groupedOptions}
+                value={selectedOption?.value ?? null}
+                onChange={option => {
+                  setSelectedOption(option as RepoSelectOption | null);
+                  setPathMappings([]);
+                }}
+                placeholder={t('Search repositories')}
+                isLoading={isPending}
+                searchable
+                components={{MenuList: ScmVirtualizedMenuList}}
+              />
+            </SelectorCell>
           </Grid>
 
           {selectedOption ? (
@@ -223,3 +228,7 @@ export function ConnectRepositoryModal({
     </Fragment>
   );
 }
+
+const SelectorCell = styled('div')`
+  min-width: 0;
+`;

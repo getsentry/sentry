@@ -49,6 +49,7 @@ const PREVIEW_SUFFIX = 'views/index.tsx';
 
 const PATH_RATIO = 35;
 const BRANCH_RATIO = 30;
+const MOBILE_BREAKPOINT = '400px';
 
 export function PathMapping({
   editing,
@@ -106,7 +107,7 @@ function PathMappingEdit({
 
   return (
     <form.AppForm form={form}>
-      <Container padding="xl">
+      <Container padding="xl" style={{containerType: 'inline-size'}}>
         <Stack gap="xl">
           <form.AppField name="branch">
             {field => (
@@ -131,7 +132,7 @@ function PathMappingEdit({
             )}
           </form.AppField>
 
-          <Grid columns="1fr auto 1fr" gap="xl" align="start">
+          <ResponsivePrefixGrid columns="1fr auto 1fr" gap="xl">
             <form.AppField
               name="stackRoot"
               listeners={{
@@ -158,9 +159,9 @@ function PathMappingEdit({
               )}
             </form.AppField>
 
-            <Container paddingTop="3xl">
+            <ArrowWrapper align="center" paddingBottom="md">
               <IconArrow direction="right" size="sm" />
-            </Container>
+            </ArrowWrapper>
 
             <form.AppField
               name="sourceRoot"
@@ -190,7 +191,7 @@ function PathMappingEdit({
                 </field.Layout.Stack>
               )}
             </form.AppField>
-          </Grid>
+          </ResponsivePrefixGrid>
 
           <Stack gap="md" paddingTop="xl">
             <Text bold>{t('Preview')}</Text>
@@ -313,6 +314,25 @@ const AccentHighlight = styled(Container)`
   background: ${p => p.theme.tokens.background.transparent.accent.muted};
 `;
 
+const ResponsivePrefixGrid = styled(Grid)`
+  @container (max-width: ${MOBILE_BREAKPOINT}) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const ArrowWrapper = styled(Flex)`
+  @container (max-width: ${MOBILE_BREAKPOINT}) {
+    justify-content: center;
+  }
+`;
+
+const PreviewArrow = styled(Flex)`
+  align-items: center;
+  @container (max-width: ${MOBILE_BREAKPOINT}) {
+    display: none;
+  }
+`;
+
 interface AccentPathSegmentProps {
   value: string;
   ellipsis?: boolean;
@@ -352,26 +372,35 @@ interface PathMappingPreviewProps {
 
 function PathMappingPreview({stackRoot, sourceRoot}: PathMappingPreviewProps) {
   return (
-    <Container background="secondary" radius="md" padding="xl">
-      <Grid columns="auto auto 1fr" gap="lg xl" align="center">
-        <Text bold variant="muted">
-          {t('In your stack trace')}
-        </Text>
-        <span />
-        <Text bold variant="muted">
-          {t('Sentry opens in your repo')}
-        </Text>
-
-        <Text monospace variant="muted" ellipsis>
-          <AccentPathSegment value={stackRoot || STACK_ROOT_PLACEHOLDER} />
-          {PREVIEW_SUFFIX}
-        </Text>
-        <IconArrow direction="right" />
-        <Text monospace variant="muted" ellipsis>
-          <AccentPathSegment value={sourceRoot || SOURCE_ROOT_PLACEHOLDER} />
-          {PREVIEW_SUFFIX}
-        </Text>
-      </Grid>
+    <Container
+      background="secondary"
+      radius="md"
+      padding="xl"
+      style={{containerType: 'inline-size'}}
+    >
+      <Flex gap="xl" wrap="wrap">
+        <Stack gap="sm" style={{flex: 1}}>
+          <Text bold variant="muted">
+            {t('In your stack trace')}
+          </Text>
+          <Text monospace variant="muted" ellipsis>
+            <AccentPathSegment value={stackRoot || STACK_ROOT_PLACEHOLDER} />
+            {PREVIEW_SUFFIX}
+          </Text>
+        </Stack>
+        <PreviewArrow>
+          <IconArrow direction="right" />
+        </PreviewArrow>
+        <Stack gap="sm" style={{flex: 1}}>
+          <Text bold variant="muted">
+            {t('Sentry opens in your repo')}
+          </Text>
+          <Text monospace variant="muted" ellipsis>
+            <AccentPathSegment value={sourceRoot || SOURCE_ROOT_PLACEHOLDER} />
+            {PREVIEW_SUFFIX}
+          </Text>
+        </Stack>
+      </Flex>
     </Container>
   );
 }
