@@ -101,6 +101,14 @@ describe('GroupDetailsLayout', () => {
       }),
     });
     MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/autofix/`,
+      body: {autofix: null},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/onboarding-check/`,
+      body: {isSeerConfigured: false},
+    });
+    MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/',
       body: [project],
     });
