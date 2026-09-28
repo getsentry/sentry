@@ -1009,9 +1009,9 @@ describe('MetricDetectorTriggeredSection', () => {
     // The View All button should not be present when there's boolean logic
     expect(screen.queryByRole('button', {name: 'View All'})).not.toBeInTheDocument();
 
-    // The Open in Discover button should be present
-    expect(screen.getByRole('button', {name: 'Open in Discover'})).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Open in Discover'})).toHaveAttribute(
+    // The Open in Explore button should be present
+    expect(screen.getByRole('button', {name: 'Open in Explore'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Open in Explore'})).toHaveAttribute(
       'href',
       '/organizations/org-slug/explore/errors/results/?dataset=errors&end=2024-01-01T00%3A05%3A00.000&field=issue&field=count%28%29&field=count_unique%28user%29&interval=1m&name=Transactions&project=1&query=event.type%3Aerror%20browser.name%3AChrome%20OR%20browser.name%3AFirefox&sort=-count&start=2023-12-31T23%3A58%3A00.000&yAxis=count%28%29'
     );

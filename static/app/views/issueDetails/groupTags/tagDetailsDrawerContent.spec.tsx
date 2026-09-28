@@ -127,7 +127,7 @@ describe('TagDetailsDrawerContent', () => {
     );
   });
 
-  it('navigates to discover with issue + tag query', async () => {
+  it('navigates to explore with issue + tag query', async () => {
     const discoverOrganization = OrganizationFixture({
       features: ['discover-basic'],
     });
@@ -146,7 +146,7 @@ describe('TagDetailsDrawerContent', () => {
     );
 
     const discoverMenuItem = screen.getByRole('menuitemradio', {
-      name: 'Open in Discover',
+      name: 'Open in Explore',
     });
     expect(discoverMenuItem).toBeInTheDocument();
 
