@@ -1325,7 +1325,7 @@ function SaveQueryButton({
       nextEventView,
       yAxis,
       !eventView.id,
-      {showMessages: false}
+      false
     );
     if (starred) {
       try {
