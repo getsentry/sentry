@@ -28,6 +28,7 @@ export function getNavigationConfiguration({
           path: `${pathPrefix}/`,
           index: true,
           title: t('General Settings'),
+          keywords: [t('slug'), t('project slug'), 'SENTRY_PROJECT'],
           description: t('Configure general settings for a project'),
         },
         {
@@ -102,6 +103,13 @@ export function getNavigationConfiguration({
         {
           path: `${pathPrefix}/security-and-privacy/`,
           title: t('Security & Privacy'),
+          keywords: [
+            t('data scrubbing'),
+            t('privacy'),
+            t('pii'),
+            t('ip addresses'),
+            t('prevent storing of ip addresses'),
+          ],
           description: t(
             'Configuration related to dealing with sensitive data and other security settings. (Data Scrubbing, Data Privacy, Data Scrubbing) for a project'
           ),
@@ -178,17 +186,20 @@ export function getNavigationConfiguration({
           keywords: [
             t('dsn'),
             // SDK environment variable names (and the spaced form) that
-            // developers search for, including the Next.js public-prefixed
-            // variant. Not wrapped in t() — these are fixed config/product
+            // developers search for, including the framework public-prefixed
+            // variants. Not wrapped in t() — these are fixed config/product
             // tokens, not translatable prose.
             'SENTRY_DSN',
             'Sentry DSN',
             'NEXT_PUBLIC_SENTRY_DSN',
+            'VITE_SENTRY_DSN',
+            'EXPO_PUBLIC_SENTRY_DSN',
             t('auth'),
             t('token'),
             t('client key'),
             t('dsn key'),
             t('allowed domains'),
+            t('sdk setup'),
           ],
         },
         {

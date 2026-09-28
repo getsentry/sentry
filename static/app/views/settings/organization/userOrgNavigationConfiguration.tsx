@@ -17,7 +17,7 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
         {
           path: `${userSettingsPathPrefix}/details/`,
           title: t('Account Details'),
-          keywords: [t('user settings'), t('account settings')],
+          keywords: [t('user settings'), t('account settings'), t('timezone')],
           description: t(
             'Change your account details and preferences (e.g. timezone/clock, avatar, language)'
           ),
@@ -25,6 +25,13 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
         {
           path: `${userSettingsPathPrefix}/security/`,
           title: t('Security'),
+          keywords: [
+            t('two factor authentication'),
+            t('2 factor authentication'),
+            t('2fa'),
+            t('mfa'),
+            t('password'),
+          ],
           description: t('Change your account password and/or two factor authentication'),
         },
         {
@@ -76,7 +83,7 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
         {
           path: `${organizationSettingsPathPrefix}/`,
           title: t('General Settings'),
-          keywords: [t('slug'), t('org slug'), t('organization slug')],
+          keywords: [t('slug'), t('org slug'), t('organization slug'), 'SENTRY_ORG'],
           index: true,
           description: t('Configure general settings for an organization'),
           id: 'general',
@@ -115,6 +122,8 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
             t('pii'),
             t('attachments'),
             t('advanced data scrubbing'),
+            t('ip addresses'),
+            t('prevent storing of ip addresses'),
           ],
           description: t(
             'Configuration related to dealing with sensitive data and other security settings. (Data Scrubbing, Data Privacy, Data Scrubbing)'
@@ -241,6 +250,7 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
         {
           path: `${organizationSettingsPathPrefix}/mcp-cli/`,
           title: t('MCP & CLI'),
+          keywords: [t('claude'), t('mcp server')],
           description: t('Connect to Sentry via MCP server or the Sentry CLI'),
           id: 'mcp-cli',
         },
@@ -291,6 +301,7 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
           keywords: [
             t('integration'),
             t('internal integration'),
+            t('internal integrations'),
             t('developer settings'),
             t('webhooks'),
             t('api key'),
@@ -313,10 +324,14 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
             t('auth'),
             t('auth token'),
             t('auth tokens'),
+            t('auth-tokens'),
             t('api token'),
             t('api key'),
             t('api keys'),
             t('token'),
+            t('create new token'),
+            t('organization auth tokens'),
+            t('organisation tokens'),
             t('credentials'),
             t('user auth tokens'),
             'SENTRY_AUTH_TOKEN',

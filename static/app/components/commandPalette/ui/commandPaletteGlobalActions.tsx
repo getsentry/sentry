@@ -405,6 +405,7 @@ export function GlobalCommandPaletteActions() {
             display={{
               label: getDiscoverDeprecation(organization) ? t('Errors') : t('Discover'),
             }}
+            keywords={[t('discover')]}
             to={
               getDiscoverDeprecation(organization)
                 ? `${prefix}/explore/errors/homepage/`
@@ -457,6 +458,7 @@ export function GlobalCommandPaletteActions() {
           {hasPrebuiltDashboards && (
             <CMDKAction
               display={{label: t('Sentry Built')}}
+              keywords={[t('insights'), t('insights dashboards')]}
               to={`${prefix}/dashboards/?filter=${DashboardFilter.ONLY_PREBUILT}&sort=${DEFAULT_PREBUILT_SORT}`}
             />
           )}
@@ -684,6 +686,8 @@ export function GlobalCommandPaletteActions() {
                 'SENTRY_DSN',
                 'Sentry DSN',
                 'NEXT_PUBLIC_SENTRY_DSN',
+                'VITE_SENTRY_DSN',
+                'EXPO_PUBLIC_SENTRY_DSN',
                 project.slug,
               ]}
               to={`/settings/${organization.slug}/projects/${project.slug}/keys/`}
