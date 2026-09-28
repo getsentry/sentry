@@ -124,7 +124,7 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
         if len(j) == 2:
             model_name, chunk = j
             project_id = None
-            deferred_filter = {}
+            deferred_filter: dict[str, Any] = {}
         elif len(j) == 3:
             model_name, chunk, project_id = j
             deferred_filter = {}
