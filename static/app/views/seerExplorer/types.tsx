@@ -30,7 +30,7 @@ const repoPRStateSchema = z.object({
   commit_sha: z.string().nullable(),
   pr_creation_error: z.string().nullable(),
   pr_creation_status: zLooseEnum(['creating', 'completed', 'error']).nullable(),
-  pr_id: z.number().nullable(),
+  pr_id: z.union([z.string(), z.number()]).nullable(),
   pr_number: z.number().nullable(),
   pr_url: z.string().nullable(),
   repo_name: z.string(),
