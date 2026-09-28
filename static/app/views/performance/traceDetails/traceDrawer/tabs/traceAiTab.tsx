@@ -53,9 +53,7 @@ export function TraceAiTab({traceSlug}: {traceSlug: string}) {
 
   return (
     <TraceAiConversations
-      conversationIds={
-        hasGenAiConversationsFeature(organization) ? conversationIds : []
-      }
+      conversationIds={hasGenAiConversationsFeature(organization) ? conversationIds : []}
       allAiNodes={nodes}
       traceSlug={traceSlug}
     />
