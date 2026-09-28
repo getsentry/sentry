@@ -128,7 +128,9 @@ function SentryApplicationDashboard() {
           <Heading as="h5">{t('Request Log')}</Heading>
           <OrganizationPermissionAlert
             access={['org:write', 'org:admin']}
-            message={t('You need organization write access to view the request log.')}
+            message={t(
+              'You need organization write or admin access to view the request log.'
+            )}
           />
         </Stack>
       )}

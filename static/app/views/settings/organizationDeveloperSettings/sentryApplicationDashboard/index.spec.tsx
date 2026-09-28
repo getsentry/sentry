@@ -147,7 +147,9 @@ describe('Sentry Application Dashboard', () => {
         expect(interactionMock).toHaveBeenCalledTimes(1);
         expect(screen.getByRole('heading', {name: 'Request Log'})).toBeInTheDocument();
         expect(
-          screen.getByText('You need organization write access to view the request log.')
+          screen.getByText(
+            'You need organization write or admin access to view the request log.'
+          )
         ).toBeInTheDocument();
         expect(screen.queryByTestId('request-item')).not.toBeInTheDocument();
         expect(webhookRequestMock).not.toHaveBeenCalled();
@@ -284,7 +286,7 @@ describe('Sentry Application Dashboard', () => {
 
         expect(
           await screen.findByText(
-            'You need organization write access to view the request log.'
+            'You need organization write or admin access to view the request log.'
           )
         ).toBeInTheDocument();
         expect(await screen.findByTestId('chart')).toBeInTheDocument();
@@ -373,7 +375,7 @@ describe('Sentry Application Dashboard', () => {
 
         expect(
           await screen.findByText(
-            'You need organization write access to view the request log.'
+            'You need organization write or admin access to view the request log.'
           )
         ).toBeInTheDocument();
         expect(screen.queryByTestId('request-item')).not.toBeInTheDocument();
