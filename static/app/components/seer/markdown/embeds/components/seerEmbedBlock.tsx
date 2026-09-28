@@ -131,7 +131,7 @@ export function SeerEmbedBlock({
           variant="transparent"
         >
           <Flex align="center" gap="xs" minWidth="0">
-            <Heading as="h3" ellipsis size="md">
+            <Heading as="h3" ellipsis size="sm">
               {title}
             </Heading>
             <IconChevron direction={state.isExpanded ? 'up' : 'down'} size="xs" />
