@@ -10,6 +10,7 @@ import {t, tct} from 'sentry/locale';
 import {DEFAULT_BRANCH, normalizedPathMappingSchema} from './normalization';
 import {PathMapping} from './pathMapping';
 import type {PathMappingValue} from './type';
+import {getPathMappingWarnings} from './warnings';
 
 interface PathMappingListProps {
   onChange: (pathMappings: PathMappingValue[]) => void;
@@ -135,6 +136,8 @@ export function PathMappingList({
     ? t('Resolve the duplicate path mapping first')
     : undefined;
 
+  const warnings = getPathMappingWarnings(entries.map(e => e.value));
+
   return (
     <Stack gap="lg">
       <Stack gap="xs">
@@ -147,7 +150,7 @@ export function PathMappingList({
       </Stack>
 
       <Stack gap="md">
-        {entries.map(entry => (
+        {entries.map((entry, index) => (
           <PathMapping
             key={entry.id}
             {...entry.value}
@@ -155,6 +158,7 @@ export function PathMappingList({
             isNew={entry.isNew}
             providerKey={providerKey}
             defaultBranch={defaultBranch}
+            warning={warnings[index]}
             onChange={value => handleChange(entry.id, value)}
             onDelete={() => handleDelete(entry.id)}
             onExpandToggle={() => toggle(entry.id)}

@@ -19,7 +19,9 @@ import {
   sanitizeBranch,
 } from './normalization';
 import {PathMappingPreview} from './pathMappingPreview';
+import {PathMappingWarningAlert} from './pathMappingWarningAlert';
 import type {PathMappingValue} from './type';
+import type {PathMappingWarning} from './warnings';
 
 // Non-transforming schema used only for the form's onDynamic validator.
 const schema = z.object({
@@ -32,6 +34,7 @@ interface PathMappingEditProps extends PathMappingValue {
   onChange: (value: PathMappingValue) => void;
   defaultBranch?: string;
   providerKey?: string;
+  warning?: PathMappingWarning | null;
 }
 
 export function PathMappingEdit({
@@ -41,6 +44,7 @@ export function PathMappingEdit({
   onChange,
   defaultBranch,
   providerKey,
+  warning,
 }: PathMappingEditProps) {
   const branchFallback = defaultBranch ?? DEFAULT_BRANCH;
   const form = useScrapsForm({
@@ -168,6 +172,7 @@ export function PathMappingEdit({
                 );
               }}
             </form.Subscribe>
+            <PathMappingWarningAlert stackRoot={stackRoot} warning={warning} />
           </Stack>
         </Stack>
       </Container>
