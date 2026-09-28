@@ -9,7 +9,7 @@ ai_monitoring: 0002_add_date_updated_index
 
 discover: 0004_discover_starred_and_last_visited
 
-explore: 0013_delete_project_column_from_metric_context
+explore: 0014_add_explore_saved_formula
 
 feedback: 0007_cleanup_failed_safe_deletes
 
