@@ -456,8 +456,6 @@ def pytest_runtest_teardown(item: pytest.Item) -> None:
 
     from sentry.utils.redis import pop_used_key_prefix_clients
 
-    # Workers share the redis-cluster. Only a test that used it has keys to delete, and a
-    # flush on a prefixed client deletes only the keys of this worker.
     for cluster_client in pop_used_key_prefix_clients():
         try:
             cluster_client.flushdb()
