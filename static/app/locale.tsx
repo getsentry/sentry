@@ -373,6 +373,13 @@ function ngettext(singular: string, plural: string, ...args: FormatArg[]): strin
   return mark(format(getClient().ngettext(singular, plural, countArg), args) as string);
 }
 
+/**
+ * Translates a string that is disambiguated by a context, using `msgctxt` in
+ * the PO catalog. Reach for this only when the same source string needs more
+ * than one translation — for example the extra-short duration labels, where
+ * "m" means both minutes and months, and would otherwise share a single msgid
+ * with every other "m" in the codebase.
+ */
 function pgettext(context: string, string: string): string {
   const val: string = getClient().pgettext(context, string);
   staticTranslations.add(val);
