@@ -3,17 +3,19 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Avatar} from '@sentry/scraps/avatar';
-import {Button, LinkButton} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconClose, IconMegaphone} from 'sentry/icons';
+import {IconClose} from 'sentry/icons';
 import {IdentityIcon} from 'sentry/icons/identityIcon';
 import {t, tct} from 'sentry/locale';
 import {getCsrfToken} from 'sentry/utils/getCsrfToken';
 import {useMedia} from 'sentry/utils/useMedia';
 import type {AuthOrganization} from 'sentry/views/authV2/authLogin/hooks/useAuthOrganization';
+
+import {OrganizationJoinRequest} from './organizationJoinRequest';
 
 interface OrganizationAuthProps {
   authOrganization: AuthOrganization;
@@ -98,23 +100,7 @@ export function OrganizationAuth({
         </Flex>
 
         {joinRequestUrl && (
-          <Flex
-            align="center"
-            justify="between"
-            gap="lg"
-            borderTop="secondary"
-            padding="sm lg"
-          >
-            <Text size="sm">{t('Not a member?')}</Text>
-            <LinkButton
-              href={joinRequestUrl}
-              icon={<IconMegaphone />}
-              size="xs"
-              variant="transparent"
-            >
-              {t('Request to join')}
-            </LinkButton>
-          </Flex>
+          <OrganizationJoinRequest organizationSlug={organization.slug} />
         )}
         {showClearButton && !isSmallScreen && (
           <ClearButton
