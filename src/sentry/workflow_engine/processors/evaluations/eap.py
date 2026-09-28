@@ -5,7 +5,7 @@ import uuid
 from collections.abc import Iterator, Mapping, Sequence
 from dataclasses import fields, is_dataclass
 from enum import Enum
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, overload
 
 from arroyo import Topic as ArroyoTopic
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer
@@ -24,15 +24,17 @@ from sentry.types.activity import ActivityType
 from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
 from sentry.utils.eap import hex_to_item_id
 from sentry.utils.kafka_config import get_topic_definition
+from sentry.workflow_engine.processors.evaluations.base import (
+    BaseWorkflowEngineEvaluationArtifact,
+)
 from sentry.workflow_engine.processors.evaluations.condition import (
     DataConditionEvaluationArtifact,
 )
-from sentry.workflow_engine.processors.evaluations.detector import ProcessDetectorsResult
+from sentry.workflow_engine.processors.evaluations.serialization import evaluation_artifacts
 from sentry.workflow_engine.processors.evaluations.types import WorkflowEngineResult
 from sentry.workflow_engine.processors.evaluations.workflow import (
     ProcessWorkflowsResult,
     WorkflowEvaluation,
-    WorkflowEvaluationBatch,
 )
 
 if TYPE_CHECKING:
@@ -44,7 +46,11 @@ logger = logging.getLogger(__name__)
 EVALUATION_NAMESPACE = uuid.UUID("15de19a5-09c3-48d0-80ef-f9ff2c62af57")
 EAP_ITEMS_CODEC: Codec[TraceItem] = get_topic_codec(Topic.SNUBA_ITEMS)
 EAP_RETENTION_DAYS = 7  # TODO - We'll probably need to store metric issues for longer
-EAP_LOG_ATTRIBUTES = {
+type EAPAttributeValue = (
+    bool | int | float | str | bytes | list["EAPAttributeValue"] | dict[str, "EAPAttributeValue"]
+)
+
+EAP_LOG_ATTRIBUTES: dict[str, EAPAttributeValue] = {
     "sentry.body": "workflow_engine.evaluation",
     "sentry.severity_number": 9,
     "sentry.severity_text": "INFO",
@@ -61,10 +67,24 @@ def _get_eap_items_producer() -> KafkaProducer:
 _eap_producer = SingletonProducer(_get_eap_items_producer)
 
 
-def _normalize_value(value: object) -> Any:
-    """Convert an evaluation artifact to values supported by EAP's AnyValue."""
+@overload
+def _normalize_value(
+    value: BaseWorkflowEngineEvaluationArtifact,
+) -> dict[str, EAPAttributeValue]: ...
+
+
+@overload
+def _normalize_value[K](value: Mapping[K, object]) -> dict[str, EAPAttributeValue]: ...
+
+
+@overload
+def _normalize_value(value: object) -> EAPAttributeValue: ...
+
+
+def _normalize_value(value: object) -> EAPAttributeValue:
+    """Convert a value to the closed set supported by EAP's AnyValue."""
     if isinstance(value, Enum):
-        return value.value
+        return _normalize_value(value.value)
 
     if is_dataclass(value) and not isinstance(value, type):
         excluded_fields = (
@@ -83,7 +103,10 @@ def _normalize_value(value: object) -> Any:
     if isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray)):
         return [_normalize_value(item) for item in value if item is not None]
 
-    return value
+    if isinstance(value, (bool, int, float, str, bytes)):
+        return value
+
+    raise TypeError(f"Unsupported EAP evaluation attribute type: {type(value).__name__}")
 
 
 def _workflow_event_attributes(evaluation: WorkflowEvaluation) -> dict[str, object]:
@@ -117,82 +140,29 @@ def _workflow_event_attributes(evaluation: WorkflowEvaluation) -> dict[str, obje
     return attributes
 
 
-def _detector_evaluation_attributes(
-    result: ProcessDetectorsResult,
-) -> Iterator[dict[str, Any]]:
-    common = _normalize_value(
-        {
-            "evaluation_type": "detector",
-            "detector_id": result.detector_id,
-            "detector_type": result.detector_type,
-            "project_id": result.project_id,
-        }
-    )
-    artifacts = result.evaluation_artifacts()
-
-    if not artifacts:
-        yield {
-            **common,
-            **_normalize_value(
-                {
-                    "outcome": result.outcome,
-                    "error": result.evaluation_error.msg if result.evaluation_error else None,
-                }
-            ),
-        }
-        return
-
-    for artifact in artifacts:
-        yield {**common, **_normalize_value(artifact)}
-
-
-def _workflow_evaluation_attributes(
-    result: WorkflowEvaluationBatch,
-) -> Iterator[dict[str, Any]]:
-    artifacts = result.evaluation_artifacts()
-
-    if not artifacts:
-        if isinstance(result, ProcessWorkflowsResult):
-            yield _normalize_value(
-                {
-                    "evaluation_type": "workflow",
-                    "evaluation_phase": result.evaluation_phase,
-                    "outcome": result.outcome,
-                    "project_id": result.project_id,
-                    "group_id": result.group_id,
-                    "event_id": result.event_id,
-                    "detector_id": result.detector_id,
-                    "detector_type": result.detector_type,
-                }
-            )
-        return
-
-    for artifact in artifacts:
+def _evaluation_attributes(result: WorkflowEngineResult) -> Iterator[dict[str, EAPAttributeValue]]:
+    for artifact in evaluation_artifacts(result):
         attributes = _normalize_value(artifact)
         if isinstance(result, ProcessWorkflowsResult):
-            evaluation = result.evaluations.get(artifact.workflow_id)
-            if evaluation is not None:
-                attributes.update(_normalize_value(_workflow_event_attributes(evaluation)))
+            workflow_id = attributes.get("workflow_id")
+            if isinstance(workflow_id, int):
+                evaluation = result.evaluations.get(workflow_id)
+                if evaluation is not None:
+                    attributes.update(_normalize_value(_workflow_event_attributes(evaluation)))
         yield attributes
-
-
-def _evaluation_attributes(result: WorkflowEngineResult) -> Iterator[dict[str, Any]]:
-    if isinstance(result, ProcessDetectorsResult):
-        yield from _detector_evaluation_attributes(result)
-    else:
-        yield from _workflow_evaluation_attributes(result)
 
 
 def _build_trace_item(
     *,
     organization_id: int,
     project_id: int,
-    attributes: Mapping[str, Any],
+    attributes: Mapping[str, EAPAttributeValue],
     timestamp: Timestamp,
 ) -> TraceItem:
-    correlation_id = (
+    correlation_value = (
         attributes.get("event_id") or attributes.get("group_id") or attributes.get("detector_id")
     )
+    correlation_id = str(correlation_value)
     trace_id = uuid.uuid5(
         EVALUATION_NAMESPACE,
         f"{organization_id}:{project_id}:{correlation_id}",
@@ -214,31 +184,46 @@ def _build_trace_item(
     )
 
 
+def _produce_trace_item(
+    *,
+    organization_id: int,
+    project_id: int,
+    topic: ArroyoTopic,
+    trace_item: TraceItem,
+) -> None:
+    payload = KafkaPayload(None, EAP_ITEMS_CODEC.encode(trace_item), [])
+    try:
+        _eap_producer.produce(topic, payload)
+    except Exception:
+        logger.exception(
+            "workflow_engine.evaluations.eap.produce_failed",
+            extra={"organization_id": organization_id, "project_id": project_id},
+        )
+
+
 def emit_evaluation_to_eap(
     organization: Organization,
     result: WorkflowEngineResult,
 ) -> None:
     """Store workflow engine evaluation artifacts in EAP."""
-    try:
-        topic = ArroyoTopic(get_topic_definition(Topic.SNUBA_ITEMS)["real_topic_name"])
-        timestamp = Timestamp()
-        timestamp.FromDatetime(timezone.now())
+    topic = ArroyoTopic(get_topic_definition(Topic.SNUBA_ITEMS)["real_topic_name"])
+    timestamp = Timestamp()
+    timestamp.FromDatetime(timezone.now())
 
-        for attributes in _evaluation_attributes(result):
-            project_id = attributes.get("project_id")
-            if not isinstance(project_id, int):
-                continue
+    for attributes in _evaluation_attributes(result):
+        project_id = attributes.get("project_id")
+        if not isinstance(project_id, int):
+            continue
 
-            trace_item = _build_trace_item(
-                organization_id=organization.id,
-                project_id=project_id,
-                attributes=attributes,
-                timestamp=timestamp,
-            )
-            payload = KafkaPayload(None, EAP_ITEMS_CODEC.encode(trace_item), [])
-            _eap_producer.produce(topic, payload)
-    except Exception:
-        logger.exception(
-            "workflow_engine.evaluations.eap.produce_failed",
-            extra={"organization_id": organization.id},
+        trace_item = _build_trace_item(
+            organization_id=organization.id,
+            project_id=project_id,
+            attributes=attributes,
+            timestamp=timestamp,
+        )
+        _produce_trace_item(
+            organization_id=organization.id,
+            project_id=project_id,
+            topic=topic,
+            trace_item=trace_item,
         )

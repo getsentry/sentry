@@ -1,5 +1,4 @@
 from dataclasses import asdict
-from typing import Any
 from unittest import mock
 
 from arroyo.backends.kafka import KafkaPayload
@@ -8,7 +7,7 @@ from arroyo.backends.local.storages.memory import MemoryMessageStorage
 from arroyo.types import Partition
 from arroyo.types import Topic as ArroyoTopic
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
-from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
+from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, TraceItem
 
 from sentry.conf.types.kafka_definition import Topic
 from sentry.models.group import GroupStatus
@@ -496,7 +495,7 @@ class TestWorkflowEvaluationArtifact(TestCase):
         assert trace_item.attributes["is_resolved"].bool_value is True
         assert trace_item.attributes["has_escalated"].bool_value is True
 
-        def values_by_key(value: Any) -> dict[str, Any]:
+        def values_by_key(value: AnyValue) -> dict[str, AnyValue]:
             return {item.key: item.value for item in value.kvlist_value.values}
 
         trigger_evaluation = values_by_key(trace_item.attributes["trigger_evaluation"])
@@ -504,6 +503,29 @@ class TestWorkflowEvaluationArtifact(TestCase):
         stored_condition = values_by_key(conditions[0])
         assert "comparison" not in stored_condition
         assert "input" not in stored_condition
+
+    def test_eap_emitter_continues_after_producer_failure(self) -> None:
+        producer = mock.Mock()
+        producer.produce.side_effect = [RuntimeError("producer unavailable"), None]
+        evaluations = {
+            10: self._build_evaluation(workflow_id=10),
+            11: self._build_evaluation(workflow_id=11),
+        }
+
+        with (
+            mock.patch("sentry.workflow_engine.processors.evaluations.eap._eap_producer", producer),
+            mock.patch("sentry.workflow_engine.processors.evaluations.eap.logger") as mock_logger,
+        ):
+            emit_evaluation_to_eap(
+                self.organization,
+                self._build_batch_result(evaluations),
+            )
+
+        assert producer.produce.call_count == 2
+        mock_logger.exception.assert_called_once_with(
+            "workflow_engine.evaluations.eap.produce_failed",
+            extra={"organization_id": self.organization.id, "project_id": self.project.id},
+        )
 
     def test_eap_emitter_stores_empty_detector_outcome(self) -> None:
         result = ProcessDetectorsResult(
