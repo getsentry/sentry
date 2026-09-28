@@ -1,5 +1,4 @@
 import {Fragment, useMemo, useState} from 'react';
-import styled from '@emotion/styled';
 import {useQueries, useQuery} from '@tanstack/react-query';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
@@ -178,11 +177,11 @@ export function ConnectRepositoryModal({
             <Text size="sm" bold>
               {t('Repository')}
             </Text>
-            <SelectorCell>
+            <Container minWidth={0}>
               <LockedProjectField project={project} />
-            </SelectorCell>
+            </Container>
             <IconArrow direction="right" />
-            <SelectorCell>
+            <Container minWidth={0}>
               <Select
                 aria-label={t('Repository')}
                 options={groupedOptions}
@@ -196,7 +195,7 @@ export function ConnectRepositoryModal({
                 searchable
                 components={{MenuList: ScmVirtualizedMenuList}}
               />
-            </SelectorCell>
+            </Container>
           </Grid>
 
           {selectedOption ? (
@@ -229,7 +228,3 @@ export function ConnectRepositoryModal({
     </Fragment>
   );
 }
-
-const SelectorCell = styled('div')`
-  min-width: 0;
-`;

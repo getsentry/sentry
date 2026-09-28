@@ -116,7 +116,7 @@ function PathMappingEdit({
 
   return (
     <form.AppForm form={form}>
-      <FormContainer padding="xl">
+      <Container containerType="inline-size" padding="xl">
         <Stack gap="xl">
           <form.AppField name="branch">
             {field => (
@@ -141,7 +141,7 @@ function PathMappingEdit({
             )}
           </form.AppField>
 
-          <ResponsivePrefixGrid columns="1fr auto 1fr" gap="xl">
+          <Grid columns={{zero: '1fr', '2xs': '1fr auto 1fr'}} gap="xl">
             <form.AppField
               name="stackRoot"
               listeners={{
@@ -168,9 +168,13 @@ function PathMappingEdit({
               )}
             </form.AppField>
 
-            <ArrowWrapper align="center" paddingBottom="md">
+            <Flex
+              align="center"
+              paddingBottom="md"
+              justify={{zero: 'center', '2xs': 'start'}}
+            >
               <IconArrow direction="right" size="sm" />
-            </ArrowWrapper>
+            </Flex>
 
             <form.AppField
               name="sourceRoot"
@@ -200,7 +204,7 @@ function PathMappingEdit({
                 </field.Layout.Stack>
               )}
             </form.AppField>
-          </ResponsivePrefixGrid>
+          </Grid>
 
           <Stack gap="md" paddingTop="xl">
             <Text bold>{t('Preview')}</Text>
@@ -224,7 +228,7 @@ function PathMappingEdit({
             </form.Subscribe>
           </Stack>
         </Stack>
-      </FormContainer>
+      </Container>
     </form.AppForm>
   );
 }
@@ -323,41 +327,6 @@ const AccentHighlight = styled(Container)`
   background: ${p => p.theme.tokens.background.transparent.accent.muted};
 `;
 
-const FormContainer = styled(Container)`
-  container-type: inline-size;
-`;
-
-const PreviewContainer = styled(Container)`
-  container-type: inline-size;
-`;
-
-const ResponsivePrefixGrid = styled(Grid)`
-  @container (max-width: ${p => p.theme.container['2xs']}) {
-    grid-template-columns: 1fr;
-  }
-`;
-
-const ArrowWrapper = styled(Flex)`
-  @container (max-width: ${p => p.theme.container['2xs']}) {
-    justify-content: center;
-  }
-`;
-
-const PreviewFlex = styled(Flex)`
-  align-items: flex-end;
-  @container (max-width: ${p => p.theme.container['2xs']}) {
-    flex-direction: column;
-    align-items: stretch;
-  }
-`;
-
-const PreviewArrow = styled(Flex)`
-  align-items: center;
-  @container (max-width: ${p => p.theme.container['2xs']}) {
-    display: none;
-  }
-`;
-
 interface AccentPathSegmentProps {
   value: string;
   ellipsis?: boolean;
@@ -397,30 +366,43 @@ interface PathMappingPreviewProps {
 
 function PathMappingPreview({stackRoot, sourceRoot}: PathMappingPreviewProps) {
   return (
-    <PreviewContainer background="secondary" radius="md" padding="xl">
-      <PreviewFlex gap="xl">
+    <Container
+      containerType="inline-size"
+      background="secondary"
+      radius="md"
+      padding="xl"
+    >
+      <Flex
+        gap="xl"
+        direction={{zero: 'column', '2xs': 'row'}}
+        align={{zero: 'stretch', '2xs': 'end'}}
+      >
         <Stack gap="sm">
           <Text bold variant="muted">
             {t('In your stack trace')}
           </Text>
           <Text monospace variant="muted" ellipsis>
-            <AccentPathSegment value={stackRoot || STACK_ROOT_PLACEHOLDER} />
+            <AccentPathSegment
+              value={stackRoot || normalizeRoot(STACK_ROOT_PLACEHOLDER)}
+            />
             {PREVIEW_SUFFIX}
           </Text>
         </Stack>
-        <PreviewArrow>
+        <Flex align="center" display={{zero: 'none', '2xs': 'flex'}}>
           <IconArrow direction="right" />
-        </PreviewArrow>
+        </Flex>
         <Stack gap="sm" style={{flex: 1, minWidth: 0}}>
           <Text bold variant="muted">
             {t('Sentry opens in your repo')}
           </Text>
           <Text monospace variant="muted" ellipsis>
-            <AccentPathSegment value={sourceRoot || SOURCE_ROOT_PLACEHOLDER} />
+            <AccentPathSegment
+              value={sourceRoot || normalizeRoot(SOURCE_ROOT_PLACEHOLDER)}
+            />
             {PREVIEW_SUFFIX}
           </Text>
         </Stack>
-      </PreviewFlex>
-    </PreviewContainer>
+      </Flex>
+    </Container>
   );
 }

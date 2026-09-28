@@ -88,7 +88,7 @@ describe('PathMapping', () => {
 
     // Preview shows placeholder values while inputs are empty
     expect(screen.getByText('src/')).toBeInTheDocument();
-    expect(screen.getByText('src/app')).toBeInTheDocument();
+    expect(screen.getByText('src/app/')).toBeInTheDocument();
 
     // Typing updates the stack root in the preview
     await userEvent.type(
