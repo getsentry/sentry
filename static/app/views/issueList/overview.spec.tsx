@@ -343,6 +343,7 @@ describe('IssueList', () => {
           project: '3559',
           query: DEFAULT_QUERY,
           statsPeriod: '14d',
+          groupStatsPeriod: 'auto',
           referrer: 'issue-list',
         });
       });
@@ -361,6 +362,7 @@ describe('IssueList', () => {
           project: '3559',
           query: DEFAULT_QUERY,
           statsPeriod: '14d',
+          groupStatsPeriod: 'auto',
           referrer: 'issue-list',
         });
       });
@@ -375,6 +377,7 @@ describe('IssueList', () => {
           project: '3559',
           query: DEFAULT_QUERY,
           statsPeriod: '14d',
+          groupStatsPeriod: 'auto',
           referrer: 'issue-list',
         });
       });
@@ -469,6 +472,7 @@ describe('IssueList', () => {
           project: project.id.toString(),
           query: 'is:ignored',
           statsPeriod: '14d',
+          groupStatsPeriod: 'auto',
           referrer: 'issue-list',
         });
       });
@@ -561,7 +565,7 @@ describe('IssueList', () => {
       });
     });
 
-    it('uses correct statsPeriod when fetching issues list and no datetime given', async () => {
+    it('uses selected statsPeriod for issue list and graphs by default', async () => {
       const {rerender} = render(<IssueListOverview />, {
         initialRouterConfig: merge({}, initialRouterConfig, {
           location: {
@@ -586,7 +590,7 @@ describe('IssueList', () => {
         expect(fetchDataMock).toHaveBeenLastCalledWith(
           '/organizations/org-slug/issues/',
           expect.objectContaining({
-            data: 'collapse=stats&collapse=unhandled&expand=owners&expand=inbox&limit=25&project=99&query=is%3Aunresolved%20issue.priority%3A%5Bhigh%2C%20medium%5D&shortIdLookup=1&statsPeriod=14d',
+            data: 'collapse=stats&collapse=unhandled&expand=owners&expand=inbox&groupStatsPeriod=auto&limit=25&project=99&query=is%3Aunresolved%20issue.priority%3A%5Bhigh%2C%20medium%5D&shortIdLookup=1&statsPeriod=14d',
           })
         );
       });
