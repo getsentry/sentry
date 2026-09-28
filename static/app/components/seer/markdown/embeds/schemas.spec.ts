@@ -86,7 +86,19 @@ describe('SEER_EMBED_SCHEMAS charts', () => {
     ).toMatchObject({visualization: 'line', x_axis: 'time', y_axis_unit: 'number'});
   });
 
-  it.each([123, 'category', '2025-07-15T14:30:00', '2025-02-30T14:30:00Z'])(
+  it.each(['2025-07-15T14:30:00Z', '2025-07-15T14:30:00+02:00', '2025-07-15T14:30:00'])(
+    'accepts time-axis value %s',
+    x => {
+      expect(
+        SEER_EMBED_SCHEMAS.chart.schema.safeParse({
+          title: 'Events',
+          series: [{label: 'Count', data: [{x, y: 1}]}],
+        }).success
+      ).toBe(true);
+    }
+  );
+
+  it.each([123, 'category', '2025-02-30T14:30:00Z'])(
     'rejects invalid time-axis value %s',
     x => {
       expect(
@@ -99,7 +111,7 @@ describe('SEER_EMBED_SCHEMAS charts', () => {
   );
 
   it.each([undefined, 'line', 'area', 'bar'])(
-    'accepts category charts only with explicit bar visualization: %s',
+    'accepts category charts with any visualization: %s',
     visualization => {
       expect(
         SEER_EMBED_SCHEMAS.chart.schema.safeParse({
@@ -116,7 +128,7 @@ describe('SEER_EMBED_SCHEMAS charts', () => {
             },
           ],
         }).success
-      ).toBe(visualization === 'bar');
+      ).toBe(true);
     }
   );
 });

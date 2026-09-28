@@ -188,18 +188,12 @@ const StyledTextOverflow = styled(TextOverflow)`
 
 const ButtonContainer = styled('div')`
   display: flex;
+  align-items: center;
   justify-content: flex-end;
-  min-width: 0;
-  position: relative;
-  width: 100%;
-
-  & > * {
-    position: absolute;
-    right: 0;
-  }
+  height: 1lh;
 `;
 
 const FinalizeButton = styled(Button)`
   font-size: ${p => p.theme.font.size.sm};
-  padding-inline: ${p => p.theme.space.xs};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
 `;
