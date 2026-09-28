@@ -401,7 +401,9 @@ class StatefulDetectorHandler(
         if not self.should_generate_unique_issues:
             return stable_fingerprint
 
-        # Close out the open period before the class variable was set to true
+        # If the activation_id is None, that means an issue was open prior to the class variable being set to true
+        # In this case, we must resolve the same fingerprint as before so the issue can receive updates
+        # and eventually be resolved.
         if activation_id is None:
             return stable_fingerprint
 
