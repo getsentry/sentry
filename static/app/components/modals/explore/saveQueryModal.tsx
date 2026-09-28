@@ -70,7 +70,7 @@ function SaveQueryModal({
             organization,
           });
         } else if (source === 'errors') {
-          trackAnalytics('errors.saved_query_modal', {
+          trackAnalytics('errors.save_query_modal', {
             action: 'submit',
             save_type: initialName === undefined ? 'save_new_query' : 'rename_query',
             ui_source: source,
