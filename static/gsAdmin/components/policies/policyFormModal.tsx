@@ -11,6 +11,7 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
+import {readFileAsBase64} from 'sentry/utils/readFileAsBase64';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 import {slugify} from 'sentry/utils/slugify';
@@ -61,14 +62,8 @@ export function PolicyFormModal({
         slug: z.string().trim().min(1, 'Slug is required'),
       })
     : schema;
-  const savePolicy: (data: Partial<Values>) => Promise<Policy | PolicyRevision> = data =>
-    fetchMutation<Policy | PolicyRevision>({
-      url: apiEndpoint,
-      method: 'POST',
-      data,
-    });
   const mutation = useMutation({
-    mutationFn: savePolicy,
+    mutationFn: fetchMutation<Policy | PolicyRevision>,
     onSuccess: data => {
       onSuccess(data);
       closeModal();
@@ -102,8 +97,10 @@ export function PolicyFormModal({
         return;
       }
       return mutation
-        .mutateAsync(
-          isNewPolicy
+        .mutateAsync({
+          url: apiEndpoint,
+          method: 'POST',
+          data: isNewPolicy
             ? {
                 name: value.name,
                 slug: value.slug,
@@ -118,8 +115,8 @@ export function PolicyFormModal({
                 url: value.url,
                 ...(value.file ? {file: value.file} : {}),
                 current: value.current,
-              }
-        )
+              },
+        })
         .catch(() => {});
     },
   });
@@ -223,20 +220,18 @@ export function PolicyFormModal({
                       field.handleChange(null);
                       return;
                     }
-                    const reader = new FileReader();
                     setIsReadingFile(true);
-                    reader.addEventListener('load', () => {
-                      field.handleChange([
-                        file.name,
-                        (reader.result as string).split(',')[1] ?? '',
-                      ]);
-                      setIsReadingFile(false);
-                    });
-                    reader.addEventListener('error', () => {
-                      setIsReadingFile(false);
-                      addErrorMessage('Unable to read the selected file.');
-                    });
-                    reader.readAsDataURL(file);
+                    readFileAsBase64(
+                      file,
+                      content => {
+                        field.handleChange([file.name, content ?? '']);
+                        setIsReadingFile(false);
+                      },
+                      () => {
+                        setIsReadingFile(false);
+                        addErrorMessage('Unable to read the selected file.');
+                      }
+                    );
                   }}
                 />
               </field.Layout.Stack>

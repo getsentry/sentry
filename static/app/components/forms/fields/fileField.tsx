@@ -8,6 +8,7 @@ import {FormField} from 'sentry/components/forms/formField';
 import {FormFieldControlState} from 'sentry/components/forms/formField/controlState';
 import type {FormModel} from 'sentry/components/forms/model';
 import {t} from 'sentry/locale';
+import {readFileAsBase64} from 'sentry/utils/readFileAsBase64';
 
 // XXX(epurkhiser): This is wrong, it should not be inheriting these props
 import type {InputFieldProps} from './inputField';
@@ -43,17 +44,11 @@ export function FileField({accept, hideControlState, ...props}: FileFieldProps) 
     }
 
     model.setSaving(name, true);
-    const reader = new FileReader();
-    reader.addEventListener(
-      'load',
-      () => {
-        setFileName(file.name);
-        onChange([file.name, (reader.result as string).split(',')[1]], e);
-        model.setSaving(name, false);
-      },
-      false
-    );
-    reader.readAsDataURL(file);
+    readFileAsBase64(file, content => {
+      setFileName(file.name);
+      onChange([file.name, content], e);
+      model.setSaving(name, false);
+    });
   };
 
   return (
