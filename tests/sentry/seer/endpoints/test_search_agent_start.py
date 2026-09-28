@@ -80,7 +80,6 @@ class SendSearchAgentStartRequestTest(TestCase):
         )
 
         sent_options = mock_request.call_args[0][0]["options"]
-        assert "project_expansion" not in sent_options
         for flag in ["cross_event", "reflection_step", "code_mode"]:
             assert sent_options[flag] is False
 
@@ -100,7 +99,6 @@ class SendSearchAgentStartRequestTest(TestCase):
         )
 
         sent_options = mock_request.call_args[0][0]["options"]
-        assert "project_expansion" not in sent_options
         for flag in ["cross_event", "reflection_step", "code_mode"]:
             assert sent_options[flag] is True
         assert sent_options["model_name"] == "gpt-5"
@@ -152,7 +150,6 @@ class SearchAgentStartEndpointTest(APITestCase):
         assert response.data == {"run_id": 42, "sentry_run_id": "run-uuid"}
         kwargs = mock_send_request.call_args.kwargs
         assert kwargs["cross_event"] is True
-        assert "project_expansion" not in kwargs
         assert kwargs["reflection_step"] is True
 
     @patch("sentry.seer.endpoints.search_agent_start.send_search_agent_start_request")
@@ -176,7 +173,6 @@ class SearchAgentStartEndpointTest(APITestCase):
         assert response.status_code == status.HTTP_200_OK
         kwargs = mock_send_request.call_args.kwargs
         assert kwargs["cross_event"] is False
-        assert "project_expansion" not in kwargs
         assert kwargs["reflection_step"] is False
 
     @patch("sentry.seer.endpoints.search_agent_start.send_search_agent_start_request")
