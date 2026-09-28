@@ -55,7 +55,9 @@ import {
 import {LogsAggregateExportModalButton} from 'sentry/views/explore/logs/exports/logsAggregateExportModalButton';
 import {LogsDirectExportModalButton} from 'sentry/views/explore/logs/exports/logsDirectExportModalButton';
 import {getGroupBysForAggregateMode} from 'sentry/views/explore/logs/getGroupBysForAggregateMode';
+import {LogsPageAnsiColorsProvider} from 'sentry/views/explore/logs/logsAnsiColors';
 import {AutorefreshToggle} from 'sentry/views/explore/logs/logsAutoRefresh';
+import {LogsColorToggle} from 'sentry/views/explore/logs/logsColorToggle';
 import {LogsDownSamplingAlert} from 'sentry/views/explore/logs/logsDownsamplingAlert';
 import {LogsGraph} from 'sentry/views/explore/logs/logsGraph';
 import {LogsSidebarProvider} from 'sentry/views/explore/logs/logsSidebarContext';
@@ -538,6 +540,7 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
               {tableTab === 'logs' && (
                 <TableActionsContainer>
                   <AutorefreshToggle averageLogsPerSecond={averageLogsPerSecond} />
+                  <LogsColorToggle />
                   <Tooltip
                     title={manualRefreshDisabledReason}
                     disabled={!manualRefreshDisabledReason}
@@ -599,7 +602,18 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
   );
 }
 
-export const LogsTabContent = registerLLMContext('logs-explorer', LogsTabContentInner);
+function LogsTabContentWithAnsiColors(props: LogsTabProps) {
+  return (
+    <LogsPageAnsiColorsProvider>
+      <LogsTabContentInner {...props} />
+    </LogsPageAnsiColorsProvider>
+  );
+}
+
+export const LogsTabContent = registerLLMContext(
+  'logs-explorer',
+  LogsTabContentWithAnsiColors
+);
 
 const ViewportConstrainedBody = styled(ExploreBodyContent)`
   flex-direction: row;

@@ -19,7 +19,6 @@ import {IconPlay} from 'sentry/icons';
 import {tct} from 'sentry/locale';
 import type {PageFilterDatetime} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
-import {stripAnsi} from 'sentry/utils/ansiEscapeCodes';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {
   getFieldRenderer,
@@ -41,6 +40,7 @@ import type {
   TraceItemResponseAttribute,
 } from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {LOG_ATTRIBUTE_LAZY_LOAD_HOVER_TIMEOUT} from 'sentry/views/explore/logs/constants';
+import {LogsAnsiText} from 'sentry/views/explore/logs/logsAnsiText';
 import {LogsTimestampTooltip} from 'sentry/views/explore/logs/logsTimeTooltip';
 import {
   AlignedCellContent,
@@ -49,7 +49,6 @@ import {
   LogBasicRendererContainer,
   LogDate,
   LogsFilteredHelperText,
-  LogsHighlight,
   WrappingText,
   type getLogColors,
 } from 'sentry/views/explore/logs/styles';
@@ -501,12 +500,11 @@ export function LogBodyRenderer(props: LogFieldRendererProps) {
       isAppendingTemplate={!!templateText}
     >
       <WrappingText wrapText={props.extra.wrapBody}>
-        <LogsHighlight
+        <LogsAnsiText
           caseSensitive={props.extra.caseSensitiveHighlighting}
           terms={highlightTerms}
-        >
-          {stripAnsi(attribute_value)}
-        </LogsHighlight>
+          text={attribute_value}
+        />
         {isBodyFiltered && templateText && (
           <FieldReplacementHelper
             replacement={templateText as string}
@@ -522,9 +520,11 @@ export function LogBodyRenderer(props: LogFieldRendererProps) {
 function LogTemplateRenderer(props: LogFieldRendererProps) {
   return (
     <span>
-      {typeof props.item.value === 'string'
-        ? stripAnsi(props.item.value)
-        : props.basicRendered}
+      {typeof props.item.value === 'string' ? (
+        <LogsAnsiText text={props.item.value} />
+      ) : (
+        props.basicRendered
+      )}
     </span>
   );
 }
