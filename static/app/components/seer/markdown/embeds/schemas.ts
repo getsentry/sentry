@@ -290,8 +290,8 @@ export const SEER_EMBED_SCHEMAS = {
   chart: {
     description:
       'Display numeric data as a compact Sentry-style chart. For line, area, and bar charts, ' +
-      'prefer at least three points. Use x_axis "time" only with offset-bearing ISO 8601 ' +
-      'timestamps. Category axes are supported for bar charts only. ' +
+      'prefer at least three points. Use x_axis "time" with ISO 8601 timestamps; ' +
+      'timestamps without an offset are read as UTC. Category axes always render as bars. ' +
       'Duration values are milliseconds, percentage values are 0-100, and byte values are raw bytes.',
     level: ['block'],
     schema: z
@@ -306,20 +306,12 @@ export const SEER_EMBED_SCHEMAS = {
         series: z.array(chartSeriesSchema).min(1).max(5),
       })
       .superRefine((chart, context) => {
-        if (chart.x_axis === 'category' && chart.visualization !== 'bar') {
-          context.addIssue({
-            code: 'custom',
-            message: 'Category axes are only supported for bar charts',
-            path: ['x_axis'],
-          });
-        }
-
         if (chart.x_axis === 'time') {
           chart.series.forEach((series, seriesIndex) => {
             series.data.forEach((point, pointIndex) => {
               if (
                 typeof point.x !== 'string' ||
-                !isoTimestampSchema.safeParse(point.x).success
+                !pageFilterTimestampSchema.safeParse(point.x).success
               ) {
                 context.addIssue({
                   code: 'custom',

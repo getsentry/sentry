@@ -161,11 +161,11 @@ describe('Chart embed', () => {
     }
   );
 
-  it.each(['line', 'area'])('does not render a category %s chart', visualization => {
+  it.each(['line', 'area'])('renders a category %s chart as bars', visualization => {
     render(
       <ExampleChartEmbed
         body={{
-          title: 'Invalid',
+          title: 'Errors by status',
           visualization,
           x_axis: 'category',
           series: [{label: 'Errors', data: [{x: '500', y: 12}]}],
@@ -173,7 +173,39 @@ describe('Chart embed', () => {
       />
     );
 
-    expect(screen.queryByTestId('seer-chart-embed')).not.toBeInTheDocument();
+    expect(screen.getByTestId('seer-chart-embed')).toBeInTheDocument();
+    const props = jest.mocked(BaseChart).mock.calls.at(-1)![0];
+    expect(props.series).toEqual([
+      expect.objectContaining({type: 'bar', data: [['500', 12]]}),
+    ]);
+  });
+
+  it('reads time-axis values without an offset as UTC', () => {
+    render(
+      <ExampleChartEmbed
+        body={{
+          title: 'Error volume',
+          x_axis: 'time',
+          series: [
+            {
+              label: 'Errors',
+              data: [
+                {x: '2026-07-30T12:00:00', y: 12},
+                {x: '2026-07-30T13:00:00+02:00', y: 18},
+              ],
+            },
+          ],
+        }}
+      />
+    );
+
+    const props = jest.mocked(BaseChart).mock.calls.at(-1)![0];
+    expect(props.series?.[0]?.data).toEqual([
+      [Date.parse('2026-07-30T11:00:00Z'), 18],
+      [Date.parse('2026-07-30T12:00:00Z'), 12],
+    ]);
+    expect(props.start).toEqual(new Date('2026-07-30T11:00:00Z'));
+    expect(props.end).toEqual(new Date('2026-07-30T12:00:00Z'));
   });
 
   it.each(['heatmap', 'wheel'])('does not render removed %s charts', visualization => {
