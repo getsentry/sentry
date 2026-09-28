@@ -67,15 +67,41 @@ class OrganizationEventsDroppedEndpointTest(APITestCase, OutcomesSnubaTest):
 
         dropped = response.data["droppedEvents"]
         assert len(dropped) == 1
+        assert dropped[0]["outcome"] == Outcome.RATE_LIMITED.api_name()
         assert dropped[0]["reason"] == "key_quota"
         assert dropped[0]["count"] == 400
         assert "byteSize" not in dropped[0]
 
         accepted = response.data["acceptedEvents"]
         assert len(accepted) == 1
+        assert accepted[0]["outcome"] == "accepted"
         assert accepted[0]["reason"] == "accepted"
         assert accepted[0]["count"] == 1000
         assert "byteSize" not in accepted[0]
+
+    def test_same_reason_under_different_outcomes_stays_distinct(self) -> None:
+        # Volume is keyed by (bucket, outcome, reason). The same reason string can
+        # appear under different outcomes, so outcome must be on the wire to keep
+        # them from collapsing into one indistinguishable bucket.
+        self._store_outcome(
+            Outcome.RATE_LIMITED, DataCategory.LOG_ITEM, 400, reason="key_quota", minutes=20
+        )
+        self._store_outcome(
+            Outcome.ABUSE, DataCategory.LOG_ITEM, 150, reason="key_quota", minutes=40
+        )
+
+        response = self._do_request()
+        assert response.status_code == 200, response.content
+
+        dropped = response.data["droppedEvents"]
+        by_outcome = {b["outcome"]: b for b in dropped}
+        assert set(by_outcome) == {
+            Outcome.RATE_LIMITED.api_name(),
+            Outcome.ABUSE.api_name(),
+        }
+        assert by_outcome[Outcome.RATE_LIMITED.api_name()]["count"] == 400
+        assert by_outcome[Outcome.ABUSE.api_name()]["count"] == 150
+        assert all(b["reason"] == "key_quota" for b in dropped)
 
     def test_interval_is_configurable_independent_of_a_chart(self) -> None:
         # A finer interval splits the two-hour window into more buckets than the

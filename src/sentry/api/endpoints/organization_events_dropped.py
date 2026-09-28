@@ -20,12 +20,13 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
 from sentry.snuba.utils import DATASET_LABELS
 
-_ACCEPTED_REASON = "accepted"
+_ACCEPTED = "accepted"
 
 
 class DroppedEventsBucket(TypedDict):
     type: str
     category: str
+    outcome: str
     reason: str
     start: float
     end: float
@@ -123,7 +124,8 @@ class OrganizationEventsDroppedEndpoint(OrganizationEventsEndpointBase):
                 )
                 dropped_events = [_to_bucket(bucket) for bucket in dropped_raw]
                 accepted_events = [
-                    _to_bucket(bucket, reason=_ACCEPTED_REASON) for bucket in accepted_raw
+                    _to_bucket(bucket, outcome=_ACCEPTED, reason=_ACCEPTED)
+                    for bucket in accepted_raw
                 ]
             except Exception:
                 # An Outcomes failure degrades to empty rather than failing the request.
@@ -143,10 +145,13 @@ class OrganizationEventsDroppedEndpoint(OrganizationEventsEndpointBase):
         return Response(response, status=200)
 
 
-def _to_bucket(raw: Annotation, *, reason: str | None = None) -> DroppedEventsBucket:
+def _to_bucket(
+    raw: Annotation, *, outcome: str | None = None, reason: str | None = None
+) -> DroppedEventsBucket:
     return {
         "type": raw["type"],
         "category": raw["category"],
+        "outcome": outcome if outcome is not None else raw["outcome"],
         "reason": reason if reason is not None else raw["reason"],
         "start": raw["start"],
         "end": raw["end"],
