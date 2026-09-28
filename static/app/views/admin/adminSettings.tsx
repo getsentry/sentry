@@ -86,10 +86,6 @@ function useAdminOption(name: string, option: FieldDef) {
   };
 }
 
-function getStringSchema(required: boolean | undefined) {
-  return required ? z.string().trim().min(1, t('This field is required')) : z.string();
-}
-
 const rootUrlSchema = z
   .string()
   .trim()
@@ -115,7 +111,7 @@ function getTextOptionSchema(name: string, required: boolean | undefined) {
   if (isEmailOption(name)) {
     return getEmailSchema(required);
   }
-  return getStringSchema(required);
+  return z.string();
 }
 
 type OptionFieldProps = {name: string; option: FieldDef};
@@ -162,7 +158,7 @@ function RadioOptionField({name, option}: OptionFieldProps) {
   return (
     <AutoSaveForm
       name="value"
-      schema={z.object({value: getStringSchema(required)})}
+      schema={z.object({value: z.string()})}
       initialValue={String(initialValue)}
       mutationOptions={{
         mutationFn: data => save(data.value),
