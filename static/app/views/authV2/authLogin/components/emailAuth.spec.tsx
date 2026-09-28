@@ -6,7 +6,6 @@ import {
   screen,
   userEvent,
   waitFor,
-  waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
 import {EmailAuth} from './emailAuth';
@@ -249,8 +248,8 @@ describe('EmailAuth', () => {
     );
     expect(screen.getByText('user@example.com')).toBeInTheDocument();
     expect(screen.queryByRole('textbox', {name: 'Email'})).not.toBeInTheDocument();
-    await waitForElementToBeRemoved(() =>
-      screen.queryByRole('button', {name: 'Reset Password'})
+    await waitFor(() =>
+      expect(screen.queryByRole('button', {name: 'Reset Password'})).not.toBeInTheDocument()
     );
     expect(
       screen.queryByRole('button', {name: 'Use a different email'})
