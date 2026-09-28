@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import addIntegrationProvider from 'sentry-images/spot/add-integration-provider.svg';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {Image} from '@sentry/scraps/image';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -51,7 +52,11 @@ export function AddIntegrationBanner({orgSlug, onDismiss}: AddIntegrationBannerP
         position="absolute"
         right="4rem"
       >
-        <BannerImage src={addIntegrationProvider} />
+        <Image
+          alt={t('Connect a source code provider')}
+          src={addIntegrationProvider}
+          width="auto"
+        />
       </Container>
       <Flex
         align="start"
@@ -96,8 +101,4 @@ const StyledBanner = styled('div')`
     ${p => p.theme.tokens.background.secondary} 70%,
     ${p => p.theme.tokens.background.secondary} 100%
   );
-`;
-
-const BannerImage = styled('img')`
-  display: block;
 `;
