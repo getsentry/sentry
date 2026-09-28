@@ -1,5 +1,6 @@
 import urllib.parse
 from datetime import timedelta
+from unittest import mock
 
 import pytest
 from django.http import QueryDict
@@ -10,9 +11,10 @@ from snuba_sdk.function import Function
 
 from sentry.constants import DataCategory
 from sentry.search.utils import InvalidQuery
-from sentry.snuba.outcomes import QueryDefinition
+from sentry.snuba.outcomes import MAX_SNUBA_LIMIT, QueryDefinition, get_timestamps
 from sentry.snuba.sessions_v2 import InvalidField
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils.outcomes import Outcome
 
 
@@ -154,4 +156,52 @@ class OutcomesQueryDefinitionTests(TestCase):
         )
         assert query.start
         assert query.end
+        assert query.rollup == 3600
+
+    def test_auto_interval_starts_hourly(self) -> None:
+        query = _make_query(
+            "statsPeriod=1d&interval=auto&category=error&field=sum(quantity)",
+            {"organization_id": 1},
+        )
+        assert query.auto_interval
+        assert query.rollup == 3600
+        assert query.interval_name == "1h"
+
+    def test_auto_interval_respects_point_cap(self) -> None:
+        # 90 days is 2160 hourly or 1080 two-hour buckets, both over the cap.
+        query = _make_query(
+            "statsPeriod=90d&interval=auto&category=error&field=sum(quantity)",
+            {"organization_id": 1},
+        )
+        assert query.rollup == 3 * 3600
+
+    @freeze_time("2026-09-16 12:00:00")
+    def test_apply_auto_rollup_fits_group_count(self) -> None:
+        query = _make_query(
+            "statsPeriod=2d&interval=auto&category=error&field=sum(quantity)",
+            {"organization_id": 1},
+        )
+        # 48 hourly buckets hold 144 rows for 3 groups; 24 two-hour buckets hold 72.
+        with mock.patch("sentry.snuba.outcomes.MAX_SNUBA_LIMIT", 100):
+            assert query.apply_auto_rollup(3)
+        assert query.rollup == 2 * 3600
+        assert query.interval_name == "2h"
+        assert len(get_timestamps(query)) == 24
+        assert Condition(Column("timestamp"), Op.GTE, query.start) in query.conditions
+        assert Condition(Column("timestamp"), Op.LT, query.end) in query.conditions
+
+    def test_apply_auto_rollup_keeps_coarsest_when_nothing_fits(self) -> None:
+        query = _make_query(
+            "statsPeriod=2d&interval=auto&category=error&field=sum(quantity)",
+            {"organization_id": 1},
+        )
+        assert query.apply_auto_rollup(MAX_SNUBA_LIMIT)
+        assert query.rollup == 86400
+
+    def test_apply_auto_rollup_ignores_explicit_interval(self) -> None:
+        query = _make_query(
+            "statsPeriod=2d&interval=1h&category=error&field=sum(quantity)",
+            {"organization_id": 1},
+        )
+        assert not query.apply_auto_rollup(MAX_SNUBA_LIMIT)
         assert query.rollup == 3600

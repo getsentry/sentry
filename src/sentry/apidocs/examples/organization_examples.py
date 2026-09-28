@@ -481,6 +481,7 @@ class OrganizationExamples:
                         "series": {"sum(quantity)": [165665]},
                     }
                 ],
+                "meta": {"interval": "1d", "isTruncated": False},
             },
             status_codes=["200"],
             response_only=True,

@@ -26,9 +26,9 @@ from sentry.snuba.outcomes import (
     GROUPBY_MAP,
     QueryDefinition,
     StatsApiResponse,
+    fetch_outcomes_timeseries,
+    fetch_outcomes_totals,
     massage_outcomes_result,
-    run_outcomes_query_timeseries,
-    run_outcomes_query_totals,
 )
 from sentry.snuba.sessions_v2 import InvalidField
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -52,8 +52,10 @@ class OrgStatsQueryParamsSerializer(serializers.Serializer):
     interval = serializers.CharField(
         help_text=(
             "This is the resolution of the time series, given in the same format as `statsPeriod`. "
-            "The default resolution is `1h` and the minimum resolution is currently restricted to `1h` as well. "
-            "Intervals larger than `1d` are not supported, and the interval has to cleanly divide one day."
+            "The default resolution is `1h`. "
+            "Intervals larger than `1d` are not supported, and the interval has to cleanly divide one day. "
+            "Pass `auto` to let the server pick the finest resolution whose series fits under the "
+            "result size limit; the resolution used is returned in `meta.interval`."
         ),
         required=False,
     )
@@ -183,14 +185,24 @@ class OrganizationStatsEndpointV2(OrganizationEndpoint):
                     organization,
                 )
             with start_span(op="outcomes.endpoint", name="run_outcomes_query"):
-                result_totals = run_outcomes_query_totals(query, tenant_ids=tenant_ids)
-                result_timeseries = (
-                    None
-                    if "project_id" in query.query_groupby
-                    else run_outcomes_query_timeseries(query, tenant_ids=tenant_ids)
-                )
+                totals = fetch_outcomes_totals(query, tenant_ids=tenant_ids)
+                if "project_id" in query.query_groupby:
+                    timeseries = None
+                else:
+                    # A coarser rollup widens the aligned window, so the totals
+                    # are fetched again to match the series.
+                    while query.apply_auto_rollup(totals.raw_row_count):
+                        totals = fetch_outcomes_totals(query, tenant_ids=tenant_ids)
+                    timeseries = fetch_outcomes_timeseries(query, tenant_ids=tenant_ids)
             with start_span(op="outcomes.endpoint", name="massage_outcomes_result"):
-                result = massage_outcomes_result(query, result_totals, result_timeseries)
+                result = massage_outcomes_result(
+                    query, totals.rows, None if timeseries is None else timeseries.rows
+                )
+                if timeseries is not None:
+                    result["meta"] = {
+                        "interval": query.interval_name,
+                        "isTruncated": timeseries.is_truncated,
+                    }
             return Response(result, status=200)
 
     def build_outcomes_query(self, request: Request, organization):

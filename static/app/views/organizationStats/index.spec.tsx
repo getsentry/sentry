@@ -149,6 +149,43 @@ describe('OrganizationStats', () => {
     }
   });
 
+  it('lets the server pick the interval when the feature is enabled', async () => {
+    const autoOrg = OrganizationFixture({
+      features: ['team-insights', 'stats-auto-interval'],
+    });
+    OrganizationStore.onUpdate(autoOrg, {replace: true});
+    MockApiClient.clearMockResponses();
+    mockRequest = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: endpoint,
+      body: {...mockStatsResponse, meta: {interval: '4h', isTruncated: false}},
+    });
+    render(<OrganizationStats />, {organization: autoOrg});
+
+    expect(await screen.findByText(/4h interval/)).toBeInTheDocument();
+    expect(mockRequest).toHaveBeenCalledWith(
+      endpoint,
+      expect.objectContaining({
+        query: expect.objectContaining({
+          interval: 'auto',
+          groupBy: ['outcome', 'reason'],
+        }),
+      })
+    );
+  });
+
+  it('warns when the server dropped rows from the series', async () => {
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: endpoint,
+      body: {...mockStatsResponse, meta: {interval: '1h', isTruncated: true}},
+    });
+    render(<OrganizationStats />, {organization});
+
+    expect(await screen.findByText(/Some data was left out/)).toBeInTheDocument();
+  });
+
   it('renders with an error on stats endpoint', async () => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({

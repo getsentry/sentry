@@ -256,7 +256,7 @@ function EnhancedUsageStatsOrganization({
   ) as DataCategoryInfo;
 
   /** Limitation on frontend calculation of spikes to prevent intervals that are not 1h */
-  const hasAccurateSpikes = getSeriesApiInterval(dataDatetime) === REQUIRED_INTERVAL;
+  const canHaveAccurateSpikes = getSeriesApiInterval(dataDatetime) === REQUIRED_INTERVAL;
 
   const projectWithSpikeProjectionOptionQueryEnabled = isSingleProject && !!project;
   // This endpoint refetches the specific project with an added query for the SP option
@@ -295,7 +295,8 @@ function EnhancedUsageStatsOrganization({
     {staleTime: Infinity, retry: false, enabled: spikesListQueryEnabled}
   );
 
-  const spikeThresholdsQueryEnabled = isSingleProject && !!project && hasAccurateSpikes;
+  const spikeThresholdsQueryEnabled =
+    isSingleProject && !!project && canHaveAccurateSpikes;
   const spikeThresholds = useApiQuery<SpikeThresholds>(
     [
       // Only fetch spike thresholds if the interval is 1h
@@ -322,7 +323,7 @@ function EnhancedUsageStatsOrganization({
     subscription,
     organization,
     is_project_stats: isSingleProject,
-    has_spike_data: isSingleProject && hasAccurateSpikes,
+    has_spike_data: isSingleProject && canHaveAccurateSpikes,
   });
 
   return (
@@ -358,6 +359,12 @@ function EnhancedUsageStatsOrganization({
         const loading = loadingStatuses.some(Boolean);
         const error = errorStatuses.find(defined) ?? null;
 
+        // The server may answer with a coarser interval than requested, and
+        // hourly thresholds cannot be drawn against wider buckets.
+        const hasAccurateSpikes =
+          canHaveAccurateSpikes &&
+          (usageStats.orgStats.data?.meta?.interval ?? REQUIRED_INTERVAL) ===
+            REQUIRED_INTERVAL;
         const shouldRenderRangeAlert = !loading && isSingleProject && !hasAccurateSpikes;
 
         const storedSpikes: SpikeDetails[] = [];

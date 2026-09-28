@@ -1,4 +1,5 @@
 from datetime import UTC, datetime, timedelta
+from unittest import mock
 
 from sentry.constants import DataCategory
 from sentry.testutils.cases import APITestCase, OutcomesSnubaTest
@@ -176,6 +177,7 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         )
 
         assert result_sorted(response.data) == {
+            "meta": {"interval": "1h", "isTruncated": False},
             "intervals": [
                 isoformat_z(self._now.replace(hour=12, minute=0, second=0)),
                 isoformat_z(self._now.replace(hour=13, minute=0, second=0)),
@@ -279,6 +281,7 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         )
 
         assert result_sorted(response.data) == {
+            "meta": {"interval": "1d", "isTruncated": False},
             "intervals": [
                 isoformat_z(floor_to_utc_day(self._now) - timedelta(days=1)),
                 isoformat_z(floor_to_utc_day(self._now)),
@@ -302,6 +305,7 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         )
 
         assert result_sorted(response.data) == {
+            "meta": {"interval": "6h", "isTruncated": False},
             "intervals": [
                 isoformat_z((self._now - timedelta(days=1)).replace(hour=12, minute=0, second=0)),
                 isoformat_z((self._now - timedelta(days=1)).replace(hour=18, minute=0, second=0)),
@@ -339,6 +343,7 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         assert result_sorted(response.data) == {
             "start": isoformat_z(floor_to_utc_day(self._now) - timedelta(days=1)),
             "end": isoformat_z(floor_to_utc_day(self._now) + timedelta(days=1)),
+            "meta": {"interval": "1d", "isTruncated": False},
             "intervals": [
                 isoformat_z(floor_to_utc_day(self._now) - timedelta(days=1)),
                 isoformat_z(floor_to_utc_day(self._now)),
@@ -518,6 +523,7 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
                     "totals": {"sum(quantity)": 1},
                 },
             ],
+            "meta": {"interval": "1d", "isTruncated": False},
             "intervals": [
                 isoformat_z(floor_to_utc_day(self._now) - timedelta(days=2)),
                 isoformat_z(floor_to_utc_day(self._now) - timedelta(days=1)),
@@ -573,6 +579,7 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
             assert result_sorted(response.data) == {
                 "start": isoformat_z(floor_to_utc_day(self._now) - timedelta(days=2)),
                 "end": isoformat_z(floor_to_utc_day(self._now) + timedelta(days=1)),
+                "meta": {"interval": "1d", "isTruncated": False},
                 "intervals": [
                     isoformat_z(floor_to_utc_day(self._now) - timedelta(days=2)),
                     isoformat_z(floor_to_utc_day(self._now) - timedelta(days=1)),
@@ -597,6 +604,7 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         assert result_sorted(response.data) == {
             "start": isoformat_z(floor_to_utc_day(self._now) - timedelta(days=2)),
             "end": isoformat_z(floor_to_utc_day(self._now) + timedelta(days=1)),
+            "meta": {"interval": "1d", "isTruncated": False},
             "intervals": [
                 isoformat_z(floor_to_utc_day(self._now) - timedelta(days=2)),
                 isoformat_z(floor_to_utc_day(self._now) - timedelta(days=1)),
@@ -712,6 +720,7 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         assert result_sorted(response.data) == {
             "start": isoformat_z(floor_to_utc_day(self._now) - timedelta(days=1)),
             "end": isoformat_z(floor_to_utc_day(self._now) + timedelta(days=1)),
+            "meta": {"interval": "1d", "isTruncated": False},
             "intervals": [
                 isoformat_z(floor_to_utc_day(self._now) - timedelta(days=1)),
                 isoformat_z(floor_to_utc_day(self._now)),
@@ -738,6 +747,7 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         assert result_sorted(response.data) == {
             "start": isoformat_z(floor_to_utc_day(self._now) - timedelta(days=1)),
             "end": isoformat_z(floor_to_utc_day(self._now) + timedelta(days=1)),
+            "meta": {"interval": "1d", "isTruncated": False},
             "intervals": [
                 isoformat_z(floor_to_utc_day(self._now) - timedelta(days=1)),
                 isoformat_z(floor_to_utc_day(self._now)),
@@ -777,6 +787,7 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         shared_data = {
             "start": isoformat_z(floor_to_utc_day(self._now) - timedelta(days=1)),
             "end": isoformat_z(floor_to_utc_day(self._now) + timedelta(days=1)),
+            "meta": {"interval": "1d", "isTruncated": False},
             "intervals": [
                 isoformat_z(floor_to_utc_day(self._now) - timedelta(days=1)),
                 isoformat_z(floor_to_utc_day(self._now)),
@@ -844,6 +855,7 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         assert result_sorted(response.data) == {
             "start": isoformat_z(floor_to_utc_day(self._now) - timedelta(days=1)),
             "end": isoformat_z(floor_to_utc_day(self._now) + timedelta(days=1)),
+            "meta": {"interval": "1d", "isTruncated": False},
             "intervals": [
                 isoformat_z(floor_to_utc_day(self._now) - timedelta(days=1)),
                 isoformat_z(floor_to_utc_day(self._now)),
@@ -879,6 +891,7 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         assert result_sorted(response.data) == {
             "start": isoformat_z(floor_to_utc_day(self._now) - timedelta(days=1)),
             "end": isoformat_z(floor_to_utc_day(self._now) + timedelta(days=1)),
+            "meta": {"interval": "1d", "isTruncated": False},
             "intervals": [
                 isoformat_z(floor_to_utc_day(self._now) - timedelta(days=1)),
                 isoformat_z(floor_to_utc_day(self._now)),
@@ -904,6 +917,7 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         assert result_sorted(response.data) == {
             "start": isoformat_z(floor_to_utc_day(self._now) - timedelta(days=1)),
             "end": isoformat_z(floor_to_utc_day(self._now) + timedelta(days=1)),
+            "meta": {"interval": "1d", "isTruncated": False},
             "intervals": [
                 isoformat_z(floor_to_utc_day(self._now) - timedelta(days=1)),
                 isoformat_z(floor_to_utc_day(self._now)),
@@ -929,6 +943,7 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         assert result_sorted(response.data) == {
             "start": isoformat_z(self._now.replace(hour=11, minute=15, second=0)),
             "end": isoformat_z(self._now.replace(hour=12, minute=30, second=0)),
+            "meta": {"interval": "15m", "isTruncated": False},
             "intervals": [
                 isoformat_z(self._now.replace(hour=11, minute=15, second=0)),
                 isoformat_z(self._now.replace(hour=11, minute=30, second=0)),
@@ -959,6 +974,7 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         assert result_sorted(response.data) == {
             "start": isoformat_z(self._now.replace(hour=11, minute=15, second=0)),
             "end": isoformat_z(self._now.replace(hour=12, minute=30, second=0)),
+            "meta": {"interval": "15m", "isTruncated": False},
             "intervals": [
                 isoformat_z(self._now.replace(hour=11, minute=15, second=0)),
                 isoformat_z(self._now.replace(hour=11, minute=30, second=0)),
@@ -992,6 +1008,7 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         assert result_sorted(response.data) == {
             "start": isoformat_z(floor_to_utc_day(self._now) - timedelta(days=1)),
             "end": isoformat_z(floor_to_utc_day(self._now) + timedelta(days=1)),
+            "meta": {"interval": "1d", "isTruncated": False},
             "intervals": [
                 isoformat_z(floor_to_utc_day(self._now) - timedelta(days=1)),
                 isoformat_z(floor_to_utc_day(self._now)),
@@ -1023,6 +1040,7 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         assert result_sorted(response.data) == {
             "start": isoformat_z(floor_to_utc_day(self._now) - timedelta(days=1)),
             "end": isoformat_z(floor_to_utc_day(self._now) + timedelta(days=1)),
+            "meta": {"interval": "1d", "isTruncated": False},
             "intervals": [
                 isoformat_z(floor_to_utc_day(self._now) - timedelta(days=1)),
                 isoformat_z(floor_to_utc_day(self._now)),
@@ -1035,6 +1053,45 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
                 }
             ],
         }
+
+    @freeze_time(_now)
+    def test_auto_interval_picks_finest_rollup_that_fits(self) -> None:
+        # The single accepted/none group needs 49 rows at 1h and 25 at 2h over this
+        # window; 17 three-hour buckets fit under the limit.
+        with mock.patch("sentry.snuba.outcomes.MAX_SNUBA_LIMIT", 20):
+            response = self.do_request(
+                {
+                    "statsPeriod": "2d",
+                    "interval": "auto",
+                    "field": ["sum(quantity)"],
+                    "groupBy": ["outcome", "reason"],
+                    "category": ["error"],
+                },
+                org=self.org,
+                status_code=200,
+            )
+
+        assert response.data["meta"] == {"interval": "3h", "isTruncated": False}
+        assert len(response.data["intervals"]) == 17
+        (group,) = response.data["groups"]
+        assert group["by"] == {"outcome": "accepted", "reason": "none"}
+        assert sum(group["series"]["sum(quantity)"]) == group["totals"]["sum(quantity)"] == 6
+
+    @freeze_time(_now)
+    def test_explicit_interval_reports_truncation(self) -> None:
+        with mock.patch("sentry.snuba.outcomes.MAX_SNUBA_LIMIT", 2):
+            response = self.do_request(
+                {
+                    "statsPeriod": "2d",
+                    "interval": "1d",
+                    "field": ["sum(quantity)"],
+                    "groupBy": ["category", "outcome", "reason"],
+                },
+                org=self.org,
+                status_code=200,
+            )
+
+        assert response.data["meta"] == {"interval": "1d", "isTruncated": True}
 
 
 def result_sorted(result):
