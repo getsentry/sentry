@@ -196,18 +196,16 @@ class CustomInboundFilterSerializer(serializers.ModelSerializer[CustomInboundFil
         # A partial update may change the data type or the conditions alone, so the
         # other side comes from the stored filter.
         stored = self.instance
-        conditions = attrs.get("conditions")
-        if conditions is None:
-            conditions = stored.conditions if stored else None
-
-        raw_data_type = attrs.get("data_type") or (stored.data_type if stored else None)
-        if conditions is None or raw_data_type is None:
-            return attrs
+        if stored is None:
+            conditions = attrs["conditions"]
+            data_type = DataType(attrs["data_type"])
+        else:
+            conditions = attrs.get("conditions", stored.conditions)
+            data_type = DataType(attrs.get("data_type", stored.data_type))
 
         if "conditions" in attrs:
             _validate_size(conditions, stored)
 
-        data_type = DataType(raw_data_type)
         supported = get_supported_condition_types(data_type)
         unsupported = sorted({condition["type"] for condition in conditions} - set(supported))
         if unsupported:
