@@ -73,14 +73,3 @@ described as a tag and credited to nobody.
 `AttributesTree` opts in per product through `config.attributeDetailsType`, which is
 the registry its attributes belong to. Logs pass `"log"`. Without it, keys render as
 plain text with the browser tooltip naming them in full.
-
-## Reuse outside a tooltip
-
-The rows themselves come from `AttributeDetails`, which a surface that already has
-its own overlay renders directly instead of wrapping a hover target. The search
-query builder's filter key menu does this, both in the popover beside a focused
-key and in the details pane of its full width menu.
-
-It takes the name, type and description already resolved, because a surface with
-its own field definition registry — the search query builder resolves one per
-product — knows better than the component which definition applies.

@@ -48,8 +48,6 @@ export function KeyDescription({size = 'sm', tag}: KeyDescriptionProps) {
 
   const fieldDefinition = getFieldDefinition(tag.key);
 
-  // Explore synthesizes a definition for every custom attribute to type it, so only
-  // a definition that also describes the attribute is one Sentry actually defines.
   const sentryDescription = fieldDefinition?.desc;
 
   const description =

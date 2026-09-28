@@ -18,10 +18,6 @@ export interface AttributeDetailsProps {
   valueType?: FieldValueType;
 }
 
-/**
- * Returns the sections bare rather than in a wrapping box, so that a tooltip
- * can pull them back out to its own edges.
- */
 export function AttributeDetails({
   description,
   isAddedBySentry,
