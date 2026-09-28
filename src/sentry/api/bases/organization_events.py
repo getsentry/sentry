@@ -432,6 +432,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                 bytes_scanned = meta.pop("bytes_scanned", None)
                 debug_info = meta.pop("debug_info", None)
                 routing_hint = meta.pop("routing_hint", None)
+                matches = meta.pop("matches", None)
                 fields, units = self.handle_unit_meta(fields_meta)
                 meta = {
                     "fields": fields,
@@ -458,6 +459,9 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
 
                 if routing_hint:
                     meta["routingHint"] = routing_hint
+
+                if matches is not None:
+                    meta["matches"] = matches
 
                 # Only appears in meta when debug is passed to the endpoint
                 if debug_info:

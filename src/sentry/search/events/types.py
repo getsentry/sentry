@@ -64,6 +64,18 @@ SnubaRow = dict[str, Any]
 SnubaData = list[SnubaRow]
 
 
+class RegexMatch(TypedDict):
+    """Where a regex filter matched a value. Offsets are UTF-16 code units, so in a browser
+    `value.slice(start, end)` is `text`."""
+
+    start: int
+    end: int
+    text: str
+
+
+RegexMatchesByField = dict[str, list[RegexMatch]]
+
+
 class EventsMeta(TypedDict):
     datasetReason: NotRequired[str]
     fields: dict[str, str]
@@ -76,6 +88,8 @@ class EventsMeta(TypedDict):
     full_scan: NotRequired[bool]
     bytes_scanned: NotRequired[int | None]
     routing_hint: NotRequired[str]
+    # One entry per row of `data`, in the same order
+    matches: NotRequired[list[RegexMatchesByField]]
 
 
 class EventsResponse(TypedDict):

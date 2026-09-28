@@ -6,6 +6,7 @@ from sentry.api.serializers.models.project import get_has_logs
 from sentry.models.project import Project
 from sentry.search.eap import constants
 from sentry.search.eap.ourlogs.definitions import OURLOG_DEFINITIONS
+from sentry.search.eap.regex_matches import find_regex_matches
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.types import AdditionalQueries, EAPResponse, SearchResolverConfig
 from sentry.search.events.types import SAMPLING_MODES, SnubaParams
@@ -63,7 +64,9 @@ class OurLogs(rpc_dataset_common.RPCBase):
                 if "id" not in selected_columns:
                     selected_columns.append("id")
 
-        return cls._run_table_query(
+        resolver = search_resolver or cls.get_resolver(params=params, config=config)
+
+        response = cls._run_table_query(
             rpc_dataset_common.TableQuery(
                 query_string=query_string,
                 selected_columns=selected_columns,
@@ -72,14 +75,16 @@ class OurLogs(rpc_dataset_common.RPCBase):
                 limit=limit,
                 referrer=referrer,
                 sampling_mode=sampling_mode,
-                resolver=search_resolver
-                or cls.get_resolver(
-                    params=params,
-                    config=config,
-                ),
+                resolver=resolver,
                 page_token=page_token,
                 additional_queries=additional_queries,
                 max_string_length=max_string_length,
             ),
             debug=params.debug,
         )
+
+        matches = find_regex_matches(resolver, query_string, response["data"], max_string_length)
+        if matches is not None:
+            response["meta"]["matches"] = matches
+
+        return response

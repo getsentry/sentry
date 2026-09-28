@@ -255,6 +255,32 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsEndpointTestBase):
         assert log_data["trace"] == trace_id_1
         assert log_data["message"] == "foo"
 
+    def test_regex_query_returns_one_match_entry_per_returned_row(self) -> None:
+        trace_id = "1" * 32
+        self.store_eap_items(
+            [
+                self.create_ourlog(
+                    {"body": f"{'.' * i} ERROR boom", "trace_id": trace_id},
+                    timestamp=self.ten_mins_ago,
+                )
+                for i in range(5)
+            ]
+        )
+
+        with self.feature({**self.features, "organizations:ourlogs-regex-searches": True}):
+            response = self.client_get(
+                data={
+                    "traceId": trace_id,
+                    "query": "message://ERROR//",
+                    "per_page": "2",
+                },
+                url=self.url,
+            )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 2
+        assert len(response.data["meta"]["matches"]) == 2
+
     def test_pagelimit(self) -> None:
         trace_id = "1" * 32
         log = self.create_ourlog(
