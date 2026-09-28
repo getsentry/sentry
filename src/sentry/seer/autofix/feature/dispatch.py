@@ -92,12 +92,20 @@ def trigger_autofix_feature(
         step_args=args.step_args,
     )
 
+    enable_coding = args.step == AutofixStep.CODE_CHANGES
     client = SeerAgentClient(
         organization=group.organization,
         project=group.project,
         group=group,
         user=args.user,
         enable_bash_mode=args.enable_bash_mode,
+        enable_coding=enable_coding,
+    )
+
+    agent_run_options = AgentRunOptions(
+        is_context_engine_enabled=False,
+        enable_frontend_code_search=False,
+        enable_coding=enable_coding,
     )
 
     extras: dict[str, Any] = {
@@ -115,10 +123,7 @@ def trigger_autofix_feature(
             referrer=args.referrer.value,
             user_org_context=user_org_context,
             proxy_headers=get_proxy_headers(),
-            agent_run_options=AgentRunOptions(
-                is_context_engine_enabled=False,
-                enable_frontend_code_search=False,
-            ),
+            agent_run_options=agent_run_options,
             title=f"Autofix RCA — {payload.short_id}",
             flush=args.flush,
             extras=extras,
@@ -142,10 +147,7 @@ def trigger_autofix_feature(
             referrer=args.referrer.value,
             user_org_context=user_org_context,
             proxy_headers=get_proxy_headers(),
-            agent_run_options=AgentRunOptions(
-                is_context_engine_enabled=False,
-                enable_frontend_code_search=False,
-            ),
+            agent_run_options=agent_run_options,
         )
     else:
         raise Exception("Unhandled run_id branch, this should never happen")

@@ -549,13 +549,10 @@ def trigger_autofix_agent(
         and features.has("organizations:autofix-should-run-repo-checks", group.organization)
     )
 
-    use_seer_feature = (
-        step in (AutofixStep.ROOT_CAUSE, AutofixStep.SOLUTION)
-        or (
-            step == AutofixStep.CODE_CHANGES
-            and features.has(
-                "organizations:autofix-code-changes-in-seer", group.organization, actor=user
-            )
+    use_seer_feature = step in (AutofixStep.ROOT_CAUSE, AutofixStep.SOLUTION) or (
+        step == AutofixStep.CODE_CHANGES
+        and features.has(
+            "organizations:autofix-code-changes-in-seer", group.organization, actor=user
         )
     )
     if use_seer_feature:
@@ -607,6 +604,7 @@ def trigger_autofix_agent(
             feature_run_id,
             str(feature_run.uuid),
             referrer,
+            actor_user_id=actor_user_id,
         )
         return feature_run
 
