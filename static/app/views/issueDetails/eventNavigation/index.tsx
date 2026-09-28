@@ -26,6 +26,7 @@ import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {useReplayCountForIssues} from 'sentry/utils/replayCount/useReplayCountForIssues';
+import {areAiFeaturesAllowed} from 'sentry/utils/seer/areAiFeaturesAllowed';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
@@ -96,9 +97,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
   // `autofix-page` rolls out with Seer, so the orgs that hide AI keep the
   // dropdown rather than getting the tab list ahead of everyone else.
   const showContentTabs =
-    hasAutofixPage(organization) &&
-    organization.features.includes('gen-ai-features') &&
-    !organization.hideAiFeatures;
+    hasAutofixPage(organization) && areAiFeaturesAllowed(organization);
 
   // Autofix does not run on some issue types or on sample events, so those
   // issues get the tab list without an Autofix tab.

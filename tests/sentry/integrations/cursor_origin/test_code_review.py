@@ -5,6 +5,7 @@ from typing import Any
 from unittest.mock import patch
 
 import pytest
+from django.test import override_settings
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.cursor_origin.code_review import review_event
@@ -97,6 +98,7 @@ class ReviewEventTest(TestCase):
 
 
 @cell_silo_test
+@override_settings(SENTRY_SELF_HOSTED=False)
 class CodeReviewFromWebhookTest(TestCase):
     @pytest.fixture(autouse=True)
     def mock_seer_request(self) -> Generator[None]:
