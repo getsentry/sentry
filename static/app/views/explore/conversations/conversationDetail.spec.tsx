@@ -381,8 +381,8 @@ describe('ConversationDetailPage time window', () => {
     for (const [, options] of conversationRequest.mock.calls) {
       expect(options.query).toEqual(
         expect.objectContaining({
-          start: '2026-09-24T08:06:04.000Z',
-          end: '2026-09-25T10:29:16.000Z',
+          start: '2026-09-24T07:06:04.000Z',
+          end: '2026-09-25T11:29:16.000Z',
         })
       );
       expect(options.query).not.toHaveProperty('statsPeriod');

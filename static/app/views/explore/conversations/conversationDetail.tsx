@@ -1,5 +1,10 @@
 import {useCallback, useEffect, useMemo, type ReactNode} from 'react';
-import {parseAsString, parseAsStringLiteral, useQueryStates} from 'nuqs';
+import {
+  parseAsIsoDateTime,
+  parseAsString,
+  parseAsStringLiteral,
+  useQueryStates,
+} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -30,8 +35,8 @@ function useConversationDetailQueryState() {
     {
       spanId: parseAsString,
       focusedTool: parseAsString,
-      start: parseAsString,
-      end: parseAsString,
+      start: parseAsIsoDateTime,
+      end: parseAsIsoDateTime,
       tab: parseAsStringLiteral(CONVERSATION_VIEW_TABS).withDefault('transcript'),
     },
     {history: 'replace'}
@@ -47,9 +52,11 @@ function ConversationDetailPage() {
   // navigation from the list, the page filters still hold the list's selection
   // when the first request is made.
   const {start, end} = queryState;
+  const startTimestamp = start?.getTime();
+  const endTimestamp = end?.getTime();
   const conversation = useMemo(
-    () => ({conversationId, start: start ?? undefined, end: end ?? undefined}),
-    [conversationId, start, end]
+    () => ({conversationId, startTimestamp, endTimestamp}),
+    [conversationId, startTimestamp, endTimestamp]
   );
 
   const {nodes, nodeTraceMap, isLoading, title} = useConversation(conversation);
