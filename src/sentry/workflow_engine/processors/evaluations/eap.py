@@ -3,12 +3,15 @@ from __future__ import annotations
 import logging
 import uuid
 from collections.abc import Iterator, Mapping, Sequence
+from concurrent.futures import Future
 from dataclasses import fields, is_dataclass
 from enum import Enum
+from functools import partial
 from typing import TYPE_CHECKING, overload
 
 from arroyo import Topic as ArroyoTopic
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer
+from arroyo.types import BrokerValue
 from django.utils import timezone
 from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_kafka_schemas.codecs import Codec
@@ -21,7 +24,7 @@ from sentry.models.group import GroupStatus
 from sentry.search.eap.rpc_utils import anyvalue
 from sentry.services.eventstore.models import GroupEvent
 from sentry.types.activity import ActivityType
-from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
+from sentry.utils.arroyo_producer import get_arroyo_producer, get_future_tracking_producer
 from sentry.utils.eap import hex_to_item_id
 from sentry.utils.kafka_config import get_topic_definition
 from sentry.workflow_engine.processors.evaluations.base import (
@@ -44,6 +47,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 EVALUATION_NAMESPACE = uuid.UUID("15de19a5-09c3-48d0-80ef-f9ff2c62af57")
+EAP_PRODUCER_NAME = "sentry.workflow_engine.evaluations.eap"
 EAP_ITEMS_CODEC: Codec[TraceItem] = get_topic_codec(Topic.SNUBA_ITEMS)
 EAP_RETENTION_DAYS = 7  # TODO - We'll probably need to store metric issues for longer
 type EAPAttributeValue = (
@@ -59,12 +63,15 @@ EAP_LOG_ATTRIBUTES: dict[str, EAPAttributeValue] = {
 
 def _get_eap_items_producer() -> KafkaProducer:
     return get_arroyo_producer(
-        name="sentry.workflow_engine.evaluations.eap",
+        name=EAP_PRODUCER_NAME,
         topic=Topic.SNUBA_ITEMS,
     )
 
 
-_eap_producer = SingletonProducer(_get_eap_items_producer)
+_eap_producer = get_future_tracking_producer(
+    producer_name=EAP_PRODUCER_NAME,
+    producer_factory=_get_eap_items_producer,
+)
 
 
 @overload
@@ -184,6 +191,21 @@ def _build_trace_item(
     )
 
 
+def _handle_produce_result(
+    future: Future[BrokerValue[KafkaPayload]],
+    *,
+    organization_id: int,
+    project_id: int,
+) -> None:
+    try:
+        future.result()
+    except Exception:
+        logger.exception(
+            "workflow_engine.evaluations.eap.delivery_failed",
+            extra={"organization_id": organization_id, "project_id": project_id},
+        )
+
+
 def _produce_trace_item(
     *,
     organization_id: int,
@@ -193,7 +215,17 @@ def _produce_trace_item(
 ) -> None:
     payload = KafkaPayload(None, EAP_ITEMS_CODEC.encode(trace_item), [])
     try:
-        _eap_producer.produce(topic, payload)
+        _eap_producer.produce(
+            topic,
+            payload,
+            callbacks=[
+                partial(
+                    _handle_produce_result,
+                    organization_id=organization_id,
+                    project_id=project_id,
+                )
+            ],
+        )
     except Exception:
         logger.exception(
             "workflow_engine.evaluations.eap.produce_failed",

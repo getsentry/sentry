@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING
 
 from sentry import features
@@ -10,6 +11,8 @@ if TYPE_CHECKING:
     from sentry.models.organization import Organization
     from sentry.workflow_engine.processors.evaluations.types import WorkflowEngineResult
 
+logger = logging.getLogger(__name__)
+
 
 def emit_evaluations(
     result: WorkflowEngineResult,
@@ -18,4 +21,10 @@ def emit_evaluations(
     emit_evaluation_logs(organization, result)
 
     if features.has("organizations:workflow-engine-evaluation-artifacts-eap", organization):
-        emit_evaluation_to_eap(organization, result)
+        try:
+            emit_evaluation_to_eap(organization, result)
+        except Exception:
+            logger.exception(
+                "workflow_engine.evaluations.eap.emit_failed",
+                extra={"organization_id": organization.id},
+            )

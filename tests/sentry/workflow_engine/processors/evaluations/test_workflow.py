@@ -1,7 +1,8 @@
-from dataclasses import asdict
+from concurrent.futures import Future
+from dataclasses import asdict, dataclass
 from unittest import mock
 
-from arroyo.backends.kafka import KafkaPayload
+from arroyo.backends.kafka import FutureTrackingProducer, KafkaPayload
 from arroyo.backends.local.backend import LocalBroker
 from arroyo.backends.local.storages.memory import MemoryMessageStorage
 from arroyo.types import Partition
@@ -41,9 +42,13 @@ from sentry.workflow_engine.processors.evaluations.tracking import emit_evaluati
 from sentry.workflow_engine.types import ConditionError, WorkflowEventData
 
 LOGGING_MODULE = "sentry.workflow_engine.processors.evaluations.logging"
+TRACKING_MODULE = "sentry.workflow_engine.processors.evaluations.tracking"
 
 
+@dataclass(frozen=True)
 class EmptyDelayedWorkflowEvaluationBatch(WorkflowEvaluationBatch):
+    project_id: int | None
+
     @property
     def evaluation_phase(self) -> EvaluationPhase:
         return EvaluationPhase.DELAYED
@@ -392,7 +397,7 @@ class TestWorkflowEvaluationArtifact(TestCase):
         ):
             emit_evaluations(
                 organization=self.organization,
-                result=EmptyDelayedWorkflowEvaluationBatch(),
+                result=EmptyDelayedWorkflowEvaluationBatch(project_id=self.project.id),
             )
 
         mock_logger.info.assert_called_once_with(
@@ -402,6 +407,7 @@ class TestWorkflowEvaluationArtifact(TestCase):
                 "evaluation_phase": EvaluationPhase.DELAYED,
                 "outcome": WorkflowEvaluationOutcome.NO_WORKFLOWS,
                 "error": None,
+                "project_id": self.project.id,
                 "organization_id": self.organization.id,
             },
         )
@@ -437,17 +443,47 @@ class TestWorkflowEvaluationArtifact(TestCase):
             },
         )
 
+    def test_eap_emitter_failure_does_not_interrupt_evaluation_tracking(self) -> None:
+        result = self._build_batch_result({10: self._build_evaluation(workflow_id=10)})
+
+        with (
+            Feature({"organizations:workflow-engine-evaluation-artifacts-eap": True}),
+            mock.patch(f"{TRACKING_MODULE}.emit_evaluation_logs") as mock_emit_logs,
+            mock.patch(
+                f"{TRACKING_MODULE}.emit_evaluation_to_eap",
+                side_effect=TypeError("unsupported artifact"),
+            ),
+            mock.patch(f"{TRACKING_MODULE}.logger") as mock_logger,
+        ):
+            emit_evaluations(organization=self.organization, result=result)
+
+        mock_emit_logs.assert_called_once_with(self.organization, result)
+        mock_logger.exception.assert_called_once_with(
+            "workflow_engine.evaluations.eap.emit_failed",
+            extra={"organization_id": self.organization.id},
+        )
+
     def _emit_evaluation_to_eap(
-        self, result: ProcessDetectorsResult | ProcessWorkflowsResult
+        self, result: ProcessDetectorsResult | WorkflowEvaluationBatch
     ) -> TraceItem:
         storage = MemoryMessageStorage[KafkaPayload]()
         broker = LocalBroker(storage)
         topic = ArroyoTopic(get_topic_definition(Topic.SNUBA_ITEMS)["real_topic_name"])
         broker.create_topic(topic, partitions=1)
+        broker_producer = broker.get_producer()
+        local_producer = mock.Mock()
+        local_producer.produce.side_effect = broker_producer.produce
+        local_producer.close.side_effect = broker_producer.close
+        local_producer.get_config.return_value = {}
+        producer = FutureTrackingProducer(
+            name=f"test.workflow-evaluation.{id(broker)}",
+            producer_factory=mock.Mock(return_value=local_producer),
+            should_backpressure=False,
+        )
 
         with mock.patch(
             "sentry.workflow_engine.processors.evaluations.eap._eap_producer",
-            broker.get_producer(),
+            producer,
         ):
             emit_evaluation_to_eap(self.organization, result)
 
@@ -526,6 +562,35 @@ class TestWorkflowEvaluationArtifact(TestCase):
             "workflow_engine.evaluations.eap.produce_failed",
             extra={"organization_id": self.organization.id, "project_id": self.project.id},
         )
+
+    def test_eap_emitter_observes_delivery_failure(self) -> None:
+        producer = mock.Mock()
+        failed_future: Future[object] = Future()
+        failed_future.set_exception(RuntimeError("delivery failed"))
+        producer.produce.side_effect = lambda *args, **kwargs: kwargs["callbacks"][0](failed_future)
+
+        with (
+            mock.patch("sentry.workflow_engine.processors.evaluations.eap._eap_producer", producer),
+            mock.patch("sentry.workflow_engine.processors.evaluations.eap.logger") as mock_logger,
+        ):
+            emit_evaluation_to_eap(
+                self.organization,
+                self._build_batch_result({10: self._build_evaluation(workflow_id=10)}),
+            )
+
+        mock_logger.exception.assert_called_once_with(
+            "workflow_engine.evaluations.eap.delivery_failed",
+            extra={"organization_id": self.organization.id, "project_id": self.project.id},
+        )
+
+    def test_eap_emitter_stores_empty_delayed_batch_outcome(self) -> None:
+        trace_item = self._emit_evaluation_to_eap(
+            EmptyDelayedWorkflowEvaluationBatch(project_id=self.project.id)
+        )
+
+        assert trace_item.project_id == self.project.id
+        assert trace_item.attributes["evaluation_phase"].string_value == "delayed"
+        assert trace_item.attributes["outcome"].string_value == "no_workflows"
 
     def test_eap_emitter_stores_empty_detector_outcome(self) -> None:
         result = ProcessDetectorsResult(

@@ -35,6 +35,7 @@ def _empty_evaluation(result: WorkflowEngineResult) -> dict[str, object]:
         "evaluation_phase": result.evaluation_phase,
         "evaluation_type": EvaluationType.WORKFLOW,
         "outcome": WorkflowEvaluationOutcome.NO_WORKFLOWS,
+        "project_id": result.project_id,
     }
     if isinstance(result, ProcessWorkflowsResult):
         evaluation.update(
@@ -43,7 +44,6 @@ def _empty_evaluation(result: WorkflowEngineResult) -> dict[str, object]:
             event_id=result.event_id,
             group_id=result.group_id,
             outcome=result.outcome,
-            project_id=result.project_id,
         )
 
     return evaluation
