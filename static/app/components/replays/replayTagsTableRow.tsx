@@ -6,6 +6,7 @@ import type {LocationDescriptor} from 'history';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {AttributeDetailsTooltip} from 'sentry/components/attributes/attributeDetailsTooltip';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {ReleaseDropdownFilter} from 'sentry/components/replays/releaseDropdownFilter';
@@ -110,9 +111,11 @@ export function ReplayTagsTableRow({name, values, generateUrl}: Props) {
   return (
     <KeyValueTableRow
       keyName={
-        <StyledTooltip title={name} showOnlyOnOverflow>
-          {name}
-        </StyledTooltip>
+        <TruncatedKeyName>
+          <AttributeDetailsTooltip attributeKey={name} fieldDefinitionType="replay">
+            {name}
+          </AttributeDetailsTooltip>
+        </TruncatedKeyName>
       }
       value={
         <ErrorBoundary mini>
@@ -143,6 +146,14 @@ const ValueContainer = styled('div')`
   display: flex;
   padding: ${p => p.theme.space['2xs']};
   justify-content: flex-end;
+`;
+
+const TruncatedKeyName = styled('div')`
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const StyledTooltip = styled(Tooltip)`
