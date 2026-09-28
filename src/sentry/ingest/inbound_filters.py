@@ -5,7 +5,6 @@ from typing import Any, cast
 from django.conf import settings
 from rest_framework import serializers
 
-from sentry.ingest.legacy_filter_lists import LegacyFilterList, get_list, without_hidden_rows
 from sentry.models.custominboundfilter import (
     ConditionType,
     CustomInboundFilter,
@@ -54,6 +53,13 @@ FILTER_STAT_KEYS_TO_VALUES = {
     FilterStatKeys.DISCARDED_HASH: TSDBModel.project_total_received_discarded,
     FilterStatKeys.HEALTH_CHECK: TSDBModel.project_total_healthcheck,
 }
+
+
+class FilterTypes:
+    ERROR_MESSAGES = "error_messages"
+    RELEASES = "releases"
+    LOG_MESSAGES = "log_messages"
+    TRACE_METRIC_NAMES = "trace_metric_names"
 
 
 def get_filter_key(flt):
@@ -429,7 +435,7 @@ def _generic_filter(filter_id: str, condition: RuleCondition) -> GenericFilter:
 
 
 def _log_messages_generic_filters(project: Project) -> list[GenericFilter]:
-    globs = get_list(project, LegacyFilterList.LOG_MESSAGES)
+    globs = project.get_option(f"sentry:{FilterTypes.LOG_MESSAGES}")
     if not globs:
         return []
 
@@ -438,7 +444,7 @@ def _log_messages_generic_filters(project: Project) -> list[GenericFilter]:
 
 
 def _trace_metric_names_generic_filters(project: Project) -> list[GenericFilter]:
-    globs = get_list(project, LegacyFilterList.TRACE_METRIC_NAMES)
+    globs = project.get_option(f"sentry:{FilterTypes.TRACE_METRIC_NAMES}")
     if not globs:
         return []
 
@@ -688,8 +694,10 @@ def _custom_filter_condition(
 
 def get_custom_inbound_filter_generic_filters(project: Project) -> list[GenericFilter]:
     generic_filters: list[GenericFilter] = []
-    custom_filters = without_hidden_rows(
-        CustomInboundFilter.objects.filter(project_id=project.id, active=True)
+    # A row with legacy_filter set mirrors a legacy list that Relay still receives
+    # through the legacy path, so serving it here would filter the same data twice.
+    custom_filters = CustomInboundFilter.objects.filter(
+        project_id=project.id, active=True, legacy_filter__isnull=True
     ).order_by("id")
     for custom_filter in custom_filters:
         condition = _custom_filter_condition(custom_filter.conditions, custom_filter.data_type)

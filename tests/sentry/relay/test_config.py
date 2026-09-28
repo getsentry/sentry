@@ -19,7 +19,6 @@ from sentry.dynamic_sampling import (
 from sentry.dynamic_sampling.per_org.cache import set_adjusted_factor
 from sentry.dynamic_sampling.rules.base import NEW_MODEL_THRESHOLD_IN_MINUTES
 from sentry.ingest.inbound_filters import CUSTOM_INBOUND_FILTER_ID_PREFIX
-from sentry.ingest.legacy_filter_lists import STAGE_OPTION
 from sentry.models.custominboundfilter import LegacyFilter
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
@@ -28,7 +27,6 @@ from sentry.relay.config import ProjectConfig, TransactionNameRule, get_project_
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import InstaSnapshotter, django_db_all
 from sentry.testutils.silo import cell_silo_test
 from sentry.utils.safe import get_path
@@ -1474,16 +1472,8 @@ def test_project_config_trimming(default_project, trimming_configs):
 
 @django_db_all
 @cell_silo_test
-@override_options({STAGE_OPTION: {"releases": "mirror", "log_messages": "mirror"}})
-def test_project_config_serves_a_mirrored_legacy_list_once(default_project) -> None:
-    default_project.update_option("sentry:releases", ["1.*"])
+def test_project_config_skips_the_row_that_mirrors_a_legacy_list(default_project) -> None:
     default_project.update_option("sentry:log_messages", ["*DEBUG*"])
-    Factories.create_project_custom_inbound_filter(
-        default_project,
-        data_type="all",
-        conditions=[{"type": "release", "value": ["1.*"]}],
-        legacy_filter=LegacyFilter.RELEASE_VERSION,
-    )
     Factories.create_project_custom_inbound_filter(
         default_project,
         data_type="log",
@@ -1506,7 +1496,6 @@ def test_project_config_serves_a_mirrored_legacy_list_once(default_project) -> N
         cfg = get_project_config(default_project).to_dict()
 
     _validate_project_config(cfg["config"])
-    assert get_path(cfg, "config", "filterSettings", "releases") == {"releases": ["1.*"]}
     generic_ids = [f["id"] for f in get_path(cfg, "config", "filterSettings", "generic", "filters")]
     assert generic_ids.count("log-message") == 1
     assert [i for i in generic_ids if i.startswith(CUSTOM_INBOUND_FILTER_ID_PREFIX)] == [

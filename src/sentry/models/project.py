@@ -890,7 +890,7 @@ class Project(Model):
         Returns True if the settings have successfully been copied over
         Returns False otherwise
         """
-        from sentry.ingest.legacy_filter_lists import LegacyFilterList, copy_lists
+        from sentry.ingest import legacy_filter_lists
         from sentry.models.environment import EnvironmentProject
         from sentry.models.options.project_option import ProjectOption
         from sentry.models.projectownership import ProjectOwnership
@@ -906,7 +906,6 @@ class Project(Model):
         )
 
         project = Project.objects.get(id=project_id)
-        legacy_list_option_keys = {legacy_list.option_key for legacy_list in LegacyFilterList}
         try:
             with transaction.atomic(router.db_for_write(Project)):
                 for model in model_list:
@@ -921,9 +920,10 @@ class Project(Model):
 
                 options = ProjectOption.objects.get_all_values(project=project)
                 for key, value in options.items():
-                    if key not in legacy_list_option_keys:
+                    if key in legacy_filter_lists.OPTION_KEYS:
+                        legacy_filter_lists.set_list(self, key.removeprefix("sentry:"), value)
+                    else:
                         self.update_option(key, value)
-                copy_lists(project, self)
 
         except IntegrityError as e:
             logging.exception(

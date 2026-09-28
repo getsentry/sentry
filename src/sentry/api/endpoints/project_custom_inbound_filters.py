@@ -4,6 +4,7 @@ import ipaddress
 from collections.abc import Mapping
 from typing import Any, TypedDict
 
+from django.db.models import QuerySet
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -25,7 +26,6 @@ from sentry.apidocs.response_types import (
     as_validation_errors,
 )
 from sentry.ingest.inbound_filters import get_supported_condition_types
-from sentry.ingest.legacy_filter_lists import without_hidden_rows
 from sentry.models.custominboundfilter import (
     ConditionType,
     CustomInboundFilter,
@@ -244,6 +244,14 @@ def serialize_custom_inbound_filter(
     }
 
 
+def _user_filters(project: Project) -> QuerySet[CustomInboundFilter]:
+    """
+    The filters a user made here. A row with legacy_filter set mirrors a legacy list
+    that the project settings still own, so it stays out of this API for now.
+    """
+    return CustomInboundFilter.objects.filter(project_id=project.id, legacy_filter__isnull=True)
+
+
 class ProjectCustomInboundFilterEndpoint(ProjectEndpoint):
     owner = ApiOwner.TELEMETRY_EXPERIENCE
     permission_classes = (ProjectSettingPermission,)
@@ -310,7 +318,7 @@ class CustomInboundFiltersEndpoint(ProjectCustomInboundFilterEndpoint):
         if not self.has_feature(request, project):
             return Response({"detail": "You do not have that feature enabled"}, status=400)
 
-        filters = without_hidden_rows(CustomInboundFilter.objects.filter(project_id=project.id))
+        filters = _user_filters(project)
         return self.paginate(
             request=request,
             queryset=filters,
@@ -347,8 +355,7 @@ class CustomInboundFiltersEndpoint(ProjectCustomInboundFilterEndpoint):
         if not self.has_feature(request, project):
             return Response({"detail": "You do not have that feature enabled"}, status=400)
 
-        visible = without_hidden_rows(CustomInboundFilter.objects.filter(project_id=project.id))
-        if visible.count() >= MAX_FILTERS_PER_PROJECT:
+        if _user_filters(project).count() >= MAX_FILTERS_PER_PROJECT:
             return Response(
                 {
                     "detail": (

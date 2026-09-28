@@ -8,12 +8,10 @@ from sentry.api.endpoints.project_custom_inbound_filters import (
     MAX_CONDITION_VALUE_CHARS_PER_FILTER,
     MAX_CONDITIONS_PER_FILTER,
 )
-from sentry.ingest.legacy_filter_lists import STAGE_OPTION
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.custominboundfilter import CustomInboundFilter, LegacyFilter
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 
@@ -29,8 +27,7 @@ class CustomInboundFiltersTest(APITestCase):
         self.project = self.create_project(organization=self.organization, teams=[self.team])
         self.login_as(user=self.user)
 
-    @override_options({STAGE_OPTION: {"releases": "mirror"}})
-    def test_get_hides_the_row_of_a_legacy_list_the_legacy_path_still_serves(self) -> None:
+    def test_get_hides_the_row_that_mirrors_a_legacy_list(self) -> None:
         self.create_project_custom_inbound_filter(
             project=self.project,
             data_type="all",
@@ -44,7 +41,6 @@ class CustomInboundFiltersTest(APITestCase):
 
         assert [item["id"] for item in response.data] == [str(mine.id)]
 
-    @override_options({STAGE_OPTION: {"releases": "mirror"}})
     @patch("sentry.api.endpoints.project_custom_inbound_filters.MAX_FILTERS_PER_PROJECT", 1)
     def test_post_does_not_count_a_hidden_row_against_the_cap(self) -> None:
         self.create_project_custom_inbound_filter(

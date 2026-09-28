@@ -18,13 +18,13 @@ from sentry.dynamic_sampling import generate_rules
 from sentry.grouping.api import get_grouping_config_dict_for_project
 from sentry.ingest.inbound_filters import (
     FilterStatKeys,
+    FilterTypes,
     InboundFilterFeatures,
     _FilterSpec,
     get_all_filter_specs,
     get_filter_key,
     get_generic_filters,
 )
-from sentry.ingest.legacy_filter_lists import LegacyFilterList, get_list
 from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.ingest.transaction_clusterer.meta import get_clusterer_meta
 from sentry.ingest.transaction_clusterer.rules import (
@@ -149,11 +149,11 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
     )
 
     if filter_features.custom_inbound_filters:
-        invalid_releases = get_list(project, LegacyFilterList.RELEASES)
+        invalid_releases = project.get_option(f"sentry:{FilterTypes.RELEASES}")
         if invalid_releases:
             filter_settings["releases"] = {"releases": invalid_releases}
 
-        error_messages = get_list(project, LegacyFilterList.ERROR_MESSAGES)
+        error_messages = project.get_option(f"sentry:{FilterTypes.ERROR_MESSAGES}")
         if error_messages:
             filter_settings["errorMessages"] = {"patterns": error_messages}
 
