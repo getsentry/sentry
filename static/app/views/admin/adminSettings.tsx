@@ -18,8 +18,8 @@ import {getOption} from './options';
 type Field = ReturnType<typeof getOption>;
 
 type FieldDef = {
-  field: Field;
-  value: boolean | number | string | undefined;
+  field: Partial<Field>;
+  value?: boolean | number | string;
 };
 
 const optionsQueryOptions = apiOptions.as<Record<string, FieldDef>>()(
@@ -76,7 +76,7 @@ function useAdminOption(name: string, option: FieldDef) {
     disabled,
     required,
     save: (value: boolean | string) =>
-      fetchMutation<void>({
+      fetchMutation({
         url: getApiUrl('/internal/options/'),
         method: 'PUT',
         data: {[name]: value},
@@ -237,8 +237,7 @@ export default function AdminSettings() {
     return <LoadingIndicator />;
   }
 
-  const option = (name: string) =>
-    data[name] ?? ({field: {}, value: undefined} as FieldDef);
+  const option = (name: string): FieldDef => data[name] ?? {field: {}};
 
   return (
     <FormErrorContextProvider value={mapOptionSaveError}>
