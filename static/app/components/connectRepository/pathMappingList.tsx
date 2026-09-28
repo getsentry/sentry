@@ -135,10 +135,6 @@ export function PathMappingList({
     ? t('Resolve the duplicate path mapping first')
     : undefined;
 
-  const last = entries.at(-1);
-  const editingEmptyRow =
-    last !== undefined && !hasContent(last.value) && openId === last.id;
-
   return (
     <Stack gap="lg">
       <Stack gap="xs">
@@ -171,7 +167,7 @@ export function PathMappingList({
           size="xs"
           variant="transparent"
           icon={<IconAdd />}
-          disabled={Boolean(addDisabledReason) || editingEmptyRow}
+          disabled={Boolean(addDisabledReason)}
           tooltipProps={{title: addDisabledReason}}
           onClick={handleAddAnother}
         >

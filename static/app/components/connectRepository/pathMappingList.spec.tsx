@@ -23,15 +23,6 @@ describe('PathMappingList', () => {
       ).toBeInTheDocument();
     });
 
-    it('disables "Add another path" while the empty row is being edited', () => {
-      renderList();
-
-      expect(screen.getByRole('button', {name: 'Add another path'})).toHaveAttribute(
-        'aria-disabled',
-        'true'
-      );
-    });
-
     it('reports filled values through onChange', async () => {
       const onChange = jest.fn();
       renderList({onChange});
