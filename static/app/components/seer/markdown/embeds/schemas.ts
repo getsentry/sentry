@@ -380,9 +380,9 @@ export const SEER_EMBED_SCHEMAS = {
     level: ['block'],
     schema: z.object({
       step: z.enum(['root_cause', 'solution', 'code_changes', 'pr_iteration']),
-      result: z.string(),
+      result: z.string().default(''),
       id: z.string(),
-      shortId: z.string(),
+      shortId: z.string().optional(),
       fiveWhys: z
         .array(z.string())
         .optional()

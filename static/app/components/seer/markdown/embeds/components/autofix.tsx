@@ -62,9 +62,9 @@ export const STEP_LABELS: Record<AutofixExplorerStep, string> = {
 function autofixStepMarkdown(
   step: AutofixExplorerStep,
   id: string,
-  shortId: string
+  shortId: string | undefined
 ): string {
-  const issue = resourceLinkMarkdown(`/issues/${id}/`, shortId);
+  const issue = resourceLinkMarkdown(`/issues/${id}/`, shortId ?? id);
   return issue ? `${STEP_LABELS[step]}: ${issue}` : STEP_LABELS[step];
 }
 
@@ -75,9 +75,10 @@ const STEP_ICONS: Record<AutofixExplorerStep, ComponentType<SVGIconProps>> = {
   pr_iteration: IconPullRequest,
 };
 
-interface AutofixBlockProps extends Pick<Group, 'id' | 'shortId'> {
+interface AutofixBlockProps extends Pick<Group, 'id'> {
   children: ReactNode;
   step: AutofixExplorerStep;
+  shortId?: string;
 }
 
 /**
@@ -91,7 +92,7 @@ function AutofixBlock({id, shortId, step, children}: AutofixBlockProps) {
       defaultExpanded={false}
       href={`/organizations/${organization.slug}/issues/${id}/`}
       icon={STEP_ICONS[step]}
-      linkLabel={shortId}
+      linkLabel={shortId ?? id}
       testId="seer-autofix-embed"
       title={STEP_LABELS[step]}
     >
@@ -100,7 +101,7 @@ function AutofixBlock({id, shortId, step, children}: AutofixBlockProps) {
   );
 }
 
-interface AutofixContentProps extends Pick<Group, 'id' | 'shortId'> {
+interface AutofixContentProps extends Pick<Group, 'id'> {
   /**
    * Markdown write-up for this step. Assembled by Seer rather than returned
    * verbatim by the autofix API, so it keeps a UI-facing name.
@@ -109,6 +110,7 @@ interface AutofixContentProps extends Pick<Group, 'id' | 'shortId'> {
   step: AutofixExplorerStep;
   fiveWhys?: string[];
   reproductionSteps?: string[];
+  shortId?: string;
   steps?: SolutionStep[];
 }
 
