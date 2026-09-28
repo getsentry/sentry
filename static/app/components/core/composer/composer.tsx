@@ -372,7 +372,8 @@ export function Composer({
           !event.ctrlKey &&
           !event.metaKey &&
           !event.altKey &&
-          (focusedKey !== null || (event.key === 'Enter' && queryStatus === 'pending'))
+          (focusedKey !== null ||
+            (event.key === 'Enter' && (hasSuggestions || queryStatus === 'pending')))
         ) {
           event.preventDefault();
           if (focusedKey !== null) {
