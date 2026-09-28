@@ -188,6 +188,7 @@ export function VisuallyCompleteWithData({
 
   useLayoutEffect(() => {
     isDataCompleteSet.current = false;
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [id, location]);
 
   useLayoutEffect(() => {
@@ -197,6 +198,7 @@ export function VisuallyCompleteWithData({
 
     // Layout effects only run for committed renders and run before paint.
     replacePerformanceMark(startMarkName);
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [disabled, hasData, location, startMarkName]);
 
   useEffect(() => {
@@ -242,6 +244,7 @@ export function VisuallyCompleteWithData({
     disabled,
     endMarkName,
     isDataReady,
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
     location,
     measureName,
     preTimeoutEndMarkName,

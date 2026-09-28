@@ -121,6 +121,22 @@ class UserService(RpcService):
 
     @rpc_method
     @abstractmethod
+    def resolve_fuzzy_user(
+        self,
+        *,
+        organization_id: int,
+        email: str | None = None,
+        name: str | None = None,
+    ) -> int | None:
+        """Return the one org member a hint uniquely matches, or None.
+
+        Matches email local-part on another domain, separator-normalized forms,
+        constructed names, and equivalent username forms. Returns None when
+        zero or more than one org member matches.
+        """
+
+    @rpc_method
+    @abstractmethod
     def get_by_username(
         self, *, username: str, with_valid_password: bool = True, is_active: bool | None = None
     ) -> list[RpcUser]:

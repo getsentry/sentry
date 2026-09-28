@@ -5,9 +5,9 @@ import {useIsMutating, useMutation, useMutationState} from '@tanstack/react-quer
 import {removeProject} from 'sentry/actionCreators/projects';
 import {useCreateProject} from 'sentry/components/onboarding/useCreateProject';
 import {
-  type CreatedProjectRule,
-  useCreateProjectRules,
-} from 'sentry/components/onboarding/useCreateProjectRules';
+  type CreatedProjectWorkflow,
+  useCreateProjectWorkflow,
+} from 'sentry/components/onboarding/useCreateProjectWorkflow';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {Project} from 'sentry/types/project';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
@@ -30,7 +30,7 @@ type Variables = {
 type Response = {
   project: Project;
   workflowIds: string[];
-  notificationRule?: CreatedProjectRule;
+  notificationRule?: CreatedProjectWorkflow;
 };
 
 function useRollbackProject() {
@@ -65,7 +65,7 @@ function useRollbackProject() {
 
 export function useCreateProjectAndRules() {
   const createProject = useCreateProject();
-  const createProjectRules = useCreateProjectRules();
+  const createProjectWorkflow = useCreateProjectWorkflow();
   const rollbackProject = useRollbackProject();
 
   return useMutation<Response, RequestError, Variables>({
@@ -94,7 +94,7 @@ export function useCreateProjectAndRules() {
 
       try {
         const workflow = shouldCreateWorkflow
-          ? await createProjectRules.mutateAsync({
+          ? await createProjectWorkflow.mutateAsync({
               projectId: project.id,
               name: project.name,
               conditions: alertRuleConfig?.conditions,

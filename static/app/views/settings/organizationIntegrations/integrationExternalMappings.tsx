@@ -32,7 +32,7 @@ const MAPPING_COLUMNS: TableColumnConfig[] = [
   {key: 'externalName', width: '1fr'},
   {key: 'arrow', width: 'max-content'},
   {key: 'sentryName', width: '1fr'},
-  {key: 'actions', width: '66px'},
+  {key: 'actions', width: 'max-content'},
 ];
 
 type CodeOwnersAssociationMappings = Record<
@@ -59,6 +59,71 @@ type Props = Pick<
 type LocationQuery = {
   cursor?: string;
 };
+
+function MappingName({
+  defaultOptions,
+  getBaseFormEndpoint,
+  integration,
+  mapping,
+  onSubmitSuccess,
+  type,
+}: Pick<Props, 'defaultOptions' | 'getBaseFormEndpoint'> & {
+  integration: Integration;
+  mapping: ExternalActorMappingOrSuggestion;
+  onSubmitSuccess: (newMapping: ExternalActorMapping) => Promise<void>;
+  type: Props['type'];
+}) {
+  return (
+    <IntegrationExternalMappingForm
+      type={type}
+      integration={integration}
+      getBaseFormEndpoint={getBaseFormEndpoint}
+      mapping={mapping}
+      onSubmitSuccess={onSubmitSuccess}
+      isInline
+      defaultOptions={defaultOptions}
+    />
+  );
+}
+
+function MappingActions({
+  canDelete,
+  mapping,
+  onDelete,
+  type,
+}: {
+  canDelete: boolean;
+  mapping: ExternalActorMappingOrSuggestion;
+  onDelete: (mapping: ExternalActorMapping) => void;
+  type: Props['type'];
+}) {
+  return isExternalActorMapping(mapping) ? (
+    <Confirm
+      disabled={!canDelete}
+      onConfirm={() => onDelete(mapping)}
+      message={t('Are you sure you want to remove this external %s mapping?', type)}
+    >
+      <Button
+        variant="transparent"
+        size="sm"
+        icon={<IconDelete size="sm" />}
+        aria-label={t('Remove user mapping')}
+        tooltipProps={{
+          title: canDelete
+            ? t('Remove user mapping')
+            : t(
+                'You must be an organization owner, manager or admin to delete an external user mapping.'
+              ),
+        }}
+      />
+    </Confirm>
+  ) : (
+    <InfoTip
+      title={t('This %s mapping suggestion was generated from a CODEOWNERS file', type)}
+      size="sm"
+    />
+  );
+}
 
 export function IntegrationExternalMappings(props: Props) {
   const {
@@ -132,57 +197,17 @@ export function IntegrationExternalMappings(props: Props) {
     return [...inlineMappings, ...mappings];
   };
 
-  const renderMappingName = (mapping: ExternalActorMappingOrSuggestion) => {
-    return (
-      <IntegrationExternalMappingForm
-        type={type}
-        integration={integration}
-        getBaseFormEndpoint={getBaseFormEndpoint}
-        mapping={mapping}
-        onSubmitSuccess={async (newMapping: ExternalActorMapping) => {
-          setNewlyAssociatedMappings([
-            ...newlyAssociatedMappings.filter(
-              map => map.externalName !== newMapping.externalName
-            ),
-            newMapping,
-          ]);
-          await onSubmitSuccess?.();
-        }}
-        isInline
-        defaultOptions={defaultOptions}
-      />
-    );
+  const handleMappingSubmitSuccess = async (newMapping: ExternalActorMapping) => {
+    setNewlyAssociatedMappings([
+      ...newlyAssociatedMappings.filter(
+        map => map.externalName !== newMapping.externalName
+      ),
+      newMapping,
+    ]);
+    await onSubmitSuccess?.();
   };
 
-  const renderMappingActions = (mapping: ExternalActorMappingOrSuggestion) => {
-    const canDelete = organization.access.includes('org:integrations');
-    return isExternalActorMapping(mapping) ? (
-      <Confirm
-        disabled={!canDelete}
-        onConfirm={() => onDelete(mapping)}
-        message={t('Are you sure you want to remove this external %s mapping?', type)}
-      >
-        <Button
-          variant="transparent"
-          size="sm"
-          icon={<IconDelete size="sm" />}
-          aria-label={t('Remove user mapping')}
-          tooltipProps={{
-            title: canDelete
-              ? t('Remove user mapping')
-              : t(
-                  'You must be an organization owner, manager or admin to delete an external user mapping.'
-                ),
-          }}
-        />
-      </Confirm>
-    ) : (
-      <InfoTip
-        title={t('This %s mapping suggestion was generated from a CODEOWNERS file', type)}
-        size="sm"
-      />
-    );
-  };
+  const canDelete = organization.access.includes('org:integrations');
 
   return (
     <Fragment>
@@ -201,14 +226,14 @@ export function IntegrationExternalMappings(props: Props) {
               {tct('Sentry [type]', {type})}
             </SimpleTable.HeaderCell>
             <SimpleTable.HeaderCell>
-              <AddButton
+              <Button
                 data-test-id="add-mapping-button"
                 onClick={() => onCreate()}
                 size="xs"
                 icon={<IconAdd />}
               >
                 {tct('Add [type] Mapping', {type})}
-              </AddButton>
+              </Button>
             </SimpleTable.HeaderCell>
           </SimpleTable.HeaderRow>
         }
@@ -223,8 +248,24 @@ export function IntegrationExternalMappings(props: Props) {
               <SimpleTable.RowCell>
                 <IconArrow direction="right" size="sm" variant="muted" />
               </SimpleTable.RowCell>
-              <ExternalForm>{renderMappingName(mapping)}</ExternalForm>
-              <SimpleTable.RowCell>{renderMappingActions(mapping)}</SimpleTable.RowCell>
+              <ExternalForm>
+                <MappingName
+                  defaultOptions={defaultOptions}
+                  getBaseFormEndpoint={getBaseFormEndpoint}
+                  integration={integration}
+                  mapping={mapping}
+                  onSubmitSuccess={handleMappingSubmitSuccess}
+                  type={type}
+                />
+              </ExternalForm>
+              <SimpleTable.RowCell justify="center">
+                <MappingActions
+                  canDelete={canDelete}
+                  mapping={mapping}
+                  onDelete={onDelete}
+                  type={type}
+                />
+              </SimpleTable.RowCell>
             </SimpleTable.Row>
           ))
         ) : (
@@ -245,12 +286,9 @@ const MappingTable = styled(SimpleTable)`
     padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
   }
 
-  /* The flat nth-child(4n) form this replaced counted cells across the whole
-     grid; with real rows the actions column is the fourth cell of each row. */
   [role='columnheader']:nth-child(4),
   [role='cell']:nth-child(4) {
     padding-right: ${p => p.theme.space.md};
-    justify-content: end;
   }
 `;
 
@@ -261,10 +299,6 @@ const StyledPluginIcon = styled(PluginIcon)`
 
 const ExternalNameColumn = styled(SimpleTable.RowCell)`
   font-family: ${p => p.theme.font.family.mono};
-`;
-
-const AddButton = styled(Button)`
-  align-self: end;
 `;
 
 const ExternalForm = styled(SimpleTable.RowCell)`

@@ -151,6 +151,7 @@ export default function SentryAppDetailedView() {
       organization,
       integration_tab: 'overview',
     });
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [sentryApp?.status, installationStatus, organization, integrationSlug]);
 
   const redirectUser = useCallback(

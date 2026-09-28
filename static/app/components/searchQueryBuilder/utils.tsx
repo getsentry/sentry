@@ -200,6 +200,7 @@ export function parseQueryBuilderValue(
   getFieldDefinition: FieldDefinitionGetter,
   options?: {
     filterKeys: TagCollection;
+    allowRegexOperators?: boolean;
     disallowFreeText?: boolean;
     disallowLogicalOperators?: boolean;
     disallowNegation?: boolean;
@@ -215,6 +216,7 @@ export function parseQueryBuilderValue(
     collapseTextTokens(
       parseSearch(value || ' ', {
         flattenParenGroups: true,
+        allowRegex: options?.allowRegexOperators,
         disallowFreeText: options?.disallowFreeText,
         getFilterTokenWarning: options?.getFilterTokenWarning,
         validateKeys: options?.disallowUnsupportedFilters,

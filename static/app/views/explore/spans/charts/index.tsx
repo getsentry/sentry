@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useRef} from 'react';
+import {Fragment, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
@@ -6,6 +6,10 @@ import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {DroppedDataLayerControl} from 'sentry/components/droppedData/droppedDataLayerControl';
+import {useDroppedData} from 'sentry/components/droppedData/useDroppedData';
+import {useDroppedDataDrawer} from 'sentry/components/droppedData/useDroppedDataDrawer';
+import {hasDroppedData} from 'sentry/components/droppedData/utils';
 import {IconClock, IconContract, IconExpand, IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
@@ -34,6 +38,7 @@ import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
 import {CHART_HEIGHT} from 'sentry/views/explore/settings';
 import {ConfidenceFooter} from 'sentry/views/explore/spans/charts/confidenceFooter';
+import {useSpansDataset} from 'sentry/views/explore/spans/spansQueryParams';
 import type {RawCounts} from 'sentry/views/explore/useRawCounts';
 import {
   combineConfidenceForSeries,
@@ -168,6 +173,13 @@ function Chart({
 }: ChartProps) {
   const {chartSelection, setChartSelection} = useChartSelection();
   const [interval, setInterval, intervalOptions] = useChartInterval();
+  const dataset = useSpansDataset();
+  const {droppedAnnotations, acceptedAnnotations} = useDroppedData({dataset});
+  const [isDroppedDataLayerOn, setIsDroppedDataLayerOn] = useState(true);
+  const openDroppedDataDrawer = useDroppedDataDrawer(dataset);
+  const canShowDroppedData = hasDroppedData(droppedAnnotations);
+  const showDroppedDataBand = canShowDroppedData && isDroppedDataLayerOn;
+
   const {
     dismiss: dismissChartSelectionAlert,
     isDismissed: isChartSelectionAlertDismissed,
@@ -262,6 +274,12 @@ function Chart({
 
   const Actions = visualize.visible ? (
     <Fragment>
+      {canShowDroppedData ? (
+        <DroppedDataLayerControl
+          showDroppedData={isDroppedDataLayerOn}
+          onChange={setIsDroppedDataLayerOn}
+        />
+      ) : null}
       <Tooltip title={t('Type of chart displayed in this visualization (ex. line)')}>
         <CompactSelect
           trigger={triggerProps => (
@@ -333,6 +351,15 @@ function Chart({
             <ChartVisualization
               chartInfo={chartInfo}
               chartRef={chartRef}
+              droppedData={
+                showDroppedDataBand
+                  ? {
+                      droppedAnnotations,
+                      acceptedAnnotations,
+                      onClick: openDroppedDataDrawer,
+                    }
+                  : undefined
+              }
               chartXRangeSelection={{
                 initialSelection: initialChartSelection,
                 onSelectionEnd: () => {

@@ -15,9 +15,12 @@ from sentry.issues.action_log.read_metrics import (
 )
 from sentry.issues.action_log.types import (
     ACTION_TYPES_WITH_COMMIT_DATA,
+    COMMENT_MUTATION_ACTION_TYPES,
     COMMIT_ACTION_TYPES,
     PULL_REQUEST_ACTION_TYPES,
     CommentAction,
+    CommentDeleteAction,
+    CommentEditAction,
     GroupActionType,
     GroupActorType,
 )
@@ -44,9 +47,13 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+MAX_ACTIVITY_REFETCHES = 3
+
 
 class GroupActionLogEntrySerializerResponse(TypedDict):
     id: str
+    # The reference accepted by the notes endpoints, or null for non-comments.
+    commentId: str | None
     # the serialized acting user when actorType is USER, otherwise null
     user: dict[str, Any] | None
     sentry_app: _ActivitySentryAppEmbed | None
@@ -67,6 +74,7 @@ def serialize_first_seen_entry(group: "Group") -> GroupActionLogEntrySerializerR
     )
     return {
         "id": "0",
+        "commentId": None,
         "user": None,
         "sentry_app": None,
         "type": ActivityType.FIRST_SEEN.name.lower(),
@@ -76,20 +84,51 @@ def serialize_first_seen_entry(group: "Group") -> GroupActionLogEntrySerializerR
     }
 
 
-def _serialized_id(obj: GroupActionLogEntry) -> str:
+def _serialized_comment_id(obj: GroupActionLogEntry) -> str | None:
     """
-    The id clients address this entry by.
+    The comment reference accepted by the notes endpoints.
 
     The notes endpoints resolve ``note_id`` against ``Activity.id``, so a COMMENT
-    serializes its ``comment_id`` (the Activity it mirrors) rather than its own.
+    references its ``comment_id`` (the Activity it mirrors).
     COMMENT_EDIT and COMMENT_DELETE carry a ``comment_id`` too, but theirs points
-    at the GALE id of the COMMENT they supersede, so they keep their own.
+    at the GALE id of the COMMENT they supersede, not an addressable comment.
     """
     if obj.type == GroupActionType.COMMENT.value:
         match obj.action:
             case CommentAction(comment_id=comment_id):
                 return str(comment_id)
-    return str(obj.id)
+    return None
+
+
+def _fold_comment_mutations(
+    entries: Sequence[GroupActionLogEntry],
+) -> tuple[list[GroupActionLogEntry], dict[int, str | None]]:
+    """
+    Resolve COMMENT_EDIT and COMMENT_DELETE against the comments they supersede.
+
+    The log is append-only, so editing or deleting a comment appends an entry rather than
+    rewriting the COMMENT. Returns the entries to serialize — mutations dropped, deleted
+    comments removed — and the current text of each edited comment, keyed by the id of the
+    COMMENT itself, which is what a mutation's ``comment_id`` points at.
+    """
+    latest_text_by_comment: dict[int, str | None] = {}
+    deleted_comment_ids: set[int] = set()
+    for entry in entries:
+        if entry.type not in COMMENT_MUTATION_ACTION_TYPES:
+            continue
+        match entry.action:
+            case CommentEditAction(comment_id=comment_id, text=text):
+                # Entries arrive newest-first, so the first edit seen wins.
+                latest_text_by_comment.setdefault(comment_id, text)
+            case CommentDeleteAction(comment_id=comment_id):
+                deleted_comment_ids.add(comment_id)
+
+    kept = [
+        entry
+        for entry in entries
+        if entry.type not in COMMENT_MUTATION_ACTION_TYPES and entry.id not in deleted_comment_ids
+    ]
+    return kept, latest_text_by_comment
 
 
 def get_serialized_activity_items(
@@ -102,6 +141,9 @@ def get_serialized_activity_items(
     """
     Activity-shaped items for a group, read from the action log.
 
+    Comment edits and deletes are folded into the comments they supersede. Expand the fetch
+    window as needed to fill the page with surviving entries, then append first-seen.
+
     Returns None when the log can't back the response — either the gate is closed or it's
     open and the log is empty — and the caller should fall back to Activity. Reports the
     read outcome in both cases, so callers don't have to.
@@ -109,7 +151,9 @@ def get_serialized_activity_items(
     if not should_serve_action_log_activity(group.project, user, endpoint=endpoint):
         return None
 
-    action_log = GroupActionLogEntry.objects.get_actions_for_group(group, limit)
+    # Start with 25% headroom to absorb a few mutations without a refetch.
+    fetch_limit = limit + (limit // 4)
+    action_log = GroupActionLogEntry.objects.get_actions_for_group(group, fetch_limit)
     if not action_log:
         record_activity_read(
             endpoint, ActivityReadResult.FELL_BACK, ActivityReadFallbackReason.EMPTY_LOG
@@ -120,8 +164,25 @@ def get_serialized_activity_items(
         )
         return None
 
+    entries, latest_text_by_comment = _fold_comment_mutations(action_log)
+    for _ in range(MAX_ACTIVITY_REFETCHES):
+        if len(entries) >= limit or len(action_log) < fetch_limit:
+            break
+        # A full raw window may have displaced entries with mutations that the fold
+        # drops. Refetch a larger window within the budget above.
+        # Refold the entire window rather than combining rows from separate reads.
+        fetch_limit *= 2
+        action_log = GroupActionLogEntry.objects.get_actions_for_group(group, fetch_limit)
+        entries, latest_text_by_comment = _fold_comment_mutations(action_log)
+    entries = entries[:limit]
+
+    items = serialize(entries, user)
+    for entry, item in zip(entries, items):
+        if entry.id in latest_text_by_comment:
+            item["data"] = {**item["data"], "text": latest_text_by_comment[entry.id]}
+
     record_activity_read(endpoint, ActivityReadResult.GAL)
-    return [*serialize(action_log, user), serialize_first_seen_entry(group)]
+    return [*items, serialize_first_seen_entry(group)]
 
 
 @register(GroupActionLogEntry)
@@ -273,7 +334,8 @@ class GroupActionLogEntrySerializer(Serializer):
             data.pop("current_release_version", None)
 
         return {
-            "id": _serialized_id(obj),
+            "id": str(obj.id),
+            "commentId": _serialized_comment_id(obj),
             "type": type_display,
             "user": attrs["user"],
             "sentry_app": attrs["sentry_app"],

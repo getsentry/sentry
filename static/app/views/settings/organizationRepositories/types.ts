@@ -1,8 +1,8 @@
 import type {FuseResultMatch} from 'fuse.js/basic';
 
 import type {ButtonProps} from '@sentry/scraps/button';
+import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 
-import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import type {OrganizationIntegration, Repository} from 'sentry/types/integrations';
 
 /**

@@ -1,0 +1,15 @@
+diff --git a/lib/jsdom/living/helpers/focusing.js b/lib/jsdom/living/helpers/focusing.js
+index e527da379609cc98c4a4fa00f83bc9913baaa08b..2774955b72dc42ff0562397114345285c847b6a0 100644
+--- a/lib/jsdom/living/helpers/focusing.js
++++ b/lib/jsdom/living/helpers/focusing.js
+@@ -91,7 +91,9 @@ exports.fireFocusEventWithTargetAdjustment = (name, target, relatedTarget, { bub
+   const event = createAnEvent(name, target._globalObject, FocusEvent, {
+     bubbles,
+     composed: true,
+-    relatedTarget,
++    // Focus fixup after removal can leave the Document (viewport) focused.
++    // Focus update steps only expose an Element as the related focus target.
++    relatedTarget: relatedTarget?.nodeType === 1 ? relatedTarget : null,
+     view: target._ownerDocument._defaultView,
+     detail: 0
+   });

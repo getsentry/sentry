@@ -75,13 +75,7 @@ function EventBlockView({
 }) {
   switch (view) {
     case 'tags':
-      return (
-        <EventTagsView
-          event={event}
-          projectSlug={event.projectSlug}
-          distributionsHref={distributionsHref}
-        />
-      );
+      return <EventTagsView event={event} distributionsHref={distributionsHref} />;
     case 'tag':
       // `tagKeys` is required for this view; the caller already fell back to the
       // summary when it is missing or empty, so this is unreachable in practice.

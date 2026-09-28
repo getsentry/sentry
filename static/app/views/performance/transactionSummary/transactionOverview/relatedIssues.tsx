@@ -67,27 +67,24 @@ export function RelatedIssues({
     });
   };
 
-  const renderEmptyMessage = () => {
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expression of type 'string | null | undefined' can't be used to index type
-    const selectedTimePeriod = statsPeriod && DEFAULT_RELATIVE_PERIODS[statsPeriod];
-    const displayedPeriod = selectedTimePeriod
-      ? selectedTimePeriod.toLowerCase()
-      : t('given timeframe');
-
-    return (
-      <Panel>
-        <PanelBody>
-          <EmptyStateWarning>
-            <p>
-              {tct('No new issues for this transaction for the [timePeriod].', {
-                timePeriod: displayedPeriod,
-              })}
-            </p>
-          </EmptyStateWarning>
-        </PanelBody>
-      </Panel>
-    );
-  };
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expression of type 'string | null | undefined' can't be used to index type
+  const selectedTimePeriod = statsPeriod && DEFAULT_RELATIVE_PERIODS[statsPeriod];
+  const displayedPeriod = selectedTimePeriod
+    ? selectedTimePeriod.toLowerCase()
+    : t('given timeframe');
+  const emptyMessage = (
+    <Panel>
+      <PanelBody>
+        <EmptyStateWarning>
+          <p>
+            {tct('No new issues for this transaction for the [timePeriod].', {
+              timePeriod: displayedPeriod,
+            })}
+          </p>
+        </EmptyStateWarning>
+      </PanelBody>
+    </Panel>
+  );
 
   const {queryParams} = getIssuesEndpointQueryParams();
   const issueSearch = {
@@ -113,7 +110,7 @@ export function RelatedIssues({
         <GroupList
           queryParams={queryParams}
           canSelectGroups={false}
-          renderEmptyMessage={() => renderEmptyMessage()}
+          renderEmptyMessage={() => emptyMessage}
           withChart={false}
           withPagination={false}
           source="performance-related-issues"

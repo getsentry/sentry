@@ -3,10 +3,13 @@ from __future__ import annotations
 from datetime import timedelta
 from unittest.mock import DEFAULT, MagicMock, patch
 
+import pytest
+
 from sentry.dynamic_sampling.models.common import RebalancedItem
 from sentry.dynamic_sampling.per_org import cache as per_org_recalibration_cache
 from sentry.dynamic_sampling.per_org.cache import (
     MIN_RECALIBRATION_FACTOR_AGE,
+    adjusted_factor_ttl_ms,
     generate_project_sample_rates_cache_key,
     generate_transaction_sample_rates_cache_key,
     get_project_sample_rate,
@@ -15,19 +18,12 @@ from sentry.dynamic_sampling.per_org.cache import (
     set_transaction_sample_rates,
     write_caches,
 )
-from sentry.dynamic_sampling.per_org.results import DynamicSamplingResults
-from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
-from sentry.dynamic_sampling.tasks.constants import (
+from sentry.dynamic_sampling.per_org.calculations import (
     MAX_REBALANCE_FACTOR,
     MIN_REBALANCE_FACTOR,
-    adjusted_factor_ttl_ms,
 )
-from sentry.dynamic_sampling.tasks.helpers import (
-    recalibrate_orgs as legacy_recalibration_cache,
-)
-from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
-    generate_boost_low_volume_projects_cache_key,
-)
+from sentry.dynamic_sampling.per_org.results import DynamicSamplingResults
+from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
 from tests.sentry.dynamic_sampling.per_org.test_helpers import (
@@ -40,25 +36,6 @@ from tests.sentry.dynamic_sampling.per_org.test_helpers import (
 
 
 class PerOrgRecalibrationCacheTest(TestCase):
-    def test_per_org_cache_does_not_cross_pollinate_with_legacy_cache(self) -> None:
-        org = self.create_organization()
-        redis = get_redis_client_for_ds()
-        legacy_key = legacy_recalibration_cache.generate_recalibrate_orgs_cache_key(org.id)
-        per_org_key = per_org_recalibration_cache.generate_recalibrate_orgs_cache_key(org.id)
-        self.addCleanup(redis.delete, legacy_key, per_org_key)
-        redis.delete(legacy_key, per_org_key)
-
-        assert legacy_key != per_org_key
-
-        redis.set(legacy_key, 2.5)
-        assert legacy_recalibration_cache.get_adjusted_factor(org.id, source="task") == 2.5
-        assert per_org_recalibration_cache.get_adjusted_factor(org.id, source="task") == 1.0
-
-        redis.delete(legacy_key)
-        redis.set(per_org_key, 3.5)
-        assert per_org_recalibration_cache.get_adjusted_factor(org.id, source="task") == 3.5
-        assert legacy_recalibration_cache.get_adjusted_factor(org.id, source="task") == 1.0
-
     def test_per_org_cache_sets_and_deletes_adjusted_factor(self) -> None:
         org = self.create_organization()
         redis = get_redis_client_for_ds()
@@ -75,9 +52,6 @@ class PerOrgRecalibrationCacheTest(TestCase):
 
 class InvalidateProjectConfigsTest(TestCase):
     """A pass that changed an organization's rates republishes its rules."""
-
-    SERVING_ON = {"dynamic-sampling.per_org.serving-rollout-rate": 1.0}
-    SERVING_OFF = {"dynamic-sampling.per_org.serving-rollout-rate": 0.0}
 
     def setUp(self) -> None:
         super().setUp()
@@ -100,52 +74,27 @@ class InvalidateProjectConfigsTest(TestCase):
             ]
         )
 
-    def test_a_served_org_is_invalidated_once_for_all_of_its_projects(self) -> None:
-        with override_options(self.SERVING_ON):
-            invalidate = self._write(self._rebalanced(0.25))
+    def test_an_org_is_invalidated_once_for_all_of_its_projects(self) -> None:
+        invalidate = self._write(self._rebalanced(0.25))
 
         invalidate.assert_called_once_with(
             organization_id=self.organization.id, trigger="dynamic_sampling_per_org"
         )
 
-    def test_an_org_served_from_the_legacy_caches_is_left_alone(self) -> None:
-        with override_options(self.SERVING_OFF):
-            invalidate = self._write(self._rebalanced(0.25))
-
-        invalidate.assert_not_called()
-
-    def test_a_listed_org_is_invalidated_at_a_serving_rate_of_zero(self) -> None:
-        with override_options(
-            {
-                "dynamic-sampling.per_org.serving-rollout-rate": 0.0,
-                "dynamic-sampling.per_org.serving-org-ids": [self.organization.id],
-            }
-        ):
-            invalidate = self._write(self._rebalanced(0.25))
-
-        invalidate.assert_called_once()
-
     def test_a_pass_that_changed_no_rate_does_not_republish(self) -> None:
-        with override_options(self.SERVING_ON):
-            self._write(self._rebalanced(0.25))
-            invalidate = self._write(self._rebalanced(0.25))
+        self._write(self._rebalanced(0.25))
+        invalidate = self._write(self._rebalanced(0.25))
 
         invalidate.assert_not_called()
 
     def test_a_moved_recalibration_factor_is_republished(self) -> None:
-        with (
-            override_options(self.SERVING_ON),
-            patch_configuration({SET_FACTOR: DEFAULT, DELETE_FACTOR: DEFAULT}),
-        ):
+        with patch_configuration({SET_FACTOR: DEFAULT, DELETE_FACTOR: DEFAULT}):
             invalidate = self._write(DynamicSamplingResults(recalibration_factor=1.5))
 
         invalidate.assert_called_once()
 
     def test_a_cleared_recalibration_factor_is_republished(self) -> None:
-        with (
-            override_options(self.SERVING_ON),
-            patch_configuration({SET_FACTOR: DEFAULT, DELETE_FACTOR: DEFAULT}),
-        ):
+        with patch_configuration({SET_FACTOR: DEFAULT, DELETE_FACTOR: DEFAULT}):
             invalidate = self._write(
                 DynamicSamplingResults(recalibration_factor=MAX_REBALANCE_FACTOR * 2)
             )
@@ -153,8 +102,7 @@ class InvalidateProjectConfigsTest(TestCase):
         invalidate.assert_called_once()
 
     def test_a_pass_that_wrote_nothing_does_not_republish(self) -> None:
-        with override_options(self.SERVING_ON):
-            invalidate = self._write(DynamicSamplingResults())
+        invalidate = self._write(DynamicSamplingResults())
 
         invalidate.assert_not_called()
 
@@ -302,6 +250,13 @@ class PerOrgSampleRateCacheTest(TestCase):
         assert get_project_sample_rate(self.organization.id, other.id) == 1.0
         assert get_project_sample_rate(self.organization.id, missing.id) is None
 
+    def test_a_corrupt_project_sample_rate_raises(self) -> None:
+        cache_key = generate_project_sample_rates_cache_key(self.organization.id)
+        self.redis.hset(cache_key, str(self.project.id), "not a rate")
+
+        with pytest.raises(ValueError):
+            get_project_sample_rate(self.organization.id, self.project.id)
+
     def test_project_sample_rates_skip_a_rate_that_did_not_move(self) -> None:
         other = self.create_project(organization=self.organization)
         cache_key = generate_project_sample_rates_cache_key(self.organization.id)
@@ -329,14 +284,6 @@ class PerOrgSampleRateCacheTest(TestCase):
         set_project_sample_rates(self.organization.id, items)
 
         assert self.redis.pttl(cache_key) > 1000
-
-    def test_project_sample_rates_do_not_share_keys_with_the_legacy_cache(self) -> None:
-        legacy_key = generate_boost_low_volume_projects_cache_key(self.organization.id)
-        self.addCleanup(self.redis.delete, legacy_key)
-        self.redis.hset(legacy_key, str(self.project.id), "0.2")
-
-        assert legacy_key != generate_project_sample_rates_cache_key(self.organization.id)
-        assert get_project_sample_rate(self.organization.id, self.project.id) is None
 
     def test_transaction_sample_rates_round_trip(self) -> None:
         missing = self.create_project(organization=self.organization)

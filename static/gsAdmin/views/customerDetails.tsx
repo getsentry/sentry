@@ -196,7 +196,12 @@ export function CustomerDetails() {
   const onToggleBillingPlatformMigrationMutation = useMutation({
     mutationFn: (params: Record<string, any>) =>
       fetchMutation({
-        url: `/_admin/customers/${orgId}/billing-platform-migration/`,
+        url: getApiUrl(
+          '/_admin/customers/$organizationIdOrSlug/billing-platform-migration/',
+          {
+            path: {organizationIdOrSlug: orgId},
+          }
+        ),
         method: 'POST',
         data: params,
       }),
@@ -494,7 +499,6 @@ export function CustomerDetails() {
                 ...params,
                 migrated: !subscription.hasMigratedToBillingPlatform,
               }),
-            ...actionRequiresBillingAdmin,
           },
           {
             key: 'recreateBillingPlatformModels',
@@ -506,7 +510,6 @@ export function CustomerDetails() {
             },
             onAction: params =>
               onUpdateMutation.mutate({...params, recreateBillingPlatformModels: true}),
-            ...actionRequiresBillingAdmin,
           },
           {
             key: 'convertToSelfServe',

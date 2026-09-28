@@ -1,5 +1,4 @@
 import type {ReactNode} from 'react';
-import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {
   createTraceMetricFixtures,
   initializeTraceMetricsTest,
@@ -13,7 +12,6 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {AggregatesTab} from 'sentry/views/explore/metrics/metricInfoTabs/aggregatesTab';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {MetricsQueryParamsProvider} from 'sentry/views/explore/metrics/metricsQueryParams';
@@ -23,8 +21,6 @@ import type {GroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
-
-jest.mock('sentry/components/pageFilters/usePageFilters');
 
 function createWrapper({
   queryParams,
@@ -58,7 +54,6 @@ describe('AggregatesTab', () => {
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
-    jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
     setupPageFilters();
 
     // Mock the trace-items attributes endpoint

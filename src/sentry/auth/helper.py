@@ -760,15 +760,21 @@ class AuthIdentityHandler:
                 messages.add_message(self.request, messages.ERROR, ERR_MERGE_FAILED)
                 return self._build_confirmation_response(is_new_account)
             elif op == "newuser":
-                is_trusted = (
-                    is_email_verified_by_trusted_provider(self.provider.key, self.identity)
-                    or self._email_verified_via_pending_invite()
+                trusted_provider_verified = is_email_verified_by_trusted_provider(
+                    self.provider.key, self.identity
                 )
+                is_trusted = trusted_provider_verified or self._email_verified_via_pending_invite()
                 if not is_trusted and _sso_verification_required(self.identity["email"]):
                     return self._send_sso_verification_email_and_redirect(
                         self.identity["email"], state
                     )
                 auth_identity = self.handle_new_user(email_verified=is_trusted)
+                if trusted_provider_verified:
+                    metrics.incr(
+                        "auth.signup.verification_email_saved",
+                        tags={"signup_method": "sso", "provider": self.provider.key},
+                        sample_rate=1.0,
+                    )
                 created_new_user = True
             elif op is None and self._has_verified_signup_email(state):
                 try:

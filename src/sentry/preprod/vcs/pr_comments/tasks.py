@@ -18,7 +18,7 @@ from sentry.preprod.vcs.pr_comments.templates import format_pr_comment
 from sentry.shared_integrations.exceptions import ApiError, IntegrationConfigurationError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.namespaces import preprod_tasks
+from sentry.taskworker.namespaces import preprod_size_tasks
 
 logger = logging.getLogger(__name__)
 
@@ -114,7 +114,7 @@ def resolve_pr_comment_context(
 
 @instrumented_task(
     name="sentry.preprod.tasks.create_preprod_pr_comment",
-    namespace=preprod_tasks,
+    namespace=preprod_size_tasks,
     processing_deadline_duration=30,
     silo_mode=SiloMode.CELL,
     retry=Retry(times=5, delay=60 * 5),

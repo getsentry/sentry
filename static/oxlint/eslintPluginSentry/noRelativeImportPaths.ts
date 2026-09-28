@@ -1,7 +1,7 @@
 // oxlint-disable-next-line import/no-nodejs-modules -- Linter rules run in Node.js.
 import path from 'node:path';
 
-import {AST_NODE_TYPES, ESLintUtils} from '@typescript-eslint/utils';
+import {defineRule} from '@oxlint/plugins';
 
 type Options = {
   allowSameFolder?: boolean;
@@ -29,7 +29,7 @@ function getParentDepth(importPath: string): number {
   return depth;
 }
 
-export const noRelativeImportPaths = ESLintUtils.RuleCreator.withoutDocs({
+export const noRelativeImportPaths = defineRule({
   meta: {
     type: 'suggestion',
     docs: {
@@ -59,10 +59,7 @@ export const noRelativeImportPaths = ESLintUtils.RuleCreator.withoutDocs({
 
     return {
       ImportDeclaration(node) {
-        if (
-          node.source.type !== AST_NODE_TYPES.Literal ||
-          typeof node.source.value !== 'string'
-        ) {
+        if (node.source.type !== 'Literal' || typeof node.source.value !== 'string') {
           return;
         }
 

@@ -1,8 +1,8 @@
-import {RuleTester} from '@typescript-eslint/rule-tester';
+import {RuleTester} from 'oxlint/plugins-dev';
 
 import {noQueryDataTypeParameters} from './noQueryDataTypeParameters';
 
-const ruleTester = new RuleTester();
+const ruleTester = new RuleTester({languageOptions: {parserOptions: {lang: 'ts'}}});
 
 ruleTester.run('no-query-data-type-parameters', noQueryDataTypeParameters, {
   valid: [

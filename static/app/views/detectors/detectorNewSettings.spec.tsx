@@ -16,7 +16,6 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
-import * as indicators from 'sentry/actionCreators/indicator';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
@@ -126,6 +125,102 @@ describe('DetectorEdit', () => {
       .getByText(/Choose the Project and Environment/)
       .closest('section')!;
     expect(within(projectSection).getByText(project.slug)).toBeInTheDocument();
+  });
+
+  it('allows a team admin to create a monitor for a writable project', async () => {
+    const teamAdminOrganization = OrganizationFixture({
+      ...organization,
+      access: ['org:read', 'alerts:read'],
+    });
+    const readOnlyProject = ProjectFixture({
+      id: '3',
+      slug: 'read-only-project',
+      organization: teamAdminOrganization,
+      access: ['project:read', 'alerts:read'],
+      isMember: true,
+    });
+    const writableProject = ProjectFixture({
+      id: '4',
+      slug: 'writable-project',
+      organization: teamAdminOrganization,
+      access: ['project:read', 'alerts:write'],
+      isMember: true,
+    });
+    const otherWritableProject = ProjectFixture({
+      id: '5',
+      slug: 'other-writable-project',
+      organization: teamAdminOrganization,
+      access: ['project:read', 'alerts:write'],
+      isMember: false,
+    });
+    ProjectsStore.loadInitialData([
+      readOnlyProject,
+      writableProject,
+      otherWritableProject,
+    ]);
+    const mockCreateDetector = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/projects/${writableProject.id}/detectors/`,
+      method: 'POST',
+      body: MetricDetectorFixture({id: '123', projectId: writableProject.id}),
+    });
+
+    render(<DetectorNewSettings />, {
+      organization: teamAdminOrganization,
+      initialRouterConfig: {
+        ...initialRouterConfig,
+        location: {
+          ...initialRouterConfig.location,
+          query: {detectorType: 'metric_issue', project: readOnlyProject.id},
+        },
+      },
+    });
+
+    await screen.findByText('New Monitor');
+    const projectSection = screen
+      .getByText(/Choose the Project and Environment/)
+      .closest('section')!;
+    expect(within(projectSection).getByText(writableProject.slug)).toBeInTheDocument();
+
+    await selectEvent.openMenu(screen.getByRole('textbox', {name: 'Select Project'}));
+    expect(
+      await screen.findByRole('menuitemradio', {name: otherWritableProject.slug})
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('menuitemradio', {name: readOnlyProject.slug})
+    ).not.toBeInTheDocument();
+
+    await userEvent.type(screen.getByRole('spinbutton', {name: 'High threshold'}), '100');
+    await userEvent.click(screen.getByRole('button', {name: 'Create Monitor'}));
+
+    await waitFor(() => expect(mockCreateDetector).toHaveBeenCalled());
+  });
+
+  it('shows a permission error when no project is writable', () => {
+    const readOnlyOrganization = OrganizationFixture({
+      ...organization,
+      access: ['org:read', 'alerts:read'],
+    });
+    ProjectsStore.loadInitialData([
+      ProjectFixture({
+        organization: readOnlyOrganization,
+        access: ['project:read', 'alerts:read'],
+      }),
+    ]);
+
+    render(<DetectorNewSettings />, {
+      organization: readOnlyOrganization,
+      initialRouterConfig: {
+        ...initialRouterConfig,
+        location: {
+          ...initialRouterConfig.location,
+          query: {detectorType: 'metric_issue'},
+        },
+      },
+    });
+
+    expect(
+      screen.getByText(/You do not have permission to create monitors/)
+    ).toBeInTheDocument();
   });
 
   describe('Metric Detector', () => {
@@ -1165,13 +1260,13 @@ describe('DetectorEdit', () => {
     });
 
     it('displays slug errors on the name field and in a toast', async () => {
-      const mockAddErrorMessage = jest.spyOn(indicators, 'addErrorMessage');
+      const errorMessage = 'The slug "new-test-cron-job" is already in use.';
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/projects/${project.id}/detectors/`,
         method: 'POST',
         statusCode: 400,
         body: {
-          dataSources: {slug: ['The slug "new-test-cron-job" is already in use.']},
+          dataSources: {slug: [errorMessage]},
         },
       });
 
@@ -1186,27 +1281,24 @@ describe('DetectorEdit', () => {
 
       await userEvent.click(screen.getByRole('button', {name: 'Create Monitor'}));
 
-      await waitFor(() => {
-        expect(mockAddErrorMessage).toHaveBeenCalledWith(
-          'The slug "new-test-cron-job" is already in use.'
-        );
-      });
-
-      // The slug error is mapped to the name field and shown inline
+      // The slug error is mapped to the name field and also shown in a toast.
+      expect(await screen.findAllByText(errorMessage)).toHaveLength(2);
       expect(
-        await screen.findByText('The slug "new-test-cron-job" is already in use.')
+        within(screen.getByRole('region', {name: /Notifications/})).getByText(
+          errorMessage
+        )
       ).toBeInTheDocument();
     });
 
     it('displays schedule config errors on the schedule field and in a toast', async () => {
-      const mockAddErrorMessage = jest.spyOn(indicators, 'addErrorMessage');
+      const errorMessage = 'Invalid schedule for schedule unit count';
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/projects/${project.id}/detectors/`,
         method: 'POST',
         statusCode: 400,
         body: {
           dataSources: {
-            config: {schedule: ['Invalid schedule for schedule unit count']},
+            config: {schedule: [errorMessage]},
           },
         },
       });
@@ -1218,14 +1310,11 @@ describe('DetectorEdit', () => {
 
       await userEvent.click(await screen.findByRole('button', {name: 'Create Monitor'}));
 
-      await waitFor(() => {
-        expect(mockAddErrorMessage).toHaveBeenCalledWith(
-          'Invalid schedule for schedule unit count'
-        );
-      });
-
+      expect(await screen.findAllByText(errorMessage)).toHaveLength(2);
       expect(
-        await screen.findByText('Invalid schedule for schedule unit count')
+        within(screen.getByRole('region', {name: /Notifications/})).getByText(
+          errorMessage
+        )
       ).toBeInTheDocument();
     });
   });

@@ -1,4 +1,7 @@
-import {ResourceLink} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
+import {
+  ResourceLink,
+  type ResourceLinkFormatProps,
+} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
 import {IconFire} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -15,7 +18,12 @@ export function getEventLinkTitle({
   return shortId ? t('%s event %s', shortId, shortEventId) : t('Event %s', shortEventId);
 }
 
-export function EventLink({id, issueId, shortId}: EmbedOutput<'event'>) {
+export function EventLink({
+  format,
+  id,
+  issueId,
+  shortId,
+}: EmbedOutput<'event'> & ResourceLinkFormatProps) {
   const organization = useOrganization();
   const href = makeEventPathname({
     organizationSlug: organization.slug,
@@ -24,6 +32,11 @@ export function EventLink({id, issueId, shortId}: EmbedOutput<'event'>) {
   });
 
   return (
-    <ResourceLink icon={IconFire} href={href} title={getEventLinkTitle({id, shortId})} />
+    <ResourceLink
+      format={format}
+      icon={IconFire}
+      href={href}
+      title={getEventLinkTitle({id, shortId})}
+    />
   );
 }

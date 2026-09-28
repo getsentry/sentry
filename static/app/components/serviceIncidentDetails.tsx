@@ -4,6 +4,7 @@ import startCase from 'lodash/startCase';
 
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {sanitizedMarked} from '@sentry/scraps/markdown';
 import {StatusIndicator} from '@sentry/scraps/statusIndicator';
 import {Prose, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -24,7 +25,6 @@ import type {
   StatusPageIncidentUpdate,
   StatusPageServiceStatus,
 } from 'sentry/types/system';
-import {sanitizedMarked} from 'sentry/utils/marked/marked';
 
 interface Props {
   incident: StatuspageIncident;

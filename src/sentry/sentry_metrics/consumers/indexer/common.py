@@ -11,7 +11,6 @@ from arroyo.processing.strategies import MessageRejected, ProcessingStrategy
 from arroyo.processing.strategies import ProcessingStrategy as ProcessingStep
 from arroyo.types import Message, Value
 
-from sentry.sentry_metrics.consumers.indexer.routing_producer import RoutingPayload
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.utils import metrics
 
@@ -28,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass(frozen=True)
 class IndexerOutputMessageBatch:
-    data: MutableSequence[Message[KafkaPayload | RoutingPayload | InvalidMessage]]
+    data: MutableSequence[Message[KafkaPayload | InvalidMessage]]
     cogs_data: Mapping[UseCaseID, int]
 
 

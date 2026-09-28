@@ -260,7 +260,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
             "service_url": service_url,
             "user_id": user_id,
             "tenant_id": tenant_id,
-            "conversation_id": team_id,
+            "conversation_id": data.get("conversation", {}).get("id", team_id),
             "external_id": team_id,
             "external_name": team_name,
             "installation_type": "team",
@@ -276,6 +276,15 @@ class MsTeamsWebhookEndpoint(Endpoint):
                 extra={"request_data": data},
             )
             return self.respond({"details": f"{action} is currently not supported"}, status=204)
+
+        conversation_type = data.get("conversation", {}).get("conversationType")
+        team = data.get("channelData", {}).get("team")
+        if conversation_type != "channel" or not team:
+            logger.info(
+                "sentry.integrations.msteams.webhooks: Non-team installation ignored",
+                extra={"request_data": data},
+            )
+            return self.respond(status=204)
 
         try:
             installation_params = self._get_team_installation_request_data(data=data)
@@ -358,7 +367,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
     def _handle_team_member_added(self, request: Request) -> Response:
         data = request.data
         team = data["channelData"]["team"]
-        data["conversation_id"] = team["id"]
+        data["conversation_id"] = data["conversation"]["id"]
 
         params = {
             "external_id": team["id"],
@@ -553,7 +562,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
         tenant_id = channel_data["tenant"]["id"]
         payload = data["value"]["payload"]
         group_id = payload["groupId"]
-        integration_id = payload["integrationId"]
+        integration_id = payload.get("integrationId")
         user_id = data["from"]["id"]
         activity_id = data["replyToId"]
         conversation = data["conversation"]
@@ -562,7 +571,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
         else:
             conversation_id = channel_data["channel"]["id"]
 
-        integration = parsing.get_integration_from_card_action(data=data)
+        integration = parsing.get_integration_from_request_data(data=data)
         if integration is None:
             logger.info(
                 "msteams.action.missing-integration", extra={"integration_id": integration_id}
@@ -634,19 +643,22 @@ class MsTeamsWebhookEndpoint(Endpoint):
             rules = tuple(Rule.objects.filter(id__in=payload["rules"]))
 
             # pull the event based off our payload
-            event = eventstore.backend.get_event_by_id(group.project_id, payload["eventId"])
-            if event is None:
-                logger.info(
-                    "msteams.action.event-missing",
-                    extra={
-                        "team_id": team_id,
-                        "integration_id": integration.id,
-                        "organization_id": group.organization.id,
-                        "event_id": payload["eventId"],
-                        "project_id": group.project_id,
-                    },
-                )
-                return self.respond(status=404)
+            event = None
+            event_id = payload.get("eventId")
+            if event_id:
+                event = eventstore.backend.get_event_by_id(group.project_id, event_id)
+                if event is None:
+                    logger.info(
+                        "msteams.action.event-missing",
+                        extra={
+                            "team_id": team_id,
+                            "integration_id": integration.id,
+                            "organization_id": group.organization.id,
+                            "event_id": event_id,
+                            "project_id": group.project_id,
+                        },
+                    )
+                    return self.respond(status=404)
 
             # refresh issue and update card
             group.refresh_from_db()
@@ -720,7 +732,10 @@ class MsTeamsCommandDispatcher(MessagingIntegrationCommandDispatcher[AdaptiveCar
 
     def link_user_handler(self, input: CommandInput) -> IntegrationResponse[AdaptiveCard]:
         linked_identity = identity_service.get_identity(
-            filter={"identity_ext_id": self.teams_user_id}
+            filter={
+                "identity_ext_id": self.teams_user_id,
+                "provider_type": IntegrationProviderSlug.MSTEAMS.value,
+            }
         )
         has_linked_identity = linked_identity is not None
 

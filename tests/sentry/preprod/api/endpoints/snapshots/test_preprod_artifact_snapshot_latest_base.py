@@ -9,9 +9,7 @@ from sentry.preprod.snapshots.models import PreprodSnapshotMetrics
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
 
-MOCK_TARGET = (
-    "sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot_latest_base.get_session"
-)
+MOCK_TARGET = "sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot_latest_base.get_snapshot_storage"
 
 
 class OrganizationPreprodLatestBaseSnapshotTest(APITestCase):
@@ -120,3 +118,27 @@ class OrganizationPreprodLatestBaseSnapshotTest(APITestCase):
                 client="mcp:cursor",
             ),
         )
+
+    @patch(MOCK_TARGET)
+    def test_missing_manifest_returns_404(self, mock_get_session):
+        self._create_base_artifact()
+        mock_session = MagicMock()
+        mock_session.get.return_value = None
+        mock_get_session.return_value = mock_session
+
+        response = self.client.get(self._get_url(), {"app_id": "com.example.app"})
+
+        assert response.status_code == 404
+        assert response.data["detail"] == "No snapshot found"
+
+    @patch(MOCK_TARGET)
+    def test_objectstore_error_returns_500(self, mock_get_session):
+        self._create_base_artifact()
+        mock_session = MagicMock()
+        mock_session.get.side_effect = Exception("Storage error")
+        mock_get_session.return_value = mock_session
+
+        response = self.client.get(self._get_url(), {"app_id": "com.example.app"})
+
+        assert response.status_code == 500
+        assert response.data["detail"] == "Internal server error"

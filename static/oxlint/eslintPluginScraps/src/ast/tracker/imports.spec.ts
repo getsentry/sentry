@@ -1,5 +1,5 @@
-import {RuleTester} from '@typescript-eslint/rule-tester';
-import {ESLintUtils, TSESTree} from '@typescript-eslint/utils';
+import {defineRule, type ESTree} from '@oxlint/plugins';
+import {RuleTester} from 'oxlint/plugins-dev';
 
 import {createImportTracker} from './imports';
 
@@ -7,7 +7,7 @@ import {createImportTracker} from './imports';
  * Minimal rule that resolves a specific identifier via the import tracker
  * and reports the result.
  */
-const testRule = ESLintUtils.RuleCreator.withoutDocs({
+const testRule = defineRule({
   meta: {
     type: 'problem',
     schema: [],
@@ -24,7 +24,7 @@ const testRule = ESLintUtils.RuleCreator.withoutDocs({
       ...tracker.visitors,
 
       // Test resolve() by checking JSX element names
-      JSXOpeningElement(node: TSESTree.JSXOpeningElement) {
+      JSXOpeningElement(node: ESTree.JSXOpeningElement) {
         if (node.name.type === 'JSXIdentifier') {
           const info = tracker.resolve(node.name.name);
           if (info) {

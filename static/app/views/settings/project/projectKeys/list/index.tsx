@@ -164,42 +164,6 @@ export default function ProjectKeys() {
 
   const keyList = keyListState ? keyListState : keyListResponse.json;
 
-  const renderEmpty = () => {
-    return (
-      <Panel>
-        <EmptyMessage icon={<IconFlag />}>
-          {t('There are no keys active for this project.')}
-        </EmptyMessage>
-      </Panel>
-    );
-  };
-
-  const renderResults = () => {
-    const hasAccess = hasEveryAccess(['project:write'], {organization, project});
-
-    return (
-      <Fragment>
-        {keyList.map(key => (
-          <KeyRow
-            hasWriteAccess={hasAccess}
-            key={key.id}
-            projectId={project.slug}
-            project={project}
-            data={key}
-            onToggle={(isActive, data) =>
-              handleToggleKeyMutation.mutate({isActive, data})
-            }
-            onRemove={data => handleRemoveKeyMutation.mutate(data)}
-            routes={routes}
-            location={location}
-            params={params}
-          />
-        ))}
-        <Pagination pageLinks={keyListResponse.headers.Link} />
-      </Fragment>
-    );
-  };
-
   const isEmpty = !keyList.length;
   const hasAccess = hasEveryAccess(['project:write'], {organization, project});
 
@@ -236,7 +200,33 @@ export default function ProjectKeys() {
       <ProjectPermissionAlert project={project} />
       <RelayDsnOverrideAlert />
 
-      {isEmpty ? renderEmpty() : renderResults()}
+      {isEmpty ? (
+        <Panel>
+          <EmptyMessage icon={<IconFlag />}>
+            {t('There are no keys active for this project.')}
+          </EmptyMessage>
+        </Panel>
+      ) : (
+        <Fragment>
+          {keyList.map(key => (
+            <KeyRow
+              hasWriteAccess={hasAccess}
+              key={key.id}
+              projectId={project.slug}
+              project={project}
+              data={key}
+              onToggle={(isActive, data) =>
+                handleToggleKeyMutation.mutate({isActive, data})
+              }
+              onRemove={data => handleRemoveKeyMutation.mutate(data)}
+              routes={routes}
+              location={location}
+              params={params}
+            />
+          ))}
+          <Pagination pageLinks={keyListResponse.headers.Link} />
+        </Fragment>
+      )}
     </div>
   );
 }

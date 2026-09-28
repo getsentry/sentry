@@ -9,13 +9,12 @@ from sentry.constants import ObjectStatus
 from sentry.dynamic_sampling.models.common import RebalancedItem
 from sentry.dynamic_sampling.per_org.configuration import BaseDynamicSamplingConfiguration
 from sentry.dynamic_sampling.per_org.gate import is_org_in_rollout
-from sentry.dynamic_sampling.per_org.queries import ProjectTransactionCounts
+from sentry.dynamic_sampling.per_org.queries import OrganizationDataVolume, ProjectTransactionCounts
 from sentry.dynamic_sampling.per_org.scheduler import (
     run_calculations_per_org_task,
     schedule_per_org_calculations,
 )
 from sentry.dynamic_sampling.per_org.telemetry import DynamicSamplingStatus
-from sentry.dynamic_sampling.tasks.common import OrganizationDataVolume
 from sentry.dynamic_sampling.types import DynamicSamplingMode
 from sentry.models.organization import Organization
 from sentry.testutils.cases import TestCase
@@ -357,12 +356,7 @@ class RunCalculationsPerOrgTest(TestCase):
         )
         assert config.results.rebalanced_projects == []
 
-    @override_options(
-        {
-            "dynamic-sampling.per_org.rollout-rate": 1.0,
-            "dynamic-sampling.per_org.serving-rollout-rate": 1.0,
-        }
-    )
+    @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     def test_run_calculations_per_org_queries_projects_for_am3_org_mode(self) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
@@ -425,12 +419,7 @@ class RunCalculationsPerOrgTest(TestCase):
         # An organization without dynamic sampling has nothing to store.
         mocks[WRITE_CACHES].assert_not_called()
 
-    @override_options(
-        {
-            "dynamic-sampling.per_org.rollout-rate": 1.0,
-            "dynamic-sampling.per_org.serving-rollout-rate": 1.0,
-        }
-    )
+    @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     def test_run_calculations_per_org_queries_projects_for_am2(self) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
@@ -470,12 +459,7 @@ class RunCalculationsPerOrgTest(TestCase):
         assert config.results.recalibration_factor == 4.0
         mocks[SET_FACTOR].assert_called_once_with(org.id, 4.0)
 
-    @override_options(
-        {
-            "dynamic-sampling.per_org.rollout-rate": 1.0,
-            "dynamic-sampling.per_org.serving-rollout-rate": 1.0,
-        }
-    )
+    @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     def test_run_calculations_per_org_skips_the_factor_without_stored_segments(
         self,
     ) -> None:
@@ -500,38 +484,6 @@ class RunCalculationsPerOrgTest(TestCase):
         assert result is None
         config = _assert_called_once_with_config(mocks[PROJECT_VOLUMES], org.id)
         # An org that stored nothing has no effective sample rate, so there is no factor.
-        assert config.results.recalibration_factor is None
-        mocks[SET_FACTOR].assert_not_called()
-
-    @override_options(
-        {
-            "dynamic-sampling.per_org.rollout-rate": 1.0,
-            "dynamic-sampling.per_org.serving-rollout-rate": 0.0,
-        }
-    )
-    def test_run_calculations_per_org_skips_recalibration_for_an_unserved_org(self) -> None:
-        org = self.create_organization()
-        project = self.create_project(organization=org)
-        org_volume = OrganizationDataVolume(org_id=org.id, total=100, indexed=25)
-        project_volumes = [make_project_volume(project.id)]
-
-        with patch_configuration(
-            {
-                BLENDED_SAMPLE_RATE: 0.5,
-                ORG_VOLUME: org_volume,
-                PROJECT_VOLUMES: project_volumes,
-                PROJECT_BALANCING: [RebalancedItem(id=project.id, count=100, new_sample_rate=0.5)],
-                TRANSACTION_VOLUMES: _transaction_volumes(org, project.id),
-                TRANSACTION_BALANCING: {},
-                SET_FACTOR: DEFAULT,
-            }
-        ) as mocks:
-            result = run_calculations_per_org_task(org.id)
-
-        assert result is None
-        config = _assert_called_once_with_config(mocks[PROJECT_VOLUMES], org.id)
-        # Relay never applies the factor of an unserved org, so a factor computed for it
-        # would only compound from one pass to the next.
         assert config.results.recalibration_factor is None
         mocks[SET_FACTOR].assert_not_called()
 

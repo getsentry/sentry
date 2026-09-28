@@ -3,7 +3,7 @@ import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {renderHook, userEvent} from 'sentry-test/reactTestingLibrary';
+import {renderHookWithProviders, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import * as indicators from 'sentry/actionCreators/indicator';
 import type {ExplorerAutofixState} from 'sentry/components/events/autofix/useExplorerAutofix';
@@ -12,7 +12,6 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {EntryType} from 'sentry/types/event';
 import {IssueCategory, IssueType} from 'sentry/types/group';
 import * as copyToClipboardModule from 'sentry/utils/useCopyToClipboard';
-import * as useOrganization from 'sentry/utils/useOrganization';
 import {formatSpanEvidenceToMarkdown} from 'sentry/views/issueDetails/hooks/spanEvidenceMarkdown';
 import {
   issueAndEventToMarkdown,
@@ -1347,11 +1346,12 @@ LIMIT 21`;
 
       jest.spyOn(indicators, 'addSuccessMessage').mockImplementation(() => {});
       jest.spyOn(indicators, 'addErrorMessage').mockImplementation(() => {});
-      jest.spyOn(useOrganization, 'useOrganization').mockReturnValue(organization);
     });
 
     it('calls useCopyToClipboard hook', () => {
-      renderHook(() => useCopyIssueDetails(group, event));
+      renderHookWithProviders(() => useCopyIssueDetails(group, event), {
+        organization,
+      });
 
       // Check that the hook was called
       expect(copyToClipboardModule.useCopyToClipboard).toHaveBeenCalled();
@@ -1363,7 +1363,9 @@ LIMIT 21`;
         'useHotkeys'
       );
 
-      renderHook(() => useCopyIssueDetails(group, event));
+      renderHookWithProviders(() => useCopyIssueDetails(group, event), {
+        organization,
+      });
 
       expect(useHotkeysMock).toHaveBeenCalledWith([
         {
@@ -1382,7 +1384,9 @@ LIMIT 21`;
         return Promise.resolve(text);
       });
 
-      renderHook(() => useCopyIssueDetails(group, undefined));
+      renderHookWithProviders(() => useCopyIssueDetails(group, undefined), {
+        organization,
+      });
 
       await userEvent.keyboard('{Control>}{Alt>}c{/Alt}{/Control}');
 
@@ -1402,7 +1406,9 @@ LIMIT 21`;
         return Promise.resolve(text);
       });
 
-      renderHook(() => useCopyIssueDetails(group, event));
+      renderHookWithProviders(() => useCopyIssueDetails(group, event), {
+        organization,
+      });
 
       await userEvent.keyboard('{Control>}{Alt>}c{/Alt}{/Control}');
 

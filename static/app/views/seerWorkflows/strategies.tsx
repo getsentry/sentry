@@ -1,56 +1,75 @@
-import {IconLab} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {
+  AgenticTriageResults,
+  getAgenticTriageStatus,
+  getAgenticTriageSummary,
+} from 'sentry/views/seerWorkflows/agenticTriage';
+import {
+  MonitorCleanupRunResults,
+  getMonitorRunSummary,
+} from 'sentry/views/seerWorkflows/monitorCleanup';
 import type {
-  Frequency,
-  OutputId,
-  StrategyCategory,
-  StrategyVisibility,
-  WorkflowKind,
+  SeerWorkflowRun,
+  WorkflowStrategy,
+  WorkflowDisplayStatus,
 } from 'sentry/views/seerWorkflows/types';
 
 type StrategyMeta = {
-  Icon: React.ComponentType<{size?: 'xs' | 'sm' | 'md'}>;
-  category: StrategyCategory;
-  frequencies: Frequency[];
   label: string;
-  outputs: OutputId[];
-  summary: string;
-  visibility: StrategyVisibility;
+  runAction?: {feature: string; label: string};
 };
 
-export const STRATEGY_META: Record<WorkflowKind, StrategyMeta> = {
+export const STRATEGY_META: Record<WorkflowStrategy, StrategyMeta> = {
+  duplicate_monitors: {
+    runAction: {
+      feature: 'seer-workflows-monitor-cleanup',
+      label: t('Monitor scan'),
+    },
+    label: 'Duplicate monitors',
+  },
   agentic_triage: {
     label: 'Agentic triage',
-    summary:
-      'Investigates new issues nightly and recommends autofix or assignment for each.',
-    Icon: IconLab,
-    frequencies: ['daily', 'weekly'],
-    visibility: 'configurable',
-    category: 'issues',
-    outputs: ['autofix_runs', 'issue_activity'],
   },
 };
 
-export const CATEGORY_LABELS: Record<StrategyCategory, string> = {
-  issues: 'Issues',
-  reliability: 'Reliability',
-  user_experience: 'User experience',
-};
+export function getWorkflowStatus(run: SeerWorkflowRun): WorkflowDisplayStatus {
+  switch (run.strategy) {
+    case 'agentic_triage':
+      return getAgenticTriageStatus(run);
+    case 'duplicate_monitors':
+      return run.extras.status === 'complete' ? 'succeeded' : run.extras.status;
+  }
+}
 
-export const CATEGORY_ORDER: StrategyCategory[] = [
-  'issues',
-  'reliability',
-  'user_experience',
-];
+export function getWorkflowSummary(run: SeerWorkflowRun): string {
+  switch (run.strategy) {
+    case 'agentic_triage':
+      return getAgenticTriageSummary(run);
+    case 'duplicate_monitors':
+      return getMonitorRunSummary(run);
+  }
+}
 
-// Maps raw triage action enum values to human-readable labels for the
-// user-facing issue list. Falls back to the raw value for unknown verbs.
-const ACTION_LABELS: Record<string, string> = {
-  autofix: 'Autofix queued',
-  autofix_triggered: 'Autofix queued',
-  root_cause_only: 'Root cause analysis',
-  skip: 'Skipped',
-};
+export function WorkflowResults({
+  run,
+  organizationSlug,
+}: {
+  organizationSlug: string;
+  run: SeerWorkflowRun;
+}) {
+  switch (run.strategy) {
+    case 'agentic_triage':
+      return <AgenticTriageResults run={run} organizationSlug={organizationSlug} />;
+    case 'duplicate_monitors':
+      return <MonitorCleanupRunResults run={run} organizationSlug={organizationSlug} />;
+  }
+}
 
-export function getActionLabel(action: string): string {
-  return ACTION_LABELS[action] ?? action;
+export function getWorkflowRunActions(features: string[]) {
+  return (Object.keys(STRATEGY_META) as WorkflowStrategy[]).flatMap(strategy => {
+    const action = STRATEGY_META[strategy].runAction;
+    return action && features.includes(action.feature)
+      ? [{strategy, label: action.label}]
+      : [];
+  });
 }

@@ -1,4 +1,4 @@
-import {ESLintUtils} from '@typescript-eslint/utils';
+import {defineRule} from '@oxlint/plugins';
 
 /**
  * ESLint rule: no-token-import
@@ -23,7 +23,7 @@ function isForbiddenImportPath(importPath: string) {
   return importPath.includes(TOKEN_PATH);
 }
 
-export const noTokenImport = ESLintUtils.RuleCreator.withoutDocs({
+export const noTokenImport = defineRule({
   meta: {
     type: 'problem',
     docs: {

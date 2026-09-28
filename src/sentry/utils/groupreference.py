@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import re
 from typing import TYPE_CHECKING
 from urllib.parse import urlparse
@@ -7,17 +8,24 @@ from urllib.parse import urlparse
 if TYPE_CHECKING:
     from sentry.models.group import Group
 
+logger = logging.getLogger(__name__)
+
 _markdown_strip_re = re.compile(r"\[([^]]+)\]\([^)]+\)", re.I)
 
+_fix_keywords = r"(?:Fix|Fixes|Fixed|Close|Closes|Closed|Resolve|Resolves|Resolved)"
+_fix_keyword_re = re.compile(rf"\b{_fix_keywords}\b", re.I)
+
 _fixes_re = re.compile(
-    r"\b(?:Fix|Fixes|Fixed|Close|Closes|Closed|Resolve|Resolves|Resolved):?\s+([A-Za-z0-9_\-\s\,]+)\b",
+    rf"\b{_fix_keywords}:?\s+([A-Za-z0-9_\-\s\,]+)\b",
     re.I,
 )
 _short_id_re = re.compile(r"\b([A-Z0-9_-]+-[A-Z0-9]+)\b", re.I)
+_whitespace_re = re.compile(r"\s+")
+_narrative_punct_re = re.compile(r"[,:]")
 
 # Matches fix keywords followed by a URL
 _fixes_url_re = re.compile(
-    r"\b(?:Fix|Fixes|Fixed|Close|Closes|Closed|Resolve|Resolves|Resolved):?\s+(https?://[^\s]+)",
+    rf"\b{_fix_keywords}:?\s+(https?://[^\s]+)",
     re.I,
 )
 # Extracts numeric group ID from /issues/{id} in URL path
@@ -102,3 +110,38 @@ def find_referenced_groups(text: str | None, org_id: int) -> set[Group]:
             results.add(group)
 
     return results
+
+
+def _count_narrative_chars(line: str) -> int:
+    # Strip markdown links the same way find_referenced_groups does, so a
+    # "Fixes [SENTRY-123](url)" line doesn't count its URL as narrative.
+    remainder = _markdown_strip_re.sub(r"\1", line)
+    remainder = _fixes_url_re.sub("", remainder)
+    remainder = _fix_keyword_re.sub("", remainder)
+    remainder = _short_id_re.sub("", remainder)
+    remainder = _narrative_punct_re.sub("", remainder)
+    remainder = _whitespace_re.sub("", remainder)
+    return len(remainder)
+
+
+def find_fix_statements(text: str | None, org_id: int) -> list[tuple[str, set[Group]]]:
+    if not text:
+        return []
+
+    statements = []
+    for line in text.splitlines():
+        groups = find_referenced_groups(line, org_id)
+        if not groups:
+            continue
+
+        # check if the pr description contains extra chars
+        narrative_chars = _count_narrative_chars(line)
+        if narrative_chars:
+            logger.warning(
+                "groupreference.fix_statement_narrative_chars",
+                extra={"organization_id": org_id, "narrative_chars": narrative_chars},
+            )
+
+        statements.append((line, groups))
+
+    return statements

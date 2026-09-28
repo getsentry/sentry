@@ -165,6 +165,11 @@ ACTION_TYPES_WITH_COMMIT_DATA = {
     GroupActionType.SET_RESOLVED_IN_RELEASE.value,
 }
 
+COMMENT_MUTATION_ACTION_TYPES = {
+    GroupActionType.COMMENT_EDIT.value,
+    GroupActionType.COMMENT_DELETE.value,
+}
+
 PULL_REQUEST_ACTION_TYPES = {
     GroupActionType.RESOLVED_IN_PULL_REQUEST.value,
     GroupActionType.PULL_REQUEST_CLOSED.value,
@@ -779,7 +784,7 @@ class SeerPRCreatedAction(GroupAction):
 
 
 class SeerPRReadyForReviewAction(GroupAction):
-    user_visible = False
+    user_visible = True
     run_id: Optional[int] = None
     # Same PR as SeerPRCreatedAction, but will not be in draft mode
     pull_requests: Optional[list[SeerPullRequestItem]] = None

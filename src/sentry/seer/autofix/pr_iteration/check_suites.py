@@ -46,9 +46,11 @@ from sentry.seer.autofix.pr_iteration.constants import (
     PR_ITERATION_PROVIDER,
     REVIEW_REQUEST_FLAG,
 )
+from sentry.seer.autofix.pr_iteration.tracing import set_pr_iteration_attributes
 from sentry.seer.models import SeerApiError
 from sentry.seer.models.run import SeerRun
 from sentry.utils import metrics
+from sentry.utils.tracing import trace
 
 logger = logging.getLogger(__name__)
 
@@ -103,36 +105,41 @@ FAILURE_CONCLUSIONS = ("failure", "timed_out", "action_required")
 GREEN_CONCLUSIONS = ("success", "neutral", "skipped")
 
 
+# The check-suite models declare only the fields we read and drop the rest
+# (`extra = "ignore"`). The event is serialized into feedback metadata and Redis,
+# so keeping undeclared fields would persist the whole GitHub webhook payload.
+
+
 class GithubCheckSuiteApp(BaseModel):
     name: str
 
     class Config:
-        extra = "allow"
+        extra = "ignore"
 
 
 class GithubCheckSuitePullRequestRepository(BaseModel):
     id: int | None = None
 
     class Config:
-        extra = "allow"
+        extra = "ignore"
 
 
 class GithubCheckSuitePullRequestBase(BaseModel):
     repo: GithubCheckSuitePullRequestRepository | None = None
 
     class Config:
-        extra = "allow"
+        extra = "ignore"
 
 
 class GithubCheckSuitePullRequest(BaseModel):
     id: int
     # Optional so feedback serialized before this field existed still parses. Such
-    # an entry is skipped, which strands nothing: `extra = "allow"` round-tripped
-    # `base` through the model that predates the field, so it parses back in here.
+    # an entry is skipped, which strands nothing: these models used to keep
+    # undeclared fields, so older feedback carries `base` and parses back in here.
     base: GithubCheckSuitePullRequestBase | None = None
 
     class Config:
-        extra = "allow"
+        extra = "ignore"
 
 
 class GithubCheckSuite(BaseModel):
@@ -147,7 +154,7 @@ class GithubCheckSuite(BaseModel):
     pull_requests: list[GithubCheckSuitePullRequest] = Field(default_factory=list)
 
     class Config:
-        extra = "allow"
+        extra = "ignore"
 
 
 class GithubCheckSuiteRepository(BaseModel):
@@ -156,14 +163,14 @@ class GithubCheckSuiteRepository(BaseModel):
     full_name: str | None = None
 
     class Config:
-        extra = "allow"
+        extra = "ignore"
 
 
 class GithubCheckSuiteInstallation(BaseModel):
     id: int
 
     class Config:
-        extra = "allow"
+        extra = "ignore"
 
 
 class GithubCheckSuiteEvent(BaseModel):
@@ -172,7 +179,7 @@ class GithubCheckSuiteEvent(BaseModel):
     installation: GithubCheckSuiteInstallation | None = None
 
     class Config:
-        extra = "allow"
+        extra = "ignore"
 
 
 def get_check_suite_url(event: GithubCheckSuiteEvent) -> str:
@@ -339,6 +346,7 @@ class CheckSuiteAutofixRun:
     group_id: int
 
 
+@trace
 def resolve_check_suite_autofix_run(
     event: GithubCheckSuiteEvent, repositories: Sequence[Repository] | None = None
 ) -> CheckSuiteAutofixRun | None:
@@ -433,7 +441,13 @@ def resolve_check_suite_autofix_run(
             },
         )
 
-    return matches[0]
+    run = matches[0]
+    set_pr_iteration_attributes(
+        run_id=run.run_state.run_id,
+        organization_id=run.repository.organization_id,
+        group_id=run.group_id,
+    )
+    return run
 
 
 class CheckSuiteHeadMatch(NamedTuple):
@@ -580,6 +594,7 @@ def pr_iteration_enabled(organization: Organization) -> bool:
     )
 
 
+@trace
 def resolve_green_check_suite(
     check_suite_event: CheckSuiteEvent,
 ) -> ResolvedGreenCheckSuite | None:
@@ -710,6 +725,7 @@ def inspect_check_suite_head(
     )
 
 
+@trace
 def confirm_green_check_suite(
     resolved: ResolvedGreenCheckSuite,
 ) -> GreenCheckSuiteContext | None:
@@ -737,6 +753,7 @@ def confirm_green_check_suite(
     )
 
 
+@trace
 def should_defer_pr_iteration(resolved: ResolvedGreenCheckSuite) -> bool:
     """Whether a PR-iteration event on this head must leave a parked consume deferred.
 
@@ -827,6 +844,7 @@ class _SweepCost:
         )
 
 
+@trace
 def sweep_check_runs(
     scm: SourceCodeManager, head_sha: str, *, log_extra: Mapping[str, object]
 ) -> CheckRunsSweep | None:

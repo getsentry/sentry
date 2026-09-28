@@ -1,18 +1,29 @@
 import {useMemo} from 'react';
+import {parseAsString, useQueryStates} from 'nuqs';
 
 import {useFeedbackApiOptions} from 'sentry/components/feedback/useFeedbackApiOptions';
 import type {Organization} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {coaleseIssueStatsPeriodQuery} from 'sentry/utils/feedback/coaleseIssueStatsPeriodQuery';
 import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
-import {decodeList, decodeScalar} from 'sentry/utils/queryString';
+import {decodeScalar} from 'sentry/utils/queryString';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
-import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
+import {parseAsStringArray} from 'sentry/utils/url/parseAsStringArray';
 import {useLocation} from 'sentry/utils/useLocation';
 
 interface Props {
   organization: Organization;
 }
+
+const mailboxCountsParsers = {
+  end: parseAsString.withDefault(''),
+  environment: parseAsStringArray,
+  field: parseAsStringArray,
+  project: parseAsStringArray,
+  start: parseAsString.withDefault(''),
+  statsPeriod: parseAsString.withDefault(''),
+  utc: parseAsString.withDefault(''),
+};
 
 // The keys here are the different search terms that we're using:
 type ApiReturnType = Record<string, number>;
@@ -32,27 +43,29 @@ export function useMailboxCounts({
   const {listHeadTime} = useFeedbackApiOptions();
 
   // We should fetch the counts while taking the query into account
-  const MAILBOX: Record<keyof HookReturnType, keyof ApiReturnType> = {
-    unresolved: 'issue.category:feedback is:unassigned is:unresolved ' + locationQuery,
-    resolved: 'issue.category:feedback is:unassigned is:resolved ' + locationQuery,
-    ignored: 'issue.category:feedback is:unassigned is:ignored ' + locationQuery,
-  };
+  const MAILBOX: Record<keyof HookReturnType, keyof ApiReturnType> = useMemo(
+    () => ({
+      unresolved: 'issue.category:feedback is:unassigned is:unresolved ' + locationQuery,
+      resolved: 'issue.category:feedback is:unassigned is:resolved ' + locationQuery,
+      ignored: 'issue.category:feedback is:unassigned is:ignored ' + locationQuery,
+    }),
+    [locationQuery]
+  );
 
-  const mailboxQuery = Object.values(MAILBOX);
+  const mailboxQuery = useMemo(() => Object.values(MAILBOX), [MAILBOX]);
 
-  const queryView = useLocationQuery({
-    fields: {
-      end: decodeScalar,
-      environment: decodeList,
-      field: decodeList,
-      project: decodeList,
+  const [locationFields] = useQueryStates(mailboxCountsParsers);
+
+  // The request is keyed off this object, so it has to stay referentially stable
+  // across renders that don't change the filters.
+  const queryView = useMemo(
+    () => ({
+      ...locationFields,
       query: mailboxQuery,
       queryReferrer: 'feedback_mailbox_count',
-      start: decodeScalar,
-      statsPeriod: decodeScalar,
-      utc: decodeScalar,
-    },
-  });
+    }),
+    [locationFields, mailboxQuery]
+  );
 
   const queryViewWithStatsPeriod = useMemo(
     () =>

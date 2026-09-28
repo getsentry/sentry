@@ -8,7 +8,7 @@ interface Opts {
   autoScrollEnabled: boolean;
   currentTime: number;
   frames: undefined | ReplayFrame[];
-  virtualizer: Virtualizer<HTMLDivElement, Element> | null;
+  virtualizer: Pick<Virtualizer<HTMLElement, Element>, 'scrollElement' | 'scrollToIndex'>;
 }
 
 export function useScrollToCurrentItem({
@@ -27,7 +27,7 @@ export function useScrollToCurrentItem({
   );
 
   useEffect(() => {
-    if (autoScrollEnabled && virtualizer && currentItem && frames) {
+    if (autoScrollEnabled && virtualizer.scrollElement && currentItem && frames) {
       const index = frames.indexOf(currentItem);
       if (index >= 0) {
         // Center the current item in the viewport

@@ -3,9 +3,8 @@ import {expectTypeOf} from 'expect-type';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {DropdownButton} from '@sentry/scraps/dropdownMenu';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
-
-import {DropdownButton} from 'sentry/components/dropdownButton';
 
 import {CompactSelect, getEscapedKey, type SelectOption} from './';
 

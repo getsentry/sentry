@@ -40,6 +40,7 @@ function useFieldsColumnWidths(fields: readonly string[]) {
   useEffect(() => {
     // oxlint-disable-next-line react/set-state-in-effect
     setColumnWidths(undefined);
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [fieldsKey, windowSize]);
 
   return [columnWidths, setColumnWidths] as const;

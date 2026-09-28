@@ -1,14 +1,14 @@
+import {defineRule} from '@oxlint/plugins';
 /**
  * ESLint rule: no-core-import
  *
  * Disallows imports from 'sentry/components/core' and autofixes them to '@sentry/scraps'.
  */
-import {ESLintUtils} from '@typescript-eslint/utils';
 
 const FORBIDDEN_PATH = 'sentry/components/core/';
 const REPLACEMENT_PATH = '@sentry/scraps';
 
-export const noCoreImport = ESLintUtils.RuleCreator.withoutDocs({
+export const noCoreImport = defineRule({
   meta: {
     type: 'problem',
     docs: {

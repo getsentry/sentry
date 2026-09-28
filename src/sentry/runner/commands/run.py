@@ -610,10 +610,6 @@ def basic_consumer(
         **options,
     )
 
-    # for backwards compat: should eventually be removed
-    if not quantized_rebalance_delay_secs and consumer_name == "ingest-generic-metrics":
-        quantized_rebalance_delay_secs = options.get("sentry-metrics.synchronized-rebalance-delay")
-
     dump_stacktrace_on_shutdown = consumer_name in get("consumer.dump_stacktrace_on_shutdown", [])
     verbose_multiprocessing_logs = consumer_name in get("consumer.verbose_multiprocessing_logs", [])
 

@@ -1,52 +1,43 @@
-import {useEffect, useRef, useState} from 'react';
+import {useEffect, useEffectEvent, useState} from 'react';
 import {useTheme} from '@emotion/react';
-import debounce from 'lodash/debounce';
-import isEqual from 'lodash/isEqual';
+import {Debouncer} from '@tanstack/react-pacer';
 
+import {valueIsEqual} from 'sentry/utils/object/valueIsEqual';
 import type {BreakpointSize} from 'sentry/utils/theme';
 
-function useInstantRef<T>(value: T) {
-  const ref = useRef(value);
-  ref.current = value;
-  return ref;
-}
+export type Breakpoints = Record<BreakpointSize, string>;
 
-type Breakpoint = BreakpointSize;
-export function checkBreakpoints(breakpoints: Record<Breakpoint, string>, width: number) {
-  return Object.entries(breakpoints).reduce(
-    (acc, [key, value]) => {
-      // Assuming breakpoints are pixel values
-      acc[key as Breakpoint] = width >= parseInt(value, 10);
-      return acc;
-    },
-    {} as Record<Breakpoint, boolean>
-  );
+export function checkBreakpoints(breakpoints: Breakpoints, width: number) {
+  return Object.fromEntries(
+    Object.entries(breakpoints).map(([key, value]) => [key, width >= parseInt(value, 10)])
+  ) as Record<BreakpointSize, boolean>;
 }
 
 /**
  * Returns the currently active breakpoints
  */
-export function useBreakpoints(): Record<Breakpoint, boolean> {
+export function useBreakpoints(): Record<BreakpointSize, boolean> {
   const theme = useTheme();
-  const [value, setValue] = useState(
+  const [value, setValue] = useState(() =>
     checkBreakpoints(theme.breakpoints, window.innerWidth)
   );
-  const valueRef = useInstantRef(value);
+  const updateBreakpoints = useEffectEvent(() => {
+    const nextValue = checkBreakpoints(theme.breakpoints, window.innerWidth);
+    if (!valueIsEqual(value, nextValue)) {
+      setValue(nextValue);
+    }
+  });
 
   useEffect(() => {
-    const handleResize = debounce(() => {
-      const newValue = checkBreakpoints(theme.breakpoints, window.innerWidth);
-      if (!isEqual(newValue, valueRef.current)) {
-        setValue(newValue);
-      }
-    }, 100);
+    const debouncer = new Debouncer(() => updateBreakpoints(), {wait: 100});
+    const handleResize = debouncer.maybeExecute;
 
     window.addEventListener('resize', handleResize, {passive: true});
     return () => {
       window.removeEventListener('resize', handleResize);
-      handleResize.cancel();
+      debouncer.cancel();
     };
-  }, [theme.breakpoints, valueRef]);
+  }, []);
 
   return value;
 }

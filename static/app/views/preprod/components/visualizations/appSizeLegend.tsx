@@ -191,6 +191,7 @@ export function AppSizeLegend({
   return (
     <LegendContainer ref={containerRef}>
       <MeasurementContainer ref={measurementRef}>
+        {/* oxlint-disable-next-line react/refs */}
         {sortedCategories.map((categoryType, index) => {
           const isActive =
             selectedCategories.size === 0 || selectedCategories.has(categoryType);
