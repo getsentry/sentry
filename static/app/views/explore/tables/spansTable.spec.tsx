@@ -139,7 +139,7 @@ describe('SpansTable', () => {
     result = makeQueryResult(rows),
   }: {
     requestIdentityKey?: string;
-    result?: SpansTableResult['result'];
+    result: SpansTableResult['result'];
   } = {}) {
     return (
       <SpansTable
@@ -229,7 +229,7 @@ describe('SpansTable', () => {
       {name: 'span.custom_two', type: 'str', value: 'second detail'},
     ]);
 
-    render(<ExampleSpansTable />, renderOptions());
+    render(<ExampleSpansTable result={makeQueryResult([])} />, renderOptions());
 
     const showButtons = screen.getAllByRole('button', {
       name: 'Show span details',
