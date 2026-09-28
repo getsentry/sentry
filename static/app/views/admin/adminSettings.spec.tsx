@@ -23,6 +23,8 @@ describe('AdminSettings', () => {
 
     const input = await screen.findByRole('textbox', {name: 'Support Email'});
     expect(input).toHaveValue('original@example.com');
+    expect(input).toHaveAttribute('name', 'system_support-email');
+    expect(document.getElementById('value')).not.toBeInTheDocument();
     await userEvent.clear(input);
     await userEvent.type(input, 'changed@example.com');
     await userEvent.tab();
@@ -44,6 +46,34 @@ describe('AdminSettings', () => {
         '/internal/options/',
         expect.objectContaining({data: {'system.support-email': 'original@example.com'}})
       )
+    );
+  });
+
+  it('focuses and highlights an option linked by its original key', async () => {
+    const scrollIntoView = jest.fn();
+    Element.prototype.scrollIntoView = scrollIntoView;
+    MockApiClient.addMockResponse({
+      url: '/internal/options/',
+      body: {
+        'system.url-prefix': {
+          field: {disabled: false},
+          value: 'https://sentry.example.com',
+        },
+      },
+    });
+
+    render(<AdminSettings />, {
+      initialRouterConfig: {
+        route: '/manage/settings/',
+        location: {pathname: '/manage/settings/#system.url-prefix'},
+      },
+    });
+
+    const input = await screen.findByRole('textbox', {name: 'Root URL'});
+    await waitFor(() => expect(scrollIntoView).toHaveBeenCalled());
+    expect(input).toHaveFocus();
+    expect(document.getElementById('system_url-prefix')).toHaveAttribute(
+      'data-highlight'
     );
   });
 

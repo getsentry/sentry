@@ -1,3 +1,4 @@
+import {useEffect} from 'react';
 import {mutationOptions, useQuery, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
@@ -10,6 +11,7 @@ import {t} from 'sentry/locale';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
+import {useLocation} from 'sentry/utils/useLocation';
 
 import {getOption} from './options';
 
@@ -32,6 +34,7 @@ const disabledReasons: Record<string, string> = {
 
 function useAdminOption(name: string, option: FieldDef) {
   const queryClient = useQueryClient();
+  const fieldName = name.replaceAll('.', '_');
   const definition = {...getOption(name), ...option.field};
   const initialValue =
     option.value === undefined ? (definition.defaultValue?.() ?? '') : option.value;
@@ -42,28 +45,31 @@ function useAdminOption(name: string, option: FieldDef) {
 
   return {
     definition,
+    fieldName,
     initialValue,
     disabled,
     required,
     adminMutationOptions: mutationOptions({
-      mutationFn: ({value}: {value: boolean | string}) =>
+      mutationFn: (data: Record<string, boolean | string>) =>
         fetchMutation({
           url: getApiUrl('/internal/options/'),
           method: 'PUT',
-          data: {[name]: value},
+          data: {[name]: data[fieldName]},
         }),
-      onSuccess: (_response, {value}) => {
-        queryClient.setQueryData(optionsQueryOptions.queryKey, previous =>
-          previous
-            ? {
-                ...previous,
-                json: {
-                  ...previous.json,
-                  [name]: {...(previous.json[name] ?? {field: {}}), value},
-                },
-              }
-            : previous
-        );
+      onSuccess: (_response, data) => {
+        queryClient.setQueryData(optionsQueryOptions.queryKey, previous => {
+          const value = data[fieldName];
+          if (!previous || value === undefined) {
+            return previous;
+          }
+          return {
+            ...previous,
+            json: {
+              ...previous.json,
+              [name]: {...(previous.json[name] ?? {field: {}}), value},
+            },
+          };
+        });
       },
     }),
   };
@@ -93,13 +99,13 @@ function getTextOptionSchema(name: string, required: boolean | undefined) {
 type OptionFieldProps = {name: string; option: FieldDef};
 
 function BooleanOptionField({name, option}: OptionFieldProps) {
-  const {definition, initialValue, disabled, required, adminMutationOptions} =
+  const {definition, fieldName, initialValue, disabled, required, adminMutationOptions} =
     useAdminOption(name, option);
 
   return (
     <AutoSaveForm
-      name="value"
-      schema={z.object({value: z.boolean()})}
+      name={fieldName}
+      schema={z.object({[fieldName]: z.boolean()})}
       initialValue={Boolean(initialValue)}
       mutationOptions={adminMutationOptions}
     >
@@ -121,13 +127,13 @@ function BooleanOptionField({name, option}: OptionFieldProps) {
 }
 
 function RadioOptionField({name, option}: OptionFieldProps) {
-  const {definition, initialValue, disabled, required, adminMutationOptions} =
+  const {definition, fieldName, initialValue, disabled, required, adminMutationOptions} =
     useAdminOption(name, option);
 
   return (
     <AutoSaveForm
-      name="value"
-      schema={z.object({value: z.string()})}
+      name={fieldName}
+      schema={z.object({[fieldName]: z.string()})}
       initialValue={String(initialValue)}
       mutationOptions={adminMutationOptions}
     >
@@ -157,13 +163,13 @@ function RadioOptionField({name, option}: OptionFieldProps) {
 }
 
 function TextOptionField({name, option}: OptionFieldProps) {
-  const {definition, initialValue, disabled, required, adminMutationOptions} =
+  const {definition, fieldName, initialValue, disabled, required, adminMutationOptions} =
     useAdminOption(name, option);
 
   return (
     <AutoSaveForm
-      name="value"
-      schema={z.object({value: getTextOptionSchema(name, required)})}
+      name={fieldName}
+      schema={z.object({[fieldName]: getTextOptionSchema(name, required)})}
       initialValue={String(initialValue)}
       mutationOptions={adminMutationOptions}
     >
@@ -187,6 +193,29 @@ function TextOptionField({name, option}: OptionFieldProps) {
 
 export default function AdminSettings() {
   const {data, isPending, isError} = useQuery(optionsQueryOptions);
+  const location = useLocation();
+
+  useEffect(() => {
+    if (isPending || !location.hash) {
+      return;
+    }
+    let name: string;
+    try {
+      name = decodeURIComponent(location.hash.slice(1));
+    } catch {
+      return;
+    }
+    const row = document.getElementById(name.replaceAll('.', '_'));
+    if (!row) {
+      return;
+    }
+    row.scrollIntoView({block: 'center', behavior: 'smooth'});
+    row.querySelector('input')?.focus({focusVisible: true});
+    row.dataset.highlight = '';
+    const clearHighlight = () => delete row.dataset.highlight;
+    row.addEventListener('animationend', clearHighlight, {once: true});
+    return () => row.removeEventListener('animationend', clearHighlight);
+  }, [isPending, location.hash]);
 
   if (isError) {
     return <LoadingError />;
