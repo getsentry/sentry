@@ -394,7 +394,7 @@ class OrganizationEventsTest(AcceptanceTestCase, SnubaTestCase):
 
             # Fill out name and submit form.
             self.browser.element('input[name="query_name"]').send_keys(query_name)
-            self.browser.element('[aria-label="Save for Organization"]').click()
+            self.browser.element('[aria-label="Create a New Query"]').click()
 
             self.browser.wait_until(xpath=f'//h1[contains(.,"{query_name}")]')
 
