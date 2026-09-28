@@ -21,6 +21,7 @@ from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
+from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import Serializer, serialize
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
@@ -261,4 +262,114 @@ class OrganizationExploreFormulas(OrganizationExploreFormulaBase):
         return Response(
             serialize(formula, request.user, serializer=ExploreSavedFormulaSerializer()),
             status=201,
+        )
+
+
+@extend_schema(tags=["Explore"])
+@cell_silo_endpoint
+class OrganizationExploreFormulasDetail(OrganizationExploreFormulaBase):
+    """This endpoint allows for the editing, retrieval or deletion of a single formula from its id"""
+
+    publish_status = {
+        "DELETE": ApiPublishStatus.EXPERIMENTAL,
+        "GET": ApiPublishStatus.EXPERIMENTAL,
+        "PUT": ApiPublishStatus.EXPERIMENTAL,
+    }
+
+    def convert_args(
+        self,
+        request: Request,
+        organization_id_or_slug: int | str,
+        id: int,
+        *args: Any,
+        **kwargs: Any,
+    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
+        args, kwargs = super().convert_args(request, organization_id_or_slug, *args, **kwargs)
+
+        try:
+            kwargs["formula"] = ExploreSavedFormula.objects.prefetch_related("variables").get(
+                id=id,
+                organization=kwargs["organization"],
+            )
+        except ExploreSavedFormula.DoesNotExist:
+            raise ResourceDoesNotExist
+
+        return (args, kwargs)
+
+    def get(
+        self, request: Request, organization: Organization, formula: ExploreSavedFormula
+    ) -> Response[ExploreSavedFormulaResponse]:
+        """
+        Retrieve a saved formula
+        """
+        if not self.has_feature(organization, request):
+            return self.respond(status=404)
+
+        return Response(
+            serialize(formula, request.user, serializer=ExploreSavedFormulaSerializer()),
+            status=200,
+        )
+
+    def delete(
+        self, request: Request, organization: Organization, formula: ExploreSavedFormula
+    ) -> Response[None]:
+        """
+        Delete a saved formula
+        """
+        if not self.has_feature(organization, request):
+            return self.respond(status=404)
+
+        formula.delete()
+
+        return Response(status=204)
+
+    def put(
+        self, request: Request, organization: Organization, formula: ExploreSavedFormula
+    ) -> Response[ExploreSavedFormulaResponse] | Response[ValidationErrorResponse]:
+        """
+        Update a saved formula
+        """
+        if not self.has_feature(organization, request):
+            return self.respond(status=404)
+
+        serializer = FormulaSerializer(
+            data=request.data, context={"organization": organization, "user": request.user}
+        )
+        if not serializer.is_valid():
+            return Response(as_validation_errors(serializer), status=400)
+
+        data = serializer.validated_data
+
+        with write_formula_to_db():
+            formula.update(
+                formula=data["formula"],
+                name=data["name"],
+                unit=data["unit"],
+                updated_by_id=request.user.id,
+            )
+            ExploreSavedVariable.objects.filter(explore_saved_formula=formula).delete()
+            for param in data["params"]:
+                ExploreSavedVariable.objects.create(
+                    organization=organization,
+                    explore_saved_formula=formula,
+                    name=param["name"],
+                    value=param["value"],
+                    param_type=param["param_type"],
+                    order=param["order"],
+                    kind=KindItemTypes.PARAM,
+                )
+            for param in data["references"]:
+                ExploreSavedVariable.objects.create(
+                    organization=organization,
+                    explore_saved_formula=formula,
+                    name=param["name"],
+                    value=param["value"],
+                    kind=KindItemTypes.REFERENCE,
+                )
+
+        formula.refresh_from_db()
+
+        return Response(
+            serialize(formula, request.user, serializer=ExploreSavedFormulaSerializer()),
+            status=200,
         )
