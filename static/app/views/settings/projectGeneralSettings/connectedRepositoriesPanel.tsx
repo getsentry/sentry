@@ -23,7 +23,7 @@ import {ConnectRepositoryModal} from 'sentry/views/settings/projectGeneralSettin
 import {
   projectRepoInfiniteOptions,
   type ProjectRepoListItem,
-} from 'sentry/views/settings/projectGeneralSettings/projectRepoQueryOptions';
+} from 'sentry/views/settings/projectGeneralSettings/queries';
 
 // TODO Abdullah Khan: Add edit and disconnect actions.
 const OVERFLOW_ITEMS: MenuItemProps[] = [

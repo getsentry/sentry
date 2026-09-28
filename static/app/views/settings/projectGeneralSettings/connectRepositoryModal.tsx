@@ -1,18 +1,11 @@
-import {Fragment, useMemo, useState} from 'react';
-import {
-  useInfiniteQuery,
-  useMutation,
-  useQueries,
-  useQuery,
-  useQueryClient,
-} from '@tanstack/react-query';
+import {Fragment, useState} from 'react';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Select, components} from '@sentry/scraps/select';
-import type {SelectValue} from '@sentry/scraps/select';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -22,82 +15,15 @@ import {ScmVirtualizedMenuList} from 'sentry/components/onboarding/scm/scmVirtua
 import {IconLock} from 'sentry/icons';
 import {IconArrow} from 'sentry/icons/iconArrow';
 import {t, tct} from 'sentry/locale';
-import type {
-  Integration,
-  IntegrationRepository,
-  Repository,
-} from 'sentry/types/integrations';
 import type {Project} from 'sentry/types/project';
-import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
-import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
-import {fetchMutation} from 'sentry/utils/queryClient';
-import {
-  organizationRepositoriesInfiniteOptions,
-  selectUniqueRepos,
-} from 'sentry/utils/repositories/repoQueryOptions';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {projectRepoInfiniteOptions} from 'sentry/views/settings/projectGeneralSettings/projectRepoQueryOptions';
-
-const REPOS_STALE_TIME_MS = 60_000;
-
-type RepoSelectOption = SelectValue<string> & {
-  integrationId: string;
-  repositoryId: string;
-  defaultBranch?: string | null;
-  providerKey?: string;
-};
-
-type RepoGroup = {
-  label: string;
-  options: RepoSelectOption[];
-};
-
-interface Props extends ModalRenderProps {
-  project: Project;
-}
-
-function scmIntegrationsOptions(orgSlug: string) {
-  return apiOptions.as<Integration[]>()(
-    '/organizations/$organizationIdOrSlug/integrations/',
-    {
-      path: {organizationIdOrSlug: orgSlug},
-      query: {integrationType: 'source_code_management'},
-      staleTime: REPOS_STALE_TIME_MS,
-    }
-  );
-}
-
-function integrationReposOptions(orgSlug: string, integrationId: string) {
-  return apiOptions.as<{repos: IntegrationRepository[]}>()(
-    '/organizations/$organizationIdOrSlug/integrations/$integrationId/repos/',
-    {
-      path: {organizationIdOrSlug: orgSlug, integrationId},
-      staleTime: REPOS_STALE_TIME_MS,
-    }
-  );
-}
-
-function toPersistableOption(
-  integration: Integration,
-  repo: IntegrationRepository,
-  sentryRepo: Repository | undefined
-): RepoSelectOption | null {
-  if (!sentryRepo) {
-    return null;
-  }
-  return {
-    value: `${integration.id}:${repo.identifier}`,
-    label: repo.name,
-    leadingItems: getIntegrationIcon(integration.provider.key, 'sm'),
-    defaultBranch: repo.defaultBranch,
-    providerKey: integration.provider.key,
-    integrationId: integration.id,
-    repositoryId: sentryRepo.id,
-  };
-}
+import {
+  saveProjectRepoConnection,
+  projectRepoInfiniteOptions,
+  type RepoSelectOption,
+  useGroupedRepoOptions,
+} from 'sentry/views/settings/projectGeneralSettings/queries';
 
 function getApiErrorMessage(error: unknown) {
   if (error instanceof RequestError) {
@@ -110,110 +36,6 @@ function getApiErrorMessage(error: unknown) {
     }
   }
   return t('Failed to connect repository');
-}
-
-function persistConnection({
-  orgSlug,
-  project,
-  repositoryId,
-  integrationId,
-  pathMappings,
-}: {
-  integrationId: string;
-  orgSlug: string;
-  pathMappings: PathMappingValue[];
-  project: Project;
-  repositoryId: string;
-}) {
-  return fetchMutation({
-    url: getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/repo/', {
-      path: {organizationIdOrSlug: orgSlug, projectIdOrSlug: project.slug},
-    }),
-    method: 'POST',
-    data: {repositoryId},
-  }).then(() =>
-    Promise.all(
-      pathMappings.map(mapping =>
-        fetchMutation({
-          url: getApiUrl('/organizations/$organizationIdOrSlug/code-mappings/', {
-            path: {organizationIdOrSlug: orgSlug},
-          }),
-          method: 'POST',
-          data: {
-            integrationId,
-            repositoryId,
-            projectId: project.id,
-            stackRoot: mapping.stackRoot,
-            sourceRoot: mapping.sourceRoot,
-            defaultBranch: mapping.branch,
-          },
-        })
-      )
-    )
-  );
-}
-
-function useGroupedRepoOptions(orgSlug: string): {
-  groupedOptions: RepoGroup[];
-  isPending: boolean;
-} {
-  const organization = useOrganization();
-  const {data: integrations = [], isPending: isIntegrationsPending} = useQuery(
-    scmIntegrationsOptions(orgSlug)
-  );
-
-  const orgReposQuery = useInfiniteQuery({
-    ...organizationRepositoriesInfiniteOptions({
-      organization,
-      query: {status: 'active', per_page: 100},
-      staleTime: REPOS_STALE_TIME_MS,
-    }),
-    select: selectUniqueRepos,
-  });
-  useFetchAllPages({result: orgReposQuery});
-
-  const sentryRepoByExternalId = useMemo(() => {
-    const repos = orgReposQuery.data ?? [];
-    return new Map(repos.map(repo => [repo.externalId, repo]));
-  }, [orgReposQuery.data]);
-
-  const activeIntegrations = useMemo(
-    () =>
-      integrations.filter(
-        i => i.organizationIntegrationStatus === 'active' && i.status === 'active'
-      ),
-    [integrations]
-  );
-
-  const integrationRepoResults = useQueries({
-    queries: activeIntegrations.map(i => integrationReposOptions(orgSlug, i.id)),
-  });
-
-  const groupedOptions = activeIntegrations.flatMap((integration, idx) => {
-    const options = (integrationRepoResults[idx]?.data?.repos ?? []).flatMap(repo => {
-      const option = toPersistableOption(
-        integration,
-        repo,
-        sentryRepoByExternalId.get(repo.externalId)
-      );
-      return option ? [option] : [];
-    });
-    return options.length > 0 ? [{label: integration.name, options}] : [];
-  });
-
-  const isOrgReposPending =
-    !orgReposQuery.isError &&
-    (orgReposQuery.isPending ||
-      orgReposQuery.isFetchingNextPage ||
-      orgReposQuery.hasNextPage);
-
-  return {
-    groupedOptions,
-    isPending:
-      isIntegrationsPending ||
-      integrationRepoResults.some(r => r.isPending) ||
-      isOrgReposPending,
-  };
 }
 
 function LockedProjectField({project}: {project: Project}) {
@@ -252,6 +74,10 @@ function PathsPlaceholder() {
   );
 }
 
+interface Props extends ModalRenderProps {
+  project: Project;
+}
+
 export function ConnectRepositoryModal({
   Header,
   Body,
@@ -266,7 +92,7 @@ export function ConnectRepositoryModal({
   const {groupedOptions, isPending} = useGroupedRepoOptions(organization.slug);
 
   const saveMutation = useMutation({
-    mutationFn: persistConnection,
+    mutationFn: saveProjectRepoConnection,
     onSuccess: async () => {
       await queryClient.invalidateQueries(
         projectRepoInfiniteOptions({

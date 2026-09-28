@@ -248,7 +248,7 @@ describe('ConnectRepositoryModal', () => {
       url: `/organizations/${organization.slug}/code-mappings/`,
       method: 'POST',
       statusCode: 400,
-      body: {detail: 'Code path config already exists'},
+      body: {detail: 'Repository does not exist'},
     });
 
     renderModal(closeModal);
@@ -257,9 +257,7 @@ describe('ConnectRepositoryModal', () => {
     await userEvent.click(await screen.findByText('getsentry/sentry'));
     await userEvent.click(await screen.findByRole('button', {name: 'Save'}));
 
-    expect(
-      await screen.findByText('Code path config already exists')
-    ).toBeInTheDocument();
+    expect(await screen.findByText('Repository does not exist')).toBeInTheDocument();
     expect(closeModal).not.toHaveBeenCalled();
   });
 });
