@@ -160,7 +160,8 @@ describe('MentionComposer', () => {
     const onSubmit = jest.fn().mockResolvedValue(undefined);
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
-      body: () => new Promise(() => {}), // Never resolves
+      body: [],
+      asyncDelay: new Promise(() => {}),
     });
 
     render(<MentionComposer mode="create" onSubmit={onSubmit} />);
@@ -205,7 +206,7 @@ describe('MentionComposer', () => {
     }
   );
 
-  it('does not submit on Enter immediately after composition ends (Safari)', async () => {
+  it('does not submit on the IME confirming Enter after composition ends (Safari)', async () => {
     const onSubmit = jest.fn().mockResolvedValue(undefined);
     render(<MentionComposer mode="create" onSubmit={onSubmit} />);
     const editor = getEditor();
@@ -233,7 +234,6 @@ describe('MentionComposer', () => {
       );
     });
 
-    // Safari fires Enter immediately after compositionend with isComposing=false
     act(() => {
       editor.dispatchEvent(
         new KeyboardEvent('keydown', {
@@ -241,16 +241,30 @@ describe('MentionComposer', () => {
           bubbles: true,
           cancelable: true,
           isComposing: false,
+          keyCode: 229,
         })
       );
     });
 
-    // First Enter after composition should be blocked
     expect(onSubmit).not.toHaveBeenCalled();
 
-    // Subsequent Enter should submit normally
     await userEvent.keyboard('{Enter}');
     expect(onSubmit).toHaveBeenCalledWith({text: 'Draft日本語', mentions: []});
+  });
+
+  it('submits on the first Enter after composition ends and typing continues', async () => {
+    const onSubmit = jest.fn().mockResolvedValue(undefined);
+    render(<MentionComposer mode="create" onSubmit={onSubmit} />);
+    const editor = getEditor();
+    await userEvent.type(editor, 'Draft');
+
+    act(() => {
+      editor.dispatchEvent(new CompositionEvent('compositionstart', {bubbles: true}));
+      editor.dispatchEvent(new CompositionEvent('compositionend', {bubbles: true}));
+    });
+    await userEvent.keyboard(' continued{Enter}');
+
+    expect(onSubmit).toHaveBeenCalledWith({text: 'Draft continued', mentions: []});
   });
 
   it('renders selected mentions in Markdown preview', async () => {

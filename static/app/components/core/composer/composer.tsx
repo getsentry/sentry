@@ -155,7 +155,6 @@ export function Composer({
   const {inputRef, isComposingRef, requestValueSync, selectionToRestoreRef} =
     useEditorValueSync(inputValue);
   const dismissedRequestKeyRef = useRef<string | null>(null);
-  const justFinishedComposingRef = useRef(false);
   const [activeTrigger, setActiveTrigger] = useState<ActiveTrigger | null>(null);
 
   const sources = useMemo(
@@ -335,7 +334,6 @@ export function Composer({
     },
     onCompositionEnd: () => {
       isComposingRef.current = false;
-      justFinishedComposingRef.current = true;
       syncValueFromEditor();
     },
     onCompositionStart: () => {
@@ -355,14 +353,10 @@ export function Composer({
       if (
         event.defaultPrevented ||
         event.nativeEvent.isComposing ||
+        // Safari can end composition before dispatching the confirming keydown.
+        event.nativeEvent.keyCode === 229 ||
         isComposingRef.current
       ) {
-        return;
-      }
-
-      if (event.key === 'Enter' && justFinishedComposingRef.current) {
-        justFinishedComposingRef.current = false;
-        event.preventDefault();
         return;
       }
 
@@ -373,10 +367,12 @@ export function Composer({
         }
 
         if (
-          event.key === 'Enter' &&
+          (event.key === 'Enter' || event.key === 'Tab') &&
           !event.shiftKey &&
           !event.ctrlKey &&
-          !event.metaKey
+          !event.metaKey &&
+          !event.altKey &&
+          (focusedKey !== null || (event.key === 'Enter' && queryStatus === 'pending'))
         ) {
           event.preventDefault();
           if (focusedKey !== null) {

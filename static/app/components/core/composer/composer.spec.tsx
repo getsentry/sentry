@@ -272,11 +272,11 @@ describe('Composer', () => {
       trigger: '@',
       queryOptions: () => ({
         queryKey: ['test', 'loading'],
-        queryFn: () => new Promise<readonly PersonSuggestion[]>(() => {}), // Never resolves
+        queryFn: () => new Promise<readonly PersonSuggestion[]>(() => {}),
       }),
       getId: () => '',
       getText: () => '',
-    } as ComposerSource<PersonSuggestion>;
+    };
 
     render(
       <Composer
@@ -292,15 +292,14 @@ describe('Composer', () => {
     await userEvent.click(textbox);
     await userEvent.keyboard('{End}');
 
-    // Wait for popup to show loading state
     expect(await screen.findByText('Loading suggestions…')).toBeVisible();
+    onKeyDown.mockClear();
 
-    // Press Enter while loading - should not propagate to onKeyDown
     await userEvent.keyboard('{Enter}');
     expect(onKeyDown).not.toHaveBeenCalled();
   });
 
-  it('blocks Enter immediately after composition ends (Safari IME)', () => {
+  it('blocks the IME confirming Enter after composition ends (Safari)', () => {
     const onKeyDown = jest.fn();
     render(
       <Composer
@@ -336,22 +335,20 @@ describe('Composer', () => {
       );
     });
 
-    // Safari fires Enter keydown after compositionend with isComposing=false
     act(() => {
       textbox.dispatchEvent(
         new KeyboardEvent('keydown', {
           key: 'Enter',
           bubbles: true,
           cancelable: true,
-          isComposing: false, // Safari sets this to false
+          isComposing: false,
+          keyCode: 229,
         })
       );
     });
 
-    // This Enter should be blocked, not propagated to onKeyDown
     expect(onKeyDown).not.toHaveBeenCalled();
 
-    // Subsequent Enter should work normally
     act(() => {
       textbox.dispatchEvent(
         new KeyboardEvent('keydown', {
