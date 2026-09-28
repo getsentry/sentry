@@ -1,6 +1,26 @@
 import {AnnotationFixture} from 'sentry-fixture/annotation';
 
-import {groupIntoBuckets, opacityForRatio, reasonTitle} from './utils';
+import {groupIntoBuckets, hasDroppedData, opacityForRatio, reasonTitle} from './utils';
+
+describe('hasDroppedData', () => {
+  it('is true when there is at least one dropped annotation', () => {
+    expect(hasDroppedData([AnnotationFixture()])).toBe(true);
+  });
+
+  it('is false for missing or empty annotations', () => {
+    expect(hasDroppedData(undefined)).toBe(false);
+    expect(hasDroppedData([])).toBe(false);
+  });
+
+  it('is false when every drop is configured', () => {
+    expect(
+      hasDroppedData([
+        AnnotationFixture({outcome: 'client_discard', reason: 'sample_rate'}),
+        AnnotationFixture({outcome: 'filtered', reason: 'web-crawlers'}),
+      ])
+    ).toBe(false);
+  });
+});
 
 describe('groupIntoBuckets', () => {
   it('returns an empty array for no annotations', () => {

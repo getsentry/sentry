@@ -39,6 +39,12 @@ interface SeerEmbedBlockOwnProps {
   testId: string;
   /** The card's heading, top left. Plain text, not a link. */
   title: ReactNode;
+  /**
+   * Controls for the card's contents, at the far right of the header after
+   * the link — for a host that frames its own content in the card, not for
+   * describing the resource.
+   */
+  actions?: ReactNode;
   /** Sits between the title and the link, for tags describing the contents. */
   badge?: ReactNode;
   /**
@@ -72,6 +78,7 @@ type SeerEmbedBlockProps = SeerEmbedBlockOwnProps & SeerEmbedBlockLinkProps;
  * title, neither of which this card's header band can express.
  */
 export function SeerEmbedBlock({
+  actions,
   badge,
   children,
   defaultExpanded = true,
@@ -127,6 +134,7 @@ export function SeerEmbedBlock({
         <Flex align="center" gap="md" wrap="wrap">
           {badge}
           {href ? <ResourceLink icon={icon} href={href} title={linkLabel} /> : null}
+          {actions}
         </Flex>
       </HeaderRow>
       {/* The panel's padding sits on an inner element, not on the element

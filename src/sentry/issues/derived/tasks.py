@@ -43,7 +43,7 @@ _MAX_CHECK_RUNS = 20
 _MAX_PROJECT_GROUPS = 10_000
 # Hard cap on distinct stale hashes discovered per scan.
 _MAX_STALE_HASHES = 5
-_STALE_HASH_DISCOVERY_TIMEOUT = timedelta(seconds=15)
+_STALE_HASH_DISCOVERY_TIMEOUT = timedelta(seconds=25)
 
 
 def _stale_pipeline_filter(qs: BaseQuerySet[Group], pipeline_hash: str) -> BaseQuerySet[Group]:
