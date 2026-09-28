@@ -20,6 +20,8 @@ RELAY_OPTIONS: list[str] = [
     "relay.objectstore-attachments.sample-rate",
     "relay.endpoint-fetch-config.enabled",
     "relay.attachment-inline.limit",
+    "relay.generic-metrics.disabled",
+    "relay.upload-chunk.size",
 ]
 
 

@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/filename-case */
 import styled from '@emotion/styled';
 
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';

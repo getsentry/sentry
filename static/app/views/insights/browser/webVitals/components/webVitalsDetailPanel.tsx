@@ -150,7 +150,6 @@ export function WebVitalsDetailPanel({
     if (col.key === 'opportunity') {
       return (
         <Tooltip
-          isHoverable
           showUnderline
           title={
             <span>

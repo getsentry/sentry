@@ -64,3 +64,31 @@ class InstallationEndpointTest(APITestCase):
         installation_url = reverse("sentry-integration-github-installation", args=[888])
         response = self.client.get(installation_url)
         assert response.status_code == 404
+
+    @responses.activate
+    @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    def test_ignores_other_provider_with_same_external_id(self, get_jwt: MagicMock) -> None:
+        # Installation ids are only unique per provider.
+        self.create_provider_integration(provider="gcp", external_id="2", name="Other")
+
+        responses.add(
+            method=responses.GET,
+            url="https://api.github.com/app/installations/2",
+            body=INSTALLATION_API_RESPONSE,
+            status=200,
+            content_type="application/json",
+        )
+        response = self.client.post(
+            path=self.url,
+            data=INSTALLATION_EVENT_EXAMPLE,
+            content_type="application/json",
+            HTTP_X_GITHUB_EVENT="installation",
+            HTTP_X_HUB_SIGNATURE="sha1=348e46312df2901e8cb945616ee84ce30d9987c9",
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
+        )
+        assert response.status_code == 204
+
+        installation_url = reverse("sentry-integration-github-installation", args=[2])
+        response = self.client.get(installation_url)
+        assert response.status_code == 200
+        assert response.json()["account"]["login"] == "octocat"

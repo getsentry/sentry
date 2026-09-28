@@ -27,22 +27,22 @@ import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/typ
 import {
   getDurationComparison,
   MIN_PCT_DURATION_DIFFERENCE,
-} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/durationComparison';
-import {getHighlightedSpanAttributes} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/highlightedAttributes';
-import {IssueList} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/issues/issues';
-import {AIContentRenderer} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiContentRenderer';
+} from 'sentry/views/performance/traceDetails/traceDrawer/details/durationComparison';
+import {getHighlightedSpanAttributes} from 'sentry/views/performance/traceDetails/traceDrawer/details/highlightedAttributes';
+import {IssueList} from 'sentry/views/performance/traceDetails/traceDrawer/details/issues/issues';
+import {AIContentRenderer} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiContentRenderer';
 import {
   getAIInputMessages,
   getAIToolInput,
-} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiInput';
+} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiInput';
 import {
   getAIOutputData,
   getAIToolOutput,
-} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiOutput';
-import {AttributesContent} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/attributes';
-import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
-import {isEAPSpanNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
-import {traceGridCssVariables} from 'sentry/views/performance/newTraceDetails/traceWaterfallStyles';
+} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiOutput';
+import {AttributesContent} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/attributes';
+import {TraceDrawerComponents} from 'sentry/views/performance/traceDetails/traceDrawer/details/styles';
+import {isEAPSpanNode} from 'sentry/views/performance/traceDetails/traceGuards';
+import {traceGridCssVariables} from 'sentry/views/performance/traceDetails/traceWaterfallStyles';
 
 const AI_SPAN_INPUT_JSON_MAX_DEFAULT_DEPTH = 3;
 const AI_SPAN_OUTPUT_JSON_MAX_DEFAULT_DEPTH = 100;
@@ -99,6 +99,7 @@ export function ConversationSpanDetail({
 
   useEffect(() => {
     scrollContainerRef.current?.scrollTo({top: 0});
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [scrollResetKey]);
 
   // Full attributes (tool inputs/results, the complete attribute list) aren't
@@ -192,18 +193,12 @@ export function ConversationSpanDetail({
       ) : isError ? (
         <EmptyTab message={t('Failed to load span details')} />
       ) : (
-        <TabStateProvider<DetailTab>
-          value={activeTab}
-          onChange={onTabChange}
-          disableOverflow
-        >
-          <Flex flexShrink={0}>
-            <TabList>
-              <TabList.Item key="input">{t('Input')}</TabList.Item>
-              <TabList.Item key="output">{t('Output')}</TabList.Item>
-              <TabList.Item key="attributes">{t('Attributes')}</TabList.Item>
-            </TabList>
-          </Flex>
+        <TabStateProvider<DetailTab> value={activeTab} onChange={onTabChange}>
+          <TabList>
+            <TabList.Item key="input">{t('Input')}</TabList.Item>
+            <TabList.Item key="output">{t('Output')}</TabList.Item>
+            <TabList.Item key="attributes">{t('Attributes')}</TabList.Item>
+          </TabList>
 
           <Container
             flex="0 0 auto"

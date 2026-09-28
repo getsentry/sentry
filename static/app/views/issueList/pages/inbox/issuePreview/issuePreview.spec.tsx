@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import {
   ExplorerAutofixBlockFixture,
   ExplorerAutofixResponseFixture,
@@ -12,7 +11,6 @@ import {PullRequestFixture} from 'sentry-fixture/pullRequest';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {clearIndicators} from 'sentry/actionCreators/indicator';
-import Indicators from 'sentry/components/indicators';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {GroupStatus, ProgressState, type Group} from 'sentry/types/group';
 
@@ -152,7 +150,7 @@ describe('IssuePreview', () => {
     expect(screen.getByRole('button', {name: 'Find Root Cause'})).toBeInTheDocument();
   });
 
-  it('labels and links each CTA when multiple pull requests exist', async () => {
+  it('labels and links each current PR CTA when multiple pull requests exist', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/autofix/`,
       body: ExplorerAutofixResponseFixture({
@@ -181,7 +179,20 @@ describe('IssuePreview', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/pull-requests/`,
       body: {
+        latestRegressionAt: '2026-08-16T12:00:00Z',
         pullRequests: [
+          {
+            ...PullRequestFixture({
+              id: '9',
+              dateCreated: '2026-08-15T12:00:00Z',
+              externalUrl: 'https://github.com/example/repo-name/pull/9',
+            }),
+            attribution: null,
+            checksStatus: null,
+            dateLinked: '2026-08-15T12:00:00Z',
+            reviewStatus: null,
+            status: 'open',
+          },
           {
             ...PullRequestFixture({
               id: '10',
@@ -220,6 +231,7 @@ describe('IssuePreview', () => {
       'href',
       'https://github.com/example/repo-name/pull/10'
     );
+    expect(screen.queryByRole('button', {name: 'View PR #9'})).not.toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Restart Autofix'})).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'View PR'})).not.toBeInTheDocument();
   });
@@ -381,13 +393,7 @@ describe('IssuePreview', () => {
       statusCode: 500,
     });
 
-    render(
-      <Fragment>
-        <IssuePreview groupId={group.id} />
-        <Indicators />
-      </Fragment>,
-      {organization}
-    );
+    render(<IssuePreview groupId={group.id} />, {organization});
 
     await userEvent.click(await screen.findByRole('button', {name: 'Resolve'}));
 

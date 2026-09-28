@@ -51,6 +51,7 @@ describe('SeerProjectTable', () => {
           autoCreatePr: null,
           automationTuning: 'off',
           scannerAutomation: false,
+          prIteration: true,
           reposCount: 1,
         },
       ],
@@ -91,12 +92,11 @@ describe('SeerProjectTable', () => {
     jest.restoreAllMocks();
   });
 
-  function renderTable() {
-    render(
+  function ExampleSeerProjectTable() {
+    return (
       <SentryNuqsTestingAdapter>
         <SeerProjectTable />
-      </SentryNuqsTestingAdapter>,
-      {organization}
+      </SentryNuqsTestingAdapter>
     );
   }
 
@@ -108,7 +108,7 @@ describe('SeerProjectTable', () => {
     });
     const errorSpy = jest.spyOn(indicators, 'addErrorMessage');
 
-    renderTable();
+    render(<ExampleSeerProjectTable />, {organization});
 
     // The agent dropdown renders its current value, "Seer".
     await userEvent.click(await screen.findByText('Seer'));
@@ -152,7 +152,7 @@ describe('SeerProjectTable', () => {
     });
     const errorSpy = jest.spyOn(indicators, 'addErrorMessage');
 
-    renderTable();
+    render(<ExampleSeerProjectTable />, {organization});
 
     await userEvent.click(await screen.findByText('Seer'));
     await userEvent.click(
@@ -177,7 +177,7 @@ describe('SeerProjectTable', () => {
     });
     const errorSpy = jest.spyOn(indicators, 'addErrorMessage');
 
-    renderTable();
+    render(<ExampleSeerProjectTable />, {organization});
 
     await userEvent.click(await screen.findByText('Seer'));
     await userEvent.click(
@@ -187,5 +187,37 @@ describe('SeerProjectTable', () => {
     // The check passes, so the selection is persisted and no warning is shown.
     await waitFor(() => expect(settingsPut).toHaveBeenCalled());
     expect(errorSpy).not.toHaveBeenCalled();
+  });
+
+  it('saves the PR iteration toggle for a project', async () => {
+    const settingsPut = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/seer/settings/`,
+      method: 'PUT',
+    });
+
+    render(<ExampleSeerProjectTable />, {organization});
+
+    expect(await screen.findByText('Auto-Iterate on PRs')).toBeInTheDocument();
+    const toggle = await screen.findByRole('checkbox', {
+      name: 'Auto-iterate on PRs for project-slug',
+    });
+    expect(toggle).toBeChecked();
+
+    await userEvent.click(toggle);
+
+    await waitFor(() =>
+      expect(settingsPut).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({data: {prIteration: false}})
+      )
+    );
+  });
+
+  it('disables adding a project without organization write access', async () => {
+    render(<ExampleSeerProjectTable />, {
+      organization: OrganizationFixture({slug: organization.slug, access: []}),
+    });
+
+    expect(await screen.findByRole('button', {name: 'Add Project'})).toBeDisabled();
   });
 });

@@ -30,7 +30,7 @@ import {
   getTableSortOptions,
   getTimeseriesSortOptions,
   transformEventsResponseToTable,
-} from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
+} from 'sentry/views/dashboards/datasetConfig/events';
 import {formatTraceMetricsFunction} from 'sentry/views/dashboards/datasetConfig/formatTraceMetricsFunction';
 import {combineBaseFieldsWithTags} from 'sentry/views/dashboards/datasetConfig/utils/combineBaseFieldsWithEapTags';
 import {DisplayType, type WidgetQuery} from 'sentry/views/dashboards/types';
@@ -38,7 +38,7 @@ import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/con
 import {useTraceMetricMultiMetricSelection} from 'sentry/views/dashboards/widgetBuilder/hooks/useTraceMetricMultiMetricSelection';
 import {
   extractTraceMetricFromColumn,
-  getTraceMetricAggregateSource,
+  getTraceMetricDisplayFields,
 } from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
 import {hasMultipleMetricsSelected} from 'sentry/views/dashboards/widgetBuilder/utils/hasMultipleMetricsSelected';
 import {
@@ -221,13 +221,13 @@ function useTraceMetricsSearchScope() {
   const {state: widgetBuilderState} = useWidgetBuilderContext();
   const hasMultiMetricSelection = useTraceMetricMultiMetricSelection();
 
-  const aggregateSource = getTraceMetricAggregateSource(
+  const displayFields = getTraceMetricDisplayFields(
     widgetBuilderState.displayType,
     widgetBuilderState.yAxis,
     widgetBuilderState.fields
   );
   const traceMetrics =
-    aggregateSource?.map(extractTraceMetricFromColumn).filter(defined) ?? [];
+    displayFields?.map(extractTraceMetricFromColumn).filter(defined) ?? [];
   const hasMultipleMetrics = hasMultipleMetricsSelected(
     traceMetrics,
     hasMultiMetricSelection
@@ -387,9 +387,7 @@ export const TraceMetricsConfig: DatasetConfig<
   getFieldHeaderMap: widgetQuery => {
     return (
       widgetQuery?.aggregates.reduce<Record<string, string>>((acc, aggregate) => {
-        acc[aggregate] = stripEquationPrefix(
-          formatTraceMetricsFunction(aggregate) as string
-        );
+        acc[aggregate] = stripEquationPrefix(formatTraceMetricsFunction(aggregate));
         return acc;
       }, {}) ?? {}
     );
@@ -431,16 +429,8 @@ function filterYAxisOptions() {
   };
 }
 
-function getGroupByFieldOptions(
-  organization: Organization,
-  tags?: TagCollection,
-  customMeasurements?: CustomMeasurementCollection
-) {
-  const primaryFieldOptions = getPrimaryFieldOptions(
-    organization,
-    tags,
-    customMeasurements
-  );
+function getGroupByFieldOptions(organization: Organization, tags?: TagCollection) {
+  const primaryFieldOptions = getPrimaryFieldOptions(organization, tags);
   const yAxisFilter = filterYAxisOptions();
   const filterGroupByOptions = (option: FieldValueOption) => !yAxisFilter(option);
 

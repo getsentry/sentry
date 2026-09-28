@@ -1,6 +1,5 @@
 from .advanced_search_feature_gated import *  # noqa: F401,F403
 from .agentic_onboarding import *  # noqa: F401,F403
-from .ai_autofix_pr_events import *  # noqa: F401,F403
 from .alert_created import *  # noqa: F401,F403
 from .alert_edited import *  # noqa: F401,F403
 from .alert_rule_ui_component_webhook_sent import *  # noqa: F401,F403
@@ -64,6 +63,7 @@ from .member_invited import *  # noqa: F401,F403
 from .metric_alert_with_ui_component_created import *  # noqa: F401,F403
 from .missing_members_nudge import *  # noqa: F401,F403
 from .monitor_mark_failed import *  # noqa: F401,F403
+from .oauth_consent import *  # noqa: F401,F403
 from .onboarding_complete import *  # noqa: F401,F403
 from .onboarding_continuation_sent import *  # noqa: F401,F403
 from .org_auth_token_created import *  # noqa: F401,F403

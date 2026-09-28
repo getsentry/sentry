@@ -6,27 +6,29 @@ will produce new outboxes incrementally to replicate those models.
 
 from __future__ import annotations
 
+import functools
 import logging
 from dataclasses import dataclass
 
 from django.apps import apps
-from django.conf import settings
 from django.db import router, transaction
 from django.db.models import Max, Min, Model
-from sentry_redis_tools.clients import RedisCluster, StrictRedis
 
 from sentry import options
 from sentry.hybridcloud.models.outbox import outbox_context
+from sentry.hybridcloud.models.outboxbackfillwatermark import (
+    BaseOutboxBackfillWatermark,
+    CellOutboxBackfillWatermark,
+    ControlOutboxBackfillWatermark,
+)
 from sentry.hybridcloud.outbox.base import CellOutboxProducingModel, ControlOutboxProducingModel
 from sentry.silo.base import SiloMode
 from sentry.users.models.user import User
-from sentry.utils import json, metrics, redis
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
-
-def _get_redis_client() -> RedisCluster[str] | StrictRedis[str]:
-    return redis.redis_clusters.get(settings.SENTRY_HYBRIDCLOUD_BACKFILL_OUTBOXES_REDIS_CLUSTER)
+WATERMARK_ROW_MISSING_METRIC = "backfill_outboxes.watermark_row_missing"
 
 
 @dataclass
@@ -47,29 +49,62 @@ class BackfillBatch:
         return f"BackfillBatch(low={self.low} up={self.up} version={self.version} has_more={self.has_more} count={self.count})"
 
 
-def get_backfill_key(table_name: str) -> str:
-    return f"outbox_backfill.{table_name}"
+@functools.lru_cache(maxsize=1)
+def _control_backfill_tables() -> frozenset[str]:
+    control_only = frozenset({SiloMode.CONTROL})
+    tables = set()
+    for model in _backfill_models(SiloMode.MONOLITH):
+        silo_limit = getattr(model._meta, "silo_limit", None)
+        if silo_limit is not None and silo_limit.modes == control_only:
+            tables.add(model._meta.db_table)
+    return frozenset(tables)
+
+
+def _watermark_model(table_name: str) -> type[BaseOutboxBackfillWatermark]:
+    current_mode = SiloMode.get_current_mode()
+    if current_mode == SiloMode.CONTROL:
+        return ControlOutboxBackfillWatermark
+    if current_mode == SiloMode.CELL:
+        return CellOutboxBackfillWatermark
+
+    # for monolith deployments, pick the table that would be written to in prod w/ split deployments
+    if table_name in _control_backfill_tables():
+        return ControlOutboxBackfillWatermark
+    return CellOutboxBackfillWatermark
+
+
+def read_processing_state(table_name: str) -> tuple[int, int] | None:
+    row = _watermark_model(table_name).objects.filter(table_name=table_name).first()
+    if row is None:
+        return None
+    return row.low_bound, row.version
+
+
+def _write_processing_state(table_name: str, value: int, version: int) -> None:
+    _watermark_model(table_name).objects.update_or_create(
+        table_name=table_name,
+        defaults={"low_bound": value, "version": version},
+    )
 
 
 def get_processing_state(table_name: str) -> tuple[int, int]:
-    result: tuple[int, int]
-    client = _get_redis_client()
-    key = get_backfill_key(table_name)
-    v = client.get(key)
-    if v is None:
-        result = (0, 1)
-        client.set(key, json.dumps(result))
-    else:
-        lower, version = json.loads(v)
-        if not (isinstance(lower, int) and isinstance(version, int)):
-            raise TypeError("Expected processing data to be a tuple of (int, int)")
-        result = lower, version
-    return result
+    state = read_processing_state(table_name)
+    if state is not None:
+        return state
+
+    metrics.incr(
+        WATERMARK_ROW_MISSING_METRIC,
+        tags=dict(table_name=table_name),
+        skip_internal=True,
+        sample_rate=1.0,
+    )
+    state = (0, 1)
+    _write_processing_state(table_name, *state)
+    return state
 
 
 def set_processing_state(table_name: str, value: int, version: int) -> None:
-    client = _get_redis_client()
-    client.set(get_backfill_key(table_name), json.dumps((value, version)))
+    _write_processing_state(table_name, value, version)
     metrics.gauge(
         "backfill_outboxes.low_bound",
         value,
@@ -172,16 +207,111 @@ def process_outbox_backfill_batch(
                     outbox.save()
 
     if not processing_state.has_more:
-        set_processing_state(model._meta.db_table, 0, model.replication_version + 1)
+        low_bound, version = 0, model.replication_version + 1
     else:
-        set_processing_state(
-            model._meta.db_table, processing_state.up + 1, processing_state.version
-        )
+        low_bound, version = processing_state.up + 1, processing_state.version
+
+    set_processing_state(model._meta.db_table, low_bound, version)
 
     return processing_state
 
 
 OUTBOX_BACKFILLS_PER_MINUTE = 10_000
+
+# stored low bound, emitted every cycle even if the backfill budget is exhausted
+WATERMARK_STATE_METRIC = "backfill_outboxes.watermark_state"
+
+# stored version (per-table)
+WATERMARK_VERSION_METRIC = "backfill_outboxes.watermark_version"
+
+# version the backfill is working towards (per-table)
+WATERMARK_TARGET_VERSION_METRIC = "backfill_outboxes.watermark_target_version"
+
+# reporting errors, debugging only
+WATERMARK_REPORT_ERROR_METRIC = "backfill_outboxes.watermark_report_error"
+
+
+def _backfill_models(
+    silo_mode: SiloMode,
+) -> list[type[ControlOutboxProducingModel] | type[CellOutboxProducingModel] | type[User]]:
+    """
+    The models the backfill loop processes in this silo mode.
+    """
+    found: list[
+        type[ControlOutboxProducingModel] | type[CellOutboxProducingModel] | type[User]
+    ] = []
+    for app_models in apps.all_models.values():
+        for model in app_models.values():
+            if not hasattr(model._meta, "silo_limit"):
+                continue
+
+            if silo_mode is not SiloMode.MONOLITH and silo_mode not in model._meta.silo_limit.modes:
+                continue
+
+            if not (
+                issubclass(model, CellOutboxProducingModel)
+                or issubclass(model, ControlOutboxProducingModel)
+                or issubclass(model, User)
+            ):
+                continue
+
+            found.append(model)
+    return found
+
+
+def _report_watermark_for_model(
+    model: type[ControlOutboxProducingModel] | type[CellOutboxProducingModel] | type[User],
+    *,
+    force_synchronous: bool,
+) -> None:
+    table_name = model._meta.db_table
+    target_version = find_replication_version(model, force_synchronous=force_synchronous)
+    metrics.gauge(
+        WATERMARK_TARGET_VERSION_METRIC,
+        target_version,
+        tags=dict(table_name=table_name),
+        sample_rate=1.0,
+    )
+
+    state = read_processing_state(table_name)
+    if state is None:
+        logger.warning(
+            "backfill_outboxes.watermark_absent",
+            extra={"table_name": table_name, "target_version": target_version},
+        )
+        return
+
+    lower, version = state
+    metrics.gauge(WATERMARK_STATE_METRIC, lower, tags=dict(table_name=table_name), sample_rate=1.0)
+    metrics.gauge(
+        WATERMARK_VERSION_METRIC, version, tags=dict(table_name=table_name), sample_rate=1.0
+    )
+
+
+def report_backfill_watermarks(silo_mode: SiloMode, force_synchronous: bool = False) -> None:
+    """
+    Read every backfill watermark once, and report what it holds.
+    """
+    try:
+        for model in _backfill_models(silo_mode):
+            table_name = model._meta.db_table
+            try:
+                _report_watermark_for_model(model, force_synchronous=force_synchronous)
+            except Exception:
+                # One bad table must not stop the rest of the walk.
+                metrics.incr(
+                    WATERMARK_REPORT_ERROR_METRIC,
+                    tags=dict(table_name=table_name),
+                    skip_internal=True,
+                    sample_rate=1.0,
+                )
+                logger.exception(
+                    "backfill_outboxes.watermark_report_failed",
+                    extra={"table_name": table_name},
+                )
+    except Exception:
+        metrics.incr(WATERMARK_REPORT_ERROR_METRIC, skip_internal=True, sample_rate=1.0)
+        logger.exception("backfill_outboxes.watermark_report_failed")
 
 
 def backfill_outboxes_for(
@@ -199,19 +329,9 @@ def backfill_outboxes_for(
         extra={"remaining": remaining_to_backfill, "scheduled": scheduled_count},
     )
 
-    if remaining_to_backfill > 0:
-        for app, app_models in apps.all_models.items():
-            for model in app_models.values():
-                if not hasattr(model._meta, "silo_limit"):
-                    continue
-
-                # Only process models local this operational mode.
-                if (
-                    silo_mode is not SiloMode.MONOLITH
-                    and silo_mode not in model._meta.silo_limit.modes
-                ):
-                    continue
-
+    try:
+        if remaining_to_backfill > 0:
+            for model in _backfill_models(silo_mode):
                 # If we find some backfill work to perform, do it.
                 batch = process_outbox_backfill_batch(
                     model, batch_size=remaining_to_backfill, force_synchronous=force_synchronous
@@ -223,6 +343,9 @@ def backfill_outboxes_for(
                 backfilled += batch.count
                 if remaining_to_backfill <= 0:
                     break
+    finally:
+        # report the newest values from this cycle
+        report_backfill_watermarks(silo_mode, force_synchronous=force_synchronous)
 
     metrics.incr(
         "backfill_outboxes.backfilled",

@@ -187,6 +187,7 @@ export function parseQueryBuilderValue(
   getFieldDefinition: FieldDefinitionGetter,
   options?: {
     filterKeys: TagCollection;
+    allowRegexOperators?: boolean;
     disallowFreeText?: boolean;
     disallowLogicalOperators?: boolean;
     disallowNegation?: boolean;
@@ -196,12 +197,15 @@ export function parseQueryBuilderValue(
     getFilterTokenWarning?: (key: string) => React.ReactNode;
     invalidFilterKeys?: string[];
     invalidMessages?: SearchConfig['invalidMessages'];
+    validateRegexPattern?: SearchConfig['validateRegexPattern'];
   }
 ): ParseResult | null {
   return markInvalidFilterKeys(
     collapseTextTokens(
       parseSearch(value || ' ', {
         flattenParenGroups: true,
+        allowRegex: options?.allowRegexOperators,
+        validateRegexPattern: options?.validateRegexPattern,
         disallowFreeText: options?.disallowFreeText,
         getFilterTokenWarning: options?.getFilterTokenWarning,
         validateKeys: options?.disallowUnsupportedFilters,

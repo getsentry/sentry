@@ -6,11 +6,11 @@ import pick from 'lodash/pick';
 
 import {Button} from '@sentry/scraps/button';
 import type {SelectOption, SelectSection} from '@sentry/scraps/compactSelect';
+import {InfoTip} from '@sentry/scraps/info';
 import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {SearchBarAction} from 'sentry/components/events/interfaces/searchBarAction';
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct} from 'sentry/locale';
 import type {Image} from 'sentry/types/debugImage';
@@ -319,7 +319,7 @@ export class Candidates extends Component<Props, State> {
         <Header>
           <Title>
             {t('Debug File Candidates')}
-            <QuestionTooltip
+            <InfoTip
               title={tct(
                 'These are the Debug Information Files (DIFs) corresponding to this image which have been looked up on [docLink:symbol servers] during the processing of the stacktrace.',
                 {
@@ -330,7 +330,6 @@ export class Candidates extends Component<Props, State> {
               )}
               size="xs"
               position="top"
-              isHoverable
             />
           </Title>
           {!!candidates.length && (

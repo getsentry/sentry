@@ -18,7 +18,10 @@ import {
 import {useDrawer} from '@sentry/scraps/drawer';
 
 import {DiffFileType, DiffLineType} from 'sentry/components/events/autofix/types';
-import {setPageFiltersStorage} from 'sentry/components/pageFilters/persistence';
+import {
+  getPageFilterStorage,
+  setPageFiltersStorage,
+} from 'sentry/components/pageFilters/persistence';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
@@ -556,31 +559,67 @@ describe('AutofixOverview', () => {
     expect(statusPollRequest).toHaveBeenCalledTimes(1);
   });
 
-  it('keeps a pinned time window through param navigation instead of resetting it', async () => {
-    PageFiltersStore.onInitializeUrlState(
-      PageFiltersFixture({datetime: {period: '30d', start: null, end: null, utc: null}})
-    );
-    setPageFiltersStorage(organization.slug, new Set(['datetime']));
-    ProjectsStore.reset();
+  it('keeps the page-local activity window through param navigation instead of resetting it', async () => {
     const {statusPollRequest} = mockOverview({
       base: {autofix_root_cause: [{...rootCauseRun, status: 'processing'}]},
     });
 
-    const {router} = renderPage();
-    act(() => ProjectsStore.loadInitialData([ProjectFixture()]));
+    const {router} = renderPage({activityStatsPeriod: '30d'});
 
     await screen.findByRole('tab', {name: /All Runs/});
-    await waitFor(() => expect(router.location.query.statsPeriod).toBe('30d'));
+    expect(
+      screen.getByRole('button', {name: 'Autofix Activity 30D'})
+    ).toBeInTheDocument();
     const requestsBeforeClick = statusPollRequest.mock.calls.length;
 
     await userEvent.click(screen.getByRole('tab', {name: /In Progress/}));
 
     expect(router.location.query.view).toBe('in_progress');
-    expect(router.location.query.statsPeriod).toBe('30d');
+    expect(router.location.query.activityStatsPeriod).toBe('30d');
     expect(
       screen.getByRole('button', {name: 'Autofix Activity 30D'})
     ).toBeInTheDocument();
     expect(statusPollRequest).toHaveBeenCalledTimes(requestsBeforeClick);
+  });
+
+  it('defaults to the last 7 days and ignores a globally pinned time window', async () => {
+    PageFiltersStore.onInitializeUrlState(
+      PageFiltersFixture({datetime: {period: '30d', start: null, end: null, utc: null}})
+    );
+    setPageFiltersStorage(organization.slug, new Set(['datetime']));
+    const {statusPollRequest} = mockOverview({
+      base: {autofix_root_cause: [rootCauseRun]},
+    });
+
+    renderPage();
+
+    expect(
+      await screen.findByRole('button', {name: 'Autofix Activity 7D'})
+    ).toBeInTheDocument();
+    expect(statusPollRequest).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/seer/autofix-overview/`,
+      expect.objectContaining({
+        query: expect.objectContaining({statsPeriod: '7d'}),
+      })
+    );
+  });
+
+  it('writes only the page-local param and leaves global page filters untouched', async () => {
+    mockOverview({base: {autofix_root_cause: [rootCauseRun]}});
+
+    const {router} = renderPage();
+
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Autofix Activity 7D'})
+    );
+    await userEvent.click(await screen.findByRole('option', {name: 'Last 24 hours'}));
+
+    await waitFor(() => expect(router.location.query.activityStatsPeriod).toBe('24h'));
+    expect(router.location.query.statsPeriod).not.toBe('24h');
+    expect(PageFiltersStore.getState().selection.datetime.period).not.toBe('24h');
+    expect(getPageFilterStorage(organization.slug).pinnedFilters.has('datetime')).toBe(
+      false
+    );
   });
 
   it('shows an empty state on the In Progress tab when nothing is processing', async () => {
@@ -673,13 +712,9 @@ describe('AutofixOverview', () => {
   });
 
   it('keeps a stale 90-day selection valid on the trigger', async () => {
-    PageFiltersStore.onInitializeUrlState(
-      PageFiltersFixture({datetime: {period: '90d', start: null, end: null, utc: null}})
-    );
-    setPageFiltersStorage(organization.slug, new Set(['datetime']));
     mockOverview({base: {}});
 
-    renderPage();
+    renderPage({activityStatsPeriod: '90d'});
 
     expect(
       await screen.findByRole('button', {name: 'Autofix Activity 90D'})
@@ -877,7 +912,7 @@ describe('AutofixOverview', () => {
     );
   });
 
-  it('scopes the request to the selected time window', async () => {
+  it('scopes the request to the page-local activity window', async () => {
     const {statusPollRequest} = mockOverview({
       base: {autofix_root_cause: [rootCauseRun]},
     });
@@ -885,7 +920,7 @@ describe('AutofixOverview', () => {
     render(<AutofixOverview />, {
       organization,
       initialRouterConfig: {
-        location: {pathname: basePath, query: {statsPeriod: '7d'}},
+        location: {pathname: basePath, query: {activityStatsPeriod: '24h'}},
       },
     });
 
@@ -895,7 +930,39 @@ describe('AutofixOverview', () => {
     expect(statusPollRequest).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/seer/autofix-overview/`,
       expect.objectContaining({
-        query: expect.objectContaining({statsPeriod: '7d'}),
+        query: expect.objectContaining({statsPeriod: '24h'}),
+      })
+    );
+  });
+
+  it('scopes the request to an absolute page-local activity window', async () => {
+    const {statusPollRequest} = mockOverview({
+      base: {autofix_root_cause: [rootCauseRun]},
+    });
+
+    render(<AutofixOverview />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: basePath,
+          query: {
+            activityStart: '2026-07-01T00:00:00',
+            activityEnd: '2026-07-08T00:00:00',
+          },
+        },
+      },
+    });
+
+    expect(
+      await screen.findByRole('link', {name: 'TypeError in checkout cart'})
+    ).toBeInTheDocument();
+    expect(statusPollRequest).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/seer/autofix-overview/`,
+      expect.objectContaining({
+        query: expect.objectContaining({
+          start: expect.stringContaining('2026-07-01T00:00:00'),
+          end: expect.stringContaining('2026-07-08T00:00:00'),
+        }),
       })
     );
   });
@@ -1274,14 +1341,12 @@ describe('AutofixOverview', () => {
       body: {runsByMilestone: emptyMilestones},
     });
 
-    renderPage();
+    const {router} = renderPage();
     expect(
       await screen.findByRole('link', {name: 'TypeError in checkout cart'})
     ).toBeInTheDocument();
 
-    act(() =>
-      PageFiltersStore.updateDateTime({period: '24h', start: null, end: null, utc: null})
-    );
+    router.navigate(`${basePath}?activityStatsPeriod=24h`);
 
     expect((await screen.findAllByTestId('loading-placeholder')).length).toBeGreaterThan(
       0

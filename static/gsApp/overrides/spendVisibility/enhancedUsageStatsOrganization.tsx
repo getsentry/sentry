@@ -37,7 +37,7 @@ import {withSubscription} from 'getsentry/components/withSubscription';
 import {type Subscription} from 'getsentry/types';
 import {SPIKE_PROTECTION_OPTION_DISABLED} from 'getsentry/views/spikeProtection/constants';
 import {SpikeProtectionRangeLimitation} from 'getsentry/views/spikeProtection/spikeProtectionCallouts';
-import SpikeProtectionHistoryTable from 'getsentry/views/spikeProtection/spikeProtectionHistoryTable';
+import {SpikeProtectionHistoryTable} from 'getsentry/views/spikeProtection/spikeProtectionHistoryTable';
 import SpikeProtectionUsageChart from 'getsentry/views/spikeProtection/spikeProtectionUsageChart';
 import type {
   Spike,

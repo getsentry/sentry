@@ -156,6 +156,7 @@ export default function CreateFromSeer() {
     return <CreateFromSeerLoading blocks={session?.blocks ?? []} seerRunId={seerRunId} />;
   }
 
+  // oxlint-disable-next-line react/refs
   const widgetErrors: WidgetError[] = dashboard.widgets.flatMap(widget => {
     if (widget.tempId === undefined) {
       return [];

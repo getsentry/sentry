@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 
 from snuba_sdk import Column, Condition, Limit, Op
 
+from sentry.exceptions import InvalidSearchQuery
 from sentry.incidents.utils.types import QuerySubscriptionUpdate
 from sentry.search.eap.utils import add_start_end_conditions
 from sentry.search.exceptions import InvalidIssueSearchQuery
@@ -135,6 +136,18 @@ def get_eap_aggregation_value(
         if len(rpc_response.result_timeseries):
             comparison_aggregate = rpc_response.result_timeseries[0].data_points[0].data
 
+    except InvalidSearchQuery:
+        # Queries with invalid search syntax are user configuration errors and
+        # are not unexpected. Log at info level to avoid noisy error alerts.
+        logger.info(
+            "EAP comparison query has an invalid search query",
+            extra={
+                "alert_rule_id": alert_rule_id,
+                "subscription_id": subscription_update.get("subscription_id"),
+                "organization_id": organization_id,
+            },
+        )
+        return None
     except Exception:
         logger.exception(
             "Failed to run RPC comparison query",

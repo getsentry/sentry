@@ -163,6 +163,7 @@ def devserver(
     sentry_sdk.init(
         dsn=os.environ.get("SENTRY_DEVSERVICES_DSN", ""),
         traces_sample_rate=1.0,
+        trace_lifecycle="stream",
     )
     with start_span(op="command", name="sentry.devserver", transaction=True):
         passed_options = {
@@ -312,7 +313,6 @@ def devserver(
 
             if settings.SENTRY_USE_METRICS_DEV and settings.SENTRY_USE_RELAY:
                 kafka_consumers.add("ingest-metrics")
-                kafka_consumers.add("ingest-generic-metrics")
 
             if settings.SENTRY_USE_UPTIME:
                 kafka_consumers.add("uptime-results")

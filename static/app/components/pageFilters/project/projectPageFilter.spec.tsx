@@ -161,8 +161,7 @@ describe('ProjectPageFilter', () => {
   });
 
   it('handles reset', async () => {
-    const onReset = jest.fn();
-    const {router} = render(<ProjectPageFilter onReset={onReset} />, {
+    const {router} = render(<ProjectPageFilter />, {
       organization,
       initialRouterConfig: {
         location: {pathname: '/organizations/org-slug/issues/', query: {}},
@@ -178,9 +177,7 @@ describe('ProjectPageFilter', () => {
     await userEvent.click(screen.getByRole('button', {name: 'project-1'}));
     await userEvent.click(screen.getByRole('button', {name: 'Reset'}));
 
-    // Trigger button was updated, onReset was called
     expect(screen.getByRole('button', {name: 'My Projects'})).toBeInTheDocument();
-    expect(onReset).toHaveBeenCalled();
   });
 
   it('responds to page filter changes, async e.g. from back button nav', async () => {
@@ -420,7 +417,7 @@ describe('ProjectPageFilter', () => {
       },
     });
 
-    await userEvent.click(screen.getByRole('button', {name: 'All Projects'}));
+    await userEvent.click(screen.getByRole('button', {name: 'No Projects'}));
 
     expect(
       screen.queryByRole('checkbox', {name: 'Select All Projects'})
@@ -590,7 +587,6 @@ describe('ProjectPageFilter', () => {
       memberCount: 52,
       nonMemberCount: 1,
       urlProjects: [] as number[],
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
       urlQuery: {} as Record<string, string>,
       triggerName: 'My Projects',
     },
@@ -810,6 +806,11 @@ describe('ProjectPageFilter', () => {
 
     // Open menu
     await userEvent.click(screen.getByRole('button', {name: 'selected-project'}));
+
+    // Let deferred autofocus finish before moving focus by hovering a row.
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('Search…')).toHaveFocus();
+    });
 
     // All projects are members so no special items are shown
     let projectRows = screen.getAllByRole('row');

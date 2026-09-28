@@ -17,7 +17,7 @@
 - `package.json`: Node.js dependencies and scripts
 - `rspack.config.ts`: Frontend build configuration
 - `tsconfig.json`: TypeScript configuration
-- `eslint.config.ts`: ESLint configuration
+- `oxlint.config.ts`: Oxlint configuration
 - `stylelint.config.js`: CSS/styling linting
 - **Components**: `static/app/components/{component}/`
 - **Views**: `static/app/views/{area}/{page}.tsx`
@@ -101,3 +101,15 @@ For worked examples of all of the above, use the **`design-system`** skill.
 ## React Testing
 
 Writing or editing frontend tests (`*.spec.tsx`, RTL, `MockApiClient`, routing/network tests) → use the **`react-testing`** skill for the full guide (query priority, no hook mocking, fixtures, async assertions, mocking network requests).
+
+## Sentry SDK Instrumentation
+
+Before inventing a key for `Sentry.setTag`/`setContext`, or a span's `setAttribute`, check whether OTel or Sentry already has a standard name for it in `@sentry/conventions`. Reuse existing names so the same attribute remains queryable across producers such as SDKs and Relay.
+
+Find attribute name constants in `@sentry/conventions/attributes/search`, where they are prefixed with `SEARCH_`. Use `span.setAttribute` to attach the value with the existing convention name:
+
+```tsx
+import {SEARCH_USER_AGENT__ORIGINAL} from '@sentry/conventions/attributes/search';
+
+span.setAttribute(SEARCH_USER_AGENT__ORIGINAL, navigator.userAgent);
+```

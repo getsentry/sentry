@@ -27,7 +27,10 @@ from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 logger = logging.getLogger(__name__)
 
 
-def migrate_debug_file(debug_file: ProjectDebugFile) -> None:
+def migrate_debug_file(
+    debug_file: ProjectDebugFile,
+    delete_corrupt: bool = False,
+) -> None:
     """Migrate one File-backed DIF, or drop the legacy File from a dual-written DIF."""
 
     def attempt() -> None:
@@ -39,7 +42,32 @@ def migrate_debug_file(debug_file: ProjectDebugFile) -> None:
             drop_legacy_file(debug_file.id, source_file_id=source_file_id)
             return
 
-        metadata = upload_and_verify(debug_file)
+        try:
+            metadata = upload_and_verify(debug_file)
+        except Project.DoesNotExist:
+            deleted = (
+                delete_corrupt_debug_file(debug_file.id, source_file_id=source_file_id)
+                if delete_corrupt
+                else False
+            )
+            logger.warning(
+                "debug_files.objectstore_migration.project_missing",
+                extra={
+                    "debug_file_id": debug_file.id,
+                    "project_id": debug_file.project_id,
+                    "file_id": source_file_id,
+                    "deleted": deleted,
+                },
+            )
+            return
+        except FilestoreIntegrityError as error:
+            _handle_filestore_integrity_error(
+                debug_file.id,
+                source_file_id=source_file_id,
+                error=error,
+                delete_corrupt=delete_corrupt,
+            )
+            return
         if metadata is None:
             return
         commit(debug_file.id, metadata, source_file_id=source_file_id)
@@ -85,6 +113,33 @@ class FilestoreIntegrityError(Exception):
             f"(checksum={checksum!r} expected={expected_checksum!r}, "
             f"size={size} expected={expected_size})"
         )
+
+
+def _handle_filestore_integrity_error(
+    dif_id: int,
+    source_file_id: int,
+    error: FilestoreIntegrityError,
+    delete_corrupt: bool,
+) -> None:
+    deleted = False
+    if delete_corrupt:
+        deleted = delete_corrupt_debug_file(
+            dif_id,
+            source_file_id=source_file_id,
+        )
+
+    logger.warning(
+        "debug_files.objectstore_migration.filestore_integrity_mismatch",
+        extra={
+            "debug_file_id": dif_id,
+            "file_id": source_file_id,
+            "checksum": error.checksum,
+            "expected_checksum": error.expected_checksum,
+            "size": error.size,
+            "expected_size": error.expected_size,
+            "deleted": deleted,
+        },
+    )
 
 
 def _sha1_stream(stream: IO[bytes]) -> tuple[str, int]:
@@ -181,6 +236,7 @@ def upload_and_verify(debug_file: ProjectDebugFile) -> PostMigrationMetadata | N
         Metadata to commit, or ``None`` to skip.
 
     Raises:
+        FilestoreIntegrityError: Downloaded filestore payload mismatch.
         ObjectstoreIntegrityError: Objectstore payload mismatch.
         Exception: I/O, network, or other failures during spool/upload/verify.
     """
@@ -188,11 +244,7 @@ def upload_and_verify(debug_file: ProjectDebugFile) -> PostMigrationMetadata | N
     if file is None:
         return None
 
-    try:
-        project = Project.objects.get_from_cache(id=debug_file.project_id)
-    except Project.DoesNotExist:
-        return None
-
+    project = Project.objects.get_from_cache(id=debug_file.project_id)
     session = get_session(UsecaseId.DEBUG_FILES, project)
 
     content_type = file.headers.get("Content-Type", "application/octet-stream")
@@ -217,25 +269,11 @@ def upload_and_verify(debug_file: ProjectDebugFile) -> PostMigrationMetadata | N
             extra={"debug_file_id": debug_file.id, "file_id": file.id},
         )
 
-    try:
-        tmp, local_checksum, local_size = _spool_and_validate_with_retry(
-            file,
-            expected_checksum=recorded_checksum,
-            expected_size=recorded_size,
-        )
-    except FilestoreIntegrityError as error:
-        logger.warning(
-            "debug_files.objectstore_migration.filestore_integrity_mismatch",
-            extra={
-                "debug_file_id": debug_file.id,
-                "file_id": file.id,
-                "checksum": error.checksum,
-                "expected_checksum": error.expected_checksum,
-                "size": error.size,
-                "expected_size": error.expected_size,
-            },
-        )
-        return None
+    tmp, local_checksum, local_size = _spool_and_validate_with_retry(
+        file,
+        expected_checksum=recorded_checksum,
+        expected_size=recorded_size,
+    )
 
     try:
         expected_checksum = recorded_checksum if recorded_checksum is not None else local_checksum
@@ -318,6 +356,22 @@ def drop_legacy_file(dif_id: int, *, source_file_id: int) -> None:
             return
 
         transaction.on_commit(lambda: try_cleanup_file(source_file_id), using=database)
+
+
+def delete_corrupt_debug_file(dif_id: int, *, source_file_id: int) -> bool:
+    """Delete a corrupt DIF and clean up its legacy File if it is unreferenced."""
+    database = router.db_for_write(ProjectDebugFile)
+    with atomic_transaction(using=database):
+        deleted, _ = ProjectDebugFile.objects.filter(
+            id=dif_id,
+            file_id=source_file_id,
+            storage_path__isnull=True,
+        ).delete()
+        if not deleted:
+            return False
+
+        transaction.on_commit(lambda: try_cleanup_file(source_file_id), using=database)
+        return True
 
 
 def try_cleanup_file(file_id: int | None) -> None:

@@ -74,29 +74,12 @@ describe('GcpSaGenerationStep', () => {
 });
 
 describe('GcpCustomerConfigStep', () => {
-  it('renders the config form with one empty project input', () => {
+  it('renders the config form', () => {
     render(<GcpCustomerConfigStep {...makeCustomerConfigStepProps({stepData: {}})} />);
 
     expect(screen.getByLabelText('Service Account Email')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('my-gcp-project')).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Add Project'})).toBeInTheDocument();
+    expect(screen.getByText('GCP Project IDs')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Continue'})).toBeInTheDocument();
-  });
-
-  it('adds and removes project inputs', async () => {
-    render(<GcpCustomerConfigStep {...makeCustomerConfigStepProps({stepData: {}})} />);
-
-    expect(screen.getAllByPlaceholderText('my-gcp-project')).toHaveLength(1);
-    expect(
-      screen.queryByRole('button', {name: 'Remove project'})
-    ).not.toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole('button', {name: 'Add Project'}));
-    expect(screen.getAllByPlaceholderText('my-gcp-project')).toHaveLength(2);
-    expect(screen.getAllByRole('button', {name: 'Remove project'})).toHaveLength(2);
-
-    await userEvent.click(screen.getAllByRole('button', {name: 'Remove project'})[0]!);
-    expect(screen.getAllByPlaceholderText('my-gcp-project')).toHaveLength(1);
   });
 
   it('calls advance with config on submit', async () => {
@@ -110,12 +93,9 @@ describe('GcpCustomerConfigStep', () => {
       'gcp-sentry@my-project.iam.gserviceaccount.com'
     );
 
-    const projectInputs = screen.getAllByPlaceholderText('my-gcp-project');
-    await userEvent.type(projectInputs[0]!, 'my-project-prod');
-
-    await userEvent.click(screen.getByRole('button', {name: 'Add Project'}));
-    const updatedInputs = screen.getAllByPlaceholderText('my-gcp-project');
-    await userEvent.type(updatedInputs[1]!, 'my-project-staging');
+    const projectIds = screen.getByRole('textbox', {name: 'GCP Project IDs'});
+    await userEvent.type(projectIds, 'my-project-prod{Enter}');
+    await userEvent.type(projectIds, 'my-project-staging{Enter}');
 
     await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
 
@@ -123,6 +103,50 @@ describe('GcpCustomerConfigStep', () => {
       expect(advance).toHaveBeenCalledWith({
         customerSaEmail: 'gcp-sentry@my-project.iam.gserviceaccount.com',
         projects: ['my-project-prod', 'my-project-staging'],
+      });
+    });
+  });
+
+  it('shows an error for an invalid project ID', async () => {
+    render(<GcpCustomerConfigStep {...makeCustomerConfigStepProps({stepData: {}})} />);
+
+    await userEvent.type(
+      screen.getByLabelText('Service Account Email'),
+      'gcp-sentry@my-project.iam.gserviceaccount.com'
+    );
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'GCP Project IDs'}),
+      'INVALID{Enter}'
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
+
+    expect(
+      await screen.findByText(
+        'Project IDs must be 6-30 characters using lowercase letters, digits, and hyphens, and must start with a letter.'
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('accepts a project ID pasted with surrounding whitespace', async () => {
+    const advance = jest.fn();
+    render(
+      <GcpCustomerConfigStep {...makeCustomerConfigStepProps({stepData: {}, advance})} />
+    );
+
+    await userEvent.type(
+      screen.getByLabelText('Service Account Email'),
+      'gcp-sentry@my-project.iam.gserviceaccount.com'
+    );
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'GCP Project IDs'}),
+      'my-project-prod {Enter}'
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
+
+    await waitFor(() => {
+      expect(advance).toHaveBeenCalledWith({
+        customerSaEmail: 'gcp-sentry@my-project.iam.gserviceaccount.com',
+        projects: ['my-project-prod'],
       });
     });
   });
@@ -181,7 +205,7 @@ describe('GcpVerificationStep', () => {
       {
         gcpProjectId: 'my-project-prod',
         connectionStatus: 'permission_denied',
-        errorDetail: 'Cloud Trace: IAM roles not granted',
+        errorDetail: null,
         services: [
           {service: 'logging', status: 'connected'},
           {
@@ -256,6 +280,7 @@ describe('GcpVerificationStep', () => {
           gcpProjectId: 'my-project-prod',
           connectionStatus: 'connected',
           errorDetail: null,
+          services: connectedResponse.projects[0]!.services,
         },
       ],
     });
@@ -296,9 +321,9 @@ describe('GcpVerificationStep', () => {
     render(<GcpVerificationStep {...makeVerificationStepProps({stepData})} />);
 
     expect(await screen.findByText('Permission denied')).toBeInTheDocument();
-    expect(screen.getByText('Cloud Trace: IAM roles not granted')).toBeInTheDocument();
+    expect(screen.getByText('IAM roles not granted')).toBeInTheDocument();
     // Services that passed are not listed.
-    expect(screen.queryByText(/^Cloud Logging:/)).not.toBeInTheDocument();
+    expect(screen.queryByText('Cloud Logging')).not.toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Continue Anyway'})).toBeEnabled();
   });
 
@@ -320,13 +345,14 @@ describe('GcpVerificationStep', () => {
         {
           gcpProjectId: 'my-project-prod',
           connectionStatus: 'permission_denied',
-          errorDetail: 'Cloud Trace: IAM roles not granted',
+          errorDetail: null,
+          services: deniedResponse.projects[0]!.services,
         },
       ],
     });
   });
 
-  it('forwards a project detail with no failing services of its own', async () => {
+  it('forwards a shared authentication failure without repeating its explanation', async () => {
     MockApiClient.addMockResponse({
       url: VERIFY_URL,
       method: 'POST',
@@ -353,6 +379,7 @@ describe('GcpVerificationStep', () => {
 
     render(<GcpVerificationStep {...makeVerificationStepProps({stepData, advance})} />);
 
+    expect(await screen.findAllByText('SA impersonation chain failed')).toHaveLength(1);
     await userEvent.click(await screen.findByRole('button', {name: 'Continue Anyway'}));
 
     expect(advance).toHaveBeenCalledWith({
@@ -362,6 +389,13 @@ describe('GcpVerificationStep', () => {
           gcpProjectId: 'my-project-prod',
           connectionStatus: 'permission_denied',
           errorDetail: 'SA impersonation chain failed',
+          services: [
+            {
+              service: 'logging',
+              status: 'permission_denied',
+              errorDetail: 'SA impersonation chain failed',
+            },
+          ],
         },
       ],
     });
@@ -408,6 +442,39 @@ describe('GcpVerificationStep', () => {
         {
           gcpProjectId: 'my-project-prod',
           connectionStatus: 'error',
+          errorDetail: 'Verification could not be completed.',
+          services: [],
+        },
+      ],
+    });
+  });
+
+  it('does not reuse an earlier successful result after a failed re-test request', async () => {
+    MockApiClient.addMockResponse({
+      url: VERIFY_URL,
+      method: 'POST',
+      body: connectedResponse,
+    });
+    const advance = jest.fn();
+    render(<GcpVerificationStep {...makeVerificationStepProps({stepData, advance})} />);
+    expect(await screen.findByText('Connected')).toBeInTheDocument();
+
+    MockApiClient.addMockResponse({url: VERIFY_URL, method: 'POST', statusCode: 502});
+    await userEvent.click(screen.getByRole('button', {name: 'Re-test'}));
+    expect(
+      await screen.findByText(
+        'We could not complete the connection test. You can finish setup and re-test from the integration settings page.'
+      )
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Connected')).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Continue Anyway'}));
+    expect(advance).toHaveBeenCalledWith({
+      connectionStatus: 'error',
+      projects: [
+        {
+          gcpProjectId: 'my-project-prod',
+          connectionStatus: 'error',
+          services: [],
           errorDetail: 'Verification could not be completed.',
         },
       ],

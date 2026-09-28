@@ -56,7 +56,6 @@ from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
-from sentry.models.project import Project
 from sentry.search.utils import parse_user_value
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.dates import ensure_aware
@@ -75,8 +74,9 @@ from sentry.workflow_engine.endpoints.validators.detector_workflow_mutation impo
     DetectorWorkflowMutationValidator,
 )
 from sentry.workflow_engine.endpoints.validators.utils import (
-    is_workflow_connected_to_all_projects_detector,
+    enforce_workflow_access,
     should_include_all_projects_detector_workflows,
+    should_include_all_projects_detector_workflows_or_raise,
 )
 from sentry.workflow_engine.models import DetectorWorkflow, Workflow
 from sentry.workflow_engine.models.workflow_fire_history import WorkflowFireHistory
@@ -109,7 +109,7 @@ class OrganizationWorkflowPermission(OrganizationPermission):
     scope_map = {
         "GET": ["org:read", "org:write", "org:admin", "alerts:read"],
         "POST": ["org:read", "org:write", "org:admin", "alerts:write"],
-        "PUT": ["org:write", "org:admin", "alerts:write"],
+        "PUT": ["org:read", "org:write", "org:admin", "alerts:write"],
         "DELETE": ["org:read", "org:write", "org:admin", "alerts:write"],
     }
 
@@ -129,27 +129,7 @@ class OrganizationWorkflowEndpoint(OrganizationEndpoint):
         except Workflow.DoesNotExist:
             raise ResourceDoesNotExist
 
-        # Check project access for workflows connected to detectors.
-        # User must have access to at least one connected project.
-        # Workflows with no detector connections are org-level and accessible
-        # to anyone with org-level workflow permissions.
-        workflow = kwargs["workflow"]
-        organization = kwargs["organization"]
-        if is_workflow_connected_to_all_projects_detector(workflow):
-            if not should_include_all_projects_detector_workflows(request, organization):
-                raise PermissionDenied
-            return args, kwargs
-
-        connected_projects = Project.objects.filter(
-            detector__detectorworkflow__workflow=workflow
-        ).distinct()
-
-        if connected_projects.exists():
-            has_access = any(
-                request.access.has_project_access(project) for project in connected_projects
-            )
-            if not has_access:
-                raise PermissionDenied
+        enforce_workflow_access(kwargs["workflow"], kwargs["organization"], request)
 
         return args, kwargs
 
@@ -253,6 +233,38 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         queryset = queryset.filter(accessible_workflows).distinct()
 
         return queryset
+
+    def _get_workflows_for_mutation(
+        self, request: Request, organization: Organization
+    ) -> tuple[QuerySet[Workflow], list[Workflow]]:
+        """Return the complete set of workflows that the request is allowed to mutate."""
+        queryset = self.filter_workflows(request, organization)
+        workflows = list(queryset)
+
+        if raw_idlist := request.GET.getlist("id"):
+            requested_ids = set(to_valid_int_id_list("id", raw_idlist))
+            missing_workflow_ids = requested_ids - {workflow.id for workflow in workflows}
+            if missing_workflow_ids:
+                all_projects_detector = get_all_projects_detector(organization.id)
+                if (
+                    all_projects_detector
+                    and DetectorWorkflow.objects.filter(
+                        detector_id=all_projects_detector.id,
+                        workflow_id__in=missing_workflow_ids,
+                    ).exists()
+                ):
+                    should_include_all_projects_detector_workflows_or_raise(request, organization)
+                if not workflows:
+                    return queryset, workflows
+                raise PermissionDenied
+
+        if not workflows:
+            return queryset, workflows
+
+        if not can_edit_workflows(workflows, request):
+            raise PermissionDenied
+
+        return queryset, workflows
 
     @extend_schema(
         operation_id="listOrganizationWorkflows",
@@ -418,8 +430,9 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         """
         Bulk enable or disable alerts for a given Organization
         """
+        raw_idlist = request.GET.getlist("id")
         if not (
-            request.GET.getlist("id")
+            raw_idlist
             or request.GET.get("query")
             or request.GET.getlist("project")
             or request.GET.getlist("projectSlug")
@@ -435,9 +448,9 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         validator.is_valid(raise_exception=True)
         enabled = validator.validated_data["enabled"]
 
-        queryset = self.filter_workflows(request, organization)
+        queryset, workflows = self._get_workflows_for_mutation(request, organization)
 
-        if not queryset:
+        if not workflows:
             return Response(
                 {"detail": "No workflows found."},
                 status=status.HTTP_200_OK,
@@ -445,7 +458,7 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
 
         with transaction.atomic(router.db_for_write(Workflow)):
             # We update workflows individually to ensure post_save signals are called
-            for workflow in queryset:
+            for workflow in workflows:
                 workflow.update(enabled=enabled)
 
         return self.paginate(
@@ -494,22 +507,13 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        queryset = self.filter_workflows(request, organization)
-        workflows = list(queryset)
+        _, workflows = self._get_workflows_for_mutation(request, organization)
 
         if not workflows:
             return Response(
                 {"detail": "No workflows found."},
                 status=status.HTTP_200_OK,
             )
-
-        if raw_idlist:
-            requested_ids = set(to_valid_int_id_list("id", raw_idlist))
-            if requested_ids != {workflow.id for workflow in workflows}:
-                raise PermissionDenied
-
-        if not can_edit_workflows(workflows, request):
-            raise PermissionDenied
 
         for workflow in workflows:
             with transaction.atomic(router.db_for_write(Workflow)):

@@ -9,7 +9,8 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import type {Config} from 'sentry/types/system';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 
-import {renderEmbed} from './resourceEmbedTestUtils';
+import {Dashboard} from './dashboard';
+import {renderEmbed, renderEmbedMarkdown} from './resourceEmbedTestUtils';
 
 describe('dashboard embed', () => {
   let initialConfig: Config;
@@ -88,9 +89,14 @@ describe('dashboard embed', () => {
       data: {id: '123'},
     });
 
+    // The block's name is the collapse toggle; the link out is a separate target.
     expect(
-      await screen.findByRole('link', {name: 'Application health'}, {timeout: 5_000})
+      await screen.findByRole('button', {name: 'Application health'}, {timeout: 5_000})
     ).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'View Dashboard'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/dashboard/123/'
+    );
     expect(screen.getByText('Errors')).toBeInTheDocument();
     expect(screen.getByText('Latency')).toBeInTheDocument();
     expect(screen.getByText('Users')).toBeInTheDocument();
@@ -178,6 +184,25 @@ describe('dashboard embed', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Unable to load dashboard details.'
+    );
+  });
+});
+
+describe('dashboard embed at the markdown level', () => {
+  it('serializes to a markdown link carrying the same destination', () => {
+    expect(
+      renderEmbedMarkdown(Dashboard, 'dashboard', {
+        id: '123',
+        title: 'Application health',
+      })
+    ).toBe(
+      `[Application health](${window.location.origin}/organizations/org-slug/dashboard/123/)`
+    );
+  });
+
+  it('uses the same fallback label the rendered link uses', () => {
+    expect(renderEmbedMarkdown(Dashboard, 'dashboard', {id: '456'})).toBe(
+      `[Dashboard 456](${window.location.origin}/organizations/org-slug/dashboard/456/)`
     );
   });
 });

@@ -5,6 +5,7 @@ import {useQuery} from '@tanstack/react-query';
 import type {LocationDescriptor} from 'history';
 
 import {Button} from '@sentry/scraps/button';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Pagination} from '@sentry/scraps/pagination';
@@ -16,7 +17,6 @@ import {
 } from 'sentry/actionCreators/group';
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {DeviceName} from 'sentry/components/deviceName';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {getContextIcon} from 'sentry/components/events/contexts/utils';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -36,7 +36,6 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
-import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 import {TagBar} from 'sentry/views/issueDetails/groupTags/tagDistribution';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/hooks/useIssueDetailsDiscoverQuery';
 import {getUserTagValue} from 'sentry/views/issueDetails/utils';
@@ -310,9 +309,7 @@ function TagValueActionsMenu({
       items={[
         {
           key: 'open-in-discover',
-          label: getDiscoverDeprecation(organization)
-            ? t('Open in Explore')
-            : t('Open in Discover'),
+          label: t('Open in Explore'),
           to: eventView.getResultsViewUrlTarget(
             organization,
             false,

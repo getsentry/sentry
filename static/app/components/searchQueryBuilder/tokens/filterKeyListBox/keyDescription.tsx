@@ -4,7 +4,12 @@ import {useSearchQueryBuilderConfig} from 'sentry/components/searchQueryBuilder/
 import {getKeyLabel} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/utils';
 import {t} from 'sentry/locale';
 import type {Tag} from 'sentry/types/group';
-import {FieldKind, FieldValueType, type FieldDefinition} from 'sentry/utils/fields';
+import {
+  DEFAULT_TAG_DESCRIPTION,
+  FieldKind,
+  FieldValueType,
+  type FieldDefinition,
+} from 'sentry/utils/fields';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 type KeyDescriptionProps = {
@@ -45,7 +50,7 @@ export function KeyDescription({size = 'sm', tag}: KeyDescriptionProps) {
   const description =
     fieldDefinition?.desc ??
     (tag.kind === FieldKind.TAG
-      ? t('A tag sent with one or more events')
+      ? DEFAULT_TAG_DESCRIPTION
       : tag.kind === FieldKind.FEATURE_FLAG
         ? t('A feature flag evaluated before an error event')
         : null);

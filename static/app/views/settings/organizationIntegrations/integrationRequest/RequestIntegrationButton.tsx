@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/filename-case */
 import {useState} from 'react';
 import styled from '@emotion/styled';
 

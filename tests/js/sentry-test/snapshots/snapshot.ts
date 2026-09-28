@@ -190,7 +190,7 @@ export async function takeSnapshot({
     if (viewportLabel) {
       autoTags.viewport = viewportLabel;
     }
-    const tags = {...autoTags, ...metadata.tags};
+    const tags = {...metadata.tags, ...autoTags};
 
     const meta: SnapshotImageMetadata = {
       display_name: metadata.display_name ?? displayName,

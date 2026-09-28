@@ -151,7 +151,6 @@ export function LogsTimestampTooltip({
         </div>
       }
       maxWidth={400}
-      isHoverable
     >
       {children}
     </Tooltip>

@@ -19,17 +19,15 @@ import {DiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import type {EventView} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {isAggregateField, parseFunction} from 'sentry/utils/discover/fields';
-import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {getFieldDefinition} from 'sentry/utils/fields';
 import {TrendsEventsDiscoverQuery} from 'sentry/utils/performance/trends/trendsDiscoverQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import type {Actions} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
-import {decodeColumnOrder, getDiscoverDeprecation} from 'sentry/views/discover/utils';
+import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import type {DomainView, DomainViewFilters} from 'sentry/views/insights/pages/useFilters';
@@ -43,6 +41,7 @@ import type {TrendChangeType, TrendView} from 'sentry/views/performance/trends/t
 import {TransactionsTable} from './transactionsTable';
 
 const DEFAULT_TRANSACTION_LIMIT = 5;
+const TRANSACTION_CURSOR_NAME = 'transactionCursor';
 
 /**
  * Normalize an aggregate yAxis so it carries an explicit column argument where
@@ -127,19 +126,11 @@ export type DropdownOption = {
 };
 
 type Props = {
-  /**
-   * The name of the url parameter that contains the cursor info.
-   */
-  cursorName: string;
   eventView: EventView;
   /**
    * The callback for when the dropdown option changes.
    */
   handleDropdownChange: (k: string) => void;
-  /**
-   * The limit to the number of results to fetch.
-   */
-  limit: number;
   location: Location;
   navigate: ReactRouter3Navigate;
   /**
@@ -302,16 +293,11 @@ function TableRender({
 }
 
 class _TransactionsList extends Component<Props> {
-  static defaultProps = {
-    cursorName: 'transactionCursor',
-    limit: DEFAULT_TRANSACTION_LIMIT,
-  };
-
   handleCursor: CursorHandler = (cursor, pathname, query) => {
-    const {cursorName, navigate} = this.props;
+    const {navigate} = this.props;
     navigate({
       pathname,
-      query: {...query, [cursorName]: cursor},
+      query: {...query, [TRANSACTION_CURSOR_NAME]: cursor},
     });
   };
 
@@ -395,23 +381,11 @@ class _TransactionsList extends Component<Props> {
             <GuideAnchor target="release_transactions_open_in_discover">
               <DiscoverButton
                 onClick={handleOpenInDiscoverClick}
-                to={
-                  getDiscoverDeprecation(organization)
-                    ? getExploreTarget(this.generateDiscoverEventView(), organization)
-                    : this.generateDiscoverEventView().getResultsViewUrlTarget(
-                        organization,
-                        false,
-                        hasDatasetSelector(organization)
-                          ? SavedQueryDatasets.TRANSACTIONS
-                          : undefined
-                      )
-                }
+                to={getExploreTarget(this.generateDiscoverEventView(), organization)}
                 size="xs"
                 data-test-id="discover-open"
               >
-                {getDiscoverDeprecation(organization)
-                  ? t('Open in Explore')
-                  : t('Open in Discover')}
+                {t('Open in Explore')}
               </DiscoverButton>
             </GuideAnchor>
           ))}
@@ -424,8 +398,6 @@ class _TransactionsList extends Component<Props> {
       location,
       organization,
       handleCellAction,
-      cursorName,
-      limit,
       titles,
       generateLink,
       forceLoading,
@@ -435,7 +407,7 @@ class _TransactionsList extends Component<Props> {
 
     const eventView = this.getEventView();
     const columnOrder = eventView.getColumns();
-    const cursor = decodeScalar(location.query?.[cursorName]);
+    const cursor = decodeScalar(location.query?.[TRANSACTION_CURSOR_NAME]);
     const tableCommonProps: Omit<
       TableRenderProps,
       'isLoading' | 'pageLinks' | 'tableData' | 'header'
@@ -470,7 +442,7 @@ class _TransactionsList extends Component<Props> {
         location={location}
         eventView={eventView}
         orgSlug={organization.slug}
-        limit={limit}
+        limit={DEFAULT_TRANSACTION_LIMIT}
         cursor={cursor}
         referrer="api.discover.transactions-list"
       >
@@ -488,15 +460,8 @@ class _TransactionsList extends Component<Props> {
   }
 
   renderTrendsTable(): React.ReactNode {
-    const {
-      trendView,
-      location,
-      selected,
-      organization,
-      cursorName,
-      generateLink,
-      domainViewFilters,
-    } = this.props;
+    const {trendView, location, selected, organization, generateLink, domainViewFilters} =
+      this.props;
 
     const sortedEventView: TrendView = trendView!.clone();
     sortedEventView.sorts = [selected.sort];
@@ -506,7 +471,7 @@ class _TransactionsList extends Component<Props> {
       selected.query.forEach(item => query.setFilterValues(item[0], [item[1]]));
       sortedEventView.query = query.formatString();
     }
-    const cursor = decodeScalar(location.query?.[cursorName]);
+    const cursor = decodeScalar(location.query?.[TRANSACTION_CURSOR_NAME]);
 
     return (
       <TrendsEventsDiscoverQuery
@@ -555,12 +520,7 @@ class _TransactionsList extends Component<Props> {
   }
 }
 
-export function TransactionsList(
-  props: Omit<Props, 'cursorName' | 'limit' | 'navigate'> & {
-    cursorName?: Props['cursorName'];
-    limit?: Props['limit'];
-  }
-) {
+export function TransactionsList(props: Omit<Props, 'navigate'>) {
   const navigate = useNavigate();
   return <_TransactionsList {...props} navigate={navigate} />;
 }

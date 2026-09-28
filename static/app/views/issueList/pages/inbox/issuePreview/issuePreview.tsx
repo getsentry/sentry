@@ -23,9 +23,11 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForGroup, getMessage, getTitle} from 'sentry/utils/events';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {useNewIssuePriorityAndAssigneeUI} from 'sentry/utils/useNewIssuePriorityAndAssigneeUI';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {ActivitySection} from 'sentry/views/issueDetails/activitySection';
+import {makeSeerLocation} from 'sentry/views/issueDetails/autofix/utils';
 import {IssueDetailsContextProvider, SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 import {
@@ -158,6 +160,7 @@ function IssuePreviewContent() {
     ReprocessingStatus.REPROCESSING,
     ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT,
   ].includes(getGroupReprocessingStatus(group));
+  const shouldUseNewUI = useNewIssuePriorityAndAssigneeUI();
 
   const issueDetailsUrl = normalizeUrl(
     `/organizations/${organization.slug}/issues/${group.id}/`
@@ -166,15 +169,15 @@ function IssuePreviewContent() {
     pathname: issueDetailsUrl,
     query: {referrer: 'inbox'},
   };
-  function openSeerDrawer(seerDrawerAction?: string) {
-    navigate({
-      pathname: issueDetailsUrl,
-      query: {
-        ...issueDetailsLocation.query,
-        seerDrawer: 'true',
-        seerDrawerAction,
-      },
-    });
+  function openSeer(action?: string) {
+    navigate(
+      makeSeerLocation({
+        organization,
+        groupId: group.id,
+        action,
+        query: issueDetailsLocation.query,
+      })
+    );
   }
 
   return (
@@ -184,13 +187,7 @@ function IssuePreviewContent() {
           <Container>
             <Flex align="center" justify="between" gap="md">
               <Flex align="center" gap="md" minWidth={0}>
-                <Tooltip
-                  title={primaryTitle}
-                  skipWrapper
-                  isHoverable
-                  showOnlyOnOverflow
-                  delay={1000}
-                >
+                <Tooltip title={primaryTitle} skipWrapper showOnlyOnOverflow delay={1000}>
                   <TitleLink
                     to={issueDetailsLocation}
                     analyticsEventKey="issue_inbox.open_issue_clicked"
@@ -243,10 +240,10 @@ function IssuePreviewContent() {
           group={group}
           project={project}
           disabled={disableActions}
-          onContinueInSeer={() => openSeerDrawer()}
-          onRetryCodeChanges={() => openSeerDrawer('retry_code_changes')}
+          onContinueInSeer={() => openSeer()}
+          onRetryCodeChanges={() => openSeer('retry_code_changes')}
         />
-        <Flex align="center" wrap="wrap" gap="lg">
+        <Flex align="center" wrap="wrap" gap={shouldUseNewUI ? 'md' : 'lg'}>
           <GroupPriority group={group} />
           <GroupHeaderAssigneeSelector
             group={group}
@@ -265,7 +262,11 @@ function IssuePreviewContent() {
             <IssuePreviewSection aria-label={t('Pull Requests')} defaultExpanded>
               <IssuePreviewSection.Title>{t('Pull Requests')}</IssuePreviewSection.Title>
               <IssuePreviewSection.Content>
-                <LinkedPullRequests group={group} showEmptyState={false} />
+                <LinkedPullRequests
+                  collapseBeforeLatestRegression
+                  group={group}
+                  showEmptyState={false}
+                />
               </IssuePreviewSection.Content>
             </IssuePreviewSection>
           ) : null}

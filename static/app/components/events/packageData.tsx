@@ -2,9 +2,10 @@ import {useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
-import {KeyValueData} from 'sentry/components/keyValueData';
+import {KeyValueTableDataRow} from 'sentry/components/tables/keyValueTable';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
+import {splitIntoColumns} from 'sentry/utils/array/splitIntoColumns';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
@@ -41,22 +42,12 @@ export function EventPackageData({event}: Props) {
   }
 
   const componentItems = packages.map((item, i) => (
-    <KeyValueData.Content
+    <KeyValueTableDataRow
       key={`content-card-${item.key}-${i}`}
       item={item}
       meta={item.meta}
     />
   ));
-
-  const columns: React.ReactNode[] = [];
-  const columnSize = Math.ceil(componentItems.length / columnCount);
-  for (let i = 0; i < componentItems.length; i += columnSize) {
-    columns.push(
-      <Column key={`highlight-column-${i}`}>
-        {componentItems.slice(i, i + columnSize)}
-      </Column>
-    );
-  }
 
   return (
     <FoldSection
@@ -65,7 +56,11 @@ export function EventPackageData({event}: Props) {
       ref={containerRef}
       initialCollapse
     >
-      <ColumnsContainer columnCount={columnCount}>{columns}</ColumnsContainer>
+      <ColumnsContainer columnCount={columnCount}>
+        {splitIntoColumns(componentItems, columnCount).map((column, i) => (
+          <Column key={`highlight-column-${i}`}>{column}</Column>
+        ))}
+      </ColumnsContainer>
     </FoldSection>
   );
 }

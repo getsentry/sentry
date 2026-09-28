@@ -519,16 +519,16 @@ describe('MetricPanel', () => {
     });
     const traceMetaMock = MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/organizations/${organization.slug}/events-trace-meta/${row.trace}/`,
+      url: `/organizations/${organization.slug}/trace-meta/${row.trace}/`,
       match: [MockApiClient.matchData({timestamp})],
       body: {
-        errors: 1,
-        performance_issues: 0,
-        projects: 1,
-        transactions: 1,
-        transaction_child_count_map: [],
-        span_count: 2,
-        span_count_map: {},
+        errorsCount: 1,
+        logsCount: 0,
+        metricsCount: 0,
+        performanceIssuesCount: 0,
+        spansCount: 2,
+        spansCountMap: {},
+        uptimeCount: 0,
       },
     });
 
@@ -551,6 +551,99 @@ describe('MetricPanel', () => {
     ).toBeInTheDocument();
   });
 
+  it.each(['metricsPage', 'traceWaterfall', 'issueDetails'] as const)(
+    'forwards the samples response hint in %s',
+    async source => {
+      const {detailedFixtures} = createTraceMetricFixtures(
+        organization,
+        project,
+        new Date()
+      );
+      const row = detailedFixtures[0]!;
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events/`,
+        match: [MockApiClient.matchQuery({referrer: 'api.explore.metric-samples-table'})],
+        body: {
+          data: [row],
+          meta: {fields: {}, units: {}, routingHint: 'metric-hint'},
+        },
+      });
+      const details = MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/trace-items/${row.id}/`,
+        body: {
+          itemId: row.id,
+          meta: {},
+          timestamp: row.timestamp,
+          attributes: [{name: 'custom.attribute', type: 'str', value: 'sample detail'}],
+        },
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/trace-meta/${row.trace}/`,
+        body: {errorsCount: 0, logsCount: 0, metricsCount: 1, spansCount: 0},
+      });
+
+      render(<MetricsSamplesTable source={source} traceMetric={traceMetric} />, {
+        organization,
+        additionalWrapper: createWrapper({queryParams, traceMetric}),
+      });
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Toggle trace details'})
+      );
+      expect(await screen.findByText('sample detail')).toBeInTheDocument();
+      expect(details.mock.calls[0]![1].query).toMatchObject({
+        item_type: 'tracemetrics',
+        timestamp: new Date(row.timestamp).getTime() / 1000,
+        routing_hint: 'metric-hint',
+      });
+    }
+  );
+
+  it.each([undefined, 'override-hint'])(
+    'uses only the override rows hint (%s), even when another samples query has metadata',
+    async routingHint => {
+      const {detailedFixtures} = createTraceMetricFixtures(
+        organization,
+        project,
+        new Date()
+      );
+      const row = detailedFixtures[0]!;
+      const events = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events/`,
+        match: [MockApiClient.matchQuery({referrer: 'api.explore.metric-samples-table'})],
+        body: {data: [row], meta: {fields: {}, units: {}, routingHint: 'unrelated-hint'}},
+      });
+      const details = MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/trace-items/${row.id}/`,
+        body: {
+          itemId: row.id,
+          meta: {},
+          timestamp: row.timestamp,
+          attributes: [{name: 'custom.attribute', type: 'str', value: 'override detail'}],
+        },
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/trace-meta/${row.trace}/`,
+        body: {errorsCount: 0, logsCount: 0, metricsCount: 1, spansCount: 0},
+      });
+      render(
+        <MetricsSamplesTable
+          traceMetric={traceMetric}
+          overrideTableData={[row]}
+          overrideTableRoutingHint={routingHint}
+        />,
+        {organization, additionalWrapper: createWrapper({queryParams, traceMetric})}
+      );
+      await waitFor(() => expect(events).toHaveBeenCalled());
+      await userEvent.click(screen.getByRole('button', {name: 'Toggle trace details'}));
+      expect(await screen.findByText('override detail')).toBeInTheDocument();
+      if (routingHint) {
+        expect(details.mock.calls[0]![1].query.routing_hint).toBe(routingHint);
+      } else {
+        expect(details.mock.calls[0]![1].query).not.toHaveProperty('routing_hint');
+      }
+    }
+  );
+
   it('shows an error state when expanded sample trace meta fails to load', async () => {
     const metricFixtures = createTraceMetricFixtures(
       organization,
@@ -561,7 +654,7 @@ describe('MetricPanel', () => {
     const timestamp = new Date(row.timestamp).getTime() / 1000;
     const traceMetaMock = MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/organizations/${organization.slug}/events-trace-meta/${row.trace}/`,
+      url: `/organizations/${organization.slug}/trace-meta/${row.trace}/`,
       match: [MockApiClient.matchData({timestamp})],
       statusCode: 500,
       body: {detail: 'Internal Server Error'},

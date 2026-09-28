@@ -101,6 +101,7 @@ const useActiveThreadState = (
   const [activeThread, setActiveThread] = useState<Thread | undefined>(() => bestThread);
 
   useEffect(() => {
+    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
     setActiveThread(bestThread);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [event.id]);
@@ -194,31 +195,23 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
     ? getIntendedStackView(activeThread, exception)
     : undefined;
 
-  function renderPills() {
-    const {
-      id,
-      name,
-      current,
-      crashed,
-      state: threadState,
-      heldLocks,
-    } = activeThread ?? {};
-
-    if (id === null || id === undefined || !name) {
-      return null;
-    }
-
-    const threadStateDisplay = getMappedThreadState(threadState);
-    const lockReason = getLockReason(heldLocks);
-
-    return (
+  const {id: activeThreadId, name: activeThreadName} = activeThread ?? {};
+  const hideThreadTags = activeThreadId === undefined || !activeThreadName;
+  const threadStateDisplay = getMappedThreadState(activeThread?.state);
+  const lockReason = getLockReason(activeThread?.heldLocks);
+  const threadPills =
+    activeThreadId === null ||
+    activeThreadId === undefined ||
+    !activeThreadName ? null : (
       <Pills>
-        <Pill name={t('id')} value={id} />
-        {!!name?.trim() && <Pill name={t('name')} value={name} />}
-        {current !== undefined && <Pill name={t('was active')} value={current} />}
-        {crashed !== undefined && (
-          <Pill name={t('errored')} className={crashed ? 'false' : 'true'}>
-            {crashed ? t('yes') : t('no')}
+        <Pill name={t('id')} value={activeThreadId} />
+        {!!activeThreadName?.trim() && <Pill name={t('name')} value={activeThreadName} />}
+        {activeThread?.current !== undefined && (
+          <Pill name={t('was active')} value={activeThread.current} />
+        )}
+        {activeThread?.crashed !== undefined && (
+          <Pill name={t('errored')} className={activeThread.crashed ? 'false' : 'true'}>
+            {activeThread.crashed ? t('yes') : t('no')}
           </Pill>
         )}
         {threadStateDisplay !== undefined && (
@@ -227,13 +220,8 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
         {defined(lockReason) && <Pill name={t('lock reason')} value={lockReason} />}
       </Pills>
     );
-  }
 
   const platform = inferPlatform(event, activeThread);
-  const threadStateDisplay = getMappedThreadState(activeThread?.state);
-
-  const {id: activeThreadId, name: activeThreadName} = activeThread ?? {};
-  const hideThreadTags = activeThreadId === undefined || !activeThreadName;
 
   function handleChangeThread(direction: 'previous' | 'next') {
     const currentIndex = threads.findIndex((thread: any) => thread.id === activeThreadId);
@@ -307,7 +295,7 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
                       skipWrapper
                     />
                   )}
-                  <LockReason>{getLockReason(activeThread?.heldLocks)}</LockReason>
+                  <LockReason>{lockReason}</LockReason>
                 </Flex>
               </TheadStateContainer>
             )}
@@ -315,7 +303,7 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
           {!hideThreadTags && (
             <div>
               <ThreadHeading>{t('Thread Tags')}</ThreadHeading>
-              {renderPills()}
+              {threadPills}
             </div>
           )}
         </Fragment>

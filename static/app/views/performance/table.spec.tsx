@@ -32,7 +32,10 @@ function WrappedComponent({data, ...rest}: any) {
       <MEPSettingProvider>
         <Table
           organization={data.organization}
-          location={LocationFixture({...data.initialRouterConfig.location})}
+          location={
+            // oxlint-disable-next-line react/capitalized-calls -- Test fixture factory, not a component.
+            LocationFixture({...data.initialRouterConfig.location})
+          }
           setError={jest.fn()}
           summaryConditions=""
           {...data}

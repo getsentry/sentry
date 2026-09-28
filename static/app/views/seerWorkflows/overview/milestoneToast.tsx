@@ -104,8 +104,7 @@ function showMilestoneAdvanceToast(
   organization: Organization
 ) {
   addSuccessMessage(
-    <MilestoneToast run={advance.run} toMilestone={advance.toMilestone} />,
-    {disableDismiss: true}
+    <MilestoneToast run={advance.run} toMilestone={advance.toMilestone} />
   );
   trackAnalytics('autofix.overview.milestone_advanced', {
     organization,

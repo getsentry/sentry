@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 
 import {Badge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
+import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex, Grid} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -13,8 +15,6 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {Card} from 'sentry/components/card';
 import {openConfirmModal} from 'sentry/components/confirm';
-import type {MenuItemProps} from 'sentry/components/dropdownMenu';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {OnCallServiceForm} from 'sentry/components/notificationActions/forms/onCallServiceForm';
 import {SlackForm} from 'sentry/components/notificationActions/forms/slackForm';
 import {IconEllipsis, IconMail} from 'sentry/icons';

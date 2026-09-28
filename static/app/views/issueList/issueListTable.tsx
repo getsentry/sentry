@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import type {CursorHandler} from '@sentry/scraps/pagination';
 import {Pagination} from '@sentry/scraps/pagination';
 
-import type {GroupListColumn} from 'sentry/components/issues/groupList';
 import {Panel} from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
@@ -17,7 +16,6 @@ import {IssueListActions} from 'sentry/views/issueList/actions';
 import {GroupListBody} from 'sentry/views/issueList/groupListBody';
 import {IssueListBulkCommandPaletteActions} from 'sentry/views/issueList/issueListBulkCommandPaletteActions';
 import {NewViewEmptyState} from 'sentry/views/issueList/newViewEmptyState';
-import type {SupergroupLookup} from 'sentry/views/issueList/supergroups/useSuperGroups';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 
 interface IssueListTableProps {
@@ -42,8 +40,6 @@ interface IssueListTableProps {
   selection: PageFilters;
   statsLoading: boolean;
   statsPeriod: string;
-  supergroupLookup?: SupergroupLookup;
-  withColumns?: GroupListColumn[];
 }
 
 export function IssueListTable({
@@ -68,8 +64,6 @@ export function IssueListTable({
   paginationAnalyticsEvent,
   issuesSuccessfullyLoaded,
   pageSize,
-  supergroupLookup,
-  withColumns,
 }: IssueListTableProps) {
   const location = useLocation();
 
@@ -116,7 +110,6 @@ export function IssueListTable({
                     groupIds={groupIds}
                     allResultsVisible={allResultsVisible}
                     displayReprocessingActions={displayReprocessingActions}
-                    withColumns={withColumns}
                   />
                 </HoverOverlayGroupProvider>
               )}
@@ -139,8 +132,6 @@ export function IssueListTable({
                     pageSize={pageSize}
                     refetchGroups={refetchGroups}
                     onActionTaken={onActionTaken}
-                    supergroupLookup={supergroupLookup}
-                    withColumns={withColumns}
                   />
                 </VisuallyCompleteWithData>
               </HoverOverlayGroupProvider>

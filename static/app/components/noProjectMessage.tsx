@@ -2,10 +2,10 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Flex, Grid, type GridProps, Container, Stack} from '@sentry/scraps/layout';
+import {EmptyState} from '@sentry/scraps/emptyState';
+import {Container} from '@sentry/scraps/layout';
 
 import {NoProjectEmptyState} from 'sentry/components/illustrations/NoProjectEmptyState';
-import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
@@ -74,29 +74,20 @@ export function NoProjectMessage({
   );
 
   return (
-    <Flex
+    <EmptyState
       flex="1"
-      align="center"
       justify="center"
       gap="3xl"
       padding="lg"
-      direction={{'screen:xs': 'column', 'screen:sm': 'row'}}
-    >
-      <Flex
-        align="center"
-        justify="center"
-        height="auto"
-        width={{'screen:xs': '300px', 'screen:sm': 'auto'}}
-      >
-        <StyledNoProjectEmptyState />
-      </Flex>
-
-      <Stack justify="center">
-        <Layout.Title>{t('Remain Calm')}</Layout.Title>
-        <Container marginBottom="xl">
-          {t('You need at least one project to use this view')}
+      title={t('Remain Calm')}
+      description={t('You need at least one project to use this view')}
+      illustration={
+        <Container width={{zero: '300px', xl: '480px', '4xl': '683px'}}>
+          <StyledNoProjectEmptyState />
         </Container>
-        <Actions>
+      }
+      action={
+        <Fragment>
           {orgHasProjects ? (
             <Fragment>
               {joinTeamAction}
@@ -105,19 +96,13 @@ export function NoProjectMessage({
           ) : (
             createProjectAction
           )}
-        </Actions>
-      </Stack>
-    </Flex>
+        </Fragment>
+      }
+    />
   );
 }
 
 const StyledNoProjectEmptyState = styled(NoProjectEmptyState)`
   width: 100%;
   height: auto;
-`;
-
-const Actions = styled((props: GridProps) => (
-  <Grid flow="column" align="center" gap="md" {...props} />
-))`
-  width: fit-content;
 `;

@@ -1,9 +1,9 @@
 import {useQuery} from '@tanstack/react-query';
-import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
+import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {defined} from 'sentry/utils/defined';
 import {useApi} from 'sentry/utils/useApi';
 import {
@@ -11,8 +11,6 @@ import {
   useProgressiveQuery,
   type SamplingMode,
 } from 'sentry/views/explore/hooks/useProgressiveQuery';
-
-jest.mock('sentry/components/pageFilters/usePageFilters');
 
 function useMockHookImpl({
   enabled,
@@ -47,20 +45,21 @@ describe('useProgressiveQuery', () => {
         body: 'test',
       });
 
-      jest.mocked(usePageFilters).mockReturnValue(
-        PageFilterStateFixture({
-          selection: {
-            datetime: {
-              period: '14d',
-              start: null,
-              end: null,
-              utc: false,
-            },
-            environments: [],
-            projects: [2],
+      PageFiltersStore.onInitializeUrlState(
+        PageFiltersFixture({
+          datetime: {
+            period: '14d',
+            start: null,
+            end: null,
+            utc: false,
           },
+          projects: [2],
         })
       );
+    });
+
+    afterEach(() => {
+      PageFiltersStore.reset();
     });
 
     it('takes in a callback that determines if we can trigger the high accuracy request', async () => {

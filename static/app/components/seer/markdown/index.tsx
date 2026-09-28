@@ -8,6 +8,7 @@ import {Link} from '@sentry/scraps/link';
 import {Markdown, type MarkdownProps} from '@sentry/scraps/markdown';
 import {Heading} from '@sentry/scraps/text';
 
+import {type SeerEmbedScope, SeerEmbedScopeContext} from './embeds/renderTracking';
 import {STRUCTURED_SEER_EMBED_SCHEMAS} from './embeds/schemas';
 import {SeerEmbedRegistry} from './embeds';
 
@@ -85,7 +86,7 @@ function reportUnhandledTag(
 }
 
 const SEER_EMBED_COMPONENTS: MarkdownProps['components'] = {
-  Tag: function SeerTag({name, data, level, attrs}) {
+  Tag: function SeerTag({name, data, level, attrs, index}) {
     const structuredContent = useContext(StructuredContentContext);
     const Embed = SeerEmbedRegistry.get(name);
     if (Embed) {
@@ -95,7 +96,7 @@ const SEER_EMBED_COMPONENTS: MarkdownProps['components'] = {
           : data === undefined
             ? structuredContent?.[name]
             : data;
-      const embed = <Embed name={name} data={embedData} level={level} />;
+      const embed = <Embed name={name} data={embedData} level={level} index={index} />;
       if (level === 'inline') {
         return embed;
       }
@@ -159,13 +160,25 @@ const SEER_EMBED_COMPONENTS: MarkdownProps['components'] = {
 export function SeerMarkdown({
   components,
   structuredContent = null,
+  scope = null,
   ...props
 }: MarkdownProps & {
+  /**
+   * Conversation and message this markdown belongs to. Supply it to record
+   * embed renders; omit it (stories, demos, previews) to render untracked.
+   *
+   * Scoped to this call rather than to the message, so a surface that renders
+   * one message through two `SeerMarkdown` calls would give both embeds the
+   * same index. Pass the whole message in one call.
+   */
+  scope?: SeerEmbedScope | null;
   structuredContent?: Record<string, unknown> | null;
 }) {
   return (
-    <StructuredContentContext.Provider value={structuredContent}>
-      <Markdown {...props} components={{...SEER_EMBED_COMPONENTS, ...components}} />
-    </StructuredContentContext.Provider>
+    <SeerEmbedScopeContext.Provider value={scope}>
+      <StructuredContentContext.Provider value={structuredContent}>
+        <Markdown {...props} components={{...SEER_EMBED_COMPONENTS, ...components}} />
+      </StructuredContentContext.Provider>
+    </SeerEmbedScopeContext.Provider>
   );
 }

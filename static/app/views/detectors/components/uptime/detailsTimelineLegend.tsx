@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 
+import {InfoTip} from '@sentry/scraps/info';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {tct} from 'sentry/locale';
 import {CheckIndicator} from 'sentry/views/detectors/components/uptime/checkIndicator';
 import {CheckStatus} from 'sentry/views/detectors/components/uptime/types';
@@ -16,8 +16,7 @@ export function DetailsTimelineLegend({showMissedLegend}: {showMissedLegend: boo
         <CheckIndicator status={CheckStatus.SUCCESS} />
         <Flex align="center" gap="md">
           {statusToText[CheckStatus.SUCCESS]}
-          <QuestionTooltip
-            isHoverable
+          <InfoTip
             size="sm"
             title={tct(
               'A check status is considered uptime when it meets the uptime check criteria. [link:Learn more].',
@@ -34,8 +33,7 @@ export function DetailsTimelineLegend({showMissedLegend}: {showMissedLegend: boo
         <CheckIndicator status={CheckStatus.FAILURE} />
         <Flex align="center" gap="md">
           {statusToText[CheckStatus.FAILURE]}
-          <QuestionTooltip
-            isHoverable
+          <InfoTip
             size="sm"
             title={tct(
               'A check status is considered as a failure when a check fails but hasn’t recorded three consecutive failures needed for Downtime. [link:Learn more].',
@@ -52,8 +50,7 @@ export function DetailsTimelineLegend({showMissedLegend}: {showMissedLegend: boo
         <CheckIndicator status={CheckStatus.FAILURE_INCIDENT} />
         <Flex align="center" gap="md">
           {statusToText[CheckStatus.FAILURE_INCIDENT]}
-          <QuestionTooltip
-            isHoverable
+          <InfoTip
             size="sm"
             title={tct(
               'A check status is considered downtime when it fails 3 consecutive times, meeting the Downtime threshold. [link:Learn more].',
@@ -71,8 +68,7 @@ export function DetailsTimelineLegend({showMissedLegend}: {showMissedLegend: boo
           <CheckIndicator status={CheckStatus.MISSED_WINDOW} />
           <Flex align="center" gap="md">
             {statusToText[CheckStatus.MISSED_WINDOW]}
-            <QuestionTooltip
-              isHoverable
+            <InfoTip
               size="sm"
               title={tct(
                 'A check status is unknown when Sentry is unable to execute an uptime check at the scheduled time. [link:Learn more].',

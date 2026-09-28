@@ -56,6 +56,22 @@ class ProjectInstallablePreprodArtifactDownloadEndpointTest(TestCase):
         self.installable.refresh_from_db()
         assert self.installable.download_count == 1
 
+    def test_download_ipa_with_build_configuration_success(self) -> None:
+        build_configuration = self.create_preprod_build_configuration(
+            project=self.project, name="qa_playstore"
+        )
+        self.preprod_artifact.build_configuration = build_configuration
+        self.preprod_artifact.save()
+
+        url = self._get_url() + "?response_format=ipa"
+        response = self.client.get(url)
+
+        assert response.status_code == 200
+        assert (
+            'filename="com.example.TestApp-qa_playstore@1.2.3.ipa"'
+            in response["Content-Disposition"]
+        )
+
     def test_download_plist_success(self) -> None:
         url = self._get_url() + "?response_format=plist"
         response = self.client.get(url)

@@ -14,7 +14,11 @@ import {IconAdd} from 'sentry/icons';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
 import type {ParsedFunction} from 'sentry/utils/discover/fields';
-import {getFieldDefinition, type GetFieldDefinitionType} from 'sentry/utils/fields';
+import {
+  FieldKind,
+  getFieldDefinition,
+  type GetFieldDefinitionType,
+} from 'sentry/utils/fields';
 import {
   ToolbarFooterButton,
   ToolbarHeader,
@@ -22,6 +26,7 @@ import {
   ToolbarRow,
 } from 'sentry/views/explore/components/toolbar/styles';
 import {ExpandableFilterSearchBar} from 'sentry/views/explore/components/toolbar/toolbarVisualize/expandableFilterSearchBar';
+import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 import {sortSearchedAttributes} from 'sentry/views/explore/utils/sortSearchedAttributes';
 
 export function ToolbarVisualizeHeader() {
@@ -111,7 +116,10 @@ export function ToolbarVisualizeDropdown({
         <Flex gap="md" align="center" width="100%">
           <AggregateCompactSelect
             search
-            options={aggregateOptions}
+            options={aggregateOptions.map(option => ({
+              ...option,
+              trailingItems: <TypeBadge kind={FieldKind.FUNCTION} />,
+            }))}
             value={parsedFunction?.name ?? ''}
             onChange={onChangeAggregate}
           />

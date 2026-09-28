@@ -12,10 +12,6 @@ import {
 } from 'sentry/views/explore/metrics/types';
 import {StyledPanel} from 'sentry/views/explore/tables/tracesTable/styles';
 
-export const TabListWrapper = styled('div')`
-  width: 100%;
-`;
-
 export const StyledTopResultsIndicator = styled(TopResultsIndicator)``;
 
 export const StyledSimpleTable = styled(SimpleTable)`
@@ -67,6 +63,8 @@ export const StyledSimpleTableRowCell = styled(SimpleTable.RowCell)<{
   source: MetricsSamplesTableSource;
   noPadding?: boolean;
 }>`
+  /* Leave room for 24px cell actions and their hover and focus outlines. */
+  min-height: 32px;
   padding: ${p =>
     p.noPadding
       ? 0

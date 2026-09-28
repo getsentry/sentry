@@ -33,6 +33,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {ONBOARDING_ENTER, ONBOARDING_STAGGER} from 'sentry/views/onboarding/animations';
 import {useBackActions} from 'sentry/views/onboarding/useBackActions';
 
 import {FOOTER_HEIGHT} from './components/genericFooter';
@@ -49,6 +50,13 @@ import {OnboardingStepId, type StepDescriptor, type StepProps} from './types';
 // only reach /onboarding via stale links + login replay and are far older than
 // this window, so gating exposure on org age keeps them out of the experiment.
 const NEW_ORG_ONBOARDING_WINDOW_MS = 1000 * 60 * 60 * 24 * 7; // 7 days
+
+/**
+ * On now that the messaging experiment has a rollout segment. Keep this as the
+ * one place to turn reporting off again if the rollout is pulled, so the
+ * experiment population does not fill with rows from a control-only config.
+ */
+const SCM_MESSAGING_EXPOSURE_ENABLED = true;
 
 const legacyOnboardingSteps: StepDescriptor[] = [
   {
@@ -111,8 +119,8 @@ function ScmPlatformFeaturesAdapter({
     setSelectedPlatform,
     selectedFeatures,
     setSelectedFeatures,
-    createdProjectSlug,
-    setCreatedProjectSlug,
+    createdProject,
+    setCreatedProject,
   } = useOnboardingContext();
 
   return (
@@ -120,11 +128,11 @@ function ScmPlatformFeaturesAdapter({
       selectedRepository={selectedRepository}
       selectedPlatform={selectedPlatform}
       selectedFeatures={selectedFeatures}
-      createdProjectSlug={createdProjectSlug}
+      createdProject={createdProject}
       deferProjectCreation={deferProjectCreation}
       onPlatformChange={setSelectedPlatform}
       onFeaturesChange={setSelectedFeatures}
-      onProjectCreated={setCreatedProjectSlug}
+      onCreatedProjectChange={setCreatedProject}
       onComplete={onComplete}
       genBackButton={genBackButton}
     />
@@ -139,8 +147,16 @@ function ScmPlatformFeaturesTreatmentAdapter(props: StepProps) {
   return <ScmPlatformFeaturesAdapter {...props} deferProjectCreation />;
 }
 
-function ScmMessagingAdapter({genBackButton}: StepProps) {
-  const {messagingSetup, selectedPlatform, setMessagingSetup} = useOnboardingContext();
+function ScmMessagingAdapter({genBackButton, onComplete}: StepProps) {
+  const {
+    createdProject,
+    messagingSetup,
+    selectedFeatures,
+    selectedPlatform,
+    selectedRepository,
+    setCreatedProject,
+    setMessagingSetup,
+  } = useOnboardingContext();
 
   // Type-narrowing only. `isInvalidMessagingStep` below redirects away from
   // this step before it renders without a platform, so this is unreachable —
@@ -151,9 +167,14 @@ function ScmMessagingAdapter({genBackButton}: StepProps) {
 
   return (
     <ScmMessaging
+      createdProject={createdProject}
       messagingSetup={messagingSetup}
+      onCreatedProjectChange={setCreatedProject}
       onMessagingSetupChange={setMessagingSetup}
+      onComplete={onComplete}
+      selectedFeatures={selectedFeatures}
       selectedPlatform={selectedPlatform}
+      selectedRepository={selectedRepository}
       genBackButton={genBackButton}
     />
   );
@@ -260,22 +281,14 @@ interface OnboardingStepVariableProps {
 }
 
 function OnboardingStepVariable(props: PropsWithChildren<OnboardingStepVariableProps>) {
+  // The SCM flow centers every step vertically; the legacy flow only its welcome.
   const Component =
-    props.id === OnboardingStepId.WELCOME && !props.hasScmOnboarding
+    props.hasScmOnboarding || props.id === OnboardingStepId.WELCOME
       ? OnboardingStepNewUi
       : OnboardingStep;
 
   return (
-    <Component
-      initial="initial"
-      animate="animate"
-      exit="exit"
-      variants={{animate: {}}}
-      transition={{
-        staggerChildren: 0.2,
-      }}
-      data-test-id={`onboarding-step-${props.id}`}
-    >
+    <Component {...ONBOARDING_STAGGER} data-test-id={`onboarding-step-${props.id}`}>
       {props.children}
     </Component>
   );
@@ -288,7 +301,7 @@ export function OnboardingWithoutContext() {
   const organization = useOrganization();
   const onboardingContext = useOnboardingContext();
   const selectedProjectSlug =
-    onboardingContext.createdProjectSlug ?? onboardingContext.selectedPlatform?.key;
+    onboardingContext.createdProject?.slug ?? onboardingContext.selectedPlatform?.key;
 
   // Only report experiment exposure for genuine new-org onboarding. Existing
   // orgs can land on /onboarding via stale links, which would
@@ -306,11 +319,26 @@ export function OnboardingWithoutContext() {
     reportExposure: isNewOrgOnboarding,
   });
 
-  // VDY-146 owns treatment exposure and interaction analytics. For now the
-  // host consumes the nested assignment without reporting it.
+  // The arms first differ after platform/features: treatment continues to the
+  // messaging step, control to SDK setup. Exposure is reported once the user
+  // is past that fork, from the route rather than the step list because the
+  // list itself depends on this assignment.
+  //
+  // The route alone is not enough: the invalid-state guards below redirect off
+  // both of these steps, and the redirect runs in an effect, so a bare route
+  // check reports exposure for a user who is sent back before either arm
+  // renders. Repeat the same staged-state conditions here.
+  const isPastPlatformFeatures =
+    (stepId === OnboardingStepId.SCM_MESSAGING &&
+      defined(onboardingContext.selectedPlatform)) ||
+    (stepId === OnboardingStepId.SETUP_DOCS && defined(selectedProjectSlug));
   const {inExperiment: hasScmMessaging} = useExperiment({
     feature: 'onboarding-scm-messaging-experiment',
-    reportExposure: false,
+    reportExposure:
+      SCM_MESSAGING_EXPOSURE_ENABLED &&
+      isNewOrgOnboarding &&
+      hasScmOnboarding &&
+      isPastPlatformFeatures,
   });
 
   const onboardingSteps = getOnboardingSteps({hasScmOnboarding, hasScmMessaging});
@@ -437,7 +465,7 @@ export function OnboardingWithoutContext() {
       <Button
         onClick={() => handleGoBack()}
         icon={<IconArrow direction="left" />}
-        variant="link"
+        variant="transparent"
       >
         {t('Back')}
       </Button>
@@ -488,35 +516,8 @@ export function OnboardingWithoutContext() {
   return (
     <Stack as="main" flexGrow={1} data-test-id="targeted-onboarding">
       <SentryDocumentTitle title={stepObj.title} />
-      <Header
-        columns={{'screen:2xs': 'repeat(2, 1fr)', 'screen:md': 'repeat(3, 1fr)'}}
-        as="header"
-      >
+      <Header columns="repeat(2, 1fr)" as="header">
         <LogoSvg showWordmark={!hasScmOnboarding} />
-        {stepIndex !== -1 && (
-          <Flex
-            justify="center"
-            display={{
-              'screen:2xs': 'none',
-              'screen:xs': 'none',
-              'screen:sm': 'none',
-              'screen:md': 'flex',
-            }}
-          >
-            <Stepper
-              numSteps={onboardingSteps.length}
-              currentStepIndex={stepIndex}
-              onClick={i => {
-                if (i < stepIndex && shallProjectBeDeleted) {
-                  handleGoBack(i);
-                  return;
-                }
-
-                goToStep(onboardingSteps[i]!);
-              }}
-            />
-          </Flex>
-        )}
         <Flex align="center" justify="end" gap="md">
           <Override
             name="onboarding:targeted-onboarding-header"
@@ -543,25 +544,13 @@ export function OnboardingWithoutContext() {
             />
           </Container>
         )}
+        {/* Outside the step, so no ancestor declares the variant names. */}
         {stepIndex > 0 && !hasScmOnboarding && (
-          <BackMotionDiv
-            initial="initial"
-            animate="visible"
-            variants={{
-              initial: {opacity: 0, visibility: 'hidden'},
-              visible: {
-                opacity: 1,
-                transition: {delay: 1},
-                transitionEnd: {
-                  visibility: 'visible',
-                },
-              },
-            }}
-          >
+          <BackMotionDiv {...ONBOARDING_ENTER} initial="initial" animate="animate">
             <Button
               onClick={() => handleGoBack()}
               icon={<IconArrow direction="left" />}
-              variant="link"
+              variant="transparent"
             >
               {t('Back')}
             </Button>
@@ -589,6 +578,22 @@ export function OnboardingWithoutContext() {
             )}
           </OnboardingStepVariable>
         </AnimatePresence>
+        {stepIndex !== -1 && (
+          <Flex justify="center" paddingTop="3xl">
+            <Stepper
+              numSteps={onboardingSteps.length}
+              currentStepIndex={stepIndex}
+              onClick={i => {
+                if (i < stepIndex && shallProjectBeDeleted) {
+                  handleGoBack(i);
+                  return;
+                }
+
+                goToStep(onboardingSteps[i]!);
+              }}
+            />
+          </Flex>
+        )}
       </ContainerVariable>
     </Stack>
   );
@@ -641,19 +646,16 @@ const OnboardingContainer = styled('div')<{
 `;
 
 const Header = styled(Grid)`
-  background: ${p => p.theme.tokens.background.primary};
-  padding-left: ${p => p.theme.space['3xl']};
-  padding-right: ${p => p.theme.space['3xl']};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space['3xl']};
   position: sticky;
-  height: 80px;
+  min-height: 60px;
   align-items: center;
   top: 0;
   z-index: 100;
-  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
 
 const LogoSvg = styled(LogoSentry)`
-  height: 30px;
+  height: 24px;
   color: ${p => p.theme.tokens.content.primary};
 `;
 

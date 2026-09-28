@@ -29,10 +29,6 @@ interface TabsProps<T>
    * selected tab item.
    */
   defaultValue?: T;
-  /**
-   * Disable tabs from being put in the overflow menu.
-   */
-  disableOverflow?: boolean;
   disabled?: boolean;
   /**
    * Callback when the selected tab changes.
@@ -104,6 +100,10 @@ const TabsWrap = styled('div', {shouldForwardProp: tabsShouldForwardProp})<{
   display: flex;
   flex-direction: ${p => (p.orientation === 'horizontal' ? 'column' : 'row')};
   flex-grow: 1;
+  min-width: 0;
+  /* Let horizontal tabs share a wrapping row and fill a column layout. */
+  flex-basis: ${p => (p.orientation === 'horizontal' ? '0' : 'auto')};
+  align-self: ${p => (p.orientation === 'horizontal' ? 'stretch' : 'auto')};
 
   ${p =>
     p.orientation === 'vertical' &&

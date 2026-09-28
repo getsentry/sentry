@@ -16,7 +16,7 @@ import {getTimeSeriesInterval} from 'sentry/utils/timeSeries/getTimeSeriesInterv
 import {markDelayedData} from 'sentry/utils/timeSeries/markDelayedData';
 import {parseGroupBy} from 'sentry/utils/timeSeries/parseGroupBy';
 import {useFetchEventsTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
-import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import type {AnyMutableSearch} from 'sentry/utils/url/formatSearchStringForQueryParam';
 import {
   isEventsStats,
   isGroupedMultiSeriesEventsStats,
@@ -38,13 +38,15 @@ interface Options<Fields> {
   disableAggregateExtrapolation?: string;
   enabled?: boolean;
   fields?: string[];
+  includeAnnotations?: boolean;
+  includeMeasuredIngestionDelayMetadata?: boolean;
   interval?: string;
   logQuery?: string[];
   metricQuery?: string[];
   orderby?: string | string[];
   referrer?: string;
   samplingMode?: SamplingMode;
-  search?: MutableSearch;
+  search?: AnyMutableSearch;
   spanQuery?: string[];
   topEvents?: number;
   yAxis?: Fields;
@@ -71,6 +73,8 @@ export const useSortedTimeSeries = <
     logQuery,
     metricQuery,
     spanQuery,
+    includeAnnotations,
+    includeMeasuredIngestionDelayMetadata,
   } = options;
 
   const pageFilters = usePageFilters();
@@ -116,7 +120,9 @@ export const useSortedTimeSeries = <
       metricQuery,
       spanQuery,
       interval,
+      includeMeasuredIngestionDelayMetadata,
       sampling: samplingMode,
+      includeAnnotations,
       extrapolate: !disableAggregateExtrapolation,
       queryOptions: {
         enabled: enabled && pageFilters.isReady,
@@ -138,7 +144,6 @@ export const useSortedTimeSeries = <
   }, [result.data]);
 
   return {
-    // eslint-disable-next-line @tanstack/query/no-rest-destructuring
     ...result,
     data,
     meta: result.data?.meta,

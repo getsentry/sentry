@@ -34,7 +34,7 @@ export function FrameRegisters({registers, deviceArch, meta}: Props) {
   }
 
   return (
-    <Container padding={{'screen:2xs': 'xs lg', 'screen:sm': 'md 2xl xl'}}>
+    <Container padding={{zero: 'xs lg', xl: 'md 2xl xl lg'}}>
       <StyledClippedBox clipHeight={CLIPPED_HEIGHT}>
         <Stack gap="md">
           <Flex align="center" justify="between" gap="md" wrap="wrap" paddingLeft="sm">
@@ -53,7 +53,11 @@ export function FrameRegisters({registers, deviceArch, meta}: Props) {
               <SegmentedControl.Item key="decimal">{t('Decimal')}</SegmentedControl.Item>
             </SegmentedControl>
           </Flex>
-          <Grid columns="repeat(auto-fit, minmax(min(100%, 14rem), 1fr))" gap="lg 2xl">
+          <Grid
+            columns="repeat(auto-fit, minmax(min(100%, 14rem), 1fr))"
+            gap="lg 2xl"
+            paddingLeft="sm"
+          >
             {sortedRegisters.map(([name, value]) => {
               if (!defined(value)) {
                 return null;

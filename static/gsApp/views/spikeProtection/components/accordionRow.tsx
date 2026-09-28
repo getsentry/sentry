@@ -41,6 +41,7 @@ export function AccordionRow({
 
   useEffect(() => {
     if (disabled) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setIsExpanded(false);
     }
   }, [disabled]);

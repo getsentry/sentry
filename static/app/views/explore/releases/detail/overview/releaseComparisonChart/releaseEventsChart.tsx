@@ -1,12 +1,13 @@
 import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 
+import {InfoTip} from '@sentry/scraps/info';
+
 import {Client} from 'sentry/api';
 import {EventsChart} from 'sentry/components/charts/eventsChart';
 import {EventsRequest} from 'sentry/components/charts/eventsRequest';
 import {HeaderTitleLegend, HeaderValue} from 'sentry/components/charts/styles';
 import {getInterval} from 'sentry/components/charts/utils';
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import type {ReleaseProject, ReleaseWithHealth} from 'sentry/types/release';
 import {ReleaseComparisonChartType} from 'sentry/types/release';
@@ -178,9 +179,7 @@ export function ReleaseEventsChart({
             <Fragment>
               <HeaderTitleLegend>
                 {releaseComparisonChartTitles[chartType]}
-                {getHelp() && (
-                  <QuestionTooltip size="sm" position="top" title={getHelp()} />
-                )}
+                {getHelp() && <InfoTip size="sm" position="top" title={getHelp()} />}
               </HeaderTitleLegend>
 
               <HeaderValue>

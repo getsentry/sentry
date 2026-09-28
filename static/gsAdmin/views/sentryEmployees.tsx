@@ -3,12 +3,12 @@ import {Link} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
 
 import {UserBadge} from 'sentry/components/idBadge/userBadge';
+import {ResultGrid} from 'sentry/components/resultGrid';
 import {Truncate} from 'sentry/components/truncate';
 import {IconEdit} from 'sentry/icons';
 import {ConfigStore} from 'sentry/stores/configStore';
 
 import {PageHeader} from 'admin/components/pageHeader';
-import {ResultGrid} from 'admin/components/resultGrid';
 import {UserPermissionsModal} from 'admin/components/users/userPermissionsModal';
 
 export function SentryEmployees() {
@@ -111,11 +111,9 @@ export function SentryEmployees() {
         inPanel
         path="/_admin/employees/"
         endpoint="/employees/"
-        method="GET"
         columns={gridColumns}
         columnsForRow={getRow}
         hasSearch
-        hasPagination
         filters={{
           active: {
             name: 'Active',

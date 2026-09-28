@@ -2,6 +2,7 @@ import type React from 'react';
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {InfoTip} from '@sentry/scraps/info';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 
 import {
@@ -19,7 +20,6 @@ import {
   makeCallTreeTableSortFunction,
   syncCallTreeTableScroll,
 } from 'sentry/components/profiling/flamegraph/callTreeTable';
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {
@@ -287,7 +287,7 @@ export function FlamegraphTreeTable({
               <InteractionStateLayer />
               <span>
                 {t('Self Time')}{' '}
-                <QuestionTooltip
+                <InfoTip
                   title={t(
                     'Self time is the amount of time spent by this function excluding the time spent by other functions called within it.'
                   )}
@@ -305,7 +305,7 @@ export function FlamegraphTreeTable({
               <InteractionStateLayer />
               <span>
                 {t('Total Time')}{' '}
-                <QuestionTooltip
+                <InfoTip
                   title={t(
                     'Total time is the total amount of time spent by this function.'
                   )}

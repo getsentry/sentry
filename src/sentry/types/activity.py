@@ -115,10 +115,7 @@ CHOICES = tuple(
 # such as scoring/auto-assignment) that must never surface in the user-facing issue
 # activity feed. The frontend has no GroupActivityType entry for these, so leaking one
 # renders a blank feed item and fires an "Unknown group activity type" Sentry message.
-HIDDEN_ACTIVITY_TYPES = (
-    ActivityType.SMART_ASSIGNMENT_COMPLETED,
-    ActivityType.SEER_PR_READY_FOR_REVIEW,
-)
+HIDDEN_ACTIVITY_TYPES = (ActivityType.SMART_ASSIGNMENT_COMPLETED,)
 
 SEER_ACTIVITY_TYPES = (
     ActivityType.SEER_RCA_STARTED,

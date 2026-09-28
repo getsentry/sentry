@@ -15,17 +15,10 @@ const SUFFIX_ABBR = {
 
 /**
  * Returns a human readable exact duration.
- * 'precision' arg will truncate the results to the specified suffix
  *
  * e.g. 1 hour 25 minutes 15 seconds, -1m 50s 294ms
  */
-export function getExactDuration(
-  seconds: number,
-  abbreviation = false,
-  precision: keyof typeof SUFFIX_ABBR = 'milliseconds'
-) {
-  const minSuffix = ` ${precision}`;
-
+export function getExactDuration(seconds: number, abbreviation = false) {
   const convertDuration = (secs: number, abbr: boolean): string => {
     // value in milliseconds
     const msValue = round(secs * 1000);
@@ -39,35 +32,35 @@ export function getExactDuration(
       };
     };
 
-    if (value >= WEEK || (value && minSuffix === ' weeks')) {
+    if (value >= WEEK) {
       const {quotient, remainder} = divideBy(WEEK);
       const suffix = abbr ? t('wk') : ` ${tn('week', 'weeks', quotient)}`;
 
-      return `${quotient}${suffix} ${precision === 'weeks' ? '' : convertDuration(remainder / 1000, abbr)}`;
+      return `${quotient}${suffix} ${convertDuration(remainder / 1000, abbr)}`;
     }
-    if (value >= DAY || (value && minSuffix === ' days')) {
+    if (value >= DAY) {
       const {quotient, remainder} = divideBy(DAY);
       const suffix = abbr ? t('d') : ` ${tn('day', 'days', quotient)}`;
 
-      return `${quotient}${suffix} ${precision === 'days' ? '' : convertDuration(remainder / 1000, abbr)}`;
+      return `${quotient}${suffix} ${convertDuration(remainder / 1000, abbr)}`;
     }
-    if (value >= HOUR || (value && minSuffix === ' hours')) {
+    if (value >= HOUR) {
       const {quotient, remainder} = divideBy(HOUR);
       const suffix = abbr ? t('hr') : ` ${tn('hour', 'hours', quotient)}`;
 
-      return `${quotient}${suffix} ${precision === 'hours' ? '' : convertDuration(remainder / 1000, abbr)}`;
+      return `${quotient}${suffix} ${convertDuration(remainder / 1000, abbr)}`;
     }
-    if (value >= MINUTE || (value && minSuffix === ' minutes')) {
+    if (value >= MINUTE) {
       const {quotient, remainder} = divideBy(MINUTE);
       const suffix = abbr ? t('min') : ` ${tn('minute', 'minutes', quotient)}`;
 
-      return `${quotient}${suffix} ${precision === 'minutes' ? '' : convertDuration(remainder / 1000, abbr)}`;
+      return `${quotient}${suffix} ${convertDuration(remainder / 1000, abbr)}`;
     }
-    if (value >= SECOND || (value && minSuffix === ' seconds')) {
+    if (value >= SECOND) {
       const {quotient, remainder} = divideBy(SECOND);
       const suffix = abbr ? t('s') : ` ${tn('second', 'seconds', quotient)}`;
 
-      return `${quotient}${suffix} ${precision === 'seconds' ? '' : convertDuration(remainder / 1000, abbr)}`;
+      return `${quotient}${suffix} ${convertDuration(remainder / 1000, abbr)}`;
     }
 
     if (value === 0) {
@@ -85,5 +78,5 @@ export function getExactDuration(
     return result;
   }
 
-  return `0${abbreviation ? SUFFIX_ABBR[precision] : minSuffix}`;
+  return `0${abbreviation ? SUFFIX_ABBR.milliseconds : ' milliseconds'}`;
 }

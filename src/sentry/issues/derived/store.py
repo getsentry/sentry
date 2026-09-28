@@ -7,10 +7,10 @@ about the storage layout (JSON blob vs columns) so the Pipeline
 and Features don't have to.
 """
 
-from typing import Any
+from typing import Any, Protocol
 
 from sentry.issues.derived.features import LAST_PROGRESSED_AT, PROGRESS, VIEW_COUNT
-from sentry.issues.derived.framework import Feature, Pipeline, State
+from sentry.issues.derived.framework import Feature, State
 from sentry.issues.models.groupderiveddata import GroupDerivedData
 
 # Features whose values are stored in dedicated model columns rather than
@@ -23,6 +23,11 @@ COLUMN_MAP: dict[Feature[Any], str] = {
 }
 
 
+class PipelineFeatures(Protocol):
+    @property
+    def features(self) -> tuple[Feature[Any], ...]: ...
+
+
 class GroupDerivedDataStore:
     """Translates between Pipeline State and GroupDerivedData storage.
 
@@ -33,7 +38,7 @@ class GroupDerivedDataStore:
     """
 
     @staticmethod
-    def load(pipeline: Pipeline[Any], derived: GroupDerivedData) -> State:
+    def load(pipeline: PipelineFeatures, derived: GroupDerivedData) -> State:
         data: dict[str, Any] = derived.data
         result: dict[Feature[Any], Any] = {}
         for f in pipeline.features:
@@ -47,7 +52,7 @@ class GroupDerivedDataStore:
         return State(result)
 
     @staticmethod
-    def build_update(pipeline: Pipeline[Any], state: State) -> dict[str, Any]:
+    def build_update(pipeline: PipelineFeatures, state: State) -> dict[str, Any]:
         """Build a dict of model fields to persist.
 
         Only includes columns and JSON-blob data that aggregators actually

@@ -137,6 +137,7 @@ function useTimelineZoom<E extends HTMLElement>({enabled = true, onSelect}: Opti
       window.addEventListener('mousedown', handleMouseDown);
       window.addEventListener('mouseup', handleMouseUp);
     } else {
+      // oxlint-disable-next-line react/set-state-in-effect
       setIsActive(false);
     }
 

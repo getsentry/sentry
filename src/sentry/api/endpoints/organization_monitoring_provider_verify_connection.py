@@ -8,7 +8,7 @@ from django.utils import timezone
 from rest_framework.fields import CharField, ListField
 from rest_framework.request import Request
 from rest_framework.response import Response
-from rest_framework.serializers import Serializer
+from rest_framework.serializers import Serializer, ValidationError
 
 from sentry import features
 from sentry.api.api_owners import ApiOwner
@@ -25,11 +25,11 @@ from sentry.api.serializers.rest_framework.base import (
 )
 from sentry.constants import ObjectStatus
 from sentry.integrations.gcp.client import verify_gcp_connection
-from sentry.integrations.gcp.utils import resolve_project_error_detail
+from sentry.integrations.gcp.utils import parse_customer_sa_email, validate_gcp_project_id
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
-from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.shared_integrations.exceptions import IntegrationConfigurationError, IntegrationError
 
 logger = logging.getLogger(__name__)
 
@@ -40,18 +40,32 @@ class GcpVerifyConnectionSerializer(CamelSnakeSerializer["GcpVerifyConnectionSer
         child=CharField(max_length=64), required=True, min_length=1, max_length=100
     )
 
+    def validate_customer_sa_email(self, value: str) -> str:
+        try:
+            return parse_customer_sa_email(value)
+        except IntegrationConfigurationError as e:
+            raise ValidationError(str(e))
+
+    def validate_gcp_project_ids(self, value: list[str]) -> list[str]:
+        try:
+            for project_id in value:
+                validate_gcp_project_id(project_id)
+        except IntegrationConfigurationError as e:
+            raise ValidationError(str(e))
+        return value
+
 
 class GcpVerifyConnectionServiceResultSerializer(Serializer[dict[str, object]]):
     service = CharField()
     status = CharField()
-    error_detail = CharField(required=False, allow_null=True)
+    error_detail = CharField(required=False, allow_null=True, default=None)
 
 
 class GcpVerifyConnectionProjectResultSerializer(Serializer[dict[str, object]]):
     gcp_project_id = CharField()
     connection_status = CharField()
     services = GcpVerifyConnectionServiceResultSerializer(many=True)
-    error_detail = CharField(required=False, allow_null=True)
+    error_detail = CharField(required=False, allow_null=True, default=None)
 
 
 class GcpVerifyConnectionResponseSerializer(Serializer[dict[str, object]]):
@@ -96,6 +110,7 @@ def _record_verification_result(
                 {
                     "gcp_project_id": project["gcp_project_id"],
                     "connection_status": project["connection_status"],
+                    "services": project["services"],
                     "error_detail": project.get("error_detail"),
                 }
                 for project in result["projects"]
@@ -149,9 +164,6 @@ class OrganizationMonitoringProviderVerifyConnectionEndpoint(OrganizationEndpoin
             )
 
         verified_result = response_serializer.validated_data
-        for project in verified_result["projects"]:
-            project["error_detail"] = resolve_project_error_detail(project)
-
         try:
             _record_verification_result(organization, data, verified_result)
         except Exception:

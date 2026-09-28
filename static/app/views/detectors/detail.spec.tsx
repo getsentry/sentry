@@ -16,7 +16,13 @@ import {TeamFixture} from 'sentry-fixture/team';
 import {UptimeCheckFixture} from 'sentry-fixture/uptimeCheck';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
@@ -28,6 +34,7 @@ import {
 import {CheckStatus} from 'sentry/views/detectors/components/uptime/types';
 import DetectorDetails from 'sentry/views/detectors/detail';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 
 describe('DetectorDetails', () => {
   const organization = OrganizationFixture();
@@ -144,6 +151,27 @@ describe('DetectorDetails', () => {
       });
     });
 
+    it('publishes a monitor-detail node for Seer', async () => {
+      let getLLMContext: ReturnType<typeof useLLMContext>['getLLMContext'] | undefined;
+      function Component() {
+        // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
+        ({getLLMContext} = useLLMContext());
+        return <DetectorDetails />;
+      }
+
+      render(<Component />, {organization, initialRouterConfig});
+      await screen.findByRole('heading', {name: /detector1/});
+
+      // What only this test can prove: the node is registered and published for
+      // the monitor in view. The field mapping itself is covered by
+      // detectorLLMContext.spec.tsx.
+      await waitFor(() => {
+        expect(
+          getLLMContext!().nodes.find(node => node.nodeType === 'monitor-detail')?.data
+        ).toEqual(expect.objectContaining({id: '1', name: 'detector1'}));
+      });
+    });
+
     it('renders the detector details and snuba query', async () => {
       render(<DetectorDetails />, {
         organization,
@@ -162,6 +190,24 @@ describe('DetectorDetails', () => {
       expect(
         await screen.findByRole('link', {name: `#${ownerTeam.slug}`})
       ).toBeInTheDocument();
+    });
+
+    it('renders the project platform badge beside the page title', async () => {
+      ProjectsStore.loadInitialData([
+        ProjectFixture({id: project.id, platform: 'javascript'}),
+      ]);
+
+      render(<DetectorDetails />, {
+        organization,
+        initialRouterConfig,
+      });
+
+      const heading = await screen.findByRole('heading', {
+        name: snubaQueryDetector.name,
+        level: 1,
+      });
+
+      expect(within(heading).getByTestId('platform-icon-javascript')).toBeInTheDocument();
     });
 
     it('can edit the detector when the user has alerts:write access', async () => {

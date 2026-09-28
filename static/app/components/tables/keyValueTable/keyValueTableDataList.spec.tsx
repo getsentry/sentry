@@ -1,0 +1,111 @@
+import {render, screen, within} from 'sentry-test/reactTestingLibrary';
+
+import {KeyValueTableDataList} from 'sentry/components/tables/keyValueTable';
+
+describe('KeyValueTableDataList', () => {
+  it('should render a definition list of key/value pairs', () => {
+    const data = [
+      {key: 'a', value: 'x', subject: 'a'},
+      {key: 'b', value: 'y', subject: 'b'},
+    ];
+
+    render(<KeyValueTableDataList data={data} />);
+
+    const rows = screen.getAllByRole('row');
+    expect(rows).toHaveLength(2);
+
+    const firstColumn = within(rows[0]!).getAllByRole('cell');
+    expect(firstColumn[0]).toHaveTextContent('a');
+    expect(firstColumn[1]).toHaveTextContent('x');
+
+    const secondColumn = within(rows[1]!).getAllByRole('cell');
+    expect(secondColumn[0]).toHaveTextContent('b');
+    expect(secondColumn[1]).toHaveTextContent('y');
+  });
+
+  it('should sort sort key/value pairs', () => {
+    const data = [
+      {key: 'b', value: 'y', subject: 'b'},
+      {key: 'a', value: 'x', subject: 'a'},
+    ];
+
+    render(<KeyValueTableDataList data={data} />);
+
+    const rows = screen.getAllByRole('row');
+
+    const firstColumn = within(rows[0]!).getAllByRole('cell');
+    expect(firstColumn[0]).toHaveTextContent('a');
+    expect(firstColumn[1]).toHaveTextContent('x');
+
+    const secondColumn = within(rows[1]!).getAllByRole('cell');
+    expect(secondColumn[0]).toHaveTextContent('b');
+    expect(secondColumn[1]).toHaveTextContent('y');
+  });
+
+  it('should use a single space for values that are an empty string', () => {
+    const data = [
+      {key: 'b', value: 'y', subject: 'b'},
+      {key: 'a', value: '', subject: 'a'}, // empty string
+    ];
+
+    render(<KeyValueTableDataList data={data} />);
+
+    const rows = screen.getAllByRole('row');
+
+    const firstColumn = within(rows[0]!).getAllByRole('cell');
+    expect(firstColumn[0]).toHaveTextContent('a');
+    expect(firstColumn[1]).toHaveTextContent(''); // empty string
+
+    const secondColumn = within(rows[1]!).getAllByRole('cell');
+    expect(secondColumn[0]).toHaveTextContent('b');
+    expect(secondColumn[1]).toHaveTextContent('y');
+  });
+
+  it('can sort key/value pairs with non-string values', () => {
+    const data = [
+      {key: 'b', value: {foo: 'bar'}, subject: 'b'},
+      {key: 'a', value: [3, 2, 1], subject: 'a'},
+    ];
+
+    render(<KeyValueTableDataList isContextData data={data} />);
+
+    const rows = screen.getAllByRole('row');
+
+    // Ignore values, more interested in if keys rendered + are sorted
+    const firstColumn = within(rows[0]!).getAllByRole('cell');
+    expect(firstColumn[0]).toHaveTextContent('a');
+
+    const secondColumn = within(rows[1]!).getAllByRole('cell');
+    expect(secondColumn[0]).toHaveTextContent('b');
+  });
+
+  it('should coerce non-strings into strings', () => {
+    const data = [{key: 'a', value: false, subject: 'a'}];
+
+    render(<KeyValueTableDataList data={data} />);
+
+    const cells = screen.getAllByRole('cell');
+    expect(cells[0]).toHaveTextContent('a');
+    expect(cells[1]).toHaveTextContent('false');
+  });
+
+  it("shouldn't blow up on null", () => {
+    const data = [{key: 'a', value: null, subject: 'a'}];
+
+    render(<KeyValueTableDataList data={data} />);
+
+    const cells = screen.getAllByRole('cell');
+    expect(cells[0]).toHaveTextContent('a');
+    expect(cells[1]).toHaveTextContent('null');
+  });
+
+  it('renders null when an item omits its value', () => {
+    const data = [{key: 'a', subject: 'a'}];
+
+    render(<KeyValueTableDataList data={data} />);
+
+    const cells = screen.getAllByRole('cell');
+    expect(cells[0]).toHaveTextContent('a');
+    expect(cells[1]).toHaveTextContent('null');
+  });
+});

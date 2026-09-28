@@ -131,6 +131,48 @@ export const VALID_ISSUE_CATEGORIES = [
   IssueCategory.CONFIGURATION,
 ];
 
+/**
+ * Numeric values used by issue category workflow conditions.
+ * These must match GroupCategory in src/sentry/issues/grouptype.py.
+ */
+export enum GroupCategory {
+  ERROR = 1,
+  PERFORMANCE = 2,
+  CRON = 4,
+  REPLAY = 5,
+  FEEDBACK = 6,
+  UPTIME = 7,
+  METRIC_ALERT = 8,
+  OUTAGE = 10,
+  METRIC = 11,
+  DB_QUERY = 12,
+  HTTP_CLIENT = 13,
+  FRONTEND = 14,
+  MOBILE = 15,
+  AI_DETECTED = 16,
+  PREPROD = 17,
+  CONFIGURATION = 19,
+}
+
+export const ISSUE_CATEGORY_TO_GROUP_CATEGORY: Record<IssueCategory, GroupCategory> = {
+  [IssueCategory.ERROR]: GroupCategory.ERROR,
+  [IssueCategory.PERFORMANCE]: GroupCategory.PERFORMANCE,
+  [IssueCategory.CRON]: GroupCategory.CRON,
+  [IssueCategory.REPLAY]: GroupCategory.REPLAY,
+  [IssueCategory.FEEDBACK]: GroupCategory.FEEDBACK,
+  [IssueCategory.UPTIME]: GroupCategory.UPTIME,
+  [IssueCategory.METRIC_ALERT]: GroupCategory.METRIC_ALERT,
+  [IssueCategory.OUTAGE]: GroupCategory.OUTAGE,
+  [IssueCategory.METRIC]: GroupCategory.METRIC,
+  [IssueCategory.DB_QUERY]: GroupCategory.DB_QUERY,
+  [IssueCategory.HTTP_CLIENT]: GroupCategory.HTTP_CLIENT,
+  [IssueCategory.FRONTEND]: GroupCategory.FRONTEND,
+  [IssueCategory.MOBILE]: GroupCategory.MOBILE,
+  [IssueCategory.AI_DETECTED]: GroupCategory.AI_DETECTED,
+  [IssueCategory.PREPROD]: GroupCategory.PREPROD,
+  [IssueCategory.CONFIGURATION]: GroupCategory.CONFIGURATION,
+};
+
 export const ISSUE_CATEGORY_TO_DESCRIPTION: Record<IssueCategory, string> = {
   [IssueCategory.ERROR]: t('Runtime errors or exceptions.'),
   [IssueCategory.OUTAGE]: t('Uptime or cron monitoring issues.'),
@@ -399,6 +441,26 @@ const OCCURRENCE_TYPE_TO_ISSUE_TYPE = {
   11003: IssueType.PREPROD_SIZE_ANALYSIS,
 };
 
+/**
+ * The inverse of `OCCURRENCE_TYPE_TO_ISSUE_TYPE` above, derived from it rather than maintained
+ * separately so the two can't drift. A few issue types have more than one occurrence type id (the
+ * same issue classified as either a regular or experimental version of the same grouptype, e.g.
+ * 1006 and 1906, which correspond to the backend's `PerformanceNPlusOneGroupType.type_id` and
+ * `PerformanceNPlusOneExperimentalGroupType.type_id`, respectively). Because of the way this is
+ * constructed, the last one mapped to a given issue type wins. That's arbitrary but harmless today
+ * (there's nowhere where we treat regular and experimental versions of the same grouptype
+ * differently, and in fact the experimental ones are currently unused), but if that ever changes,
+ * this shouldn't be relied upon to give the "right" answer.
+ *
+ * @internal used in tests
+ */
+export const ISSUE_TYPE_TO_OCCURRENCE_TYPE = Object.fromEntries(
+  Object.entries(OCCURRENCE_TYPE_TO_ISSUE_TYPE).map(([typeId, issueType]) => [
+    issueType,
+    Number(typeId), // Necessary because `Object.entries` stringifies keys
+  ])
+);
+
 const PERFORMANCE_REGRESSION_TYPE_IDS = new Set([1017, 1018, 2010, 2011]);
 
 export function getIssueTypeFromOccurrenceType(
@@ -606,6 +668,7 @@ export enum GroupActivityType {
   SEER_CODING_STARTED = 'seer_coding_started',
   SEER_CODING_COMPLETED = 'seer_coding_completed',
   SEER_PR_CREATED = 'seer_pr_created',
+  SEER_PR_READY_FOR_REVIEW = 'seer_pr_ready_for_review',
   SEER_ITERATION_STARTED = 'seer_iteration_started',
   SEER_ITERATION_COMPLETED = 'seer_iteration_completed',
   PULL_REQUEST_CLOSED = 'pull_request_closed',
@@ -625,6 +688,7 @@ export const SEER_ACTIVITY_TYPES = new Set<GroupActivityType>([
   GroupActivityType.SEER_PR_CREATED,
   GroupActivityType.SEER_ITERATION_STARTED,
   GroupActivityType.SEER_ITERATION_COMPLETED,
+  GroupActivityType.SEER_PR_READY_FOR_REVIEW,
   GroupActivityType.TRIGGER_AUTOFIX,
 ]);
 
@@ -643,7 +707,8 @@ export interface GroupActivityIntegrationData {
   provider_key?: string;
 }
 
-interface GroupActivityNote extends GroupActivityBase {
+export interface GroupActivityNote extends GroupActivityBase {
+  commentId: string;
   data: {
     text: string;
   };
@@ -1027,6 +1092,20 @@ interface GroupActivitySeerPrCreated extends GroupActivityBase {
   };
   type: GroupActivityType.SEER_PR_CREATED;
 }
+interface GroupActivitySeerPrReadyForReview extends GroupActivityBase {
+  data: {
+    pull_requests?: Array<{
+      provider: string;
+      pull_request: {
+        pr_number: number;
+        pr_url: string;
+      };
+      repo_name: string;
+    }>;
+    run_id?: number;
+  };
+  type: GroupActivityType.SEER_PR_READY_FOR_REVIEW;
+}
 
 interface GroupActivitySeerIterationStarted extends GroupActivityBase {
   data: {
@@ -1090,6 +1169,7 @@ export type GroupActivity =
   | GroupActivitySeerCodingStarted
   | GroupActivitySeerCodingCompleted
   | GroupActivitySeerPrCreated
+  | GroupActivitySeerPrReadyForReview
   | GroupActivitySeerIterationStarted
   | GroupActivitySeerIterationCompleted
   | GroupActivityPullRequestClosed

@@ -3,12 +3,12 @@ import styled from '@emotion/styled';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import * as Layout from 'sentry/components/layouts/thirds';
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
@@ -28,6 +28,7 @@ import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {HOUR} from 'sentry/utils/formatters';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {ExploreShareButton} from 'sentry/views/explore/components/exploreShareButton';
 import {OverChartButtonGroup} from 'sentry/views/explore/components/overChartButtonGroup';
 import {
   ExploreBodyContent,
@@ -304,6 +305,7 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
 
   useEffect(() => {
     if (autorefreshEnabled) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setTimeseriesIngestDelay(getMaxIngestDelayTimestamp());
     }
   }, [autorefreshEnabled]);
@@ -496,20 +498,24 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
                   {sidebarOpen ? null : t('Advanced')}
                 </LogsSidebarCollapseButton>
               </Container>
-              {mode === Mode.AGGREGATE ? (
-                <LogsAggregateExportModalButton
-                  isLoading={aggregatesTableResult.isPending}
-                  tableData={aggregatesTableResult.data?.data ?? []}
-                  error={aggregatesTableResult.error}
-                  pageLinks={aggregatesTableResult.pageLinks}
-                />
-              ) : (
-                <LogsDirectExportModalButton
-                  isLoading={tableData.isPending}
-                  tableData={tableData.data}
-                  error={tableData.error}
-                />
-              )}
+              <Flex gap="xs">
+                <ExploreShareButton traceItemDataset={TraceItemDataset.LOGS} />
+                {mode === Mode.AGGREGATE ? (
+                  <LogsAggregateExportModalButton
+                    isLoading={aggregatesTableResult.isPending}
+                    tableData={aggregatesTableResult.data?.data ?? []}
+                    error={aggregatesTableResult.error}
+                    pageLinks={aggregatesTableResult.pageLinks}
+                  />
+                ) : (
+                  <LogsDirectExportModalButton
+                    isLoading={tableData.isPending}
+                    tableData={tableData.data}
+                    timeseriesIngestDelay={timeseriesIngestDelay}
+                    error={tableData.error}
+                  />
+                )}
+              </Flex>
             </OverChartButtonGroup>
             <QuotaExceededAlert referrer="logs-explore" traceItemDataset="logs" />
             <LogsDownSamplingAlert

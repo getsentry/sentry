@@ -24,7 +24,6 @@ export function ProjectSetupWarning({unconfiguredProjects, orgSlug}: Props) {
   return (
     <Flex align="center" flex="0 0 auto">
       <Tooltip
-        isHoverable
         title={tct(
           "Seer automation isn't set up for [count] in the current filter. [link]",
           {

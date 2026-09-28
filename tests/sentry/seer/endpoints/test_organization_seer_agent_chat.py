@@ -21,7 +21,6 @@ from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
 @with_feature("organizations:seer-explorer")
 @with_feature("organizations:gen-ai-features")
-@with_feature("organizations:gen-ai-consent-flow-removal")
 class OrganizationSeerAgentChatEndpointTest(APITestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -178,7 +177,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
             self.organization,
             ANY,
             is_interactive=True,
-            enable_bash_tools=False,
+            enable_bash_mode=False,
             enable_coding=False,
             enable_code_mode_tools="off",
             reasoning_effort="medium",
@@ -269,7 +268,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
                 self.organization,
                 ANY,
                 is_interactive=True,
-                enable_bash_tools=False,
+                enable_bash_mode=False,
                 enable_coding=feature_enabled and option_enabled,
                 enable_code_mode_tools="off",
                 reasoning_effort="medium",
@@ -296,7 +295,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
             self.organization,
             ANY,
             is_interactive=True,
-            enable_bash_tools=False,
+            enable_bash_mode=False,
             enable_coding=False,
             enable_code_mode_tools="off",
             reasoning_effort="medium",
@@ -495,7 +494,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
                 self.organization,
                 ANY,
                 is_interactive=True,
-                enable_bash_tools=False,
+                enable_bash_mode=False,
                 enable_coding=feature_enabled and option_enabled,
                 enable_code_mode_tools="off",
                 reasoning_effort="medium",
@@ -673,7 +672,6 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
 
 @with_feature("organizations:seer-explorer")
 @with_feature("organizations:gen-ai-features")
-@with_feature("organizations:gen-ai-consent-flow-removal")
 class OrganizationSeerAgentChatContextEngineTest(APITestCase):
     """End-to-end tests verifying is_context_engine_enabled reaches make_agent_chat_request."""
 

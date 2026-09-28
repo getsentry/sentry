@@ -7,7 +7,7 @@ import pytest
 
 from sentry.integrations.source_code_management.status_check import StatusCheckStatus
 from sentry.models.commitcomparison import CommitComparison
-from sentry.preprod.models import PreprodArtifact
+from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
 from sentry.preprod.snapshots.utils import (
     SnapshotChangeCriteria,
@@ -168,6 +168,26 @@ class ComputeSnapshotStatusTest(SnapshotTasksTestBase):
         assert (
             self._status_with_changes_map(artifact, metrics, criteria=_criteria(renamed=True))
             == StatusCheckStatus.FAILURE
+        )
+
+    def test_failed_comparison_fails_without_approval(self):
+        artifact, metrics, _ = self._make_artifact_with_comparison(
+            state=PreprodSnapshotComparison.State.FAILED
+        )
+        assert self._status_with_changes_map(artifact, metrics) == StatusCheckStatus.FAILURE
+
+    def test_failed_comparison_succeeds_when_approved(self):
+        artifact, metrics, _ = self._make_artifact_with_comparison(
+            state=PreprodSnapshotComparison.State.FAILED
+        )
+        approval = self.create_preprod_comparison_approval(
+            preprod_artifact=artifact,
+            preprod_feature_type=PreprodComparisonApproval.FeatureType.SNAPSHOTS,
+            approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
+        )
+        assert (
+            self._status_with_changes_map(artifact, metrics, approvals={artifact.id: approval})
+            == StatusCheckStatus.SUCCESS
         )
 
     def test_no_changes_succeeds(self):
@@ -718,6 +738,86 @@ class CreateSnapshotStatusCheckGracePeriodTest(SnapshotTasksTestBase):
 
         return artifact
 
+    def _approve(self, artifact):
+        self.create_preprod_comparison_approval(
+            preprod_artifact=artifact,
+            preprod_feature_type=PreprodComparisonApproval.FeatureType.SNAPSHOTS,
+            approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
+        )
+
+    @patch(f"{TASK_MODULE}.post_snapshot_status_check_task")
+    @patch(f"{TASK_MODULE}.get_status_check_provider")
+    @patch(f"{TASK_MODULE}.get_status_check_client")
+    def test_missing_base_partially_approved_posts_failure(
+        self, mock_get_client, mock_get_provider, mock_post_task
+    ):
+        mock_get_client.return_value = (Mock(), Mock())
+        mock_get_provider.return_value = Mock()
+        artifact = self._create_solo_head_artifact()
+        sibling = self.create_preprod_artifact(
+            project=self.project,
+            commit_comparison=artifact.commit_comparison,
+            app_id="com.example.other",
+        )
+        PreprodSnapshotMetrics.objects.create(preprod_artifact=sibling, image_count=10)
+        self._approve(artifact)
+
+        create_preprod_snapshot_status_check_task(
+            preprod_artifact_id=artifact.id,
+            caller="missing_base_timeout",
+            is_timeout_check=True,
+        )
+
+        mock_post_task.delay.assert_called_once()
+        call_kwargs = mock_post_task.delay.call_args[1]
+        assert call_kwargs["status"] == StatusCheckStatus.FAILURE.value
+
+    @patch(f"{TASK_MODULE}.post_snapshot_status_check_task")
+    @patch(f"{TASK_MODULE}.get_status_check_provider")
+    @patch(f"{TASK_MODULE}.get_status_check_client")
+    @patch(f"{TASK_MODULE}.update_preprod_snapshot_vcs")
+    def test_missing_base_approved_posts_success_without_timeout(
+        self, mock_update_vcs, mock_get_client, mock_get_provider, mock_post_task
+    ):
+        mock_get_client.return_value = (Mock(), Mock())
+        mock_get_provider.return_value = Mock()
+        artifact = self._create_solo_head_artifact()
+        self._approve(artifact)
+
+        create_preprod_snapshot_status_check_task(
+            preprod_artifact_id=artifact.id,
+            caller="approval_endpoint",
+        )
+
+        mock_post_task.delay.assert_called_once()
+        call_kwargs = mock_post_task.delay.call_args[1]
+        assert call_kwargs["status"] == StatusCheckStatus.SUCCESS.value
+        assert call_kwargs["subtitle"] == "Approved without base snapshots"
+        assert call_kwargs["approve_action_identifier"] is None
+        mock_update_vcs.assert_not_called()
+
+    @patch(f"{TASK_MODULE}.post_snapshot_status_check_task")
+    @patch(f"{TASK_MODULE}.get_status_check_provider")
+    @patch(f"{TASK_MODULE}.get_status_check_client")
+    def test_missing_base_timeout_approved_posts_success(
+        self, mock_get_client, mock_get_provider, mock_post_task
+    ):
+        mock_get_client.return_value = (Mock(), Mock())
+        mock_get_provider.return_value = Mock()
+        artifact = self._create_solo_head_artifact()
+        self._approve(artifact)
+
+        create_preprod_snapshot_status_check_task(
+            preprod_artifact_id=artifact.id,
+            caller="missing_base_timeout",
+            is_timeout_check=True,
+        )
+
+        mock_post_task.delay.assert_called_once()
+        call_kwargs = mock_post_task.delay.call_args[1]
+        assert call_kwargs["status"] == StatusCheckStatus.SUCCESS.value
+        assert call_kwargs["subtitle"] == "Approved without base snapshots"
+
     @patch(f"{TASK_MODULE}.post_snapshot_status_check_task")
     @patch(f"{TASK_MODULE}.get_status_check_provider")
     @patch(f"{TASK_MODULE}.get_status_check_client")
@@ -774,7 +874,7 @@ class CreateSnapshotStatusCheckGracePeriodTest(SnapshotTasksTestBase):
     @patch(f"{TASK_MODULE}.post_snapshot_status_check_task")
     @patch(f"{TASK_MODULE}.get_status_check_provider")
     @patch(f"{TASK_MODULE}.get_status_check_client")
-    def test_timeout_with_base_arrived_runs_normal_path(
+    def test_timeout_with_base_arrived_skips_update(
         self, mock_get_client, mock_get_provider, mock_post_task
     ):
         mock_get_client.return_value = (Mock(), Mock())
@@ -815,6 +915,59 @@ class CreateSnapshotStatusCheckGracePeriodTest(SnapshotTasksTestBase):
             is_timeout_check=True,
         )
 
+        mock_get_client.assert_not_called()
+        mock_get_provider.assert_not_called()
+        mock_post_task.delay.assert_not_called()
+
+
+@cell_silo_test
+class CreateSnapshotStatusCheckTargetUrlTest(SnapshotTasksTestBase):
+    @patch(f"{TASK_MODULE}.post_snapshot_status_check_task")
+    @patch(f"{TASK_MODULE}.get_status_check_provider")
+    @patch(f"{TASK_MODULE}.get_status_check_client")
+    def test_target_url_includes_selected_types(
+        self, mock_get_client, mock_get_provider, mock_post_task
+    ):
+        mock_get_client.return_value = (Mock(), Mock())
+        mock_get_provider.return_value = Mock()
+
+        head_cc = self.create_commit_comparison(
+            head_sha="head123" + "0" * 33,
+            base_sha="base456" + "0" * 33,
+            head_repo_name="getsentry/sentry",
+            provider="github",
+        )
+        artifact = self.create_preprod_artifact(
+            project=self.project,
+            commit_comparison=head_cc,
+            app_id="com.example.app",
+        )
+        metrics = PreprodSnapshotMetrics.objects.create(preprod_artifact=artifact, image_count=10)
+        base_cc = self.create_commit_comparison(
+            head_sha="base456" + "0" * 33,
+            head_repo_name="getsentry/sentry",
+            provider="github",
+        )
+        base_artifact = self.create_preprod_artifact(
+            project=self.project,
+            commit_comparison=base_cc,
+            app_id="com.example.app",
+        )
+        base_metrics = PreprodSnapshotMetrics.objects.create(
+            preprod_artifact=base_artifact, image_count=10
+        )
+        PreprodSnapshotComparison.objects.create(
+            head_snapshot_metrics=metrics,
+            base_snapshot_metrics=base_metrics,
+            state=PreprodSnapshotComparison.State.SUCCESS,
+            images_added=1,
+            images_changed=2,
+            images_unchanged=10,
+        )
+
+        create_preprod_snapshot_status_check_task(preprod_artifact_id=artifact.id)
+
         mock_post_task.delay.assert_called_once()
-        call_kwargs = mock_post_task.delay.call_args[1]
-        assert call_kwargs["status"] == StatusCheckStatus.SUCCESS.value
+        assert mock_post_task.delay.call_args[1]["target_url"].endswith(
+            f"/preprod/snapshots/{artifact.id}?selectedTypes=added,changed"
+        )

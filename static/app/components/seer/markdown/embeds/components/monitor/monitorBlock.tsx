@@ -3,7 +3,7 @@ import * as Sentry from '@sentry/react';
 import {useQuery} from '@tanstack/react-query';
 
 import {Tag} from '@sentry/scraps/badge';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -12,7 +12,7 @@ import {ErrorMonitor} from 'sentry/components/seer/markdown/embeds/components/mo
 import {MetricMonitor} from 'sentry/components/seer/markdown/embeds/components/monitor/monitorTypes/metric';
 import {MobileBuildMonitor} from 'sentry/components/seer/markdown/embeds/components/monitor/monitorTypes/mobileBuild';
 import {UptimeMonitor} from 'sentry/components/seer/markdown/embeds/components/monitor/monitorTypes/uptime';
-import {ResourceLink} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
+import {SeerEmbedBlock} from 'sentry/components/seer/markdown/embeds/components/seerEmbedBlock';
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
 import {
   IconClock,
@@ -126,29 +126,28 @@ export default function MonitorBlock({id, name}: EmbedOutput<'monitor'>) {
   const icon = detector ? (MONITOR_TYPE_ICONS[detector.type] ?? IconTimer) : IconTimer;
 
   return (
-    <Container background="primary" border="primary" radius="md" padding="md">
-      <Stack gap="md">
-        <Flex align="center" justify="between" gap="md" wrap="wrap">
-          <ResourceLink
-            icon={icon}
-            href={href}
-            title={detector?.name ?? name ?? t('Monitor %s', id)}
-          />
-          {detector ? (
-            <Flex gap="xs">
-              <Tag variant="muted">{getDetectorTypeLabel(detector.type)}</Tag>
-              {!detector.enabled && <Tag variant="muted">{t('Disabled')}</Tag>}
-            </Flex>
-          ) : null}
-        </Flex>
-        {isPending ? (
-          <LoadingIndicator />
-        ) : isError || !detector ? (
-          <Text variant="danger">{t('Unable to load monitor details.')}</Text>
-        ) : (
-          <MonitorBlockContent detector={detector} organization={organization} />
-        )}
-      </Stack>
-    </Container>
+    <SeerEmbedBlock
+      badge={
+        detector ? (
+          <Flex gap="xs">
+            <Tag variant="muted">{getDetectorTypeLabel(detector.type)}</Tag>
+            {detector.enabled ? null : <Tag variant="muted">{t('Disabled')}</Tag>}
+          </Flex>
+        ) : null
+      }
+      href={href}
+      icon={icon}
+      linkLabel={t('View Monitor')}
+      testId="seer-monitor-embed"
+      title={detector?.name ?? name ?? t('Monitor %s', id)}
+    >
+      {isPending ? (
+        <LoadingIndicator />
+      ) : isError || !detector ? (
+        <Text variant="danger">{t('Unable to load monitor details.')}</Text>
+      ) : (
+        <MonitorBlockContent detector={detector} organization={organization} />
+      )}
+    </SeerEmbedBlock>
   );
 }

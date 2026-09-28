@@ -67,7 +67,7 @@ class GitlabRepositoryProvider(IntegrationRepositoryProvider["GitlabIntegration"
             "gitlab.repository.organization_id": repo.organization_id,
             "gitlab.repository.integration_id": repo.integration_id,
             "gitlab.repository.repository_id": repo.id,
-            "gitlab.repository.project_id": repo.config.get("project_id"),
+            "gitlab.repository.project_id": repo.config["project_id"],
         }
         # Emitted on every invocation so we can gauge how often this path runs
         # (and therefore how many webhook create calls we make to GitLab).
@@ -78,31 +78,64 @@ class GitlabRepositoryProvider(IntegrationRepositoryProvider["GitlabIntegration"
                 "gitlab.repository.has_existing_webhook": bool(repo.config.get("webhook_id")),
             },
         )
-        if repo.config.get("webhook_id"):
-            logger.info(
-                "gitlab.repository.webhook_creation_skipped",
-                extra={**log_extra, "gitlab.repository.webhook_id": repo.config.get("webhook_id")},
+        installation = self.get_installation(repo.integration_id, repo.organization_id)
+        client = installation.get_client()
+        project_id = repo.config["project_id"]
+        existing_webhook_id = repo.config.get("webhook_id")
+        try:
+            hook_id = client.ensure_project_webhook(project_id, existing_webhook_id)
+        except Exception as e:
+            raise installation.raise_error(e)
+        if hook_id != existing_webhook_id:
+            if not repository_service.update_repository_config(
+                organization_id=organization.id,
+                id=repo.id,
+                config_updates={"webhook_id": hook_id},
+                expected_integration_id=repo.integration_id,
+                expected_config={"webhook_id": existing_webhook_id},
+            ):
+                # The repository changed while we talked to GitLab, so nothing would
+                # ever reference or delete the new hook.
+                logger.info(
+                    "gitlab.repository.webhook_discarded",
+                    extra={**log_extra, "gitlab.repository.webhook_id": hook_id},
+                )
+                # The repository itself was linked fine, so a failed cleanup only leaves the
+                # hook orphaned; raising would report the link as failed.
+                try:
+                    client.delete_project_webhook(project_id, hook_id)
+                except ApiError as e:
+                    if e.code != 404:
+                        logger.warning(
+                            "gitlab.repository.webhook_discard_failed",
+                            extra={
+                                **log_extra,
+                                "gitlab.repository.webhook_id": hook_id,
+                                "gitlab.repository.status_code": e.code,
+                            },
+                        )
+                return
+            repo.config["webhook_id"] = hook_id
+            event = (
+                "gitlab.repository.webhook_recreated"
+                if existing_webhook_id
+                else "gitlab.repository.webhook_created"
             )
+        else:
+            event = "gitlab.repository.webhook_updated"
+        logger.info(event, extra={**log_extra, "gitlab.repository.webhook_id": hook_id})
+
+    def on_delete_repository(self, repo):
+        """Clean up the attached webhook"""
+        webhook_id = repo.config.get("webhook_id")
+        # A repository whose hook creation failed has no webhook_id. There is no hook to
+        # clean up then, and raising would only stop the user from deleting the repository.
+        if not webhook_id:
             return
         installation = self.get_installation(repo.integration_id, repo.organization_id)
         client = installation.get_client()
         try:
-            hook_id = client.create_project_webhook(repo.config["project_id"])
-        except Exception as e:
-            raise installation.raise_error(e)
-        repo.config["webhook_id"] = hook_id
-        repository_service.update_repository(organization_id=organization.id, update=repo)
-        logger.info(
-            "gitlab.repository.webhook_created",
-            extra={**log_extra, "gitlab.repository.webhook_id": hook_id},
-        )
-
-    def on_delete_repository(self, repo):
-        """Clean up the attached webhook"""
-        installation = self.get_installation(repo.integration_id, repo.organization_id)
-        client = installation.get_client()
-        try:
-            client.delete_project_webhook(repo.config["project_id"], repo.config["webhook_id"])
+            client.delete_project_webhook(repo.config["project_id"], webhook_id)
         except ApiError as e:
             if e.code == 404:
                 return

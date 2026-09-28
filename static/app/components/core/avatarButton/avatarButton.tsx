@@ -1,12 +1,13 @@
-import {css} from '@emotion/react';
+import {useTheme, css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {DistributedOmit} from 'type-fest';
 
 import type {BaseAvatarProps} from '@sentry/scraps/avatar';
 import {ImageAvatar, LetterAvatar, useAvatar} from '@sentry/scraps/avatar';
 import {Button, type ButtonProps} from '@sentry/scraps/button';
-import {Container, type Responsive, useResponsivePropValue} from '@sentry/scraps/layout';
 import {useSizeContext} from '@sentry/scraps/sizeContext';
+
+import {IconUser} from 'sentry/icons';
 
 import {useAvatarColors} from './useAvatarColors';
 
@@ -14,89 +15,135 @@ type AvatarButtonSize = 'xs' | 'sm' | 'md';
 
 interface AvatarButtonProps extends Omit<ButtonProps, 'children' | 'icon' | 'variant'> {
   'aria-label': string;
-  avatar: BaseAvatarProps;
-  size?: Responsive<AvatarButtonSize>;
+  /** Omit to render an empty/unassigned placeholder. */
+  avatar?: BaseAvatarProps;
+  /** Circular (e.g. users) vs squircle (e.g. teams) shape. Defaults to `avatar.round`. */
+  round?: boolean;
+  size?: AvatarButtonSize;
 }
 
-export function AvatarButton({avatar, size: explicitSize, ...props}: AvatarButtonProps) {
+export function AvatarButton({
+  avatar,
+  round: explicitRound,
+  size: explicitSize,
+  ...props
+}: AvatarButtonProps) {
+  const theme = useTheme();
+  const round = explicitRound ?? avatar?.round ?? false;
+  const isSuggested = !!avatar?.suggested;
+
   const avatarDefinition = useAvatar({
-    identifier: avatar.identifier,
-    name: avatar.name,
+    identifier: avatar?.identifier ?? '',
+    name: avatar?.name ?? '',
     imageDefinition:
-      avatar.type === 'upload'
+      avatar?.type === 'upload'
         ? {type: 'upload', uploadUrl: avatar.uploadUrl}
-        : avatar.type === 'gravatar'
+        : avatar?.type === 'gravatar'
           ? {type: 'gravatar', gravatarId: avatar.gravatarId}
           : undefined,
   });
 
-  const colors = useAvatarColors(avatar);
+  const colors = useAvatarColors(isSuggested ? undefined : avatar);
 
   const contextSize = useSizeContext();
-  const size = useResponsivePropValue(explicitSize ?? contextSize ?? 'md');
+  const size = explicitSize ?? contextSize ?? 'md';
+
+  if (!avatar) {
+    return (
+      <StyledAvatarButton {...props} size={size} round={round} chonk={undefined}>
+        <AvatarContainer
+          size={size}
+          round={round}
+          padded={false}
+          borderColor={theme.tokens.border.primary}
+          borderStyle="solid"
+        >
+          <EmptyAvatarIcon />
+        </AvatarContainer>
+      </StyledAvatarButton>
+    );
+  }
 
   if (avatarDefinition.type === 'letter') {
-    const chonk = colors.type === 'letter' ? colors.chonk : undefined;
+    const avatarChonk = colors.type === 'letter' ? colors.chonk : undefined;
+
     return (
-      <StyledAvatarButton {...props} size={size} chonk={chonk}>
-        <AvatarContainer size={size} chonk={chonk}>
-          <StyledLetterAvatar configuration={avatarDefinition.configuration} />
+      <StyledAvatarButton {...props} size={size} round={round} chonk={avatarChonk}>
+        <AvatarContainer
+          size={size}
+          round={round}
+          padded={false}
+          borderColor={
+            avatarChonk ??
+            (isSuggested ? theme.tokens.border.neutral.vibrant : 'transparent')
+          }
+          borderStyle={isSuggested ? 'dashed' : 'solid'}
+        >
+          <StyledLetterAvatar
+            configuration={avatarDefinition.configuration}
+            suggested={isSuggested}
+          />
         </AvatarContainer>
       </StyledAvatarButton>
     );
   }
 
   const chonk = colors.type === 'image' ? colors.chonk : undefined;
-  const padded = colors.type === 'image' ? colors.style === 'padded' : false;
 
   return (
-    <StyledAvatarButton {...props} size={size} chonk={chonk}>
-      <AvatarContainer size={size} padded={padded} chonk={chonk}>
-        <StyledImageAvatar configuration={avatarDefinition.configuration} />
+    <StyledAvatarButton {...props} size={size} round={round} chonk={chonk}>
+      <AvatarContainer
+        size={size}
+        round={round}
+        padded={colors.type === 'image' && colors.style === 'padded'}
+        borderColor={
+          chonk ?? (isSuggested ? theme.tokens.border.neutral.vibrant : 'transparent')
+        }
+        borderStyle={isSuggested ? 'dashed' : 'solid'}
+      >
+        <StyledImageAvatar
+          configuration={avatarDefinition.configuration}
+          suggested={isSuggested}
+        />
       </AvatarContainer>
     </StyledAvatarButton>
   );
 }
 
-const RADIUS_BY_SIZE: Record<AvatarButtonSize, 'sm' | 'md' | 'lg'> = {
-  xs: 'sm',
-  sm: 'md',
-  md: 'lg',
-};
+const EmptyAvatarIcon = styled(IconUser)`
+  width: 60%;
+  height: 60%;
+  margin: auto;
+  position: absolute;
+  inset: 0;
+  color: ${p => p.theme.tokens.content.secondary};
+`;
 
-function AvatarContainer({
-  children,
-  chonk,
-  padded = false,
-  size,
-}: {
-  children: React.ReactNode;
+const AvatarContainer = styled('div')<{
+  borderColor: string;
+  borderStyle: 'dashed' | 'solid';
+  round: boolean;
   size: AvatarButtonSize;
-  chonk?: string;
   padded?: boolean;
-}) {
-  return (
-    <StyledAvatarContainer
-      width="100%"
-      height="100%"
-      overflow="hidden"
-      border="primary"
-      radius={RADIUS_BY_SIZE[size]}
-      padding={padded ? 'xs' : '0'}
-      background={padded ? 'primary' : undefined}
-      position="relative"
-      chonk={chonk}
-    >
-      {children}
-    </StyledAvatarContainer>
-  );
-}
-
-// ponytail: styled(Container) only for dynamic borderColor — Container's
-// border prop handles the 1px solid, we just override the color.
-const StyledAvatarContainer = styled(Container)<{chonk?: string}>`
-  border-color: ${p => p.chonk ?? 'transparent'};
+}>`
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border: 1px ${p => p.borderStyle} ${p => p.borderColor};
   will-change: transform;
+  border-radius: ${p =>
+    p.round
+      ? '50%'
+      : p.size === 'md'
+        ? p.theme.radius.lg
+        : p.size === 'sm'
+          ? p.theme.radius.md
+          : p.size === 'xs'
+            ? p.theme.radius.sm
+            : p.theme.radius.xs};
+  padding: ${p => (p.padded ? p.theme.space.xs : '0')};
+  background: ${p => (p.padded ? p.theme.tokens.background.primary : 'transparent')};
+  position: relative;
 `;
 
 const StyledImageAvatar = styled(ImageAvatar)`
@@ -123,10 +170,15 @@ const AVATAR_BUTTON_ELEVATION: Record<AvatarButtonSize, string> = {
 
 type ResolvedAvatarButtonProps = DistributedOmit<ButtonProps, 'size'> & {
   chonk: string | undefined;
+  round: boolean;
   size: AvatarButtonSize;
 };
 
-function AvatarButtonBase({chonk: _chonk, ...props}: ResolvedAvatarButtonProps) {
+function AvatarButtonBase({
+  chonk: _chonk,
+  round: _round,
+  ...props
+}: ResolvedAvatarButtonProps) {
   return <Button {...props} />;
 }
 
@@ -134,6 +186,16 @@ const StyledAvatarButton = styled(AvatarButtonBase)`
   padding: 0;
   width: ${p => p.theme.form[p.size].height};
   min-width: ${p => p.theme.form[p.size].height};
+
+  ${p =>
+    p.round &&
+    css`
+      &&,
+      &&::before,
+      &&::after {
+        border-radius: ${p.theme.radius.full};
+      }
+    `}
 
   ${p =>
     p.chonk &&

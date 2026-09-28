@@ -1,4 +1,5 @@
 import {Fragment, useCallback} from 'react';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
@@ -10,8 +11,6 @@ import {openConfirmModal} from 'sentry/components/confirm';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct, tn} from 'sentry/locale';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import {useDeleteDetectorsMutation} from 'sentry/views/detectors/hooks/useDeleteDetectorsMutation';
 import {useUpdateDetectorsMutation} from 'sentry/views/detectors/hooks/useEditDetectorsMutation';
 
@@ -47,11 +46,7 @@ export function DetectorsTableActions({
   const canDelete = canEdit && !hasSystemCreatedDetectors;
 
   const {selection} = usePageFilters();
-  const {query} = useLocationQuery({
-    fields: {
-      query: decodeScalar,
-    },
-  });
+  const [query] = useQueryState('query', parseAsString.withDefault(''));
 
   const {mutateAsync: deleteDetectors, isPending: isDeleting} =
     useDeleteDetectorsMutation();

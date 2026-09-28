@@ -1,5 +1,11 @@
-from sentry.issues.derived.check import StatusInconsistency, check_status_consistency
+from sentry.issues.derived.check import (
+    StatusInconsistency,
+    _log_redundant_reconciles,
+    check_status_consistency,
+)
 from sentry.issues.derived.features import IssueStatus
+from sentry.issues.derived.processing import PIPELINE
+from sentry.issues.derived.store import GroupDerivedDataStore
 from sentry.models.group import GroupStatus
 from sentry.testutils.cases import TestCase
 
@@ -34,3 +40,24 @@ class CheckStatusConsistencyTest(TestCase):
         derived = self.create_group_derived_data(group=group, data={"status": "open"})
 
         assert check_status_consistency(group, derived) is None
+
+    def test_logs_redundant_reconcile(self) -> None:
+        group = self.create_group()
+        derived = self.create_group_derived_data(
+            group=group,
+            data={"status": "open", "no_change_reconcile_ids": [42, 43]},
+        )
+        state = GroupDerivedDataStore.load(PIPELINE, derived)
+
+        with self.assertLogs("sentry.issues.derived.check", level="INFO") as logs:
+            _log_redundant_reconciles(derived, state)
+
+        assert any("check_derived_data.redundant_reconcile" in message for message in logs.output)
+
+    def test_skips_log_without_redundant_reconcile(self) -> None:
+        group = self.create_group()
+        derived = self.create_group_derived_data(group=group, data={"status": "open"})
+        state = GroupDerivedDataStore.load(PIPELINE, derived)
+
+        with self.assertNoLogs("sentry.issues.derived.check", level="INFO"):
+            _log_redundant_reconciles(derived, state)

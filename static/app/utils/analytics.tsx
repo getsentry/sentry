@@ -44,6 +44,8 @@ import {
 
 import type {AgentMonitoringEventParameters} from './analytics/agentMonitoringAnalyticsEvents';
 import {agentMonitoringEventMap} from './analytics/agentMonitoringAnalyticsEvents';
+import type {AuthV2EventParameters} from './analytics/authV2AnalyticsEvents';
+import {authV2EventMap} from './analytics/authV2AnalyticsEvents';
 import type {BreadcrumbsAnalyticsEventParameters} from './analytics/breadcrumbsAnalyticsEvents';
 import {breadcrumbsAnalyticsEventMap} from './analytics/breadcrumbsAnalyticsEvents';
 import type {ConversationsEventParameters} from './analytics/conversationsAnalyticsEvents';
@@ -109,6 +111,7 @@ import {workflowEventMap} from './analytics/workflowAnalyticsEvents';
 interface EventParameters
   extends
     CommandPaletteEventParameters,
+    AuthV2EventParameters,
     GrowthEventParameters,
     AgentMonitoringEventParameters,
     AlertsEventParameters,
@@ -152,6 +155,7 @@ interface EventParameters
 
 const allEventMap: Record<string, string | null> = {
   ...commandPaletteEventMap,
+  ...authV2EventMap,
   ...agentMonitoringEventMap,
   ...alertsEventMap,
   ...conversationsEventMap,
