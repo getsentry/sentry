@@ -4,6 +4,7 @@ from unittest.mock import ANY, MagicMock, patch
 
 import orjson
 import pytest
+from django.test import override_settings
 from pydantic import ValidationError
 from scm.types import CreatePullRequestCommentReactionProtocol
 
@@ -65,6 +66,7 @@ class _FakeScmClient:
     def delete_pull_request_reaction(self, *args: Any, **kwargs: Any) -> Any: ...
 
 
+@override_settings(SENTRY_SELF_HOSTED=False)
 class _MergeRequestHandlerTestBase(GitLabTestCase):
     """Shared setup for the GitLab merge-request handler tests.
 
@@ -978,6 +980,7 @@ def _make_note_event(**overrides: object) -> dict[str, Any]:
     return event
 
 
+@override_settings(SENTRY_SELF_HOSTED=False)
 class MergeRequestNoteEventTest(GitLabTestCase):
     """Tests for the @sentry review note handler.
 
