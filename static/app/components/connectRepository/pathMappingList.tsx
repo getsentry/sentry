@@ -37,9 +37,7 @@ const mappingKey = (value: PathMappingValue) => {
 };
 
 const hasDuplicateMappings = (entries: Entry[]) => {
-  const keys = entries
-    .filter(entry => hasContent(entry.value))
-    .map(entry => mappingKey(entry.value));
+  const keys = entries.map(entry => mappingKey(entry.value));
   return new Set(keys).size !== keys.length;
 };
 
@@ -110,13 +108,6 @@ export function PathMappingList({
   };
 
   const handleAddAnother = () => {
-    const last = entries.at(-1);
-    // If the trailing row is still empty, reopen it rather than stacking another blank.
-    if (last && !hasContent(last.value)) {
-      setEntries(prev => clearNewOnCollapse(prev, openId));
-      setOpenId(last.id);
-      return;
-    }
     const id = nextId();
     setEntries(prev => [
       ...clearNewOnCollapse(prev, openId),

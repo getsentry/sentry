@@ -164,21 +164,19 @@ describe('PathMappingList', () => {
   });
 
   describe('add another path', () => {
-    it('reopens a trailing empty row instead of stacking a new one', async () => {
+    it('blocks adding a third empty row as a duplicate of the second', async () => {
       renderList({pathMappings: [MAPPINGS[0]!]});
 
       await userEvent.click(screen.getByRole('button', {name: 'Add another path'}));
       expect(screen.getByText(/Paths \(2\)/)).toBeInTheDocument();
 
-      await userEvent.click(screen.getByRole('button', {name: 'Expand path mapping'}));
-      expect(screen.getByRole('textbox', {name: /stack trace prefix/i})).toHaveValue(
-        'app/'
-      );
-
       await userEvent.click(screen.getByRole('button', {name: 'Add another path'}));
+      expect(screen.getByText(/Paths \(3\)/)).toBeInTheDocument();
 
-      expect(screen.getByText(/Paths \(2\)/)).toBeInTheDocument();
-      expect(screen.getByRole('textbox', {name: /stack trace prefix/i})).toHaveValue('');
+      expect(screen.getByRole('button', {name: 'Add another path'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
     });
   });
 
