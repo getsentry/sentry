@@ -4,6 +4,7 @@ from typing import Any
 from unittest.mock import patch
 
 import pytest
+from django.test import override_settings
 
 from sentry.integrations.services.integration.serial import serialize_integration
 from sentry.models.repositorysettings import CodeReviewTrigger
@@ -34,6 +35,7 @@ def _event(**overrides: object) -> PullRequestReviewEvent:
     return PullRequestReviewEvent(**fields)  # type: ignore[arg-type]
 
 
+@override_settings(SENTRY_SELF_HOSTED=False)
 class RequestReviewTest(TestCase):
     @pytest.fixture(autouse=True)
     def mock_seer_request(self) -> Generator[None]:

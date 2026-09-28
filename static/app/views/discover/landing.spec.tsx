@@ -120,7 +120,7 @@ describe('Discover > Landing', () => {
 
     expect(discoverCrumb).toHaveAttribute(
       'href',
-      '/organizations/org-slug/explore/discover/homepage/'
+      '/organizations/org-slug/explore/errors/'
     );
 
     // 'Saved Queries' heads the page, so it is not repeated in the trail.

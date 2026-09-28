@@ -367,6 +367,13 @@ describe('AggregatesTable', () => {
     );
 
     await userEvent.click(screen.getByText('123'));
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+
+    await userEvent.click(
+      within(screen.getByRole('cell', {name: '123'})).getByRole('button', {
+        name: 'Actions',
+      })
+    );
 
     expect(
       await screen.findByRole('menuitemradio', {name: 'Show values greater than'})
