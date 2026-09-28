@@ -285,7 +285,6 @@ def pytest_configure(config: pytest.Config) -> None:
         {
             "redis.clusters": {
                 "default": {"hosts": {0: {"db": xdist.get_redis_db()}}},
-                # The redis-cluster devservice. Start it with 'devservices up --mode backend-ci'.
                 "cluster": {
                     "is_redis_cluster": True,
                     "hosts": [{"host": "0.0.0.0", "port": port} for port in range(7000, 7006)],
