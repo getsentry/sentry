@@ -1,3 +1,4 @@
+import {dragHandle} from 'sentry-test/dragMove';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
@@ -11,7 +12,7 @@ const SERIES = [
   [1_700_003_600, [{count: 8}]],
 ];
 
-function renderEmbed({
+function ExampleErrorsQueryEmbed({
   data,
   level = 'block',
 }: {
@@ -19,7 +20,7 @@ function renderEmbed({
   level?: 'block' | 'inline';
 }) {
   const tag = `{% errorsQuery %}${JSON.stringify(data)}{% /errorsQuery %}`;
-  return render(<SeerMarkdown raw={level === 'inline' ? `See ${tag}` : tag} />);
+  return <SeerMarkdown raw={level === 'inline' ? `See ${tag}` : tag} />;
 }
 
 describe('errors query embed', () => {
@@ -40,16 +41,18 @@ describe('errors query embed', () => {
       body: {data: SERIES},
     });
 
-    renderEmbed({
-      data: {
-        mode: 'samples',
-        query: 'event.type:error',
-        fields: ['title', 'project', 'timestamp'],
-        sort: '-timestamp',
-        statsPeriod: '24h',
-        title: 'Recent errors',
-      },
-    });
+    render(
+      <ExampleErrorsQueryEmbed
+        data={{
+          mode: 'samples',
+          query: 'event.type:error',
+          fields: ['title', 'project', 'timestamp'],
+          sort: '-timestamp',
+          statsPeriod: '24h',
+          title: 'Recent errors',
+        }}
+      />
+    );
 
     expect(await screen.findByText('Error 1')).toBeInTheDocument();
     expect(screen.getByText('Error 5')).toBeInTheDocument();
@@ -115,17 +118,19 @@ describe('errors query embed', () => {
       body: {data: SERIES},
     });
 
-    renderEmbed({
-      data: {
-        mode: 'aggregate',
-        query: '',
-        fields: ['title', 'project', 'count_unique(user)'],
-        sort: '-count_unique_user',
-        statsPeriod: '1h',
-        yAxes: ['count()'],
-        title: 'Errors by title',
-      },
-    });
+    render(
+      <ExampleErrorsQueryEmbed
+        data={{
+          mode: 'aggregate',
+          query: '',
+          fields: ['title', 'project', 'count_unique(user)'],
+          sort: '-count_unique_user',
+          statsPeriod: '1h',
+          yAxes: ['count()'],
+          title: 'Errors by title',
+        }}
+      />
+    );
 
     expect(await screen.findByText('TypeError')).toBeInTheDocument();
     expect(screen.getByText('1,234')).toBeInTheDocument();
@@ -160,16 +165,18 @@ describe('errors query embed', () => {
       body: {data: SERIES},
     });
 
-    renderEmbed({
-      data: {
-        mode: 'aggregate',
-        query: 'event.type:error',
-        fields: ['title', 'project', 'count()'],
-        sort: '-count',
-        statsPeriod: '24h',
-        title: 'Errors by title',
-      },
-    });
+    render(
+      <ExampleErrorsQueryEmbed
+        data={{
+          mode: 'aggregate',
+          query: 'event.type:error',
+          fields: ['title', 'project', 'count()'],
+          sort: '-count',
+          statsPeriod: '24h',
+          title: 'Errors by title',
+        }}
+      />
+    );
 
     expect(await screen.findByTestId('seer-chart-content')).toBeInTheDocument();
 
@@ -204,15 +211,17 @@ describe('errors query embed', () => {
       body: {data: SERIES},
     });
 
-    renderEmbed({
-      data: {
-        mode: 'aggregate',
-        query: 'event.type:error',
-        fields: ['count()'],
-        statsPeriod: '1h',
-        title: 'Error count',
-      },
-    });
+    render(
+      <ExampleErrorsQueryEmbed
+        data={{
+          mode: 'aggregate',
+          query: 'event.type:error',
+          fields: ['count()'],
+          statsPeriod: '1h',
+          title: 'Error count',
+        }}
+      />
+    );
 
     expect(await screen.findByTestId('seer-chart-content')).toBeInTheDocument();
     expect(screen.getAllByLabelText('event.type:error').length).toBeGreaterThan(0);
@@ -234,6 +243,50 @@ describe('errors query embed', () => {
     });
   });
 
+  it('lets a reader resize the preview columns, and keeps the resize local', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {
+        data: [{id: '1', title: 'Error 1', project: 'web', timestamp: '2026-08-27'}],
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: {data: SERIES},
+    });
+
+    const {router} = render(
+      <ExampleErrorsQueryEmbed
+        data={{
+          mode: 'samples',
+          query: 'event.type:error',
+          fields: ['title', 'project', 'timestamp'],
+        }}
+      />
+    );
+
+    expect(await screen.findByText('Error 1')).toBeInTheDocument();
+
+    const table = screen.getByRole('table');
+    expect(table).toHaveStyle({
+      gridTemplateColumns: 'minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr)',
+    });
+
+    // One handle per column but the last, which has nothing to its right to give
+    // width back to. Columns measure 0 in jsdom, so the width is the drag distance.
+    const resizers = screen.getAllByRole('separator');
+    expect(resizers).toHaveLength(2);
+
+    dragHandle(resizers[0]!, {from: 100, to: 340});
+
+    await waitFor(() =>
+      expect(table).toHaveStyle({
+        gridTemplateColumns: '240px minmax(0, 1fr) minmax(0, 1fr)',
+      })
+    );
+    expect(router.location.query).toEqual({});
+  });
+
   it('does not fetch data for an inline embed', () => {
     const request = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
@@ -244,12 +297,9 @@ describe('errors query embed', () => {
       body: {data: []},
     });
 
-    renderEmbed({
-      // No `mode`, so this also pins the schema default. `errorsQuery` shipped
-      // before the mode existed, and samples is what it used to do.
-      data: {query: 'is:unresolved'},
-      level: 'inline',
-    });
+    // No `mode`, so this also pins the schema default. `errorsQuery` shipped
+    // before the mode existed, and samples is what it used to do.
+    render(<ExampleErrorsQueryEmbed data={{query: 'is:unresolved'}} level="inline" />);
 
     expect(screen.getByRole('link', {name: 'Error search'})).toBeInTheDocument();
     expect(request).not.toHaveBeenCalled();

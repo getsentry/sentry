@@ -1,5 +1,5 @@
-import {RuleTester} from '@typescript-eslint/rule-tester';
-import {ESLintUtils} from '@typescript-eslint/utils';
+import {defineRule} from '@oxlint/plugins';
+import {RuleTester} from 'oxlint/plugins-dev';
 
 import {getStyledCallInfo} from './styled';
 
@@ -7,7 +7,7 @@ import {getStyledCallInfo} from './styled';
  * Minimal rule that reports the kind and name from getStyledCallInfo.
  * Used to test the utility via RuleTester.
  */
-const testRule = ESLintUtils.RuleCreator.withoutDocs({
+const testRule = defineRule({
   meta: {
     type: 'problem',
     schema: [],

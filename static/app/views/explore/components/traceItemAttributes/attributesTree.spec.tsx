@@ -4,7 +4,8 @@ import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
-import type {MenuItemProps} from 'sentry/components/dropdownMenu';
+import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
+
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import {
   AttributesTree,

@@ -20,7 +20,7 @@ from sentry.seer.agent.client_models import (
     RepoPRState,
     SeerRunState,
 )
-from sentry.seer.agent.client_utils import UserOrgContext
+from sentry.seer.agent.client_utils import AgentRunOptions, UserOrgContext
 from sentry.seer.autofix.commit_author import SeerCommitAuthor
 from sentry.seer.models import SeerApiError, SeerPermissionError
 from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunMirrorStatus, SeerRunType
@@ -1673,9 +1673,27 @@ class TestStartFeatureRun(TestCase):
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
     @patch("sentry.receivers.outbox.cell.make_feature_run_request")
+    @with_feature("organizations:seer-agent-enable-assisted-query-code-mode")
+    def test_inherits_assisted_query_code_mode_from_org(self, mock_request, _mock_access) -> None:
+        client = SeerAgentClient(self.organization, self.user)
+        run = client.start_feature_run(
+            feature_id="night_shift",
+            payload={},
+            title="Test feature run",
+            flush=False,
+            referrer="night_shift",
+        )
+
+        outbox = self._outbox_for(run)
+        assert outbox is not None and outbox.payload is not None
+        body = outbox.payload["body"]
+        assert body["agent_run_options"]["enable_assisted_query_code_mode"] is True
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
+    @patch("sentry.receivers.outbox.cell.make_feature_run_request")
     @with_feature("organizations:seer-explorer-allow-bash-mode")
     def test_forwards_bash_mode(self, mock_request, _mock_access) -> None:
-        client = SeerAgentClient(self.organization, self.user, enable_bash_tools=True)
+        client = SeerAgentClient(self.organization, self.user, enable_bash_mode=True)
         run = client.start_feature_run(
             feature_id="night_shift",
             payload={},
@@ -1692,7 +1710,7 @@ class TestStartFeatureRun(TestCase):
     @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
     @patch("sentry.receivers.outbox.cell.make_feature_run_request")
     def test_omits_bash_mode_without_org_flag(self, mock_request, _mock_access) -> None:
-        client = SeerAgentClient(self.organization, self.user, enable_bash_tools=True)
+        client = SeerAgentClient(self.organization, self.user, enable_bash_mode=True)
         run = client.start_feature_run(
             feature_id="night_shift",
             payload={},
@@ -1708,7 +1726,9 @@ class TestStartFeatureRun(TestCase):
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
     @patch("sentry.receivers.outbox.cell.make_feature_run_request")
-    def test_agent_run_options_empty_without_org_flags(self, mock_request, _mock_access) -> None:
+    def test_agent_run_options_use_defaults_without_org_flags(
+        self, mock_request, _mock_access
+    ) -> None:
         client = SeerAgentClient(self.organization, self.user)
         run = client.start_feature_run(
             feature_id="night_shift",
@@ -1721,7 +1741,90 @@ class TestStartFeatureRun(TestCase):
         outbox = self._outbox_for(run)
         assert outbox is not None and outbox.payload is not None
         body = outbox.payload["body"]
-        assert body["agent_run_options"] == {}
+        assert body["agent_run_options"] == {"enable_assisted_query_code_mode": False}
+
+
+class TestContinueFeatureRun(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.user = self.create_user()
+        self.organization = self.create_organization(owner=self.user)
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
+    @patch("sentry.seer.agent.client.make_feature_run_request")
+    def test_dispatches_against_existing_mirror(self, mock_request, _mock_access) -> None:
+        mock_request.return_value = Mock(status=200)
+        stale = timezone.now() - timedelta(days=10)
+        run = self.create_seer_run(
+            organization=self.organization,
+            seer_run_state_id=456,
+            last_triggered_at=stale,
+        )
+        client = SeerAgentClient(self.organization, self.user)
+
+        result = client.continue_feature_run(
+            existing_agent_run=self.create_seer_agent_run(run=run, source="autofix_rca"),
+            payload={"existing_run_id": 456, "insert_index": 2},
+            referrer="autofix",
+            user_org_context={"org_slug": self.organization.slug, "all_org_projects": []},
+            proxy_headers={"X-Viewer-Context": "signed-viewer-context"},
+        )
+
+        assert result == run
+        assert SeerRun.objects.filter(organization=self.organization).count() == 1
+        assert not CellOutbox.objects.filter(category=OutboxCategory.SEER_RUN_CREATE).exists()
+        run.refresh_from_db()
+        assert run.last_triggered_at > stale
+        body = mock_request.call_args.args[0]
+        assert body == {
+            "feature_id": "autofix_rca",
+            "payload": {"existing_run_id": 456, "insert_index": 2},
+            "agent_run_options": {"enable_assisted_query_code_mode": False},
+            "ref": str(run.uuid),
+            "external_idempotency_key": str(run.uuid),
+            "referrer": "autofix",
+            "user_org_context": {"org_slug": self.organization.slug, "all_org_projects": []},
+            "proxy_headers": {"X-Viewer-Context": "signed-viewer-context"},
+        }
+
+    @with_feature("organizations:seer-explorer-allow-bash-mode")
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
+    @patch("sentry.seer.agent.client.make_feature_run_request")
+    def test_merges_client_and_caller_options(self, mock_request, _mock_access) -> None:
+        mock_request.return_value = Mock(status=200)
+        run = self.create_seer_run(organization=self.organization, seer_run_state_id=456)
+        client = SeerAgentClient(self.organization, self.user, enable_bash_mode=True)
+
+        client.continue_feature_run(
+            existing_agent_run=self.create_seer_agent_run(run=run, source="autofix"),
+            payload={},
+            referrer="autofix",
+            user_org_context={"org_slug": self.organization.slug, "all_org_projects": []},
+            agent_run_options=AgentRunOptions(
+                is_context_engine_enabled=False,
+                enable_frontend_code_search=False,
+            ),
+        )
+
+        agent_run_options = mock_request.call_args.args[0]["agent_run_options"]
+        assert agent_run_options["enable_bash_mode"] is True
+        assert agent_run_options["is_context_engine_enabled"] is False
+        assert agent_run_options["enable_frontend_code_search"] is False
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
+    @patch("sentry.seer.agent.client.make_feature_run_request")
+    def test_http_error_raises(self, mock_request, _mock_access) -> None:
+        mock_request.return_value = Mock(status=500)
+        run = self.create_seer_run(organization=self.organization, seer_run_state_id=456)
+        client = SeerAgentClient(self.organization, self.user)
+
+        with pytest.raises(SeerApiError):
+            client.continue_feature_run(
+                existing_agent_run=self.create_seer_agent_run(run=run, source="autofix"),
+                payload={},
+                referrer="autofix",
+                user_org_context={"org_slug": self.organization.slug, "all_org_projects": []},
+            )
 
 
 class TestSeerAgentClientLatestRun(TestCase):

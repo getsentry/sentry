@@ -8,9 +8,9 @@ import {
   useState,
 } from 'react';
 import {useTheme} from '@emotion/react';
-import {Replayer, ReplayerEvents} from '@sentry-internal/rrweb';
-import type {Mirror} from '@sentry-internal/rrweb-snapshot';
 import * as Sentry from '@sentry/react';
+import {Replayer, ReplayerEvents} from '@sentry/rrweb';
+import type {Mirror} from '@sentry/rrweb-snapshot';
 
 import {useReplayHighlighting} from 'sentry/components/replays/useReplayHighlighting';
 import {VideoReplayerWithInteractions} from 'sentry/components/replays/videoReplayerWithInteractions';
@@ -570,6 +570,7 @@ export function Provider({
         instance.destroy();
       }
     };
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [rootEl, isVideoReplay, initVideoRoot, videoEvents, replay]);
 
   // For non-video (e.g. rrweb) replays, initialize the player

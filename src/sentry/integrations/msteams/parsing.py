@@ -1,4 +1,3 @@
-import logging
 from collections.abc import Mapping
 from typing import Any
 
@@ -6,22 +5,11 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.types import IntegrationProviderSlug
-
-logger = logging.getLogger(__name__)
-
-
-def _infer_team_id_from_channel_data(data: Mapping[str, Any]) -> str | None:
-    try:
-        channel_data = data["channelData"]
-        team_id = channel_data["team"]["id"]
-        return team_id
-    except Exception:
-        pass
-    return None
+from sentry.utils.safe import get_path
 
 
 def get_integration_from_channel_data(data: Mapping[str, Any]) -> RpcIntegration | None:
-    team_id = _infer_team_id_from_channel_data(data=data)
+    team_id = get_path(data, "channelData", "team", "id")
     if team_id is None:
         return None
     return integration_service.get_integration(
@@ -31,50 +19,63 @@ def get_integration_from_channel_data(data: Mapping[str, Any]) -> RpcIntegration
     )
 
 
-def get_integration_for_tenant(data: Mapping[str, Any]) -> RpcIntegration | None:
-    try:
-        channel_data = data["channelData"]
-        tenant_id = channel_data["tenant"]["id"]
-        return integration_service.get_integration(
-            provider=IntegrationProviderSlug.MSTEAMS.value,
-            external_id=tenant_id,
-            status=ObjectStatus.ACTIVE,
-        )
-    except Exception as err:
-        logger.info("failed to get tenant id from request data", exc_info=err, extra={"data": data})
-    return None
+def _external_id_lookup(external_id: str) -> Mapping[str, Any]:
+    return {"provider": IntegrationProviderSlug.MSTEAMS.value, "external_id": external_id}
 
 
-def _infer_integration_id_from_card_action(data: Mapping[str, Any]) -> int | None:
-    # The bot builds and sends Adaptive Cards to the channel, and in it will include card actions and context.
-    # The context will include the "integrationId".
-    # Whenever a user interacts with the card, MS Teams will send the card action and the context to the bot.
-    # Here we parse the "integrationId" from the context.
+def _routable_lookups(data: Mapping[str, Any]) -> list[Mapping[str, Any]]:
+    """
+    The `integration_service.get_integration` filters identifying an integration whose events
+    are served from the cells, most specific first.
+    """
+    lookups: list[Mapping[str, Any]] = []
+
+    # The bot embeds an "integrationId" in the card action context of the cards it builds, and
+    # Teams echoes that context back when a user interacts with the card. Cards built by the
+    # notification platform omit it, since the renderer has no access to the target it is being
+    # sent to, leaving only the conversation the request arrived on to identify the integration.
     #
     # See: https://learn.microsoft.com/en-us/microsoftteams/platform/task-modules-and-cards/cards/cards-actions?tabs=json#actionsubmit
-    try:
-        payload = data["value"]["payload"]
-        integration_id = payload["integrationId"]
-        return integration_id
-    except Exception:
-        pass
-    return None
+    integration_id = get_path(data, "value", "payload", "integrationId")
+    if integration_id is not None:
+        lookups.append({"integration_id": integration_id})
+
+    team_id = get_path(data, "channelData", "team", "id")
+    if team_id is not None:
+        lookups.append(_external_id_lookup(team_id))
+
+    return lookups
 
 
-def get_integration_from_card_action(data: Mapping[str, Any]) -> RpcIntegration | None:
-    integration_id = _infer_integration_id_from_card_action(data=data)
-    if integration_id is None:
-        return None
-    return integration_service.get_integration(
-        integration_id=integration_id, status=ObjectStatus.ACTIVE
-    )
+def _integration_lookups(data: Mapping[str, Any]) -> list[Mapping[str, Any]]:
+    """
+    The `integration_service.get_integration` filters that could identify the integration a
+    request belongs to, most specific first. Empty when the request carries no usable identifier.
+    """
+    lookups = _routable_lookups(data=data)
+
+    # Personal installs are keyed by tenant id. Their events are handled in the control silo,
+    # where the identities they operate on live, so a tenant id is not routable on its own.
+    tenant_id = get_path(data, "channelData", "tenant", "id")
+    if tenant_id is not None:
+        lookups.append(_external_id_lookup(tenant_id))
+
+    return lookups
 
 
 def can_infer_integration(data: Mapping[str, Any]) -> bool:
-    return (
-        _infer_integration_id_from_card_action(data=data) is not None
-        or _infer_team_id_from_channel_data(data=data) is not None
-    )
+    return len(_routable_lookups(data=data)) > 0
+
+
+def get_integration_from_request_data(data: Mapping[str, Any]) -> RpcIntegration | None:
+    for lookup in _integration_lookups(data=data):
+        integration = integration_service.get_integration(
+            status=ObjectStatus.ACTIVE,
+            **lookup,
+        )
+        if integration is not None:
+            return integration
+    return None
 
 
 def is_new_integration_installation_event(data: Mapping[str, Any]) -> bool:

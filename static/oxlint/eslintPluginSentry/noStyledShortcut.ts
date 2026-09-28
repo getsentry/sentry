@@ -1,6 +1,6 @@
-import {AST_NODE_TYPES, ESLintUtils} from '@typescript-eslint/utils';
+import {defineRule} from '@oxlint/plugins';
 
-export const noStyledShortcut = ESLintUtils.RuleCreator.withoutDocs({
+export const noStyledShortcut = defineRule({
   meta: {
     type: 'suggestion',
     docs: {
@@ -19,10 +19,10 @@ export const noStyledShortcut = ESLintUtils.RuleCreator.withoutDocs({
       TaggedTemplateExpression(node) {
         const {tag} = node;
         if (
-          tag.type !== AST_NODE_TYPES.MemberExpression ||
-          tag.object.type !== AST_NODE_TYPES.Identifier ||
+          tag.type !== 'MemberExpression' ||
+          tag.object.type !== 'Identifier' ||
           tag.object.name !== 'styled' ||
-          tag.property.type !== AST_NODE_TYPES.Identifier
+          tag.property.type !== 'Identifier'
         ) {
           return;
         }

@@ -7,11 +7,18 @@ from objectstore_client import Compression, GetResponse, Metadata, RequestError,
 from objectstore_client.multipart import MultipartUpload
 from urllib3.exceptions import HTTPError
 
+from sentry import options
 from sentry.models.project import Project
 from sentry.objectstore import UsecaseId, get_session
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
+
+
+def get_snapshot_usecase() -> UsecaseId:
+    if options.get("preprod.snapshots.objectstore.snapshots-usecase.enabled"):
+        return UsecaseId.PREPROD_SNAPSHOTS
+    return UsecaseId.PREPROD
 
 
 # TODO: On January 1, 2027, remove the preprod fallback and use preprod_snapshots exclusively.
@@ -73,7 +80,13 @@ class SnapshotStorage:
 
 
 def get_snapshot_storage(project: Project | int, *, org: int | None = None) -> SnapshotStorage:
+    primary_usecase = get_snapshot_usecase()
+    if primary_usecase == UsecaseId.PREPROD:
+        fallback_usecase = UsecaseId.PREPROD_SNAPSHOTS
+    else:
+        fallback_usecase = UsecaseId.PREPROD
+
     return SnapshotStorage(
-        primary=get_session(UsecaseId.PREPROD, project, org=org),
-        fallback=get_session(UsecaseId.PREPROD_SNAPSHOTS, project, org=org),
+        primary=get_session(primary_usecase, project, org=org),
+        fallback=get_session(fallback_usecase, project, org=org),
     )

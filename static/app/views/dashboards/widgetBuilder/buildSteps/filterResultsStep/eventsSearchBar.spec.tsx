@@ -60,7 +60,6 @@ describe('EventsSearchBar', () => {
           fieldAliases: undefined,
           fields: undefined,
           isHidden: undefined,
-          onDemand: undefined,
           selectedAggregate: undefined,
         }}
       />,
@@ -94,7 +93,6 @@ describe('EventsSearchBar', () => {
           fieldAliases: undefined,
           fields: undefined,
           isHidden: undefined,
-          onDemand: undefined,
           selectedAggregate: undefined,
         }}
       />,
@@ -109,6 +107,9 @@ describe('EventsSearchBar', () => {
 
     await userEvent.click(
       await screen.findByRole('button', {name: 'Edit value for filter: has'})
+    );
+    await userEvent.clear(
+      await screen.findByRole('combobox', {name: 'Edit filter value'})
     );
 
     // Assert we actually have has: dropdown options before checking exclusions.
@@ -137,7 +138,6 @@ describe('EventsSearchBar', () => {
           fieldAliases: undefined,
           fields: undefined,
           isHidden: undefined,
-          onDemand: undefined,
           selectedAggregate: undefined,
         }}
       />,
@@ -176,7 +176,6 @@ describe('EventsSearchBar', () => {
           fieldAliases: undefined,
           fields: undefined,
           isHidden: undefined,
-          onDemand: undefined,
           selectedAggregate: undefined,
         }}
       />,

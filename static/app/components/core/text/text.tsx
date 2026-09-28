@@ -1,4 +1,5 @@
 import isPropValid from '@emotion/is-prop-valid';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {rc, type Responsive} from '@sentry/scraps/layout';
@@ -25,9 +26,11 @@ export interface BaseTextProps {
    * Density determines the line height of the text.
    * Defaults to 1.2, but supports the following density variants:
    * - compressed: 1
+   * - default: 1.2
    * - comfortable: 1.4
+   * - fixed: 1rem
    */
-  density?: Responsive<'compressed' | 'comfortable'>;
+  density?: Responsive<keyof Theme['font']['lineHeight']>;
   /**
    * If true, the text will be truncated with an ellipsis,
    * overflow will be hidden and white-space will be set to nowrap.
@@ -165,6 +168,13 @@ type TextPrimitive = 'span' | 'p' | 'label' | 'div' | 'time' | 'legend';
 
 type DisplayValue = 'inline' | 'block' | 'inline-block' | 'none';
 
+type TextStyleProps = BaseTextProps & {
+  theme: Theme;
+  as?: TextPrimitive;
+  display?: Responsive<DisplayValue>;
+  size?: Responsive<TextSize>;
+};
+
 function getDefaultDisplay(p: {
   align?: BaseTextProps['align'];
   as?: TextPrimitive;
@@ -190,13 +200,7 @@ function getNativeDisplay(as: TextPrimitive | undefined): DisplayValue {
  * so unspecified small breakpoints keep the sensible default instead of inheriting the value of
  * the smallest specified breakpoint (which `rc` would otherwise make the base).
  */
-function resolveDisplay(p: {
-  theme: Theme;
-  align?: BaseTextProps['align'];
-  as?: TextPrimitive;
-  display?: Responsive<DisplayValue>;
-  ellipsis?: boolean;
-}): string | undefined {
+function resolveDisplay(p: TextStyleProps): string | undefined {
   const fallback = getDefaultDisplay(p);
 
   if (p.display === undefined) {
@@ -214,6 +218,51 @@ function resolveDisplay(p: {
 
   return rc('display', value, p.theme);
 }
+
+export const getTextStyles = (p: TextStyleProps) => css`
+  ${rc('font-size', p.size, p.theme, v => getFontSize(v, p.theme))};
+  ${rc('line-height', p.density, p.theme, v => getLineHeight(v, p.theme))};
+  ${resolveDisplay(p)};
+  ${rc('text-align', p.align, p.theme)};
+
+  font-style: ${p.italic ? 'italic' : undefined};
+  text-decoration: ${getTextDecoration(p)};
+  cursor: ${p.cursor ?? undefined};
+
+  color: ${
+    p.variant === 'inherit'
+      ? undefined
+      : p.theme.tokens.content[
+          p.variant === 'muted' ? 'secondary' : (p.variant ?? 'primary')
+        ]
+  };
+
+  overflow: ${p.ellipsis ? 'hidden' : undefined};
+  text-overflow: ${p.ellipsis ? 'ellipsis' : undefined};
+  white-space: ${p.wrap ? p.wrap : p.ellipsis ? 'nowrap' : undefined};
+  text-wrap: ${p.textWrap ?? undefined};
+  word-break: ${p.wordBreak ?? undefined};
+  width: ${p.ellipsis ? '100%' : undefined};
+
+  font-family: ${p.theme.font.family[p.monospace ? 'mono' : 'sans']};
+  font-weight: ${
+    p.bold === true
+      ? p.theme.font.weight[p.monospace ? 'mono' : 'sans'].medium
+      : p.bold === false
+        ? p.theme.font.weight[p.monospace ? 'mono' : 'sans'].regular
+        : undefined
+  };
+  font-variant-numeric: ${[
+    p.tabular ? 'tabular-nums' : undefined,
+    p.fraction ? 'diagonal-fractions' : undefined,
+  ]
+    .filter(Boolean)
+    .join(' ')};
+  text-transform: ${p.uppercase ? 'uppercase' : undefined};
+
+  text-box-edge: text text;
+  text-box-trim: trim-both;
+`;
 
 export type TextProps<T extends TextPrimitive> = TextAttributes<T> &
   ExclusiveTextEllipsisProps;
@@ -259,47 +308,7 @@ export const Text = styled(
     shouldForwardProp: p => isPropValid(p),
   }
 )`
-  ${p => rc('font-size', p.size, p.theme, v => getFontSize(v, p.theme))};
-  ${p => rc('line-height', p.density, p.theme, v => getLineHeight(v, p.theme))};
-  ${p => resolveDisplay(p)};
-  ${p => rc('text-align', p.align, p.theme)};
-
-  font-style: ${p => (p.italic ? 'italic' : undefined)};
-  text-decoration: ${p => getTextDecoration(p)};
-  cursor: ${p => p.cursor ?? undefined};
-
-  color: ${p =>
-    p.variant === 'inherit'
-      ? undefined
-      : p.theme.tokens.content[
-          p.variant === 'muted' ? 'secondary' : (p.variant ?? 'primary')
-        ]};
-
-  overflow: ${p => (p.ellipsis ? 'hidden' : undefined)};
-  text-overflow: ${p => (p.ellipsis ? 'ellipsis' : undefined)};
-  white-space: ${p => (p.wrap ? p.wrap : p.ellipsis ? 'nowrap' : undefined)};
-  text-wrap: ${p => p.textWrap ?? undefined};
-  word-break: ${p => p.wordBreak ?? undefined};
-  width: ${p => (p.ellipsis ? '100%' : undefined)};
-
-  font-family: ${p => p.theme.font.family[p.monospace ? 'mono' : 'sans']};
-  font-weight: ${p =>
-    p.bold === true
-      ? p.theme.font.weight[p.monospace ? 'mono' : 'sans'].medium
-      : p.bold === false
-        ? p.theme.font.weight[p.monospace ? 'mono' : 'sans'].regular
-        : undefined};
-  font-variant-numeric: ${p =>
-    [
-      p.tabular ? 'tabular-nums' : undefined,
-      p.fraction ? 'diagonal-fractions' : undefined,
-    ]
-      .filter(Boolean)
-      .join(' ')};
-  text-transform: ${p => (p.uppercase ? 'uppercase' : undefined)};
-
-  text-box-edge: text text;
-  text-box-trim: trim-both;
+  ${getTextStyles}
 
   /**
    * Reset any margin or padding that might be set by the global CSS styles.

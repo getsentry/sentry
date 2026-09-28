@@ -78,6 +78,7 @@ export function NumberDragInput({
     document.removeEventListener('pointermove', onPointerMove);
     // oxlint-disable-next-line react/immutability
     document.removeEventListener('pointerup', onPointerUp);
+    // oxlint-disable-next-line react/memo-dependencies
   }, [onPointerMove]);
 
   const onPointerDown = (event: React.PointerEvent<HTMLElement>) => {

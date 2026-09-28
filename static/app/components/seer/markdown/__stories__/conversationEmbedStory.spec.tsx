@@ -3,6 +3,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import type {Conversation} from 'sentry/views/explore/conversations/hooks/useConversations';
 
 import {ConversationEmbedStory} from './conversationEmbedStory';
+import {findExampleTags} from './embedStoryTestUtils';
 
 jest.mock('sentry/components/seer/markdown', () => ({
   SeerMarkdown: ({raw}: {raw: string}) => <div aria-label="Rendered markdown">{raw}</div>,
@@ -56,7 +57,7 @@ describe('ConversationEmbedStory', () => {
 
     render(<ConversationEmbedStory />);
 
-    const renderedMarkdown = await screen.findByLabelText('Rendered markdown');
+    const [renderedMarkdown] = await findExampleTags();
     expect(renderedMarkdown).toHaveTextContent(titled.conversationId);
     expect(renderedMarkdown).toHaveTextContent('Refund request escalated to a human');
     expect(renderedMarkdown).toHaveTextContent(
@@ -86,7 +87,7 @@ describe('ConversationEmbedStory', () => {
 
     render(<ConversationEmbedStory />);
 
-    const renderedMarkdown = await screen.findByLabelText('Rendered markdown');
+    const [renderedMarkdown] = await findExampleTags();
     expect(renderedMarkdown).toHaveTextContent(newer.conversationId);
     expect(renderedMarkdown).not.toHaveTextContent(older.conversationId);
   });

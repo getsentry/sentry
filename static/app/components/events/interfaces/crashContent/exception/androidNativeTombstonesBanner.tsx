@@ -3,11 +3,11 @@ import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {CodeBlock} from '@sentry/scraps/code';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {usePrompt} from 'sentry/actionCreators/prompts';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {EntryException, Event, ExceptionValue} from 'sentry/types/event';

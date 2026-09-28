@@ -212,6 +212,18 @@ export type SnapshotComparisonState =
   | 'no_base_build';
 export type SnapshotApprovalStatus = 'approved' | 'auto_approved' | 'requires_approval';
 
+export function isSnapshotApproved(
+  status: SnapshotApprovalStatus | null | undefined
+): boolean {
+  return status === 'approved' || status === 'auto_approved';
+}
+
+export function isForceApprovableSnapshotState(
+  state: SnapshotComparisonState | null | undefined
+): boolean {
+  return state === 'failed' || state === 'no_base_build';
+}
+
 interface SnapshotComparisonInfo {
   image_count: number;
   approval_status: SnapshotApprovalStatus | null;

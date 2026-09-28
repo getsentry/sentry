@@ -10,9 +10,13 @@ const LazySpansQueryBlock = lazy(() => import('./spansQueryBlock'));
 export const SpansQuery = defineSeerEmbed({
   name: 'spansQuery',
   render(props, level) {
-    if (level === 'block') {
-      return <LazyLoad LazyComponent={LazySpansQueryBlock} data={props} />;
+    switch (level) {
+      case 'block':
+        return <LazyLoad LazyComponent={LazySpansQueryBlock} data={props} />;
+      case 'markdown':
+        return <SpansQueryLink data={props} format="markdown" />;
+      case 'inline':
+        return <SpansQueryLink data={props} />;
     }
-    return <SpansQueryLink data={props} />;
   },
 });

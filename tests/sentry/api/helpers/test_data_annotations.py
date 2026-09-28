@@ -5,10 +5,8 @@ from datetime import datetime, timedelta
 from sentry.api.helpers.data_annotations import get_dropped_data_annotations
 from sentry.constants import DataCategory
 from sentry.search.events.types import SnubaParams
-from sentry.snuba import errors
 from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.spans_rpc import Spans
-from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.testutils.cases import OutcomesSnubaTest
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.outcomes import Outcome
@@ -53,69 +51,67 @@ class GetDroppedDataAnnotationsTest(OutcomesSnubaTest):
             num_times=num_times,
         )
 
-    def test_returns_dropped_span_outcomes(self) -> None:
+    def test_dropped_and_accepted_series_spans(self) -> None:
+        # Core happy path: accepted and dropped come back as two independent series.
         drop_at = self.start + timedelta(minutes=30)
+        self._store_drop(Outcome.ACCEPTED, DataCategory.SPAN, drop_at, quantity=8000)
         self._store_drop(
             Outcome.RATE_LIMITED, DataCategory.SPAN, drop_at, reason="over_quota", quantity=2000
         )
 
-        annotations = get_dropped_data_annotations(Spans, self._snuba_params(), ONE_HOUR)
+        dropped, accepted = get_dropped_data_annotations(Spans, self._snuba_params(), ONE_HOUR)
 
-        assert len(annotations) == 1
-        annotation = annotations[0]
-        assert annotation["type"] == "system"
-        assert annotation["category"] == DataCategory.SPAN.api_name()
-        assert annotation["reason"] == "over_quota"
-        assert annotation["droppedCount"] == 2000
-        assert annotation["label"] == "Quota exceeded"
-        # The bucket spans exactly one rollup interval.
-        assert annotation["end"] - annotation["start"] == ONE_HOUR * 1000
+        assert len(dropped) == 1
+        assert dropped[0]["category"] == DataCategory.SPAN.api_name()
+        assert dropped[0]["outcome"] == Outcome.RATE_LIMITED.api_name()
+        assert dropped[0]["reason"] == "over_quota"
+        assert dropped[0]["eventCount"] == 2000
+        assert dropped[0]["end"] - dropped[0]["start"] == ONE_HOUR * 1000
+        assert "label" not in dropped[0]
+        assert "byteSize" not in dropped[0]
 
-    def test_accepted_outcomes_are_not_annotations(self) -> None:
-        when = self.start + timedelta(minutes=30)
-        self._store_drop(Outcome.ACCEPTED, DataCategory.SPAN, when, reason="none", quantity=5000)
+        assert len(accepted) == 1
+        assert accepted[0]["outcome"] == Outcome.ACCEPTED.api_name()
+        assert accepted[0]["eventCount"] == 8000
+        assert "label" not in accepted[0]
+        assert "byteSize" not in accepted[0]
 
-        annotations = get_dropped_data_annotations(Spans, self._snuba_params(), ONE_HOUR)
-
-        assert annotations == []
-
-    def test_threshold_filters_small_drops(self) -> None:
-        when = self.start + timedelta(minutes=30)
-        self._store_drop(Outcome.INVALID, DataCategory.SPAN, when, quantity=3)
-
-        annotations = get_dropped_data_annotations(
-            Spans, self._snuba_params(), ONE_HOUR, threshold=100
+    def test_log_series_carry_byte_size(self) -> None:
+        # Logs are the only v0 dataset with a paired byte category, so both series
+        # carry byteSize alongside eventCount.
+        drop_at = self.start + timedelta(minutes=30)
+        self._store_drop(Outcome.ACCEPTED, DataCategory.LOG_ITEM, drop_at, quantity=1000)
+        self._store_drop(Outcome.ACCEPTED, DataCategory.LOG_BYTE, drop_at, quantity=500_000)
+        self._store_drop(
+            Outcome.RATE_LIMITED, DataCategory.LOG_ITEM, drop_at, reason="key_quota", quantity=400
+        )
+        self._store_drop(
+            Outcome.RATE_LIMITED,
+            DataCategory.LOG_BYTE,
+            drop_at,
+            reason="key_quota",
+            quantity=200_000,
         )
 
-        assert annotations == []
+        dropped, accepted = get_dropped_data_annotations(OurLogs, self._snuba_params(), ONE_HOUR)
 
-    def test_category_scoped_to_dataset(self) -> None:
-        # A dropped log should not surface on a spans chart.
+        assert len(dropped) == 1
+        assert dropped[0]["category"] == DataCategory.LOG_ITEM.api_name()
+        assert dropped[0]["eventCount"] == 400
+        assert dropped[0]["byteSize"] == 200_000
+
+        assert len(accepted) == 1
+        assert accepted[0]["eventCount"] == 1000
+        assert accepted[0]["byteSize"] == 500_000
+
+    def test_accepted_emitted_without_any_drop(self) -> None:
+        # Accepted is independent of drops: a bucket with only accepted traffic
+        # still produces an accepted annotation and no dropped ones.
         when = self.start + timedelta(minutes=30)
-        self._store_drop(Outcome.RATE_LIMITED, DataCategory.LOG_ITEM, when, quantity=500)
+        self._store_drop(Outcome.ACCEPTED, DataCategory.SPAN, when, quantity=5000)
 
-        span_annotations = get_dropped_data_annotations(Spans, self._snuba_params(), ONE_HOUR)
-        log_annotations = get_dropped_data_annotations(OurLogs, self._snuba_params(), ONE_HOUR)
+        dropped, accepted = get_dropped_data_annotations(Spans, self._snuba_params(), ONE_HOUR)
 
-        assert span_annotations == []
-        assert len(log_annotations) == 1
-        assert log_annotations[0]["category"] == DataCategory.LOG_ITEM.api_name()
-
-    def test_trace_metrics_dataset_supported(self) -> None:
-        when = self.start + timedelta(minutes=30)
-        self._store_drop(Outcome.INVALID, DataCategory.TRACE_METRIC, when, quantity=750)
-
-        annotations = get_dropped_data_annotations(TraceMetrics, self._snuba_params(), ONE_HOUR)
-
-        assert len(annotations) == 1
-        assert annotations[0]["category"] == DataCategory.TRACE_METRIC.api_name()
-        assert annotations[0]["droppedCount"] == 750
-
-    def test_unsupported_dataset_returns_empty(self) -> None:
-        when = self.start + timedelta(minutes=30)
-        self._store_drop(Outcome.RATE_LIMITED, DataCategory.SPAN, when, quantity=500)
-
-        # An object with no category mapping yields no annotations rather than
-        # raising. v0 is EAP-only, so non-EAP datasets (e.g. errors) map to nothing.
-        assert get_dropped_data_annotations(object(), self._snuba_params(), ONE_HOUR) == []
-        assert get_dropped_data_annotations(errors, self._snuba_params(), ONE_HOUR) == []
+        assert dropped == []
+        assert len(accepted) == 1
+        assert accepted[0]["eventCount"] == 5000

@@ -88,7 +88,7 @@ export default function SpansQueryBlock({data}: {data: SpansQueryData}) {
       <SpansQueryChart data={data} eventView={eventView} hasTable={!isChartOnly} />
       {isChartOnly ? null : (
         <QueryEmbedTable
-          columns={eventColumns(fields)}
+          columns={eventColumns(fields, tableQuery.data?.meta)}
           emptyMessage={t('No matching spans')}
           errorMessage={t('Unable to load spans')}
           isError={tableQuery.isError}

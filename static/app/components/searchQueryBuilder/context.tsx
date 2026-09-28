@@ -38,6 +38,8 @@ import {useDimensions} from 'sentry/utils/useDimensions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {usePrevious} from 'sentry/utils/usePrevious';
 
+export const DEFAULT_FILTER_KEY_MENU_WIDTH = 460;
+
 interface SearchQueryBuilderStateContextData {
   clearSearchQuery: (options?: {reopenDropdown?: boolean}) => void;
   committedQuery: string;
@@ -50,6 +52,7 @@ interface SearchQueryBuilderStateContextData {
 }
 
 interface SearchQueryBuilderConfigContextData {
+  allowRegexOperators: boolean;
   caseInsensitive: CaseInsensitive | undefined;
   disabled: boolean;
   disallowFreeText: boolean;
@@ -74,6 +77,7 @@ interface SearchQueryBuilderConfigContextData {
   namespace: string | undefined;
   onCaseInsensitiveClick: ((value: CaseInsensitive) => void) | undefined;
   placeholder: string | undefined;
+  prioritizedFilterKeys: string[] | undefined;
   recentSearches: SavedSearchType | undefined;
   replaceRawSearchKeys: string[] | undefined;
   searchSource: string;
@@ -84,7 +88,10 @@ interface SearchQueryBuilderLayoutContextData {
   currentInputValueRef: React.RefObject<string>;
   disableFullWidthFilterKeyMenu: boolean;
   filterKeyMenuWidth: number;
+  menuPresentation: 'floating' | 'panel';
+  panelRef: React.RefObject<HTMLDivElement | null>;
   portalTarget: HTMLElement | null | undefined;
+  setMenuContainer: (element: HTMLDivElement | null) => void;
   size: 'small' | 'normal';
   wrapperRef: React.RefObject<HTMLDivElement | null>;
 }
@@ -169,6 +176,7 @@ const SearchQueryBuilderProviderContext = createContext(false);
 
 export function SearchQueryBuilderProvider({
   children,
+  allowRegexOperators,
   disabled = false,
   disallowLogicalOperators,
   disallowFreeText,
@@ -181,7 +189,8 @@ export function SearchQueryBuilderProvider({
   initialQuery,
   fieldDefinitionGetter = defaultFieldDefinitionGetter,
   filterKeys,
-  filterKeyMenuWidth = 460,
+  filterKeyMenuWidth = DEFAULT_FILTER_KEY_MENU_WIDTH,
+  menuPresentation = 'floating',
   filterKeySections,
   getSuggestedFilterKey,
   getTagKeys,
@@ -193,6 +202,7 @@ export function SearchQueryBuilderProvider({
   searchSource,
   getFilterTokenWarning,
   portalTarget,
+  prioritizedFilterKeys,
   replaceRawSearchKeys,
   matchKeySuggestions,
   filterKeyAliases,
@@ -203,7 +213,9 @@ export function SearchQueryBuilderProvider({
   asyncFilterKeyRegistryQueryKey,
 }: SearchQueryBuilderProps & {children: React.ReactNode}) {
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   const actionBarRef = useRef<HTMLDivElement>(null);
+  const [menuContainer, setMenuContainer] = useState<HTMLDivElement | null>(null);
 
   const [autoSubmitFromCurrentQuery, setAutoSubmitFromCurrentQuery] = useState(false);
   const [autoSubmitSeer, setAutoSubmitSeer] = useState(false);
@@ -280,6 +292,7 @@ export function SearchQueryBuilderProvider({
   const parseQuery = useCallback(
     (query: string) =>
       parseQueryBuilderValue(query, getFieldDefinitionWithTagMetadata, {
+        allowRegexOperators,
         getFilterTokenWarning,
         disallowFreeText,
         disallowLogicalOperators,
@@ -292,6 +305,7 @@ export function SearchQueryBuilderProvider({
         filterKeyAliases,
       }),
     [
+      allowRegexOperators,
       disallowFreeText,
       disallowLogicalOperators,
       disallowNegation,
@@ -373,7 +387,9 @@ export function SearchQueryBuilderProvider({
     setReopenDropdownOnQueryClear(false);
   }, []);
 
-  const {width: searchBarWidth} = useDimensions({elementRef: wrapperRef});
+  const {width: searchBarWidth} = useDimensions({
+    elementRef: wrapperRef,
+  });
   const size =
     searchBarWidth && searchBarWidth < 600 ? ('small' as const) : ('normal' as const);
 
@@ -401,6 +417,7 @@ export function SearchQueryBuilderProvider({
 
   const configValue = useMemo((): SearchQueryBuilderConfigContextData => {
     return {
+      allowRegexOperators: Boolean(allowRegexOperators),
       caseInsensitive,
       disabled,
       disallowFreeText: Boolean(disallowFreeText),
@@ -421,11 +438,13 @@ export function SearchQueryBuilderProvider({
       namespace,
       onCaseInsensitiveClick,
       placeholder,
+      prioritizedFilterKeys,
       recentSearches,
       replaceRawSearchKeys,
       searchSource,
     };
   }, [
+    allowRegexOperators,
     caseInsensitive,
     disabled,
     disallowFreeText,
@@ -444,6 +463,7 @@ export function SearchQueryBuilderProvider({
     namespace,
     onCaseInsensitiveClick,
     placeholder,
+    prioritizedFilterKeys,
     recentSearches,
     replaceRawSearchKeys,
     searchSource,
@@ -456,9 +476,13 @@ export function SearchQueryBuilderProvider({
     return {
       actionBarRef,
       currentInputValueRef,
-      disableFullWidthFilterKeyMenu,
+      disableFullWidthFilterKeyMenu:
+        menuPresentation === 'panel' || disableFullWidthFilterKeyMenu,
       filterKeyMenuWidth,
-      portalTarget,
+      menuPresentation,
+      panelRef,
+      portalTarget: menuPresentation === 'panel' ? menuContainer : portalTarget,
+      setMenuContainer,
       size,
       wrapperRef,
     };
@@ -467,6 +491,9 @@ export function SearchQueryBuilderProvider({
     currentInputValueRef,
     disableFullWidthFilterKeyMenu,
     filterKeyMenuWidth,
+    menuPresentation,
+    menuContainer,
+    panelRef,
     portalTarget,
     size,
     wrapperRef,

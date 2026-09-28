@@ -216,6 +216,7 @@ function useZoomTimeRangeToOpenPeriod({
 
   useEffect(() => {
     zoomTimeRangeToOpenPeriod();
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [openPeriodStart, openPeriodEnd, intervalSeconds]);
 }
 
@@ -585,9 +586,6 @@ function SeerInvestigationSection({
     {enabled: shouldLoadLatest}
   );
   const openPeriod = eventOpenPeriodQuery.data ?? groupOpenPeriodsQuery.data?.[0] ?? null;
-  const isOpenPeriodPending =
-    eventOpenPeriodQuery.isPending ||
-    (shouldLoadLatest && groupOpenPeriodsQuery.isPending);
   const isOpenPeriodError =
     eventOpenPeriodQuery.isError || (shouldLoadLatest && groupOpenPeriodsQuery.isError);
   const source = useMemo<MetricOpenPeriodInvestigationSource | null>(
@@ -604,62 +602,58 @@ function SeerInvestigationSection({
     organizationSlug: organization.slug,
     sources: source ? [source] : [],
   });
-  const {
-    data: candidate,
-    isPending: isCandidatePending,
-    isError: isCandidateError,
-  } = useQuery({
+  const {data: candidate, isError: isCandidateError} = useQuery({
     ...candidateOptions,
     enabled: source !== null,
     select: response => response.json.items[0],
   });
   const existingInvestigationId =
     candidate?.status === 'view' ? candidate.investigationId : null;
-  const {data: existingInvestigation, isPending: isExistingInvestigationPending} =
-    useQuery({
-      ...getInvestigationDetailQueryOptions(
-        organization.slug,
-        existingInvestigationId ?? 'disabled'
-      ),
-      enabled: existingInvestigationId !== null,
-      select: response => response.json,
-      refetchInterval: query => {
-        const investigation = query.state.data?.json;
-        if (
-          !investigation ||
-          (investigation.summary && investigation.summaryDescription)
-        ) {
-          return false;
-        }
-        const blocks = investigation.blocks ?? [];
-        if (
-          shouldPollInvestigationBlocks(blocks) ||
-          isTitleGenerationActive(investigation.titleGeneration?.status)
-        ) {
-          metadataIdleSince.current = null;
-          return INVESTIGATION_POLL_INTERVAL;
-        }
-        if (
-          investigation.titleGeneration?.status === 'failed' ||
-          blocks.some(
-            block =>
-              block.config.autoRun === true &&
-              (block.currentExecution?.status === 'failed' ||
-                block.currentExecution?.status === 'cancelled')
-          )
-        ) {
-          return false;
-        }
-        const idleSince =
-          metadataIdleSince.current?.id === investigation.id
-            ? metadataIdleSince.current.timestamp
-            : Date.now();
-        metadataIdleSince.current = {id: investigation.id, timestamp: idleSince};
-        return Date.now() - idleSince < INVESTIGATION_METADATA_GRACE_PERIOD
-          ? INVESTIGATION_POLL_INTERVAL
-          : false;
-      },
-    });
+  const {
+    data: existingInvestigation,
+    isPending: isExistingInvestigationPending,
+    isError: isExistingInvestigationError,
+  } = useQuery({
+    ...getInvestigationDetailQueryOptions(
+      organization.slug,
+      existingInvestigationId ?? 'disabled'
+    ),
+    enabled: existingInvestigationId !== null,
+    select: response => response.json,
+    refetchInterval: query => {
+      const investigation = query.state.data?.json;
+      if (!investigation || (investigation.summary && investigation.summaryDescription)) {
+        return false;
+      }
+      const blocks = investigation.blocks ?? [];
+      if (
+        shouldPollInvestigationBlocks(blocks) ||
+        isTitleGenerationActive(investigation.titleGeneration?.status)
+      ) {
+        metadataIdleSince.current = null;
+        return INVESTIGATION_POLL_INTERVAL;
+      }
+      if (
+        investigation.titleGeneration?.status === 'failed' ||
+        blocks.some(
+          block =>
+            block.config.autoRun === true &&
+            (block.currentExecution?.status === 'failed' ||
+              block.currentExecution?.status === 'cancelled')
+        )
+      ) {
+        return false;
+      }
+      const idleSince =
+        metadataIdleSince.current?.id === investigation.id
+          ? metadataIdleSince.current.timestamp
+          : Date.now();
+      metadataIdleSince.current = {id: investigation.id, timestamp: idleSince};
+      return Date.now() - idleSince < INVESTIGATION_METADATA_GRACE_PERIOD
+        ? INVESTIGATION_POLL_INTERVAL
+        : false;
+    },
+  });
   const launchMutation = useLaunchInvestigationMutation(organization.slug, {
     onSuccess: launchedInvestigation => {
       queryClient.setQueryData(candidateOptions.queryKey, {
@@ -687,6 +681,17 @@ function SeerInvestigationSection({
         )
       : null;
 
+  if (
+    source === null ||
+    !candidate ||
+    candidate.status === 'unavailable' ||
+    isOpenPeriodError ||
+    isCandidateError ||
+    (existingInvestigationId !== null && isExistingInvestigationError)
+  ) {
+    return null;
+  }
+
   return (
     <FoldSection
       title={
@@ -698,16 +703,8 @@ function SeerInvestigationSection({
       titleLabel={t('Seer Investigation')}
       sectionKey="seer_investigation"
     >
-      {isOpenPeriodPending ||
-      (source !== null && isCandidatePending) ||
-      (existingInvestigationId !== null && isExistingInvestigationPending) ? (
+      {existingInvestigationId !== null && isExistingInvestigationPending ? (
         <Placeholder height="40px" width="160px" />
-      ) : isOpenPeriodError || isCandidateError ? (
-        <Alert.Container>
-          <Alert variant="danger" showIcon>
-            {t('Unable to load investigation information.')}
-          </Alert>
-        </Alert.Container>
       ) : (
         <Stack gap="md">
           {existingInvestigation?.summary && existingInvestigation.summaryDescription ? (
@@ -732,8 +729,7 @@ function SeerInvestigationSection({
                 size="md"
                 variant="primary"
                 busy={launchMutation.isPending}
-                disabled={!source || candidate?.status === 'unavailable'}
-                onClick={() => source && launchMutation.mutate(source)}
+                onClick={() => launchMutation.mutate(source)}
               >
                 {t('Launch Investigation')}
               </Button>
@@ -753,6 +749,11 @@ export function MetricIssueSeerInvestigationSection({
   group,
   event,
 }: MetricDetectorTriggeredSectionProps) {
+  const organization = useOrganization();
+  if (!organization.openMembership) {
+    return null;
+  }
+
   return <SeerInvestigationSection eventId={event.eventID} groupId={group.id} />;
 }
 

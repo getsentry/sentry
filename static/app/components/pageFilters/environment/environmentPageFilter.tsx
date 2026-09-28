@@ -200,6 +200,7 @@ export function EnvironmentPageFilter({
           />
         ),
       })),
+    // oxlint-disable-next-line react/memo-dependencies
     [environments]
   );
 

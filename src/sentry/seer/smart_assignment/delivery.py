@@ -153,9 +153,13 @@ def _validate_resolve_verdict(
             continue
 
         if candidate.identifier_kind == "username":
+            username = value.removeprefix("@").strip()
+            if not username:
+                resolved.append(None)
+                continue
             # with_valid_password=False so SSO-only users are included.
             users = user_service.get_by_username(
-                username=value, with_valid_password=False, is_active=True
+                username=username, with_valid_password=False, is_active=True
             )
             member = (
                 organization_service.check_membership_by_id(

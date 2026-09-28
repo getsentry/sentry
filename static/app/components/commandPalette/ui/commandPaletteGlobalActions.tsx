@@ -78,6 +78,7 @@ import {DEFAULT_PREBUILT_SORT} from 'sentry/views/dashboards/manage/settings';
 import {DashboardFilter} from 'sentry/views/dashboards/types';
 import {EXPLORE_AGENTS_SUB_PATH} from 'sentry/views/explore/conversations/settings';
 import {
+  getSavedQueryKey,
   MAX_STARRED_SAVED_QUERIES_IN_NAV,
   useGetSavedQueries,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
@@ -441,7 +442,7 @@ export function GlobalCommandPaletteActions() {
           />
           {starredSavedQueries.map(query => (
             <CMDKAction
-              key={query.id}
+              key={getSavedQueryKey(query)}
               display={{label: query.name, icon: <IconStar />}}
               to={getSavedQueryTraceItemUrl({savedQuery: query, organization})}
             />

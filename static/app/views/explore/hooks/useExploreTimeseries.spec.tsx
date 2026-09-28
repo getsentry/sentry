@@ -144,6 +144,31 @@ describe('useExploreTimeseries', () => {
     );
   });
 
+  it('forwards a bracketed list with whitespace between items unchanged', async () => {
+    // The grammar allows `key:[a, b]`, but re-serializing through the legacy
+    // token splitter used to break the list on the space and quote each half,
+    // so the chart queried for something the table never filtered on.
+    const query =
+      'span.op:pageload sentry.segment.name:["/issues/", "/issues/:groupId/"]';
+
+    const mockRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-timeseries/',
+      method: 'GET',
+    });
+
+    renderHookWithProviders(() => useExploreTimeseries({query, enabled: true}), {
+      additionalWrapper: Wrapper,
+    });
+
+    await waitFor(() => expect(mockRequest).toHaveBeenCalled());
+    expect(mockRequest).toHaveBeenCalledWith(
+      '/organizations/org-slug/events-timeseries/',
+      expect.objectContaining({
+        query: expect.objectContaining({query}),
+      })
+    );
+  });
+
   it('does not query when the only series has an invalid conditional filter', () => {
     const mockRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-timeseries/',

@@ -364,6 +364,7 @@ export function ProjectPageFilter({
     ).map(getProjectItem);
 
     return [...specialItems, ...projectItems];
+    // oxlint-disable-next-line react/memo-dependencies
   }, [
     projects,
     stagedValue,

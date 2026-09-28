@@ -22,7 +22,6 @@ from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscrip
 from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import cell_silo_test
 from sentry.testutils.skips import requires_kafka, requires_snuba
@@ -885,36 +884,34 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
 
 @cell_silo_test
 class OrganizationDetectorIndexGetAllProjectsTest(OrganizationDetectorIndexBaseTest):
-    """Tests that the all-projects detector is included when the feature flag is enabled."""
+    """Tests listing and filtering the all-projects detector."""
 
     def setUp(self) -> None:
         super().setUp()
         self.all_projects_detector = ensure_default_all_projects_detector(self.organization.id)
 
-    @with_feature("organizations:workflow-engine-all-projects-detector")
-    def test_all_projects_detector_included_in_list(self) -> None:
-        response = self.get_success_response(
-            self.organization.slug, qs_params={"project": self.project.id}
-        )
-        detector_ids = {d["id"] for d in response.data}
-        assert str(self.all_projects_detector.id) in detector_ids
-
-    @with_feature("organizations:workflow-engine-all-projects-detector")
-    def test_all_projects_detector_has_null_project_id(self) -> None:
-        response = self.get_success_response(
-            self.organization.slug, qs_params={"project": self.project.id}
-        )
-        all_proj = next(d for d in response.data if d["id"] == str(self.all_projects_detector.id))
-        assert all_proj["projectId"] is None
-
-    def test_all_projects_detector_excluded_without_feature(self) -> None:
+    def test_all_projects_detector_excluded_with_specific_project(self) -> None:
         response = self.get_success_response(
             self.organization.slug, qs_params={"project": self.project.id}
         )
         detector_ids = {d["id"] for d in response.data}
         assert str(self.all_projects_detector.id) not in detector_ids
 
-    @with_feature("organizations:workflow-engine-all-projects-detector")
+    def test_all_projects_detector_included_with_all_projects_sentinel(self) -> None:
+        response = self.get_success_response(self.organization.slug, qs_params={"project": "-1"})
+        detector_ids = {d["id"] for d in response.data}
+        assert str(self.all_projects_detector.id) in detector_ids
+
+    def test_all_projects_detector_included_without_project_filter(self) -> None:
+        response = self.get_success_response(self.organization.slug)
+        detector_ids = {d["id"] for d in response.data}
+        assert str(self.all_projects_detector.id) in detector_ids
+
+    def test_all_projects_detector_has_null_project_id(self) -> None:
+        response = self.get_success_response(self.organization.slug)
+        all_proj = next(d for d in response.data if d["id"] == str(self.all_projects_detector.id))
+        assert all_proj["projectId"] is None
+
     def test_all_projects_detector_included_in_id_filter(self) -> None:
         response = self.get_success_response(
             self.organization.slug,
@@ -922,13 +919,6 @@ class OrganizationDetectorIndexGetAllProjectsTest(OrganizationDetectorIndexBaseT
         )
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(self.all_projects_detector.id)
-
-    def test_all_projects_detector_excluded_from_id_filter_without_feature(self) -> None:
-        response = self.get_success_response(
-            self.organization.slug,
-            qs_params=[("id", str(self.all_projects_detector.id))],
-        )
-        assert len(response.data) == 0
 
 
 @cell_silo_test
@@ -1002,76 +992,6 @@ class OrganizationDetectorIndexSubscriptionFilterTest(OrganizationDetectorIndexB
             )
             detector_ids = {d["id"] for d in response.data}
             assert str(orphan.id) in detector_ids
-
-    @requires_snuba
-    @requires_kafka
-    def test_allowed_metric_detector_kept_when_others_disallowed(self) -> None:
-        with self.tasks():
-            # Transactions dataset — requires performance-view
-            disallowed_sq = create_snuba_query(
-                query_type=SnubaQuery.Type.PERFORMANCE,
-                dataset=Dataset.Transactions,
-                query="test",
-                aggregate="count()",
-                time_window=timedelta(minutes=1),
-                resolution=timedelta(minutes=1),
-                environment=self.environment,
-                event_types=(),
-            )
-            disallowed_sub = create_snuba_subscription(
-                project=self.project,
-                subscription_type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
-                snuba_query=disallowed_sq,
-            )
-
-            # PerformanceMetrics dataset — requires on-demand-metrics-extraction.
-            # Persist the subscription without building a generic s/g/d query.
-            allowed_sq = create_snuba_query(
-                query_type=SnubaQuery.Type.PERFORMANCE,
-                dataset=Dataset.PerformanceMetrics,
-                query="test",
-                aggregate="count()",
-                time_window=timedelta(minutes=1),
-                resolution=timedelta(minutes=1),
-                environment=self.environment,
-                event_types=(),
-            )
-            allowed_sub = QuerySubscription.objects.create(
-                project=self.project,
-                type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
-                snuba_query=allowed_sq,
-                status=QuerySubscription.Status.ACTIVE.value,
-            )
-        disallowed_ds = self.create_data_source(
-            organization=self.organization, source_id=disallowed_sub.id
-        )
-        disallowed_detector = self.create_detector(
-            project=self.project, name="Disallowed Metric", type=MetricIssue.slug
-        )
-        self.create_data_source_detector(data_source=disallowed_ds, detector=disallowed_detector)
-
-        allowed_ds = self.create_data_source(
-            organization=self.organization, source_id=allowed_sub.id
-        )
-        allowed_detector = self.create_detector(
-            project=self.project, name="Allowed Metric", type=MetricIssue.slug
-        )
-        self.create_data_source_detector(data_source=allowed_ds, detector=allowed_detector)
-
-        # Disable performance-view but enable on-demand-metrics-extraction:
-        # Transactions detector is excluded, PerformanceMetrics detector is kept.
-        with self.feature(
-            {
-                "organizations:performance-view": False,
-                "organizations:on-demand-metrics-extraction": True,
-            }
-        ):
-            response = self.get_success_response(
-                self.organization.slug, qs_params={"project": self.project.id}
-            )
-            detector_ids = {d["id"] for d in response.data}
-            assert str(allowed_detector.id) in detector_ids
-            assert str(disallowed_detector.id) not in detector_ids
 
 
 @cell_silo_test

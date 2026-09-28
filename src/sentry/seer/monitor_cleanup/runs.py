@@ -17,12 +17,14 @@ from sentry.seer.models.workflow import SeerWorkflowRun, SeerWorkflowStrategy
 from sentry.seer.monitor_cleanup.results import parse_monitor_cleanup_results
 from sentry.seer.monitor_cleanup.schemas import SeerMonitorCleanupResponse
 from sentry.seer.workflows.runs import create_workflow_run, deliver_workflow_result
-from sentry.seer.workflows.schemas import WorkflowResult, WorkflowResultError
+from sentry.seer.workflows.schemas import WorkflowResult, WorkflowResultError, WorkflowRunSource
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 
 
-def create_monitor_cleanup_run(request: Request, organization: Organization) -> SeerWorkflowRun:
+def create_monitor_cleanup_run(
+    request: Request, organization: Organization, *, source: WorkflowRunSource
+) -> SeerWorkflowRun:
     if not features.has(
         "organizations:seer-workflows-monitor-cleanup", organization, actor=request.user
     ):
@@ -45,7 +47,7 @@ def create_monitor_cleanup_run(request: Request, organization: Organization) -> 
         feature_id="monitor_cleanup",
         payload={"response_version": 1},
         title="Monitor cleanup",
-        extras={"project_ids": [], "results": []},
+        extras={"source": source, "project_ids": [], "results": []},
     )
 
 

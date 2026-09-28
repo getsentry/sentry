@@ -9,6 +9,8 @@ import {
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+
 import {IntegrationExternalMappings} from './integrationExternalMappings';
 
 describe('IntegrationExternalMappings', () => {
@@ -105,7 +107,11 @@ describe('IntegrationExternalMappings', () => {
         onCreate={onCreateMock}
         onDelete={onDeleteMock}
         defaultOptions={[]}
-        getBaseFormEndpoint={() => '/organizations/org-slug/codeowners-associations/'}
+        getBaseFormEndpoint={() =>
+          getApiUrl('/organizations/$organizationIdOrSlug/codeowners-associations/', {
+            path: {organizationIdOrSlug: organization.slug},
+          })
+        }
       />
     );
 
@@ -123,7 +129,11 @@ describe('IntegrationExternalMappings', () => {
         onCreate={onCreateMock}
         onDelete={onDeleteMock}
         defaultOptions={[]}
-        getBaseFormEndpoint={() => '/organizations/org-slug/codeowners-associations/'}
+        getBaseFormEndpoint={() =>
+          getApiUrl('/organizations/$organizationIdOrSlug/codeowners-associations/', {
+            path: {organizationIdOrSlug: organization.slug},
+          })
+        }
       />
     );
 
@@ -144,7 +154,11 @@ describe('IntegrationExternalMappings', () => {
         onCreate={onCreateMock}
         onDelete={onDeleteMock}
         defaultOptions={[]}
-        getBaseFormEndpoint={() => '/organizations/org-slug/codeowners-associations/'}
+        getBaseFormEndpoint={() =>
+          getApiUrl('/organizations/$organizationIdOrSlug/codeowners-associations/', {
+            path: {organizationIdOrSlug: organization.slug},
+          })
+        }
       />
     );
 
@@ -174,7 +188,11 @@ describe('IntegrationExternalMappings', () => {
         onCreate={onCreateMock}
         onDelete={onDeleteMock}
         defaultOptions={[]}
-        getBaseFormEndpoint={() => '/organizations/org-slug/codeowners-associations/'}
+        getBaseFormEndpoint={() =>
+          getApiUrl('/organizations/$organizationIdOrSlug/codeowners-associations/', {
+            path: {organizationIdOrSlug: organization.slug},
+          })
+        }
       />
     );
     renderGlobalModal();

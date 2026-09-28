@@ -9,9 +9,13 @@ const LazySeerEventBlock = lazy(() => import('./eventBlock'));
 export const SeerEvent = defineSeerEmbed({
   name: 'event',
   render(props, level) {
-    if (level === 'block') {
-      return <LazyLoad LazyComponent={LazySeerEventBlock} {...props} />;
+    switch (level) {
+      case 'block':
+        return <LazyLoad LazyComponent={LazySeerEventBlock} {...props} />;
+      case 'markdown':
+        return <EventLink {...props} format="markdown" />;
+      case 'inline':
+        return <EventLink {...props} />;
     }
-    return <EventLink {...props} />;
   },
 });

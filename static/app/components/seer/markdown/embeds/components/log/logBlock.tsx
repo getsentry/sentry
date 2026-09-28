@@ -203,7 +203,7 @@ function LogBlockContent({
 }: LogBlockContentProps) {
   switch (view) {
     case 'summary':
-      // The severity, message and timestamp above are the whole summary.
+      // The message, severity and timestamp above are the whole summary.
       return null;
     case 'attributes':
       return (
@@ -281,6 +281,7 @@ export default function LogBlock(props: LogData) {
     traceId: resolvedTraceId ?? '',
     traceItemType: TraceItemDataset.LOGS,
     referrer: LOG_DETAILS_REFERRER,
+    routingHint: row ? rowQuery.data?.meta?.routingHint : undefined,
     // The details endpoint takes unix seconds, not an ISO string.
     timestamp: lookupTimestampMs === null ? undefined : lookupTimestampMs / 1000,
     enabled: canFetchDetails,
@@ -352,10 +353,12 @@ export default function LogBlock(props: LogData) {
       ) : (
         <Stack gap="lg">
           <Flex align="baseline" gap="sm">
-            <Tag variant={severityTagVariant(level)}>{severityLevelToText(level)}</Tag>
             <Text monospace size="sm">
               {String(message ?? '')}
             </Text>
+            <Flex flexShrink="0">
+              <Tag variant={severityTagVariant(level)}>{severityLevelToText(level)}</Tag>
+            </Flex>
           </Flex>
           <LogBlockContent
             attribute={attribute}

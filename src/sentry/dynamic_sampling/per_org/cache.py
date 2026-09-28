@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from collections.abc import Iterable, Mapping, Sequence
 from datetime import timedelta
 from typing import TYPE_CHECKING
@@ -7,19 +8,20 @@ from typing import TYPE_CHECKING
 import orjson
 import sentry_sdk
 
+from sentry import options
 from sentry.dynamic_sampling.models.common import RebalancedItem
+from sentry.dynamic_sampling.per_org.calculations import bounded_rebalance_factor
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
-from sentry.dynamic_sampling.tasks.common import are_equal_with_epsilon, sample_rate_to_float
-from sentry.dynamic_sampling.tasks.constants import (
-    DEFAULT_REDIS_CACHE_KEY_TTL,
-    adjusted_factor_ttl_ms,
-    bounded_rebalance_factor,
-)
 from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.utils import metrics
 
 if TYPE_CHECKING:
     from sentry.dynamic_sampling.per_org.configuration import BaseDynamicSamplingConfiguration
+
+# TTL in milliseconds for the sample rates this pipeline stores.
+DEFAULT_REDIS_CACHE_KEY_TTL = 24 * 60 * 60 * 1000  # 24 hours
+
+ADJUSTED_FACTOR_TTL_MINUTES_OPTION = "dynamic-sampling.recalibration.factor-ttl-minutes"
 
 PER_ORG_RECALIBRATION_FACTOR_CACHE_KEY = "ds::per_org:o:{org_id}:recalibration_factor"
 PER_ORG_PROJECT_SAMPLE_RATES_CACHE_KEY = "ds::per_org:o:{org_id}:project_sample_rates"
@@ -30,6 +32,30 @@ PER_ORG_TRANSACTION_SAMPLE_RATES_CACHE_KEY = (
 # Each pass applies its correction on top of the stored factor, so a second pass within
 # one scheduler cycle compounds it. A factor younger than this is left alone.
 MIN_RECALIBRATION_FACTOR_AGE = timedelta(minutes=9)
+
+
+def adjusted_factor_ttl_ms() -> int:
+    return int(options.get(ADJUSTED_FACTOR_TTL_MINUTES_OPTION)) * 60 * 1000
+
+
+def _sample_rate_to_float(sample_rate: str | None) -> float | None:
+    if sample_rate is None:
+        return None
+
+    try:
+        return float(sample_rate)
+    except (TypeError, ValueError):
+        return None
+
+
+def _are_equal_with_epsilon(a: float | None, b: float | None) -> bool:
+    if a is None and b is None:
+        return True
+
+    if a is None or b is None:
+        return False
+
+    return math.isclose(a, b)
 
 
 def write_caches(config: BaseDynamicSamplingConfiguration) -> None:
@@ -152,14 +178,14 @@ def set_project_sample_rates(org_id: int, rebalanced_projects: Iterable[Rebalanc
     redis_client = get_redis_client_for_ds()
     cache_key = generate_project_sample_rates_cache_key(org_id)
     cached_rates = {
-        project_id: sample_rate_to_float(sample_rate)
+        project_id: _sample_rate_to_float(sample_rate)
         for project_id, sample_rate in redis_client.hgetall(cache_key).items()
     }
 
     changed = [
         item
         for item in items
-        if not are_equal_with_epsilon(cached_rates.get(str(item.id)), item.new_sample_rate)
+        if not _are_equal_with_epsilon(cached_rates.get(str(item.id)), item.new_sample_rate)
     ]
     with redis_client.pipeline(transaction=False) as pipeline:
         for item in changed:

@@ -28,6 +28,7 @@ export function useRefChildrenVisibility({
       setChildrenEls(
         Array.from(scrollContainerRef.current?.children ?? []) as HTMLElement[]
       ),
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
     [children, scrollContainerRef]
   );
 

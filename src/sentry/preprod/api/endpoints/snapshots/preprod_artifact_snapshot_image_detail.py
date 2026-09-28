@@ -219,7 +219,11 @@ class OrganizationPreprodSnapshotImageDetailEndpoint(OrganizationEndpoint):
             session = get_snapshot_storage(artifact.project)
             response = session.get(manifest_key)
             if response is None:
-                raise FileNotFoundError("Manifest does not exist in objectstore")
+                logger.info(
+                    "preprod.snapshot.manifest_missing",
+                    extra={"preprod_artifact_id": artifact.id, "manifest_key": manifest_key},
+                )
+                return Response({"detail": "Snapshot manifest not found"}, status=404)
             manifest_data = orjson.loads(response.payload.read())
             manifest = SnapshotManifest(**manifest_data)
         except Exception:
