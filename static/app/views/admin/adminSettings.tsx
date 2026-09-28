@@ -1,7 +1,7 @@
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
-import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
+import {AutoSaveForm, FieldGroup, FormErrorContextProvider} from '@sentry/scraps/form';
 import {Stack} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
@@ -55,6 +55,10 @@ function getOptionSaveErrorMessage(error: Error): string {
 
   return t('Could not save this setting. Try again.');
 }
+
+const mapOptionSaveError = (error: Error) => ({
+  message: getOptionSaveErrorMessage(error),
+});
 
 function useAdminOption(name: string, option: FieldDef) {
   const queryClient = useQueryClient();
@@ -125,7 +129,6 @@ function BooleanOptionField({name, option}: OptionFieldProps) {
   return (
     <AutoSaveForm
       name="value"
-      errorMessage={getOptionSaveErrorMessage}
       schema={z.object({value: z.boolean()})}
       initialValue={Boolean(initialValue)}
       mutationOptions={{
@@ -159,7 +162,6 @@ function RadioOptionField({name, option}: OptionFieldProps) {
   return (
     <AutoSaveForm
       name="value"
-      errorMessage={getOptionSaveErrorMessage}
       schema={z.object({value: getStringSchema(required)})}
       initialValue={String(initialValue)}
       mutationOptions={{
@@ -199,7 +201,6 @@ function TextOptionField({name, option}: OptionFieldProps) {
   return (
     <AutoSaveForm
       name="value"
-      errorMessage={getOptionSaveErrorMessage}
       schema={z.object({value: getTextOptionSchema(name, required)})}
       initialValue={String(initialValue)}
       mutationOptions={{
@@ -240,49 +241,54 @@ export default function AdminSettings() {
     data[name] ?? ({field: {}, value: undefined} as FieldDef);
 
   return (
-    <Stack gap="xl">
-      <Heading as="h3" size="lg">
-        {t('Settings')}
-      </Heading>
+    <FormErrorContextProvider value={mapOptionSaveError}>
+      <Stack gap="xl">
+        <Heading as="h3" size="lg">
+          {t('Settings')}
+        </Heading>
 
-      <FieldGroup title={t('General')}>
-        <TextOptionField name="system.url-prefix" option={option('system.url-prefix')} />
-        <TextOptionField
-          name="system.admin-email"
-          option={option('system.admin-email')}
-        />
-        <TextOptionField
-          name="system.support-email"
-          option={option('system.support-email')}
-        />
-        <TextOptionField
-          name="system.security-email"
-          option={option('system.security-email')}
-        />
-      </FieldGroup>
+        <FieldGroup title={t('General')}>
+          <TextOptionField
+            name="system.url-prefix"
+            option={option('system.url-prefix')}
+          />
+          <TextOptionField
+            name="system.admin-email"
+            option={option('system.admin-email')}
+          />
+          <TextOptionField
+            name="system.support-email"
+            option={option('system.support-email')}
+          />
+          <TextOptionField
+            name="system.security-email"
+            option={option('system.security-email')}
+          />
+        </FieldGroup>
 
-      <FieldGroup title={t('Security & Abuse')}>
-        <BooleanOptionField
-          name="auth.allow-registration"
-          option={option('auth.allow-registration')}
-        />
-        <TextOptionField
-          name="auth.ip-rate-limit"
-          option={option('auth.ip-rate-limit')}
-        />
-        <TextOptionField
-          name="auth.user-rate-limit"
-          option={option('auth.user-rate-limit')}
-        />
-        <TextOptionField
-          name="api.rate-limit.org-create"
-          option={option('api.rate-limit.org-create')}
-        />
-      </FieldGroup>
+        <FieldGroup title={t('Security & Abuse')}>
+          <BooleanOptionField
+            name="auth.allow-registration"
+            option={option('auth.allow-registration')}
+          />
+          <TextOptionField
+            name="auth.ip-rate-limit"
+            option={option('auth.ip-rate-limit')}
+          />
+          <TextOptionField
+            name="auth.user-rate-limit"
+            option={option('auth.user-rate-limit')}
+          />
+          <TextOptionField
+            name="api.rate-limit.org-create"
+            option={option('api.rate-limit.org-create')}
+          />
+        </FieldGroup>
 
-      <FieldGroup title={t('Beacon')}>
-        <RadioOptionField name="beacon.anonymous" option={option('beacon.anonymous')} />
-      </FieldGroup>
-    </Stack>
+        <FieldGroup title={t('Beacon')}>
+          <RadioOptionField name="beacon.anonymous" option={option('beacon.anonymous')} />
+        </FieldGroup>
+      </Stack>
+    </FormErrorContextProvider>
   );
 }
