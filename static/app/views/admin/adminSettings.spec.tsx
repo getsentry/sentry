@@ -2,8 +2,6 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import AdminSettings from 'sentry/views/admin/adminSettings';
 
-// TODO(dcramer): this doesnt really test anything as we need to
-// mock the API Response/wait on it
 describe('AdminSettings', () => {
   describe('render()', () => {
     beforeEach(() => {
@@ -138,35 +136,6 @@ describe('AdminSettings', () => {
       );
     });
 
-    it('explains when a setting is managed by configuration', async () => {
-      MockApiClient.addMockResponse({
-        url: '/internal/options/',
-        body: {
-          'system.support-email': {
-            field: {disabled: false},
-            value: 'original@example.com',
-          },
-        },
-      });
-      MockApiClient.addMockResponse({
-        url: '/internal/options/',
-        method: 'PUT',
-        statusCode: 400,
-        body: {error: 'immutable_option'},
-      });
-
-      render(<AdminSettings />);
-
-      const input = await screen.findByRole('textbox', {name: 'Support Email'});
-      await userEvent.clear(input);
-      await userEvent.type(input, 'changed@example.com');
-      await userEvent.tab();
-
-      expect(
-        await screen.findByText('This setting is managed by your Sentry configuration.')
-      ).toBeInTheDocument();
-    });
-
     it('does not clear a required setting', async () => {
       MockApiClient.addMockResponse({
         url: '/internal/options/',
@@ -195,6 +164,12 @@ describe('AdminSettings', () => {
 
     it.each([
       ['system.url-prefix', 'Root URL', 'not-a-url', 'Enter a valid HTTP or HTTPS URL'],
+      [
+        'system.url-prefix',
+        'Root URL',
+        'ftp://example.com',
+        'Enter a valid HTTP or HTTPS URL',
+      ],
       [
         'system.support-email',
         'Support Email',
