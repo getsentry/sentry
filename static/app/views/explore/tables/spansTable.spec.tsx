@@ -228,7 +228,10 @@ describe('SpansTable', () => {
       {name: 'span.custom_two', type: 'str', value: 'second detail'},
     ]);
 
-    render(<ExampleSpansTable result={makeQueryResult([firstRow, secondRow])} />, renderOptions());
+    render(
+      <ExampleSpansTable result={makeQueryResult([firstRow, secondRow])} />,
+      renderOptions()
+    );
 
     const showButtons = screen.getAllByRole('button', {
       name: 'Show span details',
