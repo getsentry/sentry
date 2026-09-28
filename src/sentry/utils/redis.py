@@ -161,7 +161,6 @@ class RedisClusterManager:
         **config: Any,
     ) -> RedisCluster[bytes] | StrictRedis[bytes] | RedisCluster[str] | StrictRedis[str]:
         if key_prefix is not None:
-            # only the redis-cluster client supports a prefix
             if not is_redis_cluster or "{" in key_prefix:
                 raise InvalidConfiguration(
                     "key_prefix needs is_redis_cluster and must not contain '{'"
@@ -387,10 +386,10 @@ class _KeySpec(NamedTuple):
     movable: bool
 
 
-# Key positions of each command, from the COMMAND reply of the server. Loaded on first use.
+# key positions of each command
 _command_key_specs: dict[str, _KeySpec] | None = None
 
-# For commands with a `numkeys` argument: the index of that argument. The keys come after it.
+# for commands with a `numkeys` argument: the index of that argument
 _SCRIPT_COMMANDS = ("eval", "evalsha", "eval_ro", "evalsha_ro", "fcall", "fcall_ro")
 _NUMKEYS_INDEX = {
     **dict.fromkeys(_SCRIPT_COMMANDS, 2),
@@ -398,15 +397,14 @@ _NUMKEYS_INDEX = {
     **dict.fromkeys(("zunion", "zinter", "zdiff", "zintercard", "sintercard", "lmpop", "zmpop"), 1),
 }
 
-# Commands that see the keys of all workers. A prefixed client cannot make them transparent.
+# commands that see the keys of all workers
 _UNSUPPORTED_WITH_KEY_PREFIX = frozenset(("scan", "randomkey", "flushdb", "flushall"))
 
-# Prefixed clients that ran a command since the last call to `pop_used_key_prefix_clients`.
+# prefixed clients that ran a command since the last call to `pop_used_key_prefix_clients`
 _used_key_prefix_clients: dict[int, RedisCluster[Any] | StrictRedis[Any]] = {}
 
 
 def pop_used_key_prefix_clients() -> list[RedisCluster[Any] | StrictRedis[Any]]:
-    """Tests use this to clean up only after a test that used a prefixed client."""
     used = list(_used_key_prefix_clients.values())
     _used_key_prefix_clients.clear()
     return used
@@ -431,7 +429,7 @@ def _load_command_key_specs(client: Any) -> dict[str, _KeySpec]:
         specs[_to_str(entry[0]).lower()] = _KeySpec(
             entry[3], entry[4], entry[5], "movablekeys" in flags
         )
-        # Redis 7 gives subcommands such as "object|encoding" their own key positions.
+        # handles Redis 7 subcommands (such as "object|encoding") which have their own key positions
         for subcommand in entry[9] if len(entry) > 9 else []:
             add(subcommand)
 
@@ -472,9 +470,6 @@ def _add_key_prefix(
     """
     Adds `key_prefix` to each key that the client sends, and removes it from the key names
     that the client returns. Tests use this to isolate parallel workers that share a cluster.
-
-    Keys that a Lua script makes itself, and does not get from KEYS, do not get the prefix.
-    In a script reply, each string that starts with the prefix is treated as a key name.
     """
     mutable_client = cast(Any, client)
     prefix_bytes = key_prefix.encode()
