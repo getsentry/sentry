@@ -212,7 +212,7 @@ describe('PathMappingList', () => {
       // The initial row is empty (catch-all state).
       expect(
         await screen.findByText(
-          'A mapping that matches every path already exists, so this rule needs a specific path to match.'
+          'A mapping that matches every path already exists for this project and repository, so this rule needs a specific path to match.'
         )
       ).toBeInTheDocument();
     });
@@ -227,7 +227,7 @@ describe('PathMappingList', () => {
 
       expect(
         screen.queryByText(
-          'A mapping that matches every path already exists, so this rule needs a specific path to match.'
+          'A mapping that matches every path already exists for this project and repository, so this rule needs a specific path to match.'
         )
       ).not.toBeInTheDocument();
     });
@@ -256,9 +256,7 @@ describe('PathMappingList', () => {
       await userEvent.click(firstExpand!);
 
       expect(
-        screen.getByText(
-          /src\/app\/ is already mapped to dist\/. Only the first match applies/
-        )
+        screen.getByText(/src\/app\/ is more specific and matches first/)
       ).toBeInTheDocument();
     });
 
@@ -279,7 +277,9 @@ describe('PathMappingList', () => {
         'lib/'
       );
 
-      expect(screen.queryByText(/Only the first match applies/)).not.toBeInTheDocument();
+      expect(
+        screen.queryByText(/more specific and matches first/)
+      ).not.toBeInTheDocument();
     });
 
     it('does not warn when roots are unrelated', () => {

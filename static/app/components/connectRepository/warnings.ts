@@ -9,8 +9,10 @@ export type PathMappingWarning =
  * Derives one optional warning per entry from the full list state.
  *
  * - catch-all: this row's stackRoot is empty, so it matches every path.
- * - overlap: this row's stackRoot is a prefix of (or equal to) another row's
- *   non-empty stackRoot (e.g. "src/" shadows "src/app/", or two "src/" rows).
+ * - overlap: another non-empty row's stackRoot starts with (or equals) this
+ *   row's stackRoot. The longer root is evaluated first and wins for paths it
+ *   covers; this row still applies to the rest. For exact duplicates, one of
+ *   them will never apply.
  *
  * Empty stackRoots are excluded from the "other" set to avoid treating every
  * root as an overlap victim of a catch-all row.

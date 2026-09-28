@@ -67,7 +67,7 @@ export function PathMappingSummary({
             {props => (
               <IconWarning
                 size="xs"
-                color="warning"
+                variant="warning"
                 aria-label={t('Warning')}
                 {...props}
               />

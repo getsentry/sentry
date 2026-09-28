@@ -1,6 +1,5 @@
 import {z} from 'zod';
 
-import {Alert} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {InputGroup} from '@sentry/scraps/input';
@@ -8,7 +7,7 @@ import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {IconArrow, IconBranch, IconSentry} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 
 import {SOURCE_ROOT_PLACEHOLDER, STACK_ROOT_PLACEHOLDER} from './constants';
@@ -20,6 +19,7 @@ import {
   sanitizeBranch,
 } from './normalization';
 import {PathMappingPreview} from './pathMappingPreview';
+import {PathMappingWarningAlert} from './pathMappingWarningAlert';
 import type {PathMappingValue} from './type';
 import type {PathMappingWarning} from './warnings';
 
@@ -172,24 +172,7 @@ export function PathMappingEdit({
                 );
               }}
             </form.Subscribe>
-            {warning?.type === 'catchAll' && (
-              <Alert variant="info" showIcon>
-                {t(
-                  'A mapping that matches every path already exists for this project and repository, so this rule needs a specific path to match.'
-                )}
-              </Alert>
-            )}
-            {warning?.type === 'overlap' && (
-              <Alert variant="warning" showIcon>
-                {tct(
-                  '[stackRoot] is already mapped to [sourceRoot]. Only the first match applies, so this one won\u2019t take effect.',
-                  {
-                    stackRoot: warning.stackRoot || t('empty'),
-                    sourceRoot: warning.sourceRoot || t('empty'),
-                  }
-                )}
-              </Alert>
-            )}
+            <PathMappingWarningAlert stackRoot={stackRoot} warning={warning} />
           </Stack>
         </Stack>
       </Container>
