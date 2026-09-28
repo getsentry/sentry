@@ -19,6 +19,7 @@ class RegistrationRequest(TypedDict):
     email: str
     name: str
     password: str
+    deferInviteAcceptance: NotRequired[bool]
     subscribe: NotRequired[bool]
     timezone: NotRequired[str]
 
@@ -41,6 +42,7 @@ class AuthVerifyValidator(serializers.Serializer):
 
 
 class RegistrationValidator(serializers.Serializer[RegistrationRequest]):
+    deferInviteAcceptance = serializers.BooleanField(required=False)
     email = serializers.EmailField(max_length=128)
     name = serializers.CharField(max_length=200)
     password = serializers.CharField(trim_whitespace=False)

@@ -83,10 +83,15 @@ def _complete_user_registration(
     request.session.pop("invite_email", None)
 
 
-def _apply_registration_membership(request: Request, user: User) -> RpcOrganization | None:
+def _apply_registration_membership(
+    request: Request, user: User, *, defer_invite_acceptance: bool
+) -> RpcOrganization | None:
     """Accept a pending invite or add the user to the configured single organization."""
     invite_helper = ApiInviteHelper.from_session(request=request, logger=auth.logger)
     if invite_helper is not None:
+        if defer_invite_acceptance:
+            return None
+
         if not invite_helper.valid_request:
             return None
 
@@ -146,6 +151,10 @@ class AuthRegisterEndpoint(Endpoint):
 
         user = _create_user(serializer.validated_data)
         _complete_user_registration(request, user, serializer.validated_data, self)
-        _apply_registration_membership(request, user)
+        _apply_registration_membership(
+            request,
+            user,
+            defer_invite_acceptance=serializer.validated_data.get("deferInviteAcceptance", False),
+        )
 
         return Response(get_auth_success_payload(request, user))
