@@ -41,23 +41,29 @@ const renderRow = (dataRow: OurLogsResponseItem) => (
   </tr>
 );
 
-function ExamplePinnedLogs() {
+function ExamplePinnedLogsInner() {
   const logsPinning = useLogsPinning()!;
   const pinnedLogsQuery = usePinnedLogsQuery({allRows, logsPinning});
 
+  return (
+    <table>
+      <PinnedLogs
+        allRows={allRows}
+        logsPinning={logsPinning}
+        pinnedLogsQuery={pinnedLogsQuery}
+        renderRow={renderRow}
+      />
+    </table>
+  );
+}
+
+function ExamplePinnedLogs() {
   return (
     <LogsQueryParamsProvider
       analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
       source="location"
     >
-      <table>
-        <PinnedLogs
-          allRows={allRows}
-          logsPinning={logsPinning}
-          pinnedLogsQuery={pinnedLogsQuery}
-          renderRow={renderRow}
-        />
-      </table>
+      <ExamplePinnedLogsInner />
     </LogsQueryParamsProvider>
   );
 }
