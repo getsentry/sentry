@@ -1,14 +1,15 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useRef, useState} from 'react';
 import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
-import {InputGroup} from '@sentry/scraps/input';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {IconClose} from 'sentry/icons';
 import type {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {readFileAsBase64} from 'sentry/utils/readFileAsBase64';
@@ -55,13 +56,28 @@ export function PolicyFormModal({
   title,
   initialVersion = '',
 }: Props) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [isReadingFile, setIsReadingFile] = useState(false);
   const formSchema = isNewPolicy
-    ? schema.extend({
-        name: z.string().trim().min(1, 'Name is required'),
-        slug: z.string().trim().min(1, 'Slug is required'),
-      })
-    : schema;
+    ? schema
+        .extend({
+          name: z.string().trim().min(1, 'Name is required'),
+          slug: z.string().trim().min(1, 'Slug is required'),
+        })
+        .refine(
+          value => !(value.file || value.url || value.active) || !!value.version.trim(),
+          {
+            path: ['version'],
+            message: 'Version is required when adding a revision',
+          }
+        )
+    : schema.extend({
+        version: z
+          .string()
+          .trim()
+          .min(1, 'Version is required')
+          .min(3, 'Version must be at least 3 characters'),
+      });
   const mutation = useMutation({
     mutationFn: fetchMutation<Policy | PolicyRevision>,
     onSuccess: data => {
@@ -106,13 +122,13 @@ export function PolicyFormModal({
                 slug: value.slug,
                 active: value.active,
                 hasSignature: value.hasSignature,
-                version: value.version,
-                url: value.url,
+                ...(value.version ? {version: value.version} : {}),
+                ...(value.url ? {url: value.url} : {}),
                 ...(value.file ? {file: value.file} : {}),
               }
             : {
                 version: value.version,
-                url: value.url,
+                ...(value.url ? {url: value.url} : {}),
                 ...(value.file ? {file: value.file} : {}),
                 current: value.current,
               },
@@ -122,7 +138,9 @@ export function PolicyFormModal({
   });
   return (
     <form.AppForm form={form}>
-      <Header closeButton>{title}</Header>
+      <Header closeButton>
+        <Heading as="h3">{title}</Heading>
+      </Header>
       <Body>
         <Stack gap="lg">
           {isNewPolicy && (
@@ -151,37 +169,33 @@ export function PolicyFormModal({
               </form.AppField>
               <form.AppField name="active">
                 {field => (
-                  <field.Layout.Stack
+                  <field.Checkbox
                     label="Active"
                     hintText="Should this policy be visible to customers?"
-                  >
-                    <field.Checkbox
-                      label="Active"
-                      checked={field.state.value}
-                      onChange={field.handleChange}
-                    />
-                  </field.Layout.Stack>
+                    checked={field.state.value}
+                    onChange={field.handleChange}
+                  />
                 )}
               </form.AppField>
               <form.AppField name="hasSignature">
                 {field => (
-                  <field.Layout.Stack
+                  <field.Checkbox
                     label="Has Signature"
                     hintText="Does this policy require the user accept it?"
-                  >
-                    <field.Checkbox
-                      label="Has Signature"
-                      checked={field.state.value}
-                      onChange={field.handleChange}
-                    />
-                  </field.Layout.Stack>
+                    checked={field.state.value}
+                    onChange={field.handleChange}
+                  />
                 )}
               </form.AppField>
             </Fragment>
           )}
           <form.AppField name="version">
             {field => (
-              <field.Layout.Stack label="Version">
+              <field.Layout.Stack
+                label="Version"
+                required={!isNewPolicy}
+                hintText={isNewPolicy ? 'Required when adding a URL or file.' : undefined}
+              >
                 <field.Input
                   value={field.state.value}
                   onChange={field.handleChange}
@@ -210,46 +224,72 @@ export function PolicyFormModal({
                 label="File"
                 hintText="Instead of an external URL you may upload the file directly."
               >
-                <InputGroup.Input
-                  type="file"
-                  accept=".pdf"
-                  disabled={mutation.isPending}
-                  onChange={event => {
-                    const file = event.target.files?.[0];
-                    if (!file) {
-                      field.handleChange(null);
-                      return;
-                    }
-                    setIsReadingFile(true);
-                    readFileAsBase64(
-                      file,
-                      content => {
-                        field.handleChange([file.name, content ?? '']);
-                        setIsReadingFile(false);
-                      },
-                      () => {
-                        setIsReadingFile(false);
-                        addErrorMessage('Unable to read the selected file.');
+                <Flex align="center" gap="md">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".pdf"
+                    hidden
+                    style={{display: 'none'}}
+                    onChange={event => {
+                      const file = event.target.files?.[0];
+                      if (!file) {
+                        field.handleChange(null);
+                        return;
                       }
-                    );
-                  }}
-                />
+                      setIsReadingFile(true);
+                      readFileAsBase64(
+                        file,
+                        content => {
+                          field.handleChange([file.name, content ?? '']);
+                          setIsReadingFile(false);
+                        },
+                        () => {
+                          setIsReadingFile(false);
+                          addErrorMessage('Unable to read the selected file.');
+                        }
+                      );
+                    }}
+                  />
+                  <Button
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={mutation.isPending}
+                  >
+                    Choose File
+                  </Button>
+                  <Text variant="muted" ellipsis>
+                    {isReadingFile
+                      ? 'Reading file…'
+                      : (field.state.value?.[0] ?? 'No file selected')}
+                  </Text>
+                  {field.state.value && (
+                    <Button
+                      variant="transparent"
+                      size="xs"
+                      icon={<IconClose size="xs" aria-hidden />}
+                      aria-label="Remove file"
+                      disabled={mutation.isPending}
+                      onClick={() => {
+                        if (fileInputRef.current) {
+                          fileInputRef.current.value = '';
+                        }
+                        field.handleChange(null);
+                      }}
+                    />
+                  )}
+                </Flex>
               </field.Layout.Stack>
             )}
           </form.AppField>
           {!isNewPolicy && (
             <form.AppField name="current">
               {field => (
-                <field.Layout.Stack
+                <field.Checkbox
                   label="Current"
                   hintText="Make this the active version of this policy."
-                >
-                  <field.Checkbox
-                    label="Current"
-                    checked={field.state.value}
-                    onChange={field.handleChange}
-                  />
-                </field.Layout.Stack>
+                  checked={field.state.value}
+                  onChange={field.handleChange}
+                />
               )}
             </form.AppField>
           )}

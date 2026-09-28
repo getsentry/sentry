@@ -25,7 +25,7 @@ export function PolicyRevisionModal({policy, onSuccess, ...props}: Props) {
       })}
       isNewPolicy={false}
       onSuccess={data => {
-        if ('current' in data) {
+        if ('createdAt' in data) {
           onSuccess(data);
         }
       }}
