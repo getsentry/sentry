@@ -2,8 +2,8 @@
 Helpers shared by Flagpole feature flag code in sentry and getsentry.
 
 Flag definitions live in sentry-options-automator and are evaluated by the
-sentry-options client; this package no longer evaluates flags itself.
-flagpole-schema.json is kept for reference only and is not loaded at runtime.
+sentry-options client; this package no longer evaluates flags itself. The
+Feature schema is in sentry-options: sentry-options-validation/src/feature-schema-defs.json.
 """
 
 from __future__ import annotations
