@@ -120,11 +120,11 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
             task_queue.task_done()
             return
 
-        # Keep accepting work queued by older cleanup processes during an upgrade.
+        # Handle all formats: (model_name, chunk), (model_name, chunk, project_id) and (model_name, chunk, project_id, deferred_filter)
         if len(j) == 2:
             model_name, chunk = j
             project_id = None
-            deferred_filter: dict[str, Any] = {}
+            deferred_filter = {}
         elif len(j) == 3:
             model_name, chunk, project_id = j
             deferred_filter = {}
@@ -957,16 +957,16 @@ def run_bulk_deletes_in_deletes(
             debug_output(f"Removing {model_tp.__name__} for days={days} project={project or '*'}")
             models_attempted.add(model_tp.__name__.lower())
             try:
-                defer_datetime_filter = model_tp is File
-                query = BulkDeleteQuery(
+                defer_dt_filter = model_tp is File
+                q = BulkDeleteQuery(
                     model=model_tp,
                     dtfield=dtfield,
                     days=days,
                     project_id=project_id,
                     order_by=order_by,
-                    defer_datetime_filter=defer_datetime_filter,
+                    defer_dt_filter=defer_dt_filter,
                 )
-                _schedule_bulk_delete_chunks(task_queue, query, model_tp, project_id)
+                _schedule_bulk_delete_chunks(task_queue, q, model_tp, project_id)
 
             except Exception:
                 capture_exception(tags={"model": model_tp.__name__})

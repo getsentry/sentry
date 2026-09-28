@@ -26,7 +26,7 @@ class BulkDeleteQuery:
         days: int | None = None,
         order_by: str | None = None,
         partition: tuple[int, int, str] | None = None,
-        defer_datetime_filter: bool = False,
+        defer_dt_filter: bool = False,
     ):
         self.model = model
         self.project_id = int(project_id) if project_id else None
@@ -35,12 +35,11 @@ class BulkDeleteQuery:
         self.days = int(days) if days is not None else None
         self.order_by = order_by
         self.partition = partition
-        self.defer_datetime_filter = defer_datetime_filter
+        self.defer_dt_filter = defer_dt_filter
         self.using = router.db_for_write(model)
 
-        # This filter is applied in the worker.
         self.deferred_filter: dict[str, Any] = {}
-        if self.defer_datetime_filter:
+        if self.defer_dt_filter:
             if self.dtfield is None or self.days is None:
                 raise ValueError("Expected a datetime filter")
             cutoff = timezone.now() - timedelta(days=self.days)
