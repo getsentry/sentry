@@ -25,9 +25,10 @@ const optionsQueryOptions = apiOptions.as<Record<string, FieldDef>>()(
 );
 
 const disabledReasons: Record<string, string> = {
-  diskPriority:
-    'This setting is defined in config.yml and may not be changed via the web UI.',
-  smtpDisabled: 'SMTP mail has been disabled, so this option is unavailable',
+  diskPriority: t(
+    'This setting is defined in config.yml and may not be changed via the web UI.'
+  ),
+  smtpDisabled: t('SMTP mail has been disabled, so this option is unavailable'),
 };
 
 function useAdminOption(name: string, option: FieldDef) {
@@ -189,8 +190,6 @@ export default function AdminSettings() {
     return <LoadingIndicator />;
   }
 
-  const option = (name: string): FieldDef => data[name] ?? {field: {}};
-
   return (
     <Stack gap="xl">
       <Heading as="h3" size="lg">
@@ -198,42 +197,48 @@ export default function AdminSettings() {
       </Heading>
 
       <FieldGroup title={t('General')}>
-        <TextOptionField name="system.url-prefix" option={option('system.url-prefix')} />
+        <TextOptionField
+          name="system.url-prefix"
+          option={data['system.url-prefix'] ?? {field: {}}}
+        />
         <TextOptionField
           name="system.admin-email"
-          option={option('system.admin-email')}
+          option={data['system.admin-email'] ?? {field: {}}}
         />
         <TextOptionField
           name="system.support-email"
-          option={option('system.support-email')}
+          option={data['system.support-email'] ?? {field: {}}}
         />
         <TextOptionField
           name="system.security-email"
-          option={option('system.security-email')}
+          option={data['system.security-email'] ?? {field: {}}}
         />
       </FieldGroup>
 
       <FieldGroup title={t('Security & Abuse')}>
         <BooleanOptionField
           name="auth.allow-registration"
-          option={option('auth.allow-registration')}
+          option={data['auth.allow-registration'] ?? {field: {}}}
         />
         <TextOptionField
           name="auth.ip-rate-limit"
-          option={option('auth.ip-rate-limit')}
+          option={data['auth.ip-rate-limit'] ?? {field: {}}}
         />
         <TextOptionField
           name="auth.user-rate-limit"
-          option={option('auth.user-rate-limit')}
+          option={data['auth.user-rate-limit'] ?? {field: {}}}
         />
         <TextOptionField
           name="api.rate-limit.org-create"
-          option={option('api.rate-limit.org-create')}
+          option={data['api.rate-limit.org-create'] ?? {field: {}}}
         />
       </FieldGroup>
 
       <FieldGroup title={t('Beacon')}>
-        <RadioOptionField name="beacon.anonymous" option={option('beacon.anonymous')} />
+        <RadioOptionField
+          name="beacon.anonymous"
+          option={data['beacon.anonymous'] ?? {field: {}}}
+        />
       </FieldGroup>
     </Stack>
   );
