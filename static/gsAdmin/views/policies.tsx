@@ -1,8 +1,12 @@
+import {useState} from 'react';
 import moment from 'moment-timezone';
 
 import {Button} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {ResultGrid} from 'sentry/components/resultGrid';
 
@@ -25,20 +29,38 @@ const getRow = (row: any) => [
 
 export function Policies() {
   const {openModal} = useModal();
+  const [status, setStatus] = useState<'active' | 'all'>('active');
 
   return (
     <div>
       <PageHeader title="Policies">
-        <Button onClick={() => openModal(deps => <AddPolicyModal {...deps} />)} size="sm">
-          Add Policy
-        </Button>
+        <Flex align="center" gap="md">
+          <CompactSelect
+            value={status}
+            options={[
+              {value: 'active', label: 'Active policies'},
+              {value: 'all', label: 'All policies'},
+            ]}
+            onChange={option => setStatus(option.value === 'all' ? 'all' : 'active')}
+            trigger={triggerProps => (
+              <OverlayTrigger.Button {...triggerProps} prefix="Show" size="sm" />
+            )}
+          />
+          <Button
+            onClick={() => openModal(deps => <AddPolicyModal {...deps} />)}
+            size="sm"
+          >
+            Add Policy
+          </Button>
+        </Flex>
       </PageHeader>
 
       <ResultGrid
+        key={status}
         inPanel
         path="/_admin/policies/"
         endpoint="/policies/"
-        defaultParams={{per_page: 50, include: 'all'}}
+        defaultParams={{per_page: 50, include: status}}
         columns={[
           <th key="policy">Policy</th>,
           <th key="value" style={{width: 100, textAlign: 'center'}}>
