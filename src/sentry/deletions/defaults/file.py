@@ -27,7 +27,7 @@ class FileDeletionTask(ModelDeletionTask[File]):
 
         cutoff = timezone.now() - timedelta(days=90)
 
-        # Subquery for checking if ReleaseFile references this File
+        # Subqueries for checking if this File is referenced
         releasefile_exists = Exists(ReleaseFile.objects.filter(file_id=OuterRef("id")))
         project_debug_file_exists = Exists(ProjectDebugFile.objects.filter(file_id=OuterRef("id")))
 
