@@ -22,8 +22,8 @@ interface QueryEmbedCardProps {
   /** Right-aligned label for the query's mode, e.g. "Aggregate" or "Spans". */
   badge?: ReactNode;
   /**
-   * Inset content under the query, such as a chart. Sits inside the card's
-   * padding, unlike `table`.
+   * Inset content under the query: a chart above a table, or a whole preview
+   * for a block with no table. Sits inside the card's padding, unlike `table`.
    */
   children?: ReactNode;
   /**
@@ -65,7 +65,11 @@ export function QueryEmbedCard({
       testId={testId}
       title={title}
     >
-      <InsetSection gap="md" padding="md">
+      {/* A flush table below takes a tighter inset, so the query row sits close
+          to the table it filters. A card with no table -- an issue list, a
+          saved query's summary, a chart on its own -- keeps the roomier inset
+          every other block embed uses. */}
+      <InsetSection gap="md" padding={table ? 'md' : 'lg'}>
         {query ? (
           <Flex
             align="center"
