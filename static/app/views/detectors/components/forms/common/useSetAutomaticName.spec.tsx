@@ -110,7 +110,10 @@ describe('useSetAutomaticName', () => {
       projectId: project.id,
     });
 
-    render(<ExampleDetectorForm detector={detector} initialFormData={{name: detector.name}} />, {organization});
+    render(
+      <ExampleDetectorForm detector={detector} initialFormData={{name: detector.name}} />,
+      {organization}
+    );
 
     await screen.findByText(detector.name);
 
