@@ -44,9 +44,7 @@ const BASE_CONVERSATION = {
   user: null,
 };
 
-const organization = OrganizationFixture({
-  features: ['gen-ai-conversations'],
-});
+const organization = OrganizationFixture();
 
 function mockConversations(body: Array<Record<string, unknown>>) {
   return MockApiClient.addMockResponse({

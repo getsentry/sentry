@@ -13,12 +13,10 @@ import {AI_AGENTS_GETTING_STARTED_DOCS_LINK} from 'sentry/views/insights/pages/a
 import ConversationsOverviewPage from './overview';
 
 const organization = OrganizationFixture({
-  features: ['gen-ai-agents-overview', 'gen-ai-conversations'],
+  features: ['gen-ai-agents-overview'],
 });
 
-const organizationWithoutAgentsOverview = OrganizationFixture({
-  features: ['gen-ai-conversations'],
-});
+const organizationWithoutAgentsOverview = OrganizationFixture();
 
 const MISSING_AGENT_SPANS_MESSAGE =
   'You’re sending LLM calls only — no agent or tool spans yet. Running agents in your app?';
