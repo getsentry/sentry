@@ -94,14 +94,6 @@ describe('SeerMarkdownText', () => {
     expect(copyTextFor(raw)).toBe(raw);
   });
 
-  it('keeps a multi-issue embed on one line when it sits mid-sentence', () => {
-    const raw = 'See {% issues %}{"ids":["A-1","B-2"]}{% /issues %} now.';
-
-    expect(copyTextFor(raw)).toBe(
-      `See [A-1](${origin}/issues/A-1/), [B-2](${origin}/issues/B-2/) now.`
-    );
-  });
-
   it('substitutes the real embed, not an identical one shown in a fence', () => {
     const tag = '{% issue %}{"id":"A-1"}{% /issue %}';
     const raw = `\`\`\`text\n${tag}\n\`\`\`\n\nthen ${tag} here`;

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Collection
+from collections.abc import Collection, Sequence
 from dataclasses import dataclass
 from datetime import timedelta
 from enum import StrEnum
@@ -42,7 +42,6 @@ from scm.types import (
 from taskbroker_client.retry import Retry
 from taskbroker_client.state import current_task
 
-from sentry import options
 from sentry.cache import default_cache
 from sentry.integrations.utils.scm_actors import find_user_for_scm_actor
 from sentry.locks import locks
@@ -60,6 +59,7 @@ from sentry.seer.autofix.autofix_agent import (
 from sentry.seer.autofix.commit_author import commit_author_for_feedback
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.pr_iteration.bot_identity import bot_logins_for_feedback
+from sentry.seer.autofix.pr_iteration.cap_exhausted import assign_user_for_exhausted_cap
 from sentry.seer.autofix.pr_iteration.constants import PR_ITERATION_PROVIDER
 from sentry.seer.autofix.pr_iteration.details_store import (
     count_iterations_before,
@@ -73,13 +73,20 @@ from sentry.seer.autofix.pr_iteration.emit import (
     record_pr_iteration_counts,
     trigger_pr_iteration_details,
 )
-from sentry.seer.autofix.pr_iteration.feedback import Feedback, automated_iteration_cap_reached
+from sentry.seer.autofix.pr_iteration.feedback import (
+    Feedback,
+    automated_iteration_allowed,
+    feedback_kind,
+)
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import (
     ConsumeTask,
     ConsumeTriggerSource,
     TriggerDecision,
 )
-from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import CheckSuiteFeedbackSource
+from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import (
+    CheckSuiteFeedbackSource,
+    MissingCheckSuiteAutofixRun,
+)
 from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrCommentFeedbackSource,
     GithubPrCommentFeedbackType,
@@ -108,12 +115,12 @@ from sentry.seer.autofix.pr_iteration.queue import (
     QueuedAutofixFeedback,
     clear_queued_autofix_feedback,
     count_queued_autofix_feedback,
+    enqueue_autofix_feedback,
     pop_queued_autofix_feedback,
-    try_enqueue_autofix_feedback,
 )
 from sentry.seer.autofix.pr_iteration.tracing import set_pr_iteration_attributes
 from sentry.seer.autofix.steps import AutofixStep
-from sentry.seer.models import SeerApiError, SeerPermissionError
+from sentry.seer.models import SeerApiError, SeerPermissionError, SeerUnavailableError
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
 from sentry.users.services.user.model import RpcUser
@@ -163,12 +170,14 @@ def _get_feedback_referrer(items: list[QueuedAutofixFeedback]) -> AutofixReferre
     return AutofixReferrer.UNKNOWN
 
 
-def _get_feedback_kind(items: Collection[Feedback]) -> str:
-    """Whether the batch is manual, automated, or both."""
-    kinds = {item.source.is_automated for item in items}
-    if len(kinds) != 1:
-        return "mixed"
-    return "automated" if kinds.pop() else "manual"
+def _get_feedback_types(items: list[QueuedAutofixFeedback]) -> str:
+    """Every referrer in the batch, sorted and deduped, as one ``,``-joined string.
+
+    Unlike ``_get_feedback_referrer`` this never collapses a mixed batch to
+    ``unknown``: two review comments and a check suite read as
+    ``github.check_suite,github.pr_comment``.
+    """
+    return ",".join(sorted({item.referrer.value for item in items}))
 
 
 def _get_feedback_actor_user_id(items: list[QueuedAutofixFeedback]) -> int | None:
@@ -205,7 +214,12 @@ def trigger_consume_pr_iteration_feedback(
     run_state: SeerRunState,
     source: str = ConsumeTriggerSource.FEEDBACK,
     delay: int | None = None,
-) -> None:
+) -> TriggerDecision:
+    """Schedule a consume for the run's queue, or say why not.
+
+    Returns the decision so a caller can act on the reason: no task means
+    nothing will drain what was just queued.
+    """
     bypass = source in _BYPASSES_SHOULD_TRIGGER
     set_pr_iteration_attributes(
         run_id=run_id,
@@ -242,7 +256,7 @@ def trigger_consume_pr_iteration_feedback(
             feedback_id=feedback.feedback_id,
             **feedback.source.log_fields(run_state),
         )
-        return
+        return TriggerDecision(task=None, reason="paused")
 
     # Gate ahead of should_trigger: that can defer an hour behind an incomplete
     # check-run sweep, and the "accept these permissions" comment has to reach
@@ -266,9 +280,12 @@ def trigger_consume_pr_iteration_feedback(
             feedback_id=feedback.feedback_id,
             **feedback.source.log_fields(run_state),
         )
-        return
+        return TriggerDecision(task=None, reason="missing_github_permissions")
 
-    if bypass:
+    run_decision = automated_iteration_allowed(run_state) if feedback.source.is_automated else None
+    if run_decision is not None and not run_decision.ok:
+        decision = TriggerDecision(task=None, reason=run_decision.reason)
+    elif bypass:
         decision = TriggerDecision(task=ConsumeTask.Now, reason="bypass")
     else:
         decision = feedback.source.should_trigger(run_state)
@@ -314,6 +331,7 @@ def trigger_consume_pr_iteration_feedback(
         feedback_id=feedback.feedback_id,
         **feedback.source.log_fields(run_state),
     )
+    return decision
 
 
 def _dropped_feedback(feedback: Feedback, reason: str) -> dict[str, Any]:
@@ -543,6 +561,39 @@ def _discard_iteration(
         )
 
 
+def _hand_off_exhausted_cap(
+    log_ctx: PrIterationLogContext, blocked_items: Sequence[QueuedAutofixFeedback]
+) -> None:
+    """Hand the PR to a person when the drain drops CI feedback at the cap.
+
+    The check-suite listener does this when the trigger refuses a suite, but a
+    suite that was already queued when the cap was reached is only refused
+    here. Uses the newest suite, since ``assign_user_for_exhausted_cap`` only
+    acts on the PR's current head and hands off at most once per head.
+    """
+    suites = [
+        item.feedback.source
+        for item in blocked_items
+        if isinstance(item.feedback.source, CheckSuiteFeedbackSource)
+    ]
+    if not suites:
+        return
+
+    newest = suites[-1]
+    try:
+        assign_user_for_exhausted_cap(newest.event, newest.autofix_run)
+    except MissingCheckSuiteAutofixRun:
+        log_ctx.info("autofix.pr_iteration.cap_exhausted.skipped", reason="no_autofix_run")
+    except Exception as e:
+        # The drain has already popped the queue; a failed handoff must not
+        # fail the consume along with it.
+        sentry_sdk.capture_exception(e)
+        log_ctx.error(
+            "autofix.pr_iteration.cap_exhausted.failed",
+            error_type=type(e).__name__,
+        )
+
+
 @trace
 def _drain_queued_autofix_feedback(
     *,
@@ -616,7 +667,6 @@ def _drain_queued_autofix_feedback(
         return
 
     consumable_items: list[QueuedAutofixFeedback] = []
-    feedback_items = []
     dropped: list[dict[str, Any]] = []
     # Keyed by (source class, id): issue-comment, review-comment, and review
     # (body) ids come from separate GitHub namespaces, so dedupe within each
@@ -652,7 +702,30 @@ def _drain_queued_autofix_feedback(
             seen_check_suite_keys.add(suite_key)
 
         consumable_items.append(item)
-        feedback_items.append(item.feedback)
+
+    # The same automated-iteration check `trigger_consume_pr_iteration_feedback`
+    # applies before scheduling a consume. It has to run again here: the completion hook
+    # schedules a drain without it, and a deferred consume can fire long after
+    # it passed. Automated feedback is dropped when the project has PR
+    # iteration off. At the hard cap it is dropped only when no person's
+    # feedback is in the batch, because an iteration with a person's feedback
+    # in it does not extend the automated streak.
+    has_human_feedback = any(not item.feedback.source.is_automated for item in consumable_items)
+    if any(item.feedback.source.is_automated for item in consumable_items):
+        run_decision = automated_iteration_allowed(state)
+        if not run_decision.ok and not (
+            has_human_feedback and run_decision.reason == "hard_cap_reached"
+        ):
+            blocked_items = [item for item in consumable_items if item.feedback.source.is_automated]
+            dropped.extend(
+                _dropped_feedback(item.feedback, run_decision.reason) for item in blocked_items
+            )
+            consumable_items = [
+                item for item in consumable_items if not item.feedback.source.is_automated
+            ]
+            if run_decision.reason == "hard_cap_reached":
+                _hand_off_exhausted_cap(log_ctx, blocked_items)
+    feedback_items = [item.feedback for item in consumable_items]
 
     if not feedback_items:
         log_ctx.info(
@@ -671,14 +744,14 @@ def _drain_queued_autofix_feedback(
 
     referrer = _get_feedback_referrer(consumable_items)
     actor_user_id = _get_feedback_actor_user_id(consumable_items)
-    feedback_kind = _get_feedback_kind(feedback_items)
+    kind = feedback_kind(feedback_items)
     metrics.incr(
         "autofix.pr_iteration.step",
         amount=len(feedback_items),
         tags={
             "checkpoint": "consumed",
             "referrer": referrer.value,
-            "feedback_kind": feedback_kind,
+            "feedback_kind": kind,
         },
         sample_rate=1.0,
     )
@@ -704,6 +777,7 @@ def _drain_queued_autofix_feedback(
             organization_id=organization_id,
             iteration_id=iteration_id,
             referrer=referrer.value,
+            feedback_types=_get_feedback_types(consumable_items),
             feedback_count=len(feedback_items),
             queued_count=len(queued_items),
             dropped_count=len(dropped),
@@ -718,7 +792,7 @@ def _drain_queued_autofix_feedback(
             tags={
                 "checkpoint": "sent_to_seer",
                 "referrer": referrer.value,
-                "feedback_kind": feedback_kind,
+                "feedback_kind": kind,
             },
             sample_rate=1.0,
         )
@@ -1241,11 +1315,18 @@ def _resolve_run_for_pr_comment(
     return ResolvedPrCommentRun(agent_state=agent_state, scm=scm, actor_user=actor_user)
 
 
+# When a Seer lookup gets a server error (during a deploy, say), tasks that
+# start with one try again every minute for five minutes, giving Seer time to
+# recover. Once those run out, the worker reports NoRetriesRemainingError. Other
+# errors, including hitting the processing deadline, are not retried.
+SEER_UNAVAILABLE_RETRY = Retry(on=(SeerUnavailableError,), times=6, delay=60)
+
+
 @instrumented_task(
     name="sentry.tasks.autofix.trigger_pr_iteration_from_comment",
     namespace=seer_tasks,
     processing_deadline_duration=65,
-    retry=Retry(times=1),
+    retry=SEER_UNAVAILABLE_RETRY,
 )
 def trigger_pr_iteration_from_comment(
     *,
@@ -1355,7 +1436,7 @@ def _trigger_pr_iteration_from_comment(
         organization_id=organization_id,
         group_id=group_id,
     )
-    try_enqueue_autofix_feedback(
+    enqueue_autofix_feedback(
         log_ctx=log_ctx,
         run_id=agent_state.run_id,
         organization_id=organization_id,
@@ -1402,7 +1483,7 @@ def _trigger_pr_iteration_from_comment(
     name="sentry.tasks.autofix.pause_pr_iteration_from_comment",
     namespace=seer_tasks,
     processing_deadline_duration=65,
-    retry=Retry(times=1),
+    retry=SEER_UNAVAILABLE_RETRY,
 )
 def pause_pr_iteration_from_comment(
     *,
@@ -1617,7 +1698,7 @@ def _build_review_feedback(
     name="sentry.tasks.autofix.trigger_pr_iteration_from_review",
     namespace=seer_tasks,
     processing_deadline_duration=65,
-    retry=Retry(times=1),
+    retry=SEER_UNAVAILABLE_RETRY,
 )
 def trigger_pr_iteration_from_review(
     *,
@@ -1747,28 +1828,23 @@ def _trigger_pr_iteration_from_review(
     if pr_id is None:
         return None
 
-    agent_state = get_agent_state_from_pr_id(organization_id, PR_ITERATION_PROVIDER, pr_id)
+    try:
+        agent_state = get_agent_state_from_pr_id(organization_id, PR_ITERATION_PROVIDER, pr_id)
+    except SeerUnavailableError:
+        # Seer is down: fail the task so its retry policy tries again later.
+        raise
+    except SeerApiError as e:
+        logger.warning(
+            "autofix.pr_iteration.review_trigger.seer_api_error",
+            extra={**log_extra, "pr_id": pr_id, "status_code": e.status},
+            exc_info=True,
+        )
+        return None
     if agent_state is None or not agent_state.repo_pr_states:
         metrics.incr("autofix.pr_iteration.review_trigger.no_run")
         logger.info(
             "autofix.pr_iteration.review_trigger.no_run",
             extra={**log_extra, "pr_id": pr_id},
-        )
-        return None
-
-    # Only bot reviews are capped: once the last N iterations were all automated,
-    # stop letting bots (test-coverage comments and the like) drive further ones —
-    # they'd loop forever without human input. A human review always proceeds and
-    # resets that streak. Bail before enqueueing or acking so we don't :eyes:-ack
-    # inline comments that never produce an iteration.
-    if author_is_bot and automated_iteration_cap_reached(agent_state):
-        metrics.incr("autofix.pr_iteration.review_trigger.max_iterations_reached")
-        logger.info(
-            "autofix.pr_iteration.review_trigger.max_iterations_reached",
-            extra={
-                **log_extra,
-                "max_iterations": options.get("autofix.pr-iteration.max-iterations"),
-            },
         )
         return None
 
@@ -1837,7 +1913,7 @@ def _trigger_pr_iteration_from_review(
         group_id=group_id,
     )
     for feedback_obj in feedback_items:
-        try_enqueue_autofix_feedback(
+        enqueue_autofix_feedback(
             log_ctx=log_ctx,
             run_id=agent_state.run_id,
             organization_id=organization_id,
@@ -1849,8 +1925,10 @@ def _trigger_pr_iteration_from_review(
         )
 
     # A single consume pass drains everything queued above; trigger once using
-    # the first item to decide the countdown (all share the same run).
-    trigger_consume_pr_iteration_feedback(
+    # the first item to decide the countdown (all share the same run). A bot
+    # review is queued even past the automated-iteration cap; the trigger and
+    # the drain are what hold it back.
+    decision = trigger_consume_pr_iteration_feedback(
         log_ctx=log_ctx,
         run_id=agent_state.run_id,
         organization_id=organization_id,
@@ -1859,23 +1937,25 @@ def _trigger_pr_iteration_from_review(
     )
 
     # Ack each inline comment with :eyes:, mirroring the single-comment path (the
-    # review body has no reaction target). Gate on should_consume so we don't ack a
-    # comment consume will drop as stale.
+    # review body has no reaction target). Skip the ack when no consume was
+    # scheduled (a bot review past the cap, a paused run), and gate each comment
+    # on should_consume so we don't ack one consume will drop as stale.
     # TODO: doesn't cover consume's other drop paths (group missing, processing,
     # cap hit mid-drain) — reconcile with consume's outcome later.
-    for feedback_obj in feedback_items:
-        source = feedback_obj.source
-        if not isinstance(source, GithubPrReviewCommentFeedbackSource):
-            continue
-        if source.comment.id is None or not source.should_consume(agent_state).ok:
-            continue
-        _add_comment_reaction(
-            scm,
-            source_type="github-pr-review-comment",
-            pr_number=pr_number,
-            comment_id=int(source.comment.id),
-            reaction="eyes",
-        )
+    if decision.task is not None:
+        for feedback_obj in feedback_items:
+            source = feedback_obj.source
+            if not isinstance(source, GithubPrReviewCommentFeedbackSource):
+                continue
+            if source.comment.id is None or not source.should_consume(agent_state).ok:
+                continue
+            _add_comment_reaction(
+                scm,
+                source_type="github-pr-review-comment",
+                pr_number=pr_number,
+                comment_id=int(source.comment.id),
+                reaction="eyes",
+            )
 
     metrics.incr("autofix.pr_iteration.review_trigger.success")
     logger.info("autofix.pr_iteration.review_trigger.success", extra=log_extra)
@@ -1897,6 +1977,7 @@ STALE_DETAILS_BATCH_SIZE = 100
     name="sentry.tasks.autofix.sweep_pr_iteration_details",
     namespace=seer_tasks,
     processing_deadline_duration=120,
+    retry=Retry(times=1),
 )
 def sweep_pr_iteration_details() -> None:
     """Discard iteration rows left behind by iterations that never completed."""

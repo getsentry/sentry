@@ -30,9 +30,8 @@ const PREVIEW_COLUMNS: GroupListColumn[] = [
   'firstSeen',
   'lastSeen',
   'event',
-  'users',
   'priority',
-  'assignee',
+  'assigneeAvatar',
 ];
 
 export default function SavedIssueViewBlock({id, name}: EmbedOutput<'savedIssueView'>) {

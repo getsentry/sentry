@@ -4,6 +4,8 @@ import {useQueryClient} from '@tanstack/react-query';
 import {AvatarList} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex, useResponsivePropValue} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -12,8 +14,6 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {Client} from 'sentry/api';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {ConfirmDelete} from 'sentry/components/confirmDelete';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {SnapshotStatusBadge} from 'sentry/components/preprod/snapshotStatusBadge';
 import {
   IconCheckmark,

@@ -85,7 +85,7 @@ describe('ScmAlertFrequencySection', () => {
   it('shows the notification options when alerts are enabled', () => {
     renderSection({analyticsFlow: 'onboarding'});
 
-    expect(screen.getByText('Notify via')).toBeInTheDocument();
+    expect(screen.getByRole('group', {name: 'Notify via'})).toBeInTheDocument();
     expect(
       screen.getByText('Integration (Slack, Discord, MS Teams, etc.)')
     ).toBeInTheDocument();

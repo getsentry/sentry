@@ -227,6 +227,7 @@ class Referrer(StrEnum):
     API_INSIGHTS_WEB_VITAL_TRANSACTION = "api.insights.web-vitals.transaction"
     API_INSIGHTS_WEB_VITAL_TRANSACTIONS_SCORES = "api.insights.web-vitals.transactions-scores"
     API_INSIGHTS_WEB_VITAL_PROFILE_EXISTS = "api.insights.web-vitals.profile-exists"
+    API_INSIGHTS_WEB_VITAL_NAVIGATION_TYPE_COUNTS = "api.insights.web-vitals.navigation-type-counts"
 
     # Mobile vitals
     API_INSIGHTS_MOBILE_UI_SPAN_OPERATION_TABLE = "api.insights.mobile.ui.span-table"
@@ -792,7 +793,7 @@ class Referrer(StrEnum):
     SEARCH_SAMPLE = "search_sample"
     SEARCH = "search"
     SEARCH_GROUP_INDEX = "search.group_index"
-    SEER_NIGHT_SHIFT_FIXABILITY_SCORE_STRATEGY = "seer.night_shift.fixability_score_strategy"
+    SEER_AGENTIC_TRIAGE_FIXABILITY_SCORE_STRATEGY = "seer.night_shift.fixability_score_strategy"
     SEARCH_GROUP_INDEX_SAMPLE = "search.group_index_sample"
     SEARCH_GROUP_INDEX_API = "search.group_index.api"
     SEARCH_GROUP_INDEX_API_SAMPLE = "search.group_index.api_sample"

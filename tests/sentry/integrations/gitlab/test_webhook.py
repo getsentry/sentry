@@ -112,7 +112,11 @@ class WebhookTest(GitLabTestCase):
         assert extra["webhook.repo.web_url"] == "http://example.com/cool-group/sentry"
         assert extra["webhook.object_kind"] == "push"
 
-    def test_valid_id_invalid_secret(self) -> None:
+    @patch("sentry.integrations.gitlab.webhooks.logger")
+    def test_valid_id_invalid_secret(self, mock_logger: MagicMock) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.integration.update(metadata={**self.integration.metadata, "scopes": ["api"]})
+
         response = self.client.post(
             self.url,
             data=PUSH_EVENT,
@@ -124,6 +128,70 @@ class WebhookTest(GitLabTestCase):
         assert (
             response.reason_phrase
             == "Gitlab's webhook secret does not match. Refresh token (or re-install the integration) by following this https://docs.sentry.io/organization/integrations/integration-platform/public-integration/#refreshing-tokens."
+        )
+
+        mock_logger.info.assert_called_once()
+        extra = mock_logger.info.call_args.kwargs["extra"]
+        assert "webhook.integration.metadata" not in extra
+        assert {
+            key: value
+            for key, value in extra.items()
+            if key.startswith("webhook.integration.metadata.")
+        } == {
+            "webhook.integration.metadata.instance": "example.gitlab.com",
+            "webhook.integration.metadata.domain_name": "example.gitlab.com/group-x",
+            "webhook.integration.metadata.scopes": ["api"],
+            "webhook.integration.metadata.verify_ssl": False,
+        }
+
+    @patch("sentry.integrations.gitlab.webhooks.logger")
+    def test_missing_webhook_secret(self, mock_logger: MagicMock) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            metadata = self.integration.metadata.copy()
+            del metadata["webhook_secret"]
+            self.integration.update(metadata=metadata)
+
+        response = self.client.post(
+            self.url,
+            data=PUSH_EVENT,
+            content_type="application/json",
+            HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
+            HTTP_X_GITLAB_EVENT="Push Hook",
+        )
+
+        assert response.status_code == 409
+        mock_logger.warning.assert_called_once()
+        assert mock_logger.warning.call_args.args == ("gitlab.webhook.missing-webhook-secret",)
+        assert (
+            mock_logger.warning.call_args.kwargs["extra"]["webhook.integration.id"]
+            == self.integration.id
+        )
+
+    @patch("sentry.integrations.gitlab.webhooks.logger")
+    @patch("sentry.integrations.gitlab.webhooks.PushEventWebhook.__call__")
+    def test_no_organization_integrations(
+        self, mock_handler: MagicMock, mock_logger: MagicMock
+    ) -> None:
+        integration = self.create_provider_integration(
+            provider="gitlab",
+            external_id="example.gitlab.com:uninstalled-group",
+            metadata=self.integration.metadata,
+        )
+
+        response = self.client.post(
+            self.url,
+            data=PUSH_EVENT,
+            content_type="application/json",
+            HTTP_X_GITLAB_TOKEN=f"{integration.external_id}:{integration.metadata['webhook_secret']}",
+            HTTP_X_GITLAB_EVENT="Push Hook",
+        )
+
+        assert response.status_code == 204
+        mock_handler.assert_not_called()
+        mock_logger.info.assert_called_once()
+        assert mock_logger.info.call_args.args == ("gitlab.webhook.no-organization-integration",)
+        assert (
+            mock_logger.info.call_args.kwargs["extra"]["webhook.integration.id"] == integration.id
         )
 
     def test_invalid_payload(self) -> None:

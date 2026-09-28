@@ -156,7 +156,7 @@ def assign_user_for_exhausted_cap(
         _skip("no_seer_run", log_extra)
         return
     if seer_run.user_id is None:
-        # System runs (e.g. Night Shift) have no user to hand the PR to; how
+        # System runs (e.g. Agentic triage) have no user to hand the PR to; how
         # often this fires sizes the need for candidate-reviewer selection.
         _skip("no_triggering_user", log_extra)
         return

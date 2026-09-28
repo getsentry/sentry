@@ -187,17 +187,20 @@ class OrganizationInvestigationIndexTest(APITestCase):
 
     def test_regular_member_can_create_an_investigation(self) -> None:
         member_user = self.create_user()
-        self.create_member(organization=self.organization, user=member_user, role="member")
+        self.create_member(
+            organization=self.organization, user=member_user, role="member", teams=[]
+        )
         self.login_as(member_user)
 
         response = self.client.post(
             self.collection_url,
-            data={"title": "Created by member"},
+            data={"title": "Created by member", "projectIds": [self.project.id]},
             format="json",
         )
 
         assert response.status_code == 201, response.data
         assert response.data["createdBy"] == str(member_user.id)
+        assert response.data["projectIds"] == [self.project.id]
 
     def test_manual_creation_rejects_inaccessible_project(self) -> None:
         other_organization = self.create_organization()

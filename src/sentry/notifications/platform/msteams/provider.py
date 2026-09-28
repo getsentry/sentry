@@ -38,8 +38,6 @@ type MSTeamsRenderable = AdaptiveCard
 
 
 class MSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
-    provider_key = NotificationProviderKey.MSTEAMS
-
     @classmethod
     def render[DataT: NotificationData](
         cls, *, data: DataT, rendered_template: NotificationRenderedTemplate

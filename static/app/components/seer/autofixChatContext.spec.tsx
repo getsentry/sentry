@@ -3,7 +3,10 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {GlobalDrawer} from '@sentry/scraps/drawer';
-import {PictureInPictureProvider} from '@sentry/scraps/pictureInPicture';
+import {
+  PictureInPictureProvider,
+  usePictureInPicture,
+} from '@sentry/scraps/pictureInPicture';
 
 import {useAutofixChat} from 'sentry/components/seer/autofixChatContext';
 import {SeerExplorerChatStateProvider} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
@@ -27,6 +30,16 @@ function AskSeerButton({query, newChat}: {query: string; newChat?: boolean}) {
   );
 }
 
+/** Stands in for the dock menu's "Windowed" option. */
+function PopOutButton() {
+  const {requestPipWindow} = usePictureInPicture();
+  return (
+    <button type="button" onClick={() => requestPipWindow()}>
+      pop-out
+    </button>
+  );
+}
+
 function tree(query: string, newChat?: boolean) {
   return (
     <SeerExplorerSessionsProvider>
@@ -36,6 +49,7 @@ function tree(query: string, newChat?: boolean) {
             <SeerExplorerContextProvider>
               <div>main app content</div>
               <AskSeerButton query={query} newChat={newChat} />
+              <PopOutButton />
             </SeerExplorerContextProvider>
           </GlobalDrawer>
         </PictureInPictureProvider>
@@ -159,6 +173,45 @@ describe('AutofixChatProvider', () => {
       );
     });
     expect(postExisting).not.toHaveBeenCalled();
+  });
+
+  describe('while the chat is popped out', () => {
+    beforeEach(() => {
+      Object.defineProperty(window, 'documentPictureInPicture', {
+        configurable: true,
+        writable: true,
+        value: {
+          window: null,
+          requestWindow: jest.fn().mockResolvedValue({
+            document: document.implementation.createHTMLDocument('pip'),
+            close: jest.fn(),
+            focus: jest.fn(),
+            addEventListener: jest.fn(),
+            removeEventListener: jest.fn(),
+            closed: false,
+          }),
+        },
+      });
+    });
+
+    afterEach(() => {
+      // @ts-expect-error - cleaning up the PiP stub
+      delete window.documentPictureInPicture;
+    });
+
+    it('disables entry points rather than dropping their message', async () => {
+      render(tree('Run the next Autofix step'), {organization});
+
+      const askSeer = await screen.findByRole('button', {name: 'ask-seer'});
+      expect(askSeer).toBeEnabled();
+
+      // Opening the Explorer can only focus a popped-out window, so a message
+      // sent from outside it would never arrive.
+      await userEvent.click(screen.getByRole('button', {name: 'pop-out'}));
+
+      await waitFor(() => expect(askSeer).toBeDisabled());
+      expect(postChat).not.toHaveBeenCalled();
+    });
   });
 
   it('leaves the entry point disabled with no provider above it', () => {

@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
-from collections.abc import Set as AbstractSet
 from typing import Any
 
 from rest_framework import status
@@ -13,11 +11,10 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.constants import ObjectStatus
 from sentry.investigations.models import (
     Investigation,
     InvestigationBlock,
-    InvestigationBlockExecutionProject,
-    InvestigationProject,
 )
 from sentry.investigations.services import (
     InvestigationConflictError,
@@ -25,15 +22,12 @@ from sentry.investigations.services import (
     InvestigationValidationError,
 )
 from sentry.models.organization import Organization
+from sentry.models.project import Project
 
 FEATURE = "organizations:investigations"
 
 
 def feature_enabled(request: Request, organization: Organization) -> bool:
-    """
-    Open organization membership permits summary listing. Full-detail and reuse
-    endpoints also require access to every selected or execution-represented project.
-    """
     return (
         features.has(FEATURE, organization, actor=request.user)
         and request.access.has_open_membership
@@ -50,44 +44,12 @@ def service_error(error: Exception) -> Response | None:
     return None
 
 
-def investigation_ids_with_project_access(
-    investigations: Sequence[Investigation], accessible_project_ids: AbstractSet[int]
-) -> set[int]:
-    investigation_ids = {investigation.id for investigation in investigations}
-    inaccessible_ids = set(
-        InvestigationProject.objects.filter(investigation_id__in=investigation_ids)
-        .exclude(project_id__in=accessible_project_ids)
-        .values_list("investigation_id", flat=True)
+def organization_project_ids(organization: Organization) -> set[int]:
+    return set(
+        Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE).values_list(
+            "id", flat=True
+        )
     )
-    execution_investigation_ids: dict[int, int] = {}
-    for (
-        investigation_id,
-        result_execution_id,
-        content_execution_id,
-    ) in InvestigationBlock.objects.filter(
-        investigation_id__in=investigation_ids, deleted_at__isnull=True
-    ).values_list("investigation_id", "result_execution_id", "content_execution_id"):
-        if result_execution_id is not None:
-            execution_investigation_ids[result_execution_id] = investigation_id
-        if content_execution_id is not None:
-            execution_investigation_ids[content_execution_id] = investigation_id
-    inaccessible_execution_ids = InvestigationBlockExecutionProject.objects.filter(
-        execution_id__in=execution_investigation_ids
-    ).exclude(project_id__in=accessible_project_ids)
-    inaccessible_ids.update(
-        execution_investigation_ids[execution_id]
-        for execution_id in inaccessible_execution_ids.values_list("execution_id", flat=True)
-    )
-    return investigation_ids - inaccessible_ids
-
-
-def require_investigation_project_access(
-    investigation: Investigation, accessible_project_ids: AbstractSet[int]
-) -> None:
-    if investigation.id not in investigation_ids_with_project_access(
-        [investigation], accessible_project_ids
-    ):
-        raise PermissionDenied("You do not have access to every project in this investigation.")
 
 
 def user_id(request: Request) -> int:
@@ -109,10 +71,9 @@ def require_authenticated_user(request: Request) -> int:
 
 class InvestigationPermission(OrganizationPermission):
     """
-    Organization members may list investigation summaries.
-
-    Mutations require ``org:read`` rather than the default ``org:write``; endpoints
-    exposing or reusing a full investigation additionally enforce its project access.
+    Members of open-membership organizations can read and manage investigations
+    across all projects.
+    Mutations require ``org:read`` rather than the default ``org:write``.
     """
 
     scope_map = {
@@ -163,7 +124,6 @@ class OrganizationInvestigationEndpoint(OrganizationInvestigationsBaseEndpoint):
         except (Investigation.DoesNotExist, ValueError):
             raise ResourceDoesNotExist
         kwargs["investigation"] = investigation
-        require_investigation_project_access(investigation, request.access.accessible_project_ids)
         return args, kwargs
 
 

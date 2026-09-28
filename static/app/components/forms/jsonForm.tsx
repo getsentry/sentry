@@ -62,6 +62,7 @@ function JsonForm({
     });
 
     return () => window.cancelAnimationFrame(animationFrame);
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [location?.hash]);
 
   const shouldDisplayForm = (fieldList: FieldObject[]): boolean => {
@@ -95,31 +96,6 @@ function JsonForm({
     return true;
   };
 
-  const renderForm = ({
-    fields,
-    formPanelProps,
-    title: formTitle,
-  }: {
-    fields: FieldObject[];
-    formPanelProps: ChildFormPanelProps;
-    title?: React.ReactNode;
-  }) => {
-    const displayForm = shouldDisplayForm(fields);
-
-    if (!displayForm && !formPanelProps?.renderFooter && !formPanelProps?.renderHeader) {
-      return null;
-    }
-
-    return (
-      <FormPanel
-        title={formTitle}
-        fields={fields}
-        {...formPanelProps}
-        initiallyCollapsed={formPanelProps.initiallyCollapsed}
-      />
-    );
-  };
-
   const formPanelProps: ChildFormPanelProps = {
     access,
     disabled,
@@ -131,14 +107,43 @@ function JsonForm({
     initiallyCollapsed,
   };
 
+  const formGroups = forms?.map((formGroup, i) => {
+    const displayForm = shouldDisplayForm(formGroup.fields);
+    if (!displayForm && !formPanelProps.renderFooter && !formPanelProps.renderHeader) {
+      return null;
+    }
+
+    return (
+      <Fragment key={i}>
+        <FormPanel
+          title={formGroup.title}
+          fields={formGroup.fields}
+          {...formPanelProps}
+          initiallyCollapsed={formPanelProps.initiallyCollapsed}
+        />
+      </Fragment>
+    );
+  });
+
+  const shouldRenderSingleForm =
+    forms === undefined &&
+    propFields !== undefined &&
+    (shouldDisplayForm(propFields) ||
+      !!formPanelProps.renderFooter ||
+      !!formPanelProps.renderHeader);
+  const singleForm = shouldRenderSingleForm ? (
+    <FormPanel
+      title={title}
+      fields={propFields}
+      {...formPanelProps}
+      initiallyCollapsed={formPanelProps.initiallyCollapsed}
+    />
+  ) : null;
+
   return (
     <div {...otherProps}>
-      {forms?.map((formGroup, i) => (
-        <Fragment key={i}>{renderForm({formPanelProps, ...formGroup})}</Fragment>
-      ))}
-      {forms === undefined &&
-        propFields !== undefined &&
-        renderForm({fields: propFields, formPanelProps, title})}
+      {formGroups}
+      {singleForm}
     </div>
   );
 }

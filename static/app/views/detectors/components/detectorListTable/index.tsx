@@ -191,39 +191,26 @@ export function DetectorListTable({
                   <span>{t('Name')}</span>
                 </Flex>
               </HeaderCell>
-              <HeaderCell columnKey="type" divider sortKey="type">
+              <HeaderCell divider sortKey="type">
                 {t('Type')}
               </HeaderCell>
-              <HeaderCell columnKey="last-issue" divider sortKey="latestGroup">
+              <HeaderCell divider sortKey="latestGroup">
                 {t('Last Issue')}
               </HeaderCell>
-              <HeaderCell columnKey="assignee" divider>
-                {t('Assignee')}
-              </HeaderCell>
-              <HeaderCell
-                columnKey="connected-automations"
-                divider
-                sortKey="connectedWorkflows"
-              >
+              <HeaderCell divider>{t('Assignee')}</HeaderCell>
+              <HeaderCell divider sortKey="connectedWorkflows">
                 {t('Alerts')}
               </HeaderCell>
               {additionalColumns.map(col => (
                 <Fragment key={col.id}>{col.renderHeaderCell()}</Fragment>
               ))}
               {hasVisualization && detectors.length > 0 && (
-                <VisualizationHeaderCell
-                  columnKey="visualization"
-                  ref={elementRef}
-                  scope="col"
-                >
+                <VisualizationHeaderCell ref={elementRef} scope="col">
                   <GridLineLabels timeWindowConfig={timeWindowConfig} />
                 </VisualizationHeaderCell>
               )}
               {hasVisualization && (
-                <VisualizationExpandButtonCell
-                  columnKey="visualization-expand"
-                  scope="col"
-                >
+                <VisualizationExpandButtonCell scope="col">
                   <Button
                     size="xs"
                     variant="transparent"

@@ -333,28 +333,6 @@ class DashboardLastVisited(DefaultFieldsModel):
 
 
 @cell_silo_model
-class DashboardHiddenUser(DefaultFieldsModel):
-    """
-    Tracks dashboards a user has hidden from their dashboards list.
-    """
-
-    __relocation_scope__ = RelocationScope.Organization
-
-    user_id = HybridCloudForeignKey("sentry.User", on_delete="CASCADE")
-    dashboard = FlexibleForeignKey("sentry.Dashboard", on_delete=models.CASCADE)
-
-    class Meta:
-        app_label = "sentry"
-        db_table = "sentry_dashboardhiddenuser"
-        constraints = [
-            UniqueConstraint(
-                fields=["user_id", "dashboard"],
-                name="sentry_dashboardhiddenuser_unique_per_user_dashboard",
-            ),
-        ]
-
-
-@cell_silo_model
 class Dashboard(Model):
     """
     A dashboard.

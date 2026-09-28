@@ -18,9 +18,9 @@ from sentry.seer.autofix.pr_iteration.pause import is_pr_iteration_paused
 from sentry.seer.autofix.pr_iteration.queue import (
     _parse_queued_item,
     clear_queued_autofix_feedback,
+    enqueue_autofix_feedback,
     peek_queued_autofix_feedback,
     pop_queued_autofix_feedback,
-    try_enqueue_autofix_feedback,
 )
 from sentry.testutils.cases import TestCase
 from sentry.utils import json
@@ -97,9 +97,9 @@ class TryEnqueueAutofixFeedbackTest(TestCase):
 
     def _enqueue(
         self, run_id: int, feedback: Feedback, *, run_state: SeerRunState | None = None
-    ) -> bool:
+    ) -> None:
         state = run_state or _run_state()
-        return try_enqueue_autofix_feedback(
+        enqueue_autofix_feedback(
             log_ctx=PrIterationLogContext(
                 self.log,
                 iteration=LogCtxIteration.TRIGGERED,
@@ -115,10 +115,10 @@ class TryEnqueueAutofixFeedbackTest(TestCase):
             run_state=state,
         )
 
-    def test_enqueues_when_should_queue(self) -> None:
+    def test_enqueues(self) -> None:
         feedback = Feedback(source=UserUIFeedbackSource(user_id=1, user_feedback="fix it"))
 
-        assert self._enqueue(run_id=4242, feedback=feedback) is True
+        self._enqueue(run_id=4242, feedback=feedback)
 
         queued = peek_queued_autofix_feedback(4242)
         assert len(queued) == 1
@@ -141,22 +141,29 @@ class TryEnqueueAutofixFeedbackTest(TestCase):
         assert step_calls[0].kwargs["tags"] == {
             "checkpoint": "enqueued",
             "referrer": AutofixReferrer.GITHUB_PR_COMMENT.value,
+            "feedback_kind": "manual",
         }
 
-    def test_a_refused_enqueue_counts_nothing(self) -> None:
+    def test_tags_an_automated_enqueue_by_kind(self) -> None:
+        run_state = _run_state(
+            repo_pr_states={"owner/repo": RepoPRState(repo_name="owner/repo", commit_sha="abc")}
+        )
+        feedback = Feedback(source=_resolved_check_suite_source(run_state=run_state))
+
         with patch(f"{QUEUE_PATH}.metrics") as mock_metrics:
-            assert (
-                self._enqueue(run_id=4848, feedback=Feedback(source=_resolved_check_suite_source()))
-                is False
-            )
+            self._enqueue(run_id=4949, feedback=feedback, run_state=run_state)
 
-        mock_metrics.incr.assert_not_called()
+        assert mock_metrics.incr.call_args.kwargs["tags"]["feedback_kind"] == "automated"
 
-    def test_skips_stale_feedback(self) -> None:
+    def test_queues_stale_feedback_too(self) -> None:
+        # No gate here: a suite on a superseded head is queued like any other,
+        # and it is ``should_trigger`` / ``should_consume`` that keep it from
+        # reaching the agent. Dropping it on arrival is what left no record of it.
         feedback = Feedback(source=_resolved_check_suite_source())
 
-        assert self._enqueue(run_id=4343, feedback=feedback) is False
-        assert peek_queued_autofix_feedback(4343) == []
+        self._enqueue(run_id=4343, feedback=feedback)
+
+        assert len(peek_queued_autofix_feedback(4343)) == 1
 
     def test_logs_the_decision_with_the_run_identity(self) -> None:
         run_state = _run_state(
@@ -164,12 +171,11 @@ class TryEnqueueAutofixFeedbackTest(TestCase):
         )
         feedback = Feedback(source=_resolved_check_suite_source(run_state=run_state))
 
-        assert self._enqueue(run_id=4545, feedback=feedback, run_state=run_state) is True
+        self._enqueue(run_id=4545, feedback=feedback, run_state=run_state)
 
         assert self.log.info.call_args.args[0] == "autofix.pr_iteration.feedback.queue"
         extra = self.log.info.call_args.kwargs["extra"]
         assert extra["outcome"] == "queued"
-        assert extra["reason"] == "head_matches"
         # Identity: what ties this line to the rest of the iteration.
         assert extra["run_id"] == 1
         assert extra["sentry_organization_id"] == self.organization.id
@@ -181,28 +187,6 @@ class TryEnqueueAutofixFeedbackTest(TestCase):
         assert extra["check_suite_id"] == 1
         assert extra["check_suite_head_sha"] == "abc"
         assert extra["run_pr_commit_sha"] == "abc"
-
-    def test_a_rejection_shares_the_log_name_with_the_allow_path(self) -> None:
-        # One name for both branches, so a search for the decision finds every
-        # occurrence of it and ``outcome`` says which way each one went.
-        feedback = Feedback(source=_resolved_check_suite_source())
-
-        assert self._enqueue(run_id=4646, feedback=feedback) is False
-
-        assert self.log.info.call_args.args[0] == "autofix.pr_iteration.feedback.queue"
-        extra = self.log.info.call_args.kwargs["extra"]
-        assert extra["outcome"] == "not_queued"
-        assert extra["reason"] == "stale_head"
-
-    def test_a_source_with_no_gate_says_so_rather_than_going_quiet(self) -> None:
-        feedback = Feedback(source=UserUIFeedbackSource(user_id=1, user_feedback="fix it"))
-
-        assert self._enqueue(run_id=4747, feedback=feedback) is True
-
-        extra = self.log.info.call_args.kwargs["extra"]
-        assert extra["outcome"] == "queued"
-        assert extra["reason"] == "no_gate"
-        assert extra["feedback_source"] == "user-ui"
 
     def test_enqueues_check_suite_without_serializing_autofix_run(self) -> None:
         """Django/Seer objects on autofix_run must not appear in the Redis JSON."""
@@ -222,7 +206,7 @@ class TryEnqueueAutofixFeedbackTest(TestCase):
         source.json()
         feedback.json()
 
-        assert self._enqueue(run_id=4444, feedback=feedback, run_state=run_state) is True
+        self._enqueue(run_id=4444, feedback=feedback, run_state=run_state)
 
         with patch(f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_autofix_run") as mock_resolve:
             queued = peek_queued_autofix_feedback(4444)

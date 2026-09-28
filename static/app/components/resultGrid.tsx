@@ -835,11 +835,12 @@ export function ResultGrid({
   useEffect(() => {
     // oxlint-disable-next-line react/set-state-in-effect
     fetchData();
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [requestSignal, region]);
 
   useEffect(() => {
     if (useQueryString) {
-      // oxlint-disable-next-line react/set-state-in-effect
+      // oxlint-disable-next-line react/set-state-in-effect, react-you-might-not-need-an-effect/no-derived-state
       setQueryInput(request.query);
     }
   }, [useQueryString, request.query]);

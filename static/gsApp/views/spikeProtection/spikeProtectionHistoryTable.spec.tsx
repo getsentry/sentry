@@ -8,7 +8,7 @@ import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {DataCategoryExact} from 'sentry/types/core';
 
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
-import SpikeProtectionHistoryTable from 'getsentry/views/spikeProtection/spikeProtectionHistoryTable';
+import {SpikeProtectionHistoryTable} from 'getsentry/views/spikeProtection/spikeProtectionHistoryTable';
 import type {SpikeDetails} from 'getsentry/views/spikeProtection/types';
 
 import {SPIKE_PROTECTION_OPTION_DISABLED} from './constants';
@@ -36,7 +36,7 @@ describe('SpikeProtectionHistoryTable', () => {
     });
   });
 
-  it('renders an empty state when no spikes are provided', async () => {
+  it('renders an empty state when no spikes are provided', () => {
     render(
       <SpikeProtectionHistoryTable
         spikes={[]}
@@ -47,7 +47,7 @@ describe('SpikeProtectionHistoryTable', () => {
       {organization}
     );
 
-    const emptyState = await screen.findByTestId('spike-history-empty');
+    const emptyState = screen.getByTestId('spike-history-empty');
     expect(emptyState).toBeInTheDocument();
     const emptyMessage = screen.getByText(/No Significant Spikes/);
     expect(emptyMessage).toBeInTheDocument();
@@ -101,7 +101,7 @@ describe('SpikeProtectionHistoryTable', () => {
       />,
       {organization}
     );
-    await screen.findByTestId('spike-protection-history-table');
+    screen.getByTestId('spike-protection-history-table');
     screen.getByText('2wk');
     screen.getByText('1.3M');
     screen.getByText('500K');
@@ -125,7 +125,7 @@ describe('SpikeProtectionHistoryTable', () => {
     );
   });
 
-  it('renders ongoing stored spike', async () => {
+  it('renders ongoing stored spike', () => {
     const storedSpikes: SpikeDetails[] = [
       {
         start: new Date(2022, 0, 2, 6, 0, 0, 0).toISOString(),
@@ -145,7 +145,7 @@ describe('SpikeProtectionHistoryTable', () => {
       {organization}
     );
 
-    await screen.findByTestId('spike-protection-history-table');
+    screen.getByTestId('spike-protection-history-table');
     screen.getByText('Ongoing');
     screen.getByText('200K');
     screen.getByText('Jan 2, 2022 - present');

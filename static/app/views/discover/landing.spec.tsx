@@ -1,7 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
@@ -116,9 +116,19 @@ describe('Discover > Landing', () => {
       </OrganizationContext>
     );
 
-    expect(await screen.findByRole('link', {name: 'Discover'})).toHaveAttribute(
+    const discoverCrumb = await screen.findByRole('link', {name: 'Discover'});
+
+    expect(discoverCrumb).toHaveAttribute(
       'href',
       '/organizations/org-slug/explore/discover/homepage/'
     );
+
+    // 'Saved Queries' heads the page, so it is not repeated in the trail.
+    expect(
+      screen.getByRole('heading', {name: 'Saved Queries', level: 1})
+    ).toBeInTheDocument();
+    expect(
+      within(discoverCrumb.closest('ol')!).queryByText('Saved Queries')
+    ).not.toBeInTheDocument();
   });
 });

@@ -4,12 +4,12 @@ import {motion} from 'framer-motion';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
 import {AnimatedActivity} from 'sentry/components/animatedActivity';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconArrow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {useDimensions} from 'sentry/utils/useDimensions';

@@ -39,6 +39,7 @@ export const seerProjectSettingsSchema = z.object({
     return isPreferredAgentProvider(provider);
   }),
   stoppingPoint: z.enum(['off', 'root_cause', 'solution', 'code_changes', 'open_pr']),
+  prIteration: z.boolean(),
 });
 
 export function getSeerProjectSettingsQueryOptions({
@@ -157,6 +158,9 @@ export function getMutateSeerProjectSettingsOptions({
       }
       if (data.autoCreatePr !== undefined) {
         jsonUpdates.autoCreatePr = data.autoCreatePr;
+      }
+      if (data.prIteration !== undefined) {
+        jsonUpdates.prIteration = data.prIteration;
       }
 
       queryClient.setQueryData(

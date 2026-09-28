@@ -707,7 +707,8 @@ export interface GroupActivityIntegrationData {
   provider_key?: string;
 }
 
-interface GroupActivityNote extends GroupActivityBase {
+export interface GroupActivityNote extends GroupActivityBase {
+  commentId: string;
   data: {
     text: string;
   };

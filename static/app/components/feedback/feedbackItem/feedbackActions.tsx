@@ -2,10 +2,10 @@ import type {CSSProperties} from 'react';
 import {Fragment, useCallback} from 'react';
 
 import {Button} from '@sentry/scraps/button';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {FeedbackAssignedTo} from 'sentry/components/feedback/feedbackItem/feedbackAssignedTo';
 import {useFeedbackActions} from 'sentry/components/feedback/feedbackItem/useFeedbackActions';

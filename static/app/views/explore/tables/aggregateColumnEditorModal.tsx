@@ -8,13 +8,13 @@ import cloneDeep from 'lodash/cloneDeep';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import type {SelectKey, SelectOption} from '@sentry/scraps/compactSelect';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import {DragReorderButton} from 'sentry/components/dnd/dragReorderButton';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {SPAN_PROPS_DOCS_URL} from 'sentry/constants';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconDelete} from 'sentry/icons/iconDelete';
@@ -26,8 +26,8 @@ import {
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
 import {
-  ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
   AggregationKey,
+  ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
   getFieldDefinition,
   NO_ARGUMENT_SPAN_AGGREGATES,
 } from 'sentry/utils/fields';

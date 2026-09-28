@@ -88,6 +88,7 @@ function TooltipComponent({
     if (update && forceVisible) {
       update();
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [update, title, forceVisible]);
 
   if (disabled || !title) {

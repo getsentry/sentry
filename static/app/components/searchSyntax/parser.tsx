@@ -86,6 +86,8 @@ export enum TermOperator {
   DOES_NOT_START_WITH = '\uF00DDoesNotStartWith\uF00D',
   ENDS_WITH = '\uF00DEndsWith\uF00D',
   DOES_NOT_END_WITH = '\uF00DDoesNotEndWith\uF00D',
+  MATCHES = '//',
+  DOES_NOT_MATCH = '!//',
 }
 
 /**
@@ -156,11 +158,19 @@ export const wildcardOperators = [
 
 export type WildcardOperator = (typeof wildcardOperators)[number];
 
+export const regexOperators = [
+  TermOperator.MATCHES,
+  TermOperator.DOES_NOT_MATCH,
+] as const;
+
+export type RegexOperator = (typeof regexOperators)[number];
+
 export const negationOperators: readonly TermOperator[] = [
   TermOperator.NOT_EQUAL,
   TermOperator.DOES_NOT_CONTAIN,
   TermOperator.DOES_NOT_START_WITH,
   TermOperator.DOES_NOT_END_WITH,
+  TermOperator.DOES_NOT_MATCH,
 ];
 
 /**
@@ -202,7 +212,7 @@ const arrayIncludesKeys = [Token.KEY_ARRAY_INCLUDES] as const;
 export const filterTypeConfig = {
   [FilterType.TEXT]: {
     validKeys: textKeys,
-    validOps: [...basicOperators, ...wildcardOperators],
+    validOps: [...basicOperators, ...wildcardOperators, ...regexOperators],
     validValues: [Token.VALUE_TEXT],
     canNegate: true,
   },
@@ -310,7 +320,7 @@ export const filterTypeConfig = {
   },
   [FilterType.ARRAY_INCLUDES]: {
     validKeys: arrayIncludesKeys,
-    validOps: basicOperators,
+    validOps: [...basicOperators, ...regexOperators],
     validValues: [Token.VALUE_TEXT],
     canNegate: true,
   },
@@ -502,6 +512,36 @@ export class TokenConverter {
       ...this.defaultTokenFields,
       ...filterToken,
     };
+  };
+
+  tokenRegexFilter = (
+    key: FilterMap[FilterType.TEXT | FilterType.ARRAY_INCLUDES]['key'],
+    literal: ReturnType<TokenConverter['tokenValueText']>,
+    pattern: ReturnType<TokenConverter['tokenValueText']>,
+    negated: boolean
+  ) => {
+    const filter =
+      key.type === Token.KEY_ARRAY_INCLUDES ? FilterType.ARRAY_INCLUDES : FilterType.TEXT;
+
+    if (!this.config.allowRegex) {
+      return this.tokenFilter(
+        filter,
+        key,
+        literal,
+        TermOperator.DEFAULT,
+        negated,
+        undefined
+      );
+    }
+
+    return this.tokenFilter(
+      filter,
+      key,
+      pattern,
+      TermOperator.MATCHES,
+      negated,
+      undefined
+    );
   };
 
   tokenLParen = (value: '(') => ({
@@ -985,10 +1025,17 @@ export class TokenConverter {
       };
     }
 
+    // An array membership filter skips the text checks below, so the pattern
+    // rule it shares with them is applied here.
+    if (filter === FilterType.ARRAY_INCLUDES && operator === TermOperator.MATCHES) {
+      return this.checkInvalidRegexPattern(value as TextFilter['value']);
+    }
+
     if (filter === FilterType.TEXT) {
       return this.checkInvalidTextFilter(
         key as TextFilter['key'],
-        value as TextFilter['value']
+        value as TextFilter['value'],
+        operator as TextFilter['operator']
       );
     }
 
@@ -1010,7 +1057,11 @@ export class TokenConverter {
   /**
    * Validates text filters which may have failed predication
    */
-  checkInvalidTextFilter = (key: TextFilter['key'], value: TextFilter['value']) => {
+  checkInvalidTextFilter = (
+    key: TextFilter['key'],
+    value: TextFilter['value'],
+    operator?: TextFilter['operator']
+  ) => {
     // Explicit tag keys will always be treated as text filters
     if (
       key.type === Token.KEY_EXPLICIT_TAG ||
@@ -1019,7 +1070,7 @@ export class TokenConverter {
       key.type === Token.KEY_EXPLICIT_FLAG ||
       key.type === Token.KEY_EXPLICIT_STRING_FLAG
     ) {
-      return this.checkInvalidTextValue(value);
+      return this.checkInvalidTextValue(value, operator);
     }
 
     const keyName = getKeyName(key);
@@ -1077,13 +1128,33 @@ export class TokenConverter {
       };
     }
 
-    return this.checkInvalidTextValue(value);
+    return this.checkInvalidTextValue(value, operator);
   };
+
+  /**
+   * Validates the pattern of a regex filter
+   */
+  checkInvalidRegexPattern = (value: TextFilter['value']) =>
+    value.value === ''
+      ? {
+          type: InvalidReason.FILTER_MUST_HAVE_VALUE,
+          reason: this.config.invalidMessages[InvalidReason.FILTER_MUST_HAVE_VALUE],
+        }
+      : null;
 
   /**
    * Validates the value of a text filter
    */
-  checkInvalidTextValue = (value: TextFilter['value']) => {
+  checkInvalidTextValue = (
+    value: TextFilter['value'],
+    operator?: TextFilter['operator']
+  ) => {
+    // `*` and `"` are regex syntax rather than mistakes, so the checks below
+    // don't apply.
+    if (operator === TermOperator.MATCHES) {
+      return this.checkInvalidRegexPattern(value);
+    }
+
     if (this.config.disallowWildcard && value.value.includes('*')) {
       return {
         type: InvalidReason.WILDCARD_NOT_ALLOWED,
@@ -1404,6 +1475,10 @@ export type AggregateFilter = AggregateFilterType & {
  */
 export type SearchConfig = {
   /**
+   * Whether key://pattern// values are parsed as regex filters rather than literals
+   */
+  allowRegex: boolean;
+  /**
    * Keys considered valid for boolean filter types
    */
   booleanKeys: Set<string>;
@@ -1519,6 +1594,7 @@ export const defaultConfig: SearchConfig = {
   sizeKeys: new Set(),
   disallowedLogicalOperators: new Set(),
   disallowFreeText: false,
+  allowRegex: false,
   disallowWildcard: false,
   disallowNegation: false,
   disallowParens: false,

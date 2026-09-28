@@ -90,8 +90,11 @@ class SnubaEventStorage(EventStorage):
         referrer: str = "eventstore.get_events_snql",
         dataset: Dataset = Dataset.Events,
         tenant_ids: Mapping[str, Any] | None = None,
+        *,
+        eager_load_bodies: bool = True,
+        extra_columns: Sequence[str] = (),
     ) -> list[Event]:
-        cols = self.__get_columns(dataset)
+        cols = [*self.__get_columns(dataset), *extra_columns]
 
         resolved_order_by = []
         order_by_col_names: set[str] = set()
@@ -222,7 +225,8 @@ class SnubaEventStorage(EventStorage):
 
         if "error" not in result:
             events = [self.__make_event(evt) for evt in result["data"]]
-            self.bind_nodes(events)
+            if eager_load_bodies:
+                self.bind_nodes(events)
             return events
 
         return []
