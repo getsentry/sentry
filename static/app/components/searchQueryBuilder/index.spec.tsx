@@ -8850,7 +8850,7 @@ describe('SearchQueryBuilder', () => {
       ).toBeInTheDocument();
     });
 
-    it('does not mark a valid RE2 patterns as invalid', async () => {
+    it('does not mark valid RE2 patterns as invalid', async () => {
       render(
         <SearchQueryBuilder
           {...defaultProps}
@@ -8864,7 +8864,7 @@ describe('SearchQueryBuilder', () => {
       ).toHaveAttribute('aria-invalid', 'false');
     });
 
-    it('does not mark a pattern invalid when regex operators are disabled, async () => {
+    it('does not mark a pattern invalid when regex operators are disabled', async () => {
       render(
         <SearchQueryBuilder {...defaultProps} initialQuery="browser.name://(?=a)b//" />
       );
