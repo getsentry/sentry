@@ -56,7 +56,6 @@ describe('getMutateSeerProjectSettingsOptions', () => {
 
     queryClient.setQueryData(queryKey, {
       headers: {},
-      status: 200,
       json: makeResponseFixture(),
     });
 
@@ -337,7 +336,6 @@ describe('getMutateSeerProjectSettingsOptions', () => {
 
       queryClient.setQueryData(queryKey, {
         headers: {},
-        status: 200,
         json: makeResponseFixture({
           agent: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
           integrationId: '123',
@@ -445,7 +443,7 @@ describe('getMutateSeerProjectsSettingsOptions', () => {
 
   function makeInfiniteData(items: SeerProjectSettingResponse[]) {
     return {
-      pages: [{headers: {}, status: 200, json: items}],
+      pages: [{headers: {}, json: items}],
       pageParams: [undefined],
     };
   }
@@ -732,7 +730,6 @@ describe('getMutateSeerProjectsSettingsOptions', () => {
       }).queryKey;
       queryClient.setQueryData(singleQueryKey, {
         headers: {},
-        status: 200,
         json: makeResponseFixture({projectId: '1', projectSlug: 'project-a'}),
       });
 

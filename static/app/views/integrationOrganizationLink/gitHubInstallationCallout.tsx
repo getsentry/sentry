@@ -52,7 +52,7 @@ function gitHubInstallationOptions(installationId: string) {
         headers: {
           Link: response?.getResponseHeader('Link') ?? undefined,
         },
-        status: response?.status ?? 200,
+        status: response?.status,
       };
     },
     staleTime: Infinity,

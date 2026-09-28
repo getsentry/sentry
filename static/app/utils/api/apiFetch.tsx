@@ -18,12 +18,12 @@ export type ApiResponse<TResponseData = unknown> = {
    * The HTTP status code. Endpoints that return more than one success code
    * (201 created vs 200 already-exists) need it to tell the cases apart.
    *
-   * `ApiResponse` doubles as the query-cache entry shape, so entries that are
-   * synthesized rather than fetched (`setApiQueryData`, `initialData`,
-   * optimistic updates) report 200 because there is no real response behind
-   * them.
+   * Optional because `ApiResponse` doubles as the query-cache entry shape, and
+   * entries that are synthesized rather than fetched (`setQueryData`,
+   * `initialData`, optimistic updates) have no real response behind them.
+   * Readers that need a value can fall back with `status ?? 200`.
    */
-  status: number;
+  status?: number;
 };
 
 function extractHeaders(response: ResponseMeta | undefined): ApiResponse['headers'] {
@@ -56,7 +56,7 @@ export async function apiFetch<TQueryFnData = unknown>(
   return {
     headers: extractHeaders(response),
     json: json as TQueryFnData,
-    status: response?.status ?? 200,
+    status: response?.status,
   };
 }
 
@@ -81,7 +81,7 @@ export async function apiFetchInfinite<TQueryFnData = unknown>(
   return {
     headers: extractHeaders(response),
     json: json as TQueryFnData,
-    status: response?.status ?? 200,
+    status: response?.status,
   };
 }
 

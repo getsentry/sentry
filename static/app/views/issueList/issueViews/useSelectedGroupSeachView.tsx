@@ -41,7 +41,6 @@ export function useSelectedGroupSearchView() {
               visibility: GroupSearchViewVisibility.ORGANIZATION,
             },
             headers: {},
-            status: 200,
           }
         : undefined;
     },

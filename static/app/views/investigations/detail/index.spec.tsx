@@ -269,7 +269,6 @@ describe('Investigation detail', () => {
     });
     queryClient.setQueryData(executionOptions.queryKey, {
       headers: {},
-      status: 200,
       json: {
         id: 'execution-1',
         status: 'running',
@@ -404,7 +403,6 @@ describe('Investigation detail', () => {
     });
     queryClient.setQueryData(listOptions.queryKey, {
       headers: {},
-      status: 200,
       json: [],
     });
     MockApiClient.addMockResponse({
@@ -1743,7 +1741,6 @@ describe('Investigation detail', () => {
     const options = getInvestigationDetailQueryOptions('org-slug', 'investigation-1');
     queryClient.setQueryData(options.queryKey, {
       headers: {},
-      status: 200,
       json: investigationWithQueryResult(),
     });
     const request = MockApiClient.addMockResponse({

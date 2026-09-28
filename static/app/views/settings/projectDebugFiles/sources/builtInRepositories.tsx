@@ -96,7 +96,6 @@ export function BuiltInRepositories({
             ProjectsStore.onUpdateSuccess(response);
             queryClient.setQueryData(projectQueryKey, prev => ({
               headers: prev?.headers ?? {},
-              status: prev?.status ?? 200,
               json: response,
             }));
             const {successMessage} = getRequestMessages(

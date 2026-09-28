@@ -53,11 +53,7 @@ export function useThresholdSettingsMutationOptions(threshold: ProjectThreshold)
   const cacheThreshold = (data: ProjectThreshold) => {
     queryClient.setQueryData(
       getThresholdQueryOptions(organization.slug, projectSlug).queryKey,
-      previous => ({
-        json: data,
-        headers: previous?.headers ?? {},
-        status: previous?.status ?? 200,
-      })
+      previous => ({json: data, headers: previous?.headers ?? {}})
     );
   };
 

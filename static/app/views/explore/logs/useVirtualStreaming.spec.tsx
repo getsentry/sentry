@@ -306,7 +306,6 @@ function createMockData(logFixtures: OurLogsResponseItem[]) {
           },
         },
         headers: {},
-        status: 200,
       },
     ],
     pageParams: [null],

@@ -70,7 +70,6 @@ export default function LegacyWebhookDetails() {
       queryClient.setQueryData(webhookQueryOptions.queryKey, {
         json: responseData,
         headers: {},
-        status: 200,
       });
     },
     onError: (_error, shouldEnable) => {
@@ -98,7 +97,6 @@ export default function LegacyWebhookDetails() {
       queryClient.setQueryData(webhookQueryOptions.queryKey, {
         json: responseData,
         headers: {},
-        status: 200,
       });
     },
     onError: () => {
