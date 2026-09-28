@@ -254,7 +254,7 @@ class RequestReviewFromContextTest(TestCase):
     @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_autofix_run")
     @patch(f"{CHECK_SUITES_PATH}.GetPullRequestProtocol", object)
     @patch(f"{REVIEW_REQUEST_PATH}.RequestReviewProtocol", object)
-    def test_skips_night_shift_run_without_candidates(
+    def test_skips_agentic_triage_run_without_candidates(
         self,
         mock_resolve: MagicMock,
         _mock_scm: MagicMock,

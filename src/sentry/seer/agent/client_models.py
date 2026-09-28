@@ -108,7 +108,7 @@ class RepoPRState(BaseModel):
     branch_name: str | None = None
     pr_number: int | None = None
     pr_url: str | None = None
-    pr_id: int | None = None
+    pr_id: str | None = None
     commit_sha: str | None = None
     pr_creation_status: Literal["creating", "completed", "error"] | None = None
     pr_creation_error: str | None = None
@@ -273,7 +273,7 @@ class SeerRunState(BaseModel):
     pending_user_input: PendingUserInput | None = None
     repo_pr_states: dict[str, RepoPRState] = Field(default_factory=dict)
     # exclude=True omits these from .dict() so they're not exposed via the public
-    # chat API. Internal callers (autofix, night shift) still access them directly.
+    # chat API. Internal callers (autofix, agentic triage) still access them directly.
     metadata: dict[str, Any] | None = Field(default=None, exclude=True)
     coding_agents: dict[str, CodingAgentState] = Field(default_factory=dict, exclude=True)
     usage: UsageAccumulator = Field(default_factory=UsageAccumulator, exclude=True)

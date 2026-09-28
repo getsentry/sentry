@@ -160,7 +160,7 @@ class CustomInboundFilterSerializer(serializers.ModelSerializer[CustomInboundFil
         help_text=(
             "Conditions are combined with AND: an event must match every condition to be "
             "filtered out. There is no OR between conditions, so e.g. two release conditions "
-            "can express a range (>2 AND <4). To broaden matching, widen a condition's values "
+            "can express a range (`>2 AND <4`). To broaden matching, widen a condition's values "
             "or add separate filters."
         ),
     )
@@ -196,22 +196,16 @@ class CustomInboundFilterSerializer(serializers.ModelSerializer[CustomInboundFil
         # A partial update may change the data type or the conditions alone, so the
         # other side comes from the stored filter.
         stored = self.instance
-        conditions = attrs.get("conditions")
-        if conditions is None:
-            conditions = stored.conditions if stored else None
-
-        raw_data_type = attrs.get("data_type") or (stored.data_type if stored else None)
-        if raw_data_type is None:
-            raise serializers.ValidationError(
-                {"dataType": "This filter has no data type. Send dataType to update it."}
-            )
-        if conditions is None:
-            return attrs
+        if stored is None:
+            conditions = attrs["conditions"]
+            data_type = DataType(attrs["data_type"])
+        else:
+            conditions = attrs.get("conditions", stored.conditions)
+            data_type = DataType(attrs.get("data_type", stored.data_type))
 
         if "conditions" in attrs:
             _validate_size(conditions, stored)
 
-        data_type = DataType(raw_data_type)
         supported = get_supported_condition_types(data_type)
         unsupported = sorted({condition["type"] for condition in conditions} - set(supported))
         if unsupported:

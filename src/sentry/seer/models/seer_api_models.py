@@ -120,6 +120,10 @@ class SeerApiError(Exception):
         return f"Seer API error: {self.message} (status: {self.status})"
 
 
+class SeerUnavailableError(SeerApiError):
+    """Seer kept answering with a server error (5xx) after retrying."""
+
+
 class SeerApiResponseValidationError(Exception):
     def __init__(self, message: str):
         self.message = message
