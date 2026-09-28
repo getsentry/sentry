@@ -45,7 +45,7 @@ function useAdminOption(name: string, option: FieldDef) {
     initialValue,
     disabled,
     required,
-    saveMutationOptions: mutationOptions({
+    adminMutationOptions: mutationOptions({
       mutationFn: ({value}: {value: boolean | string}) =>
         fetchMutation({
           url: getApiUrl('/internal/options/'),
@@ -93,7 +93,7 @@ function getTextOptionSchema(name: string, required: boolean | undefined) {
 type OptionFieldProps = {name: string; option: FieldDef};
 
 function BooleanOptionField({name, option}: OptionFieldProps) {
-  const {definition, initialValue, disabled, required, saveMutationOptions} =
+  const {definition, initialValue, disabled, required, adminMutationOptions} =
     useAdminOption(name, option);
 
   return (
@@ -101,7 +101,7 @@ function BooleanOptionField({name, option}: OptionFieldProps) {
       name="value"
       schema={z.object({value: z.boolean()})}
       initialValue={Boolean(initialValue)}
-      mutationOptions={saveMutationOptions}
+      mutationOptions={adminMutationOptions}
     >
       {field => (
         <field.Layout.Row
@@ -121,7 +121,7 @@ function BooleanOptionField({name, option}: OptionFieldProps) {
 }
 
 function RadioOptionField({name, option}: OptionFieldProps) {
-  const {definition, initialValue, disabled, required, saveMutationOptions} =
+  const {definition, initialValue, disabled, required, adminMutationOptions} =
     useAdminOption(name, option);
 
   return (
@@ -129,7 +129,7 @@ function RadioOptionField({name, option}: OptionFieldProps) {
       name="value"
       schema={z.object({value: z.string()})}
       initialValue={String(initialValue)}
-      mutationOptions={saveMutationOptions}
+      mutationOptions={adminMutationOptions}
     >
       {field => (
         <field.Layout.Row
@@ -157,7 +157,7 @@ function RadioOptionField({name, option}: OptionFieldProps) {
 }
 
 function TextOptionField({name, option}: OptionFieldProps) {
-  const {definition, initialValue, disabled, required, saveMutationOptions} =
+  const {definition, initialValue, disabled, required, adminMutationOptions} =
     useAdminOption(name, option);
 
   return (
@@ -165,7 +165,7 @@ function TextOptionField({name, option}: OptionFieldProps) {
       name="value"
       schema={z.object({value: getTextOptionSchema(name, required)})}
       initialValue={String(initialValue)}
-      mutationOptions={saveMutationOptions}
+      mutationOptions={adminMutationOptions}
     >
       {field => (
         <field.Layout.Row
