@@ -18,6 +18,11 @@ import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/
 
 export interface UseConversationsOptions {
   conversationId: string;
+  /**
+   * Explicit time window to query, overriding the page filters. Used as-is,
+   * unlike `startTimestamp`/`endTimestamp`, which are padded by an hour.
+   */
+  end?: string;
   endTimestamp?: number;
   /**
    * Projects to scope the span query to, overriding the page filters. A caller
@@ -26,6 +31,7 @@ export interface UseConversationsOptions {
    * the host page happens to have selected.
    */
   projects?: number[];
+  start?: string;
   startTimestamp?: number;
 }
 
@@ -340,14 +346,17 @@ export function useConversation(
     (selection.datetime.period !== null && selection.datetime.period !== defaultPeriod);
 
   const datetimeParams =
-    conversation.startTimestamp !== undefined && conversation.endTimestamp !== undefined
-      ? {
-          start: new Date(conversation.startTimestamp - ONE_HOUR_MS).toISOString(),
-          end: new Date(conversation.endTimestamp + ONE_HOUR_MS).toISOString(),
-        }
-      : hasExplicitDatetime
-        ? normalizeDateTimeParams(selection.datetime)
-        : {};
+    conversation.start && conversation.end
+      ? {start: conversation.start, end: conversation.end}
+      : conversation.startTimestamp !== undefined &&
+          conversation.endTimestamp !== undefined
+        ? {
+            start: new Date(conversation.startTimestamp - ONE_HOUR_MS).toISOString(),
+            end: new Date(conversation.endTimestamp + ONE_HOUR_MS).toISOString(),
+          }
+        : hasExplicitDatetime
+          ? normalizeDateTimeParams(selection.datetime)
+          : {};
 
   const selectedProjects = conversation.projects ?? selection.projects;
   const project = selectedProjects.length > 0 ? selectedProjects : [ALL_ACCESS_PROJECTS];
