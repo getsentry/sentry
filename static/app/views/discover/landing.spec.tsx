@@ -116,7 +116,7 @@ describe('Discover > Landing', () => {
       </OrganizationContext>
     );
 
-    const discoverCrumb = await screen.findByRole('link', {name: 'Discover'});
+    const discoverCrumb = await screen.findByRole('link', {name: 'Errors'});
 
     expect(discoverCrumb).toHaveAttribute(
       'href',

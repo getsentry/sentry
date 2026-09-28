@@ -23,9 +23,7 @@ function DiscoverContainer() {
   const discoverTransactionsDeprecation = getDiscoverDeprecation(organization);
   const redirectPath = useRedirectNavigationV2Routes({
     oldPathPrefix: '/discover/',
-    newPathPrefix: discoverTransactionsDeprecation
-      ? '/explore/errors/'
-      : '/explore/discover/',
+    newPathPrefix: '/explore/errors/',
   });
 
   if (redirectPath) {
@@ -34,9 +32,8 @@ function DiscoverContainer() {
     // /explore/errors/ — which doesn't support transactions. Intercept that
     // case here and send them to /explore/traces/ instead.
     if (
-      discoverTransactionsDeprecation &&
-      (location.query.queryDataset === SavedQueryDatasets.TRANSACTIONS ||
-        location.query.dataset === Dataset.TRANSACTIONS)
+      location.query.queryDataset === SavedQueryDatasets.TRANSACTIONS ||
+      location.query.dataset === Dataset.TRANSACTIONS
     ) {
       return <Redirect to={makeTracesPathname({organization, path: '/'})} />;
     }
@@ -63,21 +60,6 @@ function DiscoverContainer() {
     }
     // transactions dataset redirects to traces url as we don't support transactions anymore
     return <Redirect to={makeTracesPathname({organization, path: '/'})} />;
-  }
-
-  // Backwards compatibility: if the org doesn't (or no longer) has the
-  // deprecation enabled, /explore/errors/ links (e.g. shared before the flag
-  // was disabled, or sent to an org without it) should still work — send the
-  // user to the /explore/discover/ equivalent, which supports the full
-  // Discover experience.
-  if (!discoverTransactionsDeprecation && location.pathname.includes('/explore/errors')) {
-    const match = location.pathname.match(/\/explore\/errors\/([^/]+)\//);
-    const discoverPath = match?.[1];
-    const targetPath = makeDiscoverPathname({
-      path: discoverPath ? `/${discoverPath}/` : '/',
-      organization,
-    });
-    return <Redirect to={targetPath + location.search} />;
   }
 
   function renderNoAccess() {

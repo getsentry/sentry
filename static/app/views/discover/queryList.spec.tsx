@@ -147,10 +147,10 @@ describe('Discover > QueryList', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getAllByTestId(/card-.*/)).toHaveLength(5);
+      expect(screen.getAllByTestId(/card-.*/)).toHaveLength(3);
     });
 
-    expect(eventsStatsMock).toHaveBeenCalledWith(
+    expect(eventsStatsMock).not.toHaveBeenCalledWith(
       '/organizations/org-slug/events-stats/',
       expect.objectContaining({
         query: expect.objectContaining({

@@ -90,9 +90,9 @@ describe('Discover > Homepage', () => {
     render(<Homepage />, {
       initialRouterConfig: {
         location: {
-          pathname: `/organizations/${organization.slug}/explore/discover/homepage/`,
+          pathname: `/organizations/${organization.slug}/explore/errors/`,
         },
-        route: '/organizations/:orgId/explore/discover/homepage/',
+        route: '/organizations/:orgId/explore/errors/',
       },
       organization,
     });
@@ -111,13 +111,13 @@ describe('Discover > Homepage', () => {
     render(<Homepage />, {
       initialRouterConfig: {
         location: {
-          pathname: `/organizations/${organization.slug}/explore/discover/homepage/`,
+          pathname: `/organizations/${organization.slug}/explore/errors/`,
           query: {
             ...EventView.fromSavedQuery(DEFAULT_EVENT_VIEW).generateQueryStringObject(),
             field: ['project'],
           },
         },
-        route: '/organizations/:orgId/explore/discover/homepage/',
+        route: '/organizations/:orgId/explore/errors/',
       },
       organization,
     });
@@ -133,9 +133,9 @@ describe('Discover > Homepage', () => {
     const {router} = render(<Homepage />, {
       initialRouterConfig: {
         location: {
-          pathname: `/organizations/${organization.slug}/explore/discover/homepage/`,
+          pathname: `/organizations/${organization.slug}/explore/discover/`,
         },
-        route: '/organizations/:orgId/explore/discover/homepage/',
+        route: '/organizations/:orgId/explore/discover/',
       },
       organization,
     });
@@ -152,7 +152,7 @@ describe('Discover > Homepage', () => {
     await waitFor(() => {
       expect(router.location).toEqual(
         expect.objectContaining({
-          pathname: `/organizations/${organization.slug}/explore/discover/homepage/`,
+          pathname: `/organizations/${organization.slug}/explore/discover/`,
           query: expect.objectContaining({
             field: 'event.type',
           }),
@@ -165,15 +165,15 @@ describe('Discover > Homepage', () => {
     render(<Homepage />, {
       initialRouterConfig: {
         location: {
-          pathname: `/organizations/${organization.slug}/explore/discover/homepage/`,
+          pathname: `/organizations/${organization.slug}/explore/errors/`,
         },
-        route: '/organizations/:orgId/explore/discover/homepage/',
+        route: '/organizations/:orgId/explore/errors/',
       },
       organization,
     });
 
-    // 'Discover' is the header for the homepage
-    expect(await screen.findByText('Discover')).toBeInTheDocument();
+    // 'Errors' is the header for the homepage
+    expect(await screen.findByText('Errors')).toBeInTheDocument();
     expect(screen.queryByText(/Created by:/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Last edited:/)).not.toBeInTheDocument();
   });
@@ -209,9 +209,9 @@ describe('Discover > Homepage', () => {
     render(<Homepage />, {
       initialRouterConfig: {
         location: {
-          pathname: `/organizations/${organization.slug}/explore/discover/homepage/`,
+          pathname: `/organizations/${organization.slug}/explore/errors/`,
         },
-        route: '/organizations/:orgId/explore/discover/homepage/',
+        route: '/organizations/:orgId/explore/errors/',
       },
       organization,
     });
@@ -237,13 +237,13 @@ describe('Discover > Homepage', () => {
     render(<Homepage />, {
       initialRouterConfig: {
         location: {
-          pathname: `/organizations/${organization.slug}/explore/discover/homepage/`,
+          pathname: `/organizations/${organization.slug}/explore/errors/`,
           query: {
             ...EventView.fromSavedQuery(DEFAULT_EVENT_VIEW).generateQueryStringObject(),
             field: ['title'],
           },
         },
-        route: '/organizations/:orgId/explore/discover/homepage/',
+        route: '/organizations/:orgId/explore/errors/',
       },
       organization,
     });
@@ -266,13 +266,13 @@ describe('Discover > Homepage', () => {
     render(<Homepage />, {
       initialRouterConfig: {
         location: {
-          pathname: `/organizations/${organization.slug}/explore/discover/homepage/`,
+          pathname: `/organizations/${organization.slug}/explore/errors/`,
           query: {
             ...EventView.fromSavedQuery(DEFAULT_EVENT_VIEW).generateQueryStringObject(),
             field: ['title'],
           },
         },
-        route: '/organizations/:orgId/explore/discover/homepage/',
+        route: '/organizations/:orgId/explore/errors/',
       },
       organization,
     });
@@ -295,13 +295,13 @@ describe('Discover > Homepage', () => {
     const {router} = render(<Homepage />, {
       initialRouterConfig: {
         location: {
-          pathname: `/organizations/${organization.slug}/explore/discover/homepage/`,
+          pathname: `/organizations/${organization.slug}/explore/errors/`,
           query: {
             ...EventView.fromSavedQuery(DEFAULT_EVENT_VIEW).generateQueryStringObject(),
             field: ['title'],
           },
         },
-        route: '/organizations/:orgId/explore/discover/homepage/',
+        route: '/organizations/:orgId/explore/errors/',
       },
       organization,
     });
@@ -319,7 +319,7 @@ describe('Discover > Homepage', () => {
       yAxis: 'count()',
     });
     router.navigate(
-      `/organizations/${organization.slug}/explore/discover/homepage/?${queryParams.toString()}`
+      `/organizations/${organization.slug}/explore/errors/?${queryParams.toString()}`
     );
 
     expect(await screen.findByText('event.type')).toBeInTheDocument();
@@ -329,13 +329,13 @@ describe('Discover > Homepage', () => {
     const {router} = render(<Homepage />, {
       initialRouterConfig: {
         location: {
-          pathname: `/organizations/${organization.slug}/explore/discover/homepage/`,
+          pathname: `/organizations/${organization.slug}/explore/errors/`,
           query: {
             ...EventView.fromSavedQuery(DEFAULT_EVENT_VIEW).generateQueryStringObject(),
             field: ['title'],
           },
         },
-        route: '/organizations/:orgId/explore/discover/homepage/',
+        route: '/organizations/:orgId/explore/errors/',
       },
       organization,
     });
@@ -354,7 +354,7 @@ describe('Discover > Homepage', () => {
       yAxis: 'count()',
     });
     router.navigate(
-      `/organizations/${organization.slug}/explore/discover/homepage/?${queryParams.toString()}`
+      `/organizations/${organization.slug}/explore/errors/?${queryParams.toString()}`
     );
 
     expect(await screen.findByText('event.type')).toBeInTheDocument();
@@ -378,9 +378,9 @@ describe('Discover > Homepage', () => {
     render(<Homepage />, {
       initialRouterConfig: {
         location: {
-          pathname: `/organizations/${organization.slug}/explore/discover/homepage/`,
+          pathname: `/organizations/${organization.slug}/explore/errors/`,
         },
-        route: '/organizations/:orgId/explore/discover/homepage/',
+        route: '/organizations/:orgId/explore/errors/',
       },
       organization,
     });
@@ -398,13 +398,13 @@ describe('Discover > Homepage', () => {
     render(<Homepage />, {
       initialRouterConfig: {
         location: {
-          pathname: `/organizations/${organization.slug}/explore/discover/homepage/`,
+          pathname: `/organizations/${organization.slug}/explore/errors/`,
           query: {
             ...EventView.fromSavedQuery(DEFAULT_EVENT_VIEW).generateQueryStringObject(),
             field: ['title'],
           },
         },
-        route: '/organizations/:orgId/explore/discover/homepage/',
+        route: '/organizations/:orgId/explore/errors/',
       },
       organization,
     });
@@ -462,9 +462,9 @@ describe('Discover > Homepage', () => {
     const {router} = render(<Homepage />, {
       initialRouterConfig: {
         location: {
-          pathname: `/organizations/${organization.slug}/explore/discover/homepage/`,
+          pathname: `/organizations/${organization.slug}/explore/errors/`,
         },
-        route: '/organizations/:orgId/explore/discover/homepage/',
+        route: '/organizations/:orgId/explore/errors/',
       },
       organization,
     });
@@ -488,7 +488,7 @@ describe('Discover > Homepage', () => {
       queryDataset: 'transaction-like',
     });
     router.navigate(
-      `/organizations/${organization.slug}/explore/discover/homepage/?${queryParams.toString()}`
+      `/organizations/${organization.slug}/explore/errors/?${queryParams.toString()}`
     );
 
     await userEvent.click(
@@ -508,7 +508,6 @@ describe('Discover > Homepage', () => {
         'discover-basic',
         'discover-query',
         'discover-saved-queries-deprecation',
-        'deprecate-discover',
       ],
     });
 

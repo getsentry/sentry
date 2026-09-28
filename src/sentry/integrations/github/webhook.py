@@ -1275,6 +1275,7 @@ class PullRequestEventWebhook(GitHubWebhook):
                         "state": state,
                         "draft": draft,
                         "external_id": pull_request["id"],
+                        "external_id_str": str(pull_request["id"]),
                     },
                     event_state=state,
                     event_updated_at=provider_updated_at,

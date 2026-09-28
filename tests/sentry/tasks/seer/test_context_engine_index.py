@@ -14,6 +14,7 @@ from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils.hashlib import md5_text
+from sentry.viewer_context import ActorType, ViewerContext, get_viewer_context
 
 
 @django_db_all
@@ -49,7 +50,13 @@ class TestIndexOrgProjectKnowledge(TestCase):
 
     @mock.patch("sentry.tasks.seer.context_engine_index.make_org_project_knowledge_index_request")
     def test_calls_seer_endpoint_with_correct_payload(self, mock_request):
-        mock_request.return_value.status = 200
+        observed_contexts: list[ViewerContext | None] = []
+
+        def make_request(*args: object, **kwargs: object) -> mock.Mock:
+            observed_contexts.append(get_viewer_context())
+            return mock.Mock(status=200)
+
+        mock_request.side_effect = make_request
 
         event_counts = {
             self.project.id: ProjectEventCounts(error_count=5000, transaction_count=2000)
@@ -89,6 +96,10 @@ class TestIndexOrgProjectKnowledge(TestCase):
         assert "profiles" in project_payload["instrumentation"]
         assert project_payload["top_transactions"] == ["GET /api/0/projects/"]
         assert project_payload["top_span_operations"] == [("db", "SELECT * FROM table")]
+        assert observed_contexts == [
+            ViewerContext(organization_id=self.org.id, actor_type=ActorType.SYSTEM)
+        ]
+        assert get_viewer_context() is None
 
     @mock.patch("sentry.tasks.seer.context_engine_index.make_org_project_knowledge_index_request")
     def test_raises_on_seer_error(self, mock_request):
@@ -341,7 +352,13 @@ class TestIndexRepos(TestCase):
     ) -> None:
         self.create_seer_project_repository(project=self.project1, repository=self.repo1)
         self.create_seer_project_repository(project=self.project2, repository=self.repo2)
-        mock_make_org_repo_knowledge_index_request.return_value.status = 200
+        observed_contexts: list[ViewerContext | None] = []
+
+        def make_request(*args: object, **kwargs: object) -> mock.Mock:
+            observed_contexts.append(get_viewer_context())
+            return mock.Mock(status=200)
+
+        mock_make_org_repo_knowledge_index_request.side_effect = make_request
         with override_options({"explorer.context_engine_indexing.enable": True}):
             with self.feature({"organizations:context-engine-experiments": True}):
                 index_repos(self.org.id)
@@ -368,6 +385,10 @@ class TestIndexRepos(TestCase):
         assert relay_repo["languages"] == ["rust"]
         assert relay_repo["project_ids"] == [self.project2.id]
         assert relay_repo["integration_id"] == str(self.integration.id)
+        assert observed_contexts == [
+            ViewerContext(organization_id=self.org.id, actor_type=ActorType.SYSTEM)
+        ]
+        assert get_viewer_context() is None
 
     @mock.patch("sentry.tasks.seer.context_engine_index.make_org_repo_knowledge_index_request")
     def test_deduplicates_repos_across_projects(
