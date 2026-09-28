@@ -466,8 +466,6 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
   return filterKeyListBoxContent;
 }
 
-const FULL_WIDTH_COLUMNS = 'minmax(0, 1fr) min(33%, 320px)';
-
 const SectionedOverlay = styled(Overlay, {
   shouldForwardProp: prop =>
     !['fullWidth', 'showDetailsPane', 'width', 'hasAiFeatures'].includes(prop),
@@ -482,7 +480,7 @@ const SectionedOverlay = styled(Overlay, {
     p.hasAiFeatures
       ? css`
           grid-template-rows: auto auto auto 1fr auto;
-          grid-template-columns: ${p.fullWidth ? FULL_WIDTH_COLUMNS : '1fr'};
+          grid-template-columns: ${p.fullWidth ? '50% 50%' : '1fr'};
           grid-template-areas:
             'seer seer'
             'recentFilters recentFilters'
@@ -503,7 +501,7 @@ const SectionedOverlay = styled(Overlay, {
         `
       : css`
           grid-template-rows: auto auto 1fr auto;
-          grid-template-columns: ${p.fullWidth ? FULL_WIDTH_COLUMNS : '1fr'};
+          grid-template-columns: ${p.fullWidth ? '50% 50%' : '1fr'};
           grid-template-areas:
             'recentFilters recentFilters'
             'tabs tabs'
