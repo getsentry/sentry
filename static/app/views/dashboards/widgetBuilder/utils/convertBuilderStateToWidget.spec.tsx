@@ -1,7 +1,9 @@
+import {explodeFieldString} from 'sentry/utils/discover/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import type {WidgetBuilderState} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
+import {SpanFields} from 'sentry/views/insights/types';
 
 describe('convertBuilderStateToWidget', () => {
   it('returns the widget with the provided widget queries state', () => {
@@ -148,6 +150,46 @@ describe('convertBuilderStateToWidget', () => {
     const widget = convertBuilderStateToWidget(mockState);
 
     expect(widget.thresholds).toEqual(mockState.thresholds);
+  });
+
+  it('preserves the interval for a count time series', () => {
+    const thresholds = {max_values: {max1: 100}, unit: null, timeWindow: '10m'};
+    const widget = convertBuilderStateToWidget({
+      displayType: DisplayType.LINE,
+      yAxis: [
+        {kind: FieldValueKind.FUNCTION, function: ['count', '', undefined, undefined]},
+      ],
+      thresholds,
+    });
+
+    expect(widget.thresholds).toEqual(thresholds);
+  });
+
+  it.each([`sum(${SpanFields.SPAN_DURATION})`, 'equation|count() / 2'])(
+    'preserves the interval for %s',
+    aggregate => {
+      const thresholds = {max_values: {max1: 100}, unit: null, timeWindow: '10m'};
+      const widget = convertBuilderStateToWidget({
+        displayType: DisplayType.LINE,
+        yAxis: [explodeFieldString(aggregate)],
+        thresholds,
+      });
+
+      expect(widget.thresholds).toEqual(thresholds);
+    }
+  );
+
+  it.each([
+    ['duration', 'p95', SpanFields.SPAN_DURATION],
+    ['rate', 'eps', ''],
+  ])('removes the saved interval for a %s aggregate', (_name, functionName, field) => {
+    const widget = convertBuilderStateToWidget({
+      displayType: DisplayType.LINE,
+      yAxis: [explodeFieldString(`${functionName}(${field})`)],
+      thresholds: {max_values: {max1: 100}, unit: null, timeWindow: '10m'},
+    });
+
+    expect(widget.thresholds).toEqual({max_values: {max1: 100}, unit: null});
   });
 
   it('uses the fields from widget state when displaying as a table', () => {

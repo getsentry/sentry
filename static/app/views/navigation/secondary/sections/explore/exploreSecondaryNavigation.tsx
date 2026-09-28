@@ -76,7 +76,7 @@ function ExploreSecondaryNavigationImpl() {
   if (organization.openMembership && organization.features.includes('investigations')) {
     navItems.push({
       label: 'Investigations',
-      badge: 'beta',
+      badge: 'alpha',
       to: `${baseUrl}/investigations/`,
     });
   }
@@ -229,7 +229,7 @@ function ExploreSecondaryNavigationImpl() {
                     to={`${baseUrl}/investigations/`}
                     activeTo={`${baseUrl}/investigations/`}
                     analyticsItemName="explore_investigations"
-                    trailingItems={<FeatureBadge type="beta" />}
+                    trailingItems={<FeatureBadge type="alpha" />}
                   >
                     {t('Investigations')}
                   </SecondaryNavigation.Link>

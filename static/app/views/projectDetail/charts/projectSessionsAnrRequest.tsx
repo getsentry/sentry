@@ -199,8 +199,10 @@ export function ProjectSessionsAnrRequest({
         : null;
 
       setTimeseriesData(timeseriesData_);
+      // eslint-disable react-you-might-not-need-an-effect/no-derived-state
       setPreviousTimeseriesData(previousTimeseriesData_);
       setBadBehaviourSeries(badBehaviourSeries_);
+      // eslint-enable react-you-might-not-need-an-effect/no-derived-state
     }
   }, [
     data,

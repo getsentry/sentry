@@ -40,6 +40,7 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 import {
   confirmDeleteSavedQuery,
   getSavedQueryTraceItemUrl,
+  getYAxisDiscoverSavedQuery,
 } from 'sentry/views/explore/utils';
 
 type Props = {
@@ -229,6 +230,7 @@ export function SavedQueriesTable({
               <SavedEntityTable.Cell>
                 <SavedEntityTable.CellName
                   to={getSavedQueryTraceItemUrl({savedQuery: query, organization})}
+                  title={query.name}
                 >
                   {query.name}
                 </SavedEntityTable.CellName>
@@ -259,7 +261,7 @@ export function SavedQueriesTable({
                 ) : (
                   <StyledExploreParams
                     query={query.query ?? ''}
-                    visualizes={query.yAxis?.length ? [{yAxes: query.yAxis}] : []}
+                    visualizes={getYAxisDiscoverSavedQuery(query)}
                   />
                 )}
               </SavedEntityTable.Cell>

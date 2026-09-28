@@ -22,11 +22,11 @@ import {
 } from 'sentry/components/charts/useChartXRangeSelection';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {isChartHovered, truncationFormatter} from 'sentry/components/charts/utils';
+import type {DroppedDataProps} from 'sentry/components/droppedData/types';
 import {
   DROPPED_DATA_SERIES_ID,
   useDroppedDataBand,
 } from 'sentry/components/droppedData/useDroppedDataBand';
-import type {AnnotationBucket, DroppedData} from 'sentry/components/droppedData/utils';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import type {
@@ -98,7 +98,7 @@ export interface TimeSeriesWidgetVisualizationProps extends Partial<LoadableChar
    * the x-axis line. The band is hidden when `visible` is false or no bucket has
    * dropped data. `onClick` is called with the clicked bucket.
    */
-  droppedData?: DroppedData;
+  droppedData?: DroppedDataProps;
 
   /**
    * A mapping of time series field name to boolean. If the value is `false`, the series is hidden from view
@@ -700,7 +700,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   const handleClick: EChartClickHandler = event => {
     if (event.seriesId === DROPPED_DATA_SERIES_ID) {
-      props.droppedData?.onClick?.(event.data as AnnotationBucket);
+      props.droppedData?.onClick?.();
       return;
     }
     runHandler(event, 'onClick');

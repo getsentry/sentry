@@ -271,6 +271,14 @@ class TestRouter {
     };
   }
 
+  /**
+   * How the current location was reached: 'POP' (initial entry or back/forward),
+   * 'PUSH', or 'REPLACE'.
+   */
+  get historyAction() {
+    return this.router.state.historyAction;
+  }
+
   navigate = (to: To | number, opts?: RouterNavigateOptions) => {
     rtl.act(() => {
       if (typeof to === 'number') {

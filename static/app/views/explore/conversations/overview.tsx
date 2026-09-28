@@ -27,6 +27,7 @@ import {
 } from 'sentry/views/explore/components/styles';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {AgentsCharts} from 'sentry/views/explore/conversations/components/agentsCharts';
+import {AgentsChartIntervalSelector} from 'sentry/views/explore/conversations/components/agentsChartsControls';
 import {
   AGENTS_TABLE_TABS,
   AgentsTable,
@@ -243,6 +244,21 @@ function ConversationsOverviewPage() {
 
   const resetParamsOnFilterChange = [TableUrlParams.CURSOR, SPANS_CURSOR_URL_PARAM];
   const showSearch = !isOnboardingLoading && !selectedTabShowsOnboarding;
+  const tableSearchBar = showSearch ? (
+    <Flex gap="md" width="100%">
+      <Flex flex={1} minWidth="0">
+        <TraceItemSearchQueryBuilder
+          {...spanSearchQueryBuilderProps}
+          placeholder={
+            isConversationsTab
+              ? t('Search or paste a conversation ID')
+              : t('Search spans')
+          }
+        />
+      </Flex>
+      {isConversationsTab && <SaveConversationQueryButton />}
+    </Flex>
+  ) : null;
 
   let content: ReactNode;
   if (isOnboardingLoading) {
@@ -259,6 +275,7 @@ function ConversationsOverviewPage() {
           hasConversations={hasConversations}
           onConversationOnboardingDismiss={refetchOnboarding}
           onTabChange={handleTabChange}
+          searchBar={tableSearchBar}
         />
       </Fragment>
     );
@@ -298,7 +315,12 @@ function ConversationsOverviewPage() {
                 </PageFilterBar>
                 <AgentSelector referrer={Referrer.AGENT_NAMES} />
               </Flex>
-              {showSearch && (
+              {agentsOverviewEnabled && hasAgenticSpans && (
+                <Flex flex={1} justify="end">
+                  <AgentsChartIntervalSelector />
+                </Flex>
+              )}
+              {!agentsOverviewEnabled && showSearch && (
                 <Flex flex={1} minWidth="300px">
                   <TraceItemSearchQueryBuilder
                     {...spanSearchQueryBuilderProps}
@@ -310,7 +332,9 @@ function ConversationsOverviewPage() {
                   />
                 </Flex>
               )}
-              {showSearch && isConversationsTab && <SaveConversationQueryButton />}
+              {!agentsOverviewEnabled && showSearch && isConversationsTab && (
+                <SaveConversationQueryButton />
+              )}
             </Flex>
           </Stack>
         </Layout.Main>
