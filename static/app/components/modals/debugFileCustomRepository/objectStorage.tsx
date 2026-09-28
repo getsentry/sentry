@@ -670,7 +670,7 @@ export function AzureRepository({
           <form.AppField name="client_secret">
             {field => (
               <field.Layout.Stack label={t('Client Secret')} required={!secretAlreadySet}>
-                <field.Input
+                <field.Password
                   value={field.state.value}
                   onChange={field.handleChange}
                   placeholder={
