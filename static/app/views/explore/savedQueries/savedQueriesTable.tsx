@@ -230,6 +230,7 @@ export function SavedQueriesTable({
               <SavedEntityTable.Cell>
                 <SavedEntityTable.CellName
                   to={getSavedQueryTraceItemUrl({savedQuery: query, organization})}
+                  title={query.name}
                 >
                   {query.name}
                 </SavedEntityTable.CellName>

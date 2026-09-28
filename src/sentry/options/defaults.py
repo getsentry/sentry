@@ -1026,7 +1026,7 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Agentic triage sort: purpose-built for night shift candidate ranking.
+# Weights for agentic triage candidate ranking.
 # Each factor weight defaults to 0.25 (equal weighting across 4 factors).
 # Set a weight to 0 to skip that factor's aggregation entirely.
 register(
@@ -1382,11 +1382,11 @@ register(
     default=5,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Per-org overrides for night shift run options. Keyed by stringified
+# Per-org overrides for agentic triage run options. Keyed by stringified
 # organization id; each value is a partial set of run-option overrides (e.g.
 # {"max_candidates": 20}) that layer on top of the global defaults but below
 # any explicit caller-provided options. See
-# sentry.tasks.seer.night_shift.tweaks.get_night_shift_org_tweaks.
+# sentry.tasks.seer.agentic_triage.tweaks.get_agentic_triage_org_tweaks.
 register(
     "seer.night_shift.org_tweaks",
     type=Dict,

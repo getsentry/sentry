@@ -332,7 +332,7 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
       });
 
       if (reprocessingNewRoute) {
-        navigate(reprocessingNewRoute);
+        navigate(reprocessingNewRoute, {replace: true});
       }
     }
   }, [

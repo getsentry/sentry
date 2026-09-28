@@ -135,7 +135,7 @@ describe('DroppedDataCategoryList', () => {
   it('renders the outcome label and the human reason title', () => {
     render(
       <DroppedDataCategoryList
-        droppedDataAnnotations={[
+        droppedAnnotations={[
           AnnotationFixture({
             outcome: 'client_discard',
             reason: 'sample_rate',
@@ -144,7 +144,7 @@ describe('DroppedDataCategoryList', () => {
             eventCount: 40,
           }),
         ]}
-        acceptedDataAnnotations={[
+        acceptedAnnotations={[
           AnnotationFixture({
             outcome: 'accepted',
             reason: 'accepted',
@@ -163,7 +163,7 @@ describe('DroppedDataCategoryList', () => {
   it('collapses and expands a section when the header is clicked', async () => {
     render(
       <DroppedDataCategoryList
-        droppedDataAnnotations={[
+        droppedAnnotations={[
           AnnotationFixture({
             outcome: 'invalid',
             reason: 'invalid_json',
@@ -172,7 +172,7 @@ describe('DroppedDataCategoryList', () => {
             eventCount: 10,
           }),
         ]}
-        acceptedDataAnnotations={[]}
+        acceptedAnnotations={[]}
       />
     );
 

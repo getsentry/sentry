@@ -6,10 +6,7 @@ from typing import Any, ClassVar
 from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer, serialize
-from sentry.incidents.endpoints.serializers.incident import (
-    DetailedIncidentSerializerResponse,
-    IncidentSerializerResponse,
-)
+from sentry.incidents.endpoints.serializers.incident import IncidentSerializerResponse
 from sentry.incidents.endpoints.serializers.utils import get_fake_id_from_object_id
 from sentry.incidents.models.incident import (
     IncidentActivityType,
@@ -20,14 +17,11 @@ from sentry.incidents.models.incident import (
 from sentry.models.group import Group
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity, OpenPeriodActivityType
-from sentry.snuba.entity_subscription import apply_dataset_query_conditions
-from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.types.group import PriorityLevel
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.workflow_engine.models import (
     AlertRuleDetector,
-    DataSourceDetector,
     Detector,
     DetectorGroup,
     IncidentGroupOpenPeriod,
@@ -205,51 +199,3 @@ class WorkflowEngineIncidentSerializer(Serializer):
             "dateCreated": obj.date_added,
             "dateClosed": date_closed,
         }
-
-
-class WorkflowEngineDetailedIncidentSerializer(WorkflowEngineIncidentSerializer):
-    def __init__(self, expand: list[str] | None = None) -> None:
-        if expand is None:
-            expand = []
-        super().__init__(expand=expand)
-
-    def serialize(
-        self,
-        obj: GroupOpenPeriod,
-        attrs: Mapping[str, Any],
-        user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
-    ) -> DetailedIncidentSerializerResponse:
-        base_context = super().serialize(obj, attrs, user)
-        # The query we should use to get accurate results in Discover.
-        return DetailedIncidentSerializerResponse(
-            **base_context, discoverQuery=self._build_discover_query(obj)
-        )
-
-    def _build_discover_query(self, open_period: GroupOpenPeriod) -> str:
-        detector = self.get_open_periods_to_detectors([open_period]).get(open_period)
-        if detector is None:
-            return ""
-        try:
-            data_source_detector = DataSourceDetector.objects.get(detector=detector)
-        except DataSourceDetector.DoesNotExist:
-            return ""
-
-        try:
-            query_subscription = QuerySubscription.objects.get(
-                id=data_source_detector.detector.data_sources.all()[0].source_id
-            )
-        except QuerySubscription.DoesNotExist:
-            return ""
-
-        try:
-            snuba_query = SnubaQuery.objects.get(id=query_subscription.snuba_query_id)
-        except SnubaQuery.DoesNotExist:
-            return ""
-
-        return apply_dataset_query_conditions(
-            SnubaQuery.Type(snuba_query.type),
-            snuba_query.query,
-            snuba_query.event_types,
-            discover=True,
-        )
