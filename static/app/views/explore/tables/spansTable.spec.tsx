@@ -132,11 +132,10 @@ describe('SpansTable', () => {
     'span.duration': 200,
     transaction: 'transaction two',
   };
-  const rows = [firstRow, secondRow];
 
   function ExampleSpansTable({
     requestIdentityKey,
-    result = makeQueryResult(rows),
+    result,
   }: {
     result: SpansTableResult['result'];
     requestIdentityKey?: string;
@@ -229,7 +228,7 @@ describe('SpansTable', () => {
       {name: 'span.custom_two', type: 'str', value: 'second detail'},
     ]);
 
-    render(<ExampleSpansTable result={makeQueryResult([])} />, renderOptions());
+    render(<ExampleSpansTable result={makeQueryResult([firstRow, secondRow])} />, renderOptions());
 
     const showButtons = screen.getAllByRole('button', {
       name: 'Show span details',
