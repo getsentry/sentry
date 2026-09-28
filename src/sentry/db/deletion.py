@@ -26,6 +26,7 @@ class BulkDeleteQuery:
         days: int | None = None,
         order_by: str | None = None,
         partition: tuple[int, int, str] | None = None,
+        defer_datetime_filter: bool = False,
     ):
         self.model = model
         self.project_id = int(project_id) if project_id else None
@@ -34,7 +35,16 @@ class BulkDeleteQuery:
         self.days = int(days) if days is not None else None
         self.order_by = order_by
         self.partition = partition
+        self.defer_datetime_filter = defer_datetime_filter
         self.using = router.db_for_write(model)
+
+        # This filter is applied in the worker.
+        self.deferred_filter: dict[str, Any] = {}
+        if self.defer_datetime_filter:
+            if self.dtfield is None or self.days is None:
+                raise ValueError("Expected a datetime filter")
+            cutoff = timezone.now() - timedelta(days=self.days)
+            self.deferred_filter = {f"{self.dtfield}__lt": cutoff}
 
     def execute(self, chunk_size: int = 10000) -> None:
         quote_name = connections[self.using].ops.quote_name
@@ -92,13 +102,13 @@ class BulkDeleteQuery:
         self, chunk_size: int = 100, batch_size: int = 10000
     ) -> Generator[tuple[int, ...]]:
         queryset = self.model.objects.all()
-        if self.dtfield is not None and self.days is not None:
+
+        if not self.defer_datetime_filter:
+            assert self.dtfield is not None
+            assert self.days is not None
             cutoff = timezone.now() - timedelta(days=self.days)
             queryset = queryset.filter(**{f"{self.dtfield}__lt": cutoff})
         else:
-            assert self.dtfield is None and self.days is None
-            # Bound the ID-only scan to rows present when it starts. New rows
-            # will be considered by the next cleanup run.
             max_pk = queryset.order_by("-pk").values_list("pk", flat=True).first()
             if max_pk is None:
                 return
