@@ -1,7 +1,8 @@
-import {Container} from '@sentry/scraps/layout';
-import {TabList} from '@sentry/scraps/tabs';
+import {Fragment} from 'react';
 
-import * as Layout from 'sentry/components/layouts/thirds';
+import {Container} from '@sentry/scraps/layout';
+import {TabList, Tabs} from '@sentry/scraps/tabs';
+
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {makeStatsPathname} from 'sentry/views/organizationStats/pathname';
@@ -14,15 +15,15 @@ type Props = {
 
 export function StatsHeader({organization, activeTab}: Props) {
   return (
-    <Container marginBottom="xl">
-      <Layout.Header>
-        <SettingsPageHeader
-          title={t('Stats & Usage')}
-          subtitle={t(
-            'A view of the usage data that Sentry has received across your entire organization.'
-          )}
-        />
-        <Layout.HeaderTabs value={activeTab}>
+    <Fragment>
+      <SettingsPageHeader
+        title={t('Stats & Usage')}
+        subtitle={t(
+          'A view of the usage data that Sentry has received across your entire organization.'
+        )}
+      />
+      <Container borderBottom="primary" marginBottom="xl">
+        <Tabs value={activeTab}>
           <TabList>
             <TabList.Item
               key="stats"
@@ -52,8 +53,8 @@ export function StatsHeader({organization, activeTab}: Props) {
               {t('Health')}
             </TabList.Item>
           </TabList>
-        </Layout.HeaderTabs>
-      </Layout.Header>
-    </Container>
+        </Tabs>
+      </Container>
+    </Fragment>
   );
 }
