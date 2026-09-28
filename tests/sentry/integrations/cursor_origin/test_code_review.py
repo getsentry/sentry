@@ -31,6 +31,7 @@ FEATURES = {
 
 def _payload(**overrides: Any) -> dict[str, Any]:
     pull_request: dict[str, Any] = {
+        "id": "pr_01example",
         "number": "17",
         "state": "open",
         "draft": False,
