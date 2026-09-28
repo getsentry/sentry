@@ -427,8 +427,7 @@ export function useConversation(
     [data]
   );
 
-  // The title is conversation-level, so it is identical across pages; read it
-  // off the first page.
+  // Conversation-level fields are identical across pages; read the first page.
   const firstPage = data?.pages[0]?.json;
   const title = firstPage?.title ?? null;
   const stats = firstPage?.stats ?? null;
@@ -449,10 +448,7 @@ export function useConversation(
       return node;
     });
 
-    return {
-      nodes: orderDepthFirst(transformedNodes, nodeMap),
-      nodeTraceMap: traceMap,
-    };
+    return {nodes: orderDepthFirst(transformedNodes, nodeMap), nodeTraceMap: traceMap};
   }, [allSpans]);
 
   if (!conversation.conversationId) {

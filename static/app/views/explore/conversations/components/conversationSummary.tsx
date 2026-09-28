@@ -33,8 +33,8 @@ import {
 import {ConversationTraceLink} from 'sentry/views/explore/conversations/components/conversationTraceLink';
 import {ToolTag} from 'sentry/views/explore/conversations/components/toolTag';
 import type {
-  ConversationStats as ConversationApiStats,
   ConversationModelUsage,
+  ConversationStats,
 } from 'sentry/views/explore/conversations/hooks/useConversation';
 import type {ConversationUser} from 'sentry/views/explore/conversations/hooks/useConversations';
 import {getExploreUrl} from 'sentry/views/explore/utils';
@@ -60,7 +60,7 @@ import {SpanFields} from 'sentry/views/insights/types';
 interface ConversationSummaryProps {
   conversationId: string;
   nodes: AITraceSpanNode[];
-  stats: ConversationApiStats | null;
+  stats: ConversationStats | null;
   isLoading?: boolean;
   nodeTraceMap?: Map<string, string>;
   /** Project the conversation belongs to; rendered beneath the title. */
@@ -82,8 +82,8 @@ const TAG_HEIGHT = '20px'; // `Tag`, and `ToolTag` with it
 const TRACE_LINK_HEIGHT = '24px';
 
 export function ConversationSummary({
-  stats,
   nodes,
+  stats,
   conversationId,
   title,
   project,
@@ -93,15 +93,15 @@ export function ConversationSummary({
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
-  const calculatedAggregates = useMemo(() => calculateAggregates(nodes), [nodes]);
-  const aggregateValues = stats ?? calculatedAggregates;
+  const aggregates = useMemo(() => calculateAggregates(nodes), [nodes]);
+  const summaryStats = stats ?? aggregates;
   const tokenBreakdowns = stats
     ? getTokenBreakdowns(stats.usageByModel)
-    : calculatedAggregates.tokenBreakdowns;
-  const toolNames = orderToolNames(
-    aggregateValues.toolNames,
-    calculatedAggregates.erroredToolNames
-  );
+    : aggregates.tokenBreakdowns;
+  const toolNames = stats
+    ? orderToolNames(stats.toolNames, aggregates.erroredToolNames)
+    : aggregates.toolNames;
+  const startTimestamp = stats ? stats.startTimestamp || null : aggregates.startTimestamp;
   const user = useMemo(() => getConversationUser(nodes), [nodes]);
   const userDisplayName = user ? getUserDisplayName(user) : null;
 
@@ -116,9 +116,7 @@ export function ConversationSummary({
   const errorsUrl = getExploreUrl({
     organization,
     selection,
-    query: `gen_ai.conversation.id:"${escapeDoubleQuotes(
-      conversationId
-    )}" span.status:[internal_error,error]`,
+    query: `gen_ai.conversation.id:"${escapeDoubleQuotes(conversationId)}" span.status:[internal_error,error]`,
   });
 
   // Distinct traces the conversation spans, keyed by trace ID with a
@@ -204,7 +202,7 @@ export function ConversationSummary({
                   <ToolTag
                     key={name}
                     name={name}
-                    hasError={calculatedAggregates.erroredToolNames.has(name)}
+                    hasError={aggregates.erroredToolNames.has(name)}
                   />
                 ))}
                 {toolNames.length > VISIBLE_TOOL_COUNT && (
@@ -218,7 +216,7 @@ export function ConversationSummary({
                           <ToolTag
                             key={name}
                             name={name}
-                            hasError={calculatedAggregates.erroredToolNames.has(name)}
+                            hasError={aggregates.erroredToolNames.has(name)}
                           />
                         ))}
                       </Flex>
@@ -230,19 +228,14 @@ export function ConversationSummary({
               </Flex>
             )}
             <MetaRow>
-              {aggregateValues.startTimestamp > 0 && (
+              {startTimestamp !== null && (
                 <Flex align="center" gap="xs">
                   <IconCalendar size="md" />
                   <InfoText
                     size="sm"
-                    title={
-                      <TimeSince
-                        date={aggregateValues.startTimestamp}
-                        disabledAbsoluteTooltip
-                      />
-                    }
+                    title={<TimeSince date={startTimestamp} disabledAbsoluteTooltip />}
                   >
-                    <DateTime date={aggregateValues.startTimestamp} year timeZone />
+                    <DateTime date={startTimestamp} year timeZone />
                   </InfoText>
                 </Flex>
               )}
@@ -276,14 +269,14 @@ export function ConversationSummary({
       <Flex align="start" gap="xl" wrap="wrap" flexShrink={0}>
         <Stat
           label={t('LLM Calls')}
-          value={<Count value={aggregateValues.llmCalls} />}
+          value={<Count value={summaryStats.llmCalls} />}
           isLoading={isLoading}
         />
         <Stat
           label={t('Errors')}
-          value={<Count value={calculatedAggregates.errors} />}
+          value={<Count value={aggregates.errorCount} />}
           icon={
-            calculatedAggregates.errors > 0 ? (
+            aggregates.errorCount > 0 ? (
               <IconFire
                 size="sm"
                 variant="danger"
@@ -291,13 +284,11 @@ export function ConversationSummary({
               />
             ) : undefined
           }
-          to={calculatedAggregates.errors > 0 ? errorsUrl : undefined}
+          to={aggregates.errorCount > 0 ? errorsUrl : undefined}
           onClick={
-            calculatedAggregates.errors > 0
+            aggregates.errorCount > 0
               ? () =>
-                  trackAnalytics('conversations.detail.click-errors-link', {
-                    organization,
-                  })
+                  trackAnalytics('conversations.detail.click-errors-link', {organization})
               : undefined
           }
           isLoading={isLoading}
@@ -305,17 +296,14 @@ export function ConversationSummary({
         <Stat
           label={t('Tokens')}
           value={
-            <TokenCount
-              breakdowns={tokenBreakdowns}
-              total={aggregateValues.totalTokens}
-            />
+            <TokenCount breakdowns={tokenBreakdowns} total={summaryStats.totalTokens} />
           }
           isLoading={isLoading}
         />
         <Stat
           label={t('Cost')}
           value={
-            <CostCount breakdowns={tokenBreakdowns} total={aggregateValues.totalCost} />
+            <CostCount breakdowns={tokenBreakdowns} total={summaryStats.totalCost} />
           }
           isLoading={isLoading}
         />
@@ -386,12 +374,12 @@ function Stat({
   );
 }
 
-interface CalculatedConversationAggregates {
+interface ConversationAggregates {
+  errorCount: number;
   erroredToolNames: Set<string>;
-  errors: number;
   llmCalls: number;
-  /** When the conversation began, or zero when no span carries a start time. */
-  startTimestamp: number;
+  /** When the conversation began, or null when no span carries a start time. */
+  startTimestamp: number | null;
   tokenBreakdowns: TokenBreakdownDetails[];
   toolCalls: number;
   toolNames: string[];
@@ -438,12 +426,11 @@ function getTokenBreakdowns(
       reasoningTokens: usage.reasoningTokens,
       totalTokens: usage.totalTokens,
     });
-    const input = breakdown.netNewInput + breakdown.cached + breakdown.cacheWrite;
 
     return {
       cacheRead: breakdown.cached,
       cacheWrite: breakdown.cacheWrite,
-      input,
+      input: breakdown.netNewInput + breakdown.cached + breakdown.cacheWrite,
       isComplete: true,
       output: breakdown.output,
       reasoning: usage.reasoningTokens,
@@ -456,13 +443,13 @@ function getTokenBreakdowns(
   });
 }
 
-function calculateAggregates(nodes: AITraceSpanNode[]): CalculatedConversationAggregates {
+function calculateAggregates(nodes: AITraceSpanNode[]): ConversationAggregates {
   let llmCalls = 0;
   let toolCalls = 0;
-  let errors = 0;
+  let errorCount = 0;
   let totalCost = 0;
   const tokensByModel = new Map<string, TokenBreakdownDetails>();
-  let startTimestamp = 0;
+  let startTimestamp: number | null = null;
   const toolNameSet = new Set<string>();
   const erroredToolNameSet = new Set<string>();
 
@@ -472,7 +459,7 @@ function calculateAggregates(nodes: AITraceSpanNode[]): CalculatedConversationAg
 
     // Nodes without a timestamp leave space at its [0, 0] default.
     const [nodeStart] = node.space;
-    if (nodeStart > 0 && (startTimestamp === 0 || nodeStart < startTimestamp)) {
+    if (nodeStart > 0 && (startTimestamp === null || nodeStart < startTimestamp)) {
       startTimestamp = nodeStart;
     }
 
@@ -534,23 +521,30 @@ function calculateAggregates(nodes: AITraceSpanNode[]): CalculatedConversationAg
     }
 
     if (nodeHasError) {
-      errors++;
+      errorCount++;
     }
   }
 
+  // Errored tools lead, so they survive the row's truncation.
+  const sortedToolNames = Array.from(toolNameSet).sort();
+  const toolNames = [
+    ...sortedToolNames.filter(name => erroredToolNameSet.has(name)),
+    ...sortedToolNames.filter(name => !erroredToolNameSet.has(name)),
+  ];
   const tokenBreakdowns = Array.from(tokensByModel.values()).sort(
     (a, b) => b.total - a.total
   );
+
   return {
     llmCalls,
     toolCalls,
-    errors,
+    errorCount,
     startTimestamp,
     erroredToolNames: erroredToolNameSet,
     tokenBreakdowns,
     totalTokens: tokenBreakdowns.reduce((total, breakdown) => total + breakdown.total, 0),
     totalCost,
-    toolNames: orderToolNames(Array.from(toolNameSet).sort(), erroredToolNameSet),
+    toolNames,
   };
 }
 
@@ -583,7 +577,6 @@ const AGGREGATES_BAR_VISIBLE_TOOL_COUNT = 4;
  * Used standalone in the trace AI tab.
  */
 export function ConversationAggregatesBar({
-  stats,
   nodes,
   conversationId,
   isLoading,
@@ -595,26 +588,15 @@ export function ConversationAggregatesBar({
   isLoading?: boolean;
   lastMessageDate?: Date | null;
   onErrorsLinkClick?: () => void;
-  stats?: ConversationApiStats | null;
 }) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
-  const calculatedAggregates = useMemo(() => calculateAggregates(nodes), [nodes]);
-  const aggregateValues = stats ?? calculatedAggregates;
-  const tokenBreakdowns = stats
-    ? getTokenBreakdowns(stats.usageByModel)
-    : calculatedAggregates.tokenBreakdowns;
-  const toolNames = orderToolNames(
-    aggregateValues.toolNames,
-    calculatedAggregates.erroredToolNames
-  );
+  const aggregates = useMemo(() => calculateAggregates(nodes), [nodes]);
 
   const errorsUrl = getExploreUrl({
     organization,
     selection,
-    query: `gen_ai.conversation.id:"${escapeDoubleQuotes(
-      conversationId
-    )}" span.status:[internal_error,error]`,
+    query: `gen_ai.conversation.id:"${escapeDoubleQuotes(conversationId)}" span.status:[internal_error,error]`,
   });
 
   // minHeight matches the tool Tag height so the row stays the same height whether or not tools render
@@ -622,27 +604,34 @@ export function ConversationAggregatesBar({
     <Flex align="center" gap="lg" minWidth={0} minHeight="20px">
       <AggregateItem
         label={t('LLM Calls')}
-        value={<Count value={aggregateValues.llmCalls} />}
+        value={<Count value={aggregates.llmCalls} />}
         isLoading={isLoading}
       />
       <AggregateItem
         label={t('Errors')}
-        value={<Count value={calculatedAggregates.errors} />}
-        to={calculatedAggregates.errors > 0 ? errorsUrl : undefined}
+        value={<Count value={aggregates.errorCount} />}
+        to={aggregates.errorCount > 0 ? errorsUrl : undefined}
         isLoading={isLoading}
-        onClick={calculatedAggregates.errors > 0 ? onErrorsLinkClick : undefined}
+        onClick={aggregates.errorCount > 0 ? onErrorsLinkClick : undefined}
       />
       <AggregateItem
         label={t('Tokens')}
         value={
-          <TokenCount breakdowns={tokenBreakdowns} total={aggregateValues.totalTokens} />
+          <TokenCount
+            breakdowns={aggregates.tokenBreakdowns}
+            total={aggregates.totalTokens}
+          />
         }
         isLoading={isLoading}
       />
       <AggregateItem
         label={t('Cost')}
         value={
-          <CostCount breakdowns={tokenBreakdowns} total={aggregateValues.totalCost} />
+          aggregates.totalCost < 0 ? (
+            <NegativeCostInfo cost={aggregates.totalCost} />
+          ) : (
+            <LLMCosts cost={aggregates.totalCost} />
+          )
         }
         isLoading={isLoading}
       />
@@ -669,32 +658,39 @@ export function ConversationAggregatesBar({
           <Placeholder width="60px" height="14px" />
         </Flex>
       ) : (
-        toolNames.length > 0 && (
+        aggregates.toolNames.length > 0 && (
           <ToolTagsRow>
             <Text size="sm" bold variant="muted" wrap="nowrap">
               {t('Used Tools')}
             </Text>
-            {toolNames.slice(0, AGGREGATES_BAR_VISIBLE_TOOL_COUNT).map(name => (
-              <Tag key={name} variant="info">
-                {name}
-              </Tag>
-            ))}
-            {toolNames.length > AGGREGATES_BAR_VISIBLE_TOOL_COUNT && (
+            {aggregates.toolNames
+              .slice(0, AGGREGATES_BAR_VISIBLE_TOOL_COUNT)
+              .map(name => (
+                <Tag key={name} variant="info">
+                  {name}
+                </Tag>
+              ))}
+            {aggregates.toolNames.length > AGGREGATES_BAR_VISIBLE_TOOL_COUNT && (
               <InfoText
                 size="sm"
                 variant="muted"
                 wrap="nowrap"
                 title={
                   <Flex wrap="wrap" gap="xs" paddingTop="xs" paddingBottom="xs">
-                    {toolNames.slice(AGGREGATES_BAR_VISIBLE_TOOL_COUNT).map(name => (
-                      <Tag key={name} variant="info">
-                        {name}
-                      </Tag>
-                    ))}
+                    {aggregates.toolNames
+                      .slice(AGGREGATES_BAR_VISIBLE_TOOL_COUNT)
+                      .map(name => (
+                        <Tag key={name} variant="info">
+                          {name}
+                        </Tag>
+                      ))}
                   </Flex>
                 }
               >
-                {t('+%s more', toolNames.length - AGGREGATES_BAR_VISIBLE_TOOL_COUNT)}
+                {t(
+                  '+%s more',
+                  aggregates.toolNames.length - AGGREGATES_BAR_VISIBLE_TOOL_COUNT
+                )}
               </InfoText>
             )}
           </ToolTagsRow>
