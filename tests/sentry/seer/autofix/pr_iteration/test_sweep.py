@@ -111,8 +111,7 @@ class SweepStalePrIterationsTest(TestCase):
         return sweep_stale_pr_iterations()
 
     def test_a_row_left_behind_is_emitted_as_never_triggered(self) -> None:
-        # No gate ever ruled on this batch and no drain took it: the sweep is
-        # the only thing that will ever say it existed.
+        # No gate refused this batch and no drain took it.
         self._open()
         (row,) = self._open_rows()
 
@@ -192,6 +191,22 @@ class SweepStalePrIterationsTest(TestCase):
 
         assert not mock_record.called
         assert self._open_rows() == []
+
+    def test_a_block_that_lifted_before_the_trigger_does_not_hide_never_completed(self) -> None:
+        self._open()
+        record_pr_iteration_blocked(
+            log_ctx=self.log_ctx,
+            run_state=_run_state(),
+            run_id=RUN_ID,
+            organization_id=self.organization.id,
+            outcome=PrIterationOutcome.MISSING_PERMISSIONS.value,
+        )
+        assert self._trigger() is not None
+
+        with patch("sentry.analytics.record") as mock_record:
+            assert self._sweep() == SweepResult(discarded=1, emitted=1, backlog=1)
+
+        assert mock_record.call_args.args[0].outcome == PrIterationOutcome.NEVER_COMPLETED.value
 
     def test_a_fresh_row_is_left_alone(self) -> None:
         self._open()

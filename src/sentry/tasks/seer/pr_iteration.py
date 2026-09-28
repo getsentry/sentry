@@ -312,9 +312,7 @@ def trigger_consume_pr_iteration_feedback(
 
     if decision.task is None:
         outcome = "not_triggered"
-        # The feedback stays queued and nothing will drain it. The row keeps
-        # the reason so the sweep can report this batch under it, unless a
-        # later item triggers the same row and its completed event wins.
+        # Nothing will drain this feedback. Save the reason for the sweep.
         record_pr_iteration_failure_reason(
             log_ctx=log_ctx,
             run_id=run_id,
@@ -645,8 +643,8 @@ def _drain_queued_autofix_feedback(
         return
 
     if state.status in ("processing", "error"):
-        # if we're errored we just don't want to make things worse (and we should be paused anyways)
-        # if we're still processing we trust that the completion hook will consume the feedback in the queue once it's done
+        # An errored run should already be paused. A processing run's
+        # completion hook drains the queue when it finishes.
         log_ctx.info(
             "autofix.pr_iteration.consume_feedback.drain",
             outcome="skipped",
@@ -659,8 +657,7 @@ def _drain_queued_autofix_feedback(
         _record_drain_outcome(f"skipped_run_{state.status}", trigger_source)
         return
 
-    # wait for the previous iteration to push its changes before we iterate
-    # the completion hook should consume the feedback still in the queue once it's done
+    # Wait for the previous iteration to push. Its completion hook drains the queue.
     _, all_changes_pushed = state.has_code_changes()
     if not all_changes_pushed:
         log_ctx.info(
@@ -770,8 +767,7 @@ def _drain_queued_autofix_feedback(
             dropped=dropped,
         )
         _record_drain_outcome("skipped_no_feedback", trigger_source)
-        # The drain popped the queue, so this iteration will never run. The
-        # claimed row stays, carrying why, for the sweep to report.
+        # The queue was popped, so this batch never runs. Save why for the sweep.
         if iteration_id is not None:
             record_pr_iteration_failure_reason(
                 log_ctx=log_ctx,
@@ -2056,7 +2052,7 @@ def _trigger_pr_iteration_from_review(
     retry=Retry(times=1),
 )
 def sweep_pr_iteration_details() -> None:
-    """Emit and discard iteration rows left behind by iterations that never completed."""
+    """Report and delete rows from iterations that never completed."""
     result = sweep_stale_pr_iterations()
     metrics.gauge("autofix.pr_iteration.details.backlog", result.backlog)
     metrics.incr("autofix.pr_iteration.details.discarded", amount=result.discarded)

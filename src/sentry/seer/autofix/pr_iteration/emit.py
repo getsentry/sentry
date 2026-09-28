@@ -51,8 +51,7 @@ EventT = TypeVar("EventT", bound=analytics.Event)
 # iteration.
 BLOCKED_OUTCOMES_DATA_KEY = "blocked_outcomes"
 
-# Why the last gate refused this batch, written by the gate. Overwritten by
-# each refusal, so it names the most recent one; ignored if the batch runs.
+# The latest reason a gate refused this batch. Cleared when the batch is triggered.
 FAILURE_REASON_DATA_KEY = "failure_reason"
 
 
@@ -96,17 +95,15 @@ class PrIterationOutcome(StrEnum):
     PAUSED_PR_CLOSED = "paused_pr_closed"
     PAUSED_DRAIN_FAILED = "paused_drain_failed"
 
-    # a batch that was queued but nothing ever scheduled a drain for it:
-    # the trigger gate refused, and the reason it gave is the outcome
+    # the trigger gate refused the batch, so no drain was scheduled
     STALE_HEAD = "stale_head"
     HARD_CAP_REACHED = "hard_cap_reached"
 
-    # a drain claimed the batch but every item in it was dropped
+    # a drain claimed the batch but dropped every item
     NO_CONSUMABLE_FEEDBACK = "no_consumable_feedback"
 
-    # the sweep found a row nothing had reported. ``never_triggered`` is a
-    # batch no trigger gate ever ruled on; ``never_completed`` is one a drain
-    # handed to the agent that never reached its completion hook
+    # the sweep deleted a row nothing reported: never triggered, or
+    # triggered but the agent never finished
     NEVER_TRIGGERED = "never_triggered"
     NEVER_COMPLETED = "never_completed"
 
@@ -236,8 +233,7 @@ def trigger_pr_iteration_details(
         if iteration is None:
             return None
 
-        # The batch is running now, so any earlier reason it was blocked is out
-        # of date. Clear it so the sweep doesn't report that old reason.
+        # The batch is running, so any earlier refusal no longer applies.
         iteration.data.pop(FAILURE_REASON_DATA_KEY, None)
         update_iteration(iteration, trigger_source=trigger_source)
         set_pr_iteration_attributes(iteration_id=iteration.id)
@@ -426,15 +422,10 @@ def record_pr_iteration_failure_reason(
     reason: str,
     iteration_id: int | None = None,
 ) -> None:
-    """Write why a gate refused this batch, for the sweep to report.
+    """Save why a gate refused this batch, for the sweep to report.
 
-    Without ``iteration_id`` the reason goes on the run's waiting row, which is
-    the batch a trigger gate rules on. A drain that claimed its row and then
-    dropped everything passes the id it claimed.
-
-    Nothing is emitted here: a refused batch is not over. A later item can
-    trigger the same row, and then the completed event supersedes this. The
-    sweep emits the reason only for a row that is still there when it ages out.
+    Uses the run's waiting row unless ``iteration_id`` is given. Emits nothing,
+    since a later trigger can still run the batch.
     """
     try:
         seer_run = _seer_run(run_id=run_id, organization_id=organization_id)

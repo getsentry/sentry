@@ -394,7 +394,7 @@ class PrIterationDetailsTest(TestCase):
         self._open()
         iteration_id = self._trigger()
         assert iteration_id is not None
-        # Feedback for the next batch is waiting; the drain's reason must not land there.
+        # The reason must go on the claimed row, not the next waiting one.
         self._open()
 
         self._fail("no_consumable_feedback", iteration_id=iteration_id)
@@ -405,8 +405,7 @@ class PrIterationDetailsTest(TestCase):
         assert FAILURE_REASON_DATA_KEY not in waiting.data
 
     def test_a_batch_that_runs_after_a_refusal_completes_normally(self) -> None:
-        # A stale suite was refused, then a fresh one drained the same row: the
-        # completed event is the record, and the old reason does not leak into it.
+        # Refused, then drained: the completed event must not carry the old reason.
         self._open()
         self._fail("stale_head")
         iteration_id = self._trigger()

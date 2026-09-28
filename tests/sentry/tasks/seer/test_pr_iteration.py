@@ -2167,8 +2167,7 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         mock_pop: MagicMock,
         _mock_trigger: MagicMock,
     ) -> None:
-        # The drain popped the queue, so this batch will never run. Its row
-        # stays, claimed and carrying why, for the sweep to report.
+        # The batch never runs, so its row keeps the reason for the sweep.
         seer_run = self.create_seer_run(organization=self.organization, seer_run_state_id=67890)
         stale, block = self._stale_feedback()
         mock_fetch.return_value = self._state(blocks=[block])
@@ -2606,8 +2605,7 @@ class TriggerConsumePrIterationFeedbackTest(TestCase):
     def test_a_refused_trigger_writes_its_reason_on_the_waiting_row(
         self, _mock_apply: MagicMock
     ) -> None:
-        # Nothing will drain this batch, so the row is what carries why: the
-        # sweep emits it under this reason if nothing later triggers the row.
+        # Nothing will drain this batch, so its row keeps the reason for the sweep.
         seer_run = self.create_seer_run(
             organization=self.organization, seer_run_state_id=67890, user_id=self.user.id
         )

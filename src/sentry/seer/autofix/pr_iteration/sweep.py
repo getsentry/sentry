@@ -1,9 +1,4 @@
-"""Backstop for PR-iteration rows nothing ever completed.
-
-A row that ages out here is an iteration no completion hook emitted. The sweep
-reports it once, under the last reason a gate wrote on it, and deletes it, so
-that every row opened produces at least one event.
-"""
+"""Report and delete PR-iteration rows that nothing completed."""
 
 from __future__ import annotations
 
@@ -29,20 +24,19 @@ from sentry.seer.models.run import SeerRunPrIteration
 
 logger = logging.getLogger(__name__)
 
-# sweep picks this up after 24 hours
+# How long a row sits untouched before the sweep takes it.
 STALE_DETAILS_AGE = timedelta(hours=24)
 
-# Rows swept per pass, oldest first. The sweep is a backstop, not the main
-# path, so it stays small and runs often.
+# Rows swept per pass. Kept small because the task runs often.
 STALE_DETAILS_BATCH_SIZE = 100
 
 
 class SweepResult(NamedTuple):
     # Rows deleted.
     discarded: int
-    # Rows that got a blocked event on the way out.
+    # Rows that got an event.
     emitted: int
-    # Rows past the cutoff before this pass, swept or not.
+    # Stale rows found before this pass.
     backlog: int
 
 
@@ -56,10 +50,10 @@ def sweep_stale_pr_iterations() -> SweepResult:
     emitted = 0
     for iteration in rows:
         event = None
-        if not iteration.data.get(BLOCKED_OUTCOMES_DATA_KEY):
+        # Skip rows that already sent a blocked event, unless triggered since.
+        if iteration.triggered or not iteration.data.get(BLOCKED_OUTCOMES_DATA_KEY):
             event = _swept_event(iteration)
-        # If the delete finds nothing, something claimed, updated, or deleted
-        # the row since we read it, so the event above may be wrong. Skip it.
+        # The row changed since we read it, so the event may be wrong.
         if not remove_unchanged_iteration(iteration):
             continue
         discarded += 1
