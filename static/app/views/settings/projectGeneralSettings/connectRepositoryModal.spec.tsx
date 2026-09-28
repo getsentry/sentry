@@ -197,7 +197,7 @@ describe('ConnectRepositoryModal', () => {
     ).toBeInTheDocument();
   });
 
-  it('keeps Save enabled for a prefix overlap but disables it for an exact stack root', async () => {
+  it('disables Save only when both stack root and source root match', async () => {
     renderModal();
 
     await userEvent.click(screen.getByText('Search repositories'));
@@ -225,11 +225,20 @@ describe('ConnectRepositoryModal', () => {
     );
     expect(await screen.findByRole('button', {name: 'Save'})).toBeEnabled();
 
-    // Change second stack root to src/ — now an exact duplicate → Save disabled
+    // Change second stack root to src/ — same stack, different source root (sameStack warning)
+    // → Save stays enabled because the pair src/+dist/ is distinct from src/+app/
     await userEvent.clear(screen.getByRole('textbox', {name: /stack trace prefix/i}));
     await userEvent.type(
       screen.getByRole('textbox', {name: /stack trace prefix/i}),
       'src/'
+    );
+    expect(screen.getByRole('button', {name: 'Save'})).toBeEnabled();
+
+    // Now make source roots identical too → exact duplicate → Save disabled
+    await userEvent.clear(screen.getByRole('textbox', {name: /repository prefix/i}));
+    await userEvent.type(
+      screen.getByRole('textbox', {name: /repository prefix/i}),
+      'app/'
     );
     expect(screen.getByRole('button', {name: 'Save'})).toBeDisabled();
   });
@@ -319,41 +328,6 @@ describe('ConnectRepositoryModal', () => {
     expect(
       await screen.findByText((_, node) =>
         hasOnlyThisText(node, /already mapped.*getsentry\/relay/i)
-      )
-    ).toBeInTheDocument();
-  });
-
-  it('keeps Save enabled and shows overlapExisting warning when an existing mapping is a longer prefix', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/code-mappings/`,
-      method: 'GET',
-      body: [
-        {
-          repoId: '11',
-          repoName: 'getsentry/relay',
-          stackRoot: 'src/app/',
-          sourceRoot: 'dist/',
-        },
-      ],
-    });
-
-    renderModal();
-
-    await userEvent.click(screen.getByText('Search repositories'));
-    await userEvent.click(await screen.findByText('getsentry/sentry'));
-
-    await userEvent.type(
-      screen.getByRole('textbox', {name: /stack trace prefix/i}),
-      'src/'
-    );
-
-    expect(await screen.findByRole('button', {name: 'Save'})).toBeEnabled();
-    expect(
-      await screen.findByText((_, node) =>
-        hasOnlyThisText(
-          node,
-          /src\/app\/ in the getsentry\/relay repository is a more specific rule/i
-        )
       )
     ).toBeInTheDocument();
   });

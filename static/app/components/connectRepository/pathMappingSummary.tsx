@@ -16,7 +16,7 @@ import type {PathMappingWarning} from './warnings';
 const PATH_RATIO = 35;
 const BRANCH_RATIO = 30;
 
-const OverlapContainer = styled(Container)`
+const WarningContainer = styled(Container)`
   background: ${p => p.theme.tokens.background.transparent.warning.muted};
 `;
 
@@ -56,17 +56,13 @@ export function PathMappingSummary({
     branch: branchName,
   } = normalizedPathMappingSchema.parse({stackRoot, sourceRoot, branch});
 
-  const isOverlap =
-    warning?.type === 'exact' ||
-    warning?.type === 'exactExisting' ||
-    warning?.type === 'overlap' ||
-    warning?.type === 'overlapExisting';
-  const Wrapper = isOverlap ? OverlapContainer : Container;
+  const hasWarning = warning?.type === 'exact' || warning?.type === 'exactExisting';
+  const Wrapper = hasWarning ? WarningContainer : Container;
 
   return (
-    <Wrapper padding="md xl" border={isOverlap ? 'warning' : undefined}>
+    <Wrapper padding="md xl" border={hasWarning ? 'warning' : undefined}>
       <Flex align="center" gap="md" minWidth={0}>
-        {isOverlap && (
+        {hasWarning && (
           <Container flexShrink={0}>
             {props => (
               <IconWarning

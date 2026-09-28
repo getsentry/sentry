@@ -7,18 +7,6 @@ function renderList(props: Partial<Parameters<typeof PathMappingList>[0]> = {}) 
   return render(<PathMappingList onChange={() => {}} {...props} />);
 }
 
-// Bold paths split the sentence across elements. Match the node that contains
-// the full sentence, not each nested fragment.
-function hasOnlyThisText(node: Element | null, pattern: RegExp) {
-  const text = node?.textContent ?? '';
-  if (!pattern.test(text)) {
-    return false;
-  }
-  return Array.from(node?.children ?? []).every(
-    child => !pattern.test(child.textContent ?? '')
-  );
-}
-
 const MAPPINGS: PathMappingValue[] = [
   {stackRoot: 'app/', sourceRoot: 'static/app/', branch: 'main'},
   {stackRoot: 'src/', sourceRoot: 'src/app/', branch: 'frontend'},
@@ -217,7 +205,7 @@ describe('PathMappingList', () => {
     });
   });
 
-  describe('catch-all and overlap warnings', () => {
+  describe('catch-all and exact-duplicate warnings', () => {
     it('shows the catch-all alert when the expanded row has an empty stack root', async () => {
       renderList();
 
@@ -244,61 +232,6 @@ describe('PathMappingList', () => {
       ).not.toBeInTheDocument();
     });
 
-    it('shows a warning icon on the collapsed overlap row', () => {
-      renderList({
-        pathMappings: [
-          {stackRoot: 'src/', sourceRoot: 'src/app/', branch: 'main'},
-          {stackRoot: 'src/app/', sourceRoot: 'dist/', branch: 'main'},
-        ],
-      });
-
-      // The src/ row is the shorter prefix — its collapsed summary gets the warning icon.
-      expect(screen.getByRole('img', {name: 'Warning'})).toBeInTheDocument();
-    });
-
-    it('shows the overlap alert when the overlapping row is expanded', async () => {
-      renderList({
-        pathMappings: [
-          {stackRoot: 'src/', sourceRoot: 'src/app/', branch: 'main'},
-          {stackRoot: 'src/app/', sourceRoot: 'dist/', branch: 'main'},
-        ],
-      });
-
-      const [firstExpand] = screen.getAllByRole('button', {name: 'Expand path mapping'});
-      await userEvent.click(firstExpand!);
-
-      expect(
-        screen.getByText((_, node) =>
-          hasOnlyThisText(
-            node,
-            /src\/app\/ is a more specific rule than this mapping \(src\/\)/
-          )
-        )
-      ).toBeInTheDocument();
-    });
-
-    it('clears the overlap alert when the prefix is edited to no longer overlap', async () => {
-      renderList({
-        pathMappings: [
-          {stackRoot: 'src/', sourceRoot: 'src/app/', branch: 'main'},
-          {stackRoot: 'src/app/', sourceRoot: 'dist/', branch: 'main'},
-        ],
-      });
-
-      const [firstExpand] = screen.getAllByRole('button', {name: 'Expand path mapping'});
-      await userEvent.click(firstExpand!);
-
-      await userEvent.clear(screen.getByRole('textbox', {name: /stack trace prefix/i}));
-      await userEvent.type(
-        screen.getByRole('textbox', {name: /stack trace prefix/i}),
-        'lib/'
-      );
-
-      expect(
-        screen.queryByText(/more specific rule than this mapping/)
-      ).not.toBeInTheDocument();
-    });
-
     it('does not warn when roots are unrelated', () => {
       renderList({
         pathMappings: [
@@ -309,40 +242,6 @@ describe('PathMappingList', () => {
 
       // No warning icon on either collapsed row.
       expect(screen.queryByRole('img', {name: 'Warning'})).not.toBeInTheDocument();
-    });
-
-    it('shows exact warning icons for two in-form rows with empty stack roots', () => {
-      renderList({
-        pathMappings: [
-          {stackRoot: '', sourceRoot: 'src/app/', branch: 'main'},
-          {stackRoot: '', sourceRoot: 'dist/', branch: 'main'},
-        ],
-      });
-
-      // Both empty rows are exact duplicates of each other — each gets a warning icon.
-      expect(screen.getAllByRole('img', {name: 'Warning'})).toHaveLength(2);
-    });
-
-    it('shows warning icon for a row whose stack root matches an existing mapping', () => {
-      renderList({
-        pathMappings: [{stackRoot: 'src/', sourceRoot: 'app/', branch: 'main'}],
-        existingMappings: [
-          {repoName: 'getsentry/relay', stackRoot: 'src/', sourceRoot: 'dist/'},
-        ],
-      });
-
-      expect(screen.getByRole('img', {name: 'Warning'})).toBeInTheDocument();
-    });
-
-    it('shows warning icon for a row whose stack root is a shorter prefix of an existing mapping', () => {
-      renderList({
-        pathMappings: [{stackRoot: 'src/', sourceRoot: 'app/', branch: 'main'}],
-        existingMappings: [
-          {repoName: 'getsentry/relay', stackRoot: 'src/app/', sourceRoot: 'dist/'},
-        ],
-      });
-
-      expect(screen.getByRole('img', {name: 'Warning'})).toBeInTheDocument();
     });
 
     it('shows warning icon and expanded alert for two identical stack roots', async () => {
@@ -362,7 +261,7 @@ describe('PathMappingList', () => {
       expect(screen.getByText(/Only one can be used for matching/)).toBeInTheDocument();
     });
 
-    it('still only disables add-another when roots are exact duplicates, not overlaps', () => {
+    it('still only disables add-another when roots are exact duplicates, not distinct pairs', () => {
       renderList({
         pathMappings: [
           {stackRoot: 'src/', sourceRoot: 'src/app/', branch: 'main'},
@@ -370,7 +269,7 @@ describe('PathMappingList', () => {
         ],
       });
 
-      // Overlap rows — add is NOT disabled (duplicates disable it, overlaps don't).
+      // Different (stackRoot, sourceRoot) pairs — add is NOT disabled.
       expect(screen.getByRole('button', {name: 'Add another path'})).not.toHaveAttribute(
         'aria-disabled',
         'true'

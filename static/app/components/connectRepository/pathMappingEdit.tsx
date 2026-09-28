@@ -172,7 +172,7 @@ export function PathMappingEdit({
                 );
               }}
             </form.Subscribe>
-            <PathMappingWarningAlert stackRoot={stackRoot} warning={warning} />
+            <PathMappingWarningAlert warning={warning} />
           </Stack>
         </Stack>
       </Container>

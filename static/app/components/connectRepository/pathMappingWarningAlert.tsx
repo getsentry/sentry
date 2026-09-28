@@ -4,11 +4,9 @@ import {Alert} from '@sentry/scraps/alert';
 
 import {t, tct} from 'sentry/locale';
 
-import {normalizeRoot} from './normalization';
 import type {PathMappingWarning} from './warnings';
 
 interface PathMappingWarningAlertProps {
-  stackRoot: string;
   warning: PathMappingWarning | null | undefined;
 }
 
@@ -38,16 +36,7 @@ function displayRepo(repoName: string) {
   return <strong>{repoName}</strong>;
 }
 
-// A path under this rule that the longer rule does not match.
-function uncoveredExample(currentRoot: string, moreSpecific: string) {
-  const candidate = `${currentRoot}lib/`;
-  return candidate.startsWith(moreSpecific) ? `${currentRoot}other/` : candidate;
-}
-
-export function PathMappingWarningAlert({
-  stackRoot,
-  warning,
-}: PathMappingWarningAlertProps) {
+export function PathMappingWarningAlert({warning}: PathMappingWarningAlertProps) {
   if (warning?.type === 'catchAll') {
     return (
       <Alert variant="info" showIcon>
@@ -83,33 +72,6 @@ export function PathMappingWarningAlert({
             repo: displayRepo(warning.repoName),
           }
         )}
-      </Alert>
-    );
-  }
-
-  if (warning?.type === 'overlap' || warning?.type === 'overlapExisting') {
-    const currentRoot = displayStackRoot(normalizeRoot(stackRoot));
-    const moreSpecific = displayStackRoot(warning.stackRoot);
-    const example = uncoveredExample(normalizeRoot(stackRoot), warning.stackRoot);
-    const message =
-      warning.type === 'overlapExisting'
-        ? tct(
-            '[moreSpecific] in the [repo] repository is a more specific rule than this mapping ([currentRoot]), so paths under [moreSpecific] use that rule first. This mapping still applies to other paths under [currentRoot], such as [example].',
-            {
-              moreSpecific,
-              repo: displayRepo(warning.repoName),
-              currentRoot,
-              example: <strong>{example}</strong>,
-            }
-          )
-        : tct(
-            '[moreSpecific] is a more specific rule than this mapping ([currentRoot]), so paths under [moreSpecific] use that rule first. This mapping still applies to other paths under [currentRoot], such as [example].',
-            {moreSpecific, currentRoot, example: <strong>{example}</strong>}
-          );
-
-    return (
-      <Alert variant="warning" showIcon>
-        {message}
       </Alert>
     );
   }
