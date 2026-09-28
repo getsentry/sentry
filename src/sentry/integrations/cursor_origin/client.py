@@ -279,6 +279,11 @@ class CursorOriginApiClient(IntegrationProxyClient, RepositoryClient, RepoTreesC
             logging_context=logging_context,
         )
 
+    def request(self, *args: Any, **kwargs: Any) -> Any:
+        """The Origin client doesn't use scm-platform's credentials_set, so drop it."""
+        kwargs.pop("credentials_set", None)
+        return super().request(*args, **kwargs)
+
     @control_silo_function
     def _refresh_access_token(self) -> AccessTokenData | None:
         integration = Integration.objects.filter(id=self.integration.id).first()

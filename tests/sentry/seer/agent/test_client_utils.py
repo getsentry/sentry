@@ -3,6 +3,7 @@ from unittest import mock
 
 import jwt
 import orjson
+import pytest
 from django.test import override_settings
 
 from sentry.hybridcloud.models.outbox import CellOutbox
@@ -14,10 +15,12 @@ from sentry.seer.agent.client_utils import (
     collect_user_org_context,
     enqueue_seer_run,
     fetch_run_statuses,
+    get_agent_state_from_pr_id,
     get_proxy_headers,
     has_seer_agent_access_with_detail,
     snapshot_to_markdown,
 )
+from sentry.seer.models import SeerUnavailableError
 from sentry.seer.models.run import SeerRunType
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TestCase
@@ -25,6 +28,7 @@ from sentry.testutils.requests import make_request
 from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
 
 
+@override_settings(SENTRY_SELF_HOSTED=False)
 class TestHasSeerAgentAccessWithDetail(TestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -613,3 +617,22 @@ class FetchRunStatusesTest(TestCase):
         for payload in payloads:
             with mock.patch(self._PATCH, return_value=self._response(200, payload)):
                 assert fetch_run_statuses([7], self.organization) == {}
+
+
+class GetAgentStateFromPrIdTest(TestCase):
+    _REQUEST = "sentry.seer.agent.client_utils.make_agent_state_pr_request"
+
+    def test_raises_unavailable_on_server_error(self) -> None:
+        with mock.patch(self._REQUEST, return_value=mock.Mock(status=503)):
+            with pytest.raises(SeerUnavailableError):
+                get_agent_state_from_pr_id(1, "integrations:github", 2)
+
+    def test_sends_pr_id_as_string(self) -> None:
+        for pr_id in (2, "2", "pr_01abc"):
+            with mock.patch(self._REQUEST, return_value=mock.Mock(status=404)) as m:
+                assert get_agent_state_from_pr_id(1, "integrations:github", pr_id) is None
+            assert m.call_args.args[0] == {
+                "organization_id": 1,
+                "provider": "integrations:github",
+                "pr_id": str(pr_id),
+            }

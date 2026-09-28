@@ -50,6 +50,11 @@ class AiAutofixPrIterationFeedbackBatchCompletedEvent(analytics.Event):
     # the values Sentry knows about.
     outcome: str
 
+    # Every ``AutofixReferrer`` behind the feedback the drain consumed, sorted,
+    # deduped and joined with ``,``: ``github.check_suite,github.pr_comment``.
+    # ``referrer`` collapses a mixed batch to ``unknown``; this keeps the parts.
+    feedback_types: str | None = None
+
     # Review bots behind the feedback the drain consumed, sorted and deduped.
     feedback_bot_logins: list[str] = field(default_factory=list)
 

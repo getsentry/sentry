@@ -899,8 +899,6 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.integrations.source_code_management.sync_repos",
     "sentry.integrations.gitlab.tasks",
     "sentry.integrations.jira.tasks",
-    "sentry.integrations.slack.tasks.find_channel_id_for_alert_rule",
-    "sentry.integrations.slack.tasks.find_channel_id_for_rule",
     "sentry.integrations.slack.tasks.link_slack_user_identities",
     "sentry.integrations.slack.tasks.post_message",
     "sentry.integrations.slack.tasks.send_notifications_on_activity",
@@ -1017,7 +1015,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.seer.context_engine_index",
     "sentry.tasks.seer.lightweight_rca_cluster",
     "sentry.tasks.seer.investigation",
-    "sentry.tasks.seer.night_shift.cron",
+    "sentry.tasks.seer.agentic_triage.cron",
     "sentry.tasks.seer.autofix_issue_data",
     "sentry.tasks.seer.backfill_supergroups_lightweight",
     # Used for tests
@@ -1387,7 +1385,11 @@ LOGGING: LoggingConfig = {
             "propagate": False,
         },
         "arroyo": {"level": "INFO", "handlers": ["console"], "propagate": False},
-        "taskbroker_client": {"level": "INFO", "handlers": ["console"], "propagate": False},
+        "taskbroker_client": {
+            "level": "INFO",
+            "handlers": ["console", "internal"],
+            "propagate": False,
+        },
         # Configure grpc explicitly so its errors aren't dropped by disable_existing_loggers.
         "grpc": {"level": "ERROR", "handlers": ["console"], "propagate": False},
         "static_compiler": {"level": "INFO"},
@@ -1963,6 +1965,28 @@ SENTRY_TOKEN_ONLY_SCOPES = frozenset(
     [
         "org:ci",  # CI workflows, releases, source maps, and code mappings
         "project:distribution",  # App distribution/preprod artifacts
+    ]
+)
+
+# Scopes that endpoints already accept, but that roles only grant once
+# `organizations:granular-permission-scopes` is enabled. Until that rollout finishes
+# they are not universally grantable, so they stay out of the public API schema and
+# out of the Seer agent token flow. Drop an entry when its rollout completes.
+GRANULAR_SCOPES = frozenset(
+    [
+        "dashboard:read",
+        "dashboard:write",
+        "dashboard:delete",
+    ]
+)
+
+# Broad read scopes being retired in favour of granular ones. API attribution tags
+# whether a caller still holds one (see sentry.api.caller_scopes).
+DEPRECATED_SCOPES = frozenset(
+    [
+        "org:read",
+        "project:read",
+        "member:read",
     ]
 )
 

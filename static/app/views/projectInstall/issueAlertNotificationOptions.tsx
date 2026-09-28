@@ -315,12 +315,16 @@ function useNotificationPicker(resolveRestore: RestoreResolver) {
     }
 
     if (outcome.kind === 'apply') {
+      // eslint-disable react-you-might-not-need-an-effect/no-derived-state
       setProvider(outcome.provider);
       setIntegration(outcome.integration);
+      // eslint-enable react-you-might-not-need-an-effect/no-derived-state
       // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
       setActions(outcome.actions);
+      // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
       setShouldRenderSetupButton(outcome.shouldRenderSetupButton);
       if (outcome.channel) {
+        // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
         setChannel(outcome.channel);
       }
       hasInitializedSelection.current = true;

@@ -17,6 +17,10 @@ from sentry.api.endpoints.organization_auth_tokens import OrganizationAuthTokens
 from sentry.api.endpoints.organization_events_root_cause_analysis import (
     OrganizationEventsRootCauseAnalysisEndpoint,
 )
+from sentry.api.endpoints.organization_explore_formulas import (
+    OrganizationExploreFormulas,
+    OrganizationExploreFormulasDetail,
+)
 from sentry.api.endpoints.organization_fork import OrganizationForkEndpoint
 from sentry.api.endpoints.organization_insights_tree import OrganizationInsightsTreeEndpoint
 from sentry.api.endpoints.organization_intercom_jwt import OrganizationIntercomJwtEndpoint
@@ -202,26 +206,6 @@ from sentry.flags.endpoints.logs import (
 from sentry.flags.endpoints.secrets import (
     OrganizationFlagsWebHookSigningSecretEndpoint,
     OrganizationFlagsWebHookSigningSecretsEndpoint,
-)
-from sentry.incidents.endpoints.organization_alert_rule_available_action_index import (
-    OrganizationAlertRuleAvailableActionIndexEndpoint,
-)
-from sentry.incidents.endpoints.organization_alert_rule_details import (
-    OrganizationAlertRuleDetailsEndpoint,
-)
-from sentry.incidents.endpoints.organization_alert_rule_index import (
-    OrganizationAlertRuleIndexEndpoint,
-    OrganizationCombinedRuleIndexEndpoint,
-    OrganizationOnDemandRuleStatsEndpoint,
-)
-from sentry.incidents.endpoints.organization_incident_details import (
-    OrganizationIncidentDetailsEndpoint,
-)
-from sentry.incidents.endpoints.organization_incident_index import OrganizationIncidentIndexEndpoint
-from sentry.incidents.endpoints.project_alert_rule_details import ProjectAlertRuleDetailsEndpoint
-from sentry.incidents.endpoints.project_alert_rule_index import ProjectAlertRuleIndexEndpoint
-from sentry.incidents.endpoints.project_alert_rule_task_details import (
-    ProjectAlertRuleTaskDetailsEndpoint,
 )
 from sentry.insights.endpoints.starred_segments import InsightsStarredSegmentsEndpoint
 from sentry.integrations.api.endpoints.data_forwarding_details import DataForwardingDetailsEndpoint
@@ -559,7 +543,7 @@ from sentry.rules.history.endpoints.project_rule_group_history import (
 )
 from sentry.rules.history.endpoints.project_rule_stats import ProjectRuleStatsIndexEndpoint
 from sentry.scm.endpoints.scm_rpc import ScmRpcServiceEndpoint
-from sentry.seer.endpoints.admin_night_shift_trigger import SeerAdminNightShiftTriggerEndpoint
+from sentry.seer.endpoints.admin_agentic_triage_trigger import SeerAdminAgenticTriageTriggerEndpoint
 from sentry.seer.endpoints.group_ai_autofix import GroupAutofixEndpoint
 from sentry.seer.endpoints.group_ai_summary import GroupAiSummaryEndpoint
 from sentry.seer.endpoints.group_autofix_repos import GroupAutofixReposEndpoint
@@ -586,7 +570,7 @@ from sentry.seer.endpoints.organization_seer_rpc import OrganizationSeerRpcEndpo
 from sentry.seer.endpoints.organization_seer_runs import OrganizationSeerRunsEndpoint
 from sentry.seer.endpoints.organization_seer_setup_check import OrganizationSeerSetupCheckEndpoint
 from sentry.seer.endpoints.organization_seer_workflows import OrganizationSeerWorkflowsEndpoint
-from sentry.seer.endpoints.project_seer_night_shift import ProjectSeerNightShiftEndpoint
+from sentry.seer.endpoints.project_seer_agentic_triage import ProjectSeerAgenticTriageEndpoint
 from sentry.seer.endpoints.project_seer_preferences import ProjectSeerPreferencesEndpoint
 from sentry.seer.endpoints.project_seer_repos import (
     ProjectSeerRepoEndpoint,
@@ -737,6 +721,7 @@ from .endpoints.auth_login import AuthLoginEndpoint
 from .endpoints.auth_organization_config import AuthOrganizationConfigEndpoint
 from .endpoints.auth_organization_demo_login import AuthDemoLoginEndpoint
 from .endpoints.auth_recovery import AuthRecoveryConfirmEndpoint, AuthRecoveryEndpoint
+from .endpoints.auth_register import AuthRegisterEndpoint
 from .endpoints.auth_validate import AuthValidateEndpoint
 from .endpoints.broadcast_details import BroadcastDetailsEndpoint
 from .endpoints.broadcast_index import BroadcastIndexEndpoint
@@ -892,13 +877,6 @@ from .endpoints.project_profiling_profile import (
 from .endpoints.project_repo import ProjectRepoEndpoint
 from .endpoints.project_repo_path_parsing import ProjectRepoPathParsingEndpoint
 from .endpoints.project_reprocessing import ProjectReprocessingEndpoint
-from .endpoints.project_rule_actions import ProjectRuleActionsEndpoint
-from .endpoints.project_rule_details import ProjectRuleDetailsEndpoint
-from .endpoints.project_rule_enable import ProjectRuleEnableEndpoint
-from .endpoints.project_rule_preview import ProjectRulePreviewEndpoint
-from .endpoints.project_rule_task_details import ProjectRuleTaskDetailsEndpoint
-from .endpoints.project_rules import ProjectRulesEndpoint
-from .endpoints.project_rules_configuration import ProjectRulesConfigurationEndpoint
 from .endpoints.project_servicehook_details import ProjectServiceHookDetailsEndpoint
 from .endpoints.project_servicehook_stats import ProjectServiceHookStatsEndpoint
 from .endpoints.project_servicehooks import ProjectServiceHooksEndpoint
@@ -921,7 +899,6 @@ from .endpoints.relay import (
     RelayRegisterChallengeEndpoint,
     RelayRegisterResponseEndpoint,
 )
-from .endpoints.rule_snooze import MetricRuleSnoozeEndpoint, RuleSnoozeEndpoint
 from .endpoints.seer_models import SeerModelsEndpoint
 from .endpoints.setup_wizard import SetupWizard
 from .endpoints.system_health import SystemHealthEndpoint
@@ -1101,6 +1078,11 @@ AUTH_URLS = [
         r"^login/$",
         AuthLoginEndpoint.as_view(),
         name="sentry-api-0-auth-login",
+    ),
+    re_path(
+        r"^register/$",
+        AuthRegisterEndpoint.as_view(),
+        name="sentry-api-0-auth-register",
     ),
     re_path(
         r"^organizations/(?P<organization_id_or_slug>[^/]+)/demo/$",
@@ -1417,32 +1399,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         SharedGroupDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-shared-group-details",
     ),
-    # Alert Rules
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/alert-rules/$",
-        OrganizationAlertRuleIndexEndpoint.as_view(),
-        name="sentry-api-0-organization-alert-rules",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/alert-rules/available-actions/$",
-        OrganizationAlertRuleAvailableActionIndexEndpoint.as_view(),
-        name="sentry-api-0-organization-alert-rule-available-actions",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/alert-rules/(?P<alert_rule_id>[^/]+)/$",
-        OrganizationAlertRuleDetailsEndpoint.as_view(),
-        name="sentry-api-0-organization-alert-rule-details",
-    ),
-    re_path(  # fetch combined metric and issue alert rules
-        r"^(?P<organization_id_or_slug>[^/]+)/combined-rules/$",
-        OrganizationCombinedRuleIndexEndpoint.as_view(),
-        name="sentry-api-0-organization-combined-rules",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/ondemand-rules-stats/$",
-        OrganizationOnDemandRuleStatsEndpoint.as_view(),
-        name="sentry-api-0-organization-ondemand-rules-stats",
-    ),
     # Data Export
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/data-export/$",
@@ -1465,17 +1421,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/intercom-jwt/$",
         OrganizationIntercomJwtEndpoint.as_view(),
         name="sentry-api-0-organization-intercom-jwt",
-    ),
-    # Incidents
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/incidents/(?P<incident_identifier>[^/]+)/$",
-        OrganizationIncidentDetailsEndpoint.as_view(),
-        name="sentry-api-0-organization-incident-details",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/incidents/$",
-        OrganizationIncidentIndexEndpoint.as_view(),
-        name="sentry-api-0-organization-incident-index",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/chunk-upload/$",
@@ -1587,6 +1532,16 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/explore/saved/(?P<id>\d+)/$",
         ExploreSavedQueryDetailEndpoint.as_view(),
         name="sentry-api-0-explore-saved-query-detail",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/explore/formulas/$",
+        OrganizationExploreFormulas.as_view(),
+        name="sentry-api-0-explore-formulas",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/explore/formulas/(?P<id>\d+)/$",
+        OrganizationExploreFormulasDetail.as_view(),
+        name="sentry-api-0-explore-formulas-detail",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/explore/saved/(?P<id>\d+)/visit/$",
@@ -2934,21 +2889,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-project-details",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/alert-rules/(?P<alert_rule_id>[^/]+)/$",
-        ProjectAlertRuleDetailsEndpoint.as_view(),
-        name="sentry-api-0-project-alert-rule-details",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/alert-rules/$",
-        ProjectAlertRuleIndexEndpoint.as_view(),
-        name="sentry-api-0-project-alert-rules",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/alert-rule-task/(?P<task_uuid>[^/]+)/$",
-        ProjectAlertRuleTaskDetailsEndpoint.as_view(),
-        name="sentry-api-0-project-alert-rule-task-details",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/create-sample/$",
         ProjectCreateSampleEndpoint.as_view(),
         name="sentry-api-0-project-create-sample",
@@ -3214,11 +3154,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-project-artifact-lookup",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/rules/$",
-        ProjectRulesEndpoint.as_view(),
-        name="sentry-api-0-project-rules",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/replays/(?P<replay_id>[^/]+)/$",
         ProjectReplayDetailsEndpoint.as_view(),
         name="sentry-api-0-project-replay-details",
@@ -3264,41 +3199,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-project-replay-deletion-job-details",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/rules/configuration/$",
-        ProjectRulesConfigurationEndpoint.as_view(),
-        name="sentry-api-0-project-rules-configuration",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/rules/(?P<rule_id>\d+)/$",
-        ProjectRuleDetailsEndpoint.as_view(),
-        name="sentry-api-0-project-rule-details",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/rules/(?P<rule_id>[^/]+)/enable/$",
-        ProjectRuleEnableEndpoint.as_view(),
-        name="sentry-api-0-project-rule-enable",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/rules/(?P<rule_id>[^/]+)/snooze/$",
-        RuleSnoozeEndpoint.as_view(),
-        name="sentry-api-0-rule-snooze",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/alert-rules/(?P<rule_id>[^/]+)/snooze/$",
-        MetricRuleSnoozeEndpoint.as_view(),
-        name="sentry-api-0-metric-rule-snooze",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/rules/preview/$",
-        ProjectRulePreviewEndpoint.as_view(),
-        name="sentry-api-0-project-rule-preview",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/rule-actions/$",
-        ProjectRuleActionsEndpoint.as_view(),
-        name="sentry-api-0-project-rule-actions",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/rules/(?P<rule_id>[^/]+)/group-history/$",
         ProjectRuleGroupHistoryIndexEndpoint.as_view(),
         name="sentry-api-0-project-rule-group-history-index",
@@ -3307,11 +3207,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/rules/(?P<rule_id>[^/]+)/stats/$",
         ProjectRuleStatsIndexEndpoint.as_view(),
         name="sentry-api-0-project-rule-stats-index",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/rule-task/(?P<task_uuid>[^/]+)/$",
-        ProjectRuleTaskDetailsEndpoint.as_view(),
-        name="sentry-api-0-project-rule-task-details",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/stats/$",
@@ -3564,7 +3459,7 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/seer/night-shift/$",
-        ProjectSeerNightShiftEndpoint.as_view(),
+        ProjectSeerAgenticTriageEndpoint.as_view(),
         name="sentry-api-0-project-seer-night-shift",
     ),
     # User Issue
@@ -3837,7 +3732,7 @@ INTERNAL_URLS = [
     *notification_platform_urls.internal_urlpatterns,
     re_path(
         r"^seer/night-shift/trigger/$",
-        SeerAdminNightShiftTriggerEndpoint.as_view(),
+        SeerAdminAgenticTriageTriggerEndpoint.as_view(),
         name="sentry-admin-seer-night-shift-trigger",
     ),
 ]

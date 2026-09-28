@@ -6,17 +6,18 @@ import type {
   CustomSeriesRenderItemAPI,
   CustomSeriesRenderItemReturn,
 } from 'echarts';
+import type {TooltipPositionCallback} from 'echarts/types/dist/shared';
 
 import {useTimezone} from '@sentry/scraps/datetime';
 import {useRenderToString} from '@sentry/scraps/renderToString';
 
 import {isChartHovered} from 'sentry/components/charts/utils';
 import {DroppedDataTooltip} from 'sentry/components/droppedData/droppedDataTooltip';
+import type {DroppedDataProps} from 'sentry/components/droppedData/types';
 import {
   groupIntoBuckets,
   opacityForRatio,
   type AnnotationBucket,
-  type DroppedData,
 } from 'sentry/components/droppedData/utils';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils/defined';
@@ -29,6 +30,7 @@ const BAND_PADDING = 4;
 const BOX_HEIGHT = 8;
 export const BAND_HEIGHT = BAND_PADDING + BOX_HEIGHT + BAND_PADDING;
 const BOX_BORDER_RADIUS = 2;
+const TOOLTIP_GAP = 8;
 
 const DROPPED_DATA_Y_AXIS = {
   type: 'value' as const,
@@ -118,13 +120,42 @@ function droppedDataRenderItem(
   };
 }
 
+/**
+ * Smartly determines the position of the tooltip based on the hovered pill and the chart size.
+ */
+const droppedDataTooltipPosition: TooltipPositionCallback = (
+  point,
+  _params,
+  dom,
+  rect,
+  size
+) => {
+  const [tooltipWidth] = size.contentSize;
+  const [chartWidth] = size.viewSize;
+
+  const anchorX = rect ? rect.x + rect.width / 2 : point[0];
+  const anchorBottom = rect ? rect.y + rect.height : point[1];
+
+  const centeredLeft = anchorX - tooltipWidth / 2;
+  const left = Math.max(0, Math.min(centeredLeft, chartWidth - tooltipWidth));
+
+  if (dom instanceof HTMLElement) {
+    const arrow = dom.querySelector<HTMLDivElement>('.tooltip-arrow');
+    if (arrow) {
+      arrow.style.left = left === centeredLeft ? '50%' : `${anchorX - left}px`;
+    }
+  }
+
+  return [left, anchorBottom + TOOLTIP_GAP];
+};
+
 function droppedDataTooltipOption(
   chartRef: React.RefObject<ReactEchartsRef | null>,
   renderTooltip: (bucket: AnnotationBucket) => string
 ): CustomSeriesOption['tooltip'] {
   return {
     trigger: 'item',
-    position: 'bottom',
+    position: droppedDataTooltipPosition,
     formatter: params => {
       if (!isChartHovered(chartRef.current)) {
         return '';
@@ -165,7 +196,7 @@ function createDroppedDataSeries({
 interface UseDroppedDataBandParams {
   chartRef: React.RefObject<ReactEchartsRef | null>;
   bandOffset?: number;
-  droppedData?: DroppedData;
+  droppedData?: DroppedDataProps;
   utc?: boolean | null;
   yAxisIndex?: number;
 }
@@ -181,14 +212,16 @@ export function useDroppedDataBand({
   const renderToString = useRenderToString();
   const userTimezone = useTimezone();
   const timezone = utc ? 'UTC' : userTimezone;
-  const {accepted, dropped, visible = true} = droppedData ?? {};
+  const {acceptedAnnotations, droppedAnnotations} = droppedData ?? {};
 
   const buckets = useMemo(
     () =>
-      groupIntoBuckets(dropped ?? [], accepted ?? []).filter(bucket => bucket.ratio > 0),
-    [accepted, dropped]
+      groupIntoBuckets(droppedAnnotations ?? [], acceptedAnnotations ?? []).filter(
+        bucket => bucket.ratio > 0
+      ),
+    [acceptedAnnotations, droppedAnnotations]
   );
-  const isVisible = visible && buckets.length > 0;
+  const isVisible = buckets.length > 0;
 
   const renderTooltip = useCallback(
     (bucket: AnnotationBucket) =>

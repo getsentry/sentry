@@ -39,6 +39,12 @@ interface SeerEmbedBlockOwnProps {
   testId: string;
   /** The card's heading, top left. Plain text, not a link. */
   title: ReactNode;
+  /**
+   * Controls for the card's contents, at the far right of the header after
+   * the link — for a host that frames its own content in the card, not for
+   * describing the resource.
+   */
+  actions?: ReactNode;
   /** Sits between the title and the link, for tags describing the contents. */
   badge?: ReactNode;
   /**
@@ -48,6 +54,11 @@ interface SeerEmbedBlockOwnProps {
   defaultExpanded?: boolean;
   /** Spacing between the panel's own children. */
   gap?: StackProps['gap'];
+  /**
+   * Inset around the panel's children. A preview that draws its own row
+   * dividers, like an issue row, passes `"0"` so it sits flush in the card.
+   */
+  padding?: StackProps['padding'];
 }
 
 type SeerEmbedBlockProps = SeerEmbedBlockOwnProps & SeerEmbedBlockLinkProps;
@@ -72,6 +83,7 @@ type SeerEmbedBlockProps = SeerEmbedBlockOwnProps & SeerEmbedBlockLinkProps;
  * title, neither of which this card's header band can express.
  */
 export function SeerEmbedBlock({
+  actions,
   badge,
   children,
   defaultExpanded = true,
@@ -79,6 +91,7 @@ export function SeerEmbedBlock({
   href,
   icon,
   linkLabel,
+  padding = 'lg',
   testId,
   title,
 }: SeerEmbedBlockProps) {
@@ -127,6 +140,7 @@ export function SeerEmbedBlock({
         <Flex align="center" gap="md" wrap="wrap">
           {badge}
           {href ? <ResourceLink icon={icon} href={href} title={linkLabel} /> : null}
+          {actions}
         </Flex>
       </HeaderRow>
       {/* The panel's padding sits on an inner element, not on the element
@@ -135,7 +149,7 @@ export function SeerEmbedBlock({
           behind -- padding out here would strand an empty strip under the header
           of every collapsed card. */}
       <Container {...panelProps} ref={panelRef}>
-        <Stack gap={gap} padding="lg">
+        <Stack gap={gap} padding={padding}>
           {children}
         </Stack>
       </Container>
