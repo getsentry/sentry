@@ -125,7 +125,7 @@ function RadioOptionField({name, option}: OptionFieldProps) {
       mutationOptions={mutationOptions}
     >
       {field => (
-        <field.Layout.Stack
+        <field.Layout.Row
           label={definition.label}
           hintText={definition.help}
           required={required}
@@ -135,13 +135,15 @@ function RadioOptionField({name, option}: OptionFieldProps) {
             onChange={field.handleChange}
             disabled={disabled}
           >
-            {definition.choices?.map(([value, label]) => (
-              <field.Radio.Item key={value} value={value}>
-                {label}
-              </field.Radio.Item>
-            ))}
+            <Stack gap="sm">
+              {definition.choices?.map(([value, label]) => (
+                <field.Radio.Item key={value} value={value}>
+                  {label}
+                </field.Radio.Item>
+              ))}
+            </Stack>
           </field.Radio.Group>
-        </field.Layout.Stack>
+        </field.Layout.Row>
       )}
     </AutoSaveForm>
   );
