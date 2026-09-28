@@ -82,7 +82,7 @@ function ExploreContentInner() {
 
   // The bootstrap query returns raw API org data, while useOrganization reads
   // the OrganizationStore value after FeatureFlagOverrides.loadOrg mutates it.
-  // Apply stored toolbar overrides here before comparing these two sources.
+  // Apply stored feature flag overrides before comparing these two sources.
   const bootstrappedOrganizationHasHighRange = bootstrapOrganization
     ? FeatureFlagOverrides.singleton()
         .getEnabledFeatureFlagList(bootstrapOrganization)
@@ -94,7 +94,7 @@ function ExploreContentInner() {
 
   // PageFiltersContainer normalizes URL date params on mount. Wait until the
   // bootstrapped org and OrganizationContext agree on the spans range feature.
-  // Compare effective bootstrap flags so stored toolbar overrides do not keep
+  // Compare effective bootstrap flags so stored feature flag overrides do not keep
   // the bootstrapped org and OrganizationContext permanently out of sync.
   const organizationRangeLoading =
     organizationLoading ||

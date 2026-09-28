@@ -155,7 +155,7 @@ describe('ExploreContent', () => {
   }
 
   beforeEach(() => {
-    FeatureFlagOverrides.singleton().clear();
+    FeatureFlagOverrides.singleton().clearStoredOverrides();
     PageFiltersStore.init();
     OrganizationStore.onUpdate(organization, {replace: true});
 
@@ -176,7 +176,7 @@ describe('ExploreContent', () => {
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    FeatureFlagOverrides.singleton().clear();
+    FeatureFlagOverrides.singleton().clearStoredOverrides();
     act(() => {
       OrganizationStore.reset();
       ProjectsStore.reset();
@@ -286,7 +286,7 @@ describe('ExploreContent', () => {
     );
   });
 
-  it('does not keep loading when toolbar overrides disable the high range flag', async () => {
+  it('does not keep loading when a local override disables the high range flag', async () => {
     act(() => ProjectsStore.loadInitialData([highRangeProject]));
     FeatureFlagOverrides.singleton().setStoredOverride(
       'visibility-explore-range-high',
