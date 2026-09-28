@@ -631,13 +631,9 @@ class TestTriggerAutofixAgent(TestCase):
         assert payload["run_id"] == 777
         assert payload["sentry_run_id"] == str(feature_run.uuid)
 
-    @patch("sentry.seer.autofix.autofix_agent.record_seer_activity")
-    @patch("sentry.seer.autofix.autofix_agent.SeerAutofixOperator.has_access", return_value=True)
     @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
     @patch("sentry.seer.autofix.autofix_agent.trigger_autofix_feature")
-    def test_solution_routes_to_seer_feature(
-        self, mock_feature, mock_broadcast, mock_has_access, mock_record_activity
-    ):
+    def test_solution_routes_to_seer_feature(self, mock_feature, mock_broadcast):
         existing_run = self.create_seer_run(
             organization=self.group.organization, seer_run_state_id=777
         )
@@ -651,7 +647,6 @@ class TestTriggerAutofixAgent(TestCase):
             run_id=777,
             user_context="Keep compatibility",
             insert_index=3,
-            actor_user_id=self.user.id,
         )
 
         assert result == existing_run
@@ -669,10 +664,6 @@ class TestTriggerAutofixAgent(TestCase):
             "run_id": 777,
             "sentry_run_id": str(existing_run.uuid),
             "group_id": self.group.id,
-        }
-        assert mock_record_activity.call_args.kwargs["activity_attribution"] == {
-            "referrer": AutofixReferrer.UNKNOWN,
-            "actor_user_id": self.user.id,
         }
 
     @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
@@ -702,9 +693,13 @@ class TestTriggerAutofixAgent(TestCase):
             mock_broadcast.call_args.kwargs["event_name"] == SeerActionType.SOLUTION_STARTED.value
         )
 
+    @patch("sentry.seer.autofix.autofix_agent.record_seer_activity")
+    @patch("sentry.seer.autofix.autofix_agent.SeerAutofixOperator.has_access", return_value=True)
     @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
     @patch("sentry.seer.autofix.autofix_agent.trigger_autofix_feature")
-    def test_code_changes_routes_to_feature_when_flagged(self, mock_feature, mock_broadcast):
+    def test_code_changes_routes_to_feature_when_flagged(
+        self, mock_feature, mock_broadcast, mock_has_access, mock_record_activity
+    ):
         existing_run = self.create_seer_run(
             organization=self.group.organization, seer_run_state_id=777
         )
@@ -720,6 +715,7 @@ class TestTriggerAutofixAgent(TestCase):
                 user_context="Keep compatibility",
                 insert_index=3,
                 enable_bash_mode=True,
+                actor_user_id=self.user.id,
             )
 
         assert result == existing_run
@@ -736,6 +732,10 @@ class TestTriggerAutofixAgent(TestCase):
             "run_id": 777,
             "sentry_run_id": str(existing_run.uuid),
             "group_id": self.group.id,
+        }
+        assert mock_record_activity.call_args.kwargs["activity_attribution"] == {
+            "referrer": AutofixReferrer.UNKNOWN,
+            "actor_user_id": self.user.id,
         }
 
     @patch("sentry.seer.autofix.autofix_agent.trigger_autofix_feature")
