@@ -7245,7 +7245,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert response.status_code == 200, response.content
         assert response.data["data"] == [
             {"sentry.links": links, "count()": 2},
-            {"sentry.links": "", "count()": 1},
+            {"sentry.links": None, "count()": 1},
         ]
 
     def test_formula_filtering(self) -> None:
