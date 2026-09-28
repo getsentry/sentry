@@ -1,22 +1,20 @@
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
-import {JsonFormModal} from 'admin/components/jsonFormModal';
-import {PolicyRevisionSchema, PolicySchema} from 'admin/schemas/policies';
+import {PolicyFormModal} from 'admin/components/policies/policyFormModal';
 
 export function AddPolicyModal(props: ModalRenderProps) {
   const navigate = useNavigate();
   return (
-    <JsonFormModal
+    <PolicyFormModal
       title="Add Policy"
-      apiEndpoint="/policies/"
-      apiMethod="POST"
-      fields={[
-        ...PolicySchema,
-        ...PolicyRevisionSchema.filter(f => f.name !== 'current'),
-      ]}
-      onSuccess={(data: any) => {
-        navigate(`/_admin/policies/${data.slug}/`);
+      apiEndpoint={getApiUrl('/policies/')}
+      isNewPolicy
+      onSuccess={data => {
+        if ('slug' in data) {
+          navigate(`/_admin/policies/${data.slug}/`);
+        }
       }}
       {...props}
     />
