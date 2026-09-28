@@ -33,6 +33,18 @@ describe('AdminSettings', () => {
         expect.objectContaining({data: {'system.support-email': 'changed@example.com'}})
       )
     );
+
+    expect(input).toHaveValue('changed@example.com');
+    await userEvent.clear(input);
+    await userEvent.type(input, 'original@example.com');
+    await userEvent.tab();
+
+    await waitFor(() =>
+      expect(save).toHaveBeenCalledWith(
+        '/internal/options/',
+        expect.objectContaining({data: {'system.support-email': 'original@example.com'}})
+      )
+    );
   });
 
   it.each([
@@ -155,13 +167,25 @@ describe('AdminSettings', () => {
 
     render(<AdminSettings />);
 
-    await userEvent.click(await screen.findByLabelText('Allow Registration'));
+    const toggle = await screen.findByLabelText('Allow Registration');
+    await userEvent.click(toggle);
     await userEvent.tab();
 
     await waitFor(() =>
       expect(save).toHaveBeenCalledWith(
         '/internal/options/',
         expect.objectContaining({data: {'auth.allow-registration': true}})
+      )
+    );
+
+    expect(toggle).toBeChecked();
+    await userEvent.click(toggle);
+    await userEvent.tab();
+
+    await waitFor(() =>
+      expect(save).toHaveBeenCalledWith(
+        '/internal/options/',
+        expect.objectContaining({data: {'auth.allow-registration': false}})
       )
     );
   });

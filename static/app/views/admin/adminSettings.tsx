@@ -1,4 +1,8 @@
-import {useQuery, useQueryClient} from '@tanstack/react-query';
+import {
+  mutationOptions as createMutationOptions,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
@@ -45,16 +49,27 @@ function useAdminOption(name: string, option: FieldDef) {
     initialValue,
     disabled,
     required,
-    mutationOptions: {
+    mutationOptions: createMutationOptions({
       mutationFn: ({value}: {value: boolean | string}) =>
         fetchMutation({
           url: getApiUrl('/internal/options/'),
           method: 'PUT',
           data: {[name]: value},
         }),
-      onSuccess: () =>
-        queryClient.invalidateQueries({queryKey: optionsQueryOptions.queryKey}),
-    },
+      onSuccess: (_response, {value}) => {
+        queryClient.setQueryData(optionsQueryOptions.queryKey, previous =>
+          previous
+            ? {
+                ...previous,
+                json: {
+                  ...previous.json,
+                  [name]: {...(previous.json[name] ?? {field: {}}), value},
+                },
+              }
+            : previous
+        );
+      },
+    }),
   };
 }
 
