@@ -32,7 +32,7 @@ from sentry.workflow_engine.processors.evaluations.types import WorkflowEngineRe
 from sentry.workflow_engine.processors.evaluations.workflow import (
     ProcessWorkflowsResult,
     WorkflowEvaluation,
-    WorkflowEvaluationArtifact,
+    WorkflowEvaluationBatch,
 )
 
 if TYPE_CHECKING:
@@ -43,6 +43,12 @@ logger = logging.getLogger(__name__)
 
 EVALUATION_NAMESPACE = uuid.UUID("15de19a5-09c3-48d0-80ef-f9ff2c62af57")
 EAP_ITEMS_CODEC: Codec[TraceItem] = get_topic_codec(Topic.SNUBA_ITEMS)
+EAP_RETENTION_DAYS = 7  # TODO - We'll probably need to store metric issues for longer
+EAP_LOG_ATTRIBUTES = {
+    "sentry.body": "workflow_engine.evaluation",
+    "sentry.severity_number": 9,
+    "sentry.severity_text": "INFO",
+}
 
 
 def _get_eap_items_producer() -> KafkaProducer:
@@ -83,7 +89,7 @@ def _normalize_value(value: object) -> Any:
 def _workflow_event_attributes(evaluation: WorkflowEvaluation) -> dict[str, object]:
     event_data = evaluation.data["event"]
     event = event_data.event
-    group_state = event_data.group_state or {}
+    group_state: Mapping[str, object] = event_data.group_state or {}
 
     attributes: dict[str, object] = {
         "event_kind": "group_event" if isinstance(event, GroupEvent) else "activity",
@@ -111,33 +117,39 @@ def _workflow_event_attributes(evaluation: WorkflowEvaluation) -> dict[str, obje
     return attributes
 
 
-def _evaluation_attributes(result: WorkflowEngineResult) -> Iterator[dict[str, Any]]:
+def _detector_evaluation_attributes(
+    result: ProcessDetectorsResult,
+) -> Iterator[dict[str, Any]]:
+    common = _normalize_value(
+        {
+            "evaluation_type": "detector",
+            "detector_id": result.detector_id,
+            "detector_type": result.detector_type,
+            "project_id": result.project_id,
+        }
+    )
     artifacts = result.evaluation_artifacts()
 
-    if isinstance(result, ProcessDetectorsResult):
-        common = _normalize_value(
-            {
-                "evaluation_type": "detector",
-                "detector_id": result.detector_id,
-                "detector_type": result.detector_type,
-                "project_id": result.project_id,
-            }
-        )
-        if not artifacts:
-            common.update(
-                _normalize_value(
-                    {
-                        "outcome": result.outcome,
-                        "error": result.evaluation_error.msg if result.evaluation_error else None,
-                    }
-                )
-            )
-            yield common
-            return
-
-        for artifact in artifacts:
-            yield {**common, **_normalize_value(artifact)}
+    if not artifacts:
+        yield {
+            **common,
+            **_normalize_value(
+                {
+                    "outcome": result.outcome,
+                    "error": result.evaluation_error.msg if result.evaluation_error else None,
+                }
+            ),
+        }
         return
+
+    for artifact in artifacts:
+        yield {**common, **_normalize_value(artifact)}
+
+
+def _workflow_evaluation_attributes(
+    result: WorkflowEvaluationBatch,
+) -> Iterator[dict[str, Any]]:
+    artifacts = result.evaluation_artifacts()
 
     if not artifacts:
         if isinstance(result, ProcessWorkflowsResult):
@@ -157,64 +169,74 @@ def _evaluation_attributes(result: WorkflowEngineResult) -> Iterator[dict[str, A
 
     for artifact in artifacts:
         attributes = _normalize_value(artifact)
-        if isinstance(result, ProcessWorkflowsResult) and isinstance(
-            artifact, WorkflowEvaluationArtifact
-        ):
+        if isinstance(result, ProcessWorkflowsResult):
             evaluation = result.evaluations.get(artifact.workflow_id)
             if evaluation is not None:
                 attributes.update(_normalize_value(_workflow_event_attributes(evaluation)))
         yield attributes
 
 
+def _evaluation_attributes(result: WorkflowEngineResult) -> Iterator[dict[str, Any]]:
+    if isinstance(result, ProcessDetectorsResult):
+        yield from _detector_evaluation_attributes(result)
+    else:
+        yield from _workflow_evaluation_attributes(result)
+
+
+def _build_trace_item(
+    *,
+    organization_id: int,
+    project_id: int,
+    attributes: Mapping[str, Any],
+    timestamp: Timestamp,
+) -> TraceItem:
+    correlation_id = (
+        attributes.get("event_id") or attributes.get("group_id") or attributes.get("detector_id")
+    )
+    trace_id = uuid.uuid5(
+        EVALUATION_NAMESPACE,
+        f"{organization_id}:{project_id}:{correlation_id}",
+    ).hex
+    trace_attributes = {**attributes, **EAP_LOG_ATTRIBUTES}
+
+    return TraceItem(
+        organization_id=organization_id,
+        project_id=project_id,
+        item_id=hex_to_item_id(uuid.uuid4().hex),
+        item_type=TraceItemType.TRACE_ITEM_TYPE_LOG,
+        timestamp=timestamp,
+        received=timestamp,
+        trace_id=trace_id,
+        retention_days=EAP_RETENTION_DAYS,
+        attributes={key: anyvalue(value) for key, value in trace_attributes.items()},
+        client_sample_rate=1.0,
+        server_sample_rate=1.0,
+    )
+
+
 def emit_evaluation_to_eap(
     organization: Organization,
     result: WorkflowEngineResult,
 ) -> None:
-    """Store compact, queryable workflow-engine evaluation artifacts in EAP."""
+    """Store workflow engine evaluation artifacts in EAP."""
     try:
-        topic = get_topic_definition(Topic.SNUBA_ITEMS)["real_topic_name"]
+        topic = ArroyoTopic(get_topic_definition(Topic.SNUBA_ITEMS)["real_topic_name"])
         timestamp = Timestamp()
         timestamp.FromDatetime(timezone.now())
-        retention_days = 7  # TODO - We'll probably need to store metric issues for longer
 
         for attributes in _evaluation_attributes(result):
             project_id = attributes.get("project_id")
             if not isinstance(project_id, int):
                 continue
 
-            correlation_id = (
-                attributes.get("event_id")
-                or attributes.get("group_id")
-                or attributes.get("detector_id")
-            )
-            trace_id = uuid.uuid5(
-                EVALUATION_NAMESPACE,
-                f"{organization.id}:{project_id}:{correlation_id}",
-            ).hex
-            item_id = hex_to_item_id(uuid.uuid4().hex)
-            attributes.update(
-                {
-                    "sentry.body": "workflow_engine.evaluation",
-                    "sentry.severity_number": 9,
-                    "sentry.severity_text": "INFO",
-                }
-            )
-
-            trace_item = TraceItem(
+            trace_item = _build_trace_item(
                 organization_id=organization.id,
                 project_id=project_id,
-                item_id=item_id,
-                item_type=TraceItemType.TRACE_ITEM_TYPE_LOG,
+                attributes=attributes,
                 timestamp=timestamp,
-                received=timestamp,
-                trace_id=trace_id,
-                retention_days=retention_days,
-                attributes={key: anyvalue(value) for key, value in attributes.items()},
-                client_sample_rate=1.0,
-                server_sample_rate=1.0,
             )
             payload = KafkaPayload(None, EAP_ITEMS_CODEC.encode(trace_item), [])
-            _eap_producer.produce(ArroyoTopic(topic), payload)
+            _eap_producer.produce(topic, payload)
     except Exception:
         logger.exception(
             "workflow_engine.evaluations.eap.produce_failed",
