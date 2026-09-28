@@ -61,9 +61,7 @@ function useAdminOption(name: string, option: FieldDef) {
 }
 
 function getStringSchema(required: boolean | undefined) {
-  return required
-    ? z.string().refine(value => value.trim().length > 0, t('This field is required'))
-    : z.string();
+  return required ? z.string().trim().min(1, t('This field is required')) : z.string();
 }
 
 type OptionFieldProps = {name: string; option: FieldDef};

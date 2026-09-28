@@ -158,6 +158,7 @@ describe('AdminSettings', () => {
 
       const input = await screen.findByRole('textbox', {name: 'Root URL'});
       await userEvent.clear(input);
+      await userEvent.type(input, '   ');
       await userEvent.tab();
 
       expect(save).not.toHaveBeenCalled();
