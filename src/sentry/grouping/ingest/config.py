@@ -29,11 +29,14 @@ CONFIGS_TO_DEPRECATE = set(GROUPING_CONFIG_CLASSES.keys()) - {
 }
 
 
-def update_or_set_grouping_config_if_needed(project: Project, source: str) -> str:
+def update_or_set_grouping_config_if_needed(
+    project: Project, source: str, skip_transition: bool = False
+) -> str:
     """
     Ensure that the given project has its grouping config set to the current default. Will create a
-    `ProjectOption` record for any project missing one. Returns a string indicating what it did, for
-    use by scripts.
+    `ProjectOption` record for any project missing one, and start a grouping transition period if
+    possible (unless `skip_transition` has been explicitly passed, which should only happen in
+    force-upgrade scripts). Returns a string indicating what it did, also for use by scripts.
     """
     current_config = project.get_option("sentry:grouping_config")
     current_config_is_valid = current_config in GROUPING_CONFIG_CLASSES.keys()
@@ -81,7 +84,11 @@ def update_or_set_grouping_config_if_needed(project: Project, source: str) -> st
             changes: dict[str, str | int] = {"sentry:grouping_config": DEFAULT_GROUPING_CONFIG}
 
             # If the current config is out of date but still valid, start a transition period
-            if current_config != DEFAULT_GROUPING_CONFIG and current_config_is_valid:
+            if (
+                current_config != DEFAULT_GROUPING_CONFIG
+                and current_config_is_valid
+                and not skip_transition
+            ):
                 # This is when we will stop calculating the old hash in cases where we don't find the
                 # new hash (which we do in an effort to preserve group continuity).
                 transition_expiry = (
