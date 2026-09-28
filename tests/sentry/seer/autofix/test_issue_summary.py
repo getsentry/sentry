@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, Mock, call, patch
 
 import orjson
 import pytest
+from django.test import override_settings
 
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.issues.action_log.types import SYSTEM_ACTOR, ActionSource, TriggerAutofixAction
@@ -70,6 +71,7 @@ class TriggerAutofixTaskTest(TestCase):
         )
 
 
+@override_settings(SENTRY_SELF_HOSTED=False)
 @with_feature("organizations:gen-ai-features")
 class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
     def setUp(self) -> None:
@@ -878,6 +880,7 @@ class TestGetStoppingPointFromFixability:
         assert _get_stopping_point_from_fixability(score) == expected
 
 
+@override_settings(SENTRY_SELF_HOSTED=False)
 @patch("sentry.seer.autofix.issue_summary.is_seer_seat_based_tier_enabled", return_value=True)
 @with_feature({"organizations:gen-ai-features": True})
 class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
@@ -1027,6 +1030,7 @@ class TestApplyUserPreferenceUpperBound:
         assert result == expected
 
 
+@override_settings(SENTRY_SELF_HOSTED=False)
 @patch("sentry.seer.autofix.issue_summary.is_seer_seat_based_tier_enabled", return_value=True)
 @with_feature({"organizations:gen-ai-features": True})
 class TestRunAutomationWithUpperBound(APITestCase, SnubaTestCase):
@@ -1244,6 +1248,7 @@ class TestGetAndUpdateGroupFixabilityScore(APITestCase, SnubaTestCase):
         assert "summary" not in payload
 
 
+@override_settings(SENTRY_SELF_HOSTED=False)
 @with_feature("organizations:gen-ai-features")
 class TestIsGroupEligibleForAutomation(APITestCase, SnubaTestCase):
     def setUp(self) -> None:

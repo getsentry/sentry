@@ -161,6 +161,7 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/events/validate/'
   | '/organizations/$organizationIdOrSlug/explore/all-queries/'
   | '/organizations/$organizationIdOrSlug/explore/all-queries/starred/order/'
+  | '/organizations/$organizationIdOrSlug/explore/formulas/'
   | '/organizations/$organizationIdOrSlug/explore/saved/'
   | '/organizations/$organizationIdOrSlug/explore/saved/$id/'
   | '/organizations/$organizationIdOrSlug/explore/saved/$id/starred/'

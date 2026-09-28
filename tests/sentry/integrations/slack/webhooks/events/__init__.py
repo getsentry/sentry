@@ -2,6 +2,7 @@ from typing import Any
 from unittest.mock import patch
 
 import orjson
+from django.test import override_settings
 
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import install_slack
@@ -54,6 +55,7 @@ def build_test_block(link):
     }
 
 
+@override_settings(SENTRY_SELF_HOSTED=False)
 class BaseEventTest(APITestCase):
     def setUp(self) -> None:
         super().setUp()
