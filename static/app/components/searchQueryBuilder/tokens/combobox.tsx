@@ -436,6 +436,7 @@ export function SearchQueryBuilderCombobox<
   const listBoxRef = useRef<HTMLUListElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
+  const overlayRef = useRef<HTMLDivElement>(null);
   const descriptionRef = useRef<HTMLDivElement>(null);
   const askSeerButtonRef = useRef<HTMLButtonElement>(null);
   const preventOverflowOptions = useMemo(() => ({boundary: document.body}), []);
@@ -675,6 +676,21 @@ export function SearchQueryBuilderCombobox<
 
   const highlightedValue = inputValue ? renderInputValue?.(inputValue) : null;
 
+  // Flex can shrink the input below the width useAutosizeInput gives it, and the input
+  // then scrolls to keep the caret visible. The overlay has to follow or it shows a
+  // different slice of the value than the one being edited.
+  const syncOverlayScroll = useCallback(() => {
+    if (overlayRef.current && inputRef.current) {
+      overlayRef.current.scrollLeft = inputRef.current.scrollLeft;
+    }
+  }, []);
+
+  useLayoutEffect(() => {
+    if (inputValue) {
+      syncOverlayScroll();
+    }
+  }, [inputValue, syncOverlayScroll]);
+
   return (
     <Flex align="stretch" width="100%" height="100%" position="relative">
       <UnstyledInput
@@ -689,6 +705,7 @@ export function SearchQueryBuilderCombobox<
         )}
         type="text"
         placeholder={placeholder}
+        onScroll={syncOverlayScroll}
         onClick={handleInputClick}
         value={inputValue}
         onChange={handleInputChange}
@@ -726,7 +743,9 @@ export function SearchQueryBuilderCombobox<
         data-test-id={dataTestId}
       />
       {highlightedValue ? (
-        <InputValueOverlay aria-hidden>{highlightedValue}</InputValueOverlay>
+        <InputValueOverlay ref={overlayRef} aria-hidden>
+          {highlightedValue}
+        </InputValueOverlay>
       ) : null}
       {description ? (
         <StyledPositionWrapper
@@ -795,6 +814,7 @@ const InputValueOverlay = styled('div')`
   display: flex;
   align-items: center;
   white-space: pre;
+  overflow: hidden;
   pointer-events: none;
   font-family: ${p => p.theme.font.family.sans};
   font-weight: ${p => p.theme.font.weight.sans.regular};
