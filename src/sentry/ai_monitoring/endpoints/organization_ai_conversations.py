@@ -131,33 +131,6 @@ def _build_user_response(
     }
 
 
-def _build_conversation_response(
-    conv_id: str,
-    aggregates: AIConversationAggregates,
-    errors: int,
-    trace_ids: list[str],
-    flow: list[str],
-    first_input: str | None,
-    last_output: str | None,
-    user: UserResponse | None = None,
-    title: str | None = None,
-    project_id: int | None = None,
-) -> AIConversationData:
-    return {
-        "conversationId": conv_id,
-        "errors": errors,
-        "title": title,
-        "projectId": project_id,
-        "flow": flow,
-        "traceCount": len(trace_ids),
-        "traceIds": trace_ids,
-        "firstInput": first_input,
-        "lastOutput": last_output,
-        "user": user,
-        **aggregates,
-    }
-
-
 @extend_schema(tags=["Explore"])
 @cell_silo_endpoint
 class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
@@ -381,22 +354,24 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                 if isinstance(project_id, int)
             }
             trace_ids = sorted(row.get("trace_ids") or [])
-            conversations_map[conversation_id] = _build_conversation_response(
-                conv_id=conversation_id,
-                aggregates=parse_conversation_aggregates(row),
-                errors=int(row.get("errors") or 0),
-                trace_ids=trace_ids,
-                flow=row.get("flow") or [],
-                first_input=get_aggregated_first_input(row),
-                last_output=get_aggregated_last_output(row),
-                user=_build_user_response(
+            conversations_map[conversation_id] = {
+                "conversationId": conversation_id,
+                "errors": int(row.get("errors") or 0),
+                "title": None,
+                "projectId": min(project_ids, default=None),
+                "flow": row.get("flow") or [],
+                "traceCount": len(trace_ids),
+                "traceIds": trace_ids,
+                "firstInput": get_aggregated_first_input(row),
+                "lastOutput": get_aggregated_last_output(row),
+                "user": _build_user_response(
                     user_id=row.get("user_id"),
                     user_email=row.get("user_email"),
                     user_username=row.get("user_username"),
                     user_ip=row.get("user_ip"),
                 ),
-                project_id=min(project_ids, default=None),
-            )
+                **parse_conversation_aggregates(row),
+            }
             project_ids_by_conversation[conversation_id] = project_ids
 
         self._apply_titles(conversations_map, project_ids_by_conversation)
