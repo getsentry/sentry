@@ -10,24 +10,13 @@ interface PathMappingWarningAlertProps {
   warning: PathMappingWarning | null | undefined;
 }
 
-function displayStackRoot(root: string) {
+function displayRoot(root: string, emptyLabel: string) {
   if (root) {
     return <strong>{root}</strong>;
   }
   return (
     <Fragment>
-      <strong>{t('empty')}</strong> {t('stack trace prefix')}
-    </Fragment>
-  );
-}
-
-function displaySourceRoot(root: string) {
-  if (root) {
-    return <strong>{root}</strong>;
-  }
-  return (
-    <Fragment>
-      <strong>{t('empty')}</strong> {t('repository prefix')}
+      <strong>{t('empty')}</strong> {emptyLabel}
     </Fragment>
   );
 }
@@ -49,8 +38,8 @@ export function PathMappingWarningAlert({warning}: PathMappingWarningAlertProps)
         {tct(
           '[stackRoot] is already mapped to [sourceRoot]. Only one can be used for matching.',
           {
-            stackRoot: displayStackRoot(warning.stackRoot),
-            sourceRoot: displaySourceRoot(warning.sourceRoot),
+            stackRoot: displayRoot(warning.stackRoot, t('stack trace prefix')),
+            sourceRoot: displayRoot(warning.sourceRoot, t('repository prefix')),
           }
         )}
       </Alert>
