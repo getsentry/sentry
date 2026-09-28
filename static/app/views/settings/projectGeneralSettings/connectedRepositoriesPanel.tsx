@@ -43,11 +43,10 @@ function ConnectedRepositoryRow({
           <ConnectRepositoryModal
             {...modalProps}
             project={project}
-            editingRepo={{
-              repositoryId: repo.repositoryId,
-              repoName: repo.repoName,
-              providerKey: repo.providerKey,
-            }}
+            mode="edit"
+            repositoryId={repo.repositoryId}
+            repoName={repo.repoName}
+            providerKey={repo.providerKey}
           />
         )),
     },
@@ -141,7 +140,7 @@ export function ConnectedRepositoriesPanel({project}: {project: Project}) {
           icon={<IconAdd />}
           onClick={() =>
             openModal(modalProps => (
-              <ConnectRepositoryModal {...modalProps} project={project} />
+              <ConnectRepositoryModal {...modalProps} project={project} mode="connect" />
             ))
           }
         >

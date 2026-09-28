@@ -109,28 +109,22 @@ function PathsPlaceholder() {
   );
 }
 
-export interface EditingRepo {
-  providerKey: string | null;
-  repoName: string;
-  repositoryId: string;
-}
-
-interface Props extends ModalRenderProps {
+type ConnectRepositoryModalProps = ModalRenderProps & {
   project: Project;
-  editingRepo?: EditingRepo;
-}
+} & (
+    | {mode: 'connect'}
+    | {mode: 'edit'; providerKey: string | null; repoName: string; repositoryId: string}
+  );
 
-export function ConnectRepositoryModal({
-  Header,
-  Body,
-  Footer,
-  closeModal,
-  project,
-  editingRepo,
-}: Props) {
+export function ConnectRepositoryModal(props: ConnectRepositoryModalProps) {
+  const {Header, Body, Footer, closeModal, project} = props;
   const organization = useOrganization();
   const queryClient = useQueryClient();
-  const isEditMode = editingRepo !== undefined;
+  const isEditMode = props.mode === 'edit';
+
+  // Narrow the edit-specific fields into one alias so the rest of the
+  // component body doesn't need repeated discriminant checks.
+  const editRepo = props.mode === 'edit' ? props : null;
 
   // Connect-mode state
   const [selectedOption, setSelectedOption] = useState<RepoSelectOption | null>(null);
@@ -149,21 +143,19 @@ export function ConnectRepositoryModal({
   const seededMappings = useMemo(
     () =>
       codeMappingsQuery.isSuccess
-        ? (codeMappingsQuery.data ?? []).filter(
-            m => m.repoId === editingRepo?.repositoryId
-          )
+        ? (codeMappingsQuery.data ?? []).filter(m => m.repoId === editRepo?.repositoryId)
         : null,
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [codeMappingsQuery.isSuccess, codeMappingsQuery.data]
   );
 
-  // integrationId for edit-mode saves: prefer an existing mapping, fall back
-  // to the grouped repo options (needed when the repo has no mappings yet).
+  // integrationId for edit saves: prefer an existing mapping, fall back to
+  // the grouped repo options when the repo has no mappings yet.
   const editIntegrationId =
     seededMappings?.find(m => m.integrationId)?.integrationId ??
     groupedOptions
       .flatMap(g => g.options)
-      .find(o => o.repositoryId === editingRepo?.repositoryId)?.integrationId;
+      .find(o => o.repositoryId === editRepo?.repositoryId)?.integrationId;
 
   // 409 messages from Code Owner-protected deletes — surfaced without closing.
   const [codeOwnerWarnings, setCodeOwnerWarnings] = useState<string[]>([]);
@@ -223,13 +215,13 @@ export function ConnectRepositoryModal({
 
   function handleSave() {
     if (isEditMode) {
-      if (!editingRepo || !seededMappings) {
+      if (!editRepo || !seededMappings) {
         return;
       }
       editMutation.mutate({
         orgSlug: organization.slug,
         project,
-        repositoryId: editingRepo.repositoryId,
+        repositoryId: editRepo.repositoryId,
         integrationId: editIntegrationId ?? '',
         seededMappings,
         submittedMappings: pathMappings,
@@ -260,8 +252,8 @@ export function ConnectRepositoryModal({
     <Fragment>
       <Header closeButton>
         <Heading as="h4">
-          {isEditMode
-            ? tct('Edit [repo] connection', {repo: editingRepo.repoName})
+          {props.mode === 'edit'
+            ? tct('Edit [repo] connection', {repo: props.repoName})
             : tct('Connect a repository to [project]', {project: project.slug})}
         </Heading>
       </Header>
@@ -310,10 +302,10 @@ export function ConnectRepositoryModal({
             </Container>
             <IconArrow direction="right" />
             <Container minWidth={0}>
-              {isEditMode ? (
+              {props.mode === 'edit' ? (
                 <LockedRepoField
-                  repoName={editingRepo.repoName}
-                  providerKey={editingRepo.providerKey}
+                  repoName={props.repoName}
+                  providerKey={props.providerKey}
                 />
               ) : (
                 <Select
@@ -334,12 +326,12 @@ export function ConnectRepositoryModal({
             </Container>
           </Grid>
 
-          {isEditMode ? (
+          {props.mode === 'edit' ? (
             seededPathMappings ? (
               <Container paddingTop="2xl">
                 <PathMappingList
-                  key={editingRepo.repositoryId}
-                  providerKey={editingRepo.providerKey ?? undefined}
+                  key={props.repositoryId}
+                  providerKey={props.providerKey ?? undefined}
                   pathMappings={seededPathMappings}
                   onChange={setPathMappings}
                 />

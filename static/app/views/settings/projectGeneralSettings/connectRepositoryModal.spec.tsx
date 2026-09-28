@@ -37,10 +37,10 @@ describe('ConnectRepositoryModal', () => {
   const project = ProjectFixture();
   const integration = GitHubIntegrationFixture();
 
-  const defaultEditingRepo = {
+  const defaultEditRepo = {
     repositoryId: '10',
     repoName: 'getsentry/sentry',
-    providerKey: 'github',
+    providerKey: 'github' as const,
   };
 
   function renderModal(closeModal = jest.fn()) {
@@ -53,13 +53,14 @@ describe('ConnectRepositoryModal', () => {
           CloseButton={makeCloseButton(closeModal)}
           closeModal={closeModal}
           project={project}
+          mode="connect"
         />
       </Fragment>,
       {organization}
     );
   }
 
-  function renderEditModal(closeModal = jest.fn(), editingRepo = defaultEditingRepo) {
+  function renderEditModal(closeModal = jest.fn(), editRepo = defaultEditRepo) {
     return render(
       <Fragment>
         <ConnectRepositoryModal
@@ -69,7 +70,10 @@ describe('ConnectRepositoryModal', () => {
           CloseButton={makeCloseButton(closeModal)}
           closeModal={closeModal}
           project={project}
-          editingRepo={editingRepo}
+          mode="edit"
+          repositoryId={editRepo.repositoryId}
+          repoName={editRepo.repoName}
+          providerKey={editRepo.providerKey}
         />
       </Fragment>,
       {organization}
