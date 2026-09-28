@@ -58,7 +58,7 @@ export function PolicyFormModal({
 }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isReadingFile, setIsReadingFile] = useState(false);
-  const formSchema = isNewPolicy
+  const baseFormSchema = isNewPolicy
     ? schema
         .extend({
           name: z.string().trim().min(1, 'Name is required'),
@@ -78,6 +78,18 @@ export function PolicyFormModal({
           .min(1, 'Version is required')
           .min(3, 'Version must be at least 3 characters'),
       });
+  const formSchema = baseFormSchema.refine(
+    value => {
+      if (isNewPolicy && !value.version && !value.active) {
+        return !value.url && !value.file;
+      }
+      return Boolean(value.url) !== Boolean(value.file);
+    },
+    {
+      path: ['url'],
+      message: 'Provide either a URL or a PDF file, but not both.',
+    }
+  );
   const mutation = useMutation({
     mutationFn: fetchMutation<Policy | PolicyRevision>,
     onSuccess: data => {
@@ -208,7 +220,7 @@ export function PolicyFormModal({
             {field => (
               <field.Layout.Stack
                 label="URL"
-                hintText="If the policy is hosted at an external URL, enter it here."
+                hintText="A revision needs either a URL or a PDF file."
               >
                 <field.Input
                   value={field.state.value}
@@ -222,7 +234,7 @@ export function PolicyFormModal({
             {field => (
               <field.Layout.Stack
                 label="File"
-                hintText="Instead of an external URL you may upload the file directly."
+                hintText="Upload a PDF instead of entering a URL."
               >
                 <Flex align="center" gap="md">
                   <input
