@@ -2,7 +2,7 @@ import logging
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Collection, Sequence
 from dataclasses import asdict
-from typing import Any, ClassVar, NotRequired, Protocol, TypedDict
+from typing import Any, ClassVar, Protocol, TypedDict
 
 from django.core.exceptions import ValidationError
 from taskbroker_client.retry import RetryTaskError
@@ -35,7 +35,7 @@ from sentry.shared_integrations.exceptions import (
 )
 from sentry.types.activity import ActivityType
 from sentry.types.rules import RuleFuture
-from sentry.workflow_engine.models import Action, AlertRuleWorkflow, Detector, Workflow
+from sentry.workflow_engine.models import Action, Detector, Workflow
 from sentry.workflow_engine.types import (
     ActionInvocation,
     WorkflowEventData,
@@ -55,7 +55,6 @@ FutureCallback = Callable[[GroupEvent, Sequence[RuleFuture]], Any]
 
 class RuleData(TypedDict):
     actions: list[dict[str, Any]]
-    legacy_rule_id: NotRequired[int]
 
 
 class LegacyRegistryHandler(ABC):
@@ -206,7 +205,7 @@ class BaseIssueAlertHandler(ABC):
         action: Action,
         detector: Detector,
         event_data: WorkflowEventData,
-        workflow_id: WorkflowId | None,
+        workflow_id: WorkflowId,
     ) -> Rule:
         """
         Creates a Rule instance from the Action model.
@@ -223,11 +222,9 @@ class BaseIssueAlertHandler(ABC):
                 cls.build_rule_action_blob(action, detector.linked_project.organization.id)
             ],
         }
-        rule_id = None
-
         label = None
         # Attempt to query the workflow name for non-test notifications.
-        if workflow_id is not None and workflow_id != TEST_NOTIFICATION_ID:
+        if workflow_id != TEST_NOTIFICATION_ID:
             try:
                 workflow = Workflow.objects.get(id=workflow_id)
                 label = workflow.name
@@ -238,38 +235,12 @@ class BaseIssueAlertHandler(ABC):
 
         if label is None:
             label = detector.name
-        # Build link to the rule if it exists, otherwise build link to the workflow.
-        # FE will handle redirection if necessary from rule -> workflow
 
         # If test event, just set the legacy rule id to -1
         if workflow_id == TEST_NOTIFICATION_ID:
             data["actions"][0]["legacy_rule_id"] = TEST_NOTIFICATION_ID
-        elif workflow_id is not None:
+        else:
             data["actions"][0]["workflow_id"] = workflow_id
-
-            # attempt to find legacy_rule_id from the alert rule workflow
-            alert_rule_workflow = AlertRuleWorkflow.objects.filter(
-                workflow_id=workflow_id,
-                rule_id__isnull=False,
-            ).first()
-            if alert_rule_workflow:
-                try:
-                    Rule.objects.get(
-                        id=alert_rule_workflow.rule_id,
-                        project__organization_id=detector.linked_project.organization_id,
-                    )
-                    rule_id = alert_rule_workflow.rule_id
-                except Rule.DoesNotExist:
-                    logger.exception(
-                        "Rule not found when querying for AlertRuleWorkflow",
-                        extra={"rule_id": alert_rule_workflow.rule_id},
-                    )
-
-            if rule_id:
-                data["actions"][0]["legacy_rule_id"] = rule_id
-
-        if workflow_id is None and rule_id is None:
-            raise ValueError("Workflow ID or rule ID is required to fire notification")
 
         if workflow_id == TEST_NOTIFICATION_ID and action.type == Action.Type.EMAIL:
             # mail action needs to have skipDigests set to True
