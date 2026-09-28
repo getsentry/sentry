@@ -140,32 +140,38 @@ export function HypothesisCard({
               icon={<Timeline.Dot />}
               colorConfig={dotColorConfig}
               title={
-                <Button
-                  variant="link"
-                  aria-expanded={showAllSteps}
-                  onClick={() =>
-                    setExpandedWhileTerminal(showAllSteps ? null : isTerminal)
-                  }
-                >
-                  <Flex as="span" align="center" gap="xs">
-                    <StepTitle size="sm" variant="muted" bold={false}>
-                      {showAllSteps
-                        ? t('Show less')
-                        : isTerminal
-                          ? tn('Show %s step', 'Show all %s steps', steps.length)
-                          : tn(
-                              'Show %s more step',
-                              'Show %s more steps',
-                              hiddenStepCount
-                            )}
-                    </StepTitle>
-                    <IconChevron
-                      size="xs"
-                      variant="muted"
-                      direction={showAllSteps ? 'up' : 'right'}
-                    />
-                  </Flex>
-                </Button>
+                // Inside the button's flex label the title's text box trims to
+                // the glyphs, so its line height no longer reaches the marker's.
+                // Centre the button in a marker-high box instead, or it sits on
+                // the timeline title's baseline and rides above the dot.
+                <Flex align="center" minHeight="22px">
+                  <Button
+                    variant="link"
+                    aria-expanded={showAllSteps}
+                    onClick={() =>
+                      setExpandedWhileTerminal(showAllSteps ? null : isTerminal)
+                    }
+                  >
+                    <Flex as="span" align="center" gap="xs">
+                      <StepTitle size="sm" variant="muted" bold={false}>
+                        {showAllSteps
+                          ? t('Show less')
+                          : isTerminal
+                            ? tn('Show %s step', 'Show all %s steps', steps.length)
+                            : tn(
+                                'Show %s more step',
+                                'Show %s more steps',
+                                hiddenStepCount
+                              )}
+                      </StepTitle>
+                      <IconChevron
+                        size="xs"
+                        variant="muted"
+                        direction={showAllSteps ? 'up' : 'right'}
+                      />
+                    </Flex>
+                  </Button>
+                </Flex>
               }
             />
           ) : null}

@@ -81,7 +81,8 @@ interface ToolCallProps {
    */
   output?: ReactNode;
   /**
-   * A link flowing inline after the title text. Typically the entity the call
+   * A link at the right edge of the title line, or inline after the title text in
+   * a narrow container. Typically the entity the call
    * acted on — the call's result.
    */
   reference?: ToolCallReference;
@@ -91,6 +92,56 @@ interface ToolCallProps {
 // pinned to this width so detail (input chips, notifications, children) aligns
 // under the headline rather than under the glyph.
 const GLYPH_SLOT_WIDTH = '16px';
+
+// Holds the status glyph. One title line tall (at the title's font size), so the
+// glyph centers on the first line of a wrapped title instead of the whole block.
+// Styled because `1lh` needs the title's font size, which no layout primitive sets.
+const GlyphSlot = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: ${GLYPH_SLOT_WIDTH};
+  height: 1lh;
+  font-size: ${p => p.theme.font.size.sm};
+`;
+
+// The title row: the title (with its reference) in the first column, the
+// failure chip in a trailing column. From the `sm` container width up,
+// `TitleFlow` dissolves so the title spans both rows and the reference takes the
+// trailing column's first row; the chip then auto-places into the next free row
+// of that column, stacking under the reference (or on the first row when there
+// is none). The font size matches the title so `1lh` measures one title line.
+const TitleGrid = styled('div')`
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  column-gap: ${p => p.theme.space.md};
+  font-size: ${p => p.theme.font.size.sm};
+
+  @container (min-width: ${p => p.theme.container.sm}) {
+    grid-template-rows: auto 1fr;
+  }
+`;
+
+// Below the breakpoint a block, so the reference flows inline right after the
+// title text and wraps with it. From the breakpoint up, `display: contents` lifts
+// the title (its first child) and the reference into `TitleGrid`'s cells.
+// Styled because no layout primitive can switch between block and contents.
+const TitleFlow = styled('div')`
+  grid-column: 1;
+
+  @container (min-width: ${p => p.theme.container.sm}) {
+    display: contents;
+
+    > :first-child {
+      grid-column: 1;
+      grid-row: 1 / span 2;
+    }
+  }
+`;
 
 // The reference button is `inline-flex`, whose baseline is its first item's —
 // the icon's bottom edge — so on the title's baseline it rides a few pixels
@@ -103,6 +154,12 @@ const InlineReference = styled('span')`
   align-items: center;
   height: 1lh;
   vertical-align: top;
+
+  @container (min-width: ${p => p.theme.container.sm}) {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: end;
+  }
 `;
 
 // `inherit` so the text takes the link button's accent color rather than
@@ -123,10 +180,10 @@ function ChipContent({label, value}: {value: string; label?: string}) {
 }
 
 /**
- * The reference, rendered as a `link`-variant button that flows inline after the
- * title text. A trailing chip in its own non-shrinking column squeezed the title
- * into a narrow, many-line column in tight containers; inline, the title keeps
- * the full width and the link wraps with it as a single unit.
+ * The reference, rendered as a `link`-variant button. `TitleGrid` places it: at
+ * the right edge in wide containers, inline after the title text in narrow ones.
+ * A trailing column in a narrow container squeezed the title into many short
+ * lines; inline, the title keeps the full width and the link wraps with it.
  */
 function ReferenceLink({reference}: {reference: ToolCallReference}) {
   const {label, value, icon, onClick, to} = reference;
@@ -168,17 +225,20 @@ function ReferenceLink({reference}: {reference: ToolCallReference}) {
  */
 function FailureChip({label}: {label: ReactNode}) {
   return (
-    <Container
+    // A flex container blockifies the label, so `Text`'s `text-box-trim` trims it
+    // to the glyphs' ascent/descent. Otherwise the chip's height is the line box,
+    // whose descender room (unused by digits) reads as extra bottom padding.
+    <Flex
+      align="center"
       border="danger"
       radius="sm"
-      paddingLeft="sm"
-      paddingRight="sm"
+      padding="2xs sm"
       background="primary"
     >
       <Text size="sm" variant="danger" bold>
         {label}
       </Text>
-    </Container>
+    </Flex>
   );
 }
 
@@ -243,8 +303,9 @@ function getStatusLabel(
  *
  * Unlike the collapsible `ThinkingBlock` it lives in, a tool call is not itself a
  * disclosure — its detail is always visible. The lifecycle glyph
- * (`ToolCallIndicator`) leads the title; an optional `reference` link follows the
- * title text inline and, on failure, a `failureLabel` chip (the HTTP status)
+ * (`ToolCallIndicator`) leads the title, level with its first line; an optional
+ * `reference` link sits at the right edge (or inline after the title text in a
+ * narrow container) and, on failure, a `failureLabel` chip (the HTTP status)
  * trails the row. `input`, `output`,
  * `notifications`, and `children` stack beneath the title, indented to align
  * under the headline.
@@ -268,14 +329,16 @@ export function ToolCall({
     Boolean(children);
 
   return (
-    <Stack gap="xs" flex={1} minWidth={0} width="100%">
-      <Flex gap="md" align="center" width="100%">
-        <Flex width={GLYPH_SLOT_WIDTH} justify="center" flexShrink={0}>
+    <Stack gap="xs" flex={1} minWidth={0} width="100%" containerType="inline-size">
+      <Flex gap="md" align="start" width="100%">
+        <GlyphSlot>
           <ToolCallIndicator status={status} aria-label={getStatusLabel(status, t)} />
-        </Flex>
-        <Flex flex={1} minWidth={0} align="center" justify="between" gap="md">
-          <Text size="sm" variant="secondary" monospace wordBreak="break-word">
-            {title}
+        </GlyphSlot>
+        <TitleGrid>
+          <TitleFlow>
+            <Text size="sm" variant="secondary" monospace wordBreak="break-word">
+              {title}
+            </Text>
             {reference ? (
               <Fragment>
                 {' '}
@@ -284,13 +347,18 @@ export function ToolCall({
                 </InlineReference>
               </Fragment>
             ) : null}
-          </Text>
+          </TitleFlow>
           {isFailure ? (
-            <Flex flexShrink={0}>
+            <Flex
+              column="2"
+              justify="end"
+              // Stacked under the reference once it moves into this column.
+              paddingTop={reference ? {zero: '0', sm: 'xs'} : undefined}
+            >
               <FailureChip label={failureLabel ?? t('Failed')} />
             </Flex>
           ) : null}
-        </Flex>
+        </TitleGrid>
       </Flex>
 
       {hasDetail ? (
