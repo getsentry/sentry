@@ -98,7 +98,7 @@ function useCaretAnchorPosition({
 
     const start = getDOMPoint(input, activeTrigger.start);
     const end = getDOMPoint(input, activeTrigger.start + trigger.length);
-    const range = document.createRange();
+    const range = input.ownerDocument.createRange();
     range.setStart(start.node, start.offset);
     range.setEnd(end.node, end.offset);
     if (typeof range.getBoundingClientRect !== 'function') {

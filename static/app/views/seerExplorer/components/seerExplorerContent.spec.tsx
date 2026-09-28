@@ -1,8 +1,9 @@
+import {MemberFixture} from 'sentry-fixture/member';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PictureInPictureProvider} from '@sentry/scraps/pictureInPicture';
 
@@ -16,6 +17,13 @@ import * as useSeerExplorerModule from 'sentry/views/seerExplorer/hooks/useSeerE
 import {SeerExplorerSessionsProvider} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
 
 const mockGetPageReferrer = jest.fn().mockReturnValue('/issues/');
+
+async function getSeerExplorerInput() {
+  const editor = await screen.findByRole('combobox', {name: 'Ask Seer a question'});
+  // user-event does not yet recognize contenteditable="plaintext-only".
+  editor.setAttribute('contenteditable', 'true');
+  return editor;
+}
 
 const defaultHookReturn: ReturnType<typeof useSeerExplorerModule.useSeerExplorer> = {
   sessionData: null,
@@ -216,11 +224,10 @@ describe('SeerExplorerContent', () => {
           organization,
         }
       );
-      expect(
-        await screen.findByPlaceholderText(
-          'Ask Seer a question, or press / for commands.'
-        )
-      ).toBeInTheDocument();
+      expect(await screen.findByTestId('seer-explorer-input')).toHaveAttribute(
+        'data-placeholder',
+        'Ask Seer a question, or press / for commands.'
+      );
     });
 
     it('sends the suggested question when a suggestion button is clicked', async () => {
@@ -588,9 +595,9 @@ describe('SeerExplorerContent', () => {
           organization,
         }
       );
-      const textarea = await screen.findByTestId('seer-explorer-input');
+      const textarea = await getSeerExplorerInput();
       await userEvent.type(textarea, 'Test message');
-      expect(textarea).toHaveValue('Test message');
+      expect(textarea).toHaveTextContent('Test message');
     });
 
     it('calls sendMessage and clears input when send button is clicked', async () => {
@@ -614,12 +621,12 @@ describe('SeerExplorerContent', () => {
         }
       );
 
-      const textarea = await screen.findByTestId('seer-explorer-input');
+      const textarea = await getSeerExplorerInput();
       await userEvent.type(textarea, 'Test message');
       await userEvent.click(screen.getByRole('button', {name: 'Send message'}));
 
       expect(sendMessage).toHaveBeenCalledWith('Test message', 0);
-      expect(textarea).toHaveValue('');
+      expect(textarea).toBeEmptyDOMElement();
     });
 
     it('shows an error alert and restores the draft when sending fails', async () => {
@@ -647,7 +654,9 @@ describe('SeerExplorerContent', () => {
           'There was an error sending your message, wait and try again.'
         )
       ).toBeInTheDocument();
-      expect(screen.getByTestId('seer-explorer-input')).toHaveValue('Failed message');
+      expect(screen.getByTestId('seer-explorer-input')).toHaveTextContent(
+        'Failed message'
+      );
       expect(screen.queryByRole('button', {name: 'Dismiss'})).not.toBeInTheDocument();
     });
 
@@ -676,7 +685,7 @@ describe('SeerExplorerContent', () => {
           'There was an error sending your message, wait and try again.'
         )
       ).toBeInTheDocument();
-      expect(screen.getByTestId('seer-explorer-input')).toHaveValue('');
+      expect(screen.getByTestId('seer-explorer-input')).toBeEmptyDOMElement();
     });
 
     it('calls sendMessage and clears input when Enter is pressed', async () => {
@@ -700,12 +709,160 @@ describe('SeerExplorerContent', () => {
         }
       );
 
-      const textarea = await screen.findByTestId('seer-explorer-input');
+      const textarea = await getSeerExplorerInput();
       await userEvent.type(textarea, 'Test message');
       await userEvent.keyboard('{Enter}');
 
       expect(sendMessage).toHaveBeenCalledWith('Test message', 0);
-      expect(textarea).toHaveValue('');
+      expect(textarea).toBeEmptyDOMElement();
+    });
+
+    it('selects a mention before Enter sends the message', async () => {
+      const sendMessage = jest.fn();
+      jest
+        .spyOn(useSeerExplorerModule, 'useSeerExplorer')
+        .mockReturnValue({...defaultHookReturn, sendMessage});
+      render(
+        <PictureInPictureProvider>
+          <SeerExplorerSessionsProvider>
+            <SeerExplorerContent
+              getPageReferrer={mockGetPageReferrer}
+              onClose={() => {}}
+            />
+          </SeerExplorerSessionsProvider>
+        </PictureInPictureProvider>,
+        {
+          organization,
+        }
+      );
+
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/members/',
+        body: [MemberFixture({user: UserFixture({id: '1', name: 'Alice Example'})})],
+      });
+      await userEvent.type(await getSeerExplorerInput(), '@ali');
+      await screen.findByRole('option', {name: /Alice Example/});
+      await userEvent.keyboard('{Enter}');
+      expect(sendMessage).not.toHaveBeenCalled();
+      await userEvent.keyboard('{Enter}');
+      expect(sendMessage).toHaveBeenCalledWith('@Alice Example', 0);
+    });
+
+    it('sends on Enter when mention suggestions are empty', async () => {
+      const sendMessage = jest.fn();
+      jest
+        .spyOn(useSeerExplorerModule, 'useSeerExplorer')
+        .mockReturnValue({...defaultHookReturn, sendMessage});
+      render(
+        <PictureInPictureProvider>
+          <SeerExplorerSessionsProvider>
+            <SeerExplorerContent
+              getPageReferrer={mockGetPageReferrer}
+              onClose={() => {}}
+            />
+          </SeerExplorerSessionsProvider>
+        </PictureInPictureProvider>,
+        {
+          organization,
+        }
+      );
+
+      MockApiClient.addMockResponse({url: '/organizations/org-slug/members/', body: []});
+      await userEvent.type(await getSeerExplorerInput(), '@missing');
+      await screen.findByText('No suggestions found');
+      await userEvent.keyboard('{Enter}');
+      expect(sendMessage).toHaveBeenCalledWith('@missing', 0);
+    });
+
+    it('preserves Shift+Enter newlines', async () => {
+      const sendMessage = jest.fn();
+      jest
+        .spyOn(useSeerExplorerModule, 'useSeerExplorer')
+        .mockReturnValue({...defaultHookReturn, sendMessage});
+      render(
+        <PictureInPictureProvider>
+          <SeerExplorerSessionsProvider>
+            <SeerExplorerContent
+              getPageReferrer={mockGetPageReferrer}
+              onClose={() => {}}
+            />
+          </SeerExplorerSessionsProvider>
+        </PictureInPictureProvider>,
+        {
+          organization,
+        }
+      );
+
+      await userEvent.type(
+        await getSeerExplorerInput(),
+        'First{Shift>}{Enter}{/Shift}Second'
+      );
+      expect(sendMessage).not.toHaveBeenCalled();
+      await userEvent.keyboard('{Enter}');
+      expect(sendMessage).toHaveBeenCalledWith('First\nSecond', 0);
+    });
+
+    it('does not send while composing with an IME', async () => {
+      const sendMessage = jest.fn();
+      jest
+        .spyOn(useSeerExplorerModule, 'useSeerExplorer')
+        .mockReturnValue({...defaultHookReturn, sendMessage});
+      render(
+        <PictureInPictureProvider>
+          <SeerExplorerSessionsProvider>
+            <SeerExplorerContent
+              getPageReferrer={mockGetPageReferrer}
+              onClose={() => {}}
+            />
+          </SeerExplorerSessionsProvider>
+        </PictureInPictureProvider>,
+        {
+          organization,
+        }
+      );
+
+      const editor = await getSeerExplorerInput();
+      await userEvent.type(editor, 'Draft');
+      act(() => {
+        editor.dispatchEvent(new CompositionEvent('compositionstart', {bubbles: true}));
+        editor.dispatchEvent(
+          new KeyboardEvent('keydown', {key: 'Enter', bubbles: true, cancelable: true})
+        );
+      });
+      expect(sendMessage).not.toHaveBeenCalled();
+      act(() => {
+        editor.dispatchEvent(new CompositionEvent('compositionend', {bubbles: true}));
+      });
+      await userEvent.keyboard('{Enter}');
+      expect(sendMessage).toHaveBeenCalledWith('Draft', 0);
+    });
+
+    it('selects a slash command without sending a message', async () => {
+      HTMLElement.prototype.scrollIntoView = jest.fn();
+      const sendMessage = jest.fn();
+      jest
+        .spyOn(useSeerExplorerModule, 'useSeerExplorer')
+        .mockReturnValue({...defaultHookReturn, sendMessage});
+      render(
+        <PictureInPictureProvider>
+          <SeerExplorerSessionsProvider>
+            <SeerExplorerContent
+              getPageReferrer={mockGetPageReferrer}
+              onClose={() => {}}
+            />
+          </SeerExplorerSessionsProvider>
+        </PictureInPictureProvider>,
+        {
+          organization,
+        }
+      );
+
+      await userEvent.type(await getSeerExplorerInput(), '/new');
+      await screen.findByText('Start a new session');
+      await userEvent.keyboard('{Enter}');
+      expect(defaultHookReturn.startNewSession).toHaveBeenCalled();
+      expect(sendMessage).not.toHaveBeenCalled();
+      expect(await getSeerExplorerInput()).toBeEmptyDOMElement();
     });
 
     it('[Integration] sends message to the API when Enter is pressed', async () => {
@@ -776,7 +933,7 @@ describe('SeerExplorerContent', () => {
         }
       );
 
-      const textarea = await screen.findByTestId('seer-explorer-input');
+      const textarea = await getSeerExplorerInput();
       await userEvent.type(textarea, 'What is this error?');
       await userEvent.keyboard('{Enter}');
 
@@ -838,7 +995,7 @@ describe('SeerExplorerContent', () => {
         }
       );
 
-      const textarea = await screen.findByTestId('seer-explorer-input');
+      const textarea = await getSeerExplorerInput();
       await userEvent.type(textarea, 'Test message');
       await userEvent.keyboard('{Enter}');
 
@@ -890,7 +1047,7 @@ describe('SeerExplorerContent', () => {
         }
       );
 
-      const textarea = await screen.findByTestId('seer-explorer-input');
+      const textarea = await getSeerExplorerInput();
       await userEvent.type(textarea, 'New message');
       await userEvent.keyboard('{Enter}');
 
@@ -946,7 +1103,7 @@ describe('SeerExplorerContent', () => {
 
       expect(await screen.findByText('Response timed out.')).toBeInTheDocument();
       expect(screen.getByTestId('seer-explorer-input')).toHaveAttribute(
-        'placeholder',
+        'data-placeholder',
         'Ask Seer a question, or press / for commands.'
       );
 
@@ -1011,6 +1168,35 @@ describe('SeerExplorerContent', () => {
   });
 
   describe('Input Persistence', () => {
+    it('restores and sends a legacy string draft', async () => {
+      sessionStorage.setItem('seer-explorer-draft:7', JSON.stringify('Legacy draft'));
+      const sendMessage = jest.fn();
+      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
+        ...defaultHookReturn,
+        runId: 7,
+        sendMessage,
+      });
+      render(
+        <PictureInPictureProvider>
+          <SeerExplorerSessionsProvider>
+            <SeerExplorerContent
+              getPageReferrer={mockGetPageReferrer}
+              onClose={() => {}}
+            />
+          </SeerExplorerSessionsProvider>
+        </PictureInPictureProvider>,
+        {organization}
+      );
+
+      const editor = await getSeerExplorerInput();
+      expect(editor).toHaveTextContent('Legacy draft');
+      await userEvent.click(editor);
+      await userEvent.keyboard('{End} updated{Enter}');
+
+      expect(sendMessage).toHaveBeenCalledWith('Legacy draft updated', 0);
+      expect(sessionStorage.getItem('seer-explorer-draft:7')).toBeNull();
+    });
+
     it('restores the persisted draft when the drawer remounts', async () => {
       jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
         ...defaultHookReturn,
@@ -1029,10 +1215,7 @@ describe('SeerExplorerContent', () => {
         {organization}
       );
 
-      await userEvent.type(
-        await screen.findByTestId('seer-explorer-input'),
-        'draft message'
-      );
+      await userEvent.type(await getSeerExplorerInput(), 'draft message');
       unmount();
 
       render(
@@ -1047,7 +1230,7 @@ describe('SeerExplorerContent', () => {
         {organization}
       );
 
-      expect(await screen.findByTestId('seer-explorer-input')).toHaveValue(
+      expect(await screen.findByTestId('seer-explorer-input')).toHaveTextContent(
         'draft message'
       );
     });
@@ -1068,10 +1251,7 @@ describe('SeerExplorerContent', () => {
         {organization}
       );
 
-      await userEvent.type(
-        await screen.findByTestId('seer-explorer-input'),
-        'draft for run 1'
-      );
+      await userEvent.type(await getSeerExplorerInput(), 'draft for run 1');
 
       useSeerExplorerSpy.mockReturnValue({...defaultHookReturn, runId: 2});
       rerender(
@@ -1086,11 +1266,11 @@ describe('SeerExplorerContent', () => {
       );
 
       await waitFor(() =>
-        expect(screen.getByTestId('seer-explorer-input')).toHaveValue('')
+        expect(screen.getByTestId('seer-explorer-input')).toBeEmptyDOMElement()
       );
       expect(
         JSON.parse(sessionStorage.getItem(`${INPUT_STORAGE_KEY_PREFIX}:1`) ?? '')
-      ).toBe('draft for run 1');
+      ).toEqual({text: 'draft for run 1', mentions: []});
 
       useSeerExplorerSpy.mockReturnValue({...defaultHookReturn, runId: 1});
       rerender(
@@ -1105,7 +1285,9 @@ describe('SeerExplorerContent', () => {
       );
 
       await waitFor(() =>
-        expect(screen.getByTestId('seer-explorer-input')).toHaveValue('draft for run 1')
+        expect(screen.getByTestId('seer-explorer-input')).toHaveTextContent(
+          'draft for run 1'
+        )
       );
     });
 
@@ -1124,10 +1306,7 @@ describe('SeerExplorerContent', () => {
         {organization}
       );
 
-      await userEvent.type(
-        await screen.findByTestId('seer-explorer-input'),
-        'unsaved draft'
-      );
+      await userEvent.type(await getSeerExplorerInput(), 'unsaved draft');
       unmount();
 
       const draftWrites = setItemSpy.mock.calls.filter(([k]) =>
@@ -1156,12 +1335,12 @@ describe('SeerExplorerContent', () => {
         {organization}
       );
 
-      const textarea = await screen.findByTestId('seer-explorer-input');
+      const textarea = await getSeerExplorerInput();
       await userEvent.type(textarea, 'hello');
       await userEvent.keyboard('{Enter}');
 
       expect(sendMessage).toHaveBeenCalledWith('hello', 0);
-      expect(textarea).toHaveValue('');
+      expect(textarea).toBeEmptyDOMElement();
       expect(sessionStorage.getItem(`${INPUT_STORAGE_KEY_PREFIX}:42`)).toBeNull();
     });
   });
@@ -1230,7 +1409,7 @@ describe('SeerExplorerContent', () => {
       const textarea = await screen.findByTestId('seer-explorer-input');
       await waitFor(() => expect(textarea).toBeEnabled());
       expect(textarea).toHaveAttribute(
-        'placeholder',
+        'data-placeholder',
         'Ask Seer a question, or press / for commands.'
       );
     });

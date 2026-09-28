@@ -3,12 +3,14 @@ import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
+import {Composer, type ComposerValue} from '@sentry/scraps/composer';
 import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {IconArrow, IconPause} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {useOrgMentionPlugins} from 'sentry/utils/mentions/useOrgMentionPlugins';
 import {PRWidget} from 'sentry/views/seerExplorer/components/prWidget';
 import type {Block, RepoPRState} from 'sentry/views/seerExplorer/types';
 
@@ -31,18 +33,18 @@ interface QuestionActions {
 
 interface InputSectionProps {
   blocks: Block[];
+  composerRef: React.RefObject<HTMLDivElement | null>;
   enabled: boolean;
-  inputValue: string;
+  inputValue: ComposerValue;
   onCreatePR: (repoName?: string) => void;
-  onInputChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
+  onInputChange: (value: ComposerValue) => void;
   onInputClick: () => void;
   onInterrupt: () => void;
-  onKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
+  onKeyDown: (e: React.KeyboardEvent<HTMLDivElement>) => void;
   onPRWidgetClick: () => void;
   onSend: () => void;
   prWidgetButtonRef: React.RefObject<HTMLButtonElement | null>;
   repoPRStates: Record<string, RepoPRState>;
-  textAreaRef: React.RefObject<HTMLTextAreaElement | null>;
   canSendMessage?: boolean;
   /** Placeholder shown while `enabled` is false. Defaults to the read-only copy. */
   disabledPlaceholder?: string;
@@ -67,10 +69,12 @@ export function InputSection({
   onSend,
   prWidgetButtonRef,
   repoPRStates,
-  textAreaRef,
+  composerRef,
   fileApprovalActions,
   questionActions,
 }: InputSectionProps) {
+  const mentionPlugins = useOrgMentionPlugins();
+
   // Check if there are any file patches for showing the PR widget
   const hasCodeChanges = useMemo(() => {
     return blocks.some(b => b.merged_file_patches && b.merged_file_patches.length > 0);
@@ -259,25 +263,24 @@ export function InputSection({
   return (
     <InputBlock>
       <InputRow>
-        <StyledInputGroup isWarningPlaceholder={interruptState === 'completed'}>
-          <InputGroup.TextArea
-            ref={textAreaRef}
-            value={inputValue}
-            onChange={onInputChange}
-            onKeyDown={onKeyDown}
-            onClick={onInputClick}
-            placeholder={
-              interruptState === 'completed'
-                ? t('Interrupted. What should Seer do instead?')
-                : t('Ask Seer a question, or press / for commands.')
-            }
-            rows={1}
-            maxRows={5}
-            autosize
-            size="md"
-            data-test-id="seer-explorer-input"
-          />
-        </StyledInputGroup>
+        <StyledComposer
+          isWarningPlaceholder={interruptState === 'completed'}
+          ref={composerRef}
+          aria-label={t('Ask Seer a question')}
+          plugins={mentionPlugins}
+          value={inputValue}
+          onChange={onInputChange}
+          onKeyDown={onKeyDown}
+          onClick={onInputClick}
+          placeholder={
+            interruptState === 'completed'
+              ? t('Interrupted. What should Seer do instead?')
+              : t('Ask Seer a question, or press / for commands.')
+          }
+          minHeight={20}
+          size="md"
+          data-test-id="seer-explorer-input"
+        />
         {interruptState === 'can-interrupt' || interruptState === 'requested' ? (
           <Button
             icon={<IconPause />}
@@ -315,6 +318,20 @@ export function InputSection({
   );
 }
 
+const StyledComposer = styled(Composer, {
+  shouldForwardProp: prop => prop !== 'isWarningPlaceholder',
+})<{isWarningPlaceholder: boolean}>`
+  flex: 1;
+  max-height: 120px;
+
+  &:empty::before {
+    color: ${p =>
+      p.isWarningPlaceholder
+        ? p.theme.tokens.content.warning
+        : p.theme.tokens.content.secondary};
+  }
+`;
+
 // Styled components
 const InputBlock = styled('div')`
   width: 100%;
@@ -330,16 +347,11 @@ const InputRow = styled('div')`
   margin: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
 `;
 
-const StyledInputGroup = styled(InputGroup)<{isWarningPlaceholder?: boolean}>`
+const StyledInputGroup = styled(InputGroup)`
   flex: 1;
 
   textarea {
     resize: none;
-
-    &::placeholder {
-      color: ${p =>
-        p.isWarningPlaceholder ? p.theme.tokens.content.warning : undefined};
-    }
   }
 
   [data-test-id='input-trailing-items'] {
