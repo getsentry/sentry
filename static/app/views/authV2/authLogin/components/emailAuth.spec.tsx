@@ -249,7 +249,9 @@ describe('EmailAuth', () => {
     expect(screen.getByText('user@example.com')).toBeInTheDocument();
     expect(screen.queryByRole('textbox', {name: 'Email'})).not.toBeInTheDocument();
     await waitFor(() =>
-      expect(screen.queryByRole('button', {name: 'Reset Password'})).not.toBeInTheDocument()
+      expect(
+        screen.queryByRole('button', {name: 'Reset Password'})
+      ).not.toBeInTheDocument()
     );
     expect(
       screen.queryByRole('button', {name: 'Use a different email'})
