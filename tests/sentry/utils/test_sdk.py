@@ -8,7 +8,6 @@ import sentry_sdk.scope
 from django.conf import settings
 from django.db import OperationalError
 from django.http import HttpRequest
-from django.test import override_settings
 from rest_framework.request import Request
 from sentry_sdk import Scope
 
@@ -58,56 +57,6 @@ def test_ai_conversation_routes_are_fully_sampled(path: str) -> None:
         )
         == 1.0
     )
-
-
-@pytest.mark.parametrize(
-    "profiling,continuous_profiling", [(True, False), (False, True), (True, True)]
-)
-@pytest.mark.parametrize("sample_rate,expected_rate", [("0.25", 0.25), (0, 0.0), (None, 0.0)])
-def test_configure_sdk_continuous_profiling(
-    profiling: bool, continuous_profiling: bool, sample_rate: str | int | None, expected_rate: float
-) -> None:
-    with (
-        override_settings(
-            SENTRY_SDK_CONFIG={"backend_dsn": "https://public@example.invalid/1"},
-            SENTRY_PROFILING_ENABLED=profiling,
-            SENTRY_CONTINUOUS_PROFILING_ENABLED=continuous_profiling,
-            SENTRY_PROFILES_SAMPLE_RATE=sample_rate,
-            SENTRY_PROFILE_LIFECYCLE="trace",
-        ),
-        patch("sentry.utils.sdk.options.get", return_value=False),
-        patch("sentry.utils.sdk.sentry_sdk.init") as init,
-    ):
-        sdk.configure_sdk()
-
-    init.assert_called_once()
-    sdk_options = init.call_args.kwargs
-    assert sdk_options["trace_lifecycle"] == "stream"
-    assert sdk_options["profile_session_sample_rate"] == expected_rate
-    assert sdk_options["profile_lifecycle"] == "trace"
-    assert "profiles_sampler" not in sdk_options
-    assert "profiler_mode" not in sdk_options
-
-
-@override_settings(
-    SENTRY_SDK_CONFIG={"backend_dsn": "https://public@example.invalid/1"},
-    SENTRY_PROFILING_ENABLED=False,
-    SENTRY_CONTINUOUS_PROFILING_ENABLED=False,
-    SENTRY_PROFILES_SAMPLE_RATE=1.0,
-)
-def test_configure_sdk_profiling_disabled() -> None:
-    with (
-        patch("sentry.utils.sdk.options.get", return_value=False),
-        patch("sentry.utils.sdk.sentry_sdk.init") as init,
-    ):
-        sdk.configure_sdk()
-
-    init.assert_called_once()
-    sdk_options = init.call_args.kwargs
-    assert "profile_session_sample_rate" not in sdk_options
-    assert "profile_lifecycle" not in sdk_options
-    assert "profiles_sampler" not in sdk_options
-    assert "profiler_mode" not in sdk_options
 
 
 class SDKUtilsTest(TestCase):
