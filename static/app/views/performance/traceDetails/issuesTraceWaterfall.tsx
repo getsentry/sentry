@@ -312,6 +312,10 @@ const IssuesTraceGrid = styled(TraceGrid)<{
     Math.min(Math.max(p.rowCount, MIN_ROW_COUNT), MAX_ROW_COUNT) * ROW_HEIGHT +
     HEADER_HEIGHT}px;
 
+  .TraceRow.Collapsed:last-child {
+    border-bottom: 0;
+  }
+
   .TraceRow:not(.Hidden):last-child {
     border-bottom-left-radius: calc(${p => p.theme.radius.md} - 1px);
     border-bottom-right-radius: calc(${p => p.theme.radius.md} - 1px);
