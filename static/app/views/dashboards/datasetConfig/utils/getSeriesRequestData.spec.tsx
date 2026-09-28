@@ -6,7 +6,7 @@ import {WidgetQueryFixture} from 'sentry-fixture/widgetQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {
   getSeriesRequestData,
-  getTimeseriesQueryParams,
+  convertEventStatsRequestDataToEventTimeseriesQueryParams,
 } from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
 import {DisplayType} from 'sentry/views/dashboards/types';
 
@@ -353,7 +353,7 @@ describe('utils', () => {
     });
   });
 
-  describe('getTimeseriesQueryParams', () => {
+  describe('convertEventStatsRequestDataToEventTimeseriesQueryParams', () => {
     it('maps request data to events-timeseries params', () => {
       const widget = WidgetFixture({
         displayType: DisplayType.LINE,
@@ -375,9 +375,12 @@ describe('utils', () => {
         DiscoverDatasets.SPANS
       );
 
-      const params = getTimeseriesQueryParams(requestData, {
-        includeMeasuredIngestionDelayMetadata: true,
-      });
+      const params = convertEventStatsRequestDataToEventTimeseriesQueryParams(
+        requestData,
+        {
+          includeMeasuredIngestionDelayMetadata: true,
+        }
+      );
 
       expect(params).toEqual(
         expect.objectContaining({

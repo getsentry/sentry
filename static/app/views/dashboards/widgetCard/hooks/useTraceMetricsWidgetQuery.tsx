@@ -25,7 +25,7 @@ import type {
 import {TraceMetricsConfig} from 'sentry/views/dashboards/datasetConfig/traceMetrics';
 import {
   getSeriesRequestData,
-  getTimeseriesQueryParams,
+  convertEventStatsRequestDataToEventTimeseriesQueryParams,
 } from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {getSeriesQueryPrefix} from 'sentry/views/dashboards/utils/getSeriesQueryPrefix';
@@ -96,7 +96,7 @@ export function useTraceMetricsSeriesQuery(
         pageFilters,
         queue,
         enabled,
-        query: getTimeseriesQueryParams(requestData, {
+        query: convertEventStatsRequestDataToEventTimeseriesQueryParams(requestData, {
           includeMeasuredIngestionDelayMetadata: hasMeasuredIngestionDelayUi,
         }),
       });

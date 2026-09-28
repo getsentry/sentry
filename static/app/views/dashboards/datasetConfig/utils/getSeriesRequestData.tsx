@@ -149,7 +149,7 @@ export function getSeriesRequestData(
 
 // Converts `getSeriesRequestData` output, which is shaped for
 // `/events-stats/` into `/events-timeseries/` query params
-export function getTimeseriesQueryParams(
+export function convertEventStatsRequestDataToEventTimeseriesQueryParams(
   requestData: EventsStatsOptions<true>,
   {
     includeMeasuredIngestionDelayMetadata,
