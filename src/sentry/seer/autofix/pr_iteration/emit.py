@@ -233,6 +233,7 @@ def record_pr_iteration_counts(
     organization_id: int,
     iteration_id: int,
     referrer: str | None,
+    feedback_types: str,
     feedback_count: int,
     queued_count: int,
     dropped_count: int,
@@ -252,6 +253,7 @@ def record_pr_iteration_counts(
         update_iteration(
             iteration,
             referrer=referrer,
+            feedback_types=feedback_types,
             feedback_count=feedback_count,
             queued_count=queued_count,
             dropped_count=dropped_count,

@@ -69,7 +69,7 @@ FEATURES = [
 
 INSTALL_NOTICE_TEXT = (
     "Visit the Teams Marketplace to install this integration. After adding the integration"
-    " to your team, you will get a welcome message in the General channel to complete installation."
+    " to your team, you will get a welcome message in the selected channel to complete installation."
 )
 
 external_install = {
