@@ -1,4 +1,3 @@
-import {useState} from 'react';
 import moment from 'moment-timezone';
 
 import {Link} from '@sentry/scraps/link';
@@ -7,6 +6,7 @@ import {useModal} from '@sentry/scraps/modal';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
@@ -23,7 +23,6 @@ import type {Policy, PolicyRevision} from 'getsentry/types';
 
 export function PolicyDetails() {
   const {openModal} = useModal();
-  const [revisionRefreshKey, setRevisionRefreshKey] = useState(0);
 
   const api = useApi();
   const {policySlug} = useParams<{policySlug: string}>();
@@ -101,15 +100,13 @@ export function PolicyDetails() {
           name: 'Add Revision',
           help: 'Add a new version of this policy.',
           skipConfirmModal: true,
+          disabled: !ConfigStore.get('user').permissions.has('policies.admin'),
           onAction: () => {
             openModal(deps => (
               <PolicyRevisionModal
                 {...deps}
                 policy={policy}
-                onSuccess={() => {
-                  void refetch();
-                  setRevisionRefreshKey(key => key + 1);
-                }}
+                onSuccess={() => testableWindowLocation.reload()}
               />
             ));
           },
@@ -118,13 +115,7 @@ export function PolicyDetails() {
       sections={[
         {content: overviewPanel},
         {
-          content: (
-            <PolicyRevisions
-              key={revisionRefreshKey}
-              policy={policy}
-              onUpdate={onUpdate}
-            />
-          ),
+          content: <PolicyRevisions policy={policy} onUpdate={onUpdate} />,
           noPanel: true,
         },
       ]}

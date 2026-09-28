@@ -1,5 +1,9 @@
+import {UserFixture} from 'sentry-fixture/user';
+
 import {PoliciesFixture} from 'getsentry-test/fixtures/policies';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+
+import {ConfigStore} from 'sentry/stores/configStore';
 
 import {Policies} from 'admin/views/policies';
 
@@ -55,5 +59,17 @@ describe('Policies', () => {
       )
     );
     expect(screen.getByRole('button', {name: /Show All policies/})).toBeInTheDocument();
+  });
+
+  it('disables policy creation without the admin permission', () => {
+    ConfigStore.set('user', UserFixture({permissions: new Set()}));
+    MockApiClient.addMockResponse({url: '/policies/', body: []});
+
+    render(<Policies />);
+
+    expect(screen.getByRole('button', {name: 'Add Policy'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
   });
 });
