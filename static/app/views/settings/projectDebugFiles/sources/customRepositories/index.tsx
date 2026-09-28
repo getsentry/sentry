@@ -12,7 +12,8 @@ import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
-import type {CustomRepo, CustomRepoType} from 'sentry/types/debugFiles';
+import type {CustomRepo} from 'sentry/types/debugFiles';
+import {CustomRepoType} from 'sentry/types/debugFiles';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils/defined';
@@ -151,10 +152,16 @@ export function CustomRepositories({
                       usePortal
                       triggerLabel={t('Add Repository')}
                       triggerProps={{size: 'xs'}}
-                      items={dropDownItems.map(item => ({
-                        ...item,
-                        onAction: () => handleAddRepository(item.key),
-                      }))}
+                      items={dropDownItems
+                        .filter(
+                          item =>
+                            item.key !== CustomRepoType.AZURE ||
+                            organization.features.includes('azure-symbol-sources')
+                        )
+                        .map(item => ({
+                          ...item,
+                          onAction: () => handleAddRepository(item.key),
+                        }))}
                       isDisabled={addRepositoryButtonDisabled}
                       position="bottom-end"
                     />
