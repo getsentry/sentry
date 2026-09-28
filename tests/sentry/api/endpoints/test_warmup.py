@@ -17,8 +17,9 @@ class WarmupEndpointTest(APITestCase):
         """clear cached resolver state"""
         clear_url_caches()
         for resolver in _iter_url_resolvers(get_resolver()):
-            resolver._reverse_dict = {}
-            resolver._populated = False
+            # Poke at internals that aren't part of types
+            resolver._reverse_dict = {}  # type:ignore[assignment]
+            resolver._populated = False  # type:ignore[attr-defined]
 
     def test_shares_language_independent_django_url_caches(self) -> None:
         self._clear_url_caches()
@@ -33,6 +34,7 @@ class WarmupEndpointTest(APITestCase):
         # all url resolvers should have cache populated.
         for resolver in _iter_url_resolvers(get_resolver()):
             cache = resolver._reverse_dict
+            assert resolver._populated, "resolver should be populated with data"  # type:ignore[attr-defined]
             default_cache = cache[settings.LANGUAGE_CODE]
             for language in languages:
                 assert cache[language] is default_cache, f"cache is not the same for {language}"
