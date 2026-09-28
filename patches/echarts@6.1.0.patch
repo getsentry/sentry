@@ -1,0 +1,41 @@
+diff --git a/lib/component/tooltip/TooltipHTMLContent.js b/lib/component/tooltip/TooltipHTMLContent.js
+index 63dc24f22180400b529481ec2f3982aacd514a14..5a37b82762c03e0a2e21e5be2c888a01613093d6 100644
+--- a/lib/component/tooltip/TooltipHTMLContent.js
++++ b/lib/component/tooltip/TooltipHTMLContent.js
+@@ -305,7 +305,7 @@ var TooltipHTMLContent = /** @class */function () {
+   TooltipHTMLContent.prototype.setContent = function (content, markers, tooltipModel, borderColor, arrowPosition) {
+     var el = this.el;
+     if (content == null) {
+-      el.innerHTML = '';
++      el.textContent = '';
+       return;
+     }
+     var arrow = '';
+@@ -316,7 +316,7 @@ var TooltipHTMLContent = /** @class */function () {
+       el.innerHTML = content + arrow;
+     } else if (content) {
+       // Clear previous
+-      el.innerHTML = '';
++      el.textContent = '';
+       if (!isArray(content)) {
+         content = [content];
+       }
+@@ -327,11 +327,13 @@ var TooltipHTMLContent = /** @class */function () {
+       }
+       // no arrow if empty
+       if (arrow && el.childNodes.length) {
+-        // no need to create a new parent element, but it's not supported by IE 10 and older.
+-        // const arrowEl = document.createRange().createContextualFragment(arrow);
+-        var arrowEl = document.createElement('div');
+-        arrowEl.innerHTML = arrow;
+-        el.appendChild(arrowEl);
++        // Parse the arrow markup with DOMParser (not a Trusted Types sink)
++        // instead of assigning innerHTML. `arrow` is an echarts-constant
++        // <div> from assembleArrow, so there is nothing to sanitize.
++        var arrowEl = new DOMParser().parseFromString(arrow, 'text/html').body.firstChild;
++        if (arrowEl) {
++          el.appendChild(arrowEl);
++        }
+       }
+     }
+   };

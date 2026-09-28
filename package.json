@@ -345,7 +345,8 @@
     "patchedDependencies": {
       "zod@4.3.5": "patches/zod@4.3.5.patch",
       "jsdom@30.1.0": "patches/jsdom@30.1.0.patch",
-      "zrender@6.1.0": "patches/zrender@6.1.0.patch"
+      "zrender@6.1.0": "patches/zrender@6.1.0.patch",
+      "echarts@6.1.0": "patches/echarts@6.1.0.patch"
     }
   },
   "APIMethod": "stub",
