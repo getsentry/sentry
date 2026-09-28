@@ -468,6 +468,7 @@ export function useScmProjectDetails({
       setIsCompleting(false);
     }
   }, [
+    // oxlint-disable-next-line react/memo-dependencies
     accessTeams,
     alertRuleConfig,
     canSubmit,

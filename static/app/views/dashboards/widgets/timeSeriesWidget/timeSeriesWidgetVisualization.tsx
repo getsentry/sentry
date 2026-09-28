@@ -22,6 +22,11 @@ import {
 } from 'sentry/components/charts/useChartXRangeSelection';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {isChartHovered, truncationFormatter} from 'sentry/components/charts/utils';
+import type {DroppedDataProps} from 'sentry/components/droppedData/types';
+import {
+  DROPPED_DATA_SERIES_ID,
+  useDroppedDataBand,
+} from 'sentry/components/droppedData/useDroppedDataBand';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import type {
@@ -36,7 +41,6 @@ import {escape} from 'sentry/utils';
 import {getUserTimezone} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
 import {RangeMap, type Range} from 'sentry/utils/number/rangeMap';
-import type {Annotation} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useWidgetSyncContext} from 'sentry/views/dashboards/contexts/widgetSyncContext';
@@ -49,7 +53,6 @@ import type {
 import {WidgetLoadingPanel} from 'sentry/views/dashboards/widgets/common/widgetLoadingPanel';
 import {WidgetNoDataPanel} from 'sentry/views/dashboards/widgets/common/widgetNoDataPanel';
 import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/plottablesCanBeVisualized';
-import {useDroppedDataBand} from 'sentry/views/explore/components/chart/droppedDataBand/useDroppedDataBand';
 import {useReleaseBubbles} from 'sentry/views/explore/releases/releaseBubbles/useReleaseBubbles';
 import {makeReleaseDrawerPathname} from 'sentry/views/explore/releases/utils/pathnames';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
@@ -71,6 +74,7 @@ export interface TimeSeriesWidgetVisualizationProps extends Partial<LoadableChar
    * An array of `Plottable` objects. This can be any object that implements the `Plottable` interface.
    */
   plottables: Plottable[];
+
   /**
    * Sets the range of the Y axis.
    *
@@ -90,10 +94,11 @@ export interface TimeSeriesWidgetVisualizationProps extends Partial<LoadableChar
   chartXRangeSelection?: Partial<ChartXRangeSelectionProps>;
 
   /**
-   * Annotations rendered as a severity band between the plot and
-   * the x-axis line. No-ops when empty.
+   * Dropped-data annotations rendered as a severity band between the plot and
+   * the x-axis line. The band is hidden when `visible` is false or no bucket has
+   * dropped data. `onClick` is called with the clicked bucket.
    */
-  droppedData?: Annotation[];
+  droppedData?: DroppedDataProps;
 
   /**
    * A mapping of time series field name to boolean. If the value is `false`, the series is hidden from view
@@ -118,10 +123,9 @@ export interface TimeSeriesWidgetVisualizationProps extends Partial<LoadableChar
   releases?: Release[];
 
   /**
-   * When false, hide the dropped-data band and collapse the reserved space.
-   * Defaults to true when `droppedData` is provided.
+   * Returns extra HTML to append to the tooltip's series block.
    */
-  showDroppedData?: boolean;
+  renderTooltipSeriesDetails?: (seriesNames: string[], timestamp: number) => string;
 
   /**
    * Defines the legend's visibility.
@@ -153,6 +157,17 @@ export interface TimeSeriesWidgetVisualizationProps extends Partial<LoadableChar
    * Default: `auto`
    */
   showYAxis?: 'auto' | 'never';
+
+  /**
+   * Truncate the legend's "+n more" menu labels to the width the legend row
+   * already caps its own at, instead of letting the menu size to its content.
+   *
+   * For charts in a box narrow enough to clip the menu. A Seer embed's card is
+   * one, and the series names it charts are model-written, so the menu came out
+   * wider than the card and was cut off (CW-2052). A full-width surface has the
+   * room and should keep the untruncated names, which is the default.
+   */
+  truncateLegendMenuLabels?: boolean;
 }
 
 export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizationProps) {
@@ -364,6 +379,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           formatTooltipValue(value, fieldType, unitForType[fieldType] ?? undefined)
         );
       },
+      renderSeriesDetails: props.renderTooltipSeriesDetails,
       truncate: false,
       utc: utc ?? false,
     })(deDupedParams, asyncTicket);
@@ -422,9 +438,10 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   const {droppedDataSeries, droppedDataBandHeight, droppedDataYAxis} = useDroppedDataBand(
     {
-      annotations: props.droppedData,
+      chartRef,
+      droppedData: props.droppedData,
       bandOffset: releaseBandHeight,
-      showDroppedData: props.showDroppedData,
+      utc,
       yAxisIndex: yAxes.length,
     }
   );
@@ -682,6 +699,10 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   };
 
   const handleClick: EChartClickHandler = event => {
+    if (event.seriesId === DROPPED_DATA_SERIES_ID) {
+      props.droppedData?.onClick?.();
+      return;
+    }
     runHandler(event, 'onClick');
   };
 
@@ -714,6 +735,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           items={chartLegendItems}
           selected={normalizedLegendSelection}
           onSelectionChange={handleLegendSelectionChange}
+          truncateMenuLabels={props.truncateLegendMenuLabels}
         />
       )}
       <Container flex="1 1 0%" minHeight="0">

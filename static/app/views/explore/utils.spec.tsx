@@ -1,3 +1,4 @@
+import {DiscoverSavedQueryFixture} from 'sentry-fixture/discover';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
@@ -6,10 +7,13 @@ import type {TagCollection} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
+import type {DiscoverSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
+import {SavedQueryType} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {
   findSuggestedColumns,
   getSamplingWarningReason,
+  getYAxisDiscoverSavedQuery,
   isSamplingSensitiveAggregate,
   prettifyAggregation,
   removeHiddenKeys,
@@ -701,5 +705,29 @@ describe('prettifyAggregation', () => {
         'equation|avg_if(`tags[Limit,number]:>5`,span.duration) / p95(span.duration)'
       )
     ).toBe(' avg_if(`Limit:>5`,span.duration)  /  p95(span.duration) ');
+  });
+});
+
+describe('getYAxisDiscoverSavedQuery', () => {
+  it('falls back to the default y-axis when the query has none saved', () => {
+    const savedQuery: DiscoverSavedQuery = {
+      ...DiscoverSavedQueryFixture({fields: ['title', 'project']}),
+      queryType: SavedQueryType.DISCOVER,
+    };
+
+    expect(getYAxisDiscoverSavedQuery(savedQuery)).toEqual([{yAxes: ['count()']}]);
+  });
+
+  it('falls back to the first graphable aggregate in fields over count()', () => {
+    const savedQuery: DiscoverSavedQuery = {
+      ...DiscoverSavedQueryFixture({
+        fields: ['release', 'count_unique(release)'],
+      }),
+      queryType: SavedQueryType.DISCOVER,
+    };
+
+    expect(getYAxisDiscoverSavedQuery(savedQuery)).toEqual([
+      {yAxes: ['count_unique(release)']},
+    ]);
   });
 });

@@ -14,6 +14,7 @@ import {
   useSearchQueryBuilderAI,
 } from 'sentry/components/searchQueryBuilder/context';
 import * as analytics from 'sentry/utils/analytics';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {GlobalFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {
@@ -36,7 +37,9 @@ const askSeerMutationOptions = mutationOptions({
       status: string;
       unsupported_reason: string | null;
     }>({
-      url: '/organizations/org-slug/trace-explorer-ai/query/',
+      url: getApiUrl('/organizations/$organizationIdOrSlug/trace-explorer-ai/query/', {
+        path: {organizationIdOrSlug: 'org-slug'},
+      }),
       method: 'POST',
       data: {},
     });

@@ -111,6 +111,7 @@ class SetResolvedInReleaseNotificationData(ActivityNotificationData):
 class AssignedNotificationData(ActivityNotificationData):
     assignee_label: str
     assignee_url: str | None = None
+    is_automated: bool = False
 
 
 def build_footer(data: ActivityNotificationData) -> list[NotificationTextBlock]:
@@ -284,8 +285,22 @@ def build_activity_notification_data(
             # TODO(Leander): If a team is assigned, maybe link to the team page?
             if assignee_email:
                 assignee_url = f"mailto:{assignee_email}"
+
+            # Check if this is an automated assignment from a Sentry App
+            if activity.user_id:
+                user = user_service.get_user(user_id=activity.user_id)
+                if user and user.is_sentry_app:
+                    return AssignedNotificationData(
+                        **action_data,
+                        assignee_label=assignee_label,
+                        assignee_url=assignee_url,
+                        is_automated=True,
+                    )
+
             return AssignedNotificationData(
-                **action_data, assignee_label=assignee_label, assignee_url=assignee_url
+                **action_data,
+                assignee_label=assignee_label,
+                assignee_url=assignee_url,
             )
         case _:
             return ActivityNotificationData(**action_data)

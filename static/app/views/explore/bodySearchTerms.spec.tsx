@@ -38,6 +38,21 @@ describe('getBodySearchTerms', () => {
     expect(terms).toEqual(['db', 'query']);
   });
 
+  it('skips a regex filter value', () => {
+    const terms = getBodySearchTerms(new MutableSearch('message://^GET .*//'), 'message');
+
+    expect(terms).toEqual([]);
+  });
+
+  it('keeps other terms when a regex filter is also present', () => {
+    const terms = getBodySearchTerms(
+      new MutableSearch('message://^GET// billing'),
+      'message'
+    );
+
+    expect(terms).toEqual(['billing']);
+  });
+
   it('skips negated and list filter values', () => {
     const terms = getBodySearchTerms(
       new MutableSearch('!message:noise message:[a,b]'),

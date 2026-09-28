@@ -498,6 +498,11 @@ E.g. `['release', 'environment']`""",
         if not added_or_modified_sources:
             return orjson.dumps(sources).decode() if sources else ""
 
+        if any(s.get("type") == "azure" for s in added_or_modified_sources) and not features.has(
+            "organizations:azure-symbol-sources", organization, actor=request.user
+        ):
+            raise serializers.ValidationError("Azure symbol sources are not enabled.")
+
         # All modified sources should get a new UUID, as a way to invalidate caches.
         # Downstream symbolicator uses this ID as part of a cache key, so assigning
         # a new ID does have the following effects/tradeoffs:

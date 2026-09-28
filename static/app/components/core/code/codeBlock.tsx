@@ -8,8 +8,9 @@ import {Container} from '@sentry/scraps/layout';
 import {useTranslation} from '@sentry/scraps/translationContext';
 
 import {IconCopy} from 'sentry/icons';
-import {getPrismLanguage, loadPrismLanguage} from 'sentry/utils/prism';
 import {darkTheme} from 'sentry/utils/theme/theme';
+
+import {getPrismLanguage, loadPrismLanguage} from './prism';
 
 interface CodeBlockProps {
   children: string;

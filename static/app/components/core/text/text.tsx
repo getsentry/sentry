@@ -26,9 +26,11 @@ export interface BaseTextProps {
    * Density determines the line height of the text.
    * Defaults to 1.2, but supports the following density variants:
    * - compressed: 1
+   * - default: 1.2
    * - comfortable: 1.4
+   * - fixed: 1rem
    */
-  density?: Responsive<'compressed' | 'comfortable'>;
+  density?: Responsive<keyof Theme['font']['lineHeight']>;
   /**
    * If true, the text will be truncated with an ellipsis,
    * overflow will be hidden and white-space will be set to nowrap.

@@ -75,6 +75,26 @@ def get_start_index(data: list[TimeSeriesPoint]) -> int:
     return -1
 
 
+def trim_leading_zeros(data: list[TimeSeriesPoint]) -> list[TimeSeriesPoint]:
+    """
+    Drop the leading run of zero-valued points. Zeros before the first real data point mean the
+    data source wasn't instrumented yet, not that traffic was zero, and training on them badly
+    inflates Seer's confidence bounds. Only trim if at least MIN_DAYS of real data remain, since
+    that's Seer's minimum history requirement.
+    """
+    start_index = get_start_index(data)
+    if start_index <= 0:
+        return data
+
+    trimmed = data[start_index:]
+    if (
+        trimmed[-1]["timestamp"] - trimmed[0]["timestamp"]
+        < timedelta(days=MIN_DAYS).total_seconds()
+    ):
+        return data
+    return trimmed
+
+
 def handle_send_historical_data_to_seer_legacy(
     alert_rule: AlertRule,
     snuba_query: SnubaQuery,
@@ -199,6 +219,8 @@ def send_historical_data_to_seer_legacy(
     )
     if not formatted_data:
         raise ValidationError("Unable to get historical data for this alert.")
+
+    formatted_data = trim_leading_zeros(formatted_data)
 
     if (
         not alert_rule.sensitivity

@@ -177,6 +177,7 @@ export function useChartXRangeSelection({
 
     // oxlint-disable-next-line react/immutability
     onClearSelection?.({selectionState, setSelectionState, clearSelection});
+    // oxlint-disable-next-line react/memo-dependencies
   }, [chartRef, onClearSelection, selectionState]);
 
   const callbackParams = useMemo<SelectionCallbackParams>(() => {

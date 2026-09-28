@@ -78,6 +78,7 @@ import {DEFAULT_PREBUILT_SORT} from 'sentry/views/dashboards/manage/settings';
 import {DashboardFilter} from 'sentry/views/dashboards/types';
 import {EXPLORE_AGENTS_SUB_PATH} from 'sentry/views/explore/conversations/settings';
 import {
+  getSavedQueryKey,
   MAX_STARRED_SAVED_QUERIES_IN_NAV,
   useGetSavedQueries,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
@@ -113,7 +114,6 @@ export function isNavItemVisible(
   return typeof item.show === 'function' ? item.show(context) : item.show;
 }
 import {useNotificationPermission} from 'sentry/serviceWorker/client/useNotificationPermission';
-import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 
 import {CMDKAction} from './cmdk';
 import {CommandPaletteSlot} from './commandPaletteSlot';
@@ -393,22 +393,12 @@ export function GlobalCommandPaletteActions() {
               to={`${prefix}/explore/metrics/`}
             />
           )}
-          {organization.features.includes('explore-errors') &&
-            !getDiscoverDeprecation(organization) && (
-              <CMDKAction
-                display={{label: t('Errors')}}
-                to={`${prefix}/explore/errors-v2/`}
-              />
-            )}
+          {/* TODO(nikki): I removed the errors on eap UI here so it wouldn't get confused with discover errors, add it back before launch */}
           <CMDKAction
             display={{
-              label: getDiscoverDeprecation(organization) ? t('Errors') : t('Discover'),
+              label: t('Errors'),
             }}
-            to={
-              getDiscoverDeprecation(organization)
-                ? `${prefix}/explore/errors/homepage/`
-                : `${prefix}/explore/discover/homepage/`
-            }
+            to={`${prefix}/explore/errors/`}
           />
           {organization.features.includes('profiling') && (
             <CMDKAction
@@ -441,7 +431,7 @@ export function GlobalCommandPaletteActions() {
           />
           {starredSavedQueries.map(query => (
             <CMDKAction
-              key={query.id}
+              key={getSavedQueryKey(query)}
               display={{label: query.name, icon: <IconStar />}}
               to={getSavedQueryTraceItemUrl({savedQuery: query, organization})}
             />

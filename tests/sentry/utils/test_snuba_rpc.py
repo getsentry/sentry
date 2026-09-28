@@ -51,6 +51,7 @@ from sentry.utils import snuba_rpc
         (404, "not found", NotFound),
         (429, "rate limited", snuba_rpc.SnubaRPCRateLimitExceeded),
         (500, "internal error", snuba_rpc.SnubaRPCError),
+        (503, "unavailable", snuba_rpc.SnubaRPCUnavailable),
     ],
 )
 def test_rpc_http_errors(status: int, message: str, exception: type[Exception]) -> None:
@@ -63,6 +64,23 @@ def test_rpc_http_errors(status: int, message: str, exception: type[Exception]) 
         snuba_rpc.trace_item_details_rpc(TraceItemDetailsRequest(meta=_meta()))
 
     assert type(raised.value) is exception
+
+
+def test_rpc_raises_unavailable_for_unparseable_503() -> None:
+    unavailable_response = HTTPResponse(status=503, body=b"no healthy upstream")
+
+    with (
+        mock.patch(
+            "sentry.utils.snuba_rpc._snuba_pool.urlopen", return_value=unavailable_response
+        ) as mock_urlopen,
+        pytest.raises(snuba_rpc.SnubaRPCUnavailable) as raised,
+    ):
+        snuba_rpc.trace_item_details_rpc(TraceItemDetailsRequest(meta=_meta()))
+
+    error = raised.value.args[0]
+    assert isinstance(error, ErrorProto)
+    assert error.message == "Snuba RPC returned HTTP 503: no healthy upstream"
+    mock_urlopen.assert_called_once()
 
 
 def _meta() -> RequestMeta:
