@@ -221,9 +221,6 @@ importers:
       '@sentry/status-page-list':
         specifier: ^0.6.1
         version: 0.6.1
-      '@sentry/toolbar':
-        specifier: 1.0.0-beta.16
-        version: 1.0.0-beta.16(react@19.2.3)
       '@sentry/webpack-plugin':
         specifier: 5.3.0
         version: 5.3.0(encoding@0.1.13)
@@ -3556,11 +3553,6 @@ packages:
   '@sentry/status-page-list@0.6.1':
     resolution: {integrity: sha512-MCDLIEvzFKeDae1rSEU30O8QpcWqSECvDQaViW3eeGGLzxhr9rEI7rdKuHmouWT9hXCmYEK1W1DWKE534+Vv1g==}
     engines: {node: '>=14'}
-
-  '@sentry/toolbar@1.0.0-beta.16':
-    resolution: {integrity: sha512-5ca29J9dzBkXShe2pHcNX32XpetxH8eAIgPRLvN9REDK8rMZpyQW08tP1S3Y+c8VLNAbJXONaiS6RR+3Cs8BUQ==}
-    peerDependencies:
-      react: '>=18'
 
   '@sentry/webpack-plugin@5.3.0':
     resolution: {integrity: sha512-i3OQUrS0FZlXLgq57RIKDp+vHHzuvYKPCKewAPXULWKMsBXFGhP6veGRQ+6To/pmZkkXjEX5ofVNDy9C3jEPKQ==}
@@ -12065,10 +12057,6 @@ snapshots:
       react: 19.2.3
 
   '@sentry/status-page-list@0.6.1': {}
-
-  '@sentry/toolbar@1.0.0-beta.16(react@19.2.3)':
-    dependencies:
-      react: 19.2.3
 
   '@sentry/webpack-plugin@5.3.0(encoding@0.1.13)':
     dependencies:
