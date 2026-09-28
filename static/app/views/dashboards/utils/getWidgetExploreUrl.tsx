@@ -113,6 +113,11 @@ export function getWidgetExploreUrl(
   preferMode?: Mode,
   referrer?: string
 ): string | null {
+  // The backend `queries` field is `required=False` with no minimum-length
+  // validation, so a widget can be persisted (or arrive in a partially-
+  // initialized state) with an empty queries array. All downstream helpers
+  // use `widget.queries[0]!` with a non-null assertion, so guard here once
+  // at the public entry point instead of in every helper.
   if (!widget.queries.length) {
     return null;
   }
