@@ -66,7 +66,7 @@ function DatadogCredentialsStep({
       <Stack gap="lg">
         <Text>
           {tct(
-            'Enter an organization-level Datadog API key and application key so Seer can access your Datadog telemetry. Refer to the [link:documentation] for more setup instructions.',
+            'Enter an organization-level Datadog API key and application key so Seer can access your Datadog telemetry. Refer to the [link:documentation] for more setup guidance.',
             {
               link: (
                 <ExternalLink href="https://docs.sentry.io/integrations/debugging/datadog-seer/" />
