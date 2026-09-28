@@ -13,7 +13,6 @@ from sentry.users.models.user import User
 UNSET = object()
 
 SEER_EXPLORER_FEATURES = {
-    "organizations:gen-ai-features": True,
     "organizations:seer-explorer": True,
 }
 

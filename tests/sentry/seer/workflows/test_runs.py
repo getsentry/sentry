@@ -156,15 +156,14 @@ class WorkflowRunTest(TestCase):
         assert status["error"] is None
 
     def create_run(self) -> SeerRun:
-        with self.feature("organizations:gen-ai-features"):
-            workflow = create_workflow_run(
-                SeerAgentClient(self.organization, self.user),
-                strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE,
-                feature_id="test_workflow",
-                title="Test workflow",
-                payload={},
-                extras={"summary": None},
-            )
+        workflow = create_workflow_run(
+            SeerAgentClient(self.organization, self.user),
+            strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE,
+            feature_id="test_workflow",
+            title="Test workflow",
+            payload={},
+            extras={"summary": None},
+        )
         run = workflow.executions.get().seer_run
         assert run is not None
         return run

@@ -9,11 +9,9 @@ from django.test import override_settings
 from sentry.dashboards.on_completion_hook import DashboardOnCompletionHook
 from sentry.seer.models import SeerPermissionError
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.features import with_feature
 
 
 @override_settings(SENTRY_SELF_HOSTED=False)
-@with_feature("organizations:gen-ai-features")
 class OrganizationDashboardGenerateEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-dashboards-generate"
 

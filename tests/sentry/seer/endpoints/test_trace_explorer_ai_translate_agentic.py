@@ -1,5 +1,6 @@
 from unittest.mock import MagicMock, patch
 
+from django.test import override_settings
 from rest_framework import status
 
 from sentry.testutils.cases import APITestCase
@@ -7,7 +8,7 @@ from sentry.testutils.helpers.features import with_feature
 
 
 @with_feature("organizations:seer-explorer")
-@with_feature("organizations:gen-ai-features")
+@override_settings(SENTRY_SELF_HOSTED=False)
 class SearchAgentTranslateEndpointTest(APITestCase):
     def setUp(self) -> None:
         super().setUp()
