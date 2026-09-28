@@ -12,6 +12,7 @@ import {callRecordLabel, visibleCallRecords} from 'sentry/views/seerExplorer/cal
 import type {
   Block,
   PendingUserInput,
+  RespondToUserInputOptions,
   SeerExplorerRunId,
 } from 'sentry/views/seerExplorer/types';
 import {getToolsStringFromBlock} from 'sentry/views/seerExplorer/utils';
@@ -144,7 +145,11 @@ interface ResponseGroupProps {
   latestTodos?: LatestTodos | null;
   pendingInput?: PendingUserInput | null;
   readOnly?: boolean;
-  respondToUserInput?: (inputId: string, responseData?: Record<string, unknown>) => void;
+  respondToUserInput?: (
+    inputId: string,
+    responseData?: Record<string, unknown>,
+    options?: RespondToUserInputOptions
+  ) => void;
   runId?: SeerExplorerRunId;
   showThinking?: boolean;
 }

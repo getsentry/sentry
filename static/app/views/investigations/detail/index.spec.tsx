@@ -890,7 +890,7 @@ describe('Investigation detail', () => {
 
     expect(await screen.findByText('Timeouts began after the deployment.')).toBeVisible();
     expect(await screen.findByText('1.84s')).toBeVisible();
-    expect(screen.getByRole('button', {name: 'Toggle Latency query'})).toHaveAttribute(
+    expect(screen.getByRole('button', {name: 'Latency query'})).toHaveAttribute(
       'aria-expanded',
       'true'
     );
@@ -1158,12 +1158,12 @@ describe('Investigation detail', () => {
       'md'
     );
 
-    expect(screen.getByTestId('query-cell-title')).toHaveTextContent('Database latency');
+    const toggle = screen.getByRole('button', {name: 'Database latency'});
     expect(screen.queryByText('Evidence/Database latency')).not.toBeInTheDocument();
 
-    await userEvent.click(screen.getByTestId('query-cell-title'));
-    expect(screen.queryByText('820ms')).not.toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', {name: 'Toggle Database latency'}));
+    await userEvent.click(toggle);
+    expect(screen.getByText('820ms')).not.toBeVisible();
+    await userEvent.click(toggle);
     expect(screen.getByText('820ms')).toBeVisible();
   });
 
@@ -1196,7 +1196,7 @@ describe('Investigation detail', () => {
 
     renderView();
 
-    const toggle = await screen.findByRole('button', {name: 'Toggle Latency query'});
+    const toggle = await screen.findByRole('button', {name: 'Latency query'});
     expect(toggle).toHaveAttribute('aria-expanded', 'true');
     expect(screen.getByText('820ms')).toBeVisible();
     expect(screen.queryByRole('button', {name: 'Show query'})).not.toBeInTheDocument();
@@ -1206,7 +1206,7 @@ describe('Investigation detail', () => {
 
     await userEvent.click(toggle);
 
-    expect(screen.queryByText('820ms')).not.toBeInTheDocument();
+    expect(screen.getByText('820ms')).not.toBeVisible();
     expect(toggle).toHaveAttribute('aria-expanded', 'false');
 
     await userEvent.keyboard('{Enter}');
@@ -1229,9 +1229,9 @@ describe('Investigation detail', () => {
       body: investigationWithQueryResult(),
     });
     renderView();
-    expect(await screen.findByTestId('query-cell-title')).toHaveTextContent(
-      'Latency query'
-    );
+    expect(
+      await screen.findByRole('heading', {level: 3, name: 'Latency query'})
+    ).toBeInTheDocument();
     expect(
       screen.queryByLabelText('Cell title for Latency query')
     ).not.toBeInTheDocument();
@@ -1287,9 +1287,9 @@ describe('Investigation detail', () => {
     renderView();
 
     expect(await screen.findByTestId('seer-chart-content')).toBeInTheDocument();
-    expect(screen.getAllByTestId('query-cell-title')[0]).toHaveTextContent(
-      'Latency query'
-    );
+    expect(
+      screen.getAllByRole('heading', {level: 3, name: 'Latency query'})[0]
+    ).toBeInTheDocument();
     expect(screen.getByText('Latency over time')).toBeInTheDocument();
     expect(
       within(screen.getAllByTestId('query-cell-header')[0]!).getByText(
