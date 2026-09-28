@@ -95,12 +95,6 @@ export const getSeerProjectSettingsMutationKey = (
     ? (['seer-project-settings', orgSlug] as const)
     : (['seer-project-settings', orgSlug, projectSlug] as const);
 
-/**
- * Mutation key for bulk-saving settings for many projects at once.
- */
-export const getSeerProjectsSettingsMutationKey = (orgSlug: string) =>
-  ['seer-projects-settings', orgSlug] as const;
-
 export function getMutateSeerProjectSettingsOptions({
   organization,
   project,
@@ -234,6 +228,13 @@ export function getMutateSeerProjectSettingsOptions({
   });
 }
 
+/**
+ * What a bulk save sends: the new settings and which projects to apply them to.
+ */
+export type SeerBulkEditVariables = SeerBulkProjectSettingUpdatePayload & {
+  selectedIds: ListItemCheckboxState['selectedIds'];
+};
+
 export function getMutateSeerProjectsSettingsOptions({
   organization,
   projectsById,
@@ -263,12 +264,7 @@ export function getMutateSeerProjectsSettingsOptions({
   };
 
   return mutationOptions({
-    mutationKey: getSeerProjectsSettingsMutationKey(organization.slug),
-    mutationFn: (
-      data: SeerBulkProjectSettingUpdatePayload & {
-        selectedIds: ListItemCheckboxState['selectedIds'];
-      }
-    ) => {
+    mutationFn: (data: SeerBulkEditVariables) => {
       const {stoppingPoint, agentOption, query, selectedIds, ...rest} = data;
 
       const agentObj = agentOption

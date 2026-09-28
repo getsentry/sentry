@@ -3,7 +3,7 @@ import {css} from '@emotion/react';
 import {
   infiniteQueryOptions,
   useInfiniteQuery,
-  useIsMutating,
+  useMutation,
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
@@ -52,8 +52,8 @@ import {
 } from 'sentry/utils/seer/seerProjectRepos';
 import {
   getMutateSeerProjectSettingsOptions,
+  getMutateSeerProjectsSettingsOptions,
   getInfiniteSeerProjectsSettingsQueryOptions,
-  getSeerProjectsSettingsMutationKey,
   seerProjectSettingsSchema,
 } from 'sentry/utils/seer/seerProjectSettings';
 import {
@@ -74,7 +74,12 @@ const TABLE_COLUMNS: TableColumnConfig[] = [
   {key: 'repos', width: '74px'},
   {key: 'fixes', width: '1fr'},
   {key: 'automation_steps', width: '1fr'},
-  {key: 'pr_iteration', width: 'max-content'},
+  {key: 'pr_iteration', width: '1fr'},
+];
+
+const PR_ITERATION_OPTIONS = [
+  {value: true, label: t('On')},
+  {value: false, label: t('Off')},
 ];
 
 export function SeerProjectTable() {
@@ -90,13 +95,6 @@ export function SeerProjectTable() {
   // saves don't bump it, so a row keeps its form (and its error handling) while
   // its own save is in flight.
   const [bulkEditVersion, setBulkEditVersion] = useState(0);
-  // Row controls are locked while a bulk edit is saving, so no row save can still
-  // be running when the forms are replaced. The header does the reverse.
-  const isBulkSaving =
-    useIsMutating({
-      mutationKey: getSeerProjectsSettingsMutationKey(organization.slug),
-    }) > 0;
-  const isRowDisabled = !canWrite || isBulkSaving;
 
   // Query Values
   const [agentFilter, setAgentFilter] = useQueryState(
@@ -128,6 +126,20 @@ export function SeerProjectTable() {
     seerAgentIntegrationsSelectQueryOptions({organization})
   );
   const stoppingPointOptions = useStoppingPointSelectOptions();
+
+  const bulkEdit = useMutation({
+    ...getMutateSeerProjectsSettingsOptions({
+      organization,
+      projectsById,
+      queryClient,
+      knownAgents,
+    }),
+    onSuccess: () => setBulkEditVersion(version => version + 1),
+  });
+
+  // Row controls are locked while a bulk edit is saving, so no row save can still
+  // be running when the forms are replaced. The header does the reverse.
+  const isRowDisabled = !canWrite || bulkEdit.isPending;
 
   // Main fetch call
   const mutableSearch = MutableSearch.fromQueryObject({
@@ -227,7 +239,7 @@ export function SeerProjectTable() {
             sort={sortBy}
             onSortClick={setSort}
             mutableSearch={mutableSearch}
-            onBulkEditSuccess={() => setBulkEditVersion(version => version + 1)}
+            bulkEdit={bulkEdit}
           />
 
           {isPending ? (
@@ -332,28 +344,36 @@ export function SeerProjectTable() {
                         </AutoSaveForm>
                       </Stack>
                     </InfiniteTable.RowCell>
-                    <InfiniteTable.RowCell justify="center">
-                      <AutoSaveForm
-                        key={bulkEditVersion}
-                        name="prIteration"
-                        schema={seerProjectSettingsSchema}
-                        initialValue={item.prIteration}
-                        mutationOptions={getMutateSeerProjectSettingsOptions({
-                          organization,
-                          project: {slug: item.projectSlug},
-                          queryClient,
-                        })}
-                      >
-                        {field => (
-                          <field.Switch
-                            aria-label={t('Auto-iterate on PRs for %s', item.projectSlug)}
-                            size="sm"
-                            checked={field.state.value}
-                            onChange={field.handleChange}
-                            disabled={isRowDisabled}
-                          />
-                        )}
-                      </AutoSaveForm>
+                    <InfiniteTable.RowCell>
+                      <Stack align="stretch" flex="1">
+                        <AutoSaveForm
+                          key={bulkEditVersion}
+                          name="prIteration"
+                          schema={seerProjectSettingsSchema}
+                          initialValue={item.prIteration}
+                          mutationOptions={getMutateSeerProjectSettingsOptions({
+                            organization,
+                            project: {slug: item.projectSlug},
+                            queryClient,
+                          })}
+                        >
+                          {field => (
+                            <field.Select
+                              aria-label={t(
+                                'Auto-iterate on PRs for %s',
+                                item.projectSlug
+                              )}
+                              disabled={isRowDisabled}
+                              menuPortalTarget={document.body}
+                              onChange={field.handleChange}
+                              options={PR_ITERATION_OPTIONS}
+                              // @ts-expect-error: Select component does not have a size prop defined
+                              size="xs"
+                              value={field.state.value}
+                            />
+                          )}
+                        </AutoSaveForm>
+                      </Stack>
                     </InfiniteTable.RowCell>
                   </InfiniteTable.Row>
                 )}

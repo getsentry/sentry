@@ -1,21 +1,16 @@
 import {useMemo} from 'react';
-import {
-  useIsMutating,
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from '@tanstack/react-query';
+import {useIsMutating, type UseMutationResult} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {InfoTip} from '@sentry/scraps/info';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
-import {Switch} from '@sentry/scraps/switch';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {InfiniteTable} from 'sentry/components/infiniteTable/infiniteTable';
 import type {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import {PreferredAgentDropdownMenu} from 'sentry/components/seer/preferredAgentDropdownMenu';
+import {PrIterationDropdownMenu} from 'sentry/components/seer/prIterationDropdownMenu';
 import {StoppingPointDropdownMenu} from 'sentry/components/seer/stoppingPointDropdownMenu';
 import {getNextSort} from 'sentry/components/tables/getNextSort';
 import {t, tct, tn} from 'sentry/locale';
@@ -24,22 +19,20 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {ListItemSelectedState} from 'sentry/utils/list/listItemSelectedState';
 import {ListSelectAllCheckbox} from 'sentry/utils/list/listSelectAllCheckbox';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
-import {useProjectsById} from 'sentry/utils/project/useProjectsById';
-import {knownAgentIntegrationsQueryOptions} from 'sentry/utils/seer/preferredAgent';
 import {
-  getMutateSeerProjectsSettingsOptions,
   getSeerProjectSettingsMutationKey,
+  type SeerBulkEditVariables,
 } from 'sentry/utils/seer/seerProjectSettings';
 import type {SeerProjectSettingResponse} from 'sentry/utils/seer/types';
 import {useCanWriteSettings} from 'sentry/utils/seer/useCanWriteSettings';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface Props {
-  mutableSearch: MutableSearch;
   /**
-   * Called after a bulk edit saves, so the table can refresh its row controls.
+   * The bulk save, owned by the table so it can lock and refresh the rows.
    */
-  onBulkEditSuccess: () => void;
+  bulkEdit: UseMutationResult<unknown, Error, SeerBulkEditVariables>;
+  mutableSearch: MutableSearch;
   onSortClick: (key: Sort) => void;
   settings: SeerProjectSettingResponse[];
   sort: Sort;
@@ -105,13 +98,12 @@ const COLUMNS = [
 ];
 
 export function ProjectTableHeader({
+  bulkEdit,
   mutableSearch,
-  onBulkEditSuccess,
   onSortClick,
   settings,
   sort,
 }: Props) {
-  const queryClient = useQueryClient();
   const organization = useOrganization();
   const canWrite = useCanWriteSettings();
 
@@ -131,22 +123,6 @@ export function ProjectTableHeader({
     [settings, selectedIds]
   );
 
-  // The bulk toggle reads as "on" when any selected project has PR iteration
-  // enabled. Clicking it then turns PR iteration off for every selected project;
-  // clicking again turns it back on for all of them.
-  const selectedHavePrIteration = useMemo(() => {
-    const selectedSettings =
-      selectedIds === 'all'
-        ? settings
-        : settings.filter(setting => selectedIds.includes(setting.projectId));
-    return selectedSettings.some(setting => setting.prIteration);
-  }, [settings, selectedIds]);
-
-  const projectsById = useProjectsById();
-  const {data: knownAgents} = useQuery(
-    knownAgentIntegrationsQueryOptions({organization})
-  );
-
   // A bulk edit rebuilds every row control when it finishes. Wait for any
   // single-row save to finish first, so a row isn't rebuilt in the middle of
   // its own save.
@@ -154,16 +130,12 @@ export function ProjectTableHeader({
     useIsMutating({
       mutationKey: getSeerProjectSettingsMutationKey(organization.slug),
     }) > 0;
-  const isDisabled = !canWrite || isRowSaving;
 
-  const {mutate} = useMutation(
-    getMutateSeerProjectsSettingsOptions({
-      organization,
-      projectsById,
-      queryClient,
-      knownAgents,
-    })
-  );
+  const {mutate, isPending: isBulkSaving} = bulkEdit;
+
+  // Only one bulk edit runs at a time, so two can't race to be the last one
+  // the server saves.
+  const isDisabled = !canWrite || isRowSaving || isBulkSaving;
 
   return (
     <InfiniteTable.Head sticky>
@@ -217,7 +189,6 @@ export function ProjectTableHeader({
                         )
                       ),
                     onSuccess: () => {
-                      onBulkEditSuccess();
                       addSuccessMessage(
                         tn(
                           'Agent updated for %s project',
@@ -249,7 +220,6 @@ export function ProjectTableHeader({
                         )
                       ),
                     onSuccess: () => {
-                      onBulkEditSuccess();
                       addSuccessMessage(
                         tn(
                           'Stopping point updated for %s project',
@@ -262,50 +232,43 @@ export function ProjectTableHeader({
                 );
               }}
             />
-            <Flex as="label" align="center" gap="sm">
-              <Switch
-                aria-label={t('Auto-iterate on PRs for selected projects')}
-                checked={selectedHavePrIteration}
-                disabled={isDisabled}
-                onChange={() => {
-                  const prIteration = !selectedHavePrIteration;
-                  mutate(
-                    {
-                      query: mutableSearch.formatString(),
-                      selectedIds,
-                      prIteration,
+            <PrIterationDropdownMenu
+              isDisabled={isDisabled}
+              onChange={prIteration => {
+                mutate(
+                  {
+                    query: mutableSearch.formatString(),
+                    selectedIds,
+                    prIteration,
+                  },
+                  {
+                    onError: () =>
+                      addErrorMessage(
+                        tn(
+                          'Failed to update PR iteration for %s project',
+                          'Failed to update PR iteration for %s projects',
+                          projectIds.length
+                        )
+                      ),
+                    onSuccess: () => {
+                      addSuccessMessage(
+                        prIteration
+                          ? tn(
+                              'PR iteration enabled for %s project',
+                              'PR iteration enabled for %s projects',
+                              projectIds.length
+                            )
+                          : tn(
+                              'PR iteration disabled for %s project',
+                              'PR iteration disabled for %s projects',
+                              projectIds.length
+                            )
+                      );
                     },
-                    {
-                      onError: () =>
-                        addErrorMessage(
-                          tn(
-                            'Failed to update PR iteration for %s project',
-                            'Failed to update PR iteration for %s projects',
-                            projectIds.length
-                          )
-                        ),
-                      onSuccess: () => {
-                        onBulkEditSuccess();
-                        addSuccessMessage(
-                          prIteration
-                            ? tn(
-                                'PR iteration enabled for %s project',
-                                'PR iteration enabled for %s projects',
-                                projectIds.length
-                              )
-                            : tn(
-                                'PR iteration disabled for %s project',
-                                'PR iteration disabled for %s projects',
-                                projectIds.length
-                              )
-                        );
-                      },
-                    }
-                  );
-                }}
-              />
-              {t('Auto-Iterate on PRs')}
-            </Flex>
+                  }
+                );
+              }}
+            />
           </InfiniteTable.HeaderCellRemaining>
         </InfiniteTable.Header>
       </ListItemSelectedState>

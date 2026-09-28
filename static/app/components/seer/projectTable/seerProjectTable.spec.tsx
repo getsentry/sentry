@@ -2,7 +2,13 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {SentryNuqsTestingAdapter} from 'sentry-test/nuqsTestingAdapter';
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import * as indicators from 'sentry/actionCreators/indicator';
 import {SeerProjectTable} from 'sentry/components/seer/projectTable/seerProjectTable';
@@ -189,7 +195,7 @@ describe('SeerProjectTable', () => {
     expect(errorSpy).not.toHaveBeenCalled();
   });
 
-  it('saves the PR iteration toggle for a project', async () => {
+  it('saves the PR iteration dropdown for a project', async () => {
     const settingsPut = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/seer/settings/`,
       method: 'PUT',
@@ -198,12 +204,7 @@ describe('SeerProjectTable', () => {
     render(<ExampleSeerProjectTable />, {organization});
 
     expect(await screen.findByText('Auto-Iterate on PRs')).toBeInTheDocument();
-    const toggle = await screen.findByRole('checkbox', {
-      name: 'Auto-iterate on PRs for project-slug',
-    });
-    expect(toggle).toBeChecked();
-
-    await userEvent.click(toggle);
+    await chooseRowPrIteration('project-slug', 'Off');
 
     await waitFor(() =>
       expect(settingsPut).toHaveBeenCalledWith(
@@ -300,92 +301,90 @@ describe('SeerProjectTable', () => {
     await userEvent.click(screen.getAllByRole('checkbox')[0]!);
   }
 
-  it('toggles PR iteration for all selected projects', async () => {
+  function getRowPrIterationSelect(slug: string) {
+    return screen.getByRole('textbox', {name: `Auto-iterate on PRs for ${slug}`});
+  }
+
+  async function chooseRowPrIteration(slug: string, label: 'On' | 'Off') {
+    // The row dropdown's menu renders outside the row, in the page body.
+    await userEvent.click(
+      await screen.findByRole('textbox', {name: `Auto-iterate on PRs for ${slug}`})
+    );
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: label}));
+  }
+
+  function getRow(slug: string) {
+    return screen.getByRole('row', {name: new RegExp(slug)});
+  }
+
+  async function chooseBulkPrIteration(label: 'On' | 'Off') {
+    const bulkMenu = await screen.findByRole('button', {name: 'Auto-Iterate on PRs'});
+    await waitFor(() => expect(bulkMenu).toBeEnabled());
+    await userEvent.click(bulkMenu);
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: label}));
+  }
+
+  it('sets PR iteration for all selected projects', async () => {
     const {bulkPut} = mockTwoProjects();
 
     render(<ExampleSeerProjectTable />, {organization});
 
-    await screen.findByRole('checkbox', {name: 'Auto-iterate on PRs for other-project'});
+    await screen.findByRole('textbox', {name: 'Auto-iterate on PRs for other-project'});
     await selectAllProjects();
 
-    // One selected project has PR iteration on, so the bulk toggle reads as on.
-    const bulkToggle = await screen.findByRole('checkbox', {
-      name: 'Auto-iterate on PRs for selected projects',
-    });
-    expect(bulkToggle).toBeChecked();
-
-    await userEvent.click(bulkToggle);
+    await chooseBulkPrIteration('Off');
     await waitFor(() =>
       expect(bulkPut).toHaveBeenLastCalledWith(
         expect.anything(),
         expect.objectContaining({data: expect.objectContaining({prIteration: false})})
       )
     );
-    await waitFor(() => expect(bulkToggle).not.toBeChecked());
-    expect(
-      screen.getByRole('checkbox', {name: 'Auto-iterate on PRs for project-slug'})
-    ).not.toBeChecked();
+    await waitFor(() =>
+      expect(within(getRow('project-slug')).getByText('Off')).toBeInTheDocument()
+    );
+    expect(within(getRow('other-project')).getByText('Off')).toBeInTheDocument();
 
-    await waitFor(() => expect(bulkToggle).toBeEnabled());
-    await userEvent.click(bulkToggle);
+    await chooseBulkPrIteration('On');
     await waitFor(() =>
       expect(bulkPut).toHaveBeenLastCalledWith(
         expect.anything(),
         expect.objectContaining({data: expect.objectContaining({prIteration: true})})
       )
     );
-    await waitFor(() => expect(bulkToggle).toBeChecked());
-    expect(
-      screen.getByRole('checkbox', {name: 'Auto-iterate on PRs for other-project'})
-    ).toBeChecked();
+    await waitFor(() =>
+      expect(within(getRow('project-slug')).getByText('On')).toBeInTheDocument()
+    );
+    expect(within(getRow('other-project')).getByText('On')).toBeInTheDocument();
   });
 
-  it('updates a row switch that was already clicked when the bulk toggle is used', async () => {
+  it('updates a PR iteration dropdown that was already changed when the bulk menu is used', async () => {
     const {bulkPut, rowPuts} = mockTwoProjects();
 
     render(<ExampleSeerProjectTable />, {organization});
 
-    const getRowToggle = () =>
-      screen.getByRole('checkbox', {name: 'Auto-iterate on PRs for other-project'});
-    await screen.findByRole('checkbox', {name: 'Auto-iterate on PRs for other-project'});
-    await userEvent.click(getRowToggle());
-    await waitFor(() => expect(rowPuts['other-project']).toHaveBeenCalledTimes(1));
-    await waitFor(() => expect(getRowToggle()).toBeEnabled());
-    await userEvent.click(getRowToggle());
-    await waitFor(() => expect(rowPuts['other-project']).toHaveBeenCalledTimes(2));
+    // Turn other-project's row on by hand.
+    await chooseRowPrIteration('other-project', 'On');
+    await waitFor(() =>
+      expect(rowPuts['other-project']).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({data: {prIteration: true}})
+      )
+    );
+
     await selectAllProjects();
-
-    // One selected project has PR iteration on, so the bulk toggle reads as on.
-    const bulkToggle = await screen.findByRole('checkbox', {
-      name: 'Auto-iterate on PRs for selected projects',
-    });
-    expect(bulkToggle).toBeChecked();
-
-    await waitFor(() => expect(bulkToggle).toBeEnabled());
-    await userEvent.click(bulkToggle);
+    await chooseBulkPrIteration('Off');
     await waitFor(() =>
       expect(bulkPut).toHaveBeenLastCalledWith(
         expect.anything(),
         expect.objectContaining({data: expect.objectContaining({prIteration: false})})
       )
     );
-    await waitFor(() => expect(bulkToggle).not.toBeChecked());
-    expect(
-      screen.getByRole('checkbox', {name: 'Auto-iterate on PRs for project-slug'})
-    ).not.toBeChecked();
 
-    await waitFor(() => expect(bulkToggle).toBeEnabled());
-    await userEvent.click(bulkToggle);
+    // Both rows, including the one changed by hand, now show the bulk value.
     await waitFor(() =>
-      expect(bulkPut).toHaveBeenLastCalledWith(
-        expect.anything(),
-        expect.objectContaining({data: expect.objectContaining({prIteration: true})})
-      )
+      expect(within(getRow('other-project')).getByText('Off')).toBeInTheDocument()
     );
-    await waitFor(() => expect(bulkToggle).toBeChecked());
-    expect(
-      screen.getByRole('checkbox', {name: 'Auto-iterate on PRs for other-project'})
-    ).toBeChecked();
+    expect(within(getRow('project-slug')).getByText('Off')).toBeInTheDocument();
   });
 
   it('updates an automation steps dropdown that was already changed when the bulk menu is used', async () => {
@@ -428,7 +427,7 @@ describe('SeerProjectTable', () => {
     expect(screen.queryByText('Stop after PR drafted')).not.toBeInTheDocument();
   });
 
-  it('resets a row switch and marks it invalid when its save fails', async () => {
+  it('marks a row PR iteration dropdown invalid when its save fails', async () => {
     mockTwoProjects();
     const failedPut = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/project-slug/seer/settings/`,
@@ -438,27 +437,20 @@ describe('SeerProjectTable', () => {
 
     render(<ExampleSeerProjectTable />, {organization});
 
-    const rowToggle = await screen.findByRole('checkbox', {
-      name: 'Auto-iterate on PRs for project-slug',
-    });
-    expect(rowToggle).toBeChecked();
-
-    await userEvent.click(rowToggle);
+    await chooseRowPrIteration('project-slug', 'Off');
     await waitFor(() => expect(failedPut).toHaveBeenCalled());
 
-    // The row keeps its form through its own save, so the form can put the old
-    // value back and show that the save failed.
+    // The row keeps its form through its own save, so the form can show that
+    // the save failed.
     await waitFor(() =>
-      expect(
-        screen.getByRole('checkbox', {name: 'Auto-iterate on PRs for project-slug'})
-      ).toHaveAttribute('aria-invalid', 'true')
+      expect(getRowPrIterationSelect('project-slug')).toHaveAttribute(
+        'aria-invalid',
+        'true'
+      )
     );
-    expect(
-      screen.getByRole('checkbox', {name: 'Auto-iterate on PRs for project-slug'})
-    ).toBeChecked();
   });
 
-  it('keeps a row switch in place while its own save is in flight', async () => {
+  it('keeps a row PR iteration dropdown in place while its own save is in flight', async () => {
     mockTwoProjects();
     const delay = makeDelay();
     MockApiClient.addMockResponse({
@@ -469,20 +461,22 @@ describe('SeerProjectTable', () => {
 
     render(<ExampleSeerProjectTable />, {organization});
 
-    const rowToggle = await screen.findByRole('checkbox', {
+    const rowSelect = await screen.findByRole('textbox', {
       name: 'Auto-iterate on PRs for project-slug',
     });
-    await userEvent.click(rowToggle);
+    await chooseRowPrIteration('project-slug', 'Off');
 
-    // The click writes the new value into the table's data straight away. The
-    // row must keep the same switch through that, because the switch's form is
-    // what undoes the change and shows an error if the save then fails.
-    await waitFor(() => expect(rowToggle).not.toBeChecked());
-    expect(rowToggle).toBeInTheDocument();
+    // The change writes the new value into the table's data straight away. The
+    // row must keep the same dropdown through that, because the dropdown's form
+    // is what shows an error if the save then fails.
+    await waitFor(() =>
+      expect(within(getRow('project-slug')).getByText('Off')).toBeInTheDocument()
+    );
+    expect(rowSelect).toBeInTheDocument();
 
     delay.release();
-    await waitFor(() => expect(rowToggle).toBeEnabled());
-    expect(rowToggle).toBeInTheDocument();
+    await waitFor(() => expect(rowSelect).toBeEnabled());
+    expect(rowSelect).toBeInTheDocument();
   });
 
   it('disables the bulk controls while a row is saving', async () => {
@@ -496,22 +490,42 @@ describe('SeerProjectTable', () => {
 
     render(<ExampleSeerProjectTable />, {organization});
 
-    await screen.findByRole('checkbox', {name: 'Auto-iterate on PRs for project-slug'});
+    await screen.findByRole('textbox', {name: 'Auto-iterate on PRs for project-slug'});
     await selectAllProjects();
-    const bulkToggle = await screen.findByRole('checkbox', {
-      name: 'Auto-iterate on PRs for selected projects',
-    });
-    expect(bulkToggle).toBeEnabled();
+    const bulkMenu = await screen.findByRole('button', {name: 'Auto-Iterate on PRs'});
+    expect(bulkMenu).toBeEnabled();
 
-    await userEvent.click(
-      screen.getByRole('checkbox', {name: 'Auto-iterate on PRs for project-slug'})
-    );
+    await chooseRowPrIteration('project-slug', 'Off');
 
-    await waitFor(() => expect(bulkToggle).toBeDisabled());
+    await waitFor(() => expect(bulkMenu).toBeDisabled());
     expect(screen.getByRole('button', {name: 'Automation Steps'})).toBeDisabled();
 
     delay.release();
-    await waitFor(() => expect(bulkToggle).toBeEnabled());
+    await waitFor(() => expect(bulkMenu).toBeEnabled());
+    expect(screen.getByRole('button', {name: 'Automation Steps'})).toBeEnabled();
+  });
+
+  it('disables the bulk controls while a bulk edit is saving', async () => {
+    mockTwoProjects();
+    const delay = makeDelay();
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/projects/`,
+      method: 'PUT',
+      asyncDelay: delay.promise,
+    });
+
+    render(<ExampleSeerProjectTable />, {organization});
+
+    await screen.findByRole('textbox', {name: 'Auto-iterate on PRs for other-project'});
+    await selectAllProjects();
+    await chooseBulkPrIteration('Off');
+
+    const bulkMenu = screen.getByRole('button', {name: 'Auto-Iterate on PRs'});
+    await waitFor(() => expect(bulkMenu).toBeDisabled());
+    expect(screen.getByRole('button', {name: 'Automation Steps'})).toBeDisabled();
+
+    delay.release();
+    await waitFor(() => expect(bulkMenu).toBeEnabled());
     expect(screen.getByRole('button', {name: 'Automation Steps'})).toBeEnabled();
   });
 
@@ -526,24 +540,14 @@ describe('SeerProjectTable', () => {
 
     render(<ExampleSeerProjectTable />, {organization});
 
-    const rowToggle = await screen.findByRole('checkbox', {
-      name: 'Auto-iterate on PRs for other-project',
-    });
+    await screen.findByRole('textbox', {name: 'Auto-iterate on PRs for other-project'});
     await selectAllProjects();
-    await userEvent.click(
-      await screen.findByRole('checkbox', {
-        name: 'Auto-iterate on PRs for selected projects',
-      })
-    );
+    await chooseBulkPrIteration('Off');
 
-    await waitFor(() => expect(rowToggle).toBeDisabled());
+    await waitFor(() => expect(getRowPrIterationSelect('other-project')).toBeDisabled());
 
     delay.release();
-    await waitFor(() =>
-      expect(
-        screen.getByRole('checkbox', {name: 'Auto-iterate on PRs for other-project'})
-      ).toBeEnabled()
-    );
+    await waitFor(() => expect(getRowPrIterationSelect('other-project')).toBeEnabled());
   });
 
   it('disables adding a project without organization write access', async () => {
