@@ -1,5 +1,6 @@
 import {z} from 'zod';
 
+import {Alert} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {InputGroup} from '@sentry/scraps/input';
@@ -7,7 +8,7 @@ import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {IconArrow, IconBranch, IconSentry} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 
 import {SOURCE_ROOT_PLACEHOLDER, STACK_ROOT_PLACEHOLDER} from './constants';
@@ -20,6 +21,7 @@ import {
 } from './normalization';
 import {PathMappingPreview} from './pathMappingPreview';
 import type {PathMappingValue} from './type';
+import type {PathMappingWarning} from './warnings';
 
 // Non-transforming schema used only for the form's onDynamic validator.
 const schema = z.object({
@@ -32,6 +34,7 @@ interface PathMappingEditProps extends PathMappingValue {
   onChange: (value: PathMappingValue) => void;
   defaultBranch?: string;
   providerKey?: string;
+  warning?: PathMappingWarning | null;
 }
 
 export function PathMappingEdit({
@@ -41,6 +44,7 @@ export function PathMappingEdit({
   onChange,
   defaultBranch,
   providerKey,
+  warning,
 }: PathMappingEditProps) {
   const branchFallback = defaultBranch ?? DEFAULT_BRANCH;
   const form = useScrapsForm({
@@ -168,6 +172,21 @@ export function PathMappingEdit({
                 );
               }}
             </form.Subscribe>
+            {warning?.type === 'catchAll' && (
+              <Alert variant="info" showIcon>
+                {t(
+                  'A mapping that matches every path already exists for this project and repository, so this rule needs a specific path to match.'
+                )}
+              </Alert>
+            )}
+            {warning?.type === 'overlap' && (
+              <Alert variant="warning" showIcon>
+                {tct(
+                  '[stackRoot] is already mapped to [sourceRoot]. Only the first match applies, so this one won\u2019t take effect.',
+                  {stackRoot: warning.stackRoot, sourceRoot: warning.sourceRoot}
+                )}
+              </Alert>
+            )}
           </Stack>
         </Stack>
       </Container>

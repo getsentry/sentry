@@ -3,6 +3,7 @@ import {Container, Stack} from '@sentry/scraps/layout';
 import {PathMappingEdit} from './pathMappingEdit';
 import {PathMappingSummary} from './pathMappingSummary';
 import type {PathMappingValue} from './type';
+import type {PathMappingWarning} from './warnings';
 
 interface PathMappingProps extends PathMappingValue {
   /**
@@ -17,6 +18,7 @@ interface PathMappingProps extends PathMappingValue {
   onExpandToggle: () => void;
   defaultBranch?: string;
   providerKey?: string;
+  warning?: PathMappingWarning | null;
 }
 
 export function PathMapping({
@@ -27,6 +29,7 @@ export function PathMapping({
   onExpandToggle,
   defaultBranch,
   providerKey,
+  warning,
   ...value
 }: PathMappingProps) {
   const showSummary = !(editing && isNew);
@@ -37,6 +40,7 @@ export function PathMapping({
         <PathMappingSummary
           {...value}
           expanded={editing}
+          warning={warning}
           onDelete={onDelete}
           onExpandToggle={onExpandToggle}
         />
@@ -47,6 +51,7 @@ export function PathMapping({
           {...value}
           providerKey={providerKey}
           defaultBranch={defaultBranch}
+          warning={warning}
           onChange={onChange}
         />
       )}

@@ -205,6 +205,128 @@ describe('PathMappingList', () => {
     });
   });
 
+  describe('catch-all and overlap warnings', () => {
+    it('shows the catch-all alert when the expanded row has an empty stack root', async () => {
+      renderList();
+
+      // The initial row is empty (catch-all state).
+      expect(
+        await screen.findByText(
+          'A mapping that matches every path already exists, so this rule needs a specific path to match.'
+        )
+      ).toBeInTheDocument();
+    });
+
+    it('hides the catch-all alert once a stack root is entered', async () => {
+      renderList();
+
+      await userEvent.type(
+        screen.getByRole('textbox', {name: /stack trace prefix/i}),
+        'src/'
+      );
+
+      expect(
+        screen.queryByText(
+          'A mapping that matches every path already exists, so this rule needs a specific path to match.'
+        )
+      ).not.toBeInTheDocument();
+    });
+
+    it('shows a warning icon on the collapsed overlap row', () => {
+      renderList({
+        pathMappings: [
+          {stackRoot: 'src/', sourceRoot: 'src/app/', branch: 'main'},
+          {stackRoot: 'src/app/', sourceRoot: 'dist/', branch: 'main'},
+        ],
+      });
+
+      // The src/ row is the shorter prefix — its collapsed summary gets the warning icon.
+      expect(screen.getByRole('img', {name: 'Warning'})).toBeInTheDocument();
+    });
+
+    it('shows the overlap alert when the overlapping row is expanded', async () => {
+      renderList({
+        pathMappings: [
+          {stackRoot: 'src/', sourceRoot: 'src/app/', branch: 'main'},
+          {stackRoot: 'src/app/', sourceRoot: 'dist/', branch: 'main'},
+        ],
+      });
+
+      const [firstExpand] = screen.getAllByRole('button', {name: 'Expand path mapping'});
+      await userEvent.click(firstExpand!);
+
+      expect(
+        screen.getByText(
+          /src\/app\/ is already mapped to dist\/. Only the first match applies/
+        )
+      ).toBeInTheDocument();
+    });
+
+    it('clears the overlap alert when the prefix is edited to no longer overlap', async () => {
+      renderList({
+        pathMappings: [
+          {stackRoot: 'src/', sourceRoot: 'src/app/', branch: 'main'},
+          {stackRoot: 'src/app/', sourceRoot: 'dist/', branch: 'main'},
+        ],
+      });
+
+      const [firstExpand] = screen.getAllByRole('button', {name: 'Expand path mapping'});
+      await userEvent.click(firstExpand!);
+
+      await userEvent.clear(screen.getByRole('textbox', {name: /stack trace prefix/i}));
+      await userEvent.type(
+        screen.getByRole('textbox', {name: /stack trace prefix/i}),
+        'lib/'
+      );
+
+      expect(screen.queryByText(/Only the first match applies/)).not.toBeInTheDocument();
+    });
+
+    it('does not warn when roots are unrelated', () => {
+      renderList({
+        pathMappings: [
+          {stackRoot: 'app/', sourceRoot: 'static/app/', branch: 'main'},
+          {stackRoot: 'src/', sourceRoot: 'src/app/', branch: 'main'},
+        ],
+      });
+
+      // No warning icon on either collapsed row.
+      expect(screen.queryByRole('img', {name: 'Warning'})).not.toBeInTheDocument();
+    });
+
+    it('shows warning icon and expanded alert for two identical stack roots', async () => {
+      renderList({
+        pathMappings: [
+          {stackRoot: 'src/', sourceRoot: 'src/app/', branch: 'main'},
+          {stackRoot: 'src/', sourceRoot: 'src/app/', branch: 'main'},
+        ],
+      });
+
+      // Both rows share the same stack root — each gets a warning icon.
+      expect(screen.getAllByRole('img', {name: 'Warning'})).toHaveLength(2);
+
+      const [firstExpand] = screen.getAllByRole('button', {name: 'Expand path mapping'});
+      await userEvent.click(firstExpand!);
+
+      expect(screen.getByText(/Only the first match applies/)).toBeInTheDocument();
+    });
+
+    it('still only disables add-another when roots are exact duplicates, not overlaps', () => {
+      renderList({
+        pathMappings: [
+          {stackRoot: 'src/', sourceRoot: 'src/app/', branch: 'main'},
+          {stackRoot: 'src/app/', sourceRoot: 'dist/', branch: 'main'},
+        ],
+      });
+
+      // Overlap rows — add is NOT disabled (duplicates disable it, overlaps don't).
+      expect(screen.getByRole('button', {name: 'Add another path'})).not.toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
+    });
+  });
+
   describe('field normalization', () => {
     it('adds a trailing slash to the stack root on blur', async () => {
       const onChange = jest.fn();

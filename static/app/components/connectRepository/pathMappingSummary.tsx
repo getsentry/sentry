@@ -1,22 +1,30 @@
+import styled from '@emotion/styled';
+
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconArrow, IconBranch, IconChevron, IconDelete} from 'sentry/icons';
+import {IconArrow, IconBranch, IconChevron, IconDelete, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 import {AccentPathSegment} from './accentPathSegment';
 import {normalizedPathMappingSchema} from './normalization';
 import type {PathMappingValue} from './type';
+import type {PathMappingWarning} from './warnings';
 
 const PATH_RATIO = 35;
 const BRANCH_RATIO = 30;
+
+const OverlapContainer = styled(Container)`
+  background: ${p => p.theme.tokens.background.transparent.warning.muted};
+`;
 
 interface PathMappingSummaryProps extends PathMappingValue {
   expanded: boolean;
   onDelete: () => void;
   onExpandToggle: () => void;
+  warning?: PathMappingWarning | null;
 }
 
 function PathSegment({value}: {value: string}) {
@@ -40,6 +48,7 @@ export function PathMappingSummary({
   expanded,
   onDelete,
   onExpandToggle,
+  warning,
 }: PathMappingSummaryProps) {
   const {
     stackRoot: normalizedStackRoot,
@@ -47,9 +56,24 @@ export function PathMappingSummary({
     branch: branchName,
   } = normalizedPathMappingSchema.parse({stackRoot, sourceRoot, branch});
 
+  const isOverlap = warning?.type === 'overlap';
+  const Wrapper = isOverlap ? OverlapContainer : Container;
+
   return (
-    <Container padding="md xl">
+    <Wrapper padding="md xl" border={isOverlap ? 'warning' : undefined}>
       <Flex align="center" gap="md" minWidth={0}>
+        {isOverlap && (
+          <Container flexShrink={0}>
+            {props => (
+              <IconWarning
+                size="xs"
+                color="warning"
+                aria-label={t('Warning')}
+                {...props}
+              />
+            )}
+          </Container>
+        )}
         <PathSegment value={normalizedStackRoot} />
         <Container flexShrink={0}>
           {props => <IconArrow direction="right" size="xs" {...props} />}
@@ -91,6 +115,6 @@ export function PathMappingSummary({
           />
         </Flex>
       </Flex>
-    </Container>
+    </Wrapper>
   );
 }
