@@ -57,6 +57,7 @@ export function SaveAsButton({disabled, onSave, organization}: SaveAsButtonProps
           organization,
           saveQuery: onSave,
           traceItemDataset: TraceItemDataset.ERRORS,
+          source: 'errors',
         })
       }
     >
