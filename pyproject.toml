@@ -1057,7 +1057,6 @@ module = [
     "sentry.models.groupreaction",
     "sentry.models.grouprelease",
     "sentry.models.groupresolution",
-    "sentry.models.grouprulestatus",
     "sentry.models.groupsearchview",
     "sentry.models.groupsearchviewlastvisited",
     "sentry.models.groupsearchviewstarred",

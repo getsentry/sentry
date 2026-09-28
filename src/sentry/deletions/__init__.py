@@ -73,7 +73,6 @@ def load_defaults(manager: DeletionTaskManager) -> None:
     manager.register(models.GroupRedirect, BulkModelDeletionTask)
     manager.register(models.GroupRelease, BulkModelDeletionTask)
     manager.register(models.GroupResolution, BulkModelDeletionTask)
-    manager.register(models.GroupRuleStatus, BulkModelDeletionTask)
     manager.register(models.GroupSeen, BulkModelDeletionTask)
     manager.register(models.GroupShare, BulkModelDeletionTask)
     manager.register(models.GroupSnooze, BulkModelDeletionTask)
