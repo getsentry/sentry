@@ -28,7 +28,7 @@ export function createSavedQuery(
   api: Client,
   orgId: string,
   query: NewQuery,
-  {showErrorMessage = true}: {showErrorMessage?: boolean} = {}
+  showErrorMessage = true
 ): Promise<SavedQuery> {
   const promise: Promise<SavedQuery> = api.requestPromise(
     getApiUrl('/organizations/$organizationIdOrSlug/discover/saved/', {

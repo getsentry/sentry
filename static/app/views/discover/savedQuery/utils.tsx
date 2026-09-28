@@ -38,7 +38,7 @@ export function handleCreateQuery(
   // True if this is a brand new query being saved
   // False if this is a modification from a saved query
   isNewQuery = true,
-  {showMessages = true}: {showMessages?: boolean} = {}
+  showMessages = true
 ): Promise<SavedQuery> {
   const payload = eventView.toNewQuery();
   payload.yAxis = yAxis;
@@ -47,9 +47,7 @@ export function handleCreateQuery(
     organization,
     ...extractAnalyticsQueryFields(payload),
   });
-  const promise = createSavedQuery(api, organization.slug, payload, {
-    showErrorMessage: showMessages,
-  });
+  const promise = createSavedQuery(api, organization.slug, payload, showMessages);
 
   promise
     .then((savedQuery: SavedQuery) => {
