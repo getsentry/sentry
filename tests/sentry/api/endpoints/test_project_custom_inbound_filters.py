@@ -61,6 +61,24 @@ class CustomInboundFiltersTest(APITestCase):
                 conditions=[{"type": "release", "value": ["2.*"]}],
             )
 
+    def test_post_cannot_set_legacy_filter(self) -> None:
+        with self.feature(self.features):
+            response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                method="post",
+                status_code=201,
+                name="Mine",
+                dataType="all",
+                conditions=[{"type": "release", "value": ["1.*"]}],
+                legacyFilter="release-version",
+                legacy_filter="release-version",
+            )
+
+        assert "legacyFilter" not in response.data
+        row = CustomInboundFilter.objects.get(id=response.data["id"])
+        assert row.legacy_filter is None
+
     def test_get(self) -> None:
         first_filter = self.create_project_custom_inbound_filter(
             project=self.project,
@@ -495,6 +513,52 @@ class CustomInboundFilterDetailsTest(APITestCase):
             conditions=[{"type": "release", "value": ["1.*"]}],
         )
         self.login_as(user=self.user)
+
+    def test_put_cannot_set_legacy_filter(self) -> None:
+        with self.feature(self.features), outbox_runner():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                self.custom_filter.id,
+                legacyFilter="release-version",
+                legacy_filter="release-version",
+            )
+
+        assert "legacyFilter" not in response.data
+        self.custom_filter.refresh_from_db()
+        assert self.custom_filter.legacy_filter is None
+
+    def test_row_that_mirrors_a_legacy_list_is_not_reachable(self) -> None:
+        mirror = self.create_project_custom_inbound_filter(
+            project=self.project,
+            data_type="all",
+            conditions=[{"type": "release", "value": ["1.*"]}],
+            legacy_filter=LegacyFilter.RELEASE_VERSION,
+        )
+
+        with self.feature(self.features):
+            self.get_error_response(
+                self.organization.slug, self.project.slug, mirror.id, method="get", status_code=404
+            )
+            self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                mirror.id,
+                method="put",
+                status_code=404,
+                name="Renamed",
+            )
+            self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                mirror.id,
+                method="delete",
+                status_code=404,
+            )
+
+        mirror.refresh_from_db()
+        assert mirror.name == "Custom inbound filter"
+        assert mirror.conditions == [{"type": "release", "value": ["1.*"]}]
 
     def test_get(self) -> None:
         with self.feature(self.features):

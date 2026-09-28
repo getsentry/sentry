@@ -247,7 +247,8 @@ def serialize_custom_inbound_filter(
 def _user_filters(project: Project) -> QuerySet[CustomInboundFilter]:
     """
     The filters a user made here. A row with legacy_filter set mirrors a legacy list
-    that the project settings still own, so it stays out of this API for now.
+    that the project settings still own, so this API neither lists, edits nor deletes
+    it for now. The serializer has no legacy_filter field, so a request cannot set it.
     """
     return CustomInboundFilter.objects.filter(project_id=project.id, legacy_filter__isnull=True)
 
@@ -398,7 +399,7 @@ class CustomInboundFilterDetailsEndpoint(ProjectCustomInboundFilterEndpoint):
 
     def get_custom_inbound_filter(self, project: Project, filter_id: str) -> CustomInboundFilter:
         try:
-            return CustomInboundFilter.objects.get(id=filter_id, project_id=project.id)
+            return _user_filters(project).get(id=filter_id)
         except (CustomInboundFilter.DoesNotExist, ValueError):
             raise ResourceDoesNotExist
 
