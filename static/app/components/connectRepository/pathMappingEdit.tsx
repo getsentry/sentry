@@ -183,7 +183,10 @@ export function PathMappingEdit({
               <Alert variant="warning" showIcon>
                 {tct(
                   '[stackRoot] is already mapped to [sourceRoot]. Only the first match applies, so this one won\u2019t take effect.',
-                  {stackRoot: warning.stackRoot, sourceRoot: warning.sourceRoot}
+                  {
+                    stackRoot: warning.stackRoot || t('empty'),
+                    sourceRoot: warning.sourceRoot || t('empty'),
+                  }
                 )}
               </Alert>
             )}
