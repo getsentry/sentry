@@ -167,7 +167,10 @@ class SweepStalePrIterationsTest(TestCase):
         self._open()
 
         with (
-            patch("sentry.seer.autofix.pr_iteration.sweep.remove_iteration", return_value=False),
+            patch(
+                "sentry.seer.autofix.pr_iteration.sweep.remove_unchanged_iteration",
+                return_value=False,
+            ),
             patch("sentry.analytics.record") as mock_record,
         ):
             assert self._sweep() == SweepResult(discarded=0, emitted=0, backlog=1)
@@ -198,3 +201,23 @@ class SweepStalePrIterationsTest(TestCase):
 
         assert not mock_record.called
         assert len(self._open_rows()) == 1
+
+    def test_a_row_claimed_mid_sweep_is_left_alone(self) -> None:
+        self._open()
+
+        def claim_then_build(iteration: SeerRunPrIteration) -> MagicMock:
+            self._trigger()
+            return MagicMock()
+
+        with (
+            patch(
+                "sentry.seer.autofix.pr_iteration.sweep._swept_event",
+                side_effect=claim_then_build,
+            ),
+            patch("sentry.analytics.record") as mock_record,
+        ):
+            assert self._sweep() == SweepResult(discarded=0, emitted=0, backlog=1)
+
+        assert not mock_record.called
+        (row,) = self._open_rows()
+        assert row.triggered

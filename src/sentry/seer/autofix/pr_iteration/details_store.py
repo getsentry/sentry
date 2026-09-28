@@ -52,3 +52,13 @@ def remove_iteration(iteration: SeerRunPrIteration) -> bool:
     """
     deleted, _ = SeerRunPrIteration.objects.filter(id=iteration.id).delete()
     return bool(deleted)
+
+
+def remove_unchanged_iteration(iteration: SeerRunPrIteration) -> bool:
+    """Delete one row only if nothing has claimed or written to it since it was read."""
+    deleted, _ = SeerRunPrIteration.objects.filter(
+        id=iteration.id,
+        triggered=iteration.triggered,
+        date_updated=iteration.date_updated,
+    ).delete()
+    return bool(deleted)

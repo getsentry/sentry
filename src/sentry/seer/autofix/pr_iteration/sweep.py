@@ -17,7 +17,7 @@ from sentry import analytics
 from sentry.analytics.events.pr_iteration_events import (
     AiAutofixPrIterationFeedbackBatchBlockedEvent,
 )
-from sentry.seer.autofix.pr_iteration.details_store import remove_iteration
+from sentry.seer.autofix.pr_iteration.details_store import remove_unchanged_iteration
 from sentry.seer.autofix.pr_iteration.emit import (
     BLOCKED_OUTCOMES_DATA_KEY,
     FAILURE_REASON_DATA_KEY,
@@ -58,9 +58,9 @@ def sweep_stale_pr_iterations() -> SweepResult:
         event = None
         if not iteration.data.get(BLOCKED_OUTCOMES_DATA_KEY):
             event = _swept_event(iteration)
-        # If the delete finds nothing, the completion hook already deleted this
-        # row and sent its own event, so we skip it to avoid a second one.
-        if not remove_iteration(iteration):
+        # If the delete finds nothing, something claimed, updated, or deleted
+        # the row since we read it, so the event above may be wrong. Skip it.
+        if not remove_unchanged_iteration(iteration):
             continue
         discarded += 1
         if event is None:
