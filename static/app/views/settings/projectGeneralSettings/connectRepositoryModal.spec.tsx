@@ -32,18 +32,6 @@ import {
 
 import {ConnectRepositoryModal} from 'sentry/views/settings/projectGeneralSettings/connectRepositoryModal';
 
-// Bold paths split the sentence across elements. Match the node that contains
-// the full sentence, not each nested fragment.
-function hasOnlyThisText(node: Element | null, pattern: RegExp) {
-  const text = node?.textContent ?? '';
-  if (!pattern.test(text)) {
-    return false;
-  }
-  return Array.from(node?.children ?? []).every(
-    child => !pattern.test(child.textContent ?? '')
-  );
-}
-
 describe('ConnectRepositoryModal', () => {
   const organization = OrganizationFixture();
   const project = ProjectFixture();
@@ -71,12 +59,6 @@ describe('ConnectRepositoryModal', () => {
       url: `/organizations/${organization.slug}/integrations/`,
       method: 'GET',
       body: [integration],
-    });
-    // Default: no existing code mappings for this project.
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/code-mappings/`,
-      method: 'GET',
-      body: [],
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/${integration.id}/repos/`,
@@ -149,7 +131,6 @@ describe('ConnectRepositoryModal', () => {
     expect(
       screen.getByRole('textbox', {name: /stack trace prefix/i})
     ).toBeInTheDocument();
-    // Wait for the existing-mappings query to settle before Save becomes enabled.
     expect(await screen.findByRole('button', {name: 'Save'})).toBeEnabled();
 
     await userEvent.type(
@@ -294,42 +275,6 @@ describe('ConnectRepositoryModal', () => {
       })
     );
     expect(closeModal).toHaveBeenCalled();
-  });
-
-  it('disables Save when this repo already has a mapping with the same stack root (idempotent block)', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/code-mappings/`,
-      method: 'GET',
-      body: [{repoId: '10', repoName: 'getsentry/sentry', stackRoot: '', sourceRoot: ''}],
-    });
-
-    renderModal();
-
-    await userEvent.click(screen.getByText('Search repositories'));
-    await userEvent.click(await screen.findByText('getsentry/sentry'));
-
-    // The in-form row (empty stack root) clashes with an existing mapping on this repo.
-    expect(await screen.findByRole('button', {name: 'Save'})).toBeDisabled();
-  });
-
-  it('disables Save and shows exactExisting warning when another repo owns the same stack root', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/code-mappings/`,
-      method: 'GET',
-      body: [{repoId: '11', repoName: 'getsentry/relay', stackRoot: '', sourceRoot: ''}],
-    });
-
-    renderModal();
-
-    await userEvent.click(screen.getByText('Search repositories'));
-    await userEvent.click(await screen.findByText('getsentry/sentry'));
-
-    expect(await screen.findByRole('button', {name: 'Save'})).toBeDisabled();
-    expect(
-      await screen.findByText((_, node) =>
-        hasOnlyThisText(node, /already mapped.*getsentry\/relay/i)
-      )
-    ).toBeInTheDocument();
   });
 
   it('shows an inline error and keeps the modal open when save fails', async () => {

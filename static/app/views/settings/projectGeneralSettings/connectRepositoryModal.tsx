@@ -1,5 +1,5 @@
 import {Fragment, useState} from 'react';
-import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {ProjectAvatar} from '@sentry/scraps/avatar';
@@ -11,7 +11,6 @@ import {Heading, Text} from '@sentry/scraps/text';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {PathMappingList} from 'sentry/components/connectRepository/pathMappingList';
 import type {PathMappingValue} from 'sentry/components/connectRepository/type';
-import type {ExistingMapping} from 'sentry/components/connectRepository/warnings';
 import {getPathMappingWarnings} from 'sentry/components/connectRepository/warnings';
 import {ScmVirtualizedMenuList} from 'sentry/components/onboarding/scm/scmVirtualizedMenuList';
 import {IconLock} from 'sentry/icons';
@@ -115,27 +114,11 @@ export function ConnectRepositoryModal({
     },
   });
 
-  const existingMappingsQuery = useQuery({
-    ...projectCodeMappingsOptions({orgSlug: organization.slug, projectId: project.id}),
-    enabled: selectedOption !== null,
-  });
-
-  const existingMappings: ExistingMapping[] = (existingMappingsQuery.data ?? []).map(
-    m => ({
-      repoName: m.repoName,
-      sourceRoot: m.sourceRoot,
-      stackRoot: m.stackRoot,
-    })
-  );
-
-  const hasUnusedMapping = getPathMappingWarnings(pathMappings, existingMappings).some(
-    w => w?.type === 'exact' || w?.type === 'exactExisting'
+  const hasExactDuplicate = getPathMappingWarnings(pathMappings).some(
+    w => w?.type === 'exact'
   );
   const canSave =
-    selectedOption !== null &&
-    existingMappingsQuery.isSuccess &&
-    pathMappings.length > 0 &&
-    !hasUnusedMapping;
+    selectedOption !== null && pathMappings.length > 0 && !hasExactDuplicate;
   const saveError = saveMutation.isError ? getApiErrorMessage(saveMutation.error) : null;
 
   return (
@@ -150,13 +133,6 @@ export function ConnectRepositoryModal({
           {saveError && (
             <Alert.Container>
               <Alert variant="danger">{saveError}</Alert>
-            </Alert.Container>
-          )}
-          {existingMappingsQuery.isError && (
-            <Alert.Container>
-              <Alert variant="danger">
-                {t('Failed to load existing code mappings. Close and reopen to retry.')}
-              </Alert>
             </Alert.Container>
           )}
           <Text as="p">
@@ -208,7 +184,6 @@ export function ConnectRepositoryModal({
                 key={selectedOption.value}
                 providerKey={selectedOption.providerKey}
                 defaultBranch={selectedOption.defaultBranch ?? undefined}
-                existingMappings={existingMappings}
                 onChange={setPathMappings}
               />
             </Container>

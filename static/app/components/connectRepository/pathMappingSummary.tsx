@@ -56,7 +56,7 @@ export function PathMappingSummary({
     branch: branchName,
   } = normalizedPathMappingSchema.parse({stackRoot, sourceRoot, branch});
 
-  const hasWarning = warning?.type === 'exact' || warning?.type === 'exactExisting';
+  const hasWarning = warning?.type === 'exact';
   const Wrapper = hasWarning ? WarningContainer : Container;
 
   return (

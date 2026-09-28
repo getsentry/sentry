@@ -32,10 +32,6 @@ function displaySourceRoot(root: string) {
   );
 }
 
-function displayRepo(repoName: string) {
-  return <strong>{repoName}</strong>;
-}
-
 export function PathMappingWarningAlert({warning}: PathMappingWarningAlertProps) {
   if (warning?.type === 'catchAll') {
     return (
@@ -55,21 +51,6 @@ export function PathMappingWarningAlert({warning}: PathMappingWarningAlertProps)
           {
             stackRoot: displayStackRoot(warning.stackRoot),
             sourceRoot: displaySourceRoot(warning.sourceRoot),
-          }
-        )}
-      </Alert>
-    );
-  }
-
-  if (warning?.type === 'exactExisting') {
-    return (
-      <Alert variant="warning" showIcon>
-        {tct(
-          '[stackRoot] is already mapped to [sourceRoot] in the [repo] repository. Only one can be used for matching.',
-          {
-            stackRoot: displayStackRoot(warning.stackRoot),
-            sourceRoot: displaySourceRoot(warning.sourceRoot),
-            repo: displayRepo(warning.repoName),
           }
         )}
       </Alert>
