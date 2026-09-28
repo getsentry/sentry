@@ -491,5 +491,93 @@ describe('ConnectRepositoryModal', () => {
       ).toBeInTheDocument();
       expect(closeModal).not.toHaveBeenCalled();
     });
+
+    it('does not PUT when the only difference is a null server branch displayed as main', async () => {
+      const closeModal = jest.fn();
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/code-mappings/`,
+        method: 'GET',
+        body: [{...seededMapping, defaultBranch: null}],
+      });
+      const putMapping = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/code-mappings/${seededMapping.id}/`,
+        method: 'PUT',
+        body: {},
+      });
+
+      renderEditModal(closeModal);
+
+      expect(await screen.findByText('src/')).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+
+      await waitFor(() => expect(closeModal).toHaveBeenCalled());
+      expect(putMapping).not.toHaveBeenCalled();
+    });
+
+    it('treats a 404 DELETE on retry as success after a later PUT failed', async () => {
+      const closeModal = jest.fn();
+      const secondMapping = {
+        id: '6',
+        repoId: '10',
+        repoName: 'getsentry/sentry',
+        projectId: project.id,
+        stackRoot: 'vendor/',
+        sourceRoot: 'lib/',
+        defaultBranch: 'main',
+        integrationId: integration.id,
+      };
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/code-mappings/`,
+        method: 'GET',
+        body: [seededMapping, secondMapping],
+      });
+      const deleteMapping = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/code-mappings/${seededMapping.id}/`,
+        method: 'DELETE',
+        body: {},
+      });
+      const putMapping = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/code-mappings/${secondMapping.id}/`,
+        method: 'PUT',
+        statusCode: 400,
+        body: {detail: 'Failed to update mapping'},
+      });
+
+      renderEditModal(closeModal);
+
+      expect(await screen.findByText('vendor/')).toBeInTheDocument();
+      const [deleteFirst] = screen.getAllByRole('button', {name: 'Delete path mapping'});
+      await userEvent.click(deleteFirst!);
+
+      await userEvent.click(screen.getByRole('button', {name: 'Expand path mapping'}));
+      await userEvent.clear(screen.getByRole('textbox', {name: /stack trace prefix/i}));
+      await userEvent.type(
+        screen.getByRole('textbox', {name: /stack trace prefix/i}),
+        'vendor/updated/'
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+      expect(await screen.findByText('Failed to update mapping')).toBeInTheDocument();
+      expect(deleteMapping).toHaveBeenCalled();
+      expect(putMapping).toHaveBeenCalled();
+      expect(closeModal).not.toHaveBeenCalled();
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/code-mappings/${seededMapping.id}/`,
+        method: 'DELETE',
+        statusCode: 404,
+        body: {},
+      });
+      const retryPut = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/code-mappings/${secondMapping.id}/`,
+        method: 'PUT',
+        body: {},
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+
+      await waitFor(() => expect(closeModal).toHaveBeenCalled());
+      expect(retryPut).toHaveBeenCalled();
+    });
   });
 });

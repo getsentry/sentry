@@ -8,6 +8,10 @@ import {
 
 import type {SelectValue} from '@sentry/scraps/select';
 
+import {
+  normalizeRoot,
+  resolveBranch,
+} from 'sentry/components/connectRepository/normalization';
 import type {PathMappingValue} from 'sentry/components/connectRepository/type';
 import type {
   Integration,
@@ -309,6 +313,19 @@ export type EditSaveResult = {
   codeOwnerMessages: string[];
 };
 
+// Form fields coerce a null server branch to "main"; compare normalized values
+// so displaying the default is not treated as an edit.
+function mappingHasChanged(
+  submitted: PathMappingValue,
+  original: RepositoryProjectPathConfig
+): boolean {
+  return (
+    normalizeRoot(submitted.stackRoot) !== normalizeRoot(original.stackRoot) ||
+    normalizeRoot(submitted.sourceRoot) !== normalizeRoot(original.sourceRoot) ||
+    resolveBranch(submitted.branch) !== resolveBranch(original.defaultBranch ?? '')
+  );
+}
+
 export async function editProjectRepoMappings({
   orgSlug,
   project,
@@ -332,21 +349,14 @@ export async function editProjectRepoMappings({
       return false;
     }
     const original = seededMappings.find(s => s.id === m.id);
-    if (!original) {
-      return false;
-    }
-    return (
-      m.stackRoot !== original.stackRoot ||
-      m.sourceRoot !== original.sourceRoot ||
-      m.branch !== original.defaultBranch
-    );
+    return original ? mappingHasChanged(m, original) : false;
   });
   const toCreate = submittedMappings.filter(m => !m.id);
 
   const codeOwnerMessages: string[] = [];
 
-  // 1. Deletes first — a 409 means a Code Owner rule protects this mapping;
-  //    surface the message but continue saving the rest.
+  // 1. Deletes first. 409: Code Owner rule still uses this mapping — warn and
+  //    continue. 404: already deleted on a prior partial save — treat as success.
   await Promise.all(
     toDelete.map(async m => {
       try {
@@ -360,8 +370,14 @@ export async function editProjectRepoMappings({
           method: 'DELETE',
         });
       } catch (error) {
-        if (error instanceof RequestError && error.status === 409) {
+        if (!(error instanceof RequestError)) {
+          throw error;
+        }
+        if (error.status === 409) {
           codeOwnerMessages.push(CODE_OWNER_PROTECTED_MESSAGE);
+          return;
+        }
+        if (error.status === 404) {
           return;
         }
         throw error;
