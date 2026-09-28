@@ -1323,6 +1323,20 @@ SEER_UNAVAILABLE_RETRY = Retry(on=(SeerUnavailableError,), times=6, delay=60)
 
 
 @instrumented_task(
+    name="sentry.tasks.autofix.process_pr_iteration_check_suite",
+    namespace=seer_tasks,
+    processing_deadline_duration=65,
+    retry=SEER_UNAVAILABLE_RETRY,
+)
+def process_pr_iteration_check_suite(*, event_data: str) -> None:
+    """Act on a completed check suite: queue CI feedback, or undraft and request review."""
+    from sentry.scm.private.ipc import deserialize_check_suite_event
+    from sentry.seer.autofix.pr_iteration.listeners.check_suite import process_check_suite_event
+
+    process_check_suite_event(deserialize_check_suite_event(event_data))
+
+
+@instrumented_task(
     name="sentry.tasks.autofix.trigger_pr_iteration_from_comment",
     namespace=seer_tasks,
     processing_deadline_duration=65,
