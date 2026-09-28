@@ -51,14 +51,16 @@ function GcpSaGenerationStep({
   return (
     <Stack gap="lg">
       <Text>
-        {tct(
-          'Sentry has generated a service account for your organization. Grant it access to your GCP projects using the steps below, then click Continue to enter your connection details. Refer to the [link:documentation] for more setup guidance.',
-          {
-            link: (
-              <ExternalLink href="https://docs.sentry.io/integrations/debugging/gcp-seer/" />
-            ),
-          }
+        {t(
+          'Sentry has generated a service account for your organization. Grant it access to your GCP projects using the steps below, then click Continue to enter your connection details.'
         )}
+      </Text>
+      <Text>
+        {tct('Refer to the [link:documentation] for more setup guidance.', {
+          link: (
+            <ExternalLink href="https://docs.sentry.io/integrations/debugging/gcp-seer/" />
+          ),
+        })}
       </Text>
       <Stack gap="sm">
         <Text bold>{t('Sentry Service Account')}</Text>
