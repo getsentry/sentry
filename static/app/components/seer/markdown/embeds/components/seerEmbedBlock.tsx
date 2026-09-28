@@ -54,6 +54,11 @@ interface SeerEmbedBlockOwnProps {
   defaultExpanded?: boolean;
   /** Spacing between the panel's own children. */
   gap?: StackProps['gap'];
+  /**
+   * Inset around the panel's children. A preview that draws its own row
+   * dividers, like an issue row, passes `"0"` so it sits flush in the card.
+   */
+  padding?: StackProps['padding'];
 }
 
 type SeerEmbedBlockProps = SeerEmbedBlockOwnProps & SeerEmbedBlockLinkProps;
@@ -86,6 +91,7 @@ export function SeerEmbedBlock({
   href,
   icon,
   linkLabel,
+  padding = 'lg',
   testId,
   title,
 }: SeerEmbedBlockProps) {
@@ -143,7 +149,7 @@ export function SeerEmbedBlock({
           behind -- padding out here would strand an empty strip under the header
           of every collapsed card. */}
       <Container {...panelProps} ref={panelRef}>
-        <Stack gap={gap} padding="lg">
+        <Stack gap={gap} padding={padding}>
           {children}
         </Stack>
       </Container>

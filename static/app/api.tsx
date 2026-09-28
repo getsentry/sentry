@@ -19,6 +19,7 @@ import {getCsrfToken} from 'sentry/utils/getCsrfToken';
 import {uniqueId} from 'sentry/utils/guid';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {sanitizePath} from 'sentry/utils/requestError/sanitizePath';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 
 /**
@@ -69,6 +70,27 @@ function csrfSafeMethod(method?: string): boolean {
 }
 
 /**
+ * The server derives `next` on the SSO login URL from the Referer header. API
+ * requests usually go to a different (region) origin than the page, so
+ * browsers strip the Referer down to the origin and `next` ends up pointing at
+ * `/`. Replace it with the page the user is actually on. The login view still
+ * validates `next` before redirecting. A missing or unparseable login URL is
+ * returned unchanged.
+ */
+export function withCurrentPageAsNext(loginUrl: string): string {
+  if (!loginUrl) {
+    return loginUrl;
+  }
+  try {
+    const url = new URL(loginUrl, window.location.origin);
+    url.searchParams.set('next', window.location.href);
+    return url.toString();
+  } catch {
+    return loginUrl;
+  }
+}
+
+/**
  * Return true if we should skip calling the normal error handler
  */
 export type ApiErrorHandler = (
@@ -114,7 +136,7 @@ export const initApiClientErrorHandling = () =>
 
     // If user must login via SSO, redirect to org login page
     if (code === 'sso-required') {
-      window.location.assign(extra.loginUrl);
+      testableWindowLocation.assign(withCurrentPageAsNext(extra.loginUrl));
       return true;
     }
 
