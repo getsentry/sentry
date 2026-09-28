@@ -96,7 +96,11 @@ export function ConnectRepositoryModal({
   const [pathMappings, setPathMappings] = useState<PathMappingValue[]>([]);
   const {groupedOptions, isPending} = useGroupedRepoOptions(organization.slug);
 
-  const {data: codeMappings = []} = useQuery(
+  const {
+    data: codeMappings = [],
+    isPending: codeMappingsPending,
+    isError: codeMappingsError,
+  } = useQuery(
     projectCodeMappingsOptions({orgSlug: organization.slug, projectId: project.id})
   );
 
@@ -138,7 +142,11 @@ export function ConnectRepositoryModal({
     isExactWarning
   );
   const canSave =
-    selectedOption !== null && pathMappings.length > 0 && !hasBlockingWarning;
+    selectedOption !== null &&
+    pathMappings.length > 0 &&
+    !codeMappingsPending &&
+    !codeMappingsError &&
+    !hasBlockingWarning;
   const saveError = saveMutation.isError ? getApiErrorMessage(saveMutation.error) : null;
 
   return (
@@ -150,9 +158,14 @@ export function ConnectRepositoryModal({
       </Header>
       <Body>
         <Stack gap="xl">
-          {saveError && (
+          {(saveError || codeMappingsError) && (
             <Alert.Container>
-              <Alert variant="danger">{saveError}</Alert>
+              {codeMappingsError && (
+                <Alert variant="danger">
+                  {t('Failed to load existing path mappings. Try again before saving.')}
+                </Alert>
+              )}
+              {saveError && <Alert variant="danger">{saveError}</Alert>}
             </Alert.Container>
           )}
           <Text as="p">

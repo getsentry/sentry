@@ -312,7 +312,7 @@ describe('ConnectRepositoryModal', () => {
     expect(closeModal).not.toHaveBeenCalled();
   });
 
-  it('shows an across-repos warning when another repo has the same mapping, but Save stays enabled', async () => {
+  it('shows an across-repos warning when another repo has the same mapping and blocks Save', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/code-mappings/`,
       method: 'GET',
@@ -385,5 +385,41 @@ describe('ConnectRepositoryModal', () => {
 
     expect(screen.queryByRole('img', {name: 'Warning'})).not.toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Save'})).toBeEnabled();
+  });
+
+  it('keeps Save disabled while the code-mappings fetch is pending', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/code-mappings/`,
+      method: 'GET',
+      body: new Promise(() => {}),
+    });
+
+    renderModal();
+
+    await userEvent.click(screen.getByText('Search repositories'));
+    await userEvent.click(await screen.findByText('getsentry/sentry'));
+
+    expect(screen.getByRole('button', {name: 'Save'})).toBeDisabled();
+  });
+
+  it('disables Save and shows a danger alert when the code-mappings fetch fails', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/code-mappings/`,
+      method: 'GET',
+      statusCode: 500,
+      body: {},
+    });
+
+    renderModal();
+
+    await userEvent.click(screen.getByText('Search repositories'));
+    await userEvent.click(await screen.findByText('getsentry/sentry'));
+
+    expect(
+      await screen.findByText(
+        'Failed to load existing path mappings. Try again before saving.'
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Save'})).toBeDisabled();
   });
 });
