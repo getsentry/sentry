@@ -1,4 +1,5 @@
 import type {ReactNode} from 'react';
+import styled from '@emotion/styled';
 
 import {Text} from '@sentry/scraps/text';
 
@@ -147,7 +148,7 @@ export function QueryEmbedTable<Row>({
   }));
 
   return (
-    <SimpleTable
+    <FlushTable
       columns={columnConfig}
       header={
         <SimpleTable.HeaderRow>
@@ -176,6 +177,21 @@ export function QueryEmbedTable<Row>({
           </SimpleTable.Row>
         ))
       )}
-    </SimpleTable>
+    </FlushTable>
   );
 }
+
+/**
+ * The table runs edge to edge in `QueryEmbedCard`, whose own border already
+ * frames it, so `SimpleTable`'s border and rounding would draw a second box
+ * inside the first. Only the top rule stays, dividing the header from the
+ * card's header band or the query above it.
+ */
+const FlushTable = styled(SimpleTable)`
+  border-width: 1px 0 0;
+  border-radius: 0;
+
+  > thead > tr {
+    border-radius: 0;
+  }
+`;

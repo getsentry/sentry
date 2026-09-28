@@ -1,15 +1,15 @@
 import type {ComponentType, ReactNode} from 'react';
+import styled from '@emotion/styled';
+
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {SeerEmbedBlock} from 'sentry/components/seer/markdown/embeds/components/seerEmbedBlock';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
+import {t} from 'sentry/locale';
 
 interface QueryEmbedCardProps {
-  /**
-   * The chart and/or table this card frames. A query type with neither — a
-   * plain list preview — passes its rows straight through.
-   */
-  children: ReactNode;
   /** Where the header's "View …" link points. */
   href: string;
   /** Icon rendered before the header link's label. */
@@ -22,16 +22,26 @@ interface QueryEmbedCardProps {
   /** Right-aligned label for the query's mode, e.g. "Aggregate" or "Spans". */
   badge?: ReactNode;
   /**
+   * Inset content under the query, such as a chart. Sits inside the card's
+   * padding, unlike `table`.
+   */
+  children?: ReactNode;
+  /**
    * The search string, rendered as formatted tokens. Omitted when the query is
    * empty, so an unfiltered preview doesn't show an empty token row.
    */
   query?: string;
+  /**
+   * A `QueryEmbedTable`, rendered flush against the card's edges below
+   * everything else: the card's border already frames it.
+   */
+  table?: ReactNode;
 }
 
 /**
  * The chrome every query-embed block shares: {@link SeerEmbedBlock}'s
- * collapsible card, with the formatted query sitting above whatever preview the
- * embed renders.
+ * collapsible card, with the formatted query and any chart inset at the top and
+ * the results table running edge to edge beneath them.
  */
 export function QueryEmbedCard({
   badge,
@@ -40,20 +50,49 @@ export function QueryEmbedCard({
   icon,
   linkLabel,
   query,
+  table,
   testId,
   title,
 }: QueryEmbedCardProps) {
   return (
     <SeerEmbedBlock
       badge={badge}
+      gap="0"
       href={href}
       icon={icon}
       linkLabel={linkLabel}
+      padding="0"
       testId={testId}
       title={title}
     >
-      {query ? <ProvidedFormattedQuery query={query} /> : null}
-      {children}
+      <InsetSection gap="md" padding="md">
+        {query ? (
+          <Flex
+            align="center"
+            border="primary"
+            gap="sm"
+            padding="xs sm"
+            radius="md"
+            minWidth="0"
+          >
+            <Text variant="muted">{t('Query:')}</Text>
+            <ProvidedFormattedQuery query={query} />
+          </Flex>
+        ) : null}
+        {children}
+      </InsetSection>
+      {table}
     </SeerEmbedBlock>
   );
 }
+
+/**
+ * A chart with nothing to plot renders nothing, and an unfiltered query has no
+ * token row, so this section can end up with no children. Dropping it then
+ * keeps its padding from leaving an empty strip above the table.
+ */
+const InsetSection = styled(Stack)`
+  &:empty {
+    display: none;
+  }
+`;
