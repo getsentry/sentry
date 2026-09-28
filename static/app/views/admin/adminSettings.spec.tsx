@@ -162,5 +162,67 @@ describe('AdminSettings', () => {
 
       expect(save).not.toHaveBeenCalled();
     });
+
+    it('saves a boolean setting', async () => {
+      MockApiClient.addMockResponse({
+        url: '/internal/options/',
+        body: {
+          'auth.allow-registration': {
+            field: {disabled: false},
+            value: false,
+          },
+        },
+      });
+      const save = MockApiClient.addMockResponse({
+        url: '/internal/options/',
+        method: 'PUT',
+        body: {},
+      });
+
+      render(<AdminSettings />);
+
+      await userEvent.click(await screen.findByLabelText('Allow Registration'));
+      await userEvent.tab();
+
+      await waitFor(() =>
+        expect(save).toHaveBeenCalledWith(
+          '/internal/options/',
+          expect.objectContaining({data: {'auth.allow-registration': true}})
+        )
+      );
+    });
+
+    it('saves a radio setting', async () => {
+      MockApiClient.addMockResponse({
+        url: '/internal/options/',
+        body: {
+          'beacon.anonymous': {
+            field: {disabled: false},
+            value: false,
+          },
+        },
+      });
+      const save = MockApiClient.addMockResponse({
+        url: '/internal/options/',
+        method: 'PUT',
+        body: {},
+      });
+
+      render(<AdminSettings />);
+
+      await userEvent.click(
+        await screen.findByRole('radio', {
+          name: 'Please keep my usage information anonymous',
+        })
+      );
+      await userEvent.tab();
+
+      await waitFor(() =>
+        expect(save).toHaveBeenCalledWith(
+          '/internal/options/',
+          expect.objectContaining({data: {'beacon.anonymous': 'true'}})
+        )
+      );
+    });
   });
 });

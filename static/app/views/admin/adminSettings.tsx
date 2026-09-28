@@ -5,8 +5,6 @@ import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
 import {Stack} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
-import {BooleanField} from 'sentry/components/forms/fields/booleanField';
-import {RadioField} from 'sentry/components/forms/fields/radioField';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
@@ -34,98 +32,144 @@ const disabledReasons: Record<string, string> = {
   smtpDisabled: 'SMTP mail has been disabled, so this option is unavailable',
 };
 
-function AdminOptionField({name, option}: {name: string; option: FieldDef}) {
+function useAdminOption(name: string, option: FieldDef) {
   const queryClient = useQueryClient();
   const definition = {...getOption(name), ...option.field};
-  const rawInitialValue =
+  const initialValue =
     option.value === undefined || option.value === ''
       ? (definition.defaultValue?.() ?? '')
       : option.value;
-  const kind =
-    definition.component === BooleanField
-      ? 'boolean'
-      : definition.component === RadioField
-        ? 'radio'
-        : 'text';
-  const initialValue =
-    kind === 'boolean' ? Boolean(rawInitialValue) : String(rawInitialValue);
   const disabled = definition.disabled
     ? (disabledReasons[definition.disabledReason ?? ''] ?? true)
     : false;
   const required = definition.required && !definition.allowEmpty;
-  const stringSchema = required
+
+  return {
+    definition,
+    initialValue,
+    disabled,
+    required,
+    save: (value: boolean | string) =>
+      fetchMutation<void>({
+        url: getApiUrl('/internal/options/'),
+        method: 'PUT',
+        data: {[name]: value},
+      }),
+    refresh: () =>
+      queryClient.invalidateQueries({queryKey: optionsQueryOptions.queryKey}),
+  };
+}
+
+function getStringSchema(required: boolean | undefined) {
+  return required
     ? z.string().refine(value => value.trim().length > 0, t('This field is required'))
     : z.string();
+}
+
+type OptionFieldProps = {name: string; option: FieldDef};
+
+function BooleanOptionField({name, option}: OptionFieldProps) {
+  const {definition, initialValue, disabled, required, save, refresh} = useAdminOption(
+    name,
+    option
+  );
+
   return (
     <AutoSaveForm
       name="value"
-      schema={z.object({value: z.union([z.boolean(), stringSchema])})}
-      initialValue={initialValue}
+      schema={z.object({value: z.boolean()})}
+      initialValue={Boolean(initialValue)}
       mutationOptions={{
-        mutationFn: data =>
-          fetchMutation<void>({
-            url: getApiUrl('/internal/options/'),
-            method: 'PUT',
-            data: {[name]: data.value},
-          }),
-        onSuccess: () =>
-          queryClient.invalidateQueries({queryKey: optionsQueryOptions.queryKey}),
+        mutationFn: data => save(data.value),
+        onSuccess: refresh,
       }}
     >
-      {field => {
-        if (kind === 'boolean') {
-          return (
-            <field.Layout.Row
-              label={definition.label}
-              hintText={definition.help}
-              required={required}
-            >
-              <field.Switch
-                checked={field.state.value === true}
-                onChange={field.handleChange}
-                disabled={disabled}
-              />
-            </field.Layout.Row>
-          );
-        }
+      {field => (
+        <field.Layout.Row
+          label={definition.label}
+          hintText={definition.help}
+          required={required}
+        >
+          <field.Switch
+            checked={field.state.value}
+            onChange={field.handleChange}
+            disabled={disabled}
+          />
+        </field.Layout.Row>
+      )}
+    </AutoSaveForm>
+  );
+}
 
-        if (kind === 'radio') {
-          return (
-            <field.Layout.Stack
-              label={definition.label}
-              hintText={definition.help}
-              required={required}
-            >
-              <field.Radio.Group
-                value={typeof field.state.value === 'string' ? field.state.value : ''}
-                onChange={field.handleChange}
-                disabled={disabled}
-              >
-                {definition.choices?.map(([value, label]) => (
-                  <field.Radio.Item key={value} value={value}>
-                    {label}
-                  </field.Radio.Item>
-                ))}
-              </field.Radio.Group>
-            </field.Layout.Stack>
-          );
-        }
+function RadioOptionField({name, option}: OptionFieldProps) {
+  const {definition, initialValue, disabled, required, save, refresh} = useAdminOption(
+    name,
+    option
+  );
 
-        return (
-          <field.Layout.Row
-            label={definition.label}
-            hintText={definition.help}
-            required={required}
-          >
-            <field.Input
-              value={typeof field.state.value === 'string' ? field.state.value : ''}
-              onChange={field.handleChange}
-              disabled={disabled}
-              placeholder={definition.placeholder}
-            />
-          </field.Layout.Row>
-        );
+  return (
+    <AutoSaveForm
+      name="value"
+      schema={z.object({value: getStringSchema(required)})}
+      initialValue={String(initialValue)}
+      mutationOptions={{
+        mutationFn: data => save(data.value),
+        onSuccess: refresh,
       }}
+    >
+      {field => (
+        <field.Layout.Stack
+          label={definition.label}
+          hintText={definition.help}
+          required={required}
+        >
+          <field.Radio.Group
+            value={field.state.value}
+            onChange={field.handleChange}
+            disabled={disabled}
+          >
+            {definition.choices?.map(([value, label]) => (
+              <field.Radio.Item key={value} value={value}>
+                {label}
+              </field.Radio.Item>
+            ))}
+          </field.Radio.Group>
+        </field.Layout.Stack>
+      )}
+    </AutoSaveForm>
+  );
+}
+
+function TextOptionField({name, option}: OptionFieldProps) {
+  const {definition, initialValue, disabled, required, save, refresh} = useAdminOption(
+    name,
+    option
+  );
+
+  return (
+    <AutoSaveForm
+      name="value"
+      schema={z.object({value: getStringSchema(required)})}
+      initialValue={String(initialValue)}
+      mutationOptions={{
+        mutationFn: data => save(data.value),
+        onSuccess: refresh,
+      }}
+    >
+      {field => (
+        <field.Layout.Row
+          label={definition.label}
+          hintText={definition.help}
+          required={required}
+        >
+          <field.Input
+            value={field.state.value}
+            onChange={field.handleChange}
+            disabled={disabled}
+            placeholder={definition.placeholder}
+          />
+        </field.Layout.Row>
+      )}
     </AutoSaveForm>
   );
 }
@@ -141,27 +185,8 @@ export default function AdminSettings() {
     return <LoadingIndicator />;
   }
 
-  const groups = [
-    {
-      title: t('General'),
-      options: [
-        'system.url-prefix',
-        'system.admin-email',
-        'system.support-email',
-        'system.security-email',
-      ],
-    },
-    {
-      title: t('Security & Abuse'),
-      options: [
-        'auth.allow-registration',
-        'auth.ip-rate-limit',
-        'auth.user-rate-limit',
-        'api.rate-limit.org-create',
-      ],
-    },
-    {title: t('Beacon'), options: ['beacon.anonymous']},
-  ];
+  const option = (name: string) =>
+    data[name] ?? ({field: {}, value: undefined} as FieldDef);
 
   return (
     <Stack gap="xl">
@@ -169,17 +194,44 @@ export default function AdminSettings() {
         {t('Settings')}
       </Heading>
 
-      {groups.map(group => (
-        <FieldGroup key={group.title} title={group.title}>
-          {group.options.map(name => (
-            <AdminOptionField
-              key={name}
-              name={name}
-              option={data[name] ?? ({field: {}, value: undefined} as FieldDef)}
-            />
-          ))}
-        </FieldGroup>
-      ))}
+      <FieldGroup title={t('General')}>
+        <TextOptionField name="system.url-prefix" option={option('system.url-prefix')} />
+        <TextOptionField
+          name="system.admin-email"
+          option={option('system.admin-email')}
+        />
+        <TextOptionField
+          name="system.support-email"
+          option={option('system.support-email')}
+        />
+        <TextOptionField
+          name="system.security-email"
+          option={option('system.security-email')}
+        />
+      </FieldGroup>
+
+      <FieldGroup title={t('Security & Abuse')}>
+        <BooleanOptionField
+          name="auth.allow-registration"
+          option={option('auth.allow-registration')}
+        />
+        <TextOptionField
+          name="auth.ip-rate-limit"
+          option={option('auth.ip-rate-limit')}
+        />
+        <TextOptionField
+          name="auth.user-rate-limit"
+          option={option('auth.user-rate-limit')}
+        />
+        <TextOptionField
+          name="api.rate-limit.org-create"
+          option={option('api.rate-limit.org-create')}
+        />
+      </FieldGroup>
+
+      <FieldGroup title={t('Beacon')}>
+        <RadioOptionField name="beacon.anonymous" option={option('beacon.anonymous')} />
+      </FieldGroup>
     </Stack>
   );
 }
