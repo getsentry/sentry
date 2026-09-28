@@ -1,9 +1,10 @@
-import type {Location} from 'history';
+import type {Location, LocationDescriptor} from 'history';
 import * as Papa from 'papaparse';
 
 import type {SelectValue} from '@sentry/scraps/select';
 
 import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
+import {hasEveryAccess} from 'sentry/components/acl/access';
 import {URL_PARAM} from 'sentry/components/pageFilters/constants';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
@@ -14,6 +15,7 @@ import type {Project} from 'sentry/types/project';
 import {toArray} from 'sentry/utils/array/toArray';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
+import {isDemoModeActive} from 'sentry/utils/demoMode';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {EventData, EventView, MetaType} from 'sentry/utils/discover/eventView';
 import type {
@@ -42,7 +44,13 @@ import {
 import {DisplayModes, SavedQueryDatasets, TOP_N} from 'sentry/utils/discover/types';
 import {downloadFromHref} from 'sentry/utils/downloadFromHref';
 import {DISCOVER_FIELDS, FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import type {AlertType} from 'sentry/views/alerts/wizard/options';
+import {
+  AlertWizardRuleTemplates,
+  DEFAULT_WIZARD_TEMPLATE,
+} from 'sentry/views/alerts/wizard/options';
 import {
   DEFAULT_WIDGET_NAME,
   DisplayType,
@@ -60,6 +68,7 @@ import {
 import {displayModeToDisplayType} from 'sentry/views/discover/savedQuery/utils';
 import type {FieldValue, TableColumn} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
+import {getMetricMonitorUrl} from 'sentry/views/insights/common/utils/getMetricMonitorUrl';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 /**
@@ -930,5 +939,55 @@ export function getDiscoverDeprecation(organization: Organization) {
   return (
     getDiscoverDeprecationEnabled(organization) &&
     getTransactionsDeprecation(organization)
+  );
+}
+
+/**
+ * Builds the metric monitor creation URL for a Discover event view.
+ */
+export function getCreateAlertFromViewUrl({
+  projects,
+  eventView,
+  organization,
+  referrer,
+  alertType,
+}: {
+  eventView: EventView;
+  organization: Organization;
+  projects: Project[];
+  alertType?: AlertType;
+  referrer?: string;
+}): LocationDescriptor {
+  const project = projects.find(p => p.id === `${eventView.project[0]}`);
+  const queryParams = eventView.generateQueryStringObject();
+  if (queryParams.query?.includes(`project:${project?.slug}`)) {
+    queryParams.query = (queryParams.query as string).replace(
+      `project:${project?.slug}`,
+      ''
+    );
+  }
+
+  const alertTemplate = alertType
+    ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      AlertWizardRuleTemplates[alertType]
+    : DEFAULT_WIZARD_TEMPLATE;
+
+  return getMetricMonitorUrl({
+    project,
+    environment: queryParams.environment,
+    aggregate: queryParams.yAxis ?? alertTemplate.aggregate,
+    dataset: alertTemplate.dataset,
+    organization,
+    query: decodeScalar(queryParams.query),
+    referrer,
+    eventTypes: alertTemplate.eventTypes,
+  });
+}
+
+export function canCreateAlerts(organization: Organization, projects: Project[]) {
+  return (
+    isDemoModeActive() ||
+    hasEveryAccess(['alerts:write'], {organization}) ||
+    projects.some(p => hasEveryAccess(['alerts:write'], {project: p}))
   );
 }
