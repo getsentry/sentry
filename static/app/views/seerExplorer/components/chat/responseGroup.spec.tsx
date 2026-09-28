@@ -181,10 +181,9 @@ describe('ResponseGroup', () => {
       assistantBlock('a1', 'The final answer'),
     ];
 
-    const {container} = render(
-      <ResponseGroup group={group} blockIndex={1} />,
-      {organization}
-    );
+    const {container} = render(<ResponseGroup group={group} blockIndex={1} />, {
+      organization,
+    });
 
     expect(reasoningBox(container).querySelector('button')).toHaveTextContent(summary);
     await userEvent.click(reasoningBox(container).querySelector('button')!);
@@ -201,15 +200,45 @@ describe('ResponseGroup', () => {
       {...assistantBlock('a1', ''), tool_summary: 'Checking the issue details'},
     ];
 
-    const {container} = render(
-      <ResponseGroup group={group} blockIndex={1} />,
-      {organization}
-    );
+    const {container} = render(<ResponseGroup group={group} blockIndex={1} />, {
+      organization,
+    });
 
     expect(reasoningBox(container).querySelector('button')).toHaveTextContent(
       'Checking the issue details'
     );
     expect(within(reasoningBox(container)).queryByRole('group')).not.toBeInTheDocument();
+  });
+
+  it('updates the title while a thinking-only block streams', () => {
+    const group: Block[] = [
+      {
+        ...assistantBlock('a1', '', true),
+        message: {
+          role: 'assistant',
+          content: null,
+          thinking_content: 'Comparing the evidence',
+        },
+        tool_summary: 'Checking what the evidence shows',
+      },
+    ];
+
+    const {container} = render(
+      <ResponseGroup group={group} blockIndex={1} showThinking />,
+      {organization}
+    );
+
+    expect(reasoningBox(container).querySelector('button')).toHaveTextContent(
+      'Checking what the evidence shows'
+    );
+    expect(
+      within(reasoningBox(container)).getByText('Comparing the evidence')
+    ).toBeInTheDocument();
+    expect(
+      within(reasoningBox(container).querySelector('[role="group"]')!).queryByText(
+        'Checking what the evidence shows'
+      )
+    ).not.toBeInTheDocument();
   });
 
   it('renders a single reasoning block titled by the latest activity, answer outside it', () => {
@@ -332,7 +361,7 @@ describe('ResponseGroup', () => {
 
   it('collapses the reasoning until it is expanded', async () => {
     const group = [
-      toolUseBlock('t1', {thinking_content: 'my private reasoning'}),
+      toolUseBlock('t1', {thinking_content: 'Visible reasoning'}),
       assistantBlock('a1', 'Done'),
     ];
 
@@ -349,13 +378,13 @@ describe('ResponseGroup', () => {
     );
 
     // A completed response's reasoning starts collapsed, so the thinking prose is hidden.
-    expect(screen.getByText('my private reasoning')).not.toBeVisible();
+    expect(screen.getByText('Visible reasoning')).not.toBeVisible();
 
     await userEvent.click(
       screen.getByRole('button', {name: /See thinking and tool calls/})
     );
 
-    expect(screen.getByText('my private reasoning')).toBeVisible();
+    expect(screen.getByText('Visible reasoning')).toBeVisible();
   });
 
   it('stays expanded between tool calls while the agent works', () => {
@@ -458,7 +487,7 @@ describe('ResponseGroup', () => {
 
   it('gates thinking prose on the showThinking toggle but keeps tool calls', async () => {
     const group = [
-      toolUseBlock('t1', {thinking_content: 'my private reasoning'}),
+      toolUseBlock('t1', {thinking_content: 'Visible reasoning'}),
       assistantBlock('a1', 'Answer'),
     ];
 
@@ -476,7 +505,7 @@ describe('ResponseGroup', () => {
       screen.getByRole('button', {name: /See thinking and tool calls/})
     );
 
-    expect(screen.queryByText('my private reasoning')).not.toBeInTheDocument();
+    expect(screen.queryByText('Visible reasoning')).not.toBeInTheDocument();
     // The tool call row still renders (as its own link), just without the reasoning prose.
     expect(screen.getByRole('link', {name: /Queried spans/})).toBeInTheDocument();
   });

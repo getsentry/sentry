@@ -103,8 +103,8 @@ function finalAnswer(group: Block[]): Block | null {
  *
  * Prefers the Code Mode call records (their labels are what the rows show), then falls back to a
  * classic tool's label — skipping Code Mode's own tool names, which name nothing ("Used
- * sentry_api_execute tool"). Deliberately never reads `thinking_content`: the title is visible even
- * when the reasoning is toggled off, so it must not leak it.
+ * sentry_api_execute tool"). The title comes from the explicit `tool_summary` field rather than
+ * trying to infer one from the displayed thinking prose.
  */
 function latestBlockActivity(block: Block): string | null {
   const finished = (block.tool_results ?? []).flatMap(
