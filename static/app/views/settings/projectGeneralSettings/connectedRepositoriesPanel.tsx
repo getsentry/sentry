@@ -17,20 +17,13 @@ import {IconAdd, IconEllipsis} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
-import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ConnectRepositoryModal} from 'sentry/views/settings/projectGeneralSettings/connectRepositoryModal';
-
-type ProjectRepoListItem = {
-  id: string;
-  mappingCount: number;
-  projectId: string;
-  providerKey: string | null;
-  repoName: string;
-  repositoryId: string;
-  source: string;
-};
+import {
+  projectRepoInfiniteOptions,
+  type ProjectRepoListItem,
+} from 'sentry/views/settings/projectGeneralSettings/projectRepoQueryOptions';
 
 // TODO Abdullah Khan: Add edit and disconnect actions.
 const OVERFLOW_ITEMS: MenuItemProps[] = [
@@ -42,23 +35,6 @@ const OVERFLOW_ITEMS: MenuItemProps[] = [
     tooltip: t('TODO: Disconnect'),
   },
 ];
-
-function projectRepoInfiniteOptions({
-  orgSlug,
-  projectSlug,
-}: {
-  orgSlug: string;
-  projectSlug: string;
-}) {
-  return apiOptions.asInfinite<ProjectRepoListItem[]>()(
-    '/projects/$organizationIdOrSlug/$projectIdOrSlug/repo/',
-    {
-      path: {organizationIdOrSlug: orgSlug, projectIdOrSlug: projectSlug},
-      query: {includeMappingCount: '1', per_page: 100},
-      staleTime: 10_000,
-    }
-  );
-}
 
 function ConnectedRepositoryRow({repo}: {repo: ProjectRepoListItem}) {
   return (

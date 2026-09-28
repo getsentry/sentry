@@ -1,12 +1,30 @@
 import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {RepositoryFixture} from 'sentry-fixture/repository';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {GlobalModal} from '@sentry/scraps/modal';
 
 import {ConnectedRepositoriesPanel} from 'sentry/views/settings/projectGeneralSettings/connectedRepositoriesPanel';
+
+// Mock the virtualizer so all menu items render in JSDOM (no layout engine).
+jest.mock('@tanstack/react-virtual', () => ({
+  useVirtualizer: jest.fn(({count, paddingStart = 0, paddingEnd = 0}) => ({
+    getVirtualItems: () =>
+      Array.from({length: count}, (_, i) => ({
+        key: i,
+        index: i,
+        start: paddingStart + i * 36,
+        size: 36,
+      })),
+    getTotalSize: () => paddingStart + count * 36 + paddingEnd,
+    measure: jest.fn(),
+    measureElement: jest.fn(),
+    scrollToIndex: jest.fn(),
+  })),
+}));
 
 describe('ConnectedRepositoriesPanel', () => {
   const organization = OrganizationFixture();
@@ -223,6 +241,11 @@ describe('ConnectedRepositoriesPanel', () => {
       method: 'GET',
       body: {repos: []},
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/repos/`,
+      method: 'GET',
+      body: [],
+    });
 
     renderPanel();
 
@@ -233,5 +256,89 @@ describe('ConnectedRepositoriesPanel', () => {
     expect(
       await screen.findByText(`Connect a repository to ${project.slug}`)
     ).toBeInTheDocument();
+  });
+
+  it('increments the mapping count after a successful save', async () => {
+    const integration = GitHubIntegrationFixture();
+    let connectedRepos: Array<Record<string, unknown>> = [];
+
+    MockApiClient.addMockResponse({
+      url: repoUrl,
+      method: 'GET',
+      body: () => connectedRepos,
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/`,
+      method: 'GET',
+      body: [integration],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/${integration.id}/repos/`,
+      method: 'GET',
+      body: {
+        repos: [
+          {
+            name: 'getsentry/sentry',
+            identifier: 'getsentry/sentry',
+            externalId: '1',
+            isInstalled: true,
+            defaultBranch: 'main',
+          },
+        ],
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/repos/`,
+      method: 'GET',
+      body: [
+        RepositoryFixture({
+          id: '10',
+          name: 'getsentry/sentry',
+          externalId: '1',
+          integrationId: integration.id,
+        }),
+      ],
+    });
+    MockApiClient.addMockResponse({
+      url: repoUrl,
+      method: 'POST',
+      body: () => {
+        connectedRepos = [
+          {
+            id: '1',
+            projectId: project.id,
+            repositoryId: '10',
+            repoName: 'getsentry/sentry',
+            source: 'scm_onboarding',
+            providerKey: 'github',
+            mappingCount: 1,
+          },
+        ];
+        return {
+          id: '1',
+          projectId: project.id,
+          repositoryId: '10',
+          source: 'scm_onboarding',
+          created: true,
+        };
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/code-mappings/`,
+      method: 'POST',
+      body: {},
+    });
+
+    renderPanel();
+
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Connect repository'})
+    );
+    await userEvent.click(await screen.findByText('Search repositories'));
+    await userEvent.click(await screen.findByText('getsentry/sentry'));
+    await userEvent.click(await screen.findByRole('button', {name: 'Save'}));
+
+    expect(await screen.findByText('getsentry/sentry')).toBeInTheDocument();
+    expect(screen.getByText('1 mapping')).toBeInTheDocument();
   });
 });
