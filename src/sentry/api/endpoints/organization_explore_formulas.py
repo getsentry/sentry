@@ -120,7 +120,7 @@ class ExploreSavedFormulaSerializer(Serializer[ExploreSavedFormulaResponse]):
 
 class ReferenceSerializer(RequestSerializer):
     name = CharField(max_length=200)
-    value = CharField(allow_blank=True)
+    value = CharField(max_length=200, allow_blank=True)
 
 
 class ParamSerializer(ReferenceSerializer):
@@ -138,7 +138,10 @@ class FormulaSerializer(RequestSerializer):
     formula = CharField(max_length=2500)
     name = CharField(max_length=200)
     unit = ChoiceField(
-        choices=list(SIZE_UNITS.keys()) + list(DURATION_UNITS.keys()), allow_null=True
+        choices=list(SIZE_UNITS.keys()) + list(DURATION_UNITS.keys()),
+        allow_null=True,
+        required=False,
+        default=None,
     )
     params = ListField(
         child=ParamSerializer(),
