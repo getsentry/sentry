@@ -156,7 +156,7 @@ type LogsRowProps = {
   routingHint?: string;
   setHoveredRowId?: (logItemId: string | null) => void;
   showCellActions?: boolean;
-  showExploreSimilarSpansLink?: boolean;
+  showExploreConnectedSpansLink?: boolean;
   togglePinnedRow?: (logItemId: string) => void;
 };
 
@@ -166,9 +166,9 @@ const ALLOWED_CELL_ACTIONS: Actions[] = [
   Actions.COPY_TO_CLIPBOARD,
   Actions.COPY_LINK,
 ];
-const EXPLORE_SIMILAR_SPANS_REFERRER = 'trace-logs-table-similar-spans';
+const EXPLORE_CONNECTED_SPANS_REFERRER = 'trace-logs-table-similar-spans';
 
-function getExploreSimilarSpansUrl({
+function getExploreConnectedSpansUrl({
   message,
   organization,
   selection,
@@ -189,7 +189,7 @@ function getExploreSimilarSpansUrl({
       },
     },
     mode: Mode.SAMPLES,
-    referrer: EXPLORE_SIMILAR_SPANS_REFERRER,
+    referrer: EXPLORE_CONNECTED_SPANS_REFERRER,
     crossEvents: [
       {
         type: 'logs',
@@ -199,12 +199,12 @@ function getExploreSimilarSpansUrl({
   });
 }
 
-function getExploreSimilarSpansMenuItems({
+function getExploreConnectedSpansMenuItems({
   message,
   onResolveMessage,
   organization,
   selection,
-  showExploreSimilarSpansLink,
+  showExploreConnectedSpansLink,
 }: {
   message: string | number | null | undefined;
   /**
@@ -215,22 +215,22 @@ function getExploreSimilarSpansMenuItems({
   onResolveMessage: (() => void) | undefined;
   organization: Organization;
   selection: PageFilters;
-  showExploreSimilarSpansLink?: boolean;
+  showExploreConnectedSpansLink?: boolean;
 }): MenuItemProps[] | undefined {
   const messageString = String(message ?? '');
 
-  if (!showExploreSimilarSpansLink || messageString.length === 0) {
+  if (!showExploreConnectedSpansLink || messageString.length === 0) {
     return undefined;
   }
 
   return [
     {
-      key: 'explore-similar-spans',
-      label: t('Explore similar spans'),
+      key: 'explore-connected-spans',
+      label: t('Explore connected spans'),
       ...(onResolveMessage
         ? {onAction: onResolveMessage}
         : {
-            to: getExploreSimilarSpansUrl({
+            to: getExploreConnectedSpansUrl({
               message: messageString,
               organization,
               selection,
@@ -279,7 +279,7 @@ export const LogRowContent = memo(function LogRowContentImpl({
   setHoveredRowId,
   togglePinnedRow,
   showCellActions,
-  showExploreSimilarSpansLink,
+  showExploreConnectedSpansLink,
 }: LogsRowProps) {
   const location = useLocation();
   const navigate = useNavigate();
@@ -431,9 +431,9 @@ export const LogRowContent = memo(function LogRowContentImpl({
     addSearchFilter({key: filter.key, value: filter.value, negated});
   }
 
-  function exploreSimilarSpansFor(message: string | number) {
+  function exploreConnectedSpansFor(message: string | number) {
     navigate(
-      getExploreSimilarSpansUrl({message: String(message), organization, selection})
+      getExploreConnectedSpansUrl({message: String(message), organization, selection})
     );
   }
 
@@ -444,11 +444,11 @@ export const LogRowContent = memo(function LogRowContentImpl({
     onError: (_error, {cellValue}) => copyToClipboard(cellValue),
   });
 
-  const exploreSimilarSpans = useMutation({
+  const exploreConnectedSpans = useMutation({
     mutationFn: ({cellValue, field}: {cellValue: string | number; field: string}) =>
       resolveFullCellValue(field, cellValue),
-    onSuccess: value => exploreSimilarSpansFor(value),
-    onError: (_error, {cellValue}) => exploreSimilarSpansFor(cellValue),
+    onSuccess: value => exploreConnectedSpansFor(value),
+    onError: (_error, {cellValue}) => exploreConnectedSpansFor(cellValue),
   });
 
   const filterOnCellValue = useMutation({
@@ -650,16 +650,16 @@ export const LogRowContent = memo(function LogRowContentImpl({
 
             const extraMenuItems =
               field === OurLogKnownFieldKey.MESSAGE
-                ? getExploreSimilarSpansMenuItems({
+                ? getExploreConnectedSpansMenuItems({
                     message: typeof fullMessage === 'string' ? fullMessage : value,
                     onResolveMessage:
                       typeof fullMessage === 'string'
                         ? undefined
                         : () =>
-                            exploreSimilarSpans.mutate({cellValue: value ?? '', field}),
+                            exploreConnectedSpans.mutate({cellValue: value ?? '', field}),
                     organization,
                     selection,
-                    showExploreSimilarSpansLink,
+                    showExploreConnectedSpansLink,
                   })
                 : undefined;
 
@@ -929,6 +929,7 @@ function LogRowDetails({
                   )}
                   getCustomActions={getActions}
                   getAdjustedAttributeKey={adjustAliases}
+                  config={{attributeDetailsType: 'log'}}
                   renderers={LogAttributesRendererMap}
                   rendererExtra={{
                     caseSensitiveHighlighting: !caseInsensitivity,

@@ -31,6 +31,7 @@ FEATURES = {
 
 def _payload(**overrides: Any) -> dict[str, Any]:
     pull_request: dict[str, Any] = {
+        "id": "pr_01example",
         "number": "17",
         "state": "open",
         "draft": False,
@@ -41,9 +42,6 @@ def _payload(**overrides: Any) -> dict[str, Any]:
         "author": {"user": {"id": USER_ID, "email": "jane@example.com", "handle": "jane"}},
         "createdAt": "2026-08-01T09:30:00Z",
         "updatedAt": "2026-08-01T10:00:00Z",
-        "closedAt": "",
-        "mergedAt": "",
-        "mergeCommitSha": "",
     }
     pull_request.update(overrides)
     return {"pullRequest": pull_request, "repository": {"id": REPO_EXTERNAL_ID}}

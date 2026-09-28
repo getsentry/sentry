@@ -1,3 +1,5 @@
+import {useContext} from 'react';
+
 import type {ButtonProps} from '@sentry/scraps/button';
 import {Button} from '@sentry/scraps/button';
 
@@ -7,6 +9,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import type {AddIntegrationParams} from 'sentry/utils/integrations/useAddIntegration';
 import {useAddIntegration} from 'sentry/utils/integrations/useAddIntegration';
 import {useAutoOpenInstallModal} from 'sentry/utils/integrations/useAutoOpenInstallModal';
+import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
 
 interface AddIntegrationButtonProps
   extends
@@ -17,6 +20,7 @@ interface AddIntegrationButtonProps
       | 'organization'
       | 'analyticsParams'
       | 'suppressSuccessMessage'
+      | 'modalParams'
       | 'onCancel'
       | 'onError'
     > {
@@ -33,6 +37,7 @@ export function AddIntegrationButton({
   analyticsParams,
   installStatus,
   suppressSuccessMessage,
+  modalParams,
   onCancel,
   onError,
   ...buttonProps
@@ -42,6 +47,7 @@ export function AddIntegrationButton({
     (installStatus === 'Disabled' ? t('Reinstall') : t('Add %s', provider.metadata.noun));
 
   const {startFlow} = useAddIntegration();
+  const {configurations} = useContext(IntegrationContext) ?? {};
 
   // This is hooked to the button since the button is only rendered when all the flags/plan checks pass.
   useAutoOpenInstallModal({
@@ -51,6 +57,7 @@ export function AddIntegrationButton({
     analyticsParams,
     suppressSuccessMessage,
     startFlow,
+    configurations,
   });
 
   return (
@@ -81,6 +88,7 @@ export function AddIntegrationButton({
           onInstall: onAddIntegration,
           analyticsParams,
           suppressSuccessMessage,
+          modalParams,
           onCancel,
           onError,
         });

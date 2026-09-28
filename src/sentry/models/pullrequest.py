@@ -289,11 +289,12 @@ class PullRequestManager(BaseManager["PullRequest"]):
         organization_id: int,
         repository_id: int,
         key: str,
-        fetch: Callable[[], int | None],
-    ) -> int | None:
+        fetch: Callable[[], str | None],
+    ) -> str | None:
         """The provider-global PR id for this org/repo/number, fetching on a miss.
 
-        Reads ``external_id`` off the existing row. A NULL column calls
+        Reads ``external_id_str`` off the existing row, falling back to the
+        integer ``external_id`` for rows written before it. A miss calls
         ``fetch`` and writes the result back — so a later mention does not pay
         REST again. A missing row also fetches, but the id is returned
         unpersisted: we do not invent a shell PR. A ``None`` from ``fetch`` is
@@ -310,12 +311,16 @@ class PullRequestManager(BaseManager["PullRequest"]):
             repository_id=repository_id,
             key=key,
         ).first()
-        if stored is not None and stored.external_id is not None:
-            metrics.incr(
-                "scm.pull_request.external_id",
-                tags={"result": "hit", "row": "present"},
-            )
-            return stored.external_id
+        if stored is not None:
+            stored_id = stored.external_id_str
+            if stored_id is None and stored.external_id is not None:
+                stored_id = str(stored.external_id)
+            if stored_id is not None:
+                metrics.incr(
+                    "scm.pull_request.external_id",
+                    tags={"result": "hit", "row": "present"},
+                )
+                return stored_id
 
         row = "present" if stored is not None else "absent"
         logger.info(
@@ -336,7 +341,10 @@ class PullRequestManager(BaseManager["PullRequest"]):
             return None
 
         if stored is not None:
-            stored.update(external_id=external_id)
+            stored.update(
+                external_id_str=external_id,
+                external_id=int(external_id) if external_id.isdigit() else None,
+            )
 
         metrics.incr(
             "scm.pull_request.external_id",
@@ -383,6 +391,9 @@ class PullRequest(Model):
     # which is the repo-scoped number. Nullable: only set when an SCM webhook
     # (or a later write-back) actually saw the id.
     external_id = BoundedBigIntegerField(null=True)
+    # The same id as text, so non-numeric ids (Cursor Origin's ``pr_…``) fit.
+    # Replaces ``external_id``.
+    external_id_str = models.TextField(null=True)
 
     date_added = models.DateTimeField(default=timezone.now, db_index=True)
 

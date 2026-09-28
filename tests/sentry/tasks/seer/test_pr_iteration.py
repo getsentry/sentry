@@ -51,6 +51,7 @@ from sentry.seer.autofix.pr_iteration.logs import (
 from sentry.seer.autofix.pr_iteration.pause import (
     PAUSED_EXTRA,
     PauseReason,
+    get_pause_reason,
     is_pr_iteration_paused,
     pause_pr_iteration,
 )
@@ -151,14 +152,14 @@ class TriggerPrIterationFromCommentTest(TestCase):
             timestamp="2024-01-01T00:00:00Z",
         )
 
-    def _stored_pr(self, *, external_id: int | None = None) -> PullRequest:
+    def _stored_pr(self, *, external_id: str | None = None) -> PullRequest:
         pr = self.create_pull_request(
             repository_id=self.repo.id,
             organization_id=self.organization.id,
             key="7",
         )
         if external_id is not None:
-            pr.update(external_id=external_id)
+            pr.update(external_id_str=external_id)
         return pr
 
     def _call(self) -> None:
@@ -228,12 +229,12 @@ class TriggerPrIterationFromCommentTest(TestCase):
         # The issue_comment payload carries only the PR number; a stored
         # ``external_id`` is what keeps that from costing a round-trip.
         mock_get_state.return_value = None
-        self._stored_pr(external_id=555)
+        self._stored_pr(external_id="555")
 
         self._call()
 
         self.mock_actions.get_pull_request.assert_not_called()
-        mock_get_state.assert_called_once_with(self.organization.id, "integrations:github", 555)
+        mock_get_state.assert_called_once_with(self.organization.id, "integrations:github", "555")
 
     @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
     def test_writes_external_id_back_on_a_miss(
@@ -249,20 +250,25 @@ class TriggerPrIterationFromCommentTest(TestCase):
             self.mock_make_scm.return_value, "7"
         )
         pr.refresh_from_db()
+        assert pr.external_id_str == "555"
         assert pr.external_id == 555
 
     @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
-    def test_returns_when_the_provider_id_is_not_an_integer(
+    def test_looks_up_a_non_numeric_provider_id(
         self,
         mock_get_state: MagicMock,
     ) -> None:
-        self.mock_actions.get_pull_request.return_value = {"data": {"internal_id": "not-a-number"}}
+        mock_get_state.return_value = None
+        self.mock_actions.get_pull_request.return_value = {"data": {"internal_id": "pr_01abc"}}
         pr = self._stored_pr()
 
         self._call()
 
-        mock_get_state.assert_not_called()
+        mock_get_state.assert_called_once_with(
+            self.organization.id, "integrations:github", "pr_01abc"
+        )
         pr.refresh_from_db()
+        assert pr.external_id_str == "pr_01abc"
         assert pr.external_id is None
 
     @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
@@ -1507,7 +1513,7 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         mock_trigger.assert_called_once()
         assert len(mock_trigger.call_args.kwargs["feedback"]) == 2
 
-    @patch(f"{TASK_PATH}.logger")
+    @patch(f"{TASK_PATH}.metrics")
     @patch(f"{TASK_PATH}.trigger_autofix_agent", side_effect=PrIterationNoPullRequestException())
     @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
     @patch(f"{TASK_PATH}.fetch_run_status")
@@ -1516,17 +1522,117 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         mock_fetch: MagicMock,
         mock_pop: MagicMock,
         _mock_trigger: MagicMock,
-        mock_logger: MagicMock,
+        mock_metrics: MagicMock,
     ) -> None:
         mock_fetch.return_value = self._state()
         mock_pop.return_value = [self._ui_queued()]
 
         self._call()
 
-        assert not any(
-            call.args and call.args[0] == "autofix.pr_iteration.consume_feedback.triggered"
-            for call in mock_logger.info.call_args_list
+        mock_metrics.incr.assert_any_call(
+            "autofix.pr_iteration.consume_feedback.drain",
+            tags={"outcome": "skipped_no_pr", "trigger_source": "unknown"},
+            sample_rate=1.0,
         )
+
+    @patch(f"{TASK_PATH}.metrics")
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_a_successful_drain_counts_as_started(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        _mock_trigger: MagicMock,
+        mock_metrics: MagicMock,
+    ) -> None:
+        mock_fetch.return_value = self._state()
+        mock_pop.return_value = [self._ui_queued()]
+
+        self._call()
+
+        mock_metrics.incr.assert_any_call(
+            "autofix.pr_iteration.consume_feedback.drain",
+            tags={"outcome": "started", "trigger_source": "unknown"},
+            sample_rate=1.0,
+        )
+
+    def _enqueue_ui_feedback(self, text: str) -> None:
+        enqueue_autofix_feedback(
+            log_ctx=PrIterationLogContext(
+                MagicMock(),
+                iteration=LogCtxIteration.TRIGGERED,
+                run_state=self._state(),
+                organization_id=self.organization.id,
+                group_id=None,
+            ),
+            run_id=67890,
+            organization_id=self.organization.id,
+            group_id=self.group.id,
+            feedback=Feedback(source=UserUIFeedbackSource(user_id=1, user_feedback=text)),
+            referrer=AutofixReferrer.WEB,
+            run_state=self._state(),
+        )
+
+    @patch(f"{TASK_PATH}.logger")
+    @patch(f"{TASK_PATH}.trigger_autofix_agent", side_effect=SeerApiError("boom", 500))
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_an_unexpected_trigger_failure_stops_the_run(
+        self,
+        mock_fetch: MagicMock,
+        _mock_trigger: MagicMock,
+        mock_logger: MagicMock,
+    ) -> None:
+        mock_fetch.return_value = self._state()
+        seer_run = self.create_seer_run(
+            organization=self.organization, seer_run_state_id=67890, user_id=self.user.id
+        )
+        bootstrap_iteration(
+            logger=MagicMock(),
+            run_state=self._state(),
+            organization_id=self.organization.id,
+            group_id=self.group.id,
+        )
+        self._enqueue_ui_feedback("fix it")
+
+        with (
+            patch("sentry.analytics.record") as mock_record,
+            pytest.raises(SeerApiError),
+        ):
+            self._call()
+
+        # The batch is dropped and the run stops iterating.
+        assert peek_queued_autofix_feedback(67890) == []
+        assert (
+            get_pause_reason(run_id=67890, organization_id=self.organization.id)
+            == PauseReason.DRAIN_FAILED
+        )
+        # The claimed iteration reports how it ended, and its row is gone.
+        completed = mock_record.call_args.args[0]
+        assert completed.type == "ai.autofix.pr_iteration.feedback_batch.completed"
+        assert completed.outcome == PrIterationOutcome.DRAIN_FAILED.value
+        assert completed.feedback_count == 1
+        # The run state holds no iteration yet, so this one would have been the first.
+        assert completed.iteration_index == 1
+        assert open_iterations(seer_run) == []
+        # Logged as an error with the traceback, which is what reaches Sentry.
+        error_call = mock_logger.error.call_args
+        assert error_call.args[0] == "autofix.pr_iteration.consume_feedback.failed"
+        assert error_call.kwargs["exc_info"] is True
+
+    @patch(f"{TASK_PATH}.trigger_autofix_agent", side_effect=PrIterationNoPullRequestException())
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_a_trigger_that_cannot_succeed_drops_the_batch(
+        self,
+        mock_fetch: MagicMock,
+        _mock_trigger: MagicMock,
+    ) -> None:
+        mock_fetch.return_value = self._state()
+        self._enqueue_ui_feedback("fix it")
+
+        self._call()
+
+        assert peek_queued_autofix_feedback(67890) == []
 
     @patch(f"{TASK_PATH}.count_queued_autofix_feedback", return_value=3)
     @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
@@ -2167,6 +2273,30 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
 
         (row,) = open_iterations(seer_run)
         assert row.data["feedback_bot_logins"] == ["coderabbitai[bot]", "seer-by-sentry[bot]"]
+
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_a_mixed_batch_records_every_feedback_type(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        _mock_trigger: MagicMock,
+    ) -> None:
+        seer_run = self.create_seer_run(organization=self.organization, seer_run_state_id=67890)
+        mock_fetch.return_value = self._state_on_head()
+        mock_pop.return_value = [
+            self._queued(self._review_feedback(1), referrer=AutofixReferrer.GITHUB_PR_REVIEW),
+            self._queued(self._check_suite_feedback(), referrer=AutofixReferrer.GITHUB_CHECK_SUITE),
+            self._queued(self._review_feedback(2), referrer=AutofixReferrer.GITHUB_PR_REVIEW),
+        ]
+        self._open_iteration_row()
+
+        self._call()
+
+        (row,) = open_iterations(seer_run)
+        assert row.data["referrer"] == AutofixReferrer.UNKNOWN.value
+        assert row.data["feedback_types"] == "github.check_suite,github.pr_review"
 
     @patch(f"{TASK_PATH}.trigger_autofix_agent")
     @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")

@@ -1,4 +1,4 @@
-import {LayoutGroup, motion} from 'framer-motion';
+import {motion} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -13,13 +13,14 @@ import {
   getPlatformInfo,
   toSelectedSdk,
 } from 'sentry/components/onboarding/scm/scmPlatformHelpers';
+import {ScmStepLayout} from 'sentry/components/onboarding/scm/scmStepLayout';
 import {useScmPlatformDetection} from 'sentry/components/onboarding/scm/useScmPlatformDetection';
 import {useScmProjectCreation} from 'sentry/components/onboarding/scm/useScmProjectCreation';
 import {t} from 'sentry/locale';
 import type {Repository} from 'sentry/types/integrations';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
-import {SCM_STEP_CONTENT_WIDTH} from 'sentry/views/onboarding/consts';
 
+import {ONBOARDING_ENTER, ONBOARDING_STAGGER} from './animations';
 import type {StepProps} from './types';
 
 interface ScmPlatformFeaturesProps {
@@ -120,24 +121,32 @@ export function ScmPlatformFeatures({
     // The onboarding flow has no page-level query container (project creation
     // resolves against `#main`), and the flow's fixed footers preclude one
     // higher up, so each SCM step declares its own.
-    <Stack align="center" gap="2xl" flexGrow={1} containerType="inline-size">
-      <Stack gap="3xl" maxWidth={`min(${SCM_STEP_CONTENT_WIDTH}, 100%)`}>
-        <Heading as="h2" size="4xl">
-          {t('Create your first project')}
-        </Heading>
-        <LayoutGroup>
-          <Stack gap="md" paddingTop="sm">
-            <Heading as="h3" size="lg">
-              {t('Choose your SDK')}
+    <Stack containerType="inline-size">
+      <ScmStepLayout>
+        <MotionStack gap="lg" paddingBottom="2xl" {...ONBOARDING_STAGGER}>
+          <MotionContainer {...ONBOARDING_ENTER}>
+            <Heading as="h2" size="3xl" align="center">
+              {t('Create your first project')}
             </Heading>
-            <Container>
-              <Text variant="muted" size="md" density="comfortable">
-                {t(
-                  'Each Sentry project collects data from one service or app. Select a language or framework you want to get started monitoring with our SDKs.'
-                )}
-              </Text>
-            </Container>
-          </Stack>
+          </MotionContainer>
+          <MotionContainer {...ONBOARDING_ENTER}>
+            <Text
+              align="center"
+              variant="muted"
+              size="lg"
+              density="comfortable"
+              wrap="pre-line"
+            >
+              {t(
+                'A project holds everything Sentry collects from one app or service.\nStart with one, add more later.'
+              )}
+            </Text>
+          </MotionContainer>
+        </MotionStack>
+        <MotionStack gap="lg" {...ONBOARDING_ENTER}>
+          <Heading as="h3" size="lg">
+            {t('What’s your app built with?')}
+          </Heading>
           <ScmPlatformFeaturesCore
             analyticsFlow="onboarding"
             selectedRepository={selectedRepository}
@@ -145,6 +154,8 @@ export function ScmPlatformFeatures({
             onPlatformChange={onPlatformChange}
             onFeaturesChange={onFeaturesChange}
           />
+        </MotionStack>
+        <MotionContainer {...ONBOARDING_ENTER}>
           <ScmFeatureSelectionPanel
             analyticsFlow="onboarding"
             selectedRepository={selectedRepository}
@@ -152,35 +163,38 @@ export function ScmPlatformFeatures({
             selectedFeatures={selectedFeatures}
             onFeaturesChange={onFeaturesChange}
           />
-          <MotionFlex
-            layout="position"
-            align="center"
-            justify="between"
-            width="100%"
-            paddingTop="sm"
-          >
-            <Flex align="center">{genBackButton?.()}</Flex>
-            <Flex align="center" gap="md">
-              <Button
-                variant="primary"
-                analyticsEventKey="onboarding.scm_platform_features_continue_clicked"
-                analyticsEventName="Onboarding: SCM Platform Features Continue Clicked"
-                analyticsParams={{
-                  platform: currentPlatformKey ?? '',
-                  features: currentFeatures,
-                }}
-                onClick={handleContinue}
-                disabled={!currentPlatformKey || isCreating || autoCreateDataPending}
-                busy={isCreating}
-              >
-                {t('Continue')}
-              </Button>
-            </Flex>
-          </MotionFlex>
-        </LayoutGroup>
-      </Stack>
+        </MotionContainer>
+        <MotionFlex
+          {...ONBOARDING_ENTER}
+          align="center"
+          justify="between"
+          gap="md"
+          width="100%"
+          paddingTop="2xl"
+        >
+          <Flex align="center">{genBackButton?.()}</Flex>
+          <Flex align="center" gap="md">
+            <Button
+              variant="primary"
+              analyticsEventKey="onboarding.scm_platform_features_continue_clicked"
+              analyticsEventName="Onboarding: SCM Platform Features Continue Clicked"
+              analyticsParams={{
+                platform: currentPlatformKey ?? '',
+                features: currentFeatures,
+              }}
+              onClick={handleContinue}
+              disabled={!currentPlatformKey || isCreating || autoCreateDataPending}
+              busy={isCreating}
+            >
+              {t('Continue')}
+            </Button>
+          </Flex>
+        </MotionFlex>
+      </ScmStepLayout>
     </Stack>
   );
 }
 
 const MotionFlex = motion.create(Flex);
+const MotionStack = motion.create(Stack);
+const MotionContainer = motion.create(Container);
