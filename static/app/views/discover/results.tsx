@@ -16,7 +16,7 @@ import type {CursorHandler} from '@sentry/scraps/pagination';
 
 import {updateSavedQueryVisit} from 'sentry/actionCreators/discoverSavedQueries';
 import {fetchTotalCount} from 'sentry/actionCreators/events';
-import {openModal} from 'sentry/actionCreators/modal';
+import {openSaveQueryModal} from 'sentry/actionCreators/modal';
 import {fetchProjectsCount} from 'sentry/actionCreators/projects';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {Client} from 'sentry/api';
@@ -89,7 +89,6 @@ import {ResultsHeader} from 'sentry/views/discover/results/resultsHeader';
 import {ResultsSearchQueryBuilder} from 'sentry/views/discover/results/resultsSearchQueryBuilder';
 import {SampleDataAlert} from 'sentry/views/discover/results/sampleDataAlert';
 import Tags from 'sentry/views/discover/results/tags';
-import {SaveQueryModal} from 'sentry/views/discover/savedQuery';
 import {
   getDatasetFromLocationOrSavedQueryDataset,
   getSavedQueryDataset,
@@ -110,6 +109,9 @@ import {
   handleAddQueryToDashboard,
   SAVED_QUERY_DATASET_TO_WIDGET_TYPE,
 } from 'sentry/views/discover/utils';
+import {SavedQueryType} from 'sentry/views/explore/hooks/useGetSavedQueries';
+import {useStarQuery} from 'sentry/views/explore/hooks/useStarQuery';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {getSaveAsAlertMenuItem} from 'sentry/views/explore/utils/saveAsAlertMenuItem';
 import {deprecateTransactionAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
@@ -1085,18 +1087,106 @@ function TagsTable({
 function DiscoverContextMenu({
   organization,
   eventView,
+  location,
   savedQuery,
   isHomepage,
+  setSavedQuery,
 }: {
   eventView: EventView;
+  location: Location;
   organization: Organization;
+  setSavedQuery: (savedQuery?: SavedQuery) => void;
   isHomepage?: boolean;
   savedQuery?: SavedQuery;
 }) {
   const api = useApi();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  const homepageQueryKey = useMemo(
+    (): ApiQueryKey => [
+      getApiUrl('/organizations/$organizationIdOrSlug/discover/homepage/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+    ],
+    [organization.slug]
+  );
+
+  const hasDiscoverQueryFeature = organization.features.includes('discover-query');
+
+  const {data: homepageQuery} = useApiQuery<SavedQuery | undefined>(homepageQueryKey, {
+    staleTime: 0,
+    enabled: hasDiscoverQueryFeature,
+  });
+
+  const normalizedHomepageQuery = homepageQuery
+    ? getSavedQueryWithDataset(homepageQuery)!
+    : undefined;
+
+  const isDefault =
+    normalizedHomepageQuery &&
+    eventView.isEqualTo(EventView.fromSavedQuery(normalizedHomepageQuery), [
+      'id',
+      'name',
+    ]);
+
+  const analyticsEventSource = isHomepage
+    ? 'homepage'
+    : eventView.id
+      ? 'saved-query'
+      : 'prebuilt-query';
 
   const items: MenuItemProps[] = [];
+
+  if (organization.features.includes('discover-query')) {
+    if (isDefault) {
+      items.push({
+        key: 'remove-default',
+        label: t('Remove Default'),
+        onAction: async () => {
+          await handleResetHomepageQuery(api, organization);
+          trackAnalytics('discover_v2.remove_default', {
+            organization,
+            source: analyticsEventSource,
+          });
+          setApiQueryData(queryClient, homepageQueryKey, undefined);
+          if (isHomepage) {
+            setSavedQuery(undefined);
+            const nextEventView = EventView.fromNewQueryWithLocation(
+              DEFAULT_EVENT_VIEW,
+              location
+            );
+            navigate({
+              pathname: location.pathname,
+              query: nextEventView.generateQueryStringObject(),
+            });
+          }
+        },
+      });
+    } else {
+      items.push({
+        key: 'set-as-default',
+        label: t('Set as Default'),
+        onAction: async () => {
+          const updatedHomepageQuery = await handleUpdateHomepageQuery(
+            api,
+            organization,
+            eventView.toNewQuery()
+          );
+          trackAnalytics('discover_v2.set_as_default', {
+            organization,
+            source: analyticsEventSource,
+          });
+          if (updatedHomepageQuery) {
+            setApiQueryData(queryClient, homepageQueryKey, updatedHomepageQuery);
+            if (isHomepage) {
+              setSavedQuery(updatedHomepageQuery);
+            }
+          }
+        },
+      });
+    }
+  }
 
   if (!isHomepage && savedQuery) {
     items.push({
@@ -1144,7 +1234,6 @@ function SaveQueryButton({
   location,
   savedQuery,
   yAxis,
-  isHomepage,
   setSavedQuery,
   errorCode,
 }: {
@@ -1154,54 +1243,20 @@ function SaveQueryButton({
   organization: Organization;
   setSavedQuery: (savedQuery?: SavedQuery) => void;
   yAxis: string[];
-  isHomepage?: boolean;
   savedQuery?: SavedQuery;
 }) {
   const api = useApi();
   const navigate = useNavigate();
   const {projects} = useProjects();
-  const queryClient = useQueryClient();
+  const {starQuery} = useStarQuery();
 
-  const homepageQueryKey = useMemo(
-    (): ApiQueryKey => [
-      getApiUrl('/organizations/$organizationIdOrSlug/discover/homepage/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-    ],
-    [organization.slug]
-  );
-
-  const hasDiscoverQueryFeature = organization.features.includes('discover-query');
-
-  const {data: homepageQuery} = useApiQuery<SavedQuery | undefined>(homepageQueryKey, {
-    staleTime: 0,
-    enabled: hasDiscoverQueryFeature,
-  });
-
-  const normalizedHomepageQuery = homepageQuery
-    ? getSavedQueryWithDataset(homepageQuery)!
-    : undefined;
-
-  const isDefault =
-    normalizedHomepageQuery &&
-    eventView.isEqualTo(EventView.fromSavedQuery(normalizedHomepageQuery), [
-      'id',
-      'name',
-    ]);
-
-  const analyticsEventSource = isHomepage
-    ? 'homepage'
-    : eventView.id
-      ? 'saved-query'
-      : 'prebuilt-query';
-
-  const {isNewQuery, isEditingQuery} = useMemo(() => {
+  const {isSavedQuery, isEditingQuery} = useMemo(() => {
     if (!savedQuery) {
-      return {isNewQuery: true, isEditingQuery: false};
+      return {isSavedQuery: false, isEditingQuery: false};
     }
     const savedEventView = EventView.fromSavedQuery(savedQuery);
     if (savedEventView.id !== eventView.id) {
-      return {isNewQuery: false, isEditingQuery: false};
+      return {isSavedQuery: false, isEditingQuery: false};
     }
     const isEqualQuery = eventView.isEqualTo(savedEventView);
     const isEqualYAxis = isEqual(
@@ -1212,7 +1267,7 @@ function SaveQueryButton({
           : savedQuery.yAxis
         : ['count()']
     );
-    return {isNewQuery: false, isEditingQuery: !isEqualQuery || !isEqualYAxis};
+    return {isSavedQuery: true, isEditingQuery: !isEqualQuery || !isEqualYAxis};
   }, [eventView, savedQuery, yAxis]);
 
   const currentDataset = getDatasetFromLocationOrSavedQueryDataset(
@@ -1224,19 +1279,25 @@ function SaveQueryButton({
     organization.features.includes('discover-saved-queries-deprecation');
   const tracesUrl = getExploreUrl({organization, query: 'is_transaction:true'});
 
-  const handleCreate = async (queryName: string) => {
+  const handleCreate = async ({name, starred}: {name: string; starred?: boolean}) => {
     const nextEventView = eventView.clone();
-    nextEventView.name = queryName;
+    nextEventView.name = name;
+    // The save query modal shows its own success and error messages
     const sq = await handleCreateSavedQuery(
       api,
       organization,
       nextEventView,
       yAxis,
-      !eventView.id
+      !eventView.id,
+      {showMessages: false}
     );
+    if (starred) {
+      await starQuery({queryId: Number(sq.id), queryType: SavedQueryType.DISCOVER}, true);
+    }
     const view = EventView.fromSavedQuery(sq);
     Banner.dismiss('discover');
     navigate(normalizeUrl(view.getResultsViewUrlTarget(organization)));
+    return {id: sq.id};
   };
 
   const handleUpdate = async () => {
@@ -1256,7 +1317,7 @@ function SaveQueryButton({
 
   const items: MenuItemProps[] = [];
 
-  if (!isNewQuery && isEditingQuery) {
+  if (isSavedQuery) {
     items.push({
       key: 'update-query',
       label: t('Existing Query'),
@@ -1277,7 +1338,11 @@ function SaveQueryButton({
     disabled: disableSave,
     tooltip: deprecationTooltip,
     onAction: () => {
-      openModal(modalProps => <SaveQueryModal {...modalProps} onSave={handleCreate} />);
+      openSaveQueryModal({
+        organization,
+        saveQuery: handleCreate,
+        traceItemDataset: TraceItemDataset.ERRORS,
+      });
     },
   });
 
@@ -1356,56 +1421,6 @@ function SaveQueryButton({
     },
   });
 
-  if (organization.features.includes('discover-query')) {
-    if (isDefault) {
-      items.push({
-        key: 'remove-default',
-        label: t('Remove Default'),
-        onAction: async () => {
-          await handleResetHomepageQuery(api, organization);
-          trackAnalytics('discover_v2.remove_default', {
-            organization,
-            source: analyticsEventSource,
-          });
-          setApiQueryData(queryClient, homepageQueryKey, undefined);
-          if (isHomepage) {
-            setSavedQuery(undefined);
-            const nextEventView = EventView.fromNewQueryWithLocation(
-              DEFAULT_EVENT_VIEW,
-              location
-            );
-            navigate({
-              pathname: location.pathname,
-              query: nextEventView.generateQueryStringObject(),
-            });
-          }
-        },
-      });
-    } else {
-      items.push({
-        key: 'set-as-default',
-        label: t('Set as Default'),
-        onAction: async () => {
-          const updatedHomepageQuery = await handleUpdateHomepageQuery(
-            api,
-            organization,
-            eventView.toNewQuery()
-          );
-          trackAnalytics('discover_v2.set_as_default', {
-            organization,
-            source: analyticsEventSource,
-          });
-          if (updatedHomepageQuery) {
-            setApiQueryData(queryClient, homepageQueryKey, updatedHomepageQuery);
-            if (isHomepage) {
-              setSavedQuery(updatedHomepageQuery);
-            }
-          }
-        },
-      });
-    }
-  }
-
   return (
     <DropdownMenu
       items={items}
@@ -1471,8 +1486,10 @@ function DiscoverPageFilters({
         <DiscoverContextMenu
           organization={organization}
           eventView={eventView}
+          location={location}
           savedQuery={savedQuery}
           isHomepage={isHomepage}
+          setSavedQuery={setSavedQuery}
         />
         <SaveQueryButton
           eventView={eventView}
@@ -1480,7 +1497,6 @@ function DiscoverPageFilters({
           location={location}
           savedQuery={savedQuery}
           yAxis={yAxis}
-          isHomepage={isHomepage}
           setSavedQuery={setSavedQuery}
           errorCode={errorCode}
         />

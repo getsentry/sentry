@@ -27,7 +27,8 @@ export function fetchSavedQuery(
 export function createSavedQuery(
   api: Client,
   orgId: string,
-  query: NewQuery
+  query: NewQuery,
+  {showErrorMessage = true}: {showErrorMessage?: boolean} = {}
 ): Promise<SavedQuery> {
   const promise: Promise<SavedQuery> = api.requestPromise(
     getApiUrl('/organizations/$organizationIdOrSlug/discover/saved/', {
@@ -40,7 +41,9 @@ export function createSavedQuery(
   );
 
   promise.catch(() => {
-    addErrorMessage(t('Unable to create your saved query'));
+    if (showErrorMessage) {
+      addErrorMessage(t('Unable to create your saved query'));
+    }
   });
   return promise;
 }

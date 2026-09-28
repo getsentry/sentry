@@ -37,7 +37,9 @@ export function handleCreateQuery(
   yAxis: string[],
   // True if this is a brand new query being saved
   // False if this is a modification from a saved query
-  isNewQuery = true
+  isNewQuery = true,
+  // Set to false when the caller shows its own success and error messages
+  {showMessages = true}: {showMessages?: boolean} = {}
 ): Promise<SavedQuery> {
   const payload = eventView.toNewQuery();
   payload.yAxis = yAxis;
@@ -46,11 +48,15 @@ export function handleCreateQuery(
     organization,
     ...extractAnalyticsQueryFields(payload),
   });
-  const promise = createSavedQuery(api, organization.slug, payload);
+  const promise = createSavedQuery(api, organization.slug, payload, {
+    showErrorMessage: showMessages,
+  });
 
   promise
     .then((savedQuery: SavedQuery) => {
-      addSuccessMessage(t('Query saved'));
+      if (showMessages) {
+        addSuccessMessage(t('Query saved'));
+      }
       trackAnalytics(getAnalyticsCreateEventKeyName(isNewQuery, 'success'), {
         organization,
         ...extractAnalyticsQueryFields(payload),
@@ -59,7 +65,9 @@ export function handleCreateQuery(
       return savedQuery;
     })
     .catch((err: Error) => {
-      addErrorMessage(t('Query not saved'));
+      if (showMessages) {
+        addErrorMessage(t('Query not saved'));
+      }
       trackAnalytics(getAnalyticsCreateEventKeyName(isNewQuery, 'failed'), {
         organization,
         ...extractAnalyticsQueryFields(payload),

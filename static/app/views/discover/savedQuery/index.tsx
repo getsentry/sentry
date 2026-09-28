@@ -1,11 +1,9 @@
-import {memo, useState} from 'react';
+import {memo} from 'react';
 import type {Location} from 'history';
 
-import {Button, LinkButton} from '@sentry/scraps/button';
-import {Input} from '@sentry/scraps/input';
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {LinkButton} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
@@ -36,64 +34,6 @@ const renderDisabled = (p: any) => (
     {p.children(p)}
   </Hovercard>
 );
-
-type SaveQueryModalProps = ModalRenderProps & {
-  onSave: (queryName: string) => Promise<void>;
-};
-
-export function SaveQueryModal({
-  Header,
-  Body,
-  Footer,
-  closeModal,
-  onSave,
-}: SaveQueryModalProps) {
-  const [queryName, setQueryName] = useState('');
-  const [isSaving, setIsSaving] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!queryName || isSaving) {
-      return;
-    }
-    setIsSaving(true);
-    try {
-      await onSave(queryName);
-      closeModal();
-    } catch {
-      // handleCreateQuery already shows an error message
-      setIsSaving(false);
-    }
-  };
-
-  return (
-    <form onSubmit={handleSubmit}>
-      <Header closeButton>
-        <h4>{t('New Query')}</h4>
-      </Header>
-      <Body>
-        <Input
-          autoFocus
-          type="text"
-          name="query_name"
-          placeholder={t('Display name')}
-          value={queryName}
-          onChange={e => setQueryName(e.currentTarget.value)}
-        />
-      </Body>
-      <Footer>
-        <Flex gap="md" justify="end">
-          <Button onClick={closeModal} disabled={isSaving}>
-            {t('Cancel')}
-          </Button>
-          <Button type="submit" variant="primary" disabled={!queryName || isSaving}>
-            {t('Save for Organization')}
-          </Button>
-        </Flex>
-      </Footer>
-    </form>
-  );
-}
 
 type Props = {
   api: Client;

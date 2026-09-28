@@ -937,7 +937,9 @@ describe('Results', () => {
         organization,
       });
 
-      await userEvent.click(await screen.findByRole('button', {name: 'Save as'}));
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Discover Context Menu'})
+      );
       await userEvent.click(
         await screen.findByRole('menuitemradio', {name: 'Set as Default'})
       );
@@ -1027,7 +1029,9 @@ describe('Results', () => {
 
       // The saved query matches the homepage, so the context menu offers the
       // "Remove Default" reset action rather than "Set as Default".
-      await userEvent.click(await screen.findByRole('button', {name: 'Save as'}));
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Discover Context Menu'})
+      );
       expect(
         await screen.findByRole('menuitemradio', {name: 'Remove Default'})
       ).toBeInTheDocument();
@@ -1067,11 +1071,15 @@ describe('Results', () => {
       });
 
       await screen.findAllByText(getTransactionViews(organization)[0]!.name);
-      await userEvent.click(await screen.findByRole('button', {name: 'Save as'}));
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Discover Context Menu'})
+      );
       await userEvent.click(
         await screen.findByRole('menuitemradio', {name: 'Set as Default'})
       );
-      await userEvent.click(await screen.findByRole('button', {name: 'Save as'}));
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Discover Context Menu'})
+      );
       expect(
         await screen.findByRole('menuitemradio', {name: 'Remove Default'})
       ).toBeInTheDocument();
@@ -1093,7 +1101,9 @@ describe('Results', () => {
       router.navigate(`${router.location.pathname}?${updatedParams.toString()}`);
 
       await screen.findByText('Previous Period');
-      await userEvent.click(await screen.findByRole('button', {name: 'Save as'}));
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Discover Context Menu'})
+      );
       expect(
         await screen.findByRole('menuitemradio', {name: 'Set as Default'})
       ).toBeInTheDocument();
@@ -1228,7 +1238,9 @@ describe('Results', () => {
         organization,
       });
 
-      await userEvent.click(await screen.findByRole('button', {name: 'Save as'}));
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Discover Context Menu'})
+      );
       expect(
         await screen.findByRole('menuitemradio', {name: 'Set as Default'})
       ).not.toHaveAttribute('aria-disabled', 'true');
