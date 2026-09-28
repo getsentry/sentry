@@ -2,6 +2,7 @@ from contextlib import contextmanager
 from unittest.mock import patch
 
 import pytest
+from django.test import override_settings
 
 from sentry.issues.grouptype import WebVitalsGroup
 from sentry.issues.ingest import hash_fingerprint
@@ -12,6 +13,7 @@ from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.task_runner import TaskRunner
 
 
+@override_settings(SENTRY_SELF_HOSTED=False)
 class WebVitalsIssueDetectionDataTest(TestCase, SnubaTestCase, SpanTestCase):
     def setUp(self) -> None:
         super().setUp()

@@ -174,7 +174,7 @@ describe('EventNavigation', () => {
 
   describe('issue content navigation', () => {
     const seerOrganization = OrganizationFixture({
-      features: ['discover-basic', 'gen-ai-features', 'autofix-page'],
+      features: ['discover-basic', 'autofix-page'],
       hideAiFeatures: false,
     });
 
@@ -255,7 +255,7 @@ describe('EventNavigation', () => {
     it('omits the autofix tab when AI features are hidden', () => {
       renderNav(
         OrganizationFixture({
-          features: ['discover-basic', 'gen-ai-features', 'autofix-page'],
+          features: ['discover-basic', 'autofix-page'],
           hideAiFeatures: true,
         })
       );
@@ -404,7 +404,7 @@ describe('EventNavigation', () => {
 
   describe('autofix tab', () => {
     const seerOrganization = OrganizationFixture({
-      features: ['discover-basic', 'gen-ai-features', 'autofix-page'],
+      features: ['discover-basic', 'autofix-page'],
       hideAiFeatures: false,
     });
 

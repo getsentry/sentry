@@ -3,6 +3,7 @@ from typing import Any
 from unittest.mock import ANY, MagicMock, Mock, patch
 
 import pytest
+from django.test import override_settings
 
 from sentry.seer.agent.client_models import (
     MemoryBlock,
@@ -20,6 +21,7 @@ from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
 
 @with_feature("organizations:seer-explorer")
+@override_settings(SENTRY_SELF_HOSTED=False)
 @with_feature("organizations:gen-ai-features")
 class OrganizationSeerAgentChatEndpointTest(APITestCase):
     def setUp(self) -> None:
@@ -671,6 +673,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
 
 
 @with_feature("organizations:seer-explorer")
+@override_settings(SENTRY_SELF_HOSTED=False)
 @with_feature("organizations:gen-ai-features")
 class OrganizationSeerAgentChatContextEngineTest(APITestCase):
     """End-to-end tests verifying is_context_engine_enabled reaches make_agent_chat_request."""

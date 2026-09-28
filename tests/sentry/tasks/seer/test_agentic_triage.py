@@ -5,6 +5,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 from django.conf import settings
+from django.test import override_settings
 from taskbroker_client.scheduler.config import crontab
 from taskbroker_client.scheduler.runner import ScheduleEntry
 
@@ -73,6 +74,7 @@ def _dispatched_feature_body(organization):
     return seer_run, outbox.payload["body"]
 
 
+@override_settings(SENTRY_SELF_HOSTED=False)
 @django_db_all
 @pytest.mark.parametrize("enabled,mode", [(False, "off"), (True, "only")])
 def test_code_mode_flag_applies_to_every_dispatched_shard(default_organization, enabled, mode):
@@ -102,6 +104,7 @@ def test_code_mode_flag_applies_to_every_dispatched_shard(default_organization, 
         assert outbox.payload["body"]["agent_run_options"]["enable_code_mode_tools"] == mode
 
 
+@override_settings(SENTRY_SELF_HOSTED=False)
 @django_db_all
 def test_redispatch_preserves_recorded_code_mode_after_flag_is_disabled(default_organization):
     run = Factories.create_seer_workflow_run(organization=default_organization)
@@ -704,6 +707,7 @@ class TestGetEligibleProjects(AgenticTriageFixtures, TestCase):
         assert result[0].automation_tuning is None
 
 
+@override_settings(SENTRY_SELF_HOSTED=False)
 @django_db_all
 class TestRunAgenticTriageForOrg(AgenticTriageFixtures, TestCase, SnubaTestCase):
     reset_snuba_data = False
@@ -1029,6 +1033,7 @@ class TestRunAgenticTriageForOrg(AgenticTriageFixtures, TestCase, SnubaTestCase)
         assert [p.id for p in mock_score.call_args.args[0]] == [enabled.id]
 
 
+@override_settings(SENTRY_SELF_HOSTED=False)
 @django_db_all
 class TestRunAgenticTriageFeatureDelivery(AgenticTriageFixtures, TestCase, SnubaTestCase):
     """Coverage for the dispatch path, which hands triage off to Seer's

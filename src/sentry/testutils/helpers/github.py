@@ -12,6 +12,7 @@ from uuid import uuid4
 
 import orjson
 from django.http.response import HttpResponseBase
+from django.test import override_settings
 
 from sentry import options
 from sentry.integrations.github.webhook import GitHubIntegrationsWebhookEndpoint
@@ -140,6 +141,7 @@ class GitHubWebhookTestCase(APITestCase):
         )
 
 
+@override_settings(SENTRY_SELF_HOSTED=False)
 class GitHubWebhookCodeReviewTestCase(GitHubWebhookTestCase):
     # Code review features are org features as set in options automator
     CODE_REVIEW_FEATURES = {"organizations:gen-ai-features", "organizations:code-review-beta"}

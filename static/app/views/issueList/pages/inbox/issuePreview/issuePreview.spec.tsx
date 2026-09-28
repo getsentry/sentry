@@ -17,7 +17,7 @@ import {GroupStatus, ProgressState, type Group} from 'sentry/types/group';
 import {IssuePreview} from './issuePreview';
 
 describe('IssuePreview', () => {
-  const organization = OrganizationFixture({features: ['gen-ai-features']});
+  const organization = OrganizationFixture();
   const project = ProjectFixture({id: '1'});
   const group = GroupFixture({id: '101', project, hasSeen: true});
   const fixAppliedGroup = GroupFixture({

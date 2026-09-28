@@ -2,6 +2,8 @@ import re
 import uuid
 from unittest.mock import ANY, Mock, call, patch
 
+from django.test import override_settings
+
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.integrations.types import ExternalProviders
 from sentry.integrations.utils.github_permission_tiers import PR_ITERATION_TIER
@@ -57,6 +59,7 @@ def _user_context_length_calls(mock_distribution: Mock) -> list:
     ]
 
 
+@override_settings(SENTRY_SELF_HOSTED=False)
 @with_feature("organizations:gen-ai-features")
 class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
     def _get_url(self, group_id: int) -> str:
