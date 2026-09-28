@@ -85,11 +85,7 @@ function getDetectorSlider({label, index}: {index: number; label: string}) {
 
 describe('projectPerformance', () => {
   const org = OrganizationFixture({
-    features: [
-      'performance-view',
-      'performance-web-vitals-seer-suggestions',
-      'gen-ai-features',
-    ],
+    features: ['performance-view', 'performance-web-vitals-seer-suggestions'],
   });
   const project = ProjectFixture();
   const configUrl = '/projects/org-slug/project-slug/transaction-threshold/configure/';
@@ -804,7 +800,6 @@ describe('projectPerformance', () => {
         features: [
           'performance-view',
           'performance-web-vitals-seer-suggestions',
-          'gen-ai-features',
           'ai-issue-detection',
         ],
       }),
