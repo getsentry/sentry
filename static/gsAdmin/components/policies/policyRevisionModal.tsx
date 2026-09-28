@@ -1,5 +1,4 @@
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 
 import {PolicyFormModal} from 'admin/components/policies/policyFormModal';
 import type {Policy, PolicyRevision} from 'getsentry/types';
@@ -20,9 +19,7 @@ export function PolicyRevisionModal({policy, onSuccess, ...props}: Props) {
     <PolicyFormModal
       title="Add Revision"
       initialVersion={policy.version ? suggestedNextVersion(policy.version) : '1.0.0'}
-      apiEndpoint={getApiUrl('/policies/$policySlug/revisions/', {
-        path: {policySlug: policy.slug},
-      })}
+      policySlug={policy.slug}
       isNewPolicy={false}
       onSuccess={data => {
         if ('createdAt' in data) {

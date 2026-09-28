@@ -1,5 +1,4 @@
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 import {PolicyFormModal} from 'admin/components/policies/policyFormModal';
@@ -9,7 +8,6 @@ export function AddPolicyModal(props: ModalRenderProps) {
   return (
     <PolicyFormModal
       title="Add Policy"
-      apiEndpoint={getApiUrl('/policies/')}
       isNewPolicy
       onSuccess={data => {
         navigate(

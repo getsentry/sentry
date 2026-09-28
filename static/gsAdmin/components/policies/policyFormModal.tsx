@@ -10,7 +10,7 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {IconClose} from 'sentry/icons';
-import type {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {readFileAsBase64} from 'sentry/utils/readFileAsBase64';
 import {RequestError} from 'sentry/utils/requestError/requestError';
@@ -38,20 +38,18 @@ const schema = z.object({
 type Values = z.infer<typeof schema>;
 
 type Props = ModalRenderProps & {
-  apiEndpoint: ReturnType<typeof getApiUrl>;
-  isNewPolicy: boolean;
   onSuccess: (data: Policy | PolicyRevision) => void;
   title: string;
   initialVersion?: string;
-};
+} & ({isNewPolicy: true; policySlug?: never} | {isNewPolicy: false; policySlug: string});
 
 export function PolicyFormModal({
   Body,
   Footer,
   Header,
   closeModal,
-  apiEndpoint,
   isNewPolicy,
+  policySlug,
   onSuccess,
   title,
   initialVersion = '',
@@ -126,7 +124,11 @@ export function PolicyFormModal({
       }
       return mutation
         .mutateAsync({
-          url: apiEndpoint,
+          url: isNewPolicy
+            ? getApiUrl('/policies/')
+            : getApiUrl('/policies/$policySlug/revisions/', {
+                path: {policySlug},
+              }),
           method: 'POST',
           data: isNewPolicy
             ? {
