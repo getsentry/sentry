@@ -43,6 +43,7 @@ describe('FieldRenderer tests', () => {
         'transaction.id',
         'span.description',
         'span.name',
+        'sentry.links',
       ],
     },
   });
@@ -273,6 +274,61 @@ describe('FieldRenderer tests', () => {
 
     expect(screen.getByRole('time')).toBeInTheDocument();
     expect(screen.getByText('3d ago')).toBeInTheDocument();
+  });
+
+  describe('span links', () => {
+    const links = [
+      {
+        trace_id: 'd099bf9ad5a143cf8f83a98081d0ed3b',
+        span_id: '8873a98879faf06d',
+        sampled: true,
+        attributes: {'sentry.link.type': 'previous_trace'},
+      },
+      {trace_id: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6', span_id: '1234567890abcdef'},
+    ];
+
+    it('renders each link as a chip pointing at the linked span', async () => {
+      render(
+        <Wrapper>
+          <FieldRenderer
+            column={eventView.getColumns()[7]}
+            data={{...mockedEventData, 'sentry.links': JSON.stringify(links)}}
+            meta={{}}
+          />
+        </Wrapper>,
+        {organization}
+      );
+
+      const typedLink = screen.getByRole('link', {name: 'previous_trace 8873a988'});
+      expect(typedLink).toHaveAttribute(
+        'href',
+        '/organizations/org-slug/explore/traces/trace/d099bf9ad5a143cf8f83a98081d0ed3b/?node=span-8873a98879faf06d&source=traces&statsPeriod=14d&timestamp=1727964900'
+      );
+      expect(screen.getByRole('link', {name: '12345678'})).toHaveAttribute(
+        'href',
+        '/organizations/org-slug/explore/traces/trace/a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6/?node=span-1234567890abcdef&source=traces&statsPeriod=14d&timestamp=1727964900'
+      );
+
+      await userEvent.hover(typedLink);
+      expect(await screen.findByText('Type: previous_trace')).toBeInTheDocument();
+      expect(screen.getByText('Span: 8873a98879faf06d')).toBeInTheDocument();
+    });
+
+    it('falls back to the raw value when it is not a link list', () => {
+      render(
+        <Wrapper>
+          <FieldRenderer
+            column={eventView.getColumns()[7]}
+            data={{...mockedEventData, 'sentry.links': 'not json'}}
+            meta={{}}
+          />
+        </Wrapper>,
+        {organization}
+      );
+
+      expect(screen.getByText('not json')).toBeInTheDocument();
+      expect(screen.queryByRole('link')).not.toBeInTheDocument();
+    });
   });
 
   it('renders description without project badge', () => {

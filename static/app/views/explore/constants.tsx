@@ -67,6 +67,7 @@ export const SENTRY_SPAN_STRING_TAGS: string[] = [
   SpanFields.GEN_AI_INPUT_MESSAGES,
   SpanFields.GEN_AI_OUTPUT_MESSAGES,
   SpanFields.GEN_AI_RESPONSE_MODEL,
+  SpanFields.SENTRY_LINKS,
 ];
 
 export const SENTRY_SPAN_NUMBER_TAGS: string[] = [

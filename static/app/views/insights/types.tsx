@@ -82,6 +82,7 @@ export enum SpanFields {
   COMMAND = 'command',
   REQUEST_METHOD = 'request.method',
   SENTRY_ORIGIN = 'sentry.origin',
+  SENTRY_LINKS = 'sentry.links',
 
   // Cache fields
   CACHE_HIT = 'cache.hit',
@@ -324,6 +325,7 @@ type NonNullableStringFields =
   | SpanFields.MCP_RESOURCE_URI
   | SpanFields.TRACE
   | SpanFields.TRACE_PARENT_SPAN
+  | SpanFields.SENTRY_LINKS
   | SpanFields.PROFILEID
   | SpanFields.PROFILE_ID
   | SpanFields.REPLAYID

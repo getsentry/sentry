@@ -2779,6 +2779,13 @@ const SPAN_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
+  [SpanFields.SENTRY_LINKS]: {
+    desc: t(
+      'Links from this span to other spans, such as the previous trace of a navigation.'
+    ),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
 };
 
 const PREPROD_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {

@@ -21,6 +21,7 @@ import {EventView} from 'sentry/utils/discover/eventView';
 import {
   getFieldRenderer,
   nullableValue,
+  type RenderFunctionBaggage,
   renderUrlCellValue,
 } from 'sentry/utils/discover/fieldRenderers';
 import {Container} from 'sentry/utils/discover/styles';
@@ -46,6 +47,7 @@ import {
   useQueryParamsQuery,
   useSetQueryParamsQuery,
 } from 'sentry/views/explore/queryParams/context';
+import {parseSpanLinks, SpanLinksCell} from 'sentry/views/explore/tables/spanLinks';
 import {
   getSimilarEventsUrl,
   isPartialSpanOrTraceData,
@@ -332,7 +334,31 @@ function getExploreFieldRenderer(
   if (field === SpanFields.NAME) {
     return spanDescriptionRenderFunc(SpanFields.NAME, projects);
   }
+  if (field === SpanFields.SENTRY_LINKS) {
+    return spanLinksRenderFunc(meta);
+  }
   return getFieldRenderer(field, meta, false);
+}
+
+function spanLinksRenderFunc(meta: MetaType) {
+  const fallback = getFieldRenderer(SpanFields.SENTRY_LINKS, meta, false);
+
+  function renderer(data: EventData, baggage: RenderFunctionBaggage) {
+    const links = parseSpanLinks(data[SpanFields.SENTRY_LINKS]);
+    if (!links) {
+      return fallback(data, baggage);
+    }
+
+    return (
+      <SpanLinksCell
+        links={links}
+        timestamp={data.timestamp}
+        organization={baggage.organization}
+        location={baggage.location}
+      />
+    );
+  }
+  return renderer;
 }
 
 function eventIdRenderFunc(field: string) {
