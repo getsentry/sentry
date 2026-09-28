@@ -180,6 +180,36 @@ class TestFormulas(BaseFormulaTest):
         )
         assert response.status_code == 404, response.content
 
+    def test_create_explore_formula_rejects_long_variable_value(self) -> None:
+        data = self.formula_object.copy()
+        data["params"] = [
+            {
+                "name": "duration",
+                "type": "column",
+                "order": 0,
+                "value": "x" * 201,
+            }
+        ]
+        with self.feature(self.feature_flags):
+            response = self.client.post(
+                self.url,
+                data=data,
+            )
+            assert response.status_code == 400, response.content
+        assert "200 characters" in str(response.data["params"]["value"][0])
+
+    def test_create_explore_formula_without_unit(self) -> None:
+        data = self.formula_object.copy()
+        del data["unit"]
+        with self.feature(self.feature_flags):
+            response = self.client.post(
+                self.url,
+                data=data,
+            )
+            assert response.status_code == 201, response.content
+        formula = ExploreSavedFormula.objects.get(id=response.data["id"])
+        assert formula.unit is None
+
     def test_create_explore_formula_without_formula_prefix(self) -> None:
         data = self.formula_object
         data["name"] = "hello"
