@@ -68,20 +68,18 @@ class MigrationLockBackend(LockBackend):
                 "options": {"cluster": "old-cluster"},
             },
             selector_func_path="sentry.utils.locking.backends.migration.post_process_locks_selector",
-            fail_open_option="locks.post-process.migration-fail-open",
         )
 
         locks = LockManager(backend)
 
     The selector sends a share of the keys, set by the
     `locks.post-process.migration-rollout-rate` option, to the new backend. The
-    rate can go up or down at any time. A lock is never given to two callers,
-    even while processes read different option values.
+    rate can go up or down at any time. While both backends are up, a lock is
+    never given to two callers, even while processes read different option values.
 
     Each acquire also reads the other backend. If that read fails, the acquire
-    fails too, unless the option named by `fail_open_option` is True. Fail open
-    keeps locks working when the other backend is down, but two callers can then
-    hold the same lock. Without `fail_open_option`, the acquire always fails.
+    still gives the lock (fail open). Locks keep working when the other backend
+    is down, but two callers can then hold the same lock.
     """
 
     def __init__(
@@ -89,22 +87,12 @@ class MigrationLockBackend(LockBackend):
         backend_new_config: ServiceOptions,
         backend_old_config: ServiceOptions,
         selector_func_path: str | SelectorFncType | None = None,
-        fail_open_option: str | None = None,
     ):
         self.backend_new = build_instance_from_options_of_type(LockBackend, backend_new_config)
         self.backend_old = build_instance_from_options_of_type(LockBackend, backend_old_config)
         self.selector_func: SelectorFncType = (
             resolve_callable(selector_func_path) if selector_func_path else _default_selector_func
         )
-        self.fail_open_option = fail_open_option
-
-    def _fail_open(self) -> bool:
-        if self.fail_open_option is None:
-            return False
-        try:
-            return bool(options.get(self.fail_open_option))
-        except Exception:
-            return False
 
     def _get_backend(self, key: str, routing_key: str | int | None) -> LockBackend:
         return self.selector_func(
@@ -122,11 +110,8 @@ class MigrationLockBackend(LockBackend):
         try:
             held_elsewhere = other.locked(key=key, routing_key=routing_key)
         except Exception:
-            fail_open = self._fail_open()
-            metrics.incr("locks.migration.check_error", tags={"fail_open": fail_open})
-            if fail_open:
-                return
-            held_elsewhere = True
+            metrics.incr("locks.migration.check_error")
+            return
 
         if held_elsewhere:
             try:

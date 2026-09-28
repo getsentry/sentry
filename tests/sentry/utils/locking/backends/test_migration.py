@@ -3,8 +3,8 @@ from uuid import uuid4
 
 import pytest
 
+from sentry.conf.types.service_options import ServiceOptions
 from sentry.testutils.helpers.options import override_options
-from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils.locking.backends import LockBackend
 from sentry.utils.locking.backends.migration import (
     MigrationLockBackend,
@@ -93,11 +93,11 @@ class TestMigrationLockBackend(TestCase):
 
 # Two real Redis backends, kept apart by their key prefix. Each MigrationLockBackend
 # instance builds its own backends with its own token, like a separate process.
-OLD_CONFIG = {
+OLD_CONFIG: ServiceOptions = {
     "path": "sentry.utils.locking.backends.redis.RedisLockBackend",
     "options": {"cluster": "default", "prefix": "migration-test-old:"},
 }
-NEW_CONFIG = {
+NEW_CONFIG: ServiceOptions = {
     "path": "sentry.utils.locking.backends.redis.RedisClusterLockBackend",
     "options": {"cluster": "default", "prefix": "migration-test-new:"},
 }
@@ -187,58 +187,17 @@ class TestMigrationLockBackendOnRedis(TestCase):
             other.release(self.key)
         assert holder.locked(self.key)
 
-    def build_with_unavailable_new(self, **kwargs) -> MigrationLockBackend:
-        return MigrationLockBackend(
+    def test_check_error_fails_open(self) -> None:
+        backend = MigrationLockBackend(
             backend_new_config={"path": UnavailableLockBackend.path},
             backend_old_config=OLD_CONFIG,
             selector_func_path=pick_old,
-            **kwargs,
         )
 
-    def test_check_error_fails_closed_without_option(self) -> None:
-        backend = self.build_with_unavailable_new()
-
-        with pytest.raises(Exception):
-            backend.acquire(self.key, 10)
-        assert not backend.backend_old.locked(self.key)
-
-    def test_check_error_fails_closed_when_option_read_fails(self) -> None:
-        # Reading an option that is not registered raises.
-        backend = self.build_with_unavailable_new(fail_open_option="locks.not-a-registered-option")
-
-        with pytest.raises(Exception):
-            backend.acquire(self.key, 10)
-        assert not backend.backend_old.locked(self.key)
-
-    def test_check_error_follows_option_at_runtime(self) -> None:
-        backend = self.build_with_unavailable_new(
-            fail_open_option="locks.post-process.migration-fail-open"
-        )
-
-        with override_options({"locks.post-process.migration-fail-open": True}):
-            backend.acquire(self.key, 10)
+        backend.acquire(self.key, 10)
         assert backend.backend_old.locked(self.key)
-        backend.backend_old.release(self.key)
-
-        with override_options({"locks.post-process.migration-fail-open": False}):
-            with pytest.raises(Exception):
-                backend.acquire(self.key, 10)
+        backend.release(self.key)
         assert not backend.backend_old.locked(self.key)
-
-
-@django_db_all
-def test_check_error_fails_closed_by_option_default() -> None:
-    backend = MigrationLockBackend(
-        backend_new_config={"path": UnavailableLockBackend.path},
-        backend_old_config=OLD_CONFIG,
-        selector_func_path=pick_old,
-        fail_open_option="locks.post-process.migration-fail-open",
-    )
-    key = f"lock-{uuid4().hex}"
-
-    with pytest.raises(Exception):
-        backend.acquire(key, 10)
-    assert not backend.backend_old.locked(key)
 
 
 class TestRolloutSelectors(TestCase):

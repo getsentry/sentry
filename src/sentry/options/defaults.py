@@ -110,21 +110,6 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# If True, MigrationLockBackend still gives a lock when it cannot read the other
-# backend. Keeps locks working while one backend is down, but two callers can then
-# hold the same lock. Only used when the backend config names the option.
-register(
-    "locks.default.migration-fail-open",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "locks.post-process.migration-fail-open",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # Processing worker caches
 register(
