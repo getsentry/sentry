@@ -111,7 +111,7 @@ def _send_legacy(payload: dict[str, Any] | None = None) -> None:
     record_legacy_render(NotificationProviderKey.MSTEAMS, payload or {"type": "AdaptiveCard"})
 
 
-@mock.patch(f"{RUNNER_PATH}.compare_with_platform")
+@mock.patch(f"{RUNNER_PATH}._compare_with_platform")
 class ShadowReadSamplingTest(ShadowInvocationTestCase):
     def assert_not_shadowed(
         self,

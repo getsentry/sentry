@@ -98,7 +98,7 @@ def _capture_shadow_error(
     return ShadowResult(outcome=outcome)
 
 
-def compare_with_platform(
+def _compare_with_platform(
     invocation: ActionInvocation,
     source: NotificationSource,
     provider_key: NotificationProviderKey,
@@ -169,7 +169,7 @@ def _report(
         with metrics.timer(
             "notifications.platform.shadow.duration", tags=tags, sample_rate=1.0
         ) as timer_tags:
-            result = compare_with_platform(invocation, source, provider_key, collector)
+            result = _compare_with_platform(invocation, source, provider_key, collector)
             timer_tags["outcome"] = result.outcome.value
         metrics.incr(
             "notifications.platform.shadow.result",
