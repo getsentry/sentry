@@ -95,16 +95,13 @@ export function ConversationSummary({
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
-  const aggregates = useMemo(() => calculateAggregates(nodes), [nodes]);
-  const summaryStats = stats ?? aggregates;
-  const tokenBreakdowns = stats
-    ? getTokenBreakdowns(stats.usageByModel)
-    : aggregates.tokenBreakdowns;
+  const errorState = useMemo(() => getConversationErrorState(nodes), [nodes]);
+  const tokenBreakdowns = stats ? getTokenBreakdowns(stats.usageByModel) : [];
   const costBreakdowns = stats ? getCostBreakdowns(stats.usageByModel) : [];
   const toolNames = stats
-    ? orderToolNames(stats.toolNames, aggregates.erroredToolNames)
-    : aggregates.toolNames;
-  const startTimestamp = stats ? stats.startTimestamp || null : aggregates.startTimestamp;
+    ? orderToolNames(stats.toolNames, errorState.erroredToolNames)
+    : [];
+  const startTimestamp = stats?.startTimestamp || null;
   const user = useMemo(() => getConversationUser(nodes), [nodes]);
   const userDisplayName = user ? getUserDisplayName(user) : null;
 
@@ -205,7 +202,7 @@ export function ConversationSummary({
                   <ToolTag
                     key={name}
                     name={name}
-                    hasError={aggregates.erroredToolNames.has(name)}
+                    hasError={errorState.erroredToolNames.has(name)}
                   />
                 ))}
                 {toolNames.length > VISIBLE_TOOL_COUNT && (
@@ -219,7 +216,7 @@ export function ConversationSummary({
                           <ToolTag
                             key={name}
                             name={name}
-                            hasError={aggregates.erroredToolNames.has(name)}
+                            hasError={errorState.erroredToolNames.has(name)}
                           />
                         ))}
                       </Flex>
@@ -272,14 +269,14 @@ export function ConversationSummary({
       <Flex align="start" gap="xl" wrap="wrap" flexShrink={0}>
         <Stat
           label={t('LLM Calls')}
-          value={<Count value={summaryStats.llmCalls} />}
+          value={<Count value={stats?.llmCalls ?? 0} />}
           isLoading={isLoading}
         />
         <Stat
           label={t('Errors')}
-          value={<Count value={aggregates.errorCount} />}
+          value={<Count value={errorState.errorCount} />}
           icon={
-            aggregates.errorCount > 0 ? (
+            errorState.errorCount > 0 ? (
               <IconFire
                 size="sm"
                 variant="danger"
@@ -287,9 +284,9 @@ export function ConversationSummary({
               />
             ) : undefined
           }
-          to={aggregates.errorCount > 0 ? errorsUrl : undefined}
+          to={errorState.errorCount > 0 ? errorsUrl : undefined}
           onClick={
-            aggregates.errorCount > 0
+            errorState.errorCount > 0
               ? () =>
                   trackAnalytics('conversations.detail.click-errors-link', {organization})
               : undefined
@@ -299,13 +296,13 @@ export function ConversationSummary({
         <Stat
           label={t('Tokens')}
           value={
-            <TokenCount breakdowns={tokenBreakdowns} total={summaryStats.totalTokens} />
+            <TokenCount breakdowns={tokenBreakdowns} total={stats?.totalTokens ?? 0} />
           }
           isLoading={isLoading}
         />
         <Stat
           label={t('Cost')}
-          value={<CostCount breakdowns={costBreakdowns} total={summaryStats.totalCost} />}
+          value={<CostCount breakdowns={costBreakdowns} total={stats?.totalCost ?? 0} />}
           isLoading={isLoading}
         />
       </Flex>
@@ -375,21 +372,43 @@ function Stat({
   );
 }
 
-interface ConversationAggregates {
+interface TraceAggregates {
   errorCount: number;
-  erroredToolNames: Set<string>;
   llmCalls: number;
-  /** When the conversation began, or null when no span carries a start time. */
-  startTimestamp: number | null;
   tokenBreakdowns: TokenBreakdownDetails[];
-  toolCalls: number;
   toolNames: string[];
   totalCost: number;
   totalTokens: number;
 }
 
+interface ConversationErrorState {
+  errorCount: number;
+  erroredToolNames: Set<string>;
+}
+
 function getGenAiOpType(node: AITraceSpanNode): string | undefined {
   return getStringAttr(node, SpanFields.GEN_AI_OPERATION_TYPE);
+}
+
+function getConversationErrorState(nodes: AITraceSpanNode[]): ConversationErrorState {
+  let errorCount = 0;
+  const erroredToolNames = new Set<string>();
+
+  for (const node of nodes) {
+    if (!hasError(node)) {
+      continue;
+    }
+    errorCount++;
+
+    if (getIsExecuteToolSpan(getGenAiOpType(node))) {
+      const toolName = getStringAttr(node, SpanFields.GEN_AI_TOOL_NAME);
+      if (toolName) {
+        erroredToolNames.add(toolName);
+      }
+    }
+  }
+
+  return {errorCount, erroredToolNames};
 }
 
 function getNumberAttrByConvention(
@@ -452,25 +471,15 @@ function getCostBreakdowns(
   }));
 }
 
-function calculateAggregates(nodes: AITraceSpanNode[]): ConversationAggregates {
+function calculateTraceAggregates(nodes: AITraceSpanNode[]): TraceAggregates {
+  const {errorCount, erroredToolNames} = getConversationErrorState(nodes);
   let llmCalls = 0;
-  let toolCalls = 0;
-  let errorCount = 0;
   let totalCost = 0;
   const tokensByModel = new Map<string, TokenBreakdownDetails>();
-  let startTimestamp: number | null = null;
   const toolNameSet = new Set<string>();
-  const erroredToolNameSet = new Set<string>();
 
   for (const node of nodes) {
     const opType = getGenAiOpType(node);
-    const nodeHasError = hasError(node);
-
-    // Nodes without a timestamp leave space at its [0, 0] default.
-    const [nodeStart] = node.space;
-    if (nodeStart > 0 && (startTimestamp === null || nodeStart < startTimestamp)) {
-      startTimestamp = nodeStart;
-    }
 
     if (getIsAiGenerationSpan(opType)) {
       llmCalls++;
@@ -519,37 +528,22 @@ function calculateAggregates(nodes: AITraceSpanNode[]): ConversationAggregates {
       tokensByModel.set(model, modelTokens);
       totalCost += getNumberAttr(node, SpanFields.GEN_AI_COST_TOTAL_TOKENS) ?? 0;
     } else if (getIsExecuteToolSpan(opType)) {
-      toolCalls++;
       const toolName = getStringAttr(node, SpanFields.GEN_AI_TOOL_NAME);
       if (toolName) {
         toolNameSet.add(toolName);
-        if (nodeHasError) {
-          erroredToolNameSet.add(toolName);
-        }
       }
-    }
-
-    if (nodeHasError) {
-      errorCount++;
     }
   }
 
   // Errored tools lead, so they survive the row's truncation.
-  const sortedToolNames = Array.from(toolNameSet).sort();
-  const toolNames = [
-    ...sortedToolNames.filter(name => erroredToolNameSet.has(name)),
-    ...sortedToolNames.filter(name => !erroredToolNameSet.has(name)),
-  ];
+  const toolNames = orderToolNames(Array.from(toolNameSet).sort(), erroredToolNames);
   const tokenBreakdowns = Array.from(tokensByModel.values()).sort(
     (a, b) => b.total - a.total
   );
 
   return {
     llmCalls,
-    toolCalls,
     errorCount,
-    startTimestamp,
-    erroredToolNames: erroredToolNameSet,
     tokenBreakdowns,
     totalTokens: tokenBreakdowns.reduce((total, breakdown) => total + breakdown.total, 0),
     totalCost,
@@ -600,7 +594,7 @@ export function ConversationAggregatesBar({
 }) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
-  const aggregates = useMemo(() => calculateAggregates(nodes), [nodes]);
+  const aggregates = useMemo(() => calculateTraceAggregates(nodes), [nodes]);
 
   const errorsUrl = getExploreUrl({
     organization,
