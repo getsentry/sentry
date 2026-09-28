@@ -102,7 +102,7 @@ class BulkDeleteQuery:
     ) -> Generator[tuple[int, ...]]:
         queryset = self.model.objects.all()
 
-        if not self.defer_datetime_filter:
+        if not self.defer_dt_filter:
             assert self.dtfield is not None
             assert self.days is not None
             cutoff = timezone.now() - timedelta(days=self.days)
