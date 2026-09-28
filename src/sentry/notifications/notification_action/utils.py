@@ -13,13 +13,11 @@ from sentry.notifications.notification_action.types import (
     ActivityHandlerValidationError,
     BaseMetricAlertHandler,
 )
-from sentry.notifications.platform.shadow.runner import shadow_read
 from sentry.notifications.platform.templates.issue import (
     IssueNotificationData,
     SerializableRuleProxy,
 )
 from sentry.notifications.platform.templates.metric_alert import MetricAlertNotificationData
-from sentry.notifications.platform.types import NotificationSource
 from sentry.notifications.utils.issue_notification_context import IssueNotificationContext
 from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.types import ActionInvocation
@@ -90,8 +88,7 @@ def execute_via_issue_alert_handler(invocation: ActionInvocation) -> None:
     """
     try:
         handler = issue_alert_handler_registry.get(invocation.action.type)
-        with shadow_read(invocation, NotificationSource.ISSUE):
-            handler.invoke_legacy_registry(invocation)
+        handler.invoke_legacy_registry(invocation)
     except NoRegistrationExistsError:
         logger.exception(
             "No notification handler found for action type: %s",
@@ -113,8 +110,7 @@ def execute_via_metric_alert_handler(invocation: ActionInvocation) -> None:
     """
     try:
         handler = metric_alert_handler_registry.get(invocation.action.type)
-        with shadow_read(invocation, NotificationSource.METRIC_ALERT):
-            handler.invoke_legacy_registry(invocation)
+        handler.invoke_legacy_registry(invocation)
     except NoRegistrationExistsError:
         logger.exception(
             "No notification handler found for action type: %s",

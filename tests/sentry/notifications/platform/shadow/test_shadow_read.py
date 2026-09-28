@@ -300,7 +300,7 @@ class ShadowReadIssueAlertTest(ShadowReadTestBase):
         mock_capture.assert_called_once_with(mock_render.side_effect)
 
     @override_options({"notifications.platform.shadow-render.sample-rates": {}})
-    @mock.patch(f"{RUNNER_PATH}._render_platform")
+    @mock.patch(f"{RUNNER_PATH}.NotificationService.render_template")
     def test_not_sampled(self, mock_render: mock.MagicMock) -> None:
         action = self.create_shadow_action("msteams")
 
@@ -397,7 +397,7 @@ class ShadowReadMetricAlertTest(ShadowReadTestBase, MetricAlertHandlerBase):
 
     @mock.patch(f"{SLACK_METRIC_HANDLER}._send_via_notification_platform")
     @mock.patch(f"{SLACK_METRIC_HANDLER}.NotificationService.has_access", return_value=True)
-    @mock.patch(f"{RUNNER_PATH}._render_platform")
+    @mock.patch(f"{RUNNER_PATH}.NotificationService.render_template")
     def test_slack_sent_by_platform_is_not_compared(
         self,
         mock_render: mock.MagicMock,

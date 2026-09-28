@@ -7,8 +7,6 @@ from sentry.notifications.notification_action.registry import (
     issue_alert_handler_registry,
 )
 from sentry.notifications.notification_action.types import LegacyRegistryHandler
-from sentry.notifications.platform.shadow.runner import shadow_read
-from sentry.notifications.platform.types import NotificationSource
 from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.types import ActionInvocation
 
@@ -22,8 +20,7 @@ class IssueAlertRegistryHandler(LegacyRegistryHandler):
     def handle_workflow_action(invocation: ActionInvocation) -> None:
         try:
             handler = issue_alert_handler_registry.get(invocation.action.type)
-            with shadow_read(invocation, NotificationSource.ISSUE):
-                handler.invoke_legacy_registry(invocation)
+            handler.invoke_legacy_registry(invocation)
         except NoRegistrationExistsError:
             logger.exception(
                 "No issue alert handler found for action type: %s",

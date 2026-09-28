@@ -109,13 +109,6 @@ def normalize(provider: NotificationProviderKey, payload: ShadowPayload) -> Any:
 _IDENTIFIER = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
 
-def _key_path(path: str, key: Any) -> str:
-    name = str(key)
-    if _IDENTIFIER.match(name):
-        return f"{path}.{name}"
-    return f"{path}[{orjson.dumps(name).decode()}]"
-
-
 def _truncate(value: Any) -> Any:
     if value is DiffMarker.MISSING:
         return value
@@ -137,7 +130,11 @@ def _entry(path: str, kind: DiffKind, legacy: Any, platform: Any) -> DiffEntry:
 def _walk(legacy: Any, platform: Any, path: str) -> Iterator[DiffEntry]:
     if isinstance(legacy, Mapping) and isinstance(platform, Mapping):
         for key in sorted(legacy.keys() | platform.keys(), key=str):
-            child = _key_path(path, key)
+            name = str(key)
+            if _IDENTIFIER.match(name):
+                child = f"{path}.{name}"
+            else:
+                child = f"{path}[{orjson.dumps(name).decode()}]"
             if key not in platform:
                 yield _entry(child, DiffKind.MISSING, legacy[key], DiffMarker.MISSING)
             elif key not in legacy:

@@ -18,7 +18,6 @@ from sentry.notifications.platform.registry import (
 )
 from sentry.notifications.platform.service import KILLSWITCH_OPTION_KEY, NotificationService
 from sentry.notifications.platform.shadow.capture import (
-    LegacyRender,
     ShadowCollector,
     collecting,
     is_collecting,
@@ -67,16 +66,14 @@ class ShadowResult:
     diff: list[DiffEntry] = field(default_factory=list)
 
 
-def _is_test_notification(invocation: ActionInvocation) -> bool:
-    return (
-        invocation.workflow_id == TEST_NOTIFICATION_ID
-        or invocation.action.id == TEST_NOTIFICATION_ID
-    )
-
-
 def _should_shadow(invocation: ActionInvocation, source: NotificationSource) -> bool:
     try:
-        if is_collecting() or source not in SHADOW_SOURCES or _is_test_notification(invocation):
+        if (
+            is_collecting()
+            or source not in SHADOW_SOURCES
+            or invocation.workflow_id == TEST_NOTIFICATION_ID
+            or invocation.action.id == TEST_NOTIFICATION_ID
+        ):
             return False
         if source.value in options.get(KILLSWITCH_OPTION_KEY):
             return False
@@ -85,43 +82,6 @@ def _should_shadow(invocation: ActionInvocation, source: NotificationSource) -> 
     except Exception:
         logger.exception("notifications.platform.shadow.sample_failed", extra={"source": source})
         return False
-
-
-def _has_platform_renderer(
-    provider_key: NotificationProviderKey, source: NotificationSource
-) -> bool:
-    try:
-        provider = provider_registry.get(provider_key)
-    except NoRegistrationExistsError:
-        return False
-    renderer_key = provider.renderer_key or provider.key
-    return renderer_registry.get(provider_key=renderer_key, source=source) is not None
-
-
-def _render_platform(
-    invocation: ActionInvocation,
-    source: NotificationSource,
-    provider_key: NotificationProviderKey,
-    collector: ShadowCollector,
-    legacy: LegacyRender,
-) -> Any:
-    from sentry.notifications.notification_action.utils import (
-        issue_notification_data_factory,
-        metric_alert_notification_data_factory,
-    )
-
-    data: NotificationData
-    if source == NotificationSource.METRIC_ALERT:
-        context = collector.metric_context or IssueNotificationContext(invocation)
-        data = metric_alert_notification_data_factory(context, chart_url=legacy.chart_url)
-    else:
-        data = issue_notification_data_factory(invocation)
-
-    return NotificationService.render_template(
-        data=data,
-        template=template_registry.get(data.source)(),
-        provider=provider_registry.get(provider_key),
-    )
 
 
 def _capture_shadow_error(
@@ -148,16 +108,34 @@ def compare_with_platform(
     Renders the invocation through the notification platform and diffs it against the legacy
     payload in the collector.
     """
+    from sentry.notifications.notification_action.utils import (
+        issue_notification_data_factory,
+        metric_alert_notification_data_factory,
+    )
+
     if collector.platform_sent:
         return ShadowResult(outcome=ShadowOutcome.PLATFORM_SENT)
-    if not _has_platform_renderer(provider_key, source):
+    try:
+        provider = provider_registry.get(provider_key)
+    except NoRegistrationExistsError:
+        return ShadowResult(outcome=ShadowOutcome.NO_RENDERER)
+    renderer_key = provider.renderer_key or provider.key
+    if renderer_registry.get(provider_key=renderer_key, source=source) is None:
         return ShadowResult(outcome=ShadowOutcome.NO_RENDERER)
     legacy = collector.legacy
     if legacy is None:
         return ShadowResult(outcome=ShadowOutcome.LEGACY_NOT_CAPTURED)
 
     try:
-        platform_payload = _render_platform(invocation, source, provider_key, collector, legacy)
+        data: NotificationData
+        if source == NotificationSource.METRIC_ALERT:
+            context = collector.metric_context or IssueNotificationContext(invocation)
+            data = metric_alert_notification_data_factory(context, chart_url=legacy.chart_url)
+        else:
+            data = issue_notification_data_factory(invocation)
+        platform_payload = NotificationService.render_template(
+            data=data, template=template_registry.get(data.source)(), provider=provider
+        )
     except Exception as e:
         return _capture_shadow_error(e, ShadowOutcome.PLATFORM_ERROR, source, provider_key)
 
