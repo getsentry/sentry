@@ -214,22 +214,23 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
         validated_data = serializer.validated_data
         user_query = validated_data.get("query", "")
 
-        def data_fn(offset: int, limit: int) -> list[AIConversationResponse]:
-            return self._get_conversations(
-                snuba_params=snuba_params,
-                offset=offset,
-                limit=limit,
-                query_string=query_string,
-                sampling_mode=validated_data["samplingMode"],
-                sorts=validated_data["sort"],
-            )
-
         with handle_query_errors():
             resolver = Spans.get_resolver(
                 snuba_params,
                 SearchResolverConfig(auto_fields=True, disable_aggregate_extrapolation=True),
             )
             query_string = compile_conversation_query(user_query, resolver)
+
+            def data_fn(offset: int, limit: int) -> list[AIConversationResponse]:
+                return self._get_conversations(
+                    snuba_params=snuba_params,
+                    offset=offset,
+                    limit=limit,
+                    query_string=query_string,
+                    sampling_mode=validated_data["samplingMode"],
+                    sorts=validated_data["sort"],
+                )
+
             response = self.paginate(
                 request=request,
                 paginator=GenericOffsetPaginator(data_fn=data_fn),
