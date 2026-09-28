@@ -9,6 +9,7 @@ import {RevealOnHover} from '@sentry/scraps/revealOnHover';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {hasEveryAccess} from 'sentry/components/acl/access';
+import {AttributeDetailsTooltip} from 'sentry/components/attributes/attributeDetailsTooltip';
 import type {TagTreeContent} from 'sentry/components/events/eventTags/eventTagsTree';
 import {EventTagsValue} from 'sentry/components/events/eventTags/eventTagsValue';
 import {AnnotatedTextErrors} from 'sentry/components/events/meta/annotatedText/annotatedTextErrors';
@@ -68,6 +69,7 @@ export function EventTagsTreeRow({
   const originalTag = content.originalTag;
   const tagErrors = content.meta?.value?.['']?.err ?? [];
   const hasTagErrors = tagErrors.length > 0 && !config?.disableErrors;
+  const isScrubbed = (content.meta?.value?.['']?.rem ?? []).length > 0;
   const hasStem = !isLast && content.subtree.size === 0;
 
   if (!originalTag) {
@@ -107,8 +109,14 @@ export function EventTagsTreeRow({
               </Fragment>
             )}
             <TreeSearchKey aria-hidden>{originalTag.key}</TreeSearchKey>
-            <TreeKey hasErrors={hasTagErrors} title={originalTag.key}>
-              {tagKey}
+            <TreeKey hasErrors={hasTagErrors}>
+              <AttributeDetailsTooltip
+                attributeKey={originalTag.key}
+                fieldDefinitionType="event"
+                isScrubbed={isScrubbed}
+              >
+                {tagKey}
+              </AttributeDetailsTooltip>
             </TreeKey>
           </TreeKeyTrunk>
           <TreeValueTrunk>

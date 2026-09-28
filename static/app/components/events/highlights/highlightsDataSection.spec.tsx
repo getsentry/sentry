@@ -89,12 +89,14 @@ describe('HighlightsDataSection', () => {
     });
     expect(await screen.findByText('Highlights')).toBeInTheDocument();
     // Wait for the project detail API data to load and render tags
-    expect(await screen.findByText('environment', {selector: 'div'})).toBeInTheDocument();
+    expect(
+      await screen.findByText('environment', {ignore: '[aria-hidden="true"]'})
+    ).toBeInTheDocument();
     for (const tagKey of highlightTags) {
       // https://github.com/typescript-eslint/typescript-eslint/issues/10722
       // eslint-disable-next-line @typescript-eslint/non-nullable-type-assertion-style
       const row = screen
-        .getByText(tagKey, {selector: 'div'})
+        .getByText(tagKey, {ignore: '[aria-hidden="true"]'})
         .closest('div[data-test-id=highlight-tag-row]') as HTMLElement;
       // If highlight is present on the event...
       if (Object.hasOwn(eventTagMap, tagKey)) {
