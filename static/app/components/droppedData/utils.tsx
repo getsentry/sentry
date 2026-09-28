@@ -55,8 +55,12 @@ const REASON_TITLES: Record<string, string> = {
   usage_exceeded: t('Quota exceeded'),
 };
 
+function normalizeReason(reason: string): string {
+  return reason.endsWith('_usage_exceeded') ? 'usage_exceeded' : reason;
+}
+
 export function reasonTitle(reason: string): string {
-  return REASON_TITLES[reason] ?? reason;
+  return REASON_TITLES[normalizeReason(reason)] ?? reason;
 }
 
 const REASON_DESCRIPTIONS: Record<
@@ -111,7 +115,7 @@ function dataTypeName(category: string): string | undefined {
 }
 
 export function reasonDescription(reason: string, category: string): string | undefined {
-  const description = REASON_DESCRIPTIONS[reason];
+  const description = REASON_DESCRIPTIONS[normalizeReason(reason)];
   return typeof description === 'function'
     ? description(dataTypeName(category))
     : description;
