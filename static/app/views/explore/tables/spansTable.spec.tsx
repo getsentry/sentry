@@ -263,7 +263,10 @@ describe('SpansTable', () => {
       {name: 'span.custom', type: 'str', value: 'custom value'},
     ]);
 
-    const {router} = render(<ExampleSpansTable result={makeQueryResult([firstRow])} />, renderOptions());
+    const {router} = render(
+      <ExampleSpansTable result={makeQueryResult([firstRow])} />,
+      renderOptions()
+    );
     await openAttributeActions('span.custom');
 
     expect(await screen.findByText('Add to filter')).toBeInTheDocument();
@@ -371,7 +374,10 @@ describe('SpansTable', () => {
       {name: 'span.custom', type: 'str', value: 'custom value'},
     ]);
 
-    const {router} = render(<ExampleSpansTable result={makeQueryResult([firstRow])} />, renderOptions());
+    const {router} = render(
+      <ExampleSpansTable result={makeQueryResult([firstRow])} />,
+      renderOptions()
+    );
     await userEvent.click(screen.getByRole('button', {name: 'Show span details'}));
     expect(await screen.findByText('custom value')).toBeInTheDocument();
 
