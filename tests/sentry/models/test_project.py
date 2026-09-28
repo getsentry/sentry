@@ -1080,8 +1080,8 @@ class CopyProjectSettingsTest(TestCase):
         self.assert_settings_copied(project)
         self.assert_other_project_settings_not_changed()
 
-    @override_options({STAGE_OPTION: {"releases": "mirror"}})
-    def test_copy_writes_the_row_of_a_mirrored_list(self) -> None:
+    @override_options({STAGE_OPTION: {"releases": "double_write"}})
+    def test_copy_writes_the_row_of_a_double_written_list(self) -> None:
         self.other_project.update_option("sentry:releases", ["1.*"])
         project = self.create_project(fire_project_created=True)
 

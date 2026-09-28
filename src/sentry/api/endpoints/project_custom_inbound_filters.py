@@ -246,9 +246,10 @@ def serialize_custom_inbound_filter(
 
 def _user_filters(project: Project) -> QuerySet[CustomInboundFilter]:
     """
-    The filters a user made here. A row with legacy_filter set mirrors a legacy list
-    that the project settings still own, so this API neither lists, edits nor deletes
-    it for now. The serializer has no legacy_filter field, so a request cannot set it.
+    The filters a user made here. A row with legacy_filter set is the double write of a
+    legacy list that the project settings still own, so this API neither lists, edits nor
+    deletes it for now. The serializer has no legacy_filter field, so a request cannot
+    set it.
     """
     return CustomInboundFilter.objects.filter(project_id=project.id, legacy_filter__isnull=True)
 

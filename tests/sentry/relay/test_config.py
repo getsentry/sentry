@@ -1472,7 +1472,7 @@ def test_project_config_trimming(default_project, trimming_configs):
 
 @django_db_all
 @cell_silo_test
-def test_project_config_skips_the_row_that_mirrors_a_legacy_list(default_project) -> None:
+def test_project_config_skips_the_row_of_a_legacy_list(default_project) -> None:
     default_project.update_option("sentry:log_messages", ["*DEBUG*"])
     Factories.create_project_custom_inbound_filter(
         default_project,

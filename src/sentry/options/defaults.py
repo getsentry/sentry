@@ -1714,7 +1714,7 @@ register(
 
 # Stage of each legacy inbound filter list on its way into custom inbound filter rows,
 # keyed by list: releases, error_messages, log_messages, trace_metric_names. A value is
-# off, mirror, rows or v2; a missing list is off. See sentry.ingest.legacy_filter_lists.
+# off, double_write, rows or v2; a missing list is off. See sentry.ingest.legacy_filter_lists.
 register(
     "inbound-filters.legacy-list-migration-stage",
     default={},

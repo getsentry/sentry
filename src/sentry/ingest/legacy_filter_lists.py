@@ -8,7 +8,7 @@ A list maps to one row per project, found by ``legacy_filter``: the id Relay rep
 outcomes of that legacy filter under. The row holds one condition whose value is the full
 line list, in order and comment lines included, so the text round-trips.
 
-At the ``mirror`` stage every write updates the option and the row together. Reads stay
+At the ``double_write`` stage every write updates the option and the row together. Reads stay
 on the option, and readers of the custom filter table skip rows with ``legacy_filter``
 set, so a list is never served or shown twice. The ``rows`` and ``v2`` stages come later.
 """
@@ -36,7 +36,7 @@ STAGE_OPTION = "inbound-filters.legacy-list-migration-stage"
 
 class Stage(StrEnum):
     OFF = "off"
-    MIRROR = "mirror"
+    DOUBLE_WRITE = "double_write"
 
 
 def stage(filter_type: str) -> Stage:
@@ -78,12 +78,12 @@ OPTION_KEYS = {f"sentry:{filter_type}" for filter_type in _ROWS}
 def set_list(project: Project, filter_type: str, lines: Sequence[str]) -> None:
     """
     Replaces the lines of one legacy list. ``lines`` must already be cleaned the way the
-    API cleans newline input. At the mirror stage the option and the row change together
+    API cleans newline input. At the double write stage the option and the row change together
     or not at all.
     """
     lines = list(lines)
     option_key = f"sentry:{filter_type}"
-    if stage(filter_type) is not Stage.MIRROR:
+    if stage(filter_type) is not Stage.DOUBLE_WRITE:
         project.update_option(option_key, lines)
         return
 

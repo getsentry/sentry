@@ -27,7 +27,7 @@ class CustomInboundFiltersTest(APITestCase):
         self.project = self.create_project(organization=self.organization, teams=[self.team])
         self.login_as(user=self.user)
 
-    def test_get_hides_the_row_that_mirrors_a_legacy_list(self) -> None:
+    def test_get_hides_the_row_of_a_legacy_list(self) -> None:
         self.create_project_custom_inbound_filter(
             project=self.project,
             data_type="all",
@@ -528,8 +528,8 @@ class CustomInboundFilterDetailsTest(APITestCase):
         self.custom_filter.refresh_from_db()
         assert self.custom_filter.legacy_filter is None
 
-    def test_row_that_mirrors_a_legacy_list_is_not_reachable(self) -> None:
-        mirror = self.create_project_custom_inbound_filter(
+    def test_row_of_a_legacy_list_is_not_reachable(self) -> None:
+        legacy_row = self.create_project_custom_inbound_filter(
             project=self.project,
             data_type="all",
             conditions=[{"type": "release", "value": ["1.*"]}],
@@ -538,12 +538,16 @@ class CustomInboundFilterDetailsTest(APITestCase):
 
         with self.feature(self.features):
             self.get_error_response(
-                self.organization.slug, self.project.slug, mirror.id, method="get", status_code=404
+                self.organization.slug,
+                self.project.slug,
+                legacy_row.id,
+                method="get",
+                status_code=404,
             )
             self.get_error_response(
                 self.organization.slug,
                 self.project.slug,
-                mirror.id,
+                legacy_row.id,
                 method="put",
                 status_code=404,
                 name="Renamed",
@@ -551,14 +555,14 @@ class CustomInboundFilterDetailsTest(APITestCase):
             self.get_error_response(
                 self.organization.slug,
                 self.project.slug,
-                mirror.id,
+                legacy_row.id,
                 method="delete",
                 status_code=404,
             )
 
-        mirror.refresh_from_db()
-        assert mirror.name == "Custom inbound filter"
-        assert mirror.conditions == [{"type": "release", "value": ["1.*"]}]
+        legacy_row.refresh_from_db()
+        assert legacy_row.name == "Custom inbound filter"
+        assert legacy_row.conditions == [{"type": "release", "value": ["1.*"]}]
 
     def test_get(self) -> None:
         with self.feature(self.features):

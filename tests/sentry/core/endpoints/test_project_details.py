@@ -616,8 +616,8 @@ class ProjectUpdateTest(APITestCase):
     def test_platform_invalid(self) -> None:
         self.get_error_response(self.org_slug, self.proj_slug, platform="lol", status_code=400)
 
-    @override_options({STAGE_OPTION: {"error_messages": "mirror"}})
-    def test_filter_list_writes_its_row_at_the_mirror_stage_and_reads_back_unchanged(
+    @override_options({STAGE_OPTION: {"error_messages": "double_write"}})
+    def test_filter_list_writes_its_row_at_the_double_write_stage_and_reads_back_unchanged(
         self,
     ) -> None:
         options = {
