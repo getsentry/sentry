@@ -12,9 +12,11 @@ export function AddPolicyModal(props: ModalRenderProps) {
       apiEndpoint={getApiUrl('/policies/')}
       isNewPolicy
       onSuccess={data => {
-        if ('slug' in data) {
-          navigate(`/_admin/policies/${data.slug}/`);
-        }
+        navigate(
+          'slug' in data && data.slug
+            ? `/_admin/policies/${data.slug}/`
+            : '/_admin/policies/'
+        );
       }}
       {...props}
     />
