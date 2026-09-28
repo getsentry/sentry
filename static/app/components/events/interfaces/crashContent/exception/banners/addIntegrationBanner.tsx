@@ -19,12 +19,14 @@ interface AddIntegrationBannerProps {
  * Displayed when there are no installed source integrations (github/gitlab/etc)
  */
 export function AddIntegrationBanner({orgSlug, onDismiss}: AddIntegrationBannerProps) {
+  const title = t('Connect with Git Providers');
+
   return (
     <Banner>
       <Stack gap="lg">
         <Stack gap="md">
           <Text as="div" bold size="xl">
-            {t('Connect with Git Providers')}
+            {title}
           </Text>
           <Container maxWidth="340px">
             <Text as="div">
@@ -52,11 +54,7 @@ export function AddIntegrationBanner({orgSlug, onDismiss}: AddIntegrationBannerP
         position="absolute"
         right="4rem"
       >
-        <Image
-          alt={t('Connect a source code provider')}
-          src={addIntegrationProvider}
-          width="auto"
-        />
+        <Image alt={title} src={addIntegrationProvider} width="auto" />
       </Container>
       <Flex
         align="start"
