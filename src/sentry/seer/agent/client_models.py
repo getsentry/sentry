@@ -108,7 +108,7 @@ class RepoPRState(BaseModel):
     branch_name: str | None = None
     pr_number: int | None = None
     pr_url: str | None = None
-    pr_id: int | None = None
+    pr_id: str | None = None
     commit_sha: str | None = None
     pr_creation_status: Literal["creating", "completed", "error"] | None = None
     pr_creation_error: str | None = None
