@@ -2,6 +2,7 @@ from functools import partial
 from unittest.mock import Mock, patch
 
 import pytest
+from django.test import override_settings
 
 from sentry.hybridcloud.models.outbox import CellOutbox
 from sentry.hybridcloud.outbox.category import OutboxCategory
@@ -18,6 +19,7 @@ from sentry.seer.workflows.schemas import WorkflowResult
 from sentry.testutils.cases import TestCase
 
 
+@override_settings(SENTRY_SELF_HOSTED=False)
 class WorkflowRunTest(TestCase):
     def test_creation_links_execution_and_defers_dispatch(self) -> None:
         with patch("sentry.receivers.outbox.cell.make_feature_run_request") as dispatch:
