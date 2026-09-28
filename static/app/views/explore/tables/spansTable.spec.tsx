@@ -139,7 +139,7 @@ describe('SpansTable', () => {
   }: {
     result: SpansTableResult['result'];
     requestIdentityKey?: string;
-  } = {}) {
+  }) {
     return (
       <SpansTable
         booleanTags={{}}
@@ -179,7 +179,7 @@ describe('SpansTable', () => {
   });
 
   function mockSpanDetails(
-    row: (typeof rows)[number],
+    row: typeof firstRow,
     attributes: TraceItemResponseAttribute[]
   ) {
     return MockApiClient.addMockResponse({
