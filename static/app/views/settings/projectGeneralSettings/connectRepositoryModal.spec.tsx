@@ -231,6 +231,66 @@ describe('ConnectRepositoryModal', () => {
     expect(closeModal).toHaveBeenCalled();
   });
 
+  it('treats a duplicate mapping as success when this repo already owns it', async () => {
+    const closeModal = jest.fn();
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/repo/`,
+      method: 'POST',
+      body: {id: '99', projectId: project.id, repositoryId: '10', created: false},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/code-mappings/`,
+      method: 'POST',
+      statusCode: 400,
+      body: {detail: 'Code path config already exists'},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/code-mappings/`,
+      method: 'GET',
+      body: [{repoId: '10', stackRoot: '', sourceRoot: ''}],
+    });
+
+    renderModal(closeModal);
+
+    await userEvent.click(screen.getByText('Search repositories'));
+    await userEvent.click(await screen.findByText('getsentry/sentry'));
+    await userEvent.click(await screen.findByRole('button', {name: 'Save'}));
+
+    await waitFor(() => expect(closeModal).toHaveBeenCalled());
+  });
+
+  it('shows an error when a duplicate mapping belongs to a different repo', async () => {
+    const closeModal = jest.fn();
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/repo/`,
+      method: 'POST',
+      body: {id: '99', projectId: project.id, repositoryId: '10', created: true},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/code-mappings/`,
+      method: 'POST',
+      statusCode: 400,
+      body: {detail: 'Code path config already exists'},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/code-mappings/`,
+      method: 'GET',
+      // repoId '11' (relay) owns the conflicting mapping, not '10' (sentry)
+      body: [{repoId: '11', stackRoot: '', sourceRoot: ''}],
+    });
+
+    renderModal(closeModal);
+
+    await userEvent.click(screen.getByText('Search repositories'));
+    await userEvent.click(await screen.findByText('getsentry/sentry'));
+    await userEvent.click(await screen.findByRole('button', {name: 'Save'}));
+
+    expect(
+      await screen.findByText('Code path config already exists')
+    ).toBeInTheDocument();
+    expect(closeModal).not.toHaveBeenCalled();
+  });
+
   it('shows an inline error and keeps the modal open when save fails', async () => {
     const closeModal = jest.fn();
     MockApiClient.addMockResponse({
