@@ -26,7 +26,7 @@ export type SaveQueryModalProps = {
   saveQuery: (variables: {name: string; starred?: boolean}) => Promise<{id: string}>;
   traceItemDataset: TraceItemDataset;
   name?: string;
-  source?: 'toolbar' | 'table' | 'conversations' | 'explorer';
+  source?: 'toolbar' | 'table' | 'conversations' | 'explorer' | 'errors';
 };
 
 type Props = ModalRenderProps & SaveQueryModalProps;
@@ -57,11 +57,11 @@ function SaveQueryModal({
         name,
         starred: initialName === undefined ? starred : undefined,
       });
-      if (initialName === undefined) {
+      if (initialName === undefined && source !== 'errors') {
         setQueryParamsSavedQuery(id, name);
       }
       addSuccessMessage(t('Query saved successfully'));
-      if (defined(source)) {
+      if (defined(source) && source !== 'errors') {
         if (source === 'conversations') {
           trackAnalytics('conversations.save_query_modal', {
             action: 'submit',
