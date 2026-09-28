@@ -37,6 +37,12 @@ describe('ConnectRepositoryModal', () => {
   const project = ProjectFixture();
   const integration = GitHubIntegrationFixture();
 
+  const defaultEditingRepo = {
+    repositoryId: '10',
+    repoName: 'getsentry/sentry',
+    providerKey: 'github',
+  };
+
   function renderModal(closeModal = jest.fn()) {
     return render(
       <Fragment>
@@ -47,6 +53,23 @@ describe('ConnectRepositoryModal', () => {
           CloseButton={makeCloseButton(closeModal)}
           closeModal={closeModal}
           project={project}
+        />
+      </Fragment>,
+      {organization}
+    );
+  }
+
+  function renderEditModal(closeModal = jest.fn(), editingRepo = defaultEditingRepo) {
+    return render(
+      <Fragment>
+        <ConnectRepositoryModal
+          Body={ModalBody}
+          Footer={ModalFooter}
+          Header={makeClosableHeader(jest.fn())}
+          CloseButton={makeCloseButton(closeModal)}
+          closeModal={closeModal}
+          project={project}
+          editingRepo={editingRepo}
         />
       </Fragment>,
       {organization}
@@ -305,5 +328,164 @@ describe('ConnectRepositoryModal', () => {
 
     expect(await screen.findByText('Repository does not exist')).toBeInTheDocument();
     expect(closeModal).not.toHaveBeenCalled();
+  });
+
+  describe('edit mode', () => {
+    const seededMapping = {
+      id: '5',
+      repoId: '10',
+      repoName: 'getsentry/sentry',
+      projectId: project.id,
+      stackRoot: 'src/',
+      sourceRoot: 'app/',
+      defaultBranch: 'main',
+      integrationId: integration.id,
+    };
+
+    it('shows locked project and repository fields with seeded rows, Save enabled', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/code-mappings/`,
+        method: 'GET',
+        body: [seededMapping],
+      });
+
+      renderEditModal();
+
+      expect(screen.getByText('Edit getsentry/sentry connection')).toBeInTheDocument();
+      // Both selects are disabled in edit mode.
+      const [projectSelect, repoSelect] = screen.getAllByRole('textbox');
+      expect(projectSelect).toBeDisabled();
+      expect(repoSelect).toBeDisabled();
+
+      // Seeded row becomes visible after the query resolves.
+      expect(await screen.findByText('src/')).toBeInTheDocument();
+      expect(await screen.findByRole('button', {name: 'Save'})).toBeEnabled();
+    });
+
+    it('POSTs new mappings, PUTs changed mappings, and DELETEs removed mappings on save', async () => {
+      const closeModal = jest.fn();
+      // Second seeded row to be updated via PUT; first row will be deleted.
+      const secondMapping = {
+        id: '6',
+        repoId: '10',
+        repoName: 'getsentry/sentry',
+        projectId: project.id,
+        stackRoot: 'vendor/',
+        sourceRoot: 'lib/',
+        defaultBranch: 'main',
+        integrationId: integration.id,
+      };
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/code-mappings/`,
+        method: 'GET',
+        body: [seededMapping, secondMapping],
+      });
+      const deleteMapping = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/code-mappings/${seededMapping.id}/`,
+        method: 'DELETE',
+        body: {},
+      });
+      const putMapping = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/code-mappings/${secondMapping.id}/`,
+        method: 'PUT',
+        body: {},
+      });
+      const postMapping = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/code-mappings/`,
+        method: 'POST',
+        body: {},
+      });
+
+      renderEditModal(closeModal);
+
+      // Wait for both seeded rows to appear.
+      expect(await screen.findByText('vendor/')).toBeInTheDocument();
+
+      // Delete the first seeded row (src/→app/).
+      const deleteButtons = screen.getAllByRole('button', {name: 'Delete path mapping'});
+      await userEvent.click(deleteButtons[0]!);
+
+      // Expand and edit the remaining row (vendor/) to change its stack root.
+      await userEvent.click(screen.getByRole('button', {name: 'Expand path mapping'}));
+      await userEvent.clear(screen.getByRole('textbox', {name: /stack trace prefix/i}));
+      await userEvent.type(
+        screen.getByRole('textbox', {name: /stack trace prefix/i}),
+        'vendor/updated/'
+      );
+      await userEvent.click(screen.getByRole('button', {name: 'Collapse path mapping'}));
+
+      // Add a brand-new mapping (no id → POST).
+      await userEvent.click(screen.getByRole('button', {name: 'Add another path'}));
+      await userEvent.type(
+        screen.getByRole('textbox', {name: /stack trace prefix/i}),
+        'src/'
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+
+      await waitFor(() => {
+        expect(deleteMapping).toHaveBeenCalledWith(
+          `/organizations/${organization.slug}/code-mappings/${seededMapping.id}/`,
+          expect.objectContaining({method: 'DELETE'})
+        );
+        expect(putMapping).toHaveBeenCalledWith(
+          `/organizations/${organization.slug}/code-mappings/${secondMapping.id}/`,
+          expect.objectContaining({
+            method: 'PUT',
+            data: expect.objectContaining({stackRoot: 'vendor/updated/'}),
+          })
+        );
+        expect(postMapping).toHaveBeenCalledWith(
+          `/organizations/${organization.slug}/code-mappings/`,
+          expect.objectContaining({
+            method: 'POST',
+            data: expect.objectContaining({stackRoot: 'src/'}),
+          })
+        );
+      });
+      expect(closeModal).toHaveBeenCalled();
+    });
+
+    it('shows code owner warning and keeps modal open on 409 DELETE', async () => {
+      const closeModal = jest.fn();
+      const secondMapping = {
+        id: '6',
+        repoId: '10',
+        repoName: 'getsentry/sentry',
+        projectId: project.id,
+        stackRoot: 'vendor/',
+        sourceRoot: 'lib/',
+        defaultBranch: 'main',
+        integrationId: integration.id,
+      };
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/code-mappings/`,
+        method: 'GET',
+        body: [seededMapping, secondMapping],
+      });
+      // Deleting the first row is blocked by a Code Owner rule.
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/code-mappings/${seededMapping.id}/`,
+        method: 'DELETE',
+        statusCode: 409,
+        body: {},
+      });
+
+      renderEditModal(closeModal);
+
+      // Wait for seeded rows then remove only the first one.
+      expect(await screen.findByText('vendor/')).toBeInTheDocument();
+      const [deleteFirst] = screen.getAllByRole('button', {name: 'Delete path mapping'});
+      await userEvent.click(deleteFirst!);
+
+      await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+
+      expect(
+        await screen.findByText(
+          'This path mapping is used by a Code Owner rule and cannot be removed. Delete the Code Owner rule first.'
+        )
+      ).toBeInTheDocument();
+      expect(closeModal).not.toHaveBeenCalled();
+    });
   });
 });

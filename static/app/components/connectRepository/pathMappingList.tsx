@@ -92,7 +92,13 @@ export function PathMappingList({
   }, [entries, onChange]);
 
   const handleChange = (id: number, value: PathMappingValue) => {
-    setEntries(prev => prev.map(entry => (entry.id === id ? {...entry, value} : entry)));
+    // Merge rather than replace so that seeded rows keep their `id` field
+    // even when PathMappingEdit only returns the three form fields.
+    setEntries(prev =>
+      prev.map(entry =>
+        entry.id === id ? {...entry, value: {...entry.value, ...value}} : entry
+      )
+    );
   };
 
   const handleDelete = (id: number) => {
