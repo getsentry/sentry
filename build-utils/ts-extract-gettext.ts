@@ -23,6 +23,7 @@ const FUNCTION_NAMES: Record<string, string[]> = {
   tn: ['msgid', 'msgid_plural', 'count'],
   tct: ['msgid'],
   tctCode: ['msgid'],
+  tp: ['msgctxt', 'msgid'],
 };
 
 function getTsScriptKind(filePath: string): ts.ScriptKind {

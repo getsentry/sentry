@@ -336,6 +336,30 @@ function gettext(string: string, ...args: FormatArg[]): string {
 }
 
 /**
+ * Translates a string to the current locale, disambiguating it with a
+ * translation context.
+ *
+ * Use this instead of `t` when the same msgid is used with different meanings
+ * (e.g. `m` as the millions abbreviation vs. the minute abbreviation), since
+ * gettext contexts map to separate msgctxt entries in the catalog.
+ *
+ * See the sprintf-js library [0] for specifics on the argument
+ * parameterization format.
+ *
+ * [0]: https://github.com/alexei/sprintf.js
+ */
+function pgettext(context: string, string: string, ...args: FormatArg[]): string {
+  const val: string = getClient().pgettext(context, string);
+
+  if (args.length === 0) {
+    staticTranslations.add(val);
+    return mark(val);
+  }
+
+  return mark(format(val, args) as string);
+}
+
+/**
  * Translates a singular and plural string to the current locale. Supports
  * argument parameterization, and will use the first argument as the counter to
  * determine which message to use.
@@ -419,5 +443,6 @@ export {
   gettext as t,
   gettextComponentTemplate as tct,
   ngettext as tn,
+  pgettext as tp,
   gettextDescription as td,
 };

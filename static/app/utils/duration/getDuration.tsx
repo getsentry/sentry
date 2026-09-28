@@ -1,4 +1,4 @@
-import {t, tn} from 'sentry/locale';
+import {t, tn, tp} from 'sentry/locale';
 import {
   DAY,
   HOUR,
@@ -44,7 +44,12 @@ const DURATION_LABELS = {
   hr: t('hr'),
   hour: t('hour'),
   hours: t('hours'),
-  m: t('m'),
+  // Single-letter month and minute labels share the msgid "m" with the
+  // millions abbreviation used by `small_count()`. The "duration" context
+  // keeps them as separate catalog entries so locales can translate each
+  // meaning independently (e.g. Russian: "м" vs "млн").
+  mExtraShortMonth: tp('duration', 'm'),
+  mExtraShortMinute: tp('duration', 'm'),
   min: t('min'),
   minute: t('minute'),
   minutes: t('minutes'),
@@ -98,7 +103,7 @@ export function getDuration(
   if (absValue >= MONTH || minimumUnit === MONTH) {
     const {label, result} = roundWithFixed(msValue / MONTH, fixedDigits);
     if (extraShort) {
-      return `${label}${DURATION_LABELS.m}`;
+      return `${label}${DURATION_LABELS.mExtraShortMonth}`;
     }
     if (abbreviation) {
       return `${label}${DURATION_LABELS.mo}`;
@@ -140,7 +145,7 @@ export function getDuration(
   if (absValue >= MINUTE || minimumUnit === MINUTE) {
     const {label, result} = roundWithFixed(msValue / MINUTE, fixedDigits);
     if (extraShort) {
-      return `${label}${DURATION_LABELS.m}`;
+      return `${label}${DURATION_LABELS.mExtraShortMinute}`;
     }
     if (abbreviation) {
       return `${label}${DURATION_LABELS.min}`;

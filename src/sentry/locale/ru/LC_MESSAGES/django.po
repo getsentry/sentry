@@ -2925,6 +2925,12 @@ msgstr "млрд"
 msgid "m"
 msgstr "млн"
 
+#: static/app/utils/duration/getDuration.tsx:51
+#: static/app/utils/duration/getDuration.tsx:52
+msgctxt "duration"
+msgid "m"
+msgstr "м"
+
 #: templatetags/sentry_helpers.py:165
 msgid "k"
 msgstr "тыс"

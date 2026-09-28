@@ -2914,6 +2914,12 @@ msgstr ""
 msgid "m"
 msgstr ""
 
+#: static/app/utils/duration/getDuration.tsx:51
+#: static/app/utils/duration/getDuration.tsx:52
+msgctxt "duration"
+msgid "m"
+msgstr ""
+
 #: templatetags/sentry_helpers.py:165
 msgid "k"
 msgstr ""
