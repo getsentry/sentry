@@ -50,7 +50,7 @@ export function PathMappingWarningAlert({warning}: PathMappingWarningAlertProps)
     return (
       <Alert variant="warning" showIcon>
         {tct(
-          '[stackRoot] is already mapped to [sourceRoot] in the connection to [repoName]. Only one can be used for matching.',
+          '[stackRoot] is already mapped to [sourceRoot] in the connection to [repoName] repository. Only one can be used for matching.',
           {
             stackRoot: displayRoot(warning.stackRoot, t('stack trace prefix')),
             sourceRoot: displayRoot(warning.sourceRoot, t('repository prefix')),
