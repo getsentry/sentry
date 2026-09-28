@@ -17,11 +17,6 @@ import {slugify} from 'sentry/utils/slugify';
 
 import type {Policy, PolicyRevision} from 'getsentry/types';
 
-export const policyUrlSchema = z.union([
-  z.literal(''),
-  z.url({protocol: /^https?$/, error: 'Please enter a valid http or https URL'}),
-]);
-
 const schema = z.object({
   name: z.string(),
   slug: z.string(),
@@ -31,7 +26,10 @@ const schema = z.object({
     z.literal(''),
     z.string().min(3, 'Version must be at least 3 characters'),
   ]),
-  url: policyUrlSchema,
+  url: z.union([
+    z.literal(''),
+    z.url({protocol: /^https?$/, error: 'Please enter a valid http or https URL'}),
+  ]),
   file: z.tuple([z.string(), z.string()]).nullable(),
   current: z.boolean(),
 });
