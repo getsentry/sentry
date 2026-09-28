@@ -73,6 +73,7 @@ import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
+import type {MetricAlertType} from 'sentry/views/alerts/wizard/options';
 import {useGlobalAlerts, type AddAlert} from 'sentry/views/app/globalAlerts';
 import {DashboardWidgetSource} from 'sentry/views/dashboards/types';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
@@ -1341,18 +1342,13 @@ function SaveQueryButton({
       organization.features.includes('discover-saved-queries-deprecation'));
 
   if (!shouldHideCreateAlert) {
-    let alertType: any;
+    let alertType: MetricAlertType | undefined;
     let alertEventView = eventView;
     if (hasDatasetSelector(organization)) {
-      alertType = defined(currentDataset)
-        ? // @ts-expect-error TS(2339): Property 'discover' does not exist on type '{ tran...
-          {
-            [DiscoverDatasets.TRANSACTIONS]: 'throughput',
-            [DiscoverDatasets.ERRORS]: 'num_errors',
-          }[currentDataset]
-        : undefined;
-
-      if (currentDataset === DiscoverDatasets.TRANSACTIONS) {
+      if (currentDataset === DiscoverDatasets.ERRORS) {
+        alertType = 'num_errors';
+      } else if (currentDataset === DiscoverDatasets.TRANSACTIONS) {
+        alertType = 'throughput';
         alertEventView = eventView.clone();
         alertEventView.query = eventView.query
           ? `(${eventView.query}) AND (event.type:transaction)`

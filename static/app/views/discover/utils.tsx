@@ -46,7 +46,7 @@ import {downloadFromHref} from 'sentry/utils/downloadFromHref';
 import {DISCOVER_FIELDS, FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import type {AlertType} from 'sentry/views/alerts/wizard/options';
+import type {MetricAlertType} from 'sentry/views/alerts/wizard/options';
 import {
   AlertWizardRuleTemplates,
   DEFAULT_WIZARD_TEMPLATE,
@@ -955,32 +955,30 @@ export function getCreateAlertFromViewUrl({
   eventView: EventView;
   organization: Organization;
   projects: Project[];
-  alertType?: AlertType;
+  alertType?: MetricAlertType;
   referrer?: string;
 }): LocationDescriptor {
   const project = projects.find(p => p.id === `${eventView.project[0]}`);
   const queryParams = eventView.generateQueryStringObject();
-  if (queryParams.query?.includes(`project:${project?.slug}`)) {
-    queryParams.query = (queryParams.query as string).replace(
-      `project:${project?.slug}`,
-      ''
-    );
+
+  let query = decodeScalar(queryParams.query);
+  if (project && query?.includes(`project:${project.slug}`)) {
+    query = query.replace(`project:${project.slug}`, '');
   }
 
   const alertTemplate = alertType
-    ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-      AlertWizardRuleTemplates[alertType]
+    ? AlertWizardRuleTemplates[alertType]
     : DEFAULT_WIZARD_TEMPLATE;
 
   return getMetricMonitorUrl({
     project,
     environment: queryParams.environment,
-    aggregate: queryParams.yAxis ?? alertTemplate.aggregate,
+    aggregate: decodeScalar(queryParams.yAxis) ?? alertTemplate.aggregate,
     dataset: alertTemplate.dataset,
     organization,
-    query: decodeScalar(queryParams.query),
+    query,
     referrer,
-    eventTypes: alertTemplate.eventTypes,
+    eventTypes: [alertTemplate.eventTypes],
   });
 }
 
