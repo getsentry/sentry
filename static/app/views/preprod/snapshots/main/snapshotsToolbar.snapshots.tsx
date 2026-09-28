@@ -79,7 +79,7 @@ function SnapshotsToolbarWithControls({
 
   return (
     <OrganizationContext value={organization}>
-      <Container containerType="inline-size">
+      <Container containerType="inline-size" width="100cqw">
         <ToolbarContainer
           toggle={
             <ViewModeToggle viewMode={viewMode} onViewModeChange={onViewModeChange} />
@@ -124,52 +124,46 @@ function SnapshotsToolbarWithControls({
 }
 
 const organization = OrganizationFixture();
-const SM_BREAKPOINT_WIDTH = 800;
 
 const noop = () => {};
 
 describe('SnapshotsToolbar', () => {
-  it.snapshot.breakpoints(
-    ['xs', 'sm', 'md'],
+  it.snapshot(
     'all controls',
-    width => {
-      const isSm = width >= SM_BREAKPOINT_WIDTH;
+    ({container}) => {
+      const isCompact = container === 'md' || container === 'xl';
       return (
-        <div style={{width: '100%'}}>
-          <SnapshotsToolbarWithControls
-            viewMode="list"
-            onViewModeChange={noop}
-            progress={{current: 3, total: 12, percent: 25}}
-            sort={{value: 'diff', onChange: noop}}
-            diff={{
-              mode: isSm ? 'split' : 'wipe',
-              onModeChange: noop,
-              overlayColor: '#f55459',
-              onOverlayColorChange: noop,
-              overlayOpacity: 50,
-              onOverlayOpacityChange: noop,
-              showSplit: isSm,
-            }}
-            solo={{isActive: false, onToggle: noop}}
-          />
-        </div>
+        <SnapshotsToolbarWithControls
+          viewMode="list"
+          onViewModeChange={noop}
+          progress={{current: 3, total: 12, percent: 25}}
+          sort={{value: 'diff', onChange: noop}}
+          diff={{
+            mode: isCompact ? 'wipe' : 'split',
+            onModeChange: noop,
+            overlayColor: '#f55459',
+            onOverlayColorChange: noop,
+            overlayOpacity: 50,
+            onOverlayOpacityChange: noop,
+            showSplit: !isCompact,
+          }}
+          solo={{isActive: false, onToggle: noop}}
+        />
       );
     },
-    {tags: {area: 'snapshots'}}
+    {containers: ['md', 'xl', '4xl', '7xl'], tags: {area: 'snapshots'}}
   );
 
   it.snapshot(
     'no diff controls',
     () => (
-      <div style={{width: 960}}>
-        <SnapshotsToolbarWithControls
-          viewMode="single"
-          onViewModeChange={noop}
-          progress={{current: 1, total: 5, percent: 0}}
-          sort={{value: 'alpha', onChange: noop}}
-          solo={{isActive: true, onToggle: noop}}
-        />
-      </div>
+      <SnapshotsToolbarWithControls
+        viewMode="single"
+        onViewModeChange={noop}
+        progress={{current: 1, total: 5, percent: 0}}
+        sort={{value: 'alpha', onChange: noop}}
+        solo={{isActive: true, onToggle: noop}}
+      />
     ),
     {tags: {area: 'snapshots'}}
   );
@@ -177,46 +171,38 @@ describe('SnapshotsToolbar', () => {
   it.snapshot(
     'solo base tag',
     () => (
-      <div style={{width: 960}}>
-        <SnapshotsToolbarWithControls
-          viewMode="list"
-          onViewModeChange={noop}
-          progress={{current: 1, total: 3, percent: 0}}
-          solo="base"
-        />
-      </div>
+      <SnapshotsToolbarWithControls
+        viewMode="list"
+        onViewModeChange={noop}
+        progress={{current: 1, total: 3, percent: 0}}
+        solo="base"
+      />
     ),
     {tags: {area: 'snapshots'}}
   );
 
   it.snapshot(
     'minimal',
-    () => (
-      <div style={{width: 960}}>
-        <SnapshotsToolbarWithControls viewMode="list" onViewModeChange={noop} />
-      </div>
-    ),
+    () => <SnapshotsToolbarWithControls viewMode="list" onViewModeChange={noop} />,
     {tags: {area: 'snapshots'}}
   );
 
   it.snapshot.each<DiffMode>(['split', 'wipe', 'onion'])(
     '%s',
     diffMode => (
-      <div style={{width: 960}}>
-        <SnapshotsToolbarWithControls
-          viewMode="single"
-          onViewModeChange={noop}
-          progress={{current: 1, total: 5, percent: 20}}
-          diff={{
-            mode: diffMode,
-            onModeChange: noop,
-            overlayColor: '#f55459',
-            onOverlayColorChange: noop,
-            overlayOpacity: 50,
-            onOverlayOpacityChange: noop,
-          }}
-        />
-      </div>
+      <SnapshotsToolbarWithControls
+        viewMode="single"
+        onViewModeChange={noop}
+        progress={{current: 1, total: 5, percent: 20}}
+        diff={{
+          mode: diffMode,
+          onModeChange: noop,
+          overlayColor: '#f55459',
+          onOverlayColorChange: noop,
+          overlayOpacity: 50,
+          onOverlayOpacityChange: noop,
+        }}
+      />
     ),
     diffMode => ({tags: {area: 'snapshots', diffMode}})
   );

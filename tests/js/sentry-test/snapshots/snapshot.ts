@@ -43,6 +43,7 @@ function getFontFaceCSS(): string {
 
 function renderToHTML(
   element: ReactElement,
+  containerWidth: number,
   rootDisplay: 'inline-block' | 'block' = 'inline-block'
 ): string {
   const cache = createCache({key: 'snap'});
@@ -63,11 +64,12 @@ function renderToHTML(
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; animation: none !important; transition: none !important; }
     body { font-family: 'Rubik', sans-serif; background: transparent; }
+    #snapshot-container { width: ${containerWidth}px; container-type: inline-size; }
     #root { display: ${rootDisplay}; }
   </style>
 </head>
 <body>
-  <div id="root">${html}</div>
+  <div id="snapshot-container"><div id="root">${html}</div></div>
 </body>
 </html>`;
 }
@@ -104,6 +106,8 @@ export async function closeBrowser(): Promise<void> {
 }
 
 interface TakeSnapshotOptions {
+  container: string;
+  containerWidth: number;
   displayName: string;
   fileSlug: string;
   group: string | null;
@@ -133,6 +137,8 @@ export async function takeSnapshot({
   renderFn,
   testFilePath,
   group,
+  container,
+  containerWidth,
   theme,
   metadata,
   viewport,
@@ -140,7 +146,11 @@ export async function takeSnapshot({
   interaction,
 }: TakeSnapshotOptions): Promise<void> {
   const element = renderFn();
-  const fullHTML = renderToHTML(element, viewport ? 'block' : 'inline-block');
+  const fullHTML = renderToHTML(
+    element,
+    containerWidth,
+    viewport ? 'block' : 'inline-block'
+  );
 
   const browser = await getBrowser();
   const context = await browser.newContext({
@@ -187,6 +197,7 @@ export async function takeSnapshot({
     if (theme) {
       autoTags.theme = theme;
     }
+    autoTags.container = container;
     if (viewportLabel) {
       autoTags.viewport = viewportLabel;
     }
