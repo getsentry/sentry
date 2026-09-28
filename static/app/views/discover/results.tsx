@@ -1438,7 +1438,7 @@ function SaveQueryButton({
             triggerProps.onClick?.(e);
           }}
         >
-          {isEditingQuery ? t('Save') : t('Save as')}
+          {t('Save as')}
         </Button>
       )}
     />
