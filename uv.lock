@@ -294,7 +294,7 @@ wheels = [
 
 [[package]]
 name = "devservices"
-version = "1.4.2"
+version = "1.5.1"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "packaging" },
@@ -304,7 +304,7 @@ dependencies = [
     { name = "supervisor" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/devservices-1.4.2-py3-none-any.whl", hash = "sha256:505088e43ad81d4a89f874b96b8129858ae6ae4c53d5bda1d232ffa1213adbdf" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/devservices-1.5.1-py3-none-any.whl", hash = "sha256:9523c04d03c483d9552b7d7270ecb288d92e5bb8a66ff5592a079ffbaad49271" },
 ]
 
 [[package]]
@@ -2391,7 +2391,7 @@ requires-dist = [
 dev = [
     { name = "codeowners-coverage", specifier = ">=0.3.0" },
     { name = "covdefaults", specifier = ">=2.3.0" },
-    { name = "devservices", specifier = ">=1.4.2" },
+    { name = "devservices", specifier = ">=1.5.1" },
     { name = "django-stubs", specifier = ">=5.2.9" },
     { name = "djangorestframework-stubs", specifier = ">=3.16.8" },
     { name = "docker", specifier = ">=7.1.0" },
@@ -2629,14 +2629,6 @@ wheels = [
 ]
 
 [[package]]
-name = "setuptools"
-version = "70.0.0"
-source = { registry = "https://pypi.devinfra.sentry.io/simple" }
-wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/setuptools-70.0.0-py3-none-any.whl", hash = "sha256:54faa7f2e8d2d11bcd2c07bed282eef1046b5c080d1c32add737d7b5817b1ad4" },
-]
-
-[[package]]
 name = "simplejson"
 version = "3.17.6"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
@@ -2739,13 +2731,10 @@ wheels = [
 
 [[package]]
 name = "supervisor"
-version = "4.2.5"
+version = "4.3.0"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
-dependencies = [
-    { name = "setuptools" },
-]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/supervisor-4.2.5-py2.py3-none-any.whl", hash = "sha256:2ecaede32fc25af814696374b79e42644ecaba5c09494c51016ffda9602d0f08" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/supervisor-4.3.0-py2.py3-none-any.whl", hash = "sha256:0bcb763fddafba410f35cbde226aa7f8514b9fb82eb05a0c85f6588d1c13f8db" },
 ]
 
 [[package]]
