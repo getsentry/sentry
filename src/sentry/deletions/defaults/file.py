@@ -30,7 +30,7 @@ class FileDeletionTask(ModelDeletionTask[File]):
 
         releasefiles = Q(
             Q(
-                type__in=["release.file", "release.artifact-index"],
+                type__in=["release.file", "release.bundle", "release.artifact-index"],
                 timestamp__lt=cutoff,
             )
             & ~releasefile_exists
