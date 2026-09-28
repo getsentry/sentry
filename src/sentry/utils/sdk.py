@@ -225,21 +225,6 @@ def traces_sampler(sampling_context):
     return float(settings.SENTRY_BACKEND_APM_SAMPLING or 0)
 
 
-def profiles_sampler(sampling_context):
-    PROFILES_SAMPLING_RATE = {
-        "consumer.join": options.get("consumer.join.profiling.rate"),
-        "spans.process.process_message": options.get("spans.process-spans.profiling.rate"),
-    }
-    if "transaction_context" in sampling_context:
-        transaction_name = sampling_context["transaction_context"].get("name")
-
-        if transaction_name in PROFILES_SAMPLING_RATE:
-            return PROFILES_SAMPLING_RATE[transaction_name]
-
-    # Default to the sampling rate in settings
-    return float(settings.SENTRY_PROFILES_SAMPLE_RATE or 0)
-
-
 def before_send_transaction(event: Event, _: Hint) -> Event | None:
     # Discard generic redirects.
     # This condition can be removed once https://github.com/getsentry/team-sdks/issues/48 is fixed.
@@ -355,14 +340,12 @@ def configure_sdk():
             settings.SPOTLIGHT_ENV_VAR if settings.SPOTLIGHT_ENV_VAR.startswith("http") else True
         )
 
-    if settings.SENTRY_CONTINUOUS_PROFILING_ENABLED:
+    # Streaming traces only support continuous profiling.
+    if settings.SENTRY_PROFILING_ENABLED or settings.SENTRY_CONTINUOUS_PROFILING_ENABLED:
         sdk_options["profile_session_sample_rate"] = float(
             settings.SENTRY_PROFILES_SAMPLE_RATE or 0
         )
         sdk_options["profile_lifecycle"] = settings.SENTRY_PROFILE_LIFECYCLE
-    elif settings.SENTRY_PROFILING_ENABLED:
-        sdk_options["profiles_sampler"] = profiles_sampler
-        sdk_options["profiler_mode"] = settings.SENTRY_PROFILER_MODE
 
     from sentry_sdk.integrations.django import DjangoIntegration
     from sentry_sdk.integrations.logging import LoggingIntegration

@@ -2508,10 +2508,7 @@ if SENTRY_DEV_DSN:
 
 SENTRY_SDK_THREADING_INTEGRATION = os.environ.get("SENTRY_SDK_DISABLE_THREADING") != "1"
 
-# The sample rate to use for profiles. This is conditional on the usage of
-# traces_sample_rate. So that means the true sample rate will be approximately
-# traces_sample_rate * profiles_sample_rate
-# (subject to things like the traces_sampler)
+# The sample rate for continuous profile sessions, evaluated once per process.
 SENTRY_PROFILES_SAMPLE_RATE = 1 if DEBUG else 0
 
 # We want to test a few schedulers possible in the profiler. Some are platform
@@ -2529,11 +2526,8 @@ SENTRY_PROFILER_MODE: Final = "sleep"
 # profiler. For example, only on the web server.
 SENTRY_PROFILING_ENABLED = os.environ.get("SENTRY_PROFILING_ENABLED", SPOTLIGHT)
 
-# To have finer control over which process will have continuous profiling enabled,
-# this environment variable will be required to enable continuous profiling.
-#
-# This setting takes precedence over `SENTRY_PROFILING_ENABLED` forcing the SDK
-# to operate under the continuous profiling model.
+# Compatibility alias for deployments using the continuous-profiling-specific flag.
+# Either flag enables continuous profiling.
 SENTRY_CONTINUOUS_PROFILING_ENABLED = os.environ.get("SENTRY_CONTINUOUS_PROFILING_ENABLED", False)
 
 # The sample rate to use for continuous profile sessions. This sample rate is
