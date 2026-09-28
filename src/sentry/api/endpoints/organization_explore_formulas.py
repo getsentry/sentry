@@ -198,7 +198,16 @@ class OrganizationExploreFormulas(OrganizationExploreFormulaBase):
     def get(
         self, request: Request, organization: Organization
     ) -> Response[list[ExploreSavedFormulaResponse]]:
-        """Return a list of formulas"""
+        """Return a list of formulas
+
+        Formulas have a name and a formula definition, the definition will have variables in it that are either
+        references or parameters. Once a formula is defined it will be accessible anywhere functions are, but because of
+        that they must have the `formula.` prefix so we don't overlap with any existing functions.
+        Parameters are what can be passed to the formula when its added as a function in a query, eg. the threshold in
+        apdex(threshold)
+        References are only there to make constructing complex formulas more easily, so similar to a variable or
+        "Syntactic sugar"
+        """
         if not self.has_feature(organization, request):
             return self.respond(status=404)
 
