@@ -332,7 +332,7 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
       });
 
       if (reprocessingNewRoute) {
-        navigate(reprocessingNewRoute);
+        navigate(reprocessingNewRoute, {replace: true});
       }
     }
   }, [
@@ -417,8 +417,8 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
 
   const refetchData = useCallback(() => {
     refetchEvent();
-    refetchGroup();
-  }, [refetchGroup, refetchEvent]);
+    refetchGroupCall();
+  }, [refetchGroupCall, refetchEvent]);
 
   // Refetch when group is stale
   useEffect(() => {

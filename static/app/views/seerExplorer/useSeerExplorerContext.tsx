@@ -45,7 +45,9 @@ import {
   getSeerExplorerAnalyticsBrowserSize,
   useIsSeerExplorerSidebarEnabled,
   usePageReferrer,
+  useRemoveSeerExplorerRunIdParam,
   useSeerExplorerDeepLink,
+  useSyncSeerExplorerRunIdToUrl,
 } from 'sentry/views/seerExplorer/utils';
 
 type SeerExplorerSessionState = 'inactive' | 'thinking' | 'done-thinking';
@@ -172,6 +174,7 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
   // was requested via `closeSeerExplorer`. Entering/leaving PiP is tracked as a
   // position change (`pip` on enter, restored dock preference on leave).
   const suppressRedockRef = useRef(false);
+  const isRedockingRef = useRef(false);
   const wasPoppedOutRef = useRef(false);
   useEffect(() => {
     const wasPoppedOut = wasPoppedOutRef.current;
@@ -192,6 +195,7 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
         suppressRedockRef.current = false;
         return;
       }
+      isRedockingRef.current = true;
       if (isSidebarMode) {
         // oxlint-disable-next-line react/set-state-in-effect
         openSidebar();
@@ -207,6 +211,25 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
     organization,
     sidebarPosition,
   ]);
+
+  // Closing the Explorer drops `explorerRunId`, so the URL stops linking to a chat that
+  // isn't showing. Redocking from the popped-out window leaves nothing open for one render
+  // before the surface reopens; that isn't a close. Must run after the redock effect above,
+  // which flags it.
+  const wasVisibleRef = useRef(false);
+  const removeRunIdParam = useRemoveSeerExplorerRunIdParam();
+  useEffect(() => {
+    const isVisible = isOpen || isPoppedOut;
+    const wasVisible = wasVisibleRef.current;
+    wasVisibleRef.current = isVisible;
+
+    const isRedocking = isRedockingRef.current;
+    isRedockingRef.current = false;
+
+    if (wasVisible && !isVisible && !isRedocking) {
+      removeRunIdParam();
+    }
+  }, [isOpen, isPoppedOut, removeRunIdParam]);
 
   const openSeerExplorer = useCallback(
     (drawerOptions?: OpenSeerExplorerDrawerOptions) => {
@@ -244,6 +267,8 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
 
   // Outside the chat, "post a message" means opening the Explorer on it;
   // `SeerExplorerContent` shadows this provider for callers inside the chat.
+  // While popped out, `openSeerExplorer` can only focus the window and the
+  // message would be lost, so the provider withholds it and callers disable.
   const openChatWithMessage = useCallback(
     (query: string, options?: SendMessageOptions) => {
       // Append by default so the caller keeps the context the run has built up.
@@ -434,6 +459,9 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
     enabled: !isOpen && !isPoppedOut,
   });
 
+  // Links opened with `explorerRunId` keep it in the URL and follow session switches.
+  useSyncSeerExplorerRunIdToUrl(runId);
+
   useHotkeys(
     isModalOpen
       ? []
@@ -456,7 +484,7 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
 
   return (
     <SeerExplorerContext.Provider value={contextValue}>
-      <AutofixChatProvider sendMessage={openChatWithMessage}>
+      <AutofixChatProvider sendMessage={isPoppedOut ? undefined : openChatWithMessage}>
         {children}
         {pipWindow && (
           <PictureInPicturePortal pipWindow={pipWindow}>

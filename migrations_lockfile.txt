@@ -33,9 +33,9 @@ releases: 0004_cleanup_failed_safe_deletes
 
 replays: 0001_squashed_0007_organizationmember_replay_access
 
-seer: 0036_disable_autofix_issue_data_fk_constraints
+seer: 0037_rename_agentic_triage_result
 
-sentry: 1180_release_swap_new_last_deploy_id
+sentry: 1189_backfill_pullrequest_external_id_str
 
 social_auth: 0001_squashed_0003_social_auth_json_field
 

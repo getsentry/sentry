@@ -270,6 +270,12 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "auth.email-verification-at-signup.email-password-enabled",
+    default=True,
+    type=Bool,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "auth.email-verification-at-signup.sso-enabled",
     default=False,
     type=Bool,
@@ -1026,7 +1032,7 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Agentic triage sort: purpose-built for night shift candidate ranking.
+# Weights for agentic triage candidate ranking.
 # Each factor weight defaults to 0.25 (equal weighting across 4 factors).
 # Set a weight to 0 to skip that factor's aggregation entirely.
 register(
@@ -1382,11 +1388,11 @@ register(
     default=5,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Per-org overrides for night shift run options. Keyed by stringified
+# Per-org overrides for agentic triage run options. Keyed by stringified
 # organization id; each value is a partial set of run-option overrides (e.g.
 # {"max_candidates": 20}) that layer on top of the global defaults but below
 # any explicit caller-provided options. See
-# sentry.tasks.seer.night_shift.tweaks.get_night_shift_org_tweaks.
+# sentry.tasks.seer.agentic_triage.tweaks.get_agentic_triage_org_tweaks.
 register(
     "seer.night_shift.org_tweaks",
     type=Dict,
@@ -1416,6 +1422,12 @@ register(
     default=0.10,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "seer.smart_assignment.prefetch_rollout_rate",
+    type=Float,
+    default=0.5,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Fuzzy resolution always runs after an exact email miss so its proposal can be
 # inspected. This controls whether that proposal is used in the delivered prediction.
 register(
@@ -1437,6 +1449,18 @@ register(
     "issues.derived_data.read_path_checks.killswitch",
     type=Bool,
     default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "issues.derived_data.status_reconciliation.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "issues.derived_data.status_reconciliation.dry_run",
+    type=Bool,
+    default=True,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -2573,6 +2597,10 @@ register(
         "bitbucket",
         "bitbucket_server",
         "gitlab",
+        "jira",
+        "jira_server",
+        "vsts",
+        "msteams",
     ],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -2582,7 +2610,7 @@ register(
 # before falling back to the scheduler.
 register(
     "hybridcloud.webhookpayload.max_chain_depth",
-    default=1,
+    default=8,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Break glass for inbound webhook floods. Matching webhooks are dropped with a
@@ -4181,6 +4209,19 @@ register(
     "provision_organization.override.rate",
     type=Float,
     default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "warmup.url_resolver.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "warmup.enabled",
+    type=Bool,
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 

@@ -72,13 +72,13 @@ describe('ChooseYourBillingCycle', () => {
       await screen.findByText('Pay monthly or yearly, your choice')
     ).toBeInTheDocument();
 
-    const monthlyOption = screen.getByTestId('billing-cycle-option-monthly');
+    const monthlyOption = screen.getByRole('radio', {name: 'Monthly billing cycle'});
     expect(within(monthlyOption).getByText('Monthly')).toBeInTheDocument();
     expect(within(monthlyOption).queryByText(/save 10%/)).not.toBeInTheDocument();
     expect(within(monthlyOption).getByText(monthlyInfo)).toBeInTheDocument();
     expect(within(monthlyOption).getByText(/Cancel anytime/)).toBeInTheDocument();
 
-    const yearlyOption = screen.getByTestId('billing-cycle-option-annual');
+    const yearlyOption = screen.getByRole('radio', {name: 'Yearly billing cycle'});
     expect(within(yearlyOption).getByText('Yearly')).toBeInTheDocument();
     expect(within(yearlyOption).getByText(/save 10%/)).toBeInTheDocument();
     expect(within(yearlyOption).getByText(yearlyInfo)).toBeInTheDocument();

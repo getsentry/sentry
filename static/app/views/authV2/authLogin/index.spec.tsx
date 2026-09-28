@@ -430,6 +430,10 @@ describe('AuthLogin', () => {
       'href',
       '/identity/login/vsts/'
     );
+    expect(screen.getByRole('link', {name: 'Create an account'})).toHaveAttribute(
+      'href',
+      '/auth/register/'
+    );
   });
 
   it('returns to the legacy login experience', async () => {
