@@ -54,8 +54,6 @@ export function ReplayDetailsProviders({children, replay, projectSlug}: Props) {
   });
 
   const {mutate: markAsViewed} = useMarkReplayViewed();
-  // `getReplay()` hands back a fresh object every time the reader is rebuilt,
-  // so depending on the record itself re-marks the replay on each rebuild
   const {id: replayId, has_viewed: hasViewed} = replayRecord;
   useEffect(() => {
     if (projectSlug && replayId && !hasViewed) {
