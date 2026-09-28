@@ -105,7 +105,9 @@ def _is_bulk_resolution(activity_type: ActivityType, activity: Activity) -> bool
     Bulk resolves are usually backlog cleanup, so the resolver says little about who
     owned any one issue.
     """
-    if activity_type not in RESOLUTION_ACTIVITIES or not (activity.data or {}).get("bulk"):
+    if activity_type not in RESOLUTION_ACTIVITIES:
+        return False
+    if activity.data and activity.data.get('bulk'):
         return False
     metrics.incr(
         "smart_assignment.trigger.skipped",
