@@ -96,7 +96,6 @@ describe('CursorIntegrationCta', () => {
         organization,
       });
 
-      await waitForSeerSettings();
       expect(await screen.findByText('Cursor Agent Integration')).toBeInTheDocument();
       expect(
         screen.getByText(/Connect Cursor to automatically hand off/)
@@ -125,7 +124,6 @@ describe('CursorIntegrationCta', () => {
         organization,
       });
 
-      await waitForSeerSettings();
       await screen.findByText('Cursor Agent Integration');
       const docsLink = screen.getByRole('link', {name: 'Read the docs'});
       expect(docsLink).toHaveAttribute(
@@ -177,9 +175,9 @@ describe('CursorIntegrationCta', () => {
       });
 
       render(<CursorIntegrationCta project={project} />, {
-      await waitForSeerSettings();
         organization,
       });
+      await waitForSeerSettings();
 
       const setupButton = await screen.findByRole('button', {
         name: 'Set Seer to hand off to Cursor',
@@ -249,10 +247,10 @@ describe('CursorIntegrationCta', () => {
 
       const onUpdateSuccessSpy = jest.spyOn(ProjectsStore, 'onUpdateSuccess');
 
-      await waitForSeerSettings();
       render(<CursorIntegrationCta project={projectWithoutAutomation} />, {
         organization,
       });
+      await waitForSeerSettings();
 
       const setupButton = await screen.findByRole('button', {
         name: 'Set Seer to hand off to Cursor',
@@ -320,10 +318,10 @@ describe('CursorIntegrationCta', () => {
         body: {},
       });
 
-      await waitForSeerSettings();
       render(<CursorIntegrationCta project={projectWithAutomation} />, {
         organization,
       });
+      await waitForSeerSettings();
 
       const setupButton = await screen.findByRole('button', {
         name: 'Set Seer to hand off to Cursor',
@@ -430,8 +428,8 @@ describe('CursorIntegrationCta', () => {
 
       render(<CursorIntegrationCta project={projectWithAutomation} />, {
         organization,
-      await waitForSeerSettings();
       });
+      await waitForSeerSettings();
 
       expect(await screen.findByText('Cursor Agent Integration')).toBeInTheDocument();
       expect(screen.getByText(/Cursor handoff is active/)).toBeInTheDocument();
@@ -452,8 +450,8 @@ describe('CursorIntegrationCta', () => {
 
       render(<CursorIntegrationCta project={projectWithAutomation} />, {
         organization,
-      await waitForSeerSettings();
       });
+      await waitForSeerSettings();
 
       expect(await screen.findByText('Cursor Agent Integration')).toBeInTheDocument();
       expect(screen.getByText(/Cursor handoff is active/)).toBeInTheDocument();
