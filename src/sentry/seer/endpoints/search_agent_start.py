@@ -67,7 +67,6 @@ def send_search_agent_start_request(
     metric_context: dict[str, Any] | None = None,
     viewer_context: SeerViewerContext | None = None,
     cross_event: bool = False,
-    project_expansion: bool = False,
     reflection_step: bool = False,
     code_mode: bool = False,
 ) -> SeerRun:
@@ -86,7 +85,6 @@ def send_search_agent_start_request(
 
     options: dict[str, Any] = {
         "cross_event": cross_event,
-        "project_expansion": project_expansion,
         "reflection_step": reflection_step,
         "code_mode": code_mode,
     }
@@ -195,11 +193,6 @@ class SearchAgentStartEndpoint(OrganizationEndpoint):
                 viewer_context=viewer_context,
                 cross_event=features.has(
                     "organizations:seer-assisted-query-cross-event-explorer",
-                    organization,
-                    actor=request.user,
-                ),
-                project_expansion=features.has(
-                    "organizations:seer-assisted-query-project-expansion",
                     organization,
                     actor=request.user,
                 ),

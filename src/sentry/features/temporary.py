@@ -572,8 +572,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     # Assisted query agent feature flags — forwarded to Seer
     # Enable cross-event queries for the Traces strategy
     manager.add("organizations:seer-assisted-query-cross-event-explorer", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable LLM project expansion feature
-    manager.add("organizations:seer-assisted-query-project-expansion", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable reflection step feature
     manager.add("organizations:seer-assisted-query-reflection", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Run the agent in code mode

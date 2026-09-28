@@ -61,7 +61,6 @@ class SearchAgentTranslateEndpointTest(APITestCase):
             },
             options={
                 "cross_event": False,
-                "project_expansion": False,
                 "reflection_step": False,
                 "code_mode": False,
             },

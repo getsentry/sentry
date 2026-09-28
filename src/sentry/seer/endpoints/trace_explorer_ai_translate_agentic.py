@@ -162,11 +162,6 @@ class SearchAgentTranslateEndpoint(OrganizationEndpoint):
             organization,
             actor=request.user,
         )
-        options["project_expansion"] = features.has(
-            "organizations:seer-assisted-query-project-expansion",
-            organization,
-            actor=request.user,
-        )
         options["reflection_step"] = features.has(
             "organizations:seer-assisted-query-reflection",
             organization,
