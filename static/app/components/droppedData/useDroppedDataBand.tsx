@@ -13,11 +13,11 @@ import {useRenderToString} from '@sentry/scraps/renderToString';
 
 import {isChartHovered} from 'sentry/components/charts/utils';
 import {DroppedDataTooltip} from 'sentry/components/droppedData/droppedDataTooltip';
+import type {DroppedDataProps} from 'sentry/components/droppedData/types';
 import {
   groupIntoBuckets,
   opacityForRatio,
   type AnnotationBucket,
-  type DroppedData,
 } from 'sentry/components/droppedData/utils';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils/defined';
@@ -196,7 +196,7 @@ function createDroppedDataSeries({
 interface UseDroppedDataBandParams {
   chartRef: React.RefObject<ReactEchartsRef | null>;
   bandOffset?: number;
-  droppedData?: DroppedData;
+  droppedData?: DroppedDataProps;
   utc?: boolean | null;
   yAxisIndex?: number;
 }
@@ -212,14 +212,16 @@ export function useDroppedDataBand({
   const renderToString = useRenderToString();
   const userTimezone = useTimezone();
   const timezone = utc ? 'UTC' : userTimezone;
-  const {accepted, dropped, visible = true} = droppedData ?? {};
+  const {acceptedAnnotations, droppedAnnotations} = droppedData ?? {};
 
   const buckets = useMemo(
     () =>
-      groupIntoBuckets(dropped ?? [], accepted ?? []).filter(bucket => bucket.ratio > 0),
-    [accepted, dropped]
+      groupIntoBuckets(droppedAnnotations ?? [], acceptedAnnotations ?? []).filter(
+        bucket => bucket.ratio > 0
+      ),
+    [acceptedAnnotations, droppedAnnotations]
   );
-  const isVisible = visible && buckets.length > 0;
+  const isVisible = buckets.length > 0;
 
   const renderTooltip = useCallback(
     (bucket: AnnotationBucket) =>

@@ -160,7 +160,7 @@ class CustomInboundFilterSerializer(serializers.ModelSerializer[CustomInboundFil
         help_text=(
             "Conditions are combined with AND: an event must match every condition to be "
             "filtered out. There is no OR between conditions, so e.g. two release conditions "
-            "can express a range (>2 AND <4). To broaden matching, widen a condition's values "
+            "can express a range (`>2 AND <4`). To broaden matching, widen a condition's values "
             "or add separate filters."
         ),
     )

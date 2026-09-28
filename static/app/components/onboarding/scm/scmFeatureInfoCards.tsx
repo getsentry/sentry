@@ -1,13 +1,14 @@
 import {Tag} from '@sentry/scraps/badge';
 import {InfoText} from '@sentry/scraps/info';
-import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
-import {Heading, Text} from '@sentry/scraps/text';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Separator} from '@sentry/scraps/separator';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import type {DisabledProducts} from 'sentry/components/onboarding/productSelection';
 import {Placeholder} from 'sentry/components/placeholder';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 
 import type {FeatureMeta} from './useScmFeatureMeta';
 
@@ -17,120 +18,89 @@ interface ScmFeatureInfoCardsProps {
   featureMeta: Record<ProductSolution, FeatureMeta>;
   isOnboarding: boolean;
   isVolumeLoading?: boolean;
-  platformName?: string;
 }
 
 // Informational variant of the SCM feature card list. Renders the products
 // applicable to the user-selected platform without offering toggles, used for
 // platforms whose onboarding is wizard-driven (the wizard CLI handles
-// configuration; toggles aren't actionable). Visual treatment is a placeholder;
-// designer iterates on this separately.
+// configuration; toggles aren't actionable). Onboarding shows each product's
+// volume the same way the toggleable cards do.
 export function ScmFeatureInfoCards({
   availableFeatures,
   disabledProducts,
   featureMeta,
-  platformName,
-  isVolumeLoading,
   isOnboarding,
+  isVolumeLoading,
 }: ScmFeatureInfoCardsProps) {
   return (
-    <Stack gap="xl" width="100%" justify="center">
-      {isOnboarding ? (
-        <Stack gap="md">
-          {platformName ? (
-            <Heading as="h4">
-              {tct('Available with [platformName]', {
-                platformName: (
-                  <Text as="span" bold variant="accent">
-                    {platformName}
-                  </Text>
-                ),
-              })}
-            </Heading>
-          ) : null}
-          <Text size="md" variant="secondary" density="comfortable">
-            {t('In the next step, run our setup wizard to choose what to instrument')}
-          </Text>
-        </Stack>
-      ) : null}
-
-      <Grid
-        gap="2xl"
-        columns={{zero: '1fr', xl: '1fr 1fr'}}
-        border="secondary"
-        radius="lg"
-        padding="2xl"
-      >
-        {availableFeatures.map(feature => {
-          const meta = featureMeta[feature];
-          const Icon = meta.icon;
-          const disabledProduct = disabledProducts[feature];
-          const isDisabled = !meta.alwaysEnabled && !!disabledProduct;
-          return (
-            <Tooltip
-              key={feature}
-              title={disabledProduct?.reason}
-              disabled={!isDisabled}
-              delay={100}
-            >
-              <Grid
-                columns="min-content 1fr"
-                rows="min-content min-content"
-                gap="xs lg"
-                align="center"
-                areas={`
-                    "icon label"
-                    ". description"
-                  `}
-              >
-                <Container area="icon">
-                  {containerProps => (
-                    <Icon
-                      {...containerProps}
-                      size="md"
-                      variant={isDisabled ? 'muted' : undefined}
-                      aria-hidden
-                    />
-                  )}
-                </Container>
-                <Flex area="label" gap="sm" align="center">
-                  <Text bold size="md" variant={isDisabled ? 'muted' : undefined}>
-                    {meta.label}
-                  </Text>
-                  {meta.alwaysEnabled ? (
-                    <Tag variant="muted">{t('Always on')}</Tag>
-                  ) : null}
-                </Flex>
-                <Stack gap="md" area="description">
-                  <Text
+    <Grid
+      gap="2xl"
+      columns={{zero: '1fr', xl: '1fr 1fr'}}
+      background="primary"
+      border="primary"
+      radius="xl"
+      padding="xl"
+    >
+      {availableFeatures.map(feature => {
+        const meta = featureMeta[feature];
+        const Icon = meta.icon;
+        const disabledProduct = disabledProducts[feature];
+        const isDisabled = !meta.alwaysEnabled && !!disabledProduct;
+        return (
+          <Tooltip
+            key={feature}
+            title={disabledProduct?.reason}
+            disabled={!isDisabled}
+            delay={100}
+          >
+            <Stack height="100%" gap="md">
+              <Flex align="center" gap="md">
+                <Flex flexShrink={0}>
+                  <Icon
+                    size="md"
                     variant={isDisabled ? 'muted' : 'secondary'}
-                    density="comfortable"
-                  >
-                    {meta.description}
-                  </Text>
-                  {isOnboarding ? (
-                    <Container>
-                      {isVolumeLoading ? (
-                        <Placeholder height="20px" width="100px" />
-                      ) : (
-                        <InfoText
-                          title={isDisabled ? null : meta.volumeTooltip}
-                          delay={100}
-                          variant="muted"
-                          size="sm"
-                          density="comfortable"
-                        >
-                          {meta.volume}
-                        </InfoText>
-                      )}
-                    </Container>
-                  ) : null}
+                    aria-hidden
+                  />
+                </Flex>
+                <Text bold size="md" variant={isDisabled ? 'muted' : undefined}>
+                  {meta.label}
+                </Text>
+                {meta.alwaysEnabled ? <Tag variant="muted">{t('Always on')}</Tag> : null}
+              </Flex>
+
+              <Stack flexGrow={1}>
+                <Text variant="muted" size="md" density="comfortable" textWrap="pretty">
+                  {meta.description}
+                </Text>
+              </Stack>
+
+              {isOnboarding ? (
+                <Stack gap="md" width="100%" paddingTop="md">
+                  <Separator orientation="horizontal" border="primary" />
+                  <Flex align="center" justify="between" gap="md">
+                    <Text variant="muted" size="sm">
+                      {t('After 14 days')}
+                    </Text>
+                    {isVolumeLoading ? (
+                      <Placeholder height="18px" width="88px" />
+                    ) : (
+                      <InfoText
+                        title={isDisabled ? null : meta.volumeTooltip}
+                        delay={100}
+                        variant="primary"
+                        size="sm"
+                        bold
+                      >
+                        {meta.volume}
+                      </InfoText>
+                    )}
+                  </Flex>
                 </Stack>
-              </Grid>
-            </Tooltip>
-          );
-        })}
-      </Grid>
-    </Stack>
+              ) : null}
+            </Stack>
+          </Tooltip>
+        );
+      })}
+    </Grid>
   );
 }
