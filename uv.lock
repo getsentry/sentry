@@ -1906,13 +1906,13 @@ wheels = [
 
 [[package]]
 name = "rb"
-version = "1.10.0"
+version = "1.11.0"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "redis" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/rb-1.10.0-py2.py3-none-any.whl", hash = "sha256:c1f344a0850e1aaadd419f97dcad78f03316846dd1559af69e3b4c102c998d0d" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/rb-1.11.0-py2.py3-none-any.whl", hash = "sha256:b10d6f25e7797537df110bbec52be2bc6d2c987d7ec2cad64ab34c44d6581d5b" },
 ]
 
 [[package]]
@@ -2345,7 +2345,7 @@ requires-dist = [
     { name = "python-u2flib-server", specifier = ">=5.0.0" },
     { name = "python3-saml", specifier = ">=1.15.0" },
     { name = "pyvat", specifier = ">=1.3.15" },
-    { name = "rb", specifier = ">=1.10.0" },
+    { name = "rb", specifier = ">=1.11.0" },
     { name = "redis", specifier = ">=3.4.1" },
     { name = "redis-py-cluster", specifier = ">=2.1.0" },
     { name = "reportlab", specifier = ">=4.4.0" },

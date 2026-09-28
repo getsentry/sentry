@@ -108,12 +108,6 @@ def _is_conversation_id_lookup(user_query: str) -> bool:
     return bool(_CONVERSATION_ID_LOOKUP_RE.match(user_query.strip()))
 
 
-def _build_conversation_query(base_query: str, user_query: str) -> str:
-    if user_query and user_query.strip():
-        return f"{base_query} {user_query.strip()}"
-    return base_query
-
-
 def _extract_conversation_ids(results: EAPResponse) -> list[str]:
     return [
         conv_id for row in results.get("data", []) if (conv_id := row.get("gen_ai.conversation.id"))
@@ -134,33 +128,6 @@ def _build_user_response(
         "email": user_email,
         "username": user_username,
         "ip_address": user_ip,
-    }
-
-
-def _build_conversation_response(
-    conv_id: str,
-    aggregates: AIConversationAggregates,
-    errors: int,
-    trace_ids: list[str],
-    flow: list[str],
-    first_input: str | None,
-    last_output: str | None,
-    user: UserResponse | None = None,
-    title: str | None = None,
-    project_id: int | None = None,
-) -> AIConversationData:
-    return {
-        "conversationId": conv_id,
-        "errors": errors,
-        "title": title,
-        "projectId": project_id,
-        "flow": flow,
-        "traceCount": len(trace_ids),
-        "traceIds": trace_ids,
-        "firstInput": first_input,
-        "lastOutput": last_output,
-        "user": user,
-        **aggregates,
     }
 
 
@@ -219,19 +186,6 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
 
         validated_data = serializer.validated_data
         user_query = validated_data.get("query", "")
-        query_string = _build_conversation_query(
-            "has:gen_ai.conversation.id has:gen_ai.operation.type", user_query
-        )
-
-        def data_fn(offset: int, limit: int) -> list[AIConversationResponse]:
-            return self._get_conversations(
-                snuba_params=snuba_params,
-                offset=offset,
-                limit=limit,
-                query_string=query_string,
-                sampling_mode=validated_data["samplingMode"],
-                sorts=validated_data["sort"],
-            )
 
         with handle_query_errors():
             resolver = Spans.get_resolver(
@@ -239,6 +193,17 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                 SearchResolverConfig(auto_fields=True, disable_aggregate_extrapolation=True),
             )
             query_string = compile_conversation_query(user_query, resolver)
+
+            def data_fn(offset: int, limit: int) -> list[AIConversationResponse]:
+                return self._get_conversations(
+                    snuba_params=snuba_params,
+                    offset=offset,
+                    limit=limit,
+                    query_string=query_string,
+                    sampling_mode=validated_data["samplingMode"],
+                    sorts=validated_data["sort"],
+                )
+
             response = self.paginate(
                 request=request,
                 paginator=GenericOffsetPaginator(data_fn=data_fn),
@@ -389,22 +354,24 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                 if isinstance(project_id, int)
             }
             trace_ids = sorted(row.get("trace_ids") or [])
-            conversations_map[conversation_id] = _build_conversation_response(
-                conv_id=conversation_id,
-                aggregates=parse_conversation_aggregates(row),
-                errors=int(row.get("errors") or 0),
-                trace_ids=trace_ids,
-                flow=row.get("flow") or [],
-                first_input=get_aggregated_first_input(row),
-                last_output=get_aggregated_last_output(row),
-                user=_build_user_response(
+            conversations_map[conversation_id] = {
+                "conversationId": conversation_id,
+                "errors": int(row.get("errors") or 0),
+                "title": None,
+                "projectId": min(project_ids, default=None),
+                "flow": row.get("flow") or [],
+                "traceCount": len(trace_ids),
+                "traceIds": trace_ids,
+                "firstInput": get_aggregated_first_input(row),
+                "lastOutput": get_aggregated_last_output(row),
+                "user": _build_user_response(
                     user_id=row.get("user_id"),
                     user_email=row.get("user_email"),
                     user_username=row.get("user_username"),
                     user_ip=row.get("user_ip"),
                 ),
-                project_id=min(project_ids, default=None),
-            )
+                **parse_conversation_aggregates(row),
+            }
             project_ids_by_conversation[conversation_id] = project_ids
 
         self._apply_titles(conversations_map, project_ids_by_conversation)
