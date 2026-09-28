@@ -89,6 +89,7 @@ class UserOrgContext(TypedDict):
 
 
 class AgentChatRequest(TypedDict):
+    attachment_keys: NotRequired[list[str]]
     organization_id: int
     query: str
     run_id: int | None
