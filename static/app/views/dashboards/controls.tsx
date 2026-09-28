@@ -4,7 +4,6 @@ import {Flex} from '@sentry/scraps/layout';
 
 import Feature from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
-import {Confirm} from 'sentry/components/confirm';
 import {Hovercard} from 'sentry/components/hovercard';
 import {IconAdd, IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -30,7 +29,6 @@ type Props = {
   onAddWidget: (dataset: DataSet, openWidgetTemplates: boolean) => void;
   onCancel: () => void;
   onCommit: () => void;
-  onDelete: () => void;
   onEdit: () => void;
   organization: Organization;
   widgetLimitReached: boolean;
@@ -46,7 +44,6 @@ export function DashboardActionBar({
   onAddWidget,
   onCancel,
   onCommit,
-  onDelete,
   onEdit,
   widgetLimitReached,
 }: Props) {
@@ -75,15 +72,6 @@ export function DashboardActionBar({
         >
           {t('Save and Finish')}
         </Button>
-        <Confirm
-          priority="danger"
-          message={t('Are you sure you want to delete this dashboard?')}
-          onConfirm={onDelete}
-        >
-          <Button size="sm" variant="danger" data-test-id="dashboard-delete">
-            {t('Delete')}
-          </Button>
-        </Confirm>
         <Button
           size="sm"
           variant="transparent"

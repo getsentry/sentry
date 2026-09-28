@@ -16,13 +16,14 @@ import Feature from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {openConfirmModal} from 'sentry/components/confirm';
+import {DateTime} from 'sentry/components/dateTime';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconStack} from 'sentry/icons';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -291,6 +292,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
   const visibleNotebookCells = notebookCells.filter(block =>
     shouldDisplayInvestigationBlock(block)
   );
+  const source = getInvestigationSource(investigation);
 
   return (
     <SentryDocumentTitle title={displayedTitle} orgSlug={organization.slug}>
@@ -383,10 +385,24 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
             </Grid>
             <Flex align="center" justify="between" gap="md" wrap="wrap">
               <Flex align="center" gap="sm" wrap="wrap">
-                <Text variant="muted">{formatSourceType(investigation.sourceType)}</Text>
+                {source.groupId ? (
+                  <Link
+                    to={normalizeUrl(
+                      `/organizations/${organization.slug}/issues/${source.groupId}/`
+                    )}
+                  >
+                    {source.monitorName ?? t('View issue')}
+                  </Link>
+                ) : (
+                  <Text variant="muted">
+                    {formatSourceType(investigation.sourceType)}
+                  </Text>
+                )}
                 <MetaDivider />
                 <Text variant="muted">
-                  {t('Last update: %s', formatNotebookDate(investigation.dateUpdated))}
+                  {tct('Last update: [date]', {
+                    date: <DateTime date={investigation.dateUpdated} year />,
+                  })}
                 </Text>
               </Flex>
               <FeedbackButton
@@ -409,7 +425,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
             </Flex>
           </Stack>
         </Container>
-        <Layout.Body>
+        <Layout.Body padding={{'screen:sm': '0 lg lg', 'screen:md': '0 xl lg'}}>
           <Layout.Main width="full">
             <Stack width="100%" maxWidth="960px" minWidth={0} margin="0 auto">
               {/*
@@ -488,6 +504,30 @@ function getInvestigationPath(organizationSlug: string, investigationId: string)
   );
 }
 
+function getRecord(value: unknown, key: string): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object') {
+    return null;
+  }
+  const field: unknown = (value as Record<string, unknown>)[key];
+  return field && typeof field === 'object' ? (field as Record<string, unknown>) : null;
+}
+
+function getString(value: Record<string, unknown> | null, key: string): string | null {
+  const field = value?.[key];
+  return typeof field === 'string' && field ? field : null;
+}
+
+// A breached metric investigation references the metric issue it was started
+// from, and snapshots that issue's monitor. Older investigations may predate the
+// snapshot, but still carry the issue reference.
+function getInvestigationSource(investigation: InvestigationDetail) {
+  const {source} = investigation;
+  return {
+    groupId: getString(getRecord(source, 'ref'), 'groupId'),
+    monitorName: getString(getRecord(getRecord(source, 'snapshot'), 'monitor'), 'name'),
+  };
+}
+
 function formatSourceType(sourceType: string) {
   if (sourceType === 'metric_open_period') {
     return t('Breached metric');
@@ -496,10 +536,6 @@ function formatSourceType(sourceType: string) {
     return t('Manual investigation');
   }
   return sourceType.replaceAll('_', ' ');
-}
-
-function formatNotebookDate(date: string) {
-  return new Date(date).toISOString().slice(0, 10).replaceAll('-', '.');
 }
 
 const NotebookSummaryCard = styled(InvestigationSummaryCard)`

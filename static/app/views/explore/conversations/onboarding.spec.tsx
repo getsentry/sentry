@@ -349,7 +349,7 @@ describe('ConversationOnboarding', () => {
     expect(screen.queryByRole('button', {name: 'Cloudflare'})).not.toBeInTheDocument();
   });
 
-  it('hides the conversation ID and user steps for Eve (OTel drain, no Sentry SDK)', async () => {
+  it('hides only the conversation ID step for Eve, keeping the user step', async () => {
     const {organization} = setupProject('node');
 
     render(<ConversationOnboarding onDismiss={jest.fn()} />, {organization});
@@ -359,12 +359,13 @@ describe('ConversationOnboarding', () => {
     expect(await screen.findByText('Set Conversation ID')).toBeInTheDocument();
     expect(screen.getByText('Identify Users (optional)')).toBeInTheDocument();
 
-    // Eve only drains OpenTelemetry traces, so those Sentry SDK steps drop out.
+    // Eve groups conversations automatically but runs the Sentry SDK, so only the
+    // manual conversation ID step drops out.
     await userEvent.click(await screen.findByRole('button', {name: 'Vercel AI SDK'}));
     await userEvent.click(await screen.findByRole('option', {name: 'Eve'}));
 
     expect(screen.queryByText('Set Conversation ID')).not.toBeInTheDocument();
-    expect(screen.queryByText('Identify Users (optional)')).not.toBeInTheDocument();
+    expect(screen.getByText('Identify Users (optional)')).toBeInTheDocument();
   });
 
   it('hides only the conversation ID step for Flue (auto-set), keeping the user step', async () => {

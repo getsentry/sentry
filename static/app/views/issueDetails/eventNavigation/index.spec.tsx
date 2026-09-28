@@ -4,8 +4,16 @@ import {EventAttachmentFixture} from 'sentry-fixture/eventAttachment';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
+import {IssueCategory, IssueType} from 'sentry/types/group';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {AutofixPanelProvider} from 'sentry/views/issueDetails/autofix/context';
 import {SectionKey, useIssueDetails} from 'sentry/views/issueDetails/context';
 import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
@@ -14,6 +22,7 @@ import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {IssueEventNavigation} from '.';
 
 jest.mock('sentry/views/issueDetails/context');
+jest.mock('sentry/utils/analytics');
 
 describe('EventNavigation', () => {
   const organization = OrganizationFixture({features: ['discover-basic']});
@@ -38,8 +47,9 @@ describe('EventNavigation', () => {
 
   /**
    * `useGroupDetailsRoute` reads the current tab off the deepest route's `handle`,
-   * so each tab under test needs a child route carrying that handle. The nav under
-   * test renders on the parent route, so the child renders nothing of its own.
+   * so every tab gets a child route carrying that handle, which also lets tests
+   * navigate between tabs. The nav under test renders on the parent route, so the
+   * children render nothing of their own.
    */
   function routerConfigForTab(tab: Tab) {
     return {
@@ -47,9 +57,11 @@ describe('EventNavigation', () => {
         pathname: `/organizations/${organization.slug}/issues/${group.id}/${TabPaths[tab]}`,
       },
       route: '/organizations/:orgId/issues/:groupId/',
-      children: [
-        {path: TabPaths[tab], handle: {path: TabPaths[tab]}, element: <Fragment />},
-      ],
+      children: Array.from(new Set(Object.values(TabPaths)), path => ({
+        path,
+        handle: {path},
+        element: <Fragment />,
+      })),
     };
   }
 
@@ -157,6 +169,178 @@ describe('EventNavigation', () => {
         'https://www.example.com'
       );
       expect(url.searchParams.get('sort')).toBe('-title');
+    });
+  });
+
+  describe('issue content navigation', () => {
+    const seerOrganization = OrganizationFixture({
+      features: ['discover-basic', 'gen-ai-features', 'autofix-page'],
+      hideAiFeatures: false,
+    });
+
+    function renderNav(
+      org: typeof organization,
+      {navGroup = group, tab = Tab.EVENTS}: {navGroup?: typeof group; tab?: Tab} = {}
+    ) {
+      return render(
+        <GroupDataContextProvider group={navGroup} project={navGroup.project}>
+          <IssueEventNavigation {...defaultProps} group={navGroup} />
+        </GroupDataContextProvider>,
+        {initialRouterConfig: routerConfigForTab(tab), organization: org}
+      );
+    }
+
+    it('renders a tab list with the autofix-page feature', () => {
+      renderNav(seerOrganization);
+
+      // Tabs replace the dropdown entirely, so the trigger is gone.
+      expect(
+        screen.queryByRole('button', {name: 'Select issue content'})
+      ).not.toBeInTheDocument();
+
+      expect(screen.getAllByRole('tab')[1]).toHaveAccessibleName('Autofix');
+
+      // Counts ride along inside the tab label; Autofix is a single ongoing
+      // analysis, so it has none.
+      const eventsTab = screen.getAllByRole('tab')[0]!;
+      expect(within(eventsTab).getByText('0')).toBeInTheDocument();
+      expect(
+        within(screen.getByRole('tab', {name: 'Autofix'})).queryByText('0')
+      ).not.toBeInTheDocument();
+
+      // The tab is the <li role="tab">; the anchor it navigates through is nested.
+      const autofixTab = screen.getByRole('tab', {name: 'Autofix'});
+      expect(within(autofixTab).getByRole('link')).toHaveAttribute(
+        'href',
+        expect.stringContaining(
+          `/organizations/${seerOrganization.slug}/issues/${group.id}/${
+            TabPaths[Tab.AUTOFIX]
+          }`
+        )
+      );
+    });
+
+    it('falls back to the dropdown without the autofix-page feature', () => {
+      renderNav(organization);
+
+      expect(screen.queryByRole('tab')).not.toBeInTheDocument();
+      expect(
+        screen.getByRole('button', {name: 'Select issue content'})
+      ).toBeInTheDocument();
+    });
+
+    it('records tab selections with the tabs surface', async () => {
+      renderNav(seerOrganization, {tab: Tab.DETAILS});
+
+      await userEvent.click(screen.getByRole('tab', {name: /Replays/}));
+
+      expect(trackAnalytics).toHaveBeenCalledWith(
+        'issue_details.issue_content_selected',
+        expect.objectContaining({content: 'Replays', surface: 'tabs'})
+      );
+    });
+
+    it('records dropdown selections with the dropdown surface', async () => {
+      renderNav(organization, {tab: Tab.DETAILS});
+
+      await userEvent.click(screen.getByRole('button', {name: 'Select issue content'}));
+      await userEvent.click(screen.getByRole('menuitemradio', {name: /Replays/}));
+
+      expect(trackAnalytics).toHaveBeenCalledWith(
+        'issue_details.issue_content_selected',
+        expect.objectContaining({content: 'Replays', surface: 'dropdown'})
+      );
+    });
+
+    it('omits the autofix tab when AI features are hidden', () => {
+      renderNav(
+        OrganizationFixture({
+          features: ['discover-basic', 'gen-ai-features', 'autofix-page'],
+          hideAiFeatures: true,
+        })
+      );
+
+      expect(screen.queryByRole('tab', {name: 'Autofix'})).not.toBeInTheDocument();
+      expect(
+        screen.getByRole('button', {name: 'Select issue content'})
+      ).toBeInTheDocument();
+    });
+
+    it('omits the autofix tab for issue types autofix does not support', () => {
+      const cronGroup = GroupFixture({
+        id: group.id,
+        issueCategory: IssueCategory.CRON,
+        issueType: IssueType.MONITOR_CHECK_IN_FAILURE,
+      });
+      renderNav(seerOrganization, {navGroup: cronGroup});
+
+      expect(screen.getByRole('tab', {name: /Events/})).toBeInTheDocument();
+      expect(screen.queryByRole('tab', {name: 'Autofix'})).not.toBeInTheDocument();
+    });
+
+    it('omits the autofix tab on sample events', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${group.id}/tags/`,
+        body: [
+          {key: 'sample_event', name: 'Sample Event', totalValues: 1, topValues: []},
+        ],
+      });
+      renderNav(seerOrganization);
+
+      await waitFor(() =>
+        expect(screen.queryByRole('tab', {name: 'Autofix'})).not.toBeInTheDocument()
+      );
+      expect(screen.getByRole('tab', {name: /Events/})).toBeInTheDocument();
+    });
+
+    it('keeps Events selected on the "view more events" list', async () => {
+      const {router} = renderNav(seerOrganization, {tab: Tab.EVENTS});
+
+      expect(screen.getByRole('tab', {name: /Events/})).toHaveAttribute(
+        'aria-selected',
+        'true'
+      );
+
+      // Close leaves the list for event details, which is also under Events.
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Return to event details'})
+      );
+      expect(router.location.pathname).toBe(
+        `/organizations/${organization.slug}/issues/${group.id}/${TabPaths[Tab.DETAILS]}`
+      );
+      expect(screen.getByRole('tab', {name: /Events/})).toHaveAttribute(
+        'aria-selected',
+        'true'
+      );
+    });
+
+    it('keeps Events selected after clicking "View More Events"', async () => {
+      const {router} = renderNav(seerOrganization, {tab: Tab.DETAILS});
+
+      expect(screen.getByRole('tab', {name: /Events/})).toHaveAttribute(
+        'aria-selected',
+        'true'
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'View More Events'}));
+      expect(router.location.pathname).toBe(
+        `/organizations/${organization.slug}/issues/${group.id}/${TabPaths[Tab.EVENTS]}`
+      );
+      expect(screen.getByRole('tab', {name: /Events/})).toHaveAttribute(
+        'aria-selected',
+        'true'
+      );
+    });
+
+    it('keeps the first tab selected on other list views', () => {
+      const cronGroup = GroupFixture({
+        id: group.id,
+        issueCategory: IssueCategory.CRON,
+        issueType: IssueType.MONITOR_CHECK_IN_FAILURE,
+      });
+      renderNav(seerOrganization, {navGroup: cronGroup, tab: Tab.CHECK_INS});
+
+      expect(screen.getAllByRole('tab')[0]).toHaveAttribute('aria-selected', 'true');
     });
   });
 

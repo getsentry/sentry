@@ -4,6 +4,10 @@ import {API_ACCESS_SCOPES} from 'sentry/constants/apiAccessScopes';
 
 const isoTimestampSchema = z.iso.datetime({offset: true});
 
+// Sentry URLs carry page filter times with no offset (`start=2026-09-11T10:02:00`)
+// and every consumer reads them as UTC, so the agent copies that form back.
+const pageFilterTimestampSchema = z.iso.datetime({offset: true, local: true});
+
 const chartSeriesDataSchema = z
   .array(
     z.object({
@@ -47,8 +51,8 @@ const pageFilterFields = {
     .describe(
       'Relative time range, e.g. "24h" or "7d". Mutually exclusive with start/end.'
     ),
-  start: isoTimestampSchema.optional(),
-  end: isoTimestampSchema.optional(),
+  start: pageFilterTimestampSchema.optional(),
+  end: pageFilterTimestampSchema.optional(),
 };
 
 /**
@@ -145,7 +149,7 @@ export const SEER_EMBED_SCHEMAS = {
       'Never use a markdown link for dashboard references.',
     level: ['inline', 'block'],
     schema: z.object({
-      id: z.string().min(1),
+      id: idString,
       title: z.string().min(1).optional(),
     }),
     examples: [
@@ -390,7 +394,9 @@ export const SEER_EMBED_SCHEMAS = {
       steps: z
         .array(z.object({title: z.string(), description: z.string()}))
         .optional()
-        .describe('solution only: the ordered steps needed to resolve the issue.'),
+        .describe(
+          'solution only: ordered steps to resolve the issue. Each element MUST be an object with "title" (string) and "description" (string) — never a plain string.'
+        ),
     }),
     examples: [
       {

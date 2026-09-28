@@ -51,11 +51,19 @@ class SearchAgentTranslateEndpointTest(APITestCase):
             [self.project.id],
             "Find slow transactions",
             strategy="Traces",
+            user_email=self.user.email,
+            timezone=None,
             model_name=None,
             metric_context=None,
             viewer_context={
                 "organization_id": self.organization.id,
                 "user_id": self.user.id,
+            },
+            options={
+                "cross_event": False,
+                "project_expansion": False,
+                "reflection_step": False,
+                "code_mode": False,
             },
         )
 

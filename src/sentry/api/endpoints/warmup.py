@@ -16,6 +16,7 @@ import sentry.notifications.services.impl  # NOQA
 import sentry.sentry_apps.services.app.impl  # NOQA
 import sentry.users.services.user.impl  # NOQA
 import sentry.users.services.user_option.impl  # NOQA
+from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, all_silo_endpoint
@@ -41,6 +42,9 @@ def _iter_url_resolvers(resolver: URLResolver) -> Iterator[URLResolver]:
 
 
 def _warm_up_url_resolver(languages: list[str]) -> None:
+    if not options.get("warmup.url_resolver.enabled"):
+        return
+
     with translation.override(settings.LANGUAGE_CODE):
         reverse("sentry-warmup")
         default_language = translation.get_language()

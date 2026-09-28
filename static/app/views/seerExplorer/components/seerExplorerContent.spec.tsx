@@ -21,6 +21,7 @@ const defaultHookReturn: ReturnType<typeof useSeerExplorerModule.useSeerExplorer
   sessionData: null,
   isPolling: false,
   isError: false,
+  hasSessionLoadError: false,
   errorStatusCode: undefined,
   isTimedOut: false,
   runId: null,
@@ -29,6 +30,7 @@ const defaultHookReturn: ReturnType<typeof useSeerExplorerModule.useSeerExplorer
   overrideCodeModeEnable: 'off',
   hasSentInterrupt: false,
   sendMessage: jest.fn(),
+  requestError: null,
   switchToRun: jest.fn(),
   startNewSession: jest.fn(),
   interruptRun: jest.fn(),
@@ -50,6 +52,7 @@ describe('SeerExplorerContent', () => {
     MockApiClient.clearMockResponses();
     sessionStorage.clear();
     jest.clearAllMocks();
+    ConfigStore.set('user', UserFixture());
 
     // The header collapses its actions into an overflow menu on narrow
     // containers (resolved via `useContainerBreakpoint`, which measures
@@ -274,7 +277,7 @@ describe('SeerExplorerContent', () => {
       );
 
       expect(
-        await screen.findByText(/Error loading this session \(run_id=123\)./)
+        await screen.findByText('There was a problem loading the conversation.')
       ).toBeInTheDocument();
     });
 
@@ -329,9 +332,142 @@ describe('SeerExplorerContent', () => {
       );
 
       expect(
-        await screen.findByText(/Error loading this session \(run_id=123\)./)
+        await screen.findByText('There was a problem loading the conversation.')
       ).toBeInTheDocument();
       expect(screen.queryByText(/444/)).not.toBeInTheDocument();
+    });
+
+    it('shows a load failure when the session itself came back errored', async () => {
+      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
+        ...defaultHookReturn,
+        runId: 123,
+        sessionData: {
+          status: 'error',
+          updated_at: new Date().toISOString(),
+          blocks: [],
+        },
+        hasSessionLoadError: true,
+      });
+
+      render(
+        <PictureInPictureProvider>
+          <SeerExplorerSessionsProvider>
+            <SeerExplorerContent
+              getPageReferrer={mockGetPageReferrer}
+              onClose={() => {}}
+            />
+          </SeerExplorerSessionsProvider>
+        </PictureInPictureProvider>,
+        {
+          organization,
+        }
+      );
+
+      expect(
+        await screen.findByText('There was a problem loading the conversation.')
+      ).toBeInTheDocument();
+      // The idle suggestions must not stand in for a failed load.
+      expect(
+        screen.queryByText('What are my slowest DB queries?')
+      ).not.toBeInTheDocument();
+      // Sending here would post into the failed run, so the composer is closed off.
+      expect(screen.getByTestId('seer-explorer-input')).toBeDisabled();
+    });
+
+    it('shows the failure, not a spinner, when a failed load is still polling', async () => {
+      // A 5xx load backs off and keeps polling for up to a minute. The composer is
+      // already disabled by then, so a spinner would leave no way out of the panel.
+      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
+        ...defaultHookReturn,
+        runId: 123,
+        isError: true,
+        errorStatusCode: 500,
+        isPolling: true,
+      });
+
+      render(
+        <PictureInPictureProvider>
+          <SeerExplorerSessionsProvider>
+            <SeerExplorerContent
+              getPageReferrer={mockGetPageReferrer}
+              onClose={() => {}}
+            />
+          </SeerExplorerSessionsProvider>
+        </PictureInPictureProvider>,
+        {
+          organization,
+        }
+      );
+
+      expect(
+        await screen.findByText('There was a problem loading the conversation.')
+      ).toBeInTheDocument();
+      expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Start a new chat'})).toBeInTheDocument();
+      expect(screen.getByTestId('seer-explorer-input')).toBeDisabled();
+    });
+
+    it('starts a new chat from the error state', async () => {
+      const startNewSession = jest.fn();
+      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
+        ...defaultHookReturn,
+        runId: 123,
+        isError: true,
+        hasSessionLoadError: true,
+        startNewSession,
+      });
+
+      render(
+        <PictureInPictureProvider>
+          <SeerExplorerSessionsProvider>
+            <SeerExplorerContent
+              getPageReferrer={mockGetPageReferrer}
+              onClose={() => {}}
+            />
+          </SeerExplorerSessionsProvider>
+        </PictureInPictureProvider>,
+        {
+          organization,
+        }
+      );
+
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Start a new chat'})
+      );
+
+      expect(startNewSession).toHaveBeenCalled();
+    });
+
+    it('sends a forwarded query to a new run when the open run failed to load', async () => {
+      const sendMessage = jest.fn();
+      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
+        ...defaultHookReturn,
+        runId: 123,
+        isError: true,
+        hasSessionLoadError: true,
+        sendMessage,
+      });
+
+      render(
+        <PictureInPictureProvider>
+          <SeerExplorerSessionsProvider>
+            <SeerExplorerContent
+              getPageReferrer={mockGetPageReferrer}
+              onClose={() => {}}
+              initialQuery="why is this slow?"
+            />
+          </SeerExplorerSessionsProvider>
+        </PictureInPictureProvider>,
+        {
+          organization,
+        }
+      );
+
+      // The explicit null run id is what forces a fresh run rather than a post
+      // into the run that just failed.
+      await waitFor(() => {
+        expect(sendMessage).toHaveBeenCalledWith('why is this slow?', 0, null);
+      });
     });
   });
 
@@ -382,6 +518,59 @@ describe('SeerExplorerContent', () => {
         screen.queryByText('Ask Seer anything about your application.')
       ).not.toBeInTheDocument();
     });
+
+    it('shows the request error above a pending question', async () => {
+      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
+        ...defaultHookReturn,
+        requestError: {},
+        sessionData: {
+          blocks: [
+            {
+              id: 'msg-1',
+              message: {role: 'user', content: 'Which project?'},
+              timestamp: '2024-01-01T00:00:00Z',
+              loading: false,
+            },
+          ],
+          status: 'awaiting_user_input',
+          pending_user_input: {
+            id: 'input-1',
+            input_type: 'ask_user_question',
+            data: {
+              questions: [
+                {
+                  question: 'Which project should we focus on?',
+                  options: [{label: 'sentry-unreal', description: 'Unreal SDK'}],
+                },
+              ],
+            },
+          },
+          updated_at: '2024-01-01T00:01:00Z',
+        },
+      });
+
+      render(
+        <PictureInPictureProvider>
+          <SeerExplorerSessionsProvider>
+            <SeerExplorerContent
+              getPageReferrer={mockGetPageReferrer}
+              onClose={() => {}}
+            />
+          </SeerExplorerSessionsProvider>
+        </PictureInPictureProvider>,
+        {
+          organization,
+        }
+      );
+
+      const question = await screen.findByText('Which project should we focus on?');
+      const alert = screen.getByText(
+        'There was an error sending your message, wait and try again.'
+      );
+      expect(
+        alert.compareDocumentPosition(question) & Node.DOCUMENT_POSITION_FOLLOWING
+      ).toBeTruthy();
+    });
   });
 
   describe('Input Handling', () => {
@@ -431,6 +620,63 @@ describe('SeerExplorerContent', () => {
 
       expect(sendMessage).toHaveBeenCalledWith('Test message', 0);
       expect(textarea).toHaveValue('');
+    });
+
+    it('shows an error alert and restores the draft when sending fails', async () => {
+      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
+        ...defaultHookReturn,
+        requestError: {query: 'Failed message'},
+      });
+
+      render(
+        <PictureInPictureProvider>
+          <SeerExplorerSessionsProvider>
+            <SeerExplorerContent
+              getPageReferrer={mockGetPageReferrer}
+              onClose={() => {}}
+            />
+          </SeerExplorerSessionsProvider>
+        </PictureInPictureProvider>,
+        {
+          organization,
+        }
+      );
+
+      expect(
+        await screen.findByText(
+          'There was an error sending your message, wait and try again.'
+        )
+      ).toBeInTheDocument();
+      expect(screen.getByTestId('seer-explorer-input')).toHaveValue('Failed message');
+      expect(screen.queryByRole('button', {name: 'Dismiss'})).not.toBeInTheDocument();
+    });
+
+    it('shows an error alert without touching the draft when a response fails', async () => {
+      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
+        ...defaultHookReturn,
+        requestError: {},
+      });
+
+      render(
+        <PictureInPictureProvider>
+          <SeerExplorerSessionsProvider>
+            <SeerExplorerContent
+              getPageReferrer={mockGetPageReferrer}
+              onClose={() => {}}
+            />
+          </SeerExplorerSessionsProvider>
+        </PictureInPictureProvider>,
+        {
+          organization,
+        }
+      );
+
+      expect(
+        await screen.findByText(
+          'There was an error sending your message, wait and try again.'
+        )
+      ).toBeInTheDocument();
+      expect(screen.getByTestId('seer-explorer-input')).toHaveValue('');
     });
 
     it('calls sendMessage and clears input when Enter is pressed', async () => {
@@ -977,6 +1223,15 @@ describe('SeerExplorerContent', () => {
         'gen-ai-features',
         'seer-explorer-context-engine-fe-override-ui-flag',
       ],
+    });
+
+    beforeEach(() => {
+      ConfigStore.set(
+        'user',
+        UserFixture({
+          emails: [{email: 'employee@sentry.io', is_verified: true, id: '1'}],
+        })
+      );
     });
 
     it('does not show the debug menu without any debug feature flag', async () => {

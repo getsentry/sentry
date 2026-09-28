@@ -10,7 +10,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useInfiniteQuery, useQuery} from '@tanstack/react-query';
 import orderBy from 'lodash/orderBy';
-import {parseAsString, useQueryState} from 'nuqs';
+import {parseAsString, useQueryStates} from 'nuqs';
 
 import {ActorAvatar, UserAvatar} from '@sentry/scraps/avatar';
 import {Badge} from '@sentry/scraps/badge';
@@ -62,8 +62,8 @@ import {IssuePreview} from 'sentry/views/issueList/pages/inbox/issuePreview/issu
 import {INBOX_AUTOFIX_CATEGORY_FILTER} from 'sentry/views/issueList/pages/inbox/utils';
 import {InboxEmptyState} from 'sentry/views/issueList/pages/inboxEmptyState';
 import {
+  assignmentFilterParser,
   type AssignmentFilter,
-  useAssignmentFilter,
 } from 'sentry/views/issueList/pages/useAssignmentFilter';
 import {useInboxPreviewPrefetch} from 'sentry/views/issueList/pages/useInboxPreviewPrefetch';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
@@ -303,11 +303,14 @@ function InboxContent() {
   const isMobile = layout === 'mobile';
   const resizableContainerRef = useRef<HTMLDivElement>(null);
   const organization = useOrganization();
-  const [assignmentFilter, setAssignmentFilter] = useAssignmentFilter();
-  const [selectedIssueId, setSelectedIssueId] = useQueryState(
-    SELECTED_ISSUE_QUERY_PARAM,
-    parseAsString.withOptions({history: 'replace'})
-  );
+  const [{assignment: assignmentFilter, preview: selectedIssueId}, setInboxQueryState] =
+    useQueryStates(
+      {
+        assignment: assignmentFilterParser,
+        [SELECTED_ISSUE_QUERY_PARAM]: parseAsString,
+      },
+      {history: 'replace'}
+    );
   const issueIdToRestoreScroll = useRef(selectedIssueId);
   const restoreSelectedIssueScroll = useCallback<RestoreSelectedIssueScroll>(
     (issueId, element) => {
@@ -335,7 +338,7 @@ function InboxContent() {
 
   const handleInitialSectionResult = useSelectFirstLoadedIssue({
     disabled: !isDesktop || selectedIssueId !== null,
-    onSelect: issueId => void setSelectedIssueId(issueId),
+    onSelect: issueId => void setInboxQueryState({preview: issueId}),
     resetKey: assignmentFilter,
     sections: SECTIONS,
   });
@@ -346,7 +349,7 @@ function InboxContent() {
       organization,
       assignment_filter: filter,
     });
-    setAssignmentFilter(filter);
+    void setInboxQueryState({assignment: filter, preview: null});
   };
 
   const alternateInboxAction = alternateInbox
@@ -452,7 +455,7 @@ function InboxContent() {
                 size="xs"
                 variant="link"
                 icon={<IconArrow direction="left" size="xs" />}
-                onClick={() => void setSelectedIssueId(null)}
+                onClick={() => void setInboxQueryState({preview: null})}
               >
                 {t('Back to inbox')}
               </Button>
