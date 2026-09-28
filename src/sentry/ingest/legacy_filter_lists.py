@@ -1,7 +1,7 @@
 """
 The legacy inbound filters are newline lists in ``sentry:*`` project options, written by
 the project details API under ``filters:*`` keys. They move into custom inbound filter
-rows one list at a time. The option ``relay.inbound-filters.legacy-list-stage`` holds the
+rows one list at a time. The option ``inbound-filters.legacy-list-migration-stage`` holds the
 stage of each list, keyed by the list name in ``FilterTypes``.
 
 A list maps to one row per project, found by ``legacy_filter``: the id Relay reports the
@@ -31,7 +31,7 @@ from sentry.models.custominboundfilter import (
 )
 from sentry.models.project import Project
 
-STAGE_OPTION = "relay.inbound-filters.legacy-list-stage"
+STAGE_OPTION = "inbound-filters.legacy-list-migration-stage"
 
 
 class Stage(StrEnum):
