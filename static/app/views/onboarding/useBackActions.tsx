@@ -99,8 +99,8 @@ export function useBackActions({
         // Await deletion so the projects store is updated before navigating
         // back. Without this, re-selecting the same platform can see stale
         // store data and skip project creation.
-        // In the SCM flow, preserve context so the user keeps their SCM
-        // connection, repo selection, and feature choices.
+        // Preserve context so the user keeps their SCM connection, repo
+        // selection, and feature choices.
         await deleteRecentCreatedProject();
       }
 
