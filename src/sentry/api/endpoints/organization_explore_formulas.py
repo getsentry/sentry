@@ -126,7 +126,7 @@ class ReferenceSerializer(RequestSerializer):
 
 class ParamSerializer(ReferenceSerializer):
     type = CharField(source="param_type")
-    order = IntegerField(max_value=3)
+    order = IntegerField(min_value=0, max_value=3)
 
     def validate_type(self, value: str) -> int:
         param_type = ParamItemTypes.get_id_for_type_name(value)
