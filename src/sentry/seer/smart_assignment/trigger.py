@@ -107,7 +107,7 @@ def _is_bulk_resolution(activity_type: ActivityType, activity: Activity) -> bool
     """
     if activity_type not in RESOLUTION_ACTIVITIES:
         return False
-    if activity.data and activity.data.get("bulk"):
+    if not (activity.data and activity.data.get("bulk")):
         return False
     metrics.incr(
         "smart_assignment.trigger.skipped",
