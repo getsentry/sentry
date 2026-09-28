@@ -88,6 +88,82 @@ class BaseFormulaTest(APITestCase):
         return formula
 
 
+class TestFormulaDetails(BaseFormulaTest):
+    def test_get_explore_formula(self) -> None:
+        formula = self.create_formula(self.formula_object)
+        with self.feature(self.feature_flags):
+            response = self.client.get(
+                reverse("sentry-api-0-explore-formulas-detail", args=[self.org.slug, formula.id])
+            )
+            assert response.status_code == 200, response.content
+
+        data = response.data
+        assert data["id"] == str(formula.id)
+        assert data["name"] == "formula.apdex"
+        assert data["formula"] == "({count_satisfied} + {count_tolerating} / 2) / count()"
+        assert data["unit"] is None
+        assert data["type"] == "number"
+        assert data["references"] == [
+            {"name": "count_satisfied", "value": "count_if(`{duration}:<{threshold}`)"},
+            {
+                "name": "count_tolerating",
+                "value": "count_if(`{duration}:>={threshold} and {duration}:<={4threshold}`)",
+            },
+        ]
+        assert data["params"] == [
+            {
+                "name": "duration",
+                "type": "column",
+                "order": 0,
+                "value": "",
+            },
+            {
+                "name": "threshold",
+                "type": "number",
+                "order": 1,
+                "value": "",
+            },
+            {"name": "4threshold", "type": "calculation", "order": 2, "value": "{threshold} * 4"},
+        ]
+
+    def test_delete_explore_formula(self) -> None:
+        formula = self.create_formula(self.formula_object)
+        with self.feature(self.feature_flags):
+            response = self.client.delete(
+                reverse("sentry-api-0-explore-formulas-detail", args=[self.org.slug, formula.id])
+            )
+            assert response.status_code == 204, response.content
+        assert ExploreSavedFormula.objects.filter(id=formula.id).first() is None
+
+    def test_update_explore_formula(self) -> None:
+        formula = self.create_formula(self.formula_object)
+        self.formula_object["name"] = "formula.hello"
+        self.formula_object["formula"] = "count() + count()"
+        with self.feature(self.feature_flags):
+            response = self.client.put(
+                reverse("sentry-api-0-explore-formulas-detail", args=[self.org.slug, formula.id]),
+                data=self.formula_object,
+            )
+            assert response.status_code == 200, response.content
+        assert response.data["name"] == "formula.hello"
+        assert response.data["formula"] == "count() + count()"
+
+    def test_update_explore_formula_with_name_already_in_db(self) -> None:
+        formula = self.create_formula(self.formula_object)
+        formula_object2 = self.formula_object.copy()
+        formula_object2["name"] = "formula.hello"
+        # Create a formula with the name we'll put with
+        self.create_formula(formula_object2)
+        with self.feature(self.feature_flags):
+            response = self.client.put(
+                # update the first formula with the second one
+                reverse("sentry-api-0-explore-formulas-detail", args=[self.org.slug, formula.id]),
+                data=formula_object2,
+            )
+            assert response.status_code == 400, response.content
+        assert str(response.data["detail"]) == "Formula name must be unique"
+
+
 class TestFormulas(BaseFormulaTest):
     def setUp(self) -> None:
         super().setUp()
