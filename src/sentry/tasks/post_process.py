@@ -581,13 +581,9 @@ def post_process_group(
                     )
                     return
 
-                # TODO: Find a better way to handle this. Post process forwarder
-                # might replay previously handled events. Before, once the
-                # payload was deleted from Redis, the task knew it can skip this
-                # event. Nodestore still has these events, however. We now need
-                # a mechanism to ensure that we do not process events multiple
-                # times.
-                # The lock is not a sufficient solution for this.
+                # Post process forwarder can replay previously handled events.
+                # To prevent this, we "leak" a lock preventing any subsequent
+                # processing of the same event.
                 lock = locks.get(
                     f"ppg:{project_id}:{event_id}-once",
                     duration=600,
