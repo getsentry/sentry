@@ -97,31 +97,45 @@ export function ConnectRepositoryModal({
   const saveMutation = useMutation({
     mutationFn: saveProjectRepoConnection,
     onSuccess: async () => {
-      await queryClient.invalidateQueries(
-        projectRepoInfiniteOptions({
-          orgSlug: organization.slug,
-          projectSlug: project.slug,
-        })
-      );
+      await Promise.all([
+        queryClient.invalidateQueries(
+          projectRepoInfiniteOptions({
+            orgSlug: organization.slug,
+            projectSlug: project.slug,
+          })
+        ),
+        queryClient.invalidateQueries(
+          projectCodeMappingsOptions({
+            orgSlug: organization.slug,
+            projectId: project.id,
+          })
+        ),
+      ]);
       closeModal();
     },
   });
 
-  const {data: rawExistingMappings = []} = useQuery({
+  const existingMappingsQuery = useQuery({
     ...projectCodeMappingsOptions({orgSlug: organization.slug, projectId: project.id}),
     enabled: selectedOption !== null,
   });
 
-  const existingMappings: ExistingMapping[] = rawExistingMappings.map(m => ({
-    repoName: m.repoName,
-    sourceRoot: m.sourceRoot,
-    stackRoot: m.stackRoot,
-  }));
+  const existingMappings: ExistingMapping[] = (existingMappingsQuery.data ?? []).map(
+    m => ({
+      repoName: m.repoName,
+      sourceRoot: m.sourceRoot,
+      stackRoot: m.stackRoot,
+    })
+  );
 
   const hasUnusedMapping = getPathMappingWarnings(pathMappings, existingMappings).some(
     w => w?.type === 'exact' || w?.type === 'exactExisting'
   );
-  const canSave = selectedOption !== null && pathMappings.length > 0 && !hasUnusedMapping;
+  const canSave =
+    selectedOption !== null &&
+    existingMappingsQuery.isSuccess &&
+    pathMappings.length > 0 &&
+    !hasUnusedMapping;
   const saveError = saveMutation.isError ? getApiErrorMessage(saveMutation.error) : null;
 
   return (
@@ -136,6 +150,13 @@ export function ConnectRepositoryModal({
           {saveError && (
             <Alert.Container>
               <Alert variant="danger">{saveError}</Alert>
+            </Alert.Container>
+          )}
+          {existingMappingsQuery.isError && (
+            <Alert.Container>
+              <Alert variant="danger">
+                {t('Failed to load existing code mappings. Close and reopen to retry.')}
+              </Alert>
             </Alert.Container>
           )}
           <Text as="p">

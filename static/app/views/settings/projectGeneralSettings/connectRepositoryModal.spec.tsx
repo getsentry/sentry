@@ -149,7 +149,8 @@ describe('ConnectRepositoryModal', () => {
     expect(
       screen.getByRole('textbox', {name: /stack trace prefix/i})
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Save'})).toBeEnabled();
+    // Wait for the existing-mappings query to settle before Save becomes enabled.
+    expect(await screen.findByRole('button', {name: 'Save'})).toBeEnabled();
 
     await userEvent.type(
       screen.getByRole('textbox', {name: /stack trace prefix/i}),
@@ -222,7 +223,7 @@ describe('ConnectRepositoryModal', () => {
       screen.getByRole('textbox', {name: /repository prefix/i}),
       'dist/'
     );
-    expect(screen.getByRole('button', {name: 'Save'})).toBeEnabled();
+    expect(await screen.findByRole('button', {name: 'Save'})).toBeEnabled();
 
     // Change second stack root to src/ — now an exact duplicate → Save disabled
     await userEvent.clear(screen.getByRole('textbox', {name: /stack trace prefix/i}));
@@ -346,7 +347,7 @@ describe('ConnectRepositoryModal', () => {
       'src/'
     );
 
-    expect(screen.getByRole('button', {name: 'Save'})).toBeEnabled();
+    expect(await screen.findByRole('button', {name: 'Save'})).toBeEnabled();
     expect(
       await screen.findByText((_, node) =>
         hasOnlyThisText(

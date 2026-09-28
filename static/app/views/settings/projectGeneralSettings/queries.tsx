@@ -17,6 +17,7 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 import {fetchMutation, QUERY_API_CLIENT} from 'sentry/utils/queryClient';
 import {organizationRepositoriesInfiniteOptions} from 'sentry/utils/repositories/repoQueryOptions';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 export type ProjectRepoListItem = {
@@ -188,6 +189,38 @@ export function projectCodeMappingsOptions({
   );
 }
 
+const DUPLICATE_CODE_MAPPING_MESSAGE = 'Code path config already exists';
+
+function isDuplicateCodeMappingError(error: unknown): boolean {
+  if (!(error instanceof RequestError) || error.responseJSON === undefined) {
+    return false;
+  }
+  return JSON.stringify(error.responseJSON).includes(DUPLICATE_CODE_MAPPING_MESSAGE);
+}
+
+type CodeMappingRow = {repoId: string; sourceRoot: string; stackRoot: string};
+
+async function repoOwnsCodeMapping(
+  orgSlug: string,
+  projectId: string,
+  repositoryId: string,
+  stackRoot: string,
+  sourceRoot: string
+): Promise<boolean> {
+  const rows: CodeMappingRow[] = await QUERY_API_CLIENT.requestPromise(
+    getApiUrl('/organizations/$organizationIdOrSlug/code-mappings/', {
+      path: {organizationIdOrSlug: orgSlug},
+    }),
+    {method: 'GET', query: {project: projectId}}
+  );
+  return rows.some(
+    row =>
+      row.repoId === repositoryId &&
+      row.stackRoot === stackRoot &&
+      row.sourceRoot === sourceRoot
+  );
+}
+
 export async function saveProjectRepoConnection({
   orgSlug,
   project,
@@ -209,7 +242,7 @@ export async function saveProjectRepoConnection({
     data: {repositoryId},
   });
 
-  await Promise.all(
+  const results = await Promise.allSettled(
     pathMappings.map(mapping =>
       fetchMutation({
         url: getApiUrl('/organizations/$organizationIdOrSlug/code-mappings/', {
@@ -227,4 +260,26 @@ export async function saveProjectRepoConnection({
       })
     )
   );
+
+  for (const [result, mapping] of results.map((r, i) => [r, pathMappings[i]!] as const)) {
+    if (result.status === 'fulfilled') {
+      continue;
+    }
+    if (!isDuplicateCodeMappingError(result.reason)) {
+      throw result.reason;
+    }
+    // Duplicate error: only safe to ignore when this repo already owns that
+    // exact stack/source pair (idempotent retry). Any other owner is a real
+    // conflict that the user must resolve.
+    const isIdempotentRetry = await repoOwnsCodeMapping(
+      orgSlug,
+      project.id,
+      repositoryId,
+      mapping.stackRoot,
+      mapping.sourceRoot
+    );
+    if (!isIdempotentRetry) {
+      throw result.reason;
+    }
+  }
 }
