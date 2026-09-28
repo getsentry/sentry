@@ -242,7 +242,11 @@ describe('ConnectRepositoryModal', () => {
       url: `/organizations/${organization.slug}/code-mappings/`,
       method: 'POST',
       statusCode: 400,
-      body: {detail: 'Code path config already exists'},
+      body: {
+        nonFieldErrors: [
+          'Code path config already exists with this project, stack trace root, and source root',
+        ],
+      },
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/code-mappings/`,
@@ -270,7 +274,11 @@ describe('ConnectRepositoryModal', () => {
       url: `/organizations/${organization.slug}/code-mappings/`,
       method: 'POST',
       statusCode: 400,
-      body: {detail: 'Code path config already exists'},
+      body: {
+        nonFieldErrors: [
+          'Code path config already exists with this project, stack trace root, and source root',
+        ],
+      },
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/code-mappings/`,
@@ -286,7 +294,9 @@ describe('ConnectRepositoryModal', () => {
     await userEvent.click(await screen.findByRole('button', {name: 'Save'}));
 
     expect(
-      await screen.findByText('Code path config already exists')
+      await screen.findByText(
+        /Code path config already exists with this project, stack trace root, and source root/
+      )
     ).toBeInTheDocument();
     expect(closeModal).not.toHaveBeenCalled();
   });
@@ -308,7 +318,7 @@ describe('ConnectRepositoryModal', () => {
       url: `/organizations/${organization.slug}/code-mappings/`,
       method: 'POST',
       statusCode: 400,
-      body: {detail: 'Repository does not exist'},
+      body: {repositoryId: ['Repository does not exist']},
     });
 
     renderModal(closeModal);

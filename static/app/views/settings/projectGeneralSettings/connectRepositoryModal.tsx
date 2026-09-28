@@ -25,16 +25,39 @@ import {
   useGroupedRepoOptions,
 } from 'sentry/views/settings/projectGeneralSettings/queries';
 
-function getApiErrorMessage(error: unknown) {
-  if (error instanceof RequestError) {
-    const detail = error.responseJSON?.detail;
-    if (typeof detail === 'string') {
-      return detail;
-    }
-    if (typeof detail?.message === 'string') {
-      return detail.message;
+function getApiErrorMessage(error: unknown): string {
+  if (!(error instanceof RequestError)) {
+    return t('Failed to connect repository');
+  }
+
+  const json = error.responseJSON;
+
+  // Plain-string response body (e.g. "Missing param: integrationId").
+  if (typeof (json as unknown) === 'string') {
+    return json as unknown as string;
+  }
+
+  const {detail} = json ?? {};
+  if (typeof detail === 'string' && detail) {
+    return detail;
+  }
+  if (detail && typeof detail === 'object' && typeof detail.message === 'string') {
+    return detail.message;
+  }
+
+  // Non-field errors (e.g. duplicate code mapping: {nonFieldErrors: [...]}).
+  const nonFieldErrors = json?.nonFieldErrors ?? json?.non_field_errors;
+  if (Array.isArray(nonFieldErrors) && typeof nonFieldErrors[0] === 'string') {
+    return nonFieldErrors[0];
+  }
+
+  // First field-level error (e.g. {repositoryId: ["Repository does not exist"]}).
+  for (const value of Object.values(json ?? {})) {
+    if (Array.isArray(value) && typeof value[0] === 'string') {
+      return value[0];
     }
   }
+
   return t('Failed to connect repository');
 }
 
