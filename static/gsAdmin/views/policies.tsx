@@ -19,7 +19,7 @@ const getRow = (row: any) => [
     {row.version ? row.version : 'n/a'}
   </td>,
   <td key="updated" style={{textAlign: 'right'}}>
-    {moment(row.updatedAt).fromNow()}
+    {row.updatedAt ? moment(row.updatedAt).fromNow() : 'n/a'}
   </td>,
 ];
 
@@ -38,6 +38,7 @@ export function Policies() {
         inPanel
         path="/_admin/policies/"
         endpoint="/policies/"
+        defaultParams={{per_page: 50, include: 'all'}}
         columns={[
           <th key="policy">Policy</th>,
           <th key="value" style={{width: 100, textAlign: 'center'}}>
