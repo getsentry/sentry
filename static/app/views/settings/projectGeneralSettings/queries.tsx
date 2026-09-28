@@ -283,3 +283,134 @@ export async function saveProjectRepoConnection({
     }
   }
 }
+
+const CODE_OWNER_PROTECTED_MESSAGE =
+  'This path mapping is used by a Code Owner rule and cannot be removed. Delete the Code Owner rule first.';
+
+export type EditSaveResult = {
+  codeOwnerMessages: string[];
+};
+
+export async function editProjectRepoMappings({
+  orgSlug,
+  project,
+  repositoryId,
+  integrationId,
+  seededMappings,
+  submittedMappings,
+}: {
+  integrationId: string;
+  orgSlug: string;
+  project: Project;
+  repositoryId: string;
+  seededMappings: RepositoryProjectPathConfig[];
+  submittedMappings: PathMappingValue[];
+}): Promise<EditSaveResult> {
+  const submittedIds = new Set(submittedMappings.flatMap(m => (m.id ? [m.id] : [])));
+
+  const toDelete = seededMappings.filter(m => !submittedIds.has(m.id));
+  const toUpdate = submittedMappings.filter(m => {
+    if (!m.id) {
+      return false;
+    }
+    const original = seededMappings.find(s => s.id === m.id);
+    if (!original) {
+      return false;
+    }
+    return (
+      m.stackRoot !== original.stackRoot ||
+      m.sourceRoot !== original.sourceRoot ||
+      m.branch !== original.defaultBranch
+    );
+  });
+  const toCreate = submittedMappings.filter(m => !m.id);
+
+  const codeOwnerMessages: string[] = [];
+
+  // 1. Deletes first — a 409 means a Code Owner rule protects this mapping;
+  //    surface the message but continue saving the rest.
+  await Promise.all(
+    toDelete.map(async m => {
+      try {
+        await fetchMutation({
+          url: getApiUrl(
+            '/organizations/$organizationIdOrSlug/code-mappings/$configId/',
+            {
+              path: {organizationIdOrSlug: orgSlug, configId: m.id},
+            }
+          ),
+          method: 'DELETE',
+        });
+      } catch (error) {
+        if (error instanceof RequestError && error.status === 409) {
+          codeOwnerMessages.push(CODE_OWNER_PROTECTED_MESSAGE);
+          return;
+        }
+        throw error;
+      }
+    })
+  );
+
+  // 2. Updates
+  await Promise.all(
+    toUpdate.map(m =>
+      fetchMutation({
+        url: getApiUrl('/organizations/$organizationIdOrSlug/code-mappings/$configId/', {
+          path: {organizationIdOrSlug: orgSlug, configId: m.id!},
+        }),
+        method: 'PUT',
+        data: {
+          integrationId,
+          repositoryId,
+          projectId: project.id,
+          stackRoot: m.stackRoot,
+          sourceRoot: m.sourceRoot,
+          defaultBranch: m.branch,
+        },
+      })
+    )
+  );
+
+  // 3. Creates — same duplicate-ignore logic as saveProjectRepoConnection
+  const createResults = await Promise.allSettled(
+    toCreate.map(m =>
+      fetchMutation({
+        url: getApiUrl('/organizations/$organizationIdOrSlug/code-mappings/', {
+          path: {organizationIdOrSlug: orgSlug},
+        }),
+        method: 'POST',
+        data: {
+          integrationId,
+          repositoryId,
+          projectId: project.id,
+          stackRoot: m.stackRoot,
+          sourceRoot: m.sourceRoot,
+          defaultBranch: m.branch,
+        },
+      })
+    )
+  );
+
+  for (const [result, mapping] of createResults.map(
+    (r, i) => [r, toCreate[i]!] as const
+  )) {
+    if (result.status === 'fulfilled') {
+      continue;
+    }
+    if (!isDuplicateCodeMappingError(result.reason)) {
+      throw result.reason;
+    }
+    const isIdempotent = await repoOwnsCodeMapping(
+      orgSlug,
+      project.id,
+      repositoryId,
+      mapping.stackRoot,
+      mapping.sourceRoot
+    );
+    if (!isIdempotent) {
+      throw result.reason;
+    }
+  }
+
+  return {codeOwnerMessages};
+}

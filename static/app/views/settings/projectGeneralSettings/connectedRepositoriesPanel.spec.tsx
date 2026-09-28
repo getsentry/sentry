@@ -193,7 +193,7 @@ describe('ConnectedRepositoriesPanel', () => {
     expect(screen.getByText('getsentry/relay')).toBeInTheDocument();
   });
 
-  it('opens overflow menu with disabled Edit and Disconnect items', async () => {
+  it('opens overflow menu with Edit enabled and Disconnect disabled', async () => {
     MockApiClient.addMockResponse({
       url: repoUrl,
       method: 'GET',
@@ -214,7 +214,7 @@ describe('ConnectedRepositoriesPanel', () => {
 
     await userEvent.click(await screen.findByRole('button', {name: 'More Actions'}));
 
-    expect(screen.getByRole('menuitemradio', {name: 'Edit'})).toHaveAttribute(
+    expect(screen.getByRole('menuitemradio', {name: 'Edit'})).not.toHaveAttribute(
       'aria-disabled',
       'true'
     );
@@ -222,6 +222,149 @@ describe('ConnectedRepositoriesPanel', () => {
       'aria-disabled',
       'true'
     );
+  });
+
+  it('Edit opens the modal locked to that repository with seeded path rows', async () => {
+    const integration = GitHubIntegrationFixture();
+    MockApiClient.addMockResponse({
+      url: repoUrl,
+      method: 'GET',
+      body: [
+        {
+          id: '1',
+          projectId: project.id,
+          repositoryId: '10',
+          repoName: 'getsentry/sentry',
+          source: 'manual',
+          providerKey: 'github',
+          mappingCount: 1,
+        },
+      ],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/`,
+      method: 'GET',
+      body: [integration],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/${integration.id}/repos/`,
+      method: 'GET',
+      body: {repos: []},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/repos/`,
+      method: 'GET',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/code-mappings/`,
+      method: 'GET',
+      body: [
+        {
+          id: '5',
+          repoId: '10',
+          repoName: 'getsentry/sentry',
+          projectId: project.id,
+          stackRoot: 'src/',
+          sourceRoot: 'app/',
+          defaultBranch: 'main',
+          integrationId: integration.id,
+        },
+      ],
+    });
+
+    renderPanel();
+
+    await userEvent.click(await screen.findByRole('button', {name: 'More Actions'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Edit'}));
+
+    // Both fields are locked in edit mode.
+    expect(
+      await screen.findByText('Edit getsentry/sentry connection')
+    ).toBeInTheDocument();
+    const [projectSelect, repoSelect] = screen.getAllByRole('textbox');
+    expect(projectSelect).toBeDisabled();
+    expect(repoSelect).toBeDisabled();
+
+    // Seeded row from the server is rendered and Save is enabled.
+    expect(await screen.findByText('src/')).toBeInTheDocument();
+    expect(await screen.findByRole('button', {name: 'Save'})).toBeEnabled();
+  });
+
+  it('updates mapping count after a successful edit save', async () => {
+    const integration = GitHubIntegrationFixture();
+    let mappingCount = 1;
+
+    MockApiClient.addMockResponse({
+      url: repoUrl,
+      method: 'GET',
+      body: () => [
+        {
+          id: '1',
+          projectId: project.id,
+          repositoryId: '10',
+          repoName: 'getsentry/sentry',
+          source: 'manual',
+          providerKey: 'github',
+          mappingCount,
+        },
+      ],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/`,
+      method: 'GET',
+      body: [integration],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/${integration.id}/repos/`,
+      method: 'GET',
+      body: {repos: []},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/repos/`,
+      method: 'GET',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/code-mappings/`,
+      method: 'GET',
+      body: [
+        {
+          id: '5',
+          repoId: '10',
+          repoName: 'getsentry/sentry',
+          projectId: project.id,
+          stackRoot: 'src/',
+          sourceRoot: 'app/',
+          defaultBranch: 'main',
+          integrationId: integration.id,
+        },
+      ],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/code-mappings/`,
+      method: 'POST',
+      body: () => {
+        mappingCount = 2;
+        return {};
+      },
+    });
+
+    renderPanel();
+
+    await userEvent.click(await screen.findByRole('button', {name: 'More Actions'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Edit'}));
+
+    // Wait for seeded row then add a second mapping.
+    expect(await screen.findByRole('button', {name: 'Save'})).toBeEnabled();
+    await userEvent.click(screen.getByRole('button', {name: 'Add another path'}));
+    await userEvent.type(
+      screen.getByRole('textbox', {name: /stack trace prefix/i}),
+      'src/'
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+
+    expect(await screen.findByText('2 mappings')).toBeInTheDocument();
   });
 
   it('opens the connect repository modal when the button is clicked', async () => {
