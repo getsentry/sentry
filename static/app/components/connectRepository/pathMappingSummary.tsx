@@ -27,14 +27,14 @@ interface PathMappingSummaryProps extends PathMappingValue {
   warning?: PathMappingWarning | null;
 }
 
-function PathSegment({value, emptyLabel}: {emptyLabel: string; value: string}) {
+function PathSegment({value}: {value: string}) {
   return (
     <Flex flex={`${PATH_RATIO} 0 0%`} minWidth={0} maxWidth="max-content">
       {value ? (
         <AccentPathSegment value={value} ellipsis />
       ) : (
         <Text monospace variant="muted">
-          <strong>{t('empty')}</strong> {emptyLabel}
+          {t('empty')}
         </Text>
       )}
     </Flex>
@@ -74,11 +74,11 @@ export function PathMappingSummary({
             )}
           </Container>
         )}
-        <PathSegment value={normalizedStackRoot} emptyLabel={t('stack trace prefix')} />
+        <PathSegment value={normalizedStackRoot} />
         <Container flexShrink={0}>
           {props => <IconArrow direction="right" size="xs" {...props} />}
         </Container>
-        <PathSegment value={normalizedSourceRoot} emptyLabel={t('repository prefix')} />
+        <PathSegment value={normalizedSourceRoot} />
 
         <Container flex="1 0 0%" />
 
