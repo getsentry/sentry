@@ -7,6 +7,7 @@ import {Button} from '@sentry/scraps/button';
 import {InlineCode} from '@sentry/scraps/code';
 import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
 import {GcpVerificationResults} from 'sentry/components/gcpVerificationResults';
@@ -50,8 +51,13 @@ function GcpSaGenerationStep({
   return (
     <Stack gap="lg">
       <Text>
-        {t(
-          'Sentry has generated a service account for your organization. Grant it access to your GCP projects using the steps below, then click Continue to enter your connection details.'
+        {tct(
+          'Sentry has generated a service account for your organization. Grant it access to your GCP projects using the steps below, then click Continue to enter your connection details. Refer to the [link:documentation] for setup instructions.',
+          {
+            link: (
+              <ExternalLink href="https://docs.sentry.io/integrations/debugging/gcp-seer/" />
+            ),
+          }
         )}
       </Text>
       <Stack gap="sm">
