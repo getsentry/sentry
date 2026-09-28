@@ -56,19 +56,11 @@ export function PolicyFormModal({
 }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isReadingFile, setIsReadingFile] = useState(false);
-  const baseFormSchema = isNewPolicy
-    ? schema
-        .extend({
-          name: z.string().trim().min(1, 'Name is required'),
-          slug: z.string().trim().min(1, 'Slug is required'),
-        })
-        .refine(
-          value => !(value.file || value.url || value.active) || !!value.version.trim(),
-          {
-            path: ['version'],
-            message: 'Version is required when adding a revision',
-          }
-        )
+  const formSchema = isNewPolicy
+    ? schema.extend({
+        name: z.string().trim().min(1, 'Name is required'),
+        slug: z.string().trim().min(1, 'Slug is required'),
+      })
     : schema.extend({
         version: z
           .string()
@@ -76,18 +68,6 @@ export function PolicyFormModal({
           .min(1, 'Version is required')
           .min(3, 'Version must be at least 3 characters'),
       });
-  const formSchema = baseFormSchema.refine(
-    value => {
-      if (isNewPolicy && !value.version && !value.active) {
-        return !value.url && !value.file;
-      }
-      return Boolean(value.url) !== Boolean(value.file);
-    },
-    {
-      path: ['url'],
-      message: 'Provide either a URL or a PDF file, but not both.',
-    }
-  );
   const mutation = useMutation({
     mutationFn: fetchMutation<Policy | PolicyRevision>,
     onSuccess: data => {
@@ -205,11 +185,7 @@ export function PolicyFormModal({
           )}
           <form.AppField name="version">
             {field => (
-              <field.Layout.Stack
-                label="Version"
-                required={!isNewPolicy}
-                hintText={isNewPolicy ? 'Required when adding a URL or file.' : undefined}
-              >
+              <field.Layout.Stack label="Version" required={!isNewPolicy}>
                 <field.Input
                   value={field.state.value}
                   onChange={field.handleChange}
