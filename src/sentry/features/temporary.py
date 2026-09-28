@@ -126,6 +126,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:inbound-filters-v2", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Show the custom inbound filters table in project settings. Needs inbound-filters-v2 too.
     manager.add("organizations:inbound-filters-v2-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Serve the legacy IP address list to Relay as a generic filter instead of the native clientIps setting.
+    manager.add("organizations:inbound-filters-generic-ip-filter", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable GPU crash dump symbolication via teapot
     manager.add("organizations:gpu-crash-symbolication", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable increased issue_owners rate limit for auto-assignment
