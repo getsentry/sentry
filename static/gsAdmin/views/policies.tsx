@@ -1,5 +1,5 @@
-import {useState} from 'react';
 import moment from 'moment-timezone';
+import {parseAsStringLiteral, useQueryState} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
@@ -29,7 +29,10 @@ const getRow = (row: any) => [
 
 export function Policies() {
   const {openModal} = useModal();
-  const [status, setStatus] = useState<'active' | 'all'>('active');
+  const [status, setStatus] = useQueryState(
+    'include',
+    parseAsStringLiteral(['active', 'all'] as const).withDefault('active')
+  );
 
   return (
     <div>
