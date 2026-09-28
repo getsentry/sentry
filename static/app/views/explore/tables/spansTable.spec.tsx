@@ -138,8 +138,8 @@ describe('SpansTable', () => {
     requestIdentityKey,
     result = makeQueryResult(rows),
   }: {
-    requestIdentityKey?: string;
     result: SpansTableResult['result'];
+    requestIdentityKey?: string;
   } = {}) {
     return (
       <SpansTable
