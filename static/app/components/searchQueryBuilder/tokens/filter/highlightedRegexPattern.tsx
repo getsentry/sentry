@@ -12,7 +12,7 @@ export function HighlightedRegexPattern({pattern}: {pattern: string}) {
   const isPlainText = tokens?.length === 1 && tokens[0]!.className === 'token';
 
   if (!tokens?.length || isPlainText) {
-    return pattern;
+    return <PatternTokens>{pattern}</PatternTokens>;
   }
 
   return (
@@ -27,6 +27,8 @@ export function HighlightedRegexPattern({pattern}: {pattern: string}) {
 }
 
 const PatternTokens = styled('span')`
+  color: ${p => p.theme.tokens.content.primary};
+
   .token.group,
   .token.quantifier,
   .token.alternation,

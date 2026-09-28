@@ -8854,7 +8854,9 @@ describe('SearchQueryBuilder', () => {
       expect(
         await screen.findByRole('combobox', {name: 'Edit filter value'})
       ).toHaveValue('fire.*fox');
-      expect(screen.getByText('fire.*fox')).toHaveAttribute('aria-hidden', 'true');
+      expect(
+        screen.getByText('fire.*fox', {selector: '[aria-hidden="true"] *'})
+      ).toBeInTheDocument();
     });
   });
 

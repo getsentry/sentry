@@ -43,10 +43,10 @@ describe('HighlightedRegexPattern', () => {
     expect(screen.getByText('abc…xyz')).toBeInTheDocument();
   });
 
-  it('renders no markup when given a pattern of only literals', () => {
+  it('renders no token markup when given a pattern of only literals', () => {
     render(<HighlightedRegexPattern pattern="firefox" />);
 
     expect(screen.getByText('firefox')).toBeInTheDocument();
-    expect(screen.queryByText('firefox', {selector: 'span'})).not.toBeInTheDocument();
+    expect(screen.queryByText('firefox', {selector: '.token'})).not.toBeInTheDocument();
   });
 });
