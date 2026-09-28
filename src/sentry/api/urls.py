@@ -767,7 +767,7 @@ from .endpoints.organization_attribute_mappings import OrganizationAttributeMapp
 from .endpoints.organization_auth_provider_details import OrganizationAuthProviderDetailsEndpoint
 from .endpoints.organization_auth_providers import OrganizationAuthProvidersEndpoint
 from .endpoints.organization_events import OrganizationEventsEndpoint
-from .endpoints.organization_events_annotations import OrganizationEventsAnnotationsEndpoint
+from .endpoints.organization_events_dropped import OrganizationEventsDroppedEndpoint
 from .endpoints.organization_events_facets import OrganizationEventsFacetsEndpoint
 from .endpoints.organization_events_facets_performance import (
     OrganizationEventsFacetsPerformanceEndpoint,
@@ -1748,9 +1748,9 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-events-timeseries",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/events-annotations/$",
-        OrganizationEventsAnnotationsEndpoint.as_view(),
-        name="sentry-api-0-organization-events-annotations",
+        r"^(?P<organization_id_or_slug>[^/]+)/events-dropped/$",
+        OrganizationEventsDroppedEndpoint.as_view(),
+        name="sentry-api-0-organization-events-dropped",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/events-heatmap/$",

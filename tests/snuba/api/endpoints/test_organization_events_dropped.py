@@ -9,8 +9,8 @@ from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.outcomes import Outcome
 
 
-class OrganizationEventsAnnotationsEndpointTest(APITestCase, OutcomesSnubaTest):
-    endpoint = "sentry-api-0-organization-events-annotations"
+class OrganizationEventsDroppedEndpointTest(APITestCase, OutcomesSnubaTest):
+    endpoint = "sentry-api-0-organization-events-dropped"
 
     def setUp(self) -> None:
         super().setUp()
@@ -54,13 +54,9 @@ class OrganizationEventsAnnotationsEndpointTest(APITestCase, OutcomesSnubaTest):
         with self.feature({"organizations:visibility-explore-view": True}):
             return self.client.get(self.url, data=data, format="json")
 
-    def test_serves_dropped_and_accepted_annotations(self) -> None:
+    def test_serves_dropped_and_accepted_events(self) -> None:
         self._store_outcome(Outcome.ACCEPTED, DataCategory.LOG_ITEM, 1000)
-        self._store_outcome(Outcome.ACCEPTED, DataCategory.LOG_BYTE, 500_000)
         self._store_outcome(Outcome.RATE_LIMITED, DataCategory.LOG_ITEM, 400, reason="key_quota")
-        self._store_outcome(
-            Outcome.RATE_LIMITED, DataCategory.LOG_BYTE, 200_000, reason="key_quota"
-        )
 
         response = self._do_request()
         assert response.status_code == 200, response.content
@@ -69,17 +65,17 @@ class OrganizationEventsAnnotationsEndpointTest(APITestCase, OutcomesSnubaTest):
         assert meta["dataset"] == "logs"
         assert meta["interval"] == 3600 * 1000
 
-        dropped = response.data["droppedAnnotations"]
+        dropped = response.data["droppedEvents"]
         assert len(dropped) == 1
-        assert dropped[0]["outcome"] == Outcome.RATE_LIMITED.api_name()
         assert dropped[0]["reason"] == "key_quota"
-        assert dropped[0]["eventCount"] == 400
-        assert dropped[0]["byteSize"] == 200_000
+        assert dropped[0]["count"] == 400
+        assert "byteSize" not in dropped[0]
 
-        accepted = response.data["acceptedAnnotations"]
+        accepted = response.data["acceptedEvents"]
         assert len(accepted) == 1
-        assert accepted[0]["eventCount"] == 1000
-        assert accepted[0]["byteSize"] == 500_000
+        assert accepted[0]["reason"] == "accepted"
+        assert accepted[0]["count"] == 1000
+        assert "byteSize" not in accepted[0]
 
     def test_interval_is_configurable_independent_of_a_chart(self) -> None:
         # A finer interval splits the two-hour window into more buckets than the
@@ -93,4 +89,4 @@ class OrganizationEventsAnnotationsEndpointTest(APITestCase, OutcomesSnubaTest):
     def test_unsupported_dataset_is_rejected(self) -> None:
         response = self._do_request(dataset="discover")
         assert response.status_code == 400, response.content
-        assert "does not support annotations" in response.data["detail"]
+        assert "does not support dropped events" in response.data["detail"]

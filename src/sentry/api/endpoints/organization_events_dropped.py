@@ -1,4 +1,4 @@
-from typing import Any, NotRequired, TypedDict
+from typing import Any, TypedDict
 
 import sentry_sdk
 from drf_spectacular.utils import OpenApiResponse, extend_schema
@@ -20,43 +20,41 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
 from sentry.snuba.utils import DATASET_LABELS
 
+_ACCEPTED_REASON = "accepted"
 
-class AnnotationsMeta(TypedDict):
+
+class DroppedEventsBucket(TypedDict):
+    type: str
+    category: str
+    reason: str
+    start: float
+    end: float
+    count: float
+
+
+class DroppedEventsMeta(TypedDict):
     dataset: str
     start: float
     end: float
     interval: float
 
 
-class AnnotationsResponse(TypedDict):
-    meta: AnnotationsMeta
-    droppedAnnotations: list[Annotation]
-    acceptedAnnotations: NotRequired[list[Annotation]]
+class DroppedEventsResponse(TypedDict):
+    meta: DroppedEventsMeta
+    droppedEvents: list[DroppedEventsBucket]
+    acceptedEvents: list[DroppedEventsBucket]
 
 
 @extend_schema(tags=["Explore"])
 @cell_silo_endpoint
-class OrganizationEventsAnnotationsEndpoint(OrganizationEventsEndpointBase):
-    """Serve data-fidelity annotations independently of any chart query.
-
-    Unlike the inline ``meta.annotations`` on the events-timeseries endpoint,
-    this endpoint:
-
-    - runs no chart/aggregation query — it only reads Outcomes,
-    - selects the *type* of dropped data via the ``dataset`` param (logs,
-      spans, tracemetrics today; extensible through
-      ``DATASET_TO_CATEGORY``), and
-    - takes the bucket ``interval`` explicitly rather than inheriting a
-      chart's resolved rollup.
-    """
-
+class OrganizationEventsDroppedEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
 
     @extend_schema(
-        operation_id="listOrganizationEventsAnnotations",
-        summary="Query Data-Fidelity Annotations",
+        operation_id="listOrganizationEventsDropped",
+        summary="Query Dropped Events",
         parameters=[
             GlobalParams.END,
             GlobalParams.ENVIRONMENT,
@@ -69,22 +67,28 @@ class OrganizationEventsAnnotationsEndpoint(OrganizationEventsEndpointBase):
         ],
         responses={
             200: inline_sentry_response_serializer(
-                "OrganizationEventsAnnotationsResponse", AnnotationsResponse
+                "OrganizationEventsDroppedResponse", DroppedEventsResponse
             ),
             400: OpenApiResponse(description="Invalid Query"),
             404: api_constants.RESPONSE_NOT_FOUND,
         },
     )
     def get(self, request: Request, organization: Organization) -> Response:
-        """Return dropped/accepted data-fidelity annotations for the selected
-        dropped-data type over an explicit bucket interval."""
+        """Return the events Sentry received but dropped (rate limited, filtered,
+        invalid, abuse, client discarded, cardinality limited) bucketed over the
+        requested interval, alongside the accepted volume per bucket so a caller
+        can compute the dropped share.
+
+        Select the dropped-data type with ``dataset`` and the bucket size with
+        ``interval``.
+        """
         dataset = self.get_dataset(request, organization)
         if DATASET_TO_CATEGORY.get(dataset) is None:
             supported = ", ".join(
                 sorted(DATASET_LABELS[ds] for ds in DATASET_TO_CATEGORY if ds in DATASET_LABELS)
             )
             return Response(
-                {"detail": f"dataset does not support annotations; must be one of: {supported}"},
+                {"detail": f"dataset does not support dropped events; must be one of: {supported}"},
                 status=400,
             )
 
@@ -99,30 +103,33 @@ class OrganizationEventsAnnotationsEndpoint(OrganizationEventsEndpointBase):
                         "end": 0,
                         "interval": 0,
                     },
-                    "droppedAnnotations": [],
-                    "acceptedAnnotations": [],
+                    "droppedEvents": [],
+                    "acceptedEvents": [],
                 },
                 status=200,
             )
 
         with handle_query_errors():
-            # No aggregation query runs here, so pass top_events=0 and treat the
-            # dataset as RPC-eligible for interval validation only.
+            # top_events=0 / use_rpc=False: no aggregation query runs here, so this
+            # only exercises get_rollup's interval validation.
             rollup = self.get_rollup(request, snuba_params, top_events=0, use_rpc=False)
             snuba_params.granularity_secs = rollup
 
-            dropped_annotations: list[Annotation] = []
-            accepted_annotations: list[Annotation] = []
+            dropped_events: list[DroppedEventsBucket] = []
+            accepted_events: list[DroppedEventsBucket] = []
             try:
-                dropped_annotations, accepted_annotations = get_dropped_data_annotations(
+                dropped_raw, accepted_raw = get_dropped_data_annotations(
                     dataset, snuba_params, rollup
                 )
+                dropped_events = [_to_bucket(bucket) for bucket in dropped_raw]
+                accepted_events = [
+                    _to_bucket(bucket, reason=_ACCEPTED_REASON) for bucket in accepted_raw
+                ]
             except Exception:
-                # Never break the caller on an Outcomes hiccup; mirror the inline
-                # timeseries behavior of degrading to empty annotations.
+                # An Outcomes failure degrades to empty rather than failing the request.
                 sentry_sdk.capture_exception()
 
-        meta: AnnotationsMeta = {
+        meta: DroppedEventsMeta = {
             "dataset": DATASET_LABELS[dataset],
             "start": snuba_params.start_date.timestamp() * 1000,
             "end": snuba_params.end_date.timestamp() * 1000,
@@ -130,7 +137,18 @@ class OrganizationEventsAnnotationsEndpoint(OrganizationEventsEndpointBase):
         }
         response: dict[str, Any] = {
             "meta": meta,
-            "droppedAnnotations": dropped_annotations,
-            "acceptedAnnotations": accepted_annotations,
+            "droppedEvents": dropped_events,
+            "acceptedEvents": accepted_events,
         }
         return Response(response, status=200)
+
+
+def _to_bucket(raw: Annotation, *, reason: str | None = None) -> DroppedEventsBucket:
+    return {
+        "type": raw["type"],
+        "category": raw["category"],
+        "reason": reason if reason is not None else raw["reason"],
+        "start": raw["start"],
+        "end": raw["end"],
+        "count": raw["eventCount"],
+    }
