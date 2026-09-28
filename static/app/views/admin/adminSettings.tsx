@@ -56,10 +56,6 @@ function getOptionSaveErrorMessage(error: Error): string {
   return t('Could not save this setting. Try again.');
 }
 
-const mapOptionSaveError = (error: Error) => ({
-  message: getOptionSaveErrorMessage(error),
-});
-
 function useAdminOption(name: string, option: FieldDef) {
   const queryClient = useQueryClient();
   const definition = {...getOption(name), ...option.field};
@@ -236,7 +232,9 @@ export default function AdminSettings() {
   const option = (name: string): FieldDef => data[name] ?? {field: {}};
 
   return (
-    <FormErrorContextProvider value={mapOptionSaveError}>
+    <FormErrorContextProvider
+      value={error => ({message: getOptionSaveErrorMessage(error)})}
+    >
       <Stack gap="xl">
         <Heading as="h3" size="lg">
           {t('Settings')}
