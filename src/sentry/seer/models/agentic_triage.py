@@ -10,7 +10,7 @@ from sentry.db.models.base import DefaultFieldsModel
 from sentry.seer.models.workflow import SeerWorkflowStrategy
 
 
-class SeerNightShiftRunErrorType(StrEnum):
+class SeerAgenticTriageRunErrorType(StrEnum):
     NO_QUOTA = "no_quota"
     ELIGIBLE_PROJECTS_FAILED = "eligible_projects_failed"
     NO_SEER_ACCESS = "no_seer_access"
@@ -21,8 +21,8 @@ class SeerNightShiftRunErrorType(StrEnum):
 
 
 @cell_silo_model
-class SeerNightShiftRunResult(DefaultFieldsModel):
-    """One unit of work produced by a night shift run, polymorphic by `kind`."""
+class SeerAgenticTriageRunResult(DefaultFieldsModel):
+    """One unit of work produced by an agentic triage run, polymorphic by `kind`."""
 
     __relocation_scope__ = RelocationScope.Excluded
 

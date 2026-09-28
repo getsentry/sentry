@@ -1,4 +1,4 @@
-"""Delivery handler for night_shift feature results from Seer."""
+"""Delivery handler for agentic triage results from Seer."""
 
 from __future__ import annotations
 
@@ -18,6 +18,7 @@ from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.seer.agent.types import FeatureRunStatus
+from sentry.seer.agentic_triage.models import TriageResponse, TriageVerdict
 from sentry.seer.autofix.autofix_agent import trigger_autofix_agent
 from sentry.seer.autofix.constants import SeerAutomationSource
 from sentry.seer.autofix.issue_summary import referrer_map
@@ -28,17 +29,19 @@ from sentry.seer.autofix.utils import (
     is_seer_autotriggered_autofix_rate_limited_and_increment,
     is_seer_seat_based_tier_enabled,
 )
+from sentry.seer.models.agentic_triage import (
+    SeerAgenticTriageRunErrorType,
+    SeerAgenticTriageRunResult,
+)
 from sentry.seer.models.autofix_issue_data import SeerAutofixIssueData
-from sentry.seer.models.night_shift import SeerNightShiftRunErrorType, SeerNightShiftRunResult
 from sentry.seer.models.run import SeerRun
 from sentry.seer.models.workflow import (
     SeerWorkflowRun,
     SeerWorkflowRunExecution,
     SeerWorkflowStrategy,
 )
-from sentry.seer.night_shift.models import TriageResponse, TriageVerdict
-from sentry.tasks.seer.night_shift.models import TriageAction
-from sentry.tasks.seer.night_shift.skip_cache import mark_skipped
+from sentry.tasks.seer.agentic_triage.models import TriageAction
+from sentry.tasks.seer.agentic_triage.skip_cache import mark_skipped
 from sentry.types.activity import ActivityType
 from sentry.utils import json
 
@@ -131,7 +134,7 @@ def _capture_autofix_issue_data(
     return event_ids
 
 
-def deliver_night_shift_result(
+def deliver_agentic_triage_result(
     organization_id: int,
     run_uuid: UUID,
     status: FeatureRunStatus,
@@ -139,7 +142,7 @@ def deliver_night_shift_result(
     error: str | None,
     prompt_version: str | None = None,
 ) -> None:
-    """Process a night_shift result from Seer."""
+    """Process an agentic triage result from Seer."""
     shard = (
         SeerWorkflowRunExecution.objects.filter(
             seer_run__uuid=run_uuid, run__organization_id=organization_id
@@ -165,7 +168,7 @@ def deliver_night_shift_result(
         if prompt_version:
             extras["prompt_version"] = prompt_version
         if error:
-            extras["error_type"] = SeerNightShiftRunErrorType.SHARD_DELIVERY_FAILED.value
+            extras["error_type"] = SeerAgenticTriageRunErrorType.SHARD_DELIVERY_FAILED.value
             extras["error_message"] = error
         shard.update(extras=extras)
 
@@ -249,7 +252,7 @@ def _process_verdicts(
     # Matched on group_id, not idempotency_key, so rows written before
     # idempotency_key existed (and are still null) are recognized too.
     recorded_group_ids = set(
-        SeerNightShiftRunResult.objects.filter(
+        SeerAgenticTriageRunResult.objects.filter(
             run=run,
             kind=SeerWorkflowStrategy.AGENTIC_TRIAGE,
             group_id__in=group_ids,
@@ -305,7 +308,7 @@ def _process_verdicts(
             for pid in project_ids
         }
 
-        referrer = referrer_map[SeerAutomationSource.NIGHT_SHIFT]
+        referrer = referrer_map[SeerAutomationSource.AGENTIC_TRIAGE]
 
         # Rate limit only applies to legacy org plans
         check_rate_limit = not is_seer_seat_based_tier_enabled(organization)
@@ -319,7 +322,7 @@ def _process_verdicts(
 
             reason = reason_by_group_id[group.id]
             user_context = (
-                f"Night-shift triage already investigated this issue and concluded:\n{reason}"
+                f"Agentic triage already investigated this issue and concluded:\n{reason}"
                 if reason
                 else None
             )
@@ -358,7 +361,7 @@ def _process_verdicts(
                 extra={**log_extra, "num_rate_limited": len(rate_limited_group_ids)},
             )
 
-    rows: list[SeerNightShiftRunResult] = []
+    rows: list[SeerAgenticTriageRunResult] = []
     for v in verdicts:
         extras: dict[str, Any] = {"action": str(v.action)}
         # Denormalized so analysis by mode and prompt version needs no shard join.
@@ -382,7 +385,7 @@ def _process_verdicts(
             else:
                 seer_run_id = str(result_seer_run.seer_run_state_id)
         rows.append(
-            SeerNightShiftRunResult(
+            SeerAgenticTriageRunResult(
                 run=run,
                 kind=SeerWorkflowStrategy.AGENTIC_TRIAGE,
                 group=groups_by_id[v.group_id],
@@ -393,7 +396,7 @@ def _process_verdicts(
             )
         )
     # ignore_conflicts: concurrent redeliveries can race past the recorded-rows check.
-    SeerNightShiftRunResult.objects.bulk_create(rows, ignore_conflicts=True)
+    SeerAgenticTriageRunResult.objects.bulk_create(rows, ignore_conflicts=True)
 
     captured_event_ids: dict[int, str] = {}
     try:

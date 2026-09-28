@@ -131,7 +131,7 @@ class ScmOnboardingTest(AcceptanceTestCase):
         self.browser.click(xpath='//button[contains(., "Continue without a repo")]')
 
         self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
-        self.browser.wait_until(xpath='//*[text()="Select a platform"]')
+        self.browser.wait_until('input[aria-autocomplete="list"]')
         input_el = self.browser.element('input[aria-autocomplete="list"]')
         input_el.send_keys(platform_search)
         self.browser.wait_until(
@@ -147,7 +147,7 @@ class ScmOnboardingTest(AcceptanceTestCase):
         """On the messaging step, pick #alerts in the connected Slack row and
         Confirm and continue, which creates the project."""
         self.browser.wait_until('[data-test-id="onboarding-step-scm-messaging"]')
-        self.browser.click(xpath='//button[contains(., "Choose destination")]')
+        self.browser.click(xpath='//button[@aria-label="Set up Slack"]')
         input_el = self.browser.element('input[aria-autocomplete="list"]')
         input_el.send_keys("alerts")
         self.browser.wait_until(xpath='//*[@data-test-id="menu-list-item-label"][text()="#alerts"]')
@@ -217,9 +217,7 @@ class ScmOnboardingTest(AcceptanceTestCase):
             self.browser.click(xpath='//button[contains(., "Continue")]')
 
             self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
-            self.browser.wait_until(
-                xpath='//*[contains(text(), "Auto-detected from your repository")]'
-            )
+            self.browser.wait_until(xpath='//*[contains(text(), "Detected from")]')
             self.browser.wait_until('[role="radio"]')
 
             # Reload the step. The connected repo (real id) must survive the
@@ -228,9 +226,7 @@ class ScmOnboardingTest(AcceptanceTestCase):
             self.browser.get(f"/onboarding/{self.org.slug}/scm-platform-features/")
 
             self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
-            self.browser.wait_until(
-                xpath='//*[contains(text(), "Auto-detected from your repository")]'
-            )
+            self.browser.wait_until(xpath='//*[contains(text(), "Detected from")]')
             self.browser.wait_until('[role="radio"]')
 
     def test_scm_onboarding_switch_repo_updates_detection(self) -> None:
@@ -556,7 +552,7 @@ class ScmOnboardingTest(AcceptanceTestCase):
 
             # Platform Features: detection failed, should show manual picker
             self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
-            self.browser.wait_until(xpath='//*[text()="Select a platform"]')
+            self.browser.wait_until('input[aria-autocomplete="list"]')
             input_el = self.browser.element('input[aria-autocomplete="list"]')
             input_el.send_keys("React")
             self.browser.wait_until(
@@ -774,7 +770,7 @@ class ScmOnboardingTest(AcceptanceTestCase):
 
             self.browser.click('[aria-label="Back"]')
             self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
-            self.browser.wait_until(xpath='//*[text()="Select a platform"]')
+            self.browser.wait_until('input[aria-autocomplete="list"]')
             input_el = self.browser.element('input[aria-autocomplete="list"]')
             input_el.send_keys("Vue")
             self.browser.wait_until(xpath='//p[@data-test-id="menu-list-item-label"][text()="Vue"]')

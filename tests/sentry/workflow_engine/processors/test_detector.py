@@ -1,6 +1,6 @@
 import unittest
 import uuid
-from dataclasses import replace
+from dataclasses import asdict, replace
 from datetime import timedelta
 from typing import Any
 from unittest import mock
@@ -43,6 +43,7 @@ from sentry.workflow_engine.processors.detector import (
     query_all_projects_detector,
 )
 from sentry.workflow_engine.processors.evaluations import (
+    DetectorEvaluationArtifact,
     DetectorEvaluationOutcome,
     EvaluationType,
 )
@@ -235,6 +236,12 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
         handler = detector.detector_handler
         assert handler is not None
         evaluations = handler._evaluate(self.build_data_packet())
+        result = ProcessDetectorsResult(
+            detector_id=detector.id,
+            detector_type=detector.type,
+            project_id=detector.linked_project.id,
+            evaluations=evaluations,
+        )
 
         with (
             override_options(
@@ -247,25 +254,16 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
                 "sentry.workflow_engine.processors.evaluations.logging.sdk_logger"
             ) as mock_sentry_logger,
         ):
-            emit_evaluations(
-                organization=self.organization,
-                result=ProcessDetectorsResult(
-                    detector_id=detector.id,
-                    detector_type=detector.type,
-                    project_id=detector.linked_project.id,
-                    evaluations=evaluations,
-                ),
-            )
+            emit_evaluations(organization=self.organization, result=result)
 
         mock_sentry_logger.info.assert_called_once_with(
             "workflow_engine.process_detectors.evaluation",
             attributes={
-                **ProcessDetectorsResult(
-                    detector_id=detector.id,
-                    detector_type=detector.type,
-                    project_id=detector.linked_project.id,
-                    evaluations=evaluations,
-                ).evaluation_artifacts()[0],
+                "evaluation_type": EvaluationType.DETECTOR,
+                "detector_id": detector.id,
+                "detector_type": detector.type,
+                "project_id": detector.linked_project.id,
+                **asdict(result.evaluation_artifacts()[0]),
                 "organization_id": self.organization.id,
             },
         )
@@ -326,8 +324,11 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
             evaluations={None: replace(evaluation, error=ConditionError(msg="evaluation failed"))},
         )
 
+        artifact = result.evaluation_artifacts()[0]
+        assert isinstance(artifact, DetectorEvaluationArtifact)
+        assert artifact.error == "evaluation failed"
+        assert artifact.outcome == DetectorEvaluationOutcome.ERROR
         assert result.outcome == DetectorEvaluationOutcome.ERROR
-        assert result.evaluation_artifacts()[0]["error"] == "evaluation failed"
 
     def test_detector_emitter_logs_error(self) -> None:
         result = ProcessDetectorsResult(
@@ -337,6 +338,7 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
             evaluations={},
             error=ConditionError(msg="evaluation failed"),
         )
+        assert result.evaluation_artifacts() == ()
 
         with (
             override_options(

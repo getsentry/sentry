@@ -1,4 +1,4 @@
-from sentry.tasks.seer.night_shift.simple_triage import _agentic_triage_score
+from sentry.tasks.seer.agentic_triage.simple_triage import _agentic_triage_score
 from sentry.testutils.cases import TestCase
 
 

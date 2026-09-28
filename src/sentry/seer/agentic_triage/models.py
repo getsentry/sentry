@@ -1,4 +1,4 @@
-"""Wire types for the night_shift feature, in sync with Seer's
+"""Wire types for agentic triage (Seer feature ID `night_shift`), in sync with Seer's
 seer.automation.features.night_shift.feature. Covers both the request payload
 (Sentry -> Seer) and the result payload (Seer -> Sentry)."""
 
@@ -8,7 +8,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from sentry.tasks.seer.night_shift.models import TriageAction
+from sentry.tasks.seer.agentic_triage.models import TriageAction
 
 
 class _Base(BaseModel):
@@ -38,7 +38,7 @@ class TriageTweaks(_Base):
     extra_triage_instructions: str = ""
 
 
-class NightShiftPayload(_Base):
+class AgenticTriagePayload(_Base):
     candidates: list[TriageCandidate]
     tweaks: TriageTweaks
 

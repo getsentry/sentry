@@ -1,10 +1,12 @@
 import time
 from datetime import UTC, datetime
+from inspect import unwrap
 from unittest.mock import Mock, patch
 
 import pytest
 from django.conf import settings
 from taskbroker_client.scheduler.config import crontab
+from taskbroker_client.scheduler.runner import ScheduleEntry
 
 from sentry.hybridcloud.models.outbox import CellOutbox
 from sentry.hybridcloud.outbox.category import OutboxCategory
@@ -15,36 +17,41 @@ from sentry.processing_errors.grouptype import LowValueSpanConfigurationType
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.seer.autofix.utils import AutofixStoppingPoint, bulk_read_preferences_from_sentry_db
-from sentry.seer.models.night_shift import SeerNightShiftRunErrorType, SeerNightShiftRunResult
+from sentry.seer.models.agentic_triage import (
+    SeerAgenticTriageRunErrorType,
+    SeerAgenticTriageRunResult,
+)
 from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.seer.models.workflow import (
     SeerWorkflowRun,
     SeerWorkflowRunExecution,
     SeerWorkflowStrategy,
 )
-from sentry.tasks.seer.night_shift.cron import (
-    NightShiftShardPlan,
+from sentry.tasks.seer.agentic_triage.cron import (
+    AgenticTriageShardPlan,
     ShardDispatchStatus,
+    _agentic_triage_cron_expr,
     _complete_run,
     _current_schedule_id,
     _dispatch_pending_shards,
     _get_eligible_projects,
-    _night_shift_cron_expr,
     _record_run_error,
     _update_run_extras,
     build_run_options,
-    run_night_shift_for_org,
-    schedule_night_shift,
+    run_agentic_triage_execution,
+    run_agentic_triage_for_org,
+    schedule_agentic_triage,
 )
-from sentry.tasks.seer.night_shift.models import TriageAction
-from sentry.tasks.seer.night_shift.simple_triage import (
-    NIGHT_SHIFT_MAX_SEARCH_PAGES,
+from sentry.tasks.seer.agentic_triage.models import TriageAction
+from sentry.tasks.seer.agentic_triage.simple_triage import (
+    AGENTIC_TRIAGE_MAX_SEARCH_PAGES,
     ScoredCandidate,
     fixability_score_strategy,
     fixability_score_strategy_per_project,
 )
-from sentry.tasks.seer.night_shift.skip_cache import key as skip_cache_key
-from sentry.tasks.seer.night_shift.skip_cache import mark_skipped, recently_skipped
+from sentry.tasks.seer.agentic_triage.skip_cache import key as skip_cache_key
+from sentry.tasks.seer.agentic_triage.skip_cache import mark_skipped, recently_skipped
+from sentry.taskworker.namespaces import seer_tasks
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.fixtures import Fixtures
@@ -70,7 +77,7 @@ def _dispatched_feature_body(organization):
 @pytest.mark.parametrize("enabled,mode", [(False, "off"), (True, "only")])
 def test_code_mode_flag_applies_to_every_dispatched_shard(default_organization, enabled, mode):
     run = Factories.create_seer_workflow_run(organization=default_organization)
-    plan = NightShiftShardPlan(payload={"candidates": []}, title="Triage")
+    plan = AgenticTriageShardPlan(payload={"candidates": []}, title="Triage")
     shards = [
         Factories.create_seer_workflow_run_execution(run=run, extras=plan.to_extras())
         for _ in range(3)
@@ -98,7 +105,7 @@ def test_code_mode_flag_applies_to_every_dispatched_shard(default_organization, 
 @django_db_all
 def test_redispatch_preserves_recorded_code_mode_after_flag_is_disabled(default_organization):
     run = Factories.create_seer_workflow_run(organization=default_organization)
-    plan = NightShiftShardPlan(payload={"candidates": []}, title="Triage")
+    plan = AgenticTriageShardPlan(payload={"candidates": []}, title="Triage")
     shard = Factories.create_seer_workflow_run_execution(run=run, extras=plan.to_extras())
 
     with with_feature(
@@ -132,12 +139,12 @@ def test_redispatch_preserves_recorded_code_mode_after_flag_is_disabled(default_
     assert shard.extras["enable_code_mode_tools"] == "only"
 
 
-class NightShiftFixtures(Fixtures):
-    """Shared night-shift test setup. Mixed into the test cases below so the
+class AgenticTriageFixtures(Fixtures):
+    """Shared agentic-triage test setup. Mixed into the test cases below so the
     project-eligibility and event-seeding logic lives in one place."""
 
     @pytest.fixture(autouse=True)
-    def enable_night_shift(self):
+    def enable_agentic_triage(self):
         with (
             override_options({"seer.night_shift.enable": True}),
             with_feature("organizations:seer-night-shift"),
@@ -233,6 +240,22 @@ class TestBuildRunOptions(TestCase):
         assert resolved["max_candidates"] == 3
 
 
+@pytest.mark.parametrize(
+    "task,suffix",
+    [
+        (schedule_agentic_triage, "schedule_agentic_triage"),
+        (run_agentic_triage_for_org, "run_agentic_triage_for_org"),
+        (run_agentic_triage_execution, "run_agentic_triage_execution"),
+    ],
+)
+def test_dispatch_keeps_names_known_to_old_workers(task, suffix: str) -> None:
+    legacy_suffix = suffix.replace("agentic_triage", "night_shift")
+    assert task.fullname == f"seer:sentry.tasks.seer.night_shift.{legacy_suffix}"
+    assert seer_tasks.get(task.name) is task
+    renamed = seer_tasks.get(f"sentry.tasks.seer.agentic_triage.{suffix}")
+    assert unwrap(renamed) is unwrap(task)
+
+
 class TestCurrentScheduleId:
     def test_resolves_most_recent_schedule_window(self) -> None:
         cron_expr = "0 10,22 * * *"
@@ -252,15 +275,23 @@ class TestCurrentScheduleId:
             "2024-07-22T10:00",
         ]
 
-    def test_uses_configured_night_shift_schedule(self) -> None:
+    def test_uses_configured_agentic_triage_schedule(self) -> None:
         schedule_entry = settings.TASKWORKER_SCHEDULES["seer-night-shift"]
         assert schedule_entry["task"] == "seer:sentry.tasks.seer.night_shift.schedule_night_shift"
         assert isinstance(schedule_entry["schedule"], crontab)
-        assert _night_shift_cron_expr() == "0 10,22 * * *"
+        assert _agentic_triage_cron_expr() == "0 10,22 * * *"
+        entry = ScheduleEntry(
+            key="seer-night-shift",
+            task=schedule_agentic_triage,
+            schedule=schedule_entry["schedule"],
+        )
+        assert entry.storage_key == (
+            "seer-night-shift:seer:sentry.tasks.seer.night_shift.schedule_night_shift:0_10,22_*_*_*"
+        )
 
 
 @django_db_all
-class TestScheduleNightShift(TestCase):
+class TestScheduleAgenticTriage(TestCase):
     def create_org_with_seer(self):
         """Create an org with a SeerProjectRepository so it survives the pre-filter."""
         org = self.create_organization()
@@ -272,9 +303,11 @@ class TestScheduleNightShift(TestCase):
     def test_disabled_by_option(self) -> None:
         with (
             self.options({"seer.night_shift.enable": False}),
-            patch("sentry.tasks.seer.night_shift.cron.run_night_shift_for_org") as mock_worker,
+            patch(
+                "sentry.tasks.seer.agentic_triage.cron.run_agentic_triage_for_org"
+            ) as mock_worker,
         ):
-            schedule_night_shift()
+            schedule_agentic_triage()
             mock_worker.apply_async.assert_not_called()
 
     def test_dispatches_eligible_orgs(self) -> None:
@@ -290,10 +323,12 @@ class TestScheduleNightShift(TestCase):
                     "organizations:seat-based-seer-enabled": [org.slug],
                 }
             ),
-            patch("sentry.tasks.seer.night_shift.cron.run_night_shift_for_org") as mock_worker,
-            patch("sentry.tasks.seer.night_shift.cron.logger") as mock_logger,
+            patch(
+                "sentry.tasks.seer.agentic_triage.cron.run_agentic_triage_for_org"
+            ) as mock_worker,
+            patch("sentry.tasks.seer.agentic_triage.cron.logger") as mock_logger,
         ):
-            schedule_night_shift()
+            schedule_agentic_triage()
             mock_worker.apply_async.assert_called_once()
             assert mock_worker.apply_async.call_args.kwargs["args"] == [org.id]
             assert mock_worker.apply_async.call_args.kwargs["kwargs"] == {
@@ -320,9 +355,11 @@ class TestScheduleNightShift(TestCase):
                     "organizations:seat-based-seer-enabled": [org.slug],
                 }
             ),
-            patch("sentry.tasks.seer.night_shift.cron.run_night_shift_for_org") as mock_worker,
+            patch(
+                "sentry.tasks.seer.agentic_triage.cron.run_agentic_triage_for_org"
+            ) as mock_worker,
         ):
-            schedule_night_shift(
+            schedule_agentic_triage(
                 run_options={"source": "manual", "dry_run": True, "max_candidates": 3}
             )
             mock_worker.apply_async.assert_called_once()
@@ -344,10 +381,12 @@ class TestScheduleNightShift(TestCase):
                     "organizations:seat-based-seer-enabled": [org.slug],
                 }
             ),
-            patch("sentry.tasks.seer.night_shift.cron.run_night_shift_for_org") as mock_worker,
+            patch(
+                "sentry.tasks.seer.agentic_triage.cron.run_agentic_triage_for_org"
+            ) as mock_worker,
         ):
-            schedule_night_shift()
-            schedule_night_shift()
+            schedule_agentic_triage()
+            schedule_agentic_triage()
 
         assert [call.kwargs["kwargs"] for call in mock_worker.apply_async.call_args_list] == [
             {"schedule_id": "2024-07-22T22:00"},
@@ -371,9 +410,11 @@ class TestScheduleNightShift(TestCase):
                     # seat-based-seer-enabled intentionally omitted
                 }
             ),
-            patch("sentry.tasks.seer.night_shift.cron.run_night_shift_for_org") as mock_worker,
+            patch(
+                "sentry.tasks.seer.agentic_triage.cron.run_agentic_triage_for_org"
+            ) as mock_worker,
         ):
-            schedule_night_shift()
+            schedule_agentic_triage()
             mock_worker.apply_async.assert_not_called()
 
     def test_dispatches_legacy_orgs_when_enabled(self) -> None:
@@ -393,9 +434,11 @@ class TestScheduleNightShift(TestCase):
                     # seat-based-seer-enabled intentionally omitted
                 }
             ),
-            patch("sentry.tasks.seer.night_shift.cron.run_night_shift_for_org") as mock_worker,
+            patch(
+                "sentry.tasks.seer.agentic_triage.cron.run_agentic_triage_for_org"
+            ) as mock_worker,
         ):
-            schedule_night_shift()
+            schedule_agentic_triage()
             mock_worker.apply_async.assert_called_once()
             assert mock_worker.apply_async.call_args.kwargs["args"] == [org.id]
 
@@ -412,9 +455,11 @@ class TestScheduleNightShift(TestCase):
                     "organizations:seat-based-seer-enabled": [org.slug],
                 }
             ),
-            patch("sentry.tasks.seer.night_shift.cron.run_night_shift_for_org") as mock_worker,
+            patch(
+                "sentry.tasks.seer.agentic_triage.cron.run_agentic_triage_for_org"
+            ) as mock_worker,
         ):
-            schedule_night_shift()
+            schedule_agentic_triage()
             mock_worker.apply_async.assert_not_called()
 
     def test_skips_orgs_with_code_generation_disabled(self) -> None:
@@ -430,9 +475,11 @@ class TestScheduleNightShift(TestCase):
                     "organizations:seat-based-seer-enabled": [org.slug],
                 }
             ),
-            patch("sentry.tasks.seer.night_shift.cron.run_night_shift_for_org") as mock_worker,
+            patch(
+                "sentry.tasks.seer.agentic_triage.cron.run_agentic_triage_for_org"
+            ) as mock_worker,
         ):
-            schedule_night_shift()
+            schedule_agentic_triage()
             mock_worker.apply_async.assert_not_called()
 
     def test_skips_orgs_without_seer_project_repository(self) -> None:
@@ -449,18 +496,20 @@ class TestScheduleNightShift(TestCase):
                     "organizations:seat-based-seer-enabled": [org.slug],
                 }
             ),
-            patch("sentry.tasks.seer.night_shift.cron.run_night_shift_for_org") as mock_worker,
             patch(
-                "sentry.tasks.seer.night_shift.cron.features.batch_has_for_organizations"
+                "sentry.tasks.seer.agentic_triage.cron.run_agentic_triage_for_org"
+            ) as mock_worker,
+            patch(
+                "sentry.tasks.seer.agentic_triage.cron.features.batch_has_for_organizations"
             ) as mock_batch_has,
         ):
-            schedule_night_shift()
+            schedule_agentic_triage()
             mock_worker.apply_async.assert_not_called()
             mock_batch_has.assert_not_called()
 
 
 @django_db_all
-class TestGetEligibleProjects(NightShiftFixtures, TestCase):
+class TestGetEligibleProjects(AgenticTriageFixtures, TestCase):
     def test_filters_by_automation_and_repos(self) -> None:
         org = self.create_organization()
 
@@ -478,7 +527,7 @@ class TestGetEligibleProjects(NightShiftFixtures, TestCase):
         # No connected repo.
         self.create_project(organization=org)
 
-        with patch("sentry.tasks.seer.night_shift.cron.logger") as mock_logger:
+        with patch("sentry.tasks.seer.agentic_triage.cron.logger") as mock_logger:
             result = _get_eligible_projects(org, "manual")
 
         assert [ep.project for ep in result] == [eligible]
@@ -586,7 +635,7 @@ class TestGetEligibleProjects(NightShiftFixtures, TestCase):
         }
 
         with patch(
-            "sentry.tasks.seer.night_shift.cron.bulk_read_preferences_from_sentry_db",
+            "sentry.tasks.seer.agentic_triage.cron.bulk_read_preferences_from_sentry_db",
             return_value=stale_preferences,
         ):
             result = _get_eligible_projects(org, "manual")
@@ -605,10 +654,10 @@ class TestGetEligibleProjects(NightShiftFixtures, TestCase):
 
         with (
             patch(
-                "sentry.tasks.seer.night_shift.cron.is_seer_autotriggered_autofix_rate_limited",
+                "sentry.tasks.seer.agentic_triage.cron.is_seer_autotriggered_autofix_rate_limited",
                 side_effect=fake_rate_limited,
             ),
-            patch("sentry.tasks.seer.night_shift.cron.logger") as mock_logger,
+            patch("sentry.tasks.seer.agentic_triage.cron.logger") as mock_logger,
         ):
             result = _get_eligible_projects(org, "manual")
 
@@ -627,11 +676,11 @@ class TestGetEligibleProjects(NightShiftFixtures, TestCase):
 
         with (
             patch(
-                "sentry.tasks.seer.night_shift.cron.is_seer_autotriggered_autofix_rate_limited",
+                "sentry.tasks.seer.agentic_triage.cron.is_seer_autotriggered_autofix_rate_limited",
                 return_value=True,
             ),
             patch(
-                "sentry.tasks.seer.night_shift.cron.is_seer_seat_based_tier_enabled",
+                "sentry.tasks.seer.agentic_triage.cron.is_seer_seat_based_tier_enabled",
                 return_value=True,
             ),
         ):
@@ -647,7 +696,7 @@ class TestGetEligibleProjects(NightShiftFixtures, TestCase):
         )
 
         with patch(
-            "sentry.tasks.seer.night_shift.cron.is_seer_seat_based_tier_enabled",
+            "sentry.tasks.seer.agentic_triage.cron.is_seer_seat_based_tier_enabled",
             return_value=True,
         ):
             result = _get_eligible_projects(org, "manual")
@@ -656,14 +705,14 @@ class TestGetEligibleProjects(NightShiftFixtures, TestCase):
 
 
 @django_db_all
-class TestRunNightShiftForOrg(NightShiftFixtures, TestCase, SnubaTestCase):
+class TestRunAgenticTriageForOrg(AgenticTriageFixtures, TestCase, SnubaTestCase):
     reset_snuba_data = False
 
     def test_skips_org_run_when_globally_disabled(self) -> None:
         org = self.create_organization()
 
         with self.options({"seer.night_shift.enable": False}):
-            run_id = run_night_shift_for_org(org.id)
+            run_id = run_agentic_triage_for_org(org.id)
 
         assert run_id is None
         assert not SeerWorkflowRun.objects.filter(organization=org).exists()
@@ -672,22 +721,24 @@ class TestRunNightShiftForOrg(NightShiftFixtures, TestCase, SnubaTestCase):
         org = self.create_organization()
 
         with self.feature({"organizations:seer-night-shift": False}):
-            run_id = run_night_shift_for_org(org.id)
+            run_id = run_agentic_triage_for_org(org.id)
 
         assert run_id is None
         assert not SeerWorkflowRun.objects.filter(organization=org).exists()
 
     def test_nonexistent_org(self) -> None:
-        with patch("sentry.tasks.seer.night_shift.cron.logger") as mock_logger:
-            run_night_shift_for_org(999999999)
+        with patch("sentry.tasks.seer.agentic_triage.cron.logger") as mock_logger:
+            run_agentic_triage_for_org(999999999)
             mock_logger.info.assert_not_called()
 
     def test_incomplete_schedule_id_resumes_execution(self) -> None:
         org = self.create_organization()
 
-        with patch("sentry.tasks.seer.night_shift.cron.run_night_shift_execution") as mock_execute:
-            first_run_id = run_night_shift_for_org(org.id, schedule_id="2024-07-22T22:00")
-            second_run_id = run_night_shift_for_org(org.id, schedule_id="2024-07-22T22:00")
+        with patch(
+            "sentry.tasks.seer.agentic_triage.cron.run_agentic_triage_execution"
+        ) as mock_execute:
+            first_run_id = run_agentic_triage_for_org(org.id, schedule_id="2024-07-22T22:00")
+            second_run_id = run_agentic_triage_for_org(org.id, schedule_id="2024-07-22T22:00")
 
         assert first_run_id == second_run_id
         assert SeerWorkflowRun.objects.filter(organization=org).count() == 1
@@ -699,15 +750,17 @@ class TestRunNightShiftForOrg(NightShiftFixtures, TestCase, SnubaTestCase):
 
         with (
             patch(
-                "sentry.tasks.seer.night_shift.cron.quotas.backend.check_seer_quota",
+                "sentry.tasks.seer.agentic_triage.cron.quotas.backend.check_seer_quota",
                 side_effect=[True, False],
             ),
-            patch("sentry.tasks.seer.night_shift.cron.run_night_shift_execution") as mock_execute,
+            patch(
+                "sentry.tasks.seer.agentic_triage.cron.run_agentic_triage_execution"
+            ) as mock_execute,
         ):
-            first_run_id = run_night_shift_for_org(org.id, schedule_id=schedule_id)
+            first_run_id = run_agentic_triage_for_org(org.id, schedule_id=schedule_id)
             assert first_run_id is not None
             _complete_run(SeerWorkflowRun.objects.get(id=first_run_id))
-            second_run_id = run_night_shift_for_org(org.id, schedule_id=schedule_id)
+            second_run_id = run_agentic_triage_for_org(org.id, schedule_id=schedule_id)
 
         assert second_run_id == first_run_id
         assert SeerWorkflowRun.objects.filter(organization=org).count() == 1
@@ -716,12 +769,12 @@ class TestRunNightShiftForOrg(NightShiftFixtures, TestCase, SnubaTestCase):
     def test_completed_run_ignores_stale_extras_update(self) -> None:
         org = self.create_organization()
 
-        with patch("sentry.tasks.seer.night_shift.cron.run_night_shift_execution"):
-            run_id = run_night_shift_for_org(org.id, schedule_id="2024-07-22T22:00")
+        with patch("sentry.tasks.seer.agentic_triage.cron.run_agentic_triage_execution"):
+            run_id = run_agentic_triage_for_org(org.id, schedule_id="2024-07-22T22:00")
 
         assert run_id is not None
         run = SeerWorkflowRun.objects.get(id=run_id)
-        _record_run_error(run, SeerNightShiftRunErrorType.UNKNOWN, "transient failure")
+        _record_run_error(run, SeerAgenticTriageRunErrorType.UNKNOWN, "transient failure")
         _complete_run(run)
         _update_run_extras(run, {"num_candidates": 1})
 
@@ -733,8 +786,8 @@ class TestRunNightShiftForOrg(NightShiftFixtures, TestCase, SnubaTestCase):
     def test_extras_update_refreshes_run_instance(self) -> None:
         org = self.create_organization()
 
-        with patch("sentry.tasks.seer.night_shift.cron.run_night_shift_execution"):
-            run_id = run_night_shift_for_org(org.id, schedule_id="2024-07-22T22:00")
+        with patch("sentry.tasks.seer.agentic_triage.cron.run_agentic_triage_execution"):
+            run_id = run_agentic_triage_for_org(org.id, schedule_id="2024-07-22T22:00")
 
         assert run_id is not None
         run = SeerWorkflowRun.objects.get(id=run_id)
@@ -745,18 +798,18 @@ class TestRunNightShiftForOrg(NightShiftFixtures, TestCase, SnubaTestCase):
     def test_different_schedule_ids_create_separate_runs(self) -> None:
         org = self.create_organization()
 
-        with patch("sentry.tasks.seer.night_shift.cron.run_night_shift_execution"):
-            run_night_shift_for_org(org.id, schedule_id="2024-07-22T22:00")
-            run_night_shift_for_org(org.id, schedule_id="2024-07-23T10:00")
+        with patch("sentry.tasks.seer.agentic_triage.cron.run_agentic_triage_execution"):
+            run_agentic_triage_for_org(org.id, schedule_id="2024-07-22T22:00")
+            run_agentic_triage_for_org(org.id, schedule_id="2024-07-23T10:00")
 
         assert SeerWorkflowRun.objects.filter(organization=org).count() == 2
 
     def test_null_schedule_id_preserves_manual_semantics(self) -> None:
         org = self.create_organization()
 
-        with patch("sentry.tasks.seer.night_shift.cron.run_night_shift_execution"):
-            run_night_shift_for_org(org.id)
-            run_night_shift_for_org(org.id)
+        with patch("sentry.tasks.seer.agentic_triage.cron.run_agentic_triage_execution"):
+            run_agentic_triage_for_org(org.id)
+            run_agentic_triage_for_org(org.id)
 
         assert (
             SeerWorkflowRun.objects.filter(organization=org, schedule_id__isnull=True).count() == 2
@@ -767,15 +820,15 @@ class TestRunNightShiftForOrg(NightShiftFixtures, TestCase, SnubaTestCase):
         self.create_project(organization=org)
 
         with (
-            patch("sentry.tasks.seer.night_shift.cron.logger") as mock_logger,
+            patch("sentry.tasks.seer.agentic_triage.cron.logger") as mock_logger,
         ):
-            run_night_shift_for_org(org.id)
+            run_agentic_triage_for_org(org.id)
             info_events = [call.args[0] for call in mock_logger.info.call_args_list]
             assert "night_shift.no_eligible_projects" in info_events
 
         run = SeerWorkflowRun.objects.get(organization=org)
         assert run.extras.get("error_message") is None
-        assert not SeerNightShiftRunResult.objects.filter(run=run).exists()
+        assert not SeerAgenticTriageRunResult.objects.filter(run=run).exists()
 
     def test_eligible_projects_error_resumes_same_schedule_run(self) -> None:
         org = self.create_organization()
@@ -783,22 +836,24 @@ class TestRunNightShiftForOrg(NightShiftFixtures, TestCase, SnubaTestCase):
         schedule_id = "2024-07-22T22:00"
 
         with patch(
-            "sentry.tasks.seer.night_shift.cron._get_eligible_projects",
+            "sentry.tasks.seer.agentic_triage.cron._get_eligible_projects",
             side_effect=RuntimeError("boom"),
         ):
-            run_night_shift_for_org(org.id, schedule_id=schedule_id)
+            run_agentic_triage_for_org(org.id, schedule_id=schedule_id)
 
         run = SeerWorkflowRun.objects.get(organization=org)
         assert run.extras["error_message"] == "Failed to get eligible projects"
-        assert run.extras["error_type"] == SeerNightShiftRunErrorType.ELIGIBLE_PROJECTS_FAILED.value
+        assert (
+            run.extras["error_type"] == SeerAgenticTriageRunErrorType.ELIGIBLE_PROJECTS_FAILED.value
+        )
         assert run.date_completed is None
 
-        run_night_shift_for_org(org.id, schedule_id=schedule_id)
+        run_agentic_triage_for_org(org.id, schedule_id=schedule_id)
 
         resumed_run = SeerWorkflowRun.objects.get(id=run.id)
         assert resumed_run.date_completed is not None
         assert resumed_run.extras.get("error_message") is None
-        assert not SeerNightShiftRunResult.objects.filter(run=resumed_run).exists()
+        assert not SeerAgenticTriageRunResult.objects.filter(run=resumed_run).exists()
 
     def test_filters_recently_skipped_groups(self) -> None:
         org = self.create_organization()
@@ -815,7 +870,7 @@ class TestRunNightShiftForOrg(NightShiftFixtures, TestCase, SnubaTestCase):
         mark_skipped(skipped_group.id)
         try:
             with self.feature("organizations:gen-ai-features"):
-                run_night_shift_for_org(org.id)
+                run_agentic_triage_for_org(org.id)
         finally:
             redis_clusters.get("default").delete(skip_cache_key(skipped_group.id))
 
@@ -829,12 +884,14 @@ class TestRunNightShiftForOrg(NightShiftFixtures, TestCase, SnubaTestCase):
 
         with (
             patch(
-                "sentry.tasks.seer.night_shift.cron.quotas.backend.check_seer_quota",
+                "sentry.tasks.seer.agentic_triage.cron.quotas.backend.check_seer_quota",
                 return_value=False,
             ),
-            patch("sentry.tasks.seer.night_shift.cron.run_night_shift_execution") as mock_execution,
+            patch(
+                "sentry.tasks.seer.agentic_triage.cron.run_agentic_triage_execution"
+            ) as mock_execution,
         ):
-            run_id = run_night_shift_for_org(org.id, schedule_id=schedule_id)
+            run_id = run_agentic_triage_for_org(org.id, schedule_id=schedule_id)
 
         assert run_id is None
         assert not SeerWorkflowRun.objects.filter(organization=org).exists()
@@ -842,12 +899,12 @@ class TestRunNightShiftForOrg(NightShiftFixtures, TestCase, SnubaTestCase):
 
         with (
             patch(
-                "sentry.tasks.seer.night_shift.cron.quotas.backend.check_seer_quota",
+                "sentry.tasks.seer.agentic_triage.cron.quotas.backend.check_seer_quota",
                 return_value=True,
             ),
-            patch("sentry.tasks.seer.night_shift.cron._get_eligible_projects", return_value=[]),
+            patch("sentry.tasks.seer.agentic_triage.cron._get_eligible_projects", return_value=[]),
         ):
-            run_id = run_night_shift_for_org(org.id, schedule_id=schedule_id)
+            run_id = run_agentic_triage_for_org(org.id, schedule_id=schedule_id)
 
         assert run_id is not None
         assert SeerWorkflowRun.objects.filter(id=run_id, organization=org).exists()
@@ -858,13 +915,15 @@ class TestRunNightShiftForOrg(NightShiftFixtures, TestCase, SnubaTestCase):
 
         with (
             patch(
-                "sentry.tasks.seer.night_shift.cron.quotas.backend.check_seer_quota",
+                "sentry.tasks.seer.agentic_triage.cron.quotas.backend.check_seer_quota",
                 side_effect=[True, False],
             ),
-            patch("sentry.tasks.seer.night_shift.cron.run_night_shift_execution") as mock_execution,
+            patch(
+                "sentry.tasks.seer.agentic_triage.cron.run_agentic_triage_execution"
+            ) as mock_execution,
         ):
-            first_run_id = run_night_shift_for_org(org.id, schedule_id=schedule_id)
-            second_run_id = run_night_shift_for_org(org.id, schedule_id=schedule_id)
+            first_run_id = run_agentic_triage_for_org(org.id, schedule_id=schedule_id)
+            second_run_id = run_agentic_triage_for_org(org.id, schedule_id=schedule_id)
 
         assert first_run_id is not None
         assert second_run_id is None
@@ -878,13 +937,13 @@ class TestRunNightShiftForOrg(NightShiftFixtures, TestCase, SnubaTestCase):
         org = self.create_organization()
 
         with (
-            patch("sentry.tasks.seer.night_shift.cron.is_free_cohort_org", return_value=True),
+            patch("sentry.tasks.seer.agentic_triage.cron.is_free_cohort_org", return_value=True),
             patch(
-                "sentry.tasks.seer.night_shift.cron.quotas.backend.check_seer_quota"
+                "sentry.tasks.seer.agentic_triage.cron.quotas.backend.check_seer_quota"
             ) as mock_quota,
-            patch("sentry.tasks.seer.night_shift.cron.run_night_shift_execution"),
+            patch("sentry.tasks.seer.agentic_triage.cron.run_agentic_triage_execution"),
         ):
-            run_id = run_night_shift_for_org(org.id)
+            run_id = run_agentic_triage_for_org(org.id)
 
         assert run_id is not None
         mock_quota.assert_not_called()
@@ -897,10 +956,10 @@ class TestRunNightShiftForOrg(NightShiftFixtures, TestCase, SnubaTestCase):
         self._make_eligible(high, max_candidates=11)
 
         with patch(
-            "sentry.tasks.seer.night_shift.cron.fixability_score_strategy",
+            "sentry.tasks.seer.agentic_triage.cron.fixability_score_strategy",
             return_value=[],
         ) as mock_score:
-            run_night_shift_for_org(org.id)
+            run_agentic_triage_for_org(org.id)
 
         mock_score.assert_called_once()
         assert mock_score.call_args.args[1] == 10
@@ -911,10 +970,10 @@ class TestRunNightShiftForOrg(NightShiftFixtures, TestCase, SnubaTestCase):
         self._make_eligible(project, max_candidates=50)
 
         with patch(
-            "sentry.tasks.seer.night_shift.cron.fixability_score_strategy",
+            "sentry.tasks.seer.agentic_triage.cron.fixability_score_strategy",
             return_value=[],
         ) as mock_score:
-            run_night_shift_for_org(org.id, options={"max_candidates": 7})
+            run_agentic_triage_for_org(org.id, options={"max_candidates": 7})
 
         mock_score.assert_called_once()
         assert mock_score.call_args.args[1] == 7
@@ -927,11 +986,11 @@ class TestRunNightShiftForOrg(NightShiftFixtures, TestCase, SnubaTestCase):
         with (
             self.options({"seer.night_shift.org_tweaks": {str(org.id): {"max_candidates": 25}}}),
             patch(
-                "sentry.tasks.seer.night_shift.cron.fixability_score_strategy",
+                "sentry.tasks.seer.agentic_triage.cron.fixability_score_strategy",
                 return_value=[],
             ) as mock_score,
         ):
-            run_night_shift_for_org(org.id)
+            run_agentic_triage_for_org(org.id)
 
         mock_score.assert_called_once()
         assert mock_score.call_args.args[1] == 25
@@ -944,11 +1003,11 @@ class TestRunNightShiftForOrg(NightShiftFixtures, TestCase, SnubaTestCase):
         with (
             self.options({"seer.night_shift.org_tweaks": {str(org.id): {"max_candidates": 25}}}),
             patch(
-                "sentry.tasks.seer.night_shift.cron.fixability_score_strategy",
+                "sentry.tasks.seer.agentic_triage.cron.fixability_score_strategy",
                 return_value=[],
             ) as mock_score,
         ):
-            run_night_shift_for_org(org.id, options={"max_candidates": 7})
+            run_agentic_triage_for_org(org.id, options={"max_candidates": 7})
 
         mock_score.assert_called_once()
         assert mock_score.call_args.args[1] == 7
@@ -961,17 +1020,17 @@ class TestRunNightShiftForOrg(NightShiftFixtures, TestCase, SnubaTestCase):
         self._make_eligible(disabled, enabled=False)
 
         with patch(
-            "sentry.tasks.seer.night_shift.cron.fixability_score_strategy",
+            "sentry.tasks.seer.agentic_triage.cron.fixability_score_strategy",
             return_value=[],
         ) as mock_score:
-            run_night_shift_for_org(org.id)
+            run_agentic_triage_for_org(org.id)
 
         mock_score.assert_called_once()
         assert [p.id for p in mock_score.call_args.args[0]] == [enabled.id]
 
 
 @django_db_all
-class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCase):
+class TestRunAgenticTriageFeatureDelivery(AgenticTriageFixtures, TestCase, SnubaTestCase):
     """Coverage for the dispatch path, which hands triage off to Seer's
     feature-run endpoint. Seer pushes verdicts back via deliver_feature_result."""
 
@@ -995,11 +1054,11 @@ class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCa
             self.options({"seer.night_shift.shard_size": 2}),
             self.feature("organizations:gen-ai-features"),
             patch(
-                "sentry.tasks.seer.night_shift.cron.fixability_score_strategy",
+                "sentry.tasks.seer.agentic_triage.cron.fixability_score_strategy",
                 return_value=scored,
             ),
         ):
-            run_night_shift_for_org(org.id)
+            run_agentic_triage_for_org(org.id)
 
         run = SeerWorkflowRun.objects.get(organization=org)
         shards = list(SeerWorkflowRunExecution.objects.filter(run=run).order_by("id"))
@@ -1020,11 +1079,11 @@ class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCa
             self.options({"seer.night_shift.shard_size": 10}),
             self.feature("organizations:gen-ai-features"),
             patch(
-                "sentry.tasks.seer.night_shift.cron.fixability_score_strategy",
+                "sentry.tasks.seer.agentic_triage.cron.fixability_score_strategy",
                 return_value=scored,
             ),
         ):
-            run_night_shift_for_org(org.id)
+            run_agentic_triage_for_org(org.id)
 
         run = SeerWorkflowRun.objects.get(organization=org)
         shards = list(SeerWorkflowRunExecution.objects.filter(run=run))
@@ -1042,11 +1101,11 @@ class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCa
             self.options({"seer.night_shift.shard_size": 0}),
             self.feature("organizations:gen-ai-features"),
             patch(
-                "sentry.tasks.seer.night_shift.cron.fixability_score_strategy",
+                "sentry.tasks.seer.agentic_triage.cron.fixability_score_strategy",
                 return_value=scored,
             ),
         ):
-            run_night_shift_for_org(org.id)
+            run_agentic_triage_for_org(org.id)
 
         run = SeerWorkflowRun.objects.get(organization=org)
         shards = list(SeerWorkflowRunExecution.objects.filter(run=run))
@@ -1063,9 +1122,9 @@ class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCa
 
         with (
             self.feature("organizations:gen-ai-features"),
-            patch("sentry.seer.night_shift.delivery.trigger_autofix_agent") as mock_autofix,
+            patch("sentry.seer.agentic_triage.delivery.trigger_autofix_agent") as mock_autofix,
         ):
-            run_night_shift_for_org(org.id)
+            run_agentic_triage_for_org(org.id)
 
         # Autofix is fired by Seer's pushed-back verdicts, not in-process.
         mock_autofix.assert_not_called()
@@ -1091,7 +1150,7 @@ class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCa
         assert seer_run.seer_run_state_id is None
         assert run.extras.get("error_message") is None
         # Verdicts and autofix are Seer's responsibility now; no result rows here.
-        assert not SeerNightShiftRunResult.objects.filter(run=run).exists()
+        assert not SeerAgenticTriageRunResult.objects.filter(run=run).exists()
 
     def test_payload_carries_automation_tuning_for_legacy_orgs(self) -> None:
         org = self.create_organization()
@@ -1103,7 +1162,7 @@ class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCa
         self._store_event_and_update_group(project, "fixable", seer_fixability_score=0.9)
 
         with self.feature("organizations:gen-ai-features"):
-            run_night_shift_for_org(org.id)
+            run_agentic_triage_for_org(org.id)
 
         _, body = _dispatched_feature_body(org)
         assert body["payload"]["candidates"][0]["automation_tuning"] == "high"
@@ -1117,11 +1176,11 @@ class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCa
         with (
             self.feature("organizations:gen-ai-features"),
             patch(
-                "sentry.tasks.seer.night_shift.cron.is_seer_seat_based_tier_enabled",
+                "sentry.tasks.seer.agentic_triage.cron.is_seer_seat_based_tier_enabled",
                 return_value=True,
             ),
         ):
-            run_night_shift_for_org(org.id)
+            run_agentic_triage_for_org(org.id)
 
         _, body = _dispatched_feature_body(org)
         assert body["payload"]["candidates"][0]["automation_tuning"] is None
@@ -1142,7 +1201,7 @@ class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCa
         )
 
         with self.feature("organizations:gen-ai-features"):
-            run_night_shift_for_org(org.id)
+            run_agentic_triage_for_org(org.id)
 
         _, body = _dispatched_feature_body(org)
         tuning_by_group_id = {
@@ -1177,7 +1236,7 @@ class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCa
                 }
             ),
         ):
-            run_night_shift_for_org(org.id)
+            run_agentic_triage_for_org(org.id)
 
         run = SeerWorkflowRun.objects.get(organization=org)
         shard = run.executions.get()
@@ -1205,7 +1264,7 @@ class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCa
             self.options({"seer.night_shift.shard_size": 2}),
             self.feature("organizations:gen-ai-features"),
         ):
-            run_night_shift_for_org(org.id)
+            run_agentic_triage_for_org(org.id)
 
         run = SeerWorkflowRun.objects.get(organization=org)
         # 3 candidates, shard size 2 -> 2 shards (2 + 1).
@@ -1253,7 +1312,7 @@ class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCa
             self.options({"seer.night_shift.shard_size": 1}),
             self.feature("organizations:gen-ai-features"),
             patch(
-                "sentry.tasks.seer.night_shift.cron.fixability_score_strategy",
+                "sentry.tasks.seer.agentic_triage.cron.fixability_score_strategy",
                 return_value=scored,
             ) as mock_score,
             patch.object(
@@ -1263,11 +1322,11 @@ class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCa
                 side_effect=fail_second_dispatch,
             ),
             patch(
-                "sentry.tasks.seer.night_shift.cron.quotas.backend.check_seer_quota",
+                "sentry.tasks.seer.agentic_triage.cron.quotas.backend.check_seer_quota",
                 side_effect=[True, False, False],
             ) as mock_quota,
         ):
-            run_night_shift_for_org(org.id, schedule_id="2024-07-22T22:00")
+            run_agentic_triage_for_org(org.id, schedule_id="2024-07-22T22:00")
 
             run = SeerWorkflowRun.objects.get(organization=org)
             assert run.date_completed is None
@@ -1276,7 +1335,7 @@ class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCa
                 SeerRun.objects.filter(organization=org, type=SeerRunType.FEATURE_RUN).count() == 1
             )
 
-            run_night_shift_for_org(org.id, schedule_id="2024-07-22T22:00")
+            run_agentic_triage_for_org(org.id, schedule_id="2024-07-22T22:00")
             resumed_run = SeerWorkflowRun.objects.get(id=run.id)
             assert resumed_run.date_completed is not None
             assert resumed_run.extras.get("error_message") is None
@@ -1285,7 +1344,7 @@ class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCa
                 SeerRun.objects.filter(organization=org, type=SeerRunType.FEATURE_RUN).count() == 2
             )
 
-            run_night_shift_for_org(org.id, schedule_id="2024-07-22T22:00")
+            run_agentic_triage_for_org(org.id, schedule_id="2024-07-22T22:00")
 
         mock_score.assert_called_once()
         assert mock_quota.call_count == 3
@@ -1296,7 +1355,7 @@ class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCa
         project = self.create_project(organization=org)
         self._make_eligible(project)
 
-        run_night_shift_for_org(org.id)
+        run_agentic_triage_for_org(org.id)
 
         run = SeerWorkflowRun.objects.get(organization=org)
         assert not run.executions.exists()
@@ -1311,14 +1370,14 @@ class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCa
             project, "fixable", seer_fixability_score=0.9, times_seen=5
         )
 
-        with patch("sentry.tasks.seer.night_shift.cron.logger") as mock_logger:
-            run_night_shift_for_org(org.id)
+        with patch("sentry.tasks.seer.agentic_triage.cron.logger") as mock_logger:
+            run_agentic_triage_for_org(org.id)
 
         run = SeerWorkflowRun.objects.get(organization=org)
         assert run.executions.filter(seer_run__isnull=True).count() == 1
         assert run.date_completed is None
         assert run.extras["error_message"] == "Organization does not have Seer access"
-        assert run.extras["error_type"] == SeerNightShiftRunErrorType.NO_SEER_ACCESS.value
+        assert run.extras["error_type"] == SeerAgenticTriageRunErrorType.NO_SEER_ACCESS.value
         assert not SeerRun.objects.filter(organization=org).exists()
         incomplete_log = next(
             call.kwargs["extra"]
@@ -1342,13 +1401,13 @@ class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCa
                 side_effect=RuntimeError("boom"),
             ),
         ):
-            run_night_shift_for_org(org.id)
+            run_agentic_triage_for_org(org.id)
 
         run = SeerWorkflowRun.objects.get(organization=org)
         assert run.executions.filter(seer_run__isnull=True).count() == 1
         assert run.date_completed is None
         assert run.extras["error_message"] == "Failed to dispatch 1 of 1 triage shards"
-        assert run.extras["error_type"] == SeerNightShiftRunErrorType.SHARD_DISPATCH_FAILED.value
+        assert run.extras["error_type"] == SeerAgenticTriageRunErrorType.SHARD_DISPATCH_FAILED.value
 
     def test_outbox_drain_mirrors_run_against_seer(self) -> None:
         org = self.create_organization()
@@ -1359,7 +1418,7 @@ class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCa
         )
 
         with self.feature("organizations:gen-ai-features"):
-            run_night_shift_for_org(org.id)
+            run_agentic_triage_for_org(org.id)
 
         seer_run = SeerRun.objects.get(organization=org, type=SeerRunType.FEATURE_RUN)
         assert seer_run.mirror_status == SeerRunMirrorStatus.PENDING
@@ -1382,8 +1441,8 @@ class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCa
 
 
 @django_db_all
-class TestRunNightShiftForOrgManualPath(NightShiftFixtures, TestCase):
-    """Manual-path coverage for run_night_shift_for_org — invoked from the
+class TestRunAgenticTriageForOrgManualPath(AgenticTriageFixtures, TestCase):
+    """Manual-path coverage for run_agentic_triage_for_org — invoked from the
     project-settings "Run Now" endpoint with source="manual" and project_ids."""
 
     def test_inactive_org_skipped(self) -> None:
@@ -1391,8 +1450,12 @@ class TestRunNightShiftForOrgManualPath(NightShiftFixtures, TestCase):
         project = self.create_project(organization=org)
         org.update(status=OrganizationStatus.PENDING_DELETION)
 
-        with patch("sentry.tasks.seer.night_shift.cron.run_night_shift_execution") as mock_execute:
-            run_night_shift_for_org(org.id, options={"source": "manual"}, project_ids=[project.id])
+        with patch(
+            "sentry.tasks.seer.agentic_triage.cron.run_agentic_triage_execution"
+        ) as mock_execute:
+            run_agentic_triage_for_org(
+                org.id, options={"source": "manual"}, project_ids=[project.id]
+            )
             mock_execute.assert_not_called()
             mock_execute.apply_async.assert_not_called()
 
@@ -1401,9 +1464,9 @@ class TestRunNightShiftForOrgManualPath(NightShiftFixtures, TestCase):
         project = self.create_project(organization=org)
 
         with patch(
-            "sentry.tasks.seer.night_shift.cron.run_night_shift_execution",
+            "sentry.tasks.seer.agentic_triage.cron.run_agentic_triage_execution",
         ) as mock_execute:
-            result = run_night_shift_for_org(
+            result = run_agentic_triage_for_org(
                 org.id,
                 options={"source": "manual", "dry_run": True, "max_candidates": 3},
                 project_ids=[project.id],
@@ -1432,8 +1495,10 @@ class TestRunNightShiftForOrgManualPath(NightShiftFixtures, TestCase):
         org = self.create_organization()
         project = self.create_project(organization=org)
 
-        with patch("sentry.tasks.seer.night_shift.cron.run_night_shift_execution") as mock_execute:
-            run_id = run_night_shift_for_org(
+        with patch(
+            "sentry.tasks.seer.agentic_triage.cron.run_agentic_triage_execution"
+        ) as mock_execute:
+            run_id = run_agentic_triage_for_org(
                 org.id,
                 options={"source": "manual"},
                 project_ids=[project.id],
@@ -1454,26 +1519,28 @@ class TestRunNightShiftForOrgManualPath(NightShiftFixtures, TestCase):
 
         with (
             patch(
-                "sentry.tasks.seer.night_shift.cron.quotas.backend.check_seer_quota",
+                "sentry.tasks.seer.agentic_triage.cron.quotas.backend.check_seer_quota",
                 return_value=False,
             ),
-            patch("sentry.tasks.seer.night_shift.cron.run_night_shift_execution") as mock_execute,
+            patch(
+                "sentry.tasks.seer.agentic_triage.cron.run_agentic_triage_execution"
+            ) as mock_execute,
         ):
-            run_id = run_night_shift_for_org(
+            run_id = run_agentic_triage_for_org(
                 org.id, options={"source": "manual"}, project_ids=[project.id]
             )
 
         assert run_id is not None
         run = SeerWorkflowRun.objects.get(id=run_id)
         assert run.extras["error_message"] == "No Seer quota available"
-        assert run.extras["error_type"] == SeerNightShiftRunErrorType.NO_QUOTA.value
+        assert run.extras["error_type"] == SeerAgenticTriageRunErrorType.NO_QUOTA.value
         mock_execute.assert_not_called()
 
     def test_extras_contain_options_and_target_project_ids(self) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
 
-        run_night_shift_for_org(
+        run_agentic_triage_for_org(
             org.id,
             options={"source": "manual", "dry_run": True, "max_candidates": 5},
             project_ids=[project.id],
@@ -1497,7 +1564,7 @@ class TestRunNightShiftForOrgManualPath(NightShiftFixtures, TestCase):
         org = self.create_organization()
         project = self.create_project(organization=org)
 
-        run_night_shift_for_org(
+        run_agentic_triage_for_org(
             org.id,
             options={"source": "manual", "dry_run": True},
             project_ids=[project.id],
@@ -1512,17 +1579,19 @@ class TestRunNightShiftForOrgManualPath(NightShiftFixtures, TestCase):
         project = self._make_eligible(self.create_project(organization=org), enabled=False)
 
         with patch(
-            "sentry.tasks.seer.night_shift.cron.fixability_score_strategy",
+            "sentry.tasks.seer.agentic_triage.cron.fixability_score_strategy",
             return_value=[],
         ) as mock_score:
-            run_night_shift_for_org(org.id, options={"source": "manual"}, project_ids=[project.id])
+            run_agentic_triage_for_org(
+                org.id, options={"source": "manual"}, project_ids=[project.id]
+            )
 
         mock_score.assert_called_once()
         assert [p.id for p in mock_score.call_args.args[0]] == [project.id]
 
 
 @django_db_all
-class TestFixabilityScoreStrategy(NightShiftFixtures, TestCase, SnubaTestCase):
+class TestFixabilityScoreStrategy(AgenticTriageFixtures, TestCase, SnubaTestCase):
     reset_snuba_data = False
 
     def test_ranks_scored_above_threshold_first_then_unscored(self) -> None:
@@ -1573,7 +1642,7 @@ class TestFixabilityScoreStrategy(NightShiftFixtures, TestCase, SnubaTestCase):
         lvs_group = self.create_group(project=project, type=LowValueSpanConfigurationType.type_id)
 
         with patch(
-            "sentry.tasks.seer.night_shift.simple_triage._agentic_triage_snuba_factors",
+            "sentry.tasks.seer.agentic_triage.simple_triage._agentic_triage_snuba_factors",
             return_value={},
         ):
             result = fixability_score_strategy([project], max_candidates=10)
@@ -1586,12 +1655,12 @@ class TestFixabilityScoreStrategy(NightShiftFixtures, TestCase, SnubaTestCase):
             self.create_group(project=project)
 
         with patch(
-            "sentry.tasks.seer.night_shift.simple_triage._agentic_triage_snuba_factors",
+            "sentry.tasks.seer.agentic_triage.simple_triage._agentic_triage_snuba_factors",
             return_value={},
         ) as mock_factors:
             fixability_score_strategy_per_project([project], max_candidates=5)
 
-        # fetch_limit = max_candidates * NIGHT_SHIFT_PER_PROJECT_FETCH_MULTIPLIER
+        # fetch_limit = max_candidates * AGENTIC_TRIAGE_PER_PROJECT_FETCH_MULTIPLIER
         assert len(mock_factors.call_args.args[0]) == 15
 
     def test_per_project_fetch_limit_caps_at_global_fetch_limit(self) -> None:
@@ -1600,9 +1669,11 @@ class TestFixabilityScoreStrategy(NightShiftFixtures, TestCase, SnubaTestCase):
             self.create_group(project=project)
 
         with (
-            patch("sentry.tasks.seer.night_shift.simple_triage.NIGHT_SHIFT_ISSUE_FETCH_LIMIT", 4),
             patch(
-                "sentry.tasks.seer.night_shift.simple_triage._agentic_triage_snuba_factors",
+                "sentry.tasks.seer.agentic_triage.simple_triage.AGENTIC_TRIAGE_ISSUE_FETCH_LIMIT", 4
+            ),
+            patch(
+                "sentry.tasks.seer.agentic_triage.simple_triage._agentic_triage_snuba_factors",
                 return_value={},
             ) as mock_factors,
         ):
@@ -1623,11 +1694,11 @@ class TestFixabilityScoreStrategy(NightShiftFixtures, TestCase, SnubaTestCase):
 
         with (
             patch(
-                "sentry.tasks.seer.night_shift.simple_triage._agentic_triage_snuba_factors",
+                "sentry.tasks.seer.agentic_triage.simple_triage._agentic_triage_snuba_factors",
                 return_value={},
             ),
             patch(
-                "sentry.tasks.seer.night_shift.simple_triage.recently_skipped",
+                "sentry.tasks.seer.agentic_triage.simple_triage.recently_skipped",
                 wraps=recently_skipped,
             ) as mock_skipped,
         ):
@@ -1645,11 +1716,11 @@ class TestFixabilityScoreStrategy(NightShiftFixtures, TestCase, SnubaTestCase):
 
         with (
             patch(
-                "sentry.tasks.seer.night_shift.simple_triage._agentic_triage_snuba_factors",
+                "sentry.tasks.seer.agentic_triage.simple_triage._agentic_triage_snuba_factors",
                 return_value={},
             ),
             patch(
-                "sentry.tasks.seer.night_shift.simple_triage.recently_skipped",
+                "sentry.tasks.seer.agentic_triage.simple_triage.recently_skipped",
                 wraps=recently_skipped,
             ) as mock_skipped,
         ):
@@ -1668,11 +1739,11 @@ class TestFixabilityScoreStrategy(NightShiftFixtures, TestCase, SnubaTestCase):
 
         with (
             patch(
-                "sentry.tasks.seer.night_shift.simple_triage._agentic_triage_snuba_factors",
+                "sentry.tasks.seer.agentic_triage.simple_triage._agentic_triage_snuba_factors",
                 return_value={},
             ),
             patch(
-                "sentry.tasks.seer.night_shift.simple_triage.recently_skipped",
+                "sentry.tasks.seer.agentic_triage.simple_triage.recently_skipped",
                 wraps=recently_skipped,
             ) as mock_skipped,
         ):
@@ -1684,25 +1755,26 @@ class TestFixabilityScoreStrategy(NightShiftFixtures, TestCase, SnubaTestCase):
     def test_pagination_is_bounded(self) -> None:
         project = self.create_project()
         groups = [
-            self.create_group(project=project) for _ in range(NIGHT_SHIFT_MAX_SEARCH_PAGES * 3 + 1)
+            self.create_group(project=project)
+            for _ in range(AGENTIC_TRIAGE_MAX_SEARCH_PAGES * 3 + 1)
         ]
         for group in groups:
             mark_skipped(group.id)
 
         with (
             patch(
-                "sentry.tasks.seer.night_shift.simple_triage._agentic_triage_snuba_factors",
+                "sentry.tasks.seer.agentic_triage.simple_triage._agentic_triage_snuba_factors",
                 return_value={},
             ) as mock_factors,
             patch(
-                "sentry.tasks.seer.night_shift.simple_triage.recently_skipped",
+                "sentry.tasks.seer.agentic_triage.simple_triage.recently_skipped",
                 wraps=recently_skipped,
             ) as mock_skipped,
         ):
             # max_candidates=1 -> fetch_limit of 3 per page.
             result = fixability_score_strategy_per_project([project], max_candidates=1)
 
-        assert mock_skipped.call_count == NIGHT_SHIFT_MAX_SEARCH_PAGES
+        assert mock_skipped.call_count == AGENTIC_TRIAGE_MAX_SEARCH_PAGES
         assert result == []
         mock_factors.assert_not_called()
 

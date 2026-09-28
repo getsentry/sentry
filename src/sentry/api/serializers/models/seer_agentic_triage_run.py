@@ -15,7 +15,10 @@ from sentry.api.serializers.models.pullrequest import (
 )
 from sentry.models.group import Group
 from sentry.models.pullrequest import PullRequest
-from sentry.seer.models.night_shift import SeerNightShiftRunErrorType, SeerNightShiftRunResult
+from sentry.seer.models.agentic_triage import (
+    SeerAgenticTriageRunErrorType,
+    SeerAgenticTriageRunResult,
+)
 from sentry.seer.models.run import SeerRunPullRequest
 from sentry.seer.models.workflow import (
     SeerWorkflowRun,
@@ -25,7 +28,7 @@ from sentry.seer.models.workflow import (
 from sentry.seer.workflows.schemas import WorkflowRunSource
 
 
-class SeerNightShiftRunResultResponse(TypedDict):
+class SeerAgenticTriageRunResultResponse(TypedDict):
     id: str
     kind: str
     groupId: str | None
@@ -37,7 +40,7 @@ class SeerNightShiftRunResultResponse(TypedDict):
 # TODO(telkins): this `issues` list is a triage-specific view derived from
 # `results`, kept for the current frontend. Once the UI reads `results`
 # directly (filtering to kind=agentic_triage), drop this key and _serialize_issue.
-class SeerNightShiftRunIssueResponse(TypedDict):
+class SeerAgenticTriageRunIssueResponse(TypedDict):
     id: str
     groupId: str
     groupTitle: str | None
@@ -61,15 +64,15 @@ class SeerWorkflowRunExecutionSerializer(Serializer[SeerWorkflowRunExecutionResp
         return {"seerRunId": str(obj.seer_run.uuid) if obj.seer_run is not None else None}
 
 
-class SeerNightShiftRunResponse(TypedDict):
+class SeerAgenticTriageRunResponse(TypedDict):
     id: str
     source: WorkflowRunSource | None
     dateAdded: datetime
     extras: dict[str, Any]
     errorMessage: str | None
-    errorType: SeerNightShiftRunErrorType | None
-    results: list[SeerNightShiftRunResultResponse]
-    issues: list[SeerNightShiftRunIssueResponse]
+    errorType: SeerAgenticTriageRunErrorType | None
+    results: list[SeerAgenticTriageRunResultResponse]
+    issues: list[SeerAgenticTriageRunIssueResponse]
     seerRuns: list[SeerWorkflowRunExecutionResponse]
     triageStrategy: str
     strategy: str
@@ -77,7 +80,7 @@ class SeerNightShiftRunResponse(TypedDict):
 
 
 @register(SeerWorkflowRun)
-class SeerNightShiftRunSerializer(Serializer[SeerNightShiftRunResponse]):
+class SeerAgenticTriageRunSerializer(Serializer[SeerAgenticTriageRunResponse]):
     def get_attrs(
         self, item_list: Sequence[SeerWorkflowRun], user: Any, **kwargs: Any
     ) -> dict[SeerWorkflowRun, dict[str, Any]]:
@@ -86,7 +89,7 @@ class SeerNightShiftRunSerializer(Serializer[SeerNightShiftRunResponse]):
             "workflow_config",
             Prefetch(
                 "results",
-                queryset=SeerNightShiftRunResult.objects.select_related("result_seer_run"),
+                queryset=SeerAgenticTriageRunResult.objects.select_related("result_seer_run"),
             ),
             Prefetch(
                 "executions",
@@ -159,7 +162,7 @@ class SeerNightShiftRunSerializer(Serializer[SeerNightShiftRunResponse]):
         attrs: Mapping[str, Any],
         user: Any,
         **kwargs: Any,
-    ) -> SeerNightShiftRunResponse:
+    ) -> SeerAgenticTriageRunResponse:
         all_results = list(obj.results.all())
         triage_results = [r for r in all_results if r.kind == SeerWorkflowStrategy.AGENTIC_TRIAGE]
         extras = {key: value for key, value in (obj.extras or {}).items() if key != "agent_run_id"}
@@ -210,30 +213,33 @@ class SeerNightShiftRunSerializer(Serializer[SeerNightShiftRunResponse]):
 
 
 _LEGACY_ERROR_TYPES = {
-    "No Seer quota available": SeerNightShiftRunErrorType.NO_QUOTA,
-    "Failed to get eligible projects": SeerNightShiftRunErrorType.ELIGIBLE_PROJECTS_FAILED,
-    "Organization does not have Seer access": SeerNightShiftRunErrorType.NO_SEER_ACCESS,
-    "Invalid Night Shift shard plan": SeerNightShiftRunErrorType.INVALID_SHARD_PLAN,
+    "No Seer quota available": SeerAgenticTriageRunErrorType.NO_QUOTA,
+    "Failed to get eligible projects": SeerAgenticTriageRunErrorType.ELIGIBLE_PROJECTS_FAILED,
+    "Organization does not have Seer access": SeerAgenticTriageRunErrorType.NO_SEER_ACCESS,
+    "Invalid Night Shift shard plan": SeerAgenticTriageRunErrorType.INVALID_SHARD_PLAN,
+    "Invalid agentic triage shard plan": SeerAgenticTriageRunErrorType.INVALID_SHARD_PLAN,
 }
-_ERROR_TYPES_BY_VALUE = {error_type.value: error_type for error_type in SeerNightShiftRunErrorType}
+_ERROR_TYPES_BY_VALUE = {
+    error_type.value: error_type for error_type in SeerAgenticTriageRunErrorType
+}
 
 
 def _resolve_error_type(
     raw_error_type: str | None, error_message: str | None
-) -> SeerNightShiftRunErrorType | None:
+) -> SeerAgenticTriageRunErrorType | None:
     if raw_error_type is not None:
-        return _ERROR_TYPES_BY_VALUE.get(raw_error_type, SeerNightShiftRunErrorType.UNKNOWN)
+        return _ERROR_TYPES_BY_VALUE.get(raw_error_type, SeerAgenticTriageRunErrorType.UNKNOWN)
 
     if error_message is None:
         return None
     if error_type := _LEGACY_ERROR_TYPES.get(error_message):
         return error_type
     if re.fullmatch(r"Failed to dispatch \d+ of \d+ triage shards", error_message):
-        return SeerNightShiftRunErrorType.SHARD_DISPATCH_FAILED
-    return SeerNightShiftRunErrorType.UNKNOWN
+        return SeerAgenticTriageRunErrorType.SHARD_DISPATCH_FAILED
+    return SeerAgenticTriageRunErrorType.UNKNOWN
 
 
-def _serialize_result(result: SeerNightShiftRunResult) -> SeerNightShiftRunResultResponse:
+def _serialize_result(result: SeerAgenticTriageRunResult) -> SeerAgenticTriageRunResultResponse:
     return {
         "id": str(result.id),
         "kind": result.kind,
@@ -247,11 +253,11 @@ def _serialize_result(result: SeerNightShiftRunResult) -> SeerNightShiftRunResul
 
 
 def _serialize_issue(
-    result: SeerNightShiftRunResult,
+    result: SeerAgenticTriageRunResult,
     group_titles_by_id: Mapping[int, str | None],
     group_short_ids_by_id: Mapping[int, str | None],
     pull_requests_by_result_id: Mapping[int, list[PullRequestSerializerResponse]],
-) -> SeerNightShiftRunIssueResponse:
+) -> SeerAgenticTriageRunIssueResponse:
     extras = result.extras or {}
     return {
         "id": str(result.id),

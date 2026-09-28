@@ -13,11 +13,11 @@ from sentry import options
 from sentry.hybridcloud.models.outbox import CellOutbox
 from sentry.hybridcloud.tasks.deliver_from_outbox import drain_outbox_shards
 from sentry.models.organization import Organization
-from sentry.seer.models.night_shift import SeerNightShiftRun
 from sentry.seer.models.run import SeerRunMirrorStatus
-from sentry.tasks.seer.night_shift.cron import (
-    SeerNightShiftRunOptionsPartial,
-    run_night_shift_for_org,
+from sentry.seer.models.workflow import SeerWorkflowRun
+from sentry.tasks.seer.agentic_triage.cron import (
+    SeerAgenticTriageRunOptionsPartial,
+    run_agentic_triage_for_org,
 )
 
 
@@ -60,19 +60,19 @@ def main(
     dry_run: bool,
 ) -> None:
     if schedule_id is None:
-        sys.stdout.write(f"> Running manual night shift for organization {org_id}...\n")
+        sys.stdout.write(f"> Running manual agentic triage for organization {org_id}...\n")
     else:
         sys.stdout.write(
-            f"> Running scheduled night shift window {schedule_id} for organization {org_id}...\n"
+            f"> Running scheduled agentic triage window {schedule_id} for organization {org_id}...\n"
         )
 
-    run_options: SeerNightShiftRunOptionsPartial = {
+    run_options: SeerAgenticTriageRunOptionsPartial = {
         "source": "cron" if schedule_id is not None else "manual",
         "dry_run": dry_run,
     }
     if max_candidates is not None:
         run_options["max_candidates"] = max_candidates
-    run_id = run_night_shift_for_org(org_id, options=run_options, schedule_id=schedule_id)
+    run_id = run_agentic_triage_for_org(org_id, options=run_options, schedule_id=schedule_id)
     sys.stdout.write("> Done.\n")
 
     if run_id is None:
@@ -82,17 +82,17 @@ def main(
         sys.stdout.write("> Draining outbox to dispatch the run to Seer...\n")
         _drain_outbox()
 
-    nsr = SeerNightShiftRun.objects.prefetch_related("shards__seer_run").get(id=run_id)
-    shard_runs = [shard.seer_run for shard in nsr.shards.all() if shard.seer_run is not None]
+    run = SeerWorkflowRun.objects.prefetch_related("executions__seer_run").get(id=run_id)
+    shard_runs = [shard.seer_run for shard in run.executions.all() if shard.seer_run is not None]
     if not shard_runs:
-        error_message = (nsr.extras or {}).get("error_message")
+        error_message = (run.extras or {}).get("error_message")
         if error_message:
             sys.stdout.write(f"> Not dispatched: {error_message}\n")
         else:
             sys.stdout.write("> No candidates were dispatched.\n")
         return
 
-    error_message = (nsr.extras or {}).get("error_message")
+    error_message = (run.extras or {}).get("error_message")
     if error_message:
         sys.stdout.write(f"> {error_message}\n")
 
@@ -116,7 +116,7 @@ def main(
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Trigger night shift for an organization.")
+    parser = argparse.ArgumentParser(description="Trigger agentic triage for an organization.")
     parser.add_argument(
         "org_id", nargs="?", default=1, type=int, help="Organization ID (default: 1)"
     )
