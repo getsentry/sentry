@@ -2,6 +2,8 @@ from collections.abc import Mapping
 from typing import Any
 from unittest.mock import patch
 
+from django.test import override_settings
+
 from sentry.seer.models.run import SeerRunPullRequest, SeerRunType
 from sentry.seer.run_questions import QUESTIONS, question_hash
 from sentry.testutils.cases import APITestCase
@@ -9,6 +11,7 @@ from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
 
 
+@override_settings(SENTRY_SELF_HOSTED=False)
 @with_feature("organizations:seer-explorer")
 @with_feature("organizations:gen-ai-features")
 class OrganizationSeerRunsEndpointTest(APITestCase):
