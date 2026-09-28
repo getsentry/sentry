@@ -29,8 +29,6 @@ jest.mock('@sentry/rrweb', () => {
     Replayer: jest
       .fn()
       .mockImplementation((_events: unknown, {root}: {root: HTMLElement}) => {
-        // rrweb mounts its wrapper into `root`, which is how the player finds
-        // its way back to the root element when it has to re-initialize
         const wrapper = document.createElement('div');
         root.appendChild(wrapper);
         return {
