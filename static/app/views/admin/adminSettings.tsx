@@ -3,7 +3,6 @@ import {z} from 'zod';
 
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
 import {Stack} from '@sentry/scraps/layout';
-import {Heading} from '@sentry/scraps/text';
 
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -192,10 +191,6 @@ export default function AdminSettings() {
 
   return (
     <Stack gap="xl">
-      <Heading as="h3" size="lg">
-        {t('Settings')}
-      </Heading>
-
       <FieldGroup title={t('General')}>
         <TextOptionField
           name="system.url-prefix"
