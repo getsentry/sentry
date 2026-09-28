@@ -135,6 +135,7 @@ class PrIterationDetailsTest(TestCase):
                 organization_id=self.organization.id,
                 iteration_id=iteration_id,
                 referrer="github_pr_comment",
+                feedback_types="github_pr_comment",
                 feedback_count=2,
                 queued_count=3,
                 dropped_count=1,
@@ -180,6 +181,7 @@ class PrIterationDetailsTest(TestCase):
         assert row.triggered
         assert row.data["trigger_source"] == "feedback"
         assert row.data["referrer"] == "github_pr_comment"
+        assert row.data["feedback_types"] == "github_pr_comment"
         assert row.data["feedback_count"] == 2
         assert row.data["queued_count"] == 3
         assert row.data["dropped_count"] == 1
@@ -280,6 +282,7 @@ class PrIterationDetailsTest(TestCase):
                 group_id=self.group.id,
                 run_id=RUN_ID,
                 referrer="github_pr_comment",
+                feedback_types="github_pr_comment",
                 trigger_source="feedback",
                 feedback_count=2,
                 queued_count=3,
@@ -447,6 +450,7 @@ class PrIterationDetailsTest(TestCase):
                 group_id=self.group.id,
                 run_id=RUN_ID,
                 referrer="github_pr_comment",
+                feedback_types="github_pr_comment",
                 trigger_source="feedback",
                 feedback_count=2,
                 queued_count=3,
@@ -542,6 +546,7 @@ class RecordPrIterationBlockedTest(TestCase):
             organization_id=self.organization.id,
             iteration_id=iteration_id,
             referrer="github_pr_comment",
+            feedback_types="github_pr_comment",
             feedback_count=2,
             queued_count=3,
             dropped_count=1,

@@ -95,6 +95,7 @@ class RegisteredFeatureManager:
         organization: Organization,
         objects: Sequence[Project],
         actor: User | RpcUser | AnonymousUser | None = None,
+        skip_experiment_exposure: bool = False,
     ) -> dict[Project, bool | None]:
         """
         Determine if a feature is enabled for a batch of objects.
@@ -114,6 +115,9 @@ class RegisteredFeatureManager:
 
         The return value is a dictionary with the objects as keys, and each
         value is the result of the feature check on the organization.
+
+        Pass ``skip_experiment_exposure=True`` to suppress automatic experiment
+        exposure logging when evaluating the flag.
 
         >>> FeatureManager.has_for_batch('projects:feature', organization, [project1, project2], actor=request.user)
         """
@@ -138,6 +142,7 @@ class RegisteredFeatureManager:
                         actor,
                         projects=projects if is_project_feature else None,
                         organization=organization,
+                        skip_experiment_exposure=skip_experiment_exposure,
                     )
 
                 if entity_results:

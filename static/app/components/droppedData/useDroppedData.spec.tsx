@@ -1,66 +1,71 @@
 import {AnnotationFixture} from 'sentry-fixture/annotation';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
-import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
+import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {useDroppedData} from 'sentry/components/droppedData/useDroppedData';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 
 const organization = OrganizationFixture({
   features: ['explore-data-fidelity-annotations'],
 });
 
-const dropped = [AnnotationFixture({eventCount: 10})];
-const accepted = [AnnotationFixture({outcome: 'accepted', eventCount: 90})];
-
-const meta: EventsTimeSeriesResponse['meta'] = {
-  dataset: DiscoverDatasets.SPANS,
-  start: 0,
-  end: 60_000,
-  droppedAnnotations: dropped,
-  acceptedAnnotations: accepted,
-};
+const droppedAnnotations = [AnnotationFixture({eventCount: 10})];
+const acceptedAnnotations = [AnnotationFixture({outcome: 'accepted', eventCount: 90})];
 
 describe('useDroppedData', () => {
-  it('returns no annotations without the feature flag', () => {
-    const {result} = renderHookWithProviders(() => useDroppedData(meta), {
-      organization: OrganizationFixture({features: []}),
-    });
-
-    expect(result.current.chartProps.dropped).toBeUndefined();
-    expect(result.current.chartProps.accepted).toBeUndefined();
-    expect(result.current.hasDroppedData).toBe(false);
+  beforeEach(() => {
+    PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
   });
 
-  it('passes annotations from meta to the chart', () => {
-    const {result} = renderHookWithProviders(() => useDroppedData(meta), {
-      organization,
-    });
-
-    expect(result.current.chartProps.dropped).toBe(dropped);
-    expect(result.current.chartProps.accepted).toBe(accepted);
-    expect(result.current.chartProps.visible).toBe(true);
-    expect(result.current.hasDroppedData).toBe(true);
+  afterEach(() => {
+    PageFiltersStore.reset();
   });
 
-  it('has no dropped data when meta has no dropped annotations', () => {
+  it('requests annotations and returns them', async () => {
+    const request = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-timeseries/`,
+      body: {
+        timeSeries: [],
+        meta: {droppedAnnotations, acceptedAnnotations},
+      },
+    });
+
     const {result} = renderHookWithProviders(
-      () => useDroppedData({...meta, droppedAnnotations: []}),
+      () => useDroppedData({dataset: DiscoverDatasets.SPANS}),
       {organization}
     );
 
-    expect(result.current.hasDroppedData).toBe(false);
+    await waitFor(() => expect(result.current.isPending).toBe(false));
+
+    expect(request).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/events-timeseries/`,
+      expect.objectContaining({
+        query: expect.objectContaining({
+          dataset: DiscoverDatasets.SPANS,
+          includeAnnotations: 1,
+          referrer: 'api.explore.dropped-data-annotations',
+        }),
+      })
+    );
+    expect(result.current.droppedAnnotations).toEqual(droppedAnnotations);
+    expect(result.current.acceptedAnnotations).toEqual(acceptedAnnotations);
   });
 
-  it('hides the band when showDroppedData is turned off', () => {
-    const {result} = renderHookWithProviders(() => useDroppedData(meta), {
-      organization,
+  it('does not request annotations without the feature flag', () => {
+    const request = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-timeseries/`,
+      body: {timeSeries: [], meta: {}},
     });
 
-    act(() => result.current.setShowDroppedData(false));
+    const {result} = renderHookWithProviders(
+      () => useDroppedData({dataset: DiscoverDatasets.SPANS}),
+      {organization: OrganizationFixture({features: []})}
+    );
 
-    expect(result.current.showDroppedData).toBe(false);
-    expect(result.current.chartProps.visible).toBe(false);
+    expect(request).not.toHaveBeenCalled();
+    expect(result.current.droppedAnnotations).toBeUndefined();
   });
 });

@@ -82,6 +82,7 @@ class SweepStalePrIterationsTest(TestCase):
                 organization_id=self.organization.id,
                 iteration_id=iteration_id,
                 referrer="github_pr_comment",
+                feedback_types="github_pr_comment",
                 feedback_count=2,
                 queued_count=3,
                 dropped_count=1,

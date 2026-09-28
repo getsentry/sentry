@@ -2,6 +2,7 @@ from typing import cast
 
 import sentry_sdk
 from django.db.models import Q
+from scm.providers.cursor_origin.provider import CursorOriginProvider
 from scm.providers.github.provider import GitHubProvider
 from scm.providers.gitlab.provider import GitLabProvider
 from scm.types import Provider, Repository, RepositoryId
@@ -32,6 +33,10 @@ def fetch_service_provider(organization_id: int, repository: Repository) -> Prov
         return GitHubProvider(client, organization_id, repository)
     elif integration.provider == "gitlab":
         return GitLabProvider(client, organization_id, repository)
+    elif integration.provider == "cursor_origin":
+        return CursorOriginProvider(
+            client, organization_id, repository, installation_id=integration.external_id
+        )
     else:
         return None
 
@@ -74,6 +79,7 @@ def fetch_repository(organization_id: int, repository_id: RepositoryId) -> Repos
 
     provider_name = repo.provider.removeprefix("integrations:")
     web_base_url: str | None = None
+    installation_id: str | None = None
     if provider_name == "github_enterprise":
         integration = integration_service.get_integration(
             integration_id=repo.integration_id,
@@ -84,6 +90,13 @@ def fetch_repository(organization_id: int, repository_id: RepositoryId) -> Repos
             if domain_name:
                 base_host = domain_name.split("/", 1)[0]
                 web_base_url = f"https://{base_host}"
+    elif provider_name == "cursor_origin":
+        integration = integration_service.get_integration(
+            integration_id=repo.integration_id,
+            organization_id=organization_id,
+        )
+        if integration:
+            installation_id = integration.external_id
 
     return cast(
         Repository,
@@ -96,6 +109,7 @@ def fetch_repository(organization_id: int, repository_id: RepositoryId) -> Repos
             "organization_id": repo.organization_id,
             "provider_name": provider_name,
             "web_base_url": web_base_url,
+            "installation_id": installation_id,
         },
     )
 

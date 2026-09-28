@@ -1,4 +1,4 @@
-import {Fragment, memo} from 'react';
+import {Fragment, memo, useState} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
@@ -12,6 +12,7 @@ import {callRecordLabel, visibleCallRecords} from 'sentry/views/seerExplorer/cal
 import type {
   Block,
   PendingUserInput,
+  RespondToUserInputOptions,
   SeerExplorerRunId,
 } from 'sentry/views/seerExplorer/types';
 import {getToolsStringFromBlock} from 'sentry/views/seerExplorer/utils';
@@ -144,7 +145,11 @@ interface ResponseGroupProps {
   latestTodos?: LatestTodos | null;
   pendingInput?: PendingUserInput | null;
   readOnly?: boolean;
-  respondToUserInput?: (inputId: string, responseData?: Record<string, unknown>) => void;
+  respondToUserInput?: (
+    inputId: string,
+    responseData?: Record<string, unknown>,
+    options?: RespondToUserInputOptions
+  ) => void;
   runId?: SeerExplorerRunId;
   showThinking?: boolean;
 }
@@ -206,7 +211,7 @@ export const ResponseGroup = memo(function ResponseGroup({
     );
   });
 
-  const startTime = new Date(group[0]!.timestamp);
+  const [startTime] = useState(() => new Date(group[0]!.timestamp));
   // `settledAnswer` is the stable "response is done" signal. `block.loading` flickers false
   // between tool calls, but answer settles once
   const endTime =

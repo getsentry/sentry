@@ -314,8 +314,9 @@ function IssueListOverviewInner({
 
     // Only resume polling if we're on the first page of results
     const links = parseLinkHeader(pageLinks);
-    if (links && !links.previous!.results && realtimeActive) {
-      pollerRef.current?.setEndpoint(links?.previous!.href);
+    const previousHref = links?.previous?.href;
+    if (links && !links.previous?.results && realtimeActive && previousHref) {
+      pollerRef.current?.setEndpoint(previousHref);
       pollerRef.current?.enable();
     }
   }, [pageLinks, realtimeActive]);
@@ -487,7 +488,7 @@ function IssueListOverviewInner({
           mode: 'samples',
           referrer: 'issues',
           resultCount: data.length, // Can also use newQueryCount for total hits
-          orgSlug: organization.slug,
+          organization,
           runId: aiQueryRunId,
         });
       }
@@ -520,7 +521,7 @@ function IssueListOverviewInner({
           mode: 'samples',
           referrer: 'issues',
           resultCount: 0,
-          orgSlug: organization.slug,
+          organization,
           runId: aiQueryRunId,
           error: parseApiError(err as RequestError),
         });
@@ -624,7 +625,7 @@ function IssueListOverviewInner({
     }
 
     const links = parseLinkHeader(pageLinks);
-    return links && !links.previous!.results && !links.next!.results;
+    return links && !links.previous?.results && !links.next?.results;
   }, [pageLinks]);
 
   const getPageCounts = useCallback(() => {
