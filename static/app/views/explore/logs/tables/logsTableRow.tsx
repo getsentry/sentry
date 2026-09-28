@@ -929,6 +929,7 @@ function LogRowDetails({
                   )}
                   getCustomActions={getActions}
                   getAdjustedAttributeKey={adjustAliases}
+                  config={{attributeDetailsType: 'log'}}
                   renderers={LogAttributesRendererMap}
                   rendererExtra={{
                     caseSensitiveHighlighting: !caseInsensitivity,
