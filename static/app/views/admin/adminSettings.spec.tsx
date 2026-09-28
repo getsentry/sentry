@@ -1,4 +1,4 @@
-import {render} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import AdminSettings from 'sentry/views/admin/adminSettings';
 
@@ -104,6 +104,63 @@ describe('AdminSettings', () => {
 
     it('renders', () => {
       render(<AdminSettings />);
+    });
+
+    it('saves a setting with a dotted option key', async () => {
+      MockApiClient.addMockResponse({
+        url: '/internal/options/',
+        body: {
+          'system.support-email': {
+            field: {disabled: false},
+            value: 'original@example.com',
+          },
+        },
+      });
+      const save = MockApiClient.addMockResponse({
+        url: '/internal/options/',
+        method: 'PUT',
+        body: {},
+      });
+
+      render(<AdminSettings />);
+
+      const input = await screen.findByRole('textbox', {name: 'Support Email'});
+      expect(input).toHaveValue('original@example.com');
+      await userEvent.clear(input);
+      await userEvent.type(input, 'changed@example.com');
+      await userEvent.tab();
+
+      await waitFor(() =>
+        expect(save).toHaveBeenCalledWith(
+          '/internal/options/',
+          expect.objectContaining({data: {'system.support-email': 'changed@example.com'}})
+        )
+      );
+    });
+
+    it('does not clear a required setting', async () => {
+      MockApiClient.addMockResponse({
+        url: '/internal/options/',
+        body: {
+          'system.url-prefix': {
+            field: {disabled: false, required: true, allowEmpty: false},
+            value: 'https://sentry.example.com',
+          },
+        },
+      });
+      const save = MockApiClient.addMockResponse({
+        url: '/internal/options/',
+        method: 'PUT',
+        body: {},
+      });
+
+      render(<AdminSettings />);
+
+      const input = await screen.findByRole('textbox', {name: 'Root URL'});
+      await userEvent.clear(input);
+      await userEvent.tab();
+
+      expect(save).not.toHaveBeenCalled();
     });
   });
 });

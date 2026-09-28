@@ -1,4 +1,4 @@
-import {mutationOptions, useQuery} from '@tanstack/react-query';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
@@ -35,7 +35,10 @@ type FieldDef = {
   value: boolean | number | string | undefined;
 };
 
-type OptionValue = boolean | number | string;
+const optionsQueryOptions = apiOptions.as<Record<string, FieldDef>>()(
+  '/internal/options/',
+  {staleTime: 0}
+);
 
 const disabledReasons: Record<string, string> = {
   diskPriority:
@@ -44,6 +47,7 @@ const disabledReasons: Record<string, string> = {
 };
 
 function AdminOptionField({name, option}: {name: string; option: FieldDef}) {
+  const queryClient = useQueryClient();
   const definition = {...getOption(name), ...option.field};
   const rawInitialValue =
     option.value === undefined || option.value === ''
@@ -60,21 +64,25 @@ function AdminOptionField({name, option}: {name: string; option: FieldDef}) {
   const disabled = definition.disabled
     ? (disabledReasons[definition.disabledReason ?? ''] ?? true)
     : false;
-  const saveOption = mutationOptions({
-    mutationFn: (data: Record<string, OptionValue>) =>
-      fetchMutation<Record<string, FieldDef>>({
-        url: getApiUrl('/internal/options/'),
-        method: 'PUT',
-        data,
-      }),
-  });
-
+  const required = definition.required && !definition.allowEmpty;
+  const stringSchema = required
+    ? z.string().refine(value => value.trim().length > 0, t('This field is required'))
+    : z.string();
   return (
     <AutoSaveForm
-      name={name}
-      schema={z.object({[name]: z.union([z.boolean(), z.string()])})}
+      name="value"
+      schema={z.object({value: z.union([z.boolean(), stringSchema])})}
       initialValue={initialValue}
-      mutationOptions={saveOption}
+      mutationOptions={{
+        mutationFn: data =>
+          fetchMutation<void>({
+            url: getApiUrl('/internal/options/'),
+            method: 'PUT',
+            data: {[name]: data.value},
+          }),
+        onSuccess: () =>
+          queryClient.invalidateQueries({queryKey: optionsQueryOptions.queryKey}),
+      }}
     >
       {field => {
         if (kind === 'boolean') {
@@ -82,7 +90,7 @@ function AdminOptionField({name, option}: {name: string; option: FieldDef}) {
             <field.Layout.Row
               label={definition.label}
               hintText={definition.help}
-              required={definition.required}
+              required={required}
             >
               <field.Switch
                 checked={field.state.value === true}
@@ -98,7 +106,7 @@ function AdminOptionField({name, option}: {name: string; option: FieldDef}) {
             <field.Layout.Stack
               label={definition.label}
               hintText={definition.help}
-              required={definition.required}
+              required={required}
             >
               <field.Radio.Group
                 value={typeof field.state.value === 'string' ? field.state.value : ''}
@@ -119,7 +127,7 @@ function AdminOptionField({name, option}: {name: string; option: FieldDef}) {
           <field.Layout.Row
             label={definition.label}
             hintText={definition.help}
-            required={definition.required}
+            required={required}
           >
             <field.Input
               value={typeof field.state.value === 'string' ? field.state.value : ''}
@@ -135,9 +143,7 @@ function AdminOptionField({name, option}: {name: string; option: FieldDef}) {
 }
 
 export default function AdminSettings() {
-  const {data, isPending, isError} = useQuery(
-    apiOptions.as<Record<string, FieldDef>>()('/internal/options/', {staleTime: 0})
-  );
+  const {data, isPending, isError} = useQuery(optionsQueryOptions);
 
   if (isError) {
     return <LoadingError />;
