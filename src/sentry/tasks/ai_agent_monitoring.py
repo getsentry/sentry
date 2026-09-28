@@ -68,6 +68,7 @@ def _add_glob_model_names(models_dict: dict[ModelId, AIModelMetadata]) -> None:
     for model_id in model_ids:
         normalized_model_id = _normalize_model_id(model_id)
         models_dict.setdefault(normalized_model_id, models_dict[model_id])
+        # Prefix glob handles models with random prefixes before the actual model name.
         models_dict.setdefault(f"*{normalized_model_id}", models_dict[normalized_model_id])
 
 
