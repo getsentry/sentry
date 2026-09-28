@@ -128,7 +128,7 @@ class AgentUpdateRequest(TypedDict):
 class AgentPrStateRequest(TypedDict):
     organization_id: int
     provider: str
-    pr_id: int
+    pr_id: str
 
 
 class AgentRunOptions(TypedDict):
@@ -349,7 +349,7 @@ def enqueue_seer_run(
 
 
 def get_agent_state_from_pr_id(
-    organization_id: int, provider: str, pr_id: int
+    organization_id: int, provider: str, pr_id: int | str
 ) -> SeerRunState | None:
     """
     Look up the Seer run that owns a pull request, or None if there isn't one.
@@ -357,7 +357,7 @@ def get_agent_state_from_pr_id(
     A server error raises ``SeerUnavailableError`` so the calling task can try
     again later.
     """
-    body = AgentPrStateRequest(organization_id=organization_id, provider=provider, pr_id=pr_id)
+    body = AgentPrStateRequest(organization_id=organization_id, provider=provider, pr_id=str(pr_id))
     response = make_agent_state_pr_request(body)
 
     if response.status >= 500:

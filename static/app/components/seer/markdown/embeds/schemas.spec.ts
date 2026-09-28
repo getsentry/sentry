@@ -5,6 +5,61 @@ import {
 } from './schemas';
 
 describe('seerEmbedsToJsonSchemas', () => {
+  it('accepts inputs that the renderer fills with defaults or strips', () => {
+    expect(
+      SEER_EMBED_SCHEMAS.timestamp.schema.parse({
+        value: '2025-07-15T14:30:00Z',
+        extra: true,
+      })
+    ).toEqual({value: '2025-07-15T14:30:00Z', format: 'absolute'});
+    expect(SEER_EMBED_SCHEMAS.spansQuery.schema.parse({})).toEqual({
+      query: '',
+      mode: 'samples',
+    });
+
+    const widgets = seerEmbedsToJsonSchemas();
+    const timestamp = widgets.find(widget => widget.name === 'timestamp');
+    const spansQuery = widgets.find(widget => widget.name === 'spansQuery');
+
+    expect(timestamp?.body.required).toEqual(['value']);
+    expect(timestamp?.body.additionalProperties).toBeUndefined();
+    expect(spansQuery?.body.required).toBeUndefined();
+  });
+
+  it('exports chart axis restrictions to the agent contract', () => {
+    const chart = seerEmbedsToJsonSchemas().find(widget => widget.name === 'chart');
+
+    expect(chart?.body).toMatchObject({
+      required: ['title', 'series'],
+      allOf: [
+        {
+          if: {properties: {x_axis: {const: 'category'}}, required: ['x_axis']},
+          then: {
+            properties: {visualization: {const: 'bar'}},
+            required: ['visualization'],
+          },
+          else: {
+            properties: {
+              series: {
+                items: {
+                  properties: {
+                    data: {
+                      items: {
+                        properties: {
+                          x: {type: 'string', pattern: expect.any(String)},
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      ],
+    });
+  });
+
   it('documents the replay timestamp offset requirement in the agent contract', () => {
     const replay = seerEmbedsToJsonSchemas().find(widget => widget.name === 'replay');
 
@@ -19,6 +74,51 @@ describe('seerEmbedsToJsonSchemas', () => {
       },
     });
   });
+});
+
+describe('SEER_EMBED_SCHEMAS charts', () => {
+  it.each(['label', 'name'])('accepts defaulted time charts with a series %s', key => {
+    expect(
+      SEER_EMBED_SCHEMAS.chart.schema.parse({
+        title: 'Events',
+        series: [{[key]: 'Count', data: [{x: '2025-07-15T14:30:00Z', y: 1}]}],
+      })
+    ).toMatchObject({visualization: 'line', x_axis: 'time', y_axis_unit: 'number'});
+  });
+
+  it.each([123, 'category', '2025-07-15T14:30:00', '2025-02-30T14:30:00Z'])(
+    'rejects invalid time-axis value %s',
+    x => {
+      expect(
+        SEER_EMBED_SCHEMAS.chart.schema.safeParse({
+          title: 'Events',
+          series: [{label: 'Count', data: [{x, y: 1}]}],
+        }).success
+      ).toBe(false);
+    }
+  );
+
+  it.each([undefined, 'line', 'area', 'bar'])(
+    'accepts category charts only with explicit bar visualization: %s',
+    visualization => {
+      expect(
+        SEER_EMBED_SCHEMAS.chart.schema.safeParse({
+          title: 'Events',
+          x_axis: 'category',
+          visualization,
+          series: [
+            {
+              label: 'Count',
+              data: [
+                {x: 'a', y: 1},
+                {x: 123, y: 2},
+              ],
+            },
+          ],
+        }).success
+      ).toBe(visualization === 'bar');
+    }
+  );
 });
 
 describe('SEER_EMBED_SCHEMAS page filters', () => {

@@ -267,18 +267,23 @@ class ControlOutboxDrainTest(TransactionTestCase):
         mock_send.assert_called_once()
         assert ControlOutbox.objects.filter(id=self.outbox.id).exists()
 
-    @patch("sentry.hybridcloud.models.outbox.process_control_outbox.send")
-    def test_does_not_retry_other_shards(self, mock_send: Mock) -> None:
+    def test_does_not_retry_other_shards(self) -> None:
         self.outbox.shard_scope = OutboxScope.USER_SCOPE
         self.outbox.category = OutboxCategory.USER_UPDATE
         with outbox_context(flush=False):
             self.outbox.save()
-        mock_send.side_effect = self.terminate_connection
+        disconnect_error = OperationalError("server closed the connection unexpectedly")
 
-        with pytest.raises(OutboxDatabaseError):
+        # Inject at the drain boundary so database-level auto-reconnect cannot hide the error.
+        with (
+            patch.object(ControlOutbox, "process", side_effect=disconnect_error) as mock_process,
+            pytest.raises(OutboxDatabaseError) as exc_info,
+        ):
             self.outbox.drain_shard()
 
-        mock_send.assert_called_once()
+        assert exc_info.value.__cause__ is disconnect_error
+        mock_process.assert_called_once_with(is_synchronous_flush=True)
+        assert not self.connection.in_atomic_block
         assert ControlOutbox.objects.filter(id=self.outbox.id).exists()
 
     @patch.object(
