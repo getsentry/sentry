@@ -1,5 +1,5 @@
 from datetime import timedelta
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import MagicMock, Mock, call, patch
 
 import pytest
 from django.utils import timezone
@@ -73,7 +73,7 @@ class TestGenerateIssueSummaryOnly(SentryTestCase):
 
 
 class TestAutofixIssueDataJudge(SentryTestCase):
-    def _create_night_shift_run(self, organization, **kwargs):
+    def _create_agentic_triage_run(self, organization, **kwargs):
         config = SeerWorkflowConfig.get_or_create_for_strategy(
             organization.id, SeerWorkflowStrategy.AGENTIC_TRIAGE
         )
@@ -83,22 +83,24 @@ class TestAutofixIssueDataJudge(SentryTestCase):
         return run
 
     @patch("sentry.tasks.seer.autofix_issue_data.schedule_judging_for_org.apply_async")
-    def test_schedule_judging_dispatches_recent_night_shift_orgs(
+    def test_schedule_judging_dispatches_recent_agentic_triage_orgs(
         self, mock_apply_async: MagicMock
     ) -> None:
         recent_org = self.create_organization()
         stale_org = self.create_organization()
         unflagged_org = self.create_organization()
-        self._create_night_shift_run(recent_org)
-        self._create_night_shift_run(stale_org, date_added=timezone.now() - timedelta(hours=49))
-        self._create_night_shift_run(unflagged_org)
+        self._create_agentic_triage_run(recent_org)
+        self._create_agentic_triage_run(stale_org, date_added=timezone.now() - timedelta(hours=49))
+        self._create_agentic_triage_run(unflagged_org)
 
         with self.feature({FEATURE_FLAG: [recent_org.slug, stale_org.slug]}):
             schedule_judging()
 
-        mock_apply_async.assert_called_once_with(
-            args=[recent_org.id], headers={"sentry-propagate-traces": False}
-        )
+        assert mock_apply_async.call_count == 1
+        call_kwargs = mock_apply_async.call_args.kwargs
+        assert call_kwargs["args"] == [recent_org.id]
+        assert call_kwargs["headers"] == {"sentry-propagate-traces": False}
+        assert 0 <= call_kwargs["countdown"] < 3600
 
     def test_selects_bottom_half(self) -> None:
         for index in range(11):
@@ -131,7 +133,10 @@ class TestAutofixIssueDataJudge(SentryTestCase):
         with self.feature(FEATURE_FLAG):
             schedule_judging_for_org(self.organization.id)
 
-        assert mock_apply_async.call_count == 20
+        assert [len(call.kwargs["args"][0]) for call in mock_apply_async.call_args_list] == [
+            10,
+            10,
+        ]
 
     def test_accepts_all_verdicts(self) -> None:
         for verdict in ("fixable", "not_fixable", "uncertain"):
@@ -166,7 +171,7 @@ class TestAutofixIssueDataJudge(SentryTestCase):
         mock_request.return_value = response
 
         with self.feature(FEATURE_FLAG):
-            judge_issue_data(issue_data.id, event_id)
+            judge_issue_data([(issue_data.id, event_id)])
 
         prompt = json.loads(mock_request.call_args.args[0]["prompt"])
         assert prompt == {
@@ -181,7 +186,7 @@ class TestAutofixIssueDataJudge(SentryTestCase):
         assert issue_data.judge_review["confidence"] == "high"
         assert issue_data.judge_review["reviewed_event_id"] == event_id
         assert issue_data.judge_review["model"] == "claude-opus-4-8@default"
-        assert issue_data.judge_review["prompt_version"] == "1"
+        assert issue_data.judge_review["prompt_version"] == "2"
 
     @patch("sentry.tasks.seer.autofix_issue_data.make_llm_generate_request")
     def test_skips_stale_event(self, mock_request: MagicMock) -> None:
@@ -189,11 +194,20 @@ class TestAutofixIssueDataJudge(SentryTestCase):
         issue_data = self.create_seer_autofix_issue_data(group)
 
         with self.feature(FEATURE_FLAG):
-            judge_issue_data(issue_data.id, "stale-event")
+            judge_issue_data([(issue_data.id, "stale-event")])
 
         mock_request.assert_not_called()
         issue_data.refresh_from_db()
         assert issue_data.judge_review is None
+
+    @patch("sentry.tasks.seer.autofix_issue_data._judge_issue")
+    def test_continues_batch_after_failure_then_raises(self, mock_judge: MagicMock) -> None:
+        mock_judge.side_effect = [ValueError("bad json"), None]
+
+        with pytest.raises(RuntimeError):
+            judge_issue_data([(1, "a"), (2, "b")])
+
+        assert mock_judge.call_args_list == [call(1, "a"), call(2, "b")]
 
 
 class TestConfigureSeerForExistingOrg(SentryTestCase):

@@ -14,7 +14,6 @@ import {
 import * as modal from 'sentry/actionCreators/modal';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {FieldKind} from 'sentry/utils/fields';
-import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {
   DashboardFilterKeys,
@@ -25,8 +24,6 @@ import WidgetCard from 'sentry/views/dashboards/widgetCard';
 import {ReleaseWidgetQueries} from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
 import {WidgetLegendSelectionState} from 'sentry/views/dashboards/widgetLegendSelectionState';
 import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
-
-import {DashboardsMEPProvider} from './dashboardsMEPContext';
 
 jest.mock('sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization', () => ({
   TableWidgetVisualization: jest.fn(() => <div />),
@@ -40,24 +37,19 @@ describe('Dashboards > WidgetCard', () => {
     }),
   });
 
-  const renderWithProviders = (component: React.ReactNode, features: string[] = []) =>
-    render(
-      <DashboardsMEPProvider>
-        <MEPSettingProvider forceTransactions={false}>{component}</MEPSettingProvider>
-      </DashboardsMEPProvider>,
-      {
-        organization: {
-          ...organization,
-          features: [...organization.features, ...features],
+  const renderWithProviders = (component: React.ReactElement, features: string[] = []) =>
+    render(component, {
+      organization: {
+        ...organization,
+        features: [...organization.features, ...features],
+      },
+      initialRouterConfig: {
+        route: '/organizations/:orgId/dashboard/:dashboardId/',
+        location: {
+          pathname: '/organizations/org-slug/dashboard/42/',
         },
-        initialRouterConfig: {
-          route: '/organizations/:orgId/dashboard/:dashboardId/',
-          location: {
-            pathname: '/organizations/org-slug/dashboard/42/',
-          },
-        },
-      }
-    );
+      },
+    });
 
   const multipleQueryWidget: Widget = {
     title: 'Errors',
@@ -140,7 +132,7 @@ describe('Dashboards > WidgetCard', () => {
     PageFiltersStore.onInitializeUrlState(selection);
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
-      body: {meta: {isMetricsData: false}},
+      body: {meta: {}},
     });
     eventsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',

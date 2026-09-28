@@ -566,3 +566,37 @@ class TestDetectorStateManagerRedisOptimization(TestCase):
         state_manager = self.handler.state_manager
         result = state_manager.bulk_get_redis_values([])
         assert result == {}
+
+
+class TestStatefulDetectorHandlerExtractValueFromPacket(TestCase):
+    """
+    Correctness tests for _extract_value_from_packet and _is_detector_group_value
+    """
+
+    def setUp(self) -> None:
+        self.detector = self.create_detector(
+            name="Stateful Detector",
+            project=self.project,
+        )
+
+        self.handler = MockDetectorStateHandler(detector=self.detector)
+
+    def extract_value_from_packet(self, group_values: Any) -> dict[DetectorGroupKey, Any]:
+        packet: DataPacket[Any] = DataPacket(
+            source_id=str(self.detector.id),
+            packet={"dedupe": 1, "group_vals": group_values},
+        )
+
+        return dict(self.handler._extract_value_from_packet(packet))
+
+    def test_extract_value_from_packet__ungrouped_value_is_keyed_by_none(self) -> None:
+        assert self.extract_value_from_packet(10) == {None: 10}
+
+    def test_extract_value_from_packet__empty_mapping_is_keyed_by_none(self) -> None:
+        assert self.extract_value_from_packet({}) == {None: {}}
+
+    def test_extract_value_from_packet__grouped_values_are_left_alone(self) -> None:
+        assert self.extract_value_from_packet({"group-one": 10, "group-two": 20}) == {
+            "group-one": 10,
+            "group-two": 20,
+        }

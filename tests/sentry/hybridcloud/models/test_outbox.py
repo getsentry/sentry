@@ -6,9 +6,10 @@ from typing import Any
 from unittest.mock import Mock, call, patch
 
 import pytest
-from django.db import OperationalError, connections, router, transaction
+from django.db import InterfaceError, OperationalError, connections, router, transaction
 from pytest import raises
 
+from sentry.hybridcloud.models import ApiTokenReplica
 from sentry.hybridcloud.models.outbox import (
     CellOutbox,
     ControlOutbox,
@@ -18,6 +19,9 @@ from sentry.hybridcloud.models.outbox import (
 )
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.hybridcloud.tasks.deliver_from_outbox import enqueue_outbox_jobs, schedule_outbox_model
+from sentry.models.apiapplication import ApiApplication
+from sentry.models.apigrant import ApiGrant
+from sentry.models.apitoken import ApiToken
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.projectkey import ProjectKey
@@ -137,6 +141,155 @@ class ControlOutboxTest(TestCase):
                 t = threading.Thread(target=test_with_other_connection)
                 t.start()
                 t.join()
+
+
+@control_silo_test
+class ControlOutboxDrainTest(TransactionTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.outbox = ControlOutbox(
+            cell_name="eu",
+            shard_scope=OutboxScope.API_TOKEN_SCOPE,
+            shard_identifier=1,
+            category=OutboxCategory.API_TOKEN_UPDATE,
+            object_identifier=1,
+        )
+        with outbox_context(flush=False):
+            self.outbox.save()
+        self.connection = connections[router.db_for_write(ControlOutbox)]
+
+    def terminate_connection(self, **kwargs: Any) -> None:
+        assert self.connection.in_atomic_block
+        assert self.connection.connection is not None
+        backend_pid = self.connection.connection.get_backend_pid()
+        terminator = self.connection.copy()
+        try:
+            with terminator.cursor() as cursor:
+                # Wait for termination to complete before the next database operation.
+                termination_timeout_ms = 5_000
+                cursor.execute(
+                    "SELECT pg_terminate_backend(%s, %s)", [backend_pid, termination_timeout_ms]
+                )
+                assert cursor.fetchone()[0]
+        finally:
+            terminator.close()
+
+    def test_reconnects_after_successful_token_replication(self) -> None:
+        self.outbox.delete()
+        with outbox_runner():
+            user = self.create_user()
+            application = ApiApplication(owner=user, redirect_uris="https://example.com")
+            application.save()
+        grant = ApiGrant(user=user, application=application, redirect_uri="https://example.com")
+        grant.save()
+        following_callback = Mock()
+        original_replication = ApiToken.handle_async_replication
+
+        with patch.object(ApiToken, "handle_async_replication", autospec=True) as mock_replication:
+
+            def disconnect_once(token: ApiToken, cell_name: str, shard_identifier: int) -> None:
+                mock_replication.side_effect = original_replication
+                original_replication(token, cell_name, shard_identifier)
+                self.terminate_connection()
+
+            mock_replication.side_effect = disconnect_once
+            with transaction.atomic(using=self.connection.alias):
+                token = ApiToken.from_grant(grant)
+                transaction.on_commit(following_callback, using=self.connection.alias)
+
+        assert mock_replication.call_count == 2
+        assert mock_replication.call_args_list[0] == mock_replication.call_args_list[1]
+        following_callback.assert_called_once_with()
+        assert not ApiGrant.objects.filter(id=grant.id).exists()
+        assert ApiToken.objects.filter(application=application).count() == 1
+        assert token.plaintext_token == token.token
+        assert not ControlOutbox.objects.filter(
+            category=OutboxCategory.API_TOKEN_UPDATE, object_identifier=token.id
+        ).exists()
+        with assume_test_silo_mode(SiloMode.CELL):
+            replica = ApiTokenReplica.objects.get(apitoken_id=token.id)
+            assert replica.token == token.token
+
+    @patch("sentry.hybridcloud.models.outbox.process_control_outbox.send")
+    def test_reconnects_after_interface_error(self, mock_send: Mock) -> None:
+        original_process = ControlOutbox.process
+        with patch.object(ControlOutbox, "process", autospec=True) as mock_process:
+
+            def fail_once(outbox: ControlOutbox, is_synchronous_flush: bool) -> bool:
+                mock_process.side_effect = original_process
+                raise InterfaceError("connection already closed")
+
+            mock_process.side_effect = fail_once
+            self.outbox.drain_shard()
+
+        assert mock_process.call_count == 2
+        mock_send.assert_called_once()
+        assert not ControlOutbox.objects.filter(id=self.outbox.id).exists()
+
+    def test_wraps_interface_error_after_retry(self) -> None:
+        retry_error = InterfaceError("connection already closed")
+        with (
+            patch.object(
+                ControlOutbox,
+                "process",
+                side_effect=[
+                    OperationalError("server closed the connection unexpectedly"),
+                    retry_error,
+                ],
+            ) as mock_process,
+            pytest.raises(OutboxDatabaseError) as exc_info,
+        ):
+            self.outbox.drain_shard()
+
+        assert exc_info.value.__cause__ is retry_error
+        assert mock_process.call_count == 2
+        assert not self.connection.in_atomic_block
+        assert ControlOutbox.objects.filter(id=self.outbox.id).exists()
+
+    @patch("sentry.hybridcloud.models.outbox.process_control_outbox.send")
+    def test_retries_disconnection_only_once(self, mock_send: Mock) -> None:
+        mock_send.side_effect = self.terminate_connection
+
+        with pytest.raises(OutboxDatabaseError):
+            self.outbox.drain_shard()
+
+        assert mock_send.call_count == 2
+        assert not self.connection.in_atomic_block
+        assert ControlOutbox.objects.filter(id=self.outbox.id).exists()
+
+    @patch("sentry.hybridcloud.models.outbox.process_control_outbox.send")
+    def test_does_not_retry_async_drain(self, mock_send: Mock) -> None:
+        mock_send.side_effect = self.terminate_connection
+
+        with pytest.raises(OutboxDatabaseError):
+            self.outbox.drain_shard(flush_all=True)
+
+        mock_send.assert_called_once()
+        assert ControlOutbox.objects.filter(id=self.outbox.id).exists()
+
+    @patch("sentry.hybridcloud.models.outbox.process_control_outbox.send")
+    def test_does_not_retry_other_shards(self, mock_send: Mock) -> None:
+        self.outbox.shard_scope = OutboxScope.USER_SCOPE
+        self.outbox.category = OutboxCategory.USER_UPDATE
+        with outbox_context(flush=False):
+            self.outbox.save()
+        mock_send.side_effect = self.terminate_connection
+
+        with pytest.raises(OutboxDatabaseError):
+            self.outbox.drain_shard()
+
+        mock_send.assert_called_once()
+        assert ControlOutbox.objects.filter(id=self.outbox.id).exists()
+
+    @patch.object(
+        ControlOutbox, "process", side_effect=OperationalError("unrelated database error")
+    )
+    def test_does_not_retry_other_database_errors(self, mock_process: Mock) -> None:
+        with pytest.raises(OutboxDatabaseError):
+            self.outbox.drain_shard()
+
+        mock_process.assert_called_once()
+        assert ControlOutbox.objects.filter(id=self.outbox.id).exists()
 
 
 class OutboxDrainTest(TransactionTestCase):

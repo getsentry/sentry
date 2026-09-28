@@ -176,7 +176,14 @@ export type Plan = {
   trialPlan: string | null;
   userSelectable: boolean;
   categoryDisplayNames?: Partial<
-    Record<DataCategory, {plural: string; singular: string}>
+    Record<
+      DataCategory | string,
+      {
+        plural: string;
+        singular: string;
+        unitType?: 'microCents';
+      }
+    >
   >;
 };
 
@@ -657,6 +664,11 @@ type SubscriptionInvoiceItemType = 'subscription';
 type BalanceChangeInvoiceItemType = 'balance_change';
 
 /**
+ * An adjustment that neither the plan nor the usage of a period produces.
+ */
+type OneTimeAdjustmentInvoiceItemType = 'one_time_adjustment';
+
+/**
  * Unknown invoice item type (empty string).
  */
 type UnknownInvoiceItemType = '';
@@ -669,6 +681,7 @@ type StaticInvoiceItemType =
   | UnknownInvoiceItemType
   | SubscriptionInvoiceItemType
   | BalanceChangeInvoiceItemType
+  | OneTimeAdjustmentInvoiceItemType
   | CreditInvoiceItemType
   | FeeInvoiceItemType
   | SeerInvoiceItemType
@@ -714,6 +727,7 @@ export type BillingMetricHistory = {
   softCapType: 'ON_DEMAND' | 'TRUE_FORWARD' | null;
   usage: number;
   usageExceeded: boolean;
+  isDisabled?: boolean;
   retention?: {downsampled: number | null; standard: number | null};
 };
 
@@ -838,6 +852,8 @@ export type PaymentCreateResponse = {
   clientSecret: string;
   currency: string;
   returnUrl: string;
+  paymentIntentId?: string;
+  requiresAction?: boolean;
 };
 // Response from /organizations/:orgSlug/payments/setup/
 export type PaymentSetupCreateResponse = {

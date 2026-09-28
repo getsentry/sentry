@@ -45,7 +45,7 @@ class AutofixFeatureArgs:
     stopping_point: AutofixStoppingPoint | None = None
     allow_free_cohort: bool = False
     user: User | RpcUser | AnonymousUser | None = None
-    enable_bash_tools: bool = False
+    enable_bash_mode: bool = False
     flush: bool = True
 
 
@@ -57,7 +57,7 @@ def trigger_autofix_feature(
     from sentry.seer.autofix.on_completion_hook import AutofixOnCompletionHook
 
     is_new_run = args.existing_run_id is None
-    # Free cohort orgs bypass quota only when called from night shift
+    # Free cohort orgs bypass quota only when called from agentic triage
     # (allow_free_cohort=True). Not exposed via the API.
     skip_quota = is_new_run and args.allow_free_cohort and is_free_cohort_org(group.organization)
     if is_new_run and not skip_quota:
@@ -96,7 +96,7 @@ def trigger_autofix_feature(
         project=group.project,
         group=group,
         user=args.user,
-        enable_bash_tools=args.enable_bash_tools,
+        enable_bash_mode=args.enable_bash_mode,
     )
 
     extras: dict[str, Any] = {
@@ -155,7 +155,9 @@ def trigger_autofix_feature(
         )
 
     metrics.incr(
-        "autofix_feature.trigger", tags={"referrer": args.referrer.value, "step": args.step.value}
+        "autofix_feature.trigger",
+        tags={"referrer": args.referrer.value, "step": args.step.value},
+        sample_rate=1,
     )
 
     logger.info(
@@ -170,7 +172,7 @@ def trigger_autofix_feature(
             "flush": args.flush,
             "allow_free_cohort": args.allow_free_cohort,
             "user_context": args.user_context,
-            "enable_bash_tools": args.enable_bash_tools,
+            "enable_bash_mode": args.enable_bash_mode,
         },
     )
 

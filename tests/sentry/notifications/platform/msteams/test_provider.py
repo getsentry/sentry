@@ -12,11 +12,11 @@ from sentry.integrations.types import IntegrationProviderSlug
 from sentry.notifications.platform.msteams.provider import (
     MSTeamsNotificationProvider,
     MSTeamsRenderable,
+    MSTeamsRenderer,
 )
 from sentry.notifications.platform.provider import SendFailure, SendFailureStatus
 from sentry.notifications.platform.target import IntegrationNotificationTarget
 from sentry.notifications.platform.types import (
-    NotificationCategory,
     NotificationProviderKey,
     NotificationRenderedAction,
     NotificationRenderedTemplate,
@@ -32,11 +32,8 @@ class MSTeamsRendererTest(TestCase):
         data = MockNotification(message="test")
         template = MockNotificationTemplate()
         rendered_template = template.render(data)
-        renderer = MSTeamsNotificationProvider.get_renderer(
-            data=data, category=NotificationCategory.DEBUG
-        )
 
-        renderable = renderer.render(data=data, rendered_template=rendered_template)
+        renderable = MSTeamsRenderer.render(data=data, rendered_template=rendered_template)
 
         # Verify the basic structure of the AdaptiveCard
         assert renderable["type"] == "AdaptiveCard"
@@ -108,11 +105,8 @@ class MSTeamsRendererTest(TestCase):
             footer=base_template.footer,
             chart=None,  # No chart
         )
-        renderer = MSTeamsNotificationProvider.get_renderer(
-            data=data, category=NotificationCategory.DEBUG
-        )
 
-        renderable = renderer.render(data=data, rendered_template=rendered_template)
+        renderable = MSTeamsRenderer.render(data=data, rendered_template=rendered_template)
 
         body_blocks = renderable["body"]
         assert len(body_blocks) == 6  # title, 3 body blocks, actions, footer (no chart)
@@ -133,11 +127,8 @@ class MSTeamsRendererTest(TestCase):
             footer=None,  # No footer
             chart=base_template.chart,
         )
-        renderer = MSTeamsNotificationProvider.get_renderer(
-            data=data, category=NotificationCategory.DEBUG
-        )
 
-        renderable = renderer.render(data=data, rendered_template=rendered_template)
+        renderable = MSTeamsRenderer.render(data=data, rendered_template=rendered_template)
 
         body_blocks = renderable["body"]
         assert len(body_blocks) == 6  # title, 3 body blocks, actions, chart (no footer)
@@ -162,11 +153,8 @@ class MSTeamsRendererTest(TestCase):
             footer=base_template.footer,
             chart=base_template.chart,
         )
-        renderer = MSTeamsNotificationProvider.get_renderer(
-            data=data, category=NotificationCategory.DEBUG
-        )
 
-        renderable = renderer.render(data=data, rendered_template=rendered_template)
+        renderable = MSTeamsRenderer.render(data=data, rendered_template=rendered_template)
 
         body_blocks = renderable["body"]
         assert len(body_blocks) == 6  # title, 3 body blocks, chart, footer (no actions)
@@ -200,11 +188,8 @@ class MSTeamsRendererTest(TestCase):
             footer=None,
             chart=None,
         )
-        renderer = MSTeamsNotificationProvider.get_renderer(
-            data=data, category=NotificationCategory.DEBUG
-        )
 
-        renderable = renderer.render(data=data, rendered_template=rendered_template)
+        renderable = MSTeamsRenderer.render(data=data, rendered_template=rendered_template)
 
         body_blocks = renderable["body"]
         actions_block = body_blocks[4]

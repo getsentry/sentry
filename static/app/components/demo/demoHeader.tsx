@@ -7,7 +7,6 @@ import {Text} from '@sentry/scraps/text';
 
 import {logout} from 'sentry/actionCreators/account';
 import {LogoSentry} from 'sentry/components/logoSentry';
-import {IconUpload} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
@@ -34,43 +33,42 @@ export function DemoHeader() {
 
   return (
     <Wrapper
-      height={{zero: '54px', '3xl': '70px'}}
+      height="53px"
       justify="between"
       align="center"
-      paddingRight="2xl"
-      gap="3xl"
+      paddingRight="xl"
+      gap="md"
       background="primary"
       whiteSpace="nowrap"
       borderBottom="primary"
     >
       <StyledLogoSentry />
-      <Container display={{zero: 'none', '2xl': 'block'}}>
-        {containerProps => (
-          <LinkButton
-            {...containerProps}
-            onClick={() => trackAnalytics('growth.demo_click_docs', {organization: null})}
-            href={urlAttachQueryParams('https://docs.sentry.io/', extraSearchParams)}
-            external
-          >
-            {t('Documentation')}
-          </LinkButton>
-        )}
+      <Container display={{zero: 'none', xl: 'contents'}}>
+        <LinkButton
+          onClick={() => trackAnalytics('growth.demo_click_docs', {organization: null})}
+          href={urlAttachQueryParams('https://docs.sentry.io/', extraSearchParams)}
+          external
+        >
+          {t('Documentation')}
+        </LinkButton>
+        <LinkButton
+          onClick={() =>
+            trackAnalytics('growth.demo_click_request_demo', {organization: null})
+          }
+          href={urlAttachQueryParams('https://sentry.io/_/demo/', extraSearchParams)}
+          external
+        >
+          {t('Request demo')}
+        </LinkButton>
       </Container>
-      <Container display={{zero: 'none', xl: 'block'}}>
-        {containerProps => (
-          <LinkButton
-            {...containerProps}
-            onClick={() =>
-              trackAnalytics('growth.demo_click_request_demo', {organization: null})
-            }
-            href={urlAttachQueryParams('https://sentry.io/_/demo/', extraSearchParams)}
-            external
-          >
-            <Text uppercase>{t('Request a Demo')}</Text>
-          </LinkButton>
-        )}
-      </Container>
-      <FreeTrialButton
+      <Button
+        onClick={() => {
+          logout(api);
+        }}
+      >
+        {t('Exit Sandbox')}
+      </Button>
+      <Button
         variant="primary"
         onClick={() => {
           const url = urlAttachQueryParams(
@@ -89,17 +87,13 @@ export function DemoHeader() {
           logout(api);
         }}
       >
-        <FreeTrialTextLong>{t('Start Free Trial')}</FreeTrialTextLong>
-        <FreeTrialTextShort>{t('Sign Up')}</FreeTrialTextShort>
-      </FreeTrialButton>
-      <SignOutButton
-        onClick={() => {
-          logout(api);
-        }}
-        icon={<IconSignOut size="sm" />}
-      >
-        {t('Exit Sandbox')}
-      </SignOutButton>
+        <Text as="span" variant="inherit" display={{zero: 'none', xl: 'inline'}}>
+          {t('Start free trial')}
+        </Text>
+        <Text as="span" variant="inherit" display={{zero: 'inline', xl: 'none'}}>
+          {t('Start trial')}
+        </Text>
+      </Button>
     </Wrapper>
   );
 }
@@ -118,34 +112,4 @@ const StyledLogoSentry = styled(LogoSentry)`
   width: 130px;
   height: 30px;
   fill: ${p => p.theme.tokens.graphics.neutral.vibrant};
-`;
-
-const FreeTrialTextShort = styled('span')`
-  display: none;
-`;
-
-const FreeTrialTextLong = styled('span')``;
-
-const FreeTrialButton = styled(Button)`
-  text-transform: uppercase;
-
-  .short-text {
-    display: none;
-  }
-  @container (max-width: ${p => p.theme.container.xl}) {
-    ${FreeTrialTextLong} {
-      display: none;
-    }
-    ${FreeTrialTextShort} {
-      display: inline;
-    }
-  }
-`;
-
-const SignOutButton = styled(Button)`
-  text-transform: uppercase;
-`;
-
-const IconSignOut = styled(IconUpload)`
-  transform: rotate(90deg);
 `;

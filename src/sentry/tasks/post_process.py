@@ -1737,6 +1737,7 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE: dict[
         process_siem_security_logging,
     ],
     GroupCategory.FEEDBACK: [
+        update_existing_attachments,
         feedback_filter_decorator(process_snoozes),
         feedback_filter_decorator(process_inbox_adds),
         feedback_filter_decorator(process_workflow_engine),

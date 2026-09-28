@@ -8,11 +8,14 @@ import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {hasAutofixPage, makeSeerLocation} from 'sentry/views/issueDetails/autofix/utils';
 
 export const useOpenSeerDrawer = ({group, project}: {group: Group; project: Project}) => {
   const {openDrawer} = useDrawer();
-  const [{seerDrawer}, setDrawerQuery] = useQueryStates(
+  const [{seerDrawer, seerDrawerAction}, setDrawerQuery] = useQueryStates(
     {
       seerDrawer: parseAsBoolean.withDefault(false),
       seerDrawerAction: parseAsString,
@@ -20,12 +23,30 @@ export const useOpenSeerDrawer = ({group, project}: {group: Group; project: Proj
     {shallow: false}
   );
   const organization = useOrganization();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const openSeerDrawer = useCallback(() => {
     if (
       !organization.features.includes('gen-ai-features') ||
       organization.hideAiFeatures
     ) {
+      return;
+    }
+
+    // Autofix has its own tab behind the flag, so every entry point that used
+    // to open the drawer navigates there instead — including legacy
+    // `?seerDrawer=true` URLs, which land here and get forwarded.
+    if (hasAutofixPage(organization)) {
+      navigate(
+        makeSeerLocation({
+          organization,
+          groupId: group.id,
+          action: seerDrawerAction ?? undefined,
+          query: location.query,
+        }),
+        {replace: seerDrawer}
+      );
       return;
     }
 
@@ -56,7 +77,17 @@ export const useOpenSeerDrawer = ({group, project}: {group: Group; project: Proj
     if (!seerDrawer) {
       void setDrawerQuery({seerDrawer: true}, {history: 'push'});
     }
-  }, [openDrawer, group, project, seerDrawer, setDrawerQuery, organization]);
+  }, [
+    openDrawer,
+    group,
+    project,
+    seerDrawer,
+    seerDrawerAction,
+    setDrawerQuery,
+    organization,
+    navigate,
+    location.query,
+  ]);
 
   return {openSeerDrawer};
 };

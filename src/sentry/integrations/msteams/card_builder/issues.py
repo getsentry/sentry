@@ -56,7 +56,7 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
     def __init__(
         self,
         group: Group,
-        event: Event | GroupEvent,
+        event: Event | GroupEvent | None,
         rules: Sequence[Rule],
         integration: RpcIntegration,
     ):
@@ -67,12 +67,11 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
 
     def generate_action_payload(self, action_type: ACTION_TYPE) -> Any:
         # we need nested data or else Teams won't handle the payload correctly
-        assert self.event.group is not None
         return {
             "payload": {
                 "actionType": action_type,
-                "groupId": self.event.group.id,
-                "eventId": self.event.event_id,
+                "groupId": self.group.id,
+                "eventId": self.event.event_id if self.event else None,
                 "rules": [rule.id for rule in self.rules],
                 "integrationId": self.integration.id,
             }
@@ -156,8 +155,8 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
         card_title: str,
         input_id: str,
         submit_button_title: str,
-        choices: Sequence[tuple[str, Any]],
-        default_choice: Any = None,
+        choices: Sequence[tuple[str, str]],
+        default_choice: str | None = None,
     ) -> AdaptiveCard:
         return MSTeamsMessageBuilder().build(
             title=create_text_block(card_title, weight=TextWeight.BOLDER),
