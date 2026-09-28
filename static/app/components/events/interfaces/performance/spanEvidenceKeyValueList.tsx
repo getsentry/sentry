@@ -540,36 +540,23 @@ function SlowDBQueryEvidenceFromEvent(props: SpanEvidenceKeyValueListProps) {
 
 function SlowDBQueryEvidenceFromDataset(props: SlowDBQueryEvidenceProps) {
   const {event, organization, projectSlug} = props;
-  const offenderSpanId: unknown = event.occurrence?.evidenceData.offenderSpanIds?.[0];
+  const offenderSpanId: string | undefined =
+    event.occurrence?.evidenceData.offenderSpanIds?.[0];
   const traceId = event.contexts.trace?.trace_id;
-  const projectIdOrSlug = projectSlug ?? event.projectID;
-  const hasTimeRange =
-    Number.isFinite(event.startTimestamp) &&
-    Number.isFinite(event.endTimestamp) &&
-    event.endTimestamp >= event.startTimestamp;
-  const canFetch =
-    typeof offenderSpanId === 'string' &&
-    !!offenderSpanId &&
-    !!traceId &&
-    !!projectIdOrSlug &&
-    hasTimeRange;
+  const canFetch = !!offenderSpanId && !!traceId;
 
   const spanQuery = useQuery({
     ...traceItemDetailsApiOptions({
       organizationSlug: organization.slug,
-      projectSlug: projectIdOrSlug,
+      projectSlug: projectSlug ?? event.projectID,
       traceItemId: canFetch ? offenderSpanId : '',
       traceItemType: TraceItemDataset.SPANS,
       traceId: traceId ?? '',
       referrer: 'api.organization-trace-item-details',
       // Use the occurrence's segment bounds, not the current page filters or
       // detection time: the offending span can start much earlier in a long segment.
-      ...(hasTimeRange
-        ? {
-            start: new Date(event.startTimestamp * 1000 - 1000).toISOString(),
-            end: new Date(event.endTimestamp * 1000 + 1000).toISOString(),
-          }
-        : {}),
+      start: new Date(event.startTimestamp * 1000 - 1000).toISOString(),
+      end: new Date(event.endTimestamp * 1000 + 1000).toISOString(),
     }),
     retry: false,
   });

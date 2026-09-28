@@ -18,17 +18,13 @@ export interface SlowDBQuerySpan {
   op?: string;
 }
 
-function finiteNumber(value: number | bigint | undefined): number | undefined {
-  return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
-}
-
 function getCodeLocation(attributes: Parameters<typeof getAttributeValue>[0]) {
+  const codeLineNumber = getAttributeValue(attributes, 'code.line.number', 'number');
+
   return {
     codeFilepath: getAttributeValue(attributes, 'code.file.path', 'string'),
     codeFunction: getAttributeValue(attributes, 'code.function', 'string'),
-    codeLineNumber: finiteNumber(
-      getAttributeValue(attributes, 'code.line.number', 'number')
-    ),
+    codeLineNumber: typeof codeLineNumber === 'number' ? codeLineNumber : undefined,
   };
 }
 
@@ -36,9 +32,7 @@ export function slowDBQuerySpanFromTraceItem(
   item: TraceItemDetailsResponse
 ): SlowDBQuerySpan {
   const {attributes} = item;
-  const durationMs = finiteNumber(
-    getAttributeValue(attributes, 'span.duration', 'number')
-  );
+  const durationMs = getAttributeValue(attributes, 'span.duration', 'number');
 
   return {
     ...getCodeLocation(attributes),
@@ -46,7 +40,8 @@ export function slowDBQuerySpanFromTraceItem(
     op: getAttributeValue(attributes, 'span.op', 'string'),
     group: getAttributeValue(attributes, 'span.group', 'string'),
     category: getAttributeValue(attributes, 'span.category', 'string'),
-    durationMs: durationMs !== undefined && durationMs >= 0 ? durationMs : undefined,
+    durationMs:
+      typeof durationMs === 'number' && durationMs >= 0 ? durationMs : undefined,
   };
 }
 
@@ -91,7 +86,7 @@ export function slowDBQuerySpanFromEvent(
 
   const durationMs =
     span.start_timestamp !== undefined && span.timestamp !== undefined
-      ? finiteNumber((span.timestamp - span.start_timestamp) * 1000)
+      ? (span.timestamp - span.start_timestamp) * 1000
       : undefined;
 
   return {
