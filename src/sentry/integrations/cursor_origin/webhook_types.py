@@ -118,8 +118,10 @@ class PullRequestHead(OriginModel):
 
 
 class PullRequestUser(OriginModel):
+    id: str | None = None
     email: str = Field(min_length=1)
     display_name: str = Field(default="", alias="displayName")
+    handle: str | None = None
 
 
 class PullRequestApp(OriginModel):
@@ -138,6 +140,16 @@ class PullRequestAuthor(OriginModel):
     app: PullRequestApp | None = None
     service_account: PullRequestServiceAccount | None = Field(default=None, alias="serviceAccount")
 
+    def contributor(self) -> tuple[str, str | None] | None:
+        if self.user is not None:
+            if not self.user.id:
+                return None
+            return self.user.id, self.user.handle or self.user.display_name or None
+        if self.app is not None:
+            return self.app.id, f"{self.app.display_name or self.app.id}[bot]"
+        assert self.service_account is not None
+        return self.service_account.id, f"{self.service_account.id}[bot]"
+
     def email_and_name(self) -> tuple[str, str]:
         if self.user is not None:
             return self.user.email, self.user.display_name
@@ -148,9 +160,8 @@ class PullRequestAuthor(OriginModel):
 
 
 class PullRequest(OriginModel):
-    """Origin's own id is not kept: it is a prefixed string, and
-    `PullRequest.external_id` is an integer column."""
-
+    # Origin's provider-global id (`pr_…`), stored as `PullRequest.external_id_str`.
+    id: str = Field(min_length=1)
     number: str = Field(min_length=1)
     title: str
     body: str
@@ -158,12 +169,13 @@ class PullRequest(OriginModel):
     draft: bool
     merged: bool
     head: PullRequestHead
-    merge_commit_sha: str = Field(alias="mergeCommitSha")
+    merge_commit_sha: str = Field(default="", alias="mergeCommitSha")
     author: PullRequestAuthor
     created_at: datetime | None = Field(..., alias="createdAt")
     updated_at: datetime | None = Field(..., alias="updatedAt")
-    closed_at: datetime | None = Field(..., alias="closedAt")
-    merged_at: datetime | None = Field(..., alias="mergedAt")
+    # Origin leaves these out until the pull request closes or merges.
+    closed_at: datetime | None = Field(default=None, alias="closedAt")
+    merged_at: datetime | None = Field(default=None, alias="mergedAt")
 
     @validator("created_at", "updated_at", "closed_at", "merged_at", pre=True)
     def _absent_date(cls, value: Any) -> Any:
@@ -204,6 +216,17 @@ class InstallationEvent(OriginModel):
 
     @classmethod
     def from_payload(cls, payload: Mapping[str, Any]) -> InstallationEvent:
+        try:
+            return cls.parse_obj(payload)
+        except ValidationError as e:
+            raise OriginPayloadError(str(e)) from e
+
+
+class RepositoryDeletedEvent(OriginModel):
+    repository: Repository
+
+    @classmethod
+    def from_payload(cls, payload: Mapping[str, Any]) -> RepositoryDeletedEvent:
         try:
             return cls.parse_obj(payload)
         except ValidationError as e:

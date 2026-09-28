@@ -27,6 +27,7 @@ import {
 } from 'sentry/views/explore/components/styles';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {AgentsCharts} from 'sentry/views/explore/conversations/components/agentsCharts';
+import {AgentsChartIntervalSelector} from 'sentry/views/explore/conversations/components/agentsChartsControls';
 import {
   AGENTS_TABLE_TABS,
   AgentsTable,
@@ -75,6 +76,11 @@ const CONVERSATION_FILTER_KEYS: TagCollection = Object.fromEntries(
   ])
 );
 
+// Conversation fields mirror the columns of the conversations table, so they
+// are surfaced above raw span attributes that happen to match the input more
+// literally (e.g. `toolca` matching `ai.toolCall.args`).
+const CONVERSATION_PRIORITIZED_FILTER_KEYS = Object.keys(CONVERSATION_FILTER_KEYS);
+
 const SPANS_CURSOR_URL_PARAM = 'cursor';
 const agentsTableTabParser = parseAsStringLiteral(AGENTS_TABLE_TABS);
 
@@ -92,11 +98,12 @@ function ConversationsOverviewPage() {
     isLoading: isOnboardingLoading,
     refetch: refetchOnboarding,
   } = useShowConversationOnboarding();
+  const conversationsResult = useConversations();
   const {
     data: conversations,
     isFetching: isConversationsFetching,
     error: conversationsError,
-  } = useConversations();
+  } = conversationsResult;
   const showMissingMessagesAlert =
     !isConversationsFetching &&
     !conversationsError &&
@@ -224,10 +231,11 @@ function ConversationsOverviewPage() {
         {
           value: 'conversation',
           label: t('Conversation'),
-          children: Object.keys(CONVERSATION_FILTER_KEYS),
+          children: CONVERSATION_PRIORITIZED_FILTER_KEYS,
         },
         ...spanSearchQueryBuilderProviderProps.filterKeySections,
       ],
+      prioritizedFilterKeys: CONVERSATION_PRIORITIZED_FILTER_KEYS,
       fieldDefinitionGetter: (key: string, options?: {kind?: FieldKind}) =>
         CONVERSATION_FIELD_DEFINITIONS[key] ?? fieldDefinitionGetter(key, options),
       getTagValues: getTagValuesWithoutCounts,
@@ -236,6 +244,21 @@ function ConversationsOverviewPage() {
 
   const resetParamsOnFilterChange = [TableUrlParams.CURSOR, SPANS_CURSOR_URL_PARAM];
   const showSearch = !isOnboardingLoading && !selectedTabShowsOnboarding;
+  const tableSearchBar = showSearch ? (
+    <Flex gap="md" width="100%">
+      <Flex flex={1} minWidth="0">
+        <TraceItemSearchQueryBuilder
+          {...spanSearchQueryBuilderProps}
+          placeholder={
+            isConversationsTab
+              ? t('Search or paste a conversation ID')
+              : t('Search spans')
+          }
+        />
+      </Flex>
+      {isConversationsTab && <SaveConversationQueryButton />}
+    </Flex>
+  ) : null;
 
   let content: ReactNode;
   if (isOnboardingLoading) {
@@ -244,15 +267,15 @@ function ConversationsOverviewPage() {
     content = (
       <Fragment>
         {hasAgenticSpans && <AgentsCharts />}
-        {isConversationsTab && showMissingMessagesAlert && (
-          <ConversationMissingMessagesAlert />
-        )}
+        {showMissingMessagesAlert && <ConversationMissingMessagesAlert />}
         <AgentsTable
           activeTab={activeTab}
+          conversations={conversationsResult}
           hasAgenticSpans={hasAgenticSpans}
           hasConversations={hasConversations}
           onConversationOnboardingDismiss={refetchOnboarding}
           onTabChange={handleTabChange}
+          searchBar={tableSearchBar}
         />
       </Fragment>
     );
@@ -263,7 +286,7 @@ function ConversationsOverviewPage() {
       <Fragment>
         {showMissingMessagesAlert && <ConversationMissingMessagesAlert />}
         <ConversationsChart />
-        <ConversationsTable />
+        <ConversationsTable conversations={conversationsResult} />
       </Fragment>
     );
   }
@@ -292,7 +315,12 @@ function ConversationsOverviewPage() {
                 </PageFilterBar>
                 <AgentSelector referrer={Referrer.AGENT_NAMES} />
               </Flex>
-              {showSearch && (
+              {agentsOverviewEnabled && hasAgenticSpans && (
+                <Flex flex={1} justify="end">
+                  <AgentsChartIntervalSelector />
+                </Flex>
+              )}
+              {!agentsOverviewEnabled && showSearch && (
                 <Flex flex={1} minWidth="300px">
                   <TraceItemSearchQueryBuilder
                     {...spanSearchQueryBuilderProps}
@@ -304,7 +332,9 @@ function ConversationsOverviewPage() {
                   />
                 </Flex>
               )}
-              {showSearch && isConversationsTab && <SaveConversationQueryButton />}
+              {!agentsOverviewEnabled && showSearch && isConversationsTab && (
+                <SaveConversationQueryButton />
+              )}
             </Flex>
           </Stack>
         </Layout.Main>

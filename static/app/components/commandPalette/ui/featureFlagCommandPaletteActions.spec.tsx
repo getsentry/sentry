@@ -55,15 +55,14 @@ function SlotOutlets() {
   );
 }
 
-function renderFeatureFlagActions(organization = OrganizationFixture()) {
-  render(
+function ExampleFeatureFlagActions() {
+  return (
     <Fragment>
       <CommandPaletteHotkeys />
       <FeatureFlagCommandPaletteActions />
       <SlotOutlets />
       <GlobalModal />
-    </Fragment>,
-    {organization}
+    </Fragment>
   );
 }
 
@@ -93,7 +92,7 @@ describe('FeatureFlagCommandPaletteActions', () => {
 
   it('toggles an existing feature flag without reloading', async () => {
     const organization = OrganizationFixture({features: ['enabled-feature']});
-    renderFeatureFlagActions(organization);
+    render(<ExampleFeatureFlagActions />, {organization});
 
     await openCommandPalette();
     await userEvent.type(
@@ -115,7 +114,7 @@ describe('FeatureFlagCommandPaletteActions', () => {
 
   it('keeps a disabled feature flag in the list after returning to it', async () => {
     const organization = OrganizationFixture({features: ['enabled-feature']});
-    renderFeatureFlagActions(organization);
+    render(<ExampleFeatureFlagActions />, {organization});
 
     await openCommandPalette();
     await userEvent.type(
@@ -150,7 +149,7 @@ describe('FeatureFlagCommandPaletteActions', () => {
 
   it('adds a new enabled feature flag from the modal', async () => {
     const organization = OrganizationFixture({features: []});
-    renderFeatureFlagActions(organization);
+    render(<ExampleFeatureFlagActions />, {organization});
 
     await openCommandPalette();
     await userEvent.type(
@@ -168,5 +167,46 @@ describe('FeatureFlagCommandPaletteActions', () => {
       expect(OrganizationStore.get().organization?.features).toContain('new-feature')
     );
     expect(localStorageWrapper.getItem(LOCALSTORAGE_KEY)).toBe('{"new-feature":true}');
+  });
+
+  it('does not offer to clear overrides when none are stored', async () => {
+    render(<ExampleFeatureFlagActions />, {organization: OrganizationFixture()});
+
+    await openCommandPalette();
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Search commands'}),
+      'Clear Local Feature Flag Overrides'
+    );
+
+    expect(
+      screen.queryByRole('option', {name: 'Clear Local Feature Flag Overrides'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('clears stored overrides from the command palette', async () => {
+    localStorageWrapper.setItem(LOCALSTORAGE_KEY, '{"enabled-feature":false}');
+    render(<ExampleFeatureFlagActions />, {
+      organization: OrganizationFixture({features: ['enabled-feature']}),
+    });
+    const reloadError = jest.spyOn(console, 'error').mockImplementation();
+
+    await openCommandPalette();
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Search commands'}),
+      'Clear Local Feature Flag Overrides'
+    );
+    await userEvent.click(
+      await screen.findByRole('option', {name: /Clear Local Feature Flag Overrides/})
+    );
+
+    expect(localStorageWrapper.getItem(LOCALSTORAGE_KEY)).toBeNull();
+    expect(reloadError).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: expect.stringContaining(
+          'Not implemented: navigation to another Document'
+        ),
+      })
+    );
+    reloadError.mockRestore();
   });
 });

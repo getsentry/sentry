@@ -44,6 +44,7 @@ from sentry.seer.autofix.feature.dispatch import (
 from sentry.seer.autofix.feature.models import (
     FEATURE_ID,
     LEGACY_FEATURE_ID,
+    CodeChangesStepArgs,
     RCAStepArgs,
     RepoPin,
     RepoPins,
@@ -131,6 +132,7 @@ STEP_CONFIGS: dict[AutofixStep, StepConfig] = {
         completed_event=AiAutofixRootCauseCompletedEvent,
     ),
     AutofixStep.SOLUTION: StepConfig(
+        # Solution runs through Seer, see autofix_rca/feature.py in seer for changing behavior
         artifact_schema=SolutionArtifact,
         prompt_fn=solution_prompt,
         started_event=AiAutofixSolutionStartedEvent,
@@ -370,6 +372,15 @@ def get_latest_iteration_index(state: SeerRunState) -> int:
     return iterations[-1].index if iterations else 0
 
 
+def get_open_iteration_index(state: SeerRunState) -> int:
+    """The index of the iteration a drain has claimed but not started yet.
+
+    Its row stores no index, and the run state only gains the iteration once
+    the agent starts it, so the index is one past the last one the state holds.
+    """
+    return get_latest_iteration_index(state) + 1
+
+
 def get_iteration_for_insert_index(state: SeerRunState, insert_index: int) -> int:
     block = state.blocks[insert_index]
     metadata = block.message.metadata or {}
@@ -523,11 +534,11 @@ def trigger_autofix_agent(
         step: Which autofix step to run
         run_id: Existing run ID to continue, or None for new run
         stopping_point: Where to stop the automated pipeline (only used for new runs)
-        allow_free_cohort: Internal-only flag set by night shift to bypass
+        allow_free_cohort: Internal-only flag set by agentic triage to bypass
             quota for free cohort orgs. Not exposed via the API.
     """
     # check billing quota for triggering a new autofix run
-    # Free cohort orgs bypass quota only when called from night shift
+    # Free cohort orgs bypass quota only when called from agentic triage
     # (allow_free_cohort=True). The API endpoint never sets this flag,
     # so manual triggers still require quota.
     if run_id is None:
@@ -543,23 +554,27 @@ def trigger_autofix_agent(
     # If autofix-should-run-repo-checks is enabled,
     # we should force bash tools on as it is dependent on bash tools
     enable_bash_mode = enable_bash_mode or (
-        referrer == AutofixReferrer.NIGHT_SHIFT
+        referrer == AutofixReferrer.AGENTIC_TRIAGE
         and features.has("organizations:autofix-should-run-repo-checks", group.organization)
     )
 
-    use_seer_feature = (step == AutofixStep.ROOT_CAUSE) or (
-        step == AutofixStep.SOLUTION
-        and features.has("organizations:autofix-solution-in-seer", group.organization, actor=user)
+    use_seer_feature = step in (AutofixStep.ROOT_CAUSE, AutofixStep.SOLUTION) or (
+        step == AutofixStep.CODE_CHANGES
+        and features.has(
+            "organizations:autofix-code-changes-in-seer", group.organization, actor=user
+        )
     )
     if use_seer_feature:
         if run_id is not None:
             _assert_existing_run_belongs_to_group(group, run_id)
 
-        step_args: RCAStepArgs | SolutionStepArgs
+        step_args: RCAStepArgs | SolutionStepArgs | CodeChangesStepArgs
         if step == AutofixStep.ROOT_CAUSE:
             step_args = RCAStepArgs(repo_pins=_build_repo_pins(group, referrer))
         elif step == AutofixStep.SOLUTION:
             step_args = SolutionStepArgs(should_run_repo_checks=enable_bash_mode)
+        elif step == AutofixStep.CODE_CHANGES:
+            step_args = CodeChangesStepArgs(should_run_repo_checks=enable_bash_mode)
         else:
             raise ValueError(f"invalid step: {step}")
 
@@ -598,6 +613,7 @@ def trigger_autofix_agent(
             feature_run_id,
             str(feature_run.uuid),
             referrer,
+            actor_user_id=actor_user_id,
         )
         return feature_run
 
@@ -625,7 +641,7 @@ def trigger_autofix_agent(
         if insert_index is not None:
             iteration_index = get_iteration_for_insert_index(run_state, insert_index)
         else:
-            iteration_index = get_latest_iteration_index(run_state) + 1
+            iteration_index = get_open_iteration_index(run_state)
 
     prompt = build_step_prompt(
         step,
@@ -1010,7 +1026,7 @@ def trigger_push_changes(
 
 # Kept in sync with the automated SeerAutomationSource entries in issue_summary.referrer_map.
 AUTOMATED_AUTOFIX_REFERRERS = frozenset(
-    {AutofixReferrer.ISSUE_SUMMARY_POST_PROCESS_FIXABILITY, AutofixReferrer.NIGHT_SHIFT}
+    {AutofixReferrer.ISSUE_SUMMARY_POST_PROCESS_FIXABILITY, AutofixReferrer.AGENTIC_TRIAGE}
 )
 
 

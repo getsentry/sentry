@@ -2,6 +2,7 @@ import {Fragment, memo, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {MessageRow} from '@sentry/scraps/chat';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -16,16 +17,18 @@ import {
 import {TURN_META_WIDTH, TurnMeta} from 'sentry/components/ai/chat/turnMeta';
 import {Count} from 'sentry/components/count';
 import {Placeholder} from 'sentry/components/placeholder';
+import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDuration} from 'sentry/utils/duration/getDuration';
+import {useDismissAlert} from 'sentry/utils/useDismissAlert';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {MessageToolCalls} from 'sentry/views/explore/conversations/components/messageToolCalls';
 import {
   type ConversationMessage,
   extractMessagesFromNodes,
-  partitionSpansByType,
+  NOT_REPORTED,
 } from 'sentry/views/explore/conversations/utils/conversationMessages';
 import {EMPTY_TEXT_CONTENT} from 'sentry/views/insights/pages/agents/utils/aiMessageNormalizer';
 import {getNumberAttr} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
@@ -84,25 +87,23 @@ export function MessagesPanel({
     return <MessagesPanelSkeleton />;
   }
 
+  // Inference spans always produce a transcript, with placeholders when their
+  // content wasn't captured, so an empty one means there are none.
   if (messages.length === 0) {
-    // A conversation with no renderable transcript falls into two buckets we can
-    // tell apart from the spans: inference (generation) spans that ran but never
-    // captured their inputs/outputs, versus a conversation that has no inference
-    // spans at all. Each gets its own explanation.
-    const {generationSpans} = partitionSpansByType(nodes);
     return (
       <PanelContainer>
-        {generationSpans.length > 0 ? (
-          <MissingContentNotice nodes={nodes} />
-        ) : (
-          <NoInferenceSpansNotice onViewTimeline={onViewTimeline} />
-        )}
+        <NoInferenceSpansNotice onViewTimeline={onViewTimeline} />
       </PanelContainer>
     );
   }
 
+  const hasNotReportedContent = messages.some(
+    message => message.content === NOT_REPORTED
+  );
+
   return (
     <PanelContainer>
+      {hasNotReportedContent && <NotReportedAlert nodes={nodes} />}
       <Stack gap="0" width="100%">
         {messages.map(message => {
           const hasXmlTags = hasXmlByMessageId.get(message.id) ?? false;
@@ -164,6 +165,16 @@ const UserTurn = memo(function UserTurnImpl({
   content: string;
   hasXmlTags: boolean;
 }) {
+  if (content === NOT_REPORTED) {
+    return (
+      <UserMessageBlock>
+        <MessageText align="left" variant="muted">
+          {content}
+        </MessageText>
+      </UserMessageBlock>
+    );
+  }
+
   return (
     <UserMessageBlock expand={hasXmlTags}>
       <MessageText align="left">
@@ -251,7 +262,7 @@ const AssistantTurn = memo(function AssistantTurnImpl({
             </Flex>
           </MessageRow>
         )
-      ) : message.content === EMPTY_TEXT_CONTENT ? (
+      ) : message.content === EMPTY_TEXT_CONTENT || message.content === NOT_REPORTED ? (
         <AssistantMessageBlock meta={meta} isSelected={isSelected} onClick={handleClick}>
           <MessageText align="left" variant="muted">
             {message.content}
@@ -370,6 +381,22 @@ function ReasoningSection({
 }) {
   const organization = useOrganization();
 
+  // There is nothing to expand when the reasoning wasn't captured.
+  if (reasoning === NOT_REPORTED) {
+    return (
+      <Flex align="center" gap="md" width="100%" minWidth={0} padding="sm 0">
+        <Flex flex="1" minWidth={0}>
+          <Text size="sm" variant="muted" ellipsis monospace>
+            {t('Thinking...')} {reasoning}
+          </Text>
+        </Flex>
+        <Container width={TURN_META_WIDTH} flexShrink={0}>
+          {meta}
+        </Container>
+      </Flex>
+    );
+  }
+
   return (
     <CollapsibleChatRow
       meta={meta}
@@ -400,11 +427,16 @@ function ReasoningSection({
 }
 
 /**
- * Shown when inference spans ran but captured no input or output data, so
- * there is nothing to render as a transcript. Points to the docs for enabling
- * input/output capture, tailored to the project's platform.
+ * Shown above a transcript built from placeholders because its inference spans
+ * captured no input or output data. Points to the docs for enabling
+ * input/output capture, tailored to the project's platform. Dismissible, since
+ * leaving capture disabled can be intentional.
  */
-function MissingContentNotice({nodes}: {nodes: AITraceSpanNode[]}) {
+function NotReportedAlert({nodes}: {nodes: AITraceSpanNode[]}) {
+  const organization = useOrganization();
+  const {dismiss, isDismissed} = useDismissAlert({
+    key: `${organization.id}:conversation-not-reported-alert`,
+  });
   const projectSlug = useMemo(
     () => nodes.find(node => node.projectSlug)?.projectSlug,
     [nodes]
@@ -415,16 +447,30 @@ function MissingContentNotice({nodes}: {nodes: AITraceSpanNode[]}) {
     : undefined;
   const docsLink = getAiInstrumentationDocsLink(platform);
 
+  if (isDismissed) {
+    return null;
+  }
+
   return (
-    <EmptyNotice>
-      <Text bold>{t("This conversation's messages weren't captured")}</Text>
-      <Text variant="muted" align="center">
+    <Container padding="0 xl xl">
+      <Alert
+        variant="muted"
+        trailingItems={
+          <Button
+            aria-label={t('Dismiss banner')}
+            icon={<IconClose />}
+            onClick={dismiss}
+            size="zero"
+            variant="transparent"
+          />
+        }
+      >
         {tct(
-          "Its inference spans don't include any input or output data. [link:Enable capturing inputs and outputs] in your SDK to see the transcript here.",
+          "This conversation's inputs and outputs weren't captured. [link:Enable capturing inputs and outputs] in your SDK to see the messages here.",
           {link: <ExternalLink href={docsLink} />}
         )}
-      </Text>
-    </EmptyNotice>
+      </Alert>
+    </Container>
   );
 }
 

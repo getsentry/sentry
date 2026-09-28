@@ -30,7 +30,7 @@ class OrganizationAIConversationsSerializer(serializers.Serializer[AIConversatio
     def validate_sort(self, value: list[str]) -> list[str]:
         if len(value) != 1:
             raise serializers.ValidationError("Provide exactly one sort option.")
-        for sort in value:
-            if sort.removeprefix("-") not in AI_CONVERSATIONS_FIELDS:
-                raise serializers.ValidationError(f"Invalid sort option: {sort}")
+        sort = value[0]
+        if sort.removeprefix("-") not in AI_CONVERSATIONS_FIELDS:
+            raise serializers.ValidationError(f"Invalid sort option: {sort}")
         return value

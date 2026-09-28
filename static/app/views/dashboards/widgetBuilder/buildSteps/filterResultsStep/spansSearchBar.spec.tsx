@@ -1,4 +1,3 @@
-import type {ComponentProps} from 'react';
 import {WidgetQueryFixture} from 'sentry-fixture/widgetQuery';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -13,17 +12,6 @@ interface MockedTagValue extends Pick<
   TagValue,
   'key' | 'value' | 'name' | 'count' | 'firstSeen' | 'lastSeen'
 > {}
-
-function renderWithProvider({
-  widgetQuery,
-  onSearch,
-  onClose,
-}: ComponentProps<typeof SpansSearchBar>) {
-  return render(
-    <SpansSearchBar widgetQuery={widgetQuery} onSearch={onSearch} onClose={onClose} />,
-    {}
-  );
-}
 
 function mockSpanTags({
   type,
@@ -111,11 +99,13 @@ describe('SpansSearchBar', () => {
       ],
     });
 
-    renderWithProvider({
-      widgetQuery: WidgetQueryFixture({conditions: 'span.op:function'}),
-      onSearch: jest.fn(),
-      onClose: jest.fn(),
-    });
+    render(
+      <SpansSearchBar
+        widgetQuery={WidgetQueryFixture({conditions: 'span.op:function'})}
+        onSearch={jest.fn()}
+        onClose={jest.fn()}
+      />
+    );
 
     await screen.findByLabelText('span.op:function');
   });
@@ -123,11 +113,13 @@ describe('SpansSearchBar', () => {
   it.isKnownFlake('calls onSearch with the correct query', async () => {
     const onSearch = jest.fn();
 
-    renderWithProvider({
-      widgetQuery: WidgetQueryFixture({conditions: ''}),
-      onSearch,
-      onClose: jest.fn(),
-    });
+    render(
+      <SpansSearchBar
+        widgetQuery={WidgetQueryFixture({conditions: ''})}
+        onSearch={onSearch}
+        onClose={jest.fn()}
+      />
+    );
 
     const searchInput = await screen.findByRole('combobox', {
       name: 'Add a search term',
@@ -148,11 +140,13 @@ describe('SpansSearchBar', () => {
   it.isKnownFlake('triggers onClose when the query changes', async () => {
     const onClose = jest.fn();
 
-    renderWithProvider({
-      widgetQuery: WidgetQueryFixture({conditions: ''}),
-      onSearch: jest.fn(),
-      onClose,
-    });
+    render(
+      <SpansSearchBar
+        widgetQuery={WidgetQueryFixture({conditions: ''})}
+        onSearch={jest.fn()}
+        onClose={onClose}
+      />
+    );
 
     const searchInput = await screen.findByRole('combobox', {
       name: 'Add a search term',

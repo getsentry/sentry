@@ -217,8 +217,9 @@ class MsTeamsRequestParserTest(TestCase):
         for payload in control_silo_payloads:
             request = self.factory.post(
                 self.path,
-                json=payload,
+                data=payload,
                 HTTP_AUTHORIZATION=f"Bearer {TOKEN}",
+                content_type="application/json",
             )
             parser = MsTeamsRequestParser(request=request, response_handler=self.get_response)
             response = parser.get_response()

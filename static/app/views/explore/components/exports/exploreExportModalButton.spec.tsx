@@ -36,25 +36,20 @@ function makeConfig(): ExploreExportConfig {
   };
 }
 
-function renderButton(
-  props: Partial<React.ComponentProps<typeof ExploreExportModalButton>> = {}
+function ExampleExploreExportModalButton(
+  props: Partial<React.ComponentProps<typeof ExploreExportModalButton>>
 ) {
-  const onOpen = jest.fn();
-  const onClose = jest.fn();
-  render(
+  return (
     <ExploreExportModalButton
       config={makeConfig()}
       isDataEmpty={false}
       isDataError={false}
       isDataLoading={false}
-      onOpen={onOpen}
-      onClose={onClose}
+      onOpen={jest.fn()}
+      onClose={jest.fn()}
       {...props}
-    />,
-    {organization}
+    />
   );
-  renderGlobalModal();
-  return {onOpen, onClose};
 }
 
 describe('ExploreExportModalButton', () => {
@@ -63,7 +58,9 @@ describe('ExploreExportModalButton', () => {
   });
 
   it('opens the modal and fires onOpen when clicked', async () => {
-    const {onOpen} = renderButton();
+    const onOpen = jest.fn();
+    render(<ExampleExploreExportModalButton onOpen={onOpen} />, {organization});
+    renderGlobalModal();
 
     await userEvent.click(screen.getByRole('button', {name: 'Export'}));
 
@@ -72,7 +69,9 @@ describe('ExploreExportModalButton', () => {
   });
 
   it('fires onClose with escape_key when closed via Escape', async () => {
-    const {onClose} = renderButton();
+    const onClose = jest.fn();
+    render(<ExampleExploreExportModalButton onClose={onClose} />, {organization});
+    renderGlobalModal();
 
     await userEvent.click(screen.getByRole('button', {name: 'Export'}));
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
@@ -85,7 +84,9 @@ describe('ExploreExportModalButton', () => {
   });
 
   it('fires onClose once with cancel_button when the Cancel button is clicked', async () => {
-    const {onClose} = renderButton();
+    const onClose = jest.fn();
+    render(<ExampleExploreExportModalButton onClose={onClose} />, {organization});
+    renderGlobalModal();
 
     await userEvent.click(screen.getByRole('button', {name: 'Export'}));
     await userEvent.click(await screen.findByRole('button', {name: 'Cancel'}));
@@ -97,7 +98,8 @@ describe('ExploreExportModalButton', () => {
   });
 
   it('disables the button with a tooltip when data is empty', async () => {
-    renderButton({isDataEmpty: true});
+    render(<ExampleExploreExportModalButton isDataEmpty />, {organization});
+    renderGlobalModal();
 
     const button = screen.getByRole('button', {name: 'Export'});
     expect(button).toHaveAttribute('aria-disabled', 'true');

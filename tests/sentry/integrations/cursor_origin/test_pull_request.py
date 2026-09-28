@@ -6,6 +6,7 @@ import pytest
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.cursor_origin.pull_request import PullRequestLifecycleHandler
+from sentry.integrations.cursor_origin.webhook import HANDLERS
 from sentry.integrations.cursor_origin.webhook_types import OriginPayloadError, PullRequestEvent
 from sentry.integrations.services.integration import integration_service
 from sentry.models.pullrequest import PullRequest, PullRequestLifecycleState
@@ -33,9 +34,6 @@ def _payload(**overrides: Any) -> dict[str, Any]:
         "author": {"user": {"id": "user_01example", "email": "jane@example.com"}},
         "createdAt": "2026-08-01T09:30:00Z",
         "updatedAt": "2026-08-01T10:00:00Z",
-        "closedAt": "",
-        "mergedAt": "",
-        "mergeCommitSha": "",
     }
     pull_request.update(overrides)
     return {
@@ -70,8 +68,8 @@ class PullRequestLifecycleHandlerTest(TestCase):
         self.rpc_integration = context.integration
         self.org_integrations = context.organization_integrations
 
-    def _handle(self, payload: dict[str, Any]) -> None:
-        PullRequestLifecycleHandler()(
+    def _handle(self, payload: dict[str, Any], event_type: str = "pull_request.created") -> None:
+        PullRequestLifecycleHandler(event_type)(
             payload, DELIVERY_ID, self.rpc_integration, self.org_integrations
         )
 
@@ -83,6 +81,8 @@ class PullRequestLifecycleHandlerTest(TestCase):
 
         pull_request = self._pull_requests()[0]
         assert pull_request.key == "17"
+        assert pull_request.external_id_str == "pr_01example"
+        assert pull_request.external_id is None
         assert pull_request.title == "Add launch telemetry"
         assert pull_request.message == "Adds structured launch telemetry."
         assert pull_request.state == PullRequestLifecycleState.OPEN
@@ -117,6 +117,14 @@ class PullRequestLifecycleHandlerTest(TestCase):
 
         assert self._pull_requests()[0].state == PullRequestLifecycleState.CLOSED
 
+    def test_empty_close_and_merge_fields_are_unset(self) -> None:
+        self._handle(_payload(closedAt="", mergedAt="", mergeCommitSha=""))
+
+        pull_request = self._pull_requests()[0]
+        assert pull_request.closed_at is None
+        assert pull_request.merged_at is None
+        assert pull_request.merge_commit_sha is None
+
     def test_a_later_event_updates_the_same_row(self) -> None:
         self._handle(_payload())
         self._handle(
@@ -126,6 +134,34 @@ class PullRequestLifecycleHandlerTest(TestCase):
         pull_requests = self._pull_requests()
         assert len(pull_requests) == 1
         assert pull_requests[0].title == "Add launch telemetry, take two"
+
+    def test_a_push_to_the_head_branch_moves_the_head_commit(self) -> None:
+        """`head_ref.pushed` carries the same snapshot, with the new tip."""
+        self._handle(_payload())
+        self._handle(
+            _payload(
+                head={"ref": "add-telemetry", "sha": "c0ffee00"}, updatedAt="2026-08-01T11:00:00Z"
+            )
+        )
+
+        assert self._pull_requests()[0].head_commit_sha == "c0ffee00"
+
+    def test_every_lifecycle_event_is_routed_to_the_handler(self) -> None:
+        """Origin sends the whole pull request with each of these, so one handler serves all."""
+        routed = sorted(
+            event for event, handler in HANDLERS.items() if handler is PullRequestLifecycleHandler
+        )
+
+        assert routed == [
+            "pull_request.base_ref.updated",
+            "pull_request.closed",
+            "pull_request.created",
+            "pull_request.head_ref.pushed",
+            "pull_request.merged",
+            "pull_request.metadata.updated",
+            "pull_request.published",
+            "pull_request.reopened",
+        ]
 
     def test_a_stale_snapshot_is_dropped(self) -> None:
         """Deliveries can arrive out of order, so the shared upsert compares timestamps."""
@@ -179,8 +215,8 @@ class PullRequestLifecycleHandlerTest(TestCase):
 
 
 class PullRequestEventTest(TestCase):
-    def test_an_empty_date_is_absent_rather_than_invalid(self) -> None:
-        """Origin sends an empty string for a date that is unset, as `closedAt` is while open."""
+    def test_an_open_pull_request_has_no_close_date(self) -> None:
+        """Origin leaves `closedAt` out while the pull request is open."""
         assert PullRequestEvent.from_payload(_payload()).pull_request.closed_at is None
 
     def test_a_field_origin_always_sends_is_required(self) -> None:

@@ -65,11 +65,6 @@ export function ConversationViewContent({
     onSelectSpan,
     focusedTool,
     isLoading,
-    // The hook never auto-selects a default: `selectedNode` reflects only the
-    // sticky selection from the URL (a user click or a deep link), which is why
-    // it survives switching tabs. The timeline's default span is layered on
-    // below as view-local state so it never leaks back into the transcript.
-    autoSelectDefaultNode: false,
   });
 
   // The timeline opens on its first span by default; the transcript opens on

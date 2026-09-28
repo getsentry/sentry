@@ -9,6 +9,7 @@ import {
   getNodeTimestamp,
   mergeEmptyTurns,
   messagesToMarkdown,
+  NOT_REPORTED,
   parseAssistantContent,
   parseUserContent,
   partitionSpansByType,
@@ -1963,6 +1964,210 @@ describe('conversationMessages utilities', () => {
         ANTHROPIC_INPUT
       );
       expect(attrsOf('agent-1-gen2')[SpanFields.GEN_AI_OUTPUT_MESSAGES]).toBe(output);
+    });
+  });
+
+  describe('extractMessagesFromNodes without captured content', () => {
+    function createSpan(overrides: {
+      id: string;
+      opType: string;
+      attributes?: Record<string, string | number>;
+      endTimestamp?: number;
+      parentId?: string;
+      startTimestamp?: number;
+    }) {
+      const {
+        id,
+        opType,
+        attributes = {},
+        parentId,
+        startTimestamp = 1000,
+        endTimestamp,
+      } = overrides;
+      const end = endTimestamp ?? startTimestamp + 100;
+      return {
+        id,
+        type: 'span' as const,
+        op: 'gen_ai.generate',
+        startTimestamp,
+        endTimestamp: end,
+        value: {
+          start_timestamp: startTimestamp,
+          end_timestamp: end,
+          parent_span_id: parentId,
+        },
+        attributes: {
+          [SpanFields.GEN_AI_OPERATION_TYPE]: opType,
+          ...attributes,
+        },
+        errors: new Set(),
+      } as any;
+    }
+
+    const INPUT_TOKENS = {[SpanFields.GEN_AI_USAGE_INPUT_TOKENS]: 10};
+
+    it('renders each agent span as a not-reported exchange with its tool calls', () => {
+      const nodes = [
+        createSpan({
+          id: 'agent-a',
+          opType: 'agent',
+          startTimestamp: 1000,
+          endTimestamp: 1500,
+        }),
+        createSpan({
+          id: 'gen-1',
+          opType: 'ai_client',
+          parentId: 'agent-a',
+          startTimestamp: 1000,
+          endTimestamp: 1100,
+          attributes: {
+            ...INPUT_TOKENS,
+            [SpanFields.GEN_AI_USAGE_REASONING_OUTPUT_TOKENS]: 5,
+          },
+        }),
+        createSpan({
+          id: 'tool-1',
+          opType: 'tool',
+          parentId: 'agent-a',
+          startTimestamp: 1100,
+          endTimestamp: 1200,
+          attributes: {[SpanFields.GEN_AI_TOOL_NAME]: 'search'},
+        }),
+        // A sub-agent's generations form their own exchange within the outer one.
+        createSpan({
+          id: 'sub-agent',
+          opType: 'agent',
+          parentId: 'agent-a',
+          startTimestamp: 1200,
+          endTimestamp: 1400,
+        }),
+        createSpan({
+          id: 'gen-2',
+          opType: 'ai_client',
+          parentId: 'sub-agent',
+          startTimestamp: 1200,
+          endTimestamp: 1300,
+          attributes: INPUT_TOKENS,
+        }),
+        createSpan({
+          id: 'gen-3',
+          opType: 'ai_client',
+          parentId: 'agent-a',
+          startTimestamp: 1400,
+          endTimestamp: 1500,
+          attributes: INPUT_TOKENS,
+        }),
+        createSpan({
+          id: 'agent-b',
+          opType: 'agent',
+          startTimestamp: 2000,
+          endTimestamp: 2100,
+        }),
+        createSpan({
+          id: 'gen-4',
+          opType: 'ai_client',
+          parentId: 'agent-b',
+          startTimestamp: 2000,
+          endTimestamp: 2100,
+          attributes: INPUT_TOKENS,
+        }),
+      ];
+
+      const messages = extractMessagesFromNodes(nodes);
+
+      expect(
+        messages.map(m => ({
+          id: m.id,
+          content: m.content,
+          reasoning: m.reasoning,
+          tools: m.toolCalls?.map(tc => tc.name),
+        }))
+      ).toEqual([
+        {id: 'user-gen-1', content: NOT_REPORTED, reasoning: undefined, tools: undefined},
+        {
+          id: 'assistant-gen-1',
+          content: '',
+          reasoning: NOT_REPORTED,
+          tools: undefined,
+        },
+        {id: 'user-gen-2', content: NOT_REPORTED, reasoning: undefined, tools: undefined},
+        {
+          id: 'assistant-gen-2',
+          content: NOT_REPORTED,
+          reasoning: undefined,
+          tools: ['search'],
+        },
+        {
+          id: 'assistant-gen-3',
+          content: NOT_REPORTED,
+          reasoning: undefined,
+          tools: undefined,
+        },
+        {id: 'user-gen-4', content: NOT_REPORTED, reasoning: undefined, tools: undefined},
+        {
+          id: 'assistant-gen-4',
+          content: NOT_REPORTED,
+          reasoning: undefined,
+          tools: undefined,
+        },
+      ]);
+    });
+
+    it('treats generations without an agent span as one run', () => {
+      const nodes = [
+        createSpan({
+          id: 'gen-1',
+          opType: 'ai_client',
+          startTimestamp: 1000,
+          endTimestamp: 1100,
+          attributes: INPUT_TOKENS,
+        }),
+        createSpan({
+          id: 'gen-2',
+          opType: 'ai_client',
+          startTimestamp: 1200,
+          endTimestamp: 1300,
+          attributes: INPUT_TOKENS,
+        }),
+      ];
+
+      expect(extractMessagesFromNodes(nodes).map(m => [m.id, m.content])).toEqual([
+        ['user-gen-1', NOT_REPORTED],
+        ['assistant-gen-2', NOT_REPORTED],
+      ]);
+    });
+
+    it('omits the user placeholder when the generation reports no input tokens', () => {
+      const nodes = [
+        createSpan({id: 'gen-1', opType: 'ai_client', startTimestamp: 1000}),
+      ];
+
+      expect(extractMessagesFromNodes(nodes).map(m => [m.id, m.content])).toEqual([
+        ['assistant-gen-1', NOT_REPORTED],
+      ]);
+    });
+
+    it('keeps merging empty turns when any generation captured content', () => {
+      const nodes = [
+        createSpan({
+          id: 'gen-1',
+          opType: 'ai_client',
+          startTimestamp: 1000,
+          endTimestamp: 1100,
+          attributes: INPUT_TOKENS,
+        }),
+        createSpan({
+          id: 'gen-2',
+          opType: 'ai_client',
+          startTimestamp: 1200,
+          endTimestamp: 1300,
+          attributes: {...INPUT_TOKENS, [SpanFields.GEN_AI_RESPONSE_TEXT]: 'Done'},
+        }),
+      ];
+
+      const messages = extractMessagesFromNodes(nodes);
+
+      expect(messages.map(m => [m.id, m.content])).toEqual([['assistant-gen-2', 'Done']]);
     });
   });
 });

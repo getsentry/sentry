@@ -40,6 +40,7 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 import {
   confirmDeleteSavedQuery,
   getSavedQueryTraceItemUrl,
+  getYAxisDiscoverSavedQuery,
 } from 'sentry/views/explore/utils';
 
 type Props = {
@@ -229,6 +230,7 @@ export function SavedQueriesTable({
               <SavedEntityTable.Cell>
                 <SavedEntityTable.CellName
                   to={getSavedQueryTraceItemUrl({savedQuery: query, organization})}
+                  title={query.name}
                 >
                   {query.name}
                 </SavedEntityTable.CellName>
@@ -259,7 +261,7 @@ export function SavedQueriesTable({
                 ) : (
                   <StyledExploreParams
                     query={query.query ?? ''}
-                    visualizes={query.yAxis?.length ? [{yAxes: query.yAxis}] : []}
+                    visualizes={getYAxisDiscoverSavedQuery(query)}
                   />
                 )}
               </SavedEntityTable.Cell>
@@ -278,27 +280,24 @@ export function SavedQueriesTable({
               <SavedEntityTable.Cell hasButton>
                 <SavedEntityTable.CellActions
                   items={[
-                    ...(isPrebuilt || !isExplore
+                    ...(isPrebuilt
                       ? []
                       : [
                           {
                             key: 'rename',
                             label: t('Rename'),
                             onAction: () => {
-                              if (
-                                getSavedQueryTraceItemDataset(query.dataset) ===
-                                TraceItemDataset.SPANS
-                              ) {
+                              const traceItemDataset = isExplore
+                                ? getSavedQueryTraceItemDataset(query.dataset)
+                                : TraceItemDataset.ERRORS;
+                              if (traceItemDataset === TraceItemDataset.SPANS) {
                                 trackAnalytics('trace_explorer.save_query_modal', {
                                   action: 'open',
                                   save_type: 'rename_query',
                                   ui_source: 'table',
                                   organization,
                                 });
-                              } else if (
-                                getSavedQueryTraceItemDataset(query.dataset) ===
-                                TraceItemDataset.LOGS
-                              ) {
+                              } else if (traceItemDataset === TraceItemDataset.LOGS) {
                                 trackAnalytics('logs.save_query_modal', {
                                   action: 'open',
                                   save_type: 'rename_query',
@@ -311,9 +310,7 @@ export function SavedQueriesTable({
                                 saveQuery: getHandleUpdateFromSavedQuery(query),
                                 name: query.name,
                                 source: 'table',
-                                traceItemDataset: getSavedQueryTraceItemDataset(
-                                  query.dataset
-                                ),
+                                traceItemDataset,
                               });
                             },
                           },
