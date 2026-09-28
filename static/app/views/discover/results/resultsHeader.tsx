@@ -82,6 +82,9 @@ function ResultsHeaderBase({
 
   const hasDiscoverQueryFeature = organization.features.includes('discover-query');
   const isDiscoverDeprecated = getDiscoverDeprecation(organization);
+  const migrateDiscoverQueries = organization.features.includes(
+    'discover-queries-in-all-queries'
+  );
 
   const savedQueryButton = (
     <SavedQueryButtonGroup
@@ -115,28 +118,28 @@ function ResultsHeaderBase({
     </Fragment>
   );
 
-  const discoverBreadcrumb = (
-    <DiscoverBreadcrumb
-      eventView={eventView}
-      organization={organization}
-      location={location}
-      isHomepage={isHomepage}
-      savedQuery={savedQuery}
-    />
-  );
-
   return (
     <Fragment>
-      <TopBar.Slot name="title">
-        {isHomepage ? (
-          <GuideAnchor target="discover_landing_header">{title}</GuideAnchor>
-        ) : hasDiscoverQueryFeature ? (
-          discoverBreadcrumb
-        ) : (
-          title
-        )}
-      </TopBar.Slot>
-      <TopBar.Slot name="actions">{savedQueryButton}</TopBar.Slot>
+      {!isHomepage && hasDiscoverQueryFeature ? (
+        // Owns both the breadcrumbs and title slots.
+        <DiscoverBreadcrumb
+          eventView={eventView}
+          organization={organization}
+          location={location}
+          savedQuery={savedQuery}
+        />
+      ) : (
+        <TopBar.Slot name="title">
+          {isHomepage ? (
+            <GuideAnchor target="discover_landing_header">{title}</GuideAnchor>
+          ) : (
+            title
+          )}
+        </TopBar.Slot>
+      )}
+      {!migrateDiscoverQueries && (
+        <TopBar.Slot name="actions">{savedQueryButton}</TopBar.Slot>
+      )}
       {!isDiscoverDeprecated && (
         <Layout.Header>
           <DatasetSelectorTabs

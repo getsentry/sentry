@@ -82,7 +82,6 @@ def redis_cache():
             "sentry.relay.projectconfig_cache.redis.RedisProjectConfigCache",
         ),
         mock.patch("sentry.relay.projectconfig_cache.set_many", cache.set_many),
-        mock.patch("sentry.relay.projectconfig_cache.delete_many", cache.delete_many),
         mock.patch("sentry.relay.projectconfig_cache.get", cache.get),
     ):
         yield cache
@@ -156,7 +155,6 @@ def test_generate(
     redis_cache,
     django_cache,
 ):
-    # redis_cache.delete_many([default_projectkey.public_key])
     assert not redis_cache.get(default_projectkey.public_key)
 
     build_project_config(default_projectkey.public_key)

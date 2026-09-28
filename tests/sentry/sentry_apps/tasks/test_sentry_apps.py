@@ -16,8 +16,10 @@ from sentry.api.serializers.rest_framework import convert_dict_key_case, snake_t
 from sentry.constants import SentryAppStatus
 from sentry.eventstream.types import EventStreamEventType
 from sentry.exceptions import RestrictedIPAddress
+from sentry.feedback.usecases.ingest.create_feedback import fix_for_issue_platform
 from sentry.incidents.models.incident import IncidentStatus
 from sentry.integrations.types import EventLifecycleOutcome
+from sentry.issues.grouptype import FeedbackGroup
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.models.activity import Activity
 from sentry.sentry_apps.metrics import SentryAppWebhookFailureReason, SentryAppWebhookHaltReason
@@ -63,6 +65,7 @@ from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 from sentry.utils.sentry_apps.service_hook_manager import (
     create_or_update_service_hooks_for_installation,
 )
+from tests.sentry.feedback import mock_feedback_event
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 pytestmark = [requires_snuba]
@@ -461,6 +464,9 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
         assert data["data"]["event"]["occurrence"] == convert_dict_key_case(
             occurrence.to_dict(), snake_to_camel_case
         )
+        # The metadata.value backfill is feedback-only: non-feedback occurrence
+        # payloads must not gain a value derived from the occurrence subtitle.
+        assert "value" not in data["data"]["event"].get("metadata", {})
         assert kwargs["headers"].keys() >= {
             "Content-Type",
             "Request-ID",
@@ -484,6 +490,51 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
         )
         assert_count_of_metric(
             mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=2
+        )
+
+    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
+    def test_feedback_alert_webhook_includes_message_in_metadata_value(
+        self, safe_urlopen: MagicMock
+    ) -> None:
+        raw = mock_feedback_event(self.project.id)
+        fixed = fix_for_issue_platform(raw)
+        # mock_feedback_event embeds project_id in the body; the store_event
+        # factory asserts zero normalization errors, so drop it first.
+        fixed.pop("project_id", None)
+        event = self.store_event(data=fixed, project_id=self.project.id)
+
+        occurrence_data = self.build_occurrence_data(
+            event_id=event.event_id,
+            project_id=self.project.id,
+            type=FeedbackGroup.type_id,
+            issue_title="User Feedback: Testing!!",
+            subtitle="Testing!!",
+            evidence_display=[{"name": "message", "value": "Testing!!", "important": True}],
+        )
+        occurrence, group_info = save_issue_occurrence(occurrence_data=occurrence_data, event=event)
+        assert group_info is not None
+
+        group_event = event.for_group(group_info.group)
+        group_event.occurrence = occurrence
+        rule_future = RuleFuture(rule=self.rule, kwargs={"sentry_app": self.sentry_app})
+
+        with self.tasks():
+            notify_sentry_app(group_event, [rule_future])
+
+        ((args, kwargs),) = safe_urlopen.call_args_list
+        payload = json.loads(kwargs["data"])
+        ev = payload["data"]["event"]
+
+        # The feedback message must land in metadata.value so consumers reading
+        # it see the feedback text.
+        assert ev["metadata"]["value"] == "Testing!!"
+
+        # Feedback text is also present in the standard event fields.
+        assert ev["message"] == "Testing!!"
+        assert ev["contexts"]["feedback"]["message"] == "Testing!!"
+        assert any(
+            row["name"] == "message" and row["value"] == "Testing!!"
+            for row in ev["occurrence"]["evidenceDisplay"]
         )
 
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponse404)

@@ -5,6 +5,7 @@ import pick from 'lodash/pick';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
@@ -12,7 +13,6 @@ import {CheckInPlaceholder} from 'sentry/components/checkInTimeline/checkInPlace
 import {CheckInTimeline} from 'sentry/components/checkInTimeline/checkInTimeline';
 import type {TimeWindowConfig} from 'sentry/components/checkInTimeline/types';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {ActorBadge} from 'sentry/components/idBadge/actorBadge';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {IconEllipsis, IconTimer, IconUser} from 'sentry/icons';

@@ -4,12 +4,11 @@ import type {LocationDescriptor} from 'history';
 
 import {Button, ButtonBar, LinkButton, type ButtonProps} from '@sentry/scraps/button';
 import {MenuComponents} from '@sentry/scraps/compactSelect';
+import {DropdownMenu, DropdownMenuFooter} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 
 import {bulkUpdate} from 'sentry/actionCreators/group';
 import {addSuccessMessage, clearIndicators} from 'sentry/actionCreators/indicator';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {DropdownMenuFooter} from 'sentry/components/dropdownMenu/footer';
 import {getAutofixNextStep} from 'sentry/components/events/autofix/getAutofixNextStep';
 import {findCodingAgentResultLink} from 'sentry/components/events/autofix/pullRequests';
 import {getCodingAgentName} from 'sentry/components/events/autofix/types';

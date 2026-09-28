@@ -4,8 +4,12 @@ import {BreadcrumbCopyAction} from '@sentry/scraps/breadcrumbList/actions/breadc
 import type {BreadcrumbCopyActionProps} from '@sentry/scraps/breadcrumbList/actions/breadcrumbCopyAction';
 import {BreadcrumbMenuAction} from '@sentry/scraps/breadcrumbList/actions/breadcrumbMenuAction';
 import type {BreadcrumbMenuActionProps} from '@sentry/scraps/breadcrumbList/actions/breadcrumbMenuAction';
-import {Button, type ButtonProps, type LinkButtonProps} from '@sentry/scraps/button';
-import {LinkButton} from '@sentry/scraps/button';
+import {
+  Button,
+  type ButtonProps,
+  type LinkButtonProps,
+  LinkButton,
+} from '@sentry/scraps/button';
 import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex} from '@sentry/scraps/layout';
 import type {LinkProps} from '@sentry/scraps/link';

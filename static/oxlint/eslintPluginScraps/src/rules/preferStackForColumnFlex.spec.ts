@@ -1,4 +1,4 @@
-import {RuleTester, type InvalidTestCase} from '@typescript-eslint/rule-tester';
+import {RuleTester} from 'oxlint/plugins-dev';
 
 import {preferStackForColumnFlex} from './preferStackForColumnFlex';
 
@@ -10,11 +10,7 @@ const ruleTester = new RuleTester({
   },
 });
 
-function invalid(
-  name: string,
-  code: string,
-  output: string
-): InvalidTestCase<'preferStack', never[]> {
+function invalid(name: string, code: string, output: string): RuleTester.InvalidTestCase {
   return {name, code, output, errors: [{messageId: 'preferStack'}]};
 }
 

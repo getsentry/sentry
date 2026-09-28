@@ -38,6 +38,7 @@ const EMBEDDED_RESULT_LIMIT = 100;
 interface MetricsSamplesTableProps {
   isMetricOptionsEmpty?: boolean;
   overrideTableData?: TraceMetricEventsResponseItem[];
+  overrideTableRoutingHint?: string;
   requiredQuery?: string;
   source?: MetricsSamplesTableSource;
   traceMetric?: TraceMetric;
@@ -48,6 +49,7 @@ export function MetricsSamplesTable({
   source = DEFAULT_METRICS_SAMPLES_TABLE_SOURCE,
   isMetricOptionsEmpty,
   overrideTableData,
+  overrideTableRoutingHint,
   requiredQuery,
 }: MetricsSamplesTableProps) {
   const isEmbedded = isEmbeddedMetricsSamplesTableSource(source);
@@ -109,6 +111,7 @@ export function MetricsSamplesTable({
             row={row}
             columns={columns}
             meta={metaWithValueUnit}
+            routingHint={overrideTableData ? overrideTableRoutingHint : meta.routingHint}
             source={source}
           />
         ))

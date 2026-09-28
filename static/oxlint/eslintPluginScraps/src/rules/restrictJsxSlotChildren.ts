@@ -1,4 +1,4 @@
-import {AST_NODE_TYPES, ESLintUtils, TSESTree} from '@typescript-eslint/utils';
+import {defineRule, type ESTree} from '@oxlint/plugins';
 
 import {createImportTracker} from '../ast/tracker/imports.ts';
 
@@ -92,7 +92,7 @@ interface State {
  * <React.Fragment>). Fragments are always transparent wrappers — the rule
  * recurses into their children without checking the fragment element itself.
  */
-function isReactFragment(nameNode: TSESTree.JSXTagNameExpression) {
+function isReactFragment(nameNode: ESTree.JSXElementName) {
   if (nameNode.type === 'JSXIdentifier' && nameNode.name === 'Fragment') {
     return true;
   }
@@ -110,13 +110,13 @@ function isReactFragment(nameNode: TSESTree.JSXTagNameExpression) {
 /**
  * Returns a human-readable display name for a JSX element's opening-tag name.
  */
-function getDisplayName(node: TSESTree.JSXTagNameExpression): string {
+function getDisplayName(node: ESTree.JSXElementName): string {
   switch (node.type) {
-    case AST_NODE_TYPES.JSXIdentifier:
+    case 'JSXIdentifier':
       return node.name;
-    case AST_NODE_TYPES.JSXMemberExpression:
+    case 'JSXMemberExpression':
       return `${getDisplayName(node.object)}.${node.property.name}`;
-    case AST_NODE_TYPES.JSXNamespacedName:
+    case 'JSXNamespacedName':
       return `${node.namespace.name}:${node.name.name}`;
   }
 }
@@ -130,10 +130,7 @@ function buildAllowedHint(allowedConfig: SlotsConfigAllowed[]) {
     .join(', or ');
 }
 
-export const restrictJsxSlotChildren = ESLintUtils.RuleCreator.withoutDocs<
-  [Options],
-  'forbidden'
->({
+export const restrictJsxSlotChildren = defineRule({
   meta: {
     type: 'suggestion',
     docs: {
@@ -191,7 +188,8 @@ export const restrictJsxSlotChildren = ESLintUtils.RuleCreator.withoutDocs<
   },
 
   create(context) {
-    const slotsConfig = context.options[0]?.slots ?? [];
+    const options = context.options[0] as Options | undefined;
+    const slotsConfig = options?.slots ?? [];
 
     /**
      * Per-slot runtime state, keyed by individual prop name.
@@ -233,7 +231,7 @@ export const restrictJsxSlotChildren = ESLintUtils.RuleCreator.withoutDocs<
      * as forbidden and recursion stops.
      */
     function checkSlotTree(
-      jsxElement: TSESTree.JSXElement,
+      jsxElement: ESTree.JSXElement,
       propName: string,
       state: State
     ) {
@@ -272,7 +270,7 @@ export const restrictJsxSlotChildren = ESLintUtils.RuleCreator.withoutDocs<
      * @param {*} expr
      */
     function checkExpression(
-      expr: TSESTree.Expression | TSESTree.JSXEmptyExpression,
+      expr: ESTree.Expression | ESTree.JSXEmptyExpression,
       propName: string,
       state: State
     ) {
@@ -372,7 +370,7 @@ export const restrictJsxSlotChildren = ESLintUtils.RuleCreator.withoutDocs<
           return;
         }
 
-        if (state.componentNames.size > 0) {
+        if (state.componentNames.size > 0 && node.parent.type === 'JSXOpeningElement') {
           const nameNode = node.parent.name; // JSXAttribute → JSXOpeningElement
           const elementName = getDisplayName(nameNode);
           if (!state.componentNames.has(elementName)) {
@@ -391,6 +389,7 @@ export const restrictJsxSlotChildren = ESLintUtils.RuleCreator.withoutDocs<
         if (
           (expr.type === 'ArrowFunctionExpression' ||
             expr.type === 'FunctionExpression') &&
+          expr.body &&
           expr.body.type !== 'BlockStatement'
         ) {
           checkExpression(expr.body, propName, state);

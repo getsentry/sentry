@@ -65,6 +65,7 @@ describe('useStagedCompactSelect', () => {
         onChange,
         multiple: true,
       });
+      // oxlint-disable-next-line react/refs
       toggleOptionRef.current = stagedSelect.toggleOption;
 
       return (
@@ -125,6 +126,7 @@ describe('useStagedCompactSelect', () => {
         onChange,
         multiple: true,
       });
+      // oxlint-disable-next-line react/refs
       toggleOptionRef.current = stagedSelect.toggleOption;
 
       return (
@@ -197,6 +199,7 @@ describe('useStagedCompactSelect', () => {
         onChange: handleChange,
         multiple: true,
       });
+      // oxlint-disable-next-line react/refs
       toggleOptionRef.current = stagedSelect.toggleOption;
 
       return (
@@ -277,6 +280,7 @@ describe('useStagedCompactSelect', () => {
         onChange,
         multiple: true,
       });
+      // oxlint-disable-next-line react/refs
       toggleOptionRef.current = stagedSelect.toggleOption;
 
       return (
@@ -350,6 +354,7 @@ describe('useStagedCompactSelect', () => {
         onChange: handleChange,
         multiple: true,
       });
+      // oxlint-disable-next-line react/refs
       toggleOptionRef.current = stagedSelect.toggleOption;
 
       return (
@@ -424,6 +429,7 @@ describe('useStagedCompactSelect', () => {
         onChange,
         multiple: true,
       });
+      // oxlint-disable-next-line react/refs
       toggleOptionRef.current = stagedSelect.toggleOption;
 
       return (
@@ -509,6 +515,7 @@ describe('useStagedCompactSelect', () => {
           onChange: handleChange,
           multiple: true,
         });
+        // oxlint-disable-next-line react/refs
         toggleOptionRef.current = stagedSelect.toggleOption;
 
         return (
@@ -575,6 +582,7 @@ describe('useStagedCompactSelect', () => {
           onChange: handleChange,
           multiple: true,
         });
+        // oxlint-disable-next-line react/refs
         toggleOptionRef.current = stagedSelect.toggleOption;
 
         return (
@@ -638,6 +646,7 @@ describe('useStagedCompactSelect', () => {
           onChange: handleChange,
           multiple: true,
         });
+        // oxlint-disable-next-line react/refs
         toggleOptionRef.current = stagedSelect.toggleOption;
 
         return (
@@ -696,6 +705,7 @@ describe('useStagedCompactSelect', () => {
           onChange: handleChange,
           multiple: true,
         });
+        // oxlint-disable-next-line react/refs
         toggleOptionRef.current = stagedSelect.toggleOption;
 
         return (
@@ -753,6 +763,7 @@ describe('useStagedCompactSelect', () => {
           onChange: setValue,
           multiple: true,
         });
+        // oxlint-disable-next-line react/refs
         toggleOptionRef.current = stagedSelect.toggleOption;
 
         return (
@@ -815,6 +826,7 @@ describe('useStagedCompactSelect', () => {
           onChange: handleChange,
           multiple: true,
         });
+        // oxlint-disable-next-line react/refs
         toggleOptionRef.current = stagedSelect.toggleOption;
 
         return (
@@ -878,6 +890,7 @@ describe('useStagedCompactSelect', () => {
           onChange: handleChange,
           multiple: true,
         });
+        // oxlint-disable-next-line react/refs
         toggleOptionRef.current = stagedSelect.toggleOption;
 
         return (
@@ -941,6 +954,7 @@ describe('useStagedCompactSelect', () => {
           onChange: handleChange,
           multiple: true,
         });
+        // oxlint-disable-next-line react/refs
         toggleOptionRef.current = stagedSelect.toggleOption;
 
         return (
@@ -1006,6 +1020,7 @@ describe('useStagedCompactSelect', () => {
           onChange: handleChange,
           multiple: true,
         });
+        // oxlint-disable-next-line react/refs
         toggleOptionRef.current = stagedSelect.toggleOption;
 
         return (
@@ -1073,6 +1088,7 @@ describe('useStagedCompactSelect', () => {
           onChange: handleChange,
           multiple: true,
         });
+        // oxlint-disable-next-line react/refs
         toggleOptionRef.current = stagedSelect.toggleOption;
 
         return (
@@ -1146,6 +1162,7 @@ describe('useStagedCompactSelect', () => {
           onChange: handleChange,
           multiple: true,
         });
+        // oxlint-disable-next-line react/refs
         toggleOptionRef.current = stagedSelect.toggleOption;
 
         return (

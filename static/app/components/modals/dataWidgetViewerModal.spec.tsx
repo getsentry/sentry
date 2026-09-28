@@ -22,7 +22,6 @@ import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {DashboardFilters, Widget, WidgetQuery} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import {performanceScoreTooltip} from 'sentry/views/dashboards/utils';
 import {WidgetLegendSelectionState} from 'sentry/views/dashboards/widgetLegendSelectionState';
 
 jest.mock('echarts-for-react/lib/core', () => {
@@ -45,14 +44,6 @@ const defaultInitialRouterConfig: RouterConfig & {location: LocationConfig} = {
     pathname: '/mock-pathname/',
     query: {},
   },
-};
-
-let eventsMetaMock: jest.Mock;
-
-const waitForMetaToHaveBeenCalled = async () => {
-  await waitFor(() => {
-    expect(eventsMetaMock).toHaveBeenCalled();
-  });
 };
 
 async function renderModal({
@@ -100,13 +91,11 @@ async function renderModal({
       initialRouterConfig: routerConfig,
     }
   );
-  // Need to wait since WidgetViewerModal will make a request to events-meta
-  // for total events count on mount
-  if (widget.widgetType === WidgetType.DISCOVER) {
-    await waitForMetaToHaveBeenCalled();
+  if (widget.displayType === DisplayType.TABLE) {
+    await act(tick);
+  } else {
+    await screen.findByText(/^(echarts mock|No data to plot\.)$/);
   }
-  // Component renders twice
-  await act(tick);
   return rendered;
 }
 
@@ -154,11 +143,6 @@ describe('Modals -> DataWidgetViewerModal', () => {
       body: [],
     });
 
-    eventsMetaMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-meta/',
-      body: {count: 33323612},
-    });
-
     PageFiltersStore.init();
     PageFiltersStore.onInitializeUrlState({
       projects: [1, 2],
@@ -172,7 +156,7 @@ describe('Modals -> DataWidgetViewerModal', () => {
     ProjectsStore.reset();
   });
 
-  describe('Discover Widgets', () => {
+  describe('Errors Widgets', () => {
     describe('Area Chart Widget', () => {
       let mockQuery: WidgetQuery;
       let additionalMockQuery: WidgetQuery;
@@ -224,7 +208,7 @@ describe('Modals -> DataWidgetViewerModal', () => {
           displayType: DisplayType.AREA,
           interval: '5m',
           queries: [mockQuery, additionalMockQuery],
-          widgetType: WidgetType.DISCOVER,
+          widgetType: WidgetType.ERRORS,
         };
         jest.mocked(ReactEchartsCore).mockClear();
         MockApiClient.addMockResponse({
@@ -401,12 +385,6 @@ describe('Modals -> DataWidgetViewerModal', () => {
           'href',
           '/organizations/org-slug/explore/discover/results/?environment=prod&environment=dev&field=count%28%29&name=Test%20Widget&project=1&project=2&query=&queryDataset=error-events&statsPeriod=24h&yAxis=count%28%29'
         );
-      });
-
-      it('renders total results in footer', async () => {
-        mockEvents();
-        await renderModal({initialData, widget: mockWidget});
-        expect(await screen.findByText('33,323,612')).toBeInTheDocument();
       });
 
       it('renders highlighted query text and multiple queries in select dropdown', async () => {
@@ -603,7 +581,7 @@ describe('Modals -> DataWidgetViewerModal', () => {
           displayType: DisplayType.TOP_N,
           interval: '5m',
           queries: [mockQuery],
-          widgetType: WidgetType.DISCOVER,
+          widgetType: WidgetType.ERRORS,
         };
 
         MockApiClient.addMockResponse({
@@ -673,7 +651,6 @@ describe('Modals -> DataWidgetViewerModal', () => {
         const {router} = await renderModal({initialData, widget: mockWidget});
         expect(await screen.findByText('Test Error 1c')).toBeInTheDocument();
         await userEvent.click(screen.getByRole('button', {name: 'Next'}));
-        await waitForMetaToHaveBeenCalled();
         await waitFor(() =>
           expect(router.location.query).toEqual(
             expect.objectContaining({cursor: '0:10:0', page: '1'})
@@ -730,7 +707,7 @@ describe('Modals -> DataWidgetViewerModal', () => {
         displayType: DisplayType.TABLE,
         interval: '5m',
         queries: [mockQuery],
-        widgetType: WidgetType.DISCOVER,
+        widgetType: WidgetType.ERRORS,
       };
       function mockEvents() {
         return MockApiClient.addMockResponse({
@@ -763,103 +740,6 @@ describe('Modals -> DataWidgetViewerModal', () => {
         await waitFor(() => {
           expect(eventsMock).toHaveBeenCalled();
         });
-      });
-
-      it('displays table data with units correctly', async () => {
-        const eventsMock = MockApiClient.addMockResponse({
-          url: '/organizations/org-slug/events/',
-          match: [MockApiClient.matchQuery({cursor: undefined})],
-          headers: {
-            Link:
-              '<http://localhost/api/0/organizations/org-slug/events/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1",' +
-              '<http://localhost/api/0/organizations/org-slug/events/?cursor=0:10:0>; rel="next"; results="true"; cursor="0:10:0"',
-          },
-          body: {
-            data: [
-              {
-                'p75(measurements.custom.minute)': 94.87035966318831,
-                'p95(measurements.custom.ratio)': 0.9881980140455187,
-                'p75(measurements.custom.kibibyte)': 217.87035966318834,
-              },
-            ],
-            meta: {
-              fields: {
-                'p75(measurements.custom.minute)': 'duration',
-                'p95(measurements.custom.ratio)': 'percentage',
-                'p75(measurements.custom.kibibyte)': 'size',
-              },
-              units: {
-                'p75(measurements.custom.minute)': 'minute',
-                'p95(measurements.custom.ratio)': null,
-                'p75(measurements.custom.kibibyte)': 'kibibyte',
-              },
-              isMetricsData: true,
-              tips: {},
-            },
-          },
-        });
-        await renderModal({
-          initialData: initialDataWithFlag,
-          widget: {
-            title: 'Custom Widget',
-            displayType: 'table',
-            queries: [
-              {
-                fields: [
-                  'p75(measurements.custom.kibibyte)',
-                  'p75(measurements.custom.minute)',
-                  'p95(measurements.custom.ratio)',
-                ],
-                aggregates: [
-                  'p75(measurements.custom.kibibyte)',
-                  'p75(measurements.custom.minute)',
-                  'p95(measurements.custom.ratio)',
-                ],
-                columns: [],
-                orderby: '-p75(measurements.custom.kibibyte)',
-              },
-            ],
-            widgetType: 'discover',
-          },
-        });
-        await waitFor(() => {
-          expect(eventsMock).toHaveBeenCalled();
-        });
-        expect(screen.getByText('217.9 KiB')).toBeInTheDocument();
-        expect(screen.getByText('1.58hr')).toBeInTheDocument();
-        expect(screen.getByText('98.82%')).toBeInTheDocument();
-      });
-
-      it('disables open in discover button when widget uses performance_score', async () => {
-        MockApiClient.addMockResponse({
-          url: '/organizations/org-slug/events/',
-        });
-
-        await renderModal({
-          initialData,
-
-          widget: {
-            title: 'Custom Widget',
-            displayType: 'table',
-            queries: [
-              {
-                fields: ['performance_score(measurements.score.total)'],
-                aggregates: ['performance_score(measurements.score.total)'],
-                conditions: '',
-                columns: [],
-                orderby: '',
-              },
-            ],
-            widgetType: 'discover',
-          },
-        });
-        expect(screen.getByRole('button', {name: 'Open in Discover'})).toHaveAttribute(
-          'aria-disabled',
-          'true'
-        );
-
-        await userEvent.hover(screen.getByRole('button', {name: 'Open in Discover'}));
-        expect(await screen.findByText(performanceScoreTooltip)).toBeInTheDocument();
       });
     });
   });
@@ -1127,14 +1007,10 @@ describe('Modals -> DataWidgetViewerModal', () => {
     });
 
     it('does not render pagination buttons when sorting by release', async () => {
-      // TODO(scttcper): We shouldn't need to wrap render with act, it seems to double render ReleaseWidgetQueries
-      await act(() =>
-        renderModal({
-          initialData,
-          widget: {...mockWidget, queries: [{...mockQuery, orderby: 'release'}]},
-          // in react 17 act requires that nothing is returned
-        }).then(() => void 0)
-      );
+      await renderModal({
+        initialData,
+        widget: {...mockWidget, queries: [{...mockQuery, orderby: 'release'}]},
+      });
       expect(screen.queryByRole('button', {name: 'Previous'})).not.toBeInTheDocument();
       expect(screen.queryByRole('button', {name: 'Next'})).not.toBeInTheDocument();
     });
@@ -1240,6 +1116,71 @@ describe('Modals -> DataWidgetViewerModal', () => {
           location: {...defaultInitialRouterConfig.location},
         },
       };
+    });
+
+    it('displays table data with units correctly', async () => {
+      const eventsMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/',
+        match: [MockApiClient.matchQuery({cursor: undefined})],
+        headers: {
+          Link:
+            '<http://localhost/api/0/organizations/org-slug/events/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1",' +
+            '<http://localhost/api/0/organizations/org-slug/events/?cursor=0:10:0>; rel="next"; results="true"; cursor="0:10:0"',
+        },
+        body: {
+          data: [
+            {
+              'p75(measurements.custom.minute)': 94.87035966318831,
+              'p95(measurements.custom.ratio)': 0.9881980140455187,
+              'p75(measurements.custom.kibibyte)': 217.87035966318834,
+            },
+          ],
+          meta: {
+            fields: {
+              'p75(measurements.custom.minute)': 'duration',
+              'p95(measurements.custom.ratio)': 'percentage',
+              'p75(measurements.custom.kibibyte)': 'size',
+            },
+            units: {
+              'p75(measurements.custom.minute)': 'minute',
+              'p95(measurements.custom.ratio)': null,
+              'p75(measurements.custom.kibibyte)': 'kibibyte',
+            },
+            isMetricsData: true,
+            tips: {},
+          },
+        },
+      });
+      await renderModal({
+        initialData: initialDataWithFlag,
+        widget: {
+          title: 'Custom Widget',
+          displayType: 'table',
+          queries: [
+            {
+              fields: [
+                'p75(measurements.custom.kibibyte)',
+                'p75(measurements.custom.minute)',
+                'p95(measurements.custom.ratio)',
+              ],
+              aggregates: [
+                'p75(measurements.custom.kibibyte)',
+                'p75(measurements.custom.minute)',
+                'p95(measurements.custom.ratio)',
+              ],
+              columns: [],
+              orderby: '-p75(measurements.custom.kibibyte)',
+            },
+          ],
+          widgetType: 'spans',
+        },
+      });
+      await waitFor(() => {
+        expect(eventsMock).toHaveBeenCalled();
+      });
+      expect(screen.getByText('217.9 KiB')).toBeInTheDocument();
+      expect(screen.getByText('1.58hr')).toBeInTheDocument();
+      expect(screen.getByText('98.82%')).toBeInTheDocument();
     });
 
     it('renders the Open in Explore button', async () => {

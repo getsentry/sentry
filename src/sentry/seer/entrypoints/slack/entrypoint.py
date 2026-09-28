@@ -614,13 +614,16 @@ class SlackAgentEntrypoint(
                     data=data,
                     slack_user_id=slack_user_id,
                 )
+                summary = (
+                    f"<@{slack_user_id}> I need your approval to make changes in Sentry. "
+                    "I sent you a message."
+                )
             else:
                 # Pre-deploy cache entries lack the recipient; never expose approval publicly.
                 logger.error(
                     "seer.entrypoint.slack.agent_write_approval.slack_user_missing",
                     extra={"organization_id": organization_id, "run_id": run_id},
                 )
-            if not summary:
                 return
 
         if (

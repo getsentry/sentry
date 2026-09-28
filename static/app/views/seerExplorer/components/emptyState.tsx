@@ -18,8 +18,11 @@ const SUGGESTED_QUESTIONS = [
 interface EmptyStateProps {
   displaySlackAgentReminder?: boolean;
   errorStatusCode?: number | null;
+  /** The conversation could not be loaded: the request failed, or it came back errored. */
   isError?: boolean;
   isLoading?: boolean;
+  /** Resets to a fresh session. Rendered as the recovery action on error states. */
+  onStartNewChat?: () => void;
   onSuggestionClick?: (question: string) => void;
   runId?: SeerExplorerRunId | null;
 }
@@ -30,17 +33,16 @@ export function EmptyState({
   errorStatusCode = null,
   displaySlackAgentReminder = false,
   runId,
+  onStartNewChat,
   onSuggestionClick,
 }: EmptyStateProps) {
   const runIdDisplay = runId?.toString() ?? 'null';
   return (
     <Container>
-      {isLoading ? (
-        <Fragment>
-          <LoadingIndicator size={32} />
-          <Text>{t('Ask Seer anything about your application.')}</Text>
-        </Fragment>
-      ) : isError ? (
+      {isError ? (
+        // Checked before `isLoading`: a failed load can still be polling with
+        // backoff, and a spinner there would sit next to a disabled composer
+        // with no way out.
         <Fragment>
           <IconSeer size="xl" />
           <Text>
@@ -48,14 +50,26 @@ export function EmptyState({
               ? tct('Session not found (run_id=[runIdDisplay]).', {
                   runIdDisplay,
                 })
-              : tct(`Error loading this session (run_id=[runIdDisplay]).`, {
-                  runIdDisplay,
-                })}
+              : t('There was a problem loading the conversation.')}
           </Text>
+          {onStartNewChat && (
+            // The composer is disabled on this screen: sending would post into the
+            // run that just failed rather than open a fresh one, so this is the way out.
+            <Text>
+              <Button variant="link" size="zero" onClick={onStartNewChat}>
+                {t('Start a new chat')}
+              </Button>
+            </Text>
+          )}
+        </Fragment>
+      ) : isLoading ? (
+        <Fragment>
+          <LoadingIndicator size={32} />
+          <Text>{t('Ask Seer anything about your application.')}</Text>
         </Fragment>
       ) : (
         <Fragment>
-          <IconSeer size="xl" animation="waiting" />
+          <IconSeer size="xl" animation="idle" />
           <Text>{t('Ask Seer anything about your application.')}</Text>
           {onSuggestionClick && (
             <Stack align="center" gap="md" paddingTop="2xl">

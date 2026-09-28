@@ -1,7 +1,8 @@
 import {useMemo} from 'react';
 
+import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
+
 import Feature from 'sentry/components/acl/feature';
-import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';

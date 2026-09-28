@@ -125,19 +125,18 @@ def make_gauge_payload(use_case, org_id, rand_str, sampling_weight):
     }
 
 
-def make_psql(rand_str, is_generic):
+def make_psql(rand_str):
     return f"""
         SELECT string,
         organization_id,
-        {"use_case_id," if is_generic else ""}
         date_added,
         last_seen
-        FROM {"sentry_perfstringindexer" if is_generic else "sentry_stringindexer"}
+        FROM sentry_stringindexer
         WHERE string ~ 'metric_e2e_.*{rand_str}';
     """
 
 
-def make_csql(rand_str, is_generic):
+def make_csql(rand_str):
     return "UNION ALL".join(
         [
             f"""
@@ -151,25 +150,16 @@ def make_csql(rand_str, is_generic):
     FROM {table_name}
     WHERE arrayExists(v -> match(v, 'metric_e2e_.*{rand_str}'), tags.raw_value)
     """
-            for table_name in (
-                [
-                    "generic_metric_counters_raw_local",
-                    "generic_metric_distributions_raw_local",
-                    "generic_metric_sets_raw_local",
-                    "generic_metric_gauges_raw_local",
-                ]
-                if is_generic
-                else [
-                    "metrics_counters_v2_local",
-                    "metrics_distributions_v2_local",
-                    "metrics_sets_v2_local",
-                ]
-            )
+            for table_name in [
+                "metrics_counters_v2_local",
+                "metrics_distributions_v2_local",
+                "metrics_sets_v2_local",
+            ]
         ]
     )
 
 
-def produce_msgs(messages, is_generic, host, dryrun, quiet):
+def produce_msgs(messages, host, dryrun, quiet):
     conf = {"bootstrap.servers": host}
 
     producer = KafkaProducer(build_kafka_producer_configuration(default_config=conf))
@@ -179,7 +169,7 @@ def produce_msgs(messages, is_generic, host, dryrun, quiet):
             pprint.pprint(message)
         if not dryrun:
             producer.produce(
-                Topic(name=("ingest-performance-metrics" if is_generic else "ingest-metrics")),
+                Topic(name="ingest-metrics"),
                 KafkaPayload(key=None, value=json.dumps(message).encode("utf-8"), headers=[]),
             )
             print("Done")
@@ -190,14 +180,12 @@ def produce_msgs(messages, is_generic, host, dryrun, quiet):
 
 @click.command()
 @click.option(
-    "--metric-types", default="cdsg", show_default=True, help="The types of metrics to send"
+    "--metric-types", default="cds", show_default=True, help="The types of metrics to send"
 )
 @click.option(
     "--use-cases",
     multiple=True,
-    default=[
-        use_case_id.value for use_case_id in UseCaseID if use_case_id is not UseCaseID.SESSIONS
-    ],
+    default=[UseCaseID.SESSIONS.value],
     show_default=True,
     help="The use case IDs.",
 )
@@ -272,15 +260,14 @@ def main(
     b64_encode,
     sampling_weight,
 ):
-    if UseCaseID.SESSIONS.value in use_cases and len(use_cases) > 1:
+    if any(use_case != UseCaseID.SESSIONS.value for use_case in use_cases):
         click.secho(
-            "ERROR: UseCaseID.SESSIONS is in use_cases and there are more than 1 use cases",
+            "ERROR: only UseCaseID.SESSIONS is supported; generic metrics have been removed",
             blink=True,
             bold=True,
         )
         exit(1)
 
-    is_generic = UseCaseID.SESSIONS.value not in use_cases
     metric_types = "".join(set(metric_types))
     rand_str = rand_str or "".join(random.choices(string.ascii_uppercase + string.digits, k=8))
     payload_generators = {
@@ -319,7 +306,7 @@ def main(
     messages.extend([{"BAD_VALUE": rand_str, "idx": i} for i in range(num_bad_msg)])
 
     random.shuffle(messages)
-    produce_msgs(messages, is_generic, host, dryrun, quiet)
+    produce_msgs(messages, host, dryrun, quiet)
 
     strs_per_use_case = 3
     print(
@@ -327,15 +314,7 @@ def main(
         f"there should be {strs_per_use_case} strings for each use cases, "
         f"{strs_per_use_case * len(use_cases) * (end_org_id - start_org_id + 1)} in total."
     )
-    print(make_psql(rand_str, is_generic))
-
-    if is_generic:
-        print(
-            f"Use the following SQL to verify clickhouse, "
-            f"there should be {len(metric_types)} metrics for each use cases, "
-            f"{len(metric_types) * len(use_cases) * (end_org_id - start_org_id + 1)} in total."
-        )
-        print(make_csql(rand_str, is_generic))
+    print(make_psql(rand_str))
 
 
 if __name__ == "__main__":

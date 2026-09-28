@@ -59,12 +59,6 @@ class TestIssuePriorityGreaterOrEqualCondition(ConditionTestCase):
             condition_result=True,
             condition_group=dc_critical.condition_group,
         )
-        self.deescalating_dc_boolean = self.create_data_condition(
-            comparison=True,
-            type=self.condition,
-            condition_result=True,
-            condition_group=dc_critical.condition_group,
-        )
 
     def update_group_and_open_period(self, priority: PriorityLevel) -> None:
         self.group.update(priority=priority)
@@ -107,12 +101,21 @@ class TestIssuePriorityGreaterOrEqualCondition(ConditionTestCase):
         self.assert_passes(self.deescalating_dc_critical, self.event_data)
 
     def test_boolean_comparison_preserves_existing_behavior(self) -> None:
+        boolean_condition = self.create_data_condition(
+            comparison=DetectorPriorityLevel.HIGH,
+            type=self.condition,
+            condition_result=True,
+            condition_group=self.deescalating_dc_critical.condition_group,
+        )
+        type(boolean_condition).objects.filter(id=boolean_condition.id).update(comparison=True)
+        boolean_condition.refresh_from_db()
+
         self.update_group_and_open_period(priority=PriorityLevel.HIGH)
         self.update_group_and_open_period(priority=PriorityLevel.MEDIUM)
-        self.assert_does_not_pass(self.deescalating_dc_boolean, self.event_data)
+        self.assert_does_not_pass(boolean_condition, self.event_data)
 
         self.group.update(status=GroupStatus.RESOLVED)
-        self.assert_passes(self.deescalating_dc_boolean, self.event_data)
+        self.assert_passes(boolean_condition, self.event_data)
 
     @override_options(
         {"workflow_engine.group.type_id.open_periods_type_denylist": [DEFAULT_TYPE_ID]}

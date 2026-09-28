@@ -95,6 +95,10 @@ export type OnboardingEventParameters = {
     platform: string;
     project_id: string;
   };
+  'onboarding.scm_messaging_channel_selected': ScmMessagingProviderParams & {
+    // Whether the channel came from the loaded list or was typed in.
+    source: 'list' | 'typed';
+  };
   'onboarding.scm_messaging_channel_validation_failed': ScmMessagingProviderParams;
   'onboarding.scm_messaging_choose_destination_cancelled': ScmMessagingProviderParams;
   'onboarding.scm_messaging_choose_destination_clicked': ScmMessagingProviderParams;
@@ -167,6 +171,10 @@ export type OnboardingEventParameters = {
   'onboarding.scm_welcome_agent_command_copied': {
     source: 'install_command' | 'prompt';
   };
+  'onboarding.scm_welcome_agent_snippet_selected': {
+    source: 'install_command' | 'prompt';
+  };
+  'onboarding.scm_welcome_agentic_setup_viewed': Record<string, unknown>;
   'onboarding.scm_welcome_continue_clicked': Record<string, unknown>;
   'onboarding.scm_welcome_present_agentic_interstitial_clicked': Record<string, unknown>;
   'onboarding.scm_welcome_step_viewed': Record<string, unknown>;
@@ -244,6 +252,8 @@ export const onboardingEventMap: Record<keyof OnboardingEventParameters, string>
   'onboarding.scm_dsn_copied': 'Onboarding: SCM DSN Copied',
   'onboarding.scm_js_loader_npm_docs_shown':
     'Onboarding: SCM JS Loader Switch to npm Instructions',
+  'onboarding.scm_messaging_channel_selected':
+    'Onboarding: SCM Messaging Channel Selected',
   'onboarding.scm_messaging_channel_validation_failed':
     'Onboarding: SCM Messaging Channel Validation Failed',
   'onboarding.scm_messaging_choose_destination_cancelled':
@@ -293,6 +303,10 @@ export const onboardingEventMap: Record<keyof OnboardingEventParameters, string>
   'onboarding.scm_view_sample_event_clicked': 'Onboarding: SCM View Sample Event Clicked',
   'onboarding.scm_welcome_agent_command_copied':
     'Onboarding: SCM Welcome Agent Command Copied',
+  'onboarding.scm_welcome_agent_snippet_selected':
+    'Onboarding: SCM Welcome Agent Snippet Selected',
+  'onboarding.scm_welcome_agentic_setup_viewed':
+    'Onboarding: SCM Welcome Agentic Setup Viewed',
   'onboarding.scm_welcome_continue_clicked': 'Onboarding: SCM Welcome Continue Clicked',
   'onboarding.scm_welcome_present_agentic_interstitial_clicked':
     'Onboarding: SCM Welcome Present Agentic Interstitial Clicked',

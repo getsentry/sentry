@@ -12,7 +12,11 @@ import {t, tct} from 'sentry/locale';
 import type {DataCategory} from 'sentry/types/core';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
-import type {BillingStatTotal, Subscription} from 'getsentry/types';
+import type {
+  BilledDataCategoryInfo,
+  BillingStatTotal,
+  Subscription,
+} from 'getsentry/types';
 import {
   displayPercentage,
   formatUsageWithUnits,
@@ -215,6 +219,59 @@ type Props = {
   isEventBreakdown?: boolean;
 };
 
+function OutcomeTable({
+  children,
+  category,
+  categoryInfo,
+  isEventBreakdown,
+  subscription,
+}: {categoryInfo: BilledDataCategoryInfo | null; children: React.ReactNode} & Pick<
+  Props,
+  'category' | 'isEventBreakdown' | 'subscription'
+>) {
+  const categoryName = isEventBreakdown
+    ? toTitleCase(category, {allowInnerUpperCase: true})
+    : getPlanCategoryName({
+        plan: subscription.planDetails,
+        category,
+        hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
+        title: true,
+      });
+
+  const testId = isEventBreakdown
+    ? `event-table-${category}`
+    : `category-table-${category}`;
+
+  return (
+    <StyledTable data-test-id={testId}>
+      <thead>
+        <tr>
+          <th>
+            {isEventBreakdown && (
+              <TextOverflow>
+                {isEventBreakdown
+                  ? tct('[singularName] Events', {
+                      singularName: toTitleCase(categoryInfo?.displayName ?? category, {
+                        allowInnerUpperCase: true,
+                      }),
+                    })
+                  : categoryName}
+              </TextOverflow>
+            )}
+          </th>
+          <th>
+            <TextOverflow>{t('Quantity')}</TextOverflow>
+          </th>
+          <th>
+            <TextOverflow>{tct('% of [categoryName]', {categoryName})}</TextOverflow>
+          </th>
+        </tr>
+      </thead>
+      <tbody>{children}</tbody>
+    </StyledTable>
+  );
+}
+
 export function UsageTotalsTable({
   category,
   isEventBreakdown,
@@ -231,49 +288,6 @@ export function UsageTotalsTable({
     droppedOther: colorPalette[5],
   };
 
-  function OutcomeTable({children}: {children: React.ReactNode}) {
-    const categoryName = isEventBreakdown
-      ? toTitleCase(category, {allowInnerUpperCase: true})
-      : getPlanCategoryName({
-          plan: subscription.planDetails,
-          category,
-          hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
-          title: true,
-        });
-
-    const testId = isEventBreakdown
-      ? `event-table-${category}`
-      : `category-table-${category}`;
-
-    return (
-      <StyledTable data-test-id={testId}>
-        <thead>
-          <tr>
-            <th>
-              {isEventBreakdown && (
-                <TextOverflow>
-                  {isEventBreakdown
-                    ? tct('[singularName] Events', {
-                        singularName: toTitleCase(categoryInfo?.displayName ?? category, {
-                          allowInnerUpperCase: true,
-                        }),
-                      })
-                    : categoryName}
-                </TextOverflow>
-              )}
-            </th>
-            <th>
-              <TextOverflow>{t('Quantity')}</TextOverflow>
-            </th>
-            <th>
-              <TextOverflow>{tct('% of [categoryName]', {categoryName})}</TextOverflow>
-            </th>
-          </tr>
-        </thead>
-        <tbody>{children}</tbody>
-      </StyledTable>
-    );
-  }
   const totalDropped = isContinuousProfiling(category)
     ? t('Total Dropped (estimated)')
     : t('Total Dropped');
@@ -288,8 +302,12 @@ export function UsageTotalsTable({
         outcomeToBarColor={outcomeToBarColor}
       />
 
-      {/* oxlint-disable-next-line react/static-components */}
-      <OutcomeTable>
+      <OutcomeTable
+        category={category}
+        isEventBreakdown={isEventBreakdown}
+        subscription={subscription}
+        categoryInfo={categoryInfo}
+      >
         <OutcomeRow
           name={t('Accepted')}
           quantity={totals.accepted}

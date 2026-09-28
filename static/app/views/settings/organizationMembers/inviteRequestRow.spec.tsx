@@ -160,8 +160,14 @@ describe('InviteRequestRow', () => {
       />
     );
 
-    expect(screen.getByRole('button', {name: 'Approve'})).toBeDisabled();
-    expect(screen.getByRole('button', {name: 'Deny'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Approve'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    expect(screen.getByRole('button', {name: 'Deny'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
   });
 
   it('admin can change role and teams', async () => {
@@ -231,6 +237,9 @@ describe('InviteRequestRow', () => {
       />
     );
 
-    expect(screen.getByRole('button', {name: 'Approve'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Approve'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
   });
 });

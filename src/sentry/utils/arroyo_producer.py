@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import atexit
 import os
+import threading
 from collections import deque
 from collections.abc import Callable
 
@@ -30,6 +31,9 @@ class SingletonProducer:
 
     It is supposed to be used in tasks, where we want to flush the
     producer on process shutdown.
+
+    Instances can be shared across threads. The underlying ``KafkaProducer`` is
+    thread-safe; the lock here only guards our own state.
     """
 
     def __init__(
@@ -38,6 +42,7 @@ class SingletonProducer:
         self._producer: KafkaProducer | None = None
         self._factory = kafka_producer_factory
         self._futures: deque[_ProducerFuture] = deque()
+        self._lock = threading.Lock()
         self.max_futures = max_futures
 
         # This fixes a shutdown-ordering bug with OutcomeAggregator, which
@@ -58,30 +63,39 @@ class SingletonProducer:
         return future
 
     def _get(self) -> KafkaProducer:
-        if self._producer is None:
-            self._producer = self._factory()
+        producer = self._producer
+        if producer is None:
+            with self._lock:
+                producer = self._producer
+                if producer is None:
+                    producer = self._producer = self._factory()
 
-        return self._producer
+        return producer
 
     def _track_futures(self, future: _ProducerFuture) -> None:
-        self._futures.append(future)
-        if len(self._futures) >= self.max_futures:
-            try:
-                future = self._futures.popleft()
-            except IndexError:
-                return
-            else:
-                future.result()
+        oldest: _ProducerFuture | None = None
+        with self._lock:
+            self._futures.append(future)
+            if len(self._futures) >= self.max_futures:
+                oldest = self._futures.popleft()
+
+        if oldest is not None:
+            oldest.result()
 
     def _shutdown(self) -> None:
-        for future in self._futures:
+        with self._lock:
+            pending = list(self._futures)
+            self._futures.clear()
+            producer = self._producer
+
+        for future in pending:
             try:
                 future.result()
             except Exception:
                 pass
 
-        if self._producer:
-            self._producer.close()
+        if producer:
+            producer.close()
 
 
 def get_arroyo_producer(

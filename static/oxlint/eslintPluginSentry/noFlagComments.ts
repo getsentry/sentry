@@ -1,6 +1,6 @@
-import {ESLintUtils} from '@typescript-eslint/utils';
+import {defineRule} from '@oxlint/plugins';
 
-export const noFlagComments = ESLintUtils.RuleCreator.withoutDocs({
+export const noFlagComments = defineRule({
   meta: {
     type: 'suggestion',
     docs: {

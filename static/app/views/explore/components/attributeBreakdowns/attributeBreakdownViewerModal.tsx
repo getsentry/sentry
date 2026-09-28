@@ -299,6 +299,7 @@ export default function AttributeBreakdownViewerModal(props: Props) {
       return [];
     }
     return [new Bars(singleSeries, {color: primaryColor})];
+    // oxlint-disable-next-line react/memo-dependencies
   }, [computedData.mode, chartSeries, primaryColor, secondaryColor]);
 
   return (

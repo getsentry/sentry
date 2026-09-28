@@ -189,6 +189,249 @@ class InvestigationExecutionServiceTest(TestCase):
         with pytest.raises(InvestigationValidationError):
             self.run_block(block)
 
+    def test_refinement_keeps_the_original_window_after_ten_days(self) -> None:
+        original_end = timezone.now() - timedelta(days=10)
+        original_start = original_end - timedelta(days=6)
+        self.investigation.update(filters={"statsPeriod": "6d"})
+        block = self.create_block(prompt="Show a bar chart instead")
+        previous = self.create_execution(
+            block,
+            started_at=original_end,
+            input_snapshot={"filters": {"statsPeriod": "6d", "environment": ["production"]}},
+        )
+        original_link = {
+            "kind": "telemetry",
+            "params": {"dataset": "errors", "query": "", "stats_period": "6d"},
+        }
+        assert previous.result is not None
+        previous.update(result={**previous.result, "queryLinks": [original_link]})
+        previous.data_projects.add(self.project)
+        block.update(result_execution=previous)
+
+        snapshot, _ = build_block_execution_snapshot(
+            block=block, projects=[self.project], accessible_project_ids={self.project.id}
+        )
+
+        current = snapshot["context"][0]
+        assert current["result"]["queryLinks"] == [
+            {
+                "kind": "telemetry",
+                "params": {
+                    "dataset": "errors",
+                    "query": "",
+                    "start": original_start.isoformat(),
+                    "end": original_end.isoformat(),
+                },
+            }
+        ]
+        assert snapshot["queryContext"]["filters"] == {
+            "environment": ["production"],
+            "start": original_start.isoformat(),
+            "end": original_end.isoformat(),
+        }
+        previous.refresh_from_db()
+        assert previous.result is not None
+        assert previous.result["queryLinks"] == [original_link]
+
+        refined = self.create_execution(
+            block,
+            started_at=timezone.now(),
+            input_snapshot=snapshot,
+            result=current["result"],
+        )
+        refined.data_projects.add(self.project)
+        block.update(result_execution=refined)
+        self.investigation.update(filters={"statsPeriod": "24h"})
+
+        next_snapshot, _ = build_block_execution_snapshot(
+            block=block, projects=[self.project], accessible_project_ids={self.project.id}
+        )
+
+        assert (
+            next_snapshot["context"][0]["result"]["queryLinks"] == current["result"]["queryLinks"]
+        )
+        assert next_snapshot["queryContext"] == snapshot["queryContext"]
+
+    def test_refinement_keeps_explicit_query_bounds_and_original_source(self) -> None:
+        time_range = {"start": "2025-08-01T00:00:00Z", "end": "2025-08-07T00:00:00Z"}
+        source = {"type": "manual", "timeRange": time_range}
+        block = self.create_block()
+        previous = self.create_execution(block, input_snapshot={"source": source})
+        link = {"kind": "telemetry", "params": {"dataset": "errors", **time_range}}
+        assert previous.result is not None
+        previous.update(result={**previous.result, "queryLinks": [link]})
+        previous.data_projects.add(self.project)
+        block.update(result_execution=previous)
+        self.investigation.update(source={"type": "manual", "prompt": "Changed source"})
+
+        snapshot, _ = build_block_execution_snapshot(
+            block=block, projects=[self.project], accessible_project_ids={self.project.id}
+        )
+
+        assert snapshot["context"][0]["queryContext"]["source"] == source
+        assert snapshot["context"][0]["result"]["queryLinks"] == [link]
+
+    def test_report_refinement_does_not_anchor_current_filters_to_old_execution(self) -> None:
+        source = {
+            "type": "manual",
+            "timeRange": {"start": "2025-08-01T00:00:00Z", "end": "2025-08-07T00:00:00Z"},
+        }
+        self.investigation.update(filters={"statsPeriod": "24h", "environment": ["staging"]})
+        block = self.create_block()
+        previous = self.create_execution(
+            block,
+            started_at=timezone.now() - timedelta(days=10),
+            input_snapshot={"orchestrationRunId": 1, "source": source},
+        )
+        block.update(result_execution=previous)
+
+        snapshot, _ = build_block_execution_snapshot(
+            block=block, projects=[self.project], accessible_project_ids={self.project.id}
+        )
+
+        assert snapshot["queryContext"] == {"source": source, "filters": {}, "parameters": {}}
+        assert snapshot["context"][0]["queryContext"] == snapshot["queryContext"]
+        assert snapshot["parameterChanges"] == {}
+
+    def test_refinement_leaves_missing_historical_context_unknown(self) -> None:
+        self.investigation.update(
+            filters={"statsPeriod": "24h"},
+            source={
+                "type": "manual",
+                "timeRange": {"start": "2025-08-01T00:00:00Z", "end": "2025-08-07T00:00:00Z"},
+            },
+        )
+        block = self.create_block()
+        previous = self.create_execution(block, input_snapshot={})
+        block.update(result_execution=previous)
+
+        snapshot, _ = build_block_execution_snapshot(
+            block=block, projects=[self.project], accessible_project_ids={self.project.id}
+        )
+
+        assert snapshot["queryContext"] == {"source": {}, "filters": {}, "parameters": {}}
+        assert snapshot["context"][0]["result"]["queryLinks"] == []
+
+    def test_refinement_tracks_parameter_edits_without_changing_the_saved_window(self) -> None:
+        original_end = timezone.now() - timedelta(days=10)
+        block = self.create_block()
+        environment = self.create_investigation_parameter(
+            investigation=self.investigation,
+            key="environment",
+            label="Environment",
+            position=0,
+            type=InvestigationParameterType.ENVIRONMENT_LIST,
+            saved_value=["staging"],
+        )
+        self.create_investigation_block_parameter(block=block, parameter=environment)
+        query = self.create_investigation_parameter(
+            investigation=self.investigation,
+            key="query",
+            label="Query",
+            position=1,
+            type=InvestigationParameterType.STRING,
+            saved_value="error.type:TimeoutError",
+        )
+        self.create_investigation_block_parameter(block=block, parameter=query)
+        previous_parameters = {"environment": ["production"], "query": query.saved_value}
+        previous = self.create_execution(
+            block,
+            started_at=original_end,
+            input_snapshot={"filters": {"statsPeriod": "6d"}, "parameters": previous_parameters},
+        )
+        block.update(result_execution=previous)
+        self.investigation.update(filters={"statsPeriod": "24h"})
+
+        snapshot, _ = build_block_execution_snapshot(
+            block=block, projects=[self.project], accessible_project_ids={self.project.id}
+        )
+
+        assert snapshot["parameterChanges"] == {"environment": ["staging"]}
+        assert snapshot["context"][0]["queryContext"]["parameters"] == previous_parameters
+        assert snapshot["queryContext"]["parameters"] == snapshot["parameters"]
+        assert snapshot["queryContext"]["filters"] == {
+            "start": (original_end - timedelta(days=6)).isoformat(),
+            "end": original_end.isoformat(),
+        }
+        refined = self.create_execution(block, input_snapshot=snapshot)
+        block.update(result_execution=refined)
+
+        next_snapshot, _ = build_block_execution_snapshot(
+            block=block, projects=[self.project], accessible_project_ids={self.project.id}
+        )
+
+        assert next_snapshot["parameterChanges"] == {}
+        assert next_snapshot["context"][0]["queryContext"] == snapshot["queryContext"]
+        environment.update(saved_value=None)
+
+        cleared_snapshot, _ = build_block_execution_snapshot(
+            block=block, projects=[self.project], accessible_project_ids={self.project.id}
+        )
+
+        assert cleared_snapshot["parameterChanges"] == {"environment": None}
+        assert cleared_snapshot["queryContext"]["parameters"]["environment"] is None
+
+    def test_refinement_identifies_an_explicit_time_parameter_edit(self) -> None:
+        original_window = {"start": "2025-08-01T00:00:00Z", "end": "2025-08-07T00:00:00Z"}
+        requested_window = {"start": "2025-08-10T00:00:00Z", "end": "2025-08-16T00:00:00Z"}
+        block = self.create_block()
+        parameter = self.create_investigation_parameter(
+            investigation=self.investigation,
+            key="time_range",
+            label="Time range",
+            position=0,
+            type=InvestigationParameterType.DATETIME_RANGE,
+            saved_value=requested_window,
+        )
+        self.create_investigation_block_parameter(block=block, parameter=parameter)
+        previous = self.create_execution(
+            block,
+            input_snapshot={"parameters": {"time_range": original_window}},
+        )
+        block.update(result_execution=previous)
+
+        snapshot, _ = build_block_execution_snapshot(
+            block=block, projects=[self.project], accessible_project_ids={self.project.id}
+        )
+
+        assert snapshot["parameterChanges"] == {"time_range": requested_window}
+        assert snapshot["context"][0]["queryContext"]["parameters"] == {
+            "time_range": original_window
+        }
+        assert snapshot["queryContext"]["parameters"] == {"time_range": requested_window}
+
+    def test_relative_filters_keep_the_same_request_fingerprint(self) -> None:
+        self.investigation.update(filters={"statsPeriod": "6d"})
+        block = self.create_block()
+        started_at = timezone.now() - timedelta(days=10)
+        previous = self.create_execution(
+            block, started_at=started_at, input_snapshot={"filters": {"statsPeriod": "6d"}}
+        )
+        block.update(result_execution=previous)
+        with mock.patch(
+            "sentry.investigations.services.executions.timezone.now",
+            return_value=started_at + timedelta(days=10),
+        ):
+            snapshot, first = build_block_execution_snapshot(
+                block=block, projects=[self.project], accessible_project_ids={self.project.id}
+            )
+        with mock.patch(
+            "sentry.investigations.services.executions.timezone.now",
+            return_value=started_at + timedelta(days=20),
+        ):
+            retry_snapshot, retry = build_block_execution_snapshot(
+                block=block, projects=[self.project], accessible_project_ids={self.project.id}
+            )
+
+        assert snapshot["queryContext"]["filters"] == {
+            "start": (started_at - timedelta(days=6)).isoformat(),
+            "end": started_at.isoformat(),
+        }
+        assert retry_snapshot == snapshot
+        assert first == retry
+        previous.refresh_from_db()
+        assert previous.input_snapshot == {"filters": {"statsPeriod": "6d"}}
+
     def test_rejects_duplicate_project_scope(self) -> None:
         block = self.create_block()
         with pytest.raises(InvestigationValidationError):

@@ -126,12 +126,15 @@ GETTING_STARTED_DOCS_PLATFORMS = [
     "node-cloudflare-pages",
     "node-cloudflare-workers",
     "node-connect",
+    "node-eve",
     "node-express",
     "node-fastify",
+    "node-flue",
     "node-gcpfunctions",
     "node-hapi",
     "node-hono",
     "node-koa",
+    "node-mastra",
     "node-nestjs",
     "php",
     "php-laravel",
@@ -976,11 +979,12 @@ class Project(Model):
     def write_relocation_import(
         self, scope: ImportScope, flags: ImportFlags
     ) -> tuple[int, ImportKind] | None:
+        from sentry.receivers.core import disable_default_project_key_creation
         from sentry.workflow_engine.receivers.project_detectors import (
             disable_default_detector_creation,
         )
 
-        with disable_default_detector_creation():
+        with disable_default_detector_creation(), disable_default_project_key_creation():
             return super().write_relocation_import(scope, flags)
 
     # pending deletion implementation

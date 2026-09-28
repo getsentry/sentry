@@ -1,6 +1,4 @@
-import {AST_NODE_TYPES, ESLintUtils, type TSESTree} from '@typescript-eslint/utils';
-import {getStaticValue} from '@typescript-eslint/utils/ast-utils';
-import type {Scope} from '@typescript-eslint/utils/ts-eslint';
+import {defineRule, type ESTree, type Variable} from '@oxlint/plugins';
 
 interface UsageInfo {
   line: number;
@@ -22,7 +20,7 @@ function formatUsages(usages: UsageInfo[]): string {
     .join(' and ');
 }
 
-export const noUnnecessaryUseCallback = ESLintUtils.RuleCreator.withoutDocs({
+export const noUnnecessaryUseCallback = defineRule({
   meta: {
     type: 'suggestion',
     docs: {
@@ -40,13 +38,13 @@ export const noUnnecessaryUseCallback = ESLintUtils.RuleCreator.withoutDocs({
   create(context) {
     // Maps scope Variable to the useCallback() CallExpression node and its declaring scope
     const useCallbackBindings = new Map<
-      Scope.Variable,
-      {declarator: TSESTree.VariableDeclarator; node: TSESTree.CallExpression}
+      Variable,
+      {declarator: ESTree.VariableDeclarator; node: ESTree.CallExpression}
     >();
     // Collected flagged usages per Variable
-    const flaggedUsages = new Map<Scope.Variable, UsageInfo[]>();
+    const flaggedUsages = new Map<Variable, UsageInfo[]>();
     // Number of references we've accounted for (flagged) per Variable
-    const flaggedRefCount = new Map<Scope.Variable, number>();
+    const flaggedRefCount = new Map<Variable, number>();
     // Local names imported from @sentry/scraps (these components are never memoized)
     const scrapsImports = new Set<string>();
     // Names that are aliased imports of useCallback (e.g. `import {useCallback as uc}`)
@@ -56,7 +54,9 @@ export const noUnnecessaryUseCallback = ESLintUtils.RuleCreator.withoutDocs({
      * Resolve an Identifier node to its scope Variable, returning undefined
      * if the variable cannot be found.
      */
-    function resolveVariable(node: TSESTree.Identifier): Scope.Variable | undefined {
+    function resolveVariable(
+      node: ESTree.IdentifierReference | ESTree.BindingIdentifier
+    ): Variable | undefined {
       let scope = context.sourceCode.getScope(node);
       while (scope) {
         const variable = scope.variables.find(v => v.name === node.name);
@@ -68,7 +68,7 @@ export const noUnnecessaryUseCallback = ESLintUtils.RuleCreator.withoutDocs({
       return undefined;
     }
 
-    function addFlaggedUsage(variable: Scope.Variable, usage: UsageInfo) {
+    function addFlaggedUsage(variable: Variable, usage: UsageInfo) {
       let usages = flaggedUsages.get(variable);
       if (!usages) {
         usages = [];
@@ -87,11 +87,8 @@ export const noUnnecessaryUseCallback = ESLintUtils.RuleCreator.withoutDocs({
      * tracked useCallback binding. Returns the Variable if found.
      * Uses visitorKeys to avoid circular parent references.
      */
-    function findCallToBinding(node: TSESTree.Node): Scope.Variable | null {
-      if (
-        node.type === AST_NODE_TYPES.CallExpression &&
-        node.callee.type === AST_NODE_TYPES.Identifier
-      ) {
+    function findCallToBinding(node: ESTree.Node): Variable | null {
+      if (node.type === 'CallExpression' && node.callee.type === 'Identifier') {
         const variable = resolveVariable(node.callee);
         if (variable && useCallbackBindings.has(variable)) {
           return variable;
@@ -100,8 +97,8 @@ export const noUnnecessaryUseCallback = ESLintUtils.RuleCreator.withoutDocs({
       const keys = context.sourceCode.visitorKeys[node.type] ?? [];
       for (const key of keys) {
         const child = node[key as keyof typeof node] as
-          | TSESTree.Node
-          | TSESTree.Node[]
+          | ESTree.Node
+          | ESTree.Node[]
           | null
           | undefined;
         if (Array.isArray(child)) {
@@ -123,10 +120,8 @@ export const noUnnecessaryUseCallback = ESLintUtils.RuleCreator.withoutDocs({
       return null;
     }
 
-    function getJSXElementName(nameNode: TSESTree.JSXTagNameExpression) {
-      return nameNode.type === AST_NODE_TYPES.JSXIdentifier
-        ? nameNode.name
-        : getStaticValue(nameNode)?.value?.toString();
+    function getJSXElementName(nameNode: ESTree.JSXElementName) {
+      return nameNode.type === 'JSXIdentifier' ? nameNode.name : undefined;
     }
 
     // Scraps components that use memoized callbacks internally
@@ -143,8 +138,8 @@ export const noUnnecessaryUseCallback = ESLintUtils.RuleCreator.withoutDocs({
         if (source === 'react') {
           for (const spec of node.specifiers) {
             if (
-              spec.type === AST_NODE_TYPES.ImportSpecifier &&
-              spec.imported.type === AST_NODE_TYPES.Identifier &&
+              spec.type === 'ImportSpecifier' &&
+              spec.imported.type === 'Identifier' &&
               spec.imported.name === 'useCallback' &&
               spec.local.name !== 'useCallback'
             ) {
@@ -163,12 +158,12 @@ export const noUnnecessaryUseCallback = ESLintUtils.RuleCreator.withoutDocs({
       },
 
       VariableDeclarator(node) {
-        if (node.id.type !== AST_NODE_TYPES.Identifier) {
+        if (node.id.type !== 'Identifier') {
           return;
         }
         if (
-          node.init?.type === AST_NODE_TYPES.CallExpression &&
-          node.init.callee.type === AST_NODE_TYPES.Identifier &&
+          node.init?.type === 'CallExpression' &&
+          node.init.callee.type === 'Identifier' &&
           useCallbackNames.has(node.init.callee.name)
         ) {
           const variable = resolveVariable(node.id);
@@ -179,7 +174,7 @@ export const noUnnecessaryUseCallback = ESLintUtils.RuleCreator.withoutDocs({
       },
 
       JSXAttribute(node) {
-        if (node.value?.type !== AST_NODE_TYPES.JSXExpressionContainer) {
+        if (node.value?.type !== 'JSXExpressionContainer') {
           return;
         }
 
@@ -190,7 +185,7 @@ export const noUnnecessaryUseCallback = ESLintUtils.RuleCreator.withoutDocs({
         //      onClick={() => { fn(); doSomethingElse(); }}
         // The arrow wrapper creates a new ref each render, defeating memoization.
         // The binding is referenced inside the arrow body — count as 1 reference.
-        if (expr.type === AST_NODE_TYPES.ArrowFunctionExpression) {
+        if (expr.type === 'ArrowFunctionExpression') {
           const calledVariable = findCallToBinding(expr.body);
           if (calledVariable) {
             addFlaggedUsage(calledVariable, {
@@ -202,29 +197,28 @@ export const noUnnecessaryUseCallback = ESLintUtils.RuleCreator.withoutDocs({
         }
 
         // Exception: ref props are callback refs that benefit from memoization
-        const propName =
-          node.name.type === AST_NODE_TYPES.JSXIdentifier ? node.name.name : null;
+        const propName = node.name.type === 'JSXIdentifier' ? node.name.name : null;
         if (propName === 'ref') {
           return;
         }
 
         // Case 2: Direct reference on an unmemoized element — counts as 1 reference.
         // This includes intrinsic elements and components from @sentry/scraps.
-        if (expr.type === AST_NODE_TYPES.Identifier) {
+        if (expr.type === 'Identifier') {
           const variable = resolveVariable(expr);
           if (!variable || !useCallbackBindings.has(variable)) {
             return;
           }
 
           const openingElement = node.parent;
-          if (openingElement.type !== AST_NODE_TYPES.JSXOpeningElement) {
+          if (openingElement.type !== 'JSXOpeningElement') {
             return;
           }
           const tagName = openingElement.name;
           const elementName = getJSXElementName(tagName);
 
           if (
-            tagName.type === AST_NODE_TYPES.JSXIdentifier &&
+            tagName.type === 'JSXIdentifier' &&
             tagName.name[0] === tagName.name[0]?.toLowerCase()
           ) {
             addFlaggedUsage(variable, {

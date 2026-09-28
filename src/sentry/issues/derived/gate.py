@@ -11,8 +11,9 @@ from sentry.models.project import Project
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 
-# ProjectOption key whose value tracks group action-log backfill state:
-# true means complete, false means pending, and a missing option means not yet scheduled.
+# ProjectOption key whose value tracks group action-log backfill state. True means complete,
+# false means pending, and a missing option uses the project's epoch default. Projects created
+# after action-log writes became the default resolve to true because they have no history to backfill.
 GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION = "sentry:group_action_log_backfill_completed"
 
 

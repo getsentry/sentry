@@ -219,14 +219,19 @@ export function useTraceMetricsSeriesQuery(
     });
 
     let finalRawData = rawData;
+    // oxlint-disable-next-line react/refs
     if (prevRawDataRef.current?.length === rawData.length) {
+      // oxlint-disable-next-line react/refs
       const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
       if (allSame) {
+        // oxlint-disable-next-line react/refs
         finalRawData = prevRawDataRef.current;
       }
     }
 
+    // oxlint-disable-next-line react/refs
     if (finalRawData !== prevRawDataRef.current) {
+      // oxlint-disable-next-line react/refs
       prevRawDataRef.current = finalRawData;
     }
 
@@ -377,15 +382,20 @@ export function useTraceMetricsTableQuery(
 
     // Check if rawData is the same as before to prevent unnecessary rerenders
     let finalRawData = rawData;
+    // oxlint-disable-next-line react/refs
     if (prevRawDataRef.current?.length === rawData.length) {
+      // oxlint-disable-next-line react/refs
       const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
       if (allSame) {
+        // oxlint-disable-next-line react/refs
         finalRawData = prevRawDataRef.current;
       }
     }
 
     // Store current rawData for next comparison
+    // oxlint-disable-next-line react/refs
     if (finalRawData !== prevRawDataRef.current) {
+      // oxlint-disable-next-line react/refs
       prevRawDataRef.current = finalRawData;
     }
 

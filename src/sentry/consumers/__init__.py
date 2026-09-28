@@ -412,23 +412,6 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         },
         "dlq_topic": Topic.INGEST_METRICS_DLQ,
     },
-    "ingest-generic-metrics": {
-        "topic": Topic.INGEST_PERFORMANCE_METRICS,
-        "strategy_factory": "sentry.sentry_metrics.consumers.indexer.parallel.MetricsConsumerStrategyFactory",
-        "click_options": _METRICS_INDEXER_OPTIONS,
-        "static_args": {
-            "ingest_profile": "performance",
-        },
-        "dlq_topic": Topic.INGEST_GENERIC_METRICS_DLQ,
-    },
-    "generic-metrics-last-seen-updater": {
-        "topic": Topic.SNUBA_GENERIC_METRICS,
-        "strategy_factory": "sentry.sentry_metrics.consumers.last_seen_updater.LastSeenUpdaterStrategyFactory",
-        "click_options": _METRICS_LAST_SEEN_UPDATER_OPTIONS,
-        "static_args": {
-            "ingest_profile": "performance",
-        },
-    },
     "metrics-last-seen-updater": {
         "topic": Topic.SNUBA_METRICS,
         "strategy_factory": "sentry.sentry_metrics.consumers.last_seen_updater.LastSeenUpdaterStrategyFactory",

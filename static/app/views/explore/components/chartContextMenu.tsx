@@ -1,8 +1,9 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
+
 import Feature from 'sentry/components/acl/feature';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';

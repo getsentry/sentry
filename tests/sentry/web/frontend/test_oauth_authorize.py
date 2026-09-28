@@ -1,12 +1,15 @@
 import time
 from functools import cached_property
+from unittest import mock
 from urllib.parse import parse_qs, urlparse
 
+from sentry.analytics.events.oauth_consent import OAuthConsentEvent
 from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
 from sentry.models.apiauthorization import ApiAuthorization
 from sentry.models.apigrant import ApiGrant
 from sentry.models.apitoken import ApiToken
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.analytics import assert_analytics_events_recorded
 from sentry.testutils.silo import control_silo_test
 from sentry.web.frontend.oauth_authorize import OAUTH_AUTHORIZE_SESSION_TTL
 
@@ -77,7 +80,8 @@ class OAuthAuthorizeCodeTest(TestCase):
         self.assertTemplateUsed("sentry/oauth-error.html")
         assert resp.context["error"] == "Missing or invalid <em>redirect_uri</em> parameter."
 
-    def test_minimal_params_approve_flow(self) -> None:
+    @mock.patch("sentry.analytics.record")
+    def test_minimal_params_approve_flow(self, mock_record: mock.MagicMock) -> None:
         self.login_as(self.user)
 
         resp = self.client.get(
@@ -100,8 +104,26 @@ class OAuthAuthorizeCodeTest(TestCase):
 
         authorization = ApiAuthorization.objects.get(user=self.user, application=self.application)
         assert authorization.get_scopes() == grant.get_scopes()
+        assert_analytics_events_recorded(
+            mock_record,
+            [
+                OAuthConsentEvent(
+                    user_id=self.user.id,
+                    application_id=self.application.id,
+                    response_type="code",
+                    outcome="viewed",
+                ),
+                OAuthConsentEvent(
+                    user_id=self.user.id,
+                    application_id=self.application.id,
+                    response_type="code",
+                    outcome="approved",
+                ),
+            ],
+        )
 
-    def test_minimal_params_deny_flow(self) -> None:
+    @mock.patch("sentry.analytics.record")
+    def test_minimal_params_deny_flow(self, mock_record: mock.MagicMock) -> None:
         self.login_as(self.user)
 
         resp = self.client.get(
@@ -120,6 +142,23 @@ class OAuthAuthorizeCodeTest(TestCase):
 
         assert not ApiGrant.objects.filter(user=self.user).exists()
         assert not ApiToken.objects.filter(user=self.user).exists()
+        assert_analytics_events_recorded(
+            mock_record,
+            [
+                OAuthConsentEvent(
+                    user_id=self.user.id,
+                    application_id=self.application.id,
+                    response_type="code",
+                    outcome="viewed",
+                ),
+                OAuthConsentEvent(
+                    user_id=self.user.id,
+                    application_id=self.application.id,
+                    response_type="code",
+                    outcome="denied",
+                ),
+            ],
+        )
 
     def test_rich_params(self) -> None:
         self.login_as(self.user)

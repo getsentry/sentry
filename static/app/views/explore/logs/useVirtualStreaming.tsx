@@ -78,6 +78,7 @@ export function useVirtualStreaming({
   const queryKeyString = JSON.stringify(logsQueryKey);
   const previousQueryKeyString = usePrevious(queryKeyString);
   const boxedVirtualTimestamp = useRef(virtualTimestamp);
+  // oxlint-disable-next-line react/refs
   boxedVirtualTimestamp.current = virtualTimestamp;
 
   const organizationRef = useRef(organization);
@@ -217,6 +218,7 @@ export function useVirtualStreaming({
   }, [data]);
 
   // We only want to warn once per session, also warning shouldn't add to the dependencies of the RAF useEffect.
+  // oxlint-disable-next-line react/refs
   warnRef.current = () => {
     if (hasWarnedRef.current) {
       return;

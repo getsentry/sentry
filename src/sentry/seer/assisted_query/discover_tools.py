@@ -50,6 +50,7 @@ _ALWAYS_RETURN_EVENT_FIELDS = frozenset(
         "trace.parent_span",  # Parent span ID
         "project",  # Project slug
         "issue",  # Issue short ID
+        "issue.id",  # Numeric issue ID
         "has",
         # Fields stored in contexts map, not exposed via tags
         "unreal.crash_type",
@@ -84,6 +85,7 @@ _ALWAYS_RETURN_EVENT_FIELDS = frozenset(
 _SPECIAL_FIELD_VALUE_TYPES = {
     "id": "uuid",
     "issue": "issue_short_id",
+    "issue.id": "integer",
     "timestamp": "datetime",
     "timestamp.to_hour": "datetime",
     "timestamp.to_day": "datetime",
@@ -171,13 +173,13 @@ def _is_agg_function(key: str) -> bool:
 
 def _get_static_values(key: str) -> list[dict[str, Any]] | None:
     """
-    Get values for keys with a static set of values. Returns None if the key's
-    values are dynamic and should be queried.
+    Return predefined values, an empty list for fields that should not be
+    queried, or None when values should be queried dynamically.
     """
     value_type = _SPECIAL_FIELD_VALUE_TYPES.get(key, "")
 
     if (
-        value_type in ["uuid", "issue_short_id", "datetime"]
+        value_type in ["uuid", "issue_short_id", "datetime", "integer"]
         or key.startswith("measurements.")
         or key == "device.class"
         or _is_agg_function(key)

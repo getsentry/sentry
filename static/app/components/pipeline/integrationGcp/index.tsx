@@ -338,7 +338,7 @@ function GcpVerificationStep({
 export const gcpIntegrationPipeline = {
   type: 'integration',
   provider: 'gcp',
-  actionTitle: t('Installing Google Cloud Platform'),
+  actionTitle: t('Installing Google Cloud Platform for Seer'),
   getCompletionData: pipelineComplete<IntegrationWithConfig>,
   completionView: null,
   steps: [

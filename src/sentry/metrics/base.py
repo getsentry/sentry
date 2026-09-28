@@ -2,7 +2,6 @@ __all__ = ["MetricsBackend"]
 
 from collections.abc import Mapping, MutableMapping
 from random import random
-from threading import local
 from typing import Union
 
 from django.conf import settings
@@ -18,7 +17,7 @@ Tags = Mapping[str, TagValue]
 MutableTags = MutableMapping[str, TagValue]
 
 
-class MetricsBackend(local):
+class MetricsBackend:
     def __init__(self, prefix: str | None = None) -> None:
         if prefix is None:
             prefix = settings.SENTRY_METRICS_PREFIX

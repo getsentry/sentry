@@ -644,6 +644,23 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             str(group_without_seer.id),
         }
 
+    def test_has_issue_id_does_not_crash(self) -> None:
+        # Regression test: has:issue.id was parsed as issue.id != '' which caused
+        # a ValueError when the lambda tried int('').
+        self.store_event(
+            data={"fingerprint": ["group-1"], "timestamp": before_now(seconds=1).isoformat()},
+            project_id=self.project.id,
+        )
+        self.login_as(user=self.user)
+
+        # has:issue.id should return all groups (every group always has an id)
+        response = self.get_success_response(query="has:issue.id")
+        assert len(response.data) >= 1
+
+        # !has:issue.id should return no groups (every group always has an id)
+        response = self.get_success_response(query="!has:issue.id")
+        assert len(response.data) == 0
+
     def test_lookup_by_event_id(self) -> None:
         event_id = "c" * 32
         event = self.store_event(

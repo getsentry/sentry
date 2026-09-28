@@ -38,7 +38,7 @@ describe('OrganizationAuth', () => {
       '/join-request/acme/'
     );
     expect(ssoForm).toHaveAttribute('method', 'POST');
-    expect(ssoForm).toHaveFormValues({init: '1'});
+    expect(ssoForm.querySelector('input[name="init"]')).toHaveValue('1');
 
     ssoForm.addEventListener('submit', event => event.preventDefault());
     await userEvent.click(ssoButton);

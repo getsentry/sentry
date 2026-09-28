@@ -28,6 +28,16 @@ class ProjectUptimeAlertDetailsGetEndpointTest(ProjectUptimeAlertDetailsBaseEndp
         resp = self.get_error_response(self.organization.slug, self.project.slug, 3)
         assert resp.status_code == 404
 
+    def test_non_integer_detector_id(self) -> None:
+        resp = self.get_error_response(self.organization.slug, self.project.slug, "invalid")
+        assert resp.status_code == 404
+
+    def test_out_of_range_detector_id(self) -> None:
+        resp = self.get_error_response(
+            self.organization.slug, self.project.slug, "999999999999999999999"
+        )
+        assert resp.status_code == 404
+
     def test_onboarding_detector_returns_404(self) -> None:
         from sentry.uptime.types import UptimeMonitorMode
 

@@ -16,7 +16,7 @@ from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
     Column,
 )
 from sentry_protos.snuba.v1.formula_pb2 import Literal as LiteralValue
-from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta
+from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta, TraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
     AttributeAggregation,
     AttributeKey,
@@ -35,6 +35,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
     TraceItemFilter,
 )
 
+from sentry import features
 from sentry.api import event_search
 from sentry.discover import arithmetic
 from sentry.exceptions import InvalidSearchQuery
@@ -283,10 +284,21 @@ class SearchResolver:
             config=event_search.SearchConfig.create_from(
                 event_search.default_config,
                 wildcard_free_text=True,
+                allow_regex=self._allows_regex(),
             ),
             params=self.params.filter_params,
             get_field_type=self.get_field_type,
             get_function_result_type=self.get_field_type,
+        )
+
+    def _allows_regex(self) -> bool:
+        organization = self.params.organization
+        return (
+            self.definitions.trace_item_type == TraceItemType.TRACE_ITEM_TYPE_LOG
+            and organization is not None
+            and features.has(
+                "organizations:ourlogs-regex-searches", organization, actor=self.params.user
+            )
         )
 
     def collect_terms(self, parsed_terms: Sequence[event_search.QueryToken]) -> list[str]:
@@ -541,6 +553,10 @@ class SearchResolver:
 
         converter = self.definitions.filter_aliases.get(name)
         if converter is not None:
+            if term.value.is_regex:
+                # The converters resolve values against Sentry models, so they would treat the
+                # pattern as a literal rather than matching against it
+                raise InvalidSearchQuery(f"Cannot use regular expressions with {name}")
             return converter(self.params, term, self)
 
         return [term]
@@ -566,6 +582,12 @@ class SearchResolver:
         resolved_column, context_definition = self.resolve_column(term.key.name)
         self._raise_if_hidden_api_attribute(term.key.name, resolved_column)
 
+        if term.value.is_regex:
+            return self._resolve_regex_term(term, resolved_column, context_definition), None
+
+        if context_definition is not None and term.value.is_wildcard():
+            raise InvalidSearchQuery(f"Cannot use wildcards with {term.key.name}")
+
         value = term.value.value
         if self.params.is_timeseries_request and context_definition is not None:
             resolved_column, value = self.map_search_term_context_to_original_column(
@@ -576,11 +598,6 @@ class SearchResolver:
 
         if not isinstance(resolved_column.proto_definition, AttributeKey):
             raise ValueError(f"{term.key.name} is not valid search term")
-
-        if context_definition:
-            if term.value.is_wildcard():
-                # Avoiding this for now, but we could theoretically do a wildcard search on the resolved contexts
-                raise InvalidSearchQuery(f"Cannot use wildcards with {term.key.name}")
 
         if term.value.is_wildcard():
             is_list = False
@@ -885,6 +902,37 @@ class SearchResolver:
             ),
             context,
         )
+
+    def _resolve_regex_term(
+        self,
+        term: event_search.SearchFilter,
+        resolved_column: ResolvedAttribute | ResolvedFunction,
+        context_definition: VirtualColumnDefinition | None,
+    ) -> TraceItemFilter:
+        if context_definition is not None:
+            raise InvalidSearchQuery(f"Cannot use regular expressions with {term.key.name}")
+
+        key = resolved_column.proto_definition
+        if not isinstance(key, AttributeKey) or key.type not in constants.REGEXP_ATTRIBUTE_TYPES:
+            raise InvalidSearchQuery(
+                f"Cannot use regular expressions with {term.key.name}, it is not a string attribute"
+            )
+
+        # Snuba's `ignore_case` lowercases the pattern along with the value, rewriting `[A-Z]`
+        # and inverting escapes like `\D`. RE2's inline flag leaves the pattern intact.
+        prefix = "(?i)" if self.params.case_insensitive else ""
+        match = TraceItemFilter(
+            comparison_filter=ComparisonFilter(
+                key=key,
+                op=ComparisonFilter.OP_REGEXP,
+                value=AttributeValue(val_str=f"{prefix}{term.value.raw_value}"),
+            )
+        )
+
+        if term.operator == "!=":
+            # There is no OP_NOT_REGEXP, so negation is expressed by wrapping the match
+            return TraceItemFilter(not_filter=NotFilter(filters=[match]))
+        return match
 
     def _resolve_search_value(
         self,

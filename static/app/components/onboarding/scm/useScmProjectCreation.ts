@@ -5,7 +5,7 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {linkProjectToRepository} from 'sentry/components/onboarding/scm/linkProjectToRepository';
 import type {CreatedProject} from 'sentry/components/onboarding/scm/scmMessagingSetup';
 import {useCreateProjectAndRules} from 'sentry/components/onboarding/useCreateProjectAndRules';
-import type {CreatedProjectRule} from 'sentry/components/onboarding/useCreateProjectRules';
+import type {CreatedProjectWorkflow} from 'sentry/components/onboarding/useCreateProjectWorkflow';
 import {t} from 'sentry/locale';
 import type {Repository} from 'sentry/types/integrations';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
@@ -33,7 +33,7 @@ export interface ScmProjectCreationResult {
    */
   reused: boolean;
   workflowIds: string[];
-  notificationRule?: CreatedProjectRule;
+  notificationRule?: CreatedProjectWorkflow;
 }
 
 interface UseScmProjectCreationOptions {
@@ -213,6 +213,7 @@ export function useScmProjectCreation({
       }
     },
     [
+      // oxlint-disable-next-line react/memo-dependencies
       createProjectAndRules,
       createdProject,
       onCreatedProjectChange,

@@ -38,7 +38,6 @@ export function useConversationScrollRestoration({
   // The scroll listener is attached once, so it reads the active tab from a ref
   // to always record against the tab that is currently visible.
   const activeTabRef = useRef(activeTab);
-  activeTabRef.current = activeTab;
 
   useEffect(() => {
     const container = scrollContainerRef.current;
@@ -55,6 +54,9 @@ export function useConversationScrollRestoration({
   }, []);
 
   useLayoutEffect(() => {
+    // Only committed tabs may receive scroll events; a suspended render can
+    // leave the previous tab visible and scrollable.
+    activeTabRef.current = activeTab;
     const container = scrollContainerRef.current;
     if (!container) {
       return;

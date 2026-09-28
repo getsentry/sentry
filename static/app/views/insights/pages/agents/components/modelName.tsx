@@ -40,11 +40,7 @@ const NameWrapper = styled('div')`
   min-width: 0;
 `;
 
-export function getModelPlatform(modelId: string | null, provider?: string) {
-  if (provider) {
-    return provider;
-  }
-
+export function getModelPlatform(modelId: string | null) {
   if (!modelId) {
     return null;
   }
@@ -52,14 +48,30 @@ export function getModelPlatform(modelId: string | null, provider?: string) {
   const lowerCaseModelId = modelId.toLowerCase();
 
   const providerMap = [
-    {keywords: ['gpt', 'o1', 'o3', 'o4'], platform: 'openai'},
+    {keywords: ['text-embedding-00'], platform: 'google'},
+    {
+      keywords: [
+        'openai',
+        'gpt',
+        'o1',
+        'o3',
+        'o4',
+        'text-embedding-3',
+        'text-embedding-ada',
+      ],
+      platform: 'openai',
+    },
     {keywords: ['gemma', 'gemini'], platform: 'gemini'},
     {keywords: ['claude'], platform: 'anthropic-claude'},
+    {keywords: ['cohere', 'command-r', 'command-a'], platform: 'cohere'},
     {keywords: ['deepseek'], platform: 'deepseek'},
     {keywords: ['grok'], platform: 'grok'},
     {keywords: ['groq'], platform: 'groq'},
+    {keywords: ['huggingface'], platform: 'huggingface'},
     {keywords: ['mistral'], platform: 'mistral'},
+    {keywords: ['nemotron', 'nvidia'], platform: 'nvidia'},
     {keywords: ['perplexity'], platform: 'perplexity'},
+    {keywords: ['amazon.titan', 'amazon/titan'], platform: 'amazon'},
   ];
 
   const matchedProvider = providerMap.find(({keywords}) =>

@@ -1,5 +1,12 @@
-import {AST_NODE_TYPES, ESLintUtils, type TSESTree} from '@typescript-eslint/utils';
-import type {RuleFix, RuleFixer, Scope} from '@typescript-eslint/utils/ts-eslint';
+import {
+  type Range,
+  defineRule,
+  type ESTree,
+  type Fix,
+  type Fixer,
+  type Scope,
+  type Variable,
+} from '@oxlint/plugins';
 import ts from 'typescript';
 
 const NOT_HARDCODED = Symbol('not hardcoded');
@@ -16,16 +23,16 @@ interface FunctionDefaults {
   positional: Map<number, DefaultValue>;
 }
 
-function getHardcodedValue(node: TSESTree.Node): HardcodedValue | typeof NOT_HARDCODED {
+function getHardcodedValue(node: ESTree.Node): HardcodedValue | typeof NOT_HARDCODED {
   if (
-    node.type === AST_NODE_TYPES.TSAsExpression ||
-    node.type === AST_NODE_TYPES.TSTypeAssertion ||
-    node.type === AST_NODE_TYPES.TSNonNullExpression
+    node.type === 'TSAsExpression' ||
+    node.type === 'TSTypeAssertion' ||
+    node.type === 'TSNonNullExpression'
   ) {
     return getHardcodedValue(node.expression);
   }
 
-  if (node.type === AST_NODE_TYPES.Literal) {
+  if (node.type === 'Literal') {
     if (
       node.value === null ||
       typeof node.value === 'string' ||
@@ -39,7 +46,7 @@ function getHardcodedValue(node: TSESTree.Node): HardcodedValue | typeof NOT_HAR
   }
 
   if (
-    node.type === AST_NODE_TYPES.TemplateLiteral &&
+    node.type === 'TemplateLiteral' &&
     node.expressions.length === 0 &&
     node.quasis[0]?.value.cooked !== null &&
     node.quasis[0]?.value.cooked !== undefined
@@ -48,9 +55,9 @@ function getHardcodedValue(node: TSESTree.Node): HardcodedValue | typeof NOT_HAR
   }
 
   if (
-    node.type === AST_NODE_TYPES.UnaryExpression &&
+    node.type === 'UnaryExpression' &&
     (node.operator === '-' || node.operator === '+') &&
-    node.argument.type === AST_NODE_TYPES.Literal &&
+    node.argument.type === 'Literal' &&
     typeof node.argument.value === 'number'
   ) {
     return node.operator === '-' ? -node.argument.value : node.argument.value;
@@ -59,18 +66,15 @@ function getHardcodedValue(node: TSESTree.Node): HardcodedValue | typeof NOT_HAR
   return NOT_HARDCODED;
 }
 
-function getPropertyName(
-  key: TSESTree.PropertyName,
-  computed: boolean
-): string | undefined {
+function getPropertyName(key: ESTree.PropertyKey, computed: boolean): string | undefined {
   if (computed) {
     return undefined;
   }
-  if (key.type === AST_NODE_TYPES.Identifier) {
+  if (key.type === 'Identifier') {
     return key.name;
   }
   if (
-    key.type === AST_NODE_TYPES.Literal &&
+    key.type === 'Literal' &&
     (typeof key.value === 'string' || typeof key.value === 'number')
   ) {
     return String(key.value);
@@ -78,14 +82,11 @@ function getPropertyName(
   return undefined;
 }
 
-function getObjectDefaults(pattern: TSESTree.ObjectPattern) {
+function getObjectDefaults(pattern: ESTree.ObjectPattern) {
   const defaults = new Map<string, DefaultValue>();
 
   for (const property of pattern.properties) {
-    if (
-      property.type !== AST_NODE_TYPES.Property ||
-      property.value.type !== AST_NODE_TYPES.AssignmentPattern
-    ) {
+    if (property.type !== 'Property' || property.value.type !== 'AssignmentPattern') {
       continue;
     }
 
@@ -100,10 +101,7 @@ function getObjectDefaults(pattern: TSESTree.ObjectPattern) {
 }
 
 function getFunctionDefaults(
-  node:
-    | TSESTree.ArrowFunctionExpression
-    | TSESTree.FunctionDeclaration
-    | TSESTree.FunctionExpression
+  node: ESTree.ArrowFunctionExpression | ESTree.Function
 ): FunctionDefaults {
   const defaults: FunctionDefaults = {
     objectProperties: new Map(),
@@ -111,13 +109,13 @@ function getFunctionDefaults(
   };
 
   node.params.forEach((parameter, index) => {
-    if (parameter.type === AST_NODE_TYPES.AssignmentPattern) {
-      if (parameter.left.type === AST_NODE_TYPES.Identifier) {
+    if (parameter.type === 'AssignmentPattern') {
+      if (parameter.left.type === 'Identifier') {
         const value = getHardcodedValue(parameter.right);
         if (value !== NOT_HARDCODED) {
           defaults.positional.set(index, {name: parameter.left.name, value});
         }
-      } else if (parameter.left.type === AST_NODE_TYPES.ObjectPattern) {
+      } else if (parameter.left.type === 'ObjectPattern') {
         const properties = getObjectDefaults(parameter.left);
         if (properties.size > 0) {
           defaults.objectProperties.set(index, properties);
@@ -126,7 +124,7 @@ function getFunctionDefaults(
       return;
     }
 
-    if (parameter.type === AST_NODE_TYPES.ObjectPattern) {
+    if (parameter.type === 'ObjectPattern') {
       const properties = getObjectDefaults(parameter);
       if (properties.size > 0) {
         defaults.objectProperties.set(index, properties);
@@ -635,27 +633,27 @@ function resolveExportedDefaults(
 }
 
 function getImportedBinding(
-  variable: Scope.Variable
+  variable: Variable
 ): {exportName: string; moduleSpecifier: string} | undefined {
   const definition = variable.defs.find(candidate => candidate.type === 'ImportBinding');
   if (
     !definition ||
-    definition.parent?.type !== AST_NODE_TYPES.ImportDeclaration ||
+    definition.parent?.type !== 'ImportDeclaration' ||
     typeof definition.parent.source.value !== 'string'
   ) {
     return undefined;
   }
 
   switch (definition.node.type) {
-    case AST_NODE_TYPES.ImportDefaultSpecifier:
+    case 'ImportDefaultSpecifier':
       return {
         exportName: 'default',
         moduleSpecifier: definition.parent.source.value,
       };
-    case AST_NODE_TYPES.ImportSpecifier:
+    case 'ImportSpecifier':
       return {
         exportName:
-          definition.node.imported.type === AST_NODE_TYPES.Identifier
+          definition.node.imported.type === 'Identifier'
             ? definition.node.imported.name
             : String(definition.node.imported.value),
         moduleSpecifier: definition.parent.source.value,
@@ -668,7 +666,7 @@ function getImportedBinding(
 function getSyntacticImportedDefaults(
   resolver: SyntacticResolver,
   fileName: string,
-  variable: Scope.Variable
+  variable: Variable
 ): FunctionDefaults | undefined {
   const imported = getImportedBinding(variable);
   return imported
@@ -682,22 +680,22 @@ function getSyntacticImportedDefaults(
     : undefined;
 }
 
-function objectExpressionHasHardcodedCandidate(node: TSESTree.ObjectExpression): boolean {
-  if (node.properties.some(property => property.type === AST_NODE_TYPES.SpreadElement)) {
+function objectExpressionHasHardcodedCandidate(node: ESTree.ObjectExpression): boolean {
+  if (node.properties.some(property => property.type === 'SpreadElement')) {
     return false;
   }
 
   return node.properties.some(
     property =>
-      property.type === AST_NODE_TYPES.Property &&
+      property.type === 'Property' &&
       getPropertyName(property.key, property.computed) !== undefined &&
       getHardcodedValue(property.value) !== NOT_HARDCODED
   );
 }
 
-function callHasHardcodedCandidate(node: TSESTree.CallExpression): boolean {
+function callHasHardcodedCandidate(node: ESTree.CallExpression): boolean {
   const spreadIndex = node.arguments.findIndex(
-    argument => argument.type === AST_NODE_TYPES.SpreadElement
+    argument => argument.type === 'SpreadElement'
   );
   const alignedArgumentCount = spreadIndex === -1 ? node.arguments.length : spreadIndex;
 
@@ -712,36 +710,32 @@ function callHasHardcodedCandidate(node: TSESTree.CallExpression): boolean {
     .slice(0, alignedArgumentCount)
     .some(
       argument =>
-        argument.type === AST_NODE_TYPES.ObjectExpression &&
+        argument.type === 'ObjectExpression' &&
         objectExpressionHasHardcodedCandidate(argument)
     );
 }
 
 function getJSXAttributeValue(
-  attribute: TSESTree.JSXAttribute
+  attribute: ESTree.JSXAttribute
 ): HardcodedValue | typeof NOT_HARDCODED {
   if (!attribute.value) {
     return true;
   }
-  if (attribute.value.type === AST_NODE_TYPES.JSXExpressionContainer) {
+  if (attribute.value.type === 'JSXExpressionContainer') {
     return getHardcodedValue(attribute.value.expression);
   }
   return getHardcodedValue(attribute.value);
 }
 
-function elementHasHardcodedCandidate(node: TSESTree.JSXOpeningElement): boolean {
-  if (
-    node.attributes.some(
-      attribute => attribute.type === AST_NODE_TYPES.JSXSpreadAttribute
-    )
-  ) {
+function elementHasHardcodedCandidate(node: ESTree.JSXOpeningElement): boolean {
+  if (node.attributes.some(attribute => attribute.type === 'JSXSpreadAttribute')) {
     return false;
   }
 
   return node.attributes.some(
     attribute =>
-      attribute.type === AST_NODE_TYPES.JSXAttribute &&
-      attribute.name.type === AST_NODE_TYPES.JSXIdentifier &&
+      attribute.type === 'JSXAttribute' &&
+      attribute.name.type === 'JSXIdentifier' &&
       getJSXAttributeValue(attribute) !== NOT_HARDCODED
   );
 }
@@ -759,7 +753,7 @@ function formatHardcodedValue(value: HardcodedValue): string {
   return String(value);
 }
 
-export const noRedundantDefaultArgument = ESLintUtils.RuleCreator.withoutDocs({
+export const noRedundantDefaultArgument = defineRule({
   meta: {
     type: 'suggestion',
     docs: {
@@ -776,21 +770,23 @@ export const noRedundantDefaultArgument = ESLintUtils.RuleCreator.withoutDocs({
   create(context) {
     const currentFileName = ts.sys.resolvePath(context.filename);
     updateCachedSourceFile(currentFileName, context.sourceCode.text);
-    const defaultsByVariable = new Map<Scope.Variable, FunctionDefaults>();
-    const importedDefaultsByVariable = new Map<Scope.Variable, FunctionDefaults | null>();
-    const stableByVariable = new WeakMap<Scope.Variable, boolean>();
+    const defaultsByVariable = new Map<Variable, FunctionDefaults>();
+    const importedDefaultsByVariable = new Map<Variable, FunctionDefaults | null>();
+    const stableByVariable = new WeakMap<Variable, boolean>();
     let syntacticResolver: SyntacticResolver | null | undefined;
     const calls: Array<{
-      node: TSESTree.CallExpression;
-      variable: Scope.Variable;
+      node: ESTree.CallExpression;
+      variable: Variable;
     }> = [];
     const elements: Array<{
-      node: TSESTree.JSXOpeningElement;
-      variable: Scope.Variable;
+      node: ESTree.JSXOpeningElement;
+      variable: Variable;
     }> = [];
 
-    function resolveVariable(node: TSESTree.Identifier | TSESTree.JSXIdentifier) {
-      let scope: Scope.Scope | null = context.sourceCode.getScope(node);
+    function resolveVariable(
+      node: ESTree.IdentifierReference | ESTree.BindingIdentifier | ESTree.JSXIdentifier
+    ) {
+      let scope: Scope | null = context.sourceCode.getScope(node);
       while (scope) {
         const variable = scope.set.get(node.name);
         if (variable) {
@@ -801,7 +797,7 @@ export const noRedundantDefaultArgument = ESLintUtils.RuleCreator.withoutDocs({
       return;
     }
 
-    function getImportedDefaults(variable: Scope.Variable) {
+    function getImportedDefaults(variable: Variable) {
       if (importedDefaultsByVariable.has(variable)) {
         return importedDefaultsByVariable.get(variable);
       }
@@ -823,16 +819,13 @@ export const noRedundantDefaultArgument = ESLintUtils.RuleCreator.withoutDocs({
       return defaults;
     }
 
-    function getDefaults(variable: Scope.Variable) {
+    function getDefaults(variable: Variable) {
       return defaultsByVariable.get(variable) ?? getImportedDefaults(variable);
     }
 
     function registerFunction(
-      identifier: TSESTree.Identifier,
-      node:
-        | TSESTree.ArrowFunctionExpression
-        | TSESTree.FunctionDeclaration
-        | TSESTree.FunctionExpression
+      identifier: ESTree.BindingIdentifier,
+      node: ESTree.ArrowFunctionExpression | ESTree.Function
     ) {
       const defaults = getFunctionDefaults(node);
       if (!hasDefaults(defaults)) {
@@ -846,10 +839,10 @@ export const noRedundantDefaultArgument = ESLintUtils.RuleCreator.withoutDocs({
     }
 
     function report(
-      node: TSESTree.Node,
+      node: ESTree.Node,
       defaultValue: DefaultValue,
       kind: string,
-      fix?: (fixer: RuleFixer) => RuleFix | RuleFix[] | null
+      fix?: (fixer: Fixer) => Fix | Fix[] | null
     ) {
       context.report({
         node,
@@ -863,15 +856,15 @@ export const noRedundantDefaultArgument = ESLintUtils.RuleCreator.withoutDocs({
       });
     }
 
-    function rangeContainsComment(range: TSESTree.Range) {
+    function rangeContainsComment(range: Range) {
       return context.sourceCode
         .getAllComments()
         .some(comment => comment.range[0] >= range[0] && comment.range[1] <= range[1]);
     }
 
     function removeTrailingArguments(
-      fixer: RuleFixer,
-      node: TSESTree.CallExpression,
+      fixer: Fixer,
+      node: ESTree.CallExpression,
       firstIndex: number
     ) {
       const firstArgument = node.arguments[firstIndex];
@@ -890,7 +883,7 @@ export const noRedundantDefaultArgument = ESLintUtils.RuleCreator.withoutDocs({
       }
 
       const tokenAfter = context.sourceCode.getTokenAfter(lastArgument);
-      const range: TSESTree.Range = [
+      const range: Range = [
         rangeStart,
         tokenAfter?.value === ',' ? tokenAfter.range[1] : lastArgument.range[1],
       ];
@@ -911,11 +904,11 @@ export const noRedundantDefaultArgument = ESLintUtils.RuleCreator.withoutDocs({
     }
 
     function removeObjectProperties(
-      fixer: RuleFixer,
-      node: TSESTree.ObjectExpression,
+      fixer: Fixer,
+      node: ESTree.ObjectExpression,
       indices: number[]
     ) {
-      const ranges: TSESTree.Range[] = [];
+      const ranges: Range[] = [];
       for (const {end, start} of getContiguousRuns(indices)) {
         const firstProperty = node.properties[start];
         const lastProperty = node.properties[end];
@@ -952,11 +945,11 @@ export const noRedundantDefaultArgument = ESLintUtils.RuleCreator.withoutDocs({
     }
 
     function removeJSXAttributes(
-      fixer: RuleFixer,
-      node: TSESTree.JSXOpeningElement,
+      fixer: Fixer,
+      node: ESTree.JSXOpeningElement,
       indices: number[]
     ) {
-      const ranges: TSESTree.Range[] = [];
+      const ranges: Range[] = [];
       for (const {end, start} of getContiguousRuns(indices)) {
         const firstAttribute = node.attributes[start];
         const lastAttribute = node.attributes[end];
@@ -987,7 +980,7 @@ export const noRedundantDefaultArgument = ESLintUtils.RuleCreator.withoutDocs({
       return ranges.map(range => fixer.removeRange(range));
     }
 
-    function isStable(variable: Scope.Variable) {
+    function isStable(variable: Variable) {
       if (stableByVariable.has(variable)) {
         return stableByVariable.get(variable)!;
       }
@@ -1000,14 +993,14 @@ export const noRedundantDefaultArgument = ESLintUtils.RuleCreator.withoutDocs({
     }
 
     function checkObjectExpression(
-      node: TSESTree.ObjectExpression,
+      node: ESTree.ObjectExpression,
       defaults: Map<string, DefaultValue>
     ) {
       const seen = new Set<string>();
       const redundantProperties: Array<{
         defaultValue: DefaultValue;
         index: number;
-        property: TSESTree.Property;
+        property: ESTree.ObjectProperty;
       }> = [];
 
       for (let index = node.properties.length - 1; index >= 0; index--) {
@@ -1015,10 +1008,10 @@ export const noRedundantDefaultArgument = ESLintUtils.RuleCreator.withoutDocs({
         if (!property) {
           continue;
         }
-        if (property.type === AST_NODE_TYPES.SpreadElement) {
+        if (property.type === 'SpreadElement') {
           return;
         }
-        if (property.type !== AST_NODE_TYPES.Property) {
+        if (property.type !== 'Property') {
           continue;
         }
 
@@ -1051,9 +1044,9 @@ export const noRedundantDefaultArgument = ESLintUtils.RuleCreator.withoutDocs({
       });
     }
 
-    function checkCall(node: TSESTree.CallExpression, defaults: FunctionDefaults) {
+    function checkCall(node: ESTree.CallExpression, defaults: FunctionDefaults) {
       const spreadIndex = node.arguments.findIndex(
-        argument => argument.type === AST_NODE_TYPES.SpreadElement
+        argument => argument.type === 'SpreadElement'
       );
 
       if (spreadIndex === -1) {
@@ -1097,13 +1090,13 @@ export const noRedundantDefaultArgument = ESLintUtils.RuleCreator.withoutDocs({
         spreadIndex === -1 ? node.arguments.length : spreadIndex;
       node.arguments.slice(0, alignedArgumentCount).forEach((argument, index) => {
         const objectDefaults = defaults.objectProperties.get(index);
-        if (argument.type === AST_NODE_TYPES.ObjectExpression && objectDefaults) {
+        if (argument.type === 'ObjectExpression' && objectDefaults) {
           checkObjectExpression(argument, objectDefaults);
         }
       });
     }
 
-    function checkElement(node: TSESTree.JSXOpeningElement, defaults: FunctionDefaults) {
+    function checkElement(node: ESTree.JSXOpeningElement, defaults: FunctionDefaults) {
       const propDefaults = defaults.objectProperties.get(0);
       if (!propDefaults) {
         return;
@@ -1111,7 +1104,7 @@ export const noRedundantDefaultArgument = ESLintUtils.RuleCreator.withoutDocs({
 
       const seen = new Set<string>();
       const redundantAttributes: Array<{
-        attribute: TSESTree.JSXAttribute;
+        attribute: ESTree.JSXAttribute;
         defaultValue: DefaultValue;
         index: number;
       }> = [];
@@ -1120,10 +1113,10 @@ export const noRedundantDefaultArgument = ESLintUtils.RuleCreator.withoutDocs({
         if (!attribute) {
           continue;
         }
-        if (attribute.type === AST_NODE_TYPES.JSXSpreadAttribute) {
+        if (attribute.type === 'JSXSpreadAttribute') {
           return;
         }
-        if (attribute.name.type !== AST_NODE_TYPES.JSXIdentifier) {
+        if (attribute.name.type !== 'JSXIdentifier') {
           continue;
         }
 
@@ -1166,20 +1159,18 @@ export const noRedundantDefaultArgument = ESLintUtils.RuleCreator.withoutDocs({
 
       VariableDeclarator(node) {
         if (
+          node.parent.type === 'VariableDeclaration' &&
           node.parent.kind === 'const' &&
-          node.id.type === AST_NODE_TYPES.Identifier &&
-          (node.init?.type === AST_NODE_TYPES.ArrowFunctionExpression ||
-            node.init?.type === AST_NODE_TYPES.FunctionExpression)
+          node.id.type === 'Identifier' &&
+          (node.init?.type === 'ArrowFunctionExpression' ||
+            node.init?.type === 'FunctionExpression')
         ) {
           registerFunction(node.id, node.init);
         }
       },
 
       CallExpression(node) {
-        if (
-          node.callee.type !== AST_NODE_TYPES.Identifier ||
-          !callHasHardcodedCandidate(node)
-        ) {
+        if (node.callee.type !== 'Identifier' || !callHasHardcodedCandidate(node)) {
           return;
         }
         const variable = resolveVariable(node.callee);
@@ -1190,7 +1181,7 @@ export const noRedundantDefaultArgument = ESLintUtils.RuleCreator.withoutDocs({
 
       JSXOpeningElement(node) {
         if (
-          node.name.type !== AST_NODE_TYPES.JSXIdentifier ||
+          node.name.type !== 'JSXIdentifier' ||
           node.name.name[0] !== node.name.name[0]?.toUpperCase() ||
           !elementHasHardcodedCandidate(node)
         ) {
@@ -1207,7 +1198,7 @@ export const noRedundantDefaultArgument = ESLintUtils.RuleCreator.withoutDocs({
           if (!isStable(variable)) {
             continue;
           }
-          if (node.callee.type !== AST_NODE_TYPES.Identifier) {
+          if (node.callee.type !== 'Identifier') {
             continue;
           }
           const defaults = getDefaults(variable);
@@ -1219,7 +1210,7 @@ export const noRedundantDefaultArgument = ESLintUtils.RuleCreator.withoutDocs({
           if (!isStable(variable)) {
             continue;
           }
-          if (node.name.type !== AST_NODE_TYPES.JSXIdentifier) {
+          if (node.name.type !== 'JSXIdentifier') {
             continue;
           }
           const defaults = getDefaults(variable);

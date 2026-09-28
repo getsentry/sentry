@@ -77,9 +77,11 @@ export function useChartBoxZoom({
   const isDraggingRef = useRef(false);
 
   const onZoomRef = useRef(onZoom);
+  // oxlint-disable-next-line react/refs
   onZoomRef.current = onZoom;
 
   const axesIndecesRef = useRef({xAxisIndex, yAxisIndex});
+  // oxlint-disable-next-line react/refs
   axesIndecesRef.current = {xAxisIndex, yAxisIndex};
 
   const overlayStyleRef = useRef({
@@ -87,6 +89,7 @@ export function useChartBoxZoom({
     zIndex: theme.zIndex.tooltip,
   });
 
+  // oxlint-disable-next-line react/refs
   overlayStyleRef.current = {
     fill: theme.tokens.graphics.neutral.muted,
     zIndex: theme.zIndex.tooltip,

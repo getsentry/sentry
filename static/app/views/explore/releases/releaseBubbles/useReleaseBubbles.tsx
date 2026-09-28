@@ -526,7 +526,8 @@ export function useReleaseBubbles({
   const releaseBubbleSeries = useMemo(
     () =>
       releases && buckets.length
-        ? createReleaseBubbleSeries({
+        ? // oxlint-disable-next-line react/refs
+          createReleaseBubbleSeries({
             yAxisIndex,
             alignInMiddle,
             buckets,

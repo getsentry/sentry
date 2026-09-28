@@ -62,6 +62,7 @@ class GroupActivityTestCase(TestCase):
 
         result = serialize([activity], user)[0]
         assert result["type"] == "pull_request_closed"
+        assert result["commentId"] is None
         pull_request = result["data"]["pullRequest"]
         assert pull_request["repository"]["name"] == "organization-bar"
         assert pull_request["message"] == "kartoffel"
@@ -220,12 +221,15 @@ class GroupActivityTestCase(TestCase):
     def test_note_mentions_dropped_by_default(self) -> None:
         note = self._create_note([{"id": self.user.id, "actor_type": "User", "slug": None}])
 
-        assert serialize([note], self.user)[0]["data"] == {"text": "hi **@Jane Doe**"}
+        result = serialize([note], self.user)[0]
+        assert result["id"] == str(note.id)
+        assert result["commentId"] == str(note.id)
+        assert result["data"] == {"text": "hi **@Jane Doe**"}
 
     def test_note_mentions_resolved_to_users(self) -> None:
-        mentioned = self.create_user(email="jane@example.com", name="Jane Doe")
+        mentioned = self.create_user(email="jane@example.com", username="jane", name="Jane Doe")
         # ``name`` is optional, and falls back to something identifiable.
-        nameless = self.create_user(email="john@example.com", name="")
+        nameless = self.create_user(email="john@example.com", username="john", name="")
         team = self.create_team(organization=self.organization, slug="payments")
         note = self._create_note(
             [
@@ -243,8 +247,12 @@ class GroupActivityTestCase(TestCase):
 
         assert data["text"] == "hi **@Jane Doe**"
         assert data["mentions"] == [
-            {"name": "Jane Doe", "email": "jane@example.com"},
-            {"name": "john@example.com", "email": "john@example.com"},
+            {"name": "Jane Doe", "email": "jane@example.com", "username": "jane"},
+            {
+                "name": "john@example.com",
+                "email": "john@example.com",
+                "username": "john",
+            },
         ]
         # The row keeps its actor refs; resolved users must not be written back onto it.
         assert note.data["mentions"][0] == {

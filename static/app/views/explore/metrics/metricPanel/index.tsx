@@ -314,6 +314,7 @@ export function MetricPanel({
               {isAnyDragging ? (
                 <DnDPlaceholder
                   isDragging={isDragging}
+                  // oxlint-disable-next-line react/refs
                   contentHeight={contentHeightRef.current}
                 />
               ) : null}

@@ -391,6 +391,21 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             internal_name="frames.total",
             search_type="number",
         ),
+        ResolvedAttribute(
+            public_alias="react_native.module.duration.max",
+            internal_name="react_native.module.duration.max",
+            search_type="millisecond",
+        ),
+        ResolvedAttribute(
+            public_alias="react_native.module.duration.total",
+            internal_name="react_native.module.duration.total",
+            search_type="millisecond",
+        ),
+        ResolvedAttribute(
+            public_alias="react_native.module.top.duration",
+            internal_name="react_native.module.top.duration",
+            search_type="millisecond",
+        ),
         # These fields are extracted from span measurements but were accessed
         # 2 ways, with + without the measurements. prefix. So expose both for compatibility.
         simple_measurements_field("cache.item_size", search_type="byte", secondary_alias=True),

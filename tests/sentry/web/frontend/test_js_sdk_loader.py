@@ -673,6 +673,34 @@ class JavaScriptSdkLoaderTest(TestCase):
             self.projectkey.data = {}
             self.projectkey.save()
 
+    @mock.patch("sentry.loader.browsersdkversion.load_version_from_file", return_value=["11.0.0"])
+    @mock.patch(
+        "sentry.loader.browsersdkversion.get_selected_browser_sdk_version", return_value="11.x"
+    )
+    @override_settings(
+        JS_SDK_LOADER_DEFAULT_SDK_URL="https://browser.sentry-cdn.com/%s/bundle%s.min.js",
+        JS_SDK_LOADER_SDK_VERSION="11.0.0",
+    )
+    def test_v11_logs_and_metrics_omit_enable_logs(
+        self, load_version_from_file: MagicMock, get_selected_browser_sdk_version: MagicMock
+    ) -> None:
+        for enabled, expected_bundle in [
+            (True, b"/11.0.0/bundle.logs.metrics.min.js"),
+            (False, b"/11.0.0/bundle.min.js"),
+        ]:
+            self.projectkey.data = {
+                "dynamicSdkLoaderOptions": {
+                    DynamicSdkLoaderOption.HAS_LOGS_AND_METRICS.value: enabled,
+                }
+            }
+            self.projectkey.save()
+
+            for path in (self.path, self.min_path):
+                resp = self.client.get(path)
+                assert resp.status_code == 200
+                assert expected_bundle in resp.content
+                assert b"enableLogs" not in resp.content
+
     @mock.patch("sentry.loader.browsersdkversion.load_version_from_file", return_value=["9.99.0"])
     @mock.patch(
         "sentry.loader.browsersdkversion.get_selected_browser_sdk_version", return_value="9.x"
