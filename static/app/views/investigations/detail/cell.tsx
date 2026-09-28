@@ -320,6 +320,33 @@ function QueryResult({
   // around it, so it can run edge to edge beneath the card's inset content.
   const tableMarkdown = chart ? null : output?.tableMarkdown || null;
 
+  const header =
+    (chartHeaderTitle && chartHeaderTitle !== title) || chartHeaderMetadata ? (
+      <Stack gap="2xs" data-test-id="query-cell-header">
+        {chartHeaderTitle && chartHeaderTitle !== title ? (
+          <Heading as="h3" size="md">
+            {chartHeaderTitle}
+          </Heading>
+        ) : null}
+        {chartHeaderMetadata ? (
+          <Text size="sm" variant="muted">
+            {chartHeaderMetadata}
+          </Text>
+        ) : null}
+      </Stack>
+    ) : null;
+  const body = chart ? (
+    <Container width="100%" overflow="hidden">
+      <ChartContent data={chart} showHeader={false} />
+    </Container>
+  ) : tableMarkdown ? null : isBlockWorking(block) ? (
+    // The result's own header lands here, not the cell title the
+    // card's header above already shows.
+    <InvestigationCellPlaceholder />
+  ) : (
+    <CellProgress state={progressState} />
+  );
+
   return (
     <CellHoverSurface width="100%">
       <SeerEmbedBlock
@@ -329,34 +356,15 @@ function QueryResult({
         testId="query-cell"
         title={title}
       >
-        <InsetSection gap="md" padding="lg">
-          {(chartHeaderTitle && chartHeaderTitle !== title) || chartHeaderMetadata ? (
-            <Stack gap="2xs" data-test-id="query-cell-header">
-              {chartHeaderTitle && chartHeaderTitle !== title ? (
-                <Heading as="h3" size="md">
-                  {chartHeaderTitle}
-                </Heading>
-              ) : null}
-              {chartHeaderMetadata ? (
-                <Text size="sm" variant="muted">
-                  {chartHeaderMetadata}
-                </Text>
-              ) : null}
-            </Stack>
-          ) : null}
-          <CellExecutionAlert block={block} />
-          {chart ? (
-            <Container width="100%" overflow="hidden">
-              <ChartContent data={chart} showHeader={false} />
-            </Container>
-          ) : tableMarkdown ? null : isBlockWorking(block) ? (
-            // The result's own header lands here, not the cell title the
-            // card's header above already shows.
-            <InvestigationCellPlaceholder />
-          ) : (
-            <CellProgress state={progressState} />
-          )}
-        </InsetSection>
+        {/* A table alone has nothing to inset above it; rendering the section
+            anyway would leave its padding as an empty strip. */}
+        {header || hasExecutionAlert(block) || body ? (
+          <Stack gap="md" padding="lg">
+            {header}
+            <CellExecutionAlert block={block} />
+            {body}
+          </Stack>
+        ) : null}
         {tableMarkdown ? (
           <SeerMarkdown raw={tableMarkdown} components={{Table: QueryResultTable}} />
         ) : null}
@@ -374,9 +382,14 @@ type CellProgressState =
   | 'blockedByCancellation'
   | null;
 
+function hasExecutionAlert(block: InvestigationBlock): boolean {
+  const status = block.currentExecution?.status;
+  return status === 'failed' || status === 'cancelled';
+}
+
 function CellExecutionAlert({block}: {block: InvestigationBlock}) {
   const execution = block.currentExecution;
-  if (execution?.status !== 'failed' && execution?.status !== 'cancelled') {
+  if (!execution || !hasExecutionAlert(block)) {
     return null;
   }
   const failed = execution.status === 'failed';
@@ -556,13 +569,13 @@ function QueryResultTable({
         width: index === 0 ? 'minmax(0, 2fr)' : 'minmax(0, 1fr)',
       }))}
       header={
-        <SimpleTable.HeaderRow>
+        <QueryResultHeaderRow>
           {header.map((cell, index) => (
             <SimpleTable.HeaderCell key={index} align={columns[index]?.align}>
               {cell}
             </SimpleTable.HeaderCell>
           ))}
-        </SimpleTable.HeaderRow>
+        </QueryResultHeaderRow>
       }
     >
       {rows.map((row, rowIndex) => (
@@ -1255,22 +1268,15 @@ const CellHoverSurface = styled(Stack)`
 const FlushSimpleTable = styled(SimpleTable)`
   border-width: 1px 0 0;
   border-radius: 0;
-
-  /* A slimmer header than SimpleTable's own, per the query card design. */
-  > thead > tr {
-    border-radius: 0;
-    min-height: ${p => p.theme.space['3xl']};
-  }
 `;
 
 /**
- * With no header, alert, or chart to show, this section has no children;
- * dropping it keeps its padding from leaving an empty strip above the table.
+ * Square corners to sit flush with the table, and a slimmer row than
+ * SimpleTable's own header, per the query card design.
  */
-const InsetSection = styled(Stack)`
-  &:empty {
-    display: none;
-  }
+const QueryResultHeaderRow = styled(SimpleTable.HeaderRow)`
+  border-radius: 0;
+  min-height: ${p => p.theme.space['3xl']};
 `;
 
 const RefinementDisclosure = styled(Disclosure)`
