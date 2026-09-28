@@ -41,10 +41,8 @@ import {STARRED_SEGMENT_TABLE_QUERY_KEY} from 'sentry/views/insights/common/comp
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {useDefaultToAllProjects} from 'sentry/views/insights/common/utils/useDefaultToAllProjects';
-import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
-import {Am1MobileOverviewPage} from 'sentry/views/insights/pages/mobile/am1OverviewPage';
 import {
   isAValidSort,
   MobileOverviewTable,
@@ -59,10 +57,7 @@ import {TransactionNameSearchBar} from 'sentry/views/insights/pages/transactionN
 import {useOverviewPageTrackPageload} from 'sentry/views/insights/pages/useOverviewPageTrackAnalytics';
 import {categorizeProjects} from 'sentry/views/insights/pages/utils';
 import type {SpanProperty} from 'sentry/views/insights/types';
-import {
-  generateGenericPerformanceEventView,
-  generateMobilePerformanceEventView,
-} from 'sentry/views/performance/data';
+import {generateMobilePerformanceEventView} from 'sentry/views/performance/data';
 import {
   DoubleChartRow,
   TripleChartRow,
@@ -100,11 +95,11 @@ function MobileVitalsBanner() {
   );
 }
 
-interface EAPMobileOverviewPageProps {
+interface MobileOverviewPageProps {
   datePageFilterProps: DatePageFilterProps;
 }
 
-function EAPMobileOverviewPage({datePageFilterProps}: EAPMobileOverviewPageProps) {
+function MobileOverviewPage({datePageFilterProps}: MobileOverviewPageProps) {
   useOverviewPageTrackPageload();
 
   const organization = useOrganization();
@@ -123,9 +118,8 @@ function EAPMobileOverviewPage({datePageFilterProps}: EAPMobileOverviewPageProps
   const eventView = generateMobilePerformanceEventView(
     location,
     projects,
-    generateGenericPerformanceEventView(location, withStaticFilters),
-    withStaticFilters,
-    true
+    selection.projects,
+    withStaticFilters
   );
 
   const doubleChartRowEventView = eventView.clone(); // some of the double chart rows rely on span metrics, so they can't be queried the same way
@@ -308,14 +302,9 @@ function MobileOverviewPageWithProviders() {
     dataCategories: [DataCategory.SPANS],
   });
   const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
-  const useEap = useInsightsEap();
   return (
     <DomainOverviewPageProviders maxPickableDays={maxPickableDays.maxPickableDays}>
-      {useEap ? (
-        <EAPMobileOverviewPage datePageFilterProps={datePageFilterProps} />
-      ) : (
-        <Am1MobileOverviewPage datePageFilterProps={datePageFilterProps} />
-      )}
+      <MobileOverviewPage datePageFilterProps={datePageFilterProps} />
     </DomainOverviewPageProviders>
   );
 }

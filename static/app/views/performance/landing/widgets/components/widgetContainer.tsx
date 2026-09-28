@@ -1,9 +1,7 @@
 import {useEffect, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import omit from 'lodash/omit';
 import pick from 'lodash/pick';
-import * as qs from 'query-string';
 
 import type {SelectOption} from '@sentry/scraps/compactSelect';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
@@ -14,17 +12,14 @@ import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {EventView} from 'sentry/utils/discover/eventView';
 import {encodeSort} from 'sentry/utils/discover/eventView';
-import {DisplayModes, SavedQueryDatasets} from 'sentry/utils/discover/types';
+import {DisplayModes} from 'sentry/utils/discover/types';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {usePerformanceDisplayType} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
-import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
-import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {GenericPerformanceWidgetDataType} from 'sentry/views/performance/landing/widgets/types';
 import {
   _setChartSetting,
@@ -187,7 +182,6 @@ function WidgetInteractiveTitle({
   const navigate = useNavigate();
   const organization = useOrganization();
   const menuOptions: Array<SelectOption<string>> = [];
-  const useEap = useInsightsEap();
 
   const settingsMap = WIDGET_DEFINITIONS({theme});
   for (const setting of allowedCharts) {
@@ -202,16 +196,7 @@ function WidgetInteractiveTitle({
   const chartDefinition = WIDGET_DEFINITIONS({theme})[chartSetting];
 
   if (chartDefinition.allowsOpenInDiscover) {
-    if (useEap) {
-      menuOptions.push({label: t('Open in Explore'), value: 'open_in_explore'});
-    } else {
-      menuOptions.push({
-        label: getDiscoverDeprecation(organization)
-          ? t('Open in Explore')
-          : t('Open in Discover'),
-        value: 'open_in_discover',
-      });
-    }
+    menuOptions.push({label: t('Open in Explore'), value: 'open_in_explore'});
   }
 
   const handleChange = (option: {value: string | number}) => {
@@ -233,8 +218,6 @@ function WidgetInteractiveTitle({
           groupBy: eventView.fields.map(field => field.field),
         })
       );
-    } else if (option.value === 'open_in_discover') {
-      navigate(getEventViewDiscoverPath(organization, eventView));
     } else {
       setChartSetting(option.value as PerformanceWidgetSetting);
     }
@@ -266,25 +249,6 @@ const StyledCompactSelect = styled(CompactSelect)`
     font-size: ${p => p.theme.font.size.lg};
   }
 `;
-
-const getEventViewDiscoverPath = (
-  organization: Organization,
-  eventView: EventView
-): string => {
-  const discoverUrlTarget = eventView.getResultsViewUrlTarget(
-    organization,
-    false,
-    hasDatasetSelector(organization) ? SavedQueryDatasets.TRANSACTIONS : undefined
-  );
-
-  // The landing page EventView has some additional conditions, but
-  // `EventView#getResultsViewUrlTarget` omits those! Get them manually
-  discoverUrlTarget.query.query = eventView.getQueryWithAdditionalConditions();
-
-  return `${discoverUrlTarget.pathname}?${qs.stringify(
-    omit(discoverUrlTarget.query, ['widths']) // Column widths are not useful in this case
-  )}`;
-};
 
 /**
  * Constructs an `EventView` that matches a widget's chart definition.

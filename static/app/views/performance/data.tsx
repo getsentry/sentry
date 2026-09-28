@@ -1,11 +1,8 @@
 import type {Location} from 'history';
 
-import {ExternalLink} from '@sentry/scraps/link';
-
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
-import {wrapQueryInWildcards} from 'sentry/components/performance/searchBar';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import type {NewQuery, Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {EventView} from 'sentry/utils/discover/eventView';
@@ -27,16 +24,14 @@ export const COLUMN_TITLES = [
   'user misery',
 ];
 
-export const USER_MISERY_TOOLTIP = tct(
-  'A configurable score telling you how frequently users are frustrated by your application performance. [link:Learn more.]',
-  {
-    link: (
-      <ExternalLink href="https://docs.sentry.io/product/performance/metrics/#user-misery" />
-    ),
-  }
-);
-
 const TOKEN_KEYS_SUPPORTED_IN_LIMITED_SEARCH = ['transaction'];
+
+function wrapQueryInWildcards(query: string) {
+  const prefix = query.startsWith('*') ? '' : '*';
+  const suffix = query.endsWith('*') ? '' : '*';
+
+  return `${prefix}${query}${suffix}`;
+}
 
 export enum PerformanceTerm {
   TPM = 'tpm',
@@ -175,118 +170,11 @@ function prepareQueryForLandingPage(searchQuery: any, withStaticFilters: any) {
   return conditions.formatString();
 }
 
-export function generateGenericPerformanceEventView(
-  location: Location,
-  withStaticFilters: boolean
-): EventView {
-  const {query} = location;
-
-  const fields = [
-    'team_key_transaction',
-    'transaction',
-    'project',
-    'tpm()',
-    'p50()',
-    'p95()',
-    'failure_rate()',
-    'apdex()',
-    'count_unique(user)',
-    'count_miserable(user)',
-    'user_misery()',
-  ];
-
-  const hasStartAndEnd = query.start && query.end;
-  const savedQuery: NewQuery = {
-    id: undefined,
-    name: t('Performance'),
-    query: 'event.type:transaction',
-    projects: [],
-    fields,
-    version: 2,
-  };
-
-  const widths = Array.from<number | string>({length: savedQuery.fields.length}).fill(
-    COL_WIDTH_UNDEFINED
-  );
-  widths[savedQuery.fields.length - 1] = '110';
-  // @ts-expect-error -- TODO: resolve this types mismatch
-  savedQuery.widths = widths;
-
-  if (!query.statsPeriod && !hasStartAndEnd) {
-    savedQuery.range = DEFAULT_STATS_PERIOD;
-  }
-  savedQuery.orderby = decodeScalar(query.sort, '-tpm');
-
-  const searchQuery = decodeScalar(query.query, '');
-  savedQuery.query = prepareQueryForLandingPage(searchQuery, withStaticFilters);
-
-  const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
-  eventView.additionalConditions.addFilterValues('event.type', ['transaction']);
-
-  return eventView;
-}
-
-export function generateBackendPerformanceEventView(
-  location: Location,
-  withStaticFilters: boolean
-): EventView {
-  const {query} = location;
-
-  const fields = [
-    'team_key_transaction',
-    'http.method',
-    'transaction',
-    'transaction.op',
-    'project',
-    'tpm()',
-    'p50()',
-    'p95()',
-    'failure_rate()',
-    'apdex()',
-    'count_unique(user)',
-    'count_miserable(user)',
-    'user_misery()',
-  ];
-
-  const hasStartAndEnd = query.start && query.end;
-  const savedQuery: NewQuery = {
-    id: undefined,
-    name: t('Performance'),
-    query: 'event.type:transaction',
-    projects: [],
-    fields,
-    version: 2,
-  };
-
-  const widths = Array.from<number | string>({length: savedQuery.fields.length}).fill(
-    COL_WIDTH_UNDEFINED
-  );
-  widths[savedQuery.fields.length - 1] = '110';
-
-  // @ts-expect-error -- TODO: resolve this types mismatch
-  savedQuery.widths = widths;
-
-  if (!query.statsPeriod && !hasStartAndEnd) {
-    savedQuery.range = DEFAULT_STATS_PERIOD;
-  }
-  savedQuery.orderby = decodeScalar(query.sort, '-tpm');
-
-  const searchQuery = decodeScalar(query.query, '');
-  savedQuery.query = prepareQueryForLandingPage(searchQuery, withStaticFilters);
-
-  const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
-
-  eventView.additionalConditions.addFilterValues('event.type', ['transaction']);
-
-  return eventView;
-}
-
 export function generateMobilePerformanceEventView(
   location: Location,
   projects: Project[],
-  genericEventView: EventView,
-  withStaticFilters: boolean,
-  useEap = false
+  projectIds: number[],
+  withStaticFilters: boolean
 ): EventView {
   const {query} = location;
 
@@ -303,7 +191,6 @@ export function generateMobilePerformanceEventView(
   // At this point, all projects are mobile projects.
   // If in addition to that, all projects are react-native projects,
   // then show the stall percentage as well.
-  const projectIds = genericEventView.project;
   if (projectIds.length > 0 && projectIds[0] !== ALL_ACCESS_PROJECTS) {
     const selectedProjects = projects.filter(p =>
       projectIds.includes(parseInt(p.id, 10))
@@ -320,7 +207,7 @@ export function generateMobilePerformanceEventView(
   const savedQuery: NewQuery = {
     id: undefined,
     name: t('Performance'),
-    query: useEap ? 'is_transaction:true' : 'event.type:transaction',
+    query: 'is_transaction:true',
     projects: [],
     fields: [...fields, 'count_unique(user)', 'count_miserable(user)', 'user_misery()'],
     version: 2,
@@ -343,63 +230,7 @@ export function generateMobilePerformanceEventView(
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
 
-  if (useEap) {
-    eventView.additionalConditions.addFilterValues('is_transaction', ['true']);
-  } else {
-    eventView.additionalConditions.addFilterValues('event.type', ['transaction']);
-  }
-
-  return eventView;
-}
-
-export function generateFrontendOtherPerformanceEventView(
-  location: Location,
-  withStaticFilters: boolean
-): EventView {
-  const {query} = location;
-
-  const fields = [
-    'team_key_transaction',
-    'transaction',
-    'transaction.op',
-    'project',
-    'tpm()',
-    'p50(transaction.duration)',
-    'p75(transaction.duration)',
-    'p95(transaction.duration)',
-    'count_unique(user)',
-    'count_miserable(user)',
-    'user_misery()',
-  ];
-
-  const hasStartAndEnd = query.start && query.end;
-  const savedQuery: NewQuery = {
-    id: undefined,
-    name: t('Performance'),
-    query: 'event.type:transaction',
-    projects: [],
-    fields,
-    version: 2,
-  };
-
-  const widths = Array.from<number | string>({length: savedQuery.fields.length}).fill(
-    COL_WIDTH_UNDEFINED
-  );
-  widths[savedQuery.fields.length - 1] = '110';
-  // @ts-expect-error -- TODO: resolve this types mismatch
-  savedQuery.widths = widths;
-
-  if (!query.statsPeriod && !hasStartAndEnd) {
-    savedQuery.range = DEFAULT_STATS_PERIOD;
-  }
-  savedQuery.orderby = decodeScalar(query.sort, '-tpm');
-
-  const searchQuery = decodeScalar(query.query, '');
-  savedQuery.query = prepareQueryForLandingPage(searchQuery, withStaticFilters);
-
-  const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
-
-  eventView.additionalConditions.addFilterValues('event.type', ['transaction']);
+  eventView.additionalConditions.addFilterValues('is_transaction', ['true']);
 
   return eventView;
 }

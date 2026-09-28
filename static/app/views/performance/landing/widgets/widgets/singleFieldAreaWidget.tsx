@@ -12,7 +12,6 @@ import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnh
 import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {useLocation} from 'sentry/utils/useLocation';
 import {withApi} from 'sentry/utils/withApi';
-import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {Chart as DurationChart} from 'sentry/views/performance/charts/chart';
 import {GenericPerformanceWidget} from 'sentry/views/performance/landing/widgets/components/performanceWidget';
 import {transformDiscoverToSingleValue} from 'sentry/views/performance/landing/widgets/transforms/transformDiscoverToSingleValue';
@@ -40,14 +39,11 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
   const globalSelection = props.eventView.getPageFilters();
   const {setPageDanger} = usePageAlert();
   const mepSetting = useMEPSettingContext();
-  const useEap = useInsightsEap();
 
-  const queryExtras = useEap
-    ? {
-        ...getMEPQueryParams(mepSetting),
-        ...EAP_QUERY_PARAMS,
-      }
-    : getMEPQueryParams(mepSetting);
+  const queryExtras = {
+    ...getMEPQueryParams(mepSetting),
+    ...EAP_QUERY_PARAMS,
+  };
 
   if (props.fields.length !== 1) {
     throw new Error(`Single field area can only accept a single field (${props.fields})`);

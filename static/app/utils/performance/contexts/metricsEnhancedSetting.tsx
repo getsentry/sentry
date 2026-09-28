@@ -33,8 +33,6 @@ export function useMEPSettingContext(): MetricsEnhancedSettingContext {
   return context;
 }
 
-export const MEPConsumer = MEPSettingContext.Consumer;
-
 /**
  * These will be called something else in the copy, but functionally the data is coming from metrics / transactions.
  * "Unset" should be the initial state before any queries return for the first time.

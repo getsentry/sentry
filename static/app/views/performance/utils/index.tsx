@@ -200,10 +200,6 @@ function getPerformanceTrendsUrl(organization: OrganizationSummary): string {
   return `${getPerformanceBaseUrl(organization.slug)}/trends/`;
 }
 
-export function getTransactionSearchQuery(location: Location, query = '') {
-  return decodeScalar(location.query.query, query).trim();
-}
-
 export function trendsTargetRoute({
   location,
   organization,
@@ -308,10 +304,7 @@ export function getSelectedProjectPlatforms(location: Location, projects: Projec
   return selectedProjectPlatforms.join(', ');
 }
 
-export function getProject(
-  eventData: EventData,
-  projects: Project[]
-): Project | undefined {
+function getProject(eventData: EventData, projects: Project[]): Project | undefined {
   const projectSlug = eventData.project as string | undefined;
 
   return projects.find(currentProject => currentProject.slug === projectSlug);
