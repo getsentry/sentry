@@ -17,28 +17,20 @@ import {slugify} from 'sentry/utils/slugify';
 
 import type {Policy, PolicyRevision} from 'getsentry/types';
 
-export const policyUrlSchema = z.string().refine(value => {
-  if (!value) {
-    return true;
-  }
-  try {
-    return ['http:', 'https:'].includes(new URL(value).protocol);
-  } catch {
-    return false;
-  }
-}, 'Please enter a valid http or https URL');
+export const policyUrlSchema = z.union([
+  z.literal(''),
+  z.url({protocol: /^https?$/, error: 'Please enter a valid http or https URL'}),
+]);
 
 const schema = z.object({
   name: z.string(),
   slug: z.string(),
   active: z.boolean(),
   hasSignature: z.boolean(),
-  version: z
-    .string()
-    .refine(
-      value => !value || value.length >= 3,
-      'Version must be at least 3 characters'
-    ),
+  version: z.union([
+    z.literal(''),
+    z.string().min(3, 'Version must be at least 3 characters'),
+  ]),
   url: policyUrlSchema,
   file: z.tuple([z.string(), z.string()]).nullable(),
   current: z.boolean(),
@@ -65,29 +57,20 @@ export function PolicyFormModal({
   initialVersion = '',
 }: Props) {
   const [isReadingFile, setIsReadingFile] = useState(false);
-  const formSchema = schema.superRefine((value, context) => {
-    if (isNewPolicy && !value.name.trim()) {
-      context.addIssue({
-        code: 'custom',
-        path: ['name'],
-        message: 'Name is required',
-      });
-    }
-    if (isNewPolicy && !value.slug.trim()) {
-      context.addIssue({
-        code: 'custom',
-        path: ['slug'],
-        message: 'Slug is required',
-      });
-    }
-  });
+  const formSchema = isNewPolicy
+    ? schema.extend({
+        name: z.string().trim().min(1, 'Name is required'),
+        slug: z.string().trim().min(1, 'Slug is required'),
+      })
+    : schema;
+  const savePolicy: (data: Partial<Values>) => Promise<Policy | PolicyRevision> = data =>
+    fetchMutation<Policy | PolicyRevision>({
+      url: apiEndpoint,
+      method: 'POST',
+      data,
+    });
   const mutation = useMutation({
-    mutationFn: (data: Partial<Values>) =>
-      fetchMutation<Policy | PolicyRevision>({
-        url: apiEndpoint,
-        method: 'POST',
-        data,
-      }),
+    mutationFn: savePolicy,
     onSuccess: data => {
       onSuccess(data);
       closeModal();
@@ -115,8 +98,12 @@ export function PolicyFormModal({
       current: !isNewPolicy,
     } as Values,
     validators: {onDynamic: formSchema},
-    onSubmit: ({value}) =>
-      mutation
+    onSubmit: ({value}) => {
+      if (isReadingFile) {
+        addErrorMessage('Please wait for the selected file to finish loading.');
+        return;
+      }
+      return mutation
         .mutateAsync(
           isNewPolicy
             ? {
@@ -135,7 +122,8 @@ export function PolicyFormModal({
                 current: value.current,
               }
         )
-        .catch(() => {}),
+        .catch(() => {});
+    },
   });
   return (
     <form.AppForm form={form}>
@@ -277,7 +265,7 @@ export function PolicyFormModal({
       <Footer>
         <Flex gap="md" justify="end">
           <Button onClick={closeModal}>Cancel</Button>
-          <form.SubmitButton disabled={isReadingFile}>Save Changes</form.SubmitButton>
+          <form.SubmitButton>Save Changes</form.SubmitButton>
         </Flex>
       </Footer>
     </form.AppForm>
