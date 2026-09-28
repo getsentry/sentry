@@ -160,6 +160,9 @@ interface AutoSaveFormProps<
    * confirm={(value) => value === 'dangerous' ? "This is irreversible!" : undefined}
    */
   confirm?: ConfirmConfig<SchemaInput<TSchema>[TFieldName]>;
+
+  /** Message to show when the save request fails and the server has no field error. */
+  errorMessage?: (error: Error) => string;
 }
 
 export function AutoSaveForm<
@@ -168,7 +171,8 @@ export function AutoSaveForm<
   TSchema extends z.ZodObject<z.ZodRawShape>,
   TFieldName extends Extract<keyof SchemaInput<TSchema>, string>,
 >(props: AutoSaveFormProps<TData, TContext, TSchema, TFieldName>) {
-  const {name, schema, initialValue, mutationOptions, confirm, children} = props;
+  const {name, schema, initialValue, mutationOptions, confirm, errorMessage, children} =
+    props;
   const {t} = useTranslation();
   const mapFormError = useFormErrorMapper();
   const id = useId();
@@ -203,7 +207,7 @@ export function AutoSaveForm<
           formApi.reset();
         }
 
-        const fallbackMessage = t('Failed to save');
+        const fallbackMessage = errorMessage?.(error) ?? t('Failed to save');
         const mappedError = mapFormError(error, formApi.state.values, fallbackMessage);
 
         if (
@@ -216,8 +220,9 @@ export function AutoSaveForm<
 
         setFieldErrors(formApi, {
           [name]: {
-            message:
-              mappedError && 'message' in mappedError
+            message: errorMessage
+              ? fallbackMessage
+              : mappedError && 'message' in mappedError
                 ? mappedError.message
                 : fallbackMessage,
           },

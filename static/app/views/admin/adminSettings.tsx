@@ -11,6 +11,7 @@ import {t} from 'sentry/locale';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 
 import {getOption} from './options';
 
@@ -32,13 +33,34 @@ const disabledReasons: Record<string, string> = {
   smtpDisabled: 'SMTP mail has been disabled, so this option is unavailable',
 };
 
+function getOptionSaveErrorMessage(error: Error): string {
+  if (error instanceof RequestError) {
+    if (error.status === 403) {
+      return t('You need active superuser access to change this setting.');
+    }
+
+    if (error.status === 400) {
+      switch (error.responseJSON?.error) {
+        case 'immutable_option':
+          return t('This setting is managed by your Sentry configuration.');
+        case 'invalid_type':
+          return t('This value is not valid for this setting.');
+        case 'unknown_option':
+          return t('This setting is no longer available. Reload the page.');
+        default:
+          break;
+      }
+    }
+  }
+
+  return t('Could not save this setting. Try again.');
+}
+
 function useAdminOption(name: string, option: FieldDef) {
   const queryClient = useQueryClient();
   const definition = {...getOption(name), ...option.field};
   const initialValue =
-    option.value === undefined || option.value === ''
-      ? (definition.defaultValue?.() ?? '')
-      : option.value;
+    option.value === undefined ? (definition.defaultValue?.() ?? '') : option.value;
   const disabled = definition.disabled
     ? (disabledReasons[definition.disabledReason ?? ''] ?? true)
     : false;
@@ -64,6 +86,34 @@ function getStringSchema(required: boolean | undefined) {
   return required ? z.string().trim().min(1, t('This field is required')) : z.string();
 }
 
+const rootUrlSchema = z
+  .string()
+  .trim()
+  .pipe(z.url({protocol: /^https?$/, error: t('Enter a valid HTTP or HTTPS URL')}));
+
+function getEmailSchema(required: boolean | undefined) {
+  const email = z.email(t('Enter a valid email address'));
+  return required ? email : email.or(z.literal(''));
+}
+
+function isEmailOption(name: string) {
+  return (
+    name === 'system.admin-email' ||
+    name === 'system.support-email' ||
+    name === 'system.security-email'
+  );
+}
+
+function getTextOptionSchema(name: string, required: boolean | undefined) {
+  if (name === 'system.url-prefix') {
+    return rootUrlSchema;
+  }
+  if (isEmailOption(name)) {
+    return getEmailSchema(required);
+  }
+  return getStringSchema(required);
+}
+
 type OptionFieldProps = {name: string; option: FieldDef};
 
 function BooleanOptionField({name, option}: OptionFieldProps) {
@@ -75,6 +125,7 @@ function BooleanOptionField({name, option}: OptionFieldProps) {
   return (
     <AutoSaveForm
       name="value"
+      errorMessage={getOptionSaveErrorMessage}
       schema={z.object({value: z.boolean()})}
       initialValue={Boolean(initialValue)}
       mutationOptions={{
@@ -108,6 +159,7 @@ function RadioOptionField({name, option}: OptionFieldProps) {
   return (
     <AutoSaveForm
       name="value"
+      errorMessage={getOptionSaveErrorMessage}
       schema={z.object({value: getStringSchema(required)})}
       initialValue={String(initialValue)}
       mutationOptions={{
@@ -147,7 +199,8 @@ function TextOptionField({name, option}: OptionFieldProps) {
   return (
     <AutoSaveForm
       name="value"
-      schema={z.object({value: getStringSchema(required)})}
+      errorMessage={getOptionSaveErrorMessage}
+      schema={z.object({value: getTextOptionSchema(name, required)})}
       initialValue={String(initialValue)}
       mutationOptions={{
         mutationFn: data => save(data.value),

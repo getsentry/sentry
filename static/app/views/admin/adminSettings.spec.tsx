@@ -138,6 +138,35 @@ describe('AdminSettings', () => {
       );
     });
 
+    it('explains when a setting is managed by configuration', async () => {
+      MockApiClient.addMockResponse({
+        url: '/internal/options/',
+        body: {
+          'system.support-email': {
+            field: {disabled: false},
+            value: 'original@example.com',
+          },
+        },
+      });
+      MockApiClient.addMockResponse({
+        url: '/internal/options/',
+        method: 'PUT',
+        statusCode: 400,
+        body: {error: 'immutable_option'},
+      });
+
+      render(<AdminSettings />);
+
+      const input = await screen.findByRole('textbox', {name: 'Support Email'});
+      await userEvent.clear(input);
+      await userEvent.type(input, 'changed@example.com');
+      await userEvent.tab();
+
+      expect(
+        await screen.findByText('This setting is managed by your Sentry configuration.')
+      ).toBeInTheDocument();
+    });
+
     it('does not clear a required setting', async () => {
       MockApiClient.addMockResponse({
         url: '/internal/options/',
@@ -162,6 +191,104 @@ describe('AdminSettings', () => {
       await userEvent.tab();
 
       expect(save).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      ['system.url-prefix', 'Root URL', 'not-a-url', 'Enter a valid HTTP or HTTPS URL'],
+      [
+        'system.support-email',
+        'Support Email',
+        'not-an-email',
+        'Enter a valid email address',
+      ],
+      ['system.admin-email', 'Admin Email', '     ', 'Enter a valid email address'],
+    ])('does not save an invalid %s', async (name, label, value, message) => {
+      MockApiClient.addMockResponse({
+        url: '/internal/options/',
+        body: {
+          [name]: {
+            field: {disabled: false, required: true},
+            value:
+              name === 'system.url-prefix'
+                ? 'https://sentry.example.com'
+                : 'old@example.com',
+          },
+        },
+      });
+      const save = MockApiClient.addMockResponse({
+        url: '/internal/options/',
+        method: 'PUT',
+        body: {},
+      });
+
+      render(<AdminSettings />);
+
+      const input = await screen.findByRole('textbox', {name: label});
+      await userEvent.clear(input);
+      await userEvent.type(input, value);
+      await userEvent.tab();
+
+      expect(await screen.findByText(message)).toBeInTheDocument();
+      expect(save).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      ['', true],
+      ['     ', false],
+    ])('handles an optional email field cleared with %j', async (value, shouldSave) => {
+      MockApiClient.addMockResponse({
+        url: '/internal/options/',
+        body: {
+          'system.support-email': {
+            field: {disabled: false, required: false},
+            value: 'old@example.com',
+          },
+        },
+      });
+      const save = MockApiClient.addMockResponse({
+        url: '/internal/options/',
+        method: 'PUT',
+        body: {},
+      });
+
+      render(<AdminSettings />);
+
+      const input = await screen.findByRole('textbox', {name: 'Support Email'});
+      await userEvent.clear(input);
+      if (value) {
+        await userEvent.type(input, value);
+      }
+      await userEvent.tab();
+
+      if (shouldSave) {
+        await waitFor(() =>
+          expect(save).toHaveBeenCalledWith(
+            '/internal/options/',
+            expect.objectContaining({data: {'system.support-email': ''}})
+          )
+        );
+      } else {
+        expect(
+          await screen.findByText('Enter a valid email address')
+        ).toBeInTheDocument();
+        expect(save).not.toHaveBeenCalled();
+      }
+    });
+
+    it('shows a saved empty optional email instead of the default email', async () => {
+      MockApiClient.addMockResponse({
+        url: '/internal/options/',
+        body: {
+          'system.support-email': {
+            field: {disabled: false, required: false, allowEmpty: true},
+            value: '',
+          },
+        },
+      });
+
+      render(<AdminSettings />);
+
+      expect(await screen.findByRole('textbox', {name: 'Support Email'})).toHaveValue('');
     });
 
     it('saves a boolean setting', async () => {
