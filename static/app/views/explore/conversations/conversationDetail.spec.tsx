@@ -256,6 +256,7 @@ describe('ConversationDetailPage summary stats', () => {
     expect(await screen.findAllByText('150')).toHaveLength(2);
     expect(screen.getByText('100')).toBeInTheDocument();
     expect(screen.getByText('Unknown model')).toBeInTheDocument();
+    expect(screen.queryByText('Input cost')).not.toBeInTheDocument();
   });
 
   it('uses the API token breakdown ordered by model usage', async () => {
@@ -329,6 +330,7 @@ describe('ConversationDetailPage summary stats', () => {
     expect(await screen.findByText('Input cost')).toBeInTheDocument();
     expect(screen.getByText('Output cost')).toBeInTheDocument();
     expect(screen.getByText('model-alpha')).toBeInTheDocument();
+    expect(screen.queryByText('Input')).not.toBeInTheDocument();
   });
 
   it('renders the fire icon in the summary when a span errored', async () => {

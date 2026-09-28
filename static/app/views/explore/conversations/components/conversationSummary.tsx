@@ -41,6 +41,8 @@ import {getExploreUrl} from 'sentry/views/explore/utils';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {NegativeCostInfo} from 'sentry/views/insights/pages/agents/components/negativeCostWarning';
 import {
+  CostBreakdownTooltip,
+  type CostBreakdownDetails,
   TokenBreakdownTooltip,
   type TokenBreakdownDetails,
 } from 'sentry/views/insights/pages/agents/components/tokenBreakdownTooltip';
@@ -98,6 +100,7 @@ export function ConversationSummary({
   const tokenBreakdowns = stats
     ? getTokenBreakdowns(stats.usageByModel)
     : aggregates.tokenBreakdowns;
+  const costBreakdowns = stats ? getCostBreakdowns(stats.usageByModel) : [];
   const toolNames = stats
     ? orderToolNames(stats.toolNames, aggregates.erroredToolNames)
     : aggregates.toolNames;
@@ -302,9 +305,7 @@ export function ConversationSummary({
         />
         <Stat
           label={t('Cost')}
-          value={
-            <CostCount breakdowns={tokenBreakdowns} total={summaryStats.totalCost} />
-          }
+          value={<CostCount breakdowns={costBreakdowns} total={summaryStats.totalCost} />}
           isLoading={isLoading}
         />
       </Flex>
@@ -435,12 +436,20 @@ function getTokenBreakdowns(
       output: breakdown.output,
       reasoning: usage.reasoningTokens,
       total: usage.totalTokens,
-      inputCost: usage.inputCost,
       model: usage.model ?? t('Unknown model'),
-      outputCost: usage.outputCost,
-      totalCost: usage.totalCost,
     };
   });
+}
+
+function getCostBreakdowns(
+  usageByModel: ConversationModelUsage[]
+): CostBreakdownDetails[] {
+  return usageByModel.map(usage => ({
+    input: usage.inputCost,
+    model: usage.model ?? t('Unknown model'),
+    output: usage.outputCost,
+    total: usage.totalCost,
+  }));
 }
 
 function calculateAggregates(nodes: AITraceSpanNode[]): ConversationAggregates {
@@ -704,17 +713,17 @@ function CostCount({
   breakdowns,
   total,
 }: {
-  breakdowns: TokenBreakdownDetails[];
+  breakdowns: CostBreakdownDetails[];
   total: number;
 }) {
   const value = total < 0 ? <NegativeCostInfo cost={total} /> : <LLMCosts cost={total} />;
 
-  if (total <= 0 || !breakdowns.some(breakdown => breakdown.totalCost !== undefined)) {
+  if (total <= 0 || breakdowns.length === 0) {
     return value;
   }
 
   return (
-    <Tooltip title={<TokenBreakdownTooltip breakdowns={breakdowns} />}>
+    <Tooltip title={<CostBreakdownTooltip breakdowns={breakdowns} />}>
       <BreakdownValue>{value}</BreakdownValue>
     </Tooltip>
   );
