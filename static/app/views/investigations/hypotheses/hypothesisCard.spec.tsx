@@ -392,7 +392,7 @@ describe('HypothesisCard', () => {
       expect(screen.queryByText(title)).not.toBeInTheDocument();
     }
 
-    await userEvent.click(screen.getByRole('button', {name: 'Show 3 checks'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Show 3 steps'}));
 
     for (const title of ['Check 1', 'Check 2', 'Check 3', 'Check 4']) {
       expect(screen.getByText(title)).toBeInTheDocument();
@@ -422,7 +422,7 @@ describe('HypothesisCard', () => {
 
     expect(screen.getByText('Check 3')).toBeInTheDocument();
     expect(screen.queryByText('Check 1')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Show 2 checks'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Show 2 steps'})).toBeInTheDocument();
   });
 
   it.each(['supported', 'refuted', 'inconclusive'] as const)(
@@ -446,7 +446,7 @@ describe('HypothesisCard', () => {
       expect(screen.queryByText('Check 1')).not.toBeInTheDocument();
       expect(screen.queryByText('Check 2')).not.toBeInTheDocument();
 
-      await userEvent.click(screen.getByRole('button', {name: 'Show 2 checks'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Show 2 steps'}));
 
       expect(screen.getByText('Check 1')).toBeInTheDocument();
       expect(screen.getByText('Check 2')).toBeInTheDocument();
@@ -466,7 +466,7 @@ describe('HypothesisCard', () => {
       />
     );
 
-    expect(screen.getByRole('button', {name: 'Show 1 check'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Show 1 step'})).toBeInTheDocument();
   });
 
   it('starts collapsed again when a verdict lands on an expanded card', async () => {
@@ -482,7 +482,7 @@ describe('HypothesisCard', () => {
     });
     const {rerender} = render(<HypothesisCard hypothesis={hypothesis} />);
 
-    await userEvent.click(screen.getByRole('button', {name: 'Show 2 checks'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Show 2 steps'}));
     expect(screen.getByText('Check 1')).toBeInTheDocument();
 
     rerender(
@@ -491,7 +491,7 @@ describe('HypothesisCard', () => {
 
     expect(screen.queryByText('Check 1')).not.toBeInTheDocument();
     expect(screen.queryByText('Check 3')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Show 3 checks'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Show 3 steps'})).toBeInTheDocument();
   });
 
   it('hides the timeline when there are no steps', () => {

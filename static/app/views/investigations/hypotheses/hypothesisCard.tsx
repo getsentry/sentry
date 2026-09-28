@@ -156,7 +156,7 @@ export function HypothesisCard({
                       <StepTitle size="sm" variant="muted" bold={false}>
                         {showAllSteps
                           ? t('Show less')
-                          : tn('Show %s check', 'Show %s checks', hiddenStepCount)}
+                          : tn('Show %s step', 'Show %s steps', hiddenStepCount)}
                       </StepTitle>
                       <IconChevron
                         size="xs"
