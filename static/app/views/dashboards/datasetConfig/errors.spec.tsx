@@ -84,7 +84,7 @@ describe('ErrorsConfig', () => {
 
       await userEvent.click(await screen.findByText('defg'));
       expect(router.location.pathname).toBe(
-        `/organizations/org-slug/explore/discover/${project.slug}:defg/`
+        `/organizations/org-slug/explore/errors/${project.slug}:defg/`
       );
       expect(router.location.query).toEqual({
         display: undefined,
