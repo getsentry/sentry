@@ -100,6 +100,11 @@ describe('ConnectRepositoryModal', () => {
         }),
       ],
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/code-mappings/`,
+      method: 'GET',
+      body: [],
+    });
   });
 
   it('renders initial modal state', async () => {
@@ -305,5 +310,80 @@ describe('ConnectRepositoryModal', () => {
 
     expect(await screen.findByText('Repository does not exist')).toBeInTheDocument();
     expect(closeModal).not.toHaveBeenCalled();
+  });
+
+  it('shows an across-repos warning when another repo has the same mapping, but Save stays enabled', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/code-mappings/`,
+      method: 'GET',
+      body: [
+        {
+          id: '5',
+          projectId: project.id,
+          projectSlug: project.slug,
+          repoId: '11',
+          repoName: 'getsentry/relay',
+          stackRoot: 'src/',
+          sourceRoot: 'app/',
+          integrationId: integration.id,
+          provider: integration.provider,
+        },
+      ],
+    });
+
+    renderModal();
+
+    await userEvent.click(screen.getByText('Search repositories'));
+    await userEvent.click(await screen.findByText('getsentry/sentry'));
+
+    await userEvent.type(
+      screen.getByRole('textbox', {name: /stack trace prefix/i}),
+      'src/'
+    );
+    await userEvent.type(
+      screen.getByRole('textbox', {name: /repository prefix/i}),
+      'app/'
+    );
+
+    expect(await screen.findByText(/getsentry\/relay/)).toBeInTheDocument();
+    expect(screen.getByText(/Only one can be used for matching/)).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Save'})).toBeDisabled();
+  });
+
+  it('does not warn when the conflicting mapping belongs to the same repo', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/code-mappings/`,
+      method: 'GET',
+      body: [
+        {
+          id: '5',
+          projectId: project.id,
+          projectSlug: project.slug,
+          repoId: '10',
+          repoName: 'getsentry/sentry',
+          stackRoot: 'src/',
+          sourceRoot: 'app/',
+          integrationId: integration.id,
+          provider: integration.provider,
+        },
+      ],
+    });
+
+    renderModal();
+
+    await userEvent.click(screen.getByText('Search repositories'));
+    await userEvent.click(await screen.findByText('getsentry/sentry'));
+
+    await userEvent.type(
+      screen.getByRole('textbox', {name: /stack trace prefix/i}),
+      'src/'
+    );
+    await userEvent.type(
+      screen.getByRole('textbox', {name: /repository prefix/i}),
+      'app/'
+    );
+
+    expect(screen.queryByRole('img', {name: 'Warning'})).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Save'})).toBeEnabled();
   });
 });

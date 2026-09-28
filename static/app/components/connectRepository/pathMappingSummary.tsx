@@ -12,6 +12,7 @@ import {AccentPathSegment} from './accentPathSegment';
 import {normalizedPathMappingSchema} from './normalization';
 import type {PathMappingValue} from './type';
 import type {PathMappingWarning} from './warnings';
+import {isExactWarning} from './warnings';
 
 const PATH_RATIO = 35;
 const BRANCH_RATIO = 30;
@@ -56,7 +57,7 @@ export function PathMappingSummary({
     branch: branchName,
   } = normalizedPathMappingSchema.parse({stackRoot, sourceRoot, branch});
 
-  const hasWarning = warning?.type === 'exact';
+  const hasWarning = isExactWarning(warning);
   const Wrapper = hasWarning ? WarningContainer : Container;
 
   return (

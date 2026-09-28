@@ -258,6 +258,26 @@ describe('PathMappingList', () => {
       const [firstExpand] = screen.getAllByRole('button', {name: 'Expand path mapping'});
       await userEvent.click(firstExpand!);
 
+      expect(
+        screen.getByText(
+          /Remove one since only one of them is required for path matching/
+        )
+      ).toBeInTheDocument();
+    });
+
+    it('shows warning icon and across-repos alert when an existing mapping on another repo has the same pair', async () => {
+      renderList({
+        pathMappings: [{stackRoot: 'src/', sourceRoot: 'src/app/', branch: 'main'}],
+        existingMappings: [
+          {repoName: 'getsentry/relay', stackRoot: 'src/', sourceRoot: 'src/app/'},
+        ],
+      });
+
+      expect(screen.getByRole('img', {name: 'Warning'})).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Expand path mapping'}));
+
+      expect(screen.getByText(/getsentry\/relay/)).toBeInTheDocument();
       expect(screen.getByText(/Only one can be used for matching/)).toBeInTheDocument();
     });
 

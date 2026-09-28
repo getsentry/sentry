@@ -11,10 +11,12 @@ import {DEFAULT_BRANCH, normalizedPathMappingSchema} from './normalization';
 import {PathMapping} from './pathMapping';
 import type {PathMappingValue} from './type';
 import {getPathMappingWarnings} from './warnings';
+import type {ExistingMapping} from './warnings';
 
 interface PathMappingListProps {
   onChange: (pathMappings: PathMappingValue[]) => void;
   defaultBranch?: string;
+  existingMappings?: ExistingMapping[];
   pathMappings?: PathMappingValue[];
   providerKey?: string;
 }
@@ -60,6 +62,7 @@ export function PathMappingList({
   onChange,
   providerKey,
   defaultBranch,
+  existingMappings,
 }: PathMappingListProps) {
   const newRowValue: PathMappingValue = {
     ...EMPTY_MAPPING,
@@ -136,7 +139,10 @@ export function PathMappingList({
     ? t('Resolve the duplicate path mapping first')
     : undefined;
 
-  const warnings = getPathMappingWarnings(entries.map(e => e.value));
+  const warnings = getPathMappingWarnings(
+    entries.map(e => e.value),
+    existingMappings
+  );
 
   return (
     <Stack gap="lg">

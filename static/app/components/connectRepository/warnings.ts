@@ -3,23 +3,39 @@ import type {PathMappingValue} from './type';
 
 export type PathMappingWarning =
   | {type: 'catchAll'}
-  | {sourceRoot: string; stackRoot: string; type: 'exact'};
+  | {sourceRoot: string; stackRoot: string; type: 'exactInForm'}
+  | {repoName: string; sourceRoot: string; stackRoot: string; type: 'exactAcrossRepos'};
+
+export type ExistingMapping = {repoName: string; sourceRoot: string; stackRoot: string};
 
 type NormalizedRow = {sourceRoot: string; stackRoot: string};
 
 function deriveWarning(
   row: NormalizedRow,
   index: number,
-  rows: NormalizedRow[]
+  rows: NormalizedRow[],
+  existing: ExistingMapping[]
 ): PathMappingWarning | null {
   const {stackRoot, sourceRoot} = row;
 
-  const duplicate = rows.find(
+  const inFormDuplicate = rows.find(
     (other, i) =>
       i !== index && other.stackRoot === stackRoot && other.sourceRoot === sourceRoot
   );
-  if (duplicate) {
-    return {sourceRoot: duplicate.sourceRoot, stackRoot, type: 'exact'};
+  if (inFormDuplicate) {
+    return {sourceRoot: inFormDuplicate.sourceRoot, stackRoot, type: 'exactInForm'};
+  }
+
+  const acrossReposDuplicate = existing.find(
+    other => other.stackRoot === stackRoot && other.sourceRoot === sourceRoot
+  );
+  if (acrossReposDuplicate) {
+    return {
+      repoName: acrossReposDuplicate.repoName,
+      sourceRoot: acrossReposDuplicate.sourceRoot,
+      stackRoot,
+      type: 'exactAcrossRepos',
+    };
   }
 
   if (stackRoot === '') {
@@ -29,13 +45,26 @@ function deriveWarning(
   return null;
 }
 
+export function isExactWarning(
+  warning: PathMappingWarning | null | undefined
+): warning is Extract<PathMappingWarning, {type: 'exactInForm' | 'exactAcrossRepos'}> {
+  return warning?.type === 'exactInForm' || warning?.type === 'exactAcrossRepos';
+}
+
 export function getPathMappingWarnings(
-  values: PathMappingValue[]
+  values: PathMappingValue[],
+  existingMappings: ExistingMapping[] = []
 ): Array<PathMappingWarning | null> {
   const rows = values.map(v => ({
     stackRoot: normalizeRoot(v.stackRoot),
     sourceRoot: normalizeRoot(v.sourceRoot),
   }));
 
-  return rows.map((row, index) => deriveWarning(row, index, rows));
+  const normalizedExisting = existingMappings.map(m => ({
+    repoName: m.repoName,
+    stackRoot: normalizeRoot(m.stackRoot),
+    sourceRoot: normalizeRoot(m.sourceRoot),
+  }));
+
+  return rows.map((row, index) => deriveWarning(row, index, rows, normalizedExisting));
 }

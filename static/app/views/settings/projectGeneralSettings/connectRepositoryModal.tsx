@@ -1,5 +1,5 @@
-import {Fragment, useState} from 'react';
-import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {Fragment, useMemo, useState} from 'react';
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {ProjectAvatar} from '@sentry/scraps/avatar';
@@ -11,7 +11,10 @@ import {Heading, Text} from '@sentry/scraps/text';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {PathMappingList} from 'sentry/components/connectRepository/pathMappingList';
 import type {PathMappingValue} from 'sentry/components/connectRepository/type';
-import {getPathMappingWarnings} from 'sentry/components/connectRepository/warnings';
+import {
+  getPathMappingWarnings,
+  isExactWarning,
+} from 'sentry/components/connectRepository/warnings';
 import {ScmVirtualizedMenuList} from 'sentry/components/onboarding/scm/scmVirtualizedMenuList';
 import {IconLock} from 'sentry/icons';
 import {IconArrow} from 'sentry/icons/iconArrow';
@@ -93,6 +96,23 @@ export function ConnectRepositoryModal({
   const [pathMappings, setPathMappings] = useState<PathMappingValue[]>([]);
   const {groupedOptions, isPending} = useGroupedRepoOptions(organization.slug);
 
+  const {data: codeMappings = []} = useQuery(
+    projectCodeMappingsOptions({orgSlug: organization.slug, projectId: project.id})
+  );
+
+  // Mappings belonging to other repos become across-repo warnings in the list.
+  const existingMappings = useMemo(
+    () =>
+      codeMappings
+        .filter(m => !selectedOption || m.repoId !== selectedOption.repositoryId)
+        .map(m => ({
+          repoName: m.repoName,
+          stackRoot: m.stackRoot,
+          sourceRoot: m.sourceRoot,
+        })),
+    [codeMappings, selectedOption]
+  );
+
   const saveMutation = useMutation({
     mutationFn: saveProjectRepoConnection,
     onSuccess: async () => {
@@ -114,11 +134,11 @@ export function ConnectRepositoryModal({
     },
   });
 
-  const hasExactDuplicate = getPathMappingWarnings(pathMappings).some(
-    w => w?.type === 'exact'
+  const hasBlockingWarning = getPathMappingWarnings(pathMappings, existingMappings).some(
+    isExactWarning
   );
   const canSave =
-    selectedOption !== null && pathMappings.length > 0 && !hasExactDuplicate;
+    selectedOption !== null && pathMappings.length > 0 && !hasBlockingWarning;
   const saveError = saveMutation.isError ? getApiErrorMessage(saveMutation.error) : null;
 
   return (
@@ -184,6 +204,7 @@ export function ConnectRepositoryModal({
                 key={selectedOption.value}
                 providerKey={selectedOption.providerKey}
                 defaultBranch={selectedOption.defaultBranch ?? undefined}
+                existingMappings={existingMappings}
                 onChange={setPathMappings}
               />
             </Container>
