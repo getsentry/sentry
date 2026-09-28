@@ -983,7 +983,6 @@ export const SEER_EMBED_SCHEMAS = {
       'Block: renders the conversation transcript with its LLM call, token, cost, ' +
       'and tool totals. Do not duplicate the messages or those totals as text. ' +
       'Never use a markdown link for conversation references.',
-    featureFlag: 'organizations:gen-ai-conversations',
     level: ['inline', 'block'],
     schema: z.object({
       id: z.string().min(1),
@@ -1015,7 +1014,6 @@ export const SEER_EMBED_SCHEMAS = {
       'Inline renders a link; block renders the first five matching conversations ' +
       'with their duration, message count, errors and cost — do NOT repeat ' +
       'those rows as a markdown table or restate their values as text.',
-    featureFlag: 'organizations:gen-ai-conversations',
     level: ['inline', 'block'],
     schema: z.object({
       ...pageFilterFields,
