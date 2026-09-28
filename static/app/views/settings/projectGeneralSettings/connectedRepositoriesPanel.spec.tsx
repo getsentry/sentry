@@ -279,9 +279,7 @@ describe('ConnectedRepositoriesPanel', () => {
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Edit'}));
 
     // Both fields are locked in edit mode.
-    expect(
-      await screen.findByText('Edit getsentry/sentry connection')
-    ).toBeInTheDocument();
+    expect(await screen.findByText('Edit code mappings')).toBeInTheDocument();
     const [projectSelect, repoSelect] = screen.getAllByRole('textbox');
     expect(projectSelect).toBeDisabled();
     expect(repoSelect).toBeDisabled();

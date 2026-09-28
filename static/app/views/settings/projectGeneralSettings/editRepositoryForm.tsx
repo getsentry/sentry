@@ -2,14 +2,15 @@ import {Fragment, useMemo, useState} from 'react';
 import {useMutation, useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Container} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {DEFAULT_BRANCH} from 'sentry/components/connectRepository/normalization';
 import {PathMappingList} from 'sentry/components/connectRepository/pathMappingList';
 import type {PathMappingValue} from 'sentry/components/connectRepository/type';
 import {hasExactDuplicate} from 'sentry/components/connectRepository/warnings';
-import {t, tct} from 'sentry/locale';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
@@ -23,6 +24,41 @@ import {
   useGroupedRepoOptions,
   useInvalidateRepoQueries,
 } from 'sentry/views/settings/projectGeneralSettings/queries';
+
+function buildPathsSection({
+  isPending,
+  seededPathMappings,
+  repositoryId,
+  providerKey,
+  onChange,
+}: {
+  isPending: boolean;
+  onChange: (mappings: PathMappingValue[]) => void;
+  providerKey: string | null;
+  repositoryId: string;
+  seededPathMappings: PathMappingValue[] | undefined;
+}) {
+  if (isPending) {
+    return (
+      <Flex justify="center" padding="2xl">
+        <LoadingIndicator mini />
+      </Flex>
+    );
+  }
+  if (!seededPathMappings) {
+    return null;
+  }
+  return (
+    <Container paddingTop="2xl">
+      <PathMappingList
+        key={repositoryId}
+        providerKey={providerKey ?? undefined}
+        pathMappings={seededPathMappings}
+        onChange={onChange}
+      />
+    </Container>
+  );
+}
 
 export type EditFormProps = ModalRenderProps & {
   project: Project;
@@ -94,16 +130,13 @@ export function EditRepositoryForm({
     branch: m.defaultBranch ?? DEFAULT_BRANCH,
   }));
 
-  const pathsSection = seededPathMappings ? (
-    <Container paddingTop="2xl">
-      <PathMappingList
-        key={repositoryId}
-        providerKey={providerKey ?? undefined}
-        pathMappings={seededPathMappings}
-        onChange={setPathMappings}
-      />
-    </Container>
-  ) : null;
+  const pathsSection = buildPathsSection({
+    isPending: codeMappingsQuery.isPending,
+    seededPathMappings,
+    repositoryId,
+    providerKey,
+    onChange: setPathMappings,
+  });
 
   const alerts = (
     <Fragment>
@@ -131,7 +164,7 @@ export function EditRepositoryForm({
       Body={Body}
       Footer={Footer}
       closeModal={closeModal}
-      title={tct('Edit [repo] connection', {repo: repoName})}
+      title={t('Edit code mappings')}
       alerts={alerts}
       project={project}
       repoField={<LockedRepoField repoName={repoName} providerKey={providerKey} />}

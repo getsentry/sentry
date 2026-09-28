@@ -355,7 +355,7 @@ describe('ConnectRepositoryModal', () => {
 
       renderEditModal();
 
-      expect(screen.getByText('Edit getsentry/sentry connection')).toBeInTheDocument();
+      expect(screen.getByText('Edit code mappings')).toBeInTheDocument();
       // Both selects are disabled in edit mode.
       const [projectSelect, repoSelect] = screen.getAllByRole('textbox');
       expect(projectSelect).toBeDisabled();
