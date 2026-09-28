@@ -1,16 +1,16 @@
 import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Container, Grid, Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {BrandPageLayout} from 'sentry/components/brandPageLayout';
-import {IconGithub, IconGoogle, IconLab, IconSentry, IconVsts} from 'sentry/icons';
+import {IconGithub, IconGoogle, IconLab, IconVsts} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {AuthConfig} from 'sentry/types/auth';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -213,10 +213,6 @@ export default function AuthLogin() {
 
   return (
     <Fragment>
-      <BrandPageLayout.HeaderStart>
-        <IconSentry size="xl" />
-      </BrandPageLayout.HeaderStart>
-
       <BrandPageLayout.HeaderEnd>
         <Stack align="end" gap="sm" maxWidth="300px">
           <Tag variant="warning" icon={<IconLab isSolid />}>
@@ -241,8 +237,8 @@ export default function AuthLogin() {
         </Stack>
       </BrandPageLayout.HeaderEnd>
 
-      <Stack height="100%" align="center" justify="between" gap="2xl">
-        <LoginContainer width="100%" maxWidth="360px" gap="2xl">
+      <Fragment>
+        <Stack width="100%" maxWidth="360px" gap="2xl">
           <Heading as="h1" size="3xl" align="center">
             {t('Sign in to Sentry')}
           </Heading>
@@ -341,11 +337,18 @@ export default function AuthLogin() {
                       />
                     </Fragment>
                   )}
+                  {loginConfig?.canRegister && (
+                    <Text as="div" align="center" size="sm">
+                      {tct('New to Sentry? [register:Create an account]', {
+                        register: <Link to="/auth/register/" />,
+                      })}
+                    </Text>
+                  )}
                 </Fragment>
               )}
             </MotionStack>
           </AnimatePresence>
-        </LoginContainer>
+        </Stack>
 
         {(loginConfig?.warning || loginConfig?.loginBannerMarkdown) && (
           <Stack width="100%" gap="md">
@@ -359,7 +362,7 @@ export default function AuthLogin() {
             )}
           </Stack>
         )}
-      </Stack>
+      </Fragment>
     </Fragment>
   );
 }
@@ -375,9 +378,5 @@ function AuthDivider() {
     </Grid>
   );
 }
-
-const LoginContainer = styled(Stack)`
-  padding-top: 18vh;
-`;
 
 const MotionStack = motion.create(Stack);

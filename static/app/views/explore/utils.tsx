@@ -23,6 +23,7 @@ import {
   prettifyParsedFunction,
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
+import {FieldValueType} from 'sentry/utils/fields';
 import {decodeSorts} from 'sentry/utils/queryString';
 import {determineTimeSeriesConfidence} from 'sentry/utils/timeSeries/determineSeriesConfidence';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/utils/timeSeries/determineSeriesSampleCount';
@@ -50,6 +51,7 @@ import {
 import type {
   TraceItemAttributeMeta,
   TraceItemDetailsMeta,
+  TraceItemResponseAttribute,
 } from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {getLogsUrlFromSavedQueryUrl} from 'sentry/views/explore/logs/utils';
 import {getMetricsUrlFromSavedQueryUrl} from 'sentry/views/explore/metrics/utils';
@@ -807,6 +809,20 @@ const TRACE_ITEM_TO_URL_FUNCTION: Record<
 };
 
 /**
+ * The value type an attribute was stored with, for when no field definition
+ * describes it more precisely.
+ */
+export const ATTRIBUTE_VALUE_TYPES: Record<
+  TraceItemResponseAttribute['type'],
+  FieldValueType
+> = {
+  bool: FieldValueType.BOOLEAN,
+  float: FieldValueType.NUMBER,
+  int: FieldValueType.INTEGER,
+  str: FieldValueType.STRING,
+};
+
+/**
  * Metadata about trace item attributes.
  *
  * This can be used to extract additional information about attributes
@@ -877,6 +893,16 @@ interface RemarkObject {
   rangeStart: number;
   ruleId: string;
   type: string;
+}
+
+/**
+ * Whether a PII rule redacted the attribute's value.
+ */
+export function hasScrubbedValue(
+  meta: TraceItemDetailsMeta | undefined,
+  attribute: string
+): boolean {
+  return meta === undefined ? false : new TraceItemMetaInfo(meta).hasRemarks(attribute);
 }
 
 const SAMPLING_SENSITIVE_AGGREGATES = new Set([

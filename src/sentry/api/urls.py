@@ -539,7 +539,7 @@ from sentry.rules.history.endpoints.project_rule_group_history import (
 )
 from sentry.rules.history.endpoints.project_rule_stats import ProjectRuleStatsIndexEndpoint
 from sentry.scm.endpoints.scm_rpc import ScmRpcServiceEndpoint
-from sentry.seer.endpoints.admin_night_shift_trigger import SeerAdminNightShiftTriggerEndpoint
+from sentry.seer.endpoints.admin_agentic_triage_trigger import SeerAdminAgenticTriageTriggerEndpoint
 from sentry.seer.endpoints.group_ai_autofix import GroupAutofixEndpoint
 from sentry.seer.endpoints.group_ai_summary import GroupAiSummaryEndpoint
 from sentry.seer.endpoints.group_autofix_repos import GroupAutofixReposEndpoint
@@ -566,7 +566,7 @@ from sentry.seer.endpoints.organization_seer_rpc import OrganizationSeerRpcEndpo
 from sentry.seer.endpoints.organization_seer_runs import OrganizationSeerRunsEndpoint
 from sentry.seer.endpoints.organization_seer_setup_check import OrganizationSeerSetupCheckEndpoint
 from sentry.seer.endpoints.organization_seer_workflows import OrganizationSeerWorkflowsEndpoint
-from sentry.seer.endpoints.project_seer_night_shift import ProjectSeerNightShiftEndpoint
+from sentry.seer.endpoints.project_seer_agentic_triage import ProjectSeerAgenticTriageEndpoint
 from sentry.seer.endpoints.project_seer_preferences import ProjectSeerPreferencesEndpoint
 from sentry.seer.endpoints.project_seer_repos import (
     ProjectSeerRepoEndpoint,
@@ -3445,7 +3445,7 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/seer/night-shift/$",
-        ProjectSeerNightShiftEndpoint.as_view(),
+        ProjectSeerAgenticTriageEndpoint.as_view(),
         name="sentry-api-0-project-seer-night-shift",
     ),
     # User Issue
@@ -3718,7 +3718,7 @@ INTERNAL_URLS = [
     *notification_platform_urls.internal_urlpatterns,
     re_path(
         r"^seer/night-shift/trigger/$",
-        SeerAdminNightShiftTriggerEndpoint.as_view(),
+        SeerAdminAgenticTriageTriggerEndpoint.as_view(),
         name="sentry-admin-seer-night-shift-trigger",
     ),
 ]

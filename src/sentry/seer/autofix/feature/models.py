@@ -47,6 +47,13 @@ class SolutionStepArgs(BaseModel):
     should_run_repo_checks: bool = False
 
 
+class CodeChangesStepArgs(BaseModel):
+    class Config:
+        extra = "ignore"
+
+    should_run_repo_checks: bool = False
+
+
 class AutofixFeaturePayload(BaseModel):
     class Config:
         extra = "ignore"
@@ -60,7 +67,7 @@ class AutofixFeaturePayload(BaseModel):
     culprit: str
     on_completion_hook: OnCompletionHookDefinition
     step: AutofixStep
-    step_args: RCAStepArgs | SolutionStepArgs
+    step_args: RCAStepArgs | SolutionStepArgs | CodeChangesStepArgs
     existing_run_id: int | None = None
     insert_index: int | None = None
     # Not to be confused with user_org_context, this is free-form context added by the user.

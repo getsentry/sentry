@@ -170,12 +170,13 @@ class PullRequest(OriginModel):
     draft: bool
     merged: bool
     head: PullRequestHead
-    merge_commit_sha: str = Field(alias="mergeCommitSha")
+    merge_commit_sha: str = Field(default="", alias="mergeCommitSha")
     author: PullRequestAuthor
     created_at: datetime | None = Field(..., alias="createdAt")
     updated_at: datetime | None = Field(..., alias="updatedAt")
-    closed_at: datetime | None = Field(..., alias="closedAt")
-    merged_at: datetime | None = Field(..., alias="mergedAt")
+    # Origin leaves these out until the pull request closes or merges.
+    closed_at: datetime | None = Field(default=None, alias="closedAt")
+    merged_at: datetime | None = Field(default=None, alias="mergedAt")
 
     @validator("created_at", "updated_at", "closed_at", "merged_at", pre=True)
     def _absent_date(cls, value: Any) -> Any:

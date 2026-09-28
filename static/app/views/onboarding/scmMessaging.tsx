@@ -4,7 +4,6 @@ import {AnimatePresence, LayoutGroup, motion} from 'framer-motion';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
-import {Heading, Text} from '@sentry/scraps/text';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
@@ -16,6 +15,8 @@ import type {
   ScmMessagingSetup,
 } from 'sentry/components/onboarding/scm/scmMessagingSetup';
 import {DEFAULT_SCM_FEATURES} from 'sentry/components/onboarding/scm/scmPlatformHelpers';
+import {ScmStepHeader} from 'sentry/components/onboarding/scm/scmStepHeader';
+import {ScmStepLayout} from 'sentry/components/onboarding/scm/scmStepLayout';
 import {useScmMessagingProviders} from 'sentry/components/onboarding/scm/useScmMessagingProviders';
 import {
   isEligibleForIssueAlerts,
@@ -23,13 +24,11 @@ import {
   useScmMessagingSetupValidation,
 } from 'sentry/components/onboarding/scm/useScmMessagingSetupValidation';
 import {useScmProjectCreation} from 'sentry/components/onboarding/scm/useScmProjectCreation';
-import {IconMail} from 'sentry/icons/iconMail';
 import {t} from 'sentry/locale';
 import type {Repository} from 'sentry/types/integrations';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {SCM_STEP_CONTENT_WIDTH} from 'sentry/views/onboarding/consts';
 import {
   buildIntegrationAction,
   providerDetails,
@@ -39,6 +38,7 @@ import {
   type RequestDataFragment,
 } from 'sentry/views/projectInstall/issueAlertOptions';
 
+import {ONBOARDING_ENTER, ONBOARDING_STAGGER} from './animations';
 import type {StepProps} from './types';
 
 /**
@@ -272,19 +272,14 @@ export function ScmMessaging({
     // The onboarding flow has no page-level query container (project creation
     // resolves against `#main`), and the flow's fixed footers preclude one
     // higher up, so each SCM step declares its own.
-    <Stack align="center" gap="2xl" flexGrow={1} containerType="inline-size">
-      <Stack gap="2xl" maxWidth={`min(${SCM_STEP_CONTENT_WIDTH}, 100%)`} width="100%">
-        <Stack gap="lg">
-          <Heading as="h2" size="3xl">
-            {SCM_MESSAGING_TITLE}
-          </Heading>
-          <Text variant="muted" size="md" density="comfortable">
-            {t(
-              "Choose where to send alerts for your %s project. We'll create the project and its alert rules when you continue.",
-              selectedPlatform.name
-            )}
-          </Text>
-        </Stack>
+    <Stack containerType="inline-size">
+      <ScmStepLayout>
+        <ScmStepHeader
+          heading={SCM_MESSAGING_TITLE}
+          subtitle={t(
+            'Send high priority issue alerts to Slack, Discord, or Microsoft Teams. Email alerts stay on even if you skip. You can change this anytime.'
+          )}
+        />
 
         <LayoutGroup>
           {hasValidationAlert && (
@@ -325,11 +320,6 @@ export function ScmMessaging({
             </MotionStack>
           )}
 
-          <MotionFlex layout="position" align="center" gap="sm">
-            <IconMail size="sm" variant="muted" />
-            <Text variant="muted">{t('Email alerts will be included by default')}</Text>
-          </MotionFlex>
-
           <AnimatePresence mode="wait" initial={false}>
             {isPending ? (
               <MotionStack
@@ -368,15 +358,10 @@ export function ScmMessaging({
                 </Alert>
               </MotionStack>
             ) : providers.length > 0 ? (
-              <MotionStack
-                key="list"
-                layout="position"
-                initial={{opacity: 0}}
-                animate={{opacity: 1}}
-                exit={{opacity: 0}}
-                transition={{duration: 0.15}}
-                gap="lg"
-              >
+              // Drives its own entry: the providers usually land after the step
+              // has entered, and rows mounting that late would otherwise wait
+              // on the step's signal and stay hidden.
+              <MotionStack key="list" layout="position" {...ONBOARDING_STAGGER} gap="lg">
                 {visibleProviders.map(resolvedProvider => (
                   <ScmMessagingProviderRow
                     key={resolvedProvider.providerKey}
@@ -397,17 +382,17 @@ export function ScmMessaging({
 
           {validatedActiveRow === null && (
             <MotionFlex
-              layout="position"
+              {...ONBOARDING_ENTER}
               align="center"
               justify="between"
+              gap="md"
               width="100%"
-              paddingTop="sm"
+              paddingTop="2xl"
             >
               <Flex align="center">{genBackButton?.()}</Flex>
               <Flex align="center" gap="md">
                 <Button
-                  size="sm"
-                  variant="secondary"
+                  variant="transparent"
                   analyticsEventKey="onboarding.scm_messaging_setup_later_clicked"
                   analyticsEventName="Onboarding: SCM Messaging Setup Later Clicked"
                   busy={submissionMode === 'setup-later'}
@@ -418,7 +403,6 @@ export function ScmMessaging({
                 </Button>
                 {showContinue && (
                   <Button
-                    size="sm"
                     variant="primary"
                     analyticsEventKey="onboarding.scm_messaging_continue_clicked"
                     analyticsEventName="Onboarding: SCM Messaging Continue Clicked"
@@ -433,7 +417,7 @@ export function ScmMessaging({
             </MotionFlex>
           )}
         </LayoutGroup>
-      </Stack>
+      </ScmStepLayout>
     </Stack>
   );
 }
