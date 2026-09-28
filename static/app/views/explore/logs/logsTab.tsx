@@ -539,8 +539,8 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
               </Tabs>
               {tableTab === 'logs' && (
                 <TableActionsContainer>
-                  <AutorefreshToggle averageLogsPerSecond={averageLogsPerSecond} />
                   <LogsColorToggle />
+                  <AutorefreshToggle averageLogsPerSecond={averageLogsPerSecond} />
                   <Tooltip
                     title={manualRefreshDisabledReason}
                     disabled={!manualRefreshDisabledReason}
