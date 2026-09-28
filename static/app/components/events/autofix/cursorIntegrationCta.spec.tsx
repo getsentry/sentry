@@ -41,7 +41,20 @@ describe('CursorIntegrationCta', () => {
       },
     });
 
+  // The seer settings query only starts once the integrations query resolves,
+  // so the CTA stays in its loading state across chained requests. Wait for
+  // the settings request separately so a slow CI runner doesn't exhaust a
+  // single findBy timeout before the CTA renders.
+  let seerSettingsMock: jest.Mock | undefined;
+  const waitForSeerSettings = async () => {
+    if (!seerSettingsMock) {
+      return;
+    }
+    await waitFor(() => expect(seerSettingsMock).toHaveBeenCalled());
+  };
+
   beforeEach(() => {
+    seerSettingsMock = undefined;
     MockApiClient.clearMockResponses();
     localStorage.clear();
 
@@ -83,6 +96,7 @@ describe('CursorIntegrationCta', () => {
         organization,
       });
 
+      await waitForSeerSettings();
       expect(await screen.findByText('Cursor Agent Integration')).toBeInTheDocument();
       expect(
         screen.getByText(/Connect Cursor to automatically hand off/)
@@ -111,6 +125,7 @@ describe('CursorIntegrationCta', () => {
         organization,
       });
 
+      await waitForSeerSettings();
       await screen.findByText('Cursor Agent Integration');
       const docsLink = screen.getByRole('link', {name: 'Read the docs'});
       expect(docsLink).toHaveAttribute(
@@ -136,13 +151,14 @@ describe('CursorIntegrationCta', () => {
       });
 
       // Setting still points at Seer — handoff not configured for this agent.
-      mockSeerSettings();
+      seerSettingsMock = mockSeerSettings();
     });
 
     it('shows configure stage when integration installed but not configured', async () => {
       render(<CursorIntegrationCta project={project} />, {
         organization,
       });
+      await waitForSeerSettings();
 
       expect(await screen.findByText('Cursor Agent Integration')).toBeInTheDocument();
       expect(
@@ -161,6 +177,7 @@ describe('CursorIntegrationCta', () => {
       });
 
       render(<CursorIntegrationCta project={project} />, {
+      await waitForSeerSettings();
         organization,
       });
 
@@ -191,6 +208,7 @@ describe('CursorIntegrationCta', () => {
         organization,
       });
 
+      await waitForSeerSettings();
       await screen.findByText('Cursor Agent Integration');
       const settingsLink = screen.getByRole('link', {
         name: 'Configure in Seer project settings',
@@ -231,6 +249,7 @@ describe('CursorIntegrationCta', () => {
 
       const onUpdateSuccessSpy = jest.spyOn(ProjectsStore, 'onUpdateSuccess');
 
+      await waitForSeerSettings();
       render(<CursorIntegrationCta project={projectWithoutAutomation} />, {
         organization,
       });
@@ -301,6 +320,7 @@ describe('CursorIntegrationCta', () => {
         body: {},
       });
 
+      await waitForSeerSettings();
       render(<CursorIntegrationCta project={projectWithAutomation} />, {
         organization,
       });
@@ -341,7 +361,7 @@ describe('CursorIntegrationCta', () => {
       });
 
       // Handoff is set to Cursor, but the project's automation is disabled.
-      mockSeerSettings({
+      seerSettingsMock = mockSeerSettings({
         agent: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
         integrationId: '123',
       });
@@ -360,6 +380,7 @@ describe('CursorIntegrationCta', () => {
       render(<CursorIntegrationCta project={projectWithoutAutomation} />, {
         organization,
       });
+      await waitForSeerSettings();
 
       // Should show configure stage, not configured stage
       expect(await screen.findByText('Cursor Agent Integration')).toBeInTheDocument();
@@ -391,7 +412,7 @@ describe('CursorIntegrationCta', () => {
       });
 
       // Handoff is configured to Cursor.
-      mockSeerSettings({
+      seerSettingsMock = mockSeerSettings({
         agent: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
         integrationId: '123',
       });
@@ -409,6 +430,7 @@ describe('CursorIntegrationCta', () => {
 
       render(<CursorIntegrationCta project={projectWithAutomation} />, {
         organization,
+      await waitForSeerSettings();
       });
 
       expect(await screen.findByText('Cursor Agent Integration')).toBeInTheDocument();
@@ -430,6 +452,7 @@ describe('CursorIntegrationCta', () => {
 
       render(<CursorIntegrationCta project={projectWithAutomation} />, {
         organization,
+      await waitForSeerSettings();
       });
 
       expect(await screen.findByText('Cursor Agent Integration')).toBeInTheDocument();
@@ -453,6 +476,7 @@ describe('CursorIntegrationCta', () => {
         organization,
       });
 
+      await waitForSeerSettings();
       await screen.findByText('Cursor Agent Integration');
       expect(
         screen.queryByRole('button', {name: 'Set Seer to hand off to Cursor'})
