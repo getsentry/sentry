@@ -733,6 +733,7 @@ describe('LogsTabContent', () => {
       )
     ).not.toBeInTheDocument();
   });
+
   it('warns that results may be incomplete when the scan is partial and the sort is not timestamp descending', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
