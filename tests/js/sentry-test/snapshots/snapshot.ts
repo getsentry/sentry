@@ -14,6 +14,7 @@ import type {
   SnapshotImageMetadata,
   SnapshotTestMetadata,
 } from 'sentry-test/snapshots/snapshot-image-metadata';
+import {SnapshotContainer} from 'sentry-test/snapshots/snapshotContainer';
 
 const PROJECT_ROOT = path.resolve(__dirname, '../../../..');
 const FONTS_DIR = path.resolve(PROJECT_ROOT, 'static/fonts');
@@ -41,11 +42,7 @@ function getFontFaceCSS(): string {
   `;
 }
 
-function renderToHTML(
-  element: ReactElement,
-  containerWidth: number,
-  rootDisplay: 'inline-block' | 'block' = 'inline-block'
-): string {
+function renderToHTML(element: ReactElement): string {
   const cache = createCache({key: 'snap'});
   const {extractCriticalToChunks, constructStyleTagsFromChunks} =
     createEmotionServer(cache);
@@ -64,12 +61,10 @@ function renderToHTML(
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; animation: none !important; transition: none !important; }
     body { font-family: 'Rubik', sans-serif; background: transparent; }
-    #snapshot-container { width: ${containerWidth}px; container-type: inline-size; }
-    #root { display: ${rootDisplay}; }
   </style>
 </head>
 <body>
-  <div id="snapshot-container"><div id="root">${html}</div></div>
+  ${html}
 </body>
 </html>`;
 }
@@ -145,12 +140,12 @@ export async function takeSnapshot({
   viewportLabel,
   interaction,
 }: TakeSnapshotOptions): Promise<void> {
-  const element = renderFn();
-  const fullHTML = renderToHTML(
-    element,
-    containerWidth,
-    viewport ? 'block' : 'inline-block'
+  const element = createElement(
+    SnapshotContainer,
+    {width: containerWidth, fillWidth: viewport !== undefined},
+    renderFn()
   );
+  const fullHTML = renderToHTML(element);
 
   const browser = await getBrowser();
   const context = await browser.newContext({

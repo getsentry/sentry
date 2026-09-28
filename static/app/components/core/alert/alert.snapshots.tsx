@@ -10,7 +10,7 @@ describe('Alert', () => {
   ])(
     '%s',
     variant => (
-      <div style={{padding: 8, width: 400}}>
+      <div style={{width: 400}}>
         <Alert variant={variant}>This is a {variant} alert</Alert>
       </div>
     ),
@@ -26,7 +26,7 @@ describe('Alert', () => {
   ])(
     '%s-no-icon',
     variant => (
-      <div style={{padding: 8, width: 400}}>
+      <div style={{width: 400}}>
         <Alert variant={variant} showIcon={false}>
           This is a {variant} alert without icon
         </Alert>
@@ -44,7 +44,7 @@ describe('Alert', () => {
   ])(
     'system-%s',
     variant => (
-      <div style={{padding: 8, width: 400}}>
+      <div style={{width: 400}}>
         <Alert variant={variant} system>
           This is a system {variant} alert
         </Alert>

@@ -16,21 +16,14 @@ const allVariants: Array<ButtonProps['variant']> = [
 const allSizes: ButtonSize[] = ['zero', 'xs', 'sm', 'md'];
 
 describe('Button', () => {
-  function Wrapper({children}: {children: React.ReactNode}) {
-    // Padding prevents rootElement.screenshot() from clipping shadows and focus rings.
-    return <div style={{padding: 8}}>{children}</div>;
-  }
-
   describe.each(allVariants)('variant %s', variant => {
     describe.each(allSizes)('size %s', size => {
       it.snapshot(
         'without icon',
         () => (
-          <Wrapper>
-            <Button variant={variant} size={size}>
-              Button
-            </Button>
-          </Wrapper>
+          <Button variant={variant} size={size}>
+            Button
+          </Button>
         ),
         {
           tags: {variant: String(variant), size: String(size), area: 'core'},
@@ -40,11 +33,9 @@ describe('Button', () => {
       it.snapshot(
         'with icon',
         () => (
-          <Wrapper>
-            <Button variant={variant} size={size} icon={<IconEdit />}>
-              Button
-            </Button>
-          </Wrapper>
+          <Button variant={variant} size={size} icon={<IconEdit />}>
+            Button
+          </Button>
         ),
         {
           tags: {variant: String(variant), size: String(size), area: 'core'},
@@ -54,9 +45,7 @@ describe('Button', () => {
       it.snapshot(
         'icon-only',
         () => (
-          <Wrapper>
-            <Button variant={variant} size={size} icon={<IconEdit />} aria-label="Edit" />
-          </Wrapper>
+          <Button variant={variant} size={size} icon={<IconEdit />} aria-label="Edit" />
         ),
         {
           tags: {variant: String(variant), size: String(size), area: 'core'},

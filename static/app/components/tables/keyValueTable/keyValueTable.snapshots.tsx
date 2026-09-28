@@ -26,7 +26,7 @@ describe('KeyValueTable', () => {
   it.snapshot(
     'inline',
     () => (
-      <div style={{padding: 8, width: 400}}>
+      <div style={{width: 400}}>
         <KeyValueTable>
           <KeyValueTableRow keyName="Created" value="Jan 15, 2025" />
           <KeyValueTableRow keyName="Version" value="2.1.0" />
@@ -40,7 +40,7 @@ describe('KeyValueTable', () => {
   it.snapshot.each<'error' | 'warning'>(['error', 'warning'])(
     'inline-%s',
     (type: 'error' | 'warning') => (
-      <div style={{padding: 8, width: 400}}>
+      <div style={{width: 400}}>
         <KeyValueTable>
           <KeyValueTableRow keyName="Status" value="Failing" type={type} />
           <KeyValueTableRow keyName="Version" value="2.1.0" />
@@ -53,7 +53,7 @@ describe('KeyValueTable', () => {
   it.snapshot(
     'card',
     () => (
-      <div style={{padding: 8, width: 500}}>
+      <div style={{width: 500}}>
         <KeyValueTableCard
           title="Dataset KeyValueTableCardTitle"
           contentItems={contentItems}
@@ -66,7 +66,7 @@ describe('KeyValueTable', () => {
   it.snapshot(
     'card-truncated',
     () => (
-      <div style={{padding: 8, width: 500}}>
+      <div style={{width: 500}}>
         <KeyValueTableCard
           title="Truncated"
           contentItems={contentItems}
@@ -80,7 +80,7 @@ describe('KeyValueTable', () => {
   it.snapshot(
     'card-row-states',
     () => (
-      <div style={{padding: 8, width: 500}}>
+      <div style={{width: 500}}>
         <KeyValueTableCard
           contentItems={[
             {
@@ -118,7 +118,7 @@ describe('KeyValueTable', () => {
   it.snapshot(
     'card-expand-left',
     () => (
-      <div style={{padding: 8, width: 500}}>
+      <div style={{width: 500}}>
         <KeyValueTableCard contentItems={contentItems} expandLeft />
       </div>
     ),
@@ -128,7 +128,7 @@ describe('KeyValueTable', () => {
   it.snapshot(
     'card-standalone-row',
     () => (
-      <div style={{padding: 8, width: 500}}>
+      <div style={{width: 500}}>
         <KeyValueTableDataRow
           item={{key: 'string', subject: 'string', value: 'A plain string value.'}}
         />
@@ -140,7 +140,7 @@ describe('KeyValueTable', () => {
   it.snapshot(
     'list',
     () => (
-      <div style={{padding: 8, width: 500}}>
+      <div style={{width: 500}}>
         <KeyValueTableDataList data={listData} />
       </div>
     ),
@@ -150,7 +150,7 @@ describe('KeyValueTable', () => {
   it.snapshot(
     'list-context-data',
     () => (
-      <div style={{padding: 8, width: 500}}>
+      <div style={{width: 500}}>
         <KeyValueTableDataList data={listData} isContextData />
       </div>
     ),
@@ -160,7 +160,7 @@ describe('KeyValueTable', () => {
   it.snapshot(
     'list-multi-value',
     () => (
-      <div style={{padding: 8, width: 500}}>
+      <div style={{width: 500}}>
         <KeyValueTableDataList
           shouldSort={false}
           data={[

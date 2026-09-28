@@ -7,7 +7,7 @@ describe('InputGroup', () => {
   it.snapshot.each<InputProps['size']>(['md', 'sm', 'xs'])(
     'size-%s',
     size => (
-      <div style={{padding: 8, width: 300}}>
+      <div style={{width: 300}}>
         <InputGroup>
           <InputGroup.Input size={size} placeholder={`size ${size}`} />
         </InputGroup>
@@ -19,7 +19,7 @@ describe('InputGroup', () => {
   it.snapshot(
     'disabled',
     () => (
-      <div style={{padding: 8, width: 300}}>
+      <div style={{width: 300}}>
         <InputGroup>
           <InputGroup.Input disabled placeholder="Disabled input" />
         </InputGroup>
@@ -31,7 +31,7 @@ describe('InputGroup', () => {
   it.snapshot(
     'with-leading-items',
     () => (
-      <div style={{padding: 8, width: 300}}>
+      <div style={{width: 300}}>
         <InputGroup>
           <InputGroup.LeadingItems disablePointerEvents>
             <IconSearch />
@@ -46,7 +46,7 @@ describe('InputGroup', () => {
   it.snapshot(
     'with-leading-items-disabled',
     () => (
-      <div style={{padding: 8, width: 300}}>
+      <div style={{width: 300}}>
         <InputGroup>
           <InputGroup.LeadingItems disablePointerEvents>
             <IconSearch />
