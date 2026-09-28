@@ -1716,7 +1716,7 @@ register(
 # keyed by list: releases, error_messages, log_messages, trace_metric_names. A value is
 # off, double_write, rows or v2; a missing list is off. See sentry.ingest.legacy_filter_lists.
 register(
-    "inbound-filters.legacy-list-migration-stage",
+    "custom-inbound-filters.legacy-filter-stage",
     default={},
     type=Dict,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
