@@ -154,7 +154,11 @@ export function QueryEmbedTable<Row>({
         <SimpleTable.HeaderRow>
           {columns.map((column, index) => (
             <SimpleTable.HeaderCell columnIndex={index} key={column.key}>
-              <Text ellipsis>{column.label ?? column.key}</Text>
+              {/* `inherit` keeps the header cell's own secondary color rather
+                  than resetting the label to Text's primary default. */}
+              <Text ellipsis variant="inherit">
+                {column.label ?? column.key}
+              </Text>
             </SimpleTable.HeaderCell>
           ))}
         </SimpleTable.HeaderRow>
