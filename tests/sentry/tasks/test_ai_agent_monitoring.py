@@ -642,21 +642,3 @@ class FetchAIModelMetadataTest(TestCase):
             assert actual_normalized == expected_normalized, (
                 f"Expected {expected_normalized} for {model_id}, got {actual_normalized}"
             )
-
-    def test_create_prefix_glob_model_name(self) -> None:
-        """Test prefix glob generation for model names"""
-        from sentry.tasks.ai_agent_monitoring import _create_prefix_glob_model_name
-
-        # Test cases with expected outputs
-        test_cases = [
-            ("gpt-4", "*gpt-4"),
-            ("gpt-4o-mini", "*gpt-4o-mini"),
-            ("claude-3-5-sonnet", "*claude-3-5-sonnet"),
-            ("", "*"),
-        ]
-
-        for model_id, expected_glob in test_cases:
-            actual_glob = _create_prefix_glob_model_name(model_id)
-            assert actual_glob == expected_glob, (
-                f"Expected {expected_glob} for {model_id}, got {actual_glob}"
-            )

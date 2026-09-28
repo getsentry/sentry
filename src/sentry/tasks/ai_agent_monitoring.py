@@ -49,28 +49,6 @@ def _normalize_model_id(model_id: str) -> str:
     )
 
 
-def _create_prefix_glob_model_name(model_id: str) -> str:
-    """
-    Create a glob version of a model name by adding a wildcard prefix.
-
-    This handles cases where models have random prefixes before the actual model name.
-    Can be used on both regular model IDs and suffix-globbed model names.
-
-    Examples:
-    - "gpt-4" -> "*gpt-4"
-    - "claude-3-5-sonnet" -> "*claude-3-5-sonnet"
-    - "o3-pro" -> "*o3-pro"
-
-    Args:
-        model_id: The original model ID or a suffix-globbed model name
-
-    Returns:
-        The glob version with a wildcard prefix
-    """
-    # Simply prepend * to the model name
-    return f"*{model_id}"
-
-
 def _add_glob_model_names(models_dict: dict[ModelId, AIModelMetadata]) -> None:
     """
     Add glob versions of model names to the models dictionary.
@@ -89,12 +67,8 @@ def _add_glob_model_names(models_dict: dict[ModelId, AIModelMetadata]) -> None:
 
     for model_id in model_ids:
         normalized_model_id = _normalize_model_id(model_id)
-        if normalized_model_id != model_id and normalized_model_id not in models_dict:
-            models_dict[normalized_model_id] = models_dict[model_id]
-
-        prefix_glob_name = _create_prefix_glob_model_name(normalized_model_id)
-        if prefix_glob_name not in models_dict:
-            models_dict[prefix_glob_name] = models_dict[normalized_model_id]
+        models_dict.setdefault(normalized_model_id, models_dict[model_id])
+        models_dict.setdefault(f"*{normalized_model_id}", models_dict[normalized_model_id])
 
 
 @instrumented_task(
@@ -132,8 +106,7 @@ def fetch_ai_model_metadata() -> None:
     try:
         models_dev_models = _fetch_models_dev_models()
         for model_id, model_metadata in models_dev_models.items():
-            if model_id not in models_dict:
-                models_dict[model_id] = model_metadata
+            models_dict.setdefault(model_id, model_metadata)
     except Exception as e:
         logger.warning(
             "Failed to fetch AI model metadata from models.dev API", extra={"error": str(e)}
@@ -193,8 +166,7 @@ def _fetch_openrouter_models() -> dict[ModelId, AIModelMetadata]:
         # OpenRouter includes provider name in the model ID, e.g. openai/gpt-4o-mini
         # We need to extract the model name, since our SDKs only send the model name
         # (e.g. gpt-4o-mini)
-        if "/" in model_id:
-            model_id = model_id.split("/", maxsplit=1)[1]
+        model_id = model_id.split("/", maxsplit=1)[-1]
 
         pricing = model_data.get("pricing", {})
 
@@ -279,8 +251,7 @@ def _fetch_models_dev_models() -> dict[ModelId, AIModelMetadata]:
             # models.dev may include provider name in the model ID, e.g. google/gemini-2.0-flash-001
             # We need to extract the model name, since our SDKs only send the model name
             # (e.g. gemini-2.0-flash-001)
-            if "/" in model_id:
-                model_id = model_id.split("/", maxsplit=1)[1]
+            model_id = model_id.split("/", maxsplit=1)[-1]
 
             # models.dev provides costs as numbers, but for extra safety convert to our format
             try:
