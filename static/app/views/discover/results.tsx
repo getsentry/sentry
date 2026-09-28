@@ -1248,25 +1248,16 @@ function SaveQueryButton({
   const {projects} = useProjects();
   const {starQuery} = useStarQuery();
 
-  const {isSavedQuery, isEditingQuery} = useMemo(() => {
+  const {isSavedQuery} = useMemo(() => {
     if (!savedQuery) {
-      return {isSavedQuery: false, isEditingQuery: false};
+      return {isSavedQuery: false};
     }
     const savedEventView = EventView.fromSavedQuery(savedQuery);
     if (savedEventView.id !== eventView.id) {
-      return {isSavedQuery: false, isEditingQuery: false};
+      return {isSavedQuery: false};
     }
-    const isEqualQuery = eventView.isEqualTo(savedEventView);
-    const isEqualYAxis = isEqual(
-      yAxis,
-      savedQuery.yAxis
-        ? typeof savedQuery.yAxis === 'string'
-          ? [savedQuery.yAxis]
-          : savedQuery.yAxis
-        : ['count()']
-    );
-    return {isSavedQuery: true, isEditingQuery: !isEqualQuery || !isEqualYAxis};
-  }, [eventView, savedQuery, yAxis]);
+    return {isSavedQuery: true};
+  }, [eventView, savedQuery]);
 
   const currentDataset = getDatasetFromLocationOrSavedQueryDataset(
     location,
