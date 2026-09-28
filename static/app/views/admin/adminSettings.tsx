@@ -16,18 +16,6 @@ import {fetchMutation} from 'sentry/utils/queryClient';
 
 import {getOption} from './options';
 
-const optionsAvailable = [
-  'system.url-prefix',
-  'system.admin-email',
-  'system.support-email',
-  'system.security-email',
-  'auth.allow-registration',
-  'auth.ip-rate-limit',
-  'auth.user-rate-limit',
-  'api.rate-limit.org-create',
-  'beacon.anonymous',
-];
-
 type Field = ReturnType<typeof getOption>;
 
 type FieldDef = {
@@ -153,11 +141,27 @@ export default function AdminSettings() {
     return <LoadingIndicator />;
   }
 
-  const fields: Record<string, React.ReactNode> = {};
-  for (const key of optionsAvailable) {
-    const option = data[key] ?? ({field: {}, value: undefined} as FieldDef);
-    fields[key] = <AdminOptionField key={key} name={key} option={option} />;
-  }
+  const groups = [
+    {
+      title: t('General'),
+      options: [
+        'system.url-prefix',
+        'system.admin-email',
+        'system.support-email',
+        'system.security-email',
+      ],
+    },
+    {
+      title: t('Security & Abuse'),
+      options: [
+        'auth.allow-registration',
+        'auth.ip-rate-limit',
+        'auth.user-rate-limit',
+        'api.rate-limit.org-create',
+      ],
+    },
+    {title: t('Beacon'), options: ['beacon.anonymous']},
+  ];
 
   return (
     <Stack gap="xl">
@@ -165,21 +169,17 @@ export default function AdminSettings() {
         {t('Settings')}
       </Heading>
 
-      <FieldGroup title={t('General')}>
-        {fields['system.url-prefix']}
-        {fields['system.admin-email']}
-        {fields['system.support-email']}
-        {fields['system.security-email']}
-      </FieldGroup>
-
-      <FieldGroup title={t('Security & Abuse')}>
-        {fields['auth.allow-registration']}
-        {fields['auth.ip-rate-limit']}
-        {fields['auth.user-rate-limit']}
-        {fields['api.rate-limit.org-create']}
-      </FieldGroup>
-
-      <FieldGroup title={t('Beacon')}>{fields['beacon.anonymous']}</FieldGroup>
+      {groups.map(group => (
+        <FieldGroup key={group.title} title={group.title}>
+          {group.options.map(name => (
+            <AdminOptionField
+              key={name}
+              name={name}
+              option={data[name] ?? ({field: {}, value: undefined} as FieldDef)}
+            />
+          ))}
+        </FieldGroup>
+      ))}
     </Stack>
   );
 }
