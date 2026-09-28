@@ -32,100 +32,144 @@ const disabledReasons: Record<string, string> = {
   smtpDisabled: 'SMTP mail has been disabled, so this option is unavailable',
 };
 
-type OptionKind = 'boolean' | 'radio' | 'text';
-
-function AdminOptionField({
-  kind,
-  name,
-  option,
-}: {
-  kind: OptionKind;
-  name: string;
-  option: FieldDef;
-}) {
+function useAdminOption(name: string, option: FieldDef) {
   const queryClient = useQueryClient();
   const definition = {...getOption(name), ...option.field};
-  const rawInitialValue =
+  const initialValue =
     option.value === undefined || option.value === ''
       ? (definition.defaultValue?.() ?? '')
       : option.value;
-  const initialValue =
-    kind === 'boolean' ? Boolean(rawInitialValue) : String(rawInitialValue);
   const disabled = definition.disabled
     ? (disabledReasons[definition.disabledReason ?? ''] ?? true)
     : false;
   const required = definition.required && !definition.allowEmpty;
-  const stringSchema = required
+
+  return {
+    definition,
+    initialValue,
+    disabled,
+    required,
+    save: (value: boolean | string) =>
+      fetchMutation<void>({
+        url: getApiUrl('/internal/options/'),
+        method: 'PUT',
+        data: {[name]: value},
+      }),
+    refresh: () =>
+      queryClient.invalidateQueries({queryKey: optionsQueryOptions.queryKey}),
+  };
+}
+
+function getStringSchema(required: boolean | undefined) {
+  return required
     ? z.string().refine(value => value.trim().length > 0, t('This field is required'))
     : z.string();
+}
+
+type OptionFieldProps = {name: string; option: FieldDef};
+
+function BooleanOptionField({name, option}: OptionFieldProps) {
+  const {definition, initialValue, disabled, required, save, refresh} = useAdminOption(
+    name,
+    option
+  );
+
   return (
     <AutoSaveForm
       name="value"
-      schema={z.object({value: z.union([z.boolean(), stringSchema])})}
-      initialValue={initialValue}
+      schema={z.object({value: z.boolean()})}
+      initialValue={Boolean(initialValue)}
       mutationOptions={{
-        mutationFn: data =>
-          fetchMutation<void>({
-            url: getApiUrl('/internal/options/'),
-            method: 'PUT',
-            data: {[name]: data.value},
-          }),
-        onSuccess: () =>
-          queryClient.invalidateQueries({queryKey: optionsQueryOptions.queryKey}),
+        mutationFn: data => save(data.value),
+        onSuccess: refresh,
       }}
     >
-      {field => {
-        const controls = {
-          boolean: (
-            <field.Layout.Row
-              label={definition.label}
-              hintText={definition.help}
-              required={required}
-            >
-              <field.Switch
-                checked={field.state.value === true}
-                onChange={field.handleChange}
-                disabled={disabled}
-              />
-            </field.Layout.Row>
-          ),
-          radio: (
-            <field.Layout.Stack
-              label={definition.label}
-              hintText={definition.help}
-              required={required}
-            >
-              <field.Radio.Group
-                value={typeof field.state.value === 'string' ? field.state.value : ''}
-                onChange={field.handleChange}
-                disabled={disabled}
-              >
-                {definition.choices?.map(([value, label]) => (
-                  <field.Radio.Item key={value} value={value}>
-                    {label}
-                  </field.Radio.Item>
-                ))}
-              </field.Radio.Group>
-            </field.Layout.Stack>
-          ),
-          text: (
-            <field.Layout.Row
-              label={definition.label}
-              hintText={definition.help}
-              required={required}
-            >
-              <field.Input
-                value={typeof field.state.value === 'string' ? field.state.value : ''}
-                onChange={field.handleChange}
-                disabled={disabled}
-                placeholder={definition.placeholder}
-              />
-            </field.Layout.Row>
-          ),
-        };
+      {field => (
+        <field.Layout.Row
+          label={definition.label}
+          hintText={definition.help}
+          required={required}
+        >
+          <field.Switch
+            checked={field.state.value}
+            onChange={field.handleChange}
+            disabled={disabled}
+          />
+        </field.Layout.Row>
+      )}
+    </AutoSaveForm>
+  );
+}
 
-        return controls[kind];
+function RadioOptionField({name, option}: OptionFieldProps) {
+  const {definition, initialValue, disabled, required, save, refresh} = useAdminOption(
+    name,
+    option
+  );
+
+  return (
+    <AutoSaveForm
+      name="value"
+      schema={z.object({value: getStringSchema(required)})}
+      initialValue={String(initialValue)}
+      mutationOptions={{
+        mutationFn: data => save(data.value),
+        onSuccess: refresh,
       }}
+    >
+      {field => (
+        <field.Layout.Stack
+          label={definition.label}
+          hintText={definition.help}
+          required={required}
+        >
+          <field.Radio.Group
+            value={field.state.value}
+            onChange={field.handleChange}
+            disabled={disabled}
+          >
+            {definition.choices?.map(([value, label]) => (
+              <field.Radio.Item key={value} value={value}>
+                {label}
+              </field.Radio.Item>
+            ))}
+          </field.Radio.Group>
+        </field.Layout.Stack>
+      )}
+    </AutoSaveForm>
+  );
+}
+
+function TextOptionField({name, option}: OptionFieldProps) {
+  const {definition, initialValue, disabled, required, save, refresh} = useAdminOption(
+    name,
+    option
+  );
+
+  return (
+    <AutoSaveForm
+      name="value"
+      schema={z.object({value: getStringSchema(required)})}
+      initialValue={String(initialValue)}
+      mutationOptions={{
+        mutationFn: data => save(data.value),
+        onSuccess: refresh,
+      }}
+    >
+      {field => (
+        <field.Layout.Row
+          label={definition.label}
+          hintText={definition.help}
+          required={required}
+        >
+          <field.Input
+            value={field.state.value}
+            onChange={field.handleChange}
+            disabled={disabled}
+            placeholder={definition.placeholder}
+          />
+        </field.Layout.Row>
+      )}
     </AutoSaveForm>
   );
 }
@@ -151,57 +195,42 @@ export default function AdminSettings() {
       </Heading>
 
       <FieldGroup title={t('General')}>
-        <AdminOptionField
-          kind="text"
-          name="system.url-prefix"
-          option={option('system.url-prefix')}
-        />
-        <AdminOptionField
-          kind="text"
+        <TextOptionField name="system.url-prefix" option={option('system.url-prefix')} />
+        <TextOptionField
           name="system.admin-email"
           option={option('system.admin-email')}
         />
-        <AdminOptionField
-          kind="text"
+        <TextOptionField
           name="system.support-email"
           option={option('system.support-email')}
         />
-        <AdminOptionField
-          kind="text"
+        <TextOptionField
           name="system.security-email"
           option={option('system.security-email')}
         />
       </FieldGroup>
 
       <FieldGroup title={t('Security & Abuse')}>
-        <AdminOptionField
-          kind="boolean"
+        <BooleanOptionField
           name="auth.allow-registration"
           option={option('auth.allow-registration')}
         />
-        <AdminOptionField
-          kind="text"
+        <TextOptionField
           name="auth.ip-rate-limit"
           option={option('auth.ip-rate-limit')}
         />
-        <AdminOptionField
-          kind="text"
+        <TextOptionField
           name="auth.user-rate-limit"
           option={option('auth.user-rate-limit')}
         />
-        <AdminOptionField
-          kind="text"
+        <TextOptionField
           name="api.rate-limit.org-create"
           option={option('api.rate-limit.org-create')}
         />
       </FieldGroup>
 
       <FieldGroup title={t('Beacon')}>
-        <AdminOptionField
-          kind="radio"
-          name="beacon.anonymous"
-          option={option('beacon.anonymous')}
-        />
+        <RadioOptionField name="beacon.anonymous" option={option('beacon.anonymous')} />
       </FieldGroup>
     </Stack>
   );
