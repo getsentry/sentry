@@ -1256,15 +1256,10 @@ const FlushSimpleTable = styled(SimpleTable)`
   border-width: 1px 0 0;
   border-radius: 0;
 
-  /* A slimmer, regular-weight header than SimpleTable's own, so the column
-   * names read as labels over the values rather than competing with them. */
+  /* A slimmer header than SimpleTable's own, per the query card design. */
   > thead > tr {
     border-radius: 0;
     min-height: ${p => p.theme.space['3xl']};
-  }
-
-  > thead th {
-    font-weight: ${p => p.theme.font.weight.sans.regular};
   }
 `;
 
