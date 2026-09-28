@@ -47,7 +47,6 @@ class WebVitalsIssueDetectionDataTest(TestCase, SnubaTestCase, SpanTestCase):
                     "issue-detection.web-vitals-detection.projects-allowlist": [project.id],
                 }
             ),
-            self.feature("organizations:gen-ai-features"),
         ):
             run_web_vitals_issue_detection()
 
@@ -65,7 +64,6 @@ class WebVitalsIssueDetectionDataTest(TestCase, SnubaTestCase, SpanTestCase):
                     "issue-detection.web-vitals-detection.projects-allowlist": [project.id],
                 }
             ),
-            self.feature("organizations:gen-ai-features"),
         ):
             run_web_vitals_issue_detection()
 
@@ -81,7 +79,6 @@ class WebVitalsIssueDetectionDataTest(TestCase, SnubaTestCase, SpanTestCase):
                     "issue-detection.web-vitals-detection.projects-allowlist": [],
                 }
             ),
-            self.feature("organizations:gen-ai-features"),
         ):
             run_web_vitals_issue_detection()
 
@@ -173,7 +170,6 @@ class WebVitalsIssueDetectionDataTest(TestCase, SnubaTestCase, SpanTestCase):
                     "issue-detection.web-vitals-detection.projects-allowlist": [project.id],
                 }
             ),
-            self.feature("organizations:gen-ai-features"),
             TaskRunner(),
         ):
             run_web_vitals_issue_detection()
@@ -291,7 +287,6 @@ class WebVitalsIssueDetectionDataTest(TestCase, SnubaTestCase, SpanTestCase):
                     "issue-detection.web-vitals-detection.projects-allowlist": [project.id],
                 }
             ),
-            self.feature("organizations:gen-ai-features"),
             TaskRunner(),
         ):
             run_web_vitals_issue_detection()
@@ -377,7 +372,6 @@ class WebVitalsIssueDetectionDataTest(TestCase, SnubaTestCase, SpanTestCase):
                     "issue-detection.web-vitals-detection.projects-allowlist": [project.id],
                 }
             ),
-            self.feature("organizations:gen-ai-features"),
             TaskRunner(),
         ):
             run_web_vitals_issue_detection()
@@ -421,7 +415,6 @@ class WebVitalsIssueDetectionDataTest(TestCase, SnubaTestCase, SpanTestCase):
                     "issue-detection.web-vitals-detection.projects-allowlist": [project.id],
                 }
             ),
-            self.feature("organizations:gen-ai-features"),
             TaskRunner(),
         ):
             run_web_vitals_issue_detection()
@@ -502,7 +495,6 @@ class WebVitalsIssueDetectionDataTest(TestCase, SnubaTestCase, SpanTestCase):
                     "issue-detection.web-vitals-detection.projects-allowlist": [project.id],
                 }
             ),
-            self.feature("organizations:gen-ai-features"),
             TaskRunner(),
         ):
             run_web_vitals_issue_detection()
@@ -611,7 +603,6 @@ class WebVitalsIssueDetectionDataTest(TestCase, SnubaTestCase, SpanTestCase):
                     "issue-detection.web-vitals-detection.projects-allowlist": [project.id],
                 }
             ),
-            self.feature("organizations:gen-ai-features"),
             TaskRunner(),
         ):
             run_web_vitals_issue_detection()
@@ -644,7 +635,6 @@ class WebVitalsIssueDetectionDataTest(TestCase, SnubaTestCase, SpanTestCase):
                     "issue-detection.web-vitals-detection.projects-allowlist": [project.id],
                 }
             ),
-            self.feature("organizations:gen-ai-features"),
             TaskRunner(),
         ):
             run_web_vitals_issue_detection()

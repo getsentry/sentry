@@ -24,7 +24,6 @@ REPO = "acme/rocket"
 REPO_EXTERNAL_ID = "r_01example"
 USER_ID = "user_01example"
 FEATURES = {
-    "organizations:gen-ai-features",
     "organizations:code-review-beta",
     "organizations:seer-cursor-origin-support",
 }

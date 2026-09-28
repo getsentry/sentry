@@ -15,7 +15,7 @@ from sentry.seer.code_review.webhooks.review_request import (
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 
-CODE_REVIEW_FEATURES = {"organizations:gen-ai-features", "organizations:code-review-beta"}
+CODE_REVIEW_FEATURES = {"organizations:code-review-beta"}
 
 
 def _event(**overrides: object) -> PullRequestReviewEvent:
