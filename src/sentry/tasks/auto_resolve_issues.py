@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-from collections import defaultdict
 from datetime import datetime, timedelta, timezone
+from itertools import batched
 from time import time
-from typing import Any
 
 from django.utils import timezone as django_timezone
 
@@ -24,8 +23,11 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import issues_tasks
 from sentry.types.activity import ActivityType
+from sentry.utils import metrics
+from sentry.utils.query import RangeQuerySetWrapper
 
 TEN_MINUTES = 10 * 60
+SCHEDULER_CHUNK_SIZE = 1000
 
 
 @instrumented_task(
@@ -35,30 +37,39 @@ TEN_MINUTES = 10 * 60
     silo_mode=SiloMode.CELL,
 )
 def schedule_auto_resolution():
-    options_qs = ProjectOption.objects.filter(
-        key__in=["sentry:resolve_age", "sentry:_last_auto_resolve"]
-    )
-    opts_by_project: dict[int, dict[str, Any]] = defaultdict(dict)
-    for opt in options_qs:
-        opts_by_project[opt.project_id][opt.key] = opt.value
-
     cutoff = time() - TEN_MINUTES
-    for project_id, options in opts_by_project.items():
-        if not options.get("sentry:resolve_age"):
-            # kill the option to avoid it coming up in the future
-            ProjectOption.objects.filter(
-                key__in=["sentry:_last_auto_resolve", "sentry:resolve_age"], project=project_id
-            ).delete()
-            continue
 
-        if int(options.get("sentry:_last_auto_resolve", 0)) > cutoff:
-            continue
-
-        auto_resolve_project_issues.apply_async(
-            args=[project_id],
-            expires=TEN_MINUTES,
-            headers={"sentry-propagate-traces": False},
+    enabled_project_ids = (
+        option.project_id
+        for option in RangeQuerySetWrapper(
+            ProjectOption.objects.filter(key="sentry:resolve_age"), step=SCHEDULER_CHUNK_SIZE
         )
+        # A falsy value (0 or a legacy null) is an opt-out/disabled.
+        # the row must stay distinguishable from "never configured".
+        if option.value
+    )
+    for project_ids in batched(enabled_project_ids, SCHEDULER_CHUNK_SIZE):
+        last_auto_resolve = ProjectOption.objects.get_value_bulk_id(
+            project_ids, "sentry:_last_auto_resolve"
+        )
+        dispatched = 0
+        for project_id in project_ids:
+            if int(last_auto_resolve.get(project_id) or 0) > cutoff:
+                continue
+
+            auto_resolve_project_issues.apply_async(
+                args=[project_id],
+                expires=TEN_MINUTES,
+                headers={"sentry-propagate-traces": False},
+            )
+            dispatched += 1
+        if dispatched:
+            metrics.incr(
+                "auto_resolve.scheduler.dispatched",
+                amount=dispatched,
+                tags={"source": "explicit"},
+                sample_rate=1.0,
+            )
 
 
 @instrumented_task(
@@ -102,6 +113,7 @@ def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwar
 
     might_have_more = len(queryset) == chunk_size
 
+    resolved_count = 0
     for group in queryset:
         resolution_time = django_timezone.now()
         happened = Group.objects.filter(
@@ -113,9 +125,10 @@ def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwar
             resolved_at=resolution_time,
             substatus=None,
         )
-        remove_group_from_inbox(group, action=GroupInboxRemoveAction.RESOLVED)
 
         if happened:
+            resolved_count += 1
+            remove_group_from_inbox(group, action=GroupInboxRemoveAction.RESOLVED)
             with action_context_scope(ActionSource.SYSTEM, SYSTEM_ACTOR):
                 Activity.objects.create(
                     group=group,
@@ -157,6 +170,14 @@ def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwar
                 commit_id=None,
                 sender="auto_resolve_issues",
             )
+
+    if resolved_count:
+        metrics.incr(
+            "auto_resolve.groups_resolved",
+            amount=resolved_count,
+            tags={"source": "explicit"},
+            sample_rate=1.0,
+        )
 
     if might_have_more:
         auto_resolve_project_issues.apply_async(
