@@ -1,5 +1,5 @@
 import {Fragment, useState} from 'react';
-import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {ProjectAvatar} from '@sentry/scraps/avatar';
@@ -11,6 +11,8 @@ import {Heading, Text} from '@sentry/scraps/text';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {PathMappingList} from 'sentry/components/connectRepository/pathMappingList';
 import type {PathMappingValue} from 'sentry/components/connectRepository/type';
+import type {ExistingMapping} from 'sentry/components/connectRepository/warnings';
+import {getPathMappingWarnings} from 'sentry/components/connectRepository/warnings';
 import {ScmVirtualizedMenuList} from 'sentry/components/onboarding/scm/scmVirtualizedMenuList';
 import {IconLock} from 'sentry/icons';
 import {IconArrow} from 'sentry/icons/iconArrow';
@@ -19,6 +21,7 @@ import type {Project} from 'sentry/types/project';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
+  projectCodeMappingsOptions,
   saveProjectRepoConnection,
   projectRepoInfiniteOptions,
   type RepoSelectOption,
@@ -104,7 +107,21 @@ export function ConnectRepositoryModal({
     },
   });
 
-  const canSave = selectedOption !== null && pathMappings.length > 0;
+  const {data: rawExistingMappings = []} = useQuery({
+    ...projectCodeMappingsOptions({orgSlug: organization.slug, projectId: project.id}),
+    enabled: selectedOption !== null,
+  });
+
+  const existingMappings: ExistingMapping[] = rawExistingMappings.map(m => ({
+    repoName: m.repoName,
+    sourceRoot: m.sourceRoot,
+    stackRoot: m.stackRoot,
+  }));
+
+  const hasUnusedMapping = getPathMappingWarnings(pathMappings, existingMappings).some(
+    w => w?.type === 'exact' || w?.type === 'exactExisting'
+  );
+  const canSave = selectedOption !== null && pathMappings.length > 0 && !hasUnusedMapping;
   const saveError = saveMutation.isError ? getApiErrorMessage(saveMutation.error) : null;
 
   return (
@@ -170,6 +187,7 @@ export function ConnectRepositoryModal({
                 key={selectedOption.value}
                 providerKey={selectedOption.providerKey}
                 defaultBranch={selectedOption.defaultBranch ?? undefined}
+                existingMappings={existingMappings}
                 onChange={setPathMappings}
               />
             </Container>

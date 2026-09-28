@@ -325,6 +325,11 @@ describe('ConnectedRepositoriesPanel', () => {
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/code-mappings/`,
+      method: 'GET',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/code-mappings/`,
       method: 'POST',
       body: {},
     });

@@ -7,6 +7,18 @@ function renderList(props: Partial<Parameters<typeof PathMappingList>[0]> = {}) 
   return render(<PathMappingList onChange={() => {}} {...props} />);
 }
 
+// Bold paths split the sentence across elements. Match the node that contains
+// the full sentence, not each nested fragment.
+function hasOnlyThisText(node: Element | null, pattern: RegExp) {
+  const text = node?.textContent ?? '';
+  if (!pattern.test(text)) {
+    return false;
+  }
+  return Array.from(node?.children ?? []).every(
+    child => !pattern.test(child.textContent ?? '')
+  );
+}
+
 const MAPPINGS: PathMappingValue[] = [
   {stackRoot: 'app/', sourceRoot: 'static/app/', branch: 'main'},
   {stackRoot: 'src/', sourceRoot: 'src/app/', branch: 'frontend'},
@@ -212,7 +224,7 @@ describe('PathMappingList', () => {
       // The initial row is empty (catch-all state).
       expect(
         await screen.findByText(
-          'A mapping that matches every path already exists for this project and repository, so this rule needs a specific path to match.'
+          'This mapping matches every path because the stack trace prefix is empty. Add a specific path if you only want it to apply to some files.'
         )
       ).toBeInTheDocument();
     });
@@ -227,7 +239,7 @@ describe('PathMappingList', () => {
 
       expect(
         screen.queryByText(
-          'A mapping that matches every path already exists for this project and repository, so this rule needs a specific path to match.'
+          'This mapping matches every path because the stack trace prefix is empty. Add a specific path if you only want it to apply to some files.'
         )
       ).not.toBeInTheDocument();
     });
@@ -256,7 +268,12 @@ describe('PathMappingList', () => {
       await userEvent.click(firstExpand!);
 
       expect(
-        screen.getByText(/src\/app\/ is more specific and matches first/)
+        screen.getByText((_, node) =>
+          hasOnlyThisText(
+            node,
+            /src\/app\/ is a more specific rule than this mapping \(src\/\)/
+          )
+        )
       ).toBeInTheDocument();
     });
 
@@ -278,7 +295,7 @@ describe('PathMappingList', () => {
       );
 
       expect(
-        screen.queryByText(/more specific and matches first/)
+        screen.queryByText(/more specific rule than this mapping/)
       ).not.toBeInTheDocument();
     });
 
@@ -292,6 +309,40 @@ describe('PathMappingList', () => {
 
       // No warning icon on either collapsed row.
       expect(screen.queryByRole('img', {name: 'Warning'})).not.toBeInTheDocument();
+    });
+
+    it('shows exact warning icons for two in-form rows with empty stack roots', () => {
+      renderList({
+        pathMappings: [
+          {stackRoot: '', sourceRoot: 'src/app/', branch: 'main'},
+          {stackRoot: '', sourceRoot: 'dist/', branch: 'main'},
+        ],
+      });
+
+      // Both empty rows are exact duplicates of each other — each gets a warning icon.
+      expect(screen.getAllByRole('img', {name: 'Warning'})).toHaveLength(2);
+    });
+
+    it('shows warning icon for a row whose stack root matches an existing mapping', () => {
+      renderList({
+        pathMappings: [{stackRoot: 'src/', sourceRoot: 'app/', branch: 'main'}],
+        existingMappings: [
+          {repoName: 'getsentry/relay', stackRoot: 'src/', sourceRoot: 'dist/'},
+        ],
+      });
+
+      expect(screen.getByRole('img', {name: 'Warning'})).toBeInTheDocument();
+    });
+
+    it('shows warning icon for a row whose stack root is a shorter prefix of an existing mapping', () => {
+      renderList({
+        pathMappings: [{stackRoot: 'src/', sourceRoot: 'app/', branch: 'main'}],
+        existingMappings: [
+          {repoName: 'getsentry/relay', stackRoot: 'src/app/', sourceRoot: 'dist/'},
+        ],
+      });
+
+      expect(screen.getByRole('img', {name: 'Warning'})).toBeInTheDocument();
     });
 
     it('shows warning icon and expanded alert for two identical stack roots', async () => {
@@ -308,7 +359,7 @@ describe('PathMappingList', () => {
       const [firstExpand] = screen.getAllByRole('button', {name: 'Expand path mapping'});
       await userEvent.click(firstExpand!);
 
-      expect(screen.getByText(/Only the first match applies/)).toBeInTheDocument();
+      expect(screen.getByText(/Only one can be used for matching/)).toBeInTheDocument();
     });
 
     it('still only disables add-another when roots are exact duplicates, not overlaps', () => {

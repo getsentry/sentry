@@ -27,14 +27,14 @@ interface PathMappingSummaryProps extends PathMappingValue {
   warning?: PathMappingWarning | null;
 }
 
-function PathSegment({value}: {value: string}) {
+function PathSegment({value, emptyLabel}: {emptyLabel: string; value: string}) {
   return (
     <Flex flex={`${PATH_RATIO} 0 0%`} minWidth={0} maxWidth="max-content">
       {value ? (
         <AccentPathSegment value={value} ellipsis />
       ) : (
         <Text monospace variant="muted">
-          {t('empty')}
+          <strong>{t('empty')}</strong> {emptyLabel}
         </Text>
       )}
     </Flex>
@@ -56,7 +56,11 @@ export function PathMappingSummary({
     branch: branchName,
   } = normalizedPathMappingSchema.parse({stackRoot, sourceRoot, branch});
 
-  const isOverlap = warning?.type === 'overlap';
+  const isOverlap =
+    warning?.type === 'exact' ||
+    warning?.type === 'exactExisting' ||
+    warning?.type === 'overlap' ||
+    warning?.type === 'overlapExisting';
   const Wrapper = isOverlap ? OverlapContainer : Container;
 
   return (
@@ -74,11 +78,11 @@ export function PathMappingSummary({
             )}
           </Container>
         )}
-        <PathSegment value={normalizedStackRoot} />
+        <PathSegment value={normalizedStackRoot} emptyLabel={t('stack trace prefix')} />
         <Container flexShrink={0}>
           {props => <IconArrow direction="right" size="xs" {...props} />}
         </Container>
-        <PathSegment value={normalizedSourceRoot} />
+        <PathSegment value={normalizedSourceRoot} emptyLabel={t('repository prefix')} />
 
         <Container flex="1 0 0%" />
 
