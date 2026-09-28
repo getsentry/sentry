@@ -32,6 +32,8 @@ import {
 
 import {ConnectRepositoryModal} from 'sentry/views/settings/projectGeneralSettings/connectRepositoryModal';
 
+// Bold paths split the sentence across elements. Match the node that contains
+// the full sentence, not each nested fragment.
 function hasOnlyThisText(node: Element | null, pattern: RegExp) {
   const text = node?.textContent ?? '';
   if (!pattern.test(text)) {
