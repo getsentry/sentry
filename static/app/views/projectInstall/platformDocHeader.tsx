@@ -1,9 +1,9 @@
 import {useCallback} from 'react';
 import {useBlocker} from 'react-router-dom';
-import styled from '@emotion/styled';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Grid} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
+import {Heading} from '@sentry/scraps/text';
 
 import {removeProject} from 'sentry/actionCreators/projects';
 import {useRecentCreatedProject} from 'sentry/components/onboarding/useRecentCreatedProject';
@@ -115,8 +115,16 @@ export function PlatformDocHeader({
   });
 
   return (
-    <StyledPageHeader>
-      <h2>{t('Configure %(platform)s SDK', {platform: platform.name ?? 'other'})}</h2>
+    <Flex
+      direction={{zero: 'column', xl: 'row'}}
+      align="start"
+      justify="between"
+      gap={{zero: 'xl', xl: '0'}}
+      marginBottom="2xl"
+    >
+      <Heading as="h2">
+        {t('Configure %(platform)s SDK', {platform: platform.name ?? 'other'})}
+      </Heading>
       <Grid flow="column" align="center" gap="md">
         <Button
           size="sm"
@@ -131,25 +139,6 @@ export function PlatformDocHeader({
           </LinkButton>
         )}
       </Grid>
-    </StyledPageHeader>
+    </Flex>
   );
 }
-
-const StyledPageHeader = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: ${p => p.theme.space['2xl']};
-
-  h2 {
-    margin: 0;
-  }
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    flex-direction: column;
-    align-items: flex-start;
-
-    h2 {
-      margin-bottom: ${p => p.theme.space.xl};
-    }
-  }
-`;

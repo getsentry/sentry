@@ -302,7 +302,7 @@ describe('getTraceItemTagCollection', () => {
   it('preserves explicitly-typed string tags', () => {
     const key = 'tags[organization.id,string]';
 
-    expect(getTraceItemTagCollection([makeAttribute(key, 'string')], 'string')).toEqual({
+    expect(getTraceItemTagCollection([makeAttribute(key)], 'string')).toEqual({
       [key]: {
         key,
         name: key,

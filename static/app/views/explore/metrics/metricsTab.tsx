@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import {closestCenter, DndContext} from '@dnd-kit/core';
 import {SortableContext, verticalListSortingStrategy} from '@dnd-kit/sortable';
 
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Grid, Stack} from '@sentry/scraps/layout';
 import {Separator} from '@sentry/scraps/separator';
 
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -35,13 +35,14 @@ import {
   useAddMetricQuery,
   useMultiMetricsQueryParams,
 } from 'sentry/views/explore/metrics/multiMetricsQueryParams';
-import {
-  FilterBarWithSaveAsContainer,
-  StyledPageFilterBar,
-} from 'sentry/views/explore/metrics/styles';
+import {StyledPageFilterBar} from 'sentry/views/explore/metrics/styles';
 import {isVisualizeEquation} from 'sentry/views/explore/queryParams/visualize';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
+import {
+  toLLMContextProjectFields,
+  useSelectedProjectsForLLMContext,
+} from 'sentry/views/seerExplorer/utils/selectedProjectsForLLMContext';
 export const METRICS_CHART_GROUP = 'metrics-charts-group';
 
 type MetricsTabProps = {
@@ -77,16 +78,29 @@ function MetricsTabFilterSection({datePageFilterProps}: MetricsTabProps) {
   return (
     <ExploreBodySearch>
       <Layout.Main width="full">
-        <FilterBarWithSaveAsContainer>
-          <StyledPageFilterBar condensed>
-            <ProjectPageFilter />
-            <EnvironmentPageFilter />
-            <DatePageFilter
-              {...datePageFilterProps}
-              searchPlaceholder={t('Custom range: 2h, 4d, 3w')}
-            />
-          </StyledPageFilterBar>
-          <Flex gap="sm" align="center">
+        <Grid
+          areas={{zero: '"filters" "actions"', xl: '"filters actions"'}}
+          columns={{zero: '100%', xl: '1fr auto'}}
+          gap="md"
+          width="100%"
+        >
+          <Container area="filters" justifySelf={{zero: 'stretch', sm: 'start'}}>
+            <StyledPageFilterBar condensed>
+              <ProjectPageFilter />
+              <EnvironmentPageFilter />
+              <DatePageFilter
+                {...datePageFilterProps}
+                searchPlaceholder={t('Custom range: 2h, 4d, 3w')}
+              />
+            </StyledPageFilterBar>
+          </Container>
+          <Grid
+            area="actions"
+            columns={{zero: '1fr', sm: 'repeat(3, auto)'}}
+            gap="md"
+            align="center"
+            justifySelf={{zero: 'stretch', sm: 'end'}}
+          >
             <ToolbarVisualizeAddChart
               add={addMetricQuery}
               disabled={isAddMetricDisabled}
@@ -100,8 +114,8 @@ function MetricsTabFilterSection({datePageFilterProps}: MetricsTabProps) {
               label={t('Add Equation')}
             />
             <MetricSaveAs size="md" />
-          </Flex>
-        </FilterBarWithSaveAsContainer>
+          </Grid>
+        </Grid>
       </Layout.Main>
     </ExploreBodySearch>
   );
@@ -119,13 +133,14 @@ function MetricsTabBodySection({
   const metricQueries = useMultiMetricsQueryParams();
   const [interval] = useChartInterval();
   const pageFilters = usePageFilters();
-  const {isFetching: areToolbarsLoading, isMetricOptionsEmpty} = useMetricOptions({
-    enabled: true,
-  });
+  const selectedProjects = useSelectedProjectsForLLMContext();
+  const {isFetching: areToolbarsLoading, isMetricOptionsEmpty} = useMetricOptions({});
 
   useLLMContext({
     contextHint:
-      'Sentry metrics explorer page. Users search and visualize application metrics (counters, gauges, distributions) with filters, grouping, and aggregation functions. You can search live telemetry for metrics, discover metric names via the telemetry index, and query metric data with specific filters and time ranges.',
+      'Sentry metrics explorer page. Users search and visualize application metrics (counters, gauges, distributions) with filters, grouping, and aggregation functions. You can search live telemetry for metrics, discover metric names via the telemetry index, and query metric data with specific filters and time ranges. ' +
+      'projectSelectionInstruction describes the page-filter project scope (explicit pins vs My/All Projects). ' +
+      'When projectIds/projectSlugs are empty, that is expected for My/All Projects — follow projectSelectionInstruction.',
     metricQueries: metricQueries.map(q => ({
       metric: q.metric?.name,
       label: q.label,
@@ -133,6 +148,7 @@ function MetricsTabBodySection({
     })),
     interval,
     currentSelectedDateRange: pageFilters.selection.datetime,
+    ...toLLMContextProjectFields(selectedProjects),
   });
 
   useMetricsAnalytics({

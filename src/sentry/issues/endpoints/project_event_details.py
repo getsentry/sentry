@@ -169,7 +169,6 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
             request_user=request.user,
             event=event,
             environments=list(environments),
-            include_full_release_data=True,
             start=start,
             end=end,
         )

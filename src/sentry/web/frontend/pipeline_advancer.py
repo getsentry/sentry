@@ -8,6 +8,7 @@ from django.utils.translation import gettext_lazy as _
 
 from sentry import features
 from sentry.identity.pipeline import IdentityPipeline
+from sentry.integrations.cursor_origin.pipeline import verify_receipt
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.organizations.absolute_url import generate_organization_url
@@ -141,6 +142,21 @@ class PipelineAdvancerView(BaseView):
                     query={"installationId": installation_id},
                 )
             )
+
+        # Origin apps may be installed from Origin's marketplace, which redirects here
+        # with a signed receipt. A receipt carrying no state claim belongs to such an
+        # install, so any pipeline in the session belongs to something else and must not
+        # be handed the receipt. The receipt is the only accepted source of the id.
+        receipt = request.GET.get("installation_receipt")
+        if provider_id == IntegrationProviderSlug.CURSOR_ORIGIN.value and receipt:
+            if verify_receipt(receipt, None):
+                return self.redirect(
+                    reverse(
+                        "sentry-integration-installation-link",
+                        kwargs={"integration_slug": provider_id},
+                        query={"installationReceipt": receipt},
+                    )
+                )
 
         if pipeline is None or not pipeline.is_valid():
             messages.add_message(request, messages.ERROR, _("Invalid request."))

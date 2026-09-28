@@ -27,11 +27,7 @@ export function SelectorList({frame}: {frame: ClickFrame}) {
   return (
     <Fragment>
       <span>{selectorPrefix}</span>
-      <Tooltip
-        title={t('Search by this component')}
-        containerDisplayMode="inline"
-        isHoverable
-      >
+      <Tooltip title={t('Search by this component')} containerDisplayMode="inline">
         <Link
           to={{
             pathname: makeReplaysPathname({

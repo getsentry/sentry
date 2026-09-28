@@ -1,9 +1,9 @@
 import {Fragment} from 'react';
 
+import {InfoTip} from '@sentry/scraps/info';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {defined} from 'sentry/utils/defined';
@@ -22,6 +22,7 @@ import {
   checkIsAddOnChildCategory,
   displayBudgetName,
   formatReservedWithUnits,
+  getLineItemUnitType,
   getSoftCapType,
   hasPaygBudgetForCategory,
   supportsPayg,
@@ -72,7 +73,7 @@ function UsageBreakdownField({
         <Text variant="muted" bold uppercase size="sm">
           {field}
         </Text>
-        {help && <QuestionTooltip title={help} size="xs" />}
+        {help && <InfoTip title={help} size="xs" />}
       </Flex>
       <Text size="lg">{value}</Text>
     </Stack>
@@ -209,23 +210,27 @@ function DataCategoryUsageBreakdownInfo({
     : reserved;
   const platformReservedField = tct('[planName] plan', {planName: plan.name});
 
+  const unitType = getLineItemUnitType(plan, category);
   const additionalReserved = Math.max(0, reserved - platformReserved);
   const shouldShowAdditionalReserved = additionalReserved > 0;
   const formattedAdditionalReserved = shouldShowAdditionalReserved
-    ? formatReservedWithUnits(additionalReserved, category)
+    ? formatReservedWithUnits(additionalReserved, category, {unitType})
     : null;
   const formattedPlatformReserved =
     reserved > 0
       ? formatReservedWithUnits(
           shouldShowAdditionalReserved ? platformReserved : reserved,
-          category
+          category,
+          {unitType}
         )
       : reserved === UNLIMITED_RESERVED
         ? t('Unlimited')
         : null;
 
   const gifted = metricHistory.free ?? 0;
-  const formattedGifted = gifted ? formatReservedWithUnits(gifted, category) : null;
+  const formattedGifted = gifted
+    ? formatReservedWithUnits(gifted, category, {unitType})
+    : null;
 
   const paygSpend = metricHistory.onDemandSpendUsed ?? 0;
   const paygCategoryBudget = metricHistory.onDemandBudget ?? 0;

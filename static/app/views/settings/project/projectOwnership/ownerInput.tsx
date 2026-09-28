@@ -15,6 +15,7 @@ import {t} from 'sentry/locale';
 import type {IssueOwnership} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import {RequestError} from 'sentry/utils/requestError/requestError';
@@ -64,7 +65,9 @@ export function OwnerInput({
 
     const api = new Client();
     const request = api.requestPromise(
-      `/projects/${organization.slug}/${project.slug}/ownership/`,
+      getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/ownership/', {
+        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
+      }),
       {
         method: 'PUT',
         data: {raw: text || ''},
@@ -159,7 +162,7 @@ export function OwnerInput({
         <ActionBar>
           <div>{parseError(error)}</div>
           <Grid flow="column" align="center" gap="md">
-            <Button type="button" size="sm" onClick={onCancel}>
+            <Button size="sm" onClick={onCancel}>
               {t('Cancel')}
             </Button>
             <Button

@@ -247,7 +247,7 @@ function Chart({
             ? tooltipFormatter(value, timeseriesResultsTypes[aggregateName])
             : tooltipFormatter(value, aggregateOutputType(aggregateName));
         }
-        return tooltipFormatter(value, 'number');
+        return tooltipFormatter(value);
       },
     },
     xAxis: timeframe

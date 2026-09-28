@@ -1,16 +1,9 @@
 import {useRef, useState} from 'react';
 
 import {Button} from '@sentry/scraps/button';
-import {CodeBlock} from '@sentry/scraps/code';
 import {Flex, Stack} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
 
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
-import {
-  SEER_EMBED_SCHEMAS,
-  type SeerEmbedExample,
-} from 'sentry/components/seer/markdown/embeds/schemas';
-import {Demo} from 'sentry/stories';
 
 const BASIC_MD = `## Root Cause
 
@@ -55,7 +48,7 @@ const STREAMING_CHUNKS = [
   '    return token.expires_at > now\n```\n',
 ];
 
-export function StreamingEmbedDemo() {
+export function StreamingEmbedExamples() {
   const [text, setText] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const cancelRef = useRef(false);
@@ -99,63 +92,6 @@ export function StreamingEmbedDemo() {
         </Button>
       </Flex>
       <SeerMarkdown raw={text} variant="streaming" />
-    </Stack>
-  );
-}
-
-function formatTag(name: string, data: unknown): string {
-  return `{% ${name} %}${JSON.stringify(data)}{% /${name} %}`;
-}
-
-function buildEmbedMarkdown(
-  name: string,
-  levels: readonly string[],
-  examples: SeerEmbedExample[]
-): string {
-  return examples
-    .map(example => {
-      const level = example.level ?? levels[0] ?? 'inline';
-      const tag = formatTag(name, example.data);
-      if (level === 'inline') {
-        return `${example.label}: Lorem ipsum ${tag} dolor sit amet.\n`;
-      }
-      return `${example.label}:\n\n${tag}\n`;
-    })
-    .join('\n');
-}
-
-export function EmbedRegistry() {
-  const entries = Object.entries(SEER_EMBED_SCHEMAS);
-  return (
-    <Stack gap="xl">
-      {entries.map(([name, schema]) => {
-        const examples = schema.examples;
-        const md = examples ? buildEmbedMarkdown(name, schema.level, examples) : null;
-        return (
-          <Stack key={name} gap="md">
-            <Text bold size="md">
-              {name}
-            </Text>
-            <Text size="sm" variant="muted">
-              Level: {schema.level.join(', ')}
-              {'featureFlag' in schema ? ` · Flag: ${schema.featureFlag}` : null}
-            </Text>
-            <Text size="sm" variant="muted">
-              Prompt: {schema.description}
-            </Text>
-            {md && (
-              <Stack gap="sm">
-                <Demo>
-                  <SeerMarkdown raw={md} />
-                </Demo>
-                <CodeBlock language="markdown" dark>
-                  {md}
-                </CodeBlock>
-              </Stack>
-            )}
-          </Stack>
-        );
-      })}
     </Stack>
   );
 }

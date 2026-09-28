@@ -11,7 +11,7 @@ export const size = {
      *
      * A named spacing value evaluating to “0px”
      */
-    '0': '0px',
+    '0': '0px' as const,
     /**
      *
      * ![dimension visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCAyOTQgNjAiPgogICAgCiAgICA8cmVjdCB4PSIxIiB5PSIyMCIgd2lkdGg9IjIwIiBoZWlnaHQ9IjIwIiBmaWxsPSIjMDEwMTAyMWEiIHN0cm9rZT0iIzUzNEQ1RSIgc3Ryb2tlLXdpZHRoPSIyIiByeD0iMiIvPgogICAgPHJlY3QgeD0iMjMiIHk9IjIwIiB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIGZpbGw9IiMwMTAxMDIxYSIgc3Ryb2tlPSIjNTM0RDVFIiBzdHJva2Utd2lkdGg9IjIiIHJ4PSIyIi8+CiAgICA8cmVjdCB4PSIyMSIgeT0iMjgiIHdpZHRoPSIyIiBoZWlnaHQ9IjIiIGZpbGw9IiM3NTUzRkYiIC8+CiAgICA8dGV4dCB4PSIyMTAiIHk9IjM1IiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjE0IiBmaWxsPSIjQUJBOEY4Ij4ycHg8L3RleHQ+CiAgCiAgPC9zdmc+)
@@ -20,7 +20,7 @@ export const size = {
      *
      * A named spacing value evaluating to “2px”
      */
-    '2xs': '2px',
+    '2xs': '2px' as const,
     /**
      *
      * ![dimension visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCAyOTQgNjAiPgogICAgCiAgICA8cmVjdCB4PSIxIiB5PSIyMCIgd2lkdGg9IjIwIiBoZWlnaHQ9IjIwIiBmaWxsPSIjMDEwMTAyMWEiIHN0cm9rZT0iIzUzNEQ1RSIgc3Ryb2tlLXdpZHRoPSIyIiByeD0iMiIvPgogICAgPHJlY3QgeD0iMjUiIHk9IjIwIiB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIGZpbGw9IiMwMTAxMDIxYSIgc3Ryb2tlPSIjNTM0RDVFIiBzdHJva2Utd2lkdGg9IjIiIHJ4PSIyIi8+CiAgICA8cmVjdCB4PSIyMSIgeT0iMjgiIHdpZHRoPSI0IiBoZWlnaHQ9IjIiIGZpbGw9IiM3NTUzRkYiIC8+CiAgICA8dGV4dCB4PSIyMTAiIHk9IjM1IiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjE0IiBmaWxsPSIjQUJBOEY4Ij40cHg8L3RleHQ+CiAgCiAgPC9zdmc+)
@@ -29,7 +29,7 @@ export const size = {
      *
      * A named spacing value evaluating to “4px”
      */
-    xs: '4px',
+    xs: '4px' as const,
     /**
      *
      * ![dimension visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCAyOTQgNjAiPgogICAgCiAgICA8cmVjdCB4PSIxIiB5PSIyMCIgd2lkdGg9IjIwIiBoZWlnaHQ9IjIwIiBmaWxsPSIjMDEwMTAyMWEiIHN0cm9rZT0iIzUzNEQ1RSIgc3Ryb2tlLXdpZHRoPSIyIiByeD0iMiIvPgogICAgPHJlY3QgeD0iMjciIHk9IjIwIiB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIGZpbGw9IiMwMTAxMDIxYSIgc3Ryb2tlPSIjNTM0RDVFIiBzdHJva2Utd2lkdGg9IjIiIHJ4PSIyIi8+CiAgICA8cmVjdCB4PSIyMSIgeT0iMjgiIHdpZHRoPSI2IiBoZWlnaHQ9IjIiIGZpbGw9IiM3NTUzRkYiIC8+CiAgICA8dGV4dCB4PSIyMTAiIHk9IjM1IiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjE0IiBmaWxsPSIjQUJBOEY4Ij42cHg8L3RleHQ+CiAgCiAgPC9zdmc+)
@@ -38,7 +38,7 @@ export const size = {
      *
      * A named spacing value evaluating to “6px”
      */
-    sm: '6px',
+    sm: '6px' as const,
     /**
      *
      * ![dimension visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCAyOTQgNjAiPgogICAgCiAgICA8cmVjdCB4PSIxIiB5PSIyMCIgd2lkdGg9IjIwIiBoZWlnaHQ9IjIwIiBmaWxsPSIjMDEwMTAyMWEiIHN0cm9rZT0iIzUzNEQ1RSIgc3Ryb2tlLXdpZHRoPSIyIiByeD0iMiIvPgogICAgPHJlY3QgeD0iMjkiIHk9IjIwIiB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIGZpbGw9IiMwMTAxMDIxYSIgc3Ryb2tlPSIjNTM0RDVFIiBzdHJva2Utd2lkdGg9IjIiIHJ4PSIyIi8+CiAgICA8cmVjdCB4PSIyMSIgeT0iMjgiIHdpZHRoPSI4IiBoZWlnaHQ9IjIiIGZpbGw9IiM3NTUzRkYiIC8+CiAgICA8dGV4dCB4PSIyMTAiIHk9IjM1IiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjE0IiBmaWxsPSIjQUJBOEY4Ij44cHg8L3RleHQ+CiAgCiAgPC9zdmc+)
@@ -46,7 +46,7 @@ export const size = {
      * `space.md` `8px`
      *
      */
-    md: '8px',
+    md: '8px' as const,
     /**
      *
      * ![dimension visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCAyOTQgNjAiPgogICAgCiAgICA8cmVjdCB4PSIxIiB5PSIyMCIgd2lkdGg9IjIwIiBoZWlnaHQ9IjIwIiBmaWxsPSIjMDEwMTAyMWEiIHN0cm9rZT0iIzUzNEQ1RSIgc3Ryb2tlLXdpZHRoPSIyIiByeD0iMiIvPgogICAgPHJlY3QgeD0iMzMiIHk9IjIwIiB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIGZpbGw9IiMwMTAxMDIxYSIgc3Ryb2tlPSIjNTM0RDVFIiBzdHJva2Utd2lkdGg9IjIiIHJ4PSIyIi8+CiAgICA8cmVjdCB4PSIyMSIgeT0iMjgiIHdpZHRoPSIxMiIgaGVpZ2h0PSIyIiBmaWxsPSIjNzU1M0ZGIiAvPgogICAgPHRleHQgeD0iMjEwIiB5PSIzNSIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxNCIgZmlsbD0iI0FCQThGOCI+MTJweDwvdGV4dD4KICAKICA8L3N2Zz4=)
@@ -54,7 +54,7 @@ export const size = {
      * `space.lg` `12px`
      *
      */
-    lg: '12px',
+    lg: '12px' as const,
     /**
      *
      * ![dimension visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCAyOTQgNjAiPgogICAgCiAgICA8cmVjdCB4PSIxIiB5PSIyMCIgd2lkdGg9IjIwIiBoZWlnaHQ9IjIwIiBmaWxsPSIjMDEwMTAyMWEiIHN0cm9rZT0iIzUzNEQ1RSIgc3Ryb2tlLXdpZHRoPSIyIiByeD0iMiIvPgogICAgPHJlY3QgeD0iMzciIHk9IjIwIiB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIGZpbGw9IiMwMTAxMDIxYSIgc3Ryb2tlPSIjNTM0RDVFIiBzdHJva2Utd2lkdGg9IjIiIHJ4PSIyIi8+CiAgICA8cmVjdCB4PSIyMSIgeT0iMjgiIHdpZHRoPSIxNiIgaGVpZ2h0PSIyIiBmaWxsPSIjNzU1M0ZGIiAvPgogICAgPHRleHQgeD0iMjEwIiB5PSIzNSIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxNCIgZmlsbD0iI0FCQThGOCI+MTZweDwvdGV4dD4KICAKICA8L3N2Zz4=)
@@ -63,7 +63,7 @@ export const size = {
      *
      * A named spacing value evaluating to “16px”
      */
-    xl: '16px',
+    xl: '16px' as const,
     /**
      *
      * ![dimension visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCAyOTQgNjAiPgogICAgCiAgICA8cmVjdCB4PSIxIiB5PSIyMCIgd2lkdGg9IjIwIiBoZWlnaHQ9IjIwIiBmaWxsPSIjMDEwMTAyMWEiIHN0cm9rZT0iIzUzNEQ1RSIgc3Ryb2tlLXdpZHRoPSIyIiByeD0iMiIvPgogICAgPHJlY3QgeD0iNDUiIHk9IjIwIiB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIGZpbGw9IiMwMTAxMDIxYSIgc3Ryb2tlPSIjNTM0RDVFIiBzdHJva2Utd2lkdGg9IjIiIHJ4PSIyIi8+CiAgICA8cmVjdCB4PSIyMSIgeT0iMjgiIHdpZHRoPSIyNCIgaGVpZ2h0PSIyIiBmaWxsPSIjNzU1M0ZGIiAvPgogICAgPHRleHQgeD0iMjEwIiB5PSIzNSIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxNCIgZmlsbD0iI0FCQThGOCI+MjRweDwvdGV4dD4KICAKICA8L3N2Zz4=)
@@ -72,7 +72,7 @@ export const size = {
      *
      * A named spacing value evaluating to “24px”
      */
-    '2xl': '24px',
+    '2xl': '24px' as const,
     /**
      *
      * ![dimension visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCAyOTQgNjAiPgogICAgCiAgICA8cmVjdCB4PSIxIiB5PSIyMCIgd2lkdGg9IjIwIiBoZWlnaHQ9IjIwIiBmaWxsPSIjMDEwMTAyMWEiIHN0cm9rZT0iIzUzNEQ1RSIgc3Ryb2tlLXdpZHRoPSIyIiByeD0iMiIvPgogICAgPHJlY3QgeD0iNTMiIHk9IjIwIiB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIGZpbGw9IiMwMTAxMDIxYSIgc3Ryb2tlPSIjNTM0RDVFIiBzdHJva2Utd2lkdGg9IjIiIHJ4PSIyIi8+CiAgICA8cmVjdCB4PSIyMSIgeT0iMjgiIHdpZHRoPSIzMiIgaGVpZ2h0PSIyIiBmaWxsPSIjNzU1M0ZGIiAvPgogICAgPHRleHQgeD0iMjEwIiB5PSIzNSIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxNCIgZmlsbD0iI0FCQThGOCI+MzJweDwvdGV4dD4KICAKICA8L3N2Zz4=)
@@ -81,7 +81,7 @@ export const size = {
      *
      * A named spacing value evaluating to “32px”
      */
-    '3xl': '32px',
+    '3xl': '32px' as const,
   },
   size: {
     /**
@@ -91,7 +91,7 @@ export const size = {
      * `size.2xs` `48px`
      *
      */
-    '2xs': '48px',
+    '2xs': '48px' as const,
     /**
      *
      * ![dimension visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgCiAgICA8bGluZSB4MT0iMSIgeTE9IjQwIiB4Mj0iMy4yOTg4NTA1NzQ3MTI2NDM1IiB5Mj0iNDAiIHN0cm9rZT0iIzc1NTNGRiIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8cmVjdCB4PSIxIiB5PSIzNSIgd2lkdGg9IjIiIGhlaWdodD0iMTAiIGZpbGw9IiM3NTUzRkYiLz4KICAgIDxyZWN0IHg9IjEuMjk4ODUwNTc0NzEyNjQzNSIgeT0iMzUiIHdpZHRoPSIyIiBoZWlnaHQ9IjEwIiBmaWxsPSIjNzU1M0ZGIi8+CiAgICA8dGV4dCB4PSIyMTAiIHk9IjQ1IiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjE0IiBmaWxsPSIjQUJBOEY4Ij42NHB4PC90ZXh0PgogIAogIDwvc3ZnPg==)
@@ -99,7 +99,7 @@ export const size = {
      * `size.xs` `64px`
      *
      */
-    xs: '64px',
+    xs: '64px' as const,
     /**
      *
      * ![dimension visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgCiAgICA8bGluZSB4MT0iMSIgeTE9IjQwIiB4Mj0iNS41OTc3MDExNDk0MjUyODciIHkyPSI0MCIgc3Ryb2tlPSIjNzU1M0ZGIiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDxyZWN0IHg9IjEiIHk9IjM1IiB3aWR0aD0iMiIgaGVpZ2h0PSIxMCIgZmlsbD0iIzc1NTNGRiIvPgogICAgPHJlY3QgeD0iMy41OTc3MDExNDk0MjUyODciIHk9IjM1IiB3aWR0aD0iMiIgaGVpZ2h0PSIxMCIgZmlsbD0iIzc1NTNGRiIvPgogICAgPHRleHQgeD0iMjEwIiB5PSI0NSIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxNCIgZmlsbD0iI0FCQThGOCI+ODBweDwvdGV4dD4KICAKICA8L3N2Zz4=)
@@ -107,7 +107,7 @@ export const size = {
      * `size.sm` `80px`
      *
      */
-    sm: '80px',
+    sm: '80px' as const,
     /**
      *
      * ![dimension visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgCiAgICA8bGluZSB4MT0iMSIgeTE9IjQwIiB4Mj0iMTIuNDk0MjUyODczNTYzMjE4IiB5Mj0iNDAiIHN0cm9rZT0iIzc1NTNGRiIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8cmVjdCB4PSIxIiB5PSIzNSIgd2lkdGg9IjIiIGhlaWdodD0iMTAiIGZpbGw9IiM3NTUzRkYiLz4KICAgIDxyZWN0IHg9IjEwLjQ5NDI1Mjg3MzU2MzIxOCIgeT0iMzUiIHdpZHRoPSIyIiBoZWlnaHQ9IjEwIiBmaWxsPSIjNzU1M0ZGIi8+CiAgICA8dGV4dCB4PSIyMTAiIHk9IjQ1IiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjE0IiBmaWxsPSIjQUJBOEY4Ij4xMjhweDwvdGV4dD4KICAKICA8L3N2Zz4=)
@@ -115,7 +115,7 @@ export const size = {
      * `size.md` `128px`
      *
      */
-    md: '128px',
+    md: '128px' as const,
     /**
      *
      * ![dimension visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgCiAgICA8bGluZSB4MT0iMSIgeTE9IjQwIiB4Mj0iMzAuODg1MDU3NDcxMjY0MzciIHkyPSI0MCIgc3Ryb2tlPSIjNzU1M0ZGIiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDxyZWN0IHg9IjEiIHk9IjM1IiB3aWR0aD0iMiIgaGVpZ2h0PSIxMCIgZmlsbD0iIzc1NTNGRiIvPgogICAgPHJlY3QgeD0iMjguODg1MDU3NDcxMjY0MzciIHk9IjM1IiB3aWR0aD0iMiIgaGVpZ2h0PSIxMCIgZmlsbD0iIzc1NTNGRiIvPgogICAgPHRleHQgeD0iMjEwIiB5PSI0NSIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxNCIgZmlsbD0iI0FCQThGOCI+MjU2cHg8L3RleHQ+CiAgCiAgPC9zdmc+)
@@ -123,7 +123,7 @@ export const size = {
      * `size.lg` `256px`
      *
      */
-    lg: '256px',
+    lg: '256px' as const,
     /**
      *
      * ![dimension visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgCiAgICA8bGluZSB4MT0iMSIgeTE9IjQwIiB4Mj0iNjcuNjY2NjY2NjY2NjY2NjYiIHkyPSI0MCIgc3Ryb2tlPSIjNzU1M0ZGIiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDxyZWN0IHg9IjEiIHk9IjM1IiB3aWR0aD0iMiIgaGVpZ2h0PSIxMCIgZmlsbD0iIzc1NTNGRiIvPgogICAgPHJlY3QgeD0iNjUuNjY2NjY2NjY2NjY2NjYiIHk9IjM1IiB3aWR0aD0iMiIgaGVpZ2h0PSIxMCIgZmlsbD0iIzc1NTNGRiIvPgogICAgPHRleHQgeD0iMjEwIiB5PSI0NSIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxNCIgZmlsbD0iI0FCQThGOCI+NTEycHg8L3RleHQ+CiAgCiAgPC9zdmc+)
@@ -131,7 +131,7 @@ export const size = {
      * `size.xl` `512px`
      *
      */
-    xl: '512px',
+    xl: '512px' as const,
     /**
      *
      * ![dimension visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgCiAgICA8bGluZSB4MT0iMSIgeTE9IjQwIiB4Mj0iODYuMDU3NDcxMjY0MzY3OCIgeTI9IjQwIiBzdHJva2U9IiM3NTUzRkYiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHJlY3QgeD0iMSIgeT0iMzUiIHdpZHRoPSIyIiBoZWlnaHQ9IjEwIiBmaWxsPSIjNzU1M0ZGIi8+CiAgICA8cmVjdCB4PSI4NC4wNTc0NzEyNjQzNjc4IiB5PSIzNSIgd2lkdGg9IjIiIGhlaWdodD0iMTAiIGZpbGw9IiM3NTUzRkYiLz4KICAgIDx0ZXh0IHg9IjIxMCIgeT0iNDUiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiNBQkE4RjgiPjY0MHB4PC90ZXh0PgogIAogIDwvc3ZnPg==)
@@ -139,7 +139,7 @@ export const size = {
      * `size.2xl` `640px`
      *
      */
-    '2xl': '640px',
+    '2xl': '640px' as const,
     /**
      *
      * ![dimension visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgCiAgICA8bGluZSB4MT0iMSIgeTE9IjQwIiB4Mj0iMTA0LjQ0ODI3NTg2MjA2ODk3IiB5Mj0iNDAiIHN0cm9rZT0iIzc1NTNGRiIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8cmVjdCB4PSIxIiB5PSIzNSIgd2lkdGg9IjIiIGhlaWdodD0iMTAiIGZpbGw9IiM3NTUzRkYiLz4KICAgIDxyZWN0IHg9IjEwMi40NDgyNzU4NjIwNjg5NyIgeT0iMzUiIHdpZHRoPSIyIiBoZWlnaHQ9IjEwIiBmaWxsPSIjNzU1M0ZGIi8+CiAgICA8dGV4dCB4PSIyMTAiIHk9IjQ1IiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjE0IiBmaWxsPSIjQUJBOEY4Ij43NjhweDwvdGV4dD4KICAKICA8L3N2Zz4=)
@@ -147,7 +147,7 @@ export const size = {
      * `size.3xl` `768px`
      *
      */
-    '3xl': '768px',
+    '3xl': '768px' as const,
     /**
      *
      * ![dimension visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgCiAgICA8bGluZSB4MT0iMSIgeTE9IjQwIiB4Mj0iMTMyLjAzNDQ4Mjc1ODYyMDciIHkyPSI0MCIgc3Ryb2tlPSIjNzU1M0ZGIiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDxyZWN0IHg9IjEiIHk9IjM1IiB3aWR0aD0iMiIgaGVpZ2h0PSIxMCIgZmlsbD0iIzc1NTNGRiIvPgogICAgPHJlY3QgeD0iMTMwLjAzNDQ4Mjc1ODYyMDciIHk9IjM1IiB3aWR0aD0iMiIgaGVpZ2h0PSIxMCIgZmlsbD0iIzc1NTNGRiIvPgogICAgPHRleHQgeD0iMjEwIiB5PSI0NSIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxNCIgZmlsbD0iI0FCQThGOCI+OTYwcHg8L3RleHQ+CiAgCiAgPC9zdmc+)
@@ -155,7 +155,7 @@ export const size = {
      * `size.4xl` `960px`
      *
      */
-    '4xl': '960px',
+    '4xl': '960px' as const,
     /**
      *
      * ![dimension visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgCiAgICA8bGluZSB4MT0iMSIgeTE9IjQwIiB4Mj0iMTQxLjIyOTg4NTA1NzQ3MTI4IiB5Mj0iNDAiIHN0cm9rZT0iIzc1NTNGRiIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8cmVjdCB4PSIxIiB5PSIzNSIgd2lkdGg9IjIiIGhlaWdodD0iMTAiIGZpbGw9IiM3NTUzRkYiLz4KICAgIDxyZWN0IHg9IjEzOS4yMjk4ODUwNTc0NzEyOCIgeT0iMzUiIHdpZHRoPSIyIiBoZWlnaHQ9IjEwIiBmaWxsPSIjNzU1M0ZGIi8+CiAgICA8dGV4dCB4PSIyMTAiIHk9IjQ1IiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjE0IiBmaWxsPSIjQUJBOEY4Ij4xMDI0cHg8L3RleHQ+CiAgCiAgPC9zdmc+)
@@ -163,7 +163,7 @@ export const size = {
      * `size.5xl` `1024px`
      *
      */
-    '5xl': '1024px',
+    '5xl': '1024px' as const,
     /**
      *
      * ![dimension visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgCiAgICA8bGluZSB4MT0iMSIgeTE9IjQwIiB4Mj0iMTc4LjAxMTQ5NDI1Mjg3MzU4IiB5Mj0iNDAiIHN0cm9rZT0iIzc1NTNGRiIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8cmVjdCB4PSIxIiB5PSIzNSIgd2lkdGg9IjIiIGhlaWdodD0iMTAiIGZpbGw9IiM3NTUzRkYiLz4KICAgIDxyZWN0IHg9IjE3Ni4wMTE0OTQyNTI4NzM1OCIgeT0iMzUiIHdpZHRoPSIyIiBoZWlnaHQ9IjEwIiBmaWxsPSIjNzU1M0ZGIi8+CiAgICA8dGV4dCB4PSIyMTAiIHk9IjQ1IiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjE0IiBmaWxsPSIjQUJBOEY4Ij4xMjgwcHg8L3RleHQ+CiAgCiAgPC9zdmc+)
@@ -171,7 +171,7 @@ export const size = {
      * `size.6xl` `1280px`
      *
      */
-    '6xl': '1280px',
+    '6xl': '1280px' as const,
     /**
      *
      * ![dimension visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgCiAgICA8bGluZSB4MT0iMSIgeTE9IjQwIiB4Mj0iMjAxIiB5Mj0iNDAiIHN0cm9rZT0iIzc1NTNGRiIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8cmVjdCB4PSIxIiB5PSIzNSIgd2lkdGg9IjIiIGhlaWdodD0iMTAiIGZpbGw9IiM3NTUzRkYiLz4KICAgIDxyZWN0IHg9IjE5OSIgeT0iMzUiIHdpZHRoPSIyIiBoZWlnaHQ9IjEwIiBmaWxsPSIjNzU1M0ZGIi8+CiAgICA8dGV4dCB4PSIyMTciIHk9IjQ1IiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjE0IiBmaWxsPSIjQUJBOEY4Ij4xNDQwcHg8L3RleHQ+CiAgCiAgPC9zdmc+)
@@ -179,7 +179,7 @@ export const size = {
      * `size.7xl` `1440px`
      *
      */
-    '7xl': '1440px',
+    '7xl': '1440px' as const,
   },
   border: {
     /**
@@ -189,7 +189,7 @@ export const size = {
      * `border.0` `0px`
      *
      */
-    '0': '0px',
+    '0': '0px' as const,
     /**
      *
      * ![dimension visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iNTAiIHZpZXdCb3g9IjAgMCAyOTQgNTAiPgogICAgCiAgICA8bGluZSB4MT0iMSIgeTE9IjI1IiB4Mj0iMTAxIiB5Mj0iMjUiIHN0cm9rZT0iIzQ4MjhCODk0IiBzdHJva2Utd2lkdGg9IjIiLz4KICAgIDx0ZXh0IHg9IjExNyIgeT0iMzAiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiNBQkE4RjgiPjFweDwvdGV4dD4KICAKICA8L3N2Zz4=)
@@ -197,7 +197,7 @@ export const size = {
      * `border.md` `1px`
      *
      */
-    md: '1px',
+    md: '1px' as const,
     /**
      *
      * ![dimension visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iNTAiIHZpZXdCb3g9IjAgMCAyOTQgNTAiPgogICAgCiAgICA8bGluZSB4MT0iMSIgeTE9IjI1IiB4Mj0iMTAxIiB5Mj0iMjUiIHN0cm9rZT0iIzQ4MjhCODk0IiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDx0ZXh0IHg9IjExNyIgeT0iMzAiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiNBQkE4RjgiPjEuNXB4PC90ZXh0PgogIAogIDwvc3ZnPg==)
@@ -205,7 +205,7 @@ export const size = {
      * `border.lg` `1.5px`
      *
      */
-    lg: '1.5px',
+    lg: '1.5px' as const,
     /**
      *
      * ![dimension visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iNTAiIHZpZXdCb3g9IjAgMCAyOTQgNTAiPgogICAgCiAgICA8bGluZSB4MT0iMSIgeTE9IjI1IiB4Mj0iMTAxIiB5Mj0iMjUiIHN0cm9rZT0iIzQ4MjhCODk0IiBzdHJva2Utd2lkdGg9IjQiLz4KICAgIDx0ZXh0IHg9IjExNyIgeT0iMzAiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiNBQkE4RjgiPjJweDwvdGV4dD4KICAKICA8L3N2Zz4=)
@@ -213,7 +213,7 @@ export const size = {
      * `border.xl` `2px`
      *
      */
-    xl: '2px',
+    xl: '2px' as const,
     /**
      *
      * ![dimension visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iNTAiIHZpZXdCb3g9IjAgMCAyOTQgNTAiPgogICAgCiAgICA8bGluZSB4MT0iMSIgeTE9IjI1IiB4Mj0iMTAxIiB5Mj0iMjUiIHN0cm9rZT0iIzQ4MjhCODk0IiBzdHJva2Utd2lkdGg9IjgiLz4KICAgIDx0ZXh0IHg9IjExNyIgeT0iMzAiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiNBQkE4RjgiPjRweDwvdGV4dD4KICAKICA8L3N2Zz4=)
@@ -221,7 +221,7 @@ export const size = {
      * `border.2xl` `4px`
      *
      */
-    '2xl': '4px',
+    '2xl': '4px' as const,
   },
   radius: {
     /**
@@ -231,7 +231,7 @@ export const size = {
      * `radius.0` `0px`
      *
      */
-    '0': '0px',
+    '0': '0px' as const,
     /**
      *
      * ![dimension visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iNzAiIHZpZXdCb3g9IjAgMCAyOTQgNzAiPgogICAgCiAgICA8cmVjdCB4PSIxIiB5PSIxNSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjNDgyOEI4OTQiIHN0cm9rZT0iIzc1NTNGRiIgc3Ryb2tlLXdpZHRoPSIyIiByeD0iMyIvPgogICAgPHRleHQgeD0iNTciIHk9IjQwIiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjE0IiBmaWxsPSIjQUJBOEY4Ij4zcHg8L3RleHQ+CiAgCiAgPC9zdmc+)
@@ -239,7 +239,7 @@ export const size = {
      * `radius.2xs` `3px`
      *
      */
-    '2xs': '3px',
+    '2xs': '3px' as const,
     /**
      *
      * ![dimension visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iNzAiIHZpZXdCb3g9IjAgMCAyOTQgNzAiPgogICAgCiAgICA8cmVjdCB4PSIxIiB5PSIxNSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjNDgyOEI4OTQiIHN0cm9rZT0iIzc1NTNGRiIgc3Ryb2tlLXdpZHRoPSIyIiByeD0iNCIvPgogICAgPHRleHQgeD0iNTciIHk9IjQwIiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjE0IiBmaWxsPSIjQUJBOEY4Ij40cHg8L3RleHQ+CiAgCiAgPC9zdmc+)
@@ -247,7 +247,7 @@ export const size = {
      * `radius.xs` `4px`
      *
      */
-    xs: '4px',
+    xs: '4px' as const,
     /**
      *
      * ![dimension visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iNzAiIHZpZXdCb3g9IjAgMCAyOTQgNzAiPgogICAgCiAgICA8cmVjdCB4PSIxIiB5PSIxNSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjNDgyOEI4OTQiIHN0cm9rZT0iIzc1NTNGRiIgc3Ryb2tlLXdpZHRoPSIyIiByeD0iNSIvPgogICAgPHRleHQgeD0iNTciIHk9IjQwIiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjE0IiBmaWxsPSIjQUJBOEY4Ij41cHg8L3RleHQ+CiAgCiAgPC9zdmc+)
@@ -255,7 +255,7 @@ export const size = {
      * `radius.sm` `5px`
      *
      */
-    sm: '5px',
+    sm: '5px' as const,
     /**
      *
      * ![dimension visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iNzAiIHZpZXdCb3g9IjAgMCAyOTQgNzAiPgogICAgCiAgICA8cmVjdCB4PSIxIiB5PSIxNSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjNDgyOEI4OTQiIHN0cm9rZT0iIzc1NTNGRiIgc3Ryb2tlLXdpZHRoPSIyIiByeD0iNiIvPgogICAgPHRleHQgeD0iNTciIHk9IjQwIiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjE0IiBmaWxsPSIjQUJBOEY4Ij42cHg8L3RleHQ+CiAgCiAgPC9zdmc+)
@@ -263,7 +263,7 @@ export const size = {
      * `radius.md` `6px`
      *
      */
-    md: '6px',
+    md: '6px' as const,
     /**
      *
      * ![dimension visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iNzAiIHZpZXdCb3g9IjAgMCAyOTQgNzAiPgogICAgCiAgICA8cmVjdCB4PSIxIiB5PSIxNSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjNDgyOEI4OTQiIHN0cm9rZT0iIzc1NTNGRiIgc3Ryb2tlLXdpZHRoPSIyIiByeD0iOCIvPgogICAgPHRleHQgeD0iNTciIHk9IjQwIiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjE0IiBmaWxsPSIjQUJBOEY4Ij44cHg8L3RleHQ+CiAgCiAgPC9zdmc+)
@@ -271,7 +271,7 @@ export const size = {
      * `radius.lg` `8px`
      *
      */
-    lg: '8px',
+    lg: '8px' as const,
     /**
      *
      * ![dimension visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iNzAiIHZpZXdCb3g9IjAgMCAyOTQgNzAiPgogICAgCiAgICA8cmVjdCB4PSIxIiB5PSIxNSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjNDgyOEI4OTQiIHN0cm9rZT0iIzc1NTNGRiIgc3Ryb2tlLXdpZHRoPSIyIiByeD0iMTIiLz4KICAgIDx0ZXh0IHg9IjU3IiB5PSI0MCIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxNCIgZmlsbD0iI0FCQThGOCI+MTJweDwvdGV4dD4KICAKICA8L3N2Zz4=)
@@ -279,7 +279,7 @@ export const size = {
      * `radius.xl` `12px`
      *
      */
-    xl: '12px',
+    xl: '12px' as const,
     /**
      *
      * ![dimension visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iNzAiIHZpZXdCb3g9IjAgMCAyOTQgNzAiPgogICAgCiAgICA8cmVjdCB4PSIxIiB5PSIxNSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjNDgyOEI4OTQiIHN0cm9rZT0iIzc1NTNGRiIgc3Ryb2tlLXdpZHRoPSIyIiByeD0iMTYiLz4KICAgIDx0ZXh0IHg9IjU3IiB5PSI0MCIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxNCIgZmlsbD0iI0FCQThGOCI+MTZweDwvdGV4dD4KICAKICA8L3N2Zz4=)
@@ -287,7 +287,7 @@ export const size = {
      * `radius.2xl` `16px`
      *
      */
-    '2xl': '16px',
+    '2xl': '16px' as const,
     /**
      *
      * ![dimension visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iNzAiIHZpZXdCb3g9IjAgMCAyOTQgNzAiPgogICAgCiAgICA8cmVjdCB4PSIxIiB5PSIxNSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjNDgyOEI4OTQiIHN0cm9rZT0iIzc1NTNGRiIgc3Ryb2tlLXdpZHRoPSIyIiByeD0iMjAiLz4KICAgIDx0ZXh0IHg9IjU3IiB5PSI0MCIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxNCIgZmlsbD0iI0FCQThGOCI+OTk5cHg8L3RleHQ+CiAgCiAgPC9zdmc+)
@@ -295,81 +295,81 @@ export const size = {
      * `radius.full` `999px`
      *
      */
-    full: '999px',
+    full: '999px' as const,
   },
   elevation: {
     /**
      */
-    sm: '1px',
+    sm: '1px' as const,
     /**
      */
-    md: '2px',
+    md: '2px' as const,
     /**
      */
-    lg: '4px',
+    lg: '4px' as const,
     /**
      */
-    xl: '6px',
+    xl: '6px' as const,
   },
   breakpoints: {
     /**
      */
-    '2xs': '0px',
+    '2xs': '0px' as const,
     /**
      */
-    xs: '500px',
+    xs: '500px' as const,
     /**
      */
-    sm: '800px',
+    sm: '800px' as const,
     /**
      */
-    md: '992px',
+    md: '992px' as const,
     /**
      */
-    lg: '1200px',
+    lg: '1200px' as const,
     /**
      */
-    xl: '1440px',
+    xl: '1440px' as const,
     /**
      */
-    '2xl': '2560px',
+    '2xl': '2560px' as const,
   },
   container: {
     /**
      */
-    zero: '0px',
+    zero: '0px' as const,
     /**
      */
-    '3xs': '320px',
+    '3xs': '320px' as const,
     /**
      */
-    '2xs': '384px',
+    '2xs': '384px' as const,
     /**
      */
-    xs: '448px',
+    xs: '448px' as const,
     /**
      */
-    sm: '512px',
+    sm: '512px' as const,
     /**
      */
-    md: '576px',
+    md: '576px' as const,
     /**
      */
-    lg: '640px',
+    lg: '640px' as const,
     /**
      */
-    xl: '768px',
+    xl: '768px' as const,
     /**
      */
-    '2xl': '896px',
+    '2xl': '896px' as const,
     /**
      */
-    '3xl': '1024px',
+    '3xl': '1024px' as const,
     /**
      */
-    '4xl': '1152px',
+    '4xl': '1152px' as const,
     /**
      */
-    '5xl': '1280px',
+    '5xl': '1280px' as const,
   },
 };

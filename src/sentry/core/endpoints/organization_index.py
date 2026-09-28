@@ -51,7 +51,6 @@ from sentry.services.organization.provisioning import (
 from sentry.silo.base import SiloMode
 from sentry.types.cell import (
     CellResolutionError,
-    RegionCategory,
     get_locality_by_name,
 )
 from sentry.users.services.user.serial import serialize_generic_user
@@ -106,7 +105,7 @@ class OrganizationPostSerializer(BaseOrganizationSerializer):
         if "request" in self.context and is_active_staff(self.context["request"]):
             # Staff users are allowed to create orgs in hidden cells/localities.
             return value
-        if locality.category != RegionCategory.MULTI_TENANT or not locality.visible:
+        if not locality.visible or not locality.signup_visible:
             raise serializers.ValidationError(f"Unknown data storage location {value!r}.")
         return value
 

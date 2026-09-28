@@ -122,7 +122,7 @@ export function useLogsSearchQueryBuilderProps({
     numberAttributes,
     stringAttributes,
     supportsArrays,
-    validatedSearchQueryData?.query.fields,
+    validatedSearchQueryData,
   ]);
 
   const onSearch = useCallback(

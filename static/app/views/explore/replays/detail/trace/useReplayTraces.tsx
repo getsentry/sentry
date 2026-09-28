@@ -11,7 +11,7 @@ import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {HydratedReplayRecord} from 'sentry/views/explore/replays/types';
-import {getReplayTraceSearchQuery} from 'sentry/views/performance/newTraceDetails/traceApi/replayTraceSearch';
+import {getReplayTraceSearchQuery} from 'sentry/views/performance/traceDetails/traceApi/replayTraceSearch';
 
 export type ReplayTrace = {
   timestamp: number | undefined;
@@ -154,6 +154,7 @@ export function useReplayTraces({
 
   useEffect(() => {
     if (!state.indexComplete) {
+      // oxlint-disable-next-line react/set-state-in-effect
       fetchTransactionData();
     }
   }, [fetchTransactionData, state.indexComplete]);

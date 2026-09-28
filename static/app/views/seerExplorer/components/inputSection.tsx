@@ -44,9 +44,10 @@ interface InputSectionProps {
   repoPRStates: Record<string, RepoPRState>;
   textAreaRef: React.RefObject<HTMLTextAreaElement | null>;
   canSendMessage?: boolean;
+  /** Placeholder shown while `enabled` is false. Defaults to the read-only copy. */
+  disabledPlaceholder?: string;
   fileApprovalActions?: FileApprovalActions;
   interruptState?: 'can-interrupt' | 'requested' | 'completed' | 'disabled';
-  isTimedOut?: boolean;
   questionActions?: QuestionActions;
 }
 
@@ -55,8 +56,8 @@ export function InputSection({
   enabled,
   inputValue,
   canSendMessage = true,
+  disabledPlaceholder,
   interruptState = 'disabled',
-  isTimedOut = false,
   onCreatePR,
   onInputChange,
   onInputClick,
@@ -151,9 +152,10 @@ export function InputSection({
           <StyledInputGroup>
             <InputGroup.TextArea
               disabled
-              placeholder={t(
-                'This conversation is owned by another user and is read-only'
-              )}
+              placeholder={
+                disabledPlaceholder ??
+                t('This conversation is owned by another user and is read-only')
+              }
               rows={1}
               size="md"
               data-test-id="seer-explorer-input"
@@ -257,9 +259,7 @@ export function InputSection({
   return (
     <InputBlock>
       <InputRow>
-        <StyledInputGroup
-          isWarningPlaceholder={interruptState === 'completed' || isTimedOut}
-        >
+        <StyledInputGroup isWarningPlaceholder={interruptState === 'completed'}>
           <InputGroup.TextArea
             ref={textAreaRef}
             value={inputValue}
@@ -267,11 +267,9 @@ export function InputSection({
             onKeyDown={onKeyDown}
             onClick={onInputClick}
             placeholder={
-              isTimedOut
-                ? t('Response timed out. Please try again.')
-                : interruptState === 'completed'
-                  ? t('Interrupted. What should Seer do instead?')
-                  : t('Ask Seer a question, or press / for commands.')
+              interruptState === 'completed'
+                ? t('Interrupted. What should Seer do instead?')
+                : t('Ask Seer a question, or press / for commands.')
             }
             rows={1}
             maxRows={5}

@@ -9,6 +9,7 @@ from django.urls import reverse
 
 import sentry.utils.auth
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers import override_options
 from sentry.testutils.silo import control_silo_test
 from sentry.users.models.user import User
 from sentry.utils.auth import (
@@ -153,6 +154,25 @@ class GetLoginRedirectTest(TestCase):
 
         assert result == reverse("sentry-login")
 
+    @override_options({"auth.v2.enabled": True})
+    def test_pending_2fa_with_react_auth_setting(self) -> None:
+        request = self._make_request()
+        request.session["_pending_2fa"] = [1234, 1234, 1234]
+
+        result = get_login_redirect(request)
+
+        assert result == reverse("sentry-login")
+
+    @override_options({"auth.v2.enabled": True})
+    def test_pending_2fa_with_react_auth_disabled_cookie(self) -> None:
+        request = self._make_request()
+        request.session["_pending_2fa"] = [1234, 1234, 1234]
+        request.COOKIES[REACT_AUTH_COOKIE] = "0"
+
+        result = get_login_redirect(request)
+
+        assert result == reverse("sentry-2fa-dialog")
+
     def test_login_uses_default(self) -> None:
         result = get_login_redirect(self._make_request(reverse("sentry-login")))
         assert result == reverse("sentry-login")
@@ -165,6 +185,28 @@ class GetLoginRedirectTest(TestCase):
         request.subdomain = "orgslug"
         result = get_login_redirect(request)
         assert result == f"http://orgslug.testserver{reverse('sentry-login')}"
+
+    def test_static_asset_next_uses_default(self) -> None:
+        default = reverse("sentry-login")
+
+        result = get_login_redirect(self._make_request("/org-slug/service-worker.abc123.js.map/"))
+        assert result == default
+
+        result = get_login_redirect(self._make_request("/_static/sentry/entrypoints/app.js"))
+        assert result == default
+
+        result = get_login_redirect(
+            self._make_request("http://testserver/org-slug/service-worker.abc123.js.map")
+        )
+        assert result == default
+
+        request = self._make_request("/org-slug/service-worker.abc123.js.map")
+        request.subdomain = "orgslug"
+        result = get_login_redirect(request)
+        assert result == f"http://orgslug.testserver{default}"
+
+        result = get_login_redirect(self._make_request("/organizations/org-slug/issues/"))
+        assert result == "/organizations/org-slug/issues/"
 
 
 @control_silo_test

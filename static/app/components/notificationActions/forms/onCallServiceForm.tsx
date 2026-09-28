@@ -1,11 +1,10 @@
 import {useMemo, useState} from 'react';
 
 import {Button} from '@sentry/scraps/button';
+import {DropdownButton, DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Flex, Grid} from '@sentry/scraps/layout';
 
-import {DropdownButton} from 'sentry/components/dropdownButton';
-import type {MenuItemProps} from 'sentry/components/dropdownMenu';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {t} from 'sentry/locale';
 import type {
   AvailableNotificationAction,

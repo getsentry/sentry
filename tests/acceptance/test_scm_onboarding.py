@@ -7,6 +7,7 @@ from django.utils import timezone
 
 from sentry.integrations.github.integration import GitHubOAuthLoginResult
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.slack.utils.channel import SlackChannelIdData
 from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.shared_integrations.exceptions import ApiError
@@ -15,9 +16,22 @@ from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import no_silo_test
 from sentry.workflow_engine.defaults.workflows import DEFAULT_WORKFLOW_LABEL
-from sentry.workflow_engine.models import Workflow
+from sentry.workflow_engine.models import Action, Workflow
 
 pytestmark = pytest.mark.sentry_metrics
+
+SCM_MESSAGING_TREATMENT = {
+    "organizations:onboarding-scm-experiment": True,
+    "organizations:onboarding-scm-messaging-experiment": True,
+}
+
+
+def workflow_action_types(workflow: Workflow) -> list[str]:
+    return sorted(
+        Action.objects.filter(
+            dataconditiongroupaction__condition_group__workflowdataconditiongroup__workflow=workflow
+        ).values_list("type", flat=True)
+    )
 
 
 @no_silo_test
@@ -48,12 +62,12 @@ class ScmOnboardingTest(AcceptanceTestCase):
     def start_onboarding(self) -> None:
         """Walk the welcome step through to scm-connect.
 
-        Getting started opens the agentic setup interstitial rather than
-        advancing, so reaching the browser flow takes a second click.
+        The welcome step opens directly on the agentic setup for orgs with the
+        feature, so the manual card is the only click needed to reach the
+        browser flow.
         """
         self.browser.get(f"/onboarding/{self.org.slug}/")
         self.browser.wait_until('[data-test-id="onboarding-step-welcome"]')
-        self.browser.click('[data-test-id="onboarding-welcome-start"]')
         self.browser.click('[data-test-id="onboarding-setup-in-browser"]')
         self.browser.wait_until('[data-test-id="onboarding-step-scm-connect"]')
 
@@ -80,12 +94,44 @@ class ScmOnboardingTest(AcceptanceTestCase):
         with mock.patch.object(Project.objects, "create", side_effect=create_active):
             yield
 
-    def skip_to_setup_docs(self, platform_search: str, platform_label: str) -> None:
-        """Skip connect → pick platform → Continue auto-creates the project."""
+    @contextmanager
+    def slack_resolves_alerts_channel(self) -> Generator[None]:
+        """Answer every Slack lookup in the flow with one channel, #alerts.
+
+        The picker lists channels through conversations_list. Workflow creation
+        and channel-validate (which runs when a saved destination is restored)
+        both resolve the channel name with get_channel_id.
+        """
+        channel = SlackChannelIdData(prefix="#", channel_id="C125", timed_out=False)
+        with (
+            mock.patch(
+                "sentry.integrations.slack.sdk_client.SlackSdkClient.conversations_list"
+            ) as conversations_list,
+            mock.patch(
+                "sentry.integrations.slack.actions.form.get_channel_id",
+                return_value=channel,
+            ),
+            mock.patch(
+                "sentry.integrations.api.endpoints.organization_integration_channel_validate.get_channel_id",
+                return_value=channel,
+            ),
+        ):
+            conversations_list.return_value.data = {
+                "ok": True,
+                "channels": [{"id": "C125", "name": "alerts", "is_private": False}],
+            }
+            yield
+
+    def continue_past_platform_features(self, platform_search: str, platform_label: str) -> None:
+        """Skip connect → pick platform → Continue.
+
+        Control auto-creates the project and lands on setup-docs; treatment
+        lands on the messaging step with no project yet.
+        """
         self.browser.click(xpath='//button[contains(., "Continue without a repo")]')
 
         self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
-        self.browser.wait_until(xpath='//*[text()="Select a platform"]')
+        self.browser.wait_until('input[aria-autocomplete="list"]')
         input_el = self.browser.element('input[aria-autocomplete="list"]')
         input_el.send_keys(platform_search)
         self.browser.wait_until(
@@ -96,6 +142,18 @@ class ScmOnboardingTest(AcceptanceTestCase):
         )
         self.browser.wait_until_clickable(xpath='//button[contains(., "Continue")]')
         self.browser.click(xpath='//button[contains(., "Continue")]')
+
+    def confirm_slack_destination(self) -> None:
+        """On the messaging step, pick #alerts in the connected Slack row and
+        Confirm and continue, which creates the project."""
+        self.browser.wait_until('[data-test-id="onboarding-step-scm-messaging"]')
+        self.browser.click(xpath='//button[@aria-label="Set up Slack"]')
+        input_el = self.browser.element('input[aria-autocomplete="list"]')
+        input_el.send_keys("alerts")
+        self.browser.wait_until(xpath='//*[@data-test-id="menu-list-item-label"][text()="#alerts"]')
+        self.browser.click(xpath='//*[@data-test-id="menu-list-item-label"][text()="#alerts"]')
+        self.browser.wait_until_clickable(xpath='//button[contains(., "Confirm and continue")]')
+        self.browser.click(xpath='//button[contains(., "Confirm and continue")]')
 
     def test_scm_onboarding_reload_restores_connected_repo(self) -> None:
         """Reloading the platform-features step restores the connected repo from
@@ -150,7 +208,7 @@ class ScmOnboardingTest(AcceptanceTestCase):
             self.start_onboarding()
 
             # Connect a repo and advance to the platform-features step.
-            self.browser.wait_until(xpath='//*[contains(text(), "Connected to")]')
+            self.browser.wait_until('input[aria-autocomplete="list"]')
             input_el = self.browser.element('input[aria-autocomplete="list"]')
             input_el.send_keys("sentry")
             self.browser.wait_until('[data-test-id="menu-list-item-label"]')
@@ -159,9 +217,7 @@ class ScmOnboardingTest(AcceptanceTestCase):
             self.browser.click(xpath='//button[contains(., "Continue")]')
 
             self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
-            self.browser.wait_until(
-                xpath='//*[contains(text(), "Auto-detected from your repository")]'
-            )
+            self.browser.wait_until(xpath='//*[contains(text(), "Detected from")]')
             self.browser.wait_until('[role="radio"]')
 
             # Reload the step. The connected repo (real id) must survive the
@@ -170,9 +226,7 @@ class ScmOnboardingTest(AcceptanceTestCase):
             self.browser.get(f"/onboarding/{self.org.slug}/scm-platform-features/")
 
             self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
-            self.browser.wait_until(
-                xpath='//*[contains(text(), "Auto-detected from your repository")]'
-            )
+            self.browser.wait_until(xpath='//*[contains(text(), "Detected from")]')
             self.browser.wait_until('[role="radio"]')
 
     def test_scm_onboarding_switch_repo_updates_detection(self) -> None:
@@ -252,7 +306,7 @@ class ScmOnboardingTest(AcceptanceTestCase):
             self.start_onboarding()
 
             # Connect the first repo; detection resolves to Django.
-            self.browser.wait_until(xpath='//*[contains(text(), "Connected to")]')
+            self.browser.wait_until('input[aria-autocomplete="list"]')
             input_el = self.browser.element('input[aria-autocomplete="list"]')
             input_el.send_keys("sentry")
             self.browser.wait_until('[data-test-id="menu-list-item-label"]')
@@ -425,7 +479,7 @@ class ScmOnboardingTest(AcceptanceTestCase):
             )
 
             # Wait for the pipeline modal to close and the connected state.
-            self.browser.wait_until(xpath='//*[contains(text(), "Connected to")]')
+            self.browser.wait_until('input[aria-autocomplete="list"]')
 
             # Repo search (same flow as happy path from here on).
             input_el = self.browser.element('input[aria-autocomplete="list"]')
@@ -488,7 +542,7 @@ class ScmOnboardingTest(AcceptanceTestCase):
             self.start_onboarding()
 
             # SCM Connect: select a repo
-            self.browser.wait_until(xpath='//*[contains(text(), "Connected to")]')
+            self.browser.wait_until('input[aria-autocomplete="list"]')
             input_el = self.browser.element('input[aria-autocomplete="list"]')
             input_el.send_keys("sentry")
             self.browser.wait_until('[data-test-id="menu-list-item-label"]')
@@ -498,7 +552,7 @@ class ScmOnboardingTest(AcceptanceTestCase):
 
             # Platform Features: detection failed, should show manual picker
             self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
-            self.browser.wait_until(xpath='//*[text()="Select a platform"]')
+            self.browser.wait_until('input[aria-autocomplete="list"]')
             input_el = self.browser.element('input[aria-autocomplete="list"]')
             input_el.send_keys("React")
             self.browser.wait_until(
@@ -533,7 +587,7 @@ class ScmOnboardingTest(AcceptanceTestCase):
             self.start_onboarding()
 
             # SCM Connect: integration detected, search returns no results
-            self.browser.wait_until(xpath='//*[contains(text(), "Connected to")]')
+            self.browser.wait_until('input[aria-autocomplete="list"]')
             input_el = self.browser.element('input[aria-autocomplete="list"]')
             input_el.send_keys("nonexistent-repo")
             self.browser.wait_until(xpath='//*[contains(text(), "No repositories found")]')
@@ -546,7 +600,7 @@ class ScmOnboardingTest(AcceptanceTestCase):
             }
         ):
             self.start_onboarding()
-            self.skip_to_setup_docs("React", "React")
+            self.continue_past_platform_features("React", "React")
 
             # Skips scm-project-details entirely and lands on setup-docs.
             self.browser.wait_until(xpath='//h2[text()="Configure React SDK"]')
@@ -614,7 +668,7 @@ class ScmOnboardingTest(AcceptanceTestCase):
         ):
             self.start_onboarding()
 
-            self.browser.wait_until(xpath='//*[contains(text(), "Connected to")]')
+            self.browser.wait_until('input[aria-autocomplete="list"]')
             input_el = self.browser.element('input[aria-autocomplete="list"]')
             input_el.send_keys("sentry")
             self.browser.wait_until('[data-test-id="menu-list-item-label"]')
@@ -649,7 +703,7 @@ class ScmOnboardingTest(AcceptanceTestCase):
             }
         ):
             self.start_onboarding()
-            self.skip_to_setup_docs("React", "React")
+            self.continue_past_platform_features("React", "React")
 
             self.browser.wait_until(xpath='//h2[text()="Configure React SDK"]')
             project1 = Project.objects.get(organization=self.org)
@@ -682,7 +736,7 @@ class ScmOnboardingTest(AcceptanceTestCase):
             self.projects_born_active(),
         ):
             self.start_onboarding()
-            self.skip_to_setup_docs("React", "React")
+            self.continue_past_platform_features("React", "React")
 
             self.browser.wait_until(xpath='//h2[text()="Configure React SDK"]')
             project = Project.objects.get(organization=self.org)
@@ -709,14 +763,14 @@ class ScmOnboardingTest(AcceptanceTestCase):
             self.projects_born_active(),
         ):
             self.start_onboarding()
-            self.skip_to_setup_docs("React", "React")
+            self.continue_past_platform_features("React", "React")
 
             self.browser.wait_until(xpath='//h2[text()="Configure React SDK"]')
             project1 = Project.objects.get(organization=self.org)
 
             self.browser.click('[aria-label="Back"]')
             self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
-            self.browser.wait_until(xpath='//*[text()="Select a platform"]')
+            self.browser.wait_until('input[aria-autocomplete="list"]')
             input_el = self.browser.element('input[aria-autocomplete="list"]')
             input_el.send_keys("Vue")
             self.browser.wait_until(xpath='//p[@data-test-id="menu-list-item-label"][text()="Vue"]')
@@ -731,4 +785,88 @@ class ScmOnboardingTest(AcceptanceTestCase):
                 self.org,
                 active_project_ids=[project1.id, project2.id],
                 deleted_project_ids=[],
+            )
+
+    def test_scm_treatment_set_up_later_creates_email_only_project(self) -> None:
+        """Treatment defers creation to the messaging step: no project exists on
+        arrival, and Set up later creates one with only the default email workflow."""
+        with self.feature(SCM_MESSAGING_TREATMENT):
+            self.start_onboarding()
+            self.continue_past_platform_features("React", "React")
+
+            self.browser.wait_until('[data-test-id="onboarding-step-scm-messaging"]')
+            self.browser.wait_until_clickable(xpath='//button[contains(., "Set up later")]')
+            assert not Project.objects.filter(organization=self.org).exists()
+
+            self.browser.click(xpath='//button[contains(., "Set up later")]')
+            self.browser.wait_until(xpath='//h2[text()="Configure React SDK"]')
+
+            project = Project.objects.get(organization=self.org)
+            assert project.platform == "javascript-react"
+            workflow = Workflow.objects.get(organization=self.org)
+            assert workflow.name == DEFAULT_WORKFLOW_LABEL
+            assert workflow_action_types(workflow) == [Action.Type.EMAIL]
+            assert_existing_projects_status(
+                self.org, active_project_ids=[project.id], deleted_project_ids=[]
+            )
+
+    def test_scm_treatment_slack_destination_creates_messaging_workflow(self) -> None:
+        """Treatment happy path: Confirm and continue with a Slack channel creates
+        the project and one workflow that notifies both email and the channel."""
+        integration = self.create_slack_integration(self.org, user=self.user)
+
+        with self.feature(SCM_MESSAGING_TREATMENT), self.slack_resolves_alerts_channel():
+            self.start_onboarding()
+            self.continue_past_platform_features("React", "React")
+            self.confirm_slack_destination()
+
+            self.browser.wait_until(xpath='//h2[text()="Configure React SDK"]')
+
+            project = Project.objects.get(organization=self.org)
+            assert project.platform == "javascript-react"
+            workflow = Workflow.objects.get(organization=self.org)
+            assert workflow_action_types(workflow) == [Action.Type.EMAIL, Action.Type.SLACK]
+            slack_action = Action.objects.get(
+                dataconditiongroupaction__condition_group__workflowdataconditiongroup__workflow=workflow,
+                type=Action.Type.SLACK,
+            )
+            assert slack_action.integration_id == integration.id
+            assert slack_action.config["target_display"] == "#alerts"
+            assert slack_action.config["target_identifier"] == "C125"
+            assert_existing_projects_status(
+                self.org, active_project_ids=[project.id], deleted_project_ids=[]
+            )
+
+    def test_scm_treatment_back_from_setup_docs_restores_destination_and_reuses_project(
+        self,
+    ) -> None:
+        """Back from setup-docs returns to the messaging step with the saved
+        destination revalidated; Continue reuses the active project instead of
+        creating a second one."""
+        self.create_slack_integration(self.org, user=self.user)
+
+        with (
+            self.feature(SCM_MESSAGING_TREATMENT),
+            self.slack_resolves_alerts_channel(),
+            self.projects_born_active(),
+        ):
+            self.start_onboarding()
+            self.continue_past_platform_features("React", "React")
+            self.confirm_slack_destination()
+
+            self.browser.wait_until(xpath='//h2[text()="Configure React SDK"]')
+            project = Project.objects.get(organization=self.org)
+
+            self.browser.click('[aria-label="Back"]')
+            self.browser.wait_until('[data-test-id="onboarding-step-scm-messaging"]')
+            # Continue enables only once the restored destination is revalidated.
+            self.browser.wait_until(xpath='//*[text()="#alerts"]')
+            self.browser.wait_until_clickable(xpath='//button[contains(., "Continue")]')
+            self.browser.click(xpath='//button[contains(., "Continue")]')
+
+            self.browser.wait_until(xpath='//h2[text()="Configure React SDK"]')
+            assert Project.objects.filter(organization=self.org, status=0).count() == 1
+            assert Workflow.objects.filter(organization=self.org).count() == 1
+            assert_existing_projects_status(
+                self.org, active_project_ids=[project.id], deleted_project_ids=[]
             )

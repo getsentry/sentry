@@ -88,7 +88,7 @@ class PreprodSizeAnalysisDetectorHandlerTest(TestCase):
             },
         )
         handler = PreprodSizeAnalysisDetectorHandler(detector)
-        evaluation_result = handler.evaluate(data_packet)
+        evaluation_result = handler._evaluate(data_packet)
 
         assert None in evaluation_result
         result = evaluation_result[None]
@@ -112,7 +112,7 @@ class PreprodSizeAnalysisDetectorHandlerTest(TestCase):
             },
         )
         handler = PreprodSizeAnalysisDetectorHandler(detector)
-        evaluation_result = handler.evaluate(data_packet)
+        evaluation_result = handler._evaluate(data_packet)
 
         assert evaluation_result == {}
 
@@ -149,7 +149,7 @@ class PreprodSizeAnalysisDetectorHandlerTest(TestCase):
             },
         )
         handler = PreprodSizeAnalysisDetectorHandler(detector)
-        evaluation_result = handler.evaluate(data_packet)
+        evaluation_result = handler._evaluate(data_packet)
 
         assert None in evaluation_result
         assert evaluation_result[None].priority == DetectorPriorityLevel.HIGH
@@ -187,7 +187,7 @@ class PreprodSizeAnalysisDetectorHandlerTest(TestCase):
             },
         )
         handler = PreprodSizeAnalysisDetectorHandler(detector)
-        evaluation_result = handler.evaluate(data_packet)
+        evaluation_result = handler._evaluate(data_packet)
 
         assert None in evaluation_result
         assert evaluation_result[None].priority == DetectorPriorityLevel.MEDIUM
@@ -208,7 +208,7 @@ class PreprodSizeAnalysisDetectorHandlerTest(TestCase):
             },
         )
         handler = PreprodSizeAnalysisDetectorHandler(detector)
-        evaluation_result = handler.evaluate(data_packet)
+        evaluation_result = handler._evaluate(data_packet)
 
         assert evaluation_result == {}
 
@@ -241,7 +241,7 @@ class PreprodSizeAnalysisDetectorHandlerTest(TestCase):
             },
         )
         handler = PreprodSizeAnalysisDetectorHandler(detector)
-        evaluation_result = handler.evaluate(data_packet)
+        evaluation_result = handler._evaluate(data_packet)
 
         assert None in evaluation_result
         assert evaluation_result[None].priority == DetectorPriorityLevel.HIGH
@@ -275,7 +275,7 @@ class PreprodSizeAnalysisDetectorHandlerTest(TestCase):
             },
         )
         handler = PreprodSizeAnalysisDetectorHandler(detector)
-        evaluation_result = handler.evaluate(data_packet)
+        evaluation_result = handler._evaluate(data_packet)
 
         assert evaluation_result == {}
 
@@ -309,7 +309,7 @@ class PreprodSizeAnalysisDetectorHandlerTest(TestCase):
             },
         )
         handler = PreprodSizeAnalysisDetectorHandler(detector)
-        evaluation_result = handler.evaluate(data_packet)
+        evaluation_result = handler._evaluate(data_packet)
 
         assert None in evaluation_result
         assert evaluation_result[None].priority == DetectorPriorityLevel.HIGH
@@ -344,7 +344,7 @@ class PreprodSizeAnalysisDetectorHandlerTest(TestCase):
             },
         )
         handler = PreprodSizeAnalysisDetectorHandler(detector)
-        evaluation_result = handler.evaluate(data_packet)
+        evaluation_result = handler._evaluate(data_packet)
 
         assert evaluation_result == {}
 
@@ -375,7 +375,7 @@ class PreprodSizeAnalysisDetectorHandlerTest(TestCase):
         )
         handler = PreprodSizeAnalysisDetectorHandler(detector)
         with pytest.raises(ValueError, match="Missing base value"):
-            handler.evaluate(data_packet)
+            handler._evaluate(data_packet)
 
 
 @cell_silo_test
@@ -435,7 +435,7 @@ class PreprodSizeAnalysisDetectorQueryFilterTest(TestCase):
             workflow_condition_group=self.condition_group,
         )
         handler = PreprodSizeAnalysisDetectorHandler(detector)
-        result = handler.evaluate(self._make_data_packet())
+        result = handler._evaluate(self._make_data_packet())
 
         assert None in result
         assert result[None].priority == DetectorPriorityLevel.HIGH
@@ -449,7 +449,7 @@ class PreprodSizeAnalysisDetectorQueryFilterTest(TestCase):
             workflow_condition_group=self.condition_group,
         )
         handler = PreprodSizeAnalysisDetectorHandler(detector)
-        result = handler.evaluate(self._make_data_packet())
+        result = handler._evaluate(self._make_data_packet())
 
         assert None in result
         assert result[None].priority == DetectorPriorityLevel.HIGH
@@ -463,7 +463,7 @@ class PreprodSizeAnalysisDetectorQueryFilterTest(TestCase):
             workflow_condition_group=self.condition_group,
         )
         handler = PreprodSizeAnalysisDetectorHandler(detector)
-        result = handler.evaluate(self._make_data_packet())
+        result = handler._evaluate(self._make_data_packet())
 
         assert None in result
         assert result[None].priority == DetectorPriorityLevel.HIGH
@@ -481,7 +481,7 @@ class PreprodSizeAnalysisDetectorQueryFilterTest(TestCase):
             workflow_condition_group=self.condition_group,
         )
         handler = PreprodSizeAnalysisDetectorHandler(detector)
-        result = handler.evaluate(self._make_data_packet())
+        result = handler._evaluate(self._make_data_packet())
 
         assert None in result
         assert result[None].priority == DetectorPriorityLevel.HIGH
@@ -499,7 +499,7 @@ class PreprodSizeAnalysisDetectorQueryFilterTest(TestCase):
             workflow_condition_group=self.condition_group,
         )
         handler = PreprodSizeAnalysisDetectorHandler(detector)
-        result = handler.evaluate(self._make_data_packet())
+        result = handler._evaluate(self._make_data_packet())
 
         assert result == {}
 
@@ -518,7 +518,7 @@ class PreprodSizeAnalysisDetectorQueryFilterTest(TestCase):
         handler = PreprodSizeAnalysisDetectorHandler(detector)
 
         with mock.patch("sentry.preprod.size_analysis.grouptype.logger") as mock_logger:
-            result = handler.evaluate(self._make_data_packet())
+            result = handler._evaluate(self._make_data_packet())
 
         assert result == {}
         mock_logger.exception.assert_called_once_with(
@@ -547,7 +547,7 @@ class PreprodSizeAnalysisDetectorQueryFilterTest(TestCase):
         )
         handler = PreprodSizeAnalysisDetectorHandler(detector)
         with pytest.raises(ValueError, match="missing metadata required to evaluate query filter"):
-            handler.evaluate(data_packet)
+            handler._evaluate(data_packet)
 
 
 @cell_silo_test
@@ -619,7 +619,7 @@ class PreprodSizeAnalysisOccurrenceContentTest(TestCase):
             },
         )
         handler = PreprodSizeAnalysisDetectorHandler(detector)
-        return handler.evaluate(data_packet)
+        return handler._evaluate(data_packet)
 
     def test_create_occurrence_install_size_with_metadata(self) -> None:
         commit_comparison = self.create_commit_comparison(
@@ -798,7 +798,7 @@ class PreprodSizeAnalysisOccurrenceContentTest(TestCase):
             },
         )
         handler = PreprodSizeAnalysisDetectorHandler(detector)
-        result = handler.evaluate(data_packet)
+        result = handler._evaluate(data_packet)
 
         assert None in result
         occurrence = result[None].result
@@ -846,7 +846,7 @@ class PreprodSizeAnalysisOccurrenceContentTest(TestCase):
             },
         )
         handler = PreprodSizeAnalysisDetectorHandler(detector)
-        result = handler.evaluate(data_packet)
+        result = handler._evaluate(data_packet)
 
         assert None in result
         occurrence = result[None].result
@@ -909,7 +909,7 @@ class PreprodSizeAnalysisEvidenceTextTest(TestCase):
             packet=packet_data,
         )
         handler = PreprodSizeAnalysisDetectorHandler(detector)
-        result = handler.evaluate(data_packet)
+        result = handler._evaluate(data_packet)
         assert None in result
         occurrence = result[None].result
         assert isinstance(occurrence, IssueOccurrence)

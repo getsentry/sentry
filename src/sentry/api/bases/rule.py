@@ -11,7 +11,6 @@ from sentry.incidents.endpoints.serializers.utils import get_object_id_from_fake
 from sentry.models.rule import Rule
 from sentry.workflow_engine.models.alertrule_workflow import AlertRuleWorkflow
 from sentry.workflow_engine.models.workflow import Workflow
-from sentry.workflow_engine.utils.legacy_metric_tracking import report_used_legacy_models
 
 
 class RuleEndpoint(ProjectEndpoint):
@@ -27,9 +26,6 @@ class RuleEndpoint(ProjectEndpoint):
         if not rule_id.isdigit():
             raise ResourceDoesNotExist
 
-        # Mark that we're using legacy Rule models (before query to track failures too)
-        report_used_legacy_models()
-
         try:
             kwargs["rule"] = Rule.objects.get(
                 project=project,
@@ -42,8 +38,8 @@ class RuleEndpoint(ProjectEndpoint):
 
 
 class WorkflowEngineRuleEndpoint(RuleEndpoint):
-    # Subclasses may set a per-method granular flag (e.g. for GET) that is OR'd
-    # with the broad workflow-engine-rule-serializers flag.
+    # GET and DELETE use Workflow Engine unconditionally. Subclasses may opt
+    # other methods in with a per-method flag.
     workflow_engine_method_flags: dict[str, str] = {}
 
     def convert_args(
@@ -83,7 +79,6 @@ class WorkflowEngineRuleEndpoint(RuleEndpoint):
 
             return args, kwargs
 
-        report_used_legacy_models()
         try:
             kwargs["rule"] = Rule.objects.get(project=project, id=rule_id)
         except Rule.DoesNotExist:

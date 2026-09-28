@@ -16,11 +16,11 @@ from sentry.notifications.platform.templates.issue import (
     SerializableRuleProxy,
 )
 from sentry.notifications.platform.types import (
-    NotificationCategory,
     NotificationRenderedTemplate,
     NotificationSource,
 )
 from sentry.testutils.cases import TestCase
+from sentry.testutils.notifications.platform import MockNotification
 from sentry.utils import json
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.types import ActionInvocation, WorkflowEventData
@@ -335,21 +335,10 @@ class IssueAlertProviderDispatchTest(TestCase):
                 id=1, label="Test Detector", data={}, project_id=self.project.id
             ),
         )
-        renderer = SlackNotificationProvider.get_renderer(
-            data=data,
-            category=NotificationCategory.ISSUE,
-        )
+        renderer = SlackNotificationProvider.get_renderer(data=data)
         assert renderer is IssueSlackRenderer
 
-    def test_provider_returns_default_for_unknown_category(self) -> None:
-        data = IssueNotificationData(
-            group_id=self.group.id,
-            rule=SerializableRuleProxy(
-                id=1, label="Test Detector", data={}, project_id=self.project.id
-            ),
-        )
-        renderer = SlackNotificationProvider.get_renderer(
-            data=data,
-            category=NotificationCategory.DEBUG,
-        )
+    def test_provider_returns_default_for_unregistered_source(self) -> None:
+        data = MockNotification(message="test")
+        renderer = SlackNotificationProvider.get_renderer(data=data)
         assert renderer is SlackNotificationProvider.default_renderer

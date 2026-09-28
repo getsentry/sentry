@@ -9,6 +9,7 @@ from sentry.models.dashboard_widget import (
     DashboardWidgetDisplayTypes,
     DashboardWidgetTypes,
     get_max_widget_limit,
+    get_min_widget_height,
 )
 
 GRID_WIDTH = 6
@@ -275,6 +276,22 @@ class GeneratedWidget(BaseModel):
             raise ValueError(
                 f"limit={limit} exceeds the maximum of {max_limit} for display_type '{display_type}'"
             )
+        return values
+
+    @root_validator
+    def check_height_by_display_type(cls, values: dict[str, Any]) -> dict[str, Any]:
+        display_type = values.get("display_type")
+        layout = values.get("layout")
+        if display_type is None or layout is None:
+            return values
+
+        min_height = get_min_widget_height(
+            DashboardWidgetDisplayTypes.get_id_for_type_name(display_type)
+        )
+        if layout.h < min_height:
+            raise ValueError(f"Height must be at least {min_height} for {display_type} widgets.")
+
+        layout.min_h = min_height
         return values
 
     @root_validator

@@ -1,5 +1,3 @@
-/* eslint-disable unicorn/filename-case */
-
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Tooltip} from '@sentry/scraps/tooltip';

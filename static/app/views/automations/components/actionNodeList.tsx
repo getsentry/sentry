@@ -4,9 +4,8 @@ import styled from '@emotion/styled';
 import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
 import {Container} from '@sentry/scraps/layout';
-import {Select} from '@sentry/scraps/select';
+import {Select, components as selectComponents} from '@sentry/scraps/select';
 
-import {components as selectComponents} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {

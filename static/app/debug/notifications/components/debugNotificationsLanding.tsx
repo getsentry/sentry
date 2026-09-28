@@ -9,7 +9,6 @@ import {Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 // Mimicking useStoriesDarkMode -> Don't use these elsewhere please 🙏
-// eslint-disable-next-line no-restricted-imports
 import {darkTheme} from 'sentry/utils/theme/theme';
 
 function DarkModeProvider(props: PropsWithChildren) {

@@ -13,15 +13,15 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {StyledEmptyStateWarning as EmptyState} from 'sentry/views/explore/replays/detail/emptyState';
 import {FluidHeight} from 'sentry/views/explore/replays/detail/layout/fluidHeight';
 import type {HydratedReplayRecord} from 'sentry/views/explore/replays/types';
-import {useReplayTraceMeta} from 'sentry/views/performance/newTraceDetails/traceApi/useReplayTraceMeta';
-import {useTrace} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
-import {useTraceRootEvent} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
-import {useTraceTree} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceTree';
-import type {TracePreferencesState} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
-import {getInitialTracePreferences} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
-import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
-import {TraceWaterfall} from 'sentry/views/performance/newTraceDetails/traceWaterfall';
-import {useTraceStateAnalytics} from 'sentry/views/performance/newTraceDetails/useTraceStateAnalytics';
+import {useReplayTraceMeta} from 'sentry/views/performance/traceDetails/traceApi/useReplayTraceMeta';
+import {useTrace} from 'sentry/views/performance/traceDetails/traceApi/useTrace';
+import {useTraceRootEvent} from 'sentry/views/performance/traceDetails/traceApi/useTraceRootEvent';
+import {useTraceTree} from 'sentry/views/performance/traceDetails/traceApi/useTraceTree';
+import type {TracePreferencesState} from 'sentry/views/performance/traceDetails/traceState/tracePreferences';
+import {getInitialTracePreferences} from 'sentry/views/performance/traceDetails/traceState/tracePreferences';
+import {TraceStateProvider} from 'sentry/views/performance/traceDetails/traceState/traceStateProvider';
+import {TraceWaterfall} from 'sentry/views/performance/traceDetails/traceWaterfall';
+import {useTraceStateAnalytics} from 'sentry/views/performance/traceDetails/useTraceStateAnalytics';
 
 import {useReplayTraces} from './useReplayTraces';
 

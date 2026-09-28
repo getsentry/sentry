@@ -65,7 +65,6 @@ interface SearchComboBoxProps<T extends SearchItem> extends Omit<
   children: CollectionChildren<T>;
   defaultItems: T[];
   inputRef: React.RefObject<HTMLInputElement | null>;
-  description?: string | null;
   label?: string;
 }
 

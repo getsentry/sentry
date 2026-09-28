@@ -14,7 +14,7 @@ import {dispatchYAxisUpdate} from 'sentry/views/dashboards/widgetBuilder/compone
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import type {EquationModeSnapshot} from 'sentry/views/dashboards/widgetBuilder/hooks/useTraceMetricsVisualizeModeState';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
-import {getTraceMetricAggregateSource} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
+import {getTraceMetricAggregates} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
 import {MAX_METRIC_ALLOWED_LABEL_VALUE} from 'sentry/views/explore/metrics/constants';
 import {
   extractReferenceLabels,
@@ -70,13 +70,14 @@ export function MetricQueryRows({
   // restore this state after a mode or dataset toggle.
   useEffect(() => {
     if (equationSnapshot) {
+      // oxlint-disable-next-line react/immutability
       equationSnapshot.current = {queries: metricQueries, selectedLabel};
     }
   }, [equationSnapshot, metricQueries, selectedLabel]);
   const referenceMap = useMetricReferences(metricQueries);
-  const addAggregate = useAddMetricQuery({type: 'aggregate'});
+  const addAggregate = useAddMetricQuery({});
 
-  const aggregateSource = getTraceMetricAggregateSource(
+  const aggregateSource = getTraceMetricAggregates(
     state.displayType,
     state.yAxis,
     state.fields

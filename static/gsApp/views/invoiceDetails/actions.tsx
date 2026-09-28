@@ -17,6 +17,7 @@ import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 
 import {openInvoicePaymentModal} from 'getsentry/actionCreators/modal';
+import {THREE_DS_REFERRER} from 'getsentry/constants';
 import type {Invoice} from 'getsentry/types';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
@@ -68,18 +69,22 @@ export function InvoiceDetailsActions({organization, invoice, reloadInvoice}: Pr
   useEffect(() => {
     const queryReferrer = decodeScalar(location?.query?.referrer);
     if (invoice && queryReferrer) {
+      const isBillingFailure = queryReferrer.includes('billing-failure');
+      const needsAuthentication = queryReferrer === THREE_DS_REFERRER;
+
       // Open "Pay Now" modal and track clicks from payment failure emails
       if (
-        // There are multiple billing failure referrals and each should have analytics tracking
-        queryReferrer.includes('billing-failure') &&
+        (isBillingFailure || needsAuthentication) &&
         !invoice.isPaid &&
         !invoice.isClosed
       ) {
         openInvoicePaymentModal({invoice, organization, reloadInvoice});
-        trackGetsentryAnalytics('billing_failure.button_clicked', {
-          organization,
-          referrer: queryReferrer,
-        });
+        if (isBillingFailure) {
+          trackGetsentryAnalytics('billing_failure.button_clicked', {
+            organization,
+            referrer: queryReferrer,
+          });
+        }
       }
     }
   }, [invoice, organization, reloadInvoice, location.query.referrer]);

@@ -91,7 +91,6 @@ describe('ScmGithubMultiOrgInstall', () => {
 
   it('renders dropdown without alert when no installations have count > 0', () => {
     renderComponent({
-      hasFeature: false,
       installations: [
         makeInstallation({installationId: '100', githubAccount: 'my-org', count: 0}),
         makeInstallation({
@@ -111,7 +110,7 @@ describe('ScmGithubMultiOrgInstall', () => {
   });
 
   it('shows upgrade alert when org lacks feature and has multi-org installations', () => {
-    renderComponent({hasFeature: false});
+    renderComponent({});
 
     expect(
       screen.getByText(/already connected to other Sentry organizations/)
@@ -120,7 +119,7 @@ describe('ScmGithubMultiOrgInstall', () => {
   });
 
   it('upgrade link points to billing page in new tab', () => {
-    renderComponent({hasFeature: false});
+    renderComponent({});
 
     const link = screen.getByText('Upgrade').closest('a');
     expect(link).toHaveAttribute(

@@ -36,28 +36,28 @@ describe('Chart Utils', () => {
     describe('with medium fidelity', () => {
       it('greater than 24 hours', () => {
         expect(getInterval({period: '25h'})).toBe('1h');
-        expect(getInterval({period: '25h'}, 'medium')).toBe('1h');
+        expect(getInterval({period: '25h'})).toBe('1h');
       });
 
       it('less than 30 minutes', () => {
         expect(getInterval({period: '20m'})).toBe('5m');
-        expect(getInterval({period: '20m'}, 'medium')).toBe('5m');
+        expect(getInterval({period: '20m'})).toBe('5m');
       });
       it('between 30 minutes and 24 hours', () => {
         expect(getInterval({period: '12h'})).toBe('15m');
-        expect(getInterval({period: '12h'}, 'medium')).toBe('15m');
+        expect(getInterval({period: '12h'})).toBe('15m');
       });
       it('more than 14 days', () => {
         expect(getInterval({period: '14d'})).toBe('1h');
-        expect(getInterval({period: '14d'}, 'medium')).toBe('1h');
+        expect(getInterval({period: '14d'})).toBe('1h');
       });
       it('more than 30 days', () => {
         expect(getInterval({period: '30d'})).toBe('4h');
-        expect(getInterval({period: '30d'}, 'medium')).toBe('4h');
+        expect(getInterval({period: '30d'})).toBe('4h');
       });
       it('more than 90 days', () => {
         expect(getInterval({period: '90d'})).toBe('1d');
-        expect(getInterval({period: '90d'}, 'medium')).toBe('1d');
+        expect(getInterval({period: '90d'})).toBe('1d');
       });
     });
 

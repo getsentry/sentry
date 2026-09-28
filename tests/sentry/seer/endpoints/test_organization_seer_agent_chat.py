@@ -21,7 +21,6 @@ from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
 @with_feature("organizations:seer-explorer")
 @with_feature("organizations:gen-ai-features")
-@with_feature("organizations:gen-ai-consent-flow-removal")
 class OrganizationSeerAgentChatEndpointTest(APITestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -57,6 +56,23 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         # No mirror row exists for this numeric run id, so there's no UUID to surface.
         assert response.data["sentry_run_id"] is None
         mock_client.get_run.assert_called_once_with(run_id=123)
+
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
+    def test_get_includes_failure_reason(self, mock_client_class: MagicMock) -> None:
+        mock_client = MagicMock()
+        mock_client.get_run.return_value = SeerRunState(
+            run_id=123,
+            blocks=[],
+            status="error",
+            updated_at="2024-01-01T00:00:00Z",
+            failure_reason="provider_unavailable",
+        )
+        mock_client_class.return_value = mock_client
+
+        response = self.client.get(f"{self.url}123/")
+
+        assert response.status_code == 200
+        assert response.data["session"]["failure_reason"] == "provider_unavailable"
 
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
     def test_get_excludes_private_fields(self, mock_client_class: MagicMock) -> None:
@@ -161,7 +177,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
             self.organization,
             ANY,
             is_interactive=True,
-            enable_bash_tools=False,
+            enable_bash_mode=False,
             enable_coding=False,
             enable_code_mode_tools="off",
             reasoning_effort="medium",
@@ -252,7 +268,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
                 self.organization,
                 ANY,
                 is_interactive=True,
-                enable_bash_tools=False,
+                enable_bash_mode=False,
                 enable_coding=feature_enabled and option_enabled,
                 enable_code_mode_tools="off",
                 reasoning_effort="medium",
@@ -279,7 +295,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
             self.organization,
             ANY,
             is_interactive=True,
-            enable_bash_tools=False,
+            enable_bash_mode=False,
             enable_coding=False,
             enable_code_mode_tools="off",
             reasoning_effort="medium",
@@ -478,7 +494,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
                 self.organization,
                 ANY,
                 is_interactive=True,
-                enable_bash_tools=False,
+                enable_bash_mode=False,
                 enable_coding=feature_enabled and option_enabled,
                 enable_code_mode_tools="off",
                 reasoning_effort="medium",
@@ -656,7 +672,6 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
 
 @with_feature("organizations:seer-explorer")
 @with_feature("organizations:gen-ai-features")
-@with_feature("organizations:gen-ai-consent-flow-removal")
 class OrganizationSeerAgentChatContextEngineTest(APITestCase):
     """End-to-end tests verifying is_context_engine_enabled reaches make_agent_chat_request."""
 

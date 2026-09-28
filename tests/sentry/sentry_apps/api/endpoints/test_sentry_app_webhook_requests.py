@@ -348,6 +348,10 @@ class SentryAppWebhookRequestsGetTest(APITestCase):
             "sentryAppSlug": self.published_app.slug,
             "eventType": "issue.assigned",
             "responseCode": 500,
+            "requestId": None,
+            "subjectId": None,
+            "subjectType": None,
+            "durationMs": None,
             "project_id": 1,
             "date": str(now) + "+00:00",
             "error_id": "abc123",
@@ -360,6 +364,51 @@ class SentryAppWebhookRequestsGetTest(APITestCase):
         response = self.client.get(url, format="json")
         assert response.status_code == 200
         assert len(response.data) == 2
+
+    def test_request_id_subject_and_duration_on_success_and_error_rows(self) -> None:
+        self.login_as(user=self.user)
+        buffer = SentryAppWebhookRequestsBuffer(self.published_app)
+        now = datetime.now() - timedelta(hours=1)
+        with freeze_time(now):
+            buffer.add_request(
+                response_code=200,
+                org_id=self.org.id,
+                event="issue.assigned",
+                url=self.published_app.webhook_url,
+                request_id="req-success",
+                subject_id="123",
+                subject_type="group",
+                duration_ms=137,
+            )
+        with freeze_time(now + timedelta(seconds=1)):
+            buffer.add_request(
+                response_code=500,
+                org_id=self.org.id,
+                event="issue.assigned",
+                url=self.published_app.webhook_url,
+                request_id="req-error",
+                subject_id="456",
+                subject_type="group",
+                duration_ms=8000,
+            )
+
+        url = reverse("sentry-api-0-sentry-app-webhook-requests", args=[self.published_app.slug])
+        response = self.client.get(url, format="json")
+        assert response.status_code == 200
+        assert len(response.data) == 2
+
+        # Buffer returns newest first.
+        error_row, success_row = response.data[0], response.data[1]
+        assert error_row["responseCode"] == 500
+        assert error_row["requestId"] == "req-error"
+        assert error_row["subjectId"] == "456"
+        assert error_row["subjectType"] == "group"
+        assert error_row["durationMs"] == 8000
+        assert success_row["responseCode"] == 200
+        assert success_row["requestId"] == "req-success"
+        assert success_row["subjectId"] == "123"
+        assert success_row["subjectType"] == "group"
+        assert success_row["durationMs"] == 137
 
     def test_linked_error_not_returned_if_project_does_not_exist(self) -> None:
         self.login_as(user=self.user)

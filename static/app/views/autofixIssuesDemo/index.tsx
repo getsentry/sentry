@@ -170,7 +170,6 @@ export default function AutofixIssuesDemo() {
               isLoading={isPending}
               data={issues}
               columnOrder={columnOrder}
-              columnSortBy={[]}
               grid={{
                 renderHeadCell: column => column.name,
                 renderBodyCell,

@@ -4,14 +4,14 @@ import omit from 'lodash/omit';
 import Prism from 'prismjs';
 
 import {Alert} from '@sentry/scraps/alert';
+import {loadPrismLanguage} from '@sentry/scraps/code';
 
-import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
 import {List} from 'sentry/components/list';
+import {KeyValueTableDataList} from 'sentry/components/tables/keyValueTable';
 import {t, tn} from 'sentry/locale';
 import type {EntryRequestDataGraphQl, Event} from 'sentry/types/event';
 import {uniq} from 'sentry/utils/array/uniq';
 import {defined} from 'sentry/utils/defined';
-import {loadPrismLanguage} from 'sentry/utils/prism';
 
 type GraphQlBodyProps = {data: EntryRequestDataGraphQl['data']; event: Event};
 
@@ -126,7 +126,8 @@ export function GraphQlRequestBody({data, event}: GraphQlBodyProps) {
         </code>
       </pre>
       <ErrorsAlert errors={errors} />
-      <KeyValueList
+      <KeyValueTableDataList
+        margin
         data={Object.entries(omit(data, 'query')).map(([key, value]) => ({
           key,
           subject: key,

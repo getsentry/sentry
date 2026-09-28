@@ -1,4 +1,5 @@
 import {useState, type ReactNode} from 'react';
+import {useDebouncedValue} from '@tanstack/react-pacer';
 import {useQueries, useQuery} from '@tanstack/react-query';
 import type {DistributedPick} from 'type-fest';
 
@@ -17,7 +18,6 @@ import {Client} from 'sentry/api';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useApi} from 'sentry/utils/useApi';
-import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 
 import type {JsonFormAdapterFieldConfig} from './types';
 
@@ -37,7 +37,7 @@ interface ChoiceMapperTableProps {
   labels: Record<string, ReactNode>;
   onSave: (value: Record<string, Record<string, unknown>>) => void;
   onUpdate: (value: Record<string, Record<string, unknown>>) => void;
-  value: Record<string, Record<string, unknown>>;
+  value: Record<string, Record<string, string>>;
   disabled?: boolean;
 }
 
@@ -61,7 +61,7 @@ function AsyncSearchCompactSelect({
   searchField?: string;
 } & DistributedPick<SelectProps<string>, 'trigger'>) {
   const [search, setSearch] = useState('');
-  const debouncedSearch = useDebouncedValue(search, 200);
+  const [debouncedSearch] = useDebouncedValue(search, {wait: 200});
   const [apiClient] = useState(() => new Client({baseUrl: ''}));
   const api = useApi({api: apiClient});
 
@@ -382,7 +382,7 @@ export function ChoiceMapperTable({
  * Transform choice tuples from the backend config into Select options.
  */
 function transformMappedChoices(
-  selector?: {choices?: Array<[string, string]>; placeholder?: string} | unknown
+  selector?: {choices?: Array<[string, string]>} | unknown
 ): Array<{label: string; value: string}> {
   if (!selector || typeof selector !== 'object') {
     return [];

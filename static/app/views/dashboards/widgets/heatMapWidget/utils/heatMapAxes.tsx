@@ -19,8 +19,8 @@ import {formatXAxisTimestamp} from 'sentry/views/dashboards/widgets/timeSeriesWi
  * in the coordinate system to place the cells.
  *
  * `axisLabel: {show: false}` looks redundant with `show: false`, but it isn't:
- * the app also loads the full `echarts` bundle (via `useChartXRangeSelection`),
- * which registers the legacy `containLabel` layout. That layout reserves grid
+ * `BaseChart` registers the legacy `containLabel` layout to preserve existing
+ * chart spacing. That layout reserves grid
  * space for an axis's labels based on `axisLabel.show` alone — it ignores the
  * axis-level `show` — so without this the hidden category axis pads the chart
  * with room for its (never-rendered) bucket-boundary labels.

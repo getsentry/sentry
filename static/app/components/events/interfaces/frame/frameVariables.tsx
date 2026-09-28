@@ -1,8 +1,9 @@
 import {useMemo} from 'react';
+import styled from '@emotion/styled';
 
-import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
 import type {StructedEventDataConfig} from 'sentry/components/structuredEventData';
 import {StructuredEventData} from 'sentry/components/structuredEventData';
+import {KeyValueTableDataList} from 'sentry/components/tables/keyValueTable';
 import type {KeyValueListData} from 'sentry/types/group';
 import type {PlatformKey} from 'sentry/types/platform';
 
@@ -106,5 +107,17 @@ export function FrameVariables({data, meta, platform}: Props) {
       }));
   }, [data, meta, platform]);
 
-  return <KeyValueList data={transformedData} />;
+  return <FrameVariablesTable data={transformedData} />;
 }
+
+const FrameVariablesTable = styled(KeyValueTableDataList)`
+  td {
+    border-top: 1px solid ${p => p.theme.tokens.border.primary};
+  }
+
+  td.key {
+    width: 145px;
+    max-width: 145px;
+    padding-left: 20px;
+  }
+`;

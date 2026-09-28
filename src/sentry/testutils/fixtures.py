@@ -185,6 +185,9 @@ class Fixtures:
     def create_organization(self, *args, **kwargs):
         return Factories.create_organization(*args, **kwargs)
 
+    def create_organization_avatar(self, *args, **kwargs):
+        return Factories.create_organization_avatar(*args, **kwargs)
+
     def create_investigation(self, *args, **kwargs):
         return Factories.create_investigation(*args, **kwargs)
 
@@ -193,6 +196,15 @@ class Fixtures:
 
     def create_investigation_favorite(self, *args, **kwargs):
         return Factories.create_investigation_favorite(*args, **kwargs)
+
+    def create_investigation_orchestration_run(self, *args, **kwargs):
+        return Factories.create_investigation_orchestration_run(*args, **kwargs)
+
+    def create_investigation_orchestration_event(self, *args, **kwargs):
+        return Factories.create_investigation_orchestration_event(*args, **kwargs)
+
+    def create_investigation_orchestration_command(self, *args, **kwargs):
+        return Factories.create_investigation_orchestration_command(*args, **kwargs)
 
     def create_investigation_block(self, *args, **kwargs):
         return Factories.create_investigation_block(*args, **kwargs)
@@ -833,6 +845,9 @@ class Fixtures:
 
         return Factories.create_detector(project=project, type=type, *args, **kwargs)
 
+    def create_all_projects_detector(self, organization: Organization, **kwargs):
+        return Factories.create_all_projects_detector(organization_id=organization.id, **kwargs)
+
     def create_detector_state(self, *args, **kwargs) -> DetectorState:
         return Factories.create_detector_state(*args, **kwargs)
 
@@ -1314,6 +1329,9 @@ class Fixtures:
         )
 
         return head_artifact, head_size_metrics, base_artifact, base_size_metrics
+
+    def create_seer_autofix_issue_data(self, group, **kwargs):
+        return Factories.create_seer_autofix_issue_data(group=group, **kwargs)
 
     def create_seer_run(self, organization=None, **kwargs):
         if organization is None:

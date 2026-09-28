@@ -1,3 +1,4 @@
+import type {ComponentProps} from 'react';
 import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 
@@ -323,11 +324,22 @@ const EventOrGroupCell = styled(SimpleTable.RowCell)`
   }
 `;
 
-const SubTable = styled(SimpleTable)`
+const OPEN_PERIOD_SUB_COLUMNS: TableColumnConfig[] = [
+  {key: 'id', width: 'min-content'},
+  {key: 'started', width: '1fr'},
+  {key: 'ended', width: '1fr'},
+  {key: 'duration', width: '0.5fr'},
+  {key: 'zoom', width: 'min-content'},
+];
+
+const StyledSubTable = styled(SimpleTable)`
   background-color: ${p => p.theme.tokens.background.secondary};
-  grid-template-columns: min-content 1fr 1fr 0.5fr min-content;
   border: 0;
 `;
+
+function SubTable(props: ComponentProps<typeof StyledSubTable>) {
+  return <StyledSubTable columns={OPEN_PERIOD_SUB_COLUMNS} {...props} />;
+}
 
 const SmallEmptyState = styled(SimpleTable.Empty)`
   min-height: unset;

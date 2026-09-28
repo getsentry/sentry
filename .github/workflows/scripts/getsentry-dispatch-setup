@@ -7,8 +7,20 @@ import urllib.request
 
 LABEL = "Trigger: getsentry tests"
 
+# GitHub App bots are not repo collaborators, so the permission API returns
+# "none" even when the app is trusted. Allowlist internal bots that author
+# PRs and should dispatch getsentry tests without the manual trigger label.
+TRUSTED_BOT_AUTHORS = frozenset(
+    {
+        "sentry-junior[bot]",
+    }
+)
+
 
 def _has_write(repo_id: int, username: str, *, token: str) -> bool:
+    if username in TRUSTED_BOT_AUTHORS:
+        return True
+
     req = urllib.request.Request(
         f"https://api.github.com/repositories/{repo_id}/collaborators/{username}/permission",
         headers={"Authorization": f"token {token}"},

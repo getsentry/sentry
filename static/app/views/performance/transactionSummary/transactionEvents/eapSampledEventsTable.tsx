@@ -43,13 +43,16 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
-import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
+import {
+  getColumnSort,
+  renderHeadCell,
+} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
 import {SpanIdCell} from 'sentry/views/insights/common/components/tableCells/spanIdCell';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {ModuleName, type SpanProperty} from 'sentry/views/insights/types';
-import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
-import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
+import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/breadcrumbs';
+import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/traceUrl';
 import {generateProfileLink} from 'sentry/views/performance/transactionSummary/utils';
 import {
   platformToPerformanceType,
@@ -111,6 +114,8 @@ const COLUMN_ORDER: SampledEventsColumn[] = [
   {key: 'replayId', name: t('Replay'), width: COL_WIDTH_UNDEFINED},
   {key: 'profile.id', name: t('Profile'), width: COL_WIDTH_UNDEFINED},
 ];
+
+const SORTABLE_FIELDS = ['request.method', 'span.duration', 'timestamp'] as const;
 
 type Props = {
   eventView: EventView;
@@ -228,8 +233,15 @@ export function SampledEventsTable({
         error={error}
         data={consolidatedData}
         columnOrder={columnOrder}
-        columnSortBy={[{key: sort.field, order: sort.kind}]}
         grid={{
+          getColumnSort: column =>
+            getColumnSort({
+              column,
+              location,
+              sort,
+              sortableFields: SORTABLE_FIELDS,
+              sortParameterName: QueryParameterNames.SPANS_SORT,
+            }),
           renderHeadCell: column => {
             if (column.key === SPAN_OPS_BREAKDOWN_COLUMN_KEY) {
               return (
@@ -245,12 +257,7 @@ export function SampledEventsTable({
                 </Fragment>
               );
             }
-            return renderHeadCell({
-              column,
-              sort,
-              location,
-              sortParameterName: QueryParameterNames.SPANS_SORT,
-            });
+            return renderHeadCell({column});
           },
           renderBodyCell: (column, row) =>
             renderBodyCell(column, row, meta, location, navigate, organization, theme),

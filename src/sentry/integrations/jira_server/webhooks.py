@@ -8,9 +8,11 @@ from django.views.decorators.csrf import csrf_exempt
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, cell_silo_endpoint
+from sentry.integrations.jira.utils.api import handle_issue_moved
 from sentry.integrations.jira_server.utils import handle_assignee_change, handle_status_change
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.integration.service import integration_service
@@ -44,7 +46,9 @@ def get_integration_from_token(token: str | None) -> RpcIntegration:
     # (provider, external_id) unique index, so an external_id-only lookup does a
     # sequential scan of the whole table on every inbound Jira Server webhook.
     integration = integration_service.get_integration(
-        provider=IntegrationProviderSlug.JIRA_SERVER.value, external_id=unvalidated["id"]
+        provider=IntegrationProviderSlug.JIRA_SERVER.value,
+        external_id=unvalidated["id"],
+        using_replica=options.get("integration_service.get_integration.using_replica"),
     )
     if not integration:
         raise ValueError("Could not find integration for token")
@@ -101,6 +105,9 @@ class JiraServerIssueUpdatedWebhook(Endpoint):
             return self.respond()
 
         try:
+            # Rekey first: a move that also changes status or assignee arrives as one
+            # webhook, and the handlers below look the issue up by its new key.
+            handle_issue_moved(integration, data)
             handle_assignee_change(integration, data)
             handle_status_change(integration, data)
         except (ApiError, ObjectDoesNotExist) as err:

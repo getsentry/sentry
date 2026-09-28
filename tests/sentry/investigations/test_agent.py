@@ -1,7 +1,9 @@
+from datetime import timedelta
 from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
+from django.utils import timezone
 
 from sentry.investigations.agent import (
     _maybe_start_title_generation,
@@ -14,6 +16,10 @@ from sentry.investigations.agent import (
 )
 from sentry.investigations.models import InvestigationBlockExecutionStatus
 from sentry.investigations.services.investigations import DEFAULT_INVESTIGATION_TITLE
+from sentry.investigations.telemetry import (
+    record_execution_completed,
+    record_investigation_completed,
+)
 from sentry.seer.agent.client_models import (
     MemoryBlock,
     Message,
@@ -151,7 +157,7 @@ class InvestigationAgentTest(TestCase):
                             content=(
                                 '<UNTRUSTED_DATA source="sentry_api" trust="UNTRUSTED">\n'
                                 "{'result': '12 errors', 'link_params': "
-                                "{'dataset': 'errors', 'query': 'is:unresolved', "
+                                "{'dataset': 'errors', 'query': 'is:unresolved', 'stats_period': '6d', "
                                 f"'project_slugs': ['{self.project.slug}']}}}}\n"
                                 "</UNTRUSTED_DATA>"
                             ),
@@ -180,6 +186,10 @@ class InvestigationAgentTest(TestCase):
         assert self.execution.status == InvestigationBlockExecutionStatus.COMPLETED
         assert self.execution.result["tableMarkdown"].startswith("| Errors |")
         assert self.execution.result["queryLinks"][0]["kind"] == "telemetry"
+        params = self.execution.result["queryLinks"][0]["params"]
+        assert params["start"] == (self.execution.date_added - timedelta(days=6)).isoformat()
+        assert params["end"] == self.execution.date_added.isoformat()
+        assert "stats_period" not in params
         assert list(self.execution.data_projects.all()) == [self.project]
         assert self.block.result_execution == self.execution
 
@@ -208,8 +218,22 @@ class InvestigationAgentTest(TestCase):
         assert list(self.execution.data_projects.all()) == [self.project]
 
     def test_completed_query_keeps_reused_result_projects(self) -> None:
+        original_links = [
+            {
+                "kind": "telemetry",
+                "params": {
+                    "dataset": "errors",
+                    "query": "",
+                    "start": "2025-08-01T00:00:00Z",
+                    "end": "2025-08-07T00:00:00Z",
+                },
+            }
+        ]
         self.execution.input_snapshot["projectIds"] = []
         self.execution.input_snapshot["contextDataProjectIds"] = [self.project.id]
+        self.execution.input_snapshot["context"] = [
+            {"currentBlock": True, "result": {"queryLinks": original_links}}
+        ]
         self.execution.save(update_fields=["input_snapshot"])
         run_state = state(
             blocks=[
@@ -233,6 +257,7 @@ class InvestigationAgentTest(TestCase):
         self.execution.refresh_from_db()
         assert self.execution.status == InvestigationBlockExecutionStatus.COMPLETED
         assert list(self.execution.data_projects.all()) == [self.project]
+        assert self.execution.result["queryLinks"] == original_links
 
     def test_start_run_requests_a_final_response_without_an_artifact_writer(self) -> None:
         client = MagicMock()
@@ -304,6 +329,41 @@ class InvestigationAgentTest(TestCase):
         assert context["source"]["snapshot"]["analysisWindow"]["breachStart"] == (
             "2026-08-14T23:56:02+00:00"
         )
+
+    def test_start_run_categorizes_the_run_as_an_investigation(self) -> None:
+        client = MagicMock()
+
+        start_execution_run(self.execution, self.organization, self.user, client)
+
+        assert client.category_key == "investigation"
+        assert client.category_value == str(self.investigation.id)
+
+    def test_start_run_passes_parameter_changes_separately_from_saved_settings(self) -> None:
+        saved_context = {
+            "currentBlock": True,
+            "queryContext": {
+                "parameters": {"environment": ["production"]},
+                "filters": {"start": "2025-08-01T00:00:00Z", "end": "2025-08-07T00:00:00Z"},
+            },
+        }
+        self.execution.input_snapshot.update(
+            {
+                "parameters": {"environment": ["staging"]},
+                "parameterChanges": {"environment": ["staging"]},
+                "context": [saved_context],
+            }
+        )
+        client = MagicMock()
+
+        start_execution_run(self.execution, self.organization, self.user, client)
+
+        prompt = client.start_run.call_args.args[0]
+        serialized_context = prompt.split("<investigation_context>\n", 1)[1].split(
+            "\n</investigation_context>", 1
+        )[0]
+        context = json.loads(serialized_context)
+        assert context["parameterChanges"] == {"environment": ["staging"]}
+        assert context["notebookContext"] == [saved_context]
 
     @patch("sentry.investigations.agent.record_execution_started")
     def test_start_run_records_execution_started(self, record_started: MagicMock) -> None:
@@ -413,6 +473,38 @@ class InvestigationAgentTest(TestCase):
         record_completed.assert_called_once()
         assert record_completed.call_args.args[0].id == self.execution.id
 
+    @patch("sentry.investigations.telemetry.metrics.distribution")
+    @patch("sentry.investigations.telemetry.sentry_sdk.metrics.distribution")
+    def test_completed_execution_records_duration_metrics(
+        self, sdk_distribution: MagicMock, metrics_distribution: MagicMock
+    ) -> None:
+        started_at = timezone.now()
+        self.execution.date_added = started_at
+        self.execution.completed_at = started_at + timedelta(seconds=42)
+
+        record_execution_completed(self.execution)
+
+        attributes = {
+            "source_type": "manual",
+            "template": "manual",
+            "block_kind": "query",
+            "executor": "code_mode",
+            "outcome": "completed",
+        }
+        sdk_distribution.assert_called_once_with(
+            "investigations.execution.duration",
+            42.0,
+            unit="second",
+            attributes=attributes,
+        )
+        metrics_distribution.assert_called_once_with(
+            "investigations.execution.duration",
+            42.0,
+            unit="second",
+            tags=attributes,
+            sample_rate=1.0,
+        )
+
     def test_completed_query_rejects_prose_wrapped_json(self) -> None:
         run_state = state(
             blocks=[
@@ -441,8 +533,15 @@ class InvestigationAgentTest(TestCase):
             "message": "The agent returned malformed or unsupported result JSON.",
         }
 
+    @patch("sentry.investigations.agent.record_investigation_failed")
+    @patch("sentry.investigations.agent.record_execution_cancelled")
     @patch("sentry.investigations.agent.interrupt_run")
-    def test_failed_execution_cancels_other_active_cells(self, interrupt_run: MagicMock) -> None:
+    def test_failed_execution_cancels_other_active_cells(
+        self,
+        interrupt_run: MagicMock,
+        record_cancelled: MagicMock,
+        record_investigation_failed: MagicMock,
+    ) -> None:
         sibling_block = self.create_investigation_block(
             investigation=self.investigation,
             kind="text",
@@ -476,28 +575,85 @@ class InvestigationAgentTest(TestCase):
             "message": "Cancelled because another cell in this investigation failed.",
         }
         assert sibling_execution.completed_at is not None
+        record_cancelled.assert_called_once_with(
+            sibling_execution, reason="investigation_execution_failed"
+        )
+        record_investigation_failed.assert_called_once_with(
+            self.investigation, reason="seer_execution_failed"
+        )
         interrupt_run.assert_called_once_with(self.organization, 43)
 
+    @patch("sentry.investigations.telemetry.metrics.distribution")
+    @patch("sentry.investigations.telemetry.sentry_sdk.metrics.distribution")
+    @patch("sentry.investigations.telemetry.metrics.incr")
     @patch("sentry.investigations.telemetry.sentry_sdk.metrics.count")
-    def test_failed_execution_records_sentry_metric(self, metrics_count: MagicMock) -> None:
+    def test_failed_execution_records_metrics(
+        self,
+        metrics_count: MagicMock,
+        metrics_incr: MagicMock,
+        sdk_distribution: MagicMock,
+        metrics_distribution: MagicMock,
+    ) -> None:
         with self.captureOnCommitCallbacks(execute=True):
             synchronize_execution(self.execution, state(status="error", blocks=[]))
 
-        metrics_count.assert_called_once_with(
-            "investigations.execution.failed",
-            1,
-            attributes={
-                "reason": "seer_execution_failed",
-                "source_type": "manual",
-                "template": "manual",
-                "block_kind": "query",
-                "executor": "code_mode",
-            },
+        self.execution.refresh_from_db()
+        assert self.execution.completed_at is not None
+        execution_duration = (
+            self.execution.completed_at - self.execution.date_added
+        ).total_seconds()
+
+        execution_attributes = {
+            "reason": "seer_execution_failed",
+            "source_type": "manual",
+            "template": "manual",
+            "block_kind": "query",
+            "executor": "code_mode",
+        }
+        investigation_attributes = {
+            "reason": "seer_execution_failed",
+            "source_type": "manual",
+            "template": "manual",
+        }
+        assert metrics_count.call_args_list == [
+            (("investigations.execution.failed", 1), {"attributes": execution_attributes}),
+            (("investigations.failed", 1), {"attributes": investigation_attributes}),
+        ]
+        assert metrics_incr.call_args_list == [
+            (
+                ("investigations.execution.failed",),
+                {"tags": execution_attributes, "sample_rate": 1.0},
+            ),
+            (
+                ("investigations.failed",),
+                {"tags": investigation_attributes, "sample_rate": 1.0},
+            ),
+        ]
+        duration_attributes = {
+            "source_type": "manual",
+            "template": "manual",
+            "block_kind": "query",
+            "executor": "code_mode",
+            "outcome": "failed",
+        }
+        sdk_distribution.assert_called_once_with(
+            "investigations.execution.duration",
+            execution_duration,
+            unit="second",
+            attributes=duration_attributes,
+        )
+        metrics_distribution.assert_called_once_with(
+            "investigations.execution.duration",
+            execution_duration,
+            unit="second",
+            tags=duration_attributes,
+            sample_rate=1.0,
         )
 
+    @patch("sentry.investigations.agent.record_investigation_failed")
     @patch("sentry.investigations.agent.interrupt_run")
     def test_superseded_execution_failure_does_not_cancel_current_run(
-        self, interrupt_run: MagicMock
+        self, interrupt_run: MagicMock, record_investigation_failed: MagicMock
     ) -> None:
         current_run = self.create_seer_run(
             organization=self.organization,
@@ -521,6 +677,7 @@ class InvestigationAgentTest(TestCase):
         current_execution.refresh_from_db()
         assert self.execution.status == InvestigationBlockExecutionStatus.FAILED
         assert current_execution.status == InvestigationBlockExecutionStatus.RUNNING
+        record_investigation_failed.assert_not_called()
         interrupt_run.assert_not_called()
 
     @patch("sentry.investigations.agent.interrupt_run")
@@ -1026,8 +1183,11 @@ class InvestigationAgentTest(TestCase):
         assert set(link["params"]) == {"dataset", "query", "project_slugs"}
         assert len(link["params"]["query"]) == 2000
 
+    @patch("sentry.investigations.agent.record_investigation_completed")
     @patch("sentry.investigations.agent.record_title_generation_completed")
-    def test_title_uses_the_final_assistant_message(self, record_completed: MagicMock) -> None:
+    def test_title_uses_the_final_assistant_message(
+        self, record_title_completed: MagicMock, record_investigation_completed: MagicMock
+    ) -> None:
         self.investigation.title = "Untitled investigation"
         self.investigation.title_generation_status = "running"
         self.investigation.save(update_fields=["title", "title_generation_status"])
@@ -1050,7 +1210,34 @@ class InvestigationAgentTest(TestCase):
             "One endpoint drove most errors.\nRoll back the latest endpoint change."
         )
         assert self.investigation.title_generation_status == "completed"
-        record_completed.assert_called_once_with(self.investigation)
+        record_title_completed.assert_called_once_with(self.investigation)
+        record_investigation_completed.assert_called_once_with(self.investigation)
+
+    @patch("sentry.investigations.telemetry.metrics.distribution")
+    @patch("sentry.investigations.telemetry.sentry_sdk.metrics.distribution")
+    def test_completed_investigation_records_duration_metrics(
+        self, sdk_distribution: MagicMock, metrics_distribution: MagicMock
+    ) -> None:
+        completed_at = timezone.now()
+        self.investigation.date_added = completed_at - timedelta(seconds=90)
+
+        with patch("sentry.investigations.telemetry.timezone.now", return_value=completed_at):
+            record_investigation_completed(self.investigation)
+
+        attributes = {"source_type": "manual", "template": "manual"}
+        sdk_distribution.assert_called_once_with(
+            "investigations.duration",
+            90.0,
+            unit="second",
+            attributes=attributes,
+        )
+        metrics_distribution.assert_called_once_with(
+            "investigations.duration",
+            90.0,
+            unit="second",
+            tags=attributes,
+            sample_rate=1.0,
+        )
 
     def test_title_accepts_metadata_in_a_json_code_fence(self) -> None:
         self.investigation.update(
@@ -1076,8 +1263,11 @@ class InvestigationAgentTest(TestCase):
         assert self.investigation.summary == "Error volume crossed threshold"
         assert self.investigation.title_generation_status == "completed"
 
+    @patch("sentry.investigations.telemetry.metrics.incr")
     @patch("sentry.investigations.telemetry.sentry_sdk.metrics.count")
-    def test_invalid_title_records_sentry_metric(self, metrics_count: MagicMock) -> None:
+    def test_invalid_title_records_failure_metrics(
+        self, metrics_count: MagicMock, metrics_incr: MagicMock
+    ) -> None:
         self.investigation.update(
             title=DEFAULT_INVESTIGATION_TITLE, title_generation_status="running"
         )
@@ -1093,15 +1283,22 @@ class InvestigationAgentTest(TestCase):
 
         synchronize_title(self.investigation, run_state)
 
-        metrics_count.assert_called_once_with(
-            "investigations.title_generation.failed",
-            1,
-            attributes={
-                "source_type": "manual",
-                "template": "manual",
-                "reason": "invalid_result",
-            },
-        )
+        attributes = {
+            "source_type": "manual",
+            "template": "manual",
+            "reason": "invalid_result",
+        }
+        assert metrics_count.call_args_list == [
+            (("investigations.title_generation.failed", 1), {"attributes": attributes}),
+            (("investigations.failed", 1), {"attributes": attributes}),
+        ]
+        assert metrics_incr.call_args_list == [
+            (
+                ("investigations.title_generation.failed",),
+                {"tags": attributes, "sample_rate": 1.0},
+            ),
+            (("investigations.failed",), {"tags": attributes, "sample_rate": 1.0}),
+        ]
 
     @patch("sentry.investigations.agent.SeerAgentClient")
     def test_title_prompt_uses_specific_incident_source_context(
@@ -1130,6 +1327,18 @@ class InvestigationAgentTest(TestCase):
         assert "1 or 2 short" in prompt
         assert "Avoid headings and jargon" in prompt
 
+    @patch("sentry.investigations.agent.SeerAgentClient")
+    def test_title_generation_categorizes_the_run_as_an_investigation(
+        self, mock_client: MagicMock
+    ) -> None:
+        self.investigation.update(title=DEFAULT_INVESTIGATION_TITLE)
+
+        _maybe_start_title_generation(self.investigation, None)
+
+        kwargs = mock_client.call_args.kwargs
+        assert kwargs["category_key"] == "investigation"
+        assert kwargs["category_value"] == str(self.investigation.id)
+
     @patch("sentry.investigations.agent.record_investigation_completed")
     @patch("sentry.investigations.agent.SeerAgentClient")
     def test_title_generation_waits_for_every_auto_run_block(
@@ -1151,7 +1360,7 @@ class InvestigationAgentTest(TestCase):
         _maybe_start_title_generation(self.investigation, None)
 
         mock_client.return_value.start_run.assert_called_once()
-        record_completed.assert_called_once()
+        record_completed.assert_not_called()
 
     @patch("sentry.investigations.agent.SeerAgentClient")
     def test_title_generation_skips_an_in_flight_run(self, mock_client: MagicMock) -> None:

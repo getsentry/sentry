@@ -16,6 +16,7 @@ from sentry.dynamic_sampling import (
     RuleType,
     get_redis_client_for_ds,
 )
+from sentry.dynamic_sampling.per_org.cache import set_adjusted_factor
 from sentry.dynamic_sampling.rules.base import NEW_MODEL_THRESHOLD_IN_MINUTES
 from sentry.ingest.inbound_filters import CUSTOM_INBOUND_FILTER_ID_PREFIX
 from sentry.models.project import Project
@@ -28,6 +29,9 @@ from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.pytest.fixtures import InstaSnapshotter, django_db_all
 from sentry.testutils.silo import cell_silo_test
 from sentry.utils.safe import get_path
+from tests.sentry.dynamic_sampling.per_org.test_helpers import (
+    store_per_org_project_sample_rate,
+)
 
 PII_CONFIG = """
 {
@@ -149,14 +153,17 @@ def test_get_experimental_config_dyn_sampling(mock_logger, _, default_project) -
 @cell_silo_test
 @pytest.mark.parametrize("has_custom_filters", [False, True])
 @pytest.mark.parametrize("has_blacklisted_ips", [False, True])
+@pytest.mark.parametrize("has_generic_ip_filter", [False, True])
 def test_project_config_uses_filter_features(
-    default_project, has_custom_filters, has_blacklisted_ips
+    default_project, has_custom_filters, has_blacklisted_ips, has_generic_ip_filter
 ):
     log_messages = ["some log"]
     trace_metric_names = ["some metric"]
     error_messages = ["some_error"]
     releases = ["1.2.3", "4.5.6"]
-    blacklisted_ips = ["112.69.248.54"]
+    # A range, because Relay normalizes a bare address to `/32` inside the generic
+    # filter, which the round-trip check below would flag.
+    blacklisted_ips = ["112.69.248.0/24"]
     default_project.update_option("sentry:log_messages", log_messages)
     default_project.update_option("sentry:trace_metric_names", trace_metric_names)
     default_project.update_option("sentry:error_messages", error_messages)
@@ -173,16 +180,23 @@ def test_project_config_uses_filter_features(
             "projects:custom-inbound-filters": has_custom_filters,
             "organizations:ourlogs-ingestion": True,
             "organizations:tracemetrics-ingestion": True,
+            "organizations:inbound-filters-generic-ip-filter": has_generic_ip_filter,
         }
     ):
         project_cfg = get_project_config(default_project)
 
     cfg = project_cfg.to_dict()
     _validate_project_config(cfg["config"])
-    cfg_generic = get_path(cfg, "config", "filterSettings", "generic", "filters")
+    cfg_generic = get_path(cfg, "config", "filterSettings", "generic", "filters") or []
     cfg_error_messages = get_path(cfg, "config", "filterSettings", "errorMessages")
     cfg_releases = get_path(cfg, "config", "filterSettings", "releases")
     cfg_client_ips = get_path(cfg, "config", "filterSettings", "clientIps")
+    # The generic IP filter keeps the native filter's outcome reason as its id.
+    ip_generic_filter = {
+        "id": "ip-address",
+        "isEnabled": True,
+        "condition": {"op": "cidr", "name": "envelope.client_ip", "value": blacklisted_ips},
+    }
 
     if has_custom_filters:
         assert {"patterns": error_messages} == cfg_error_messages
@@ -208,12 +222,17 @@ def test_project_config_uses_filter_features(
     else:
         assert cfg_releases is None
         assert cfg_error_messages is None
-        assert cfg_generic is None
+        assert [f for f in cfg_generic if f["id"] != "ip-address"] == []
 
-    if has_blacklisted_ips:
-        assert {"blacklistedIps": ["112.69.248.54"]} == cfg_client_ips
+    if has_blacklisted_ips and has_generic_ip_filter:
+        assert cfg_client_ips is None
+        assert cfg_generic[0] == ip_generic_filter
+    elif has_blacklisted_ips:
+        assert {"blacklistedIps": blacklisted_ips} == cfg_client_ips
+        assert ip_generic_filter not in cfg_generic
     else:
         assert cfg_client_ips is None
+        assert ip_generic_filter not in cfg_generic
 
 
 @django_db_all
@@ -316,6 +335,7 @@ def test_project_config_with_all_biases_enabled(
     old_date = datetime.now(tz=timezone.utc) - timedelta(minutes=NEW_MODEL_THRESHOLD_IN_MINUTES + 1)
     default_project.organization.date_added = old_date
     default_project.date_added = old_date
+    store_per_org_project_sample_rate(default_project, 0.1)
 
     # We create a team key transaction.
     TeamKeyTransaction.objects.create(
@@ -347,10 +367,7 @@ def test_project_config_with_all_biases_enabled(
 
     # Set factor
     default_factor = 0.5
-    redis_client.set(
-        f"ds::o:{default_project.organization.id}:rate_rebalance_factor2",
-        default_factor,
-    )
+    set_adjusted_factor(default_project.organization.id, default_factor)
 
     with Feature(
         {
@@ -495,6 +512,7 @@ def test_project_config_with_trace_health_checks_enabled(
     old_date = datetime.now(tz=timezone.utc) - timedelta(minutes=NEW_MODEL_THRESHOLD_IN_MINUTES + 1)
     default_project.organization.date_added = old_date
     default_project.date_added = old_date
+    store_per_org_project_sample_rate(default_project, 0.1)
 
     with Feature(
         {

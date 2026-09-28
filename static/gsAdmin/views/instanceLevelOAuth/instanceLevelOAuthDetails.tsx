@@ -77,6 +77,7 @@ export function InstanceLevelOAuthDetails() {
   }, [params.clientID, api]);
 
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     fetchClientData();
   }, [fetchClientData]);
 

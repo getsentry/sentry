@@ -14,7 +14,7 @@ from rest_framework.request import Request
 from rest_framework.views import APIView
 
 from sentry.api.base import Endpoint
-from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.exceptions import ResourceDoesNotExist, SuperuserRequired
 from sentry.api.helpers.environments import get_environments
 from sentry.api.helpers.projects import (
     ParsedProjectIdOrSlugParams,
@@ -120,6 +120,16 @@ class OrganizationPermission(DemoSafePermission):
         organization: Organization | RpcOrganization | RpcUserOrganizationContext,
     ) -> bool:
         self.determine_access(request, organization)
+
+        org_slug = getattr(request, "_superuser_needs_org_auth", None)
+        if org_slug:
+            has_staff_perm = any(
+                isinstance(perm, StaffPermissionMixin) for perm in view.get_permissions()
+            )
+            delattr(request, "_superuser_needs_org_auth")
+            if not has_staff_perm:
+                raise SuperuserRequired(orgSlug=org_slug)
+
         allowed_scopes = set(self.scope_map.get(request.method or "", []))
         return any(request.access.has_scope(s) for s in allowed_scopes)
 
@@ -275,6 +285,13 @@ class ControlSiloOrganizationEndpoint(Endpoint):
 
     permission_classes: tuple[type[BasePermission], ...] = (OrganizationPermission,)
 
+    # Control silo endpoints fetch the organization over RPC from the cell silo.
+    # Including projects/teams serializes every row into the response body, which is
+    # expensive for large organizations. Set these to False when the endpoint does not
+    # need them.
+    include_organization_projects: bool = True
+    include_organization_teams: bool = True
+
     def convert_args(
         self,
         request: Request,
@@ -304,11 +321,18 @@ class ControlSiloOrganizationEndpoint(Endpoint):
             # It is ok that `get_organization_by_id` doesn't check for visibility as we
             # don't check the visibility in `get_organization_by_slug` either (only_active=False).
             organization_context = organization_service.get_organization_by_id(
-                id=int(organization_id_or_slug), user_id=request.user.id
+                id=int(organization_id_or_slug),
+                user_id=request.user.id,
+                include_projects=self.include_organization_projects,
+                include_teams=self.include_organization_teams,
             )
         else:
             organization_context = organization_service.get_organization_by_slug(
-                slug=str(organization_id_or_slug), only_visible=False, user_id=request.user.id
+                slug=str(organization_id_or_slug),
+                only_visible=False,
+                user_id=request.user.id,
+                include_projects=self.include_organization_projects,
+                include_teams=self.include_organization_teams,
             )
         if organization_context is None:
             raise ResourceDoesNotExist

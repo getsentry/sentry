@@ -10,10 +10,13 @@ import {
   getDetectorTypeLabel,
   isValidDetectorType,
 } from 'sentry/views/detectors/utils/detectorTypeConfig';
+import {getNoPermissionToCreateMonitorsTooltip} from 'sentry/views/detectors/utils/monitorAccessMessages';
+import {useCanCreateDetector} from 'sentry/views/detectors/utils/useCanCreateDetector';
 
 export default function DetectorNewSettings() {
   const {fetching: isFetchingProjects} = useProjects();
   const [detectorType] = useDetectorTypeQueryState();
+  const canCreateDetector = useCanCreateDetector(detectorType);
 
   if (isFetchingProjects) {
     return <LoadingIndicator />;
@@ -21,6 +24,10 @@ export default function DetectorNewSettings() {
 
   if (!detectorType || !isValidDetectorType(detectorType)) {
     return <LoadingError message={t('Invalid detector type: %s', detectorType ?? '')} />;
+  }
+
+  if (!canCreateDetector) {
+    return <LoadingError message={getNoPermissionToCreateMonitorsTooltip()} />;
   }
 
   return (

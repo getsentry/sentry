@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {isMac} from '@react-aria/utils';
 import {Item, Section} from '@react-stately/collections';
 import type {KeyboardEvent} from '@react-types/shared';
+import {useDebouncedValue} from '@tanstack/react-pacer';
 import {keepPreviousData, useQuery} from '@tanstack/react-query';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
@@ -72,7 +73,8 @@ import {
   Token,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
-import {getKeyName} from 'sentry/components/searchSyntax/utils';
+import {getKeyName, isRegexOperator} from 'sentry/components/searchSyntax/utils';
+import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Tag, TagCollection} from 'sentry/types/group';
@@ -87,10 +89,11 @@ import {
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import {fzf} from 'sentry/utils/search/fzf';
-import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useKeyPress} from 'sentry/utils/useKeyPress';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
 type SearchQueryValueBuilderProps = {
+  editingCommittedValue: boolean;
   onCommit: () => void;
   onDelete: () => void;
   token: TokenResult<Token.FILTER>;
@@ -296,7 +299,7 @@ export function tokenSupportsMultipleValues(
   keys: TagCollection,
   fieldDefinition: FieldDefinition | null
 ): boolean {
-  if (fieldDefinition?.allowMultipleValues === false) {
+  if (fieldDefinition?.allowMultipleValues === false || isRegexOperator(token.operator)) {
     return false;
   }
 
@@ -386,6 +389,9 @@ function useFilterSuggestions({
         token,
         fieldDefinition,
       }),
+    // React Compiler treats one of these dependencies as mutated later in the
+    // component, so it cannot prove the memoization is preserved.
+    // oxlint-disable-next-line react/preserve-manual-memoization
     [key, filterValue, token, fieldDefinition]
   );
   // Only keys that explicitly have predefined values should skip the fetch.
@@ -393,8 +399,12 @@ function useFilterSuggestions({
   // every key loaded. So we should try to fetch values for it even if it
   // doesn't exist in the list of available keys.
   const shouldFetchTagKeys = token.filter === FilterType.HAS && !!getTagKeys;
+  const isRegexValue = isRegexOperator(token.operator);
   const shouldFetchValues =
-    !shouldFetchTagKeys && predefinedValues === null && (key ? !key.predefined : true);
+    !shouldFetchTagKeys &&
+    !isRegexValue &&
+    predefinedValues === null &&
+    (key ? !key.predefined : true);
   const shouldUseDefaultSuggestionOrder = shouldUseDefaultNumericSuggestions(
     filterValue,
     valueType
@@ -420,7 +430,9 @@ function useFilterSuggestions({
     () => ['search-query-builder-tag-values', queryParams] as const,
     [queryParams]
   );
-  const queryKey = useDebouncedValue(baseQueryKey);
+  const [queryKey] = useDebouncedValue(baseQueryKey, {
+    wait: DEFAULT_DEBOUNCE_DURATION,
+  });
   const isDebouncing = baseQueryKey !== queryKey;
 
   const tagKeysBaseQueryKey = useMemo(
@@ -428,7 +440,9 @@ function useFilterSuggestions({
       ['search-query-builder-tag-keys', filterKeyRegistryQueryKey, filterValue] as const,
     [filterKeyRegistryQueryKey, filterValue]
   );
-  const tagKeysQueryKey = useDebouncedValue(tagKeysBaseQueryKey);
+  const [tagKeysQueryKey] = useDebouncedValue(tagKeysBaseQueryKey, {
+    wait: DEFAULT_DEBOUNCE_DURATION,
+  });
   const isDebouncingTagKeys = tagKeysBaseQueryKey !== tagKeysQueryKey;
 
   // TODO(malwilley): Display error states
@@ -494,6 +508,10 @@ function useFilterSuggestions({
   );
 
   const suggestionGroups = useMemo(() => {
+    if (isRegexValue) {
+      return [];
+    }
+
     let groups: SuggestionSection[];
     if (shouldFetchTagKeys) {
       const suggestions =
@@ -535,6 +553,7 @@ function useFilterSuggestions({
   }, [
     data,
     asyncKeys,
+    isRegexValue,
     predefinedValues,
     shouldFetchTagKeys,
     shouldFetchValues,
@@ -574,7 +593,6 @@ function ItemCheckbox({disabled, value}: {disabled: boolean; value: string}) {
     >
       <CheckWrap role="presentation">
         <Checkbox
-          size="sm"
           checked={selected}
           disabled={disabled}
           onChange={() => {
@@ -639,7 +657,8 @@ function ValueComboboxCustomMenu(
       {...props}
       portalTarget={
         canSelectMultipleValues
-          ? (props.portalTarget ?? wrapperRef.current)
+          ? // oxlint-disable-next-line react/refs
+            (props.portalTarget ?? wrapperRef.current)
           : props.portalTarget
       }
       wrapperRef={wrapperRef}
@@ -654,7 +673,8 @@ function ValueComboboxCustomMenu(
 
 export function getInitialInputValue(
   token: TokenResult<Token.FILTER>,
-  canSelectMultipleValues: boolean
+  canSelectMultipleValues: boolean,
+  editingCommittedValue?: boolean
 ) {
   if (isDateToken(token)) {
     return token.value.type === Token.VALUE_ISO_8601_DATE ? token.value.text : '';
@@ -662,8 +682,11 @@ export function getInitialInputValue(
   if (canSelectMultipleValues) {
     return getMultiSelectInputValue(token);
   }
-  if (isNumericFilterToken(token)) {
+  if (isNumericFilterToken(token) || isRegexOperator(token.operator)) {
     return token.value.text;
+  }
+  if (token.filter === FilterType.HAS && editingCommittedValue) {
+    return prettifyTagKey(token.value.text);
   }
   return '';
 }
@@ -673,6 +696,7 @@ export function SearchQueryBuilderValueCombobox({
   onDelete,
   onCommit,
   wrapperRef,
+  editingCommittedValue,
 }: SearchQueryValueBuilderProps) {
   const ref = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -700,13 +724,17 @@ export function SearchQueryBuilderValueCombobox({
     fieldDefinition
   );
   const valueType = getFilterValueType(token, fieldDefinition);
-  const canUseWildcard = disallowWildcard
-    ? false
-    : keySupportsWildcard(fieldDefinition, valueType);
+  const isRegexValue = isRegexOperator(token.operator);
+  const canUseWildcard =
+    disallowWildcard || isRegexValue
+      ? false
+      : keySupportsWildcard(fieldDefinition, valueType);
   // Multi-select renders committed values as chips, so the input starts empty
   // and only holds the value being typed.
   const [inputValue, setInputValue] = useState(() =>
-    canSelectMultipleValues ? '' : getInitialInputValue(token, canSelectMultipleValues)
+    canSelectMultipleValues
+      ? ''
+      : getInitialInputValue(token, canSelectMultipleValues, editingCommittedValue)
   );
   // Tracks where the input sits within the chip row. `value` is the lifted chip's
   // text (so it can be restored on Escape and reinserted where it was rather than
@@ -727,7 +755,7 @@ export function SearchQueryBuilderValueCombobox({
     return false;
   });
 
-  const filterValue = unescapeAsteriskSearchValue(inputValue);
+  const filterValue = isRegexValue ? inputValue : unescapeAsteriskSearchValue(inputValue);
 
   const selectedValues = useMemo(
     () =>
@@ -789,6 +817,7 @@ export function SearchQueryBuilderValueCombobox({
       }
       const newIndex = nearestOccurrence(liftedValue, oldIndex);
       if (newIndex === -1) {
+        // oxlint-disable-next-line react/set-state-in-effect
         setEditingChip(null);
         setInputValue('');
       } else {
@@ -815,6 +844,7 @@ export function SearchQueryBuilderValueCombobox({
 
   const ctrlKeyPressed = useKeyPress(
     isMac() ? 'Meta' : 'Control',
+    // oxlint-disable-next-line react/refs
     topLevelWrapperRef.current
   );
   const selectedValueMap = useMemo(
@@ -868,6 +898,7 @@ export function SearchQueryBuilderValueCombobox({
     if (pendingCaret.pos === 0) {
       input.scrollLeft = 0;
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [inputValue, scrollInputIntoView]);
 
   // While typing, surface the typed text as a custom option so results rank by
@@ -986,6 +1017,15 @@ export function SearchQueryBuilderValueCombobox({
         return true;
       }
 
+      if (isRegexValue) {
+        if (/\/\/[\t\n )]/.test(value)) {
+          return false;
+        }
+        dispatch({type: 'UPDATE_TOKEN_VALUE', token, value, op});
+        onCommit();
+        return true;
+      }
+
       const valueForSaving =
         escapeSearchValue && valueType === FieldValueType.STRING
           ? escapeTagValueForSearch(value)
@@ -999,11 +1039,6 @@ export function SearchQueryBuilderValueCombobox({
 
       // TODO(malwilley): Add visual feedback for invalid values
       if (cleanedValue === null) {
-        trackAnalytics('search.value_manual_submitted', {
-          ...analyticsData,
-          filter_value: value,
-          invalid: true,
-        });
         return false;
       }
 
@@ -1058,12 +1093,12 @@ export function SearchQueryBuilderValueCombobox({
     [
       token,
       fieldDefinition,
+      isRegexValue,
       valueType,
       getSuggestedFilterKey,
       filterKeys,
       items,
       canSelectMultipleValues,
-      analyticsData,
       committedValues,
       editingChip,
       dispatch,
@@ -1207,10 +1242,12 @@ export function SearchQueryBuilderValueCombobox({
         return;
       }
 
-      const isUnchanged = value === getInitialInputValue(token, canSelectMultipleValues);
+      const isUnchanged =
+        value ===
+        getInitialInputValue(token, canSelectMultipleValues, editingCommittedValue);
 
       // If there's no user input and the token has no value, set a default one
-      if (!value && !token.value.text) {
+      if (!value && !token.value.text && !isRegexValue) {
         dispatch({
           type: 'UPDATE_TOKEN_VALUE',
           token,
@@ -1225,11 +1262,11 @@ export function SearchQueryBuilderValueCombobox({
         return;
       }
 
-      const invalid = updateFilterValue(value);
+      const updated = updateFilterValue(value);
       trackAnalytics('search.value_manual_submitted', {
         ...analyticsData,
         filter_value: value,
-        invalid,
+        invalid: !updated,
       });
     },
     [
@@ -1237,7 +1274,9 @@ export function SearchQueryBuilderValueCombobox({
       addTypedValue,
       canSelectMultipleValues,
       dispatch,
+      editingCommittedValue,
       fieldDefinition,
+      isRegexValue,
       onCommit,
       token,
       updateFilterValue,

@@ -74,7 +74,7 @@ describe('SentryDateTimeProvider', () => {
   });
 
   it('falls back to a 12 hour clock', () => {
-    setConfigStoreUser({clock24Hours: false});
+    setConfigStoreUser({});
 
     render(
       <SentryDateTimeProvider>

@@ -9,7 +9,6 @@ import type {TableColumnConfig} from '@sentry/scraps/table';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
-import {SortLink} from 'sentry/components/tables/gridEditable/sortLink';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -93,35 +92,28 @@ export function TransactionsTable(props: Props) {
 
       if (column.key === 'span_ops_breakdown.relative') {
         return (
-          <SimpleTable.HeaderCell key={index}>
-            <SortLink
-              align={align}
-              title={
-                title === t('operation duration') ? (
-                  <Fragment>
-                    {title}
-                    <StyledIconQuestion
-                      size="xs"
-                      position="top"
-                      title={t(
-                        'Span durations are summed over the course of an entire transaction. Any overlapping spans are only counted once.'
-                      )}
-                    />
-                  </Fragment>
-                ) : (
-                  title
-                )
-              }
-              direction={undefined}
-              canSort={false}
-            />
+          <SimpleTable.HeaderCell align={align} key={index}>
+            {title === t('operation duration') ? (
+              <Fragment>
+                {title}
+                <StyledIconQuestion
+                  size="xs"
+                  position="top"
+                  title={t(
+                    'Span durations are summed over the course of an entire transaction. Any overlapping spans are only counted once.'
+                  )}
+                />
+              </Fragment>
+            ) : (
+              title
+            )}
           </SimpleTable.HeaderCell>
         );
       }
 
       return (
-        <SimpleTable.HeaderCell key={index}>
-          <SortLink align={align} title={title} direction={undefined} canSort={false} />
+        <SimpleTable.HeaderCell align={align} key={index}>
+          {title}
         </SimpleTable.HeaderCell>
       );
     });

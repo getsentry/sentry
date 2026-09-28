@@ -34,6 +34,7 @@ import {getStateContextData} from 'sentry/components/events/contexts/knownContex
 import {getThreadPoolInfoContext} from 'sentry/components/events/contexts/knownContext/threadPoolInfo';
 import {getTraceContextData} from 'sentry/components/events/contexts/knownContext/trace';
 import {getUserContextData} from 'sentry/components/events/contexts/knownContext/user';
+import {getWERContextData} from 'sentry/components/events/contexts/knownContext/wer';
 import {
   getPlatformContextData,
   getPlatformContextIcon,
@@ -107,8 +108,7 @@ export function generateIconName(
 
 export function getRelativeTimeFromEventDateCreated(
   eventDateCreated: string | undefined,
-  timestamp?: string,
-  showTimestamp = true
+  timestamp?: string
 ) {
   if (!defined(timestamp)) {
     return timestamp;
@@ -130,10 +130,6 @@ export function getRelativeTimeFromEventDateCreated(
   const relativeTime = `(${dateTime.from(referenceDate, true)} ${t(
     'before this event'
   )})`;
-
-  if (!showTimestamp) {
-    return <RelativeTime>{relativeTime}</RelativeTime>;
-  }
 
   return (
     <Fragment>
@@ -271,6 +267,8 @@ export function getContextTitle({
       return t('Feedback');
     case 'os':
       return t('Operating System');
+    case 'wer':
+      return t('Windows Error Reporting');
     case 'user':
       return t('User');
     case 'gpu':
@@ -382,6 +380,9 @@ export function getContextIcon({
       iconName = generateIconName(value?.vendor_name ? value?.vendor_name : value?.name);
       break;
   }
+  if (contextType === 'wer') {
+    iconName = 'windows';
+  }
   if (iconName.length === 0) {
     return null;
   }
@@ -429,6 +430,8 @@ export function getFormattedContextData({
       return getOperatingSystemContextData({data: contextValue, meta});
     case 'runtime':
       return getRuntimeContextData({data: contextValue, meta});
+    case 'wer':
+      return getWERContextData({data: contextValue, meta});
     case 'user':
       return getUserContextData({data: contextValue, meta});
     case 'gpu':

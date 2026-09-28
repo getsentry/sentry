@@ -33,7 +33,7 @@ if TYPE_CHECKING:
     from sentry.snuba.dataset import Dataset
     from sentry.snuba.models import ExtrapolationMode, SnubaQuery, SnubaQueryEventType
     from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
-    from sentry.workflow_engine.handlers.detector import DetectorHandler
+    from sentry.workflow_engine.handlers.detector import BaseDetectorHandler
     from sentry.workflow_engine.models import Action, Detector
     from sentry.workflow_engine.models.data_condition import Condition
     from sentry.workflow_engine.models.data_source import DataSource
@@ -235,7 +235,7 @@ class DataConditionHandler(Generic[T]):
 
     group: ClassVar[Group]
     subgroup: ClassVar[Subgroup]
-    comparison_json_schema: ClassVar[dict[str, Any]] = {}
+    comparison_json_schema: ClassVar[dict[str, Any]]
     condition_result_schema: ClassVar[dict[str, Any]] = {}
     label_template = ""
 
@@ -285,12 +285,11 @@ class SnubaQueryDataSourceType(TypedDict, total=False):
     event_types: list[SnubaQueryEventType.EventType]
 
 
-@dataclass(frozen=True)
 class DetectorSettings:
-    handler: type[DetectorHandler[Any]] | None = None
-    validator: type[BaseDetectorTypeValidator] | None = None
-    config_schema: dict[str, Any] = field(default_factory=dict)
-    filter: Q | None = None
+    handler: ClassVar[type[BaseDetectorHandler[Any, Any]] | None] = None
+    validator: ClassVar[type[BaseDetectorTypeValidator] | None] = None
+    config_schema: ClassVar[dict[str, Any]] = {}
+    filter: ClassVar[Q | None] = None
 
 
 WorkflowActivityHandler: TypeAlias = Callable[["Group", "Activity", DetectorId | None], None]

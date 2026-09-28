@@ -757,6 +757,14 @@ class GroupSerializerBase(Serializer, ABC):
     ) -> Sequence[Mapping[int, Sequence[Any]]]:
         from sentry.integrations.base import IntegrationFeatures
 
+        # The cross-silo issue tracking lookups below will never have results
+        # without GroupLink rows, skip the lookup in that case.
+        if not GroupLink.objects.filter(
+            group_id__in=[group.id for group in groups],
+            linked_type=GroupLink.LinkedType.issue,
+        ).exists():
+            return []
+
         integration_annotations = []
         # find all the integration installs that have issue tracking
         integrations = integration_service.get_integrations(organization_id=org_id)

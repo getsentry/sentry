@@ -1,4 +1,5 @@
 import {useMemo, type ReactNode} from 'react';
+import {useDebouncedValue} from '@tanstack/react-pacer';
 import {useQuery} from '@tanstack/react-query';
 import type {FuseResult, IFuseOptions} from 'fuse.js/basic';
 
@@ -18,11 +19,11 @@ import {
 } from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/utils';
 import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/types';
 import {stripArrayMembershipOperator} from 'sentry/components/searchSyntax/utils';
+import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import type {Tag} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
 import {FieldKey, FieldKind} from 'sentry/utils/fields';
 import {useFuzzySearch} from 'sentry/utils/fuzzySearch';
-import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 
 type FilterKeySearchItem = {
   description: string;
@@ -171,13 +172,16 @@ export function useSortedFilterKeyItems({
     disallowLogicalOperators,
     replaceRawSearchKeys,
     matchKeySuggestions,
+    prioritizedFilterKeys,
     getTagKeys,
     filterKeyRegistryQueryKey,
   } = useSearchQueryBuilderConfig();
 
   // Async key fetching with debounce when getTagKeys is provided
   const shouldFetchAsync = !!getTagKeys;
-  const debouncedFilterValue = useDebouncedValue(filterValue);
+  const [debouncedFilterValue] = useDebouncedValue(filterValue, {
+    wait: DEFAULT_DEBOUNCE_DURATION,
+  });
   const {data: asyncKeys, isLoading: isQueryLoading} = useQuery({
     queryKey: [
       'search-query-builder-tag-keys',
@@ -207,6 +211,11 @@ export function useSortedFilterKeyItems({
 
     return [...keys, ...asyncKeys.filter(k => !staticKeyValues.has(k.key))];
   }, [filterKeys, asyncKeys, staticKeyValues]);
+
+  const prioritizedKeys = useMemo(
+    () => new Set(prioritizedFilterKeys),
+    [prioritizedFilterKeys]
+  );
 
   // Keys that exist only in asyncKeys and not in the static filterKeys.
   // Used to partition results so async-only keys always render below static keys.
@@ -316,11 +325,19 @@ export function useSortedFilterKeyItems({
         );
       });
 
-    // Partition so async-only keys always appear below static keys,
-    // preserving fuzzy score order within each group.
-    const staticKeyItems = allKeyItems.filter(item => !asyncOnlyKeys.has(item.value));
-    const asyncKeyItems = allKeyItems.filter(item => asyncOnlyKeys.has(item.value));
-    const keyItems = [...staticKeyItems, ...asyncKeyItems];
+    // Partition into tiers so that prioritized keys always appear above every
+    // other match, and async-only keys always appear below static keys.
+    // Fuzzy score order is preserved within each tier.
+    const prioritizedKeyItems = allKeyItems.filter(item =>
+      prioritizedKeys.has(item.value)
+    );
+    const staticKeyItems = allKeyItems.filter(
+      item => !prioritizedKeys.has(item.value) && !asyncOnlyKeys.has(item.value)
+    );
+    const asyncKeyItems = allKeyItems.filter(
+      item => !prioritizedKeys.has(item.value) && asyncOnlyKeys.has(item.value)
+    );
+    const keyItems = [...prioritizedKeyItems, ...staticKeyItems, ...asyncKeyItems];
 
     if (includeSuggestions) {
       const rawSearchSection: KeySectionItem = {
@@ -424,6 +441,7 @@ export function useSortedFilterKeyItems({
     includeSuggestions,
     inputValue,
     matchKeySuggestions,
+    prioritizedKeys,
     replaceRawSearchKeys,
     search,
   ]);

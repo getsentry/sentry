@@ -28,7 +28,8 @@ function useSeerState(group: Group, project: Project) {
   const organization = useOrganization();
   const aiConfig = useAiConfig(group, project);
   const issueTypeConfig = getConfigForIssueType(group, project);
-  const issueTypeSupportsSeer = issueTypeConfig.autofix || issueTypeConfig.issueSummary;
+  const issueTypeSupportsSeer =
+    issueTypeConfig.autofix || issueTypeConfig.issueSummary.enabled;
 
   const autofix = useExplorerAutofix(group, {
     enabled: aiConfig.areAiFeaturesAllowed,
@@ -91,6 +92,7 @@ export function SeerCommandPaletteActions({
     }
     if (integration.requires_identity && !integration.has_identity) {
       const currentUrl = window.location.href;
+      // oxlint-disable-next-line react/immutability
       window.location.href = `/remote/github-copilot/oauth/?next=${encodeURIComponent(currentUrl)}`;
       return;
     }

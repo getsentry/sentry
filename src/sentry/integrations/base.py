@@ -125,6 +125,9 @@ class IntegrationFeatures(StrEnum):
     CODEOWNERS = "codeowners"
     USER_MAPPING = "user-mapping"
     CODING_AGENT = "coding-agent"
+    # Adding this to IntegrationProvider.features lists the provider on Seer's
+    # connectors page, which is intended for infrastructure telemetry (e.g. Datadog
+    # and GCP).
     SEER_CONTEXT = "seer-context"
 
     # features currently only existing on plugins:
@@ -161,6 +164,7 @@ INTEGRATION_TYPE_TO_PROVIDER = {
         IntegrationProviderSlug.BITBUCKET_SERVER,
         IntegrationProviderSlug.AZURE_DEVOPS,
         IntegrationProviderSlug.PERFORCE,
+        IntegrationProviderSlug.CURSOR_ORIGIN,
     ],
     IntegrationDomain.ON_CALL_SCHEDULING: [
         IntegrationProviderSlug.PAGERDUTY,

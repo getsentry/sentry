@@ -1,5 +1,8 @@
 import {downloadRows, type ExportableRow} from 'sentry/components/exports/downloadRows';
-import {ExportQueryType} from 'sentry/components/exports/useDataExport';
+import {
+  ExportQueryType,
+  type EventsQuerySamplingMode,
+} from 'sentry/components/exports/useDataExport';
 import type {StatsPeriodRange} from 'sentry/components/pageFilters/types';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -7,6 +10,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {ExploreExportModalButton} from 'sentry/views/explore/components/exports/exploreExportModalButton';
 import {trackExploreTableExported} from 'sentry/views/explore/components/exports/trackExploreTableExported';
 import type {ExploreExportConfig} from 'sentry/views/explore/components/exports/types';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 export interface MetricsQueryInfo {
@@ -14,6 +18,7 @@ export interface MetricsQueryInfo {
   field: string[];
   project: number[];
   query: string;
+  sampling: EventsQuerySamplingMode;
   sort: string[];
   end?: string;
   environment?: string[];
@@ -50,6 +55,7 @@ export function useMetricsQueryInfo({
     field,
     query,
     project: projects,
+    sampling: SAMPLING_MODE.HIGH_ACCURACY,
     sort,
     environment: environments,
     ...(statsPeriodRange

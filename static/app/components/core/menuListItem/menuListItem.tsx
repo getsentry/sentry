@@ -371,6 +371,7 @@ function DetailsOverlay({
   const theme = useTheme();
   const [overlayElement, setOverlayElement] = useState<HTMLDivElement | null>(null);
 
+  // oxlint-disable-next-line react/refs
   const popper = usePopper(itemRef.current, overlayElement, POPPER_OPTIONS);
 
   return createPortal(

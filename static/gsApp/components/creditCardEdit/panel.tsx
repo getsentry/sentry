@@ -2,6 +2,7 @@ import {Fragment, useEffect, useState} from 'react';
 import type {Location} from 'history';
 
 import {Button} from '@sentry/scraps/button';
+import type {CSS} from '@sentry/scraps/cssTypes';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -24,7 +25,7 @@ interface CreditCardPanelProps {
   organization: Organization;
   subscription: Subscription;
   analyticsEvent?: GetsentryEventKey;
-  maxPanelWidth?: string;
+  maxPanelWidth?: CSS['maxWidth'];
   shouldExpandInitially?: boolean;
 }
 
@@ -58,19 +59,23 @@ export function CreditCardPanel({
 
   useEffect(() => {
     if (expandInitially) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setIsEditing(true);
+      // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
       setExpandInitially(false);
     }
   }, [expandInitially]);
 
   useEffect(() => {
     // Open credit card update form/modal and track clicks from payment failure notifications (in app, email, etc.)
+    // oxlint-disable-next-line react/set-state-in-effect
     setReferrer(decodeScalar(location.query?.referrer));
   }, [location.query?.referrer]);
 
   useEffect(() => {
     // There are multiple billing failure referrals and each should have analytics tracking
     if (referrer?.includes('billing-failure')) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setFromBillingFailure(true);
 
       setIsEditing(true);

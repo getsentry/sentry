@@ -14,7 +14,12 @@ from sentry.workflow_engine.processors.evaluations import (
     DataConditionEvaluationException,
 )
 from sentry.workflow_engine.registry import condition_handler_registry
-from sentry.workflow_engine.types import ConditionError, DataConditionResult, DetectorPriorityLevel
+from sentry.workflow_engine.types import (
+    ConditionError,
+    DataConditionHandler,
+    DataConditionResult,
+    DetectorPriorityLevel,
+)
 from sentry.workflow_engine.utils import scopedstats
 
 logger = logging.getLogger(__name__)
@@ -69,13 +74,6 @@ class Condition(StrEnum):
     # Activity trigger conditions
     SEER_ACTIVITY_TRIGGER = "seer_activity_trigger"
 
-
-TRIGGER_CONDITIONS = [
-    Condition.FIRST_SEEN_EVENT,
-    Condition.ISSUE_RESOLVED_TRIGGER,
-    Condition.REAPPEARED_EVENT,
-    Condition.REGRESSION_EVENT,
-]
 
 CONDITION_OPS = {
     Condition.EQUAL: operator.eq,
@@ -258,6 +256,18 @@ class DataCondition(DefaultFieldsModel):
             result=result,
             data=value,
         )
+
+
+def get_condition_handler(
+    condition_type: Condition,
+) -> type[DataConditionHandler[Any]] | None:
+    if condition_type not in CONDITION_OPS:
+        try:
+            return condition_handler_registry.get(condition_type)
+        except registry.NoRegistrationExistsError:
+            pass
+
+    return None
 
 
 def is_slow_condition(condition: DataCondition) -> bool:

@@ -24,6 +24,8 @@ from compute_sentry_selected_tests import (
     EXTRA_DIR_TO_TEST_MAPPING,
     EXTRA_FILE_TO_TEST_MAPPING,
     FULL_SUITE_TRIGGERS,
+    PUBLIC_API_MATRIX_TEST,
+    _changed_files_match_public_api_matrix_paths,
     _query_coverage,
     main,
 )
@@ -427,6 +429,71 @@ class TestMain:
         ret = _run(["--coverage-db", "/nonexistent/coverage.db", "--changed-files", "foo.py"])
         assert ret == 1
 
+    def test_endpoint_path_force_includes_public_api_matrix(self, tmp_path):
+        db_path = tmp_path / "coverage.db"
+        _create_coverage_db(str(db_path), {})
+        output = tmp_path / "output.txt"
+        gh_output = tmp_path / "gh_output"
+        gh_output.write_text("")
+
+        with mock.patch("compute_sentry_selected_tests.Path.exists", return_value=True):
+            _run(
+                [
+                    "--coverage-db",
+                    str(db_path),
+                    "--changed-files",
+                    "src/sentry/api/endpoints/views.py",
+                    "--output",
+                    str(output),
+                    "--github-output",
+                ],
+                {"GITHUB_OUTPUT": str(gh_output)},
+            )
+
+        selected = set(output.read_text().splitlines())
+        assert PUBLIC_API_MATRIX_TEST in selected
+        assert selected == ALWAYS_RUN_TESTS | {PUBLIC_API_MATRIX_TEST}
+        assert "has-selected-tests=true" in gh_output.read_text()
+
+    def test_non_endpoint_source_does_not_force_public_api_matrix(self, tmp_path):
+        db_path = tmp_path / "coverage.db"
+        _create_coverage_db(str(db_path), {})
+        output = tmp_path / "output.txt"
+        gh_output = tmp_path / "gh_output"
+        gh_output.write_text("")
+
+        with mock.patch("compute_sentry_selected_tests.Path.exists", return_value=True):
+            _run(
+                [
+                    "--coverage-db",
+                    str(db_path),
+                    "--changed-files",
+                    "src/sentry/utils/thing.py",
+                    "--output",
+                    str(output),
+                    "--github-output",
+                ],
+                {"GITHUB_OUTPUT": str(gh_output)},
+            )
+
+        assert set(output.read_text().splitlines()) == ALWAYS_RUN_TESTS
+        assert PUBLIC_API_MATRIX_TEST not in output.read_text()
+
+
+class TestPublicApiMatrixPathTriggers:
+    def test_matches_endpoint_paths(self):
+        assert _changed_files_match_public_api_matrix_paths(
+            [
+                "src/sentry/api/endpoints/views.py",
+                "src/sentry/issues/endpoints/organization_group_search_views.py",
+                "src/sentry/utils/thing.py",
+                "tests/sentry/api/endpoints/test_views.py",
+            ]
+        ) == [
+            "src/sentry/api/endpoints/views.py",
+            "src/sentry/issues/endpoints/organization_group_search_views.py",
+        ]
+
 
 class TestConfigPaths:
     """Assert every literal path in the selective testing config still exists on disk.
@@ -440,7 +507,7 @@ class TestConfigPaths:
     def test_full_suite_triggers_exist(self, trigger: str) -> None:
         assert (_REPO_ROOT / trigger).exists(), _stale_msg(trigger)
 
-    @pytest.mark.parametrize("path", sorted(ALWAYS_RUN_TESTS))
+    @pytest.mark.parametrize("path", sorted(ALWAYS_RUN_TESTS | {PUBLIC_API_MATRIX_TEST}))
     def test_always_run_tests_exist(self, path: str) -> None:
         assert (_REPO_ROOT / path).exists(), _stale_msg(path, "test file")
 

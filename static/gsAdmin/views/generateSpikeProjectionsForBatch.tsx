@@ -9,6 +9,7 @@ import {Input} from '@sentry/scraps/input';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getCells} from 'sentry/utils/cells';
 import {getFormat} from 'sentry/utils/dates';
 import {fetchMutation} from 'sentry/utils/queryClient';
@@ -23,7 +24,9 @@ export function GenerateSpikeProjectionsForBatch() {
   const {mutate} = useMutation({
     mutationFn: () => {
       return fetchMutation({
-        url: `/_admin/cells/${cell?.name}/queue-spike-projection-batch/`,
+        url: getApiUrl('/_admin/cells/$region/queue-spike-projection-batch/', {
+          path: {region: cell?.name!},
+        }),
         method: 'POST',
         data: {
           batch_id: batchId,

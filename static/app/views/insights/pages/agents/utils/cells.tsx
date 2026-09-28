@@ -1,27 +1,40 @@
+import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
+import {Count} from 'sentry/components/count';
 import {Placeholder} from 'sentry/components/placeholder';
-import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
+import {IconFire} from 'sentry/icons';
 
 export function ErrorCell({
   value,
   target,
   isLoading,
 }: {
-  target: string;
   value: number;
   isLoading?: boolean;
+  target?: string;
 }) {
   if (isLoading) {
     return <NumberPlaceholder />;
   }
   if (value === 0 || isNaN(value)) {
-    return <TextAlignRight>0</TextAlignRight>;
+    return (
+      <Text tabular variant="muted">
+        0
+      </Text>
+    );
   }
+  const count = (
+    <Text tabular variant="danger">
+      <Count value={value} />
+    </Text>
+  );
   return (
-    <TextAlignRight>
-      <Link to={target}>{value}</Link>
-    </TextAlignRight>
+    <Flex align="center" gap="xs">
+      {target ? <Link to={target}>{count}</Link> : count}
+      <IconFire size="xs" variant="danger" />
+    </Flex>
   );
 }
 

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import random
 from datetime import datetime, timedelta
 
 import sentry_sdk
@@ -44,10 +43,6 @@ INDEXING_CACHE_TIMEOUT = 600
 def get_redis_cluster_for_artifact_bundles() -> RedisCluster:
     cluster_key = settings.SENTRY_ARTIFACT_BUNDLES_INDEXING_REDIS_CLUSTER
     return redis.redis_clusters.get(cluster_key)
-
-
-def get_refresh_key() -> str:
-    return "artifact_bundles_in_use"
 
 
 def _generate_artifact_bundle_indexing_state_cache_key(
@@ -182,55 +177,6 @@ def index_urls_in_bundle(
 
 
 # ===== Renewal of Artifact Bundles =====
-
-
-@trace
-def maybe_renew_artifact_bundles_from_processing(project_id: int, used_download_ids: list[str]):
-    # Note: This random rollout is reversed because it is an early return
-    if random.random() >= options.get("symbolicator.sourcemaps-bundle-index-refresh-sample-rate"):
-        return
-
-    artifact_bundle_ids = []
-    for download_id in used_download_ids:
-        # the `download_id` is in a `artifact_bundle/$ID` format
-        split = download_id.split("/")
-        if len(split) < 2:
-            continue
-        ty, ty_id, *_rest = split
-        if ty != "artifact_bundle":
-            continue
-        artifact_bundle_ids.append(ty_id)
-
-    redis_client = get_redis_cluster_for_artifact_bundles()
-
-    redis_client.sadd(get_refresh_key(), *artifact_bundle_ids)
-
-
-@trace
-def refresh_artifact_bundles_in_use():
-    LOOP_TIMES = 100
-    IDS_PER_LOOP = 50
-
-    redis_client = get_redis_cluster_for_artifact_bundles()
-
-    now = timezone.now()
-    threshold_date = now - timedelta(
-        days=options.get("system.debug-files-renewal-age-threshold-days")
-    )
-
-    for _ in range(LOOP_TIMES):
-        artifact_bundle_ids = redis_client.spop(get_refresh_key(), IDS_PER_LOOP)
-        used_artifact_bundles = {
-            id: date_added
-            for id, date_added in ArtifactBundle.objects.filter(
-                id__in=artifact_bundle_ids, date_added__lte=threshold_date
-            ).values_list("id", "date_added")
-        }
-
-        maybe_renew_artifact_bundles(used_artifact_bundles)
-
-        if len(artifact_bundle_ids) < IDS_PER_LOOP:
-            break
 
 
 def maybe_renew_artifact_bundles(used_artifact_bundles: dict[int, datetime]):

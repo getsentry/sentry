@@ -151,6 +151,7 @@ export default function SentryAppDetailedView() {
       organization,
       integration_tab: 'overview',
     });
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [sentryApp?.status, installationStatus, organization, integrationSlug]);
 
   const redirectUser = useCallback(
@@ -349,7 +350,6 @@ export default function SentryAppDetailedView() {
             disabled
             tooltipProps={{
               title: t('Deletion is in progress. This may take a few minutes.'),
-              isHoverable: true,
               position: 'top',
             }}
             data-test-id="pending-deletion-button"

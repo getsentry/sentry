@@ -26,17 +26,22 @@ from sentry.investigations.models import (
     InvestigationStatus,
 )
 from sentry.investigations.services.auto_run import schedule_eligible_auto_run_blocks
-from sentry.investigations.services.executions import mark_block_execution_dispatched
+from sentry.investigations.services.executions import (
+    freeze_query_links,
+    mark_block_execution_dispatched,
+)
 from sentry.investigations.services.investigations import (
     DEFAULT_INVESTIGATION_TITLE,
     investigation_source,
     mark_downstream_blocks_stale,
 )
 from sentry.investigations.telemetry import (
+    record_execution_cancelled,
     record_execution_completed,
     record_execution_failed,
     record_execution_started,
     record_investigation_completed,
+    record_investigation_failed,
     record_title_generation_completed,
     record_title_generation_failed,
 )
@@ -55,6 +60,7 @@ MAX_TRANSCRIPT_BYTES = 1024 * 1024
 MAX_TOOL_CONTENT_CHARS = 100_000
 MAX_QUERY_LINK_PARAM_CHARS = 2000
 IMPORT_NOT_ALLOWED_ERROR = "This import is not allowed in an investigation query."
+SEER_CATEGORY_KEY = "investigation"
 PRIVATE_TRANSCRIPT_KEYS = {
     "authorization",
     "credentials",
@@ -118,8 +124,25 @@ The source object in investigation_context is authoritative resolved source cont
 template parameter. Use source.snapshot for supplied monitor, project, threshold, condition,
 dataset, and analysis-window facts; do not report them missing merely because parameters is empty.
 When notebookContext contains an item with currentBlock=true, it is the last successful result for
-the block being refined. Reuse its table and chart data for presentation-only requests such as
-changing line, area, or bar visualization; do not claim the data is unavailable or query it again.
+the block being refined. Its queryContext contains the saved source; do not substitute today's source.
+For presentation-only requests without data-changing parameter edits, reuse its table and chart data
+(for example, changing line, area, or bar visualization); do not query it again.
+Keep the same measurements, filters, and time window when changing presentation. parameterChanges
+lists linked parameter values changed since the saved result, including null for a cleared value.
+Apply those explicit edits and the user's new request over the saved settings, including queryLinks;
+a parameter edit that changes the data requires a new query even if the request also changes presentation.
+Unchanged parameters and current page filters do not override the saved query settings.
+For a query change such as a different grouping, preserve the original time window unless the request
+or a changed time parameter explicitly supplies a different period. Resolve the original window from
+the result's queryLinks first, then the current block's queryContext.source (timeRange or analysisWindow,
+directly or inside snapshot), then queryContext.filters saved with that execution. queryContext also
+preserves the previous parameter values. Missing historical settings are unknown; never combine
+current page filters with an old execution time to invent a window.
+Include the exact start/end timestamps in every new telemetry question. Never reinterpret an
+old "last 6 days" label relative to today or infer a query window from the first/last chart point.
+If neither a saved nor an explicitly requested window is available, reuse saved data for presentation
+changes and ask for the window before querying again. Preserve the current result if a requested transformation
+cannot be performed from its saved data.
 The first character must be { and the last character must be }.
 Do not wrap the object in a Markdown code fence or include prose before or after it. Do not call any function to
 write or save the result. tableMarkdown must be a complete Markdown table (or an empty table). When
@@ -155,6 +178,7 @@ def build_agent_prompt(execution: InvestigationBlockExecution) -> str:
         "projectSlugs": snapshot.get("projectSlugs", []),
         "filters": snapshot.get("filters", {}),
         "parameters": snapshot.get("parameters", {}),
+        "parameterChanges": snapshot.get("parameterChanges", {}),
         "notebookContext": snapshot.get("context", []),
         "datasetHint": snapshot.get("datasetHint"),
     }
@@ -174,10 +198,12 @@ def start_execution_run(
     if client is None:
         client = SeerAgentClient(organization, user)
     client.on_completion_hook = InvestigationAgentCompletionHook
+    client.category_key = SEER_CATEGORY_KEY
+    client.category_value = str(execution.block.investigation_id)
     client.is_interactive = is_query
     client.enable_code_mode_tools = "only" if is_query else "off"
     client.enable_coding = False
-    client.enable_bash_tools = False
+    client.enable_bash_mode = False
     client.enable_embeds = is_query
     client.enable_streaming = True
     client.max_iterations = 20 if is_query else 5
@@ -651,6 +677,12 @@ def cancel_investigation_executions_after_failure(
         ):
             return
 
+        failure_reason = str((failed_execution.error or {}).get("code") or "execution_failed")
+        transaction.on_commit(
+            partial(record_investigation_failed, investigation, reason=failure_reason),
+            using=database,
+        )
+
         active_executions = list(
             InvestigationBlockExecution.objects.select_for_update(of=("self",))
             .filter(
@@ -658,7 +690,7 @@ def cancel_investigation_executions_after_failure(
                 status__in=ACTIVE_BLOCK_EXECUTION_STATUSES,
             )
             .exclude(id=failed_execution.id)
-            .select_related("seer_run")
+            .select_related("block__investigation", "seer_run")
             .order_by("id")
         )
         completed_at = timezone.now()
@@ -675,6 +707,14 @@ def cancel_investigation_executions_after_failure(
         )
 
         for execution in active_executions:
+            transaction.on_commit(
+                partial(
+                    record_execution_cancelled,
+                    execution,
+                    reason="investigation_execution_failed",
+                ),
+                using=database,
+            )
             if execution.seer_run is None or execution.seer_run.seer_run_state_id is None:
                 continue
             transaction.on_commit(
@@ -857,7 +897,20 @@ def synchronize_execution(execution: InvestigationBlockExecution, state: SeerRun
                 links, projects = _successful_links_and_projects(
                     state, execution.block.investigation.organization
                 )
-                result["queryLinks"] = links
+                if links:
+                    result["queryLinks"] = freeze_query_links(
+                        links, reference_time=execution.started_at or execution.date_added
+                    )
+                else:
+                    previous_result: dict[str, Any] = next(
+                        (
+                            item["result"]
+                            for item in execution.input_snapshot.get("context", [])
+                            if item.get("currentBlock") is True
+                        ),
+                        {},
+                    )
+                    result["queryLinks"] = previous_result.get("queryLinks", [])
                 result = validate_query_result(result)
                 allowed_project_ids = set(execution.input_snapshot.get("projectIds", []))
                 queried_project_ids = {project.id for project in projects}
@@ -964,10 +1017,12 @@ def _maybe_start_title_generation(investigation: Investigation, user_id: int | N
     client = SeerAgentClient(
         investigation.organization,
         user,
+        category_key=SEER_CATEGORY_KEY,
+        category_value=str(investigation.id),
         on_completion_hook=InvestigationAgentCompletionHook,
         enable_code_mode_tools="only",
         enable_coding=False,
-        enable_bash_tools=False,
+        enable_bash_mode=False,
         enable_embeds=False,
         enable_streaming=True,
         max_iterations=3,
@@ -995,7 +1050,6 @@ def _maybe_start_title_generation(investigation: Investigation, user_id: int | N
         ):
             return
         locked.update(title_generation_status=TitleGenerationStatus.PENDING)
-    record_investigation_completed(locked)
 
     title_seer_run_state_id: int | None = None
 
@@ -1066,6 +1120,7 @@ def synchronize_title(investigation: Investigation, state: SeerRunState) -> None
     investigation.update(**updates)
     if metadata is not None:
         record_title_generation_completed(investigation)
+        record_investigation_completed(investigation)
     else:
         record_title_generation_failed(
             investigation,

@@ -1,9 +1,9 @@
 """Guards against duplicate ``operation_id`` values across ``@extend_schema`` decorators.
 
 Two operations sharing an ``operation_id`` produce an invalid OpenAPI document and
-duplicate SDK function names. drf-spectacular's ``--fail-on-warn`` build only sees PUBLIC
-operations, so it never catches a clash that involves a non-public method (e.g. a PUT/PATCH
-pair on the same endpoint where only one is public). This test scans the source instead, so
+duplicate SDK function names. drf-spectacular's ``--fail-on-warn`` build only sees published
+operations, so it never catches a clash that involves an unpublished method (e.g. a PUT/PATCH
+pair on the same endpoint where only one is published). This test scans the source instead, so
 it covers every ``@extend_schema`` regardless of publish status.
 
 (Summary uniqueness — which guards against docs-URL collisions — is enforced separately in

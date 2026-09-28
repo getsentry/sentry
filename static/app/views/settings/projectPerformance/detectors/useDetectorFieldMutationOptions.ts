@@ -2,6 +2,7 @@ import {mutationOptions, useQueryClient} from '@tanstack/react-query';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -44,7 +45,10 @@ export function useDetectorFieldMutationOptions({
     scope: {id: mutationKey.join(':')},
     mutationFn: (data: ProjectPerformanceSettings) =>
       fetchMutation<ProjectPerformanceSettings>({
-        url: `/projects/${organization.slug}/${projectSlug}/performance-issues/configure/`,
+        url: getApiUrl(
+          '/projects/$organizationIdOrSlug/$projectIdOrSlug/performance-issues/configure/',
+          {path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectSlug}}
+        ),
         method: 'PUT',
         data,
       }),

@@ -109,7 +109,6 @@ export function Version({
     <Tooltip
       title={renderTooltipContent()}
       disabled={!tooltipRawVersion}
-      isHoverable
       containerDisplayMode={truncate ? 'block' : 'inline-block'}
       maxWidth={isHashVersion ? undefined : 400}
     >

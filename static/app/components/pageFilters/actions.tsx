@@ -32,8 +32,8 @@ import type {Organization} from 'sentry/types/organization';
 import type {Environment, MinimalProject, Project} from 'sentry/types/project';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
-import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
-import {DAY as DAY_IN_MS, HOUR as HOUR_IN_MS} from 'sentry/utils/formatters';
+import {getAbsoluteRangeFromPeriod} from 'sentry/utils/duration/getAbsoluteRangeFromPeriod';
+import {DAY as DAY_IN_MS} from 'sentry/utils/formatters';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {navigateIfQueryChanged} from 'sentry/utils/navigateIfQueryChanged';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
@@ -353,10 +353,12 @@ export function initializeUrlState({
     const now = Date.now();
     let {start, end} = pageFilters.datetime;
 
-    if (pageFilters.datetime.period) {
-      const periodInHours = parsePeriodToHours(pageFilters.datetime.period);
-      start = new Date(now - periodInHours * HOUR_IN_MS);
-      end = new Date(now);
+    const range = pageFilters.datetime.period
+      ? getAbsoluteRangeFromPeriod(pageFilters.datetime.period, now)
+      : null;
+    if (range) {
+      start = range.start;
+      end = range.end;
     }
 
     if (start && end) {

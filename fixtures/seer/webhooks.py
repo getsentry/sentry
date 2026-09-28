@@ -44,4 +44,16 @@ MOCK_SEER_WEBHOOKS = {
             }
         ],
     },
+    SentryAppEventType.SEER_PR_READY_FOR_REVIEW: {
+        "run_id": MOCK_RUN_ID,
+        "group_id": MOCK_GROUP_ID,
+        "pull_requests": [
+            {
+                "pull_request": {
+                    "pr_number": 123,
+                    "pr_url": "https://github.com/owner/repo/pull/123",
+                },
+            }
+        ],
+    },
 }

@@ -8,6 +8,7 @@ from unittest.mock import patch
 import click
 import pytest
 
+from sentry.ai_monitoring.models import AIConversationMetadata
 from sentry.constants import ObjectStatus
 from sentry.models.files.file import File
 from sentry.models.group import Group
@@ -24,15 +25,16 @@ from sentry.runner.commands.cleanup import (
     remove_old_notification_messages,
     run_bulk_deletes_by_project,
     run_bulk_deletes_in_deletes,
+    run_bulk_query_deletes,
     task_execution,
 )
-from sentry.seer.models.night_shift import (
-    SeerNightShiftRun,
-    SeerNightShiftRunResult,
-    SeerNightShiftRunShard,
-)
+from sentry.seer.models.agentic_triage import SeerAgenticTriageRunResult
 from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunPullRequest
-from sentry.seer.models.workflow import SeerWorkflowStrategy
+from sentry.seer.models.workflow import (
+    SeerWorkflowRun,
+    SeerWorkflowRunExecution,
+    SeerWorkflowStrategy,
+)
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -273,6 +275,27 @@ class RemoveCrossProjectBulkQueryModelsTest(TestCase):
         assert WorkflowFireHistory not in models_after
 
 
+class AIConversationMetadataCleanupTest(TestCase):
+    @assume_test_silo_mode(SiloMode.CELL)
+    def test_deletes_metadata_older_than_retention(self) -> None:
+        old = self.create_ai_conversation_metadata(self.project, "old-conversation")
+        recent = self.create_ai_conversation_metadata(self.project, "recent-conversation")
+        AIConversationMetadata.objects.filter(id=old.id).update(date_updated=before_now(days=32))
+        AIConversationMetadata.objects.filter(id=recent.id).update(date_updated=before_now(days=30))
+
+        run_bulk_query_deletes(
+            generate_bulk_query_deletes(),
+            lambda model: model is not AIConversationMetadata,
+            31,
+            None,
+            None,
+            set(),
+        )
+
+        assert not AIConversationMetadata.objects.filter(id=old.id).exists()
+        assert AIConversationMetadata.objects.filter(id=recent.id).exists()
+
+
 class UptimeResponseCaptureCleanupTest(TestCase):
     def test_cleanup_deletes_file(self) -> None:
         """Test that UptimeResponseCapture cleanup also deletes the associated File."""
@@ -346,14 +369,14 @@ class SeerRunCleanupTest(TestCase):
         assert not SeerRunPullRequest.objects.filter(id=link.id).exists()
 
     @assume_test_silo_mode(SiloMode.CELL)
-    def test_night_shift_links_survive_with_null_seer_run(self) -> None:
+    def test_agentic_triage_links_survive_with_null_seer_run(self) -> None:
         run = self.create_seer_run(
             organization=self.organization, last_triggered_at=before_now(days=31)
         )
-        night_shift_run = SeerNightShiftRun.objects.create(organization=self.organization)
-        shard = SeerNightShiftRunShard.objects.create(run=night_shift_run, seer_run=run)
-        result = SeerNightShiftRunResult.objects.create(
-            run=night_shift_run,
+        agentic_triage_run = SeerWorkflowRun.objects.create(organization=self.organization)
+        shard = SeerWorkflowRunExecution.objects.create(run=agentic_triage_run, seer_run=run)
+        result = SeerAgenticTriageRunResult.objects.create(
+            run=agentic_triage_run,
             kind=SeerWorkflowStrategy.AGENTIC_TRIAGE,
             result_seer_run=run,
         )

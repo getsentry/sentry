@@ -23,9 +23,12 @@ export function matchTimeSeriesToTableRowValue({
     return (row?.[yAxis] as number) ?? null;
   }
 
-  // Finding a row that has the same group-by values as the time series
-  const matchedRow = tableDataRows.find(row =>
-    groupBy.every(group => toPythonString(row[group.key]) === toPythonString(group.value))
+  // Group values are parsed from a comma-joined series name, so compare the
+  // values joined on `,` until we migrate to /events-timeseries/, which returns
+  // group by values in the response.
+  const seriesKey = groupBy.map(group => toPythonString(group.value)).join(',');
+  const matchedRow = tableDataRows.find(
+    row => groupBy.map(group => toPythonString(row[group.key])).join(',') === seriesKey
   );
 
   return (matchedRow?.[yAxis] as number) ?? null;

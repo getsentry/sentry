@@ -2,7 +2,8 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
+
 import {makeFeatureFlagSearchKey} from 'sentry/components/events/featureFlags/utils';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t} from 'sentry/locale';

@@ -75,7 +75,7 @@ def test_basic_parsing(insta_snapshot: InstaSnapshotter, version: int) -> None:
             family:native                                   max-frames=3
             error.value:"*something*"                       max-frames=12
         """,
-        bases=["common:v1"],
+        bases=[DEFAULT_ENHANCEMENTS_BASE],
         version=version,
     )
 

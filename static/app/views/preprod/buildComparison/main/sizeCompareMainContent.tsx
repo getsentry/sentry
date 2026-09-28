@@ -370,7 +370,6 @@ export function SizeCompareMainContent() {
                   <Text wrap="nowrap">{t('Hide changes < 500B')}</Text>
                   <Switch
                     checked={hideSmallChanges}
-                    size="sm"
                     title={t('Hide < 500B')}
                     onChange={() => setHideSmallChanges(!hideSmallChanges)}
                     aria-label={

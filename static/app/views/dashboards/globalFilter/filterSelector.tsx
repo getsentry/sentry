@@ -1,6 +1,7 @@
 import {useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import {useDebouncedValue} from '@tanstack/react-pacer';
 import {keepPreviousData, useQuery} from '@tanstack/react-query';
 import isEqual from 'lodash/isEqual';
 import xor from 'lodash/xor';
@@ -12,10 +13,10 @@ import {
   MenuComponents,
   type SelectOption,
 } from '@sentry/scraps/compactSelect';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useStagedCompactSelect} from 'sentry/components/pageFilters/useStagedCompactSelect';
@@ -34,12 +35,12 @@ import {
   tokenSupportsMultipleValues,
 } from 'sentry/components/searchQueryBuilder/tokens/filter/valueCombobox';
 import {TermOperator} from 'sentry/components/searchSyntax/parser';
+import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {emptyValue, EMPTY_VALUE_LABEL} from 'sentry/utils/discover/emptyFieldValues';
 import {prettifyTagKey} from 'sentry/utils/fields';
 import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
-import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {type SearchBarData} from 'sentry/views/dashboards/datasetConfig/base';
 import {getDatasetLabel} from 'sentry/views/dashboards/globalFilter/addFilter';
 import {FilterSelectorTrigger} from 'sentry/views/dashboards/globalFilter/filterSelectorTrigger';
@@ -141,6 +142,7 @@ export function FilterSelector({
         },
       })),
     };
+    // oxlint-disable-next-line react/memo-dependencies
   }, [pickerToken, filterToken, noValueToken, fieldDefinition]);
 
   const [stagedOperator, setStagedOperator] = useState(initialOperator);
@@ -149,6 +151,7 @@ export function FilterSelector({
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     setActiveFilterValues(initialValues);
     setStagedFilterValues([]);
   }, [initialValues]);
@@ -161,6 +164,7 @@ export function FilterSelector({
    */
   useEffect(() => {
     setStagedOperator(initialOperator);
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [initialOperator]);
 
   // Retrieve full tag definition to check if it has predefined values
@@ -209,7 +213,9 @@ export function FilterSelector({
       searchQuery,
     ]
   );
-  const queryKey = useDebouncedValue(baseQueryKey);
+  const [queryKey] = useDebouncedValue(baseQueryKey, {
+    wait: DEFAULT_DEBOUNCE_DURATION,
+  });
 
   const queryResult = useQuery({
     queryKey,
@@ -325,6 +331,7 @@ export function FilterSelector({
       }
     });
     return prependNoValueOption([...fixedOptionMap.values(), ...optionMap.values()]);
+    // oxlint-disable-next-line react/memo-dependencies
   }, [
     fetchedFilterValues,
     predefinedValues,
@@ -407,25 +414,14 @@ export function FilterSelector({
   // Wire up refs after stagedSelect is created to break the circular
   // dependency between options (which need toggleOption) and useStagedCompactSelect
   // (which needs options).
+  // oxlint-disable-next-line react/refs
   toggleOptionRef.current = stagedSelect.toggleOption;
+  // oxlint-disable-next-line react/refs
   stagedValueRef.current = stagedSelect.value;
 
   const {dispatch} = stagedSelect;
   const hasStagedChanges =
     xor(stagedSelect.value, activeFilterValues).length > 0 || hasOperatorChanges;
-
-  const renderFilterSelectorTrigger = (filterValues: string[]) => {
-    const displayValues = stripUnsupportedNoValue(filterValues, stagedOperator);
-
-    return (
-      <FilterSelectorTrigger
-        globalFilter={globalFilter}
-        activeFilterValues={displayValues}
-        operator={stagedOperator}
-        options={translatedOptions}
-      />
-    );
-  };
 
   const loadingFooter = isFetching ? (
     <Flex justify="center" padding="xs">
@@ -478,7 +474,15 @@ export function FilterSelector({
         )}
         trigger={triggerProps => (
           <OverlayTrigger.Button {...triggerProps}>
-            {renderFilterSelectorTrigger(activeFilterValues)}
+            <FilterSelectorTrigger
+              activeFilterValues={stripUnsupportedNoValue(
+                activeFilterValues,
+                stagedOperator
+              )}
+              globalFilter={globalFilter}
+              operator={stagedOperator}
+              options={translatedOptions}
+            />
           </OverlayTrigger.Button>
         )}
       />
@@ -575,7 +579,15 @@ export function FilterSelector({
       )}
       trigger={triggerProps => (
         <OverlayTrigger.Button {...triggerProps}>
-          {renderFilterSelectorTrigger(activeFilterValues)}
+          <FilterSelectorTrigger
+            activeFilterValues={stripUnsupportedNoValue(
+              activeFilterValues,
+              stagedOperator
+            )}
+            globalFilter={globalFilter}
+            operator={stagedOperator}
+            options={translatedOptions}
+          />
         </OverlayTrigger.Button>
       )}
     />

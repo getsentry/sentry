@@ -69,6 +69,9 @@ export function NextBillCard({
     .filter(item => item.type.startsWith('ondemand_'))
     .reduce((acc, item) => acc + item.amount, 0);
   const seerItem = invoiceItems.find(item => item.type === 'activated_seer_users');
+  const oneTimeAdjustments = invoiceItems.filter(
+    item => item.type === 'one_time_adjustment'
+  );
   const fees = getFees({invoiceItems});
   const credits = getCredits({invoiceItems}); // these should all be negative already
   const creditApplied =
@@ -111,13 +114,13 @@ export function NextBillCard({
           )}
         </Flex>,
         isLoading ? (
-          <Placeholder style={{flexGrow: 1}} />
+          <Placeholder key="content" style={{flexGrow: 1}} />
         ) : isError ? (
-          <Alert variant="danger">
+          <Alert key="content" variant="danger">
             {t('Could not compute next bill. Please try again later.')}
           </Alert>
         ) : (
-          <Stack gap="lg" width="100%">
+          <Stack key="content" gap="lg" width="100%">
             <Text size="2xl" variant="accent" bold>
               {displayPriceWithCents({cents: nextBill?.billedAmount ?? 0})}
             </Text>
@@ -154,8 +157,8 @@ export function NextBillCard({
                   </Text>
                 </Flex>
               )}
-              {fees.map(item => (
-                <Flex justify="between" align="center" key={item.type}>
+              {[...oneTimeAdjustments, ...fees].map((item, index) => (
+                <Flex justify="between" align="center" key={index}>
                   <Text variant="muted" size="sm">
                     {item.description}
                   </Text>

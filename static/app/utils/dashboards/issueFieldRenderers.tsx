@@ -206,7 +206,6 @@ const issuesCountRenderer = (
   return (
     <Container>
       <Tooltip
-        isHoverable
         skipWrapper
         overlayStyle={{padding: 0}}
         title={

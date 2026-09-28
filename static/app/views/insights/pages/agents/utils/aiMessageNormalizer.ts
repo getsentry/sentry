@@ -1,8 +1,8 @@
-import {tryParsePythonDict} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiContentDetection';
+import {tryParsePythonDict} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiContentDetection';
 import {
   parseJsonWithFix,
   tryParseJsonRecursive,
-} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
+} from 'sentry/views/performance/traceDetails/traceDrawer/details/utils';
 
 export interface AIMessage {
   content: unknown;
@@ -404,7 +404,7 @@ function bucketParts(parts: unknown[]): PartBuckets {
 }
 
 function selectAssistantMessages(rawMessages: RawMessage[]): RawMessage[] {
-  const hasRole = rawMessages.some(m => m.roleExplicit === true);
+  const hasRole = rawMessages.some(m => m.roleExplicit);
   if (hasRole) {
     return rawMessages.filter(m => m.role === 'assistant');
   }

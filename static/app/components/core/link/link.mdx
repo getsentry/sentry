@@ -25,7 +25,7 @@ The Link component provides context-aware navigation within the Sentry applicati
 
 Use `<Link>` for navigation within the Sentry application. The component uses React Router under the hood and falls back to a standard anchor tag when no router context is available.
 
-Internal links should always navigate in the same tab. Do not open internal destinations in a new tab (for example with `target="_blank"` or `openInNewTab`).
+Internal links should always navigate in the same tab. Do not open internal destinations in a new tab (for example with `target="_blank"` or `openInNewTab`). Opening an internal destination in a new tab is unexpected. It also takes the choice away from the reader: cmd/ctrl+click already forces a new tab for anyone who wants one, but there is no established way to do the opposite and keep a `target="_blank"` link in the current tab. Same-tab navigation is usually faster too, since it stays within the single-page app rather than reloading it.
 
 <Storybook.Demo>
   <Link to="/organizations/sentry/issues/">Navigate to Issues</Link>

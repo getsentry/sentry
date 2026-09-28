@@ -161,7 +161,6 @@ export function U2fEnrollForm({
               <Flex align="center" justify="end" gap="sm">
                 <Stack gap="sm" align="end">
                   <Button
-                    type="button"
                     onClick={() => triggerEnroll(field.handleChange)}
                     disabled={
                       !isWebAuthnSupported || Boolean(field.state.value.challenge)

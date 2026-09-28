@@ -1,5 +1,4 @@
-import {Fragment} from 'react';
-import {useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
@@ -113,7 +112,7 @@ function OrganizationDataForwardingEdit({dataForwarder}: {dataForwarder: DataFor
                   )}
                 />
               )}
-              <Tabs value={dataForwarder.provider} disableOverflow>
+              <Tabs value={dataForwarder.provider}>
                 <TabList variant="floating">
                   {Object.entries(ProviderLabels).map(([key, label]) => (
                     <TabList.Item

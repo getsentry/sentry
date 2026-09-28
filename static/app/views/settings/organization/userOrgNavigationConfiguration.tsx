@@ -219,6 +219,7 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
           title: t('Connectors'),
           description: t('Connect monitoring providers to Seer'),
           id: 'seer-connectors',
+          badge: () => <FeatureBadge type="beta" />,
           show: ({organization}) =>
             !!organization &&
             showNewSeer(organization) &&

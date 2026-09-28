@@ -7,11 +7,13 @@ import {Markdown} from '@sentry/scraps/markdown';
 import {Text} from '@sentry/scraps/text';
 
 import {getAutofixRunId} from 'sentry/components/events/autofix/autofixRunId';
+import {hasCreatedPullRequests} from 'sentry/components/events/autofix/pullRequests';
 import {
   collectPatches,
   getAutofixArtifactFromSection,
   isCodeChangesArtifact,
   isPrIterationBlock,
+  isPrIterationPaused,
   type AutofixSection,
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
@@ -23,7 +25,10 @@ import {
   FeedbackList,
   usePrIterationFeedback,
 } from 'sentry/components/events/autofix/v3/feedbackList';
-import {PrIterationFeedbackForm} from 'sentry/components/events/autofix/v3/prIterationFeedbackForm';
+import {
+  PR_ITERATION_PAUSED_TOOLTIP,
+  PrIterationFeedbackForm,
+} from 'sentry/components/events/autofix/v3/prIterationFeedbackForm';
 import {useResetAutofixStep} from 'sentry/components/events/autofix/v3/useResetAutofixStep';
 import {artifactToMarkdown} from 'sentry/components/events/autofix/v3/utils';
 import {IconCode} from 'sentry/icons/iconCode';
@@ -41,6 +46,8 @@ interface CodeChangesCardProps {
   groupId: string;
   section: AutofixSection;
 }
+
+const MAX_AUTO_EXPANDED_DIFF_LINES = 30;
 
 function getFinalExplanation(section: AutofixSection): string | null {
   for (let i = section.blocks.length - 1; i >= 0; i--) {
@@ -106,13 +113,20 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
   );
 
   const hasPRs = Object.keys(autofix.runState?.repo_pr_states ?? {}).length > 0;
+  const hasFailedOnlyPRs =
+    hasPRs && !hasCreatedPullRequests(autofix.runState?.repo_pr_states);
   const noCodingAgents =
     Object.values(autofix.runState?.coding_agents ?? {}).length === 0;
 
+  const isPaused = isPrIterationPaused(autofix.runState);
+
   // Reset-after-PR is only reachable where reset opens the manual form.
-  const isResetEligible = hasManualPrIterationFeature
-    ? noCodingAgents && (hasPRs || autofix.runState?.status !== 'processing')
-    : noCodingAgents && !hasPRs && autofix.runState?.status !== 'processing';
+  const isResetEligible =
+    !isPaused &&
+    !hasFailedOnlyPRs &&
+    (hasManualPrIterationFeature
+      ? noCodingAgents && (hasPRs || autofix.runState?.status !== 'processing')
+      : noCodingAgents && !hasPRs && autofix.runState?.status !== 'processing');
 
   const {canReset, shouldShowReset, setShouldShowReset, handleReset} =
     useResetAutofixStep({
@@ -138,6 +152,20 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
   }, [location, navigate, shouldShowReset]);
 
   const patchesByRepo = useMemo(() => collectPatches(artifact ?? []), [artifact]);
+
+  const shouldExpandDiffs = useMemo(() => {
+    let lineCount = 0;
+
+    for (const patches of patchesByRepo.values()) {
+      for (const patch of patches) {
+        for (const hunk of patch.patch.hunks) {
+          lineCount += hunk.lines.length;
+        }
+      }
+    }
+
+    return lineCount <= MAX_AUTO_EXPANDED_DIFF_LINES;
+  }, [patchesByRepo]);
 
   const explanation = useMemo(() => getFinalExplanation(section), [section]);
 
@@ -242,7 +270,7 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
                 patch={patch.patch}
                 showBorder
                 collapsible
-                defaultExpanded={artifact !== null && artifact.length <= 1}
+                defaultExpanded={shouldExpandDiffs}
               />
             ))}
           </ArtifactDetails>
@@ -319,6 +347,7 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
       }
       allowReset
       onReset={canReset ? () => setShouldShowReset(true) : undefined}
+      resetTooltip={isPaused ? PR_ITERATION_PAUSED_TOOLTIP : undefined}
     >
       <FeedbackList items={feedback} />
       {content}

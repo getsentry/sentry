@@ -6,8 +6,25 @@ import sentry_sdk
 from django.utils import timezone
 
 from sentry.investigations.models import Investigation, InvestigationBlockExecution
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
+
+
+def _record_count(name: str, attributes: dict[str, str]) -> None:
+    sentry_sdk.metrics.count(name, 1, attributes=attributes)
+    metrics.incr(name, tags=attributes, sample_rate=1.0)
+
+
+def _record_duration(name: str, value: float, attributes: dict[str, str]) -> None:
+    sentry_sdk.metrics.distribution(name, value, unit="second", attributes=attributes)
+    metrics.distribution(
+        name,
+        value,
+        unit="second",
+        tags=attributes,
+        sample_rate=1.0,
+    )
 
 
 def _investigation_attributes(investigation: Investigation) -> dict[str, str]:
@@ -26,59 +43,54 @@ def _execution_attributes(execution: InvestigationBlockExecution) -> dict[str, s
 
 
 def record_investigation_started(investigation: Investigation) -> None:
-    sentry_sdk.metrics.count(
-        "investigations.started",
-        1,
-        attributes=_investigation_attributes(investigation),
-    )
+    _record_count("investigations.started", _investigation_attributes(investigation))
 
 
 def record_investigation_completed(investigation: Investigation) -> None:
     attributes = _investigation_attributes(investigation)
-    sentry_sdk.metrics.count("investigations.completed", 1, attributes=attributes)
-    sentry_sdk.metrics.distribution(
+    _record_count("investigations.completed", attributes)
+    _record_duration(
         "investigations.duration",
         (timezone.now() - investigation.date_added).total_seconds(),
-        unit="second",
-        attributes=attributes,
+        attributes,
+    )
+
+
+def record_investigation_failed(investigation: Investigation, *, reason: str) -> None:
+    _record_count(
+        "investigations.failed",
+        {**_investigation_attributes(investigation), "reason": reason},
     )
 
 
 def record_execution_started(execution: InvestigationBlockExecution) -> None:
-    sentry_sdk.metrics.count(
-        "investigations.execution.started",
-        1,
-        attributes=_execution_attributes(execution),
-    )
+    _record_count("investigations.execution.started", _execution_attributes(execution))
 
 
 def record_execution_completed(execution: InvestigationBlockExecution) -> None:
     attributes = _execution_attributes(execution)
-    sentry_sdk.metrics.count("investigations.execution.completed", 1, attributes=attributes)
+    _record_count("investigations.execution.completed", attributes)
     if execution.completed_at is not None:
-        sentry_sdk.metrics.distribution(
+        _record_duration(
             "investigations.execution.duration",
             (execution.completed_at - execution.date_added).total_seconds(),
-            unit="second",
-            attributes={**attributes, "outcome": "completed"},
+            {**attributes, "outcome": "completed"},
         )
 
 
 def record_execution_failed(
-    execution: InvestigationBlockExecution, *, reason: str, seer_run_id: int
+    execution: InvestigationBlockExecution, *, reason: str, seer_run_id: int | None
 ) -> None:
     attributes = _execution_attributes(execution)
-    sentry_sdk.metrics.count(
+    _record_count(
         "investigations.execution.failed",
-        1,
-        attributes={**attributes, "reason": reason},
+        {**attributes, "reason": reason},
     )
     if execution.completed_at is not None:
-        sentry_sdk.metrics.distribution(
+        _record_duration(
             "investigations.execution.duration",
             (execution.completed_at - execution.date_added).total_seconds(),
-            unit="second",
-            attributes={**attributes, "outcome": "failed"},
+            {**attributes, "outcome": "failed"},
         )
     logger.warning(
         "investigations.execution.failed",
@@ -93,22 +105,27 @@ def record_execution_failed(
     )
 
 
+def record_execution_cancelled(execution: InvestigationBlockExecution, *, reason: str) -> None:
+    _record_count(
+        "investigations.execution.cancelled",
+        {**_execution_attributes(execution), "reason": reason},
+    )
+
+
 def record_title_generation_completed(investigation: Investigation) -> None:
-    sentry_sdk.metrics.count(
-        "investigations.title_generation.completed",
-        1,
-        attributes=_investigation_attributes(investigation),
+    _record_count(
+        "investigations.title_generation.completed", _investigation_attributes(investigation)
     )
 
 
 def record_title_generation_failed(
     investigation: Investigation, *, reason: str, seer_run_id: int | None
 ) -> None:
-    sentry_sdk.metrics.count(
+    _record_count(
         "investigations.title_generation.failed",
-        1,
-        attributes={**_investigation_attributes(investigation), "reason": reason},
+        {**_investigation_attributes(investigation), "reason": reason},
     )
+    record_investigation_failed(investigation, reason=reason)
     logger.warning(
         "investigations.title_generation.failed",
         extra={

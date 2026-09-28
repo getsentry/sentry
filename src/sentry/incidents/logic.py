@@ -18,9 +18,8 @@ from django.forms import ValidationError
 from django.utils import timezone as django_timezone
 from snuba_sdk import Column, Condition, Limit, Op
 
-from sentry import analytics, audit_log, features, quotas
+from sentry import analytics, audit_log, features, options, quotas
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.auth.access import SystemAccess
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS, ObjectStatus
 from sentry.db.models import Model
 from sentry.db.models.manager.base_query_set import BaseQuerySet
@@ -1611,7 +1610,9 @@ def _get_alert_rule_trigger_action_discord_channel_id(name: str, integration_id:
     from sentry.integrations.discord.utils.channel import validate_channel_id
 
     integration = integration_service.get_integration(
-        integration_id=integration_id, status=ObjectStatus.ACTIVE
+        integration_id=integration_id,
+        status=ObjectStatus.ACTIVE,
+        using_replica=options.get("integration_service.get_integration.using_replica"),
     )
     if integration is None:
         raise InvalidTriggerActionError("Discord integration not found.")
@@ -1687,8 +1688,6 @@ def _get_alert_rule_trigger_action_sentry_app(
     sentry_app_id: int | None,
     installations: Collection[RpcSentryAppInstallation] | None,
 ) -> AlertTarget:
-    from sentry.sentry_apps.services.app import app_service
-
     if installations is None:
         installations = app_service.installations_for_organization(organization_id=organization.id)
 
@@ -1734,29 +1733,6 @@ def get_available_action_integrations_for_org(
         organization_id=organization.id,
         providers=providers,
     )
-
-
-def get_pagerduty_services(organization_id: int, integration_id: int) -> list[tuple[int, str]]:
-    from sentry.integrations.pagerduty.utils import get_services
-
-    org_int = integration_service.get_organization_integration(
-        organization_id=organization_id, integration_id=integration_id
-    )
-    services = get_services(org_int)
-    return [(s["id"], s["service_name"]) for s in services]
-
-
-def get_opsgenie_teams(organization_id: int, integration_id: int) -> list[tuple[str, str]]:
-    org_int = integration_service.get_organization_integration(
-        organization_id=organization_id, integration_id=integration_id
-    )
-    if org_int is None:
-        return []
-    teams = []
-    team_table = org_int.config.get("team_table")
-    if team_table:
-        teams = [(team["id"], team["team"]) for team in team_table]
-    return teams
 
 
 # TODO: This is temporarily needed to support back and forth translations for snuba / frontend.
@@ -1914,65 +1890,6 @@ def translate_aggregate_field(
                 if translated_field == column:
                     return aggregate.replace(column, field)
     return aggregate
-
-
-# TODO(Ecosystem): Convert to using get_filtered_actions
-def get_slack_actions_with_async_lookups(
-    organization: Organization,
-    data: Mapping[str, Any],
-) -> list[Mapping[str, Any]]:
-    """Return Slack trigger actions that require async lookup"""
-    try:
-        from sentry.incidents.serializers import AlertRuleTriggerActionSerializer
-
-        slack_actions = []
-        for trigger in data["triggers"]:
-            for action in trigger["actions"]:
-                action = rewrite_trigger_action_fields(action)
-                a_s = AlertRuleTriggerActionSerializer(
-                    context={
-                        "organization": organization,
-                        "access": SystemAccess(),
-                        "input_channel_id": action.get("inputChannelId"),
-                        "installations": app_service.installations_for_organization(
-                            organization_id=organization.id
-                        ),
-                    },
-                    data=action,
-                )
-                # If a channel does not have a channel ID we should use an async look up to find it
-                # The calling function will receive a list of channels in need of this look up and schedule it
-                if a_s.is_valid():
-                    if (
-                        a_s.validated_data["type"].value == AlertRuleTriggerAction.Type.SLACK.value
-                        and not a_s.validated_data["input_channel_id"]
-                    ):
-                        slack_actions.append(a_s.validated_data)
-        return slack_actions
-    except KeyError:
-        # If we have any KeyErrors reading the data, we can just return nothing
-        # This will cause the endpoint to try creating the rule synchronously
-        # which will capture the error properly.
-        return []
-
-
-def get_slack_channel_ids(
-    organization: Organization,
-    user: User | RpcUser | None,
-    data: Mapping[str, Any],
-) -> Mapping[str, Any]:
-    slack_actions = get_slack_actions_with_async_lookups(organization, data)
-    mapped_slack_channels = {}
-    for action in slack_actions:
-        if action["target_identifier"] not in mapped_slack_channels:
-            target = get_target_identifier_display_for_integration(
-                action["type"].value,
-                action["target_identifier"],
-                organization,
-                action["integration_id"],
-            )
-            mapped_slack_channels[action["target_identifier"]] = target.identifier
-    return mapped_slack_channels
 
 
 def rewrite_trigger_action_fields(action_data: dict[str, Any]) -> dict[str, Any]:

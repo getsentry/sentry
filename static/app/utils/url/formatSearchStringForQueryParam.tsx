@@ -1,4 +1,14 @@
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import type {MutableSearch as ParsedMutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
+import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
+
+/**
+ * Either `MutableSearch` implementation. `sentry/utils/tokenizeSearch` splits
+ * the query with a hand-rolled character scanner; the parser-based
+ * `sentry/components/searchSyntax/mutableSearch` runs the real search grammar
+ * and is what call sites are migrating to. Both serialize through
+ * `formatString()`, so anything that only needs the query string accepts either.
+ */
+export type AnyMutableSearch = MutableSearch | ParsedMutableSearch;
 
 /**
  * Formats a search string for use as a query parameter.
@@ -10,15 +20,14 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
  * @returns The formatted search string.
  */
 export function formatSearchStringForQueryParam(
-  query: MutableSearch | string | undefined
+  query: AnyMutableSearch | string | undefined
 ): string | undefined {
   if (query === undefined) {
     return undefined;
   }
 
-  if (query instanceof MutableSearch) {
-    return query.formatString();
-  }
-
-  return query;
+  // Not an `instanceof` check: that would silently pass the object straight
+  // through as the query param for whichever of the two implementations it
+  // was not written against.
+  return typeof query === 'string' ? query : query.formatString();
 }

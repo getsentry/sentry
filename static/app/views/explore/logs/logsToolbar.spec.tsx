@@ -262,6 +262,7 @@ describe('LogsToolbar', () => {
       let mode: Mode | undefined;
 
       function Component() {
+        // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
         mode = useQueryParamsMode();
         return <LogsToolbar />;
       }
@@ -345,6 +346,7 @@ describe('LogsToolbar', () => {
       let mode: Mode | undefined;
 
       function Component() {
+        // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
         mode = useQueryParamsMode();
         return <LogsToolbar />;
       }
@@ -549,6 +551,7 @@ describe('LogsToolbar', () => {
 
       let groupBys: readonly string[] = [];
       function Component() {
+        // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
         groupBys = useQueryParamsGroupBys();
         return <LogsToolbar />;
       }

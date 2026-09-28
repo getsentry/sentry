@@ -1,11 +1,12 @@
 import {useMemo} from 'react';
-import styled from '@emotion/styled';
 import {useInfiniteQuery} from '@tanstack/react-query';
 import uniqBy from 'lodash/uniqBy';
 
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
-import {Stack} from '@sentry/scraps/layout';
+import {EmptyState} from '@sentry/scraps/emptyState';
+import {Image} from '@sentry/scraps/image';
+import {Container, Stack} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
@@ -23,11 +24,16 @@ import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxSta
 
 function NoFeedback() {
   return (
-    <NoFeedbackWrapper>
-      <img src={waitingForEventImg} alt={t('A person waiting for a phone to ring')} />
-      <NoFeedbackMessage>{t('Inbox Zero')}</NoFeedbackMessage>
-      <p>{t('You have two options: take a nap or be productive.')}</p>
-    </NoFeedbackWrapper>
+    <EmptyState
+      padding="3xl"
+      align="center"
+      justify="center"
+      illustration={
+        <Image src={waitingForEventImg} alt={t('A person waiting for a phone to ring')} />
+      }
+      title={t('Inbox Zero')}
+      description={t('You have two options: take a nap or be productive.')}
+    />
   );
 }
 
@@ -80,11 +86,11 @@ export function FeedbackList({onItemSelect}: Props) {
             }}
             emptyMessage={() => <NoFeedback />}
             loadingMoreMessage={() => (
-              <Centered>
+              <Container justifySelf="center">
                 <Tooltip title={t('Loading more feedback...')}>
                   <LoadingIndicator mini />
                 </Tooltip>
-              </Centered>
+              </Container>
             )}
             loadingCompleteMessage={() => null}
           />
@@ -93,26 +99,3 @@ export function FeedbackList({onItemSelect}: Props) {
     </ListItemCheckboxProvider>
   );
 }
-
-const Centered = styled('div')`
-  justify-self: center;
-`;
-
-const NoFeedbackWrapper = styled('div')`
-  padding: ${p => p.theme.space['3xl']} ${p => p.theme.space['3xl']};
-  text-align: center;
-  color: ${p => p.theme.tokens.content.secondary};
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    font-size: ${p => p.theme.font.size.md};
-  }
-`;
-
-const NoFeedbackMessage = styled('div')`
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  color: ${p => p.theme.colors.gray500};
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    font-size: ${p => p.theme.font.size.xl};
-  }
-`;

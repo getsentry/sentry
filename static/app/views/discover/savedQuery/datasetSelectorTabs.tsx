@@ -130,7 +130,6 @@ export function DatasetSelectorTabs(props: Props) {
       tooltip: deprecatingTransactionsDataset
         ? {
             title: getTransactionDeprecationMessage(tracesUrl),
-            isHoverable: true,
           }
         : undefined,
     },

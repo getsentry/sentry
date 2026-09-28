@@ -1,8 +1,8 @@
 import {useEffect} from 'react';
-import {useTheme} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
@@ -103,10 +103,16 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
 
   return (
     <PageErrorBoundary mini message={t('There was an error loading the event filters')}>
-      <DetailsContainer
+      <Stack
         role="group"
         aria-description={t('Event filtering controls')}
-        hasFilterBar={issueTypeConfig.header.filterBar.enabled}
+        position="relative"
+        gap="lg"
+        background="secondary"
+        paddingTop="lg"
+        style={{
+          paddingInline: `var(--issue-details-inset, ${theme.space['2xl']})`,
+        }}
       >
         {issueTypeConfig.header.filterBar.enabled && (
           <TourElement<IssueDetailsTour>
@@ -120,85 +126,87 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
           >
             {tp => (
               <div {...tp}>
-                <Flex direction={{'screen:xs': 'column', 'screen:md': 'row'}} gap="sm">
+                <Flex direction={{zero: 'column', sm: 'row'}} gap="sm">
                   <Grid
                     width="100%"
                     gap="sm"
                     columns={{
-                      'screen:xs': '1fr',
-                      'screen:md': 'auto minmax(100px, 1fr) auto',
+                      zero: '1fr',
+                      xl: 'auto minmax(100px, 1fr) auto',
                     }}
                     rows={`minmax(${theme.form.md.height}, auto)`}
                   >
-                    <PageFilterBar>
-                      <EnvironmentSelector
-                        group={group}
-                        event={event}
-                        project={project}
-                      />
-                      <TimeRangeSelector
-                        menuTitle={t('Filter Time Range')}
-                        menuWidth={
-                          shouldShowSinceFirstSeenOption ? 'fit-content' : undefined
-                        }
-                        start={period?.start}
-                        end={period?.end}
-                        utc={location.query.utc === 'true'}
-                        relative={period?.statsPeriod}
-                        relativeOptions={props => {
-                          return {
-                            ...props.arbitraryOptions,
-                            // Always display arbitrary issue open period
-                            ...(defaultStatsPeriod?.statsPeriod &&
-                            shouldShowSinceFirstSeenOption
-                              ? {
-                                  [defaultStatsPeriod.statsPeriod]: t(
-                                    'Last %s (since first seen)',
-                                    getRelativeDate(group.firstSeen)
+                    <Container justifySelf={{zero: 'stretch', sm: 'start'}}>
+                      <PageFilterBar>
+                        <EnvironmentSelector
+                          group={group}
+                          event={event}
+                          project={project}
+                        />
+                        <TimeRangeSelector
+                          menuTitle={t('Filter Time Range')}
+                          menuWidth={
+                            shouldShowSinceFirstSeenOption ? 'fit-content' : undefined
+                          }
+                          start={period?.start}
+                          end={period?.end}
+                          utc={location.query.utc === 'true'}
+                          relative={period?.statsPeriod}
+                          relativeOptions={props => {
+                            return {
+                              ...props.arbitraryOptions,
+                              // Always display arbitrary issue open period
+                              ...(defaultStatsPeriod?.statsPeriod &&
+                              shouldShowSinceFirstSeenOption
+                                ? {
+                                    [defaultStatsPeriod.statsPeriod]: t(
+                                      'Last %s (since first seen)',
+                                      getRelativeDate(group.firstSeen)
+                                        .replace(/^a (?=\w+$)/, '1 ')
+                                        .replace(/^an (?=\w+$)/, '1 ')
+                                    ),
+                                  }
+                                : {}),
+                              ...props.defaultOptions,
+                            };
+                          }}
+                          onChange={({relative, start, end, utc}) => {
+                            navigate({
+                              ...location,
+                              query: {
+                                ...location.query,
+                                // If selecting the issue open period, remove the stats period query param
+                                statsPeriod:
+                                  relative === defaultStatsPeriod?.statsPeriod
+                                    ? undefined
+                                    : relative,
+                                start: start ? getUtcDateString(start) : undefined,
+                                end: end ? getUtcDateString(end) : undefined,
+                                utc: utc ? 'true' : undefined,
+                              },
+                            });
+                          }}
+                          trigger={triggerProps => (
+                            <TimeRangeSelectTrigger
+                              {...triggerProps}
+                              style={{
+                                padding: `${theme.space.md} ${theme.space.lg}`,
+                              }}
+                            >
+                              {period === defaultStatsPeriod &&
+                              !defaultStatsPeriod.isMaxRetention &&
+                              shouldShowSinceFirstSeenOption
+                                ? tct('Since First Seen ([period])', {
+                                    period: getRelativeDate(group.firstSeen)
                                       .replace(/^a (?=\w+$)/, '1 ')
-                                      .replace(/^an (?=\w+$)/, '1 ')
-                                  ),
-                                }
-                              : {}),
-                            ...props.defaultOptions,
-                          };
-                        }}
-                        onChange={({relative, start, end, utc}) => {
-                          navigate({
-                            ...location,
-                            query: {
-                              ...location.query,
-                              // If selecting the issue open period, remove the stats period query param
-                              statsPeriod:
-                                relative === defaultStatsPeriod?.statsPeriod
-                                  ? undefined
-                                  : relative,
-                              start: start ? getUtcDateString(start) : undefined,
-                              end: end ? getUtcDateString(end) : undefined,
-                              utc: utc ? 'true' : undefined,
-                            },
-                          });
-                        }}
-                        trigger={triggerProps => (
-                          <TimeRangeSelectTrigger
-                            {...triggerProps}
-                            style={{
-                              padding: `${theme.space.md} ${theme.space.lg}`,
-                            }}
-                          >
-                            {period === defaultStatsPeriod &&
-                            !defaultStatsPeriod.isMaxRetention &&
-                            shouldShowSinceFirstSeenOption
-                              ? tct('Since First Seen ([period])', {
-                                  period: getRelativeDate(group.firstSeen)
-                                    .replace(/^a (?=\w+$)/, '1 ')
-                                    .replace(/^an (?=\w+$)/, '1 '),
-                                })
-                              : triggerProps.children}
-                          </TimeRangeSelectTrigger>
-                        )}
-                      />
-                    </PageFilterBar>
+                                      .replace(/^an (?=\w+$)/, '1 '),
+                                  })
+                                : triggerProps.children}
+                            </TimeRangeSelectTrigger>
+                          )}
+                        />
+                      </PageFilterBar>
+                    </Container>
                     {searchBarEnabled && (
                       <EventSearch
                         group={group}
@@ -225,7 +233,17 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
           </TourElement>
         )}
         {issueTypeConfig.header.graph.enabled && (
-          <GraphSection>
+          <Flex
+            direction={{zero: 'column', md: 'row'}}
+            gap={{zero: 'sm', md: 'lg'}}
+            css={cssTheme => css`
+              & > * {
+                background: ${cssTheme.tokens.background.primary};
+                border-radius: ${cssTheme.radius.md};
+                border: 1px solid ${cssTheme.tokens.border.primary};
+              }
+            `}
+          >
             {issueTypeConfig.header.graph.type === 'discover-events' && (
               <EventGraph
                 event={event}
@@ -250,12 +268,12 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
                 project={project}
               />
             )}
-          </GraphSection>
+          </Flex>
         )}
         {issueTypeConfig.header.occurrenceSummary.enabled && (
           <OccurrenceSummarySection group={group} event={event} />
         )}
-      </DetailsContainer>
+      </Stack>
     </PageErrorBoundary>
   );
 }
@@ -288,36 +306,6 @@ function EnvironmentSelector({group, event, project}: EventDetailsHeaderProps) {
 
   return <EnvironmentPageFilter triggerProps={{style}} />;
 }
-
-const DetailsContainer = styled('div')<{hasFilterBar: boolean}>`
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.lg};
-  background: ${p => p.theme.tokens.background.secondary};
-  padding-left: var(--issue-details-inset, ${p => p.theme.space['2xl']});
-  padding-right: var(--issue-details-inset, ${p => p.theme.space['2xl']});
-  padding-top: ${p => p.theme.space.lg};
-
-  @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    border-right: 1px solid ${p => p.theme.tokens.border.primary};
-  }
-`;
-
-const GraphSection = styled('div')`
-  display: flex;
-  gap: ${p => p.theme.space.sm};
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    gap: ${p => p.theme.space.lg};
-  }
-
-  & > * {
-    background: ${p => p.theme.tokens.background.primary};
-    border-radius: ${p => p.theme.radius.md};
-    border: 1px solid ${p => p.theme.tokens.border.primary};
-  }
-`;
 
 const OccurrenceSummarySection = styled(OccurrenceSummary)`
   white-space: unset;

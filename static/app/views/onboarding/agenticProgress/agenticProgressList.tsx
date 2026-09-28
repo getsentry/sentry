@@ -1,21 +1,29 @@
+import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
-import {AnimatePresence, motion} from 'framer-motion';
+import {AnimatePresence, motion, type MotionProps} from 'framer-motion';
 
 import {Tag} from '@sentry/scraps/badge';
-import {Container, Grid, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {StatusIndicator} from '@sentry/scraps/statusIndicator';
 import {Text} from '@sentry/scraps/text';
 
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ProjectList} from 'sentry/components/projectList';
+import {TimeSince} from 'sentry/components/timeSince';
 import {
   IconCircle,
   IconCircleCheckmark,
+  IconCircleDashed,
   IconFatal,
   IconNot,
-  IconPieHalf,
+  IconWarning,
 } from 'sentry/icons';
-import {t, tn} from 'sentry/locale';
+import {t, tct, tn} from 'sentry/locale';
+import type {TagVariant} from 'sentry/utils/theme';
+import {useProjects} from 'sentry/utils/useProjects';
 
+import {FirstIssueCard} from './firstIssueCard';
 import type {AgenticProgressRun} from './types';
 
 type AgenticProgressStageState = AgenticProgressRun['stages'][number];
@@ -43,17 +51,14 @@ const STATUS_LABELS: Record<AgenticProgressStageStatus, string> = {
   failed: t('Failed'),
 };
 
-const STATUS_VARIANTS: Record<
-  AgenticProgressStageStatus,
-  'promotion' | 'warning' | 'success' | 'muted' | 'danger'
-> = {
-  active: 'promotion',
+const STATUS_VARIANTS = {
+  active: 'info',
   waiting: 'warning',
   completed: 'success',
   skipped: 'muted',
   bypassed: 'muted',
   failed: 'danger',
-};
+} as const satisfies Record<AgenticProgressStageStatus, TagVariant>;
 
 function StageSymbol({status}: {status: AgenticProgressStageStatus | null}) {
   if (status === 'completed') {
@@ -73,14 +78,14 @@ function StageSymbol({status}: {status: AgenticProgressStageStatus | null}) {
   }
 
   if (status === 'waiting') {
-    return <IconPieHalf size="md" variant="warning" />;
+    return <IconWarning size="md" variant="warning" />;
   }
 
   if (status === 'active') {
     return <ActiveLoadingIndicator mini />;
   }
 
-  return <IconCircle size="md" variant="muted" />;
+  return <IconCircleDashed size="md" variant="muted" />;
 }
 
 const ActiveLoadingIndicator = styled(LoadingIndicator)`
@@ -98,6 +103,24 @@ const ActiveLoadingIndicator = styled(LoadingIndicator)`
 `;
 
 const MotionGrid = motion.create(Grid);
+const MotionStack = motion.create(Stack);
+
+const STAGE_LIST_STAGGER_TRANSITION: MotionProps['transition'] = {
+  staggerChildren: 0.03,
+  delayChildren: 0.04,
+};
+
+const STAGE_ITEM_VARIANTS: MotionProps['variants'] = {
+  initial: {opacity: 0, y: 12},
+  animate: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      y: {type: 'spring', duration: 0.3, bounce: 0.35},
+      opacity: {duration: 0.12, ease: 'easeOut'},
+    },
+  },
+};
 const MotionContainer = motion.create(Container);
 const MotionTag = motion.create(Tag);
 const MotionText = motion.create(Text);
@@ -153,7 +176,8 @@ function ProgressItem({
         : 'muted';
 
   return (
-    <Grid
+    <MotionGrid
+      variants={STAGE_ITEM_VARIANTS}
       columns="max-content minmax(0, 1fr) max-content"
       rows="auto auto auto"
       align="center"
@@ -245,19 +269,43 @@ function ProgressItem({
           <ExtraContent key="extra-content">{extraContent}</ExtraContent>
         ) : null}
       </AnimatePresence>
-    </Grid>
+    </MotionGrid>
   );
 }
 
 export function AgenticProgressList({
   extraContentByStage,
+  header,
   stages,
 }: {
   stages: AgenticProgressStageState[];
   extraContentByStage?: Partial<Record<AgenticProgressStage, React.ReactNode>>;
+  header?: React.ReactNode;
 }) {
+  const [hasEntered, setHasEntered] = useState(false);
+  useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
+    setHasEntered(true);
+  }, []);
+
   return (
-    <Stack width="100%" border="muted" radius="lg" overflow="hidden" gap="0">
+    <MotionStack
+      width="100%"
+      background="primary"
+      border="primary"
+      radius="xl"
+      overflow="hidden"
+      gap="0"
+      style={{borderBottomWidth: 2}}
+      initial="initial"
+      animate={hasEntered ? 'animate' : 'initial'}
+      transition={STAGE_LIST_STAGGER_TRANSITION}
+    >
+      {header ? (
+        <Container padding="xl" borderBottom="primary">
+          {header}
+        </Container>
+      ) : null}
       {stages.map((stage, index) => (
         <ProgressItem
           key={stage.stage}
@@ -266,7 +314,84 @@ export function AgenticProgressList({
           extraContent={extraContentByStage?.[stage.stage]}
         />
       ))}
-    </Stack>
+    </MotionStack>
+  );
+}
+
+function AgenticProgressMeta({
+  isComplete,
+  onboardingCode,
+  updatedAt,
+}: {
+  isComplete: boolean;
+  onboardingCode: string | undefined;
+  updatedAt: string;
+}) {
+  if (isComplete && !onboardingCode) {
+    return null;
+  }
+
+  return (
+    <Flex align="center" justify={isComplete ? 'end' : 'between'} gap="md" padding="0 lg">
+      {isComplete ? null : (
+        <Flex align="center" gap="sm">
+          <StatusIndicator variant="accent" />
+          <Text size="sm" variant="muted">
+            {tct('Last update [time]', {
+              time: (
+                <TimeSince
+                  date={updatedAt}
+                  disabledAbsoluteTooltip
+                  liveUpdateInterval="second"
+                />
+              ),
+            })}
+          </Text>
+        </Flex>
+      )}
+      {onboardingCode ? (
+        <RunId size="sm" variant="muted" monospace>
+          {t('ID:%s', onboardingCode)}
+        </RunId>
+      ) : null}
+    </Flex>
+  );
+}
+
+const RunId = styled(Text)`
+  opacity: 0.6;
+`;
+
+function AgenticProgressSummary({projectSlugs}: {projectSlugs: string[]}) {
+  const {projects} = useProjects({slugs: projectSlugs});
+  const soleProjectSlug = projectSlugs.length === 1 ? projectSlugs[0] : undefined;
+  const soleProject = soleProjectSlug
+    ? (projects.find(project => project.slug === soleProjectSlug) ?? {
+        slug: soleProjectSlug,
+      })
+    : undefined;
+
+  return (
+    <Flex
+      width="100%"
+      background="primary"
+      border="primary"
+      radius="xl"
+      padding="xl"
+      gap="md"
+      align="center"
+      justify="between"
+    >
+      <Flex align="center" gap="md">
+        <IconCircleCheckmark size="md" variant="success" />
+        <Text bold>{t('Setup complete')}</Text>
+      </Flex>
+      {soleProject ? (
+        <ProjectBadge project={soleProject} avatarSize={16} disableLink />
+      ) : projectSlugs.length ? (
+        <CreatedProjects projectSlugs={projectSlugs} />
+      ) : null}
+    </Flex>
   );
 }
 
@@ -281,18 +406,68 @@ function CreatedProjects({projectSlugs}: {projectSlugs: string[]}) {
   );
 }
 
-export function AgenticProgress({run}: {run: AgenticProgressRun}) {
+export function AgenticProgress({
+  run,
+  onboardingCode = run.onboardingCode,
+}: {
+  run: AgenticProgressRun;
+  onboardingCode?: string;
+}) {
   const createProjectStage = run.stages.find(stage => stage.stage === 'create_project');
   const projectSlugs = createProjectStage?.extra?.projectSlugs ?? [];
+  const verificationStage = run.stages.find(
+    stage => stage.stage === 'receive_verification_error'
+  );
+  const firstIssueId = verificationStage?.extra?.issueIds?.[0];
+  const isComplete = run.runStatus === 'completed';
 
   return (
-    <AgenticProgressList
-      stages={run.stages}
-      extraContentByStage={
-        projectSlugs.length
-          ? {create_project: <CreatedProjects projectSlugs={projectSlugs} />}
-          : undefined
-      }
-    />
+    <Stack width="100%" gap="md">
+      <AnimatePresence initial={false} mode="popLayout">
+        {isComplete ? (
+          <MotionContainer
+            key="summary"
+            width="100%"
+            initial={{opacity: 0}}
+            animate={{opacity: 1}}
+            exit={{opacity: 0}}
+          >
+            <AgenticProgressSummary projectSlugs={projectSlugs} />
+          </MotionContainer>
+        ) : (
+          <MotionContainer
+            key="list"
+            width="100%"
+            initial={{opacity: 0}}
+            animate={{opacity: 1}}
+            exit={{opacity: 0}}
+          >
+            <AgenticProgressList
+              stages={run.stages}
+              extraContentByStage={
+                projectSlugs.length
+                  ? {create_project: <CreatedProjects projectSlugs={projectSlugs} />}
+                  : undefined
+              }
+            />
+          </MotionContainer>
+        )}
+      </AnimatePresence>
+      {isComplete && firstIssueId ? (
+        <MotionContainer
+          width="100%"
+          initial={{opacity: 0, y: 8}}
+          animate={{opacity: 1, y: 0}}
+          transition={{delay: 0.15, duration: 0.25, ease: 'easeOut'}}
+        >
+          <FirstIssueCard issueId={firstIssueId} />
+        </MotionContainer>
+      ) : null}
+      <AgenticProgressMeta
+        isComplete={isComplete}
+        onboardingCode={onboardingCode}
+        updatedAt={run.updatedAt}
+      />
+    </Stack>
   );
 }

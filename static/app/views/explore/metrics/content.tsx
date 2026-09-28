@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
 
-import {FeatureBadge} from '@sentry/scraps/badge';
 import {Stack} from '@sentry/scraps/layout';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
@@ -16,13 +15,13 @@ import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {ExploreBreadcrumb} from 'sentry/views/explore/components/breadcrumb';
+import {ExploreSavedQueryBreadcrumbs} from 'sentry/views/explore/components/exploreSavedQueryBreadcrumbs';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
+import {useVisitQuery} from 'sentry/views/explore/hooks/useVisitQuery';
 import {MetricsTabOnboarding} from 'sentry/views/explore/metrics/metricsOnboarding';
 import {MetricsTabContent} from 'sentry/views/explore/metrics/metricsTab';
 import {MultiMetricsQueryParamsProvider} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 import {ID_KEY, TITLE_KEY} from 'sentry/views/explore/queryParams/savedQuery';
-import {TraceItemDataset} from 'sentry/views/explore/types';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
@@ -90,6 +89,8 @@ function MetricsHeader() {
   const hasSavedQueryTitle =
     defined(pageId) && defined(savedQuery) && savedQuery.name.length > 0;
 
+  useVisitQuery(pageId);
+
   const documentTitle = hasSavedQueryTitle ? (
     <SentryDocumentTitle
       title={`${savedQuery.name} — ${METRICS_TITLE}`}
@@ -97,33 +98,27 @@ function MetricsHeader() {
     />
   ) : null;
 
-  const titleTooltip = (
-    <PageHeadingQuestionTooltip
-      docsUrl="https://docs.sentry.io/product/explore/metrics/"
-      title={t(
-        'Track critical application signals using counters, gauges, and distributions.'
-      )}
-      linkLabel={t('Read the Docs')}
-    />
-  );
-
-  const hasBreadcrumb = Boolean(title && defined(pageId));
-
   return (
     <Fragment>
       {documentTitle}
-      <TopBar.Slot name="title">
-        {hasBreadcrumb ? (
-          <ExploreBreadcrumb
-            traceItemDataset={TraceItemDataset.TRACEMETRICS}
-            savedQueryName={savedQuery?.name}
+      {defined(pageId) && title ? (
+        <ExploreSavedQueryBreadcrumbs
+          surface="metrics"
+          savedQueryId={pageId}
+          title={title}
+        />
+      ) : (
+        <TopBar.Slot name="title">
+          {title || METRICS_TITLE}
+          <PageHeadingQuestionTooltip
+            docsUrl="https://docs.sentry.io/product/explore/metrics/"
+            title={t(
+              'Track critical application signals using counters, gauges, and distributions.'
+            )}
+            linkLabel={t('Read the Docs')}
           />
-        ) : (
-          title || METRICS_TITLE
-        )}
-        <FeatureBadge type="new" />
-        {titleTooltip}
-      </TopBar.Slot>
+        </TopBar.Slot>
+      )}
       <TopBar.Slot name="feedback">
         <FeedbackButton
           feedbackOptions={metricsFeedbackOptions}

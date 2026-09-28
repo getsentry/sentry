@@ -4,7 +4,9 @@ from datetime import datetime, timedelta
 from uuid import uuid4
 
 import pytest
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter
 
+from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap.occurrences.common_queries import (
     count_occurrences,
     count_occurrences_grouped_by_trace_ids,
@@ -424,9 +426,13 @@ class CountOccurrencesQueryTest(TestCase, SnubaTestCase, OccurrenceTestCase):
     def test_build_escaped_term_filter(self) -> None:
         single = build_escaped_term_filter("release", ['v1"quoted'])
         multiple = build_escaped_term_filter("environment", ["prod", "dev"])
+        # The grammar has no escape sequence for a backslash, so it must be left
+        # alone; `*` must be escaped so it stays a literal instead of a wildcard.
+        special = build_escaped_term_filter("release", ["v1\\rc*1"])
 
         assert single == 'release:"v1\\"quoted"'
         assert multiple == 'environment:["prod", "dev"]'
+        assert special == 'release:"v1\\rc\\*1"'
 
     def test_keyed_counts_subset_match(self) -> None:
         control_rows = [
@@ -445,3 +451,74 @@ class CountOccurrencesQueryTest(TestCase, SnubaTestCase, OccurrenceTestCase):
         assert not keyed_counts_subset_match(
             control_rows, mismatched_rows, key_fn=lambda row: (row["project_id"], row["group_id"])
         )
+
+
+class BuildEscapedTermFilterResolutionTest(TestCase):
+    """Round-trip `build_escaped_term_filter` through the real search resolver.
+
+    The escaping is only correct if the resolver turns the term back into an
+    exact-match filter carrying the original value, so these assert on the
+    resolved protobuf rather than on the query string.
+    """
+
+    def setUp(self) -> None:
+        super().setUp()
+        now = datetime.now()
+        self.resolver = Occurrences.get_resolver(
+            params=SnubaParams(
+                start=now - timedelta(hours=1),
+                end=now + timedelta(hours=1),
+                organization=self.organization,
+                projects=[self.project],
+            ),
+            config=SearchResolverConfig(),
+        )
+
+    def _resolve(self, values: list[str]) -> ComparisonFilter:
+        where, _, _ = self.resolver.resolve_query(build_escaped_term_filter("release", values))
+        assert where is not None
+        assert where.WhichOneof("value") == "comparison_filter"
+        return where.comparison_filter
+
+    def test_resolves_plain_value(self) -> None:
+        resolved = self._resolve(["1.0.0"])
+
+        assert resolved.op == ComparisonFilter.OP_EQUALS
+        assert resolved.value.val_str == "1.0.0"
+
+    def test_resolves_value_containing_a_quote(self) -> None:
+        resolved = self._resolve(['1.0.0 "rc"'])
+
+        assert resolved.op == ComparisonFilter.OP_EQUALS
+        assert resolved.value.val_str == '1.0.0 "rc"'
+
+    def test_resolves_wildcard_char_as_a_literal(self) -> None:
+        resolved = self._resolve(["/api/*/chat"])
+
+        assert resolved.op == ComparisonFilter.OP_EQUALS
+        assert resolved.value.val_str == "/api/*/chat"
+
+    def test_resolves_value_containing_a_backslash(self) -> None:
+        resolved = self._resolve(["C:\\Users\\app"])
+
+        assert resolved.op == ComparisonFilter.OP_EQUALS
+        assert resolved.value.val_str == "C:\\Users\\app"
+
+    def test_resolves_multiple_values(self) -> None:
+        values = ["1.0.0", '1.1.0 "rc"', "1.2.0*", "C:\\app"]
+        resolved = self._resolve(values)
+
+        assert resolved.op == ComparisonFilter.OP_IN
+        assert list(resolved.value.val_str_array.values) == values
+
+    def test_rejects_value_with_a_trailing_backslash(self) -> None:
+        with pytest.raises(InvalidSearchQuery):
+            build_escaped_term_filter("release", ["1.0.0\\"])
+
+    def test_rejects_trailing_backslash_among_several_values(self) -> None:
+        with pytest.raises(InvalidSearchQuery):
+            build_escaped_term_filter("release", ["1.0.0", "1.1.0\\"])
+
+    def test_rejects_backslash_directly_before_a_wildcard_char(self) -> None:
+        with pytest.raises(InvalidSearchQuery):
+            build_escaped_term_filter("release", ["1.0.0\\*rc"])

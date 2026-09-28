@@ -13,13 +13,19 @@ import {useUser} from 'sentry/utils/useUser';
 import {useGetStarredDashboards} from 'sentry/views/dashboards/hooks/useGetStarredDashboards';
 import {DEFAULT_PREBUILT_SORT} from 'sentry/views/dashboards/manage/settings';
 import {getIsOnlyPrebuilt} from 'sentry/views/dashboards/manage/utils/getIsOnlyPrebuilt';
-import {DashboardFilter, PREBUILT_DASHBOARD_LABEL} from 'sentry/views/dashboards/types';
+import {
+  CUSTOM_DASHBOARD_LABEL,
+  DashboardFilter,
+  PREBUILT_DASHBOARD_LABEL,
+} from 'sentry/views/dashboards/types';
 import type {DashboardListItem} from 'sentry/views/dashboards/types';
 import {isPrimaryNavigationLinkActive} from 'sentry/views/navigation/primary/components';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
 import {DashboardsNavigationItems} from 'sentry/views/navigation/secondary/sections/dashboards/dashboardsNavigationItems';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
-export function DashboardsSecondaryNavigation() {
+function DashboardsSecondaryNavigationImpl() {
   const organization = useOrganization();
   const baseUrl = `/organizations/${organization.slug}/dashboards`;
   const {projects} = useProjects();
@@ -35,6 +41,8 @@ export function DashboardsSecondaryNavigation() {
   );
   const urlFilter = decodeScalar(location.query.filter) as DashboardFilter | undefined;
   const isOnlyPrebuilt = getIsOnlyPrebuilt(hasPrebuiltDashboards, urlFilter);
+  const isOnlyCustom =
+    hasPrebuiltDashboards && urlFilter === DashboardFilter.EXCLUDE_PREBUILT;
   const isOnDashboardsList = isPrimaryNavigationLinkActive(
     `${baseUrl}/`,
     location.pathname,
@@ -42,6 +50,16 @@ export function DashboardsSecondaryNavigation() {
       end: true,
     }
   );
+
+  useLLMContext({
+    contextHint: 'The Dashboards secondary nav panel and the starred dashboard list.',
+    hasPrebuiltDashboards,
+    starredDashboards: starredDashboards.map(dashboard => ({
+      id: dashboard.id,
+      title: dashboard.title,
+      projects: dashboard.projects ?? [],
+    })),
+  });
 
   return (
     <Fragment>
@@ -53,7 +71,7 @@ export function DashboardsSecondaryNavigation() {
               <SecondaryNavigation.Link
                 to={`${baseUrl}/`}
                 end
-                isActive={isOnDashboardsList && !isOnlyPrebuilt}
+                isActive={isOnDashboardsList && !isOnlyPrebuilt && !isOnlyCustom}
                 analyticsItemName="dashboards_all_combined"
               >
                 {t('All Dashboards')}
@@ -71,6 +89,17 @@ export function DashboardsSecondaryNavigation() {
                   analyticsItemName="dashboards_sentry_built"
                 >
                   {PREBUILT_DASHBOARD_LABEL}
+                </SecondaryNavigation.Link>
+              </SecondaryNavigation.ListItem>
+            ) : null}
+            {hasPrebuiltDashboards ? (
+              <SecondaryNavigation.ListItem>
+                <SecondaryNavigation.Link
+                  to={`${baseUrl}/?filter=${DashboardFilter.EXCLUDE_PREBUILT}`}
+                  isActive={isOnDashboardsList && isOnlyCustom}
+                  analyticsItemName="dashboards_custom"
+                >
+                  {CUSTOM_DASHBOARD_LABEL}
                 </SecondaryNavigation.Link>
               </SecondaryNavigation.ListItem>
             ) : null}
@@ -103,6 +132,11 @@ export function DashboardsSecondaryNavigation() {
     </Fragment>
   );
 }
+
+export const DashboardsSecondaryNavigation = registerLLMContext(
+  'navigation',
+  DashboardsSecondaryNavigationImpl
+);
 
 function StarredDashboardItems({
   dashboards,

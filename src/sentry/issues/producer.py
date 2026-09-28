@@ -55,10 +55,9 @@ def produce_occurrence_to_kafka(
     occurrence: IssueOccurrence | None = None,
     status_change: StatusChangeMessage | None = None,
     event_data: dict[str, Any] | None = None,
-    is_buffered_spans: bool | None = False,
 ) -> None:
     if payload_type == PayloadType.OCCURRENCE:
-        payload_data = _prepare_occurrence_message(occurrence, event_data, is_buffered_spans)
+        payload_data = _prepare_occurrence_message(occurrence, event_data)
     elif payload_type == PayloadType.STATUS_CHANGE:
         payload_data = _prepare_status_change_message(status_change)
     else:
@@ -96,7 +95,6 @@ def produce_occurrence_to_kafka(
 def _prepare_occurrence_message(
     occurrence: IssueOccurrence | None,
     event_data: dict[str, Any] | None,
-    is_buffered_spans: bool | None = False,
 ) -> MutableMapping[str, Any] | None:
     if not occurrence:
         raise ValueError("occurrence must be provided")
@@ -130,9 +128,6 @@ def _prepare_occurrence_message(
             )
 
         payload_data["event"] = event_data
-
-    if is_buffered_spans:
-        payload_data["is_buffered_spans"] = True
 
     return payload_data
 

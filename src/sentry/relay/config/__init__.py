@@ -48,7 +48,6 @@ from sentry.utils.tracing import start_span
 EXPOSABLE_FEATURES = [
     "organizations:continuous-profiling",
     "organizations:continuous-profiling-perfetto",
-    "organizations:profiling",
     "organizations:session-replay-recording-scrubbing",
     "organizations:session-replay-video-disabled",
     "organizations:session-replay",
@@ -59,13 +58,16 @@ EXPOSABLE_FEATURES = [
     "organizations:indexed-spans-extraction",
     "organizations:ourlogs-ingestion",
     "organizations:tracemetrics-ingestion",
+    "organizations:relay-automatic-json-expansion",
     "organizations:view-hierarchy-scrubbing",
     "organizations:performance-issues-spans",
     "organizations:relay-playstation-ingestion",
+    "organizations:gpu-crash-symbolication",
     "projects:span-v2-attachment-processing",
     "projects:trace-attachment-processing",
     "projects:relay-minidump-uploads",
     "projects:relay-playstation-uploads",
+    "projects:relay-nintendo-event-rewrite",
     "projects:relay-upload-multipart",
 ]
 
@@ -141,6 +143,9 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
         logs=features.has("organizations:ourlogs-ingestion", organization),
         metrics=features.has("organizations:tracemetrics-ingestion", organization),
         custom_inbound_filters_v2=features.has("organizations:inbound-filters-v2", organization),
+        generic_ip_filter=features.has(
+            "organizations:inbound-filters-generic-ip-filter", organization
+        ),
     )
 
     if filter_features.custom_inbound_filters:
@@ -153,7 +158,7 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
             filter_settings["errorMessages"] = {"patterns": error_messages}
 
     blacklisted_ips = project.get_option("sentry:blacklisted_ips")
-    if blacklisted_ips:
+    if blacklisted_ips and not filter_features.generic_ip_filter:
         filter_settings["clientIps"] = {"blacklistedIps": blacklisted_ips}
 
     csp_disallowed_sources: list[str] = []

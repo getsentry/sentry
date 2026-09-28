@@ -40,7 +40,7 @@ type Props = {
 };
 
 export function MajorGridlines({durationMs, width}: Props) {
-  const {cols, remaining} = countColumns(durationMs, width, 50);
+  const {cols, remaining} = countColumns(durationMs, width);
 
   return <Gridlines cols={cols} lineStyle="solid" remaining={remaining} />;
 }

@@ -24,6 +24,7 @@ export function GitHubIntegrationFixture(
       canDisable: false,
       slug: '',
     },
+    scopes: null,
     externalIssues: [],
     accountType: '',
     gracePeriodEnd: '',

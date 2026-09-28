@@ -60,6 +60,7 @@ function ConversationDetailPage() {
     trackAnalytics('conversations.detail.page-view', {
       organization,
     });
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [organization, conversationId]);
 
   const handleSelectSpan = useCallback(

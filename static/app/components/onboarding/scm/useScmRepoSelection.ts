@@ -11,6 +11,7 @@ import type {
 } from 'sentry/types/integrations';
 import {RepositoryStatus} from 'sentry/types/integrations';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -96,7 +97,9 @@ export function useScmRepoSelection({
 
       // Repo not yet registered (link_all_repos may still be running).
       const created = await fetchMutation<Repository>({
-        url: `/organizations/${organization.slug}/repos/`,
+        url: getApiUrl('/organizations/$organizationIdOrSlug/repos/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         method: 'POST',
         data: {
           installation: integration.id,

@@ -1,7 +1,7 @@
 from collections.abc import Mapping
 from typing import Any, Literal, TypedDict
 
-from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_serializer
+from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import serializers, status
 from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
@@ -28,6 +28,7 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.examples.team_examples import TeamExamples
+from sentry.apidocs.omissions import sentry_schema_serializer
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.response_types import DetailResponse
 from sentry.auth.access import Access
@@ -55,7 +56,12 @@ class OrganizationMemberTeamSerializerResponse(TypedDict):
     teamRole: Literal["contributor", "admin"]
 
 
-@extend_schema_serializer(exclude_fields=["isActive"])
+@sentry_schema_serializer(
+    omit_from_public_schema={
+        "isActive": "Reported in responses, but the update handler only applies teamRole; "
+        "a value sent here is validated and discarded.",
+    }
+)
 class OrganizationMemberTeamSerializer(serializers.Serializer[dict[str, Any]]):
     isActive = serializers.BooleanField()
     teamRole = serializers.ChoiceField(

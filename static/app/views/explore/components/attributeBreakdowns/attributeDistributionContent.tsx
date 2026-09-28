@@ -1,5 +1,6 @@
 import {Fragment, useEffect, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
+import {useDebouncedValue} from '@tanstack/react-pacer';
 import {useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -15,7 +16,6 @@ import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {parseCursor} from 'sentry/utils/cursor';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
-import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useDismissAlert} from 'sentry/utils/useDismissAlert';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -43,7 +43,7 @@ export function AttributeDistribution() {
   const {breakdownCursor, breakdownQuery, query} = useQueryParams();
   const setQueryParams = useSetQueryParams();
   const searchQuery = breakdownQuery ?? '';
-  const debouncedSearchQuery = useDebouncedValue(searchQuery, 200);
+  const [debouncedSearchQuery] = useDebouncedValue(searchQuery, {wait: 200});
 
   const onAction = useAttributeBreakdownsTooltipAction();
 

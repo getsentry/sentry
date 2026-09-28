@@ -2,7 +2,7 @@
 This module contains functionality dedicated to detecting and mitigating
 "system incidents". Specifically this system is destined to detect drops in
 check-in ingestion volume, indicating that there is an upstream outage and we
-can no logger reliably trust that miss and time-out detection is producing
+can no longer reliably trust that miss and time-out detection is producing
 appropriate results.
 """
 
@@ -24,7 +24,7 @@ from sentry.utils import metrics, redis
 
 logger = logging.getLogger(__name__)
 
-# This key is used to record historical date about the volume of check-ins.
+# This key is used to record historical data about the volume of check-ins.
 MONITOR_VOLUME_HISTORY = "sentry.monitors.volume_history:{ts}"
 
 # This key is used to record the metric volume metric for the tick.
@@ -34,7 +34,7 @@ MONITOR_TICK_METRIC = "sentry.monitors.volume_metric:{ts}"
 MONITOR_TICK_DECISION = "sentry.monitors.tick_decision:{ts}"
 
 # Tracks the timestamp of the first clock tick of a system incident.
-MONITR_LAST_SYSTEM_INCIDENT_TS = "sentry.monitors.last_system_incident_ts"
+MONITOR_LAST_SYSTEM_INCIDENT_TS = "sentry.monitors.last_system_incident_ts"
 
 # When fetching historic volume data to make a decision whether we have lost
 # data this value will determine how many historic volume data-points we fetch
@@ -123,11 +123,11 @@ def process_clock_tick_for_system_incidents(tick: datetime) -> DecisionResult:
 
 def record_last_incident_ts(ts: datetime) -> None:
     """
-    Records the timestamp of the most recent
+    Records the timestamp of the first clock tick of the most recent incident
     """
     redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
     redis_client.set(
-        MONITR_LAST_SYSTEM_INCIDENT_TS,
+        MONITOR_LAST_SYSTEM_INCIDENT_TS,
         int(ts.timestamp()),
         ex=MONITOR_VOLUME_RETENTION,
     )
@@ -138,7 +138,7 @@ def get_last_incident_ts() -> datetime | None:
     Retrieves the timestamp of the last system incident
     """
     redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
-    value = _int_or_none(redis_client.get(MONITR_LAST_SYSTEM_INCIDENT_TS))
+    value = _int_or_none(redis_client.get(MONITOR_LAST_SYSTEM_INCIDENT_TS))
     return datetime.fromtimestamp(value, UTC) if value else None
 
 

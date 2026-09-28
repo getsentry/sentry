@@ -179,6 +179,7 @@ export function useIssueDetailsColumnCount(
     return breakpoint?.columnCount ?? 1;
   }, [elementRef]);
 
+  // oxlint-disable-next-line react/refs
   const [columnCount, setColumnCount] = useState(calculateColumnCount());
 
   // If the ref was undefined, calculate the column count again

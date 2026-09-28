@@ -15,6 +15,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {GlobalModal} from '@sentry/scraps/modal';
+import {toast} from '@sentry/scraps/toast';
 
 import {
   CMDKCollection,
@@ -92,6 +93,7 @@ describe('GroupActions', () => {
   const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
 
   beforeEach(() => {
+    toast.dismiss();
     ConfigStore.init();
     ProjectsStore.reset();
     ProjectsStore.loadInitialData([project]);
@@ -288,6 +290,44 @@ describe('GroupActions', () => {
       );
     });
 
+    it('does not report success or navigate when deletion fails', async () => {
+      const org = OrganizationFixture({
+        ...organization,
+        access: [...organization.access, 'event:admin'],
+      });
+      MockApiClient.addMockResponse({
+        url: `/projects/${org.slug}/${project.slug}/issues/`,
+        method: 'DELETE',
+        statusCode: 500,
+      });
+      const initialPath = `/organizations/${org.slug}/issues/${group.id}/`;
+      const {router} = render(
+        <Fragment>
+          <GlobalModal />
+          <GroupActions group={group} project={project} disabled={false} event={null} />
+        </Fragment>,
+        {
+          organization: org,
+          initialRouterConfig: {
+            location: {pathname: initialPath},
+            route: '/organizations/:orgId/issues/:groupId/',
+          },
+        }
+      );
+
+      await userEvent.click(screen.getByLabelText('More Actions'));
+      await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Delete'}));
+      await userEvent.click(
+        within(screen.getByRole('dialog')).getByRole('button', {name: 'Delete'})
+      );
+
+      expect(
+        await screen.findByText('Unable to delete events. Please try again.')
+      ).toBeInTheDocument();
+      expect(screen.queryByText('Issue deleted')).not.toBeInTheDocument();
+      expect(router.location.pathname).toBe(initialPath);
+    });
+
     it('delete for issue platform', async () => {
       const org = OrganizationFixture({
         ...organization,
@@ -389,6 +429,67 @@ describe('GroupActions', () => {
         data: {status: 'unresolved', statusDetails: {}, substatus: 'ongoing'},
       })
     );
+  });
+
+  it('does not report success when resolving fails', async () => {
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/project/issues/`,
+      method: 'PUT',
+      statusCode: 500,
+    });
+
+    render(
+      <Fragment>
+        <GroupActions group={group} project={project} disabled={false} event={null} />
+      </Fragment>,
+      {organization}
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
+
+    expect(
+      await screen.findByText('Unable to update events. Please try again.')
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Issue resolved')).not.toBeInTheDocument();
+  });
+
+  it('refetches group data when resolving fails', async () => {
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/project/issues/`,
+      method: 'PUT',
+      statusCode: 500,
+    });
+    const groupFetchApi = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/`,
+      method: 'GET',
+      body: group,
+    });
+
+    function GroupActionsWrapper() {
+      const {data: groupData, isLoading} = useGroup({groupId: group.id});
+
+      if (isLoading || !groupData) {
+        return <div>Loading...</div>;
+      }
+
+      return (
+        <GroupActions group={groupData} project={project} disabled={false} event={null} />
+      );
+    }
+
+    render(
+      <Fragment>
+        <GroupActionsWrapper />
+      </Fragment>,
+      {organization}
+    );
+
+    await waitFor(() => expect(groupFetchApi).toHaveBeenCalledTimes(1));
+    await userEvent.click(await screen.findByRole('button', {name: 'Resolve'}));
+    expect(
+      await screen.findByText('Unable to update events. Please try again.')
+    ).toBeInTheDocument();
+    await waitFor(() => expect(groupFetchApi).toHaveBeenCalledTimes(2));
   });
 
   it('can archive issue', async () => {

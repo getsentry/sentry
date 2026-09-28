@@ -2,7 +2,6 @@ import type {RouteObject} from 'react-router-dom';
 import {Outlet} from 'react-router-dom';
 import memoize from 'lodash/memoize';
 
-import {EXPERIMENTAL_SPA} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {makeLazyloadComponent as make} from 'sentry/makeLazyloadComponent';
 import {getOverride} from 'sentry/overrideRegistry';
@@ -16,7 +15,6 @@ import {withDomainRequired} from 'sentry/utils/withDomainRequired';
 import {App} from 'sentry/views/app';
 import {AppBodyContentRoute} from 'sentry/views/app/appBodyContent';
 import {AuthenticatedApiErrorHandler} from 'sentry/views/app/authenticatedApiErrorHandler';
-import {AuthLayoutRoute} from 'sentry/views/auth/layout';
 import {authV2Routes} from 'sentry/views/authV2/routes';
 import {automationRoutes} from 'sentry/views/automations/routes';
 import {detectorRoutes} from 'sentry/views/detectors/routes';
@@ -85,15 +83,6 @@ function buildRoutes(): RouteObject[] {
   //
   // ## The structure
   //
-  // * `experimentalSpaRoutes`
-  //
-  //   These routes are specifically for the experimental single-page-app mode,
-  //   where Sentry is run separate from Django. These are NOT part of the root
-  //   <App /> component.
-  //
-  //   Right now these are mainly used for authentication pages. In the future
-  //   they would be used for other pages like registration.
-  //
   // * `rootRoutes`
   //
   //   These routes live directly under the <App /> container, and generally
@@ -132,24 +121,6 @@ function buildRoutes(): RouteObject[] {
   //   they have redirects for. A good rule here is to place 'helper' redirects
   //   next to the routes they redirect to, and place 'legacy route' redirects
   //   for routes that have completely changed in this tree.
-
-  const experimentalSpaChildRoutes: SentryRouteObject[] = [
-    {
-      index: true,
-      component: make(() => import('sentry/views/auth/login')),
-    },
-    {
-      path: ':orgId/',
-      component: make(() => import('sentry/views/auth/login')),
-    },
-  ];
-  const experimentalSpaRoutes: SentryRouteObject = EXPERIMENTAL_SPA
-    ? {
-        path: '/auth/login/',
-        component: errorHandler(AuthLayoutRoute),
-        children: experimentalSpaChildRoutes,
-      }
-    : {};
 
   const publicRootChildren: SentryRouteObject[] = [
     {
@@ -376,6 +347,7 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: 'authorizations/',
+      name: t('Authorized Applications'),
       component: make(
         () => import('sentry/views/settings/account/accountAuthorizations')
       ),
@@ -1262,7 +1234,7 @@ function buildRoutes(): RouteObject[] {
 
   const traceView: SentryRouteObject = {
     path: 'trace/:traceSlug/',
-    component: make(() => import('sentry/views/performance/newTraceDetails/index')),
+    component: make(() => import('sentry/views/performance/traceDetails/index')),
   };
 
   const dashboardChildren: SentryRouteObject[] = [
@@ -2324,6 +2296,10 @@ function buildRoutes(): RouteObject[] {
       path: 'investigations/',
       component: make(() => import('sentry/views/investigations')),
     },
+    {
+      path: 'investigations/:investigationId/',
+      component: make(() => import('sentry/views/investigations/detail')),
+    },
     // Unknown /explore/ subpaths redirect to the default explore view, rather
     // than falling through to the `/:orgId/:projectId/` legacy redirect and
     // rendering "The project you were looking for was not found".
@@ -2347,12 +2323,6 @@ function buildRoutes(): RouteObject[] {
     path: '/explore/',
     withOrgPath: true,
     children: exploreChildren,
-  };
-
-  const investigationRoutes: SentryRouteObject = {
-    path: '/seer/investigation/:investigationId/',
-    withOrgPath: true,
-    component: make(() => import('sentry/views/investigations/detail')),
   };
 
   const preprodChildren: SentryRouteObject[] = [
@@ -2482,6 +2452,10 @@ function buildRoutes(): RouteObject[] {
         () => import('sentry/views/issueDetails/groupEventDetails/groupEventDetails'),
         <GroupEventDetailsLoading />
       ),
+    },
+    {
+      path: TabPaths[Tab.AUTOFIX],
+      component: make(() => import('sentry/views/issueDetails/autofix')),
     },
     {
       path: TabPaths[Tab.USER_FEEDBACK],
@@ -2831,7 +2805,6 @@ function buildRoutes(): RouteObject[] {
       domainViewRoutes,
       tracesRoutes,
       exploreRoutes,
-      investigationRoutes,
       llmMonitoringRedirects,
       profilingRoutes,
       gettingStartedRoutes,
@@ -2979,7 +2952,6 @@ function buildRoutes(): RouteObject[] {
       );
     },
     children: [
-      experimentalSpaRoutes,
       {
         path: '/',
         component: errorHandler(App),

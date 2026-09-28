@@ -32,7 +32,6 @@ from sentry.notifications.platform.target import (
 from sentry.notifications.platform.threading import ThreadContext
 from sentry.notifications.platform.types import (
     LinkTextBlock,
-    NotificationCategory,
     NotificationData,
     NotificationProviderKey,
     NotificationRenderedTemplate,
@@ -64,8 +63,6 @@ class SlackRenderable(TypedDict):
 
 
 class SlackRenderer(NotificationRenderer[SlackRenderable]):
-    provider_key = NotificationProviderKey.SLACK
-
     @classmethod
     def render[DataT: NotificationData](
         cls, *, data: DataT, rendered_template: NotificationRenderedTemplate
@@ -144,26 +141,6 @@ class SlackNotificationProvider(NotificationProvider[SlackRenderable]):
         return False
 
     @classmethod
-    def get_renderer(
-        cls, *, data: NotificationData, category: NotificationCategory
-    ) -> type[NotificationRenderer[SlackRenderable]]:
-        from sentry.notifications.platform.slack.renderers.issue import (
-            IssueSlackRenderer,
-        )
-        from sentry.notifications.platform.slack.renderers.metric_alert import (
-            SlackMetricAlertRenderer,
-        )
-        from sentry.notifications.platform.slack.renderers.seer import SeerSlackRenderer
-
-        if category == NotificationCategory.SEER:
-            return SeerSlackRenderer
-        if category == NotificationCategory.ISSUE:
-            return IssueSlackRenderer
-        if category == NotificationCategory.METRIC_ALERT:
-            return SlackMetricAlertRenderer
-        return cls.default_renderer
-
-    @classmethod
     def send(
         cls,
         *,
@@ -222,3 +199,4 @@ class SlackNotificationProvider(NotificationProvider[SlackRenderable]):
 @provider_registry.register(NotificationProviderKey.SLACK_STAGING)
 class SlackStagingNotificationProvider(SlackNotificationProvider):
     key = NotificationProviderKey.SLACK_STAGING
+    renderer_key = NotificationProviderKey.SLACK

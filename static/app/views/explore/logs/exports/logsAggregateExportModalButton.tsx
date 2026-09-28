@@ -51,6 +51,7 @@ export function LogsAggregateExportModalButton({
       isLoading={isLoading}
       queryInfo={queryInfo}
       supportsAllColumns={false}
+      supportsLocalDownload
       tableData={tableData}
       title={t('Log Aggregates Export')}
     />

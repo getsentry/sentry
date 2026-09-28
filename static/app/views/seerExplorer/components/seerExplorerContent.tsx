@@ -1,14 +1,28 @@
-import {Fragment, useCallback, useEffect, useMemo, useRef, type ReactNode} from 'react';
+import {
+  Fragment,
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  type ReactNode,
+} from 'react';
 import styled from '@emotion/styled';
 import {skipToken, useQuery} from '@tanstack/react-query';
 
+import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {usePictureInPicture} from '@sentry/scraps/pictureInPicture';
+import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {
+  AutofixChatProvider,
+  type SendMessageOptions,
+} from 'sentry/components/seer/autofixChatContext';
 import {SEER_AGENTS_PROJECT_ID} from 'sentry/constants';
-import {IconClose} from 'sentry/icons';
+import {IconClose, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -30,6 +44,11 @@ import {
 } from 'sentry/views/navigation/constants';
 import {AskUserQuestionBlock} from 'sentry/views/seerExplorer/components/askUserQuestionBlock';
 import {BlockComponent} from 'sentry/views/seerExplorer/components/chat';
+import {
+  groupTranscript,
+  ResponseGroup,
+} from 'sentry/views/seerExplorer/components/chat/responseGroup';
+import {findLatestTodos} from 'sentry/views/seerExplorer/components/chat/toolUse';
 import {EmptyState} from 'sentry/views/seerExplorer/components/emptyState';
 import {useExplorerMenu} from 'sentry/views/seerExplorer/components/explorerMenu';
 import {FileChangeApprovalBlock} from 'sentry/views/seerExplorer/components/fileChangeApprovalBlock';
@@ -40,7 +59,12 @@ import {SeerExplorerHeader} from 'sentry/views/seerExplorer/components/seerExplo
 import {UpdateSlackAlert} from 'sentry/views/seerExplorer/components/updateSlackAlert';
 import {usePendingUserInput} from 'sentry/views/seerExplorer/hooks/usePendingUserInput';
 import {useSeerExplorer} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
-import type {Block, SeerExplorerSidebarPosition} from 'sentry/views/seerExplorer/types';
+import type {
+  Block,
+  PendingUserInput,
+  SeerExplorerRunId,
+  SeerExplorerSidebarPosition,
+} from 'sentry/views/seerExplorer/types';
 import {
   getExplorerFeedbackOptions,
   getExplorerUrl,
@@ -101,6 +125,7 @@ function SidebarHeaderShell({
 export function SeerExplorerContent({
   getPageReferrer,
   initialQuery,
+  appendInitialQuery,
   onClose,
   renderHeader,
   sidebarPosition,
@@ -109,6 +134,8 @@ export function SeerExplorerContent({
   getPageReferrer: () => string;
   /** Closes the current surface (drawer / sidebar). */
   onClose: () => void;
+  /** Submit `initialQuery` into the open run rather than only an empty one. */
+  appendInitialQuery?: boolean;
   initialQuery?: string;
   onSidebarPositionChange?: (position: SeerExplorerSidebarPosition) => void;
   /** Surface chrome for the header. Defaults to the sidebar shell. */
@@ -160,17 +187,23 @@ export function SeerExplorerContent({
   };
 
   // Persisted so the toggle survives the drawer remounting (e.g. popping out
-  // into the picture-in-picture window, or reopening the drawer).
-  const [showThinking, setShowThinking] = useLocalStorageState(
+  // into the picture-in-picture window, or reopening the drawer). Code mode
+  // always shows thinking — no preference or toggle can hide it.
+  const [showThinkingPreference, setShowThinking] = useLocalStorageState(
     'seer-explorer-show-thinking',
     false
   );
+  const hasCodeModeTools = !!organization?.features.includes(
+    'seer-explorer-code-mode-tools'
+  );
+  const showThinking = hasCodeModeTools || showThinkingPreference;
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const blockRefs = useRef<Array<HTMLDivElement | null>>([]);
   const userScrolledUpRef = useRef(false);
   const prWidgetButtonRef = useRef<HTMLButtonElement>(null);
+  /** A new chat was started and the composer should take focus once it is back. */
+  const pendingComposerFocusRef = useRef(false);
 
   const focusInput = useCallback(() => {
     textareaRef.current?.focus();
@@ -182,9 +215,11 @@ export function SeerExplorerContent({
     sessionData,
     isPolling,
     isError,
+    hasSessionLoadError,
     errorStatusCode,
     isTimedOut,
     sendMessage,
+    requestError,
     startNewSession,
     switchToRun,
     respondToUserInput,
@@ -193,6 +228,7 @@ export function SeerExplorerContent({
     hasSentInterrupt,
     overrideCtxEngEnable,
     setOverrideCtxEngEnable,
+    overrideBashModeEnabled,
     setOverrideBashModeEnabled,
     setOverrideCodeModeEnable,
   } = useSeerExplorer();
@@ -208,17 +244,41 @@ export function SeerExplorerContent({
     ''
   );
 
+  // Put a message that failed to send back in the composer, unless the user has
+  // already started typing something else.
+  useEffect(() => {
+    const failedQuery = requestError?.query;
+    if (failedQuery) {
+      setInputValue(current => (current.trim() ? current : failedQuery));
+    }
+  }, [requestError, setInputValue]);
+
   const readOnly =
     sessionData?.owner_user_id !== undefined &&
     sessionData.owner_user_id !== null &&
     sessionData.owner_user_id.toString() !== user.id;
 
   const blocks = useMemo(() => sessionData?.blocks || [], [sessionData?.blocks]);
+  // React Compiler could not prove this memoization is preserved; it bails out on
+  // code this callback depends on. Revisit once those bailouts are fixed.
+  // oxlint-disable-next-line react/preserve-manual-memoization
+  const retryTarget = useMemo(() => {
+    for (let index = blocks.length - 1; index >= 0; index--) {
+      const block = blocks[index];
+      if (block?.message.role === 'user' && block.message.content?.trim()) {
+        return {insertIndex: index, query: block.message.content};
+      }
+    }
+    return null;
+  }, [blocks]);
   const isAwaitingUserInput = sessionData?.status === 'awaiting_user_input';
   const pendingInput = sessionData?.pending_user_input ?? null;
   const isAgentWriteApprovalPending =
     isAwaitingUserInput && pendingInput?.input_type === 'agent_write_approval';
   const isEmptyState = blocks.length === 0 && !(isAwaitingUserInput && pendingInput);
+  // Only when the error empty state is what's on screen. A live conversation that hits a
+  // transient poll error still has its transcript and must keep its composer.
+  const showLoadError = isEmptyState && (isError || hasSessionLoadError);
 
   // Whether the org has an active Slack integration installed. Slack is an
   // org-level integration, so this reflects the organization, not the user.
@@ -247,19 +307,48 @@ export function SeerExplorerContent({
     needsSlackUpgrade && !!organization && canManageIntegrations(organization);
 
   // Auto-submit the initial query forwarded from the command palette, but only
-  // if the session is still empty (don't clobber an active run). The ref dedupes
-  // within a single mount; each *new* forward remounts this component (the drawer
-  // via `openDrawer`, the sidebar via a `key` on the forward nonce), which resets
-  // the ref and re-arms the submit.
+  // if the session is still empty (don't clobber an active run) unless the
+  // caller asked to add to the open run. The ref dedupes within a single mount;
+  // each *new* forward remounts this component (the drawer via `openDrawer`, the
+  // sidebar via a `key` on the forward nonce), which re-arms the submit.
   const lastAutoSubmittedQueryRef = useRef<string | null>(null);
   useEffect(() => {
     const query = initialQuery?.trim();
-    if (!query || !isEmptyState || lastAutoSubmittedQueryRef.current === query) {
+    if (!query || lastAutoSubmittedQueryRef.current === query) {
+      return;
+    }
+    if (!isEmptyState && !appendInitialQuery) {
       return;
     }
     lastAutoSubmittedQueryRef.current = query;
+    if (showLoadError) {
+      // The open run failed to load, so appending to it would post into a dead run.
+      // A forwarded query still deserves an answer: start it in a fresh one.
+      sendMessage(query, 0, null);
+      return;
+    }
     sendMessage(query, blocks.length);
-  }, [initialQuery, isEmptyState, sendMessage, blocks.length]);
+  }, [
+    initialQuery,
+    appendInitialQuery,
+    isEmptyState,
+    showLoadError,
+    sendMessage,
+    blocks.length,
+  ]);
+
+  // The panel is already open here, so append by default; a `null` run id is how
+  // `sendMessage` starts a fresh one.
+  const postMessage = useCallback(
+    (query: string, options?: SendMessageOptions) => {
+      if (options?.newChat) {
+        sendMessage(query, 0, null);
+        return;
+      }
+      sendMessage(query);
+    },
+    [sendMessage]
+  );
 
   // - Pending user input (file approval + questions) -------------------------
   const {
@@ -294,7 +383,26 @@ export function SeerExplorerContent({
   });
 
   const showReauth =
-    isReauthPending && !!organization?.features.includes('seer-infra-telemetry');
+    isReauthPending &&
+    !!organization?.features.includes('seer-infra-telemetry') &&
+    !!organization?.features.includes('seer-infra-telemetry-user-level-auth');
+
+  // Pending-input blocks rendered at the end of the transcript. When one is showing,
+  // the request error alert sits directly above it instead of above the composer.
+  const showFileApprovalBlock =
+    !readOnly && isFileApprovalPending && fileApprovalIndex < fileApprovalTotalPatches;
+  const questionToShow = !readOnly && isQuestionPending ? currentQuestion : undefined;
+  const reauthToShow = !readOnly && showReauth ? reauthData : null;
+  const showsPendingInputBlock =
+    showFileApprovalBlock || !!questionToShow || !!reauthToShow;
+
+  const requestErrorAlert = requestError ? (
+    <Container padding="0 xl">
+      <Alert variant="danger">
+        <Text>{t('There was an error sending your message, wait and try again.')}</Text>
+      </Alert>
+    </Container>
+  ) : null;
 
   // - Topbar, menu, and slash command handlers -------------------------------
   const copySessionEnabled = runId !== null && !!organization?.slug;
@@ -381,7 +489,7 @@ export function SeerExplorerContent({
     clearInput,
     inputValue,
     focusInput,
-    textAreaRef: textareaRef,
+    composerRef: textareaRef,
     panelSize: 'max',
     slashCommandHandlers: {
       onNew: startNewSession,
@@ -405,7 +513,7 @@ export function SeerExplorerContent({
   }, [closeMenu]);
 
   // - Input section handlers -------------------------------------------------
-  const canSendMessage = !readOnly && !isPolling && !!inputValue.trim();
+  const canSendMessage = !readOnly && !showLoadError && !isPolling && !!inputValue.trim();
   const handleSend = useCallback(() => {
     if (!canSendMessage) {
       return;
@@ -438,6 +546,27 @@ export function SeerExplorerContent({
     closeMenu();
   };
 
+  const handleStartNewChat = useCallback(() => {
+    startNewSession();
+    if (readOnly || showLoadError) {
+      // Exactly when `InputSection` renders its disabled branch - a different
+      // textarea that never takes `textareaRef` - so focusing now would be a
+      // no-op. Ask for it once the real composer is back. Starting a chat clears
+      // both conditions, so the request cannot outlive the render after it.
+      pendingComposerFocusRef.current = true;
+      return;
+    }
+    focusInput();
+  }, [startNewSession, focusInput, readOnly, showLoadError]);
+
+  const handleRetry = useCallback(() => {
+    if (!retryTarget || readOnly) {
+      return;
+    }
+    sendMessage(retryTarget.query, retryTarget.insertIndex);
+    userScrolledUpRef.current = false;
+  }, [readOnly, retryTarget, sendMessage]);
+
   // - Scroll effects ---------------------------------------------------------
 
   useEffect(() => {
@@ -450,11 +579,23 @@ export function SeerExplorerContent({
     }, 100);
   }, []);
 
+  // Focus the composer once a new chat has actually replaced the error screen.
+  // `handleStartNewChat` only arms this while that screen is up, and starting a
+  // chat takes it down, so the request is consumed on the very next render.
+  useEffect(() => {
+    if (!pendingComposerFocusRef.current || readOnly || showLoadError) {
+      return;
+    }
+    pendingComposerFocusRef.current = false;
+    focusInput();
+  }, [readOnly, showLoadError, focusInput]);
+
   // Auto-scroll to bottom when new blocks are added, but only if user hasn't scrolled up
   useEffect(() => {
     if (!userScrolledUpRef.current && scrollContainerRef.current) {
       scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [blocks]);
 
   // Track scroll position to detect if user scrolled up
@@ -485,11 +626,6 @@ export function SeerExplorerContent({
     }
     return;
   }, []);
-
-  // Update block refs array when blocks change
-  useEffect(() => {
-    blockRefs.current = blockRefs.current.slice(0, blocks.length);
-  }, [blocks]);
 
   // Deep link effect
   useSeerExplorerDeepLink({callback: switchToRun});
@@ -522,15 +658,14 @@ export function SeerExplorerContent({
   const headerContent = (
     <SeerExplorerHeader
       disableNewChatButton={runId === null}
-      onNewChatClick={() => {
-        startNewSession();
-        focusInput();
-      }}
+      onNewChatClick={handleStartNewChat}
       onChangeSession={switchToRun}
       onCopySessionClick={copySessionEnabled ? copySessionToClipboard : undefined}
       onCopyLinkClick={runId === null ? undefined : handleCopyLink}
       overrideCtxEngEnable={overrideCtxEngEnable}
       onOverrideCtxEngEnableToggle={() => setOverrideCtxEngEnable(v => !v)}
+      overrideBashModeEnabled={overrideBashModeEnabled}
+      onOverrideBashModeToggle={() => setOverrideBashModeEnabled(v => !v)}
       showThinking={showThinking}
       onShowThinkingToggle={() => setShowThinking(v => !v)}
       isPipSupported={isPipSupported}
@@ -542,142 +677,220 @@ export function SeerExplorerContent({
   );
 
   return (
-    <Stack
-      ref={rootRef}
-      data-seer-explorer-root=""
-      width="100%"
-      height="100%"
-      position="relative"
-      background="primary"
-      overflow="hidden"
-      containerType="inline-size"
+    <AutofixChatProvider
+      isBusy={isPolling}
+      sendMessage={readOnly ? undefined : postMessage}
     >
-      {renderHeader ? (
-        renderHeader({children: headerContent, isPoppedOut, onClose: handleClose})
-      ) : (
-        <SidebarHeaderShell onClose={handleClose}>{headerContent}</SidebarHeaderShell>
-      )}
-      {menu}
-      {showSlackUpgradeAlert && (
-        <UpdateSlackAlert num_configurations={activeSlackIntegrations.length} />
-      )}
-      <BlocksContainer ref={scrollContainerRef} onClick={handleBlocksClick}>
-        {isEmptyState ? (
-          <EmptyState
-            isLoading={isPolling}
-            isError={isError}
-            errorStatusCode={errorStatusCode}
-            runId={runId}
-            displaySlackAgentReminder={hasSlackIntegration && !needsSlackUpgrade}
-            onSuggestionClick={readOnly ? undefined : sendMessage}
-          />
+      <Stack
+        ref={rootRef}
+        data-seer-explorer-root=""
+        width="100%"
+        height="100%"
+        position="relative"
+        background="primary"
+        overflow="hidden"
+        containerType="inline-size"
+      >
+        {renderHeader ? (
+          renderHeader({children: headerContent, isPoppedOut, onClose: handleClose})
         ) : (
-          <Fragment>
-            {blocks.map((block: Block, index: number) => {
-              // For slide-in animation that runs on mount. Avoid running this twice on user blocks when blocks are hydrated.
-              const key = block.message.role === 'user' ? `user-${index}` : block.id;
-
-              return (
-                <BlockComponent
-                  key={key}
-                  ref={el => {
-                    blockRefs.current[index] = el;
-                  }}
-                  block={block}
-                  blockIndex={index}
-                  blocks={blocks}
-                  runId={runId ?? undefined}
-                  getPageReferrer={getPageReferrer}
-                  interactionPending={
-                    isFileApprovalPending ||
-                    isAgentWriteApprovalPending ||
-                    isQuestionPending ||
-                    showReauth
-                  }
-                  pendingInput={pendingInput}
-                  readOnly={readOnly}
-                  respondToUserInput={respondToUserInput}
-                  showThinking={showThinking}
-                />
-              );
-            })}
-            {!readOnly &&
-              isFileApprovalPending &&
-              fileApprovalIndex < fileApprovalTotalPatches && (
+          <SidebarHeaderShell onClose={handleClose}>{headerContent}</SidebarHeaderShell>
+        )}
+        {menu}
+        {showSlackUpgradeAlert && (
+          <UpdateSlackAlert num_configurations={activeSlackIntegrations.length} />
+        )}
+        <BlocksContainer ref={scrollContainerRef} onClick={handleBlocksClick}>
+          {isEmptyState ? (
+            <EmptyState
+              isLoading={isPolling}
+              isError={showLoadError}
+              errorStatusCode={errorStatusCode}
+              onStartNewChat={showLoadError ? handleStartNewChat : undefined}
+              runId={runId}
+              displaySlackAgentReminder={hasSlackIntegration && !needsSlackUpgrade}
+              onSuggestionClick={readOnly ? undefined : sendMessage}
+            />
+          ) : (
+            <Fragment>
+              <SeerExplorerTranscript
+                blocks={blocks}
+                runId={runId}
+                getPageReferrer={getPageReferrer}
+                interactionPending={
+                  isFileApprovalPending ||
+                  isAgentWriteApprovalPending ||
+                  isQuestionPending ||
+                  showReauth
+                }
+                pendingInput={pendingInput}
+                readOnly={readOnly}
+                respondToUserInput={respondToUserInput}
+                showThinking={showThinking}
+              />
+              {showsPendingInputBlock && requestErrorAlert}
+              {showFileApprovalBlock && (
                 <FileChangeApprovalBlock
                   currentIndex={fileApprovalIndex}
                   pendingInput={pendingInput}
                 />
               )}
-            {!readOnly && isQuestionPending && currentQuestion && (
-              <AskUserQuestionBlock
-                currentQuestion={currentQuestion}
-                customText={customText}
-                isOtherSelected={isOtherSelected}
-                onCustomTextChange={handleQuestionCustomTextChange}
-                onSelectOption={handleQuestionSelectOption}
-                questionIndex={questionIndex}
-                selectedOption={selectedOption}
-              />
-            )}
-            {!readOnly && showReauth && reauthData && (
-              <ReauthMonitoringProviderBlock
-                data={reauthData}
-                onComplete={handleReauthComplete}
-                returnUrl={
-                  runId === null
-                    ? undefined
-                    : getRelativeExplorerUrl(runId, {resume: true})
-                }
-              />
-            )}
-          </Fragment>
+              {questionToShow && (
+                <AskUserQuestionBlock
+                  currentQuestion={questionToShow}
+                  customText={customText}
+                  isOtherSelected={isOtherSelected}
+                  onCustomTextChange={handleQuestionCustomTextChange}
+                  onSelectOption={handleQuestionSelectOption}
+                  questionIndex={questionIndex}
+                  selectedOption={selectedOption}
+                />
+              )}
+              {reauthToShow && (
+                <ReauthMonitoringProviderBlock
+                  data={reauthToShow}
+                  onComplete={handleReauthComplete}
+                  returnUrl={
+                    runId === null
+                      ? undefined
+                      : getRelativeExplorerUrl(runId, {resume: true})
+                  }
+                />
+              )}
+            </Fragment>
+          )}
+        </BlocksContainer>
+        {isTimedOut && (
+          <Container padding="0 xl">
+            <Alert
+              variant="warning"
+              trailingItems={
+                retryTarget &&
+                !readOnly && (
+                  <Alert.Button
+                    variant="secondary"
+                    icon={<IconRefresh />}
+                    onClick={handleRetry}
+                  >
+                    {t('Retry')}
+                  </Alert.Button>
+                )
+              }
+            >
+              <Text>{t('Response timed out.')}</Text>
+            </Alert>
+          </Container>
         )}
-      </BlocksContainer>
-      <InputSection
-        blocks={blocks}
-        enabled={!readOnly}
-        inputValue={inputValue}
-        canSendMessage={canSendMessage}
-        interruptState={interruptState}
-        isTimedOut={isTimedOut}
-        onCreatePR={createPR}
-        onInputChange={handleInputChange}
-        onInputClick={handleInputClick}
-        onInterrupt={interruptRun}
-        onKeyDown={handleInputKeyDown}
-        onSend={handleSend}
-        onPRWidgetClick={openPRWidget}
-        prWidgetButtonRef={prWidgetButtonRef}
-        repoPRStates={repoPRStates}
-        textAreaRef={textareaRef}
-        fileApprovalActions={
-          isFileApprovalPending && fileApprovalIndex < fileApprovalTotalPatches
-            ? {
-                currentIndex: fileApprovalIndex,
-                totalPatches: fileApprovalTotalPatches,
-                onApprove: handleFileApprovalApprove,
-                onReject: handleFileApprovalReject,
-              }
-            : undefined
-        }
-        questionActions={
-          isQuestionPending && currentQuestion
-            ? {
-                currentIndex: questionIndex,
-                totalQuestions,
-                canSubmit: canSubmitQuestion,
-                onNext: handleQuestionNext,
-                onBack: handleQuestionBack,
-                onMoveUp: handleQuestionMoveUp,
-                onMoveDown: handleQuestionMoveDown,
-              }
-            : undefined
-        }
-      />
-    </Stack>
+        {!showsPendingInputBlock && requestErrorAlert}
+        <InputSection
+          blocks={blocks}
+          enabled={!readOnly && !showLoadError}
+          disabledPlaceholder={
+            showLoadError ? t('Start a new chat to keep talking to Seer') : undefined
+          }
+          inputValue={inputValue}
+          canSendMessage={canSendMessage}
+          interruptState={interruptState}
+          onCreatePR={createPR}
+          onInputChange={handleInputChange}
+          onInputClick={handleInputClick}
+          onInterrupt={interruptRun}
+          onKeyDown={handleInputKeyDown}
+          onSend={handleSend}
+          onPRWidgetClick={openPRWidget}
+          prWidgetButtonRef={prWidgetButtonRef}
+          repoPRStates={repoPRStates}
+          textAreaRef={textareaRef}
+          fileApprovalActions={
+            isFileApprovalPending && fileApprovalIndex < fileApprovalTotalPatches
+              ? {
+                  currentIndex: fileApprovalIndex,
+                  totalPatches: fileApprovalTotalPatches,
+                  onApprove: handleFileApprovalApprove,
+                  onReject: handleFileApprovalReject,
+                }
+              : undefined
+          }
+          questionActions={
+            isQuestionPending && currentQuestion
+              ? {
+                  currentIndex: questionIndex,
+                  totalQuestions,
+                  canSubmit: canSubmitQuestion,
+                  onNext: handleQuestionNext,
+                  onBack: handleQuestionBack,
+                  onMoveUp: handleQuestionMoveUp,
+                  onMoveDown: handleQuestionMoveDown,
+                }
+              : undefined
+          }
+        />
+      </Stack>
+    </AutofixChatProvider>
   );
 }
+
+interface SeerExplorerTranscriptProps {
+  blocks: Block[];
+  getPageReferrer: () => string;
+  interactionPending: boolean;
+  pendingInput: PendingUserInput | null;
+  readOnly: boolean;
+  respondToUserInput: (inputId: string, responseData?: Record<string, unknown>) => void;
+  runId: SeerExplorerRunId | null;
+  showThinking: boolean;
+}
+
+/**
+ * The conversation itself. Memoized so typing in the composer (whose state lives in the parent)
+ * doesn't re-render every message, and `ResponseGroup`/`BlockComponent` are memoized so a poll only
+ * re-renders the segments whose blocks actually changed.
+ */
+const SeerExplorerTranscript = memo(function SeerExplorerTranscript({
+  blocks,
+  getPageReferrer,
+  interactionPending,
+  pendingInput,
+  readOnly,
+  respondToUserInput,
+  runId,
+  showThinking,
+}: SeerExplorerTranscriptProps) {
+  const segments = useMemo(() => groupTranscript(blocks), [blocks]);
+  // Walk the conversation once here rather than once per tool block.
+  const latestTodos = useMemo(() => findLatestTodos(blocks), [blocks]);
+
+  return segments.map(segment => {
+    if (segment.kind === 'user') {
+      // For slide-in animation that runs on mount. Avoid running this twice on user
+      // blocks when blocks are hydrated.
+      return (
+        <BlockComponent
+          key={`user-${segment.index}`}
+          block={segment.block}
+          blockIndex={segment.index}
+          runId={runId ?? undefined}
+        />
+      );
+    }
+
+    return (
+      <ResponseGroup
+        key={`response-${segment.indices[0]}`}
+        group={segment.blocks}
+        blockIndex={segment.indices[0]!}
+        latestTodos={latestTodos}
+        runId={runId ?? undefined}
+        getPageReferrer={getPageReferrer}
+        interactionPending={interactionPending}
+        pendingInput={pendingInput}
+        readOnly={readOnly}
+        respondToUserInput={respondToUserInput}
+        showThinking={showThinking}
+      />
+    );
+  });
+});
 
 const BlocksContainer = styled(Stack)`
   flex: 1;

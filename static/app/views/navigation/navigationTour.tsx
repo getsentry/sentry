@@ -301,6 +301,7 @@ export function useNavigationTourModal() {
   }, [
     shouldShowTourModal,
     startTour,
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
     mutateAssistant,
     endTour,
     organization,

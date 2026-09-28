@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import {Button} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {Flex, Grid} from '@sentry/scraps/layout';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -20,8 +21,63 @@ import {IconCheckmark, IconCommit, IconGithub, IconInfo} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import type {MissingMember, Organization, OrgRole} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {StyledExternalLink} from 'sentry/views/settings/organizationMembers/inviteBanner';
+
+const INVITE_COLUMNS: TableColumnConfig[] = [
+  {key: 'select', width: 'max-content'},
+  {key: 'userInformation', width: '1fr'},
+  {key: 'recentCommits', width: 'max-content'},
+  {key: 'role', width: '1fr'},
+  {key: 'team', width: '1fr'},
+];
+
+interface InviteStatusMessageProps {
+  complete: boolean;
+  inviteStatus: InviteStatus;
+  sendingInvites: boolean;
+}
+
+function InviteStatusMessage({
+  complete,
+  inviteStatus,
+  sendingInvites,
+}: InviteStatusMessageProps) {
+  if (sendingInvites) {
+    return (
+      <Flex gap="md" align="center">
+        <LoadingIndicator mini relative size={16} />
+        {t('Sending organization invitations\u2026')}
+      </Flex>
+    );
+  }
+
+  if (complete) {
+    const statuses = Object.values(inviteStatus);
+    const sentCount = statuses.filter(i => i.sent).length;
+    const errorCount = statuses.filter(i => i.error).length;
+
+    const invites = <strong>{tn('%s invite', '%s invites', sentCount)}</strong>;
+    const tctComponents = {
+      invites,
+      failed: errorCount,
+    };
+
+    return (
+      <Flex gap="md" align="center">
+        <IconCheckmark size="sm" />
+        <span>
+          {errorCount > 0
+            ? tct('Sent [invites], [failed] failed to send.', tctComponents)
+            : tct('Sent [invites]', tctComponents)}
+        </span>
+      </Flex>
+    );
+  }
+
+  return null;
+}
 
 export interface InviteMissingMembersModalProps extends ModalRenderProps {
   allowedRoles: OrgRole[];
@@ -80,7 +136,10 @@ export function InviteMissingMembersModal({
   };
 
   const selectAll = (checked: boolean) => {
-    const selectedMembers = memberInvites.map(m => ({...m, selected: checked}));
+    const selectedMembers = memberInvites.map(m => ({
+      ...m,
+      selected: checked,
+    }));
     setMemberInvites(selectedMembers);
   };
 
@@ -94,42 +153,6 @@ export function InviteMissingMembersModal({
     return null;
   }
 
-  const renderStatusMessage = () => {
-    if (sendingInvites) {
-      return (
-        <Flex gap="md" align="center">
-          <LoadingIndicator mini relative size={16} />
-          {t('Sending organization invitations\u2026')}
-        </Flex>
-      );
-    }
-
-    if (complete) {
-      const statuses = Object.values(inviteStatus);
-      const sentCount = statuses.filter(i => i.sent).length;
-      const errorCount = statuses.filter(i => i.error).length;
-
-      const invites = <strong>{tn('%s invite', '%s invites', sentCount)}</strong>;
-      const tctComponents = {
-        invites,
-        failed: errorCount,
-      };
-
-      return (
-        <Flex gap="md" align="center">
-          <IconCheckmark size="sm" />
-          <span>
-            {errorCount > 0
-              ? tct('Sent [invites], [failed] failed to send.', tctComponents)
-              : tct('Sent [invites]', tctComponents)}
-          </span>
-        </Flex>
-      );
-    }
-
-    return null;
-  };
-
   const sendMemberInvite = async (invite: MissingMemberInvite) => {
     const data = {
       email: invite.email,
@@ -139,7 +162,9 @@ export function InviteMissingMembersModal({
 
     try {
       await api.requestPromise(
-        `/organizations/${organization?.slug}/members/?referrer=${referrer}`,
+        `${getApiUrl('/organizations/$organizationIdOrSlug/members/', {
+          path: {organizationIdOrSlug: String(organization?.slug)},
+        })}?referrer=${referrer}`,
         {
           method: 'POST',
           data,
@@ -205,6 +230,7 @@ export function InviteMissingMembersModal({
       <h4>{t('Invite Your Dev Team')}</h4>
       {headerInfo}
       <StyledSimpleTable
+        columns={INVITE_COLUMNS}
         header={
           <SimpleTable.HeaderRow sticky>
             <SimpleTable.HeaderCell>
@@ -242,7 +268,7 @@ export function InviteMissingMembersModal({
                   onChange={() => toggleCheckbox(!checked, i)}
                 />
               </SimpleTable.RowCell>
-              <StyledPanelItem>
+              <SimpleTable.RowCell align="start" direction="column" justify="center">
                 <InlineContentRow>
                   <IconGithub size="sm" />
                   <StyledExternalLink href={`https://github.com/${username}`}>
@@ -250,7 +276,7 @@ export function InviteMissingMembersModal({
                   </StyledExternalLink>
                 </InlineContentRow>
                 <MemberEmail>{member.email}</MemberEmail>
-              </StyledPanelItem>
+              </SimpleTable.RowCell>
               <ContentRow>
                 <IconCommit size="sm" />
                 {member.commitCount}
@@ -290,7 +316,13 @@ export function InviteMissingMembersModal({
         })}
       </StyledSimpleTable>
       <Flex justify="between">
-        <div>{renderStatusMessage()}</div>
+        <div>
+          <InviteStatusMessage
+            complete={complete}
+            inviteStatus={inviteStatus}
+            sendingInvites={sendingInvites}
+          />
+        </div>
         <Grid flow="column" align="center" gap="md">
           <Button
             size="sm"
@@ -332,15 +364,8 @@ export function InviteMissingMembersModal({
 }
 
 const StyledSimpleTable = styled(SimpleTable)`
-  grid-template-columns: max-content 1fr max-content 1fr 1fr;
   overflow: scroll;
   max-height: 475px;
-`;
-
-const StyledPanelItem = styled(SimpleTable.RowCell)`
-  flex-direction: column;
-  align-items: start;
-  justify-content: center;
 `;
 
 const contentRowStyle = (p: {theme: Theme}) => css`

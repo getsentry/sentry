@@ -4,13 +4,13 @@ import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 interface PageFilterParams {
   end?: string;
   environments?: string[];
-  projects?: string[];
+  projects?: Array<string | number>;
   start?: string;
   statsPeriod?: string;
 }
 
 /**
- * Seer reports project IDs as strings, but the URL builders take the numeric
+ * Project IDs may arrive as strings or numbers. URL builders take the numeric
  * `PageFilters` shape. An empty project list is meaningful rather than absent:
  * the builders encode it as the "My Projects" selection.
  */

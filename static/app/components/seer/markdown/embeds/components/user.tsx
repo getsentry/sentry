@@ -10,9 +10,14 @@ import {
 } from 'sentry/components/seer/markdown/embeds/utils';
 import type {Actor} from 'sentry/types/core';
 
+/** A team is written with the `#` its name always carries. */
+function getActorTitle({type, name}: Pick<EmbedOutput<'user'>, 'type' | 'name'>) {
+  return type === 'team' ? `#${name}` : name;
+}
+
 function Actor({id, type, name}: EmbedOutput<'user'>) {
   const actor: Actor = useMemo(() => ({id, type, name}), [id, type, name]);
-  const title = type === 'team' ? `#${name}` : name;
+  const title = getActorTitle({type, name});
 
   // Rendered inline within Seer markdown paragraphs (`Text as="p"`), so every
   // element in this subtree must be valid phrasing content. Using `as="span"`
@@ -33,7 +38,14 @@ function Actor({id, type, name}: EmbedOutput<'user'>) {
 
 export const User = defineSeerEmbed({
   name: 'user',
-  render({id, type, name}) {
-    return <Actor id={id} type={type} name={name} />;
+  render({id, type, name}, level) {
+    switch (level) {
+      case 'markdown':
+        // The avatar has no text form; the mention was always the name.
+        return getActorTitle({type, name});
+      case 'block':
+      case 'inline':
+        return <Actor id={id} type={type} name={name} />;
+    }
   },
 });

@@ -1,6 +1,5 @@
 import type {PromptData} from 'sentry/actionCreators/prompts';
 import {IconBuilding, IconGroup, IconSeer, IconUser} from 'sentry/icons';
-import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
@@ -119,20 +118,44 @@ export const getSlot = (
  *                with Attachments because "1K GB" is hard to read.
  * isGifted: For gifted data volumes, 0 is displayed as 0 instead of unlimited.
  * useUnitScaling: For Attachments only. Scale from kB -> MB -> GB -> TB -> etc
+ * unitType: Overrides the category's unit type, for billing platform line items
+ *           that aren't a DataCategory (see getLineItemUnitType).
  */
 type FormatOptions = {
   fractionDigits?: number;
   isAbbreviated?: boolean;
   isGifted?: boolean;
+  unitType?: LineItemUnitType;
   useUnitScaling?: boolean;
 };
+
+type LineItemUnitType = 'microCents';
+
+const MICRO_CENTS_PER_CENT = 1_000_000;
+
+/**
+ * Billing platform line items keyed by uid have no DataCategory to derive units
+ * from, so the plan declares their unit type alongside their display name.
+ */
+export function getLineItemUnitType(
+  plan: Plan,
+  category: DataCategory | string
+): LineItemUnitType | undefined {
+  return plan.categoryDisplayNames?.[category]?.unitType;
+}
+
+function formatMicroCents(microCents: number): string {
+  return displayPriceWithCents({
+    cents: microCents / MICRO_CENTS_PER_CENT,
+    minimumFractionDigits: 0,
+  });
+}
 
 /**
  * This expects values from CustomerSerializer, which contains quota/reserved
  * quantities for the data categories that we sell.
  *
  * Note: reservedQuantity for Attachments should be in GIGABYTES
- * If isReservedBudget is true, the reservedQuantity is in cents
  */
 export function formatReservedWithUnits(
   reservedQuantity: number | null,
@@ -141,11 +164,15 @@ export function formatReservedWithUnits(
     isAbbreviated: false,
     useUnitScaling: false,
     isGifted: false,
-  },
-  isReservedBudget = false
+  }
 ): string {
-  if (isReservedBudget) {
-    return displayPriceWithCents({cents: reservedQuantity ?? 0});
+  if (
+    options.unitType === 'microCents' &&
+    defined(reservedQuantity) &&
+    reservedQuantity !== RESERVED_BUDGET_QUOTA &&
+    !isUnlimitedReserved(reservedQuantity)
+  ) {
+    return formatMicroCents(reservedQuantity);
   }
 
   const categoryInfo = getCategoryInfoFromPlural(dataCategory);
@@ -188,6 +215,10 @@ export function formatUsageWithUnits(
   dataCategory: DataCategory,
   options: FormatOptions = {isAbbreviated: false, useUnitScaling: false}
 ) {
+  if (options.unitType === 'microCents') {
+    return formatMicroCents(usageQuantity);
+  }
+
   const categoryInfo = getCategoryInfoFromPlural(dataCategory);
   const unitType = categoryInfo?.formatting.unitType ?? 'count';
 
@@ -213,7 +244,7 @@ export function formatUsageWithUnits(
         });
   }
   return options.isAbbreviated
-    ? displayNumber(usageQuantity, 0)
+    ? displayNumber(usageQuantity)
     : usageQuantity.toLocaleString();
 }
 
@@ -530,9 +561,9 @@ export function getPlanIcon(plan: Plan) {
   return <IconUser />;
 }
 
-export function getProductIcon(product: AddOnCategory, size?: SVGIconProps['size']) {
+export function getProductIcon(product: AddOnCategory) {
   if ([AddOnCategory.LEGACY_SEER, AddOnCategory.SEER].includes(product)) {
-    return <IconSeer size={size} />;
+    return <IconSeer />;
   }
   return null;
 }
@@ -952,6 +983,9 @@ export function productIsEnabled(
   const metricHistory = subscription.categories[billedCategory];
   if (!metricHistory) {
     return false;
+  }
+  if (metricHistory.isDisabled !== undefined) {
+    return !metricHistory.isDisabled;
   }
   const hasNonPaygAccess =
     (metricHistory.prepaid ?? 0) !== 0 || !!metricHistory.softCapType;

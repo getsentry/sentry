@@ -58,9 +58,18 @@ export default function ProjectTags() {
 
   const {mutate} = useMutation<DeleteTagResponse, RequestError, DeleteTagVariables>({
     mutationFn: ({key}: DeleteTagVariables) =>
-      api.requestPromise(`/projects/${organization.slug}/${project.slug}/tags/${key}/`, {
-        method: 'DELETE',
-      }),
+      api.requestPromise(
+        getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/tags/$key/', {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            projectIdOrSlug: project.slug,
+            key,
+          },
+        }),
+        {
+          method: 'DELETE',
+        }
+      ),
     onSuccess: (_, {key}) => {
       setApiQueryData<TagWithTopValues[]>(
         queryClient,

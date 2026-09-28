@@ -2,7 +2,7 @@ import fs from 'node:fs/promises';
 import path, {resolve} from 'node:path'; // Added for module check
 import {fileURLToPath} from 'node:url';
 
-import {ATTRIBUTE_SEARCH_METADATA} from '@sentry/conventions';
+import {ATTRIBUTE_SEARCH_METADATA} from '@sentry/conventions/attributes/search';
 import {po} from 'gettext-parser';
 import type {GetTextTranslation, GetTextTranslations} from 'gettext-parser';
 import {glob} from 'tinyglobby';
@@ -225,7 +225,7 @@ function extractBriefsFromAttributeMetadata(
       msgid: brief,
       msgstr: [''],
       comments: {
-        extracted: `Attribute \`${attributeName}\` metadata description from @sentry/conventions`,
+        extracted: `Attribute \`${attributeName}\` metadata description from @sentry/conventions/attributes/search`,
       },
     };
 
@@ -286,7 +286,7 @@ async function main() {
 
   await Promise.all(files.map(processFile));
 
-  // Extract briefs from ATTRIBUTE_METADATA
+  // Extract briefs from ATTRIBUTE_SEARCH_METADATA
   extractBriefsFromAttributeMetadata(gettextData, nplurals);
 
   const outputFilePath = path.resolve(BASE_DIRECTORY, OUTPUT_FILE);

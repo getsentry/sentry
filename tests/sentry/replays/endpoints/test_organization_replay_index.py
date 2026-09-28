@@ -31,12 +31,20 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
     def features(self) -> dict[str, bool]:
         return {"organizations:session-replay": True}
 
-    def test_replay_validators_accept_project_slugs(self) -> None:
-        replay_validator = ReplayValidator(data={"project": ["my-project"]})
+    def test_replay_validators_accept_query_parameters(self) -> None:
+        replay_validator = ReplayValidator(
+            data={
+                "environment": ["production", "staging"],
+                "project": ["my-project"],
+                "queryReferrer": "replayList",
+            }
+        )
         selector_validator = ReplaySelectorValidator(data={"project": ["my-project"]})
 
         assert replay_validator.is_valid(), replay_validator.errors
         assert selector_validator.is_valid(), selector_validator.errors
+        assert replay_validator.validated_data["environment"] == ["production", "staging"]
+        assert replay_validator.validated_data["queryReferrer"] == "replayList"
 
     def test_get_replays_empty_project_uses_project_slug_filter(self) -> None:
         project = self.create_project(teams=[self.team], slug="replay-project")

@@ -295,6 +295,9 @@ export const withPerformanceOnboarding = new Set<PlatformKey>([
   'python-flask',
   'php',
   'node',
+  'node-eve',
+  'node-flue',
+  'node-mastra',
 ]);
 
 // List of platforms that do not have performance support. We make use of this list in the product to not provide any Performance
@@ -317,6 +320,7 @@ export const withLoggingOnboarding = new Set<PlatformKey>([
   'cocoa-objc',
   'cocoa-swift',
   'dart',
+  'deno',
   'dotnet',
   'dotnet-aspnet',
   'dotnet-aspnetcore',
@@ -364,11 +368,14 @@ export const withLoggingOnboarding = new Set<PlatformKey>([
   'node-cloudflare-pages',
   'node-cloudflare-workers',
   'node-express',
+  'node-eve',
   'node-fastify',
+  'node-flue',
   'node-gcpfunctions',
   'node-hapi',
   'node-hono',
   'node-koa',
+  'node-mastra',
   'node-nestjs',
   'php',
   'php-laravel',
@@ -416,6 +423,8 @@ export const withMetricsOnboarding = new Set<PlatformKey>([
   'apple',
   'apple-ios',
   'apple-macos',
+  'bun',
+  'deno',
   'dotnet',
   'dotnet-aspnet',
   'dotnet-aspnetcore',
@@ -460,12 +469,15 @@ export const withMetricsOnboarding = new Set<PlatformKey>([
   'node-cloudflare-pages',
   'node-cloudflare-workers',
   'node-connect',
+  'node-eve',
   'node-express',
   'node-fastify',
+  'node-flue',
   'node-gcpfunctions',
   'node-hapi',
   'node-hono',
   'node-koa',
+  'node-mastra',
   'node-nestjs',
   'php',
   'php-laravel',
@@ -533,12 +545,15 @@ export const profiling: PlatformKey[] = [
   'node-awslambda',
   'node-azurefunctions',
   'node-connect',
+  'node-eve',
   'node-express',
   'node-fastify',
+  'node-flue',
   'node-gcpfunctions',
   'node-hapi',
   'node-hono',
   'node-koa',
+  'node-mastra',
   'node-nestjs',
   'php',
   'php-laravel',
@@ -842,22 +857,21 @@ export const featureFlagOnboardingPlatforms: readonly PlatformKey[] = [
 // Feature flag platforms to show the issue details distribution drawer for.
 export const featureFlagDrawerPlatforms: readonly PlatformKey[] = [
   ...platformKeys.filter(
-    id => id.startsWith('javascript') || id.startsWith('node') || id.startsWith('python')
+    id =>
+      id.startsWith('apple') ||
+      // Matches 'javascript*' as well as 'java*'.
+      id.startsWith('java') ||
+      id.startsWith('node') ||
+      id.startsWith('python')
   ),
+  'android',
   'bun',
+  'dart',
   'deno',
+  'react-native',
 ];
 
-export const agentMonitoringPlatforms: ReadonlySet<PlatformKey> = new Set([
-  ...platformKeys.filter(id => id.startsWith('javascript')),
-  ...platformKeys.filter(id => id.startsWith('node')),
-  ...platformKeys.filter(id => id.startsWith('python')),
-  'deno',
-  'bun',
-  'php-laravel',
-]);
-
-export const javascriptMetaFrameworks: readonly PlatformKey[] = [
+const javascriptMetaFrameworks: readonly PlatformKey[] = [
   'javascript-astro',
   'javascript-nextjs',
   'javascript-nuxt',
@@ -868,8 +882,19 @@ export const javascriptMetaFrameworks: readonly PlatformKey[] = [
   'javascript-tanstackstart-react',
 ] as const;
 
+export const agentMonitoringPlatforms: ReadonlySet<PlatformKey> = new Set([
+  ...javascriptMetaFrameworks,
+  ...platformKeys.filter(id => id.startsWith('node')),
+  ...platformKeys.filter(id => id.startsWith('python')),
+  'deno',
+  'bun',
+  'php-laravel',
+]);
+
 export const mcpMonitoringPlatforms: ReadonlySet<PlatformKey> = new Set([
   ...javascriptMetaFrameworks,
   ...platformKeys.filter(id => id.startsWith('node')),
   ...platformKeys.filter(id => id.startsWith('python')),
+  'bun',
+  'deno',
 ]);

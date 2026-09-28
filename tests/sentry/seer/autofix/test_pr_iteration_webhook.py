@@ -9,6 +9,7 @@ from scm.types import (
 from sentry.seer.agent.client_models import RepoPRState, SeerRunState
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.pr_iteration.feedback import Feedback
+from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTriggerSource
 from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrCommentFeedbackSource,
     GithubPrCommentFeedbackType,
@@ -145,6 +146,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.group = self.create_group(project=self.project)
+        self.create_seer_run(organization=self.organization, seer_run_state_id=67890)
         self.repo = self.create_repo(
             project=self.project,
             provider="integrations:github",
@@ -204,7 +206,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
     @patch(f"{TASK_PATH}.find_user_for_scm_actor")
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access", return_value=True)
     @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
-    @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback")
+    @patch(f"{TASK_PATH}.enqueue_autofix_feedback")
     @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
     def test_triggers_agent_when_authorized(
         self,
@@ -235,13 +237,13 @@ class TriggerPrIterationFromCommentTest(TestCase):
             username="octocat",
             external_id="1234",
         )
-        mock_consume.assert_called_once_with(
-            kwargs={
-                "run_id": 67890,
-                "organization_id": self.organization.id,
-            },
-            countdown=None,
-        )
+        mock_consume.assert_called_once()
+        _, consume_kwargs = mock_consume.call_args
+        assert consume_kwargs["kwargs"]["run_id"] == 67890
+        assert consume_kwargs["kwargs"]["organization_id"] == self.organization.id
+        assert consume_kwargs["kwargs"]["trigger_source"] == ConsumeTriggerSource.FEEDBACK
+        assert consume_kwargs["kwargs"]["trigger_id"]
+        assert consume_kwargs["countdown"] is None
         mock_reaction.assert_called_once_with(
             self.mock_make_scm.return_value,
             source_type="github-pr-comment",
@@ -252,7 +254,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
 
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access", return_value=False)
     @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
-    @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback")
+    @patch(f"{TASK_PATH}.enqueue_autofix_feedback")
     @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
     def test_skips_when_no_write_access(
         self,
@@ -272,7 +274,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
     @patch(f"{TASK_PATH}._add_comment_reaction")
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access")
     @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
-    @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback")
+    @patch(f"{TASK_PATH}.enqueue_autofix_feedback")
     @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
     def test_skips_when_no_agent_state(
         self,
@@ -296,7 +298,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
     @patch(f"{TASK_PATH}._add_comment_reaction")
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access", return_value=True)
     @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
-    @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback")
+    @patch(f"{TASK_PATH}.enqueue_autofix_feedback")
     @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
     def test_review_comment_hoists_file_and_line(
         self,

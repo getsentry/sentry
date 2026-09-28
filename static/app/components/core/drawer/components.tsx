@@ -1,10 +1,11 @@
-import {createContext, Fragment, useContext, useState} from 'react';
+import {createContext, Fragment, useContext, useMemo, useRef, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 
 import {Button} from '@sentry/scraps/button';
 import type {DrawerOptions} from '@sentry/scraps/drawer';
+import {ContainerQueryProvider} from '@sentry/scraps/layout';
 import {SlideOverPanel} from '@sentry/scraps/slideOverPanel';
 import {TooltipContext} from '@sentry/scraps/tooltip';
 import {useTranslation} from '@sentry/scraps/translationContext';
@@ -35,7 +36,7 @@ export function useDrawerContentContext() {
 /**
  * Rendering props for the inner DrawerPanel component. Inherits the shared
  * panel-configuration props directly from DrawerOptions so the two interfaces
- * can't drift. GlobalDrawer-only options (onOpen, shouldClose*, onClose
+ * can't drift. GlobalDrawer-only options (shouldClose*, onClose
  * callback) are consumed before reaching this component.
  */
 interface DrawerPanelProps extends Pick<
@@ -205,7 +206,19 @@ const Header = styled('header')<{
     `}
 `;
 
-export const DrawerBody = styled('aside')`
+export function DrawerBody({ref, ...props}: React.ComponentProps<'aside'>) {
+  const bodyRef = useRef<HTMLElement>(null);
+  const refs = useMemo(() => mergeRefs(ref, bodyRef), [ref]);
+
+  return (
+    <ContainerQueryProvider elementRef={bodyRef}>
+      <DrawerBodyElement ref={refs} {...props} />
+    </ContainerQueryProvider>
+  );
+}
+
+const DrawerBodyElement = styled('aside')`
+  container-type: inline-size;
   padding: ${p => p.theme.space.xl} 24px;
   font-size: ${p => p.theme.font.size.md};
 `;

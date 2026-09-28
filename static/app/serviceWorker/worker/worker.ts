@@ -113,7 +113,7 @@ sw.addEventListener('notificationclick', (event: NotificationEvent) => {
           return;
         }
 
-        if ('navigateTo' in event.notification.data) {
+        if (event.notification.data && 'navigateTo' in event.notification.data) {
           const {pathname, query = {}} = event.notification.data.navigateTo as {
             pathname: string;
             query?: Record<string, string>;

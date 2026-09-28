@@ -1,11 +1,15 @@
 import {downloadRows} from 'sentry/components/exports/downloadRows';
-import {ExportQueryType} from 'sentry/components/exports/useDataExport';
+import {
+  ExportQueryType,
+  type EventsQuerySamplingMode,
+} from 'sentry/components/exports/useDataExport';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ExploreExportModalButton} from 'sentry/views/explore/components/exports/exploreExportModalButton';
 import {trackExploreTableExported} from 'sentry/views/explore/components/exports/trackExploreTableExported';
 import type {ExploreExportConfig} from 'sentry/views/explore/components/exports/types';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import type {
   OurLogsAggregateResponseItem,
   OurLogsResponseItem,
@@ -18,6 +22,7 @@ export interface LogsQueryInfo {
   field: string[];
   project: number[];
   query: string;
+  sampling: EventsQuerySamplingMode;
   sort: string[];
   end?: string;
   environment?: string[];
@@ -30,6 +35,12 @@ type LogsExportModalButtonProps = {
   isLoading: boolean;
   queryInfo: LogsQueryInfo;
   supportsAllColumns: boolean;
+  /**
+   * Whether `tableData` holds the same values the server would export. The
+   * samples table asks the API to truncate long values for display, so it opts
+   * out and every one of its exports goes through the server instead.
+   */
+  supportsLocalDownload: boolean;
   tableData: Array<OurLogsResponseItem | OurLogsAggregateResponseItem>;
   title: string;
   error?: Error | null;
@@ -52,6 +63,7 @@ export function useLogsQueryInfo({
     field,
     query: logsSearch.formatString(),
     project: projects,
+    sampling: SAMPLING_MODE.HIGH_ACCURACY,
     sort,
     start: start ? new Date(start).toISOString() : undefined,
     end: end ? new Date(end).toISOString() : undefined,
@@ -66,6 +78,7 @@ export function LogsExportModalButton({
   isLoading,
   queryInfo,
   supportsAllColumns,
+  supportsLocalDownload,
   tableData,
   title,
 }: LogsExportModalButtonProps) {
@@ -81,14 +94,16 @@ export function LogsExportModalButton({
     supportsAllColumns,
     availableFormats: ['csv', 'jsonl'],
     estimatedRowCount,
-    localRowCount: tableData.length,
-    localDownload: ({format, limit}) =>
-      downloadRows({
-        rows: tableData.slice(0, limit),
-        fields: queryInfo.field,
-        filename: filenameBase,
-        format,
-      }),
+    localRowCount: supportsLocalDownload ? tableData.length : undefined,
+    localDownload: supportsLocalDownload
+      ? ({format, limit}) =>
+          downloadRows({
+            rows: tableData.slice(0, limit),
+            fields: queryInfo.field,
+            filename: filenameBase,
+            format,
+          })
+      : undefined,
     trackExportSubmit: args =>
       trackExploreTableExported({
         ...args,

@@ -1,4 +1,5 @@
 import contextlib
+import time
 import uuid
 from collections.abc import Generator, Mapping, Sequence
 from datetime import UTC, datetime, timedelta
@@ -163,13 +164,16 @@ class MonitorConsumerTest(TestCase):
         self,
         ts: datetime | None = None,
         consumer: ProcessingStrategy | None = None,
+        partition_ids: list[int] | None = None,
     ) -> None:
         if ts is None:
             ts = datetime.now()
         if consumer is None:
             consumer = self.create_consumer()
 
-        wrapper = {"message_type": "clock_pulse"}
+        wrapper: dict[str, Any] = {"message_type": "clock_pulse"}
+        if partition_ids is not None:
+            wrapper["partition_ids"] = partition_ids
 
         consumer.submit(
             Message(
@@ -1308,6 +1312,51 @@ class MonitorConsumerTest(TestCase):
 
         assert try_monitor_clock_tick.call_count == 1
 
+    @mock.patch("sentry.monitors.consumers.monitor_consumer.try_monitor_clock_tick")
+    @mock.patch("sentry.monitors.consumers.monitor_consumer.record_pulse_partitions")
+    def test_clock_pulse_records_partitions(
+        self, record_pulse_partitions: mock.MagicMock, try_monitor_clock_tick: mock.MagicMock
+    ) -> None:
+        calls = mock.Mock()
+        calls.attach_mock(record_pulse_partitions, "record_pulse_partitions")
+        calls.attach_mock(try_monitor_clock_tick, "try_monitor_clock_tick")
+
+        # The partition list is remembered before the clock call measures it
+        now = datetime.now()
+        self.send_clock_pulse(ts=now, partition_ids=[0, 1, 2])
+        pulse = {"message_type": "clock_pulse", "partition_ids": [0, 1, 2]}
+        assert calls.mock_calls == [
+            mock.call.record_pulse_partitions(pulse),
+            mock.call.try_monitor_clock_tick(now, self.partition.index),
+        ]
+
+        # A check-in does not change the remembered list
+        monitor = self._create_monitor(slug="my-monitor")
+        self.send_checkin(monitor.slug)
+        assert record_pulse_partitions.call_count == 1
+
+    @mock.patch("sentry.monitors.consumers.monitor_consumer.try_monitor_clock_tick")
+    @mock.patch("sentry.monitors.consumers.monitor_consumer.record_pulse_partitions")
+    def test_parallel_clock_pulse_records_partitions(
+        self, record_pulse_partitions: mock.MagicMock, try_monitor_clock_tick: mock.MagicMock
+    ) -> None:
+        factory = StoreMonitorCheckInStrategyFactory(mode="batched-parallel", max_batch_size=2)
+        commit = mock.Mock()
+        consumer = factory.create_with_partitions(commit, {self.partition: 0})
+
+        monitor = self._create_monitor(slug="my-monitor")
+
+        self.send_clock_pulse(consumer=consumer, partition_ids=[0, 1])
+        self.send_checkin(monitor.slug, consumer=consumer)
+
+        # One more check-in to process the batch
+        self.send_checkin(monitor.slug, consumer=consumer)
+
+        record_pulse_partitions.assert_called_once_with(
+            {"message_type": "clock_pulse", "partition_ids": [0, 1]}
+        )
+        assert try_monitor_clock_tick.call_count == 1
+
     @mock.patch("sentry.quotas.backend.check_accept_monitor_checkin")
     def test_monitor_quotas_accept(self, check_accept_monitor_checkin: mock.MagicMock) -> None:
         check_accept_monitor_checkin.return_value = PermitCheckInStatus.ACCEPT
@@ -1340,6 +1389,88 @@ class MonitorConsumerTest(TestCase):
 
         checkins = MonitorCheckIn.objects.filter(monitor_id=monitor.id)
         assert len(checkins) == 0
+
+    @mock.patch("sentry.quotas.backend.check_accept_monitor_checkin")
+    def test_monitor_quotas_timeout_accepts(
+        self, check_accept_monitor_checkin: mock.MagicMock
+    ) -> None:
+        """
+        A hung quotas seat check must fail open so the consumer does not stall.
+        """
+
+        def hang(*args, **kwargs):
+            time.sleep(1.0)
+            return PermitCheckInStatus.DROP
+
+        check_accept_monitor_checkin.side_effect = hang
+
+        monitor = self._create_monitor(slug="my-monitor")
+        with override_options(
+            {
+                "crons.check_accept_monitor_checkin.timeout_rollout_rate": 1.0,
+                "crons.check_accept_monitor_checkin.timeout_sec": 0.05,
+            }
+        ):
+            self.send_checkin(monitor.slug)
+
+        check_accept_monitor_checkin.assert_called_with(self.project.id, monitor.slug)
+
+        checkin = MonitorCheckIn.objects.get(monitor_id=monitor.id)
+        assert checkin.status == CheckInStatus.OK
+
+    @mock.patch(
+        "sentry.monitors.consumers.monitor_consumer._CHECK_ACCEPT_SLOTS.acquire",
+        return_value=False,
+    )
+    @mock.patch("sentry.quotas.backend.check_accept_monitor_checkin")
+    def test_monitor_quotas_shed_accepts(
+        self,
+        check_accept_monitor_checkin: mock.MagicMock,
+        acquire: mock.MagicMock,
+    ) -> None:
+        """
+        When too many seat checks are already in flight, fail open without
+        queuing another stale call.
+        """
+        check_accept_monitor_checkin.return_value = PermitCheckInStatus.DROP
+
+        monitor = self._create_monitor(slug="my-monitor")
+        with override_options({"crons.check_accept_monitor_checkin.timeout_rollout_rate": 1.0}):
+            self.send_checkin(monitor.slug)
+
+        acquire.assert_called_once_with(blocking=False)
+        check_accept_monitor_checkin.assert_not_called()
+
+        checkin = MonitorCheckIn.objects.get(monitor_id=monitor.id)
+        assert checkin.status == CheckInStatus.OK
+
+    @mock.patch("sentry.quotas.backend.check_accept_monitor_checkin")
+    def test_monitor_quotas_timeout_rollout_disabled(
+        self, check_accept_monitor_checkin: mock.MagicMock
+    ) -> None:
+        """
+        With rollout rate 0, seat acceptance is called directly (no timeout
+        wrapper), so a DROP result still drops the check-in.
+        """
+        check_accept_monitor_checkin.return_value = PermitCheckInStatus.DROP
+
+        monitor = self._create_monitor(slug="my-monitor")
+        with override_options(
+            {
+                "crons.check_accept_monitor_checkin.timeout_rollout_rate": 0.0,
+                # Would fail-open if the wrapper ran; prove it does not.
+                "crons.check_accept_monitor_checkin.timeout_sec": 0.05,
+            }
+        ):
+            self.send_checkin(
+                monitor.slug,
+                expected_error=ProcessingErrorsException(
+                    [{"type": ProcessingErrorType.MONITOR_OVER_QUOTA}],
+                ),
+            )
+
+        check_accept_monitor_checkin.assert_called_with(self.project.id, monitor.slug)
+        assert not MonitorCheckIn.objects.filter(monitor_id=monitor.id).exists()
 
     @mock.patch("sentry.quotas.backend.assign_seat")
     @mock.patch("sentry.quotas.backend.check_accept_monitor_checkin")

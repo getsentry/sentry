@@ -3,6 +3,7 @@ import {Component, Fragment} from 'react';
 import {Client} from 'sentry/api';
 import {SelectField} from 'sentry/components/forms/fields/selectField';
 import type {Organization} from 'sentry/types/organization';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {
   getLocalityUrlOptions,
   getLocalityDataFromOrganization,
@@ -46,7 +47,9 @@ class ForkCustomerActionImpl extends Component<Props> {
 
     try {
       const response = await api.requestPromise(
-        `/organizations/${organization.slug}/fork/`,
+        getApiUrl('/organizations/$organizationIdOrSlug/fork/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         {
           method: 'POST',
           host: locality?.url,

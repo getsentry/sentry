@@ -101,6 +101,11 @@ function treeTransformer({tree, transform}: TreeTransformerOpts) {
           ...token,
           key: nodeVisitor(token.key),
         });
+      case Token.KEY_ARRAY_INCLUDES:
+        return transform({
+          ...token,
+          key: nodeVisitor(token.key),
+        });
       case Token.LOGIC_GROUP:
         return transform({
           ...token,
@@ -601,6 +606,93 @@ describe('searchSyntax/parser', () => {
 
       // Negation round-trips as `!…[*]`, not a DoesNotInclude sentinel.
       expect(stringifyToken(filter)).toBe('!csv_headers[*]:foo');
+    });
+  });
+
+  describe('regex filters', () => {
+    const parseRegexFilter = (query: string, config: Partial<SearchConfig> = {}) => {
+      const filter = parseSearch(query, {allowRegex: true, ...config})?.find(
+        token => token.type === Token.FILTER
+      );
+      if (filter?.type !== Token.FILTER) {
+        throw new Error('Expected a filter token');
+      }
+      return filter;
+    };
+
+    it('parses a pattern with spaces and parens as a regex filter when allowRegex is set', () => {
+      const result = parseSearch('message://GET (api) v2// level:error', {
+        allowRegex: true,
+      });
+
+      expect(result?.filter(token => token.type === Token.FILTER)).toEqual([
+        expect.objectContaining({
+          filter: FilterType.TEXT,
+          negated: false,
+          operator: TermOperator.MATCHES,
+          value: expect.objectContaining({
+            type: Token.VALUE_TEXT,
+            value: 'GET (api) v2',
+            location: expect.objectContaining({
+              start: expect.objectContaining({offset: 10}),
+              end: expect.objectContaining({offset: 22}),
+            }),
+          }),
+        }),
+        expect.objectContaining({
+          key: expect.objectContaining({value: 'level'}),
+          value: expect.objectContaining({value: 'error'}),
+        }),
+      ]);
+    });
+
+    it('stringifies a negated regex filter back to its query', () => {
+      const filter = parseRegexFilter('!message://^a.*b//');
+
+      expect(filter).toEqual(
+        expect.objectContaining({negated: true, operator: TermOperator.MATCHES})
+      );
+      expect(stringifyToken(filter)).toBe('!message://^a.*b//');
+    });
+
+    it('parses a regex filter on an array membership key', () => {
+      const filter = parseRegexFilter('tags[csv_headers,array][*]://^a b//');
+
+      expect(filter).toEqual(
+        expect.objectContaining({
+          filter: FilterType.ARRAY_INCLUDES,
+          operator: TermOperator.MATCHES,
+          value: expect.objectContaining({value: '^a b'}),
+        })
+      );
+    });
+
+    it('does not flag asterisks or quotes in a pattern when wildcards are disallowed', () => {
+      const filter = parseRegexFilter('message://a*"b//', {disallowWildcard: true});
+
+      expect(filter.invalid).toBeNull();
+    });
+
+    it('flags an empty pattern as missing a value', () => {
+      const filter = parseRegexFilter('message:////');
+
+      expect(filter.invalid).toEqual(
+        expect.objectContaining({type: InvalidReason.FILTER_MUST_HAVE_VALUE})
+      );
+    });
+
+    it('flags an empty pattern on an array membership key as missing a value', () => {
+      const filter = parseRegexFilter('tags[csv_headers,array][*]:////');
+
+      expect(filter.invalid).toEqual(
+        expect.objectContaining({type: InvalidReason.FILTER_MUST_HAVE_VALUE})
+      );
+    });
+
+    it('does not flag a pattern on an array membership key when it has a value', () => {
+      const filter = parseRegexFilter('tags[csv_headers,array][*]://^a b//');
+
+      expect(filter.invalid).toBeNull();
     });
   });
 });

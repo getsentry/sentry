@@ -10,7 +10,6 @@ import {useTimelineCursor} from './timelineCursor';
 
 function TestComponent() {
   const {timelineCursor, cursorContainerRef} = useTimelineCursor<HTMLDivElement>({
-    enabled: true,
     labelText: p => p.toFixed(2),
   });
 

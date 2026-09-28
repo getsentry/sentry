@@ -111,6 +111,38 @@ describe('OrganizationRepositories', () => {
     expect(await screen.findByText('my-org')).toBeInTheDocument();
   });
 
+  it('does not render integrations that are pending deletion', async () => {
+    const pendingDeletionIntegration = OrganizationIntegrationsFixture({
+      id: '2',
+      name: 'pending-deletion-org',
+      organizationIntegrationStatus: 'pending_deletion',
+      provider: GITHUB_INTEGRATION.provider,
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/config/integrations/',
+      body: {providers: [GITHUB_PROVIDER]},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/integrations/',
+      body: [GITHUB_INTEGRATION, pendingDeletionIntegration],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/integrations/${GITHUB_INTEGRATION.id}/`,
+      body: GITHUB_INTEGRATION,
+    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/repos/', body: []});
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/code-mappings/',
+      body: [],
+    });
+
+    render(<OrganizationRepositories />);
+
+    expect(await screen.findByText('my-org')).toBeInTheDocument();
+    expect(screen.queryByText('pending-deletion-org')).not.toBeInTheDocument();
+  });
+
   it('shows repos loading state in the table while the repos query is pending', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/config/integrations/',
@@ -179,7 +211,10 @@ describe('OrganizationRepositories', () => {
       organization: OrganizationFixture({access: []}),
     });
 
-    expect(await screen.findByRole('button', {name: 'Uninstall'})).toBeDisabled();
+    expect(await screen.findByRole('button', {name: 'Uninstall'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
   });
 
   it('shows the settings button as disabled while the integration config is loading', async () => {

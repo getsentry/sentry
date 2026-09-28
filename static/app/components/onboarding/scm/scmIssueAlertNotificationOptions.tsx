@@ -1,3 +1,4 @@
+import {useId} from 'react';
 import styled from '@emotion/styled';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
@@ -38,16 +39,18 @@ export function ScmIssueAlertNotificationOptions({analyticsFlow, ...props}: Prop
   const {querySuccess, shouldRenderNotificationConfigs, shouldRenderSetupButton} =
     useIssueAlertNotificationOptions(props);
 
+  const labelId = useId();
+
   if (!querySuccess) {
     return null;
   }
 
   return (
     <Stack gap="lg" padding="lg 0">
-      <Text size="sm" bold variant="secondary" uppercase>
+      <Text size="sm" bold variant="secondary" uppercase id={labelId}>
         {t('Notify via')}
       </Text>
-      <Stack gap="md" width="100%">
+      <Stack gap="md" width="100%" role="group" aria-labelledby={labelId}>
         <Stack gap="md">
           <Flex as="label" align="start" gap="md">
             <Checkbox checked disabled readOnly />

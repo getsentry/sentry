@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/filename-case */
 import type {ReactNode} from 'react';
 
 interface FormSearchProps {
