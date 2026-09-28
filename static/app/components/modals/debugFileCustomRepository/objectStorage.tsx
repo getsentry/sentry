@@ -529,7 +529,11 @@ export function AzureRepository({
     account: z
       .string()
       .min(1, t('Storage Account is required'))
-      .regex(/^[a-z0-9]{3,24}$/, t('Must be 3-24 lowercase letters and numbers')),
+      .pipe(
+        z
+          .string()
+          .regex(/^[a-z0-9]{3,24}$/, t('Must be 3-24 lowercase letters and numbers'))
+      ),
     container: z.string().min(1, t('Container is required')),
     tenant_id: z.string().min(1, t('Tenant ID is required')),
     client_id: z.string().min(1, t('Client ID is required')),
