@@ -62,7 +62,7 @@ export function useLogsAggregatesTable({
   const {result, pageLinks, eventView} = useProgressiveQuery<
     typeof useLogsAggregatesTableImpl
   >({
-    queryHookImplementation: useLogsAggregatesTableImpl,
+    queryHookImplementation: useLogsAggregatesTableImpl, // oxlint-disable-line react/hooks -- useProgressiveQuery takes the query hook as a value and calls it per accuracy tier.
     queryHookArgs: {
       enabled,
       limit,

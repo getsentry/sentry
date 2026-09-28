@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from django.contrib.auth.models import AnonymousUser
-from rest_framework.permissions import BasePermission
+from rest_framework.permissions import SAFE_METHODS, BasePermission
 from rest_framework.request import Request
 from rest_framework.views import APIView
 
@@ -13,6 +13,7 @@ from sentry.api.permissions import DemoSafePermission, StaffPermissionMixin
 from sentry.auth.services.access.service import access_service
 from sentry.auth.superuser import is_active_superuser, superuser_has_permission
 from sentry.auth.system import is_system_auth
+from sentry.demo_mode.utils import is_demo_mode_enabled, is_demo_user
 from sentry.models.organization import OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
@@ -54,6 +55,60 @@ class UserAndStaffPermission(StaffPermissionMixin, UserPermission):
     Allows staff to access any endpoints this permission is used on. Note that
     UserPermission already includes a check for Superuser
     """
+
+
+class UserDisplayPreferencesPermission(UserPermission):
+    """Lets a Seer agent credential read and write the delegating user's own display
+    preferences.
+
+    `UserPermission` rejects agent auth outright, because user endpoints are keyed on a
+    `user_id` path param and an agent must never act on another person's account. That
+    rejection is lifted here for the display-preferences resource only, and replaced
+    with an explicit self-only check against the credential.
+
+    No staff or superuser bypass, unlike `UserAndStaffPermission`: display preferences
+    are personal, so there is no operator reason to write somebody else's.
+
+    No scope is required, and there is no `scope_map`. These are one user's own
+    settings, which that user already changes with no scope at all — session auth never
+    reaches a scope check. Requiring one of a token acting for the same user would be
+    stricter than the person it acts for, and there is no scope that expresses "may
+    change my own settings": every Sentry scope describes an organization resource.
+    Authentication is the requirement, and `has_object_permission` confines every
+    caller to their own preferences.
+    """
+
+    @staticmethod
+    def _demo_blocked(request: Request) -> bool:
+        """Mirrors `DemoSafePermission`, which the scope-free check below skips.
+
+        Demo sessions are read-only across the product, and that is a separate rule
+        from scopes — dropping the scope requirement must not hand them a write.
+        """
+        return is_demo_user(request.user) and (
+            not is_demo_mode_enabled() or request.method not in SAFE_METHODS
+        )
+
+    def has_permission(self, request: Request, view: APIView) -> bool:
+        if self._demo_blocked(request):
+            return False
+        return request.user.is_authenticated
+
+    def has_object_permission(
+        self, request: Request, view: APIView, user: User | RpcUser | None
+    ) -> bool:
+        if self._demo_blocked(request):
+            return False
+        if user is None:
+            return False
+        if agent_token.is_agent_auth(request.auth):
+            # Compared against the credential rather than `request.user`: agent auth
+            # synthesizes `request.user` from the token, so checking one against the
+            # other would be circular.
+            return request.auth.user_id == user.id
+        # Deliberately not `super()`: `UserPermission` lets an active superuser act on
+        # another account, which for personal display preferences has no operator use.
+        return request.user.id == user.id
 
 
 class OrganizationUserPermission(UserAndStaffPermission):

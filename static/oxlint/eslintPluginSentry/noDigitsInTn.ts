@@ -1,6 +1,6 @@
-import {AST_NODE_TYPES, ESLintUtils} from '@typescript-eslint/utils';
+import {defineRule} from '@oxlint/plugins';
 
-export const noDigitsInTn = ESLintUtils.RuleCreator.withoutDocs({
+export const noDigitsInTn = defineRule({
   meta: {
     type: 'suggestion',
     docs: {
@@ -15,13 +15,13 @@ export const noDigitsInTn = ESLintUtils.RuleCreator.withoutDocs({
   create(context) {
     return {
       CallExpression(node) {
-        if (node.callee.type !== AST_NODE_TYPES.Identifier || node.callee.name !== 'tn') {
+        if (node.callee.type !== 'Identifier' || node.callee.name !== 'tn') {
           return;
         }
 
         for (const argument of node.arguments) {
           if (
-            argument.type === AST_NODE_TYPES.Literal &&
+            argument.type === 'Literal' &&
             typeof argument.value === 'string' &&
             argument.value.includes('%d')
           ) {
@@ -29,7 +29,10 @@ export const noDigitsInTn = ESLintUtils.RuleCreator.withoutDocs({
               node,
               messageId: 'noDigits',
               fix(fixer) {
-                return fixer.replaceText(argument, argument.raw.replace(/%d/g, '%s'));
+                return fixer.replaceText(
+                  argument,
+                  context.sourceCode.getText(argument).replace(/%d/g, '%s')
+                );
               },
             });
           }

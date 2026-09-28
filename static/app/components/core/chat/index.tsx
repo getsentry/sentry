@@ -1,5 +1,6 @@
 export {AssistantMessage} from './assistantMessage';
 export {AssistantActions} from './assistantActions';
+export {ClippedDetail} from './clippedDetail';
 export {UserMessage} from './userMessage';
 export {ToolCallIndicator, type ToolCallStatus} from './toolCallIndicator';
 /** @public */

@@ -55,6 +55,7 @@ export default function InvoiceDetailsPaymentForm({
             onCancel={() => closeModal()}
             amount={invoice.amountBilled ?? 0}
             cardMode="payment"
+            invoiceGuid={invoice.id}
             onSuccess={() => {
               reloadInvoice();
               closeModal();

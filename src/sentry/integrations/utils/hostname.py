@@ -26,6 +26,8 @@ def instance_hostname(integration: Integration | RpcIntegration) -> str:
                     f"Missing instance for gitlab integration {integration.id}"
                 )
             return instance
+        case IntegrationProviderSlug.CURSOR_ORIGIN.value:
+            return "cursor.com"
         case _:
             raise NotImplementedError(
                 f"Instance hostname not implemented for provider: {integration.provider}"

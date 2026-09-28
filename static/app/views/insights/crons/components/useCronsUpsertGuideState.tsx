@@ -24,17 +24,6 @@ const guideParser = parseAsStringEnum<GuideKey | 'manual'>([
   'manual',
 ]);
 
-interface Options {
-  /**
-   * Default guide to use if not present in URL.
-   */
-  defaultGuide?: GuideKey | 'manual';
-  /**
-   * Default platform to use if not present in URL.
-   */
-  defaultPlatform?: SupportedPlatform;
-}
-
 interface PlatformGuideState {
   /**
    * The selected Crons platform guide
@@ -71,15 +60,11 @@ interface PlatformGuideState {
 /**
  * Custom hook to manage platform and guide query parameters using nuqs.
  */
-export function useCronsUpsertGuideState(options?: Options): PlatformGuideState {
+export function useCronsUpsertGuideState(): PlatformGuideState {
   const [{platform: platformKey, guide: guideKey}, setQueryParams] = useQueryStates(
     {
-      platform: options?.defaultPlatform
-        ? platformParser.withDefault(options.defaultPlatform)
-        : platformParser,
-      guide: options?.defaultGuide
-        ? guideParser.withDefault(options.defaultGuide)
-        : guideParser,
+      platform: platformParser,
+      guide: guideParser,
     },
     {
       history: 'replace',

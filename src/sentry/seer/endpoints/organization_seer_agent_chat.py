@@ -329,7 +329,7 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
                 organization,
                 request.user,
                 is_interactive=True,
-                enable_bash_tools=override_bash_mode_enabled,
+                enable_bash_mode=override_bash_mode_enabled,
                 enable_coding=enable_coding,
                 enable_code_mode_tools=enable_code_mode_tools,
                 reasoning_effort="medium",

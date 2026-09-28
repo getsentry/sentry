@@ -549,6 +549,21 @@ function getActivityItemContent({
           : null,
       };
     }
+    case GroupActivityType.SEER_PR_READY_FOR_REVIEW: {
+      const pullRequest = activity.data.pull_requests?.[0];
+      return {
+        title: pullRequest
+          ? tct('Pull request [pullRequest] ready for review', {
+              pullRequest: <SeerPullRequestChip pullRequest={pullRequest} />,
+            })
+          : t('Pull request ready for review'),
+        details: pullRequest
+          ? tct('on [provider]', {
+              provider: getProviderName(pullRequest.provider),
+            })
+          : null,
+      };
+    }
     case GroupActivityType.SEER_ITERATION_STARTED: {
       const {referrer} = activity.data;
       return {

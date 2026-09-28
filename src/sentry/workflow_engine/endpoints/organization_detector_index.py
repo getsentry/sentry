@@ -188,7 +188,21 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
 
         projects = self.get_projects(request, organization)
         detector_q = Q(project_id__in=projects)
-        if all_projects_detector and should_include_all_projects_detector(request, organization):
+
+        # XXX: We have to do this to avoid breaking the Terraform provider.
+        # src: https://github.com/jianyuan/terraform-provider-sentry/blob/b59481f837cbeae74be2fe9883eab473fb63f3a1/internal/provider/data_source_project_issue_stream_monitor_impl.go#L29-L54
+        # We exclude the all projects detector when the request filters to specific projects.
+        # However, if the all projects sentinel is used, we do add it into the response.
+        project_params_unchecked = self.get_requested_project_params_unchecked(request)
+        project_params_include_all_projects = (
+            not project_params_unchecked.has_values
+            or project_params_unchecked.has_all_projects_sentinel
+        )
+        if (
+            all_projects_detector
+            and should_include_all_projects_detector(request, organization)
+            and project_params_include_all_projects
+        ):
             detector_q |= Q(id__in=[all_projects_detector.id])
 
         queryset: QuerySet[Detector] = Detector.objects.with_type_filters().filter(detector_q)

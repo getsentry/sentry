@@ -2,12 +2,12 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {singleLineRenderer} from '@sentry/scraps/markdown';
 import {Text} from '@sentry/scraps/text';
 
 import {Confirm} from 'sentry/components/confirm';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {singleLineRenderer} from 'sentry/utils/marked/marked';
 
 import type {JsonFormAdapterFieldConfig} from './types';
 

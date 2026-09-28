@@ -168,9 +168,7 @@ export function ReleasesDrawerTable({
       if (column.key === 'date') {
         return (
           <Text tabular variant="muted" wrap="nowrap">
-            {({className}) => (
-              <DateTime className={className} date={dataRow.date} seconds timeZone year />
-            )}
+            {props => <DateTime {...props} date={dataRow.date} seconds timeZone year />}
           </Text>
         );
       }

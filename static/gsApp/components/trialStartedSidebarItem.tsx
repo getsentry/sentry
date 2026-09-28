@@ -28,6 +28,83 @@ type Props = {
   className?: string;
 };
 
+type HovercardBodyProps = {
+  dismissNotification: () => void;
+  hovercardBodyRef: React.Ref<HTMLDivElement>;
+};
+
+function TrialStartedHovercardBody({
+  dismissNotification,
+  hovercardBodyRef,
+  subscription,
+  organization,
+}: HovercardBodyProps & Pick<Props, 'subscription' | 'organization'>) {
+  return (
+    <HovercardBody ref={hovercardBodyRef}>
+      <HovercardHeader>
+        <div>{t('Trial Started')}</div>
+        <TrialBadge subscription={subscription} organization={organization} />
+      </HovercardHeader>
+      <p>{t('Check out these great new features')}</p>
+
+      <Bullets>
+        <IconBusiness />
+        {t('Application Insights')}
+        <IconBusiness />
+        {t('Dashboards')}
+        <IconBusiness />
+        {getDiscoverDeprecation(organization)
+          ? t('Advanced Errors Queries')
+          : t('Advanced Discover Queries')}
+        <IconBusiness />
+        {t('Additional Integrations')}
+      </Bullets>
+
+      <Flex justify="end">
+        <Button onClick={dismissNotification} size="xs">
+          {t('Awesome, got it!')}
+        </Button>
+      </Flex>
+    </HovercardBody>
+  );
+}
+
+function TrialRequestedHovercardBody({
+  dismissNotification,
+  hovercardBodyRef,
+}: HovercardBodyProps) {
+  return (
+    <HovercardBody ref={hovercardBodyRef}>
+      <HovercardHeader>{t('Trial Requested')}</HovercardHeader>
+      <p>
+        {t(
+          'We have notified your organization owner that you want to start a Sentry trial.'
+        )}
+      </p>
+
+      <Flex justify="end">
+        <Button onClick={dismissNotification} size="xs">
+          {t('Awesome, got it!')}
+        </Button>
+      </Flex>
+    </HovercardBody>
+  );
+}
+
+function HovercardWrapper({
+  body,
+  children,
+}: {
+  body: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <StyledHovercard forceVisible position="right" body={body}>
+      {children}
+    </StyledHovercard>
+  );
+}
+
 function TrialStartedSidebarItem({subscription, organization, children}: Props) {
   const [animationComplete, setAnimationComplete] = useState(
     !!hasJustStartedPlanTrial(subscription)
@@ -54,64 +131,6 @@ function TrialStartedSidebarItem({subscription, organization, children}: Props) 
   const hovercardBodyRef = useRef<HTMLDivElement>(null);
   useOnClickOutside(hovercardBodyRef, dismissNotification);
 
-  const renderTrialStartedHovercardBody = () => {
-    return (
-      <HovercardBody ref={hovercardBodyRef}>
-        <HovercardHeader>
-          <div>{t('Trial Started')}</div>
-          <TrialBadge subscription={subscription} organization={organization} />
-        </HovercardHeader>
-        <p>{t('Check out these great new features')}</p>
-
-        <Bullets>
-          <IconBusiness />
-          {t('Application Insights')}
-          <IconBusiness />
-          {t('Dashboards')}
-          <IconBusiness />
-          {getDiscoverDeprecation(organization)
-            ? t('Advanced Errors Queries')
-            : t('Advanced Discover Queries')}
-          <IconBusiness />
-          {t('Additional Integrations')}
-        </Bullets>
-
-        <Flex justify="end">
-          <Button onClick={dismissNotification} size="xs">
-            {t('Awesome, got it!')}
-          </Button>
-        </Flex>
-      </HovercardBody>
-    );
-  };
-
-  const renderTrialRequestedHovercardBody = () => {
-    return (
-      <HovercardBody ref={hovercardBodyRef}>
-        <HovercardHeader>{t('Trial Requested')}</HovercardHeader>
-        <p>
-          {t(
-            'We have notified your organization owner that you want to start a Sentry trial.'
-          )}
-        </p>
-
-        <Flex justify="end">
-          <Button onClick={dismissNotification} size="xs">
-            {t('Awesome, got it!')}
-          </Button>
-        </Flex>
-      </HovercardBody>
-    );
-  };
-
-  const renderWithHovercard = (hovercardBody: React.ReactNode) => {
-    return (
-      <StyledHovercard forceVisible position="right" body={hovercardBody}>
-        {children}
-      </StyledHovercard>
-    );
-  };
-
   const trialRequestedOrStarted = useMemo(() => {
     return hasJustStartedPlanTrial(subscription) || trialRequested;
   }, [subscription, trialRequested]);
@@ -128,9 +147,33 @@ function TrialStartedSidebarItem({subscription, organization, children}: Props) 
 
   if (animationComplete) {
     if (hasJustStartedPlanTrial(subscription)) {
-      wrappedChildren = renderWithHovercard(renderTrialStartedHovercardBody());
+      wrappedChildren = (
+        <HovercardWrapper
+          body={
+            <TrialStartedHovercardBody
+              dismissNotification={dismissNotification}
+              hovercardBodyRef={hovercardBodyRef}
+              subscription={subscription}
+              organization={organization}
+            />
+          }
+        >
+          {children}
+        </HovercardWrapper>
+      );
     } else if (trialRequested) {
-      wrappedChildren = renderWithHovercard(renderTrialRequestedHovercardBody());
+      wrappedChildren = (
+        <HovercardWrapper
+          body={
+            <TrialRequestedHovercardBody
+              dismissNotification={dismissNotification}
+              hovercardBodyRef={hovercardBodyRef}
+            />
+          }
+        >
+          {children}
+        </HovercardWrapper>
+      );
     }
   }
 

@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.conf.urls.i18n import i18n_patterns
 from django.http import HttpRequest, HttpResponse
-from django.test import SimpleTestCase, override_settings
+from django.test import override_settings
 from django.urls import get_resolver, path, reverse
 from django.utils import translation
 from rest_framework import status
@@ -24,8 +24,19 @@ class WarmupEndpointTest(APITestCase):
 
         assert response.status_code == status.HTTP_200_OK
 
+    def test_warmup_endpoint_no_resolver_warming(self) -> None:
+        url = reverse("sentry-warmup")
+        with self.options({"warmup.url_resolver.enabled": True}):
+            response = self.client.get(url)
+            assert response.status_code == status.HTTP_200_OK
+
+        with self.options({"warmup.url_resolver.enabled": False}):
+            response = self.client.get(url)
+            assert response.status_code == status.HTTP_200_OK
+
     def test_shares_language_independent_django_url_caches(self) -> None:
-        self.client.get(reverse("sentry-warmup"))
+        with self.options({"warmup.url_resolver.enabled": True}):
+            self.client.get(reverse("sentry-warmup"))
 
         languages = [lang for lang, _ in settings.LANGUAGES]
         languages.append(settings.LANGUAGE_CODE)
@@ -35,14 +46,15 @@ class WarmupEndpointTest(APITestCase):
             assert all(cache[language] is default_cache for language in languages)
 
 
-class LocalizedWarmupTest(SimpleTestCase):
+class LocalizedWarmupTest(APITestCase):
     @override_settings(
         ROOT_URLCONF=__name__,
         LANGUAGE_CODE="en",
         LANGUAGES=(("en", "English"), ("de", "German")),
     )
     def test_keeps_language_dependent_django_url_caches_separate(self) -> None:
-        _warm_up_url_resolver(["en", "de"])
+        with self.options({"warmup.url_resolver.enabled": True}):
+            _warm_up_url_resolver(["en", "de"])
 
         resolver = get_resolver()
         assert resolver._reverse_dict["en"] is not resolver._reverse_dict["de"]

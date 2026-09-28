@@ -1,5 +1,10 @@
 import {useCallback, useEffect, useMemo, type ReactNode} from 'react';
-import {parseAsString, parseAsStringLiteral, useQueryStates} from 'nuqs';
+import {
+  parseAsIsoDateTime,
+  parseAsString,
+  parseAsStringLiteral,
+  useQueryStates,
+} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -30,6 +35,8 @@ function useConversationDetailQueryState() {
     {
       spanId: parseAsString,
       focusedTool: parseAsString,
+      start: parseAsIsoDateTime,
+      end: parseAsIsoDateTime,
       tab: parseAsStringLiteral(CONVERSATION_VIEW_TABS).withDefault('transcript'),
     },
     {history: 'replace'}
@@ -41,7 +48,16 @@ function ConversationDetailPage() {
   const {conversationId} = useParams<{conversationId: string}>();
   const [queryState, setQueryState] = useConversationDetailQueryState();
 
-  const conversation = useMemo(() => ({conversationId}), [conversationId]);
+  // Read the time window from the URL rather than the page filters: on in-app
+  // navigation from the list, the page filters still hold the list's selection
+  // when the first request is made.
+  const {start, end} = queryState;
+  const startTimestamp = start?.getTime();
+  const endTimestamp = end?.getTime();
+  const conversation = useMemo(
+    () => ({conversationId, startTimestamp, endTimestamp}),
+    [conversationId, startTimestamp, endTimestamp]
+  );
 
   const {nodes, nodeTraceMap, isLoading, title} = useConversation(conversation);
 
@@ -60,6 +76,7 @@ function ConversationDetailPage() {
     trackAnalytics('conversations.detail.page-view', {
       organization,
     });
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [organization, conversationId]);
 
   const handleSelectSpan = useCallback(

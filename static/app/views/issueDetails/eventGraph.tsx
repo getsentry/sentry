@@ -24,6 +24,7 @@ import type {ReleaseMetaBasic} from 'sentry/types/release';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {EventView} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -33,7 +34,6 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {getBucketSize} from 'sentry/views/dashboards/utils/getBucketSize';
-import {useReleasesDrawer} from 'sentry/views/explore/releases/drawer/useReleasesDrawer';
 import {useReleaseBubbles} from 'sentry/views/explore/releases/releaseBubbles/useReleaseBubbles';
 import {makeReleaseDrawerPathname} from 'sentry/views/explore/releases/utils/pathnames';
 import {useIssueDetails} from 'sentry/views/issueDetails/context';
@@ -341,8 +341,6 @@ export function EventGraph({
     },
   });
 
-  useReleasesDrawer();
-
   const handleConnectRef = useCallback(
     (e: ReactEchartsRef | null) => {
       connectReleaseBubbleChartRef(e);
@@ -438,7 +436,9 @@ export function EventGraph({
     currentTab,
   ]);
 
-  const bucketSize = eventSeries ? getBucketSize(series) : undefined;
+  const bucketSize = eventView.interval
+    ? intervalToMilliseconds(eventView.interval)
+    : getBucketSize(series);
 
   const legendConfig = legend({
     theme,

@@ -1,6 +1,6 @@
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery, type UseApiQueryOptions} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {UptimeRule} from 'sentry/views/detectors/components/uptime/types';
 
@@ -9,10 +9,7 @@ interface UseUptimeRuleOptions {
   projectSlug: string;
 }
 
-export function useUptimeRule(
-  {projectSlug, detectorId}: UseUptimeRuleOptions,
-  options: Partial<UseApiQueryOptions<UptimeRule>> = {}
-) {
+export function useUptimeRule({projectSlug, detectorId}: UseUptimeRuleOptions) {
   const organization = useOrganization();
 
   const queryKey: ApiQueryKey = [
@@ -27,5 +24,5 @@ export function useUptimeRule(
       }
     ),
   ];
-  return useApiQuery<UptimeRule>(queryKey, {staleTime: 0, ...options});
+  return useApiQuery<UptimeRule>(queryKey, {staleTime: 0});
 }

@@ -40,12 +40,38 @@ describe('SpansConfig', () => {
     expect(functionOptions).toEqual(ALLOWED_EXPLORE_VISUALIZE_AGGREGATES);
   });
 
+  it('adds Explore _if combinators from aggregates to timeseries sort options', () => {
+    const combinator = 'avg_if(`span.op:db`,span.duration)';
+    const widgetQuery: WidgetQuery = {
+      name: '',
+      fields: ['transaction', combinator],
+      columns: ['transaction'],
+      fieldAliases: [],
+      aggregates: ['avg(span.duration)', combinator],
+      conditions: '',
+      orderby: '-avg(span.duration)',
+    };
+
+    const options = SpansConfig.getTimeseriesSortOptions(organization, widgetQuery, {});
+
+    expect(options[`field:${combinator}`]).toEqual({
+      label: combinator,
+      value: {
+        kind: 'field',
+        meta: {
+          dataType: 'number',
+          name: combinator,
+        },
+      },
+    });
+  });
+
   it('surfaces types and units correctly for multi-series (grouped) responses with a single aggregate', () => {
     // Meta is copied for all series in the response
     const commonMockedMeta: EventsStats['meta'] = {
+      isMetricsData: false,
       units: {'count(span.duration)': 'millisecond'},
       fields: {'count(span.duration)': 'integer'},
-      isMetricsData: false,
       tips: {},
     };
     // Multi-series response with multiple grouped series
@@ -84,9 +110,9 @@ describe('SpansConfig', () => {
   it('surfaces types and units correctly for multi-series (grouped) responses with a multiple aggregates', () => {
     // Meta is copied for all series in the response
     const commonMockedMeta: EventsStats['meta'] = {
+      isMetricsData: false,
       units: {'count(span.duration)': null, 'p50(span.duration)': 'millisecond'},
       fields: {'count(span.duration)': 'integer', 'p50(span.duration)': 'duration'},
-      isMetricsData: false,
       tips: {},
     };
     // Multi-series response with multiple aggregates and grouped series

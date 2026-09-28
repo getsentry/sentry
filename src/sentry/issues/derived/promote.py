@@ -21,6 +21,7 @@ from typing import Literal, NamedTuple
 
 from django.db import IntegrityError, router, transaction
 from django.db.models import Q
+from django.db.models.functions import Now
 from django.utils import timezone
 
 from sentry.db.postgres.transactions import enforce_constraints
@@ -150,7 +151,9 @@ def promote_to_live(
     in-memory instance used only to carry the computed state.
     """
     generated_at = candidate.generated_at
+    # Keep date_updated out of _STATE_FIELDS so candidate objects don't need a real value.
     values = {f: getattr(candidate, f) for f in _STATE_FIELDS}
+    values["date_updated"] = timezone.now()
 
     cursor_ahead = Q(cursor_date__lt=candidate.cursor_date) | Q(
         cursor_date=candidate.cursor_date, cursor_id__lte=candidate.cursor_id
@@ -234,9 +237,11 @@ def build_and_promote_derived_data(
             )
 
     if derived is None:
-        if not Group.objects.filter(id=group_id).exists():
+        # Use the same database clock as invalidation, before reading the log.
+        started_at = Group.objects.filter(id=group_id).values_list(Now(), flat=True).get_or_none()
+        if started_at is None:
             raise Group.DoesNotExist(f"Group {group_id} does not exist")
-        generated_at = timezone.now()
+        generated_at = started_at
         derived = GroupDerivedData(
             group_id=group_id,
             generated_at=generated_at,

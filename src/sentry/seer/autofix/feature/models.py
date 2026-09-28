@@ -36,13 +36,21 @@ class RCAStepArgs(BaseModel):
         extra = "ignore"
 
     intelligence_level: Literal["low", "medium", "high"] = "medium"
-    reasoning_effort: Literal["low", "medium", "high"] | None = "medium"
+    reasoning_effort: Literal["low", "medium", "high"] = "medium"
     repo_pins: RepoPins | None = None
+
+
+class SolutionStepArgs(BaseModel):
+    class Config:
+        extra = "ignore"
+
+    should_run_repo_checks: bool = False
 
 
 class AutofixFeaturePayload(BaseModel):
     class Config:
         extra = "ignore"
+        smart_union = True
 
     # Universal params across all steps
     group_id: int
@@ -52,7 +60,9 @@ class AutofixFeaturePayload(BaseModel):
     culprit: str
     on_completion_hook: OnCompletionHookDefinition
     step: AutofixStep
-    step_args: RCAStepArgs
+    step_args: RCAStepArgs | SolutionStepArgs
+    existing_run_id: int | None = None
+    insert_index: int | None = None
     # Not to be confused with user_org_context, this is free-form context added by the user.
     user_context: str | None = None
     stopping_point: str | None = None

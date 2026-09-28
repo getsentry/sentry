@@ -43,6 +43,15 @@ class OrganizationRepositoryGetTest(APITestCase):
 
         assert response.status_code == 404
 
+    def test_get_repository_with_non_integer_id(self) -> None:
+        self.login_as(user=self.user)
+        org = self.create_organization(owner=self.user, name="baz")
+        url = reverse("sentry-api-0-organization-repository-details", args=[org.slug, "invalid"])
+
+        response = self.client.get(url)
+
+        assert response.status_code == 404
+
     def test_get_repository_expand_settings(self) -> None:
         self.login_as(user=self.user)
 
@@ -131,6 +140,18 @@ class OrganizationRepositoryDeleteTest(APITestCase):
             object_id=repo.id, model_name="Repository", date_scheduled__lte=timezone.now()
         ).exists()
         self.assert_rename_pending_delete(response, repo)
+
+    def test_delete_repository_with_out_of_range_id(self) -> None:
+        self.login_as(user=self.user)
+        org = self.create_organization(owner=self.user, name="baz")
+        url = reverse(
+            "sentry-api-0-organization-repository-details",
+            args=[org.slug, "999999999999999999999"],
+        )
+
+        response = self.client.delete(url)
+
+        assert response.status_code == 404
 
     def test_delete_with_commits(self) -> None:
         self.login_as(user=self.user)

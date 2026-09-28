@@ -177,8 +177,32 @@ describe('MessagesPanel', () => {
     expect(onViewTimeline).toHaveBeenCalledTimes(1);
   });
 
-  it('warns and links to docs when inference spans captured no input/output', () => {
+  it('renders not-reported placeholders when inference spans captured no input/output', () => {
     // A generation span exists, but it carries no request/response content.
+    const node = createMockNode({
+      id: 'span-1',
+      attributes: {
+        [SpanFields.GEN_AI_USAGE_INPUT_TOKENS]: 10,
+        [SpanFields.GEN_AI_USAGE_REASONING_OUTPUT_TOKENS]: 5,
+      },
+    });
+
+    render(
+      <MessagesPanel
+        nodes={[node] as any}
+        selectedNodeId={null}
+        onSelectNode={mockOnSelectNode}
+      />
+    );
+
+    expect(screen.getAllByText('<not reported>')).toHaveLength(2);
+    expect(screen.getByText('Thinking... <not reported>')).toBeInTheDocument();
+    expect(
+      screen.queryByText("This conversation doesn't include any inference spans")
+    ).not.toBeInTheDocument();
+  });
+
+  it('links to docs in a dismissible alert when inputs/outputs were not captured', async () => {
     const node = createMockNode({id: 'span-1'});
 
     render(
@@ -190,11 +214,15 @@ describe('MessagesPanel', () => {
     );
 
     expect(
-      screen.getByText("This conversation's messages weren't captured")
-    ).toBeInTheDocument();
-    expect(
       screen.getByRole('link', {name: 'Enable capturing inputs and outputs'})
     ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Dismiss banner'}));
+
+    expect(
+      screen.queryByRole('link', {name: 'Enable capturing inputs and outputs'})
+    ).not.toBeInTheDocument();
+    expect(screen.getByText('<not reported>')).toBeInTheDocument();
   });
 
   it('renders user and assistant messages', () => {

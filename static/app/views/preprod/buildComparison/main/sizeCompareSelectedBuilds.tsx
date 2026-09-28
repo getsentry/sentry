@@ -201,9 +201,9 @@ export function SizeCompareSelectedBuilds({
       width="100%"
     >
       <Container minWidth={{zero: '0', xl: 'auto'}} maxWidth={{zero: '100%', xl: 'none'}}>
-        {({className}) => (
+        {props => (
           <BuildButton
-            className={className}
+            {...props}
             buildDetails={headBuildDetails}
             icon={<IconLock size="xs" locked />}
             label={t('Head')}
@@ -219,9 +219,9 @@ export function SizeCompareSelectedBuilds({
           minWidth={{zero: '0', xl: 'auto'}}
           maxWidth={{zero: '100%', xl: 'none'}}
         >
-          {({className}) => (
+          {props => (
             <BuildButton
-              className={className}
+              {...props}
               buildDetails={baseBuildDetails}
               icon={<IconFocus size="xs" variant="accent" />}
               label={t('Base')}

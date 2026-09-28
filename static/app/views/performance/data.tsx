@@ -228,8 +228,7 @@ export function generateGenericPerformanceEventView(
 
 export function generateBackendPerformanceEventView(
   location: Location,
-  withStaticFilters: boolean,
-  useEap = false
+  withStaticFilters: boolean
 ): EventView {
   const {query} = location;
 
@@ -253,7 +252,7 @@ export function generateBackendPerformanceEventView(
   const savedQuery: NewQuery = {
     id: undefined,
     name: t('Performance'),
-    query: useEap ? 'is_transaction:true' : 'event.type:transaction',
+    query: 'event.type:transaction',
     projects: [],
     fields,
     version: 2,
@@ -277,11 +276,7 @@ export function generateBackendPerformanceEventView(
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
 
-  if (useEap) {
-    eventView.additionalConditions.addFilterValues('is_transaction', ['true']);
-  } else {
-    eventView.additionalConditions.addFilterValues('event.type', ['transaction']);
-  }
+  eventView.additionalConditions.addFilterValues('event.type', ['transaction']);
 
   return eventView;
 }
@@ -359,8 +354,7 @@ export function generateMobilePerformanceEventView(
 
 export function generateFrontendOtherPerformanceEventView(
   location: Location,
-  withStaticFilters: boolean,
-  useEap = false
+  withStaticFilters: boolean
 ): EventView {
   const {query} = location;
 
@@ -382,7 +376,7 @@ export function generateFrontendOtherPerformanceEventView(
   const savedQuery: NewQuery = {
     id: undefined,
     name: t('Performance'),
-    query: useEap ? 'is_transaction:true' : 'event.type:transaction',
+    query: 'event.type:transaction',
     projects: [],
     fields,
     version: 2,
@@ -405,11 +399,7 @@ export function generateFrontendOtherPerformanceEventView(
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
 
-  if (useEap) {
-    eventView.additionalConditions.addFilterValues('is_transaction', ['true']);
-  } else {
-    eventView.additionalConditions.addFilterValues('event.type', ['transaction']);
-  }
+  eventView.additionalConditions.addFilterValues('event.type', ['transaction']);
 
   return eventView;
 }
