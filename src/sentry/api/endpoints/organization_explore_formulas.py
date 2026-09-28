@@ -18,6 +18,7 @@ from rest_framework.serializers import (
 from rest_framework.serializers import Serializer as RequestSerializer
 
 from sentry import features
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
@@ -157,6 +158,8 @@ class FormulaSerializer(RequestSerializer):
 
 
 class OrganizationExploreFormulaBase(OrganizationEndpoint):
+    owner = ApiOwner.DATA_BROWSING
+
     def has_feature(self, organization: Organization, request: Request) -> bool:
         return features.has(
             "organizations:explore-saved-formulas", organization, actor=request.user
