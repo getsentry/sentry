@@ -1,8 +1,4 @@
-import {
-  mutationOptions as createMutationOptions,
-  useQuery,
-  useQueryClient,
-} from '@tanstack/react-query';
+import {mutationOptions, useQuery, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
@@ -49,7 +45,7 @@ function useAdminOption(name: string, option: FieldDef) {
     initialValue,
     disabled,
     required,
-    mutationOptions: createMutationOptions({
+    saveMutationOptions: mutationOptions({
       mutationFn: ({value}: {value: boolean | string}) =>
         fetchMutation({
           url: getApiUrl('/internal/options/'),
@@ -97,17 +93,15 @@ function getTextOptionSchema(name: string, required: boolean | undefined) {
 type OptionFieldProps = {name: string; option: FieldDef};
 
 function BooleanOptionField({name, option}: OptionFieldProps) {
-  const {definition, initialValue, disabled, required, mutationOptions} = useAdminOption(
-    name,
-    option
-  );
+  const {definition, initialValue, disabled, required, saveMutationOptions} =
+    useAdminOption(name, option);
 
   return (
     <AutoSaveForm
       name="value"
       schema={z.object({value: z.boolean()})}
       initialValue={Boolean(initialValue)}
-      mutationOptions={mutationOptions}
+      mutationOptions={saveMutationOptions}
     >
       {field => (
         <field.Layout.Row
@@ -127,17 +121,15 @@ function BooleanOptionField({name, option}: OptionFieldProps) {
 }
 
 function RadioOptionField({name, option}: OptionFieldProps) {
-  const {definition, initialValue, disabled, required, mutationOptions} = useAdminOption(
-    name,
-    option
-  );
+  const {definition, initialValue, disabled, required, saveMutationOptions} =
+    useAdminOption(name, option);
 
   return (
     <AutoSaveForm
       name="value"
       schema={z.object({value: z.string()})}
       initialValue={String(initialValue)}
-      mutationOptions={mutationOptions}
+      mutationOptions={saveMutationOptions}
     >
       {field => (
         <field.Layout.Row
@@ -165,17 +157,15 @@ function RadioOptionField({name, option}: OptionFieldProps) {
 }
 
 function TextOptionField({name, option}: OptionFieldProps) {
-  const {definition, initialValue, disabled, required, mutationOptions} = useAdminOption(
-    name,
-    option
-  );
+  const {definition, initialValue, disabled, required, saveMutationOptions} =
+    useAdminOption(name, option);
 
   return (
     <AutoSaveForm
       name="value"
       schema={z.object({value: getTextOptionSchema(name, required)})}
       initialValue={String(initialValue)}
-      mutationOptions={mutationOptions}
+      mutationOptions={saveMutationOptions}
     >
       {field => (
         <field.Layout.Row
