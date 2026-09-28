@@ -39,3 +39,7 @@ export function getPathMappingWarnings(
 
   return rows.map((row, index) => deriveWarning(row, index, rows));
 }
+
+export function hasExactDuplicate(mappings: PathMappingValue[]): boolean {
+  return getPathMappingWarnings(mappings).some(w => w?.type === 'exact');
+}

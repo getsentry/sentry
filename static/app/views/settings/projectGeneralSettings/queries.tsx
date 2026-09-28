@@ -1,5 +1,10 @@
 import {useMemo} from 'react';
-import {useInfiniteQuery, useQueries, useQuery} from '@tanstack/react-query';
+import {
+  useInfiniteQuery,
+  useQueries,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 
 import type {SelectValue} from '@sentry/scraps/select';
 
@@ -187,6 +192,19 @@ export function projectCodeMappingsOptions({
       staleTime: 30_000,
     }
   );
+}
+
+export function useInvalidateRepoQueries(
+  orgSlug: string,
+  projectSlug: string,
+  projectId: string
+) {
+  const queryClient = useQueryClient();
+  return () =>
+    Promise.all([
+      queryClient.invalidateQueries(projectRepoInfiniteOptions({orgSlug, projectSlug})),
+      queryClient.invalidateQueries(projectCodeMappingsOptions({orgSlug, projectId})),
+    ]);
 }
 
 const DUPLICATE_CODE_MAPPING_MESSAGE = 'Code path config already exists';
