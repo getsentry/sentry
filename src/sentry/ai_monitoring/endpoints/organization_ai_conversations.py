@@ -108,12 +108,6 @@ def _is_conversation_id_lookup(user_query: str) -> bool:
     return bool(_CONVERSATION_ID_LOOKUP_RE.match(user_query.strip()))
 
 
-def _build_conversation_query(base_query: str, user_query: str) -> str:
-    if user_query and user_query.strip():
-        return f"{base_query} {user_query.strip()}"
-    return base_query
-
-
 def _extract_conversation_ids(results: EAPResponse) -> list[str]:
     return [
         conv_id for row in results.get("data", []) if (conv_id := row.get("gen_ai.conversation.id"))
@@ -219,19 +213,6 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
 
         validated_data = serializer.validated_data
         user_query = validated_data.get("query", "")
-        query_string = _build_conversation_query(
-            "has:gen_ai.conversation.id has:gen_ai.operation.type", user_query
-        )
-
-        def data_fn(offset: int, limit: int) -> list[AIConversationResponse]:
-            return self._get_conversations(
-                snuba_params=snuba_params,
-                offset=offset,
-                limit=limit,
-                query_string=query_string,
-                sampling_mode=validated_data["samplingMode"],
-                sorts=validated_data["sort"],
-            )
 
         with handle_query_errors():
             resolver = Spans.get_resolver(
@@ -239,6 +220,17 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                 SearchResolverConfig(auto_fields=True, disable_aggregate_extrapolation=True),
             )
             query_string = compile_conversation_query(user_query, resolver)
+
+            def data_fn(offset: int, limit: int) -> list[AIConversationResponse]:
+                return self._get_conversations(
+                    snuba_params=snuba_params,
+                    offset=offset,
+                    limit=limit,
+                    query_string=query_string,
+                    sampling_mode=validated_data["samplingMode"],
+                    sorts=validated_data["sort"],
+                )
+
             response = self.paginate(
                 request=request,
                 paginator=GenericOffsetPaginator(data_fn=data_fn),
