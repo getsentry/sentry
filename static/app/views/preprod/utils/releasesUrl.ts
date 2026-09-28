@@ -29,3 +29,29 @@ export function makeReleasesUrl(
 
   return `/organizations/${organizationSlug}/explore/releases/?${params}`;
 }
+
+type SnapshotsListUrlParams = {
+  end?: string;
+  project?: string | string[];
+  query?: string;
+  start?: string;
+  statsPeriod?: string;
+  utc?: string;
+};
+
+export function makeSnapshotsListUrl(
+  organizationSlug: string,
+  params: SnapshotsListUrlParams = {}
+): string {
+  const searchParams = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    for (const item of Array.isArray(value) ? value : [value]) {
+      if (item) {
+        searchParams.append(key, item);
+      }
+    }
+  }
+
+  const search = searchParams.toString();
+  return `/organizations/${organizationSlug}/explore/snapshots/${search ? `?${search}` : ''}`;
+}

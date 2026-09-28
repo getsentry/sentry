@@ -867,6 +867,70 @@ describe('ReleasesList', () => {
     expect(router.location.query.tab).toBeUndefined();
   });
 
+  it('redirects the legacy snapshots tab to the snapshots page', async () => {
+    const {router} = render(<ReleasesList />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/explore/releases/`,
+          query: {
+            tab: 'snapshots',
+            query: 'app_id:com.example.app',
+            project: '1',
+            statsPeriod: '7d',
+            cursor: '0:25:0',
+          },
+        },
+      },
+    });
+
+    await waitFor(() =>
+      expect(router.location.pathname).toBe(
+        `/organizations/${organization.slug}/explore/snapshots/`
+      )
+    );
+    expect(router.location.query).toEqual(
+      expect.objectContaining({query: 'app_id:com.example.app', statsPeriod: '7d'})
+    );
+    expect(router.location.query).not.toHaveProperty('tab');
+    expect(router.location.query).not.toHaveProperty('cursor');
+  });
+
+  it('redirects mobile builds with the snapshot display to the snapshots page', async () => {
+    const {router} = render(<ReleasesList />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/explore/releases/`,
+          query: {tab: 'mobile-builds', display: PreprodBuildsDisplay.SNAPSHOT},
+        },
+      },
+    });
+
+    await waitFor(() =>
+      expect(router.location.pathname).toBe(
+        `/organizations/${organization.slug}/explore/snapshots/`
+      )
+    );
+    expect(router.location.query).not.toHaveProperty('tab');
+    expect(router.location.query).not.toHaveProperty('display');
+  });
+
+  it('does not render a snapshots tab', async () => {
+    render(<ReleasesList />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/explore/releases/`,
+          query: {},
+        },
+      },
+    });
+
+    expect(await screen.findByRole('tab', {name: 'Releases'})).toBeInTheDocument();
+    expect(screen.queryByRole('tab', {name: /Snapshots/})).not.toBeInTheDocument();
+  });
+
   it('autocompletes semver search tag', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/tags/release.version/values/`,

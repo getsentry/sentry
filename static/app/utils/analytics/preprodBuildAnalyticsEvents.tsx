@@ -18,7 +18,7 @@ type PreprodSettingsEvent = {
 export type BuildListPageSource =
   | 'preprod_builds_list'
   | 'releases_mobile_builds_tab'
-  | 'releases_snapshots_tab'
+  | 'snapshots_list'
   | 'releases_details_preprod_builds';
 
 export type PreprodBuildEventParameters = {
@@ -73,9 +73,6 @@ export type PreprodBuildEventParameters = {
   };
   'preprod.builds.release.build_row_clicked': BasePreprodBuildEvent;
   'preprod.releases.mobile-builds.tab-clicked': {
-    organization: Organization;
-  };
-  'preprod.releases.snapshots.tab-clicked': {
     organization: Organization;
   };
   'preprod.settings.pr_comment_rule_created': PreprodSettingsEvent;
@@ -166,7 +163,6 @@ export const preprodBuildEventMap: Record<PreprodBuildAnalyticsKey, string | nul
   'preprod.builds.onboarding.docs_clicked': 'Preprod Builds: Onboarding Docs Clicked',
   'preprod.releases.mobile-builds.tab-clicked':
     'Preprod Releases: Mobile Builds Tab Clicked',
-  'preprod.releases.snapshots.tab-clicked': 'Preprod Releases: Snapshots Tab Clicked',
   'preprod.snapshots.list.row_clicked': 'Preprod Snapshots: List Row Clicked',
   'preprod.snapshots.details.viewed': 'Preprod Snapshots: Details Viewed',
   'preprod.snapshots.details.approve_clicked': 'Preprod Snapshots: Approve Clicked',

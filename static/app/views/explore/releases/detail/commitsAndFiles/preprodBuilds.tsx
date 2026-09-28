@@ -13,11 +13,13 @@ import {
 } from 'sentry/components/preprod/preprodBuildsDisplay';
 import {PreprodBuildsSearchControls} from 'sentry/components/preprod/preprodBuildsSearchControls';
 import {PreprodBuildsTable} from 'sentry/components/preprod/preprodBuildsTable';
+import {Redirect} from 'sentry/components/redirect';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -28,10 +30,30 @@ import {usePreprodBuildsAnalytics} from 'sentry/views/preprod/hooks/usePreprodBu
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {buildDetailsApiOptions} from 'sentry/views/preprod/utils/buildDetailsApiOptions';
 import {getUpdatedQueryForDisplay} from 'sentry/views/preprod/utils/installableQueryUtils';
+import {makeSnapshotsListUrl} from 'sentry/views/preprod/utils/releasesUrl';
 
 import {PreprodOnboarding} from './preprodOnboarding';
 
 export default function PreprodBuilds() {
+  const organization = useOrganization();
+  const releaseContext = useContext(ReleaseContext);
+  const location = useLocation();
+
+  if (decodeScalar(location.query.display) === PreprodBuildsDisplay.SNAPSHOT) {
+    return (
+      <Redirect
+        to={makeSnapshotsListUrl(organization.slug, {
+          project: `${releaseContext.project.id}`,
+          query: decodeScalar(location.query.query),
+        })}
+      />
+    );
+  }
+
+  return <PreprodBuildsContent />;
+}
+
+function PreprodBuildsContent() {
   const organization = useOrganization();
   const releaseContext = useContext(ReleaseContext);
   const projectId = releaseContext.project.id;

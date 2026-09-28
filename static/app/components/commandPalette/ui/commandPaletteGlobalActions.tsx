@@ -426,6 +426,11 @@ export function GlobalCommandPaletteActions() {
             keywords={[t('release health')]}
             to={`${prefix}/explore/releases/`}
           />
+          <CMDKAction
+            display={{label: t('Snapshots')}}
+            keywords={[t('visual regression'), t('screenshots')]}
+            to={`${prefix}/explore/snapshots/`}
+          />
           {organization.features.includes('gen-ai-conversations') && (
             <CMDKAction
               display={{label: t('Agents')}}

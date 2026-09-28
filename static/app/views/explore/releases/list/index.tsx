@@ -21,6 +21,7 @@ import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPa
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {PreprodBuildsDisplay} from 'sentry/components/preprod/preprodBuildsDisplay';
+import {Redirect} from 'sentry/components/redirect';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import type {GetTagValues} from 'sentry/components/searchQueryBuilder';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -35,7 +36,7 @@ import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
 import {FieldKey} from 'sentry/utils/fields';
-import {decodeScalar} from 'sentry/utils/queryString';
+import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -48,12 +49,16 @@ import {
   ExploreContentSection,
 } from 'sentry/views/explore/components/styles';
 import {ReleaseArchivedNotice} from 'sentry/views/explore/releases/detail/overview/releaseArchivedNotice';
-import {MobileBuilds} from 'sentry/views/explore/releases/list/mobileBuilds';
+import {
+  getSelectedBuildProjectIds,
+  MobileBuilds,
+} from 'sentry/views/explore/releases/list/mobileBuilds';
 import {ReleaseHealthCTA} from 'sentry/views/explore/releases/list/releaseHealthCTA';
 import {ReleaseListInner} from 'sentry/views/explore/releases/list/releaseListInner';
 import {isMobileRelease} from 'sentry/views/explore/releases/utils';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {buildDetailsApiOptions} from 'sentry/views/preprod/utils/buildDetailsApiOptions';
+import {makeSnapshotsListUrl} from 'sentry/views/preprod/utils/releasesUrl';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 import {
@@ -66,7 +71,7 @@ import {ReleasesSortOptions} from './releasesSortOptions';
 import {ReleasesStatusOption, ReleasesStatusOptions} from './releasesStatusOptions';
 import {validateSummaryStatsPeriod} from './utils';
 
-type ReleaseTab = 'releases' | 'mobile-builds' | 'snapshots';
+type ReleaseTab = 'releases' | 'mobile-builds';
 
 const RELEASE_FILTER_KEYS = [
   ...Object.values(SEMVER_TAGS),
@@ -211,16 +216,10 @@ function ReleasesListInnerPage() {
     return projects?.find(p => p.id === `${selectedProjectId}`);
   }, [selection.projects, projects]);
 
-  // Get selected project IDs, handling "All Projects" case
-  const selectedProjectIds = useMemo(() => {
-    const selectedIds = selection.projects.filter(id => id !== ALL_ACCESS_PROJECTS);
-
-    // If no specific projects selected, pass [-1] to represent "all projects"
-    // This avoids expanding to hundreds of project IDs which causes URL length issues
-    return selectedIds.length === 0
-      ? [`${ALL_ACCESS_PROJECTS}`]
-      : selectedIds.map(id => `${id}`);
-  }, [selection.projects]);
+  const selectedProjectIds = useMemo(
+    () => getSelectedBuildProjectIds(selection.projects),
+    [selection.projects]
+  );
 
   const {statsPeriod, start, end, utc} = normalizeDateTimeParams(location.query);
   const buildsProbeQuery = useQuery({
@@ -384,10 +383,6 @@ function ReleasesListInnerPage() {
       trackAnalytics('preprod.releases.mobile-builds.tab-clicked', {
         organization,
       });
-    } else if (newTab === 'snapshots') {
-      trackAnalytics('preprod.releases.snapshots.tab-clicked', {
-        organization,
-      });
     }
   };
 
@@ -473,11 +468,7 @@ function ReleasesListInnerPage() {
                   {containerProps => (
                     <PageFilterBar {...containerProps} condensed>
                       <ProjectPageFilter />
-                      <EnvironmentPageFilter
-                        disabled={
-                          selectedTab === 'mobile-builds' || selectedTab === 'snapshots'
-                        }
-                      />
+                      <EnvironmentPageFilter disabled={selectedTab === 'mobile-builds'} />
                       <DatePageFilter
                         disallowArbitraryRelativeRanges
                         menuFooterMessage={t(
@@ -521,23 +512,6 @@ function ReleasesListInnerPage() {
                         <FeatureBadge type="new" />
                       </Flex>
                     </TabList.Item>
-                    <TabList.Item
-                      key="snapshots"
-                      to={{
-                        pathname: location.pathname,
-                        query: {
-                          ...location.query,
-                          query: undefined,
-                          tab: 'snapshots',
-                        },
-                      }}
-                      textValue={t('Snapshots')}
-                    >
-                      <Flex align="center" gap="sm">
-                        {t('Snapshots')}
-                        <FeatureBadge type="beta" />
-                      </Flex>
-                    </TabList.Item>
                   </TabList>
                 </Tabs>
               </Stack>
@@ -549,15 +523,6 @@ function ReleasesListInnerPage() {
                 <MobileBuilds
                   organization={organization}
                   selectedProjectIds={selectedProjectIds}
-                />
-              )}
-
-              {selectedTab === 'snapshots' && (
-                <MobileBuilds
-                  organization={organization}
-                  selectedProjectIds={selectedProjectIds}
-                  defaultDisplay={PreprodBuildsDisplay.SNAPSHOT}
-                  hideDisplayToggle
                 />
               )}
 
@@ -689,4 +654,33 @@ function ReleasesBodySearch({children}: {children: React.ReactNode}) {
   );
 }
 
-export default registerLLMContext('releases-list', ReleasesListInnerPage);
+const ReleasesListPage = registerLLMContext('releases-list', ReleasesListInnerPage);
+
+export default function ReleasesList() {
+  const organization = useOrganization();
+  const location = useLocation();
+
+  const tab = decodeScalar(location.query.tab);
+  const display = decodeScalar(location.query.display);
+  const isSnapshotsUrl =
+    tab === 'snapshots' ||
+    (tab === 'mobile-builds' && display === PreprodBuildsDisplay.SNAPSHOT);
+
+  if (isSnapshotsUrl) {
+    const {statsPeriod, start, end, utc} = location.query;
+    return (
+      <Redirect
+        to={makeSnapshotsListUrl(organization.slug, {
+          project: decodeList(location.query.project),
+          query: decodeScalar(location.query.query),
+          statsPeriod: decodeScalar(statsPeriod),
+          start: decodeScalar(start),
+          end: decodeScalar(end),
+          utc: decodeScalar(utc),
+        })}
+      />
+    );
+  }
+
+  return <ReleasesListPage />;
+}
