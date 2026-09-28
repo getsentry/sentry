@@ -2,17 +2,17 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {loadPrismLanguage} from '@sentry/scraps/code';
 
-import {HighlightedRegexPattern} from 'sentry/components/searchQueryBuilder/tokens/filter/highlightedRegexPattern';
+import {renderRegexPattern} from 'sentry/components/searchQueryBuilder/tokens/filter/highlightedRegexPattern';
 
 jest.unmock('prismjs');
 
-describe('HighlightedRegexPattern', () => {
+describe('renderRegexPattern', () => {
   beforeAll(async () => {
     await loadPrismLanguage('regex', {});
   });
 
   it('marks up anchors, character sets, and quantifiers when given a pattern', () => {
-    render(<HighlightedRegexPattern pattern="^GET /api/\d+$" />);
+    render(renderRegexPattern('^GET /api/\\d+$'));
 
     expect(screen.getByText('^')).toHaveClass('anchor');
     expect(screen.getByText('GET /api/')).toBeInTheDocument();
@@ -22,7 +22,7 @@ describe('HighlightedRegexPattern', () => {
   });
 
   it('marks up the brackets and range when given a character class', () => {
-    render(<HighlightedRegexPattern pattern="[a-z]{2,3}" />);
+    render(renderRegexPattern('[a-z]{2,3}'));
 
     expect(screen.getByText('[')).toHaveClass('char-class-punctuation');
     expect(screen.getByText('-')).toHaveClass('range-punctuation');
@@ -31,22 +31,21 @@ describe('HighlightedRegexPattern', () => {
   });
 
   it('marks up the group and keeps the text when given a half-typed pattern', () => {
-    render(<HighlightedRegexPattern pattern="(foo" />);
+    render(renderRegexPattern('(foo'));
 
     expect(screen.getByText('(')).toHaveClass('group');
     expect(screen.getByText('foo')).toBeInTheDocument();
   });
 
   it('keeps the ellipsis when given a middle-truncated pattern', () => {
-    render(<HighlightedRegexPattern pattern="^abc…xyz$" />);
+    render(renderRegexPattern('^abc…xyz$'));
 
     expect(screen.getByText('abc…xyz')).toBeInTheDocument();
   });
 
-  it('renders no token markup when given a pattern of only literals', () => {
-    render(<HighlightedRegexPattern pattern="firefox" />);
+  it('renders the text when given a pattern of only literals', () => {
+    render(renderRegexPattern('firefox'));
 
     expect(screen.getByText('firefox')).toBeInTheDocument();
-    expect(screen.queryByText('firefox', {selector: '.token'})).not.toBeInTheDocument();
   });
 });

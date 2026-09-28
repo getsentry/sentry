@@ -22,7 +22,7 @@ import {
 import {AggregateKey} from 'sentry/components/searchQueryBuilder/tokens/filter/aggregateKey';
 import {FilterKey} from 'sentry/components/searchQueryBuilder/tokens/filter/filterKey';
 import {FilterOperator} from 'sentry/components/searchQueryBuilder/tokens/filter/filterOperator';
-import {HighlightedRegexPattern} from 'sentry/components/searchQueryBuilder/tokens/filter/highlightedRegexPattern';
+import {renderRegexPattern} from 'sentry/components/searchQueryBuilder/tokens/filter/highlightedRegexPattern';
 import {UnstyledButton} from 'sentry/components/searchQueryBuilder/tokens/filter/unstyledButton';
 import {useFilterButtonProps} from 'sentry/components/searchQueryBuilder/tokens/filter/useFilterButtonProps';
 import {
@@ -107,11 +107,9 @@ function fitMiddleEllipsisToElement(
   const measureNode = document.createTextNode(value);
 
   try {
-    children.forEach(child => child.remove());
-
     // Expand to the full value first so content-sized ancestors can grow up to their
     // max-width when the window/search bar is no longer constraining them.
-    element.append(measureNode);
+    element.replaceChildren(measureNode);
     element.style.width = '';
 
     if (element.clientWidth <= 0) {
@@ -148,8 +146,7 @@ function fitMiddleEllipsisToElement(
 
     return best;
   } finally {
-    measureNode.remove();
-    element.append(...children);
+    element.replaceChildren(...children);
     element.style.width = previousWidth;
   }
 }
@@ -279,11 +276,7 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
         <TruncatedFilterDisplayValue
           value={formatFilterValue({token: token.value, valueType})}
           fallbackMaxLength={FILTER_VALUE_FALLBACK_MAX_LENGTH}
-          renderValue={
-            isRegexOperator(token.operator)
-              ? displayValue => <HighlightedRegexPattern pattern={displayValue} />
-              : undefined
-          }
+          renderValue={isRegexOperator(token.operator) ? renderRegexPattern : undefined}
         />
       );
     }

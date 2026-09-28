@@ -2,26 +2,22 @@ import styled from '@emotion/styled';
 
 import {usePrismTokens} from 'sentry/utils/usePrismTokens';
 
-/**
- * Prism tokenizes partial patterns without throwing, which keeps highlighting stable
- * while a pattern is typed and when the filter shows a middle-ellipsized fragment.
- */
-export function HighlightedRegexPattern({pattern}: {pattern: string}) {
+export const renderRegexPattern = (pattern: string) => (
+  <HighlightedRegexPattern pattern={pattern} />
+);
+
+function HighlightedRegexPattern({pattern}: {pattern: string}) {
   const [tokens] = usePrismTokens({code: pattern, language: 'regex'});
-
-  const isPlainText = tokens?.length === 1 && tokens[0]!.className === 'token';
-
-  if (!tokens?.length || isPlainText) {
-    return <PatternTokens>{pattern}</PatternTokens>;
-  }
 
   return (
     <PatternTokens>
-      {tokens.map((token, index) => (
-        <span key={index} className={token.className}>
-          {token.children}
-        </span>
-      ))}
+      {tokens?.length
+        ? tokens.map((token, index) => (
+            <span key={index} className={token.className}>
+              {token.children}
+            </span>
+          ))
+        : pattern}
     </PatternTokens>
   );
 }
@@ -33,7 +29,6 @@ const PatternTokens = styled('span')`
   .token.quantifier,
   .token.alternation,
   .token.anchor,
-  .token.backreference,
   .token.char-class-punctuation,
   .token.char-class-negation,
   .token.range-punctuation {
@@ -42,8 +37,7 @@ const PatternTokens = styled('span')`
 
   .token.char-set,
   .token.escape,
-  .token.special-escape,
-  .token.group-name {
+  .token.special-escape {
     color: ${p => p.theme.tokens.syntax.selector};
   }
 `;
