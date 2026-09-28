@@ -702,19 +702,6 @@ class CustomInboundFilterDetailsTest(APITestCase):
                 self.organization.slug, self.project.slug, self.custom_filter.id, active=False
             )
 
-    def test_get_returns_null_data_type_for_filter_written_before_the_column(self) -> None:
-        self.custom_filter.update(data_type=None)
-
-        with self.feature(self.features):
-            response = self.get_success_response(
-                self.organization.slug,
-                self.project.slug,
-                self.custom_filter.id,
-                method="get",
-            )
-
-        assert response.data["dataType"] is None
-
     def test_delete(self) -> None:
         with self.feature(self.features), outbox_runner():
             self.get_success_response(

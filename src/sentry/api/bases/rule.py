@@ -38,8 +38,8 @@ class RuleEndpoint(ProjectEndpoint):
 
 
 class WorkflowEngineRuleEndpoint(RuleEndpoint):
-    # Subclasses may set a per-method granular flag (e.g. for GET) that is OR'd
-    # with the broad workflow-engine-rule-serializers flag.
+    # GET and DELETE use Workflow Engine unconditionally. Subclasses may opt
+    # other methods in with a per-method flag.
     workflow_engine_method_flags: dict[str, str] = {}
 
     def convert_args(

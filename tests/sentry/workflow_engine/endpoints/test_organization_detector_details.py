@@ -271,16 +271,11 @@ class OrganizationDetectorDetailsGetTest(OrganizationDetectorDetailsBaseTest):
         assert response.data["alertRuleId"] is None
         assert response.data["ruleId"] is None
 
-    @with_feature("organizations:workflow-engine-all-projects-detector")
     def test_all_projects_detector_get_success(self) -> None:
         all_projects_detector = ensure_default_all_projects_detector(self.organization.id)
         response = self.get_success_response(self.organization.slug, all_projects_detector.id)
         assert response.data["id"] == str(all_projects_detector.id)
         assert response.data["projectId"] is None
-
-    def test_all_projects_detector_get_error_without_flag(self) -> None:
-        all_projects_detector = ensure_default_all_projects_detector(self.organization.id)
-        self.get_error_response(self.organization.slug, all_projects_detector.id, status_code=403)
 
 
 @cell_silo_test

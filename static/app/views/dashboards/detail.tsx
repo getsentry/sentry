@@ -793,6 +793,29 @@ class DashboardDetail extends Component<Props, State> {
     }
   };
 
+  /**
+   * A rename is its own transaction — the modal has already persisted it for a
+   * saved dashboard. What is left is catching up the copies held in memory.
+   *
+   * `modifiedDashboard` is the draft an edit session saves wholesale on "Save
+   * and Finish", so leaving its title stale there would quietly undo a rename
+   * made mid-edit. Only the title is patched; pending widget edits stay.
+   */
+  onRename = (newTitle: string) => {
+    const {dashboard} = this.props;
+    const {modifiedDashboard} = this.state;
+
+    if (modifiedDashboard) {
+      this.setState({modifiedDashboard: {...modifiedDashboard, title: newTitle}});
+    }
+
+    // An unsaved dashboard has nothing to write back to; its title reaches the
+    // server with the create request.
+    if (dashboard.id) {
+      this.props.onDashboardUpdate?.({...dashboard, title: newTitle});
+    }
+  };
+
   /* Handles POST request for Edit Access Selector Changes */
   onChangeEditAccess = (newDashboardPermissions: DashboardPermissions) => {
     const {dashboard, api, organization} = this.props;
@@ -1170,14 +1193,9 @@ class DashboardDetail extends Component<Props, State> {
               <TopBar.Slot name="title">
                 <DashboardBreadcrumbTitle
                   dashboard={modifiedDashboard ?? dashboard}
-                  isEditing={this.isEditingDashboard}
                   isPreview={this.isPreview}
-                  onChange={newTitle =>
-                    this.setModifiedDashboard({
-                      ...(modifiedDashboard ?? dashboard),
-                      title: newTitle,
-                    })
-                  }
+                  onDelete={this.onDelete(dashboard)}
+                  onRename={this.onRename}
                   onChangeEditAccess={this.onChangeEditAccess}
                 />
               </TopBar.Slot>
@@ -1304,7 +1322,6 @@ class DashboardDetail extends Component<Props, State> {
                       onCancel={this.onCancel}
                       onCommit={this.onCommit}
                       onAddWidget={this.onAddWidget}
-                      onDelete={this.onDelete(dashboard)}
                       dashboardState={dashboardState}
                       widgetLimitReached={widgetLimitReached}
                       isSaving={isCommittingChanges}

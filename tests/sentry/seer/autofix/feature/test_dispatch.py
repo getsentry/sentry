@@ -41,7 +41,7 @@ class TestTriggerAutofixFeature(TestCase):
             run = trigger_autofix_feature(
                 self.group,
                 AutofixFeatureArgs(
-                    referrer=AutofixReferrer.NIGHT_SHIFT,
+                    referrer=AutofixReferrer.AGENTIC_TRIAGE,
                     step=AutofixStep.ROOT_CAUSE,
                     existing_run_id=123,
                     insert_index=4,
@@ -106,7 +106,7 @@ class TestTriggerAutofixFeature(TestCase):
             "module_path": AutofixOnCompletionHook.get_module_path(),
             "call_on_failure": True,
         }
-        assert run_kwargs["referrer"] == AutofixReferrer.NIGHT_SHIFT.value
+        assert run_kwargs["referrer"] == AutofixReferrer.AGENTIC_TRIAGE.value
         assert run_kwargs["proxy_headers"] == {"X-Viewer-Context": "signed-viewer-context"}
         mock_get_proxy_headers.assert_called_once_with()
 
@@ -127,7 +127,7 @@ class TestTriggerAutofixFeature(TestCase):
             run = trigger_autofix_feature(
                 self.group,
                 AutofixFeatureArgs(
-                    referrer=AutofixReferrer.NIGHT_SHIFT,
+                    referrer=AutofixReferrer.AGENTIC_TRIAGE,
                     step=AutofixStep.ROOT_CAUSE,
                     step_args=RCAStepArgs(),
                     stopping_point=AutofixStoppingPoint.OPEN_PR,
@@ -151,7 +151,7 @@ class TestTriggerAutofixFeature(TestCase):
         )
         assert start_kwargs["flush"] is True
         assert start_kwargs["extras"] == {
-            "referrer": AutofixReferrer.NIGHT_SHIFT.value,
+            "referrer": AutofixReferrer.AGENTIC_TRIAGE.value,
             "stopping_point": AutofixStoppingPoint.OPEN_PR.value,
         }
 
@@ -166,7 +166,7 @@ class TestTriggerAutofixFeature(TestCase):
                 trigger_autofix_feature(
                     self.group,
                     AutofixFeatureArgs(
-                        referrer=AutofixReferrer.NIGHT_SHIFT,
+                        referrer=AutofixReferrer.AGENTIC_TRIAGE,
                         step=AutofixStep.ROOT_CAUSE,
                         step_args=RCAStepArgs(),
                     ),
@@ -188,7 +188,7 @@ class TestTriggerAutofixFeature(TestCase):
             run = trigger_autofix_feature(
                 self.group,
                 AutofixFeatureArgs(
-                    referrer=AutofixReferrer.NIGHT_SHIFT,
+                    referrer=AutofixReferrer.AGENTIC_TRIAGE,
                     step=AutofixStep.ROOT_CAUSE,
                     step_args=RCAStepArgs(),
                     allow_free_cohort=True,
@@ -212,7 +212,7 @@ class TestTriggerAutofixFeature(TestCase):
             trigger_autofix_feature(
                 self.group,
                 AutofixFeatureArgs(
-                    referrer=AutofixReferrer.NIGHT_SHIFT,
+                    referrer=AutofixReferrer.AGENTIC_TRIAGE,
                     step=AutofixStep.ROOT_CAUSE,
                     step_args=RCAStepArgs(),
                     flush=False,
@@ -235,7 +235,7 @@ class TestTriggerAutofixFeature(TestCase):
             trigger_autofix_feature(
                 self.group,
                 AutofixFeatureArgs(
-                    referrer=AutofixReferrer.NIGHT_SHIFT,
+                    referrer=AutofixReferrer.AGENTIC_TRIAGE,
                     step=AutofixStep.ROOT_CAUSE,
                     step_args=RCAStepArgs(),
                     user=user,
