@@ -445,10 +445,10 @@ function getCostBreakdowns(
   usageByModel: ConversationModelUsage[]
 ): CostBreakdownDetails[] {
   return usageByModel.map(usage => ({
-    input: usage.inputCost,
+    inputCost: usage.inputCost,
     model: usage.model ?? t('Unknown model'),
-    output: usage.outputCost,
-    total: usage.totalCost,
+    outputCost: usage.outputCost,
+    totalCost: usage.totalCost,
   }));
 }
 

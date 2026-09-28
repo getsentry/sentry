@@ -9,9 +9,9 @@ import {formatLLMCosts} from 'sentry/views/insights/pages/agents/utils/formatLLM
 import {ModelName} from './modelName';
 
 export interface CostBreakdownDetails {
-  input: number;
-  output: number;
-  total: number;
+  inputCost: number;
+  outputCost: number;
+  totalCost: number;
   model?: string;
 }
 
@@ -55,11 +55,11 @@ export function CostBreakdownTooltip({breakdowns}: {breakdowns: CostBreakdownDet
           {breakdown.model && <ModelName modelId={breakdown.model} size={14} gap="sm" />}
           <BreakdownGrid>
             <span>{t('Input cost')}</span>
-            <span>{formatLLMCosts(breakdown.input)}</span>
+            <span>{formatLLMCosts(breakdown.inputCost)}</span>
             <span>{t('Output cost')}</span>
-            <span>{formatLLMCosts(breakdown.output)}</span>
+            <span>{formatLLMCosts(breakdown.outputCost)}</span>
             <span>{t('Total cost')}</span>
-            <span>{formatLLMCosts(breakdown.total)}</span>
+            <span>{formatLLMCosts(breakdown.totalCost)}</span>
           </BreakdownGrid>
         </BreakdownGroup>
       ))}
