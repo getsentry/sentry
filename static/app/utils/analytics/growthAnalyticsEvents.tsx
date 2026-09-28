@@ -95,7 +95,6 @@ export type GrowthEventParameters = {
   'growth.metric_alert_preset_use_template': {
     preset: string;
   };
-  'growth.onboarding_clicked_skip': {source?: string};
   'growth.onboarding_load_choose_platform': Record<string, unknown>;
   'growth.onboarding_quick_start_cta': SampleEventParam;
   'growth.onboarding_take_to_error': {
@@ -175,7 +174,6 @@ export const growthEventMap: Record<GrowthAnalyticsKey, string | null> = {
   'growth.metric_alert_preset_use_template': 'Growth: Metric Alert Preset Use Template',
   'growth.metric_alert_preset_sidebar_clicked':
     'Growth: Metric Alert Preset Sidebar Clicked',
-  'growth.onboarding_clicked_skip': 'Growth: Onboarding Clicked Skip',
   'growth.onboarding_take_to_error': 'Growth: Onboarding Take to Error',
   'growth.onboarding_view_full_docs': 'Growth: Onboarding View Full Docs',
   'growth.onboarding_view_sample_event': 'Growth: Onboarding View Sample Event',
