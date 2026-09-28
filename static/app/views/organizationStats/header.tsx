@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import {Container} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
 import {t} from 'sentry/locale';
@@ -22,7 +22,7 @@ export function StatsHeader({organization, activeTab}: Props) {
           'A view of the usage data that Sentry has received across your entire organization.'
         )}
       />
-      <Container borderBottom="primary" marginBottom="xl">
+      <Stack borderBottom="primary" marginBottom="xl">
         <Tabs value={activeTab}>
           <TabList>
             <TabList.Item
@@ -54,7 +54,7 @@ export function StatsHeader({organization, activeTab}: Props) {
             </TabList.Item>
           </TabList>
         </Tabs>
-      </Container>
+      </Stack>
     </Fragment>
   );
 }
