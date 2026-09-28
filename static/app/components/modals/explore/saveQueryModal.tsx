@@ -26,6 +26,7 @@ export type SaveQueryModalProps = {
   saveQuery: (variables: {name: string; starred?: boolean}) => Promise<{id: string}>;
   traceItemDataset: TraceItemDataset;
   name?: string;
+  showMessage?: boolean;
   source?: 'toolbar' | 'table' | 'conversations' | 'explorer' | 'errors';
 };
 
@@ -40,6 +41,7 @@ function SaveQueryModal({
   name: initialName,
   source,
   traceItemDataset,
+  showMessage = true,
 }: Props) {
   const organization = useOrganization();
 
@@ -60,7 +62,9 @@ function SaveQueryModal({
       if (initialName === undefined && source !== 'errors') {
         setQueryParamsSavedQuery(id, name);
       }
-      addSuccessMessage(t('Query saved successfully'));
+      if (showMessage) {
+        addSuccessMessage(t('Query saved successfully'));
+      }
       if (defined(source)) {
         if (source === 'conversations') {
           trackAnalytics('conversations.save_query_modal', {
@@ -94,7 +98,9 @@ function SaveQueryModal({
       }
       closeModal();
     } catch (error) {
-      addErrorMessage(t('Failed to save query'));
+      if (showMessage) {
+        addErrorMessage(t('Failed to save query'));
+      }
       Sentry.captureException(error);
     } finally {
       setIsSaving(false);

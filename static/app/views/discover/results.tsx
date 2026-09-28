@@ -1324,8 +1324,7 @@ function SaveQueryButton({
       organization,
       nextEventView,
       yAxis,
-      !eventView.id,
-      false
+      !eventView.id
     );
     if (starred) {
       try {
