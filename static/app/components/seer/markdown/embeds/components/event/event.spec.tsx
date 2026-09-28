@@ -74,10 +74,7 @@ describe('Seer event embed', () => {
 
     renderEventEmbed();
 
-    // The first block render in this file pays for lazy-loading `eventBlock`.
-    expect(
-      await screen.findByText('ReferenceError', {}, {timeout: 10_000})
-    ).toBeInTheDocument();
+    expect(await screen.findByText('ReferenceError')).toBeInTheDocument();
     expect(screen.getByText('totals is not defined')).toBeInTheDocument();
     expect(screen.getByText('app/checkout in renderTotals')).toBeInTheDocument();
     // `HighlightsIconSummary` renders without a `group`, off `event.projectSlug`.
