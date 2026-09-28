@@ -105,6 +105,17 @@ def _get_cache_key(project_id: int, group_id: int, first: bool) -> str:
 
 
 class ReleaseModelManager(BaseManager["Release"]):
+    def get_latest_release(self, project: Project, *, use_finalized_order: bool) -> Release | None:
+        """Return the latest eligible date-based resolution anchor for a project."""
+        date_field = "release_order" if use_finalized_order else "date_added"
+        return (
+            self.filter(projects=project, organization_id=project.organization_id)
+            .filter(Q(status=ReleaseStatus.OPEN) | Q(status__isnull=True))
+            .alias(release_order=Coalesce("date_released", "date_added"))
+            .order_by(f"-{date_field}", "-id")
+            .first()
+        )
+
     def get_next_release(
         self, project: Project, current_release: Release, *, use_finalized_order: bool
     ) -> Release:

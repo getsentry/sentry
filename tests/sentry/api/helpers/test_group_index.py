@@ -5,6 +5,8 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from django.http import QueryDict
+from django.test import RequestFactory
+from rest_framework import serializers
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.request import Request
 
@@ -52,11 +54,12 @@ from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.release import ReleaseStatus
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.snuba.referrer import Referrer
+from sentry.tasks.clear_expired_resolutions import clear_expired_resolutions
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.action_log import action_log_activity_enabled
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
-from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.features import Feature, with_feature
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
@@ -103,6 +106,56 @@ def test_resolution_anchor_uses_latest_eligible_observation(
     # The general history cache must retain the archived latest observation,
     # rather than the eligible release chosen for resolution.
     assert default_group.get_last_release() == archived.version
+
+
+@django_db_all
+@pytest.mark.parametrize(
+    "finalized_order, expected_version", [(False, "latest-created"), (True, "latest-finalized")]
+)
+@pytest.mark.parametrize(
+    "data",
+    [
+        {"status": "resolvedInNextRelease"},
+        {"status": "resolved", "statusDetails": {"inNextRelease": True}},
+    ],
+    ids=["shorthand", "status-details"],
+)
+def test_project_anchor_request_formats(
+    factories: Factories,
+    default_group: Group,
+    finalized_order: bool,
+    expected_version: str,
+    data: dict[str, Any],
+) -> None:
+    now = datetime.now(UTC)
+    project = default_group.project
+    latest_finalized = factories.create_release(
+        project=project,
+        version="latest-finalized",
+        date_added=now - timedelta(days=3),
+        date_released=now - timedelta(days=1),
+    )
+    latest_created = factories.create_release(
+        project=project, version="latest-created", date_added=now - timedelta(days=2)
+    )
+    # No issue observations: the project still provides the resolution anchor.
+    http_request = RequestFactory().put("/")
+    http_request.user = factories.create_user()
+    request = _wrap_request(http_request, data=data)
+    with Feature(
+        {
+            "organizations:release-resolution-project-anchor": True,
+            "organizations:release-resolution-finalized-order": finalized_order,
+        }
+    ):
+        update_groups(request, [default_group])
+        resolution = GroupResolution.objects.get(group=default_group)
+        assert resolution.release.version == expected_version
+        assert resolution.current_release_version == expected_version
+        assert resolution.type == GroupResolution.Type.in_next_release
+        assert resolution.status == GroupResolution.Status.pending
+        assert GroupResolution.has_resolution(default_group, latest_finalized)
+        assert GroupResolution.has_resolution(default_group, latest_created)
 
 
 class ValidateSearchFilterPermissionsTest(TestCase):
@@ -196,6 +249,128 @@ class GetSearchReferrerTest(TestCase):
 
 
 class UpdateGroupsTest(TestCase):
+    @with_feature("organizations:release-resolution-project-anchor")
+    @with_feature("organizations:release-resolution-finalized-order")
+    def test_next_release_waits_after_project_latest_until_finalization(self) -> None:
+        now = datetime.now(UTC)
+        observed = self.create_release(version="observed", date_added=now - timedelta(days=6))
+        earlier_tie = self.create_release(version="earlier-tie", date_added=now - timedelta(days=4))
+        anchor = self.create_release(
+            version="project-latest",
+            date_added=now - timedelta(days=5),
+            date_released=earlier_tie.date_added,
+        )
+        late_old_build = self.create_release(
+            version="late-old-build",
+            date_added=now - timedelta(days=1),
+            date_released=now - timedelta(days=8),
+        )
+        upcoming = self.create_release(version="upcoming", date_added=now - timedelta(days=7))
+        archived = self.create_release(version="app@999.9+999.9", status=ReleaseStatus.ARCHIVED)
+        self.create_release(project=self.create_project(), version="other-project")
+        group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
+        self.create_group_release(group=group, release=observed).update(
+            last_seen=now - timedelta(hours=1)
+        )
+        self.create_group_release(group=group, release=archived)
+        # Re-resolving must replace the old archived anchor, without rewriting history.
+        self.create_group_resolution(
+            group=group,
+            release=archived,
+            current_release_version=archived.version,
+            type=GroupResolution.Type.in_release,
+            status=GroupResolution.Status.resolved,
+        )
+        request = _wrap_request(
+            self.make_request(user=self.user),
+            data={"status": "resolved", "statusDetails": {"inNextRelease": True}},
+        )
+
+        response = update_groups(request, [group])
+
+        group.refresh_from_db()
+        resolution = GroupResolution.objects.get(group=group)
+        assert response.data["statusDetails"]["inNextRelease"] is True
+        assert serialize(group, self.user, GroupSerializer())["statusDetails"]["inNextRelease"]
+        assert resolution.release_id == anchor.id
+        assert resolution.current_release_version == anchor.version
+        assert resolution.type == GroupResolution.Type.in_next_release
+        assert resolution.status == GroupResolution.Status.pending
+        assert group.get_last_release() == archived.version
+        assert GroupResolution.has_resolution(group, observed)
+        assert GroupResolution.has_resolution(group, earlier_tie)
+        assert GroupResolution.has_resolution(group, anchor)
+        assert GroupResolution.has_resolution(group, late_old_build)
+
+        # Old and archived releases cannot prematurely complete the resolution.
+        clear_expired_resolutions(late_old_build.id)
+        clear_expired_resolutions(archived.id)
+        resolution.refresh_from_db()
+        assert resolution.status == GroupResolution.Status.pending
+
+        with (
+            patch(
+                "sentry.receivers.releases.clear_expired_resolutions.delay",
+                side_effect=clear_expired_resolutions,
+            ),
+            self.capture_on_commit_callbacks(execute=True),
+        ):
+            upcoming.update(date_released=now)
+
+        resolution.refresh_from_db()
+        assert resolution.release_id == upcoming.id
+        assert resolution.current_release_version == anchor.version
+        assert resolution.type == GroupResolution.Type.in_release
+        assert resolution.status == GroupResolution.Status.resolved
+        assert (
+            serialize(group, self.user, GroupSerializer())["statusDetails"]["inRelease"]
+            == upcoming.version
+        )
+        activity = Activity.objects.get(group=group, ident=resolution.id)
+        assert activity.data["version"] == upcoming.version
+        assert GroupResolution.has_resolution(group, anchor)
+        assert not GroupResolution.has_resolution(group, upcoming)
+
+    @with_feature("organizations:release-resolution-project-anchor")
+    @with_feature("organizations:release-resolution-finalized-order")
+    def test_project_anchor_preserves_semver_resolution(self) -> None:
+        now = datetime.now(UTC)
+        highest = self.create_release(version="app@3.0.0", date_added=now - timedelta(days=2))
+        observed = self.create_release(version="app@2.0.0", date_added=now - timedelta(days=1))
+        self.create_release(version="app@999.9+999.9", status=ReleaseStatus.ARCHIVED)
+        group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
+        self.create_group_release(group=group, release=observed)
+        request = _wrap_request(
+            self.make_request(user=self.user),
+            data={"status": "resolved", "statusDetails": {"inNextRelease": True}},
+        )
+        update_groups(request, [group])
+        resolution = GroupResolution.objects.get(group=group)
+        assert resolution.release_id == highest.id
+        assert resolution.current_release_version == highest.version
+        assert resolution.status == GroupResolution.Status.resolved
+        assert resolution.type == GroupResolution.Type.in_release
+        activity = Activity.objects.get(group=group, ident=resolution.id)
+        assert activity.data["current_release_version"] == highest.version
+        assert GroupResolution.has_resolution(group, highest)
+        assert GroupResolution.has_resolution(group, observed)
+        newer = self.create_release(version="app@4.0.0")
+        assert not GroupResolution.has_resolution(group, newer)
+
+    @with_feature("organizations:release-resolution-project-anchor")
+    def test_next_release_rejects_only_archived_releases(self) -> None:
+        self.create_release(version="archived", status=ReleaseStatus.ARCHIVED)
+        group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
+        request = _wrap_request(
+            self.make_request(user=self.user),
+            data={"status": "resolved", "statusDetails": {"inNextRelease": True}},
+        )
+        with pytest.raises(serializers.ValidationError, match="No release data"):
+            update_groups(request, [group])
+        group.refresh_from_db()
+        assert group.status == GroupStatus.UNRESOLVED
+        assert not GroupResolution.objects.filter(group=group).exists()
+
     @patch("sentry.signals.issue_unresolved.send_robust")
     @patch("sentry.signals.issue_ignored.send_robust")
     def test_unresolving_resolved_group(self, send_robust: Mock, send_unresolved: Mock) -> None:

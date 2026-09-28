@@ -3,6 +3,7 @@ from typing import NotRequired, TypedDict
 from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
 
+from sentry import features
 from sentry.api.helpers.group_index.validators.in_commit import InCommitResult, InCommitValidator
 from sentry.models.release import Release
 
@@ -81,6 +82,18 @@ class StatusDetailsValidator(serializers.Serializer[StatusDetailsResult]):
 
     def validate_inNextRelease(self, value: bool) -> "Release":
         project = self.context["project"]
+        if features.has("organizations:release-resolution-project-anchor", project.organization):
+            release = Release.objects.get_latest_release(
+                project,
+                use_finalized_order=features.has(
+                    "organizations:release-resolution-finalized-order", project.organization
+                ),
+            )
+            if release is None:
+                raise serializers.ValidationError(
+                    "No release data present in the system to form a basis for 'Next Release'"
+                )
+            return release
         try:
             return (
                 Release.objects.filter(projects=project, organization_id=project.organization_id)
