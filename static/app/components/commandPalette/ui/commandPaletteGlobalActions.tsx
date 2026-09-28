@@ -405,6 +405,7 @@ export function GlobalCommandPaletteActions() {
             display={{
               label: getDiscoverDeprecation(organization) ? t('Errors') : t('Discover'),
             }}
+            keywords={[t('discover')]}
             to={
               getDiscoverDeprecation(organization)
                 ? `${prefix}/explore/errors/homepage/`
