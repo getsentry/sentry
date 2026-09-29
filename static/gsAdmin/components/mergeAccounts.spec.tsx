@@ -34,7 +34,10 @@ describe('MergeAccountsModal', () => {
     renderGlobalModal();
 
     await userEvent.click(
-      await screen.findByRole('checkbox', {name: 'user@example.com'})
+      await screen.findByRole('textbox', {name: 'Accounts to merge'})
+    );
+    await userEvent.click(
+      await screen.findByRole('menuitemcheckbox', {name: 'user@example.com'})
     );
     await userEvent.click(screen.getByRole('button', {name: 'Merge Account(s)'}));
 
@@ -46,32 +49,42 @@ describe('MergeAccountsModal', () => {
     });
   });
 
-  it('adds a user selected from search to the account list', async () => {
-    const account = UserFixture({id: '2', username: 'user@example.com'});
+  it('merges multiple users selected from suggestions and search', async () => {
+    const suggestedAccount = UserFixture({id: '2', username: 'suggested@example.com'});
+    const searchedAccount = UserFixture({id: '3', username: 'searched@example.com'});
     MockApiClient.addMockResponse({
       url: '/users/1/merge-accounts/',
-      body: {users: []},
+      body: {users: [suggestedAccount]},
     });
     MockApiClient.addMockResponse({
       url: '/users/',
-      body: [account],
+      body: [searchedAccount],
+    });
+    const mergeRequest = MockApiClient.addMockResponse({
+      url: '/users/1/merge-accounts/',
+      method: 'POST',
+      body: {},
     });
 
     openModal(deps => <MergeAccountsModal {...deps} userId="1" onAction={jest.fn()} />);
     renderGlobalModal();
 
-    await userEvent.click(await screen.findByRole('button', {name: 'Add another user'}));
-    await userEvent.type(
-      screen.getByRole('textbox', {name: 'Search users'}),
-      'user@example.com'
-    );
+    const input = await screen.findByRole('textbox', {name: 'Accounts to merge'});
+    await userEvent.click(input);
     await userEvent.click(
-      await screen.findByRole('menuitemradio', {name: 'user@example.com'})
+      await screen.findByRole('menuitemcheckbox', {name: 'suggested@example.com'})
     );
+    await userEvent.type(input, 'searched@example.com');
+    await userEvent.click(
+      await screen.findByRole('menuitemcheckbox', {name: 'searched@example.com'})
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Merge Account(s)'}));
 
-    expect(
-      await screen.findByRole('checkbox', {name: 'user@example.com'})
-    ).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Add another user'})).toBeInTheDocument();
+    await waitFor(() => {
+      expect(mergeRequest).toHaveBeenCalledWith(
+        '/users/1/merge-accounts/',
+        expect.objectContaining({method: 'POST', data: {users: ['2', '3']}})
+      );
+    });
   });
 });
