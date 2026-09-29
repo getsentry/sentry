@@ -425,7 +425,7 @@ class AuthRegisterEndpointTest(APITestCase):
         )
 
     @patch.object(User, "send_confirm_emails")
-    def test_accepts_pending_invite(self, send_confirm_emails: MagicMock) -> None:
+    def test_preserves_pending_invite(self, send_confirm_emails: MagicMock) -> None:
         organization = self.create_organization(slug="invited-org")
         invite = self.create_member(
             email="new.user@example.com",
@@ -433,10 +433,12 @@ class AuthRegisterEndpointTest(APITestCase):
             token_expires_at=timezone.now() + timedelta(hours=24),
             organization_id=organization.id,
         )
+        invite_path = f"/accept/{organization.slug}/{invite.id}/{invite.token}/"
         self.session["can_register"] = True
         self.session["invite_token"] = invite.token
         self.session["invite_member_id"] = invite.id
         self.session["invite_organization_id"] = invite.organization_id
+        self.session["_next"] = invite_path
         self.save_session()
 
         response = self.get_response(
@@ -448,15 +450,13 @@ class AuthRegisterEndpointTest(APITestCase):
         assert response.status_code == 200
         user = User.objects.get(username="new.user@example.com")
         invite.refresh_from_db()
-        assert invite.user_id == user.id
-        assert invite.token is None
-        assert self.client.session["activeorg"] == organization.slug
-        assert "invite_token" not in self.client.session
-        assert "invite_member_id" not in self.client.session
-        assert "invite_organization_id" not in self.client.session
-        assert urlparse(response.data["nextUri"]).path == (
-            f"/organizations/{organization.slug}/issues/"
-        )
+        assert invite.user_id is None
+        assert invite.token == "abcdef"
+        assert self.client.session["_auth_user_id"] == str(user.id)
+        assert self.client.session["invite_token"] == invite.token
+        assert self.client.session["invite_member_id"] == invite.id
+        assert self.client.session["invite_organization_id"] == invite.organization_id
+        assert response.data["nextUri"] == invite_path
 
     def test_duplicate_created_during_registration_returns_validation_error(self) -> None:
         with (

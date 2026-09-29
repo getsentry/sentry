@@ -176,7 +176,14 @@ export type Plan = {
   trialPlan: string | null;
   userSelectable: boolean;
   categoryDisplayNames?: Partial<
-    Record<DataCategory | string, {plural: string; singular: string}>
+    Record<
+      DataCategory | string,
+      {
+        plural: string;
+        singular: string;
+        unitType?: 'microCents';
+      }
+    >
   >;
 };
 

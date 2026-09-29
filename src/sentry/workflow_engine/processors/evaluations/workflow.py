@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+from abc import abstractmethod
 from collections.abc import Sequence
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from enum import StrEnum
-from typing import TYPE_CHECKING, TypedDict
+from typing import TYPE_CHECKING, Protocol, TypedDict
 
 from sentry.services.eventstore.models import GroupEvent
 from sentry.workflow_engine.types import (
@@ -167,8 +168,19 @@ class WorkflowEvaluation(
         )
 
 
+class WorkflowEvaluationBatch(Protocol):
+    @property
+    def evaluation_phase(self) -> EvaluationPhase: ...
+
+    @abstractmethod
+    def evaluated_workflow_ids(self) -> set[WorkflowId]: ...
+
+    @abstractmethod
+    def evaluation_artifacts(self) -> tuple[WorkflowEvaluationArtifact, ...]: ...
+
+
 @dataclass(frozen=True, kw_only=True)
-class ProcessWorkflowsResult:
+class ProcessWorkflowsResult(WorkflowEvaluationBatch):
     detector_id: int | None = None
     detector_type: str | None = None
     evaluations: dict[WorkflowId, WorkflowEvaluation]
@@ -184,24 +196,12 @@ class ProcessWorkflowsResult:
             for evaluation in self.evaluations.values()
         )
 
+    @property
+    def evaluation_phase(self) -> EvaluationPhase:
+        return EvaluationPhase.INITIAL
+
     def evaluated_workflow_ids(self) -> set[WorkflowId]:
         return set(self.evaluations)
 
-    def to_artifact(self) -> dict[str, object]:
-        return {
-            "detector_id": self.detector_id,
-            "detector_type": self.detector_type,
-            "error": None,
-            "evaluation_phase": EvaluationPhase.INITIAL,
-            "evaluation_type": EvaluationType.WORKFLOW,
-            "event_id": self.event_id,
-            "group_id": self.group_id,
-            "outcome": self.outcome,
-            "project_id": self.project_id,
-        }
-
-    def evaluation_artifacts(self) -> list[dict[str, object]]:
-        if not self.evaluations:
-            return [self.to_artifact()]
-
-        return [asdict(evaluation.to_artifact()) for evaluation in self.evaluations.values()]
+    def evaluation_artifacts(self) -> tuple[WorkflowEvaluationArtifact, ...]:
+        return tuple(evaluation.to_artifact() for evaluation in self.evaluations.values())

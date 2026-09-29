@@ -69,14 +69,20 @@ const mapCronDetectorFormErrors = (error: unknown) => {
   return error;
 };
 
-function CronDetectorForm({detector}: {detector?: CronDetector}) {
+function CronDetectorForm({
+  detector,
+  isDuplicate = false,
+}: {
+  detector?: CronDetector;
+  isDuplicate?: boolean;
+}) {
   const dataSource = detector?.dataSources[0];
   const theme = useTheme();
   const showingPlatformGuide = useIsShowingPlatformGuide();
 
   return (
     <Stack gap="2xl" maxWidth={theme.breakpoints.xl}>
-      {!detector && <InstrumentationGuide />}
+      {!detector && !isDuplicate && <InstrumentationGuide />}
       <Stack
         data-test-id="form-sections"
         style={showingPlatformGuide ? {display: 'none'} : undefined}
@@ -98,16 +104,22 @@ function CronDetectorForm({detector}: {detector?: CronDetector}) {
   );
 }
 
-export function NewCronDetectorForm() {
+export function NewCronDetectorForm({
+  duplicateDetector,
+}: {
+  duplicateDetector?: CronDetector;
+}) {
   const showingPlatformGuide = useIsShowingPlatformGuide();
 
   return (
     <NewDetectorLayout
       detectorType="monitor_check_in_failure"
       formDataToEndpointPayload={cronFormDataToEndpointPayload}
-      initialFormData={{
-        scheduleType: CRON_DEFAULT_SCHEDULE_TYPE,
-      }}
+      initialFormData={
+        duplicateDetector
+          ? cronSavedDetectorToFormData(duplicateDetector)
+          : {scheduleType: CRON_DEFAULT_SCHEDULE_TYPE}
+      }
       mapFormErrors={mapCronDetectorFormErrors}
       disabledCreate={
         showingPlatformGuide
@@ -117,7 +129,7 @@ export function NewCronDetectorForm() {
           : undefined
       }
     >
-      <CronDetectorForm />
+      <CronDetectorForm isDuplicate={Boolean(duplicateDetector)} />
     </NewDetectorLayout>
   );
 }

@@ -1275,6 +1275,7 @@ class PullRequestEventWebhook(GitHubWebhook):
                         "state": state,
                         "draft": draft,
                         "external_id": pull_request["id"],
+                        "external_id_str": str(pull_request["id"]),
                     },
                     event_state=state,
                     event_updated_at=provider_updated_at,
@@ -1523,9 +1524,9 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
                     github_delivery_id=github_delivery_id,
                 )
 
-        # Publish the request to the unified SCM (source control management) subscription's
-        # platform. This is a replacement for the handlers defined above. Handlers should be
-        # defined as consumers of the SCM subscriptions Kafka topic.
+        # Publish the request to the unified SCM event stream, which normalizes the event
+        # and dispatches a Taskbroker task for each registered listener. New handlers should
+        # register with scm_event_stream and be imported in sentry/scm/stream.py.
         #
         # NOTE: Publication of the event assumes the event has been properly authorized (as it has
         #       been above).

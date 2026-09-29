@@ -20,7 +20,7 @@ jest.mock('sentry/utils/analytics');
 // The agent is only reachable when the Explorer is, so code mode needs the
 // Explorer's own prerequisites on top of its flag.
 const codeModeOrganization = OrganizationFixture({
-  features: ['seer-explorer-code-mode-tools', 'seer-explorer', 'gen-ai-features'],
+  features: ['seer-explorer-code-mode-tools', 'seer-explorer'],
   openMembership: true,
   hideAiFeatures: false,
 });
