@@ -6,7 +6,6 @@ import type {WidgetSeries} from 'sentry/views/dashboards/utils/transformTimeSeri
 
 type SeriesDifference = {
   reason: 'unmatchedSeries' | 'length' | 'timestamp' | 'value' | 'other';
-  seriesName?: string;
 };
 
 function normalizeSeries(series: WidgetSeries[]) {
@@ -32,12 +31,12 @@ export function findSeriesDifferences(
     unmatchedTimeSeries.delete(seriesName);
 
     if (!matchingTimeSeries) {
-      differences.push({seriesName, reason: 'unmatchedSeries'});
+      differences.push({reason: 'unmatchedSeries'});
     } else if (matchingTimeSeries.data.length === data.length) {
       const buckets = data.map((item, i) => [item, matchingTimeSeries.data[i]!] as const);
 
       if (buckets.some(([item, matchingItem]) => item.name !== matchingItem.name)) {
-        differences.push({seriesName, reason: 'timestamp'});
+        differences.push({reason: 'timestamp'});
       } else if (
         // Skip the first and last buckets since their values are the most volatile
         buckets
@@ -47,15 +46,15 @@ export function findSeriesDifferences(
               !areNumbersAlmostEqual(item.value, matchingItem.value)
           )
       ) {
-        differences.push({seriesName, reason: 'value'});
+        differences.push({reason: 'value'});
       }
     } else {
-      differences.push({seriesName, reason: 'length'});
+      differences.push({reason: 'length'});
     }
   }
 
-  for (const seriesName of unmatchedTimeSeries.keys()) {
-    differences.push({seriesName, reason: 'unmatchedSeries'});
+  for (const _seriesName of unmatchedTimeSeries.keys()) {
+    differences.push({reason: 'unmatchedSeries'});
   }
 
   // Fallback for anything the checks above don't look for

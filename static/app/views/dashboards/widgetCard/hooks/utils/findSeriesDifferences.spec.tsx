@@ -37,10 +37,10 @@ describe('findSeriesDifferences', () => {
         ]
       )
     ).toEqual([
-      {seriesName: 'count()', reason: 'value'},
-      {seriesName: 'p50(span.duration)', reason: 'length'},
-      {seriesName: 'chrome : count()', reason: 'unmatchedSeries'},
-      {seriesName: 'Chrome : count()', reason: 'unmatchedSeries'},
+      {reason: 'value'},
+      {reason: 'length'},
+      {reason: 'unmatchedSeries'},
+      {reason: 'unmatchedSeries'},
     ]);
   });
 
@@ -53,9 +53,7 @@ describe('findSeriesDifferences', () => {
       ),
     };
 
-    expect(findSeriesDifferences([legacy], [shifted])).toEqual([
-      {seriesName: 'count()', reason: 'timestamp'},
-    ]);
+    expect(findSeriesDifferences([legacy], [shifted])).toEqual([{reason: 'timestamp'}]);
   });
 
   it('falls back to a deep comparison for other differences', () => {
