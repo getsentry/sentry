@@ -439,12 +439,11 @@ function NotReportedAlert({nodes}: {nodes: AITraceSpanNode[]}) {
     : undefined;
 
   return (
-    <Container padding="0 xl xl">
-      <ConversationMissingMessagesAlert
-        dismissKey="conversation-not-reported-alert"
-        docsLink={getAiInstrumentationDocsLink(platform)}
-      />
-    </Container>
+    <ConversationMissingMessagesAlert
+      dismissKey="conversation-not-reported-alert"
+      docsLink={getAiInstrumentationDocsLink(platform)}
+      padding="0 xl xl"
+    />
   );
 }
 

@@ -1,7 +1,6 @@
 import {Fragment, type ReactNode, useCallback, useEffect, useMemo} from 'react';
 import {parseAsString, parseAsStringLiteral, useQueryState} from 'nuqs';
 
-import {Alert} from '@sentry/scraps/alert';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -102,13 +101,12 @@ function MissingMessagesAlert({conversations}: {conversations: Conversation[]}) 
       : undefined;
 
   return (
-    <Alert.Container>
-      <ConversationMissingMessagesAlert
-        dismissKey="conversation-missing-messages-alert"
-        docsLink={getAiInstrumentationDocsLink(platform)}
-        plural
-      />
-    </Alert.Container>
+    <ConversationMissingMessagesAlert
+      dismissKey="conversation-missing-messages-alert"
+      docsLink={getAiInstrumentationDocsLink(platform)}
+      padding="0 0 xl"
+      plural
+    />
   );
 }
 

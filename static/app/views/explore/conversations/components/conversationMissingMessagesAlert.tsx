@@ -1,6 +1,6 @@
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex, type ContainerProps} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {IconClose, IconCopy} from 'sentry/icons';
@@ -55,6 +55,11 @@ interface ConversationMissingMessagesAlertProps {
   dismissKey: string;
   docsLink: string;
   /**
+   * Spacing around the banner. Applied here rather than by the caller, so it
+   * goes away together with the banner once it is dismissed.
+   */
+  padding?: ContainerProps['padding'];
+  /**
    * Whether the banner describes a single conversation or the conversations
    * listed on the page.
    */
@@ -70,6 +75,7 @@ interface ConversationMissingMessagesAlertProps {
 export function ConversationMissingMessagesAlert({
   dismissKey,
   docsLink,
+  padding,
   plural = false,
 }: ConversationMissingMessagesAlertProps) {
   const organization = useOrganization();
@@ -84,30 +90,32 @@ export function ConversationMissingMessagesAlert({
   const link = <ExternalLink href={docsLink} />;
 
   return (
-    <Alert
-      variant="muted"
-      trailingItems={
-        <Flex align="center" gap="md">
-          <CopyCaptureMessagesPromptButton />
-          <Button
-            aria-label={t('Dismiss banner')}
-            icon={<IconClose />}
-            onClick={dismiss}
-            size="zero"
-            variant="transparent"
-          />
-        </Flex>
-      }
-    >
-      {plural
-        ? tct(
-            "These conversations' inputs and outputs weren't captured. [link:Enable capturing inputs and outputs] in your SDK to see the messages here.",
-            {link}
-          )
-        : tct(
-            "This conversation's inputs and outputs weren't captured. [link:Enable capturing inputs and outputs] in your SDK to see the messages here.",
-            {link}
-          )}
-    </Alert>
+    <Container padding={padding}>
+      <Alert
+        variant="muted"
+        trailingItems={
+          <Flex align="center" gap="md">
+            <CopyCaptureMessagesPromptButton />
+            <Button
+              aria-label={t('Dismiss banner')}
+              icon={<IconClose />}
+              onClick={dismiss}
+              size="zero"
+              variant="transparent"
+            />
+          </Flex>
+        }
+      >
+        {plural
+          ? tct(
+              "These conversations' inputs and outputs weren't captured. [link:Enable capturing inputs and outputs] in your SDK to see the messages here.",
+              {link}
+            )
+          : tct(
+              "This conversation's inputs and outputs weren't captured. [link:Enable capturing inputs and outputs] in your SDK to see the messages here.",
+              {link}
+            )}
+      </Alert>
+    </Container>
   );
 }

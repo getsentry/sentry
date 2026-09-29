@@ -29,13 +29,17 @@ describe('ConversationMissingMessagesAlert', () => {
     ).toBeInTheDocument();
   });
 
-  it('can be dismissed', async () => {
-    render(<ConversationMissingMessagesAlert dismissKey="test" docsLink={DOCS_LINK} />);
+  it('removes its spacing along with the banner when dismissed', async () => {
+    const {container} = render(
+      <ConversationMissingMessagesAlert
+        dismissKey="test"
+        docsLink={DOCS_LINK}
+        padding="0 xl xl"
+      />
+    );
 
     await userEvent.click(screen.getByRole('button', {name: 'Dismiss banner'}));
 
-    expect(
-      screen.queryByRole('link', {name: 'Enable capturing inputs and outputs'})
-    ).not.toBeInTheDocument();
+    expect(container).toBeEmptyDOMElement();
   });
 });
