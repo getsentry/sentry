@@ -2,6 +2,7 @@ import {Container, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {FrameVariablesGrid} from 'sentry/components/stackTrace/frame/frameVariablesGrid';
+import {getJsonFrameVariables} from 'sentry/components/stackTrace/frame/getJsonFrameVariables';
 import {NativeFrameVariables} from 'sentry/components/stackTrace/frame/nativeFrameVariables';
 import * as Storybook from 'sentry/stories';
 import type {NativeFrameVariable} from 'sentry/types/event';
@@ -122,137 +123,147 @@ const nativeVariables: NativeFrameVariable[] = [
   {name: 'null_player', type: 'Player *', kind: 'null'},
 ];
 
+const jsonVariables = {
+  count: 42,
+  enabled: true,
+  player: {
+    name: 'Alice',
+    position: {x: 1.5, y: -3.2, z: 0},
+    access_token: null,
+    authorization: maskedAuthorization,
+  },
+  items: [1, 2, 3],
+  empty: null,
+  message: '0x2a (int)',
+  sdk_omitted: null,
+  omitted_items: [],
+  truncated_message: truncatedMessage,
+};
+
+const jsonMeta = {
+  player: {
+    access_token: {'': filteredMeta},
+    authorization: {'': maskedMeta},
+  },
+  items: {'': truncatedItemsMeta},
+  sdk_omitted: {'': omittedMeta},
+  omitted_items: {'': truncatedItemsMeta},
+  truncated_message: {'': truncatedStringMeta},
+};
+
+const jsonTreeVariables = getJsonFrameVariables(jsonVariables, jsonMeta);
+
 export default Storybook.story('Frame variables', story => {
   story('Native variables — typed tree preview', () => (
     <Stack gap="lg">
       <Text>Design preview with synthetic typed values. API integration is pending.</Text>
-      <Container
-        border="primary"
-        radius="md"
-        overflow="hidden"
-        maxWidth="960px"
-        background="secondary"
-      >
+      <Container borderTop="primary" maxWidth="960px">
         <NativeFrameVariables variables={nativeVariables} defaultExpanded={['player']} />
       </Container>
     </Stack>
   ));
 
   story('Native variables — narrow', () => (
-    <Container
-      width="360px"
-      maxWidth="100%"
-      border="primary"
-      radius="md"
-      overflow="hidden"
-    >
+    <Container width="360px" maxWidth="100%" borderTop="primary">
       <NativeFrameVariables variables={nativeVariables} defaultExpanded={['player']} />
     </Container>
   ));
 
   story('Native variables — empty, unavailable, and exact values', () => (
-    <NativeFrameVariables
-      variables={[
-        {name: 'empty', type: 'Container', kind: 'object', children: []},
-        {name: 'unknown', type: '<unknown>', kind: 'unavailable'},
-        {
-          name: 'sdk_omitted',
-          type: 'char *',
-          kind: 'unavailable',
-          meta: omittedMeta,
-        },
-        {
-          name: 'raw_omitted',
-          type: 'char *',
-          kind: 'unavailable',
-          meta: {rem: [['!raw', 'x']]},
-        },
-        {
-          name: 'omitted_items',
-          type: 'int[5]',
-          kind: 'array',
-          children: [],
-          meta: truncatedItemsMeta,
-        },
-        {name: 'zero', type: 'int', kind: 'number', value: '0'},
-        {
-          name: 'large_counter',
-          type: 'uint64_t',
-          kind: 'number',
-          value: '18446744073709551615',
-        },
-        {
-          name: 'address',
-          type: 'void *',
-          kind: 'pointer',
-          value: '0xffffffffffffffff',
-        },
-        {
-          name: 'message',
-          type: 'char[128]',
-          kind: 'string',
-          value:
-            'A long string with "quotes" and a newline\nfor checking wrapping in the value column.',
-        },
-        {
-          name: 'truncated_message',
-          type: 'char[128]',
-          kind: 'string',
-          value: truncatedMessage,
-          meta: truncatedStringMeta,
-        },
-      ]}
-    />
+    <Container borderTop="primary" maxWidth="960px">
+      <NativeFrameVariables
+        variables={[
+          {name: 'empty', type: 'Container', kind: 'object', children: []},
+          {name: 'unknown', type: '<unknown>', kind: 'unavailable'},
+          {
+            name: 'sdk_omitted',
+            type: 'char *',
+            kind: 'unavailable',
+            meta: omittedMeta,
+          },
+          {
+            name: 'raw_omitted',
+            type: 'char *',
+            kind: 'unavailable',
+            meta: {rem: [['!raw', 'x']]},
+          },
+          {
+            name: 'omitted_items',
+            type: 'int[5]',
+            kind: 'array',
+            children: [],
+            meta: truncatedItemsMeta,
+          },
+          {name: 'zero', type: 'int', kind: 'number', value: '0'},
+          {
+            name: 'large_counter',
+            type: 'uint64_t',
+            kind: 'number',
+            value: '18446744073709551615',
+          },
+          {
+            name: 'address',
+            type: 'void *',
+            kind: 'pointer',
+            value: '0xffffffffffffffff',
+          },
+          {
+            name: 'message',
+            type: 'char[128]',
+            kind: 'string',
+            value:
+              'A long string with "quotes" and a newline\nfor checking wrapping in the value column.',
+          },
+          {
+            name: 'truncated_message',
+            type: 'char[128]',
+            kind: 'string',
+            value: truncatedMessage,
+            meta: truncatedStringMeta,
+          },
+        ]}
+      />
+    </Container>
   ));
 
   story('Current native wire values', () => (
-    <FrameVariablesGrid
-      platform="native"
-      data={{
-        count: '0x2a (int)',
-        damage: '0x3fc00000 (float)',
-        player: '0x16dc05ff0 (void*)',
-        null_pointer: '0x0 (int*)',
-        local_counter: 'int',
-        health_ptr: 'float*',
-        unknown_type: '<unknown>',
-        access_token: '[Filtered]',
-        sdk_omitted: null,
-        truncated_message: truncatedMessage,
-      }}
-      meta={{
-        access_token: {'': replacedMeta},
-        sdk_omitted: {'': omittedMeta},
-        truncated_message: {'': truncatedStringMeta},
-      }}
-    />
+    <Container maxWidth="960px">
+      <FrameVariablesGrid
+        platform="native"
+        data={{
+          count: '0x2a (int)',
+          damage: '0x3fc00000 (float)',
+          player: '0x16dc05ff0 (void*)',
+          null_pointer: '0x0 (int*)',
+          local_counter: 'int',
+          health_ptr: 'float*',
+          unknown_type: '<unknown>',
+          access_token: '[Filtered]',
+          sdk_omitted: null,
+          truncated_message: truncatedMessage,
+        }}
+        meta={{
+          access_token: {'': replacedMeta},
+          sdk_omitted: {'': omittedMeta},
+          truncated_message: {'': truncatedStringMeta},
+        }}
+      />
+    </Container>
   ));
 
   story('Existing JSON variables', () => (
-    <FrameVariablesGrid
-      platform="node"
-      data={{
-        count: 42,
-        enabled: true,
-        player: {
-          name: 'Alice',
-          position: {x: 1.5, y: -3.2, z: 0},
-          access_token: null,
-          authorization: maskedAuthorization,
-        },
-        items: [1, 2, 3],
-        empty: null,
-        message: '0x2a (int)',
-        truncated_message: truncatedMessage,
-      }}
-      meta={{
-        player: {
-          access_token: {'': filteredMeta},
-          authorization: {'': maskedMeta},
-        },
-        items: {'': truncatedItemsMeta},
-        truncated_message: {'': truncatedStringMeta},
-      }}
-    />
+    <Container maxWidth="960px">
+      <FrameVariablesGrid platform="node" data={jsonVariables} meta={jsonMeta} />
+    </Container>
+  ));
+
+  story('JSON variables — tree preview', () => (
+    <Container borderTop="primary" maxWidth="960px">
+      <NativeFrameVariables
+        variables={jsonTreeVariables}
+        platform="node"
+        defaultExpanded={['player']}
+      />
+    </Container>
   ));
 });

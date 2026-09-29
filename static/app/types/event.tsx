@@ -161,19 +161,20 @@ export enum LockType {
 }
 
 /**
- * Typed native variable tree shared by frame renderers and extraction adapters.
- * This is a frontend model; the current Frame.vars payload is not decoded into it yet.
+ * Frontend variable tree shared by native and JSON previews.
+ * Optional type names come from source data, rather than being inferred from JSON.
+ * The current native Frame.vars payload is not decoded into this model yet.
  * Scalar values stay strings to preserve pointer addresses and full numeric precision.
  */
 export type NativeFrameVariable = {
   name: string;
-  type: string;
   /** Event annotations for this value; `len` is the original string or collection length. */
   meta?: Partial<Meta>;
+  type?: string;
 } & (
   | {children: readonly NativeFrameVariable[]; kind: 'object'}
   | {children: readonly NativeFrameVariable[]; kind: 'array'}
-  | {kind: 'number' | 'string' | 'enum' | 'pointer'; value: string}
+  | {kind: 'number' | 'string' | 'boolean' | 'enum' | 'pointer'; value: string}
   | {kind: 'null'}
   | {kind: 'unavailable'}
 );

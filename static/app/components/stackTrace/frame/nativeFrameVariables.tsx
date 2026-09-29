@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
@@ -6,15 +6,21 @@ import {Disclosure} from '@sentry/scraps/disclosure';
 import {InfoText} from '@sentry/scraps/info';
 import {Container, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {getTooltipText} from 'sentry/components/events/meta/annotatedText/utils';
 import {t, tn} from 'sentry/locale';
 import type {NativeFrameVariable} from 'sentry/types/event';
+import type {PlatformKey} from 'sentry/types/platform';
+
+import {getFrameVariableCopyText} from './getFrameVariableCopyText';
 
 interface Props {
   variables: readonly NativeFrameVariable[];
   defaultExpanded?: readonly string[];
+  platform?: PlatformKey;
 }
 
 const KEY_PREVIEW_LENGTH = 24;
@@ -43,9 +49,13 @@ function getKeyPreview(children: readonly NativeFrameVariable[]): string {
   return preview;
 }
 
-export function NativeFrameVariables({variables, defaultExpanded = []}: Props) {
+export function NativeFrameVariables({
+  variables,
+  defaultExpanded = [],
+  platform = 'native',
+}: Props) {
   return (
-    <Stack aria-label={t('Native variables')}>
+    <Stack aria-label={platform === 'native' ? t('Native variables') : t('Variables')}>
       {variables.map((variable, index) => (
         <Container
           key={variable.name}
@@ -53,6 +63,7 @@ export function NativeFrameVariables({variables, defaultExpanded = []}: Props) {
         >
           <Variable
             variable={variable}
+            platform={platform}
             depth={0}
             defaultExpanded={defaultExpanded.includes(variable.name)}
           />
@@ -64,14 +75,20 @@ export function NativeFrameVariables({variables, defaultExpanded = []}: Props) {
 
 function Variable({
   variable,
+  platform,
   depth,
   defaultExpanded = false,
 }: {
   depth: number;
+  platform: PlatformKey;
   variable: NativeFrameVariable;
   defaultExpanded?: boolean;
 }) {
   const [expanded, setExpanded] = useState(defaultExpanded);
+  const copyText = useMemo(
+    () => getFrameVariableCopyText(variable, platform),
+    [variable, platform]
+  );
   const isCollection = variable.kind === 'object' || variable.kind === 'array';
   const hasChildren = isCollection && variable.children.length > 0;
   const totalCount = isCollection
@@ -94,33 +111,38 @@ function Variable({
       >
         {variable.name}
       </VariableName>
-      <InfoText
-        as="div"
-        monospace
-        size="xs"
-        variant="muted"
-        mode="overflowOnly"
-        title={variable.type}
-        maxWidth={400}
-      >
-        {variable.type}
-      </InfoText>
+      {variable.type && (
+        <InfoText
+          as="div"
+          monospace
+          size="xs"
+          variant="muted"
+          mode="overflowOnly"
+          title={variable.type}
+          maxWidth={400}
+        >
+          {variable.type}
+        </InfoText>
+      )}
     </Stack>
   );
 
   const summary =
     isCollection &&
     (!hasChildren && truncatedCount > 0 ? (
-      <InfoText
-        monospace
-        size="xs"
-        variant="muted"
+      // eslint-disable-next-line @sentry/scraps/prefer-info-text -- Omitted values use a plain placeholder without a dotted underline.
+      <Tooltip
+        skipWrapper
         title={
           ruleId === undefined ? undefined : getTooltipText({rule_id: ruleId, remark})
         }
       >
-        {tn('%s item truncated', '%s items truncated', truncatedCount)}
-      </InfoText>
+        <Text size="xs" variant="muted" tabIndex={ruleId === undefined ? undefined : 0}>
+          {variable.kind === 'array' ? '[ ' : '{ '}
+          {tn('Omitted (%s item)', 'Omitted (%s items)', truncatedCount)}
+          {variable.kind === 'array' ? ' ]' : ' }'}
+        </Text>
+      </Tooltip>
     ) : (
       <Text monospace size="xs" variant="muted" ellipsis>
         {variable.kind === 'array' ? '[ ' : '{ '}
@@ -164,35 +186,43 @@ function Variable({
           </Container>
         )}
       </NameCell>
-      <Stack
+      <Grid
+        columns="minmax(0, 1fr) 20px"
+        gap="xs"
+        align="start"
         borderLeft="secondary"
         padding={depth > 0 ? 'sm md' : 'md'}
         minWidth="0"
-        align="start"
       >
-        {isCollection ? (
-          (!hasChildren || !expanded) &&
-          (hasChildren ? (
-            <SummaryButton
-              variant="transparent"
-              size="zero"
-              aria-label={t('Expand %s', variable.name)}
-              onClick={() => setExpanded(true)}
-            >
-              {summary}
-            </SummaryButton>
+        <Stack minWidth="0" align="start">
+          {isCollection ? (
+            (!hasChildren || !expanded) &&
+            (hasChildren ? (
+              <SummaryButton
+                variant="transparent"
+                size="zero"
+                aria-label={t('Expand %s', variable.name)}
+                onClick={() => setExpanded(true)}
+              >
+                {summary}
+              </SummaryButton>
+            ) : (
+              summary
+            ))
           ) : (
-            summary
-          ))
-        ) : (
-          <ScalarValue variable={variable} />
+            <ScalarValue variable={variable} platform={platform} />
+          )}
+        </Stack>
+        {(!isCollection || hasChildren || totalCount === 0) && (
+          <VariableCopyButton
+            text={copyText}
+            size="zero"
+            variant="transparent"
+            aria-label={t('Copy %s value', variable.name)}
+            tooltipProps={{title: t('Copy value')}}
+          />
         )}
-        {expanded && hasChildren && truncatedCount > 0 && (
-          <Text variant="muted" size="xs">
-            {`(${tn('%s item truncated', '%s items truncated', truncatedCount)})`}
-          </Text>
-        )}
-      </Stack>
+      </Grid>
     </VariableRow>
   );
 
@@ -204,10 +234,28 @@ function Variable({
     <Disclosure expanded={expanded} onExpandedChange={setExpanded} width="100%" size="xs">
       {row}
       <VariableContent>
-        {expanded &&
-          variable.children.map(child => (
-            <Variable key={child.name} variable={child} depth={depth + 1} />
-          ))}
+        {expanded && (
+          <Stack>
+            {variable.children.map(child => (
+              <Variable
+                key={child.name}
+                variable={child}
+                depth={depth + 1}
+                platform={platform}
+              />
+            ))}
+            {truncatedCount > 0 && (
+              <Grid columns="minmax(0, 192px) minmax(0, 1fr)" width="100%" role="note">
+                <Container />
+                <Container borderLeft="secondary" padding="xs md" minWidth="0">
+                  <Text as="div" variant="muted" size="xs">
+                    {`(${tn('%s item truncated', '%s items truncated', truncatedCount)})`}
+                  </Text>
+                </Container>
+              </Grid>
+            )}
+          </Stack>
+        )}
       </VariableContent>
     </Disclosure>
   );
@@ -215,7 +263,9 @@ function Variable({
 
 function ScalarValue({
   variable,
+  platform,
 }: {
+  platform: PlatformKey;
   variable: Exclude<NativeFrameVariable, {kind: 'object' | 'array'}>;
 }) {
   const {kind, meta} = variable;
@@ -237,7 +287,7 @@ function ScalarValue({
       value = null;
       break;
     case 'null':
-      value = hasAnnotations ? null : 'nullptr';
+      value = hasAnnotations ? null : platform === 'native' ? 'nullptr' : 'null';
       break;
     case 'string':
       value = hasAnnotations
@@ -264,9 +314,22 @@ function ScalarValue({
   );
 }
 
+const VariableCopyButton = styled(CopyToClipboardButton)`
+  opacity: 0;
+  height: 20px;
+  min-height: 0;
+  width: 20px;
+  padding: 0;
+`;
+
 const VariableRow = styled(Grid)`
   &:hover {
     background: ${p => p.theme.tokens.interactive.transparent.neutral.background.hover};
+  }
+
+  &:hover ${VariableCopyButton},
+  &:focus-within ${VariableCopyButton} {
+    opacity: 1;
   }
 
   &::before {
