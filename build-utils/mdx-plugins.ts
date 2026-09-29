@@ -1,3 +1,4 @@
+import type {ProcessorOptions} from '@mdx-js/mdx';
 import remarkCallout, {type Callout} from '@r4ai/remark-callout';
 import rehypeExpressiveCode from 'rehype-expressive-code';
 import remarkFrontmatter from 'remark-frontmatter';
@@ -7,13 +8,15 @@ import remarkMdxFrontmatter from 'remark-mdx-frontmatter';
 import {remarkUnwrapMdxParagraphs} from './remark-unwrap-mdx-paragraphs.ts';
 import {remarkStoryHeadings} from './story-headings.ts';
 
+type PluggableList = NonNullable<ProcessorOptions['remarkPlugins']>;
+
 /**
  * Shared remark plugins for MDX processing.
  *
- * Used by rspack.config.ts (build)
+ * Used by rspack.config.ts (build) and story-manifest.ts (search index).
  * Order matters — plugins run in array order.
  */
-export const remarkPlugins = [
+export const remarkPlugins: PluggableList = [
   remarkStoryHeadings,
   remarkUnwrapMdxParagraphs,
   remarkFrontmatter,

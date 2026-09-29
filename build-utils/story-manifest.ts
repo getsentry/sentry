@@ -4,12 +4,11 @@ import path from 'node:path';
 import {createProcessor} from '@mdx-js/mdx';
 import type {Compiler, RspackPluginInstance} from '@rspack/core';
 import rspack from '@rspack/core';
-import remarkFrontmatter from 'remark-frontmatter';
-import remarkGfm from 'remark-gfm';
 import {parse as parseYaml} from 'yaml';
 
 import {validateComponentCategory} from '../static/app/stories/componentCategories';
 
+import {remarkPlugins} from './mdx-plugins.ts';
 import {indexStoryHeadings} from './story-headings.ts';
 
 const appDir = path.resolve(import.meta.dirname, '../static/app');
@@ -51,7 +50,9 @@ function parseStoryFrontmatter(
   };
 }
 
-const mdxParser = createProcessor({remarkPlugins: [remarkFrontmatter, remarkGfm]});
+// Parse with the MDX loader's plugins so the index sees the same tree that
+// remarkStoryHeadings assigns IDs to during the build.
+const mdxParser = createProcessor({remarkPlugins});
 
 function createManifest() {
   const files = fs
