@@ -20,6 +20,7 @@ import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ConnectRepositoryModal} from 'sentry/views/settings/projectGeneralSettings/connectRepositoryModal';
+import {DisconnectRepositoryModal} from 'sentry/views/settings/projectGeneralSettings/disconnectRepositoryModal';
 import {
   projectRepoInfiniteOptions,
   type ProjectRepoListItem,
@@ -55,8 +56,16 @@ function ConnectedRepositoryRow({
     {
       key: 'disconnect',
       label: t('Disconnect'),
-      disabled: true,
-      tooltip: t('TODO: Disconnect'),
+      onAction: () =>
+        openModal(modalProps => (
+          <DisconnectRepositoryModal
+            {...modalProps}
+            project={project}
+            repositoryId={repo.repositoryId}
+            repoName={repo.repoName}
+            providerKey={repo.providerKey}
+          />
+        )),
     },
   ];
 

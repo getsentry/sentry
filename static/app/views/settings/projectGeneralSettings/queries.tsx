@@ -367,6 +367,32 @@ export async function saveProjectRepoConnection({
   }
 }
 
+export function orgCodeMappingsInfiniteOptions(orgSlug: string) {
+  return apiOptions.asInfinite<RepositoryProjectPathConfig[]>()(
+    '/organizations/$organizationIdOrSlug/code-mappings/',
+    {
+      path: {organizationIdOrSlug: orgSlug},
+      staleTime: 30_000,
+    }
+  );
+}
+
+async function deleteCodeMapping(orgSlug: string, configId: string): Promise<void> {
+  await fetchMutation({
+    url: getApiUrl('/organizations/$organizationIdOrSlug/code-mappings/$configId/', {
+      path: {organizationIdOrSlug: orgSlug, configId},
+    }),
+    method: 'DELETE',
+  });
+}
+
+export async function disconnectProjectRepoMappings(
+  orgSlug: string,
+  mappings: RepositoryProjectPathConfig[]
+): Promise<void> {
+  await Promise.all(mappings.map(m => deleteCodeMapping(orgSlug, m.id)));
+}
+
 // Form fields coerce a null server branch to "main"; compare normalized values
 // so displaying the default is not treated as an edit.
 function mappingHasChanged(
@@ -413,13 +439,7 @@ export async function editProjectRepoMappings({
   await Promise.all(
     toDelete.map(async m => {
       try {
-        await fetchMutation({
-          url: getApiUrl(
-            '/organizations/$organizationIdOrSlug/code-mappings/$configId/',
-            {path: {organizationIdOrSlug: orgSlug, configId: m.id}}
-          ),
-          method: 'DELETE',
-        });
+        await deleteCodeMapping(orgSlug, m.id);
       } catch (error) {
         if (error instanceof RequestError && error.status === 404) {
           return;

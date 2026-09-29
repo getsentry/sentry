@@ -24,6 +24,7 @@ interface PathMappingSummaryProps extends PathMappingValue {
   expanded: boolean;
   onDelete: () => void;
   onExpandToggle: () => void;
+  hideActions?: boolean;
   warning?: PathMappingWarning | null;
 }
 
@@ -52,6 +53,7 @@ export function PathMappingSummary({
   expanded,
   onDelete,
   onExpandToggle,
+  hideActions,
   warning,
   hasCodeOwner,
 }: PathMappingSummaryProps) {
@@ -103,24 +105,28 @@ export function PathMappingSummary({
           </Tooltip>
         </Flex>
 
-        <Flex align="center" gap="xs" flexShrink={0}>
-          <Button
-            size="zero"
-            variant="transparent"
-            icon={<IconChevron direction={expanded ? 'up' : 'down'} />}
-            aria-label={expanded ? t('Collapse path mapping') : t('Expand path mapping')}
-            onClick={onExpandToggle}
-          />
-          <Button
-            size="zero"
-            variant="transparent"
-            icon={<IconDelete />}
-            aria-label={t('Delete path mapping')}
-            disabled={hasCodeOwner}
-            tooltipProps={hasCodeOwner ? {title: CODE_OWNER_DELETE_TOOLTIP} : undefined}
-            onClick={onDelete}
-          />
-        </Flex>
+        {!hideActions && (
+          <Flex align="center" gap="xs" flexShrink={0}>
+            <Button
+              size="zero"
+              variant="transparent"
+              icon={<IconChevron direction={expanded ? 'up' : 'down'} />}
+              aria-label={
+                expanded ? t('Collapse path mapping') : t('Expand path mapping')
+              }
+              onClick={onExpandToggle}
+            />
+            <Button
+              size="zero"
+              variant="transparent"
+              icon={<IconDelete />}
+              aria-label={t('Delete path mapping')}
+              disabled={hasCodeOwner}
+              tooltipProps={hasCodeOwner ? {title: CODE_OWNER_DELETE_TOOLTIP} : undefined}
+              onClick={onDelete}
+            />
+          </Flex>
+        )}
       </Flex>
     </Wrapper>
   );
