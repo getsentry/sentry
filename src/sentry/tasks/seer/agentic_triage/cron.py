@@ -85,6 +85,7 @@ def _strip_null(value: str | None) -> str | None:
         return None
     return value.replace("\x00", "")
 
+
 BATCH_FEATURE_NAMES = [
     "organizations:seer-night-shift",
 ]

@@ -1,4 +1,5 @@
 """Tests for sentry.tasks.seer.agentic_triage.cron."""
+
 from __future__ import annotations
 
 from unittest.mock import patch
