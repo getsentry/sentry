@@ -1,6 +1,11 @@
 import datetime
+from unittest.mock import patch
+
+from django.db import connections, router
+from django.test.utils import CaptureQueriesContext
 
 from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.issues.action_log.read_metrics import ActivityReadResult
 from sentry.issues.action_log.types import GroupActionType, GroupActorType
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.activity import Activity
@@ -11,21 +16,24 @@ from sentry.notifications.types import GroupSubscriptionReason
 from sentry.silo.base import SiloMode
 from sentry.tasks.merge import merge_groups
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.action_log import action_log_activity_enabled
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
+from sentry.utils.action_log.activity_translator import activity_action_idempotency_key
 
 pytestmark = [requires_snuba]
 
 
+@with_feature({"projects:issue-action-log-write-to-db": False})
 class GroupNoteTest(APITestCase):
     def test_simple(self) -> None:
         group = self.group
 
-        activity = Activity.objects.create(
+        activity = self.create_group_activity(
             group=group,
-            project=group.project,
             type=ActivityType.NOTE.value,
             user_id=self.user.id,
             data={"text": "hello world"},
@@ -33,12 +41,30 @@ class GroupNoteTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = f"/api/0/issues/{group.id}/comments/"
-        response = self.client.get(url, format="json")
-        assert response.status_code == 200, response.content
-        assert len(response.data) == 1
-        assert response.data[0]["id"] == str(activity.id)
-        assert response.data[0]["commentId"] == str(activity.id)
+        for flag_enabled in (False, True):
+            for url in (
+                f"/api/0/issues/{group.id}/comments/",
+                f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/comments/",
+            ):
+                with (
+                    self.feature({"projects:issue-action-log-activity": flag_enabled}),
+                    patch("sentry.issues.derived.gate.is_backfilled", return_value=False),
+                    patch(
+                        "sentry.issues.endpoints.group_notes.record_activity_read"
+                    ) as record_read,
+                ):
+                    response = self.client.get(url, format="json")
+                assert response.status_code == 200, response.content
+                assert len(response.data) == 1
+                assert response.data[0]["id"] == str(activity.id)
+                assert response.data[0]["commentId"] == str(activity.id)
+                assert response.data[0]["data"] == {
+                    "text": "hello world",
+                    "comment_id": activity.id,
+                }
+                assert response.data[0]["source"] is None
+                assert record_read.call_count == 1
+                assert record_read.call_args.args[1] == ActivityReadResult.ACTIVITY
 
     def test_note_merge(self) -> None:
         """Test that when 2 (or more) issues with comments are merged, the chronological order of the comments are preserved."""
@@ -106,50 +132,100 @@ class GroupNoteTest(APITestCase):
         assert response.data[3]["id"] == str(note3.id)
         assert response.data[3]["data"]["text"] == note3.data["text"]
 
-    @action_log_activity_enabled()
-    def test_reads_from_gale(self) -> None:
-        group = self.group
+        first_page = self.client.get(url, {"per_page": 2}, format="json")
+        next_url = next(
+            href
+            for href, attrs in parse_link_header(first_page["Link"]).items()
+            if attrs["rel"] == "next"
+        )
+        second_page = self.client.get(next_url, format="json")
+        assert [row["id"] for row in second_page.data] == [str(note4.id), str(note3.id)]
+        previous_url = next(
+            href
+            for href, attrs in parse_link_header(second_page["Link"]).items()
+            if attrs["rel"] == "previous"
+        )
+        assert self.client.get(previous_url, format="json").data == first_page.data
 
-        entry = self.create_group_action_log_entry(
+    def test_reads_activity_with_gale_source(self) -> None:
+        group = self.group
+        note = self.create_group_activity(
+            group=group,
+            type=ActivityType.NOTE.value,
+            user_id=self.user.id,
+            data={"text": "current text", "external_id": "remote-comment", "mentions": []},
+        )
+        app = self.create_sentry_app(name="Comment Author")
+        app_note = self.create_group_activity(
+            group=group,
+            type=ActivityType.NOTE.value,
+            user_id=app.proxy_user_id,
+            data={"text": "app comment"},
+        )
+        self.create_group_action_log_entry(
             group=group,
             type=GroupActionType.COMMENT,
             actor_type=GroupActorType.USER,
             actor_id=self.user.id,
-            data={"comment_id": 123, "text": "hello world"},
+            data={"comment_id": note.id, "text": "stale text"},
+            idempotency_key=activity_action_idempotency_key(note),
+            source="mcp:claude-code",
+        )
+        # The same key in another group must not supply this note's source.
+        self.create_group_action_log_entry(
+            group=self.create_group(),
+            type=GroupActionType.COMMENT,
+            idempotency_key=activity_action_idempotency_key(app_note),
+            source="api",
         )
 
         self.login_as(user=self.user)
 
         url = f"/api/0/issues/{group.id}/comments/"
-        response = self.client.get(url, format="json")
+        with action_log_activity_enabled():
+            response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
-        assert len(response.data) == 1
-        assert response.data[0]["id"] == str(entry.id)
-        assert response.data[0]["commentId"] == "123"
-        assert response.data[0]["type"] == "note"
-        assert response.data[0]["user"]["id"] == str(self.user.id)
-        assert response.data[0]["data"]["text"] == "hello world"
-        assert response.data[0]["data"]["comment_id"] == 123
+        assert len(response.data) == 2
+        rows = {row["commentId"]: row for row in response.data}
+        result = rows[str(note.id)]
+        assert result["id"] == str(note.id)
+        assert result["type"] == "note"
+        assert result["user"]["id"] == str(self.user.id)
+        assert result["dateCreated"] == note.datetime
+        assert result["data"] == {
+            "text": "current text",
+            "external_id": "remote-comment",
+            "comment_id": note.id,
+        }
+        assert result["source"] == "mcp:claude-code"
+        assert rows[str(app_note.id)]["sentry_app"]["id"] == str(app.id)
+        assert rows[str(app_note.id)]["source"] is None
 
-    @action_log_activity_enabled()
-    def test_reads_from_gale_with_edits(self) -> None:
+    def test_reads_current_state_despite_stale_gale(self) -> None:
         group = self.group
-
-        unedited = self.create_group_action_log_entry(
+        edited_note = self.create_group_activity(
+            group=group,
+            type=ActivityType.NOTE.value,
+            data={"text": "latest edit"},
+        )
+        deleted_note = self.create_group_activity(
+            group=group, type=ActivityType.NOTE.value, data={"text": "deleted comment"}
+        )
+        self.create_group_action_log_entry(
             group=group,
             type=GroupActionType.COMMENT,
-            actor_type=GroupActorType.USER,
-            actor_id=self.user.id,
-            data={"comment_id": 1, "text": "unedited comment"},
+            data={"comment_id": deleted_note.id, "text": "deleted comment"},
+            idempotency_key=activity_action_idempotency_key(deleted_note),
         )
+        deleted_note.delete()
         edited = self.create_group_action_log_entry(
             group=group,
             type=GroupActionType.COMMENT,
             actor_type=GroupActorType.USER,
             actor_id=self.user.id,
-            data={"comment_id": 2, "text": "stale text"},
+            data={"comment_id": edited_note.id, "text": "stale text"},
+            idempotency_key=activity_action_idempotency_key(edited_note),
         )
-        # two edits of the same comment; only the latest text should win
         self.create_group_action_log_entry(
             group=group,
             type=GroupActionType.COMMENT_EDIT,
@@ -157,34 +233,65 @@ class GroupNoteTest(APITestCase):
             actor_id=self.user.id,
             data={"comment_id": edited.id, "text": "first edit"},
         )
-        self.create_group_action_log_entry(
-            group=group,
-            type=GroupActionType.COMMENT_EDIT,
-            actor_type=GroupActorType.USER,
-            actor_id=self.user.id,
-            data={"comment_id": edited.id, "text": "latest edit"},
+        self.create_group_activity(group=group, type=ActivityType.SET_RESOLVED.value)
+        self.create_group_activity(
+            group=self.create_group(), type=ActivityType.NOTE.value, data={"text": "other issue"}
         )
 
         self.login_as(user=self.user)
 
         url = f"/api/0/issues/{group.id}/comments/"
-        response = self.client.get(url, format="json")
+        with action_log_activity_enabled():
+            response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
 
-        # edits collapse into the original comment, so there is one row per comment
-        assert len(response.data) == 2
-        unedited_id = str(unedited.id)
-        edited_id = str(edited.id)
-        rows_by_id = {row["id"]: row for row in response.data}
-        assert set(rows_by_id) == {unedited_id, edited_id}
+        assert len(response.data) == 1
+        assert response.data[0]["commentId"] == str(edited_note.id)
+        assert response.data[0]["data"]["text"] == "latest edit"
 
-        # the edited comment keeps type "note" and shows the latest edit text
-        assert rows_by_id[edited_id]["type"] == "note"
-        assert rows_by_id[edited_id]["commentId"] == "2"
-        assert rows_by_id[edited_id]["data"]["text"] == "latest edit"
-        # the unedited comment is unaffected
-        assert rows_by_id[unedited_id]["data"]["text"] == "unedited comment"
-        assert rows_by_id[unedited_id]["commentId"] == "1"
+    def test_pagination_with_tied_timestamps(self) -> None:
+        now = datetime.datetime.now(datetime.UTC)
+        notes = [
+            self.create_group_activity(
+                group=self.group,
+                type=ActivityType.NOTE.value,
+                data={"text": "comment"},
+                datetime=timestamp,
+            )
+            for timestamp in (now, now, now, now - datetime.timedelta(days=1))
+        ]
+        self.login_as(user=self.user)
+        connection = connections[router.db_for_read(GroupActionLogEntry)]
+        with CaptureQueriesContext(connection) as queries:
+            first_page = self.client.get(
+                f"/api/0/issues/{self.group.id}/comments/", {"per_page": 2}, format="json"
+            )
+        assert first_page.status_code == 200
+        first_ids = {row["id"] for row in first_page.data}
+        assert len(first_ids) == 2
+        log_queries = [q["sql"] for q in queries if 'FROM "sentry_groupactionlogentry"' in q["sql"]]
+        assert len(log_queries) == 1
+        assert all(f"'activity:{note_id}'" in log_queries[0] for note_id in first_ids)
+        remaining_ids = {str(note.id) for note in notes} - first_ids
+        assert all(f"'activity:{note_id}'" not in log_queries[0] for note_id in remaining_ids)
+
+        next_url = next(
+            href
+            for href, attrs in parse_link_header(first_page["Link"]).items()
+            if attrs["rel"] == "next"
+        )
+        second_page = self.client.get(next_url, format="json")
+        assert second_page.status_code == 200
+        assert {row["id"] for row in second_page.data} == remaining_ids
+
+    def test_empty_page_skips_gale_lookup(self) -> None:
+        self.login_as(user=self.user)
+        group = self.group
+        with CaptureQueriesContext(connections[router.db_for_read(GroupActionLogEntry)]) as queries:
+            response = self.client.get(f"/api/0/issues/{group.id}/comments/", format="json")
+        assert response.status_code == 200
+        assert response.data == []
+        assert not [q for q in queries if 'FROM "sentry_groupactionlogentry"' in q["sql"]]
 
 
 class GroupNoteCreateTest(APITestCase):
