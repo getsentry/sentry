@@ -281,3 +281,13 @@ class FindRegexMatchesTest(TestCase):
                 "truncated": ["message"],
             }
         }
+
+    def test_highlights_a_later_filter_when_an_earlier_one_matches_heavily(self) -> None:
+        value = "a " * 200 + "ERROR"
+
+        matches = find_regex_matches(
+            self.resolver(), "message://a// message://ERROR//", [{"message": value}]
+        )
+
+        assert matches is not None
+        assert (value.index("ERROR"), len(value)) in matches[0]["fields"]["message"]

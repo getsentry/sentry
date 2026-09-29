@@ -5,7 +5,7 @@ from collections.abc import Callable, Iterable, Mapping, Sequence
 from copy import deepcopy
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
-from typing import Any, Literal, NotRequired, Optional, TypedDict, Union
+from typing import Any, Literal, NotRequired, Optional, Required, TypedDict, Union
 
 from django.utils import timezone as django_timezone
 from google.protobuf.timestamp_pb2 import Timestamp
@@ -67,9 +67,11 @@ SnubaData = list[SnubaRow]
 RegexMatchesByField = dict[str, list[tuple[int, int]]]
 
 
-class RegexRowMatches(TypedDict):
-    fields: RegexMatchesByField
-    truncated: NotRequired[list[str]]
+class RegexRowMatches(TypedDict, total=False):
+    # `total=False` because this module stringizes annotations, which hides `NotRequired` from
+    # the OpenAPI generator and publishes an optional key as required
+    fields: Required[RegexMatchesByField]
+    truncated: list[str]
 
 
 class EventsMeta(TypedDict):

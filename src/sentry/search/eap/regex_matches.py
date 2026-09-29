@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterator, Sequence
-from itertools import accumulate, chain
+from itertools import accumulate
 from time import monotonic
 from typing import TYPE_CHECKING
 
@@ -85,7 +85,7 @@ def _resolve_patterns_by_field(
     return patterns_by_field
 
 
-def _spans_for_client(spans: list[tuple[int, int]], value: str) -> list[tuple[int, int]]:
+def _spans_for_client(spans: Sequence[tuple[int, int]], value: str) -> list[tuple[int, int]]:
     """Collapse overlapping spans and restate them as UTF-16 code unit offsets.
 
     An astral character is two UTF-16 units but one Python code point, so code point offsets
@@ -111,16 +111,22 @@ def _match_value(
     scanned = value[:limit]
     # A caller-shortened value is fully scanned, so only our own cap counts as stopping short
     truncated = len(value) > MAX_SCANNED_CHARACTERS
+    # Split the cap between the filters, so one prolific pattern cannot crowd another's
+    # highlights out of a value entirely
+    budget = max(1, MAX_MATCHES_PER_VALUE // len(patterns))
 
     spans: list[tuple[int, int]] = []
-    for match in chain.from_iterable(pattern.finditer(scanned) for pattern in patterns):
-        start, end = match.start(), match.end()
-        # A zero-width match highlights nothing
-        if start != end:
-            spans.append((start, end))
-            if len(spans) >= MAX_MATCHES_PER_VALUE:
-                truncated = True
-                break
+    for pattern in patterns:
+        kept = 0
+        for match in pattern.finditer(scanned):
+            start, end = match.start(), match.end()
+            # A zero-width match highlights nothing
+            if start != end:
+                spans.append((start, end))
+                kept += 1
+                if kept >= budget:
+                    truncated = True
+                    break
 
     return _spans_for_client(spans, scanned), truncated
 
