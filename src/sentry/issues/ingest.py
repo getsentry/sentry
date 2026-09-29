@@ -8,6 +8,7 @@ from typing import Any, TypedDict
 
 from django.conf import settings
 from django.db import router, transaction
+from sentry_sdk import traces
 
 from sentry import eventstream
 from sentry.constants import MAX_CULPRIT_LENGTH, parse_log_level
@@ -35,7 +36,6 @@ from sentry.types.group import PriorityLevel
 from sentry.utils import json, metrics, redis
 from sentry.utils.strings import truncatechars
 from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
-from sentry.utils.tracing import set_span_tag, start_span, trace
 from sentry.workflow_engine.models import IncidentGroupOpenPeriod
 from sentry.workflow_engine.processors.detector import (
     associate_new_group_with_detector,
@@ -50,7 +50,7 @@ issue_rate_limiter = RedisSlidingWindowRateLimiter(
 logger = logging.getLogger(__name__)
 
 
-@trace
+@traces.trace
 def save_issue_occurrence(
     occurrence_data: IssueOccurrenceData, event: Event
 ) -> tuple[IssueOccurrence, GroupInfo | None]:
@@ -122,7 +122,7 @@ class IssueArgs(TypedDict):
     priority: int | None
 
 
-@trace
+@traces.trace
 def _create_issue_kwargs(
     occurrence: IssueOccurrence, event: Event, release: Release | None
 ) -> IssueArgs:
@@ -155,7 +155,7 @@ class OccurrenceMetadata(TypedDict):
     last_received: str
 
 
-@trace
+@traces.trace
 def materialize_metadata(occurrence: IssueOccurrence, event: Event) -> OccurrenceMetadata:
     """
     Returns the materialized metadata to be merged with issue.
@@ -192,7 +192,7 @@ def materialize_metadata(occurrence: IssueOccurrence, event: Event) -> Occurrenc
     }
 
 
-@trace
+@traces.trace
 @metrics.wraps("issues.ingest.save_issue_from_occurrence")
 def save_issue_from_occurrence(
     occurrence: IssueOccurrence, event: Event, release: Release | None
@@ -243,9 +243,9 @@ def save_issue_from_occurrence(
             return None
 
         with (
-            start_span(
-                op="issues.save_issue_from_occurrence.transaction",
+            traces.start_span(
                 name="issues.save_issue_from_occurrence.transaction",
+                attributes={"sentry.op": "issues.save_issue_from_occurrence.transaction"},
             ) as span,
             metrics.timer(
                 "issues.save_issue_from_occurrence.transaction",
@@ -272,7 +272,7 @@ def save_issue_from_occurrence(
                     data={**open_period.data, "highest_seen_priority": highest_seen_priority}
                 )
             is_regression = False
-            set_span_tag(span, "save_issue_from_occurrence.outcome", "new_group")
+            span.set_attribute("save_issue_from_occurrence.outcome", "new_group")
             metric_tags["save_issue_from_occurrence.outcome"] = "new_group"
             metrics.incr(
                 "group.created",
@@ -382,7 +382,7 @@ def save_issue_from_occurrence(
     return group_info
 
 
-@trace
+@traces.trace
 def send_issue_occurrence_to_eventstream(
     event: Event, occurrence: IssueOccurrence, group_info: GroupInfo
 ) -> None:
