@@ -25,6 +25,11 @@ export const ComposerEditor = styled(InputDiv)`
     font-weight: ${p => p.theme.font.weight.sans.medium};
   }
 
+  & [data-mention-text] {
+    display: inline-block;
+    user-select: all;
+  }
+
   &:empty::before {
     color: ${p => p.theme.tokens.content.secondary};
     content: attr(data-placeholder);

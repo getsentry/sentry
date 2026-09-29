@@ -14,6 +14,7 @@ import {
 } from 'sentry/views/seerExplorer/components/seerExplorerContent';
 import {SeerExplorerHeader} from 'sentry/views/seerExplorer/components/seerExplorerHeader';
 import * as useSeerExplorerModule from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
+import {SeerExplorerChatStateProvider} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
 import {SeerExplorerSessionsProvider} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
 
 const mockGetPageReferrer = jest.fn().mockReturnValue('/issues/');
@@ -745,7 +746,10 @@ describe('SeerExplorerContent', () => {
       await userEvent.keyboard('{Enter}');
       expect(sendMessage).not.toHaveBeenCalled();
       await userEvent.keyboard('{Enter}');
-      expect(sendMessage).toHaveBeenCalledWith('@Alice Example', 0);
+      expect(sendMessage).toHaveBeenCalledWith(
+        '{% user %}{"id":"1","type":"user","name":"Alice Example"}{% /user %}',
+        0
+      );
     });
 
     it('sends on Enter when mention suggestions are empty', async () => {
@@ -870,6 +874,13 @@ describe('SeerExplorerContent', () => {
       // Restore the spy so the real useSeerExplorer hook runs against mock API responses
       jest.restoreAllMocks();
 
+      const query =
+        'What is this error? {% user %}{"id":"1","type":"user","name":"Alice Example"}{% /user %}';
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/members/',
+        body: [MemberFixture({user: UserFixture({id: '1', name: 'Alice Example'})})],
+      });
+
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/seer/explorer-chat/`,
         method: 'GET',
@@ -898,7 +909,7 @@ describe('SeerExplorerContent', () => {
             blocks: [
               {
                 id: 'msg-1',
-                message: {role: 'user', content: 'What is this error?'},
+                message: {role: 'user', content: query},
                 timestamp: '2024-01-01T00:00:00Z',
                 loading: false,
               },
@@ -930,20 +941,73 @@ describe('SeerExplorerContent', () => {
         </PictureInPictureProvider>,
         {
           organization,
+          additionalWrapper: SeerExplorerChatStateProvider,
         }
       );
 
       const textarea = await getSeerExplorerInput();
-      await userEvent.type(textarea, 'What is this error?');
+      await userEvent.type(textarea, 'What is this error? @ali');
+      await screen.findByRole('option', {name: /Alice Example/});
+      await userEvent.keyboard('{Enter}');
       await userEvent.keyboard('{Enter}');
 
       expect(postMock).toHaveBeenCalledWith(
         `/organizations/${organization.slug}/seer/explorer-chat/`,
         expect.objectContaining({
           method: 'POST',
-          data: expect.objectContaining({query: 'What is this error?'}),
+          data: expect.objectContaining({query}),
         })
       );
+      expect(await screen.findByText('Alice Example')).toBeInTheDocument();
+      expect(screen.queryByText(/\{% user %\}/)).not.toBeInTheDocument();
+    });
+
+    it('restores selected mentions after a failed send and preserves them on retry', async () => {
+      jest.restoreAllMocks();
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/members/',
+        body: [MemberFixture({user: UserFixture({id: '1', name: 'Alice Example'})})],
+      });
+      const postMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/`,
+        method: 'POST',
+        statusCode: 500,
+        body: {},
+      });
+
+      render(
+        <PictureInPictureProvider>
+          <SeerExplorerSessionsProvider>
+            <SeerExplorerContent
+              getPageReferrer={mockGetPageReferrer}
+              onClose={() => {}}
+            />
+          </SeerExplorerSessionsProvider>
+        </PictureInPictureProvider>,
+        {organization}
+      );
+
+      const input = await getSeerExplorerInput();
+      await userEvent.type(input, '@ali');
+      await screen.findByRole('option', {name: /Alice Example/});
+      await userEvent.keyboard('{Enter}');
+      await userEvent.keyboard('{Enter}');
+
+      expect(
+        await screen.findByText(
+          'There was an error sending your message, wait and try again.'
+        )
+      ).toBeInTheDocument();
+      expect(input).toHaveTextContent('Alice Example');
+      expect(input).not.toHaveTextContent('{% user %}');
+
+      await userEvent.click(screen.getByRole('button', {name: 'Send message'}));
+      await waitFor(() => expect(postMock).toHaveBeenCalledTimes(2));
+      for (const call of postMock.mock.calls) {
+        expect(call[1].data.query).toBe(
+          '{% user %}{"id":"1","type":"user","name":"Alice Example"}{% /user %}'
+        );
+      }
     });
 
     it('does not send empty messages', async () => {

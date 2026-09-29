@@ -199,12 +199,13 @@ export function useExplorerMenu({
 
   useEffect(() => {
     if (isVisible) {
+      const ownerDocument = composerRef.current?.ownerDocument ?? document;
       // Use capture phase to intercept events before they reach other handlers
-      document.addEventListener('keydown', handleKeyDown, true);
-      return () => document.removeEventListener('keydown', handleKeyDown, true);
+      ownerDocument.addEventListener('keydown', handleKeyDown, true);
+      return () => ownerDocument.removeEventListener('keydown', handleKeyDown, true);
     }
     return;
-  }, [handleKeyDown, isVisible]);
+  }, [composerRef, handleKeyDown, isVisible]);
 
   // Calculate menu position based on anchor element
   useEffect(() => {

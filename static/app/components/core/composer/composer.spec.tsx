@@ -8,7 +8,10 @@ import {
   type Mention,
   type ComposerValue,
   type ComposerSource,
+  type ComposerProps,
 } from '@sentry/scraps/composer';
+
+import {getEditorSelection, readEditorValue, setEditorSelection} from './dom';
 
 interface PersonSuggestion {
   id: string;
@@ -58,9 +61,11 @@ function ControlledComposer({
   sources = [MEMBER_SOURCE],
   initialValue = '',
   initialMentions = [],
+  renderMention,
 }: {
   initialMentions?: readonly Mention[];
   initialValue?: string;
+  renderMention?: ComposerProps['renderMention'];
   sources?: readonly TestComposerSource[];
 }) {
   const [value, setValue] = useState<ComposerValue>({
@@ -75,6 +80,7 @@ function ControlledComposer({
         plugins={makePlugins(sources)}
         value={value}
         onChange={setValue}
+        renderMention={renderMention}
       />
       <output aria-label="Editor value">
         {value.text}|{value.mentions.map(mention => mention.id).join(',')}
@@ -91,6 +97,141 @@ function getEditor() {
 }
 
 describe('Composer', () => {
+  const renderedMention: Mention = {
+    id: 'user:1',
+    sourceId: 'members',
+    start: 3,
+    end: 17,
+    text: '@Alice Example',
+  };
+  const renderMention = () => <span>Different visible label</span>;
+
+  it('preserves canonical text and identity while typing around rendered mentions', async () => {
+    render(
+      <ControlledComposer
+        initialValue="Hi @Alice Example!"
+        initialMentions={[renderedMention]}
+        renderMention={renderMention}
+      />
+    );
+    const editor = getEditor();
+    expect(within(editor).getByText('Different visible label')).toBeInTheDocument();
+    expect(readEditorValue(editor)).toBe('Hi @Alice Example!');
+
+    act(() => {
+      editor.focus();
+      setEditorSelection(editor, {start: 3, end: 3});
+    });
+    await userEvent.keyboard('dear ');
+    expect(readEditorValue(editor)).toBe('Hi dear @Alice Example!');
+    act(() => setEditorSelection(editor, {start: 22, end: 22}));
+    await userEvent.keyboard(', thanks');
+
+    expect(screen.getByRole('status', {name: 'Editor value'})).toHaveTextContent(
+      'Hi dear @Alice Example, thanks!|user:1'
+    );
+    expect(getEditorSelection(editor)).toEqual({start: 30, end: 30});
+  });
+
+  it.each([
+    ['Backspace', 17, 17, 'Hi !'],
+    ['Delete', 3, 3, 'Hi !'],
+    ['Backspace', 0, 17, '!'],
+  ])('removes a rendered mention with %s at %s–%s', async (key, start, end, text) => {
+    render(
+      <ControlledComposer
+        initialValue="Hi @Alice Example!"
+        initialMentions={[renderedMention]}
+        renderMention={renderMention}
+      />
+    );
+    const editor = getEditor();
+    act(() => {
+      editor.focus();
+      setEditorSelection(editor, {start: Number(start), end: Number(end)});
+    });
+    await userEvent.keyboard(`{${key}}`);
+
+    expect(readEditorValue(editor)).toBe(text);
+    expect(screen.getByRole('status', {name: 'Editor value'})).toHaveTextContent(
+      new RegExp(`^${text}\\|$`)
+    );
+    expect(within(editor).queryByText('Different visible label')).not.toBeInTheDocument();
+  });
+
+  it('copies and cuts canonical mention text and pastes it without identity', async () => {
+    const user = userEvent.setup();
+    render(
+      <ControlledComposer
+        initialValue="Hi @Alice Example!"
+        initialMentions={[renderedMention]}
+        renderMention={renderMention}
+      />
+    );
+    const editor = getEditor();
+    act(() => {
+      editor.focus();
+      setEditorSelection(editor, {start: 3, end: 17});
+    });
+    const copied = await user.copy();
+    expect(copied?.getData('text/plain')).toBe('@Alice Example');
+    expect(readEditorValue(editor)).toBe('Hi @Alice Example!');
+    const cut = await user.cut();
+    expect(cut?.getData('text/plain')).toBe('@Alice Example');
+    expect(readEditorValue(editor)).toBe('Hi !');
+
+    await user.paste(cut);
+    expect(screen.getByRole('status', {name: 'Editor value'})).toHaveTextContent(
+      /^Hi @Alice Example!\|$/
+    );
+  });
+
+  it('copies and cuts an entire token when its visible label is partially selected', async () => {
+    const user = userEvent.setup();
+    render(
+      <ControlledComposer
+        initialValue="Hi @Alice Example!"
+        initialMentions={[renderedMention]}
+        renderMention={renderMention}
+      />
+    );
+    const editor = getEditor();
+    act(() => {
+      editor.focus();
+      const label = within(editor).getByText('Different visible label').firstChild!;
+      const range = document.createRange();
+      range.setStart(label, 2);
+      range.setEnd(label, 5);
+      document.getSelection()!.removeAllRanges();
+      document.getSelection()!.addRange(range);
+    });
+
+    expect((await user.copy())?.getData('text/plain')).toBe('@Alice Example');
+    expect((await user.cut())?.getData('text/plain')).toBe('@Alice Example');
+    expect(screen.getByRole('status', {name: 'Editor value'})).toHaveTextContent(
+      /^Hi !\|$/
+    );
+  });
+
+  it.each(['br', 'div'])('restores the placeholder after clearing to a %s', tag => {
+    render(<ControlledComposer initialValue="Draft" />);
+    const textbox = getEditor();
+
+    act(() => {
+      const emptyLine = document.createElement(tag);
+      if (tag === 'div') {
+        emptyLine.append(document.createElement('br'));
+      }
+      textbox.replaceChildren(emptyLine);
+      textbox.dispatchEvent(
+        new InputEvent('input', {bubbles: true, inputType: 'deleteContentBackward'})
+      );
+    });
+
+    expect(screen.getByRole('status', {name: 'Editor value'})).toHaveTextContent('|');
+    expect(textbox.matches(':empty')).toBe(true);
+  });
+
   it('keeps the editor aligned with a controlled value that rejects an edit', async () => {
     const onChange = jest.fn();
     render(

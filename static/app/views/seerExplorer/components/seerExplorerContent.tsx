@@ -81,6 +81,7 @@ import {
   useSeerExplorerDeepLink,
   useSeerExplorerResumeDeepLink,
 } from 'sentry/views/seerExplorer/utils';
+import {serializeComposerValue} from 'sentry/views/seerExplorer/utils/serializeComposerValue';
 
 export const INPUT_STORAGE_KEY_PREFIX = 'seer-explorer-draft';
 
@@ -254,20 +255,28 @@ export function SeerExplorerContent({
     EMPTY_INPUT
   );
 
-  const inputValue: ComposerValue =
-    typeof storedInputValue === 'string'
-      ? {text: storedInputValue, mentions: []}
-      : storedInputValue;
+  const inputValue = useMemo<ComposerValue>(
+    () =>
+      typeof storedInputValue === 'string'
+        ? {text: storedInputValue, mentions: []}
+        : storedInputValue,
+    [storedInputValue]
+  );
+  const submittedInputRef = useRef<{query: string; value: ComposerValue} | null>(null);
 
   // Put a message that failed to send back in the composer, unless the user has
   // already started typing something else.
   useEffect(() => {
     const failedQuery = requestError?.query;
     if (failedQuery) {
+      const failedInput =
+        submittedInputRef.current?.query === failedQuery
+          ? submittedInputRef.current.value
+          : {text: failedQuery, mentions: []};
       setInputValue(current =>
         (typeof current === 'string' ? current : current.text).trim()
           ? current
-          : {text: failedQuery, mentions: []}
+          : failedInput
       );
     }
   }, [requestError, setInputValue]);
@@ -562,10 +571,12 @@ export function SeerExplorerContent({
     if (!canSendMessage) {
       return;
     }
-    sendMessage(inputValue.text.trim(), blocks.length);
+    const query = serializeComposerValue(inputValue).trim();
+    submittedInputRef.current = {query, value: inputValue};
+    sendMessage(query, blocks.length);
     clearInput();
     userScrolledUpRef.current = false;
-  }, [canSendMessage, inputValue.text, sendMessage, blocks.length, clearInput]);
+  }, [canSendMessage, inputValue, sendMessage, blocks.length, clearInput]);
 
   const handleInputKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (e.defaultPrevented || e.nativeEvent.isComposing) {
