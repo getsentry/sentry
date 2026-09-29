@@ -1,6 +1,7 @@
 import {useState} from 'react';
 import {useDebouncedValue} from '@tanstack/react-pacer';
 import {useMutation, useQuery} from '@tanstack/react-query';
+import {z} from 'zod';
 
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -19,6 +20,10 @@ type Props = ModalRenderProps & {
   onAction: (data: any) => void;
   userId: string;
 };
+
+const mergeSchema = z.object({
+  users: z.array(z.custom<User>()).min(1, 'Select at least one account'),
+});
 
 export function MergeAccountsModal(props: Props) {
   const {userId, onAction, closeModal, Header, Body, Footer} = props;
@@ -41,12 +46,15 @@ export function MergeAccountsModal(props: Props) {
   } = useQuery(accountsQueryOptions);
 
   const mergeAccounts = fetchedMergeAccounts ?? {users: []};
-  const {data: searchedUsers = [], isFetching: isSearching} = useQuery({
+  const {
+    data: searchedUsers = [],
+    isFetching: isSearching,
+    isError: isSearchError,
+  } = useQuery({
     ...apiOptions.as<User[]>()('/users/', {
       query: {query: debouncedSearch, per_page: 10},
       staleTime: 30_000,
     }),
-    enabled: debouncedSearch.trim().length > 0,
   });
 
   const doMergeMutation = useMutation({
@@ -72,6 +80,7 @@ export function MergeAccountsModal(props: Props) {
   const mergeForm = useScrapsForm({
     ...defaultFormOptions,
     defaultValues: {users: [] as User[]},
+    validators: {onDynamic: mergeSchema},
     onSubmit: ({value}) =>
       doMergeMutation.mutateAsync(value.users.map(user => user.id)).catch(() => {}),
   });
@@ -112,8 +121,16 @@ export function MergeAccountsModal(props: Props) {
                     onChange={field.handleChange}
                     options={users.map(user => ({value: user, label: user.username}))}
                     isValueEqual={(a, b) => a.id === b.id}
-                    isLoading={isSearching}
+                    isLoading={searchInput !== debouncedSearch || isSearching}
+                    filterOption={null}
                     placeholder="Search users"
+                    noOptionsMessage={() =>
+                      isSearchError
+                        ? 'Unable to search users'
+                        : searchInput
+                          ? 'No matching users'
+                          : 'No users available'
+                    }
                     onInputChange={(value, action) => {
                       if (action.action === 'input-change') {
                         setSearchInput(value);
