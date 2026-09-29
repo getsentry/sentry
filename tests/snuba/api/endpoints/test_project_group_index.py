@@ -675,6 +675,29 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         with assume_test_silo_mode(SiloMode.CONTROL):
             uo1.delete()
 
+    def test_boolean_search_not_supported_in_bulk_update(self) -> None:
+        self.login_as(user=self.user)
+        expected_detail = (
+            'Error parsing search query: Boolean statements containing "OR" or "AND" are not '
+            "supported in this search"
+        )
+
+        response = self.client.put(
+            f"{self.path}?query=title:hello+OR+title:goodbye",
+            data={"status": "resolved"},
+            format="json",
+        )
+        assert response.status_code == 400
+        assert response.data["detail"] == expected_detail
+
+        response = self.client.put(
+            f"{self.path}?query=title:hello+AND+title:goodbye",
+            data={"status": "resolved"},
+            format="json",
+        )
+        assert response.status_code == 400
+        assert response.data["detail"] == expected_detail
+
     def test_selective_status_update(self) -> None:
         group1 = self.create_group(status=GroupStatus.RESOLVED)
         group1.resolved_at = timezone.now()
