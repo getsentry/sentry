@@ -1,23 +1,20 @@
 from __future__ import annotations
 
 from collections.abc import Iterator, Sequence
-from itertools import accumulate
-from typing import TYPE_CHECKING, Any
+from itertools import accumulate, chain
+from typing import TYPE_CHECKING
 
 import re2
 
 from sentry.api import event_search
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap.columns import ResolvedAttribute
-from sentry.search.events.types import RegexMatchesByField, SnubaData
+from sentry.search.events.types import RegexMatchesByField, RegexRowMatches, SnubaData
 
 if TYPE_CHECKING:
     from sentry.search.eap.resolver import SearchResolver
 
-# google-re2 ships no type information
-CompiledPattern = Any
-
-REGEX_DELIMITER = "//"
+CompiledPattern = re2._Regexp
 
 # RE2 runs orders of magnitude slower once a pattern's DFA outgrows its memory budget
 MAX_SCANNED_CHARACTERS = 1_000
@@ -85,11 +82,10 @@ def _resolve_patterns_by_field(
 
 
 def _spans_for_client(spans: list[tuple[int, int]], value: str) -> list[tuple[int, int]]:
-    """Collapse overlapping spans and restate them as the UTF-16 offsets JavaScript indexes by.
+    """Collapse overlapping spans and restate them as UTF-16 code unit offsets.
 
-    An astral character is one code point to Python but two code units to JavaScript, so leaving
-    these as code points makes `value.slice(start, end)` return the wrong text for any line with
-    an emoji ahead of the match.
+    An astral character is two UTF-16 units but one Python code point, so code point offsets
+    would make `value.slice(start, end)` return the wrong text in a browser.
     """
     merged: list[tuple[int, int]] = []
     for start, end in sorted(spans):
@@ -104,55 +100,62 @@ def _spans_for_client(spans: list[tuple[int, int]], value: str) -> list[tuple[in
     return [(start + shift[start], end + shift[end]) for start, end in merged]
 
 
+def _match_value(
+    patterns: Sequence[CompiledPattern], value: str, limit: int
+) -> tuple[list[tuple[int, int]], bool]:
+    """Return the value's client-ready spans, and whether the scan stopped short of its end."""
+    scanned = value[:limit]
+    # A caller-shortened value is fully scanned, so only our own cap counts as stopping short
+    truncated = len(value) > MAX_SCANNED_CHARACTERS
+
+    spans: list[tuple[int, int]] = []
+    for match in chain.from_iterable(pattern.finditer(scanned) for pattern in patterns):
+        start, end = match.start(), match.end()
+        # A zero-width match highlights nothing
+        if start != end:
+            spans.append((start, end))
+            if len(spans) >= MAX_MATCHES_PER_VALUE:
+                truncated = True
+                break
+
+    return _spans_for_client(spans, scanned), truncated
+
+
 def find_regex_matches(
     resolver: SearchResolver,
     query_string: str,
     data: SnubaData,
     max_string_length: int | None = None,
-) -> list[RegexMatchesByField] | None:
-    """Locate, in each returned row, the substrings that the query's regex filters matched.
-
-    ClickHouse matches with RE2, which accepts and rejects patterns that JavaScript's engine does
-    not, so a client cannot re-derive these spans from the pattern alone. Best effort: a pattern
-    anchored past `MAX_SCANNED_CHARACTERS` (`30s$`) has nothing to match against.
-    """
-    if not data:
-        return None
-
+) -> dict[int, RegexRowMatches]:
+    """Locate the substrings the query's regex filters matched, keyed by their row's index."""
     # Every regex filter is delimited by `//`, so skip the re-parse when there is none
-    if REGEX_DELIMITER not in query_string:
-        return None
+    if not data or "//" not in query_string:
+        return {}
 
     patterns_by_field = _resolve_patterns_by_field(resolver, query_string, list(data[0]))
     if not patterns_by_field:
-        return None
+        return {}
 
     # Stop short of the `...` that `process_column_values` appends when it truncates
     limit = min(MAX_SCANNED_CHARACTERS, max_string_length or MAX_SCANNED_CHARACTERS)
 
-    matches: list[RegexMatchesByField] = []
-    for row in data:
+    matches: dict[int, RegexRowMatches] = {}
+    for index, row in enumerate(data):
         row_matches: RegexMatchesByField = {}
+        row_truncated = False
         for field, patterns in patterns_by_field.items():
             value = row.get(field)
             if not isinstance(value, str):
                 continue
 
-            scanned = value[:limit]
-            spans: list[tuple[int, int]] = []
-            for pattern in patterns:
-                if len(spans) >= MAX_MATCHES_PER_VALUE:
-                    break
-                for match in pattern.finditer(scanned):
-                    start, end = match.start(), match.end()
-                    # A zero-width match highlights nothing
-                    if start != end:
-                        spans.append((start, end))
-                        if len(spans) >= MAX_MATCHES_PER_VALUE:
-                            break
-
+            spans, truncated = _match_value(patterns, value, limit)
             if spans:
-                row_matches[field] = _spans_for_client(spans, scanned)
-        matches.append(row_matches)
+                row_matches[field] = spans
+                row_truncated = row_truncated or truncated
+
+        if row_matches:
+            matches[index] = {"fields": row_matches}
+            if row_truncated:
+                matches[index]["truncated"] = True
 
     return matches

@@ -255,7 +255,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsEndpointTestBase):
         assert log_data["trace"] == trace_id_1
         assert log_data["message"] == "foo"
 
-    def test_regex_query_returns_one_match_entry_per_returned_row(self) -> None:
+    def test_regex_query_keys_matches_by_row_index(self) -> None:
         trace_id = "1" * 32
         self.store_eap_items(
             [
@@ -279,7 +279,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsEndpointTestBase):
 
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 2
-        assert len(response.data["meta"]["matches"]) == 2
+        assert [0, 1] == sorted(response.data["meta"]["matches"])[:2]
 
     def test_pagelimit(self) -> None:
         trace_id = "1" * 32

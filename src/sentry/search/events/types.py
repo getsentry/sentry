@@ -64,9 +64,12 @@ SnubaRow = dict[str, Any]
 SnubaData = list[SnubaRow]
 
 
-# Where each field's regex filters matched, as `[start, end)` UTF-16 code unit offsets, so in a
-# browser `value.slice(start, end)` is the matched text
 RegexMatchesByField = dict[str, list[tuple[int, int]]]
+
+
+class RegexRowMatches(TypedDict):
+    fields: RegexMatchesByField
+    truncated: NotRequired[Literal[True]]
 
 
 class EventsMeta(TypedDict):
@@ -81,8 +84,7 @@ class EventsMeta(TypedDict):
     full_scan: NotRequired[bool]
     bytes_scanned: NotRequired[int | None]
     routing_hint: NotRequired[str]
-    # One entry per row of `data`, in the same order
-    matches: NotRequired[list[RegexMatchesByField]]
+    matches: NotRequired[dict[int, RegexRowMatches]]
 
 
 class EventsResponse(TypedDict):

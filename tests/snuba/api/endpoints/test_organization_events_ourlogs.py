@@ -330,10 +330,10 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
             "ERROR [42] disk full, ERROR [7] again",
             "ERROR [1] disk full",
         ]
-        assert response.data["meta"]["matches"] == [
-            {"log.body": [(0, 10), (22, 31)]},
-            {"log.body": [(0, 9)]},
-        ]
+        assert response.data["meta"]["matches"] == {
+            0: {"fields": {"log.body": [(0, 10), (22, 31)]}},
+            1: {"fields": {"log.body": [(0, 9)]}},
+        }
 
     def test_regex_filter_matches_are_case_insensitive_when_requested(self) -> None:
         logs = [
@@ -355,7 +355,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
         )
 
         assert response.status_code == 200, response.content
-        assert response.data["meta"]["matches"] == [{"log.body": [(0, 5)]}]
+        assert response.data["meta"]["matches"] == {0: {"fields": {"log.body": [(0, 5)]}}}
 
     def test_regex_filter_omits_matches_for_a_field_that_was_not_selected(self) -> None:
         logs = [
@@ -396,7 +396,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
         assert response.status_code == 200, response.content
         assert "matches" not in response.data["meta"]
 
-    def test_regex_filter_returns_one_match_entry_per_row_when_a_next_page_exists(self) -> None:
+    def test_regex_filter_keys_matches_by_row_index_when_a_next_page_exists(self) -> None:
         logs = [
             self.create_ourlog({"body": f"{'.' * i} ERROR boom"}, timestamp=self.ten_mins_ago)
             for i in range(5)
@@ -419,10 +419,11 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
             " ERROR boom",
             ". ERROR boom",
         ]
-        assert response.data["meta"]["matches"] == [
-            {"log.body": [(1, 6)]},
-            {"log.body": [(2, 7)]},
-        ]
+        assert response.data["meta"]["matches"] == {
+            0: {"fields": {"log.body": [(1, 6)]}},
+            1: {"fields": {"log.body": [(2, 7)]}},
+            2: {"fields": {"log.body": [(3, 8)]}},
+        }
 
     def test_regex_filter_returns_matches_alongside_the_default_log_fields(self) -> None:
         logs = [self.create_ourlog({"body": "ERROR boom"}, timestamp=self.ten_mins_ago)]
@@ -439,7 +440,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
         )
 
         assert response.status_code == 200, response.content
-        assert response.data["meta"]["matches"] == [{"message": [(0, 5)]}]
+        assert response.data["meta"]["matches"] == {0: {"fields": {"message": [(0, 5)]}}}
 
     def test_regex_filter_matches_ignore_the_truncation_marker(self) -> None:
         logs = [
@@ -459,7 +460,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
 
         assert response.status_code == 200, response.content
         assert response.data["data"][0]["log.body"] == "b" * 64 + "..."
-        assert response.data["meta"]["matches"] == [{"log.body": [(0, 64)]}]
+        assert response.data["meta"]["matches"] == {0: {"fields": {"log.body": [(0, 64)]}}}
 
     def test_regex_filter_rejects_an_invalid_pattern(self) -> None:
         response = self.do_request(

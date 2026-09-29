@@ -84,7 +84,7 @@ class OurLogs(rpc_dataset_common.RPCBase):
         )
 
         matches = find_regex_matches(resolver, query_string, response["data"], max_string_length)
-        if matches is not None:
+        if matches:
             response["meta"]["matches"] = matches
 
         return response

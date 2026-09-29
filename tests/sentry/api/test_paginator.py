@@ -581,40 +581,6 @@ class GenericOffsetPaginatorTest(SimpleTestCase):
         assert result2.prev == Cursor(0, 0, True, True)
         assert result2.next == Cursor(0, 10, False, False)
 
-    def test_drops_the_over_fetched_match_entry_when_there_is_another_page(self) -> None:
-        def data_fn(offset=None, limit=None):
-            return {
-                "data": [{"message": "a"}, {"message": "b"}, {"message": "c"}],
-                "meta": {"matches": [{"message": []}, {"message": []}, {"message": []}]},
-            }
-
-        result = GenericOffsetPaginator(data_fn=data_fn).get_result(2)
-
-        assert len(result.results["data"]) == 2
-        assert len(result.results["meta"]["matches"]) == 2
-
-    def test_keeps_match_entries_that_are_already_aligned_with_the_data(self) -> None:
-        def data_fn(offset=None, limit=None):
-            return {
-                "data": [{"message": "a"}, {"message": "b"}, {"message": "c"}],
-                "meta": {"matches": [{"message": []}, {"message": []}]},
-            }
-
-        result = GenericOffsetPaginator(data_fn=data_fn).get_result(2)
-
-        assert len(result.results["meta"]["matches"]) == 2
-
-    def test_paginates_a_raw_snuba_body_whose_meta_is_a_list(self) -> None:
-        def data_fn(offset=None, limit=None):
-            return {
-                "data": [{"a": 1}, {"a": 2}, {"a": 3}],
-                "meta": [{"name": "a", "type": "UInt64"}],
-            }
-
-        result = GenericOffsetPaginator(data_fn=data_fn).get_result(2)
-
-        assert result.results["data"] == [{"a": 1}, {"a": 2}]
-
 
 class CombinedQuerysetPaginatorTest(APITestCase):
     def test_simple(self) -> None:

@@ -41,7 +41,7 @@ from sentry.search.eap.trace_metrics.config import (
     get_trace_metric_from_request,
 )
 from sentry.search.eap.types import FieldsACL, SearchResolverConfig
-from sentry.search.events.types import RegexMatchesByField
+from sentry.search.events.types import RegexRowMatches
 from sentry.snuba import (
     discover,
     errors,
@@ -107,7 +107,7 @@ class EventsMeta(TypedDict, total=False):
     bytesScanned: int
     routingHint: str
     debug_info: Any
-    matches: list[RegexMatchesByField]
+    matches: dict[int, RegexRowMatches]
 
 
 # Only used for api docs
