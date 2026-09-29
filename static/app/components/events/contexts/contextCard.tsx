@@ -7,6 +7,7 @@ import {AttributeDetailsTooltip} from 'sentry/components/attributes/attributeDet
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import type {ContextValue} from 'sentry/components/events/contexts';
 import {
+  getContextAttributeKey,
   getContextIcon,
   getContextMeta,
   getContextTitle,
@@ -53,6 +54,11 @@ interface ContextCardContentProps {
   meta: Record<string, any>;
   alias?: string;
   config?: ContextCardContentConfig;
+  /**
+   * The context's `type`, which names its field definitions even when the alias
+   * has been renamed. Without it the alias is used.
+   */
+  type?: string;
 }
 
 export function ContextCardContent({
@@ -60,6 +66,7 @@ export function ContextCardContent({
   alias,
   meta,
   config,
+  type,
   ...props
 }: ContextCardContentProps) {
   const {key: contextKey, subject} = item;
@@ -80,7 +87,11 @@ export function ContextCardContent({
         subjectNode: attributeDetailsType ? (
           <KeyValueTableSubject>
             <AttributeDetailsTooltip
-              attributeKey={defined(alias) ? `${alias}.${contextKey}` : contextKey}
+              attributeKey={
+                defined(alias)
+                  ? getContextAttributeKey({alias, contextKey, type})
+                  : contextKey
+              }
               fieldDefinitionType={attributeDetailsType}
               isScrubbed={(contextMeta?.['']?.rem ?? []).length > 0}
             >

@@ -69,7 +69,7 @@ function EditPreviewHighlightSection({
     location,
   });
   const highlightContextRows = highlightContextDataItems.reduce<React.ReactNode[]>(
-    (rowList, {alias, data}) => {
+    (rowList, {alias, data, type}) => {
       const meta = getContextMeta(event, alias);
       const newRows = data.map(item => (
         <Fragment key={`edit-highlight-ctx-${alias}-${item.key}`}>
@@ -83,6 +83,7 @@ function EditPreviewHighlightSection({
             meta={meta}
             item={item}
             alias={alias}
+            type={type}
             config={{
               attributeDetailsType: 'event',
               includeAliasInSubject: true,
