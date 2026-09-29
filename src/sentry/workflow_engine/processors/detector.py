@@ -346,8 +346,11 @@ def _produce_detector_output(
     outcome = handler.outcome
     if callable(outcome):
         outcome(result)
-    elif outcome is DetectorOutcome.ISSUE:
-        produce_issue_platform_payload(result, handler.detector.type)
+    else:
+        match outcome:
+            # Add future platform cases here
+            case DetectorOutcome.ISSUE:
+                produce_issue_platform_payload(result, handler.detector.type)
 
 
 @trace
