@@ -1,15 +1,13 @@
 from __future__ import annotations
 
 import datetime
-import operator
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
-from functools import reduce
 from typing import Any, NotRequired, TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 from django.core.cache import cache
-from django.db.models import Q, Sum
+from django.db.models import Sum
 
 from sentry import release_health, tagstore
 from sentry.api.serializers import Serializer, register, serialize
@@ -249,20 +247,12 @@ def get_author_users_by_external_actors(
     if not authors_by_mapping:
         return found, authors
 
-    names_by_provider: dict[int, list[str]] = defaultdict(list)
-    for provider_value, external_name in authors_by_mapping:
-        names_by_provider[provider_value].append(external_name)
-    mapping_filter = reduce(
-        operator.or_,
-        (
-            Q(provider=provider_value, external_name__in=names)
-            for provider_value, names in names_by_provider.items()
-        ),
-    )
-
+    # Filtering providers and names independently can also return a mapping whose name
+    # belongs to another provider's author; the (provider, name) lookup below drops those.
     external_actors = (
         ExternalActor.objects.filter(
-            mapping_filter,
+            provider__in={provider for provider, _ in authors_by_mapping},
+            external_name__in={name for _, name in authors_by_mapping},
             organization_id=organization_id,
             user_id__isnull=False,  # excludes team mappings
         )

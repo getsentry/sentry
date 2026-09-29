@@ -1036,7 +1036,39 @@ class GetUsersForAuthorsUserMappingsTest(TestCase):
 
         users = get_users_for_authors(organization_id=project.organization_id, authors=[author])
 
-        assert users[str(author.id)].get("id") == str(github_user.id)
+        assert users[str(author.id)].get("id", "not present") == str(github_user.id)
+
+    def test_get_users_for_authors_ignores_mapping_of_other_author_provider(self) -> None:
+        """With authors from two providers, one author's login mapped on the other provider stays unmatched."""
+        ghe_user = self.create_user(email="ghe-octocat@company.com", name="GHE Octocat")
+        project = self.create_project()
+        self.create_member(user=ghe_user, organization=project.organization)
+        ghe = self.create_provider_integration(provider="github_enterprise")
+        self.create_organization_integration(
+            organization_id=project.organization_id, integration_id=ghe.id
+        )
+        self.create_external_user(
+            user=ghe_user,
+            organization=project.organization,
+            integration=ghe,
+            external_name="@octocat",
+            provider=ExternalProviders.GITHUB_ENTERPRISE.value,
+        )
+        github_author = self.create_commit_author(
+            organization_id=project.organization_id, email="1+octocat@users.noreply.github.com"
+        )
+        github_author.update(name="Octocat", external_id="github:octocat")
+        ghe_author = self.create_commit_author(
+            organization_id=project.organization_id, email="hubot@ghe.company.com"
+        )
+        ghe_author.update(name="Hubot", external_id="github_enterprise:hubot")
+
+        users = get_users_for_authors(
+            organization_id=project.organization_id, authors=[github_author, ghe_author]
+        )
+
+        assert users[str(github_author.id)].get("id", "not present") == "not present"
+        assert users[str(github_author.id)]["email"] == github_author.email
 
     def test_get_users_for_authors_by_external_actor_no_user_id(self) -> None:
         """CommitAuthor has an ExternalActor but it's a team mapping"""
