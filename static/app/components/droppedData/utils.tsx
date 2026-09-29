@@ -161,29 +161,37 @@ function isConfiguredDrop({outcome, reason}: Annotation): boolean {
 
 const MIN_HIGHLIGHTED_RATIO = 0.05;
 
-export interface SeverityStyle {
-  fill: string;
-  opacity: number;
+/**
+ * Replaces the alpha of a `#RRGGBB` or `#RRGGBBAA` color, returning `#RRGGBBAA`.
+ */
+export function withAlpha(color: string, alpha: number): string {
+  const channel = Math.round(alpha * 255)
+    .toString(16)
+    .padStart(2, '0');
+  return `${color.slice(0, 7)}${channel}`.toUpperCase();
 }
 
-export function severityStyle(ratio: number, theme: Theme): SeverityStyle {
+/**
+ * Returns `#RRGGBBAA` so neighbouring buckets can be blended in a gradient.
+ */
+export function severityColor(ratio: number, theme: Theme): string {
   const warning = theme.tokens.background.warning.vibrant;
   // TODO: Replace with a theme token once the design settles on one.
   const orange = '#FF9500';
 
   if (ratio >= 0.5) {
-    return {fill: theme.tokens.dataviz.semantic.bad, opacity: 1};
+    return withAlpha(theme.tokens.dataviz.semantic.bad, 1);
   }
   if (ratio >= 0.25) {
-    return {fill: orange, opacity: 1};
+    return withAlpha(orange, 1);
   }
   if (ratio >= 0.1) {
-    return {fill: orange, opacity: 0.55};
+    return withAlpha(orange, 0.55);
   }
   if (ratio >= MIN_HIGHLIGHTED_RATIO) {
-    return {fill: warning, opacity: 0.25};
+    return withAlpha(warning, 0.25);
   }
-  return {fill: warning, opacity: 0};
+  return withAlpha(warning, 0);
 }
 
 interface AnnotationVolume {
