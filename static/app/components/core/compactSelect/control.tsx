@@ -567,7 +567,8 @@ export function Control<Value extends SelectKey>({
     <ControlContext value={contextValue}>
       <Container width="max-content" position="relative" {...wrapperProps}>
         {trigger ? (
-          trigger(mergedTriggerProps, overlayIsOpen)
+          // TriggerProps constrains ref forwarding; the runtime element is a button.
+          trigger(mergedTriggerProps as TriggerProps, overlayIsOpen)
         ) : (
           <OverlayTrigger.Button {...mergedTriggerProps} />
         )}
