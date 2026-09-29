@@ -346,6 +346,17 @@ describe('ConnectRepositoryModal', () => {
       integrationId: integration.id,
     };
 
+    const secondMapping = {
+      id: '6',
+      repoId: '10',
+      repoName: 'getsentry/sentry',
+      projectId: project.id,
+      stackRoot: 'vendor/',
+      sourceRoot: 'lib/',
+      defaultBranch: 'main',
+      integrationId: integration.id,
+    };
+
     it('shows locked project and repository fields with seeded rows, Save enabled', async () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/code-mappings/`,
@@ -368,17 +379,6 @@ describe('ConnectRepositoryModal', () => {
 
     it('POSTs new mappings, PUTs changed mappings, and DELETEs removed mappings on save', async () => {
       const closeModal = jest.fn();
-      // Second seeded row to be updated via PUT; first row will be deleted.
-      const secondMapping = {
-        id: '6',
-        repoId: '10',
-        repoName: 'getsentry/sentry',
-        projectId: project.id,
-        stackRoot: 'vendor/',
-        sourceRoot: 'lib/',
-        defaultBranch: 'main',
-        integrationId: integration.id,
-      };
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/code-mappings/`,
         method: 'GET',
@@ -452,16 +452,6 @@ describe('ConnectRepositoryModal', () => {
 
     it('shows code owner warning and keeps modal open on 409 DELETE', async () => {
       const closeModal = jest.fn();
-      const secondMapping = {
-        id: '6',
-        repoId: '10',
-        repoName: 'getsentry/sentry',
-        projectId: project.id,
-        stackRoot: 'vendor/',
-        sourceRoot: 'lib/',
-        defaultBranch: 'main',
-        integrationId: integration.id,
-      };
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/code-mappings/`,
         method: 'GET',
@@ -492,6 +482,123 @@ describe('ConnectRepositoryModal', () => {
       expect(closeModal).not.toHaveBeenCalled();
     });
 
+    it('does not DELETE a newly created mapping when retrying after a 409', async () => {
+      const closeModal = jest.fn();
+      const createdMapping = {
+        ...secondMapping,
+        id: '99',
+        stackRoot: 'extra/',
+        sourceRoot: '',
+      };
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/code-mappings/`,
+        method: 'GET',
+        body: [seededMapping, secondMapping],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/code-mappings/${seededMapping.id}/`,
+        method: 'DELETE',
+        statusCode: 409,
+        body: {},
+      });
+      const postMapping = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/code-mappings/`,
+        method: 'POST',
+        body: createdMapping,
+      });
+      const deleteCreated = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/code-mappings/${createdMapping.id}/`,
+        method: 'DELETE',
+        body: {},
+      });
+
+      renderEditModal(closeModal);
+
+      expect(await screen.findByText('vendor/')).toBeInTheDocument();
+      const [deleteFirst] = screen.getAllByRole('button', {name: 'Delete path mapping'});
+      await userEvent.click(deleteFirst!);
+
+      await userEvent.click(screen.getByRole('button', {name: 'Add another path'}));
+      await userEvent.type(
+        screen.getByRole('textbox', {name: /stack trace prefix/i}),
+        'extra/'
+      );
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/code-mappings/`,
+        method: 'GET',
+        body: [seededMapping, secondMapping, createdMapping],
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+
+      expect(
+        await screen.findByText(
+          'This path mapping is used by a Code Owner rule and cannot be removed. Delete the Code Owner rule first.'
+        )
+      ).toBeInTheDocument();
+      expect(await screen.findByText('src/')).toBeInTheDocument();
+      expect(screen.getByText('extra/')).toBeInTheDocument();
+      expect(closeModal).not.toHaveBeenCalled();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+
+      await waitFor(() => expect(closeModal).toHaveBeenCalled());
+      expect(postMapping).toHaveBeenCalledTimes(1);
+      expect(deleteCreated).not.toHaveBeenCalled();
+    });
+
+    it('seeds new mappings with the repository default branch', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/code-mappings/`,
+        method: 'GET',
+        body: [],
+      });
+
+      renderEditModal(jest.fn(), {
+        repositoryId: '11',
+        repoName: 'getsentry/relay',
+        providerKey: 'github',
+      });
+
+      expect(await screen.findByRole('textbox', {name: /branch/i})).toHaveValue('master');
+    });
+
+    it('POSTs with the repo integration id when the connected repo has no mappings', async () => {
+      const closeModal = jest.fn();
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/code-mappings/`,
+        method: 'GET',
+        body: [],
+      });
+      const postMapping = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/code-mappings/`,
+        method: 'POST',
+        body: {},
+      });
+
+      renderEditModal(closeModal);
+
+      expect(
+        await screen.findByRole('textbox', {name: /stack trace prefix/i})
+      ).toBeInTheDocument();
+      await userEvent.click(await screen.findByRole('button', {name: 'Save'}));
+
+      await waitFor(() => {
+        expect(postMapping).toHaveBeenCalledWith(
+          `/organizations/${organization.slug}/code-mappings/`,
+          expect.objectContaining({
+            method: 'POST',
+            data: expect.objectContaining({
+              integrationId: integration.id,
+              repositoryId: '10',
+            }),
+          })
+        );
+      });
+      expect(closeModal).toHaveBeenCalled();
+    });
+
     it('does not PUT when the only difference is a null server branch displayed as main', async () => {
       const closeModal = jest.fn();
       MockApiClient.addMockResponse({
@@ -516,16 +623,6 @@ describe('ConnectRepositoryModal', () => {
 
     it('treats a 404 DELETE on retry as success after a later PUT failed', async () => {
       const closeModal = jest.fn();
-      const secondMapping = {
-        id: '6',
-        repoId: '10',
-        repoName: 'getsentry/sentry',
-        projectId: project.id,
-        stackRoot: 'vendor/',
-        sourceRoot: 'lib/',
-        defaultBranch: 'main',
-        integrationId: integration.id,
-      };
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/code-mappings/`,
         method: 'GET',

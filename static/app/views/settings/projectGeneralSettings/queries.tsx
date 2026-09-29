@@ -93,6 +93,109 @@ function integrationReposOptions(orgSlug: string, integrationId: string) {
   );
 }
 
+/**
+ * Resolves the integration id and default branch for a single repository
+ * without fanning out to every SCM integration.
+ *
+ * When existing code mappings are available:
+ *   - integrationId and defaultBranch come straight from the mappings.
+ *   - No extra network requests are made.
+ *
+ * When the repo has no code mappings yet:
+ *   - Fetches org repos to resolve integrationId and externalId.
+ *   - Then fetches that one integration's repos to get defaultBranch.
+ *   - retry: false on the repos call so a 500 fails fast and the form
+ *     still renders (defaultBranch falls back to undefined → "main").
+ */
+export function useEditRepoInfo({
+  orgSlug,
+  repositoryId,
+  integrationIdFromMappings,
+  defaultBranchFromMappings,
+}: {
+  orgSlug: string;
+  repositoryId: string;
+  defaultBranchFromMappings?: string | null;
+  integrationIdFromMappings?: string | null;
+}): {
+  defaultBranch: string | null;
+  integrationId: string | null;
+  isPending: boolean;
+} {
+  const organization = useOrganization();
+
+  // Only look up org repos when we can't derive integrationId from mappings.
+  const needsOrgRepoLookup = !integrationIdFromMappings;
+
+  const orgReposQuery = useInfiniteQuery({
+    ...organizationRepositoriesInfiniteOptions({
+      organization,
+      query: {status: 'active', per_page: 100},
+      staleTime: REPOS_STALE_TIME_MS,
+    }),
+    enabled: needsOrgRepoLookup,
+  });
+  useFetchAllPages({result: orgReposQuery});
+
+  const orgRepoMatch = useMemo(() => {
+    if (!needsOrgRepoLookup) {
+      return null;
+    }
+    for (const page of orgReposQuery.data?.pages ?? []) {
+      const found = page.json.find(r => r.id === repositoryId);
+      if (found) {
+        return found;
+      }
+    }
+    return null;
+  }, [needsOrgRepoLookup, orgReposQuery.data, repositoryId]);
+
+  const integrationId = integrationIdFromMappings ?? orgRepoMatch?.integrationId ?? null;
+
+  // Only fetch this one integration's repos when we went through the org-repos
+  // path (needsOrgRepoLookup), because that is also when we have externalId
+  // to match against. When integrationId came from existing mappings we already
+  // have defaultBranchFromMappings and don't need this call.
+  const singleIntegrationReposQuery = useQuery({
+    ...integrationReposOptions(orgSlug, integrationId ?? ''),
+    enabled: needsOrgRepoLookup && Boolean(integrationId),
+    retry: false,
+  });
+
+  const defaultBranch = useMemo(() => {
+    if (defaultBranchFromMappings) {
+      return defaultBranchFromMappings;
+    }
+    const externalId = orgRepoMatch?.externalId;
+    if (!externalId || !singleIntegrationReposQuery.data) {
+      return null;
+    }
+    return (
+      singleIntegrationReposQuery.data.repos.find(r => r.externalId === externalId)
+        ?.defaultBranch ?? null
+    );
+  }, [defaultBranchFromMappings, singleIntegrationReposQuery.data, orgRepoMatch]);
+
+  const isOrgReposPending =
+    needsOrgRepoLookup &&
+    !orgReposQuery.isError &&
+    (orgReposQuery.isPending ||
+      orgReposQuery.isFetchingNextPage ||
+      Boolean(orgReposQuery.hasNextPage));
+
+  const isDefaultBranchPending =
+    needsOrgRepoLookup &&
+    Boolean(integrationId) &&
+    !singleIntegrationReposQuery.isError &&
+    singleIntegrationReposQuery.isPending;
+
+  return {
+    integrationId,
+    defaultBranch,
+    isPending: isOrgReposPending || isDefaultBranchPending,
+  };
+}
+
 // Builds a RepoSelectOption from an integration repo and its matching Sentry
 // repository record. Returns null when the Sentry repo hasn't been imported yet.
 function buildRepoSelectOption(

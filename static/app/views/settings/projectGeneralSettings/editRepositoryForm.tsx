@@ -21,22 +21,24 @@ import {
 import {
   editProjectRepoMappings,
   projectCodeMappingsOptions,
-  useGroupedRepoOptions,
+  useEditRepoInfo,
   useInvalidateRepoQueries,
 } from 'sentry/views/settings/projectGeneralSettings/queries';
 
 function buildPathsSection({
   isPending,
   seededPathMappings,
-  repositoryId,
+  listKey,
   providerKey,
+  defaultBranch,
   onChange,
 }: {
   isPending: boolean;
+  listKey: string;
   onChange: (mappings: PathMappingValue[]) => void;
   providerKey: string | null;
-  repositoryId: string;
   seededPathMappings: PathMappingValue[] | undefined;
+  defaultBranch?: string;
 }) {
   if (isPending) {
     return (
@@ -51,8 +53,9 @@ function buildPathsSection({
   return (
     <Container paddingTop="2xl">
       <PathMappingList
-        key={repositoryId}
+        key={listKey}
         providerKey={providerKey ?? undefined}
+        defaultBranch={defaultBranch}
         pathMappings={seededPathMappings}
         onChange={onChange}
       />
@@ -80,7 +83,7 @@ export function EditRepositoryForm({
   const organization = useOrganization();
   const [pathMappings, setPathMappings] = useState<PathMappingValue[]>([]);
   const [codeOwnerWarnings, setCodeOwnerWarnings] = useState<string[]>([]);
-  const {groupedOptions} = useGroupedRepoOptions(organization.slug);
+  const [listEpoch, setListEpoch] = useState(0);
   const invalidateQueries = useInvalidateRepoQueries(
     organization.slug,
     project.slug,
@@ -99,12 +102,22 @@ export function EditRepositoryForm({
     [codeMappingsQuery.isSuccess, codeMappingsQuery.data, repositoryId]
   );
 
-  // Prefer an integration id from an existing mapping; fall back to the repo
-  // select options for repositories that have no mappings yet.
-  const editIntegrationId =
-    seededMappings?.find(m => m.integrationId)?.integrationId ??
-    groupedOptions.flatMap(g => g.options).find(o => o.repositoryId === repositoryId)
-      ?.integrationId;
+  // Derive from existing mappings so useEditRepoInfo can skip network calls.
+  const integrationIdFromMappings = seededMappings?.find(
+    m => m.integrationId
+  )?.integrationId;
+  const defaultBranchFromMappings = seededMappings?.[0]?.defaultBranch ?? null;
+
+  const {
+    integrationId: editIntegrationId,
+    defaultBranch: repoDefaultBranch,
+    isPending: isRepoInfoPending,
+  } = useEditRepoInfo({
+    orgSlug: organization.slug,
+    repositoryId,
+    integrationIdFromMappings,
+    defaultBranchFromMappings,
+  });
 
   const editMutation = useMutation({
     mutationFn: editProjectRepoMappings,
@@ -113,6 +126,9 @@ export function EditRepositoryForm({
       if (codeOwnerMessages.length === 0) {
         closeModal();
       } else {
+        // Remount so local rows pick up server IDs; otherwise a retry DELETEs
+        // mappings that were just POSTed.
+        setListEpoch(n => n + 1);
         setCodeOwnerWarnings(codeOwnerMessages);
       }
     },
@@ -120,6 +136,7 @@ export function EditRepositoryForm({
 
   const canSave =
     codeMappingsQuery.isSuccess &&
+    Boolean(editIntegrationId) &&
     pathMappings.length > 0 &&
     !hasExactDuplicate(pathMappings);
 
@@ -131,10 +148,11 @@ export function EditRepositoryForm({
   }));
 
   const pathsSection = buildPathsSection({
-    isPending: codeMappingsQuery.isPending,
+    isPending: codeMappingsQuery.isPending || isRepoInfoPending,
     seededPathMappings,
-    repositoryId,
+    listKey: `${repositoryId}-${listEpoch}`,
     providerKey,
+    defaultBranch: repoDefaultBranch ?? undefined,
     onChange: setPathMappings,
   });
 
@@ -172,14 +190,14 @@ export function EditRepositoryForm({
       canSave={canSave}
       isSaving={editMutation.isPending}
       onSave={() => {
-        if (!seededMappings) {
+        if (!seededMappings || !editIntegrationId) {
           return;
         }
         editMutation.mutate({
           orgSlug: organization.slug,
           project,
           repositoryId,
-          integrationId: editIntegrationId ?? '',
+          integrationId: editIntegrationId,
           seededMappings,
           submittedMappings: pathMappings,
         });
