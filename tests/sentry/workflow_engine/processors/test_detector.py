@@ -31,7 +31,7 @@ from sentry.workflow_engine.handlers.detector import DetectorStateData
 from sentry.workflow_engine.handlers.detector.stateful import get_redis_client
 from sentry.workflow_engine.models import DataPacket, Detector, DetectorState
 from sentry.workflow_engine.models.detector_group import DetectorGroup
-from sentry.workflow_engine.processors import ProcessDetectorsResult
+from sentry.workflow_engine.processors import DetectorEvaluation, ProcessDetectorsResult
 from sentry.workflow_engine.processors.detector import (
     EventDetectors,
     associate_new_group_with_detector,
@@ -414,12 +414,20 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
         detector, _ = self.create_detector_and_condition(type=self.handler_state_type.slug)
         data_packet = DataPacket("1", {"dedupe": 2, "group_vals": {None: 6}})
 
-        mock_outcome = MagicMock()
-        with mock.patch.object(MockDetectorStateHandler, "outcome", mock_outcome):
+        callback = MagicMock()
+
+        def outcome(handler: MockDetectorStateHandler, result: DetectorEvaluation) -> None:
+            callback(handler, result)
+
+        with mock.patch.object(MockDetectorStateHandler, "outcome", outcome):
             results = process_detectors(data_packet, [detector])
 
         assert len(results) == 1
-        mock_outcome.assert_called_once_with(results[0][1][None])
+        callback.assert_called_once()
+        callback_handler, callback_result = callback.call_args.args
+        assert isinstance(callback_handler, MockDetectorStateHandler)
+        assert callback_handler.detector == detector
+        assert callback_result == results[0][1][None]
         mock_produce_occurrence_to_kafka.assert_not_called()
 
     @mock.patch("sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka")

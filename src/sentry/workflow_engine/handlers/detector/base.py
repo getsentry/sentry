@@ -4,7 +4,7 @@ import logging
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Generic, Self, TypeVar, cast
+from typing import Any, Generic, TypeVar, cast
 from uuid import UUID, uuid4, uuid5
 
 from django.utils import timezone
@@ -111,7 +111,9 @@ class BaseDetectorHandler(abc.ABC, Generic[DataPacketType, DataPacketEvaluationT
     def __init__(self, detector: Detector):
         self.detector = detector
 
-    outcome: DetectorOutcome | Callable[[Self, DetectorEvaluation], None] = DetectorOutcome.ISSUE
+    @property
+    def outcome(self) -> DetectorOutcome | Callable[[DetectorEvaluation], None]:
+        return DetectorOutcome.ISSUE
 
     @abc.abstractmethod
     def _evaluate(

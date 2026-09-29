@@ -342,15 +342,18 @@ def _produce_detector_output(
     result: DetectorEvaluation,
     handler: BaseDetectorHandler[Any, Any],
 ) -> None:
-    """Route a detector result to its configured output."""
+    """
+    Route a detector result to its configured output.
+    """
     outcome = handler.outcome
-    if callable(outcome):
-        outcome(result)
-    else:
+
+    if isinstance(outcome, DetectorOutcome):
         match outcome:
             # Add future platform cases here
             case DetectorOutcome.ISSUE:
                 produce_issue_platform_payload(result, handler.detector.type)
+    else:
+        outcome(result)
 
 
 @trace
