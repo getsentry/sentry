@@ -88,13 +88,11 @@ export function CreateBroadcastModal({
             dateExpires: moment().add(7, 'days').format('YYYY-MM-DDTHH:mm'),
           }}
           submitLabel="Save"
-          footer={() => (
+          footer={({SubmitButton}) => (
             <Footer>
               <Flex gap="md" justify="end">
                 <Button onClick={closeModal}>Cancel</Button>
-                <Button type="submit" variant="primary">
-                  Save
-                </Button>
+                <SubmitButton>Save</SubmitButton>
               </Flex>
             </Footer>
           )}
