@@ -49,7 +49,7 @@ export function LogsDownSamplingAlert({
       <Alert.Container>
         <Alert variant="warning">
           {t(
-            'These results may be incomplete: we only scan your full log volume when sorting by timestamp in descending order. Change the sort, or reduce the date range or number of projects, to scan all logs.'
+            'These results may be incomplete: we only scan your full log volume when sorting by timestamp in descending order. Try changing the sort, shortening the date range, or selecting fewer projects.'
           )}
         </Alert>
       </Alert.Container>
