@@ -1,10 +1,10 @@
 import pytest
 
-from tools import dump_sentry_commands
+from sentry.build import dump_cli_commands
 
 
 def test_main(capsys: pytest.CaptureFixture[str]) -> None:
-    assert dump_sentry_commands.main() == 0
+    assert dump_cli_commands.main() == 0
 
     commands = capsys.readouterr().out.splitlines()
     assert {"run", "upgrade", "help"} <= set(commands)

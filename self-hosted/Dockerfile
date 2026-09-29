@@ -69,10 +69,10 @@ COPY . .
 RUN : \
     && python3 -m tools.fast_editable --path . \
     && python3 -m compileall -q src/ \
-    && python3 -m tools.dump_sentry_commands > /sentry-commands.txt
+    && python3 -m sentry.build.dump_cli_commands > /sentry-commands.txt
 
 COPY ./self-hosted/sentry.conf.py ./self-hosted/config.yml $SENTRY_CONF/
-COPY ./self-hosted/docker-entrypoint.py ./self-hosted/docker-entrypoint.sh /
+COPY ./self-hosted/docker_entrypoint.py ./self-hosted/docker-entrypoint.sh /
 
 RUN : double-check some built files are available \
     && test -f /usr/src/sentry/src/sentry/loader/_registry.json \
@@ -89,7 +89,7 @@ USER sentry
 EXPOSE 9000
 VOLUME /data
 
-ENTRYPOINT ["python3", "/docker-entrypoint.py"]
+ENTRYPOINT ["python3", "/docker_entrypoint.py"]
 CMD ["run", "web"]
 
 ARG SOURCE_COMMIT
