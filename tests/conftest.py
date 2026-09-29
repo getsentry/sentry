@@ -100,6 +100,14 @@ def setup_enforce_monotonic_transactions(request: pytest.FixtureRequest) -> Gene
 
 
 @pytest.fixture(autouse=True)
+def setup_enforce_control_row_lock_allowlist() -> Generator[None]:
+    from sentry.testutils.control_row_locks import enforce_control_row_lock_allowlist
+
+    with enforce_control_row_lock_allowlist():
+        yield
+
+
+@pytest.fixture(autouse=True)
 def audit_hybrid_cloud_writes_and_deletes(request: pytest.FixtureRequest) -> Generator[None]:
     """
     Ensure that write operations on hybrid cloud foreign keys are recorded

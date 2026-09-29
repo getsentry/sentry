@@ -224,6 +224,9 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /src/sentry/organizations/                               @getsentry/hybrid-cloud
 /tests/sentry/hybridcloud/                               @getsentry/hybrid-cloud
 /tests/sentry/silo/                                      @getsentry/hybrid-cloud
+/src/sentry/testutils/control_row_lock_allowlist.py      @getsentry/hybrid-cloud
+/src/sentry/testutils/control_row_locks.py               @getsentry/hybrid-cloud
+/tests/sentry/testutils/test_control_row_locks.py        @getsentry/hybrid-cloud
 /tests/sentry/models/test_projectkeymapping.py           @getsentry/hybrid-cloud
 /.agents/skills/hybrid-cloud-*                           @getsentry/hybrid-cloud
 /src/apigw/                                              @getsentry/hybrid-cloud @gi0baro
