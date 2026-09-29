@@ -27,6 +27,10 @@ _PLUMBING_PREFIXES = (
     "contextlib",
 )
 
+# Locks taken directly by test code (setup helpers and the like) never run in
+# production, so only locks from Sentry's own code are checked.
+_TEST_CODE_PREFIXES = ("tests.", "fixtures.")
+
 
 class ControlRowLockError(AssertionError):
     pass
@@ -60,6 +64,8 @@ class ControlRowLockWrapper:
             locked = set(_TABLE_RE.findall(sql)) & _control_tables()
             if locked:
                 call_site = _call_site()
+                if call_site.startswith(_TEST_CODE_PREFIXES):
+                    return execute(sql, params, many, context)
                 for table in sorted(locked):
                     if (table, call_site) not in ALLOWED_CONTROL_ROW_LOCKS:
                         raise ControlRowLockError(

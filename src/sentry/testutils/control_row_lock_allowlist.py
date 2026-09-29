@@ -46,4 +46,44 @@ ALLOWED_CONTROL_ROW_LOCKS: dict[tuple[str, str], str] = {
         "sentry_lostpasswordhash",
         "sentry.api.endpoints.auth_recovery.AuthRecoveryConfirmEndpoint.post",
     ): "Existing before CTRL-63; not yet reviewed for load.",
+    (
+        "sentry_controloption",
+        "sentry.options.store.OptionsStore.set_store",
+    ): "Existing before CTRL-63 (implicit, via update_or_create); not yet reviewed for load.",
+    (
+        "sentry_scheduleddeletion",
+        "sentry.deletions.models.scheduleddeletion.BaseScheduledDeletion.schedule",
+    ): "Existing before CTRL-63 (implicit, via update_or_create); not yet reviewed for load.",
+    (
+        "sentry_organizationavatarreplica",
+        "sentry.hybridcloud.services.replica.impl.DatabaseBackedControlReplicaService.upsert_organization_avatar_replica",
+    ): "Existing before CTRL-63 (implicit, via update_or_create); not yet reviewed for load.",
+    (
+        "hybridcloud_controloutboxbackfillwatermark",
+        "sentry.hybridcloud.tasks.backfill_outboxes._write_processing_state",
+    ): "Existing before CTRL-63 (implicit, via update_or_create); not yet reviewed for load.",
+    (
+        "sentry_controldeletionwatermark",
+        "sentry.deletions.tasks.hybrid_cloud._write_watermark",
+    ): "Existing before CTRL-63 (implicit, via update_or_create); not yet reviewed for load.",
+    (
+        "sentry_notificationsettingprovider",
+        "sentry.notifications.services.impl.DatabaseBackedNotificationsService.enable_all_settings_for_provider",
+    ): "Existing before CTRL-63 (implicit, via update_or_create); not yet reviewed for load.",
+    (
+        "sentry_notificationsettingprovider",
+        "sentry.notifications.api.endpoints.user_notification_settings_providers.UserNotificationSettingsProvidersEndpoint.put",
+    ): "Existing before CTRL-63 (implicit, via update_or_create); not yet reviewed for load.",
+    (
+        "sentry_notificationsettingoption",
+        "sentry.notifications.services.impl.DatabaseBackedNotificationsService.update_notification_options",
+    ): "Existing before CTRL-63 (implicit, via update_or_create); not yet reviewed for load.",
+    (
+        "sentry_notificationsettingoption",
+        "sentry.notifications.api.endpoints.user_notification_settings_options.UserNotificationSettingsOptionsEndpoint.put",
+    ): "Existing before CTRL-63 (implicit, via update_or_create); not yet reviewed for load.",
+    (
+        "auth_user",
+        "sentry.api.endpoints.auth_recovery.AuthRecoveryConfirmEndpoint.post",
+    ): "Existing before CTRL-63; not yet reviewed for load.",
 }
