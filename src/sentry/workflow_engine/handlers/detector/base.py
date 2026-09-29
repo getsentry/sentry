@@ -25,6 +25,7 @@ from sentry.workflow_engine.processors.evaluations import DetectorEvaluationData
 from sentry.workflow_engine.types import (
     DetectorGroupKey,
     DetectorId,
+    DetectorOutcome,
     DetectorPriorityLevel,
 )
 
@@ -110,6 +111,14 @@ class BaseDetectorHandler(abc.ABC, Generic[DataPacketType, DataPacketEvaluationT
     def __init__(self, detector: Detector):
         self.detector = detector
 
+    @property
+    @abc.abstractmethod
+    def outcome_type(self) -> DetectorOutcome: ...
+
+    @abc.abstractmethod
+    def outcome(self, result: DetectorEvaluation) -> None:
+        pass
+
     @abc.abstractmethod
     def _evaluate(
         self, data_packet: DataPacket[DataPacketType]
@@ -160,6 +169,14 @@ class DetectorHandler(BaseDetectorHandler[DataPacketType, DataPacketEvaluationTy
 
     Also includes a default `evaluate` implementation that subclasses can rely on or override.
     """
+
+    @property
+    def outcome_type(self) -> DetectorOutcome:
+        return DetectorOutcome.ISSUE
+
+    def outcome(self, result: DetectorEvaluation):
+        # By default, use the Issue Platform to create or update an issue.
+        pass
 
     def __init__(self, detector: Detector):
         super().__init__(detector)

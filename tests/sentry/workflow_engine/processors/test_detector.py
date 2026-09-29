@@ -50,6 +50,7 @@ from sentry.workflow_engine.processors.evaluations import (
 from sentry.workflow_engine.processors.evaluations.tracking import emit_evaluations
 from sentry.workflow_engine.types import (
     ConditionError,
+    DetectorOutcome,
     DetectorPriorityLevel,
     WorkflowEventData,
 )
@@ -368,6 +369,8 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
     @mock.patch("sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka")
     def test_state_results(self, mock_produce_occurrence_to_kafka: MagicMock) -> None:
         detector, _ = self.create_detector_and_condition(type=self.handler_state_type.slug)
+        assert detector.detector_handler is not None
+        assert detector.detector_handler.outcome_type is DetectorOutcome.ISSUE
         data_packet = DataPacket("1", {"dedupe": 2, "group_vals": {None: 6}})
         results = process_detectors(data_packet, [detector])
 
@@ -403,6 +406,28 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
             status_change=None,
             event_data=expected_event_data,
         )
+
+    @mock.patch("sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka")
+    def test_callback_outcome_calls_handler(
+        self, mock_produce_occurrence_to_kafka: MagicMock
+    ) -> None:
+        detector, _ = self.create_detector_and_condition(type=self.handler_state_type.slug)
+        data_packet = DataPacket("1", {"dedupe": 2, "group_vals": {None: 6}})
+
+        with (
+            mock.patch.object(
+                MockDetectorStateHandler,
+                "outcome_type",
+                new_callable=mock.PropertyMock,
+                return_value=DetectorOutcome.CALLBACK,
+            ),
+            mock.patch.object(MockDetectorStateHandler, "outcome") as mock_outcome,
+        ):
+            results = process_detectors(data_packet, [detector])
+
+        assert len(results) == 1
+        mock_outcome.assert_called_once_with(results[0][1][None])
+        mock_produce_occurrence_to_kafka.assert_not_called()
 
     @mock.patch("sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka")
     def test_state_results_multi_group(self, mock_produce_occurrence_to_kafka: MagicMock) -> None:

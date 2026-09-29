@@ -289,7 +289,7 @@ Detector-specific consequences:
   state commit but before publication can cause a retry to be skipped by dedupe.
 
 The output enters Issue Platform through
-[`create_issue_platform_payload`](../processors/detector.py). Workflows run later from
+[`produce_issue_platform_payload`](../processors/detector.py). Workflows run later from
 the resulting issue event; they are not part of the detector state transaction.
 
 ## Workflows

@@ -307,4 +307,9 @@ class DetectorSettings:
     filter: ClassVar[Q | None] = None
 
 
+class DetectorOutcome(StrEnum):
+    ISSUE = "issue_platform"
+    CALLBACK = "callback"
+
+
 WorkflowActivityHandler: TypeAlias = Callable[["Group", "Activity", DetectorId | None], None]

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
+from typing import Any
 
 from sentry import features, options
 from sentry.grouping.grouptype import ErrorGroupType
@@ -21,6 +22,7 @@ from sentry.utils.tracing import trace
 from sentry.workflow_engine.defaults.detectors import (
     ensure_default_detectors as ensure_default_detectors,
 )
+from sentry.workflow_engine.handlers.detector.base import BaseDetectorHandler
 from sentry.workflow_engine.models import DataPacket, Detector
 from sentry.workflow_engine.models.detector_group import DetectorGroup
 from sentry.workflow_engine.processors import DetectorEvaluation, ProcessDetectorsResult
@@ -28,6 +30,7 @@ from sentry.workflow_engine.processors.evaluations.tracking import emit_evaluati
 from sentry.workflow_engine.types import (
     DetectorGroupKey,
     DetectorId,
+    DetectorOutcome,
     WorkflowEventData,
 )
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
@@ -262,7 +265,7 @@ def get_preferred_detector(event_data: WorkflowEventData) -> Detector:
         raise
 
 
-def create_issue_platform_payload(result: DetectorEvaluation, detector_type: str) -> None:
+def produce_issue_platform_payload(result: DetectorEvaluation, detector_type: str) -> None:
     occurrence, status_change = None, None
 
     if isinstance(result.result, IssueOccurrence):
@@ -335,6 +338,22 @@ def _emit_detector_evaluations(
         )
 
 
+def _produce_detector_output(
+    result: DetectorEvaluation,
+    handler: BaseDetectorHandler[Any, Any],
+) -> None:
+    """
+    This method looks at the handler to determine how each detector wants to handle the outcome.
+
+    The default is to use the issue platform to handle the evaluations
+    """
+    match handler.outcome_type:
+        case DetectorOutcome.CALLBACK:
+            handler.outcome(result)
+        case DetectorOutcome.ISSUE:
+            produce_issue_platform_payload(result, handler.detector.type)
+
+
 @trace
 def process_detectors[T](
     data_packet: DataPacket[T],
@@ -346,7 +365,7 @@ def process_detectors[T](
 
     Once the evaluation is complete, each is stored in EAP for 7d (21d for metric detectors).
 
-    Finally, the triggered detectors create issues via the Issue Platform.
+    Finally, triggered detectors create issues via Issue Platform unless publication is disabled.
     """
     results: list[tuple[Detector, dict[DetectorGroupKey, DetectorEvaluation]]] = []
 
@@ -386,7 +405,7 @@ def process_detectors[T](
                     tags={"detector_type": detector.type},
                 )
 
-                create_issue_platform_payload(result, detector.type)
+                _produce_detector_output(result, handler)
 
         if detector_results:
             results.append((detector, detector_results))
