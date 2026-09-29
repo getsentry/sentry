@@ -8,7 +8,6 @@ import sentry_sdk
 
 from sentry import nodestore
 from sentry.api.utils import default_start_end_dates
-from sentry.constants import ObjectStatus
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.models.project import Project
 from sentry.replays.post_process import process_raw_response
@@ -94,13 +93,12 @@ def fetch_trace_connected_errors(
     if not trace_ids:
         return []
 
-    # Get projects in the organization that the user has access to
-    org_projects = list(
-        Project.objects.filter(organization=project.organization, status=ObjectStatus.ACTIVE)
-    )
-
+    # Summaries are generated without the viewer's access context and are shared
+    # by everyone who can read the replay, so they must only include data from
+    # the replay's own project. Traces continue into other projects that the
+    # viewer may not be permitted to read.
     snuba_params = SnubaParams(
-        projects=org_projects,
+        projects=[project],
         start=start,
         end=end,
         organization=project.organization,
