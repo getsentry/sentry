@@ -35,9 +35,6 @@ export function PathMapping({
   ...value
 }: PathMappingProps) {
   const showSummary = !(editing && isNew);
-  const effectiveWarning: PathMappingWarning | null = value.hasCodeOwner
-    ? {type: 'codeOwner'}
-    : (warning ?? null);
 
   return (
     <Stack border="muted" radius="md">
@@ -45,7 +42,7 @@ export function PathMapping({
         <PathMappingSummary
           {...value}
           expanded={editing}
-          warning={effectiveWarning}
+          warning={warning ?? null}
           onDelete={onDelete}
           onExpandToggle={onExpandToggle}
         />
@@ -57,7 +54,7 @@ export function PathMapping({
           providerKey={providerKey}
           defaultBranch={defaultBranch}
           projectSlug={projectSlug}
-          warning={effectiveWarning}
+          warning={warning ?? null}
           onChange={onChange}
         />
       )}

@@ -6,14 +6,14 @@ export type PathMappingWarning =
   | {type: 'codeOwner'}
   | {sourceRoot: string; stackRoot: string; type: 'exact'};
 
-type NormalizedRow = {sourceRoot: string; stackRoot: string};
+type NormalizedRow = {hasCodeOwner: boolean; sourceRoot: string; stackRoot: string};
 
 function deriveWarning(
   row: NormalizedRow,
   index: number,
   rows: NormalizedRow[]
 ): PathMappingWarning | null {
-  const {stackRoot, sourceRoot} = row;
+  const {stackRoot, sourceRoot, hasCodeOwner} = row;
 
   const duplicate = rows.find(
     (other, i) =>
@@ -21,6 +21,10 @@ function deriveWarning(
   );
   if (duplicate) {
     return {sourceRoot: duplicate.sourceRoot, stackRoot, type: 'exact'};
+  }
+
+  if (hasCodeOwner) {
+    return {type: 'codeOwner'};
   }
 
   if (stackRoot === '') {
@@ -36,6 +40,7 @@ export function getPathMappingWarnings(
   const rows = values.map(v => ({
     stackRoot: normalizeRoot(v.stackRoot),
     sourceRoot: normalizeRoot(v.sourceRoot),
+    hasCodeOwner: v.hasCodeOwner ?? false,
   }));
 
   return rows.map((row, index) => deriveWarning(row, index, rows));

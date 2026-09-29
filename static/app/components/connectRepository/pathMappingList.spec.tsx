@@ -275,6 +275,44 @@ describe('PathMappingList', () => {
         'true'
       );
     });
+
+    it('shows the exact-duplicate warning on a Code Owners row that duplicates another mapping', async () => {
+      renderList({
+        pathMappings: [
+          {stackRoot: 'src/', sourceRoot: 'src/app/', branch: 'main', hasCodeOwner: true},
+          {stackRoot: 'src/', sourceRoot: 'src/app/', branch: 'main'},
+        ],
+      });
+
+      // Exact duplicate takes priority: warning icon visible on the Code Owners row.
+      expect(screen.getAllByRole('img', {name: 'Warning'})).toHaveLength(2);
+
+      const [expandCodeOwner] = screen.getAllByRole('button', {
+        name: 'Expand path mapping',
+      });
+      await userEvent.click(expandCodeOwner!);
+
+      expect(screen.getByText(/Only one can be used for matching/)).toBeInTheDocument();
+      expect(screen.queryByText(/Code Owners/)).not.toBeInTheDocument();
+    });
+
+    it('shows the Code Owners alert on a Code Owners row with no duplicate', async () => {
+      renderList({
+        pathMappings: [
+          {stackRoot: 'src/', sourceRoot: 'src/app/', branch: 'main', hasCodeOwner: true},
+        ],
+      });
+
+      // No duplicate — no warning icon on the collapsed row.
+      expect(screen.queryByRole('img', {name: 'Warning'})).not.toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Expand path mapping'}));
+
+      expect(screen.getByText(/Code Owners/)).toBeInTheDocument();
+      expect(
+        screen.queryByText(/Only one can be used for matching/)
+      ).not.toBeInTheDocument();
+    });
   });
 
   describe('field normalization', () => {
