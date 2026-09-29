@@ -302,7 +302,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
         assert response.status_code == 200, response.content
         assert [log["log.body"] for log in response.data["data"]] == ["//^ERROR//"]
 
-    def test_regex_filter_returns_matches_in_meta(self) -> None:
+    def test_regex_filter_returns_match_spans_in_meta(self) -> None:
         logs = [
             self.create_ourlog(
                 {"body": "ERROR [42] disk full, ERROR [7] again"},
@@ -331,13 +331,8 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
             "ERROR [1] disk full",
         ]
         assert response.data["meta"]["matches"] == [
-            {
-                "log.body": [
-                    {"start": 0, "end": 10, "text": "ERROR [42]"},
-                    {"start": 22, "end": 31, "text": "ERROR [7]"},
-                ]
-            },
-            {"log.body": [{"start": 0, "end": 9, "text": "ERROR [1]"}]},
+            {"log.body": [(0, 10), (22, 31)]},
+            {"log.body": [(0, 9)]},
         ]
 
     def test_regex_filter_matches_are_case_insensitive_when_requested(self) -> None:
@@ -360,9 +355,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
         )
 
         assert response.status_code == 200, response.content
-        assert response.data["meta"]["matches"] == [
-            {"log.body": [{"start": 0, "end": 5, "text": "Error"}]}
-        ]
+        assert response.data["meta"]["matches"] == [{"log.body": [(0, 5)]}]
 
     def test_regex_filter_omits_matches_for_a_field_that_was_not_selected(self) -> None:
         logs = [
@@ -427,8 +420,8 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
             ". ERROR boom",
         ]
         assert response.data["meta"]["matches"] == [
-            {"log.body": [{"start": 1, "end": 6, "text": "ERROR"}]},
-            {"log.body": [{"start": 2, "end": 7, "text": "ERROR"}]},
+            {"log.body": [(1, 6)]},
+            {"log.body": [(2, 7)]},
         ]
 
     def test_regex_filter_returns_matches_alongside_the_default_log_fields(self) -> None:
@@ -446,9 +439,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
         )
 
         assert response.status_code == 200, response.content
-        assert response.data["meta"]["matches"] == [
-            {"message": [{"start": 0, "end": 5, "text": "ERROR"}]}
-        ]
+        assert response.data["meta"]["matches"] == [{"message": [(0, 5)]}]
 
     def test_regex_filter_matches_ignore_the_truncation_marker(self) -> None:
         logs = [
@@ -468,9 +459,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
 
         assert response.status_code == 200, response.content
         assert response.data["data"][0]["log.body"] == "b" * 64 + "..."
-        assert response.data["meta"]["matches"] == [
-            {"log.body": [{"start": 0, "end": 64, "text": "b" * 64}]}
-        ]
+        assert response.data["meta"]["matches"] == [{"log.body": [(0, 64)]}]
 
     def test_regex_filter_rejects_an_invalid_pattern(self) -> None:
         response = self.do_request(

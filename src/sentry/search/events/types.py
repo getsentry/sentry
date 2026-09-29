@@ -64,16 +64,9 @@ SnubaRow = dict[str, Any]
 SnubaData = list[SnubaRow]
 
 
-class RegexMatch(TypedDict):
-    """Where a regex filter matched a value. Offsets are UTF-16 code units, so in a browser
-    `value.slice(start, end)` is `text`."""
-
-    start: int
-    end: int
-    text: str
-
-
-RegexMatchesByField = dict[str, list[RegexMatch]]
+# Where each field's regex filters matched, as `[start, end)` UTF-16 code unit offsets, so in a
+# browser `value.slice(start, end)` is the matched text
+RegexMatchesByField = dict[str, list[tuple[int, int]]]
 
 
 class EventsMeta(TypedDict):

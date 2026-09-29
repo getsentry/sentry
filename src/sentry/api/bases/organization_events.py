@@ -460,7 +460,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                 if routing_hint:
                     meta["routingHint"] = routing_hint
 
-                if matches is not None:
+                if matches:
                     meta["matches"] = matches
 
                 # Only appears in meta when debug is passed to the endpoint

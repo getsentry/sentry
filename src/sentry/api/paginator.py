@@ -550,14 +550,11 @@ class GenericOffsetPaginator:
             has_more = len(data["data"]) == limit + 1
             if has_more:
                 data["data"].pop()
-                # `meta.matches` is one entry per row of `data`, so it has to lose the
-                # over-fetched row too or it describes a row the caller never receives.
-                # `meta` is a list of column descriptors on raw Snuba bodies, so it is only
-                # a mapping for the query builders that produce this key.
+                # `meta.matches` is one entry per row, so it drops the over-fetched row too.
+                # On raw Snuba bodies `meta` is a list of column descriptors, not a mapping.
                 meta = data.get("meta")
-                matches = meta.get("matches") if isinstance(meta, dict) else None
-                if isinstance(matches, list) and len(matches) > len(data["data"]):
-                    matches.pop()
+                if isinstance(meta, dict) and isinstance(meta.get("matches"), list):
+                    del meta["matches"][len(data["data"]) :]
         else:
             raise NotImplementedError
 
