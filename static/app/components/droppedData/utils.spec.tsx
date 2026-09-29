@@ -27,6 +27,18 @@ describe('hasDroppedData', () => {
       ])
     ).toBe(false);
   });
+
+  it('is true only when a bucket reaches 5%', () => {
+    function hasDrops(dropped: number, accepted: number) {
+      return hasDroppedData(
+        [AnnotationFixture({start: 0, eventCount: dropped})],
+        [AnnotationFixture({start: 0, eventCount: accepted})]
+      );
+    }
+
+    expect(hasDrops(4, 96)).toBe(false);
+    expect(hasDrops(5, 95)).toBe(true);
+  });
 });
 
 describe('groupIntoBuckets', () => {

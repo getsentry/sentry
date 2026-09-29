@@ -122,11 +122,12 @@ export function reasonDescription(reason: string, category: string): string | un
 }
 
 export function hasDroppedData(
-  droppedAnnotations: Annotation[] | undefined
+  droppedAnnotations: Annotation[] | undefined,
+  acceptedAnnotations?: Annotation[]
 ): droppedAnnotations is Annotation[] {
   return (
     defined(droppedAnnotations) &&
-    droppedAnnotations.some(annotation => !isConfiguredDrop(annotation))
+    highlightedBuckets(droppedAnnotations, acceptedAnnotations).length > 0
   );
 }
 
@@ -158,7 +159,7 @@ function isConfiguredDrop({outcome, reason}: Annotation): boolean {
   return outcome === 'client_discard' && CONFIGURED_CLIENT_DISCARD_REASONS.has(reason);
 }
 
-export const MIN_HIGHLIGHTED_RATIO = 0.05;
+const MIN_HIGHLIGHTED_RATIO = 0.05;
 
 export interface SeverityStyle {
   fill: string;
@@ -320,4 +321,13 @@ export function groupIntoBuckets(
   const acceptedByStart = acceptedVolumeByStart(acceptedAnnotations);
 
   return Array.from(drafts.values()).map(draft => toBucket(draft, acceptedByStart));
+}
+
+export function highlightedBuckets(
+  droppedAnnotations: Annotation[],
+  acceptedAnnotations?: Annotation[]
+): AnnotationBucket[] {
+  return groupIntoBuckets(droppedAnnotations, acceptedAnnotations).filter(
+    bucket => bucket.ratio >= MIN_HIGHLIGHTED_RATIO
+  );
 }

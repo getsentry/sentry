@@ -16,8 +16,7 @@ import {isChartHovered} from 'sentry/components/charts/utils';
 import {DroppedDataTooltip} from 'sentry/components/droppedData/droppedDataTooltip';
 import type {DroppedDataProps} from 'sentry/components/droppedData/types';
 import {
-  groupIntoBuckets,
-  MIN_HIGHLIGHTED_RATIO,
+  highlightedBuckets,
   severityStyle,
   type AnnotationBucket,
   type SeverityStyle,
@@ -260,9 +259,9 @@ export function useDroppedDataBand({
 
   const buckets = useMemo(
     () =>
-      groupIntoBuckets(droppedAnnotations ?? [], acceptedAnnotations ?? [])
-        .filter(bucket => bucket.ratio >= MIN_HIGHLIGHTED_RATIO)
-        .sort((a, b) => a.start - b.start),
+      highlightedBuckets(droppedAnnotations ?? [], acceptedAnnotations).sort(
+        (a, b) => a.start - b.start
+      ),
     [acceptedAnnotations, droppedAnnotations]
   );
   const isVisible = buckets.length > 0;
