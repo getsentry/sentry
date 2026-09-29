@@ -37,8 +37,7 @@ interface ContextCardProps {
 }
 
 interface ContextCardContentConfig {
-  // The registry each key's field definition is looked up in, to offer its details on
-  // hover. Omitted, keys render as plain text.
+  // The registry each key's field definition is looked up in, for hover details.
   attributeDetailsType?: GetFieldDefinitionType;
   // Omit error styling from being displayed, even if context is invalid
   disableErrors?: boolean;
