@@ -3544,6 +3544,27 @@ class PostProcessGroupErrorTest(
         ]
 
     @patch("sentry.tasks.post_process.run_post_process_job")
+    def test_reprocessed_event_has_independent_lock(self, mock_run_job: MagicMock) -> None:
+        event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
+        original_group_id = event.group_id
+        self.call_post_process_group(True, False, True, event)
+        self.call_post_process_group(True, False, True, event)
+        mock_run_job.assert_called_once()
+
+        event.data["contexts"]["reprocessing"] = {"original_issue_id": original_group_id}
+        new_group = self.create_group(project=self.project)
+        event.group = new_group
+        self.call_post_process_group(True, False, True, event)
+        self.call_post_process_group(True, False, True, event)
+
+        assert mock_run_job.call_count == 2
+        original_job, reprocessed_job = [call.args[0] for call in mock_run_job.call_args_list]
+        assert original_job["event"].group_id == original_group_id
+        assert original_job["is_reprocessed"] is False
+        assert reprocessed_job["event"].group_id == new_group.id
+        assert reprocessed_job["is_reprocessed"] is True
+
+    @patch("sentry.tasks.post_process.run_post_process_job")
     @patch("sentry.utils.retries.time.sleep")
     def test_retries_missing_event(self, mock_sleep: MagicMock, mock_run_job: MagicMock) -> None:
         event = self.create_event(data={"message": "testing"}, project_id=self.project.id)

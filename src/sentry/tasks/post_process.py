@@ -568,7 +568,9 @@ def post_process_group(
         from sentry.services import eventstore
 
         if occurrence_id is None:
-            lock_key = f"ppg:{project_id}:{event_id}-once"
+            # Reprocessing keeps the event ID but assigns a new group. Allow that
+            # group's post-processing to run even while the original lock exists.
+            lock_key = f"ppg:{project_id}:{event_id}:{group_id}-once"
             lock_name = "post_process_event_once"
         else:
             lock_key = f"ppg:{occurrence_id}-once"
