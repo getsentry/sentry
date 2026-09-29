@@ -34,8 +34,8 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 // ---------------------------------------------------------------------------
 
 export type ProjectRepoListItem = {
-  id: string;
   externalId: string | null;
+  id: string;
   integrationId: string | null;
   mappingCount: number;
   projectId: string;
