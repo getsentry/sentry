@@ -21,7 +21,6 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from flagpole.conditions import glob_star_match
 from sentry import audit_log, features, options
 from sentry.api.invite_helper import ApiInviteHelper, remove_invite_details_from_session
 from sentry.audit_log.services.log import AuditLogEvent, log_service
@@ -73,6 +72,7 @@ from sentry.users.services.user.service import user_service
 from sentry.utils import auth, metrics
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.cache import cache
+from sentry.utils.glob import glob_star_match
 from sentry.utils.hashlib import md5_text
 from sentry.utils.http import absolute_uri
 from sentry.utils.retries import TimedRetryPolicy

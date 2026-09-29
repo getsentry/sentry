@@ -856,7 +856,7 @@ describe('ScmCreateProject', () => {
                     integrationId: slackIntegration.id,
                     config: {
                       targetType: 'specific',
-                      targetIdentifier: '',
+                      targetIdentifier: 'C123',
                       targetDisplay: '#alerts',
                     },
                     data: {},
@@ -1199,7 +1199,7 @@ describe('ScmCreateProject', () => {
     await userEvent.keyboard('relay');
     await userEvent.click(await screen.findByRole('menuitemradio', {name: 'relay'}));
 
-    expect(await screen.findByRole('radio', {name: 'Python Language'})).toBeChecked();
+    expect(await screen.findByRole('radio', {name: 'Python'})).toBeChecked();
     await waitFor(() => {
       expect(screen.getByPlaceholderText('project-name')).toHaveValue('python');
     });

@@ -648,6 +648,11 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('sentry/views/settings/project/projectReplays')),
     },
     {
+      path: 'logs/',
+      name: t('Logs'),
+      component: make(() => import('sentry/views/settings/project/projectLogs')),
+    },
+    {
       path: 'playstation/',
       name: t('PlayStation'),
       component: make(() => import('sentry/views/settings/project/tempest')),
