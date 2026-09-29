@@ -37,6 +37,8 @@ interface SearchItem {
   label: string;
   node: StoryTreeNode;
   title: string;
+  /** Visible breadcrumb before the title, with `…` standing in for hidden parents. */
+  crumbs?: string[];
   hash?: string;
   parents?: string[];
 }
@@ -96,13 +98,60 @@ function searchItems(nodes: StoryTreeNode[], query: string): SearchItem[] {
     .map(({item}) => item);
 }
 
-// Full breadcrumbs repeat the page and parent headings on every result. Show
-// the page and the matching entry; the full path remains the accessible name.
+function visibleCrumbs(item: SearchItem, shownParents: number) {
+  if (!item.hash) {
+    return [];
+  }
+  const parents = item.parents ?? [];
+  const hidden = parents.length - shownParents;
+  return [item.node.label, ...(hidden > 0 ? ['…'] : []), ...parents.slice(hidden)];
+}
+
+/**
+ * Full breadcrumbs repeat the page and parent headings on every result, so
+ * collapse them to `Page › … › Title`. Results that would then look identical
+ * (e.g. an Accessibility section under each of two components) reveal their
+ * nearest parents until they can be told apart.
+ */
+function collapseBreadcrumbs(items: SearchItem[]): SearchItem[] {
+  const shown = new Map(items.map(item => [item, 0]));
+  const display = (item: SearchItem) =>
+    [...visibleCrumbs(item, shown.get(item) ?? 0), item.title].join(' › ');
+
+  let expanded = true;
+  while (expanded) {
+    expanded = false;
+    const groups = Map.groupBy(items, display);
+    for (const group of groups.values()) {
+      if (group.length < 2) {
+        continue;
+      }
+      for (const item of group) {
+        const count = shown.get(item) ?? 0;
+        if (count < (item.parents?.length ?? 0)) {
+          shown.set(item, count + 1);
+          expanded = true;
+        }
+      }
+    }
+  }
+  return items.map(item => ({
+    ...item,
+    crumbs: visibleCrumbs(item, shown.get(item) ?? 0),
+  }));
+}
+
 function SearchResultLabel({item, query}: {item: SearchItem; query: string}) {
+  const crumbs = item.crumbs ?? [];
+  // The accessible name keeps the full path; the visible label is collapsed.
   return (
     <Text as="span" aria-label={item.label}>
       <Text as="span" aria-hidden="true">
-        {item.hash && `${item.node.label} › ${item.parents?.length ? '… › ' : ''}`}
+        {crumbs.length > 0 && (
+          <Text as="span" variant="muted">
+            {crumbs.join(' › ')} ›{' '}
+          </Text>
+        )}
         <HighlightText text={item.title} query={query} />
       </Text>
     </Text>
@@ -158,7 +207,11 @@ export function StorySearch() {
       }
     }
 
-    return sections.filter(section => section.options.length > 0);
+    // A page's results always share a section, so look-alike results can only
+    // collide within one.
+    return sections
+      .filter(section => section.options.length > 0)
+      .map(section => ({...section, options: collapseBreadcrumbs(section.options)}));
   }, [hierarchy, inputValue]);
 
   return (

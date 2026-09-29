@@ -23,6 +23,7 @@ jest.mock('sentry/stories/storyManifest.generated', () => ({
         title: 'Accessibility',
         parents: ['FeatureBadge'],
       },
+      {id: 'featurebadge-variants', title: 'Variants', parents: ['FeatureBadge']},
       {id: 'tag', title: 'Tag', parents: []},
       {id: 'tag-accessibility', title: 'Accessibility', parents: ['Tag']},
     ],
@@ -58,14 +59,27 @@ describe('StorySearch', () => {
       'Accessibility'
     );
 
-    // Visible labels collapse parents; the accessible name keeps the full path.
+    // Collapsed labels would look identical, so both reveal their parent.
     expect(
       await screen.findByRole('option', {name: /Badge › FeatureBadge › Accessibility/})
-    ).toHaveTextContent('Badge › … › Accessibility');
+    ).toHaveTextContent('Badge › FeatureBadge › Accessibility');
     await userEvent.click(
       screen.getByRole('option', {name: /Badge › Tag › Accessibility/})
     );
     await waitFor(() => expect(router.location.hash).toBe('#tag-accessibility'));
+  });
+
+  it('collapses parents of a unique nested section', async () => {
+    render(<StorySearch />);
+    await userEvent.type(
+      screen.getByRole('combobox', {name: 'Search stories'}),
+      'Variants'
+    );
+
+    // The accessible name keeps the full path.
+    expect(
+      await screen.findByRole('option', {name: 'Badge › FeatureBadge › Variants'})
+    ).toHaveTextContent('Badge › … › Variants');
   });
 
   it('ranks the standalone page ahead of an equally named section and clears the hash', async () => {
