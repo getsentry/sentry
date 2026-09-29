@@ -95,76 +95,78 @@ function AddGiftBudgetModal({
     <Fragment>
       <Header closeButton>Add Gift Budget</Header>
       <Body>
-        {reservedBudgetOptions.length > 1 ? (
-          <Fragment>
-            <div>Select a reserved budget to add gift amount.</div>
-            <br />
-          </Fragment>
-        ) : reservedBudgetOptions.length === 0 ? (
-          <div>No reserved budgets available.</div>
-        ) : (
-          <div />
-        )}
         <form.AppForm form={form}>
-          {reservedBudgetOptions.map(budget => (
-            <Container
-              key={budget.id}
-              padding="xl"
-              margin="md 0"
-              border="primary"
-              radius="md"
-              background={activeBudgetId === budget.id ? 'secondary' : undefined}
-              cursor="pointer"
-              onClick={() => setSelectedBudgetId(budget.id)}
-            >
-              <Flex justify="between" marginBottom="md">
-                <div>
-                  <strong>Reserved Budget:</strong> $
-                  {(budget.reservedBudget / 100).toLocaleString()}
-                </div>
-                <div>
-                  <strong>Existing Free Budget:</strong> $
-                  {(budget.freeBudget / 100).toLocaleString()}
-                </div>
-              </Flex>
-              <Container marginBottom="md">
-                <strong>Categories:</strong>{' '}
-                {Object.keys(budget.categories)
-                  .map(category =>
-                    getPlanCategoryName({
-                      plan: subscription.planDetails,
-                      category: category as DataCategory,
-                      capitalize: false,
-                      hadCustomDynamicSampling: true,
-                    })
-                  )
-                  .join(', ') || 'None'}
-              </Container>
-              {activeBudgetId === budget.id && (
-                <form.AppField name="giftAmount">
-                  {field => (
-                    <field.Layout.Stack
-                      label="Gift Amount ($)"
-                      hintText="Enter gift amount in dollars (max $10,000)."
-                      required
-                    >
-                      <field.Number
-                        min={0}
-                        max={10000}
-                        value={field.state.value}
-                        onChange={value => field.handleChange(value ?? 0)}
-                        onClick={(event: React.MouseEvent) => event.stopPropagation()}
-                      />
-                      <Text>Total Gift: ${field.state.value.toLocaleString()}</Text>
-                    </field.Layout.Stack>
+          <Stack gap="md">
+            {reservedBudgetOptions.length > 1 && (
+              <Text as="p">Select a reserved budget to add gift amount.</Text>
+            )}
+            {reservedBudgetOptions.length === 0 && (
+              <Text as="p">No reserved budgets available.</Text>
+            )}
+            {reservedBudgetOptions.map(budget => (
+              <Container
+                key={budget.id}
+                padding="xl"
+                border="primary"
+                radius="md"
+                background={activeBudgetId === budget.id ? 'secondary' : undefined}
+                cursor="pointer"
+                onClick={() => setSelectedBudgetId(budget.id)}
+              >
+                <Stack gap="md">
+                  <Flex justify="between">
+                    <Text>
+                      <Text as="span" bold>
+                        Reserved Budget:
+                      </Text>{' '}
+                      ${(budget.reservedBudget / 100).toLocaleString()}
+                    </Text>
+                    <Text>
+                      <Text as="span" bold>
+                        Existing Free Budget:
+                      </Text>{' '}
+                      ${(budget.freeBudget / 100).toLocaleString()}
+                    </Text>
+                  </Flex>
+                  <Text>
+                    <Text as="span" bold>
+                      Categories:
+                    </Text>{' '}
+                    {Object.keys(budget.categories)
+                      .map(category =>
+                        getPlanCategoryName({
+                          plan: subscription.planDetails,
+                          category: category as DataCategory,
+                          capitalize: false,
+                          hadCustomDynamicSampling: true,
+                        })
+                      )
+                      .join(', ') || 'None'}
+                  </Text>
+                  {activeBudgetId === budget.id && (
+                    <form.AppField name="giftAmount">
+                      {field => (
+                        <field.Layout.Stack
+                          label="Gift Amount ($)"
+                          hintText="Enter gift amount in dollars (max $10,000)."
+                          required
+                        >
+                          <field.Number
+                            min={0}
+                            max={10000}
+                            value={field.state.value}
+                            onChange={value => field.handleChange(value ?? 0)}
+                            onClick={(event: React.MouseEvent) => event.stopPropagation()}
+                          />
+                          <Text>Total Gift: ${field.state.value.toLocaleString()}</Text>
+                        </field.Layout.Stack>
+                      )}
+                    </form.AppField>
                   )}
-                </form.AppField>
-              )}
-            </Container>
-          ))}
-          {reservedBudgetOptions.length === 0 && (
-            <div>No reserved budgets available.</div>
-          )}
+                </Stack>
+              </Container>
+            ))}
+          </Stack>
           <Stack gap="lg" marginTop="xl">
             <form.AppField name="ticketUrl">
               {field => (
