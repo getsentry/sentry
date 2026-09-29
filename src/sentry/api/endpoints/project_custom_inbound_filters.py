@@ -25,7 +25,11 @@ from sentry.apidocs.response_types import (
     ValidationErrorResponse,
     as_validation_errors,
 )
-from sentry.ingest.inbound_filters import get_supported_condition_types
+from sentry.ingest.inbound_filters import (
+    get_supported_condition_types,
+    is_release_version,
+    parse_release_comparison,
+)
 from sentry.models.custominboundfilter import (
     ConditionType,
     CustomInboundFilter,
@@ -115,18 +119,36 @@ class CustomInboundFilterConditionSerializer(serializers.Serializer[CustomInboun
         allow_empty=False,
         help_text=(
             "Glob patterns the field is matched against. The condition matches when any "
-            "pattern matches, so multiple values act as OR."
+            "pattern matches, so multiple values act as OR. A `release` value that starts "
+            "with `>`, `>=`, `<`, `<=` or `=` compares versions instead, e.g. `>=1.2.0` "
+            "or `<myapp@2.0`. `ip_address` values are addresses or CIDR ranges."
         ),
     )
 
     def validate(self, attrs: CustomInboundFilterCondition) -> CustomInboundFilterCondition:
-        # Relay drops an entry it cannot parse as an address or range, so a typo would
-        # silently disable part of the filter.
+        # Relay never matches an entry it cannot parse, so a typo would silently
+        # disable part of the filter.
         if attrs["type"] == ConditionType.IP_ADDRESS:
             invalid = [value for value in attrs["value"] if not _is_ip_address_or_range(value)]
             if invalid:
                 raise serializers.ValidationError(
                     {"value": f"{', '.join(invalid)} is not an IP address or CIDR range."}
+                )
+        if attrs["type"] == ConditionType.RELEASE:
+            invalid = [
+                value
+                for value in attrs["value"]
+                if (comparison := parse_release_comparison(value))
+                and not is_release_version(comparison.release)
+            ]
+            if invalid:
+                raise serializers.ValidationError(
+                    {
+                        "value": (
+                            f"{', '.join(invalid)} does not compare against a version "
+                            "such as 1.2.0 or myapp@1.2.0."
+                        )
+                    }
                 )
         return attrs
 
