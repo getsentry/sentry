@@ -1,19 +1,13 @@
-import {Fragment} from 'react';
-
 import {InfoText} from '@sentry/scraps/info';
-import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconInfo, IconSentry} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {AttributeDetails} from 'sentry/components/attributes/attributeDetails';
 import {
   DEFAULT_TAG_DESCRIPTION,
   FieldValueType,
   getFieldDefinition,
   type GetFieldDefinitionType,
 } from 'sentry/utils/fields';
-import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 
 export interface AttributeDetailsTooltipProps {
   /**
@@ -58,9 +52,6 @@ export function AttributeDetailsTooltip({
   const fieldDefinition =
     getFieldDefinition(attributeKey, fieldDefinitionType) ??
     (name === undefined ? null : getFieldDefinition(name, fieldDefinitionType));
-  const valueType =
-    fieldDefinition?.valueType ?? defaultValueType ?? FieldValueType.STRING;
-  const description = fieldDefinition?.desc ?? DEFAULT_TAG_DESCRIPTION;
   const attributeName = name ?? attributeKey;
 
   return (
@@ -68,31 +59,19 @@ export function AttributeDetailsTooltip({
       monospace
       variant="muted"
       title={
-        <Fragment>
-          <Tooltip.Grid gap="md">
-            <Stack gap="2xs">
-              <Text bold monospace wordBreak="break-word">
-                {attributeName}
-              </Text>
-              <TypeBadge valueType={valueType} />
-            </Stack>
-            {isScrubbed ? (
-              <Flex align="center" gap="xs">
-                <IconInfo size="xs" />
-                <Text>{t('Data scrubbed for privacy')}</Text>
-              </Flex>
-            ) : null}
-            <Stack gap="2xs">
-              <Text variant="muted">{t('Description')}</Text>
-              <Text>{description}</Text>
-            </Stack>
-          </Tooltip.Grid>
-          {fieldDefinition ? (
-            <Tooltip.Footer leadingItems={<IconSentry size="xs" />}>
-              {t('Added by Sentry')}
-            </Tooltip.Footer>
-          ) : null}
-        </Fragment>
+        <AttributeDetails
+          description={fieldDefinition?.desc ?? DEFAULT_TAG_DESCRIPTION}
+          isAddedBySentry={Boolean(fieldDefinition)}
+          isScrubbed={isScrubbed}
+          name={
+            <Text bold monospace wordBreak="break-word">
+              {attributeName}
+            </Text>
+          }
+          valueType={
+            fieldDefinition?.valueType ?? defaultValueType ?? FieldValueType.STRING
+          }
+        />
       }
     >
       {children ?? attributeName}

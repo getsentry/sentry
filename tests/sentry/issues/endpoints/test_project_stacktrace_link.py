@@ -112,6 +112,7 @@ class BaseProjectStacktraceLink(APITestCase):
     ) -> Mapping[str, Any]:
         return {
             "automaticallyGenerated": code_mapping.automatically_generated,
+            "hasCodeOwner": False,
             "defaultBranch": "master",
             "id": str(code_mapping.id),
             "integrationId": str(self.integration.id),

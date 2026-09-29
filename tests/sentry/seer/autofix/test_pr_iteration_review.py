@@ -329,7 +329,7 @@ class TriggerPrIterationFromReviewTest(TestCase):
     def _review_result(self, review: dict[str, Any]) -> dict[str, Any]:
         return {"data": review, "type": "github", "raw": {}}
 
-    def _stored_pr(self, *, external_id: int | None = None) -> PullRequest:
+    def _stored_pr(self, *, external_id: str | None = None) -> PullRequest:
         pr = self.create_pull_request(
             repository_id=self.repo.id,
             organization_id=self.organization.id,
@@ -361,13 +361,13 @@ class TriggerPrIterationFromReviewTest(TestCase):
     def test_resolves_pr_id_from_row_without_calling_github(self) -> None:
         # The pull_request_review payload carries only the PR number; a stored
         # ``external_id`` is what keeps that from costing a REST round-trip.
-        self._stored_pr(external_id=555)
+        self._stored_pr(external_id="555")
 
         self._run()
 
         self.mock_actions.get_pull_request.assert_not_called()
         self.mock_get_state.assert_called_once_with(
-            self.organization.id, "integrations:github", 555
+            self.organization.id, "integrations:github", "555"
         )
 
     def test_writes_external_id_back_on_a_miss(self) -> None:
@@ -379,7 +379,7 @@ class TriggerPrIterationFromReviewTest(TestCase):
             self.mock_make_scm.return_value, "7"
         )
         pr.refresh_from_db()
-        assert pr.external_id == 555
+        assert pr.external_id == "555"
 
     def test_stops_on_a_repo_whose_provider_is_not_pinned(self) -> None:
         # Everything downstream reads github.com off `PR_ITERATION_PROVIDER`
@@ -422,7 +422,7 @@ class TriggerPrIterationFromReviewTest(TestCase):
             self.mock_make_scm.return_value, "7"
         )
         self.mock_get_state.assert_called_once_with(
-            self.organization.id, "integrations:github", 555
+            self.organization.id, "integrations:github", "555"
         )
 
         # Two inline comments + one review body item.

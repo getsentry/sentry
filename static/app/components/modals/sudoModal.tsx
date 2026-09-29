@@ -318,7 +318,7 @@ function SudoModal({
   const ssoExpired = resolvedErrorType === ErrorCodes.INVALID_SSO_SESSION;
   useEffect(() => {
     if (ssoExpired) {
-      logout(api, getAuthLoginPath());
+      logout(api, {redirectUrl: getAuthLoginPath()});
     }
     // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [api, ssoExpired]);

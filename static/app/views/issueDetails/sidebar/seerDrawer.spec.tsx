@@ -59,7 +59,6 @@ function makeExplorerAutofixData({
 describe('SeerDrawer', () => {
   const organization = OrganizationFixture({
     hideAiFeatures: false,
-    features: ['gen-ai-features'],
   });
 
   const mockGroup = GroupFixture();
@@ -402,7 +401,7 @@ describe('SeerDrawer', () => {
         render(<SeerDrawer group={mockGroup} project={mockProject} />, {
           organization: OrganizationFixture({
             hideAiFeatures: false,
-            features: ['gen-ai-features', feature],
+            features: [feature],
           }),
         });
 
