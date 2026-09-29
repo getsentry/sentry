@@ -16,12 +16,7 @@ from sentry.workflow_engine.processors import (
     DetectorEvaluation,
 )
 from sentry.workflow_engine.registry import detector_settings_registry
-from sentry.workflow_engine.types import (
-    DetectorGroupKey,
-    DetectorOutcome,
-    DetectorPriorityLevel,
-    DetectorSettings,
-)
+from sentry.workflow_engine.types import DetectorGroupKey, DetectorPriorityLevel, DetectorSettings
 
 
 # This class allows error issues to be associated with a detector. However,
@@ -29,10 +24,6 @@ from sentry.workflow_engine.types import (
 # TODO: Move these project settings to the detector configuration
 class ErrorDetectorHandler(BaseDetectorHandler[object, object]):
     """Placeholder handler for error group types."""
-
-    @property
-    def outcome_type(self) -> DetectorOutcome:
-        return DetectorOutcome.ISSUE
 
     def _evaluate(
         self, data_packet: DataPacket[object]

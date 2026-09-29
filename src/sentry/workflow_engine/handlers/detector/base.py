@@ -1,7 +1,7 @@
 import abc
 import dataclasses
 import logging
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Generic, TypeVar, cast
@@ -111,13 +111,7 @@ class BaseDetectorHandler(abc.ABC, Generic[DataPacketType, DataPacketEvaluationT
     def __init__(self, detector: Detector):
         self.detector = detector
 
-    @property
-    @abc.abstractmethod
-    def outcome_type(self) -> DetectorOutcome: ...
-
-    @abc.abstractmethod
-    def outcome(self, result: DetectorEvaluation) -> None:
-        pass
+    outcome: DetectorOutcome | Callable[[DetectorEvaluation], None] = DetectorOutcome.ISSUE
 
     @abc.abstractmethod
     def _evaluate(
@@ -169,14 +163,6 @@ class DetectorHandler(BaseDetectorHandler[DataPacketType, DataPacketEvaluationTy
 
     Also includes a default `evaluate` implementation that subclasses can rely on or override.
     """
-
-    @property
-    def outcome_type(self) -> DetectorOutcome:
-        return DetectorOutcome.ISSUE
-
-    def outcome(self, result: DetectorEvaluation):
-        # By default, use the Issue Platform to create or update an issue.
-        pass
 
     def __init__(self, detector: Detector):
         super().__init__(detector)

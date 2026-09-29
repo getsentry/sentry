@@ -342,16 +342,12 @@ def _produce_detector_output(
     result: DetectorEvaluation,
     handler: BaseDetectorHandler[Any, Any],
 ) -> None:
-    """
-    This method looks at the handler to determine how each detector wants to handle the outcome.
-
-    The default is to use the issue platform to handle the evaluations
-    """
-    match handler.outcome_type:
-        case DetectorOutcome.CALLBACK:
-            handler.outcome(result)
-        case DetectorOutcome.ISSUE:
-            produce_issue_platform_payload(result, handler.detector.type)
+    """Route a detector result to its configured output."""
+    outcome = handler.outcome
+    if callable(outcome):
+        outcome(result)
+    elif outcome is DetectorOutcome.ISSUE:
+        produce_issue_platform_payload(result, handler.detector.type)
 
 
 @trace

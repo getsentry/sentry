@@ -370,7 +370,7 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
     def test_state_results(self, mock_produce_occurrence_to_kafka: MagicMock) -> None:
         detector, _ = self.create_detector_and_condition(type=self.handler_state_type.slug)
         assert detector.detector_handler is not None
-        assert detector.detector_handler.outcome_type is DetectorOutcome.ISSUE
+        assert detector.detector_handler.outcome is DetectorOutcome.ISSUE
         data_packet = DataPacket("1", {"dedupe": 2, "group_vals": {None: 6}})
         results = process_detectors(data_packet, [detector])
 
@@ -414,15 +414,8 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
         detector, _ = self.create_detector_and_condition(type=self.handler_state_type.slug)
         data_packet = DataPacket("1", {"dedupe": 2, "group_vals": {None: 6}})
 
-        with (
-            mock.patch.object(
-                MockDetectorStateHandler,
-                "outcome_type",
-                new_callable=mock.PropertyMock,
-                return_value=DetectorOutcome.CALLBACK,
-            ),
-            mock.patch.object(MockDetectorStateHandler, "outcome") as mock_outcome,
-        ):
+        mock_outcome = MagicMock()
+        with mock.patch.object(MockDetectorStateHandler, "outcome", mock_outcome):
             results = process_detectors(data_packet, [detector])
 
         assert len(results) == 1

@@ -309,7 +309,6 @@ class DetectorSettings:
 
 class DetectorOutcome(StrEnum):
     ISSUE = "issue_platform"
-    CALLBACK = "callback"
 
 
 WorkflowActivityHandler: TypeAlias = Callable[["Group", "Activity", DetectorId | None], None]

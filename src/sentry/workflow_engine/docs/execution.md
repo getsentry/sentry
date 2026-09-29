@@ -65,7 +65,7 @@ One packet can produce:
 
 A handler returns a mapping of group keys to `DetectorEvaluation` objects. An evaluation
 can contain an `IssueOccurrence`, a `StatusChangeMessage`, or `None`. `process_detectors`
-routes non-null results according to the handler's `outcome_type`.
+routes non-null results according to the handler's `outcome`.
 
 ### 4. Detector orchestration
 
@@ -145,11 +145,9 @@ interface and is not a base for new detectors.
 ### 5. Produce detector output
 
 `process_detectors` routes each non-null result according to the detector handler's
-`outcome_type`. `DetectorOutcome.ISSUE` passes the result to
-`produce_issue_platform_payload` and
-[`produce_occurrence_to_kafka`](../../issues/producer.py). `DetectorOutcome.CALLBACK`
-passes the result to the detector handler's `outcome` method without publishing it to
-Issue Platform.
+`outcome`. `DetectorOutcome.ISSUE` passes the result to `produce_issue_platform_payload`
+and [`produce_occurrence_to_kafka`](../../issues/producer.py). A callable receives the
+result directly without publishing it to Issue Platform.
 
 Issue Platform ingestion creates or updates a group. The detector ID in occurrence
 evidence allows ingestion to create a
