@@ -27,10 +27,10 @@ import {
   extractMessagesFromNodes,
   NOT_REPORTED,
 } from 'sentry/views/explore/conversations/utils/conversationMessages';
+import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {EMPTY_TEXT_CONTENT} from 'sentry/views/insights/pages/agents/utils/aiMessageNormalizer';
 import {getNumberAttr} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {getAiInstrumentationDocsLink} from 'sentry/views/insights/pages/agents/utils/docsLinks';
-import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
 import {detectAIContentType} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiContentDetection';
