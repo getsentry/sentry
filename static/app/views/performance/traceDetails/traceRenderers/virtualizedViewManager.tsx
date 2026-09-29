@@ -2254,11 +2254,13 @@ export class VirtualizedViewManager {
       isNaN(inverseScale) ? 1 : inverseScale
     );
 
-    const icon = invisible_bar.ref.querySelector('.TraceIcon');
-    if (icon) {
-      const edge = this.computeTraceIconEdge(invisible_bar.space[0], TRACE_ICON_WIDTH);
-      icon.classList.toggle('TraceIconStart', edge === 'start');
-      icon.classList.toggle('TraceIconEnd', edge === 'end');
+    if (invisible_bar.kind === 'error') {
+      const icon = invisible_bar.ref.querySelector('.TraceIcon');
+      if (icon) {
+        const edge = this.computeTraceIconEdge(invisible_bar.space[0], TRACE_ICON_WIDTH);
+        icon.classList.toggle('TraceIconStart', edge === 'start');
+        icon.classList.toggle('TraceIconEnd', edge === 'end');
+      }
     }
   }
 

@@ -6,6 +6,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {EapSpanNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/eapSpanNode';
 import {SiblingAutogroupNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/siblingAutogroupNode';
 import {
+  makeEAPError,
   makeEAPSpan,
   makeSiblingAutogroup,
 } from 'sentry/views/performance/traceDetails/traceModels/traceTreeTestUtils';
@@ -180,4 +181,62 @@ describe.each([false, true])('AutogroupedTraceBar with compression=%s', compress
       expect(Number(bar.style.transform.split(',')[4])).toBe(473);
     }
   });
+
+  it.each([1, 2])(
+    'keeps %s child errors centered in a group starting at the left edge',
+    errorCount => {
+      const node = new SiblingAutogroupNode(null, makeSiblingAutogroup(), {
+        organization: OrganizationFixture(),
+      });
+      node.space = [1000, 1000];
+      node.errors = new Set(
+        Array.from({length: errorCount}, (_, i) =>
+          makeEAPError({
+            event_id: `child-error-${i}`,
+            issue_id: i + 1,
+            start_timestamp: 1.5,
+          })
+        )
+      );
+      const spanSpaces: Array<[number, number]> = [
+        [1000, 400],
+        [1600, 400],
+      ];
+      const manager = createManager({compressed, spanSpaces});
+      manager.columns.list.column_nodes[0] = node;
+
+      render(
+        <AutogroupedTraceBar
+          color="red"
+          entire_space={node.space}
+          errors={node.errors}
+          manager={manager}
+          node={node}
+          node_spaces={spanSpaces}
+          occurrences={node.occurrences}
+          virtualized_index={0}
+        />
+      );
+
+      const icon = screen.getByTestId('trace-issue-icon');
+      const iconClass = errorCount === 1 ? 'TraceIcon' : 'TraceIconGroup';
+      expect(icon).toHaveClass(`${iconClass} error`, {exact: true});
+      expect(icon).toHaveStyle({left: '50%'});
+      if (errorCount === 2) {
+        expect(screen.getByTestId('trace-issue-count')).toHaveTextContent('1');
+      }
+
+      manager.drawInvisibleBars();
+      expect(icon).toHaveClass(`${iconClass} error`, {exact: true});
+      expect(icon).toHaveStyle({left: '50%'});
+
+      // The group's start still overlaps the viewport edge after zoom and resize,
+      // but the issue remains well inside it and must keep its centered alignment.
+      manager.view.setTraceView({x: 0, width: 750});
+      manager.view.setTracePhysicalSpace([0, 0, 500, 1], [0, 0, 500, 1]);
+      redrawInvisibleBars(manager);
+      expect(icon).toHaveClass(`${iconClass} error`, {exact: true});
+      expect(icon).toHaveStyle({left: '50%'});
+    }
+  );
 });
