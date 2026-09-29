@@ -16,6 +16,8 @@ from unittest import mock
 import pytest
 import sentry_sdk
 from django.conf import settings
+from redis.exceptions import RedisError
+from rediscluster.exceptions import RedisClusterException
 
 from sentry.runner.importer import install_plugin_apps
 from sentry.silo.base import SiloMode
@@ -445,15 +447,10 @@ def pytest_runtest_teardown(item: pytest.Item) -> None:
 
     newsletter.backend.test_only__downcast_to(DummyNewsletter).clear()
 
-    from sentry.utils.redis import clusters
+    from sentry.utils.redis import clusters, pop_used_key_prefix_clients
 
     with clusters.get("default").all() as client:
         client.flushdb()
-
-    from redis.exceptions import RedisError
-    from rediscluster.exceptions import RedisClusterException
-
-    from sentry.utils.redis import pop_used_key_prefix_clients
 
     for cluster_client in pop_used_key_prefix_clients():
         try:
