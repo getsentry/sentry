@@ -84,8 +84,8 @@ class MigrationLockBackend(LockBackend):
     Acquire takes the lock on the backend that the selector picks, then checks the
     other backend and backs off if the lock is held there. Keys that go to the new
     backend always check the old backend. Keys that go to the old backend check the
-    new backend only when the selector's `check_new()` is true, and release also
-    skips the new backend when it is false. This lets the new backend be down or
+    new backend only when the selector's `check_new()` is true, and release and
+    locked also skip the new backend when it is false. This lets the new backend be down or
     slow without effect on locks before the rollout starts and after a rollback.
 
     Two options control a rollout with `post_process_locks_selector` (the
@@ -104,7 +104,7 @@ class MigrationLockBackend(LockBackend):
     Rollout:
 
     1. Deploy this config with the check off and the rate at 0. All keys go to the
-       old backend, and acquire does not read the new backend.
+       old backend, and acquire, release, and locked do not read the new backend.
     2. Turn on the check. Wait at least 70s, so that all processes see it. Do not
        raise the rate before then: a process that still reads the check as off and
        the rate as 0 does not see locks on the new backend, and can give a lock
@@ -124,11 +124,11 @@ class MigrationLockBackend(LockBackend):
     2. Wait the longest lock duration of this lock manager plus 70s, so that all
        locks on the new backend expire. For post-process locks the longest lock is
        600s, so wait about 11 minutes.
-    3. Turn off the check. From then on, acquire and release do not use the new
-       backend.
+    3. Turn off the check. From then on, acquire, release, and locked do not use the
+       new backend.
 
-    While the check is on, a new backend that is slow makes each acquire and release
-    slow, also after a rollback, until the check is off.
+    While the check is on, a new backend that is slow makes each acquire, release,
+    and locked call slow, also after a rollback, until the check is off.
 
     If the read of the other backend fails, the acquire still gives the lock (fail
     open). Locks keep working when the other backend is down, but two callers can
@@ -195,6 +195,8 @@ class MigrationLockBackend(LockBackend):
             raise Exception(f"Could not release key: {key!r}: {errors!r}")
 
     def locked(self, key: str, routing_key: str | None = None) -> bool:
-        return self.backend_old.locked(key=key, routing_key=routing_key) or self.backend_new.locked(
-            key=key, routing_key=routing_key
-        )
+        if self.backend_old.locked(key=key, routing_key=routing_key):
+            return True
+        if not self._uses_new():
+            return False
+        return self.backend_new.locked(key=key, routing_key=routing_key)

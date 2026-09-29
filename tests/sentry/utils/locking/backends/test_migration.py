@@ -256,7 +256,36 @@ class TestMigrationLockBackendOnRedis(TestCase):
             }
         ):
             backend.release(self.key)
-        assert not backend.locked(self.key)
+            assert not backend.locked(self.key)
+
+    def test_locked_skips_new_when_check_is_off(self) -> None:
+        backend = MigrationLockBackend(
+            backend_new_config={"path": UnavailableLockBackend.path},
+            backend_old_config=OLD_CONFIG,
+            selector_func_path=post_process_locks_selector,
+        )
+
+        with override_options(
+            {
+                "locks.post-process.migration-check-new": False,
+                "locks.post-process.migration-rollout-rate": 0.0,
+            }
+        ):
+            assert not backend.locked(self.key)
+            backend.backend_old.acquire(self.key, 10)
+            assert backend.locked(self.key)
+
+    def test_locked_reads_new_when_check_is_on(self) -> None:
+        backend = self.build(post_process_locks_selector)
+        backend.backend_new.acquire(self.key, 10)
+
+        with override_options(
+            {
+                "locks.post-process.migration-check-new": True,
+                "locks.post-process.migration-rollout-rate": 0.0,
+            }
+        ):
+            assert backend.locked(self.key)
 
     def test_release_with_check_off_raises_when_old_fails(self) -> None:
         backend = MigrationLockBackend(
