@@ -2,6 +2,7 @@ from inspect import signature
 from unittest.mock import ANY, MagicMock, patch
 
 import orjson
+import pytest
 from scm.helpers import iter_all_pages
 
 from sentry.scm.types import CheckSuiteEvent
@@ -537,6 +538,21 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         mock_capture.assert_called_once_with(error)
         mock_enqueue.assert_called_once()
         mock_trigger_consume.assert_called_once()
+
+    @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_repositories")
+    def test_seer_unavailable_propagates(
+        self, mock_resolve: MagicMock, mock_get_state: MagicMock
+    ) -> None:
+        from sentry.seer.models import SeerUnavailableError
+
+        mock_resolve.return_value = [MagicMock(organization_id=self.organization.id, id=2)]
+        mock_get_state.side_effect = SeerUnavailableError("down", 503)
+
+        with pytest.raises(SeerUnavailableError):
+            pr_iteration_from_check_suite_listener(
+                self._event(self._raw(pull_requests=[own_repo_pr(111)]))
+            )
 
     @patch(TRIGGER_CONSUME_PATH)
     @patch(f"{CHECK_PATH}.enqueue_autofix_feedback")
