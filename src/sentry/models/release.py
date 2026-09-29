@@ -117,7 +117,12 @@ class ReleaseModelManager(BaseManager["Release"]):
         )
 
     def get_next_release(
-        self, project: Project, current_release: Release, *, use_finalized_order: bool
+        self,
+        project: Project,
+        current_release: Release,
+        *,
+        use_finalized_order: bool,
+        use_legacy_sort: bool = False,
     ) -> Release:
         """Find the first release after the resolution's existing date-based anchor."""
         current_date = release_order_date(
@@ -134,7 +139,10 @@ class ReleaseModelManager(BaseManager["Release"]):
                 Q(**{f"{date_field}__gt": current_date})
                 | Q(**{date_field: current_date}, id__gt=current_release.id)
             )
-            .order_by("release_order", "id")[:1]
+            # Legacy issue anchors sorted by finalized date even when their
+            # candidate cutoff used creation date. Preserve that only for callers
+            # retaining the old behavior; project anchors use one consistent order.
+            .order_by("release_order" if use_legacy_sort else date_field, "id")[:1]
             .get()
         )
 

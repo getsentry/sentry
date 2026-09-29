@@ -593,6 +593,7 @@ def process_group_resolution(
                             resolved_in_release = Release.objects.get_next_release(
                                 group.project,
                                 current_release_obj,
+                                use_legacy_sort=True,
                                 use_finalized_order=features.has(
                                     "organizations:release-resolution-finalized-order",
                                     group.project.organization,

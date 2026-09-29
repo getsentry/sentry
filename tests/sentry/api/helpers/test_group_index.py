@@ -64,7 +64,7 @@ from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.types.actor import Actor
-from sentry.types.group import GroupSubStatus
+from sentry.types.group import GroupSubStatus, PriorityLevel
 from sentry.workflow_engine.models import Detector
 
 pytestmark = [requires_snuba]
@@ -156,6 +156,114 @@ def test_project_anchor_request_formats(
         assert resolution.status == GroupResolution.Status.pending
         assert GroupResolution.has_resolution(default_group, latest_finalized)
         assert GroupResolution.has_resolution(default_group, latest_created)
+
+
+@django_db_all
+@pytest.mark.parametrize(
+    "finalized_order, expected_version", [(False, "creation-first"), (True, "finalized-first")]
+)
+def test_project_anchor_completion_is_scoped_and_ordered(
+    factories: Factories, default_group: Group, finalized_order: bool, expected_version: str
+) -> None:
+    now = datetime.now(UTC)
+    project = default_group.project
+    other_project = factories.create_project(organization=project.organization)
+    anchor = factories.create_release(
+        project=project, version="shared-anchor", date_added=now - timedelta(days=4)
+    )
+    anchor.add_project(other_project)
+    http_request = RequestFactory().put("/")
+    http_request.user = factories.create_user()
+    request = _wrap_request(http_request, data={"status": "resolvedInNextRelease"})
+    with Feature(
+        {
+            "organizations:release-resolution-project-anchor": True,
+            "organizations:release-resolution-finalized-order": finalized_order,
+        }
+    ):
+        update_groups(request, [default_group])
+        resolution = GroupResolution.objects.get(group=default_group)
+        activity = Activity.objects.get(group=default_group, ident=resolution.id)
+        assert resolution.release_id == anchor.id
+        assert resolution.status == GroupResolution.Status.pending
+
+        other_release = factories.create_release(
+            project=other_project, version="other-project-only", date_added=now - timedelta(days=1)
+        )
+        archived = factories.create_release(
+            project=project,
+            version="archived",
+            status=ReleaseStatus.ARCHIVED,
+            date_added=now - timedelta(days=2),
+        )
+        clear_expired_resolutions(other_release.id)
+        clear_expired_resolutions(archived.id)
+        resolution.refresh_from_db()
+        activity.refresh_from_db()
+        assert resolution.release_id == anchor.id
+        assert resolution.status == GroupResolution.Status.pending
+        assert activity.data["version"] == ""
+
+        # Creation ordering must recognize the higher-ID successor at the same
+        # timestamp. Finalized ordering must select the earlier finalized release,
+        # even when a later release's task runs first.
+        creation_first = factories.create_release(
+            project=project,
+            version="creation-first",
+            date_added=anchor.date_added,
+            date_released=now - timedelta(days=1),
+        )
+        finalized_first = factories.create_release(
+            project=project,
+            version="finalized-first",
+            date_added=now - timedelta(days=3),
+            date_released=now - timedelta(days=2),
+        )
+        clear_expired_resolutions(creation_first.id)
+        resolution.refresh_from_db()
+        activity.refresh_from_db()
+        assert resolution.status == GroupResolution.Status.resolved
+        assert resolution.type == GroupResolution.Type.in_release
+        assert resolution.release.version == expected_version
+        assert resolution.current_release_version == anchor.version
+        assert activity.data["version"] == expected_version
+        assert GroupResolution.has_resolution(default_group, anchor)
+        assert not GroupResolution.has_resolution(default_group, resolution.release)
+
+        clear_expired_resolutions(finalized_first.id)
+        resolution.refresh_from_db()
+        assert resolution.release.version == expected_version
+
+
+@django_db_all
+@pytest.mark.parametrize(
+    "data, error_field",
+    [
+        ({"status": "resolvedInNextRelease"}, "status"),
+        ({"status": "resolved", "statusDetails": {"inNextRelease": True}}, "statusDetails"),
+    ],
+    ids=["shorthand", "status-details"],
+)
+def test_next_release_rejects_only_archived_releases(
+    factories: Factories, default_group: Group, data: dict[str, Any], error_field: str
+) -> None:
+    factories.create_release(
+        project=default_group.project, version="archived", status=ReleaseStatus.ARCHIVED
+    )
+    default_group.update(priority=PriorityLevel.LOW, priority_locked_at=None)
+    http_request = RequestFactory().put("/")
+    http_request.user = factories.create_user()
+    request = _wrap_request(http_request, data={**data, "priority": "high"})
+    with Feature("organizations:release-resolution-project-anchor"):
+        with pytest.raises(serializers.ValidationError, match="No release data") as exc:
+            update_groups(request, [default_group])
+    default_group.refresh_from_db()
+    assert default_group.status == GroupStatus.UNRESOLVED
+    assert default_group.priority == PriorityLevel.LOW
+    assert default_group.priority_locked_at is None
+    assert not GroupResolution.objects.filter(group=default_group).exists()
+    assert not Activity.objects.filter(group=default_group).exists()
+    assert set(exc.value.detail) == {error_field}
 
 
 class ValidateSearchFilterPermissionsTest(TestCase):
@@ -356,20 +464,6 @@ class UpdateGroupsTest(TestCase):
         assert GroupResolution.has_resolution(group, observed)
         newer = self.create_release(version="app@4.0.0")
         assert not GroupResolution.has_resolution(group, newer)
-
-    @with_feature("organizations:release-resolution-project-anchor")
-    def test_next_release_rejects_only_archived_releases(self) -> None:
-        self.create_release(version="archived", status=ReleaseStatus.ARCHIVED)
-        group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
-        request = _wrap_request(
-            self.make_request(user=self.user),
-            data={"status": "resolved", "statusDetails": {"inNextRelease": True}},
-        )
-        with pytest.raises(serializers.ValidationError, match="No release data"):
-            update_groups(request, [group])
-        group.refresh_from_db()
-        assert group.status == GroupStatus.UNRESOLVED
-        assert not GroupResolution.objects.filter(group=group).exists()
 
     @patch("sentry.signals.issue_unresolved.send_robust")
     @patch("sentry.signals.issue_ignored.send_robust")
