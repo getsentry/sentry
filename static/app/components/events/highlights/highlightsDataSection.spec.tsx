@@ -124,4 +124,22 @@ describe('HighlightsDataSection', () => {
       expect(screen.getByText(title)).toBeInTheDocument();
     });
   });
+
+  it('describes a highlighted context key when hovering it', async () => {
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/`,
+      body: {...project, highlightTags: [], highlightContext},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/replays/undefined/`,
+      body: {},
+    });
+
+    render(<HighlightsDataSection event={event} project={project} />, {organization});
+    await userEvent.hover(await screen.findByText('User: email'));
+
+    expect(await screen.findByText('user.email')).toBeInTheDocument();
+    expect(screen.getByText('Email address of the user')).toBeInTheDocument();
+    expect(screen.getByText('Added by Sentry')).toBeInTheDocument();
+  });
 });

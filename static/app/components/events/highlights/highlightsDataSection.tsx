@@ -192,7 +192,7 @@ function HighlightsData({highlightsProject, event, project}: HighlightsDataProps
           meta={meta}
           item={item}
           alias={alias}
-          config={{includeAliasInSubject: true}}
+          config={{attributeDetailsType: 'event', includeAliasInSubject: true}}
           data-test-id="highlight-context-row"
         />
       ));

@@ -3,6 +3,7 @@ import startCase from 'lodash/startCase';
 
 import {Flex} from '@sentry/scraps/layout';
 
+import {AttributeDetailsTooltip} from 'sentry/components/attributes/attributeDetailsTooltip';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import type {ContextValue} from 'sentry/components/events/contexts';
 import {
@@ -16,10 +17,13 @@ import {
   KeyValueTableCard,
   KeyValueTableDataRow,
   type KeyValueTableDataRowProps,
+  KeyValueTableSubject,
 } from 'sentry/components/tables/keyValueTable';
 import type {Event} from 'sentry/types/event';
 import type {KeyValueListDataItem} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import {defined} from 'sentry/utils/defined';
+import type {GetFieldDefinitionType} from 'sentry/utils/fields';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -33,6 +37,9 @@ interface ContextCardProps {
 }
 
 interface ContextCardContentConfig {
+  // The registry each key's field definition is looked up in, to offer its details on
+  // hover. Omitted, keys render as plain text.
+  attributeDetailsType?: GetFieldDefinitionType;
   // Omit error styling from being displayed, even if context is invalid
   disableErrors?: boolean;
   // Displays value as plain text, rather than a hyperlink if applicable
@@ -64,10 +71,27 @@ export function ContextCardContent({
   const contextErrors = contextMeta?.['']?.err ?? [];
   const contextSubject =
     config?.includeAliasInSubject && alias ? `${startCase(alias)}: ${subject}` : subject;
+  const attributeDetailsType = config?.attributeDetailsType;
 
   return (
     <KeyValueTableDataRow
-      item={{...item, subject: contextSubject}}
+      item={{
+        ...item,
+        subject: contextSubject,
+        subjectNode: attributeDetailsType ? (
+          <KeyValueTableSubject>
+            <AttributeDetailsTooltip
+              attributeKey={defined(alias) ? `${alias}.${contextKey}` : contextKey}
+              fieldDefinitionType={attributeDetailsType}
+              isScrubbed={(contextMeta?.['']?.rem ?? []).length > 0}
+            >
+              {contextSubject}
+            </AttributeDetailsTooltip>
+          </KeyValueTableSubject>
+        ) : (
+          item.subjectNode
+        ),
+      }}
       meta={contextMeta}
       errors={config?.disableErrors ? [] : contextErrors}
       disableLink={config?.disableLink ?? false}

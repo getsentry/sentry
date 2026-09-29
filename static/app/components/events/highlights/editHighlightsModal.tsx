@@ -84,6 +84,7 @@ function EditPreviewHighlightSection({
             item={item}
             alias={alias}
             config={{
+              attributeDetailsType: 'event',
               includeAliasInSubject: true,
               disableErrors: true,
               disableLink: true,
