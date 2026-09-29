@@ -80,7 +80,7 @@ def _load_options(file: str | None) -> dict[str, Any]:
     small floats (0.00001) being converted to sci notation (1e-5) via repr(), getting parsed as strings
     because YAML 1.1 only parses to float if there's a decimal (1.0e-5 not 1e-5).
 
-    We fall back to YAML for hand-authored files (e.g. the local flagpole devloop).
+    We fall back to YAML for hand-authored files.
     """
     with open(file) if file is not None else sys.stdin as stream:
         content = stream.read()

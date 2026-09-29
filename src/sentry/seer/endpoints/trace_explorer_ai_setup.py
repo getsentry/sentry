@@ -7,7 +7,6 @@ from rest_framework import status
 from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -20,6 +19,7 @@ from sentry.seer.signed_seer_api import (
     SeerViewerContext,
     make_create_cache_request,
 )
+from sentry.utils.settings import is_self_hosted
 
 logger = logging.getLogger(__name__)
 
@@ -84,9 +84,7 @@ class TraceExplorerAISetup(OrganizationEndpoint):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        if not features.has(
-            "organizations:gen-ai-features", organization=organization, actor=request.user
-        ):
+        if is_self_hosted():
             return Response(
                 {"detail": "Organization does not have access to this feature"},
                 status=status.HTTP_403_FORBIDDEN,

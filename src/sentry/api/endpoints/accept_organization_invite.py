@@ -124,6 +124,7 @@ class AcceptOrganizationInvite(Endpoint):
             auth_provider = None
 
         data = {
+            "inviteEmail": organization_member.email,
             "orgSlug": organization.slug,
             "needsAuthentication": not helper.user_authenticated,
             "needsSso": auth_provider is not None,

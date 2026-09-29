@@ -11,7 +11,7 @@ import logging
 import re
 import time
 from collections.abc import Callable, Mapping, Sequence
-from typing import Any, NotRequired, TypedDict
+from typing import Any, Literal, NotRequired, TypedDict
 
 import orjson
 from django.conf import settings
@@ -37,7 +37,7 @@ from sentry.net.http import connection_from_url
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.autofix.utils import bulk_read_preferences_from_sentry_db
-from sentry.seer.models import SeerApiError
+from sentry.seer.models import SeerApiError, SeerUnavailableError
 from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.seer.seer_setup import has_seer_access_with_detail
 from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
@@ -128,10 +128,11 @@ class AgentUpdateRequest(TypedDict):
 class AgentPrStateRequest(TypedDict):
     organization_id: int
     provider: str
-    pr_id: int
+    pr_id: str
 
 
 class AgentRunOptions(TypedDict):
+    enable_code_mode_tools: NotRequired[Literal["off", "on", "only"]]
     enable_assisted_query_code_mode: NotRequired[bool]
     enable_frontend_code_search: NotRequired[bool | None]
     is_context_engine_enabled: NotRequired[bool]
@@ -140,7 +141,6 @@ class AgentRunOptions(TypedDict):
     enable_tool_summary: NotRequired[bool]
     embed_widgets: NotRequired[list[dict[str, Any]] | None]
     enable_streaming: NotRequired[bool]
-    is_agentic_triage_sort: NotRequired[bool]
 
 
 class SeerFeatureRunRequest(TypedDict):
@@ -349,10 +349,20 @@ def enqueue_seer_run(
 
 
 def get_agent_state_from_pr_id(
-    organization_id: int, provider: str, pr_id: int
+    organization_id: int, provider: str, pr_id: int | str
 ) -> SeerRunState | None:
-    body = AgentPrStateRequest(organization_id=organization_id, provider=provider, pr_id=pr_id)
+    """
+    Look up the Seer run that owns a pull request, or None if there isn't one.
+
+    A server error raises ``SeerUnavailableError`` so the calling task can try
+    again later.
+    """
+    body = AgentPrStateRequest(organization_id=organization_id, provider=provider, pr_id=str(pr_id))
     response = make_agent_state_pr_request(body)
+
+    if response.status >= 500:
+        metrics.incr("seer.agent.state_from_pr", tags={"outcome": "unavailable"})
+        raise SeerUnavailableError("Seer request failed", response.status)
 
     if response.status == 404:
         metrics.incr("seer.agent.state_from_pr", tags={"outcome": "no_run_for_org"})
@@ -389,8 +399,7 @@ def has_seer_agent_access_with_detail(
     Returns:
         tuple[bool, str | None]: (has_access, error_message)
     """
-    # Check base Seer access (gen-ai-features, hide_ai_features, acknowledgement)
-    has_access, error = has_seer_access_with_detail(organization, actor)
+    has_access, error = has_seer_access_with_detail(organization)
     if not has_access:
         return False, error
 

@@ -43,12 +43,6 @@ function mockChildWidths() {
 }
 
 describe('ChartLegend', () => {
-  beforeEach(() => {
-    // The CompactSelect trigger is always in the DOM (even when hidden),
-    // which causes react-popper to fire state updates outside of act().
-    jest.spyOn(console, 'error').mockImplementation();
-  });
-
   afterEach(() => {
     jest.restoreAllMocks();
   });

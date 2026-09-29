@@ -69,9 +69,9 @@ describe('SpansConfig', () => {
   it('surfaces types and units correctly for multi-series (grouped) responses with a single aggregate', () => {
     // Meta is copied for all series in the response
     const commonMockedMeta: EventsStats['meta'] = {
+      isMetricsData: false,
       units: {'count(span.duration)': 'millisecond'},
       fields: {'count(span.duration)': 'integer'},
-      isMetricsData: false,
       tips: {},
     };
     // Multi-series response with multiple grouped series
@@ -110,9 +110,9 @@ describe('SpansConfig', () => {
   it('surfaces types and units correctly for multi-series (grouped) responses with a multiple aggregates', () => {
     // Meta is copied for all series in the response
     const commonMockedMeta: EventsStats['meta'] = {
+      isMetricsData: false,
       units: {'count(span.duration)': null, 'p50(span.duration)': 'millisecond'},
       fields: {'count(span.duration)': 'integer', 'p50(span.duration)': 'duration'},
-      isMetricsData: false,
       tips: {},
     };
     // Multi-series response with multiple aggregates and grouped series

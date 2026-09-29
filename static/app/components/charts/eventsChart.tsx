@@ -21,7 +21,7 @@ import ChartZoom from 'sentry/components/charts/chartZoom';
 import {ErrorPanel} from 'sentry/components/charts/errorPanel';
 import type {LineChartProps} from 'sentry/components/charts/lineChart';
 import {LineChart} from 'sentry/components/charts/lineChart';
-import ReleaseSeries from 'sentry/components/charts/releaseSeries';
+import {useReleaseSeries} from 'sentry/components/charts/releaseSeries';
 import {TransitionChart} from 'sentry/components/charts/transitionChart';
 import {TransparentLoadingMask} from 'sentry/components/charts/transparentLoadingMask';
 import {getInterval, RELEASE_LINES_THRESHOLD} from 'sentry/components/charts/utils';
@@ -496,6 +496,19 @@ export function EventsChart(props: EventsChartProps) {
 
   const intervalVal = showDaily ? '1d' : interval || getInterval(props, 'high');
 
+  const {releaseSeries} = useReleaseSeries({
+    utc,
+    period,
+    start,
+    end,
+    projects,
+    environments,
+    emphasizeReleases,
+    preserveQueryParams: preserveReleaseQueryParams,
+    queryExtra: releaseQueryExtra,
+    enabled: !disableReleases,
+  });
+
   return (
     <ChartZoom
       period={period}
@@ -552,65 +565,48 @@ export function EventsChart(props: EventsChartProps) {
               const seriesData = results ?? timeseriesData;
 
               return (
-                <ReleaseSeries
-                  enabled={!disableReleases}
-                  utc={utc}
-                  period={period}
-                  start={start}
-                  end={end}
-                  projects={projects}
-                  environments={environments}
-                  emphasizeReleases={emphasizeReleases}
-                  preserveQueryParams={preserveReleaseQueryParams}
-                  queryExtra={releaseQueryExtra}
+                <TransitionChart
+                  loading={loading}
+                  reloading={reloading || !!reloadingAdditionalSeries}
+                  height={height ? `${height}px` : undefined}
                 >
-                  {({releaseSeries}) => (
-                    <TransitionChart
-                      loading={loading}
-                      reloading={reloading || !!reloadingAdditionalSeries}
-                      height={height ? `${height}px` : undefined}
-                    >
-                      <TransparentLoadingMask
-                        visible={reloading || !!reloadingAdditionalSeries}
-                      />
+                  <TransparentLoadingMask
+                    visible={reloading || !!reloadingAdditionalSeries}
+                  />
 
-                      {isValidElement(chartHeader) && chartHeader}
+                  {isValidElement(chartHeader) && chartHeader}
 
-                      <ThemedChart
-                        forceChartType={forceChartType}
-                        zoomRenderProps={zoomRenderProps}
-                        loading={loading || !!loadingAdditionalSeries}
-                        reloading={reloading || !!reloadingAdditionalSeries}
-                        showLegend={showLegend}
-                        minutesThresholdToDisplaySeconds={
-                          minutesThresholdToDisplaySeconds
-                        }
-                        releaseSeries={releaseSeries}
-                        timeseriesData={seriesData ?? []}
-                        previousTimeseriesData={previousTimeseriesData}
-                        currentSeriesNames={currentSeriesNames}
-                        previousSeriesNames={previousSeriesNames}
-                        seriesTransformer={seriesTransformer}
-                        additionalSeries={additionalSeries}
-                        previousSeriesTransformer={previousSeriesTransformer}
-                        stacked={isStacked}
-                        yAxis={yAxisArray[0]!}
-                        showDaily={showDaily}
-                        colors={colors}
-                        legendOptions={legendOptions}
-                        chartOptions={chartOptions}
-                        disableableSeries={disableableSeries}
-                        chartComponent={chartComponent}
-                        height={height}
-                        timeframe={timeframe}
-                        topEvents={topEvents}
-                        tableData={[]}
-                        fromDiscover={fromDiscover}
-                        timeseriesResultsTypes={timeseriesResultsTypes}
-                      />
-                    </TransitionChart>
-                  )}
-                </ReleaseSeries>
+                  <ThemedChart
+                    forceChartType={forceChartType}
+                    zoomRenderProps={zoomRenderProps}
+                    loading={loading || !!loadingAdditionalSeries}
+                    reloading={reloading || !!reloadingAdditionalSeries}
+                    showLegend={showLegend}
+                    minutesThresholdToDisplaySeconds={minutesThresholdToDisplaySeconds}
+                    releaseSeries={releaseSeries}
+                    timeseriesData={seriesData ?? []}
+                    previousTimeseriesData={previousTimeseriesData}
+                    currentSeriesNames={currentSeriesNames}
+                    previousSeriesNames={previousSeriesNames}
+                    seriesTransformer={seriesTransformer}
+                    additionalSeries={additionalSeries}
+                    previousSeriesTransformer={previousSeriesTransformer}
+                    stacked={isStacked}
+                    yAxis={yAxisArray[0]!}
+                    showDaily={showDaily}
+                    colors={colors}
+                    legendOptions={legendOptions}
+                    chartOptions={chartOptions}
+                    disableableSeries={disableableSeries}
+                    chartComponent={chartComponent}
+                    height={height}
+                    timeframe={timeframe}
+                    topEvents={topEvents}
+                    tableData={[]}
+                    fromDiscover={fromDiscover}
+                    timeseriesResultsTypes={timeseriesResultsTypes}
+                  />
+                </TransitionChart>
               );
             }}
           </EventsRequest>

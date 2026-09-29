@@ -41,7 +41,6 @@ import {getWidgetMetricsUrl} from 'sentry/views/dashboards/utils/getWidgetMetric
 import {withGlobalFilterFallback} from 'sentry/views/dashboards/utils/withGlobalFilterFallback';
 import {getReferrer} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {transformWidgetSeriesToTimeSeries} from 'sentry/views/dashboards/widgetCard/transformWidgetSeriesToTimeSeries';
-import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
@@ -203,9 +202,7 @@ export function getMenuOptions(
       );
       menuOptions.push({
         key: 'open-in-discover',
-        label: getDiscoverDeprecation(organization)
-          ? t('Open in Explore')
-          : t('Open in Discover'),
+        label: t('Open in Explore'),
         to: optionDisabled
           ? undefined
           : widget.queries.length === 1
@@ -309,7 +306,13 @@ export function getMenuOptions(
 
         return {
           key: `create-alert-${seriesName}-${index}`,
-          label,
+          label: (
+            <Text ellipsis style={{maxWidth: 400}}>
+              {label}
+            </Text>
+          ),
+          textValue: label,
+          tooltip: label,
           to: getAlertsUrl({
             query: search.formatString(),
             aggregate: timeSeries.yAxis,
@@ -387,39 +390,45 @@ export function getMenuOptions(
         });
       },
     });
-    menuOptions.push({
-      key: 'duplicate-widget',
-      label: t('Duplicate Widget'),
-      onAction: () => onDuplicate?.(),
-      tooltip: disableTransactionEdit
-        ? t('This dataset is no longer supported. Please use the Spans dataset.')
-        : undefined,
-      disabled: widgetLimitReached || !hasEditAccess || disableTransactionEdit,
-    });
+    if (onDuplicate) {
+      menuOptions.push({
+        key: 'duplicate-widget',
+        label: t('Duplicate Widget'),
+        onAction: onDuplicate,
+        tooltip: disableTransactionEdit
+          ? t('This dataset is no longer supported. Please use the Spans dataset.')
+          : undefined,
+        disabled: widgetLimitReached || !hasEditAccess || disableTransactionEdit,
+      });
+    }
 
-    menuOptions.push({
-      key: 'edit-widget',
-      label: t('Edit Widget'),
-      onAction: () => onEdit?.(),
-      disabled: !hasEditAccess || !isWidgetEditable(widget.displayType),
-      tooltip: isWidgetEditable(widget.displayType)
-        ? undefined
-        : t('Static widgets from the widget library cannot be edited.'),
-    });
+    if (onEdit) {
+      menuOptions.push({
+        key: 'edit-widget',
+        label: t('Edit Widget'),
+        onAction: onEdit,
+        disabled: !hasEditAccess || !isWidgetEditable(widget.displayType),
+        tooltip: isWidgetEditable(widget.displayType)
+          ? undefined
+          : t('Static widgets from the widget library cannot be edited.'),
+      });
+    }
 
-    menuOptions.push({
-      key: 'delete-widget',
-      label: t('Delete Widget'),
-      priority: 'danger',
-      onAction: () => {
-        openConfirmModal({
-          message: t('Are you sure you want to delete this widget?'),
-          priority: 'danger',
-          onConfirm: () => onDelete?.(),
-        });
-      },
-      disabled: !hasEditAccess,
-    });
+    if (onDelete) {
+      menuOptions.push({
+        key: 'delete-widget',
+        label: t('Delete Widget'),
+        priority: 'danger',
+        onAction: () => {
+          openConfirmModal({
+            message: t('Are you sure you want to delete this widget?'),
+            priority: 'danger',
+            onConfirm: onDelete,
+          });
+        },
+        disabled: !hasEditAccess,
+      });
+    }
   }
 
   return menuOptions;

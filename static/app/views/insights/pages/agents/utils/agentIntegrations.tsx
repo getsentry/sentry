@@ -1,3 +1,5 @@
+import type {PlatformKey} from 'sentry/types/platform';
+
 export enum AgentIntegration {
   OPENAI = 'openai',
   OPENAI_AGENTS = 'openai_agents',
@@ -119,6 +121,20 @@ export const DEPLOYMENT_TARGET_ICONS: Record<DeploymentTarget, string> = {
   [DeploymentTarget.NODE]: 'node',
   [DeploymentTarget.CLOUDFLARE]: 'cloudflare',
 };
+
+const DEFAULT_AGENT_INTEGRATION_BY_PROJECT_PLATFORM: Partial<
+  Record<PlatformKey, AgentIntegration>
+> = {
+  'node-eve': AgentIntegration.EVE,
+  'node-flue': AgentIntegration.FLUE,
+  'node-mastra': AgentIntegration.MASTRA,
+};
+
+export function getDefaultAgentIntegration(
+  platform: PlatformKey | null | undefined
+): AgentIntegration | undefined {
+  return platform ? DEFAULT_AGENT_INTEGRATION_BY_PROJECT_PLATFORM[platform] : undefined;
+}
 
 /**
  * Agent SDKs that only work on a single Node deployment runtime. Selecting one

@@ -14,6 +14,7 @@ from sentry.testutils.cases import TestCase
 from sentry.types.activity import ActivityType
 
 CLIENT_PATH = "sentry.seer.smart_assignment.trigger.SeerAgentClient"
+ROLLOUT_PATH = "sentry.seer.smart_assignment.trigger.in_rollout_group"
 SCORING_METRICS_PATH = "sentry.seer.smart_assignment.scoring.metrics"
 
 RUN_FLAG = "organizations:seer-smart-assignment-run"
@@ -127,6 +128,57 @@ class TriggerSmartAssignmentTest(TestCase):
         ]
         # A Seer AI-step start carries no ground truth.
         assert "actual_assignee_user_id" not in mirrors[0].extras
+
+    @patch(CLIENT_PATH)
+    @patch(ROLLOUT_PATH, return_value=True)
+    def test_dispatch_selects_prefetch_cohort(
+        self,
+        mock_rollout: MagicMock,
+        mock_client_cls: MagicMock,
+    ) -> None:
+        self._wire_client(mock_client_cls)
+        with (
+            self.feature(RUN_FEATURES),
+            patch(
+                "sentry.seer.smart_assignment.trigger.bulk_read_preferences_from_sentry_db",
+                return_value={},
+            ),
+        ):
+            trigger_smart_assignment(
+                self.group, ActivityType.SEER_RCA_STARTED, self._seer_started()
+            )
+
+        mock_rollout.assert_called_once_with(
+            "seer.smart_assignment.prefetch_rollout_rate",
+            f"smart-assignment-prefetch:{self.group.id}",
+        )
+        run_kwargs = mock_client_cls.return_value.start_feature_run.call_args.kwargs
+        assert run_kwargs["payload"]["is_prefetch_enabled"] is True
+        assert run_kwargs["flush"] is False
+        assert self._mirrors()[0].extras["prefetch_cohort"] == "prefetch"
+
+    @patch(CLIENT_PATH)
+    @patch(ROLLOUT_PATH, return_value=False)
+    def test_dispatch_selects_control_cohort(
+        self,
+        _mock_rollout: MagicMock,
+        mock_client_cls: MagicMock,
+    ) -> None:
+        self._wire_client(mock_client_cls)
+        with (
+            self.feature(RUN_FEATURES),
+            patch(
+                "sentry.seer.smart_assignment.trigger.bulk_read_preferences_from_sentry_db",
+                return_value={},
+            ),
+        ):
+            trigger_smart_assignment(
+                self.group, ActivityType.SEER_RCA_STARTED, self._seer_started()
+            )
+
+        run_kwargs = mock_client_cls.return_value.start_feature_run.call_args.kwargs
+        assert run_kwargs["payload"]["is_prefetch_enabled"] is False
+        assert self._mirrors()[0].extras["prefetch_cohort"] == "control"
 
     @patch(CLIENT_PATH)
     def test_flag_disabled_is_noop(self, mock_client_cls: MagicMock) -> None:

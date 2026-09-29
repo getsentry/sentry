@@ -105,36 +105,41 @@ FAILURE_CONCLUSIONS = ("failure", "timed_out", "action_required")
 GREEN_CONCLUSIONS = ("success", "neutral", "skipped")
 
 
+# The check-suite models declare only the fields we read and drop the rest
+# (`extra = "ignore"`). The event is serialized into feedback metadata and Redis,
+# so keeping undeclared fields would persist the whole GitHub webhook payload.
+
+
 class GithubCheckSuiteApp(BaseModel):
     name: str
 
     class Config:
-        extra = "allow"
+        extra = "ignore"
 
 
 class GithubCheckSuitePullRequestRepository(BaseModel):
     id: int | None = None
 
     class Config:
-        extra = "allow"
+        extra = "ignore"
 
 
 class GithubCheckSuitePullRequestBase(BaseModel):
     repo: GithubCheckSuitePullRequestRepository | None = None
 
     class Config:
-        extra = "allow"
+        extra = "ignore"
 
 
 class GithubCheckSuitePullRequest(BaseModel):
     id: int
     # Optional so feedback serialized before this field existed still parses. Such
-    # an entry is skipped, which strands nothing: `extra = "allow"` round-tripped
-    # `base` through the model that predates the field, so it parses back in here.
+    # an entry is skipped, which strands nothing: these models used to keep
+    # undeclared fields, so older feedback carries `base` and parses back in here.
     base: GithubCheckSuitePullRequestBase | None = None
 
     class Config:
-        extra = "allow"
+        extra = "ignore"
 
 
 class GithubCheckSuite(BaseModel):
@@ -149,7 +154,7 @@ class GithubCheckSuite(BaseModel):
     pull_requests: list[GithubCheckSuitePullRequest] = Field(default_factory=list)
 
     class Config:
-        extra = "allow"
+        extra = "ignore"
 
 
 class GithubCheckSuiteRepository(BaseModel):
@@ -158,14 +163,14 @@ class GithubCheckSuiteRepository(BaseModel):
     full_name: str | None = None
 
     class Config:
-        extra = "allow"
+        extra = "ignore"
 
 
 class GithubCheckSuiteInstallation(BaseModel):
     id: int
 
     class Config:
-        extra = "allow"
+        extra = "ignore"
 
 
 class GithubCheckSuiteEvent(BaseModel):
@@ -174,7 +179,7 @@ class GithubCheckSuiteEvent(BaseModel):
     installation: GithubCheckSuiteInstallation | None = None
 
     class Config:
-        extra = "allow"
+        extra = "ignore"
 
 
 def get_check_suite_url(event: GithubCheckSuiteEvent) -> str:
