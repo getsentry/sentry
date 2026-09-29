@@ -1425,7 +1425,7 @@ register(
 register(
     "seer.smart_assignment.prefetch_rollout_rate",
     type=Float,
-    default=0.5,
+    default=1,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Fuzzy resolution always runs after an exact email miss so its proposal can be
