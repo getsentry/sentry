@@ -2,7 +2,6 @@ import {Fragment, useState} from 'react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Button} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -88,6 +87,11 @@ export function MergeAccountsModal(props: Props) {
     defaultValues: {username: ''},
     onSubmit: ({value}) => lookupMutation.mutateAsync(value.username).catch(() => {}),
   });
+  const mergeForm = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {},
+    onSubmit: () => doMergeMutation.mutateAsync().catch(() => {}),
+  });
 
   if (isPending) {
     return <LoadingIndicator />;
@@ -112,7 +116,7 @@ export function MergeAccountsModal(props: Props) {
       <Body>
         <Stack gap="sm">
           <Text as="p">Listed accounts will be merged into this user.</Text>
-          <Stack gap="sm">
+          <Stack gap="md">
             {mergeAccounts.users.map(user => (
               <Flex as="label" key={user.id} align="center" gap="sm">
                 <Checkbox
@@ -148,13 +152,11 @@ export function MergeAccountsModal(props: Props) {
         </Stack>
       </Body>
       <Footer>
-        <Button
-          onClick={() => doMergeMutation.mutate()}
-          variant="primary"
-          disabled={doMergeMutation.isPending}
-        >
-          Merge Account(s)
-        </Button>
+        <mergeForm.AppForm form={mergeForm}>
+          <Flex justify="end">
+            <mergeForm.SubmitButton>Merge Account(s)</mergeForm.SubmitButton>
+          </Flex>
+        </mergeForm.AppForm>
       </Footer>
     </Fragment>
   );
