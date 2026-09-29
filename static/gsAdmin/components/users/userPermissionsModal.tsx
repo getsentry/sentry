@@ -1,7 +1,6 @@
 import {Fragment, useEffect} from 'react';
 import {useMutation} from '@tanstack/react-query';
 
-import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Stack} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
@@ -169,9 +168,7 @@ export function UserPermissionsModal({Body, Header, user, onSubmit, closeModal}:
                 )}
               </form.AppField>
             ))}
-            <Button type="submit" variant="primary">
-              Save Changes
-            </Button>
+            <form.SubmitButton>Save Changes</form.SubmitButton>
           </Stack>
         </form.AppForm>
       </Body>
