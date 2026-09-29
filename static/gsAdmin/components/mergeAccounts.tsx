@@ -1,76 +1,52 @@
-import {Fragment, useState} from 'react';
-import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {queryOptions, useMutation, useQuery} from '@tanstack/react-query';
+import {z} from 'zod';
 
-import {Alert} from '@sentry/scraps/alert';
-import {Button} from '@sentry/scraps/button';
+import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {TextField} from 'sentry/components/forms/fields/textField';
-import type {FormProps} from 'sentry/components/forms/form';
-import {Form} from 'sentry/components/forms/form';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {User} from 'sentry/types/user';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
-import {useApi} from 'sentry/utils/useApi';
+import {fetchMutation} from 'sentry/utils/queryClient';
 
 type Props = ModalRenderProps & {
   onAction: (data: any) => void;
   userId: string;
 };
 
+const mergeSchema = z.object({
+  users: z.array(z.custom<User>()).min(1, 'Select at least one account'),
+});
+const defaultValues: z.infer<typeof mergeSchema> = {users: []};
+
 export function MergeAccountsModal(props: Props) {
   const {userId, onAction, closeModal, Header, Body, Footer} = props;
-  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
-  const [error, setError] = useState(false);
-  const api = useApi({persistInFlight: true});
-  const queryClient = useQueryClient();
-
-  const makeMergeAccountsQueryKey = (): ApiQueryKey => [
-    getApiUrl('/users/$userId/merge-accounts/', {
-      path: {userId},
-    }),
-  ];
+  const endpoint = getApiUrl('/users/$userId/merge-accounts/', {
+    path: {userId},
+  });
+  const accountsQueryOptions = apiOptions.as<{users: User[]}>()(
+    '/users/$userId/merge-accounts/',
+    {path: {userId}, staleTime: 0}
+  );
 
   const {
     data: fetchedMergeAccounts,
     isPending,
     isError,
     refetch,
-  } = useApiQuery<{users: User[]}>(makeMergeAccountsQueryKey(), {staleTime: 0});
+  } = useQuery(accountsQueryOptions);
 
   const mergeAccounts = fetchedMergeAccounts ?? {users: []};
-
-  const fetchUserByUsername = async (username: string) => {
-    try {
-      const encodedUsername = encodeURIComponent(username);
-      const data = await api.requestPromise(
-        `/users/${userId}/merge-accounts/?username=${encodedUsername}`
-      );
-      setApiQueryData(
-        queryClient,
-        makeMergeAccountsQueryKey(),
-        (prev: {users: User[]} | undefined) => {
-          const users = prev?.users || [];
-          return {
-            ...prev,
-            users: [...users, data.user],
-          };
-        }
-      );
-    } catch {
-      setError(true);
-    }
-  };
-
   const doMergeMutation = useMutation({
-    mutationFn: async () => {
-      const userIds = selectedUserIds;
+    mutationFn: (userIds: string[]) => {
       addLoadingMessage();
-      await api.requestPromise(`/users/${userId}/merge-accounts/`, {
+      return fetchMutation({
+        url: endpoint,
         method: 'POST',
         data: {users: userIds},
       });
@@ -86,6 +62,14 @@ export function MergeAccountsModal(props: Props) {
     },
   });
 
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues,
+    validators: {onDynamic: mergeSchema},
+    onSubmit: ({value}) =>
+      doMergeMutation.mutateAsync(value.users.map(user => user.id)).catch(() => {}),
+  });
+
   if (isPending) {
     return <LoadingIndicator />;
   }
@@ -94,58 +78,54 @@ export function MergeAccountsModal(props: Props) {
     return <LoadingError onRetry={refetch} />;
   }
 
-  const addUsername: FormProps['onSubmit'] = data => {
-    fetchUserByUsername(data.username);
-  };
-
-  const selectUser = (newUserId: string) =>
-    setSelectedUserIds(prevSelectedUserIds =>
-      prevSelectedUserIds.includes(newUserId)
-        ? prevSelectedUserIds.filter(i => i !== newUserId)
-        : [...prevSelectedUserIds, newUserId]
-    );
-
-  const renderUsernames = () => {
-    return mergeAccounts.users.map((user, key) => (
-      <label key={key} style={{display: 'block', width: 200, marginBottom: 10}}>
-        <input
-          type="checkbox"
-          name="user"
-          value={user.id}
-          onChange={() => selectUser(user.id)}
-          style={{margin: 5}}
-        />
-        {user.username}
-      </label>
-    ));
-  };
-
   return (
-    <Fragment>
-      <Header> Merge Accounts </Header>
+    <form.AppForm form={form}>
+      <Header closeButton>
+        <Heading as="h4">Merge Accounts</Heading>
+      </Header>
       <Body>
-        <h5>Listed accounts will be merged into this user.</h5>
-        <div>{renderUsernames()}</div>
-        <Form onSubmit={addUsername} hideFooter>
-          {error && (
-            <Alert.Container>
-              <Alert variant="danger" showIcon={false}>
-                Could not find user(s)
-              </Alert>
-            </Alert.Container>
-          )}
-          <TextField
-            label="Add another username:"
-            name="username"
-            placeholder="username"
-          />
-        </Form>
+        <Stack gap="sm">
+          <Text as="p">Selected accounts will be merged into this user.</Text>
+          <form.AppField name="users">
+            {field => (
+              <field.Layout.Stack label="Accounts to merge">
+                <field.SelectAsync
+                  multiple
+                  isSearchable
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  queryOptions={search => {
+                    const options = apiOptions.as<User[]>()('/users/', {
+                      query: {query: search, per_page: 10},
+                      staleTime: 0,
+                    });
+                    return queryOptions({
+                      ...options,
+                      select: ({json}) =>
+                        [...mergeAccounts.users, ...json, ...field.state.value]
+                          .filter(
+                            (user, index, users) =>
+                              users.findIndex(candidate => candidate.id === user.id) ===
+                                index && user.id !== userId
+                          )
+                          .map(user => ({value: user, label: user.username})),
+                    });
+                  }}
+                  isValueEqual={(a, b) => a.id === b.id}
+                  filterOption={null}
+                  placeholder="Search users"
+                  noOptionsMessage={() => 'No users available'}
+                />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+        </Stack>
       </Body>
       <Footer>
-        <Button onClick={() => doMergeMutation.mutate()} variant="primary">
-          Merge Account(s)
-        </Button>
+        <Flex justify="end">
+          <form.SubmitButton>Merge Account(s)</form.SubmitButton>
+        </Flex>
       </Footer>
-    </Fragment>
+    </form.AppForm>
   );
 }
