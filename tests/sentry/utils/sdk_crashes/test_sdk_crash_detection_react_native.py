@@ -425,20 +425,31 @@ def test_fetch_instrumentation_not_detected(
 
 
 @pytest.mark.parametrize(
-    ["function", "module", "filename", "detected"],
+    ["function", "module", "filename", "abs_path", "detected"],
     [
-        # Supabase PostgREST .then handler (ESM build) — should be ignored
+        # Supabase PostgREST .then handler (ESM build) with a module field — should be ignored
         (
             "Reflect.apply.then$argument_0",
             "@sentry/core/build/esm/integrations/supabase",
             "node_modules/@sentry/core/build/esm/integrations/supabase.js",
+            "app:///node_modules/@sentry/core/build/esm/integrations/supabase.js",
             False,
         ),
-        # Supabase PostgREST .then handler (CJS build) — should be ignored
+        # Supabase PostgREST .then handler (CJS build) with a module field — should be ignored
         (
             "Reflect.apply.then$argument_0",
             "@sentry/core/build/cjs/integrations/supabase",
             "node_modules/@sentry/core/build/cjs/integrations/supabase.js",
+            "app:///node_modules/@sentry/core/build/cjs/integrations/supabase.js",
+            False,
+        ),
+        # Real-world React Native / Hermes frame: no `module` field, the path lives in
+        # `filename`/`abs_path`. Regression for event 9d3446c5d2a8426f86ea85596e22d022.
+        (
+            "Reflect.apply.then$argument_0",
+            None,
+            "@sentry/core/build/esm/integrations/supabase.js",
+            "@sentry/core/build/esm/integrations/supabase.js",
             False,
         ),
         # Different function in the same module — should be detected
@@ -446,6 +457,7 @@ def test_fetch_instrumentation_not_detected(
             "instrumentPostgRESTFilterBuilder",
             "@sentry/core/build/esm/integrations/supabase",
             "node_modules/@sentry/core/build/esm/integrations/supabase.js",
+            "app:///node_modules/@sentry/core/build/esm/integrations/supabase.js",
             True,
         ),
         # Same function in a different module — should be detected
@@ -453,6 +465,15 @@ def test_fetch_instrumentation_not_detected(
             "Reflect.apply.then$argument_0",
             "@sentry/core/build/esm/integrations/graphql",
             "node_modules/@sentry/core/build/esm/integrations/graphql.js",
+            "app:///node_modules/@sentry/core/build/esm/integrations/graphql.js",
+            True,
+        ),
+        # Same function in a different module, module-less frame — should be detected
+        (
+            "Reflect.apply.then$argument_0",
+            None,
+            "@sentry/core/build/esm/integrations/graphql.js",
+            "@sentry/core/build/esm/integrations/graphql.js",
             True,
         ),
     ],
@@ -464,22 +485,26 @@ def test_supabase_instrumentation_not_detected(
     store_event,
     configs,
     function: str,
-    module: str,
+    module: str | None,
     filename: str,
+    abs_path: str,
     detected: bool,
 ) -> None:
+    frame: dict[str, str] = {
+        "function": function,
+        "filename": filename,
+        "abs_path": abs_path,
+    }
+    if module is not None:
+        frame["module"] = module
+
     event_data = get_crash_event(
         exception={
             "values": [
                 get_exception(
                     frames=[
                         *get_frames(),
-                        {
-                            "function": function,
-                            "module": module,
-                            "filename": filename,
-                            "abs_path": f"app:///{filename}",
-                        },
+                        frame,
                     ],
                 ),
             ]
