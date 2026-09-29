@@ -17,6 +17,7 @@ interface PathMappingProps extends PathMappingValue {
   onDelete: () => void;
   onExpandToggle: () => void;
   defaultBranch?: string;
+  projectSlug?: string;
   providerKey?: string;
   warning?: PathMappingWarning | null;
 }
@@ -28,11 +29,15 @@ export function PathMapping({
   onDelete,
   onExpandToggle,
   defaultBranch,
+  projectSlug,
   providerKey,
   warning,
   ...value
 }: PathMappingProps) {
   const showSummary = !(editing && isNew);
+  const effectiveWarning: PathMappingWarning | null = value.hasCodeOwner
+    ? {type: 'codeOwner'}
+    : (warning ?? null);
 
   return (
     <Stack border="muted" radius="md">
@@ -40,7 +45,7 @@ export function PathMapping({
         <PathMappingSummary
           {...value}
           expanded={editing}
-          warning={warning}
+          warning={effectiveWarning}
           onDelete={onDelete}
           onExpandToggle={onExpandToggle}
         />
@@ -51,7 +56,8 @@ export function PathMapping({
           {...value}
           providerKey={providerKey}
           defaultBranch={defaultBranch}
-          warning={warning}
+          projectSlug={projectSlug}
+          warning={effectiveWarning}
           onChange={onChange}
         />
       )}

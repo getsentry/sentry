@@ -238,23 +238,10 @@ describe('ConnectedRepositoriesPanel', () => {
           source: 'manual',
           providerKey: 'github',
           mappingCount: 1,
+          integrationId: integration.id,
+          externalId: '1',
         },
       ],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/integrations/`,
-      method: 'GET',
-      body: [integration],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/integrations/${integration.id}/repos/`,
-      method: 'GET',
-      body: {repos: []},
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/repos/`,
-      method: 'GET',
-      body: [],
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/code-mappings/`,
@@ -269,6 +256,7 @@ describe('ConnectedRepositoriesPanel', () => {
           sourceRoot: 'app/',
           defaultBranch: 'main',
           integrationId: integration.id,
+          hasCodeOwner: false,
         },
       ],
     });
@@ -305,23 +293,10 @@ describe('ConnectedRepositoriesPanel', () => {
           source: 'manual',
           providerKey: 'github',
           mappingCount,
+          integrationId: integration.id,
+          externalId: '1',
         },
       ],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/integrations/`,
-      method: 'GET',
-      body: [integration],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/integrations/${integration.id}/repos/`,
-      method: 'GET',
-      body: {repos: []},
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/repos/`,
-      method: 'GET',
-      body: [],
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/code-mappings/`,
@@ -336,6 +311,7 @@ describe('ConnectedRepositoriesPanel', () => {
           sourceRoot: 'app/',
           defaultBranch: 'main',
           integrationId: integration.id,
+          hasCodeOwner: false,
         },
       ],
     });

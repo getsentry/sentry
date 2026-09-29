@@ -47,6 +47,8 @@ function ConnectedRepositoryRow({
             repositoryId={repo.repositoryId}
             repoName={repo.repoName}
             providerKey={repo.providerKey}
+            integrationId={repo.integrationId}
+            externalId={repo.externalId}
           />
         )),
     },

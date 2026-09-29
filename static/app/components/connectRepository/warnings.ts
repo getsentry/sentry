@@ -3,6 +3,7 @@ import type {PathMappingValue} from './type';
 
 export type PathMappingWarning =
   | {type: 'catchAll'}
+  | {type: 'codeOwner'}
   | {sourceRoot: string; stackRoot: string; type: 'exact'};
 
 type NormalizedRow = {sourceRoot: string; stackRoot: string};

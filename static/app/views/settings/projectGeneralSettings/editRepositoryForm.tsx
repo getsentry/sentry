@@ -31,6 +31,7 @@ function buildPathsSection({
   listKey,
   providerKey,
   defaultBranch,
+  projectSlug,
   onChange,
 }: {
   isPending: boolean;
@@ -39,6 +40,7 @@ function buildPathsSection({
   providerKey: string | null;
   seededPathMappings: PathMappingValue[] | undefined;
   defaultBranch?: string;
+  projectSlug?: string;
 }) {
   if (isPending) {
     return (
@@ -56,6 +58,7 @@ function buildPathsSection({
         key={listKey}
         providerKey={providerKey ?? undefined}
         defaultBranch={defaultBranch}
+        projectSlug={projectSlug}
         pathMappings={seededPathMappings}
         onChange={onChange}
       />
@@ -64,6 +67,8 @@ function buildPathsSection({
 }
 
 export type EditFormProps = ModalRenderProps & {
+  externalId: string | null;
+  integrationId: string | null;
   project: Project;
   providerKey: string | null;
   repoName: string;
@@ -79,11 +84,11 @@ export function EditRepositoryForm({
   repositoryId,
   repoName,
   providerKey,
+  integrationId,
+  externalId,
 }: EditFormProps) {
   const organization = useOrganization();
   const [pathMappings, setPathMappings] = useState<PathMappingValue[]>([]);
-  const [codeOwnerWarnings, setCodeOwnerWarnings] = useState<string[]>([]);
-  const [listEpoch, setListEpoch] = useState(0);
   const invalidateQueries = useInvalidateRepoQueries(
     organization.slug,
     project.slug,
@@ -102,41 +107,31 @@ export function EditRepositoryForm({
     [codeMappingsQuery.isSuccess, codeMappingsQuery.data, repositoryId]
   );
 
-  // Derive from existing mappings so useEditRepoInfo can skip network calls.
-  const integrationIdFromMappings = seededMappings?.find(
-    m => m.integrationId
-  )?.integrationId;
-  const defaultBranchFromMappings = seededMappings?.[0]?.defaultBranch ?? null;
+  // undefined while mappings are loading so useEditRepoInfo doesn't fire the
+  // integration-repos call prematurely; null once loaded but no branch is set.
+  const defaultBranchFromMappings = codeMappingsQuery.isSuccess
+    ? (seededMappings?.[0]?.defaultBranch ?? null)
+    : undefined;
 
-  const {
-    integrationId: editIntegrationId,
-    defaultBranch: repoDefaultBranch,
-    isPending: isRepoInfoPending,
-  } = useEditRepoInfo({
-    orgSlug: organization.slug,
-    repositoryId,
-    integrationIdFromMappings,
-    defaultBranchFromMappings,
-  });
+  const {defaultBranch: repoDefaultBranch, isPending: isRepoInfoPending} =
+    useEditRepoInfo({
+      orgSlug: organization.slug,
+      integrationId,
+      externalId,
+      defaultBranchFromMappings,
+    });
 
   const editMutation = useMutation({
     mutationFn: editProjectRepoMappings,
-    onSuccess: async ({codeOwnerMessages}) => {
+    onSuccess: async () => {
       await invalidateQueries();
-      if (codeOwnerMessages.length === 0) {
-        closeModal();
-      } else {
-        // Remount so local rows pick up server IDs; otherwise a retry DELETEs
-        // mappings that were just POSTed.
-        setListEpoch(n => n + 1);
-        setCodeOwnerWarnings(codeOwnerMessages);
-      }
+      closeModal();
     },
   });
 
   const canSave =
     codeMappingsQuery.isSuccess &&
-    Boolean(editIntegrationId) &&
+    Boolean(integrationId) &&
     pathMappings.length > 0 &&
     !hasExactDuplicate(pathMappings);
 
@@ -145,14 +140,16 @@ export function EditRepositoryForm({
     stackRoot: m.stackRoot,
     sourceRoot: m.sourceRoot,
     branch: m.defaultBranch ?? DEFAULT_BRANCH,
+    hasCodeOwner: m.hasCodeOwner,
   }));
 
   const pathsSection = buildPathsSection({
     isPending: codeMappingsQuery.isPending || isRepoInfoPending,
     seededPathMappings,
-    listKey: `${repositoryId}-${listEpoch}`,
+    listKey: repositoryId,
     providerKey,
     defaultBranch: repoDefaultBranch ?? undefined,
+    projectSlug: project.slug,
     onChange: setPathMappings,
   });
 
@@ -168,11 +165,6 @@ export function EditRepositoryForm({
           <Alert variant="danger">{t('Failed to load path mappings.')}</Alert>
         </Alert.Container>
       )}
-      {codeOwnerWarnings.map((msg, i) => (
-        <Alert.Container key={i}>
-          <Alert variant="warning">{msg}</Alert>
-        </Alert.Container>
-      ))}
     </Fragment>
   );
 
@@ -190,14 +182,14 @@ export function EditRepositoryForm({
       canSave={canSave}
       isSaving={editMutation.isPending}
       onSave={() => {
-        if (!seededMappings || !editIntegrationId) {
+        if (!seededMappings || !integrationId) {
           return;
         }
         editMutation.mutate({
           orgSlug: organization.slug,
           project,
           repositoryId,
-          integrationId: editIntegrationId,
+          integrationId,
           seededMappings,
           submittedMappings: pathMappings,
         });

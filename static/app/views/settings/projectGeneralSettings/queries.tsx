@@ -31,6 +31,8 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 export type ProjectRepoListItem = {
   id: string;
+  externalId: string | null;
+  integrationId: string | null;
   mappingCount: number;
   projectId: string;
   providerKey: string | null;
@@ -94,71 +96,40 @@ function integrationReposOptions(orgSlug: string, integrationId: string) {
 }
 
 /**
- * Resolves the integration id and default branch for a single repository
- * without fanning out to every SCM integration.
+ * Resolves the default branch for a repository being edited.
  *
- * When existing code mappings are available:
- *   - integrationId and defaultBranch come straight from the mappings.
- *   - No extra network requests are made.
+ * Fast path: when seeded mappings already carry a defaultBranch, return it
+ * immediately with no network calls.
  *
- * When the repo has no code mappings yet:
- *   - Fetches org repos to resolve integrationId and externalId.
- *   - Then fetches that one integration's repos to get defaultBranch.
- *   - retry: false on the repos call so a 500 fails fast and the form
- *     still renders (defaultBranch falls back to undefined → "main").
+ * Slow path: when the repo has no mappings yet (or all have null branches),
+ * fetch that one integration's repos and match by externalId. retry: false so
+ * a 500 fails fast and the form still renders (falls back to "main").
  */
 export function useEditRepoInfo({
   orgSlug,
-  repositoryId,
-  integrationIdFromMappings,
+  integrationId,
+  externalId,
   defaultBranchFromMappings,
 }: {
+  integrationId: string | null;
   orgSlug: string;
-  repositoryId: string;
+  // undefined = mappings not yet loaded; null = loaded but no branch found.
   defaultBranchFromMappings?: string | null;
-  integrationIdFromMappings?: string | null;
+  externalId?: string | null;
 }): {
   defaultBranch: string | null;
-  integrationId: string | null;
   isPending: boolean;
 } {
-  const organization = useOrganization();
+  const mappingsLoaded = defaultBranchFromMappings !== undefined;
+  const needsBranchLookup =
+    mappingsLoaded &&
+    !defaultBranchFromMappings &&
+    Boolean(integrationId) &&
+    Boolean(externalId);
 
-  // Only look up org repos when we can't derive integrationId from mappings.
-  const needsOrgRepoLookup = !integrationIdFromMappings;
-
-  const orgReposQuery = useInfiniteQuery({
-    ...organizationRepositoriesInfiniteOptions({
-      organization,
-      query: {status: 'active', per_page: 100},
-      staleTime: REPOS_STALE_TIME_MS,
-    }),
-    enabled: needsOrgRepoLookup,
-  });
-  useFetchAllPages({result: orgReposQuery});
-
-  const orgRepoMatch = useMemo(() => {
-    if (!needsOrgRepoLookup) {
-      return null;
-    }
-    for (const page of orgReposQuery.data?.pages ?? []) {
-      const found = page.json.find(r => r.id === repositoryId);
-      if (found) {
-        return found;
-      }
-    }
-    return null;
-  }, [needsOrgRepoLookup, orgReposQuery.data, repositoryId]);
-
-  const integrationId = integrationIdFromMappings ?? orgRepoMatch?.integrationId ?? null;
-
-  // Only fetch this one integration's repos when we went through the org-repos
-  // path (needsOrgRepoLookup), because that is also when we have externalId
-  // to match against. When integrationId came from existing mappings we already
-  // have defaultBranchFromMappings and don't need this call.
-  const singleIntegrationReposQuery = useQuery({
+  const integrationReposQuery = useQuery({
     ...integrationReposOptions(orgSlug, integrationId ?? ''),
-    enabled: needsOrgRepoLookup && Boolean(integrationId),
+    enabled: needsBranchLookup,
     retry: false,
   });
 
@@ -166,34 +137,21 @@ export function useEditRepoInfo({
     if (defaultBranchFromMappings) {
       return defaultBranchFromMappings;
     }
-    const externalId = orgRepoMatch?.externalId;
-    if (!externalId || !singleIntegrationReposQuery.data) {
+    if (!externalId || !integrationReposQuery.data) {
       return null;
     }
     return (
-      singleIntegrationReposQuery.data.repos.find(r => r.externalId === externalId)
+      integrationReposQuery.data.repos.find(r => r.externalId === externalId)
         ?.defaultBranch ?? null
     );
-  }, [defaultBranchFromMappings, singleIntegrationReposQuery.data, orgRepoMatch]);
+  }, [defaultBranchFromMappings, externalId, integrationReposQuery.data]);
 
-  const isOrgReposPending =
-    needsOrgRepoLookup &&
-    !orgReposQuery.isError &&
-    (orgReposQuery.isPending ||
-      orgReposQuery.isFetchingNextPage ||
-      Boolean(orgReposQuery.hasNextPage));
+  const isPending =
+    needsBranchLookup &&
+    !integrationReposQuery.isError &&
+    integrationReposQuery.isPending;
 
-  const isDefaultBranchPending =
-    needsOrgRepoLookup &&
-    Boolean(integrationId) &&
-    !singleIntegrationReposQuery.isError &&
-    singleIntegrationReposQuery.isPending;
-
-  return {
-    integrationId,
-    defaultBranch,
-    isPending: isOrgReposPending || isDefaultBranchPending,
-  };
+  return {defaultBranch, isPending};
 }
 
 // Builds a RepoSelectOption from an integration repo and its matching Sentry
@@ -409,13 +367,6 @@ export async function saveProjectRepoConnection({
   }
 }
 
-const CODE_OWNER_PROTECTED_MESSAGE =
-  'This path mapping is used by a Code Owner rule and cannot be removed. Delete the Code Owner rule first.';
-
-export type EditSaveResult = {
-  codeOwnerMessages: string[];
-};
-
 // Form fields coerce a null server branch to "main"; compare normalized values
 // so displaying the default is not treated as an edit.
 function mappingHasChanged(
@@ -443,10 +394,12 @@ export async function editProjectRepoMappings({
   repositoryId: string;
   seededMappings: RepositoryProjectPathConfig[];
   submittedMappings: PathMappingValue[];
-}): Promise<EditSaveResult> {
+}): Promise<void> {
   const submittedIds = new Set(submittedMappings.flatMap(m => (m.id ? [m.id] : [])));
 
-  const toDelete = seededMappings.filter(m => !submittedIds.has(m.id));
+  // Exclude Code Owner–protected mappings: the DB rejects their deletion anyway,
+  // and the UI prevents users from removing them in the first place.
+  const toDelete = seededMappings.filter(m => !submittedIds.has(m.id) && !m.hasCodeOwner);
   const toUpdate = submittedMappings.filter(m => {
     if (!m.id) {
       return false;
@@ -456,31 +409,19 @@ export async function editProjectRepoMappings({
   });
   const toCreate = submittedMappings.filter(m => !m.id);
 
-  const codeOwnerMessages: string[] = [];
-
-  // 1. Deletes first. 409: Code Owner rule still uses this mapping — warn and
-  //    continue. 404: already deleted on a prior partial save — treat as success.
+  // 1. Deletes first. 404: already deleted on a prior partial save — treat as success.
   await Promise.all(
     toDelete.map(async m => {
       try {
         await fetchMutation({
           url: getApiUrl(
             '/organizations/$organizationIdOrSlug/code-mappings/$configId/',
-            {
-              path: {organizationIdOrSlug: orgSlug, configId: m.id},
-            }
+            {path: {organizationIdOrSlug: orgSlug, configId: m.id}}
           ),
           method: 'DELETE',
         });
       } catch (error) {
-        if (!(error instanceof RequestError)) {
-          throw error;
-        }
-        if (error.status === 409) {
-          codeOwnerMessages.push(CODE_OWNER_PROTECTED_MESSAGE);
-          return;
-        }
-        if (error.status === 404) {
+        if (error instanceof RequestError && error.status === 404) {
           return;
         }
         throw error;
@@ -548,6 +489,4 @@ export async function editProjectRepoMappings({
       throw result.reason;
     }
   }
-
-  return {codeOwnerMessages};
 }

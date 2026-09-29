@@ -7,7 +7,14 @@ type ConnectRepositoryModalProps = ModalRenderProps & {
   project: Project;
 } & (
     | {mode: 'connect'}
-    | {mode: 'edit'; providerKey: string | null; repoName: string; repositoryId: string}
+    | {
+        mode: 'edit';
+        externalId: string | null;
+        integrationId: string | null;
+        providerKey: string | null;
+        repoName: string;
+        repositoryId: string;
+      }
   );
 
 export function ConnectRepositoryModal(props: ConnectRepositoryModalProps) {

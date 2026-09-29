@@ -41,6 +41,8 @@ describe('ConnectRepositoryModal', () => {
     repositoryId: '10',
     repoName: 'getsentry/sentry',
     providerKey: 'github' as const,
+    integrationId: integration.id,
+    externalId: '1',
   };
 
   function renderModal(closeModal = jest.fn()) {
@@ -74,6 +76,8 @@ describe('ConnectRepositoryModal', () => {
           repositoryId={editRepo.repositoryId}
           repoName={editRepo.repoName}
           providerKey={editRepo.providerKey}
+          integrationId={editRepo.integrationId}
+          externalId={editRepo.externalId}
         />
       </Fragment>,
       {organization}
@@ -344,6 +348,7 @@ describe('ConnectRepositoryModal', () => {
       sourceRoot: 'app/',
       defaultBranch: 'main',
       integrationId: integration.id,
+      hasCodeOwner: false,
     };
 
     const secondMapping = {
@@ -355,6 +360,7 @@ describe('ConnectRepositoryModal', () => {
       sourceRoot: 'lib/',
       defaultBranch: 'main',
       integrationId: integration.id,
+      hasCodeOwner: false,
     };
 
     it('shows locked project and repository fields with seeded rows, Save enabled', async () => {
@@ -450,102 +456,27 @@ describe('ConnectRepositoryModal', () => {
       expect(closeModal).toHaveBeenCalled();
     });
 
-    it('shows code owner warning and keeps modal open on 409 DELETE', async () => {
-      const closeModal = jest.fn();
+    it('shows a Code Owners alert when expanding a protected mapping', async () => {
+      const protectedMapping = {...seededMapping, hasCodeOwner: true};
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/code-mappings/`,
         method: 'GET',
-        body: [seededMapping, secondMapping],
-      });
-      // Deleting the first row is blocked by a Code Owner rule.
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/code-mappings/${seededMapping.id}/`,
-        method: 'DELETE',
-        statusCode: 409,
-        body: {},
+        body: [protectedMapping, secondMapping],
       });
 
-      renderEditModal(closeModal);
+      renderEditModal();
 
-      // Wait for seeded rows then remove only the first one.
-      expect(await screen.findByText('vendor/')).toBeInTheDocument();
-      const [deleteFirst] = screen.getAllByRole('button', {name: 'Delete path mapping'});
-      await userEvent.click(deleteFirst!);
-
-      await userEvent.click(screen.getByRole('button', {name: 'Save'}));
-
-      expect(
-        await screen.findByText(
-          'This path mapping is used by a Code Owner rule and cannot be removed. Delete the Code Owner rule first.'
-        )
-      ).toBeInTheDocument();
-      expect(closeModal).not.toHaveBeenCalled();
-    });
-
-    it('does not DELETE a newly created mapping when retrying after a 409', async () => {
-      const closeModal = jest.fn();
-      const createdMapping = {
-        ...secondMapping,
-        id: '99',
-        stackRoot: 'extra/',
-        sourceRoot: '',
-      };
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/code-mappings/`,
-        method: 'GET',
-        body: [seededMapping, secondMapping],
-      });
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/code-mappings/${seededMapping.id}/`,
-        method: 'DELETE',
-        statusCode: 409,
-        body: {},
-      });
-      const postMapping = MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/code-mappings/`,
-        method: 'POST',
-        body: createdMapping,
-      });
-      const deleteCreated = MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/code-mappings/${createdMapping.id}/`,
-        method: 'DELETE',
-        body: {},
-      });
-
-      renderEditModal(closeModal);
-
-      expect(await screen.findByText('vendor/')).toBeInTheDocument();
-      const [deleteFirst] = screen.getAllByRole('button', {name: 'Delete path mapping'});
-      await userEvent.click(deleteFirst!);
-
-      await userEvent.click(screen.getByRole('button', {name: 'Add another path'}));
-      await userEvent.type(
-        screen.getByRole('textbox', {name: /stack trace prefix/i}),
-        'extra/'
-      );
-
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/code-mappings/`,
-        method: 'GET',
-        body: [seededMapping, secondMapping, createdMapping],
-      });
-
-      await userEvent.click(screen.getByRole('button', {name: 'Save'}));
-
-      expect(
-        await screen.findByText(
-          'This path mapping is used by a Code Owner rule and cannot be removed. Delete the Code Owner rule first.'
-        )
-      ).toBeInTheDocument();
       expect(await screen.findByText('src/')).toBeInTheDocument();
-      expect(screen.getByText('extra/')).toBeInTheDocument();
-      expect(closeModal).not.toHaveBeenCalled();
 
-      await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+      // No alert until the row is expanded.
+      expect(screen.queryByText(/Code Owners/)).not.toBeInTheDocument();
 
-      await waitFor(() => expect(closeModal).toHaveBeenCalled());
-      expect(postMapping).toHaveBeenCalledTimes(1);
-      expect(deleteCreated).not.toHaveBeenCalled();
+      const [expandProtected] = screen.getAllByRole('button', {
+        name: 'Expand path mapping',
+      });
+      await userEvent.click(expandProtected!);
+
+      expect(screen.getByRole('link', {name: 'Code Owners'})).toBeInTheDocument();
     });
 
     it('seeds new mappings with the repository default branch', async () => {
@@ -555,10 +486,13 @@ describe('ConnectRepositoryModal', () => {
         body: [],
       });
 
+      // No existing mappings, so the form fetches integrations repos by externalId.
       renderEditModal(jest.fn(), {
         repositoryId: '11',
         repoName: 'getsentry/relay',
         providerKey: 'github',
+        integrationId: integration.id,
+        externalId: '2',
       });
 
       expect(await screen.findByRole('textbox', {name: /branch/i})).toHaveValue('master');

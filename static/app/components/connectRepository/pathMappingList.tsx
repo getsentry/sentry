@@ -16,6 +16,7 @@ interface PathMappingListProps {
   onChange: (pathMappings: PathMappingValue[]) => void;
   defaultBranch?: string;
   pathMappings?: PathMappingValue[];
+  projectSlug?: string;
   providerKey?: string;
 }
 
@@ -60,6 +61,7 @@ export function PathMappingList({
   onChange,
   providerKey,
   defaultBranch,
+  projectSlug,
 }: PathMappingListProps) {
   const newRowValue: PathMappingValue = {
     ...EMPTY_MAPPING,
@@ -164,6 +166,7 @@ export function PathMappingList({
             isNew={entry.isNew}
             providerKey={providerKey}
             defaultBranch={defaultBranch}
+            projectSlug={projectSlug}
             warning={warnings[index]}
             onChange={value => handleChange(entry.id, value)}
             onDelete={() => handleDelete(entry.id)}

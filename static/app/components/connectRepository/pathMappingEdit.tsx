@@ -33,6 +33,7 @@ const schema = z.object({
 interface PathMappingEditProps extends PathMappingValue {
   onChange: (value: PathMappingValue) => void;
   defaultBranch?: string;
+  projectSlug?: string;
   providerKey?: string;
   warning?: PathMappingWarning | null;
 }
@@ -43,6 +44,7 @@ export function PathMappingEdit({
   stackRoot,
   onChange,
   defaultBranch,
+  projectSlug,
   providerKey,
   warning,
 }: PathMappingEditProps) {
@@ -172,7 +174,7 @@ export function PathMappingEdit({
                 );
               }}
             </form.Subscribe>
-            <PathMappingWarningAlert warning={warning} />
+            <PathMappingWarningAlert warning={warning} projectSlug={projectSlug} />
           </Stack>
         </Stack>
       </Container>
