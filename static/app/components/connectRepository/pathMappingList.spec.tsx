@@ -308,10 +308,49 @@ describe('PathMappingList', () => {
 
       await userEvent.click(screen.getByRole('button', {name: 'Expand path mapping'}));
 
-      expect(screen.getByText(/Code Owners/)).toBeInTheDocument();
+      expect(screen.getByRole('link', {name: 'Code Owners'})).toBeInTheDocument();
       expect(
         screen.queryByText(/Only one can be used for matching/)
       ).not.toBeInTheDocument();
+    });
+  });
+
+  describe('hideActions', () => {
+    it('still shows roots and branches but hides expand, delete, and add buttons', () => {
+      renderList({pathMappings: MAPPINGS, hideActions: true});
+
+      expect(screen.getByText('app/')).toBeInTheDocument();
+      expect(screen.getByText('src/')).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Expand path mapping'})
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Delete path mapping'})
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Add another path'})
+      ).not.toBeInTheDocument();
+    });
+  });
+
+  describe('title', () => {
+    it('replaces the Paths heading when a custom title is provided', () => {
+      renderList({pathMappings: MAPPINGS, title: 'Removing'});
+
+      expect(screen.getByText('Removing')).toBeInTheDocument();
+      expect(screen.queryByText(/Paths \(/)).not.toBeInTheDocument();
+    });
+
+    it('suppresses the heading entirely when title is null', () => {
+      renderList({pathMappings: MAPPINGS, title: null});
+
+      expect(screen.queryByText(/Paths \(/)).not.toBeInTheDocument();
+    });
+
+    it('uses the default Paths heading when no title is provided', () => {
+      renderList({pathMappings: MAPPINGS});
+
+      expect(screen.getByText(/Paths \(2\)/)).toBeInTheDocument();
     });
   });
 

@@ -193,7 +193,7 @@ describe('ConnectedRepositoriesPanel', () => {
     expect(screen.getByText('getsentry/relay')).toBeInTheDocument();
   });
 
-  it('opens overflow menu with Edit enabled and Disconnect disabled', async () => {
+  it('opens overflow menu with Edit and Disconnect both enabled', async () => {
     MockApiClient.addMockResponse({
       url: repoUrl,
       method: 'GET',
@@ -218,10 +218,56 @@ describe('ConnectedRepositoriesPanel', () => {
       'aria-disabled',
       'true'
     );
-    expect(screen.getByRole('menuitemradio', {name: 'Disconnect'})).toHaveAttribute(
+    expect(screen.getByRole('menuitemradio', {name: 'Disconnect'})).not.toHaveAttribute(
       'aria-disabled',
       'true'
     );
+  });
+
+  it('Disconnect opens the confirm dialog', async () => {
+    MockApiClient.addMockResponse({
+      url: repoUrl,
+      method: 'GET',
+      body: [
+        {
+          id: '1',
+          projectId: project.id,
+          repositoryId: '10',
+          repoName: 'getsentry/sentry',
+          source: 'manual',
+          providerKey: 'github',
+          mappingCount: 1,
+        },
+      ],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/code-mappings/`,
+      method: 'GET',
+      body: [
+        {
+          id: '5',
+          projectId: project.id,
+          projectSlug: project.slug,
+          repoId: '10',
+          repoName: 'getsentry/sentry',
+          stackRoot: 'src/',
+          sourceRoot: 'app/',
+          defaultBranch: 'main',
+          hasCodeOwner: false,
+          integrationId: 'gh-1',
+          provider: null,
+        },
+      ],
+    });
+
+    renderPanel();
+
+    await userEvent.click(await screen.findByRole('button', {name: 'More Actions'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Disconnect'}));
+
+    expect(
+      await screen.findByText(/Disconnect getsentry\/sentry from/)
+    ).toBeInTheDocument();
   });
 
   it('Edit opens the modal locked to that repository with seeded path rows', async () => {

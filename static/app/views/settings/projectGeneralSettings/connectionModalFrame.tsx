@@ -1,6 +1,5 @@
 import {Fragment, type ReactNode} from 'react';
 
-import {Alert} from '@sentry/scraps/alert';
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
@@ -54,7 +53,7 @@ function LockedSelectField({
   );
 }
 
-export function LockedProjectField({project}: {project: Project}) {
+function LockedProjectField({project}: {project: Project}) {
   return (
     <LockedSelectField
       ariaLabel={t('Project')}

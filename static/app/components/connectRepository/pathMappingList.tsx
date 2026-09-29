@@ -1,4 +1,4 @@
-import {useEffect, useRef, useState} from 'react';
+import {type ReactNode, useEffect, useRef, useState} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -15,9 +15,12 @@ import {getPathMappingWarnings} from './warnings';
 interface PathMappingListProps {
   onChange: (pathMappings: PathMappingValue[]) => void;
   defaultBranch?: string;
+  hideActions?: boolean;
   pathMappings?: PathMappingValue[];
   projectSlug?: string;
   providerKey?: string;
+  subtitle?: ReactNode | null;
+  title?: ReactNode | null;
 }
 
 interface Entry {
@@ -61,7 +64,10 @@ export function PathMappingList({
   onChange,
   providerKey,
   defaultBranch,
+  hideActions,
   projectSlug,
+  subtitle,
+  title,
 }: PathMappingListProps) {
   const newRowValue: PathMappingValue = {
     ...EMPTY_MAPPING,
@@ -148,14 +154,19 @@ export function PathMappingList({
 
   return (
     <Stack gap="lg">
-      <Stack gap="xs">
-        <Text bold>{tct('Paths ([count])', {count: entries.length})}</Text>
-        <Text size="sm" variant="muted">
-          {t(
-            'Tell Sentry how to translate file paths, so errors open the right line of code.'
+      {title !== null && (
+        <Stack gap="xs">
+          <Text bold>{title ?? tct('Paths ([count])', {count: entries.length})}</Text>
+          {subtitle !== null && (
+            <Text size="sm" variant="muted">
+              {subtitle ??
+                t(
+                  'Tell Sentry how to translate file paths, so errors open the right line of code.'
+                )}
+            </Text>
           )}
-        </Text>
-      </Stack>
+        </Stack>
+      )}
 
       <Stack gap="md">
         {entries.map((entry, index) => (
@@ -164,6 +175,7 @@ export function PathMappingList({
             {...entry.value}
             editing={openId === entry.id}
             isNew={entry.isNew}
+            hideActions={hideActions}
             providerKey={providerKey}
             defaultBranch={defaultBranch}
             projectSlug={projectSlug}
@@ -175,18 +187,20 @@ export function PathMappingList({
         ))}
       </Stack>
 
-      <Flex justify="end">
-        <Button
-          size="xs"
-          variant="transparent"
-          icon={<IconAdd />}
-          disabled={Boolean(addDisabledReason)}
-          tooltipProps={{title: addDisabledReason}}
-          onClick={handleAddAnother}
-        >
-          {t('Add another path')}
-        </Button>
-      </Flex>
+      {!hideActions && (
+        <Flex justify="end">
+          <Button
+            size="xs"
+            variant="transparent"
+            icon={<IconAdd />}
+            disabled={Boolean(addDisabledReason)}
+            tooltipProps={{title: addDisabledReason}}
+            onClick={handleAddAnother}
+          >
+            {t('Add another path')}
+          </Button>
+        </Flex>
+      )}
     </Stack>
   );
 }
