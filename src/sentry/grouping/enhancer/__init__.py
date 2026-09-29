@@ -665,7 +665,7 @@ class EnhancementsConfig:
             )
 
 
-def _load_configs() -> dict[str, EnhancementsConfig]:
+def _load_enhancement_bases() -> dict[str, EnhancementsConfig]:
     enhancement_bases = {}
     configs_dir = os.path.join(os.path.abspath(os.path.dirname(__file__)), "enhancement-configs")
     for filename in os.listdir(configs_dir):
@@ -683,7 +683,7 @@ def _load_configs() -> dict[str, EnhancementsConfig]:
     return enhancement_bases
 
 
-ENHANCEMENT_BASES = _load_configs()
+ENHANCEMENT_BASES = _load_enhancement_bases()
 
 # TODO: Shim to cover the time period before events which have the old default enhancements name
 # encoded in their base64 grouping config expire. Should be able to be deleted after Nov 2025. (Note
