@@ -1,4 +1,10 @@
+import type {
+  CustomSeriesRenderItem,
+  CustomSeriesRenderItemAPI,
+  CustomSeriesRenderItemParams,
+} from 'echarts';
 import {AnnotationFixture} from 'sentry-fixture/annotation';
+import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
@@ -7,7 +13,9 @@ import {
   DROPPED_DATA_SERIES_ID,
   useDroppedDataBand,
 } from 'sentry/components/droppedData/useDroppedDataBand';
+import {severityStyle} from 'sentry/components/droppedData/utils';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
+import type {Annotation} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 
 const chartRef: React.RefObject<ReactEchartsRef | null> = {current: null};
 
@@ -63,7 +71,29 @@ describe('useDroppedDataBand', () => {
     expect(result.current.droppedDataSeries).toBeNull();
   });
 
-  it('draws a pill for a small positive drop ratio', () => {
+  it('keeps buckets at 5% and skips those below', () => {
+    const {result} = renderHookWithProviders(() =>
+      useDroppedDataBand({
+        chartRef,
+        droppedData: {
+          droppedAnnotations: [
+            AnnotationFixture({start: 0, eventCount: 1}),
+            AnnotationFixture({start: 60_000, eventCount: 5}),
+          ],
+          acceptedAnnotations: [
+            AnnotationFixture({start: 0, eventCount: 99}),
+            AnnotationFixture({start: 60_000, eventCount: 95}),
+          ],
+        },
+      })
+    );
+
+    expect(result.current.droppedDataSeries?.data).toEqual([
+      expect.objectContaining({start: 60_000, ratio: 0.05}),
+    ]);
+  });
+
+  it('hides the band when every drop ratio is below 5%', () => {
     const {result} = renderHookWithProviders(() =>
       useDroppedDataBand({
         chartRef,
@@ -74,8 +104,8 @@ describe('useDroppedDataBand', () => {
       })
     );
 
-    expect(result.current.droppedDataSeries).not.toBeNull();
-    expect(result.current.droppedDataSeries?.data).toHaveLength(1);
+    expect(result.current.droppedDataSeries).toBeNull();
+    expect(result.current.droppedDataBandHeight).toBe(0);
   });
 
   it('draws no pill for buckets that only have accepted volume', () => {
@@ -172,5 +202,87 @@ describe('useDroppedDataBand', () => {
     );
 
     expect(result.current.droppedDataSeries?.data).toHaveLength(2);
+  });
+
+  describe('render item', () => {
+    const TRACK_WIDTH = 600;
+
+    // One pixel per second, so each one-minute bucket is 60px wide.
+    const api = {
+      coord: ([time]: number[]) => [(time ?? 0) / 1000, 100],
+    } as unknown as CustomSeriesRenderItemAPI;
+
+    interface BandRect {
+      shape: {width: number; x: number};
+      style: {fill: string; opacity: number};
+      silent?: boolean;
+    }
+
+    function renderShapes(dropped: Annotation[], accepted: Annotation[] = []) {
+      const {result} = renderHookWithProviders(() =>
+        useDroppedDataBand({
+          chartRef,
+          droppedData: {droppedAnnotations: dropped, acceptedAnnotations: accepted},
+        })
+      );
+
+      const series = result.current.droppedDataSeries;
+      if (!series || typeof series.renderItem !== 'function') {
+        throw new Error('Expected the dropped data series to render items');
+      }
+      const renderItem = series.renderItem as CustomSeriesRenderItem;
+
+      return (series.data as unknown[]).map((_, dataIndex) => {
+        const group = renderItem(
+          {
+            dataIndex,
+            dataIndexInside: dataIndex,
+            coordSys: {type: 'cartesian2d', x: 0, width: TRACK_WIDTH},
+          } as unknown as CustomSeriesRenderItemParams,
+          api
+        ) as {children: BandRect[]};
+
+        return group.children;
+      });
+    }
+
+    function bucket(minute: number, eventCount = 10) {
+      return AnnotationFixture({
+        start: minute * 60_000,
+        end: (minute + 1) * 60_000,
+        eventCount,
+      });
+    }
+
+    it('draws the track once, on the first bucket', () => {
+      const [first, second] = renderShapes([bucket(2), bucket(3)]);
+
+      expect(first?.[0]).toMatchObject({shape: {x: 0, width: TRACK_WIDTH}, silent: true});
+      expect(second).toHaveLength(1);
+    });
+
+    it('centres each bucket on its start, clamped to the track', () => {
+      const spans = renderShapes([bucket(0), bucket(5), bucket(10)]).map(shapes => {
+        const {x, width} = shapes.at(-1)!.shape;
+        return [x, x + width];
+      });
+
+      expect(spans).toEqual([
+        [0, 30],
+        [270, 330],
+        [570, TRACK_WIDTH],
+      ]);
+    });
+
+    it('colors each bucket by its drop ratio', () => {
+      const theme = ThemeFixture();
+      const [first, second] = renderShapes(
+        [bucket(3, 9), bucket(4, 12)],
+        [bucket(3, 91), bucket(4, 88)]
+      );
+
+      expect(first?.[1]?.style).toMatchObject(severityStyle(0.09, theme));
+      expect(second?.[0]?.style).toMatchObject(severityStyle(0.12, theme));
+    });
   });
 });

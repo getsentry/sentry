@@ -1,14 +1,20 @@
 from collections.abc import Sequence
+from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 
 from django.db.models import Count
 from django.db.models.functions import TruncHour
 
 from sentry.api.endpoints.timeseries import Row, SeriesMeta, StatsMeta, StatsResponse, TimeSeries
-from sentry.rules.history.base import TimeSeriesValue
 from sentry.workflow_engine.models import Workflow, WorkflowFireHistory
 
 HOUR_IN_MILLISECONDS = 60 * 60 * 1000
+
+
+@dataclass(frozen=True)
+class TimeSeriesValue:
+    bucket: datetime
+    count: int
 
 
 def serialize_workflow_stats(
