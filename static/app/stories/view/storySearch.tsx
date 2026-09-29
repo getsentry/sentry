@@ -6,7 +6,7 @@ import {Item, Section} from '@react-stately/collections';
 import {useComboBoxState} from '@react-stately/combobox';
 import type {CollectionChildren} from '@react-types/shared';
 
-import {ListBox} from '@sentry/scraps/compactSelect';
+import {HighlightText, ListBox} from '@sentry/scraps/compactSelect';
 import {useHotkeys, Hotkey} from '@sentry/scraps/hotkey';
 import {InputGroup} from '@sentry/scraps/input';
 import {Flex} from '@sentry/scraps/layout';
@@ -38,6 +38,7 @@ interface SearchItem {
   node: StoryTreeNode;
   title: string;
   hash?: string;
+  parents?: string[];
 }
 
 interface SearchSection {
@@ -67,6 +68,7 @@ function searchItems(nodes: StoryTreeNode[], query: string): SearchItem[] {
         title: heading.title,
         node,
         hash: `#${encodeURIComponent(heading.id)}`,
+        parents: heading.parents,
       })),
     ];
   });
@@ -92,6 +94,19 @@ function searchItems(nodes: StoryTreeNode[], query: string): SearchItem[] {
         b.score - a.score
     )
     .map(({item}) => item);
+}
+
+// Full breadcrumbs repeat the page and parent headings on every result. Show
+// the page and the matching entry; the full path remains the accessible name.
+function SearchResultLabel({item, query}: {item: SearchItem; query: string}) {
+  return (
+    <Text as="span" aria-label={item.label}>
+      <Text as="span" aria-hidden="true">
+        {item.hash && `${item.node.label} › ${item.parents?.length ? '… › ' : ''}`}
+        <HighlightText text={item.title} query={query} />
+      </Text>
+    </Text>
+  );
 }
 
 function isSearchSection(item: SearchItem | SearchSection): item is SearchSection {
@@ -183,7 +198,7 @@ export function StorySearch() {
                     key={storyItem.key}
                     textValue={storyItem.label}
                     {...({
-                      label: storyItem.label,
+                      label: <SearchResultLabel item={storyItem} query={inputValue} />,
                       trailingItems: subcategoryLabel ? (
                         <Text size="xs" variant="muted" ellipsis>
                           {subcategoryLabel}

@@ -58,9 +58,10 @@ describe('StorySearch', () => {
       'Accessibility'
     );
 
+    // Visible labels collapse parents; the accessible name keeps the full path.
     expect(
       await screen.findByRole('option', {name: /Badge › FeatureBadge › Accessibility/})
-    ).toBeInTheDocument();
+    ).toHaveTextContent('Badge › … › Accessibility');
     await userEvent.click(
       screen.getByRole('option', {name: /Badge › Tag › Accessibility/})
     );
