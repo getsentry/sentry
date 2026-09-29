@@ -161,9 +161,6 @@ function isConfiguredDrop({outcome, reason}: Annotation): boolean {
 
 const MIN_HIGHLIGHTED_RATIO = 0.05;
 
-/**
- * Replaces the alpha of a `#RRGGBB` or `#RRGGBBAA` color, returning `#RRGGBBAA`.
- */
 export function withAlpha(color: string, alpha: number): string {
   const channel = Math.round(alpha * 255)
     .toString(16)
@@ -171,9 +168,6 @@ export function withAlpha(color: string, alpha: number): string {
   return `${color.slice(0, 7)}${channel}`.toUpperCase();
 }
 
-/**
- * Returns `#RRGGBBAA` so neighbouring buckets can be blended in a gradient.
- */
 export function severityColor(ratio: number, theme: Theme): string {
   const warning = theme.tokens.background.warning.vibrant;
   // TODO: Replace with a theme token once the design settles on one.
