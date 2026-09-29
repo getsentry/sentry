@@ -1,8 +1,8 @@
 import type {ComponentType, ReactNode} from 'react';
 import styled from '@emotion/styled';
 
-import {ToolCallInput} from '@sentry/scraps/chat';
-import {Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {SeerEmbedBlock} from 'sentry/components/seer/markdown/embeds/components/seerEmbedBlock';
@@ -68,32 +68,39 @@ export function QueryEmbedCard({
       title={title}
     >
       {query ? (
-        <FlushQuery
-          input={<ProvidedFormattedQuery query={query} />}
-          label={t('Query:')}
-        />
+        // Runs edge to edge like the table, with the same inset as the log
+        // embed's row so its label lines up with the header's title. The label
+        // keeps its line while the tokens wrap
+        // beside it, so a long query grows downward instead of dropping below.
+        // The label's box is one filter token tall (24px) so it centers on the
+        // first row of tokens.
+        <Flex align="start" gap="sm" padding="lg">
+          <Flex align="center" height="24px" flexShrink={0}>
+            <Text size="sm" variant="secondary" monospace bold>
+              {t('Query:')}
+            </Text>
+          </Flex>
+          <Container flex="1" minWidth="0">
+            <ProvidedFormattedQuery query={query} />
+          </Container>
+        </Flex>
       ) : null}
       {/* A flush table below takes a tighter inset, so a chart sits close to
           the table under it. A card with no table -- an issue list, a saved
           query's summary, a chart on its own -- keeps the roomier inset every
-          other block embed uses. */}
-      <InsetSection gap="md" padding={table ? 'md' : 'lg'}>
+          other block embed uses. The query row's padding already spaces the
+          content from it. */}
+      <InsetSection
+        gap="md"
+        padding={table ? 'md' : 'lg'}
+        paddingTop={query ? '0' : undefined}
+      >
         {children}
       </InsetSection>
       {table}
     </SeerEmbedBlock>
   );
 }
-
-/**
- * The query runs edge to edge like the table, so the tool call input box drops
- * its rounding and side borders: the card's border already frames it, and the
- * top border alone separates it from the header band of the same color.
- */
-const FlushQuery = styled(ToolCallInput)`
-  border-width: 1px 0 0;
-  border-radius: 0;
-`;
 
 /**
  * A chart with nothing to plot renders nothing, so this section can end up
