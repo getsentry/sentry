@@ -130,6 +130,12 @@ export function SpansTable({
   const displayedMeta =
     (isLoadingDifferentTable ? undefined : result.meta) ??
     (canRetainLastResolvedTable ? lastResolvedTable.meta : undefined);
+  const routingHint =
+    !result.isPending && !result.isPlaceholderData && result.data
+      ? result.meta?.routingHint
+      : canRetainLastResolvedTable
+        ? lastResolvedTable.meta.routingHint
+        : undefined;
   const displayedPageLinks =
     (result.isPlaceholderData || result.isError) && canRetainLastResolvedTable
       ? lastResolvedTable.pageLinks
@@ -252,6 +258,7 @@ export function SpansTable({
                 fields={visibleFields}
                 pendingFields={pendingFields}
                 meta={meta}
+                routingHint={routingHint}
               />
             ))
           ) : (
@@ -283,12 +290,14 @@ function SpanSampleRow({
   fields,
   pendingFields,
   meta,
+  routingHint,
 }: {
   columns: Array<TableColumn<string>>;
   data: EventData;
   fields: readonly string[];
   meta: MetaType;
   pendingFields: ReadonlySet<string>;
+  routingHint?: string;
 }) {
   const organization = useOrganization();
   const [isExpanded, setIsExpanded] = useState(false);
@@ -330,7 +339,7 @@ function SpanSampleRow({
       {isExpanded ? (
         <DataTable.Row>
           <SpanDetailsCell>
-            <SpanItemDetails dataRow={data} />
+            <SpanItemDetails dataRow={data} routingHint={routingHint} />
           </SpanDetailsCell>
         </DataTable.Row>
       ) : null}

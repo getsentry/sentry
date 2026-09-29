@@ -11,7 +11,10 @@ import {
   type EquationModeSnapshot,
   useTraceMetricsVisualizeModeState,
 } from 'sentry/views/dashboards/widgetBuilder/hooks/useTraceMetricsVisualizeModeState';
-import {serializeFields} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
+import {
+  BuilderStateAction,
+  serializeFields,
+} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
@@ -138,6 +141,28 @@ describe('useTraceMetricsVisualizeModeState', () => {
     expect(result.current.isEquationMode).toBe(true);
   });
 
+  it('starts in equation mode when table grouping fields precede the equation', () => {
+    const {result} = renderHookWithProviders(useTraceMetricsVisualizeModeState, {
+      organization: OrganizationFixture({features: EQUATION_FEATURES}),
+      additionalWrapper: WidgetBuilderProvider,
+      initialRouterConfig: {
+        location: {
+          pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+          query: {
+            dataset: WidgetType.TRACEMETRICS,
+            displayType: DisplayType.TABLE,
+            field: [
+              'span.op',
+              'equation|sum(value,alpha_metric,counter,none) + avg(value,beta_metric,counter,none)',
+            ],
+          },
+        },
+      },
+    });
+
+    expect(result.current.isEquationMode).toBe(true);
+  });
+
   it('toggles to equation mode', () => {
     const {result} = renderHookWithProviders(useTraceMetricsVisualizeModeState, {
       organization: OrganizationFixture({features: EQUATION_FEATURES}),
@@ -159,6 +184,64 @@ describe('useTraceMetricsVisualizeModeState', () => {
     });
 
     expect(result.current.isEquationMode).toBe(true);
+  });
+
+  it('preserves table grouping fields when switching between series and equation mode', () => {
+    function useCombinedStateHooks() {
+      const visualizeModeState = useTraceMetricsVisualizeModeState();
+      const {state, dispatch} = useWidgetBuilderContext();
+      return {dispatch, visualizeModeState, widgetBuilderState: state};
+    }
+
+    const {result} = renderHookWithProviders(useCombinedStateHooks, {
+      organization: OrganizationFixture({features: EQUATION_FEATURES}),
+      additionalWrapper: WidgetBuilderProvider,
+      initialRouterConfig: {
+        location: {
+          pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+          query: {
+            dataset: WidgetType.TRACEMETRICS,
+            displayType: DisplayType.TABLE,
+            field: [
+              'span.op',
+              'span.description',
+              'sum(value,alpha_metric,counter,none)',
+            ],
+          },
+        },
+      },
+    });
+
+    expect(serializeFields(result.current.widgetBuilderState.fields ?? [])).toEqual([
+      'span.op',
+      'span.description',
+      'sum(value,alpha_metric,counter,none)',
+    ]);
+
+    act(() => {
+      result.current.visualizeModeState.handleModeToggle(true);
+    });
+
+    act(() => {
+      result.current.dispatch({
+        type: BuilderStateAction.SET_FIELDS,
+        payload: [
+          {kind: FieldValueKind.FIELD, field: 'span.status_code'},
+          ...(result.current.widgetBuilderState.fields?.filter(
+            field => field.kind !== FieldValueKind.FIELD
+          ) ?? []),
+        ],
+      });
+    });
+
+    act(() => {
+      result.current.visualizeModeState.handleModeToggle(false);
+    });
+
+    expect(serializeFields(result.current.widgetBuilderState.fields ?? [])).toEqual([
+      'span.status_code',
+      'sum(value,alpha_metric,counter,none)',
+    ]);
   });
 
   it('toggles to series mode', () => {

@@ -54,7 +54,7 @@ describe('ActivityNoteInput', () => {
     );
 
     const editor = getEditor();
-    await userEvent.type(editor, 'new comment{Control>}{enter}{/Control}');
+    await userEvent.type(editor, 'new comment{Enter}');
 
     await waitFor(() => expect(onSubmit).toHaveBeenCalled());
     await waitFor(() => expect(editor).toBeEmptyDOMElement());

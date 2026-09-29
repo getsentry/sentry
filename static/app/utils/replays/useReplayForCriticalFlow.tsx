@@ -31,5 +31,5 @@ const noop = (_: UseReplayForCriticalFlowOptions) => {};
  */
 export function useReplayForCriticalFlow(options: UseReplayForCriticalFlowOptions) {
   const useImpl = getOverride('react-hook:use-replay-for-critical-flow') ?? noop;
-  useImpl(options);
+  useImpl(options); // oxlint-disable-line react/hooks -- Hook comes from the override registry, which is populated before React renders.
 }

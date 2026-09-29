@@ -4,10 +4,10 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {getIsAiNode} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
-import {useTrace} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
-import {isEAPSpanNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
-import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
+import {useTrace} from 'sentry/views/performance/traceDetails/traceApi/useTrace';
+import {isEAPSpanNode} from 'sentry/views/performance/traceDetails/traceGuards';
+import {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
+import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/traceDetails/traceState/tracePreferences';
 
 interface UseAITraceResult {
   error: boolean;
@@ -20,16 +20,26 @@ interface UseAITraceResult {
  */
 const AI_TRACE_BASE_ATTRIBUTES = [
   SpanFields.GEN_AI_AGENT_NAME,
+  SpanFields.GEN_AI_EMBEDDINGS_INPUT,
   SpanFields.GEN_AI_FUNCTION_ID,
+  SpanFields.GEN_AI_INPUT_MESSAGES,
+  SpanFields.GEN_AI_OUTPUT_MESSAGES,
   SpanFields.GEN_AI_REQUEST_MODEL,
+  SpanFields.GEN_AI_REQUEST_MESSAGES,
   SpanFields.GEN_AI_RESPONSE_MODEL,
+  SpanFields.GEN_AI_RESPONSE_OBJECT,
+  SpanFields.GEN_AI_RESPONSE_TEXT,
+  SpanFields.GEN_AI_USAGE_INPUT_TOKENS,
+  SpanFields.GEN_AI_USAGE_REASONING_OUTPUT_TOKENS,
   SpanFields.GEN_AI_USAGE_TOTAL_TOKENS,
   SpanFields.GEN_AI_COST_TOTAL_TOKENS,
   SpanFields.GEN_AI_TOOL_NAME,
   SpanFields.GEN_AI_OPERATION_TYPE,
   SpanFields.GEN_AI_OPERATION_NAME,
   SpanFields.GEN_AI_CONVERSATION_ID,
+  SpanFields.SENTRY_ORIGIN,
   SpanFields.SPAN_STATUS,
+  SpanFields.USER_EMAIL,
   'status',
   'gen_ai.tool.call.arguments',
   'gen_ai.tool.call.result',
@@ -64,7 +74,6 @@ export function useAITrace(traceSlug: string): UseAITraceResult {
 
       try {
         const tree = TraceTree.FromTrace(trace.data, {
-          meta: null,
           replay: null,
           preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
           organization,

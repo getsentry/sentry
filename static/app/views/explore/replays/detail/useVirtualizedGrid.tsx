@@ -1,6 +1,7 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useResizeObserver} from '@react-aria/utils';
-import {useVirtualizer} from '@tanstack/react-virtual';
+
+import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
 
 type Opts = {
   defaultColumnWidth: number;
@@ -46,7 +47,11 @@ export function useVirtualizedGrid({
     return () => window.cancelAnimationFrame(frame);
   }, [updateMeasurements]);
 
-  const virtualizer = useVirtualizer({
+  const {
+    totalSize,
+    virtualItems: virtualRows,
+    virtualizer,
+  } = useVirtualRows({
     count: rowCount,
     estimateSize: () => rowHeight,
     getScrollElement: () => scrollContainerRef.current,
@@ -54,8 +59,6 @@ export function useVirtualizedGrid({
     scrollPaddingStart: 25,
     scrollPaddingEnd: 25,
   });
-
-  const virtualRows = virtualizer.getVirtualItems();
 
   const columnWidths = useMemo(() => {
     const fullWidth = Math.max(0, wrapperWidth - scrollbarWidth);
@@ -95,6 +98,7 @@ export function useVirtualizedGrid({
     gridTemplateColumns,
     scrollContainerRef,
     totalColumnWidth,
+    totalSize,
     virtualRows,
     virtualizer,
     wrapperRef,

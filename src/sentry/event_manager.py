@@ -2944,4 +2944,13 @@ def save_generic_events(jobs: Sequence[Job], projects: ProjectsMapping) -> Seque
     _materialize_event_metrics(jobs)
     _nodestore_save_many(jobs=jobs, app_feature="issue_platform")
 
+    for job in jobs:
+        safe_execute(
+            save_pending_attachments,
+            project=projects[job["project_id"]],
+            event_id=job["event"].event_id,
+            group_id=None,
+            source="save_generic_events",
+        )
+
     return jobs

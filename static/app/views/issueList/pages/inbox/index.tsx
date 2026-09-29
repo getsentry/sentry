@@ -10,9 +10,9 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useInfiniteQuery, useQuery} from '@tanstack/react-query';
 import orderBy from 'lodash/orderBy';
-import {parseAsString, useQueryState} from 'nuqs';
+import {parseAsString, useQueryStates} from 'nuqs';
 
-import {ActorAvatar, UserAvatar} from '@sentry/scraps/avatar';
+import {ActorAvatar, ProjectAvatar, UserAvatar} from '@sentry/scraps/avatar';
 import {Badge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Disclosure} from '@sentry/scraps/disclosure';
@@ -62,8 +62,8 @@ import {IssuePreview} from 'sentry/views/issueList/pages/inbox/issuePreview/issu
 import {INBOX_AUTOFIX_CATEGORY_FILTER} from 'sentry/views/issueList/pages/inbox/utils';
 import {InboxEmptyState} from 'sentry/views/issueList/pages/inboxEmptyState';
 import {
+  assignmentFilterParser,
   type AssignmentFilter,
-  useAssignmentFilter,
 } from 'sentry/views/issueList/pages/useAssignmentFilter';
 import {useInboxPreviewPrefetch} from 'sentry/views/issueList/pages/useInboxPreviewPrefetch';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
@@ -81,17 +81,15 @@ type RestoreSelectedIssueScroll = (issueId: string, element: HTMLDivElement) => 
 
 interface AssignmentCounts {
   all: number;
-  me: number;
   my_teams: number;
 }
 
 interface AlternateInbox {
-  filter: Exclude<AssignmentFilter, 'me'>;
+  filter: 'all';
   label: string;
 }
 
 const ASSIGNMENT_QUERY_SUFFIXES: Record<AssignmentFilter, string> = {
-  me: ' assigned_or_suggested:me',
   my_teams: ' assigned_or_suggested:[me,my_teams]',
   all: '',
 };
@@ -212,10 +210,9 @@ function useSelectFirstLoadedIssue({
   };
 }
 
-// Fetch counts for the assignment filter tabs (my/my teams/all)
+// Fetch counts for the assignment filter tabs (my teams/all)
 function useAssignmentCounts(): AssignmentCounts | null {
   const organization = useOrganization();
-  const meQuery = `${ASSIGNMENT_COUNT_QUERY}${ASSIGNMENT_QUERY_SUFFIXES.me}${INBOX_AUTOFIX_CATEGORY_FILTER}`;
   const myTeamsQuery = `${ASSIGNMENT_COUNT_QUERY}${ASSIGNMENT_QUERY_SUFFIXES.my_teams}${INBOX_AUTOFIX_CATEGORY_FILTER}`;
   const allQuery = `${ALL_ASSIGNMENT_COUNT_QUERY}${INBOX_AUTOFIX_CATEGORY_FILTER}`;
 
@@ -224,7 +221,7 @@ function useAssignmentCounts(): AssignmentCounts | null {
       '/organizations/$organizationIdOrSlug/issues-count/',
       {
         path: {organizationIdOrSlug: organization.slug},
-        query: {query: [meQuery, myTeamsQuery, allQuery]},
+        query: {query: [myTeamsQuery, allQuery]},
         staleTime: 180_000,
       }
     ),
@@ -235,7 +232,6 @@ function useAssignmentCounts(): AssignmentCounts | null {
   }
 
   return {
-    me: data[meQuery] ?? 0,
     my_teams: data[myTeamsQuery] ?? 0,
     all: data[allQuery] ?? 0,
   };
@@ -245,11 +241,7 @@ function getAlternateInbox(
   assignmentFilter: AssignmentFilter,
   assignmentCounts: AssignmentCounts | null
 ): AlternateInbox | null {
-  if (assignmentFilter === 'me' && assignmentCounts?.my_teams) {
-    return {filter: 'my_teams', label: t('View team inbox')};
-  }
-
-  if (assignmentFilter !== 'all' && assignmentCounts?.all) {
+  if (assignmentFilter === 'my_teams' && assignmentCounts?.all) {
     return {filter: 'all', label: t('View all inbox')};
   }
 
@@ -269,7 +261,6 @@ function AssignmentTabs({
     assignmentCounts
       ? {
           assignment_filter: assignmentFilter,
-          count_me: assignmentCounts.me,
           count_my_teams: assignmentCounts.my_teams,
           count_all: assignmentCounts.all,
         }
@@ -285,15 +276,9 @@ function AssignmentTabs({
       value={assignmentFilter}
       onChange={onChange}
     >
-      <SegmentedControl.Item key="me" textValue={t('Me')}>
+      <SegmentedControl.Item key="my_teams" textValue={t('Me')}>
         <Flex as="span" align="center" gap="sm">
           {t('Me')}
-          <AssignmentCountBadge count={assignmentCounts?.me} />
-        </Flex>
-      </SegmentedControl.Item>
-      <SegmentedControl.Item key="my_teams" textValue={t('My Teams')}>
-        <Flex as="span" align="center" gap="sm">
-          {t('My Teams')}
           <AssignmentCountBadge count={assignmentCounts?.my_teams} />
         </Flex>
       </SegmentedControl.Item>
@@ -318,11 +303,14 @@ function InboxContent() {
   const isMobile = layout === 'mobile';
   const resizableContainerRef = useRef<HTMLDivElement>(null);
   const organization = useOrganization();
-  const [assignmentFilter, setAssignmentFilter] = useAssignmentFilter();
-  const [selectedIssueId, setSelectedIssueId] = useQueryState(
-    SELECTED_ISSUE_QUERY_PARAM,
-    parseAsString.withOptions({history: 'replace'})
-  );
+  const [{assignment: assignmentFilter, preview: selectedIssueId}, setInboxQueryState] =
+    useQueryStates(
+      {
+        assignment: assignmentFilterParser,
+        [SELECTED_ISSUE_QUERY_PARAM]: parseAsString,
+      },
+      {history: 'replace'}
+    );
   const issueIdToRestoreScroll = useRef(selectedIssueId);
   const restoreSelectedIssueScroll = useCallback<RestoreSelectedIssueScroll>(
     (issueId, element) => {
@@ -350,7 +338,7 @@ function InboxContent() {
 
   const handleInitialSectionResult = useSelectFirstLoadedIssue({
     disabled: !isDesktop || selectedIssueId !== null,
-    onSelect: issueId => void setSelectedIssueId(issueId),
+    onSelect: issueId => void setInboxQueryState({preview: issueId}),
     resetKey: assignmentFilter,
     sections: SECTIONS,
   });
@@ -361,7 +349,7 @@ function InboxContent() {
       organization,
       assignment_filter: filter,
     });
-    setAssignmentFilter(filter);
+    void setInboxQueryState({assignment: filter, preview: null});
   };
 
   const alternateInboxAction = alternateInbox
@@ -467,7 +455,7 @@ function InboxContent() {
                 size="xs"
                 variant="link"
                 icon={<IconArrow direction="left" size="xs" />}
-                onClick={() => void setSelectedIssueId(null)}
+                onClick={() => void setInboxQueryState({preview: null})}
               >
                 {t('Back to inbox')}
               </Button>
@@ -766,7 +754,16 @@ function InboxIssueCard({
               {title}
             </Heading>
             <EventMessage level={group.level} message={message} type={group.type} />
-            <Container height="18px" />
+            {showPullRequests ? (
+              <Container height="18px" />
+            ) : (
+              <Flex height="18px" minWidth={0} align="center" gap="2xs">
+                <ProjectAvatar project={group.project} size={12} />
+                <Text size="xs" variant="muted" ellipsis>
+                  {group.shortId}
+                </Text>
+              </Flex>
+            )}
           </Stack>
           <Stack align="end" justify="between">
             {group.derivedData?.lastProgressedAt ? (
@@ -814,7 +811,7 @@ function InboxIssueCard({
           </Stack>
         </Grid>
       </IssueCardLink>
-      {showPullRequests && <InboxPullRequestBadges group={group} />}
+      {showPullRequests && <InboxPullRequestMetadata group={group} />}
     </Container>
   );
 }
@@ -827,7 +824,7 @@ const PULL_REQUEST_BADGE_VARIANTS = {
   unknown: 'muted',
 } satisfies Record<PullRequestStatus, ComponentProps<typeof Badge>['variant']>;
 
-function InboxPullRequestBadges({group}: {group: Group}) {
+function InboxPullRequestMetadata({group}: {group: Group}) {
   const {data} = useLinkedPullRequests({group, includeChecksAndReview: false});
   const {currentPullRequests} = partitionLinkedPullRequests(
     data?.pullRequests ?? [],
@@ -836,10 +833,6 @@ function InboxPullRequestBadges({group}: {group: Group}) {
   const pullRequests = currentPullRequests.filter(
     pullRequest => pullRequest.status !== 'closed'
   );
-
-  if (!pullRequests?.length) {
-    return null;
-  }
 
   return (
     <PullRequestBadgePositioner>
@@ -863,6 +856,12 @@ function InboxPullRequestBadges({group}: {group: Group}) {
               </Badge>
             </PullRequestBadgeLink>
           ))}
+          <Flex minWidth={0} align="center" gap="2xs">
+            <ProjectAvatar project={group.project} size={12} />
+            <Text size="xs" variant="muted" ellipsis>
+              {group.shortId}
+            </Text>
+          </Flex>
         </Flex>
         <span />
       </Grid>

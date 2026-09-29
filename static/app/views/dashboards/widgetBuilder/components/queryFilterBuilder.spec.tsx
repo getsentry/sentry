@@ -47,10 +47,7 @@ describe('QueryFilterBuilder', () => {
   it('renders a dataset-specific query filter bar', async () => {
     render(
       <WidgetBuilderProvider>
-        <WidgetBuilderQueryFilterBuilder
-          onQueryConditionChange={() => {}}
-          validatedWidgetResponse={{} as any}
-        />
+        <WidgetBuilderQueryFilterBuilder onQueryConditionChange={() => {}} />
       </WidgetBuilderProvider>,
       {
         organization,
@@ -72,10 +69,7 @@ describe('QueryFilterBuilder', () => {
 
     render(
       <WidgetBuilderProvider>
-        <WidgetBuilderQueryFilterBuilder
-          onQueryConditionChange={() => {}}
-          validatedWidgetResponse={{} as any}
-        />
+        <WidgetBuilderQueryFilterBuilder onQueryConditionChange={() => {}} />
       </WidgetBuilderProvider>,
       {
         organization,
@@ -95,10 +89,7 @@ describe('QueryFilterBuilder', () => {
   it('renders a legend alias input for charts', async () => {
     render(
       <WidgetBuilderProvider>
-        <WidgetBuilderQueryFilterBuilder
-          onQueryConditionChange={() => {}}
-          validatedWidgetResponse={{} as any}
-        />
+        <WidgetBuilderQueryFilterBuilder onQueryConditionChange={() => {}} />
       </WidgetBuilderProvider>,
       {
         organization,
@@ -121,10 +112,7 @@ describe('QueryFilterBuilder', () => {
   it('does not render a legend alias input for the details widget', async () => {
     render(
       <WidgetBuilderProvider>
-        <WidgetBuilderQueryFilterBuilder
-          onQueryConditionChange={() => {}}
-          validatedWidgetResponse={{} as any}
-        />
+        <WidgetBuilderQueryFilterBuilder onQueryConditionChange={() => {}} />
       </WidgetBuilderProvider>,
       {
         organization,
@@ -150,10 +138,7 @@ describe('QueryFilterBuilder', () => {
   it('does not allow adding multiple filters for the details widget', async () => {
     render(
       <WidgetBuilderProvider>
-        <WidgetBuilderQueryFilterBuilder
-          onQueryConditionChange={() => {}}
-          validatedWidgetResponse={{} as any}
-        />
+        <WidgetBuilderQueryFilterBuilder onQueryConditionChange={() => {}} />
       </WidgetBuilderProvider>,
       {
         organization,
@@ -179,10 +164,7 @@ describe('QueryFilterBuilder', () => {
   it('limits number of filter queries to 3', async () => {
     render(
       <WidgetBuilderProvider>
-        <WidgetBuilderQueryFilterBuilder
-          onQueryConditionChange={() => {}}
-          validatedWidgetResponse={{} as any}
-        />
+        <WidgetBuilderQueryFilterBuilder onQueryConditionChange={() => {}} />
       </WidgetBuilderProvider>,
       {
         organization,
@@ -213,10 +195,7 @@ describe('QueryFilterBuilder', () => {
   it('allow adding filters for the spans dataset', async () => {
     render(
       <WidgetBuilderProvider>
-        <WidgetBuilderQueryFilterBuilder
-          onQueryConditionChange={() => {}}
-          validatedWidgetResponse={{} as any}
-        />
+        <WidgetBuilderQueryFilterBuilder onQueryConditionChange={() => {}} />
       </WidgetBuilderProvider>,
       {
         organization,
@@ -239,10 +218,7 @@ describe('QueryFilterBuilder', () => {
 
     render(
       <WidgetBuilderProvider>
-        <WidgetBuilderQueryFilterBuilder
-          onQueryConditionChange={() => {}}
-          validatedWidgetResponse={{} as any}
-        />
+        <WidgetBuilderQueryFilterBuilder onQueryConditionChange={() => {}} />
       </WidgetBuilderProvider>,
       {
         organization: organizationWithFeature,
@@ -268,10 +244,7 @@ describe('QueryFilterBuilder', () => {
   it('enables search bar when transaction widget type but no discover-saved-queries-deprecation feature flag', async () => {
     render(
       <WidgetBuilderProvider>
-        <WidgetBuilderQueryFilterBuilder
-          onQueryConditionChange={() => {}}
-          validatedWidgetResponse={{} as any}
-        />
+        <WidgetBuilderQueryFilterBuilder onQueryConditionChange={() => {}} />
       </WidgetBuilderProvider>,
       {
         organization,

@@ -15,6 +15,7 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {getConversationsUrlForExternalUse} from 'sentry/views/explore/conversations/utils/urlParams';
 
 interface AskSeerPollingComboBoxProps<T extends QueryTokensProps> {
   applySeerSearchQuery: (item: T, runId?: number | string) => void;
@@ -136,6 +137,13 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
       loadingContent={loadingContent}
       errorTitle={t('Seer failed to process your search. Please try again.')}
       emptyTitle={t("Describe what you're looking for")}
+      additionalFeedbackTags={
+        runId
+          ? {
+              conversation_url: getConversationsUrlForExternalUse('sentry', runId),
+            }
+          : undefined
+      }
       onReset={reset}
     />
   );
