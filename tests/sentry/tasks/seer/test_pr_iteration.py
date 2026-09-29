@@ -1113,12 +1113,12 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
             group_id=self.group.id,
         )
         enqueue_autofix_feedback(
-            log_ctx=PrIterationLogContext(
+            log_ctx=PrIterationLogContext.for_run(
                 MagicMock(),
+                self._state(),
+                self.organization.id,
+                None,
                 iteration=LogCtxIteration.TRIGGERED,
-                run_state=self._state(),
-                organization_id=self.organization.id,
-                group_id=None,
             ),
             run_id=67890,
             organization_id=self.organization.id,
@@ -1558,12 +1558,12 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
 
     def _enqueue_ui_feedback(self, text: str) -> None:
         enqueue_autofix_feedback(
-            log_ctx=PrIterationLogContext(
+            log_ctx=PrIterationLogContext.for_run(
                 MagicMock(),
+                self._state(),
+                self.organization.id,
+                None,
                 iteration=LogCtxIteration.TRIGGERED,
-                run_state=self._state(),
-                organization_id=self.organization.id,
-                group_id=None,
             ),
             run_id=67890,
             organization_id=self.organization.id,
@@ -2338,12 +2338,12 @@ class TriggerConsumePrIterationFeedbackTest(TestCase):
         self.log = MagicMock()
 
     def _log_ctx(self) -> PrIterationLogContext:
-        return PrIterationLogContext(
+        return PrIterationLogContext.for_run(
             self.log,
+            self._state(),
+            self.organization.id,
+            None,
             iteration=LogCtxIteration.TRIGGERED,
-            run_state=self._state(),
-            organization_id=self.organization.id,
-            group_id=None,
         )
 
     def _feedback(self) -> Feedback:

@@ -105,12 +105,12 @@ class PrIterationDetailsTest(TestCase):
         self.seer_run = self.create_seer_run(
             organization=self.organization, seer_run_state_id=RUN_ID
         )
-        self.log_ctx = PrIterationLogContext(
+        self.log_ctx = PrIterationLogContext.for_run(
             MagicMock(),
+            _run_state(),
+            self.organization.id,
+            self.group.id,
             iteration=LogCtxIteration.TRIGGERED,
-            run_state=_run_state(),
-            organization_id=self.organization.id,
-            group_id=self.group.id,
         )
 
     def _open(self) -> None:
@@ -515,12 +515,12 @@ class RecordPrIterationBlockedTest(TestCase):
         self.seer_run = self.create_seer_run(
             organization=self.organization, seer_run_state_id=RUN_ID
         )
-        self.log_ctx = PrIterationLogContext(
+        self.log_ctx = PrIterationLogContext.for_run(
             MagicMock(),
+            _run_state(),
+            self.organization.id,
+            self.group.id,
             iteration=LogCtxIteration.UNTRIGGERED,
-            run_state=_run_state(),
-            organization_id=self.organization.id,
-            group_id=self.group.id,
         )
 
     def _open(self) -> None:

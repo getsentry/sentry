@@ -19,7 +19,7 @@ from sentry.seer.autofix.pr_iteration.emit import (
     PrIterationOutcome,
     build_iteration_event,
 )
-from sentry.seer.autofix.pr_iteration.logs import LogCtxIteration, PrIterationLogContext
+from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
 from sentry.seer.models.run import SeerRunPrIteration
 
 logger = logging.getLogger(__name__)
@@ -80,10 +80,9 @@ def _swept_event(
         else PrIterationOutcome.NEVER_TRIGGERED
     )
     outcome = iteration.data.get(FAILURE_REASON_DATA_KEY) or fallback.value
-    log_ctx = PrIterationLogContext(
+    log_ctx = PrIterationLogContext.for_run_id(
         logger,
-        iteration=LogCtxIteration.UNTRIGGERED,
-        run_state=None,
+        run_id=iteration.data.get("run_id"),
         organization_id=iteration.data.get("organization_id"),
         group_id=iteration.data.get("group_id"),
     )
