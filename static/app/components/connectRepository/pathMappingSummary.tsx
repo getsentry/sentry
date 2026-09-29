@@ -27,6 +27,10 @@ interface PathMappingSummaryProps extends PathMappingValue {
   warning?: PathMappingWarning | null;
 }
 
+const CODE_OWNER_DELETE_TOOLTIP = t(
+  'Remove the Code Owners connection before deleting this mapping.'
+);
+
 function PathSegment({value}: {value: string}) {
   return (
     <Flex flex={`${PATH_RATIO} 0 0%`} minWidth={0} maxWidth="max-content">
@@ -49,6 +53,7 @@ export function PathMappingSummary({
   onDelete,
   onExpandToggle,
   warning,
+  hasCodeOwner,
 }: PathMappingSummaryProps) {
   const {
     stackRoot: normalizedStackRoot,
@@ -111,6 +116,8 @@ export function PathMappingSummary({
             variant="transparent"
             icon={<IconDelete />}
             aria-label={t('Delete path mapping')}
+            disabled={hasCodeOwner}
+            tooltipProps={hasCodeOwner ? {title: CODE_OWNER_DELETE_TOOLTIP} : undefined}
             onClick={onDelete}
           />
         </Flex>

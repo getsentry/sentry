@@ -42,6 +42,7 @@ export function PathMappingEdit({
   branch,
   sourceRoot,
   stackRoot,
+  hasCodeOwner,
   onChange,
   defaultBranch,
   projectSlug,
@@ -111,6 +112,7 @@ export function PathMappingEdit({
                     value={field.state.value}
                     onChange={field.handleChange}
                     placeholder={STACK_ROOT_PLACEHOLDER}
+                    disabled={hasCodeOwner}
                   />
                 </field.Layout.Stack>
               )}
@@ -148,6 +150,7 @@ export function PathMappingEdit({
                     value={field.state.value}
                     onChange={field.handleChange}
                     placeholder={SOURCE_ROOT_PLACEHOLDER}
+                    disabled={hasCodeOwner}
                   />
                 </field.Layout.Stack>
               )}

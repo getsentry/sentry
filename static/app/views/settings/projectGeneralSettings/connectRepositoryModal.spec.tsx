@@ -456,7 +456,7 @@ describe('ConnectRepositoryModal', () => {
       expect(closeModal).toHaveBeenCalled();
     });
 
-    it('shows a Code Owners alert when expanding a protected mapping', async () => {
+    it('locks protected mappings: delete disabled, prefixes disabled, branch enabled, alert shown', async () => {
       const protectedMapping = {...seededMapping, hasCodeOwner: true};
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/code-mappings/`,
@@ -468,6 +468,12 @@ describe('ConnectRepositoryModal', () => {
 
       expect(await screen.findByText('src/')).toBeInTheDocument();
 
+      // Delete is disabled before expanding (scraps Button uses aria-disabled).
+      const [deleteProtected] = screen.getAllByRole('button', {
+        name: 'Delete path mapping',
+      });
+      expect(deleteProtected).toHaveAttribute('aria-disabled', 'true');
+
       // No alert until the row is expanded.
       expect(screen.queryByText(/Code Owners/)).not.toBeInTheDocument();
 
@@ -476,7 +482,19 @@ describe('ConnectRepositoryModal', () => {
       });
       await userEvent.click(expandProtected!);
 
+      // Alert with link is shown.
       expect(screen.getByRole('link', {name: 'Code Owners'})).toBeInTheDocument();
+      expect(
+        screen.getByText(/Remove the Code Owners connection before editing/)
+      ).toBeInTheDocument();
+
+      // Both prefix inputs are disabled; branch is still editable.
+      const stackInput = screen.getByRole('textbox', {name: /stack trace prefix/i});
+      const sourceInput = screen.getByRole('textbox', {name: /repository prefix/i});
+      const branchInput = screen.getByRole('textbox', {name: /branch/i});
+      expect(stackInput).toBeDisabled();
+      expect(sourceInput).toBeDisabled();
+      expect(branchInput).not.toBeDisabled();
     });
 
     it('seeds new mappings with the repository default branch', async () => {

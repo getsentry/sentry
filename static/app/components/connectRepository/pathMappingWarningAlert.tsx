@@ -36,7 +36,7 @@ export function PathMappingWarningAlert({
     return (
       <Alert variant="warning" showIcon>
         {tct(
-          'This mapping is linked to a [link:Code Owners] file. Deleting it will remove the Code Owners connection.',
+          'This mapping is linked to a [link:Code Owners] file. Remove the Code Owners connection before editing these paths or deleting this mapping.',
           {link: <Link to={ownershipUrl} />}
         )}
       </Alert>
