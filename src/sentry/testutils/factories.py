@@ -89,12 +89,14 @@ from sentry.investigations.models import (
     InvestigationBlockExecution,
     InvestigationBlockExecutionProject,
     InvestigationBlockParameter,
+    InvestigationComment,
     InvestigationFavoriteUser,
     InvestigationOrchestrationCommand,
     InvestigationOrchestrationEvent,
     InvestigationOrchestrationRun,
     InvestigationParameter,
     InvestigationProject,
+    InvestigationSeen,
 )
 from sentry.issue_detection.performance_problem import PerformanceProblem
 from sentry.issues.action_log.types import GroupActionType, GroupActorType
@@ -452,6 +454,23 @@ class Factories:
     def create_investigation_favorite(investigation, user):
         return InvestigationFavoriteUser.objects.create(
             investigation=investigation, user_id=user.id
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_investigation_seen(investigation, user, **kwargs):
+        return InvestigationSeen.objects.create(
+            investigation=investigation, user_id=user.id, **kwargs
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_investigation_comment(investigation, author=None, block=None, body="A comment"):
+        return InvestigationComment.objects.create(
+            investigation=investigation,
+            block=block,
+            author_id=author.id if author else None,
+            body=body,
         )
 
     @staticmethod
