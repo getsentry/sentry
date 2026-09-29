@@ -7,7 +7,7 @@ import {Item, Section} from '@react-stately/collections';
 import {useComboBoxState} from '@react-stately/combobox';
 import type {CollectionChildren} from '@react-types/shared';
 
-import {ListBox} from '@sentry/scraps/compactSelect';
+import {HighlightText, ListBox} from '@sentry/scraps/compactSelect';
 import {useHotkeys, Hotkey} from '@sentry/scraps/hotkey';
 import {InputGroup} from '@sentry/scraps/input';
 import {Flex} from '@sentry/scraps/layout';
@@ -43,6 +43,7 @@ interface SearchItem {
   hash?: string;
   keywords?: string[];
   match?: {rank: number; score: number};
+  parents?: string[];
 }
 
 interface SearchSection {
@@ -83,6 +84,7 @@ function tokenItems(node: StoryTreeNode, theme: Theme): SearchItem[] {
             title,
             node,
             hash: headingHash(heading),
+            parents: [heading.title],
           });
         }
       }
@@ -128,6 +130,7 @@ function searchItems(nodes: StoryTreeNode[], query: string, theme: Theme): Searc
         title: heading.title,
         node,
         hash: headingHash(heading),
+        parents: heading.parents,
       })),
       ...(node.filesystemPath === TOKENS_STORY ? tokenItems(node, theme) : []),
     ];
@@ -157,6 +160,19 @@ function compareMatches(a: SearchItem, b: SearchItem) {
     (b.match?.rank ?? 0) - (a.match?.rank ?? 0) ||
     KIND_ORDER[a.kind] - KIND_ORDER[b.kind] ||
     (b.match?.score ?? 0) - (a.match?.score ?? 0)
+  );
+}
+
+// Full breadcrumbs repeat the page and parent headings on every result. Show
+// the page and the matching entry; the full path remains the accessible name.
+function SearchResultLabel({item, query}: {item: SearchItem; query: string}) {
+  return (
+    <Text as="span" aria-label={item.label}>
+      <Text as="span" aria-hidden="true">
+        {item.hash && `${item.node.label} › ${item.parents?.length ? '… › ' : ''}`}
+        <HighlightText text={item.title} query={query} />
+      </Text>
+    </Text>
   );
 }
 
@@ -255,7 +271,7 @@ export function StorySearch() {
                     key={storyItem.key}
                     textValue={storyItem.label}
                     {...({
-                      label: storyItem.label,
+                      label: <SearchResultLabel item={storyItem} query={inputValue} />,
                       trailingItems: subcategoryLabel ? (
                         <Text size="xs" variant="muted" ellipsis>
                           {subcategoryLabel}

@@ -69,9 +69,10 @@ describe('StorySearch', () => {
       'Accessibility'
     );
 
+    // Visible labels collapse parents; the accessible name keeps the full path.
     expect(
       await screen.findByRole('option', {name: /Badge › FeatureBadge › Accessibility/})
-    ).toBeInTheDocument();
+    ).toHaveTextContent('Badge › … › Accessibility');
     await userEvent.click(
       screen.getByRole('option', {name: /Badge › Tag › Accessibility/})
     );
@@ -115,11 +116,11 @@ describe('StorySearch', () => {
       'background.danger.vibrant'
     );
 
-    await userEvent.click(
-      await screen.findByRole('option', {
-        name: 'Tokens › Background › background.danger.vibrant',
-      })
-    );
+    const option = await screen.findByRole('option', {
+      name: 'Tokens › Background › background.danger.vibrant',
+    });
+    expect(option).toHaveTextContent('Tokens › … › background.danger.vibrant');
+    await userEvent.click(option);
     await waitFor(() => expect(router.location.hash).toBe('#background'));
     expect(router.location.pathname).toContain('/scraps/principles/tokens/');
   });
@@ -129,7 +130,7 @@ describe('StorySearch', () => {
     await userEvent.type(screen.getByRole('combobox', {name: 'Search stories'}), 'space');
 
     const options = await screen.findAllByRole('option');
-    expect(options[0]).toHaveTextContent('Tokens › Size › Space');
+    expect(options[0]).toHaveTextContent('Tokens › … › Space');
     expect(
       screen.getByRole('option', {name: 'Tokens › Space › space.md'})
     ).toBeInTheDocument();
