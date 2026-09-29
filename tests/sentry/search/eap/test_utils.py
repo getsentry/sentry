@@ -111,6 +111,18 @@ class TestParseFormula(TestCase):
         ):
             parse_formula("formula.apdex(span.duration, hello_world)", self.org, lambda x: x)
 
+    def test_parse_formula_values_too_big(self) -> None:
+        with pytest.raises(InvalidSearchQuery, match="which is outside the supported number range"):
+            parse_formula("formula.apdex(span.duration, inf)", self.org, lambda x: x)
+        with pytest.raises(InvalidSearchQuery, match="which is outside the supported number range"):
+            parse_formula(
+                "formula.apdex(span.duration, 100000000000000000000)", self.org, lambda x: x
+            )
+        with pytest.raises(InvalidSearchQuery, match="which is outside the supported number range"):
+            parse_formula(
+                "formula.apdex(span.duration, 0.000000000000000000001)", self.org, lambda x: x
+            )
+
     def test_parse_formula_simple(self) -> None:
         equation = parse_formula("formula.apdex(span.duration, 300)", self.org, lambda x: x)
         assert (

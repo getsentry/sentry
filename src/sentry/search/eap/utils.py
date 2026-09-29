@@ -1,3 +1,4 @@
+import math
 import re
 from collections.abc import Collection, Mapping
 from datetime import datetime
@@ -542,7 +543,12 @@ def parse_formula(
         if saved_arg.param_type == ParamItemTypes.NUMBER:
             # Ensure that the user arg is a valid number
             try:
-                arg = str(float(arg))
+                float_value = float(arg)
+                if not math.isfinite(float_value):
+                    raise InvalidSearchQuery(
+                        f"{saved_arg.name} resolved to {float_value}, which is outside the supported number range"
+                    )
+                arg = str(float_value)
             except ValueError:
                 raise InvalidSearchQuery(
                     f"{saved_arg.name} expected a number but got '{arg}' instead"
