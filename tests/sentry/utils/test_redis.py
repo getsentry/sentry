@@ -26,11 +26,13 @@ from sentry.utils.redis import (
     _matches_redis_transaction_ratchet,
     _redis_transaction_callers,
     _shared_pool,
+    _to_str,
     check_cluster_versions,
     get_cluster_from_options,
     pop_used_key_prefix_clients,
     redis_clusters,
 )
+from sentry.utils.redis_key_specs import COMMAND_KEY_SPECS, KeySpec
 from sentry.utils.versioning import Version
 from sentry.utils.warnings import DeprecatedSettingWarning
 
@@ -314,6 +316,39 @@ def test_worker_key_prefix_is_configured() -> None:
     assert options.get("redis.clusters")["cluster"]["key_prefix"] == prefix
     assert prefix == f"test-{os.environ.get('PYTEST_XDIST_WORKER', 'main')}:"
     assert "{" not in prefix
+
+
+def _load_command_key_specs(client: Any) -> dict[str, KeySpec]:
+    """The key positions of each command that takes keys, from the COMMAND reply of the server."""
+    connection = client.connection_pool.get_random_connection()
+    try:
+        connection.send_command("COMMAND")
+        reply = connection.read_response()
+    finally:
+        client.connection_pool.release(connection)
+
+    specs = {}
+
+    def add(entry: list[Any]) -> None:
+        flags = {_to_str(flag) for flag in entry[2]}
+        spec = KeySpec(entry[3], entry[4], entry[5], "movablekeys" in flags)
+        if spec.first > 0 or spec.movable:
+            specs[_to_str(entry[0]).lower()] = spec
+        # Redis 7 subcommands (such as "object|encoding") have their own key positions.
+        for subcommand in entry[9] if len(entry) > 9 else []:
+            add(subcommand)
+
+    for entry in reply:
+        add(entry)
+    return specs
+
+
+def test_command_key_specs_match_redis(prefixed_clusters: tuple[Any, Any, Any, str]) -> None:
+    # If this fails after a change to the redis-cluster version in devservices, update
+    # COMMAND_KEY_SPECS in sentry.utils.redis_key_specs with the values from the server.
+    _, _, raw, _ = prefixed_clusters
+
+    assert COMMAND_KEY_SPECS == _load_command_key_specs(raw)
 
 
 def test_key_prefix_is_transparent(prefixed_clusters: tuple[Any, Any, Any, str]) -> None:

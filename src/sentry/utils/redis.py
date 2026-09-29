@@ -6,7 +6,7 @@ import logging
 from collections.abc import Generator
 from copy import deepcopy
 from threading import Lock
-from typing import Any, Literal, NamedTuple, TypeGuard, TypeVar, cast, overload
+from typing import Any, Literal, TypeGuard, TypeVar, cast, overload
 
 import rb
 from django.utils.functional import SimpleLazyObject
@@ -22,6 +22,7 @@ from sentry.exceptions import InvalidConfiguration
 from sentry.options import OptionsManager
 from sentry.utils import warnings
 from sentry.utils.env import in_test_environment
+from sentry.utils.redis_key_specs import COMMAND_KEY_SPECS
 from sentry.utils.versioning import Version, check_versions
 from sentry.utils.warnings import DeprecatedSettingWarning
 
@@ -379,16 +380,6 @@ def _redis_transaction_callers() -> tuple[str, ...]:
     return tuple(callers)
 
 
-class _KeySpec(NamedTuple):
-    first: int
-    last: int
-    step: int
-    movable: bool
-
-
-# key positions of each command
-_command_key_specs: dict[str, _KeySpec] | None = None
-
 # for commands with a `numkeys` argument: the index of that argument
 _SCRIPT_COMMANDS = ("eval", "evalsha", "eval_ro", "evalsha_ro", "fcall", "fcall_ro")
 _NUMKEYS_INDEX = {
@@ -414,37 +405,13 @@ def _to_str(value: Any) -> str:
     return value.decode(errors="replace") if isinstance(value, bytes) else str(value)
 
 
-def _load_command_key_specs(client: Any) -> dict[str, _KeySpec]:
-    connection = client.connection_pool.get_random_connection()
-    try:
-        connection.send_command("COMMAND")
-        reply = connection.read_response()
-    finally:
-        client.connection_pool.release(connection)
-
-    specs = {}
-
-    def add(entry: list[Any]) -> None:
-        flags = {_to_str(flag) for flag in entry[2]}
-        specs[_to_str(entry[0]).lower()] = _KeySpec(
-            entry[3], entry[4], entry[5], "movablekeys" in flags
-        )
-        # handles Redis 7 subcommands (such as "object|encoding") which have their own key positions
-        for subcommand in entry[9] if len(entry) > 9 else []:
-            add(subcommand)
-
-    for entry in reply:
-        add(entry)
-    return specs
-
-
-def _key_positions(args: tuple[Any, ...], specs: dict[str, _KeySpec]) -> list[int]:
+def _key_positions(args: tuple[Any, ...]) -> list[int]:
     name = _to_str(args[0]).lower()
-    if len(args) > 1 and f"{name}|{_to_str(args[1]).lower()}" in specs:
+    if len(args) > 1 and f"{name}|{_to_str(args[1]).lower()}" in COMMAND_KEY_SPECS:
         name = f"{name}|{_to_str(args[1]).lower()}"
-    # Unknown names have no keys. This includes commands that redis-py-cluster sends as one
-    # argument, such as "SCRIPT LOAD". None of them take keys.
-    spec = specs.get(name)
+    # Names that are not in the table have no keys. This includes commands that redis-py-cluster
+    # sends as one argument, such as "SCRIPT LOAD". None of them take keys.
+    spec = COMMAND_KEY_SPECS.get(name)
     if spec is None:
         return []
 
@@ -487,15 +454,12 @@ def _add_key_prefix(
         return key
 
     def prefix_args(args: tuple[Any, ...]) -> tuple[Any, ...]:
-        global _command_key_specs
         name = _to_str(args[0]).lower()
         if name in _UNSUPPORTED_WITH_KEY_PREFIX:
             raise NotImplementedError(f"The Redis key prefix does not support {name}")
         if name == "keys":
             return (args[0], add_prefix(args[1]), *args[2:])
-        if _command_key_specs is None:
-            _command_key_specs = _load_command_key_specs(client)
-        positions = set(_key_positions(args, _command_key_specs))
+        positions = set(_key_positions(args))
         return tuple(add_prefix(arg) if i in positions else arg for i, arg in enumerate(args))
 
     def unprefix_reply(args: tuple[Any, ...], reply: Any) -> Any:
