@@ -7,7 +7,6 @@ from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
 
 
-@with_feature("organizations:dynamic-sampling-platform-rate-rollover")
 class OrganizationSamplingEffectiveSampleRateEndpointTest(APITestCase, SnubaTestCase, SpanTestCase):
     endpoint = "sentry-api-0-organization-sampling-effective-sample-rate"
     method = "GET"
@@ -16,9 +15,11 @@ class OrganizationSamplingEffectiveSampleRateEndpointTest(APITestCase, SnubaTest
         super().setUp()
         self.login_as(user=self.user)
 
-    def test_without_quota_rate(self) -> None:
-        with patch("sentry.quotas.backend.get_blended_sample_rate", return_value=None):
-            self.get_error_response(self.organization.slug, status_code=404)
+    def dynamic_sampling_enabled(self):
+        return self.feature("organizations:dynamic-sampling")
+
+    def test_without_feature(self) -> None:
+        self.get_error_response(self.organization.slug, status_code=404)
 
     def test_get(self) -> None:
         project = self.create_project(teams=[self.team])
@@ -36,7 +37,7 @@ class OrganizationSamplingEffectiveSampleRateEndpointTest(APITestCase, SnubaTest
             ]
         )
 
-        with patch("sentry.quotas.backend.get_blended_sample_rate", return_value=0.5):
+        with self.dynamic_sampling_enabled():
             response = self.get_success_response(self.organization.slug)
 
         assert response.data == {"eapEffectiveSampleRate": pytest.approx(0.5, rel=1e-6)}
@@ -44,7 +45,24 @@ class OrganizationSamplingEffectiveSampleRateEndpointTest(APITestCase, SnubaTest
     def test_no_data(self) -> None:
         self.create_project(teams=[self.team])
 
-        with patch("sentry.quotas.backend.get_blended_sample_rate", return_value=0.5):
+        with self.dynamic_sampling_enabled():
             response = self.get_success_response(self.organization.slug)
 
         assert response.data == {"eapEffectiveSampleRate": None}
+
+
+@with_feature(
+    {
+        "organizations:dynamic-sampling": False,
+        "organizations:dynamic-sampling-platform-rate-rollover": True,
+    }
+)
+class OrganizationSamplingEffectiveSampleRateRolloverTest(
+    OrganizationSamplingEffectiveSampleRateEndpointTest
+):
+    def dynamic_sampling_enabled(self):
+        return patch("sentry.quotas.backend.get_blended_sample_rate", return_value=0.5)
+
+    def test_without_feature(self) -> None:
+        with patch("sentry.quotas.backend.get_blended_sample_rate", return_value=None):
+            self.get_error_response(self.organization.slug, status_code=404)

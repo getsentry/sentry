@@ -88,7 +88,7 @@ from sentry.testutils.cases import (
     SnubaTestCase,
     TestCase,
 )
-from sentry.testutils.helpers import override_options
+from sentry.testutils.helpers import Feature, override_options
 from sentry.testutils.helpers.action_log import capture_action_log
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.features import with_feature
@@ -3710,12 +3710,14 @@ class ReleaseIssueTest(TestCase):
         )
 
 
-@with_feature("organizations:dynamic-sampling-platform-rate-rollover")
 class DSLatestReleaseBoostTest(TestCase):
+    def dynamic_sampling_enabled(self):
+        return Feature("organizations:dynamic-sampling")
+
     def setUp(self) -> None:
-        quota_rate = patch("sentry.quotas.backend.get_blended_sample_rate", return_value=0.5)
-        quota_rate.start()
-        self.addCleanup(quota_rate.stop)
+        dynamic_sampling = self.dynamic_sampling_enabled()
+        dynamic_sampling.__enter__()
+        self.addCleanup(dynamic_sampling.__exit__, None, None, None)
         self.environment1 = Environment.get_or_create(self.project, "prod")
         self.environment2 = Environment.get_or_create(self.project, "staging")
         self.timestamp = float(int(time() - 300))
@@ -4426,6 +4428,22 @@ class DSLatestReleaseBoostTest(TestCase):
         assert self.redis_client.get(f"ds::p:{project.id}:latest_release") == str(
             float(current.date_added.timestamp())
         )
+
+
+class DSLatestReleaseBoostRateRolloverTest(DSLatestReleaseBoostTest):
+    def dynamic_sampling_enabled(self):
+        return Feature(
+            {
+                "organizations:dynamic-sampling": False,
+                "organizations:dynamic-sampling-platform-rate-rollover": True,
+            }
+        )
+
+    def setUp(self) -> None:
+        super().setUp()
+        quota_rate = patch("sentry.quotas.backend.get_blended_sample_rate", return_value=0.5)
+        quota_rate.start()
+        self.addCleanup(quota_rate.stop)
 
 
 class TestSaveGroupHashAndGroup(TestCase):

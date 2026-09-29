@@ -17,6 +17,7 @@ from sentry.models.dashboard_widget import (
 from sentry.models.dashboard_widget import DatasetSourcesTypes as DashboardDatasetSourcesTypes
 from sentry.testutils.cases import BaseMetricsLayerTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.users.models.user import User
 from sentry.utils.samples import load_data
@@ -30,6 +31,12 @@ pytestmark = [
 
 
 class DashboardWidgetDatasetSplitTestCase(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
+    def dynamic_sampling_enabled(self):
+        return self.feature({"organizations:dynamic-sampling": True})
+
+    def dynamic_sampling_disabled(self):
+        return self.feature({"organizations:dynamic-sampling": False})
+
     @property
     def now(self) -> datetime:
         return before_now(minutes=10)
@@ -119,10 +126,7 @@ class DashboardWidgetDatasetSplitTestCase(BaseMetricsLayerTestCase, TestCase, Sn
             hours_before_now=2,
         )
 
-        with (
-            self.feature("organizations:dynamic-sampling-platform-rate-rollover"),
-            patch("sentry.quotas.backend.get_blended_sample_rate", return_value=0.5),
-        ):
+        with self.dynamic_sampling_enabled():
             _, queried_snuba = _get_and_save_split_decision_for_dashboard_widget(
                 metrics_query, self.dry_run
             )
@@ -153,10 +157,7 @@ class DashboardWidgetDatasetSplitTestCase(BaseMetricsLayerTestCase, TestCase, Sn
             order=0,
         )
 
-        with (
-            self.feature("organizations:dynamic-sampling-platform-rate-rollover"),
-            patch("sentry.quotas.backend.get_blended_sample_rate", return_value=0.5),
-        ):
+        with self.dynamic_sampling_enabled():
             _, queried_snuba = _get_and_save_split_decision_for_dashboard_widget(
                 metrics_query, self.dry_run
             )
@@ -190,10 +191,7 @@ class DashboardWidgetDatasetSplitTestCase(BaseMetricsLayerTestCase, TestCase, Sn
             order=0,
         )
 
-        with (
-            self.feature("organizations:dynamic-sampling-platform-rate-rollover"),
-            patch("sentry.quotas.backend.get_blended_sample_rate", return_value=0.5),
-        ):
+        with self.dynamic_sampling_enabled():
             _, queried_snuba = _get_and_save_split_decision_for_dashboard_widget(
                 metrics_query, self.dry_run
             )
@@ -224,10 +222,7 @@ class DashboardWidgetDatasetSplitTestCase(BaseMetricsLayerTestCase, TestCase, Sn
             order=0,
         )
 
-        with (
-            self.feature("organizations:dynamic-sampling-platform-rate-rollover"),
-            patch("sentry.quotas.backend.get_blended_sample_rate", return_value=None),
-        ):
+        with self.dynamic_sampling_disabled():
             _, queried_snuba = _get_and_save_split_decision_for_dashboard_widget(
                 metrics_query, self.dry_run
             )
@@ -665,6 +660,28 @@ class DashboardWidgetDatasetSplitTestCase(BaseMetricsLayerTestCase, TestCase, Sn
 
 
 class DashboardWidgetDatasetSplitDryRunTestCase(DashboardWidgetDatasetSplitTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.dry_run = True
+
+
+@with_feature(
+    {
+        "organizations:dynamic-sampling": False,
+        "organizations:dynamic-sampling-platform-rate-rollover": True,
+    }
+)
+class DashboardWidgetDatasetSplitRateRolloverTestCase(DashboardWidgetDatasetSplitTestCase):
+    def dynamic_sampling_enabled(self):
+        return patch("sentry.quotas.backend.get_blended_sample_rate", return_value=0.5)
+
+    def dynamic_sampling_disabled(self):
+        return patch("sentry.quotas.backend.get_blended_sample_rate", return_value=None)
+
+
+class DashboardWidgetDatasetSplitDryRunRateRolloverTestCase(
+    DashboardWidgetDatasetSplitRateRolloverTestCase
+):
     def setUp(self) -> None:
         super().setUp()
         self.dry_run = True

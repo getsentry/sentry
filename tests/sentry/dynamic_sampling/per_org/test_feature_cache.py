@@ -15,8 +15,9 @@ from sentry.models.organization import OrganizationStatus
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 
+FEATURE = "organizations:dynamic-sampling"
 
-@with_feature("organizations:dynamic-sampling-platform-rate-rollover")
+
 class FeatureCacheTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -47,7 +48,64 @@ class FeatureCacheTest(TestCase):
         assert inactive_org.id not in org_ids
         assert with_inactive_project.id not in org_ids
 
-    def test_refresh_caches_only_orgs_with_a_quota_rate(self) -> None:
+    def test_refresh_caches_only_orgs_with_the_feature(self) -> None:
+        with_feature = self._org_with_project()
+        without_feature = self._org_with_project()
+
+        with self.feature({FEATURE: [with_feature.slug]}):
+            assert cache_dynamic_sampling_feature_flags() == 1
+
+        assert get_orgs_with_dynamic_sampling() == [with_feature.id]
+        assert without_feature.id not in (get_orgs_with_dynamic_sampling() or [])
+
+    def test_refresh_sets_the_ttl(self) -> None:
+        org = self._org_with_project()
+
+        with self.feature({FEATURE: [org.slug]}):
+            cache_dynamic_sampling_feature_flags()
+
+        ttl = get_redis_client_for_ds().ttl(ORGS_WITH_DYNAMIC_SAMPLING_CACHE_KEY)
+        assert 0 < ttl <= 24 * 60 * 60
+
+    def test_an_empty_refresh_keeps_the_previous_entry(self) -> None:
+        org = self._org_with_project()
+        with self.feature({FEATURE: [org.slug]}):
+            cache_dynamic_sampling_feature_flags()
+
+        with self.feature({FEATURE: []}):
+            assert cache_dynamic_sampling_feature_flags() == 0
+
+        assert get_orgs_with_dynamic_sampling() == [org.id]
+
+    def test_refresh_raises_when_the_feature_cannot_be_evaluated(self) -> None:
+        self._org_with_project()
+
+        with (
+            patch("sentry.features.batch_has_for_organizations", side_effect=[{}, None]),
+            pytest.raises(RuntimeError),
+        ):
+            cache_dynamic_sampling_feature_flags()
+
+    def test_a_missing_entry_reads_as_unknown(self) -> None:
+        assert get_orgs_with_dynamic_sampling() is None
+
+    def test_unreadable_entry_reads_as_unknown(self) -> None:
+        get_redis_client_for_ds().set(ORGS_WITH_DYNAMIC_SAMPLING_CACHE_KEY, "not json")
+
+        assert get_orgs_with_dynamic_sampling() is None
+
+    def test_reads_back_what_the_refresh_wrote(self) -> None:
+        get_redis_client_for_ds().set(
+            ORGS_WITH_DYNAMIC_SAMPLING_CACHE_KEY, orjson.dumps([11, 22, 33])
+        )
+
+        assert get_orgs_with_dynamic_sampling() == [11, 22, 33]
+
+
+@with_feature("organizations:dynamic-sampling-platform-rate-rollover")
+@with_feature({"organizations:dynamic-sampling": False})
+class FeatureCacheRateRolloverTest(FeatureCacheTest):
+    def test_refresh_caches_only_orgs_with_the_feature(self) -> None:
         with_rate = self._org_with_project()
         without_rate = self._org_with_project()
 
@@ -120,18 +178,3 @@ class FeatureCacheTest(TestCase):
             pytest.raises(RuntimeError),
         ):
             cache_dynamic_sampling_feature_flags()
-
-    def test_a_missing_entry_reads_as_unknown(self) -> None:
-        assert get_orgs_with_dynamic_sampling() is None
-
-    def test_unreadable_entry_reads_as_unknown(self) -> None:
-        get_redis_client_for_ds().set(ORGS_WITH_DYNAMIC_SAMPLING_CACHE_KEY, "not json")
-
-        assert get_orgs_with_dynamic_sampling() is None
-
-    def test_reads_back_what_the_refresh_wrote(self) -> None:
-        get_redis_client_for_ds().set(
-            ORGS_WITH_DYNAMIC_SAMPLING_CACHE_KEY, orjson.dumps([11, 22, 33])
-        )
-
-        assert get_orgs_with_dynamic_sampling() == [11, 22, 33]

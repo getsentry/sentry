@@ -1755,15 +1755,11 @@ class TestProjectDetailsBase(APITestCase, ABC):
         self.project.update(date_added=old_date)
 
 
-@with_feature("organizations:dynamic-sampling-platform-rate-rollover")
 class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsBase):
     endpoint = "sentry-api-0-project-details"
 
     def setUp(self) -> None:
         super().setUp()
-        quota_rate = mock.patch("sentry.quotas.backend.get_blended_sample_rate", return_value=0.5)
-        quota_rate.start()
-        self.addCleanup(quota_rate.stop)
         self.new_ds_flag = "organizations:dynamic-sampling"
         self.url = reverse(
             "sentry-api-0-project-details",
@@ -1941,13 +1937,12 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsBase):
         feature of new plans
         """
 
-        with mock.patch("sentry.quotas.backend.get_blended_sample_rate", return_value=None):
-            response = self.client.put(
-                self.url,
-                format="json",
-                HTTP_AUTHORIZATION=self.authorization,
-                data={"dynamicSamplingBiases": DEFAULT_BIASES},
-            )
+        response = self.client.put(
+            self.url,
+            format="json",
+            HTTP_AUTHORIZATION=self.authorization,
+            data={"dynamicSamplingBiases": DEFAULT_BIASES},
+        )
         assert response.status_code == 403
         assert response.data["detail"] == "dynamicSamplingBiases is not a valid field"
 
@@ -2160,6 +2155,27 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsBase):
                     target_object=self.project.id,
                 )
                 assert audit_entries.count() == 0
+
+
+@with_feature(
+    {
+        "organizations:dynamic-sampling": False,
+        "organizations:dynamic-sampling-platform-rate-rollover": True,
+    }
+)
+class TestProjectDetailsDynamicSamplingBiasesRateRollover(TestProjectDetailsDynamicSamplingBiases):
+    def setUp(self) -> None:
+        super().setUp()
+        self.new_ds_flag = "organizations:dynamic-sampling-platform-rate-rollover"
+        quota_rate = mock.patch("sentry.quotas.backend.get_blended_sample_rate", return_value=0.5)
+        quota_rate.start()
+        self.addCleanup(quota_rate.stop)
+
+    def test_put_dynamic_sampling_after_migrating_to_new_plan_default_biases_with_missing_flags(
+        self,
+    ) -> None:
+        with mock.patch("sentry.quotas.backend.get_blended_sample_rate", return_value=None):
+            super().test_put_dynamic_sampling_after_migrating_to_new_plan_default_biases_with_missing_flags()
 
 
 class TestTempestProjectDetails(TestProjectDetailsBase):

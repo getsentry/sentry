@@ -5,11 +5,14 @@ from sentry.discover.models import TeamKeyTransaction, TeamKeyTransactionModelMa
 from sentry.models.projectteam import ProjectTeam
 from sentry.signals import receivers_raise_on_send
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.features import with_feature
 
 
-@with_feature("organizations:dynamic-sampling-platform-rate-rollover")
 class TeamKeyTransactionModelManagerTestCase(TestCase):
+    def dynamic_sampling_enabled(self):
+        return Feature("organizations:dynamic-sampling")
+
     def test_custom_manger(self) -> None:
         self.assertIsInstance(TeamKeyTransaction.objects, TeamKeyTransactionModelManager)
 
@@ -30,7 +33,7 @@ class TeamKeyTransactionModelManagerTestCase(TestCase):
 
     @receivers_raise_on_send()
     def test_post_save_signal_runs_if_dynamic_sampling_is_enabled(self) -> None:
-        with patch("sentry.quotas.backend.get_blended_sample_rate", return_value=0.5):
+        with self.dynamic_sampling_enabled():
             self.project = self.create_project(name="foo")
             team = self.create_team(organization=self.organization, name="Team A")
             self.project.add_team(team)
@@ -44,3 +47,19 @@ class TeamKeyTransactionModelManagerTestCase(TestCase):
                 assert mock_task.mock_calls == [
                     mock_call(project_id=self.project.id, trigger="teamkeytransaction.post_save")
                 ]
+
+
+@with_feature(
+    {
+        "organizations:dynamic-sampling": False,
+        "organizations:dynamic-sampling-platform-rate-rollover": True,
+    }
+)
+class TeamKeyTransactionModelManagerRateRolloverTestCase(TeamKeyTransactionModelManagerTestCase):
+    def dynamic_sampling_enabled(self):
+        return patch("sentry.quotas.backend.get_blended_sample_rate", return_value=0.5)
+
+    @receivers_raise_on_send()
+    def test_post_save_signal_runs_if_dynamic_sampling_is_disabled(self) -> None:
+        with patch("sentry.quotas.backend.get_blended_sample_rate", return_value=None):
+            super().test_post_save_signal_runs_if_dynamic_sampling_is_disabled()

@@ -164,7 +164,48 @@ class SchedulePerOrgCalculationsTest(TestCase):
             kwargs = MockScheduler.call_args.kwargs
             return set(kwargs["prevalidate_batch"](list(kwargs["queryset"])))
 
-    @with_feature("organizations:dynamic-sampling-platform-rate-rollover")
+    @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
+    def test_skips_orgs_without_dynamic_sampling(self) -> None:
+        with_dynamic_sampling = self.create_organization()
+        self.create_project(organization=with_dynamic_sampling)
+        without_dynamic_sampling = self.create_organization()
+        self.create_project(organization=without_dynamic_sampling)
+
+        with self.feature({"organizations:dynamic-sampling": [with_dynamic_sampling.slug]}):
+            org_ids = self._prevalidated_org_ids()
+
+        assert with_dynamic_sampling.id in org_ids
+        assert without_dynamic_sampling.id not in org_ids
+
+    @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
+    def test_raises_when_the_feature_cannot_be_evaluated(self) -> None:
+        org = self.create_organization()
+        self.create_project(organization=org)
+
+        with (
+            patch("sentry.features.batch_has_for_organizations", side_effect=[{}, None]),
+            pytest.raises(RuntimeError),
+        ):
+            self._prevalidated_org_ids()
+
+    @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
+    def test_org_in_rollout_is_dispatched(self) -> None:
+        org = self.create_organization()
+        assert is_org_in_rollout(org.id) is True
+
+    @override_options({"dynamic-sampling.per_org.rollout-rate": 0.0})
+    def test_org_not_in_rollout_is_skipped(self) -> None:
+        org = self.create_organization()
+        assert is_org_in_rollout(org.id) is False
+
+
+@with_feature(
+    {
+        "organizations:dynamic-sampling": False,
+        "organizations:dynamic-sampling-platform-rate-rollover": True,
+    }
+)
+class SchedulePerOrgCalculationsRateRolloverTest(SchedulePerOrgCalculationsTest):
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     def test_skips_orgs_without_dynamic_sampling(self) -> None:
         with_dynamic_sampling = self.create_organization()
@@ -183,7 +224,6 @@ class SchedulePerOrgCalculationsTest(TestCase):
         assert with_dynamic_sampling.id in org_ids
         assert without_dynamic_sampling.id not in org_ids
 
-    @with_feature("organizations:dynamic-sampling-platform-rate-rollover")
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     def test_raises_when_the_quota_service_fails(self) -> None:
         org = self.create_organization()
@@ -194,16 +234,6 @@ class SchedulePerOrgCalculationsTest(TestCase):
             pytest.raises(RuntimeError),
         ):
             self._prevalidated_org_ids()
-
-    @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
-    def test_org_in_rollout_is_dispatched(self) -> None:
-        org = self.create_organization()
-        assert is_org_in_rollout(org.id) is True
-
-    @override_options({"dynamic-sampling.per_org.rollout-rate": 0.0})
-    def test_org_not_in_rollout_is_skipped(self) -> None:
-        org = self.create_organization()
-        assert is_org_in_rollout(org.id) is False
 
 
 class RunCalculationsPerOrgTest(TestCase):

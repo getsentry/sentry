@@ -245,12 +245,25 @@ def test_parse_trimming(call_endpoint, default_project):
 
 
 @django_db_all
-def test_relays_dyamic_sampling(call_endpoint, default_project) -> None:
+@pytest.mark.parametrize(
+    "sampling_features",
+    [
+        {
+            "organizations:dynamic-sampling": True,
+            "organizations:dynamic-sampling-platform-rate-rollover": False,
+        },
+        {
+            "organizations:dynamic-sampling": False,
+            "organizations:dynamic-sampling-platform-rate-rollover": True,
+        },
+    ],
+)
+def test_relays_dyamic_sampling(call_endpoint, default_project, sampling_features) -> None:
     """
     Tests that dynamic sampling configuration set in project details are retrieved in relay configs
     """
     with (
-        Feature("organizations:dynamic-sampling-platform-rate-rollover"),
+        Feature(sampling_features),
         patch("sentry.quotas.backend.get_blended_sample_rate", return_value=0.5),
     ):
         result, status_code = call_endpoint()

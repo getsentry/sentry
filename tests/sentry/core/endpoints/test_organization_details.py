@@ -315,8 +315,41 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         response = self.get_success_response(self.organization.slug)
         assert response.data["hasAuthProvider"] is True
 
-    @with_feature("organizations:dynamic-sampling-platform-rate-rollover")
     def test_is_dynamically_sampled(self) -> None:
+        with self.feature({"organizations:dynamic-sampling": True}):
+            with patch(
+                "sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate",
+                return_value=0.5,
+            ):
+                response = self.get_success_response(self.organization.slug)
+                assert response.data["isDynamicallySampled"]
+                assert response.data["planSampleRate"] == 0.5
+
+        with self.feature({"organizations:dynamic-sampling": True}):
+            with patch(
+                "sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate",
+                return_value=1.0,
+            ):
+                response = self.get_success_response(self.organization.slug)
+                assert not response.data["isDynamicallySampled"]
+                assert response.data["planSampleRate"] == 1.0
+
+        with self.feature({"organizations:dynamic-sampling": False}):
+            with patch(
+                "sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate",
+                return_value=None,
+            ):
+                response = self.get_success_response(self.organization.slug)
+                assert not response.data["isDynamicallySampled"]
+                assert "planSampleRate" not in response.data
+
+    @with_feature(
+        {
+            "organizations:dynamic-sampling": False,
+            "organizations:dynamic-sampling-platform-rate-rollover": True,
+        }
+    )
+    def test_is_dynamically_sampled_after_rollover(self) -> None:
         with patch(
             "sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate",
             return_value=0.5,

@@ -137,10 +137,25 @@ SOME_EXCEPTION = RuntimeError("foo")
 @cell_silo_test
 @mock.patch("sentry.relay.config.generate_rules", side_effect=SOME_EXCEPTION)
 @mock.patch("sentry.relay.config.experimental.logger")
-def test_get_experimental_config_dyn_sampling(mock_logger, _, default_project) -> None:
+@pytest.mark.parametrize(
+    "sampling_features",
+    [
+        {
+            "organizations:dynamic-sampling": True,
+            "organizations:dynamic-sampling-platform-rate-rollover": False,
+        },
+        {
+            "organizations:dynamic-sampling": False,
+            "organizations:dynamic-sampling-platform-rate-rollover": True,
+        },
+    ],
+)
+def test_get_experimental_config_dyn_sampling(
+    mock_logger, _, default_project, sampling_features
+) -> None:
     keys = ProjectKey.objects.filter(project=default_project)
     with (
-        Feature("organizations:dynamic-sampling-platform-rate-rollover"),
+        Feature(sampling_features),
         mock.patch("sentry.quotas.backend.get_blended_sample_rate", return_value=0.5),
     ):
         # Does not raise:
