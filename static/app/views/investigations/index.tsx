@@ -76,6 +76,56 @@ function getInvestigationPath(organizationSlug: string, investigationId: string)
   );
 }
 
+function InvestigationActions({
+  investigation,
+  onCopy,
+  onDelete,
+  onDuplicate,
+}: {
+  investigation: InvestigationListItem;
+  onCopy: () => void;
+  onDelete: () => void;
+  onDuplicate: () => void;
+}) {
+  return (
+    <DropdownMenu
+      items={[
+        {
+          key: 'copy-link',
+          label: t('Copy link'),
+          onAction: onCopy,
+        },
+        {
+          key: 'duplicate',
+          label: t('Duplicate'),
+          onAction: onDuplicate,
+        },
+        {
+          key: 'delete',
+          label: t('Delete'),
+          priority: 'danger',
+          onAction: () =>
+            openConfirmModal({
+              message: t('Are you sure you want to delete this investigation?'),
+              priority: 'danger',
+              confirmText: t('Delete'),
+              onConfirm: onDelete,
+            }),
+        },
+      ]}
+      triggerProps={{
+        size: 'sm',
+        showChevron: false,
+        variant: 'transparent',
+        icon: <IconEllipsis />,
+        'aria-label': t('More options for %s', investigation.title),
+      }}
+      position="bottom-end"
+      usePortal
+    />
+  );
+}
+
 function FeatureDisabledPage() {
   return (
     <Stack flex={1} padding="2xl 3xl">
@@ -170,53 +220,6 @@ export function InvestigationsPage() {
     });
   }
 
-  function renderActions(investigation: InvestigationListItem) {
-    return (
-      <DropdownMenu
-        items={[
-          {
-            key: 'copy-link',
-            label: t('Copy link'),
-            onAction: () =>
-              copy(
-                `${window.location.origin}${getInvestigationPath(
-                  organization.slug,
-                  investigation.id
-                )}`,
-                {successMessage: t('Investigation link copied.')}
-              ),
-          },
-          {
-            key: 'duplicate',
-            label: t('Duplicate'),
-            onAction: () => duplicateMutation.mutate(investigation),
-          },
-          {
-            key: 'delete',
-            label: t('Delete'),
-            priority: 'danger',
-            onAction: () =>
-              openConfirmModal({
-                message: t('Are you sure you want to delete this investigation?'),
-                priority: 'danger',
-                confirmText: t('Delete'),
-                onConfirm: () => deleteMutation.mutate(investigation),
-              }),
-          },
-        ]}
-        triggerProps={{
-          size: 'sm',
-          showChevron: false,
-          variant: 'transparent',
-          icon: <IconEllipsis />,
-          'aria-label': t('More options for %s', investigation.title),
-        }}
-        position="bottom-end"
-        usePortal
-      />
-    );
-  }
-
   const renderBodyCell = (
     column: GridColumnOrder<ColumnKey>,
     investigation: InvestigationListItem
@@ -244,7 +247,22 @@ export function InvestigationsPage() {
       case ColumnKey.STATUS:
         return investigation.status === 'active' ? t('Active') : null;
       case ColumnKey.ACTIONS:
-        return renderActions(investigation);
+        return (
+          <InvestigationActions
+            investigation={investigation}
+            onCopy={() =>
+              copy(
+                `${window.location.origin}${getInvestigationPath(
+                  organization.slug,
+                  investigation.id
+                )}`,
+                {successMessage: t('Investigation link copied.')}
+              )
+            }
+            onDuplicate={() => duplicateMutation.mutate(investigation)}
+            onDelete={() => deleteMutation.mutate(investigation)}
+          />
+        );
       default:
         return null;
     }
