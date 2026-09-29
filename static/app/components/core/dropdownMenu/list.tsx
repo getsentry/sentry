@@ -78,6 +78,140 @@ export interface DropdownMenuListProps
   zIndex?: number;
 }
 
+type DropdownMenuCollectionProps = {
+  closeOnSelect: boolean;
+  collection: Array<Node<MenuItemProps>>;
+  onClose: DropdownMenuListProps['onClose'];
+  separatorProps: ReturnType<typeof useSeparator>['separatorProps'];
+  state: TreeState<MenuItemProps>;
+  disableTextSelection?: boolean;
+  size?: MenuItemProps['size'];
+};
+
+interface DropdownMenuCollectionItemProps extends Omit<
+  DropdownMenuCollectionProps,
+  'collection'
+> {
+  node: Node<MenuItemProps>;
+}
+
+function DropdownMenuCollectionItem({
+  node,
+  closeOnSelect,
+  disableTextSelection,
+  onClose,
+  separatorProps,
+  size,
+  state,
+}: DropdownMenuCollectionItemProps): React.ReactNode {
+  if (node.type === 'section') {
+    return (
+      <DropdownMenuSection node={node}>
+        <DropdownMenuCollection
+          collection={[...node.childNodes]}
+          closeOnSelect={closeOnSelect}
+          disableTextSelection={disableTextSelection}
+          onClose={onClose}
+          separatorProps={separatorProps}
+          size={size}
+          state={state}
+        />
+      </DropdownMenuSection>
+    );
+  }
+
+  if (node.value?.submenu) {
+    if (!node.value.children) {
+      return null;
+    }
+
+    const submenuConfig = node.value.submenu;
+    const submenuOptions = typeof submenuConfig === 'object' ? submenuConfig : {};
+
+    return (
+      <DropdownMenu
+        isOpen={state.selectionManager.isSelected(node.key)}
+        items={node.value.children}
+        trigger={triggerProps => (
+          <DropdownMenuItem
+            renderAs="div"
+            node={node}
+            state={state}
+            closeOnSelect={false}
+            {...omit(triggerProps, [
+              'onClick',
+              'onDragStart',
+              'onKeyDown',
+              'onKeyUp',
+              'onMouseDown',
+              'onPointerDown',
+              'onPointerUp',
+            ])}
+          />
+        )}
+        onClose={onClose}
+        closeOnSelect={closeOnSelect}
+        disableTextSelection={disableTextSelection}
+        menuTitle={submenuOptions.title}
+        shouldCloseOnBlur={false}
+        preventOverflowOptions={{
+          boundary: document.body,
+          altAxis: true,
+        }}
+        renderWrapAs="li"
+        position={submenuOptions.position ?? 'right-start'}
+        offset={-4}
+        size={size}
+      />
+    );
+  }
+
+  return (
+    <DropdownMenuItem
+      node={node}
+      state={state}
+      onClose={onClose}
+      closeOnSelect={closeOnSelect}
+    />
+  );
+}
+
+function DropdownMenuCollection({
+  closeOnSelect,
+  collection,
+  onClose,
+  separatorProps,
+  state,
+  disableTextSelection,
+  size,
+}: DropdownMenuCollectionProps) {
+  return (
+    <Fragment>
+      {collection.map((node, i) => {
+        const isLastNode = collection.length - 1 === i;
+        const showSeparator =
+          !isLastNode &&
+          (node.type === 'section' || collection[i + 1]?.type === 'section');
+
+        return (
+          <Fragment key={node.key}>
+            <DropdownMenuCollectionItem
+              node={node}
+              closeOnSelect={closeOnSelect}
+              disableTextSelection={disableTextSelection}
+              onClose={onClose}
+              separatorProps={separatorProps}
+              size={size}
+              state={state}
+            />
+            {showSeparator && <Separator {...separatorProps} />}
+          </Fragment>
+        );
+      })}
+    </Fragment>
+  );
+}
+
 export function DropdownMenuList({
   closeOnSelect = true,
   onClose,
@@ -147,93 +281,6 @@ export function DropdownMenuList({
     [menuProps, hasFocus]
   );
 
-  // Render a single menu item
-  const renderItem = (node: Node<MenuItemProps>) => {
-    return (
-      <DropdownMenuItem
-        node={node}
-        state={state}
-        onClose={onClose}
-        closeOnSelect={closeOnSelect}
-      />
-    );
-  };
-
-  // Render a submenu whose trigger button is a menu item
-  const renderItemWithSubmenu = (node: Node<MenuItemProps>) => {
-    if (!node.value?.children) {
-      return null;
-    }
-
-    const submenuConfig = node.value.submenu;
-    const submenuOptions = typeof submenuConfig === 'object' ? submenuConfig : {};
-
-    const trigger = (triggerProps: any) => (
-      <DropdownMenuItem
-        renderAs="div"
-        node={node}
-        state={state}
-        closeOnSelect={false}
-        {...omit(triggerProps, [
-          'onClick',
-          'onDragStart',
-          'onKeyDown',
-          'onKeyUp',
-          'onMouseDown',
-          'onPointerDown',
-          'onPointerUp',
-        ])}
-      />
-    );
-
-    return (
-      <DropdownMenu
-        isOpen={state.selectionManager.isSelected(node.key)}
-        items={node.value.children}
-        trigger={trigger}
-        onClose={onClose}
-        closeOnSelect={closeOnSelect}
-        disableTextSelection={disableTextSelection}
-        menuTitle={submenuOptions.title}
-        shouldCloseOnBlur={false}
-        preventOverflowOptions={{boundary: document.body, altAxis: true}}
-        renderWrapAs="li"
-        position={submenuOptions.position ?? 'right-start'}
-        offset={-4}
-        size={size}
-      />
-    );
-  };
-
-  // Render a collection of menu items
-  const renderCollection = (collection: Array<Node<MenuItemProps>>) =>
-    collection.map((node, i) => {
-      const isLastNode = collection.length - 1 === i;
-      const showSeparator =
-        !isLastNode && (node.type === 'section' || collection[i + 1]?.type === 'section');
-
-      let itemToRender: React.ReactNode;
-
-      if (node.type === 'section') {
-        itemToRender = (
-          <DropdownMenuSection node={node}>
-            {renderCollection([...node.childNodes])}
-          </DropdownMenuSection>
-        );
-      } else {
-        itemToRender = node.value?.submenu
-          ? renderItemWithSubmenu(node)
-          : renderItem(node);
-      }
-
-      return (
-        <Fragment key={node.key}>
-          {itemToRender}
-          {showSeparator && <Separator {...separatorProps} />}
-        </Fragment>
-      );
-    });
-
   const theme = useTheme();
   const contextValue = useMemo(
     () => ({
@@ -260,7 +307,15 @@ export function DropdownMenuList({
                 maxHeight: overlayPositionProps.style?.maxHeight,
               }}
             >
-              {renderCollection(stateCollection)}
+              <DropdownMenuCollection
+                collection={stateCollection}
+                closeOnSelect={closeOnSelect}
+                disableTextSelection={disableTextSelection}
+                onClose={onClose}
+                separatorProps={separatorProps}
+                size={size}
+                state={state}
+              />
             </DropdownMenuListWrap>
             {menuFooter}
           </StyledOverlay>

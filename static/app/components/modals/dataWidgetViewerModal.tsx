@@ -40,13 +40,7 @@ import {
   parseFunction,
   prettifyParsedFunction,
 } from 'sentry/utils/discover/fields';
-import {
-  createOnDemandFilterWarning,
-  shouldDisplayOnDemandWidgetWarning,
-} from 'sentry/utils/onDemandMetrics';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
-import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
-import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {
   decodeInteger,
   decodeList,
@@ -96,7 +90,6 @@ import {
   SESSION_DURATION_ALERT,
   WidgetDescription,
 } from 'sentry/views/dashboards/widgetCard';
-import {DashboardsMEPProvider} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
 import type {GenericWidgetQueriesResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {IssueWidgetQueries} from 'sentry/views/dashboards/widgetCard/issueWidgetQueries';
 import {ReleaseWidgetQueries} from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
@@ -115,10 +108,8 @@ import {Actions} from 'sentry/views/discover/table/cellAction';
 import {TransactionLink} from 'sentry/views/discover/table/tableView';
 import {
   decodeColumnOrder,
-  getDiscoverDeprecation,
   getTargetForTransactionSummaryLink,
 } from 'sentry/views/discover/utils';
-import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
 import {WidgetViewerQueryField} from './widgetViewerModal/utils';
 
@@ -160,6 +151,87 @@ const MemoizedWidgetCardChartContainer = memo(
   WidgetCardChartContainer,
   shouldWidgetCardChartMemo
 );
+
+type WidgetViewerTableProps = {
+  cursor: string | undefined;
+  dashboardFilters: DashboardFilters | undefined;
+  modalSelection: PageFilters;
+  renderIssuesTable: (result: GenericWidgetQueriesResult) => React.JSX.Element;
+  renderTable: (result: GenericWidgetQueriesResult) => React.JSX.Element;
+  tableWidget: Widget;
+  widget: Widget;
+  widgetInterval: string | undefined;
+};
+
+function WidgetViewerTable({
+  cursor,
+  dashboardFilters,
+  modalSelection,
+  renderIssuesTable,
+  renderTable,
+  tableWidget,
+  widget,
+  widgetInterval,
+}: WidgetViewerTableProps) {
+  if (widget.displayType === DisplayType.AGENTS_TRACES_TABLE) {
+    return (
+      <AgentsTracesTableWidgetVisualization
+        limit={FULL_TABLE_ITEM_LIMIT}
+        tableWidths={widget.tableWidths}
+      />
+    );
+  }
+
+  const limit =
+    widget.displayType === DisplayType.TABLE ||
+    widget.displayType === DisplayType.CATEGORICAL_BAR
+      ? FULL_TABLE_ITEM_LIMIT
+      : HALF_TABLE_ITEM_LIMIT;
+
+  switch (widget.widgetType) {
+    case WidgetType.ISSUE:
+      return (
+        <IssueWidgetQueries
+          widget={tableWidget}
+          selection={modalSelection}
+          limit={limit}
+          cursor={cursor}
+          dashboardFilters={dashboardFilters}
+          widgetInterval={widgetInterval}
+        >
+          {renderIssuesTable}
+        </IssueWidgetQueries>
+      );
+    case WidgetType.RELEASE:
+      return (
+        <ReleaseWidgetQueries
+          widget={tableWidget}
+          selection={modalSelection}
+          limit={limit}
+          cursor={cursor}
+          dashboardFilters={dashboardFilters}
+          widgetInterval={widgetInterval}
+        >
+          {renderTable}
+        </ReleaseWidgetQueries>
+      );
+    default:
+      return (
+        <WidgetQueries
+          widget={tableWidget}
+          selection={modalSelection}
+          limit={limit}
+          cursor={cursor}
+          dashboardFilters={dashboardFilters}
+          widgetInterval={widgetInterval}
+        >
+          {({tableResults, loading, pageLinks}) =>
+            renderTable({tableResults, loading, pageLinks})
+          }
+        </WidgetQueries>
+      );
+  }
+}
 
 function DataWidgetViewerModal(props: Props) {
   const {
@@ -370,12 +442,6 @@ function DataWidgetViewerModal(props: Props) {
     modalSelection
   );
 
-  const getOnDemandFilterWarning = createOnDemandFilterWarning(
-    t(
-      'We don’t routinely collect metrics from this property. As such, historical data may be limited.'
-    )
-  );
-
   const queryOptions = sortedQueries.map((query, index) => {
     const {name, conditions} = query;
     // Creates the highlighted query elements to be used in the Query Select
@@ -390,18 +456,7 @@ function DataWidgetViewerModal(props: Props) {
       const queryString = `${conditions} ${dashboardFiltersString}`.trim();
       return !name && !!queryString ? (
         <HighlightContainer {...highlightedContainerProps}>
-          <ProvidedFormattedQuery
-            query={queryString}
-            getFilterTokenWarning={
-              shouldDisplayOnDemandWidgetWarning(
-                query,
-                widget.widgetType ?? WidgetType.ERRORS,
-                organization
-              )
-                ? getOnDemandFilterWarning
-                : undefined
-            }
-          />
+          <ProvidedFormattedQuery query={queryString} />
         </HighlightContainer>
       ) : null;
     };
@@ -423,24 +478,26 @@ function DataWidgetViewerModal(props: Props) {
   }
 
   function renderTable({tableResults, loading, pageLinks}: GenericWidgetQueriesResult) {
-    return ViewerTableV2({
-      tableResults,
-      loading,
-      pageLinks,
-      fields,
-      widget,
-      tableWidget,
-      dashboardFilters,
-      modalSelection,
-      widths,
-      location,
-      organization,
-      navigate,
-      eventView,
-      theme,
-      projects,
-      selectedQueryIndex,
-    });
+    return (
+      <ViewerTableV2
+        tableResults={tableResults}
+        loading={loading}
+        pageLinks={pageLinks}
+        fields={fields}
+        widget={widget}
+        tableWidget={tableWidget}
+        dashboardFilters={dashboardFilters}
+        modalSelection={modalSelection}
+        widths={widths}
+        location={location}
+        organization={organization}
+        navigate={navigate}
+        eventView={eventView}
+        theme={theme}
+        projects={projects}
+        selectedQueryIndex={selectedQueryIndex}
+      />
+    );
   }
 
   const renderIssuesTable = ({
@@ -452,24 +509,26 @@ function DataWidgetViewerModal(props: Props) {
     if (totalResults === undefined && totalCount) {
       setTotalResults(totalCount);
     }
-    return ViewerTableV2({
-      tableResults,
-      loading,
-      pageLinks,
-      fields,
-      widget,
-      tableWidget,
-      dashboardFilters,
-      modalSelection,
-      widths,
-      location,
-      organization,
-      navigate,
-      eventView,
-      theme,
-      projects,
-      selectedQueryIndex,
-    });
+    return (
+      <ViewerTableV2
+        tableResults={tableResults}
+        loading={loading}
+        pageLinks={pageLinks}
+        fields={fields}
+        widget={widget}
+        tableWidget={tableWidget}
+        dashboardFilters={dashboardFilters}
+        modalSelection={modalSelection}
+        widths={widths}
+        location={location}
+        organization={organization}
+        navigate={navigate}
+        eventView={eventView}
+        theme={theme}
+        projects={projects}
+        selectedQueryIndex={selectedQueryIndex}
+      />
+    );
   };
 
   const onZoom = (_evt: any, chart: any) => {
@@ -501,75 +560,6 @@ function DataWidgetViewerModal(props: Props) {
     });
   };
 
-  function renderWidgetViewerTable() {
-    if (widget.displayType === DisplayType.AGENTS_TRACES_TABLE) {
-      return (
-        <AgentsTracesTableWidgetVisualization
-          limit={FULL_TABLE_ITEM_LIMIT}
-          tableWidths={widget.tableWidths}
-        />
-      );
-    }
-    switch (widget.widgetType) {
-      case WidgetType.ISSUE:
-        return (
-          <IssueWidgetQueries
-            widget={tableWidget}
-            selection={modalSelection}
-            limit={
-              widget.displayType === DisplayType.TABLE ||
-              widget.displayType === DisplayType.CATEGORICAL_BAR
-                ? FULL_TABLE_ITEM_LIMIT
-                : HALF_TABLE_ITEM_LIMIT
-            }
-            cursor={cursor}
-            dashboardFilters={dashboardFilters}
-            widgetInterval={widgetInterval}
-          >
-            {renderIssuesTable}
-          </IssueWidgetQueries>
-        );
-      case WidgetType.RELEASE:
-        return (
-          <ReleaseWidgetQueries
-            widget={tableWidget}
-            selection={modalSelection}
-            limit={
-              widget.displayType === DisplayType.TABLE ||
-              widget.displayType === DisplayType.CATEGORICAL_BAR
-                ? FULL_TABLE_ITEM_LIMIT
-                : HALF_TABLE_ITEM_LIMIT
-            }
-            cursor={cursor}
-            dashboardFilters={dashboardFilters}
-            widgetInterval={widgetInterval}
-          >
-            {renderTable}
-          </ReleaseWidgetQueries>
-        );
-      default:
-        return (
-          <WidgetQueries
-            widget={tableWidget}
-            selection={modalSelection}
-            limit={
-              widget.displayType === DisplayType.TABLE ||
-              widget.displayType === DisplayType.CATEGORICAL_BAR
-                ? FULL_TABLE_ITEM_LIMIT
-                : HALF_TABLE_ITEM_LIMIT
-            }
-            cursor={cursor}
-            dashboardFilters={dashboardFilters}
-            widgetInterval={widgetInterval}
-          >
-            {({tableResults, loading, pageLinks}) => {
-              return renderTable({tableResults, loading, pageLinks});
-            }}
-          </WidgetQueries>
-        );
-    }
-  }
-
   const currentUser = useUser();
   const {teams: userTeams} = useUserTeams();
   const hasEditAccess =
@@ -591,241 +581,235 @@ function DataWidgetViewerModal(props: Props) {
     widget.displayType !== DisplayType.RAGE_AND_DEAD_CLICKS &&
     widget.displayType !== DisplayType.SERVER_TREE;
 
-  function renderWidgetViewer() {
-    return (
-      <Fragment>
-        {hasSessionDuration && SESSION_DURATION_ALERT}
-        {shouldRenderChartVisualization && (
-          <ChartContainer
-            height={
-              widget.displayType === DisplayType.BIG_NUMBER
-                ? BIG_NUMBER_HEIGHT
-                : HALF_CONTAINER_HEIGHT
-            }
-          >
-            {widgetCanUseTimeSeriesVisualization(primaryWidget) ? (
-              <VisualizationWidget
-                selection={modalSelection}
-                dashboardFilters={dashboardFilters}
-                widget={primaryWidget}
-                tableItemLimit={widget.limit ?? undefined}
-                onZoom={onZoom}
-                isFullScreen
-                showConfidenceWarning={
-                  widget.widgetType === WidgetType.SPANS ||
-                  widget.widgetType === WidgetType.TRACEMETRICS ||
-                  widget.widgetType === WidgetType.LOGS
-                }
-                widgetInterval={widgetInterval}
-              />
-            ) : (
-              <MemoizedWidgetCardChartContainer
-                api={api}
-                selection={modalSelection}
-                dashboardFilters={dashboardFilters}
-                // Top N charts rely on the orderby of the table
-                widget={primaryWidget}
-                tableItemLimit={widget.limit ?? undefined}
-                onZoom={onZoom}
-                onLegendSelectChanged={onLegendSelectChanged}
-                legendOptions={{
-                  selected: widgetLegendState.getWidgetSelectionState(widget),
-                }}
-                noPadding
-                widgetLegendState={widgetLegendState}
-                showConfidenceWarning={
-                  widget.widgetType === WidgetType.SPANS ||
-                  widget.widgetType === WidgetType.TRACEMETRICS ||
-                  widget.widgetType === WidgetType.LOGS
-                }
-                widgetInterval={widgetInterval}
-              />
-            )}
-          </ChartContainer>
-        )}
-        {widget.queries.length > 1 && (
-          <Alert.Container>
-            <Alert variant="info">
-              {t(
-                'This widget was built with multiple queries. Table data can only be displayed for one query at a time. To edit any of the queries, edit the widget.'
-              )}
-            </Alert>
-          </Alert.Container>
-        )}
-        {(widget.queries.length > 1 || widget.queries[0]!.conditions) && (
-          <Container marginBottom="xl" position="relative">
-            <Select
-              value={selectedQueryIndex}
-              options={queryOptions}
-              onChange={(option: SelectValue<number>) => {
-                navigate(
-                  {
-                    pathname: location.pathname,
-                    query: {
-                      ...location.query,
-                      [WidgetViewerQueryField.QUERY]: option.value,
-                      [WidgetViewerQueryField.PAGE]: undefined,
-                      [WidgetViewerQueryField.CURSOR]: undefined,
-                    },
-                  },
-                  {replace: true}
-                );
-
-                trackAnalytics('dashboards_views.widget_viewer.select_query', {
-                  organization,
-                  widget_type: widget.widgetType ?? WidgetType.ERRORS,
-                  display_type: widget.displayType,
-                });
-              }}
-              components={{
-                // Replaces the displayed selected value
-                SingleValue: (containerProps: any) => {
-                  return (
-                    <components.SingleValue
-                      {...containerProps}
-                      // Overwrites some of the default styling that interferes with highlighted query text
-                      getStyles={() => ({
-                        wordBreak: 'break-word',
-                        flex: 1,
-                        display: 'flex',
-                        padding: `0 ${theme.space.xs}`,
-                      })}
-                    >
-                      {queryOptions[selectedQueryIndex]!.getHighlightedQuery({
-                        display: 'block',
-                      }) ??
-                        (queryOptions[selectedQueryIndex]!.label || (
-                          <EmptyQueryContainer>{EMPTY_QUERY_NAME}</EmptyQueryContainer>
-                        ))}
-                    </components.SingleValue>
-                  );
-                },
-                // Replaces the dropdown options
-                Option: (containerProps: any) => {
-                  const highlightedQuery = containerProps.data.getHighlightedQuery({
-                    display: 'flex',
-                  });
-                  return (
-                    <SelectOption
-                      {...(highlightedQuery
-                        ? {
-                            ...containerProps,
-                            label: highlightedQuery,
-                          }
-                        : containerProps.label
-                          ? containerProps
-                          : {
-                              ...containerProps,
-                              label: (
-                                <EmptyQueryContainer>
-                                  {EMPTY_QUERY_NAME}
-                                </EmptyQueryContainer>
-                              ),
-                            })}
-                    />
-                  );
-                },
-                // Hide the dropdown indicator if there is only one option
-                ...(widget.queries.length < 2
-                  ? {IndicatorsContainer: (_: any) => null}
-                  : {}),
-              }}
-              isSearchable={false}
-              isDisabled={widget.queries.length < 2}
+  const widgetViewer = (
+    <Fragment>
+      {hasSessionDuration && SESSION_DURATION_ALERT}
+      {shouldRenderChartVisualization && (
+        <ChartContainer
+          height={
+            widget.displayType === DisplayType.BIG_NUMBER
+              ? BIG_NUMBER_HEIGHT
+              : HALF_CONTAINER_HEIGHT
+          }
+        >
+          {widgetCanUseTimeSeriesVisualization(primaryWidget) ? (
+            <VisualizationWidget
+              selection={modalSelection}
+              dashboardFilters={dashboardFilters}
+              widget={primaryWidget}
+              tableItemLimit={widget.limit ?? undefined}
+              onZoom={onZoom}
+              isFullScreen
+              showConfidenceWarning={
+                widget.widgetType === WidgetType.SPANS ||
+                widget.widgetType === WidgetType.TRACEMETRICS ||
+                widget.widgetType === WidgetType.LOGS
+              }
+              widgetInterval={widgetInterval}
             />
-            {widget.queries.length === 1 && (
-              <StyledQuestionTooltip
-                title={t('To edit this query, you must edit the widget.')}
-                size="sm"
-              />
+          ) : (
+            <MemoizedWidgetCardChartContainer
+              api={api}
+              selection={modalSelection}
+              dashboardFilters={dashboardFilters}
+              // Top N charts rely on the orderby of the table
+              widget={primaryWidget}
+              tableItemLimit={widget.limit ?? undefined}
+              onZoom={onZoom}
+              onLegendSelectChanged={onLegendSelectChanged}
+              legendOptions={{
+                selected: widgetLegendState.getWidgetSelectionState(widget),
+              }}
+              noPadding
+              widgetLegendState={widgetLegendState}
+              showConfidenceWarning={
+                widget.widgetType === WidgetType.SPANS ||
+                widget.widgetType === WidgetType.TRACEMETRICS ||
+                widget.widgetType === WidgetType.LOGS
+              }
+              widgetInterval={widgetInterval}
+            />
+          )}
+        </ChartContainer>
+      )}
+      {widget.queries.length > 1 && (
+        <Alert.Container>
+          <Alert variant="info">
+            {t(
+              'This widget was built with multiple queries. Table data can only be displayed for one query at a time. To edit any of the queries, edit the widget.'
             )}
-          </Container>
-        )}
-        {shouldRenderTable && renderWidgetViewerTable()}
-      </Fragment>
-    );
-  }
+          </Alert>
+        </Alert.Container>
+      )}
+      {(widget.queries.length > 1 || widget.queries[0]!.conditions) && (
+        <Container marginBottom="xl" position="relative">
+          <Select
+            value={selectedQueryIndex}
+            options={queryOptions}
+            onChange={(option: SelectValue<number>) => {
+              navigate(
+                {
+                  pathname: location.pathname,
+                  query: {
+                    ...location.query,
+                    [WidgetViewerQueryField.QUERY]: option.value,
+                    [WidgetViewerQueryField.PAGE]: undefined,
+                    [WidgetViewerQueryField.CURSOR]: undefined,
+                  },
+                },
+                {replace: true}
+              );
+
+              trackAnalytics('dashboards_views.widget_viewer.select_query', {
+                organization,
+                widget_type: widget.widgetType ?? WidgetType.ERRORS,
+                display_type: widget.displayType,
+              });
+            }}
+            components={{
+              // Replaces the displayed selected value
+              SingleValue: (containerProps: any) => {
+                return (
+                  <components.SingleValue
+                    {...containerProps}
+                    // Overwrites some of the default styling that interferes with highlighted query text
+                    getStyles={() => ({
+                      wordBreak: 'break-word',
+                      flex: 1,
+                      display: 'flex',
+                      padding: `0 ${theme.space.xs}`,
+                    })}
+                  >
+                    {queryOptions[selectedQueryIndex]!.getHighlightedQuery({
+                      display: 'block',
+                    }) ??
+                      (queryOptions[selectedQueryIndex]!.label || (
+                        <EmptyQueryContainer>{EMPTY_QUERY_NAME}</EmptyQueryContainer>
+                      ))}
+                  </components.SingleValue>
+                );
+              },
+              // Replaces the dropdown options
+              Option: (containerProps: any) => {
+                const highlightedQuery = containerProps.data.getHighlightedQuery({
+                  display: 'flex',
+                });
+                return (
+                  <SelectOption
+                    {...(highlightedQuery
+                      ? {
+                          ...containerProps,
+                          label: highlightedQuery,
+                        }
+                      : containerProps.label
+                        ? containerProps
+                        : {
+                            ...containerProps,
+                            label: (
+                              <EmptyQueryContainer>
+                                {EMPTY_QUERY_NAME}
+                              </EmptyQueryContainer>
+                            ),
+                          })}
+                  />
+                );
+              },
+              // Hide the dropdown indicator if there is only one option
+              ...(widget.queries.length < 2
+                ? {IndicatorsContainer: (_: any) => null}
+                : {}),
+            }}
+            isSearchable={false}
+            isDisabled={widget.queries.length < 2}
+          />
+          {widget.queries.length === 1 && (
+            <StyledQuestionTooltip
+              title={t('To edit this query, you must edit the widget.')}
+              size="sm"
+            />
+          )}
+        </Container>
+      )}
+      {shouldRenderTable && (
+        <WidgetViewerTable
+          cursor={cursor}
+          dashboardFilters={dashboardFilters}
+          modalSelection={modalSelection}
+          renderIssuesTable={renderIssuesTable}
+          renderTable={renderTable}
+          tableWidget={tableWidget}
+          widget={widget}
+          widgetInterval={widgetInterval}
+        />
+      )}
+    </Fragment>
+  );
 
   return (
     <Fragment>
-      <DashboardsMEPProvider>
-        <MetricsCardinalityProvider organization={organization} location={location}>
-          <MetricsDataSwitcher location={location}>
-            {metricsDataSide => (
-              <MEPSettingProvider
-                location={location}
-                forceTransactions={metricsDataSide.forceTransactionsOnly}
+      <Header closeButton>
+        <Stack gap="md">
+          <Flex align="center" gap="sm">
+            <h3>{widget.title}</h3>
+          </Flex>
+          {widget.description && (
+            <Tooltip
+              title={widget.description}
+              containerDisplayMode="grid"
+              showOnlyOnOverflow
+              position="bottom"
+            >
+              <WidgetDescription>{widget.description}</WidgetDescription>
+            </Tooltip>
+          )}
+        </Stack>
+      </Header>
+      <Body>{widgetViewer}</Body>
+      <Footer>
+        <Flex align="center" justify="between" gap="md" flex="1">
+          {renderTotalResults(totalResults, widget.widgetType)}
+          <Grid flow="column" align="center" gap="md">
+            {onEdit && widget.id && (
+              <Button
+                onClick={() => {
+                  closeModal();
+                  onEdit();
+                  trackAnalytics('dashboards_views.widget_viewer.edit', {
+                    organization,
+                    widget_type: widget.widgetType ?? WidgetType.ERRORS,
+                    display_type: widget.displayType,
+                  });
+                }}
+                disabled={!hasEditAccess}
+                tooltipProps={{
+                  title: hasEditAccess
+                    ? undefined
+                    : isPrebuiltDashboard
+                      ? tct('[label] dashboards cannot be edited', {
+                          label: PREBUILT_DASHBOARD_LABEL,
+                        })
+                      : t('You do not have permission to edit this widget'),
+                }}
               >
-                <Header closeButton>
-                  <Stack gap="md">
-                    <Flex align="center" gap="sm">
-                      <h3>{widget.title}</h3>
-                    </Flex>
-                    {widget.description && (
-                      <Tooltip
-                        title={widget.description}
-                        containerDisplayMode="grid"
-                        showOnlyOnOverflow
-                        position="bottom"
-                      >
-                        <WidgetDescription>{widget.description}</WidgetDescription>
-                      </Tooltip>
-                    )}
-                  </Stack>
-                </Header>
-                <Body>{renderWidgetViewer()}</Body>
-                <Footer>
-                  <Flex align="center" justify="between" gap="md" flex="1">
-                    {renderTotalResults(totalResults, widget.widgetType)}
-                    <Grid flow="column" align="center" gap="md">
-                      {onEdit && widget.id && (
-                        <Button
-                          onClick={() => {
-                            closeModal();
-                            onEdit();
-                            trackAnalytics('dashboards_views.widget_viewer.edit', {
-                              organization,
-                              widget_type: widget.widgetType ?? WidgetType.ERRORS,
-                              display_type: widget.displayType,
-                            });
-                          }}
-                          disabled={!hasEditAccess}
-                          tooltipProps={{
-                            title: hasEditAccess
-                              ? undefined
-                              : isPrebuiltDashboard
-                                ? tct('[label] dashboards cannot be edited', {
-                                    label: PREBUILT_DASHBOARD_LABEL,
-                                  })
-                                : t('You do not have permission to edit this widget'),
-                          }}
-                        >
-                          {t('Edit Widget')}
-                        </Button>
-                      )}
-                      {widget.widgetType && (
-                        <OpenButton
-                          widget={primaryWidget}
-                          dashboardFilters={dashboardFilters}
-                          organization={organization}
-                          selection={modalSelection}
-                          selectedQueryIndex={selectedQueryIndex}
-                          disabled={isUsingPerformanceScore(widget)}
-                          disabledTooltip={
-                            isUsingPerformanceScore(widget)
-                              ? performanceScoreTooltip
-                              : undefined
-                          }
-                        />
-                      )}
-                    </Grid>
-                  </Flex>
-                </Footer>
-              </MEPSettingProvider>
+                {t('Edit Widget')}
+              </Button>
             )}
-          </MetricsDataSwitcher>
-        </MetricsCardinalityProvider>
-      </DashboardsMEPProvider>
+            {widget.widgetType && (
+              <OpenButton
+                widget={primaryWidget}
+                dashboardFilters={dashboardFilters}
+                organization={organization}
+                selection={modalSelection}
+                selectedQueryIndex={selectedQueryIndex}
+                disabled={isUsingPerformanceScore(widget)}
+                disabledTooltip={
+                  isUsingPerformanceScore(widget) ? performanceScoreTooltip : undefined
+                }
+              />
+            )}
+          </Grid>
+        </Flex>
+      </Footer>
     </Fragment>
   );
 }
@@ -888,9 +872,7 @@ function OpenButton({
       // Mobile app size widgets are not integrated with Explore or Discover
       return null;
     default:
-      openLabel = getDiscoverDeprecation(organization)
-        ? t('Open in Explore')
-        : t('Open in Discover');
+      openLabel = t('Open in Explore');
       path = getWidgetDiscoverUrl(
         {...widget, queries: [widget.queries[selectedQueryIndex]!]},
         dashboardFilters,

@@ -1,7 +1,6 @@
 import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useInfiniteQuery, useQueryClient} from '@tanstack/react-query';
-import {useVirtualizer} from '@tanstack/react-virtual';
 import uniqBy from 'lodash/uniqBy';
 import {debounce, parseAsString, useQueryState} from 'nuqs';
 
@@ -21,6 +20,7 @@ import {useBulkUpdateRepositorySettings} from 'sentry/components/repositories/us
 import {getRepositoryWithSettingsQueryKey} from 'sentry/components/repositories/useRepositoryWithSettings';
 import {SeerRepoTableHeader} from 'sentry/components/seer/repoTable/seerRepoTableHeader';
 import {SeerRepoTableRow} from 'sentry/components/seer/repoTable/seerRepoTableRow';
+import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
 import {IconOpen} from 'sentry/icons/iconOpen';
 import {IconSearch} from 'sentry/icons/iconSearch';
 import {t, tct} from 'sentry/locale';
@@ -261,10 +261,11 @@ function VirtualizedRepoTable({
   repositories: RepositoryWithSettings[];
   scrollBodyRef: React.RefObject<HTMLDivElement | null>;
 }) {
-  const virtualizer = useVirtualizer({
+  const {totalSize, virtualItems} = useVirtualRows({
     count: repositories?.length ?? 0,
     getScrollElement: () => scrollBodyRef.current,
     estimateSize,
+    overscan: 1,
   });
 
   const [scrollBodyHeight, setScrollBodyHeight] = useState<number | undefined>(undefined);
@@ -298,8 +299,8 @@ function VirtualizedRepoTable({
         maxHeight: maxHeight ? `calc(100vh - ${Math.round(maxHeight)}px)` : undefined,
       }}
     >
-      <VirtualInner style={{height: virtualizer.getTotalSize()}}>
-        {virtualizer.getVirtualItems().map(virtualItem => {
+      <VirtualInner style={{height: totalSize}}>
+        {virtualItems.map(virtualItem => {
           const repository = repositories[virtualItem.index];
           if (!repository) {
             return null;

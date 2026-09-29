@@ -56,6 +56,7 @@ export function ErrorList() {
     gridTemplateColumns,
     scrollContainerRef,
     totalColumnWidth,
+    totalSize,
     virtualRows,
     virtualizer,
     wrapperRef,
@@ -133,7 +134,7 @@ export function ErrorList() {
               ) : (
                 <VirtualTable.Content
                   style={{
-                    height: virtualizer.getTotalSize(),
+                    height: totalSize,
                     width: totalColumnWidth,
                   }}
                 >

@@ -284,7 +284,7 @@ class TestDelayedWorkflowTaskIntegration(TestDelayedWorkflowTaskBase):
                 "sentry.workflow_engine.processors.delayed_workflow.fire_actions_for_groups"
             ) as mock_fire,
             patch(
-                "sentry.workflow_engine.processors.delayed_workflow.emit_workflow_evaluation_logs"
+                "sentry.workflow_engine.processors.delayed_workflow.emit_evaluations"
             ) as mock_emit,
         ):
             process_delayed_workflows(self.batch_client, self.project.id)

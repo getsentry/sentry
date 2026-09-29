@@ -12,10 +12,40 @@ from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.outcomes import QueryDefinition, run_outcomes_query_timeseries
 from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace_metrics import TraceMetrics
+from sentry.utils import metrics
 from sentry.utils.outcomes import Outcome
 from sentry.utils.snuba import parse_snuba_datetime
+from sentry.utils.tracing import set_span_data, start_span
 
 logger = logging.getLogger(__name__)
+
+
+def record_dropped_events_telemetry(
+    *,
+    endpoint: str,
+    client_kind: str,
+    dataset_label: str,
+    dropped_count: int,
+    accepted_count: int,
+) -> None:
+    """Record who asked for dropped-events data and what they got."""
+    had_drops = dropped_count > 0
+    metrics.incr(
+        "dropped_events.served",
+        tags={
+            "endpoint": endpoint,
+            "client_kind": client_kind,
+            "dataset": dataset_label,
+            "had_drops": had_drops,
+        },
+    )
+    sentry_sdk.set_attribute("dropped_events.endpoint", endpoint)
+    sentry_sdk.set_attribute("dropped_events.client_kind", client_kind)
+    sentry_sdk.set_attribute("dropped_events.dataset", dataset_label)
+    sentry_sdk.set_attribute("dropped_events.dropped_count", dropped_count)
+    sentry_sdk.set_attribute("dropped_events.accepted_count", accepted_count)
+    sentry_sdk.set_attribute("dropped_events.had_drops", had_drops)
+
 
 DROPPED_OUTCOMES: tuple[Outcome, ...] = (
     Outcome.FILTERED,
@@ -131,8 +161,10 @@ def get_dropped_data_annotations(
         return [], []
     organization_id = snuba_params.organization_id
 
-    with sentry_sdk.start_span(op="data_annotations.get_dropped_data") as span:
-        span.set_data("category", category.api_name())
+    with start_span(
+        name="data_annotations.get_dropped_data", op="data_annotations.get_dropped_data"
+    ) as span:
+        set_span_data(span, "category", category.api_name())
 
         item_rows = _run_category_query(category, snuba_params, rollup, organization_id)
         accepted_by_bucket = _accepted_by_bucket(item_rows)
@@ -182,6 +214,6 @@ def get_dropped_data_annotations(
                 annotation["byteSize"] = accepted_bytes_by_bucket.get(bucket_start_ms, 0)
             accepted_annotations.append(annotation)
 
-        span.set_data("dropped_annotation_count", len(dropped_annotations))
-        span.set_data("accepted_annotation_count", len(accepted_annotations))
+        set_span_data(span, "dropped_annotation_count", len(dropped_annotations))
+        set_span_data(span, "accepted_annotation_count", len(accepted_annotations))
         return dropped_annotations, accepted_annotations

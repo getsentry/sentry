@@ -10,7 +10,7 @@ sentry_frontend_snapshots_workflow_file: &sentry_frontend_snapshots_workflow_fil
 # getsentry/sentry does not use the list directly, instead we shard tests inside jest.config.js
 testable_modified: &testable_modified
   - added|modified: 'package.json'
-  - added|modified: 'static/**/!(*.generated).{ts,tsx,js,jsx,mjs}'
+  - added|modified: 'static/**/!(*.generated).{ts,tsx,js,jsx,mjs,pegjs}'
   - added|modified: 'tests/js/**/*'
   - added|deleted|modified: 'fixtures/search-syntax/**/*'
 
@@ -35,7 +35,7 @@ frontend_all: &frontend_all
   - *sentry_frontend_workflow_file
   - *sentry_frontend_snapshots_workflow_file
   - added|modified: 'oxlint.config.ts'
-  - added|modified: '**/*.{ts,tsx,js,jsx,mjs}'
+  - added|modified: '**/*.{ts,tsx,js,jsx,mjs,pegjs}'
   - added|modified: 'static/**/*.{less,json,yml,md,mdx}'
   - added|modified: '{vercel,tsconfig,biome,package}.json'
 

@@ -873,7 +873,10 @@ describe('Discover -> ColumnEditModal', () => {
         expect(await screen.findAllByTestId('queryField')).toHaveLength(i);
       }
 
-      expect(screen.getByRole('button', {name: 'Add a Column'})).toBeDisabled();
+      expect(screen.getByRole('button', {name: 'Add a Column'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
     });
   });
 

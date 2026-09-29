@@ -34,7 +34,6 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {getBucketSize} from 'sentry/views/dashboards/utils/getBucketSize';
-import {useReleasesDrawer} from 'sentry/views/explore/releases/drawer/useReleasesDrawer';
 import {useReleaseBubbles} from 'sentry/views/explore/releases/releaseBubbles/useReleaseBubbles';
 import {makeReleaseDrawerPathname} from 'sentry/views/explore/releases/utils/pathnames';
 import {useIssueDetails} from 'sentry/views/issueDetails/context';
@@ -341,8 +340,6 @@ export function EventGraph({
       period: eventView.statsPeriod,
     },
   });
-
-  useReleasesDrawer();
 
   const handleConnectRef = useCallback(
     (e: ReactEchartsRef | null) => {
