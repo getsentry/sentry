@@ -571,12 +571,8 @@ describe('OrganizationRepositories', () => {
     it('clicking + opens the repo-locked connect modal', async () => {
       setupRepoMocks([]);
       MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/projects/',
-        body: [PROJECT],
-      });
-      MockApiClient.addMockResponse({
         url: `/organizations/org-slug/integrations/${GITHUB_INTEGRATION.id}/repos/`,
-        body: {repos: [{name: REPO.name, identifier: REPO.name, externalId: REPO.externalId, isInstalled: true, defaultBranch: 'main'}]},
+        body: {repos: []},
       });
 
       render(<OrganizationRepositories />, {
@@ -586,33 +582,33 @@ describe('OrganizationRepositories', () => {
 
       await userEvent.click(await screen.findByRole('button', {name: 'Connect project'}));
 
-      // The repo-locked modal has the repo name locked and a project selector.
       expect(
         await screen.findByText('Connect a project to getsentry/sentry')
       ).toBeInTheDocument();
-      // Repository field is disabled (locked); Project field is a select.
-      expect(screen.getByRole('textbox', {name: /repository/i})).toBeDisabled();
     });
 
-    it('save in repo-locked connect modal POSTs repo link and code mapping', async () => {
-      setupRepoMocks([]);
+    it('clicking edit opens the repo-locked edit modal', async () => {
+      setupRepoMocks([
+        {
+          id: '1',
+          repoId: REPO.id,
+          repoName: REPO.name,
+          projectId: PROJECT.id,
+          projectSlug: PROJECT.slug,
+          stackRoot: '',
+          sourceRoot: '',
+          defaultBranch: 'main',
+          integrationId: GITHUB_INTEGRATION.id,
+        },
+      ]);
       MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/projects/',
-        body: [PROJECT],
+        url: '/organizations/org-slug/code-mappings/',
+        body: [],
+        match: [MockApiClient.matchQuery({project: PROJECT.id})],
       });
       MockApiClient.addMockResponse({
         url: `/organizations/org-slug/integrations/${GITHUB_INTEGRATION.id}/repos/`,
-        body: {repos: [{name: REPO.name, identifier: REPO.name, externalId: REPO.externalId, isInstalled: true, defaultBranch: 'main'}]},
-      });
-      const postRepo = MockApiClient.addMockResponse({
-        url: `/projects/org-slug/${PROJECT.slug}/repo/`,
-        method: 'POST',
-        body: {id: '99', projectId: PROJECT.id, repositoryId: REPO.id, source: 'scm_onboarding', created: true},
-      });
-      const postMapping = MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/code-mappings/',
-        method: 'POST',
-        body: {},
+        body: {repos: []},
       });
 
       render(<OrganizationRepositories />, {
@@ -620,27 +616,10 @@ describe('OrganizationRepositories', () => {
       });
       renderGlobalModal();
 
-      await userEvent.click(await screen.findByRole('button', {name: 'Connect project'}));
-      // Select the project.
-      await userEvent.click(await screen.findByText('Search projects'));
-      await userEvent.click(await screen.findByText(PROJECT.slug));
+      await userEvent.click(await screen.findByRole('button', {name: 'Edit code mappings'}));
 
-      // Save becomes enabled once a project is selected (path list appears).
-      expect(await screen.findByRole('button', {name: 'Save'})).toBeEnabled();
-      await userEvent.click(screen.getByRole('button', {name: 'Save'}));
-
-      await waitFor(() =>
-        expect(postRepo).toHaveBeenCalledWith(
-          `/projects/org-slug/${PROJECT.slug}/repo/`,
-          expect.objectContaining({method: 'POST', data: {repositoryId: REPO.id}})
-        )
-      );
-      await waitFor(() =>
-        expect(postMapping).toHaveBeenCalledWith(
-          '/organizations/org-slug/code-mappings/',
-          expect.objectContaining({method: 'POST'})
-        )
-      );
+      // Modal heading appears — different from the row button label.
+      expect(await screen.findByRole('heading', {name: 'Edit code mappings'})).toBeInTheDocument();
     });
   });
 });
