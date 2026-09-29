@@ -463,7 +463,7 @@ function CustomFilterModal({
           </Heading>
           <Text variant="muted" size="sm">
             {t(
-              'Sentry only filters data that matches every condition below. Each value is a glob pattern, so * matches any text. A release value that starts with >, >=, <, <= or = compares versions instead. Put one value per line to match any of them.'
+              'Sentry only filters data that matches every condition below. Each value is a glob pattern, so * matches any text. A release value that starts with >, >=, <, <= or = compares versions instead. It applies to every package unless you name one, e.g. >=myapp@2.0. Put one value per line to match any of them.'
             )}
           </Text>
         </Stack>
