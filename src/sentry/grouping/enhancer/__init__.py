@@ -691,3 +691,10 @@ ENHANCEMENT_BASES = _load_enhancement_bases()
 # if we make a new default in the meantime, the old name should still point to
 # `all-platforms:2023-01-11`.)
 ENHANCEMENT_BASES["newstyle:2023-01-11"] = ENHANCEMENT_BASES["all-platforms:2023-01-11"]
+
+
+# Enhancements bases which have gone from default to legacy status shouldn't have their rules
+# changed, or it'll undo the point of having a stable secondary config to transition from. We test
+# against these hashes as a hacky but quick way to enforce that. (This should be kept even if empty,
+# because presumably in the future there will be more config transitions.)
+LEGACY_ENHANCEMENT_BASE_HASHES = {"all-platforms:2023-01-11": "56d320de4f8a41213db210fa3d73e130"}
