@@ -2,7 +2,14 @@ import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {act, render, renderGlobalModal, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import {ConnectedRepositoriesPanel} from 'sentry/views/settings/projectGeneralSettings/connectedRepositoriesPanel';
 
