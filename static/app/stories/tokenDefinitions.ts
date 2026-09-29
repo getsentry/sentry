@@ -25,21 +25,21 @@ function sortByValue(tokens: Record<string, string>): Record<string, string> {
 
 export const BORDER_WIDTHS = sortByValue(size.border);
 
-function flattenTokens(
-  obj: Record<string, unknown>,
-  prefix = ''
-): Record<string, string> {
-  return Object.entries(obj).reduce<Record<string, string>>((result, entry) => {
-    const key = entry[0];
-    const value = entry[1];
+interface TokenTree {
+  readonly [key: string]: string | TokenTree;
+}
+
+function flattenTokens(tree: TokenTree, prefix = ''): Record<string, string> {
+  const result: Record<string, string> = {};
+  for (const [key, value] of Object.entries(tree)) {
     const path = prefix ? `${prefix}.${key}` : key;
     if (typeof value === 'string') {
       result[path] = value;
-    } else if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-      Object.assign(result, flattenTokens(value as Record<string, unknown>, path));
+    } else {
+      Object.assign(result, flattenTokens(value, path));
     }
-    return result;
-  }, {});
+  }
+  return result;
 }
 
 /**
