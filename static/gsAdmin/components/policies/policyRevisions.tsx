@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 import moment from 'moment-timezone';
@@ -74,35 +74,37 @@ export function PolicyRevisions({policy, onUpdate}: Props) {
   });
 
   return (
-    <Panel>
-      <PanelHeader>Revisions</PanelHeader>
-      {isPending ? (
-        <LoadingIndicator />
-      ) : isError ? (
-        <LoadingError onRetry={refetch} />
-      ) : data.json.length === 0 ? (
-        <EmptyMessage>No revisions found.</EmptyMessage>
-      ) : (
-        <ResultTable>
-          <thead>
-            <tr>
-              <th>Version</th>
-              <th style={{width: 200, textAlign: 'right'}}>Date Created</th>
-              <th style={{width: 50}} />
-            </tr>
-          </thead>
-          <tbody>
-            {data.json.map(row => (
-              <tr key={row.version}>{getRow({row, policy, onUpdate})}</tr>
-            ))}
-          </tbody>
-        </ResultTable>
-      )}
+    <Fragment>
+      <Panel>
+        <PanelHeader>Revisions</PanelHeader>
+        {isPending ? (
+          <LoadingIndicator />
+        ) : isError ? (
+          <LoadingError onRetry={refetch} />
+        ) : data.json.length === 0 ? (
+          <EmptyMessage>No revisions found.</EmptyMessage>
+        ) : (
+          <ResultTable>
+            <thead>
+              <tr>
+                <th>Version</th>
+                <th style={{width: 200, textAlign: 'right'}}>Date Created</th>
+                <th style={{width: 50}} />
+              </tr>
+            </thead>
+            <tbody>
+              {data.json.map(row => (
+                <tr key={row.version}>{getRow({row, policy, onUpdate})}</tr>
+              ))}
+            </tbody>
+          </ResultTable>
+        )}
+      </Panel>
       <Pagination
         pageLinks={data?.headers.Link}
         onCursor={nextCursor => setCursor(nextCursor)}
       />
-    </Panel>
+    </Fragment>
   );
 }
 
