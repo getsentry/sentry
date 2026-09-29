@@ -30,7 +30,7 @@ import {
 import {EMPTY_TEXT_CONTENT} from 'sentry/views/insights/pages/agents/utils/aiMessageNormalizer';
 import {getNumberAttr} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {getAiInstrumentationDocsLink} from 'sentry/views/insights/pages/agents/utils/docsLinks';
-import {formatLLMCosts} from 'sentry/views/insights/pages/agents/utils/formatLLMCosts';
+import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
 import {detectAIContentType} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiContentDetection';
@@ -287,7 +287,7 @@ function AssistantMeta({cost, duration}: {cost?: number; duration?: number}) {
       metric={
         cost === undefined || cost <= 0 ? null : (
           <Text size="xs" variant="muted" tabular align="right">
-            {formatLLMCosts(cost)}
+            <LLMCosts cost={cost} />
           </Text>
         )
       }
