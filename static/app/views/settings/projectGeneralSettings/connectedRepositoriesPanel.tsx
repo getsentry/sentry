@@ -19,11 +19,11 @@ import type {Project} from 'sentry/types/project';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {ConnectRepositoryModal} from 'sentry/views/settings/projectGeneralSettings/connectRepositoryModal';
+import {ConnectRepositoryModal} from 'sentry/components/connectRepository/connectRepositoryModal';
 import {
   projectRepoInfiniteOptions,
   type ProjectRepoListItem,
-} from 'sentry/views/settings/projectGeneralSettings/queries';
+} from 'sentry/components/connectRepository/queries';
 
 function ConnectedRepositoryRow({
   repo,

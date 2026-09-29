@@ -17,13 +17,13 @@ import {
   getApiErrorMessage,
   ConnectionModalFrame,
   LockedRepoField,
-} from 'sentry/views/settings/projectGeneralSettings/connectionModalFrame';
+} from 'sentry/components/connectRepository/connectionModalFrame';
 import {
   editProjectRepoMappings,
   projectCodeMappingsOptions,
   useEditRepoInfo,
   useInvalidateRepoQueries,
-} from 'sentry/views/settings/projectGeneralSettings/queries';
+} from 'sentry/components/connectRepository/queries';
 
 function buildPathsSection({
   isPending,

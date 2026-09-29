@@ -17,13 +17,13 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   getApiErrorMessage,
   ConnectionModalFrame,
-} from 'sentry/views/settings/projectGeneralSettings/connectionModalFrame';
+} from 'sentry/components/connectRepository/connectionModalFrame';
 import {
   saveProjectRepoConnection,
   useGroupedRepoOptions,
   useInvalidateRepoQueries,
   type RepoSelectOption,
-} from 'sentry/views/settings/projectGeneralSettings/queries';
+} from 'sentry/components/connectRepository/queries';
 
 function PathsPlaceholder() {
   return (
