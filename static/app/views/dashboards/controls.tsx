@@ -217,7 +217,7 @@ function AddWidgetDropdown({
         <OverlayTrigger.Button
           {...triggerProps}
           size="sm"
-          icon={<IconAdd size="sm" />}
+          icon={<IconAdd />}
           tooltipProps={{title: tooltip}}
           variant="primary"
         >
