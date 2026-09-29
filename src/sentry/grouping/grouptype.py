@@ -16,7 +16,11 @@ from sentry.workflow_engine.processors import (
     DetectorEvaluation,
 )
 from sentry.workflow_engine.registry import detector_settings_registry
-from sentry.workflow_engine.types import DetectorGroupKey, DetectorPriorityLevel, DetectorSettings
+from sentry.workflow_engine.types import (
+    DetectorGroupKey,
+    DetectorPriorityLevel,
+    DetectorSettings,
+)
 
 
 # This class allows error issues to be associated with a detector. However,
