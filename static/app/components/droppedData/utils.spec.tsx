@@ -1,6 +1,7 @@
 import {AnnotationFixture} from 'sentry-fixture/annotation';
+import {ThemeFixture} from 'sentry-fixture/theme';
 
-import {groupIntoBuckets, hasDroppedData, opacityForRatio, reasonTitle} from './utils';
+import {groupIntoBuckets, hasDroppedData, reasonTitle, severityStyle} from './utils';
 
 describe('hasDroppedData', () => {
   it('is true when there is at least one dropped annotation', () => {
@@ -182,19 +183,22 @@ describe('groupIntoBuckets', () => {
 
     expect(withoutBytes!.dropped.byteSize).toBeUndefined();
   });
+});
 
-  it('maps drop ratio continuously onto opacity', () => {
-    expect(opacityForRatio(0)).toBe(0);
-    expect(opacityForRatio(0.01)).toBeCloseTo(0.167);
-    expect(opacityForRatio(0.02)).toBeCloseTo(0.184);
-    expect(opacityForRatio(0.5)).toBe(1);
-    expect(opacityForRatio(1)).toBe(1);
-  });
+describe('severityStyle', () => {
+  const theme = ThemeFixture();
+  const warning = theme.tokens.background.warning.vibrant;
+  const bad = theme.tokens.dataviz.semantic.bad;
+  const orange = '#FF9500';
 
-  it('spreads out small ratios when given a curve below 1', () => {
-    expect(opacityForRatio(0.02, 0.5)).toBeCloseTo(0.32);
-    expect(opacityForRatio(0.1, 0.5)).toBeCloseTo(0.53);
-    expect(opacityForRatio(0.5, 0.5)).toBe(1);
+  it.each([
+    [0.049, {fill: warning, opacity: 0}],
+    [0.05, {fill: warning, opacity: 0.25}],
+    [0.1, {fill: orange, opacity: 0.55}],
+    [0.25, {fill: orange, opacity: 1}],
+    [0.5, {fill: bad, opacity: 1}],
+  ])('styles a drop ratio of %s', (ratio, expected) => {
+    expect(severityStyle(ratio, theme)).toEqual(expected);
   });
 });
 

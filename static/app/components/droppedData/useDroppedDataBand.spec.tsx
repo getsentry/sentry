@@ -2,9 +2,9 @@ import type {
   CustomSeriesRenderItem,
   CustomSeriesRenderItemAPI,
   CustomSeriesRenderItemParams,
-  LinearGradientObject,
 } from 'echarts';
 import {AnnotationFixture} from 'sentry-fixture/annotation';
+import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
@@ -13,6 +13,7 @@ import {
   DROPPED_DATA_SERIES_ID,
   useDroppedDataBand,
 } from 'sentry/components/droppedData/useDroppedDataBand';
+import {severityStyle} from 'sentry/components/droppedData/utils';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import type {Annotation} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 
@@ -70,7 +71,29 @@ describe('useDroppedDataBand', () => {
     expect(result.current.droppedDataSeries).toBeNull();
   });
 
-  it('draws a pill for a small positive drop ratio', () => {
+  it('keeps buckets at 5% and skips those below', () => {
+    const {result} = renderHookWithProviders(() =>
+      useDroppedDataBand({
+        chartRef,
+        droppedData: {
+          droppedAnnotations: [
+            AnnotationFixture({start: 0, eventCount: 1}),
+            AnnotationFixture({start: 60_000, eventCount: 5}),
+          ],
+          acceptedAnnotations: [
+            AnnotationFixture({start: 0, eventCount: 99}),
+            AnnotationFixture({start: 60_000, eventCount: 95}),
+          ],
+        },
+      })
+    );
+
+    expect(result.current.droppedDataSeries?.data).toEqual([
+      expect.objectContaining({start: 60_000, ratio: 0.05}),
+    ]);
+  });
+
+  it('hides the band when every drop ratio is below 5%', () => {
     const {result} = renderHookWithProviders(() =>
       useDroppedDataBand({
         chartRef,
@@ -81,8 +104,8 @@ describe('useDroppedDataBand', () => {
       })
     );
 
-    expect(result.current.droppedDataSeries).not.toBeNull();
-    expect(result.current.droppedDataSeries?.data).toHaveLength(1);
+    expect(result.current.droppedDataSeries).toBeNull();
+    expect(result.current.droppedDataBandHeight).toBe(0);
   });
 
   it('draws no pill for buckets that only have accepted volume', () => {
@@ -189,9 +212,9 @@ describe('useDroppedDataBand', () => {
       coord: ([time]: number[]) => [(time ?? 0) / 1000, 100],
     } as unknown as CustomSeriesRenderItemAPI;
 
-    interface VisibleRect {
+    interface BandRect {
       shape: {width: number; x: number};
-      style: {fill: string | LinearGradientObject};
+      style: {fill: string; opacity: number};
       silent?: boolean;
     }
 
@@ -217,16 +240,10 @@ describe('useDroppedDataBand', () => {
             coordSys: {type: 'cartesian2d', x: 0, width: TRACK_WIDTH},
           } as unknown as CustomSeriesRenderItemParams,
           api
-        ) as {children: VisibleRect[]};
+        ) as {children: BandRect[]};
 
-        return group.children.filter(child => child.silent);
+        return group.children;
       });
-    }
-
-    function renderBand(dropped: Annotation[]) {
-      return renderShapes(dropped).map(shapes =>
-        shapes.map(({shape}) => [shape.x, shape.x + shape.width])
-      );
     }
 
     function bucket(minute: number, eventCount = 10) {
@@ -237,64 +254,35 @@ describe('useDroppedDataBand', () => {
       });
     }
 
-    function gradientStops(rect: VisibleRect | undefined) {
-      const fill = rect?.style.fill;
-      if (typeof fill !== 'object' || fill.type !== 'linear') {
-        throw new Error('Expected a linear gradient fill');
-      }
-      return fill.colorStops.map(({color}) => color);
-    }
-
-    it('blends adjacent buckets with different drop ratios', () => {
-      const [first, second] = renderShapes(
-        [bucket(3), bucket(4)],
-        [bucket(3), bucket(4, 90)]
-      );
-
-      const firstStops = gradientStops(first?.[1]);
-      const secondStops = gradientStops(second?.[0]);
-
-      expect(firstStops.at(-1)).toBe(secondStops[0]);
-      expect(firstStops[1]).not.toBe(secondStops[1]);
-    });
-
     it('draws the track once, on the first bucket', () => {
-      const [first, second] = renderBand([bucket(2), bucket(3)]);
+      const [first, second] = renderShapes([bucket(2), bucket(3)]);
 
-      expect(first).toContainEqual([0, TRACK_WIDTH]);
-      expect(second).not.toContainEqual([0, TRACK_WIDTH]);
+      expect(first?.[0]).toMatchObject({shape: {x: 0, width: TRACK_WIDTH}, silent: true});
+      expect(second).toHaveLength(1);
     });
 
-    it('fills the whole slot and fades into empty neighbouring buckets', () => {
-      const [spans] = renderBand([bucket(3)]);
+    it('centres each bucket on its start, clamped to the track', () => {
+      const spans = renderShapes([bucket(0), bucket(5), bucket(10)]).map(shapes => {
+        const {x, width} = shapes.at(-1)!.shape;
+        return [x, x + width];
+      });
 
       expect(spans).toEqual([
-        [0, TRACK_WIDTH],
-        [150, 210],
-        [90, 150],
-        [210, 270],
-      ]);
-    });
-
-    it('does not fade between adjacent buckets', () => {
-      const [first, second] = renderBand([bucket(3), bucket(4)]);
-
-      expect(first).toEqual([
-        [0, TRACK_WIDTH],
-        [150, 210],
-        [90, 150],
-      ]);
-      expect(second).toEqual([
-        [210, 270],
+        [0, 30],
         [270, 330],
+        [570, TRACK_WIDTH],
       ]);
     });
 
-    it('meets halfway when a single empty bucket separates two runs', () => {
-      const [first, second] = renderBand([bucket(3), bucket(5)]);
+    it('colors each bucket by its drop ratio', () => {
+      const theme = ThemeFixture();
+      const [first, second] = renderShapes(
+        [bucket(3, 9), bucket(4, 12)],
+        [bucket(3, 91), bucket(4, 88)]
+      );
 
-      expect(first).toContainEqual([210, 240]);
-      expect(second).toContainEqual([240, 270]);
+      expect(first?.[1]?.style).toMatchObject(severityStyle(0.09, theme));
+      expect(second?.[0]?.style).toMatchObject(severityStyle(0.12, theme));
     });
   });
 });
