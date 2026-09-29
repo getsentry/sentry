@@ -9,15 +9,13 @@ class HelpMessages:
     UNRECOGNIZED_COMMAND = "Sorry, I didn't understand '{command_text}'."
     AVAILABLE_COMMANDS_TEXT = "Type **help**: to see the list of available commands"
 
-    MENTIONED_TITLE = (
-        "Sentry for Microsoft Teams does not support any commands in channels, only in direct messages."
-        " To unlink your Microsoft Teams identity from your Sentry account message the personal bot."
-    )
+    MENTIONED_TITLE = "Sentry is already installed for this team."
     MENTIONED_TEXT = (
-        "Want to learn more about configuring alerts in Sentry? Check out our documentation."
+        "Microsoft Teams installs Sentry once per team. To receive alerts in this channel, add a "
+        "MS Teams action to an alert, select the '{team_name}' team and enter this channel's name."
     )
-    DOCS_BUTTON = "Docs"
-    DOCS_URL = "https://docs.sentry.io/product/alerts-notifications/alerts/"
+    MANAGE_BUTTON = "Installation"
+    ALERT_BUTTON = "Alerts"
 
 
 class IdentityMessages:

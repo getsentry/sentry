@@ -188,12 +188,18 @@ class MSTeamsMessageBuilderTest(TestCase):
         assert invalid_command in unrecognized_command_card["body"][0]["text"]
 
     def test_mentioned_message(self) -> None:
-        mentioned_card = build_mentioned_card()
+        mentioned_card = build_mentioned_card("Example Team")
 
         assert 2 == len(mentioned_card["body"])
-        assert 1 == len(mentioned_card["actions"])
-
-        assert "Docs" in mentioned_card["actions"][0]["title"]
+        assert 2 == len(mentioned_card["actions"])
+        assert _is_text_block(mentioned_card["body"][0])
+        assert _is_text_block(mentioned_card["body"][1])
+        assert "already installed" in mentioned_card["body"][0]["text"]
+        assert "Example Team" in mentioned_card["body"][1]["text"]
+        assert mentioned_card["actions"][0]["title"] == "Installation"
+        assert mentioned_card["actions"][0]["url"].endswith("/settings/integrations/msteams/")
+        assert mentioned_card["actions"][1]["title"] == "Alerts"
+        assert mentioned_card["actions"][1]["url"].endswith("/alerts/")
 
     def test_insallation_confirmation_message(self) -> None:
         organization = Organization(name="test-org", slug="test-org")

@@ -1,5 +1,8 @@
+from django.urls import reverse
+
 from sentry.integrations.msteams.card_builder.base import MSTeamsMessageBuilder
 from sentry.integrations.msteams.card_builder.block import ActionType, AdaptiveCard, OpenUrlAction
+from sentry.utils.http import absolute_uri
 
 from .utils import HelpMessages
 
@@ -17,13 +20,18 @@ def build_unrecognized_command_card(command_text: str) -> AdaptiveCard:
     )
 
 
-def build_mentioned_card() -> AdaptiveCard:
+def build_mentioned_card(team_name: str) -> AdaptiveCard:
+    manage_url = absolute_uri(f"{reverse('sentry-customer-domain-integrations-settings')}msteams/")
+    alerts_url = absolute_uri(reverse("alerts"))
     return MSTeamsMessageBuilder().build(
         title=HelpMessages.MENTIONED_TITLE,
-        text=HelpMessages.MENTIONED_TEXT,
+        text=HelpMessages.MENTIONED_TEXT.format(team_name=team_name),
         actions=[
             OpenUrlAction(
-                type=ActionType.OPEN_URL, title=HelpMessages.DOCS_BUTTON, url=HelpMessages.DOCS_URL
-            )
+                type=ActionType.OPEN_URL, title=HelpMessages.MANAGE_BUTTON, url=manage_url
+            ),
+            OpenUrlAction(
+                type=ActionType.OPEN_URL, title=HelpMessages.ALERT_BUTTON, url=alerts_url
+            ),
         ],
     )

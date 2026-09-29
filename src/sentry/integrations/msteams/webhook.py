@@ -686,8 +686,11 @@ class MsTeamsWebhookEndpoint(Endpoint):
                 > 0
             )
             if mentioned:
+                integration = parsing.get_integration_from_channel_data(data)
+                if integration is None:
+                    return self.respond(status=204)
                 client = get_preinstall_client(data["serviceUrl"])
-                card = build_mentioned_card()
+                card = build_mentioned_card(team_name=integration.name)
                 conversation_id = data["conversation"]["id"]
                 client.send_card(conversation_id, card)
 
