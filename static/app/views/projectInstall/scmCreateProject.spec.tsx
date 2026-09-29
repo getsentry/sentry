@@ -159,7 +159,7 @@ describe('ScmCreateProject', () => {
     return {createRequest, project};
   }
 
-  function mockExistingGithubRepository() {
+  function mockExistingGithubRepository(repositories = [githubRepository]) {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/`,
       body: [githubIntegration],
@@ -168,26 +168,26 @@ describe('ScmCreateProject', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/${githubIntegration.id}/repos/`,
       body: {
-        repos: [
-          {
-            externalId: githubRepository.externalId,
-            identifier: githubRepository.externalSlug,
-            name: 'sentry',
-            isInstalled: true,
-          },
-        ],
+        repos: repositories.map(repository => ({
+          externalId: repository.externalId,
+          identifier: repository.externalSlug,
+          name: repository.name.split('/').pop(),
+          isInstalled: true,
+        })),
       },
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/repos/`,
-      body: [githubRepository],
+      body: repositories,
     });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/repos/${githubRepository.id}/platforms/`,
-      body: {
-        platforms: [DetectedPlatformFixture({platform: 'python'})],
-      },
-    });
+    for (const repository of repositories) {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/repos/${repository.id}/platforms/`,
+        body: {
+          platforms: [DetectedPlatformFixture({platform: 'python'})],
+        },
+      });
+    }
     return MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/python/repo/`,
       method: 'POST',
@@ -389,7 +389,7 @@ describe('ScmCreateProject', () => {
 
     // Framework SDKs commit straight from the picker; a base language (plain
     // Python) would detour through the framework-suggestion modal.
-    await userEvent.click(await screen.findByText('Search SDKs...'));
+    await userEvent.click(await screen.findByText('Search'));
     await userEvent.keyboard('Django');
     await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Django'}));
 
@@ -698,7 +698,7 @@ describe('ScmCreateProject', () => {
     renderGlobalModal();
     const {router} = render(<ScmCreateProject />, {organization});
 
-    await userEvent.click(await screen.findByText('Search SDKs...'));
+    await userEvent.click(await screen.findByText('Search'));
     await userEvent.keyboard('Python');
     await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Python'}));
     await userEvent.click(await screen.findByRole('button', {name: 'Configure SDK'}));
@@ -771,7 +771,7 @@ describe('ScmCreateProject', () => {
 
     render(<ScmCreateProject />, {organization});
 
-    await userEvent.click(await screen.findByText('Search SDKs...'));
+    await userEvent.click(await screen.findByText('Search'));
     await userEvent.keyboard('Django');
     await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Django'}));
 
@@ -856,7 +856,7 @@ describe('ScmCreateProject', () => {
                     integrationId: slackIntegration.id,
                     config: {
                       targetType: 'specific',
-                      targetIdentifier: '',
+                      targetIdentifier: 'C123',
                       targetDisplay: '#alerts',
                     },
                     data: {},
@@ -898,7 +898,7 @@ describe('ScmCreateProject', () => {
 
     render(<ScmCreateProject />, {organization});
 
-    await userEvent.click(await screen.findByText('Search SDKs...'));
+    await userEvent.click(await screen.findByText('Search'));
     await userEvent.keyboard('Django');
     await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Django'}));
     await userEvent.click(screen.getByRole('button', {name: 'Alert frequency'}));
@@ -940,7 +940,7 @@ describe('ScmCreateProject', () => {
 
     render(<ScmCreateProject />, {organization});
 
-    await userEvent.click(await screen.findByText('Search SDKs...'));
+    await userEvent.click(await screen.findByText('Search'));
     await userEvent.keyboard('Django');
     await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Django'}));
 
@@ -992,7 +992,7 @@ describe('ScmCreateProject', () => {
     });
     render(<ScmCreateProject />, {organization});
 
-    await userEvent.click(await screen.findByText('Search SDKs...'));
+    await userEvent.click(await screen.findByText('Search'));
     await userEvent.keyboard('Django');
     await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Django'}));
 
@@ -1078,7 +1078,7 @@ describe('ScmCreateProject', () => {
     await userEvent.keyboard('sentry');
     await userEvent.click(await screen.findByRole('menuitemradio', {name: 'sentry'}));
 
-    expect(await screen.findByRole('radio', {name: 'Python Language'})).toBeChecked();
+    expect(await screen.findByRole('radio', {name: 'Python'})).toBeChecked();
     await waitFor(() => {
       expect(screen.getByPlaceholderText('project-name')).toHaveValue('python');
     });
@@ -1130,7 +1130,7 @@ describe('ScmCreateProject', () => {
     await userEvent.keyboard('sentry');
     await userEvent.click(await screen.findByRole('menuitemradio', {name: 'sentry'}));
 
-    expect(await screen.findByRole('radio', {name: 'Python Language'})).toBeChecked();
+    expect(await screen.findByRole('radio', {name: 'Python'})).toBeChecked();
     await waitFor(() => {
       expect(screen.getByPlaceholderText('project-name')).toHaveValue('python');
     });
@@ -1145,20 +1145,72 @@ describe('ScmCreateProject', () => {
     await userEvent.click(screen.getByText('sentry'));
     await userEvent.keyboard('{Backspace}');
 
-    expect(await screen.findByText('Search SDKs...')).toBeInTheDocument();
-    expect(
-      screen.queryByRole('radio', {name: 'Python Language'})
-    ).not.toBeInTheDocument();
+    expect(await screen.findByText('Search')).toBeInTheDocument();
+    expect(screen.queryByRole('radio', {name: 'Python'})).not.toBeInTheDocument();
     expect(screen.getByPlaceholderText('project-name')).toHaveValue('');
     expect(screen.getByRole('button', {name: 'Create project'})).toHaveAttribute(
       'aria-disabled',
       'true'
     );
-    await userEvent.click(screen.getByText('Search SDKs...'));
+    await userEvent.click(screen.getByText('Search'));
     await userEvent.keyboard('Python');
     await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Python'}));
     await userEvent.click(await screen.findByRole('button', {name: 'Configure SDK'}));
 
     expect(await screen.findByRole('checkbox', {name: /Tracing/})).not.toBeChecked();
+  });
+
+  it('creates a new project when the repository changes on a return', async () => {
+    const relayRepository = RepositoryFixture({
+      id: 'repository-2',
+      externalId: '2',
+      name: 'getsentry/relay',
+      externalSlug: 'getsentry/relay',
+      integrationId: githubIntegration.id,
+      provider: {id: 'integrations:github', name: 'GitHub'},
+    });
+    ProjectsStore.loadInitialData([
+      ProjectFixture({slug: 'python', name: 'python', platform: 'python'}),
+    ]);
+    persistWizardSession({
+      createdProjectSlug: 'python',
+      selectedIntegration: githubIntegration,
+      selectedRepository: githubRepository,
+      projectDetailsForm: {
+        projectName: 'python',
+        teamSlug: adminTeam.slug,
+        alertRuleConfig: DEFAULT_ISSUE_ALERT_OPTIONS_VALUES,
+      },
+    });
+    mockExistingGithubRepository([githubRepository, relayRepository]);
+    const {createRequest, project} = mockProjectCreation('python-relay', 'python');
+    const repoLinkRequest = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/repo/`,
+      method: 'POST',
+      body: {},
+    });
+
+    render(<ScmCreateProject />, {
+      organization,
+      initialRouterConfig: returningRouterConfig,
+    });
+
+    await userEvent.click(await screen.findByText('sentry'));
+    await userEvent.keyboard('relay');
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'relay'}));
+
+    expect(await screen.findByRole('radio', {name: 'Python Language'})).toBeChecked();
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('project-name')).toHaveValue('python');
+    });
+    await userEvent.click(screen.getByRole('button', {name: 'Create project'}));
+
+    await waitFor(() => {
+      expect(repoLinkRequest).toHaveBeenCalledWith(
+        `/projects/${organization.slug}/${project.slug}/repo/`,
+        expect.objectContaining({data: {repositoryId: relayRepository.id}})
+      );
+    });
+    expect(createRequest).toHaveBeenCalled();
   });
 });

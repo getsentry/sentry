@@ -56,10 +56,9 @@ describe('conversation embed', () => {
       `/organizations/org-slug/explore/agents/conversations/${CONVERSATION_ID}/`
     );
     const params = searchParams(href);
-    // The detail view scopes its span query to this window, so it is padded
-    // an hour either side of the conversation's own timestamps.
-    expect(params.get('start')).toBe('2026-08-25T15:37:12.000Z');
-    expect(params.get('end')).toBe('2026-08-25T17:39:02.000Z');
+    // The conversation's own window; the detail view pads it.
+    expect(params.get('start')).toBe('2026-08-25T16:37:12.000Z');
+    expect(params.get('end')).toBe('2026-08-25T16:39:02.000Z');
     expect(params.getAll('project')).toEqual(['1']);
     expect(params.get('referrer')).toBe('seer-conversation-embed');
   });

@@ -168,6 +168,7 @@ export function initializeSdk(config: Config) {
        * the pointer moves.
        */
       /Cannot read properties of undefined \(reading 'getDataParams'\)/,
+      /undefined is not an object \(evaluating '[^']*\.getDataParams'\)/,
     ],
 
     beforeBreadcrumb(crumb) {

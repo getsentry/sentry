@@ -118,13 +118,38 @@ export const getSlot = (
  *                with Attachments because "1K GB" is hard to read.
  * isGifted: For gifted data volumes, 0 is displayed as 0 instead of unlimited.
  * useUnitScaling: For Attachments only. Scale from kB -> MB -> GB -> TB -> etc
+ * unitType: Overrides the category's unit type, for billing platform line items
+ *           that aren't a DataCategory (see getLineItemUnitType).
  */
 type FormatOptions = {
   fractionDigits?: number;
   isAbbreviated?: boolean;
   isGifted?: boolean;
+  unitType?: LineItemUnitType;
   useUnitScaling?: boolean;
 };
+
+type LineItemUnitType = 'microCents';
+
+const MICRO_CENTS_PER_CENT = 1_000_000;
+
+/**
+ * Billing platform line items keyed by uid have no DataCategory to derive units
+ * from, so the plan declares their unit type alongside their display name.
+ */
+export function getLineItemUnitType(
+  plan: Plan,
+  category: DataCategory | string
+): LineItemUnitType | undefined {
+  return plan.categoryDisplayNames?.[category]?.unitType;
+}
+
+function formatMicroCents(microCents: number): string {
+  return displayPriceWithCents({
+    cents: microCents / MICRO_CENTS_PER_CENT,
+    minimumFractionDigits: 0,
+  });
+}
 
 /**
  * This expects values from CustomerSerializer, which contains quota/reserved
@@ -141,6 +166,15 @@ export function formatReservedWithUnits(
     isGifted: false,
   }
 ): string {
+  if (
+    options.unitType === 'microCents' &&
+    defined(reservedQuantity) &&
+    reservedQuantity !== RESERVED_BUDGET_QUOTA &&
+    !isUnlimitedReserved(reservedQuantity)
+  ) {
+    return formatMicroCents(reservedQuantity);
+  }
+
   const categoryInfo = getCategoryInfoFromPlural(dataCategory);
   const unitType = categoryInfo?.formatting.unitType ?? 'count';
 
@@ -181,6 +215,10 @@ export function formatUsageWithUnits(
   dataCategory: DataCategory,
   options: FormatOptions = {isAbbreviated: false, useUnitScaling: false}
 ) {
+  if (options.unitType === 'microCents') {
+    return formatMicroCents(usageQuantity);
+  }
+
   const categoryInfo = getCategoryInfoFromPlural(dataCategory);
   const unitType = categoryInfo?.formatting.unitType ?? 'count';
 

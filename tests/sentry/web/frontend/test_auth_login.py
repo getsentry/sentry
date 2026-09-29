@@ -109,6 +109,23 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
         ]
         self.assertTemplateUsed(response, "sentry/base-react.html")
 
+    @with_feature("system:multi-region")
+    def test_customer_domain_register_redirects_to_primary_domain_registration(self) -> None:
+        organization = self.create_organization(slug="customer-domain-org")
+        self.session["can_register"] = True
+        self.save_session()
+
+        response = self.client.get(
+            reverse("sentry-register"),
+            HTTP_HOST=f"{organization.slug}.testserver",
+            follow=True,
+        )
+
+        assert response.status_code == 200
+        assert response.redirect_chain == [("http://testserver/auth/register/", 302)]
+        assert response.context["op"] == "register"
+        self.assertTemplateUsed(response, "sentry/login.html")
+
     @override_options({"auth.v2.enabled": True})
     def test_customer_domain_login_does_not_redirect_without_multi_region(self) -> None:
         organization = self.create_organization(slug="customer-domain-org")
