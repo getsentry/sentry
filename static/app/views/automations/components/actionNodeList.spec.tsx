@@ -169,9 +169,32 @@ describe('ActionNodeList', () => {
   });
 
   it('shows an error for actions with unavailable handlers', async () => {
+    const orgWithAlertRule = OrganizationFixture({features: ['integrations-alert-rule']});
+    MockApiClient.addMockResponse({
+      url: `/organizations/${orgWithAlertRule.slug}/available-actions/`,
+      body: [], // No available actions
+    });
+
+    const slackAction = ActionFixture();
+    render(
+      <AutomationBuilderTestProvider>
+        <ActionNodeList {...defaultProps} actions={[slackAction]} />
+      </AutomationBuilderTestProvider>,
+      {organization: orgWithAlertRule}
+    );
+
+    expect(
+      await screen.findByText(
+        'The Slack action is no longer available. Please remove and reconfigure this action.'
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Delete row'})).toBeInTheDocument();
+  });
+
+  it('shows plan copy for unavailable actions the plan does not include', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/available-actions/`,
-      body: [], // No available actions
+      body: [],
     });
 
     const slackAction = ActionFixture();
@@ -184,7 +207,7 @@ describe('ActionNodeList', () => {
 
     expect(
       await screen.findByText(
-        'The Slack action is no longer available. Please remove and reconfigure this action.'
+        'Your plan no longer includes Slack alerts. Remove this action to save changes, or upgrade your plan to keep it.'
       )
     ).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Delete row'})).toBeInTheDocument();

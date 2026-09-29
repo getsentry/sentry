@@ -8,6 +8,7 @@ import {Select, components as selectComponents} from '@sentry/scraps/select';
 
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import type {Organization} from 'sentry/types/organization';
 import {
   ActionGroup,
   ActionType,
@@ -57,6 +58,44 @@ function getActionHandler(
     });
   }
   return availableActions.find(handler => handler.type === action.type);
+}
+
+// Org features an action type needs, mirroring the backend's is_action_permitted
+const ACTION_TYPE_REQUIRED_FEATURES: Partial<Record<ActionType, string[]>> = {
+  [ActionType.SLACK]: ['integrations-alert-rule'],
+  [ActionType.DISCORD]: ['integrations-alert-rule'],
+  [ActionType.MSTEAMS]: ['integrations-alert-rule'],
+  [ActionType.PAGERDUTY]: ['integrations-alert-rule', 'integrations-incident-management'],
+  [ActionType.OPSGENIE]: [
+    'integrations-enterprise-alert-rule',
+    'integrations-enterprise-incident-management',
+  ],
+};
+
+function isActionTypeExcludedByPlan(actionType: ActionType, organization: Organization) {
+  const requiredFeatures = ACTION_TYPE_REQUIRED_FEATURES[actionType] ?? [];
+  return requiredFeatures.some(feature => !organization.features.includes(feature));
+}
+
+function getUnavailableActionMessage(
+  action: Action,
+  actionLabel: string | undefined,
+  organization: Organization
+) {
+  if (actionLabel && isActionTypeExcludedByPlan(action.type, organization)) {
+    return t(
+      'Your plan no longer includes %s alerts. Remove this action to save changes, or upgrade your plan to keep it.',
+      actionLabel
+    );
+  }
+  return actionLabel
+    ? t(
+        'The %s action is no longer available. Please remove and reconfigure this action.',
+        actionLabel
+      )
+    : t(
+        'The integration is no longer available. Please remove and reconfigure this action.'
+      );
 }
 
 export function ActionNodeList({
@@ -135,16 +174,11 @@ export function ActionNodeList({
                 onDeleteRow(action.id);
               }}
               hasError
-              errorMessage={
-                actionLabel
-                  ? t(
-                      'The %s action is no longer available. Please remove and reconfigure this action.',
-                      actionLabel
-                    )
-                  : t(
-                      'The integration is no longer available. Please remove and reconfigure this action.'
-                    )
-              }
+              errorMessage={getUnavailableActionMessage(
+                action,
+                actionLabel,
+                organization
+              )}
             >
               {actionLabel ?? t('Unknown integration')}
             </AutomationBuilderRow>
