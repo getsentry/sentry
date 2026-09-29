@@ -25,10 +25,12 @@ export function CollapsedGapMarkers({
   const compression = useSyncExternalStore(subscribe, getSnapshot);
 
   useLayoutEffect(() => {
-    // Refresh label overlap positions after React has reconciled the marker refs.
+    if (compression !== manager.time_compression) {
+      return;
+    }
+
+    // Redraw after React has reconciled marker refs for the current snapshot.
     manager.draw();
-    // The compression snapshot triggers this draw after each marker update.
-    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [manager, compression]);
 
   return compression.gaps.map((gap, index) => (
