@@ -72,6 +72,31 @@ describe('BackendJsonSubmitForm', () => {
       );
     });
 
+    it('passes native input constraints to text fields', () => {
+      render(
+        <BackendJsonSubmitForm
+          fields={[
+            {
+              name: 'expires_at',
+              type: 'string',
+              label: 'Expires At',
+              inputType: 'datetime-local',
+              maxLength: 64,
+            },
+          ]}
+          onSubmit={onSubmit}
+          submitLabel="Save"
+        />,
+        {organization: org}
+      );
+
+      expect(screen.getByLabelText('Expires At')).toHaveAttribute(
+        'type',
+        'datetime-local'
+      );
+      expect(screen.getByLabelText('Expires At')).toHaveAttribute('maxlength', '64');
+    });
+
     it('renders textarea field', () => {
       render(
         <BackendJsonSubmitForm
