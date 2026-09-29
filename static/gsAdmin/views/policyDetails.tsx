@@ -1,4 +1,4 @@
-import {useQueryClient} from '@tanstack/react-query';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
 import {Link} from '@sentry/scraps/link';
@@ -8,8 +8,8 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ConfigStore} from 'sentry/stores/configStore';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useParams} from 'sentry/utils/useParams';
 
@@ -27,26 +27,20 @@ export function PolicyDetails() {
   const api = useApi();
   const queryClient = useQueryClient();
   const {policySlug} = useParams<{policySlug: string}>();
-  const policyUrl = getApiUrl('/policies/$policySlug/', {
+  const policyQueryOptions = apiOptions.as<Policy>()('/policies/$policySlug/', {
     path: {policySlug},
+    staleTime: 0,
   });
   const revisionsUrl = getApiUrl('/policies/$policySlug/revisions/', {
     path: {policySlug},
   });
   const invalidatePolicyQueries = () =>
     Promise.all([
-      queryClient.invalidateQueries({queryKey: [policyUrl]}),
+      queryClient.invalidateQueries({queryKey: policyQueryOptions.queryKey}),
       queryClient.invalidateQueries({queryKey: [revisionsUrl]}),
     ]);
 
-  const {
-    data: policy,
-    isPending,
-    isError,
-    refetch,
-  } = useApiQuery<Policy>([policyUrl], {
-    staleTime: 0,
-  });
+  const {data: policy, isPending, isError, refetch} = useQuery(policyQueryOptions);
 
   if (isPending) {
     return <LoadingIndicator />;
