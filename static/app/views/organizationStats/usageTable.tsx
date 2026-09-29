@@ -153,7 +153,7 @@ function UsageTable({
               data-test-id={project.slug}
               size="xs"
               onClick={() => {
-                loadProject(parseInt(stat.project.id, 10));
+                loadProject(parseInt(project.id, 10));
               }}
             >
               {t('View Project Stats')}
