@@ -3,7 +3,6 @@ from __future__ import annotations
 import bisect
 import logging
 from collections.abc import Collection, Iterable, Sequence
-from copy import deepcopy
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from re import Match
@@ -19,7 +18,6 @@ from django.utils import timezone as django_timezone
 from sentry import analytics, audit_log, features, options
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.constants import ObjectStatus
-from sentry.db.models import Model
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.discover.arithmetic import is_equation, parse_arithmetic, strip_equation
@@ -60,7 +58,7 @@ from sentry.search.events.constants import (
 )
 from sentry.search.events.fields import is_function, resolve_field
 from sentry.seer.anomaly_detection.delete_rule import delete_rule_in_seer
-from sentry.seer.anomaly_detection.store_data import send_new_rule_data, update_rule_data_legacy
+from sentry.seer.anomaly_detection.store_data import send_new_rule_data
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation, app_service
 from sentry.shared_integrations.exceptions import (
     ApiTimeoutError,
@@ -82,21 +80,18 @@ from sentry.snuba.subscriptions import (
     bulk_disable_snuba_subscriptions,
     bulk_enable_snuba_subscriptions,
     create_snuba_query,
-    update_snuba_query,
 )
 from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.types.actor import Actor
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.utils.audit import create_audit_entry_from_user
-from sentry.utils.not_set import NOT_SET, NotSet
 from sentry.utils.snuba import is_measurement
 from sentry.workflow_engine.models.detector import Detector
 
 CRITICAL_TRIGGER_LABEL = "critical"
 WARNING_TRIGGER_LABEL = "warning"
 DYNAMIC_TIME_WINDOWS = {5, 15, 30, 60}
-DYNAMIC_TIME_WINDOWS_SECONDS = {window * 60 for window in DYNAMIC_TIME_WINDOWS}
 INVALID_TIME_WINDOW = f"Invalid time window for dynamic alert (valid windows are {', '.join(map(str, DYNAMIC_TIME_WINDOWS))} minutes)"
 INVALID_ALERT_THRESHOLD = "Dynamic alerts cannot have a nonzero alert threshold"
 
@@ -494,72 +489,6 @@ def subscribe_projects_to_alert_rule(
     )
 
 
-def snapshot_alert_rule(alert_rule: AlertRule, user: RpcUser | User | None = None) -> None:
-    def nullify_id(model: Model) -> None:
-        """Set the id field to null.
-
-        This coerces the `save` method to create a new object.
-
-        TODO: Refactor to not violate the type system
-        """
-        model.id = None
-
-    # Creates an archived alert_rule using the same properties as the passed rule
-    # It will also resolve any incidents attached to this rule.
-    with transaction.atomic(router.db_for_write(AlertRuleActivity)):
-        triggers = AlertRuleTrigger.objects.filter(alert_rule=alert_rule)
-        incidents = Incident.objects.filter(alert_rule=alert_rule)
-        snuba_query_snapshot: SnubaQuery = deepcopy(_unpack_snuba_query(alert_rule))
-        nullify_id(snuba_query_snapshot)
-        snuba_query_snapshot.save()
-
-        event_types = SnubaQueryEventType.objects.filter(
-            snuba_query=_unpack_snuba_query(alert_rule)
-        )
-        new_event_snapshots = []
-        for event_type in event_types:
-            event_type_snapshot = deepcopy(event_type)
-            nullify_id(event_type_snapshot)
-            event_type_snapshot.snuba_query = snuba_query_snapshot
-            new_event_snapshots.append(event_type_snapshot)
-
-        SnubaQueryEventType.objects.bulk_create(new_event_snapshots)
-
-        alert_rule_snapshot = deepcopy(alert_rule)
-        nullify_id(alert_rule_snapshot)
-        alert_rule_snapshot.status = AlertRuleStatus.SNAPSHOT.value
-        alert_rule_snapshot.snuba_query = snuba_query_snapshot
-        if alert_rule.user_id or alert_rule.team_id:
-            alert_rule_snapshot.user_id = alert_rule.user_id
-            alert_rule_snapshot.team_id = alert_rule.team_id
-        alert_rule_snapshot.save()
-        AlertRuleActivity.objects.create(
-            alert_rule=alert_rule_snapshot,
-            previous_alert_rule=alert_rule,
-            user_id=user.id if user else None,
-            type=AlertRuleActivityType.SNAPSHOT.value,
-        )
-
-        incidents.update(alert_rule=alert_rule_snapshot)
-
-        for trigger in triggers:
-            actions = AlertRuleTriggerAction.objects.filter(alert_rule_trigger=trigger)
-            nullify_id(trigger)
-            trigger.alert_rule = alert_rule_snapshot
-            trigger.save()
-            for action in actions:
-                nullify_id(action)
-                action.alert_rule_trigger = trigger
-                action.save()
-
-        transaction.on_commit(
-            lambda: tasks.auto_resolve_snapshot_incidents.apply_async(
-                kwargs={"alert_rule_id": alert_rule_snapshot.id},
-            ),
-            using=router.db_for_write(Incident),
-        )
-
-
 def delete_anomaly_detection_rule(snuba_query: SnubaQuery, alert_rule: AlertRule) -> None:
     """
     Delete accompanying data in Seer for anomaly detection rules
@@ -582,274 +511,6 @@ def delete_anomaly_detection_rule(snuba_query: SnubaQuery, alert_rule: AlertRule
             "Snuba query missing query subscription",
             extra={"snuba_query_id": snuba_query.id},
         )
-
-
-def update_alert_rule(
-    alert_rule: AlertRule,
-    query_type: SnubaQuery.Type | None = None,
-    dataset: Dataset | None = None,
-    projects: Sequence[Project] | None = None,
-    name: str | None = None,
-    owner: Actor | None | NotSet = NOT_SET,
-    query: str | None = None,
-    aggregate: str | None = None,
-    time_window: int | None = None,
-    environment: Environment | None = None,
-    threshold_type: AlertRuleThresholdType | None = None,
-    threshold_period: int | None = None,
-    resolve_threshold: int | float | NotSet = NOT_SET,
-    user: RpcUser | None = None,
-    event_types: Collection[SnubaQueryEventType.EventType] | None = None,
-    comparison_delta: int | None | NotSet = NOT_SET,
-    description: str | None = None,
-    sensitivity: AlertRuleSensitivity | None | NotSet = NOT_SET,
-    seasonality: AlertRuleSeasonality | None | NotSet = NOT_SET,
-    detection_type: AlertRuleDetectionType | None = None,
-    extrapolation_mode: ExtrapolationMode | None = None,
-    **kwargs: Any,
-) -> AlertRule:
-    """
-    Updates an alert rule.
-
-    :param alert_rule: The alert rule to update
-    :param name: Name for the alert rule. This will be used as part of the
-    incident name, and must be unique per project.
-    :param owner: Actor (sentry.types.actor.Actor) or None
-    :param query: An event search query to subscribe to and monitor for alerts
-    :param aggregate: A string representing the aggregate used in this alert rule
-    :param time_window: Time period to aggregate over, in minutes.
-    :param environment: An optional environment that this rule applies to
-    :param threshold_type: An AlertRuleThresholdType
-    :param threshold_period: How many update periods the value of the
-    subscription needs to exceed the threshold before triggering
-    :param resolve_threshold: Optional value that the subscription needs to reach to
-    resolve the alert
-    :param event_types: List of `EventType` that this alert will be related to
-    :param comparison_delta: An optional int representing the time delta to use to determine the
-    comparison period. In minutes.
-    :param description: An optional str that will be rendered in the notification
-    :param sensitivity: An AlertRuleSensitivity that specifies sensitivity of anomaly detection alerts
-    :param seasonality: An AlertRuleSeasonality that specifies seasonality of anomaly detection alerts
-    :param detection_type: the type of metric alert; defaults to AlertRuleDetectionType.STATIC
-    :return: The updated `AlertRule`
-    """
-
-    snuba_query = _unpack_snuba_query(alert_rule)
-    organization = _unpack_organization(alert_rule)
-
-    updated_fields: dict[str, Any] = {"date_modified": django_timezone.now()}
-    updated_query_fields: dict[str, Any] = {}
-    if name:
-        updated_fields["name"] = name
-    if description:
-        updated_fields["description"] = description
-    if sensitivity is not NOT_SET:
-        updated_fields["sensitivity"] = sensitivity
-    if seasonality is not NOT_SET:
-        updated_fields["seasonality"] = seasonality
-    if query is not None:
-        updated_query_fields["query"] = query
-    if aggregate is not None:
-        updated_query_fields["aggregate"] = aggregate
-    if time_window:
-        updated_query_fields["time_window"] = timedelta(minutes=time_window)
-    if threshold_type:
-        updated_fields["threshold_type"] = threshold_type.value
-    if resolve_threshold is not NOT_SET:
-        updated_fields["resolve_threshold"] = resolve_threshold
-    if threshold_period:
-        updated_fields["threshold_period"] = threshold_period
-    if dataset is not None:
-        if dataset.value != snuba_query.dataset:
-            updated_query_fields["dataset"] = dataset
-    if query_type is not None:
-        updated_query_fields["query_type"] = query_type
-    if event_types is not None:
-        updated_query_fields["event_types"] = event_types
-    if extrapolation_mode is not None:
-        updated_query_fields["extrapolation_mode"] = extrapolation_mode
-    if owner is not NOT_SET:
-        updated_fields["owner"] = owner
-    if comparison_delta is not NOT_SET:
-        if comparison_delta is not None:
-            # Since comparison alerts make twice as many queries, run the queries less frequently.
-            comparison_delta = int(timedelta(minutes=comparison_delta).total_seconds())
-
-        updated_fields["comparison_delta"] = comparison_delta
-    if detection_type is None:
-        if "comparison_delta" in updated_fields:  # some value changed -> update type if necessary
-            if comparison_delta is not None:
-                detection_type = AlertRuleDetectionType.PERCENT
-            else:
-                detection_type = AlertRuleDetectionType.STATIC
-
-    # if we modified the comparison_delta or the time_window, we should update the resolution accordingly
-    if "comparison_delta" in updated_fields or "time_window" in updated_query_fields:
-        window = int(
-            updated_query_fields.get(
-                "time_window", timedelta(seconds=snuba_query.time_window)
-            ).total_seconds()
-            / 60
-        )
-
-        resolution = get_alert_resolution(window, organization=organization)
-        resolution_comparison_delta = updated_fields.get(
-            "comparison_delta", alert_rule.comparison_delta
-        )
-
-        if resolution_comparison_delta is not None:
-            resolution *= DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER
-
-        updated_query_fields["resolution"] = resolution
-
-    if detection_type:
-        updated_fields["detection_type"] = detection_type
-        # make sure we clear the incorrect fields for each detection type
-        if detection_type == AlertRuleDetectionType.STATIC:
-            updated_fields["sensitivity"] = None
-            updated_fields["seasonality"] = None
-            updated_fields["comparison_delta"] = None
-        elif detection_type == AlertRuleDetectionType.PERCENT:
-            updated_fields["sensitivity"] = None
-            updated_fields["seasonality"] = None
-        elif detection_type == AlertRuleDetectionType.DYNAMIC:
-            if time_window is not None:
-                updated_query_fields["resolution"] = timedelta(minutes=time_window)
-            else:
-                # snuba_query.time_window is already in seconds
-                updated_query_fields["resolution"] = timedelta(seconds=snuba_query.time_window)
-            # NOTE: we set seasonality for EA
-            updated_fields["seasonality"] = AlertRuleSeasonality.AUTO
-            updated_fields["comparison_delta"] = None
-            if (
-                (time_window not in DYNAMIC_TIME_WINDOWS)
-                if time_window is not None
-                else (snuba_query.time_window not in DYNAMIC_TIME_WINDOWS_SECONDS)
-            ):
-                raise ValidationError(INVALID_TIME_WINDOW)
-
-    with transaction.atomic(router.db_for_write(AlertRuleActivity)):
-        incidents = Incident.objects.filter(alert_rule=alert_rule).exists()
-        if incidents:
-            snapshot_alert_rule(alert_rule, user)
-
-        if "owner" in updated_fields:
-            alert_rule.owner = updated_fields.pop("owner", None)
-            # This is clunky but Model.update() uses QuerySet.update()
-            # and doesn't persist other dirty attributes in the model
-            updated_fields["user_id"] = alert_rule.user_id
-            updated_fields["team_id"] = alert_rule.team_id
-
-        if detection_type == AlertRuleDetectionType.DYNAMIC:
-            if not features.has("organizations:anomaly-detection-alerts", organization):
-                raise ResourceDoesNotExist(
-                    "Your organization does not have access to this feature."
-                )
-            if query and "is:unresolved" in query:
-                raise ValidationError("Dynamic alerts do not support 'is:unresolved' queries")
-            # NOTE: if adding a new metric alert type, take care to check that it's handled here
-            project = projects[0] if projects else alert_rule.projects.get()
-            update_rule_data_legacy(
-                alert_rule, project, snuba_query, updated_fields, updated_query_fields
-            )
-        else:
-            if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC:
-                delete_anomaly_detection_rule(snuba_query, alert_rule)
-            # if this alert was previously a dynamic alert, then we should update the rule to be ready
-            if alert_rule.status == AlertRuleStatus.NOT_ENOUGH_DATA.value:
-                alert_rule.update(status=AlertRuleStatus.PENDING.value)
-
-        with transaction.atomic(router.db_for_write(AlertRule)):
-            alert_rule.update(**updated_fields)
-
-        AlertRuleActivity.objects.create(
-            alert_rule=alert_rule,
-            user_id=user.id if user else None,
-            type=AlertRuleActivityType.UPDATED.value,
-        )
-
-        if updated_query_fields or environment != snuba_query.environment:
-            updated_query_fields.setdefault("query_type", SnubaQuery.Type(snuba_query.type))
-            updated_query_fields.setdefault("dataset", Dataset(snuba_query.dataset))
-            updated_query_fields.setdefault("query", snuba_query.query)
-            updated_query_fields.setdefault("aggregate", snuba_query.aggregate)
-            updated_query_fields.setdefault(
-                "time_window", timedelta(seconds=snuba_query.time_window)
-            )
-            updated_query_fields.setdefault("event_types", None)
-            updated_query_fields.setdefault(
-                "extrapolation_mode", ExtrapolationMode(snuba_query.extrapolation_mode)
-            )
-            if (
-                detection_type == AlertRuleDetectionType.DYNAMIC
-                and alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC
-            ):
-                updated_query_fields.setdefault("resolution", snuba_query.resolution)
-            else:
-                updated_query_fields.setdefault(
-                    "resolution", timedelta(seconds=snuba_query.resolution)
-                )
-            update_snuba_query(snuba_query, environment=environment, **updated_query_fields)
-
-        existing_subs: Iterable[QuerySubscription] = ()
-        if (
-            query is not None
-            or aggregate is not None
-            or time_window is not None
-            or projects is not None
-        ):
-            existing_subs = snuba_query.subscriptions.all().select_related("project")
-
-        new_projects: Iterable[Project] = ()
-        deleted_subs: Iterable[QuerySubscription] = ()
-
-        if projects is not None:
-            # All project slugs that currently exist for the alert rule
-            existing_project_slugs = {sub.project.slug for sub in existing_subs}
-
-            # All project slugs being provided as part of the update
-            updated_project_slugs = {project.slug for project in projects}
-
-            # Set of projects provided in the update, but don't already exist
-            new_projects = [
-                project for project in projects if project.slug not in existing_project_slugs
-            ]
-
-            # Delete any projects for the alert rule that were removed as part of this update
-            AlertRuleProjects.objects.filter(
-                alert_rule_id=alert_rule.id,  # for the alert rule
-                project__slug__in=existing_project_slugs,  # that are in the existing project slugs
-            ).exclude(
-                project__slug__in=updated_project_slugs  # but not included with the updated project slugs
-            ).delete()
-
-            # Add any new projects to the alert rule
-            for project in new_projects:
-                alert_rule.projects.add(project)
-            # Find any subscriptions that were removed as part of this update
-            deleted_subs = [
-                sub for sub in existing_subs if sub.project.slug not in updated_project_slugs
-            ]
-
-        if new_projects:
-            subscribe_projects_to_alert_rule(alert_rule, new_projects)
-
-        if deleted_subs:
-            bulk_delete_snuba_subscriptions(deleted_subs)
-
-    if user:
-        create_audit_entry_from_user(
-            user,
-            ip_address=kwargs.get("ip_address") if kwargs else None,
-            organization_id=alert_rule.organization_id,
-            target_object=alert_rule.id,
-            data=alert_rule.get_audit_log_data(),
-            event=audit_log.get_event_id("ALERT_RULE_EDIT"),
-        )
-
-    schedule_update_project_config(alert_rule, projects)
-
-    return alert_rule
 
 
 def enable_disable_subscriptions(
@@ -968,48 +629,6 @@ def create_alert_rule_trigger(
     return trigger
 
 
-def update_alert_rule_trigger(
-    trigger: AlertRuleTrigger,
-    label: str | None = None,
-    alert_threshold: int | float | None = None,
-) -> AlertRuleTrigger:
-    """
-    :param trigger: The AlertRuleTrigger to update
-    :param label: A description of the trigger
-    :param alert_threshold: Value that the subscription needs to reach to trigger the
-    alert rule
-    :return: The updated AlertRuleTrigger
-    """
-    if (
-        AlertRuleTrigger.objects.filter(alert_rule=trigger.alert_rule, label=label)
-        .exclude(id=trigger.id)
-        .exists()
-    ):
-        raise AlertRuleTriggerLabelAlreadyUsedError()
-
-    if trigger.alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC and alert_threshold != 0:
-        raise ValidationError(INVALID_ALERT_THRESHOLD)
-
-    updated_fields: dict[str, Any] = {}
-    if label is not None:
-        updated_fields["label"] = label
-    if alert_threshold is not None:
-        updated_fields["alert_threshold"] = alert_threshold
-
-    with transaction.atomic(router.db_for_write(AlertRuleTrigger)):
-        if updated_fields:
-            trigger.update(**updated_fields)
-
-    return trigger
-
-
-def delete_alert_rule_trigger(trigger: AlertRuleTrigger) -> None:
-    """
-    Deletes an AlertRuleTrigger
-    """
-    trigger.delete()
-
-
 def create_alert_rule_trigger_action(
     trigger: AlertRuleTrigger,
     type: ActionService,
@@ -1083,91 +702,6 @@ def create_alert_rule_trigger_action(
             sentry_app_id=sentry_app_id,
             sentry_app_config=sentry_app_config,
         )
-    return trigger_action
-
-
-def update_alert_rule_trigger_action(
-    trigger_action: AlertRuleTriggerAction,
-    type: ActionService | None = None,
-    target_type: ActionTarget | None = None,
-    target_identifier: str | None = None,
-    integration_id: int | None = None,
-    sentry_app_id: int | None = None,
-    use_async_lookup: bool = False,
-    input_channel_id: str | None = None,
-    sentry_app_config: list[dict[str, Any]] | dict[str, Any] | None = None,
-    installations: list[RpcSentryAppInstallation] | None = None,
-    integrations: list[RpcIntegration] | None = None,
-    priority: str | None = None,
-) -> AlertRuleTriggerAction:
-    """
-    Updates values on an AlertRuleTriggerAction
-    :param trigger_action: The trigger action to update
-    :param type: Which sort of action to take
-    :param target_type: Which type of target to send to
-    :param target_identifier: The identifier of the target
-    :param integration_id: (Optional) The ID of the Integration related to this action.
-    :param sentry_app_id: (Optional) The ID of the SentryApp related to this action.
-    :param use_async_lookup: (Optional) Longer lookup for the Slack channel async job
-    :param input_channel_id: (Optional) Slack channel ID. If provided skips lookup
-    :return:
-    """
-
-    updated_fields: dict[str, Any] = {}
-    if type is not None:
-        updated_fields["type"] = type.value
-    if target_type is not None:
-        updated_fields["target_type"] = target_type.value
-    if integration_id is not None:
-        updated_fields["integration_id"] = integration_id
-    if sentry_app_id is not None:
-        updated_fields["sentry_app_id"] = sentry_app_id
-    if sentry_app_config is not None:
-        updated_fields["sentry_app_config"] = sentry_app_config
-    if target_identifier is not None:
-        type = updated_fields.get("type", trigger_action.type)
-
-        if type in AlertRuleTriggerAction.INTEGRATION_TYPES:
-            integration_id = updated_fields.get("integration_id", trigger_action.integration_id)
-            organization = _unpack_organization(trigger_action.alert_rule_trigger.alert_rule)
-
-            target = get_target_identifier_display_for_integration(
-                type,
-                target_identifier,
-                organization,
-                integration_id,
-                use_async_lookup=use_async_lookup,
-                input_channel_id=input_channel_id,
-                integrations=integrations,
-            )
-            updated_fields["target_display"] = target.display
-
-        elif type == AlertRuleTriggerAction.Type.SENTRY_APP.value:
-            sentry_app_id = updated_fields.get("sentry_app_id", trigger_action.sentry_app_id)
-            organization = _unpack_organization(trigger_action.alert_rule_trigger.alert_rule)
-
-            target = _get_alert_rule_trigger_action_sentry_app(
-                organization, sentry_app_id, installations
-            )
-            updated_fields["target_display"] = target.display
-
-        else:
-            target = AlertTarget(target_identifier, None)
-
-        updated_fields["target_identifier"] = target.identifier
-
-    # store priority in the json sentry_app_config
-    if priority is not None and type in [
-        ActionService.PAGERDUTY,
-        ActionService.OPSGENIE,
-    ]:
-        if updated_fields.get("sentry_app_config"):
-            updated_fields["sentry_app_config"].update({"priority": priority})
-        else:
-            updated_fields["sentry_app_config"] = {"priority": priority}
-
-    with transaction.atomic(router.db_for_write(AlertRuleTriggerAction)):
-        trigger_action.update(**updated_fields)
     return trigger_action
 
 
@@ -1405,15 +939,6 @@ def _get_alert_rule_trigger_action_sentry_app(
     raise InvalidTriggerActionError("No SentryApp found.")
 
 
-def delete_alert_rule_trigger_action(trigger_action: AlertRuleTriggerAction) -> None:
-    """
-    Schedules a deletion for a AlertRuleTriggerAction, and marks it as pending deletion.
-    Marking it as pending deletion should filter out the object through the manager when querying.
-    """
-    CellScheduledDeletion.schedule(instance=trigger_action, days=0)
-    trigger_action.update(status=ObjectStatus.PENDING_DELETION)
-
-
 # TODO: This is temporarily needed to support back and forth translations for snuba / frontend.
 # Uses a function from discover to break the aggregate down into parts, and then compare the "field"
 # to a list of accepted fields, or a list of fields we need to translate.
@@ -1559,22 +1084,6 @@ def translate_aggregate_field(
                 if translated_field == column:
                     return aggregate.replace(column, field)
     return aggregate
-
-
-def rewrite_trigger_action_fields(action_data: dict[str, Any]) -> dict[str, Any]:
-    if "integration_id" in action_data:
-        action_data["integration"] = action_data.pop("integration_id")
-    elif "integrationId" in action_data:
-        action_data["integration"] = action_data.pop("integrationId")
-
-    if "sentry_app_id" in action_data:
-        action_data["sentry_app"] = action_data.pop("sentry_app_id")
-    elif "sentryAppId" in action_data:
-        action_data["sentry_app"] = action_data.pop("sentryAppId")
-
-    if "settings" in action_data:
-        action_data["sentry_app_config"] = action_data.pop("settings")
-    return action_data
 
 
 def schedule_update_project_config(

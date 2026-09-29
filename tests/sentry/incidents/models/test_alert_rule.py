@@ -1,7 +1,7 @@
 import pytest
 from django.core.cache import cache
 
-from sentry.incidents.logic import delete_alert_rule, update_alert_rule
+from sentry.incidents.logic import delete_alert_rule
 from sentry.incidents.models.alert_rule import (
     AlertRule,
     AlertRuleActivity,
@@ -258,18 +258,6 @@ class AlertRuleActivityTest(TestCase):
         delete_alert_rule(self.alert_rule)
         assert AlertRuleActivity.objects.filter(
             alert_rule=self.alert_rule, type=AlertRuleActivityType.DELETED.value
-        ).exists()
-
-    def test_update(self) -> None:
-        assert AlertRuleActivity.objects.all().count() == 0
-        self.alert_rule = self.create_alert_rule()
-        self.create_incident(alert_rule=self.alert_rule, projects=[self.project])
-        update_alert_rule(self.alert_rule, name="updated_name")
-        assert AlertRuleActivity.objects.filter(
-            previous_alert_rule=self.alert_rule, type=AlertRuleActivityType.SNAPSHOT.value
-        ).exists()
-        assert AlertRuleActivity.objects.filter(
-            alert_rule=self.alert_rule, type=AlertRuleActivityType.UPDATED.value
         ).exists()
 
 

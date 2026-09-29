@@ -232,9 +232,9 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
         assert condition_group.organization_id == self.project.organization_id
 
         # Verify conditions in DB
-        conditions = list(DataCondition.objects.filter(condition_group=condition_group))
-        assert len(conditions) == 2
-        condition = conditions[0]
+        conditions = DataCondition.objects.filter(condition_group=condition_group)
+        assert conditions.count() == 2
+        condition = conditions.get(condition_result=DetectorPriorityLevel.HIGH)
         assert condition.type == Condition.GREATER
         assert condition.comparison == 100
         assert condition.condition_result == DetectorPriorityLevel.HIGH
