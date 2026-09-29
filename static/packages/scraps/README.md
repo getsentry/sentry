@@ -1,34 +1,29 @@
 # Scraps
 
-Scraps owns the isolated design-system components, themes, tokens, and tests in
-[src](./src). The remaining components and their MDX stories live in
-[the app](../../app/components/core).
+Scraps is the implementation of FSL, Sentry's design system. It contains the
+components, themes, and design tokens used to build Sentry's product interface.
 
-## Use package sources in Sentry
+The source code is open, but FSL is designed for Sentry and is not intended for
+use in other products. This package is not a general-purpose design system.
 
-TypeScript, Rspack, Jest, and Figma resolve `@sentry/scraps/*` from `src` first,
-then fall back to `static/app/components/core/*` for unmigrated modules. The
-app keeps the exact `@sentry/scraps/text` alias on the core barrel while it still
-exports `Prose`. The core `code` and `hotkey` barrels also remain in the app.
-These barrels re-export migrated implementations from the package.
+## Development in Sentry
 
-Move components and their tests into `src` as they become isolated. Stories
-remain in the app. Once all components are migrated, remove the core fallback
-and use a workspace dependency.
+The package source lives in [src](./src). Component stories remain in the app.
 
-The [Scraps contribution guide](../../app/components/core/overview/contributing.mdx)
-identifies Figma as the source of truth for design tokens. Change tokens through
-that source process.
+Move components and their tests into `src` as they become isolated. The
+[Scraps contribution guide](../../app/components/core/overview/contributing.mdx)
+covers component contributions and the Figma process for changing design tokens.
 
-## Test the package
-
-From the repository root:
+Run package checks from the repository root:
 
 ```sh
 pnpm --dir static/packages/scraps test
 pnpm --dir static/packages/scraps typecheck
 ```
 
-Tests import `render` and `renderHook` from `test/env`; both include the default
-light-theme provider. Jest setup and the copied `getEmotionRules` helper also
-live under `test/env`. No Sentry providers or test aliases are used.
+To check package imports through the Sentry app's aliases, run the app
+integration test:
+
+```sh
+pnpm test-ci static/app/components/core/scraps.spec.tsx
+```

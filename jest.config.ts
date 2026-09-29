@@ -270,6 +270,7 @@ const config: Config.InitialOptions = {
     '^sentry/(.*)': '<rootDir>/static/app/$1',
     '^@sentry/scraps/text$': '<rootDir>/static/app/components/core/text',
     '^@sentry/scraps$': '<rootDir>/static/packages/scraps/src/index.ts',
+    // The app falls back to core components until they move into scraps.
     '^@sentry/scraps/(.*)$': [
       '<rootDir>/static/packages/scraps/src/$1',
       '<rootDir>/static/app/components/core/$1',

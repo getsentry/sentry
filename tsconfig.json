@@ -48,6 +48,7 @@
     "paths": {
       "@sentry/scraps/text": ["./static/app/components/core/text/index.tsx"],
       "@sentry/scraps": ["./static/packages/scraps/src/index.ts"],
+      // The app falls back to core components until they move into scraps.
       "@sentry/scraps/*": [
         "./static/packages/scraps/src/*",
         "./static/app/components/core/*"
@@ -79,6 +80,7 @@
   "exclude": [
     "./node_modules",
     "static/app/serviceWorker/worker",
+    "static/packages/scraps/src/**/*.spec.ts",
     "static/packages/scraps/src/**/*.spec.tsx"
   ]
 }
