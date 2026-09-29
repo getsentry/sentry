@@ -1,7 +1,8 @@
-import {Fragment, useState} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 import moment from 'moment-timezone';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
@@ -63,11 +64,11 @@ const getRow = ({row, policy, onUpdate}: RowProps) => {
 };
 
 export function PolicyRevisions({policy, onUpdate}: Props) {
-  const [cursor, setCursor] = useState<string | undefined>();
+  const [cursor, setCursor] = useQueryState('cursor', parseAsString);
   const {data, isPending, isError, refetch} = useQuery({
     ...apiOptions.as<PolicyRevision[]>()('/policies/$policySlug/revisions/', {
       path: {policySlug: policy.slug},
-      query: {cursor, per_page: 10},
+      query: {cursor: cursor ?? undefined, per_page: 10},
       staleTime: 0,
     }),
     select: selectJsonWithHeaders,
@@ -102,7 +103,7 @@ export function PolicyRevisions({policy, onUpdate}: Props) {
       </Panel>
       <Pagination
         pageLinks={data?.headers.Link}
-        onCursor={nextCursor => setCursor(nextCursor)}
+        onCursor={nextCursor => setCursor(nextCursor ?? null, {history: 'push'})}
       />
     </Fragment>
   );
