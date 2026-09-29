@@ -228,11 +228,21 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
 
     if (wasVisible && !isVisible && !isRedocking) {
       removeRunIdParam();
+      // An unanswered "Ask Seer" question doesn't outlive the panel it was shown in.
+      dispatch({type: 'set chat prompt', payload: null});
     }
-  }, [isOpen, isPoppedOut, removeRunIdParam]);
+  }, [isOpen, isPoppedOut, removeRunIdParam, dispatch]);
 
   const openSeerExplorer = useCallback(
     (drawerOptions?: OpenSeerExplorerDrawerOptions) => {
+      // Join the conversation on screen; with Explorer closed, the last run may be
+      // unrelated, so start a new chat. Shared chat state reaches the popped-out window.
+      if (drawerOptions?.chatPrompt) {
+        if (!isOpen && !isPoppedOut) {
+          dispatch({type: 'set run id', payload: null});
+        }
+        dispatch({type: 'set chat prompt', payload: drawerOptions.chatPrompt});
+      }
       if (pipWindow) {
         pipWindow.focus();
         return;
@@ -262,7 +272,15 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
       }
       openSeerExplorerDrawer(drawerOptions);
     },
-    [pipWindow, isSidebarMode, dispatch, openSidebar, openSeerExplorerDrawer]
+    [
+      pipWindow,
+      isSidebarMode,
+      isOpen,
+      isPoppedOut,
+      dispatch,
+      openSidebar,
+      openSeerExplorerDrawer,
+    ]
   );
 
   // Outside the chat, "post a message" means opening the Explorer on it;

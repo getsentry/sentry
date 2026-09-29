@@ -53,6 +53,8 @@ import type {
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
+import {useAskSeer} from 'sentry/views/seerExplorer/hooks/useAskSeer';
+import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
 
 import {VisualizationWidget} from './visualizationWidget';
 import {
@@ -149,8 +151,9 @@ function WidgetCard(props: Props) {
 
   const widgetQueryError = getWidgetConfigError(props.widget, organization);
 
-  // Push widget metadata into the LLM context tree for Seer Explorer.
-  useLLMContext({
+  // Push widget metadata into the LLM context tree for Seer Explorer. The same
+  // object is the context when "Ask Seer" asks about this widget.
+  const widgetLLMContext = {
     title: props.widget.title,
     displayType: resolvedDisplayType,
     widgetType: props.widget.widgetType,
@@ -162,7 +165,18 @@ function WidgetCard(props: Props) {
       orderby: q.orderby,
     })),
     ...(widgetQueryError && {error: widgetQueryError}),
+  };
+  useLLMContext(widgetLLMContext);
+
+  const askSeer = useAskSeer({
+    prompt: props.widget.title
+      ? t('What would you like to know about the "%s" widget?', props.widget.title)
+      : t('What would you like to know about this widget?'),
+    context: widgetLLMContext,
   });
+  const canAskSeer =
+    organization.features.includes('seer-explorer-chat-prompts') &&
+    isSeerExplorerEnabled(organization);
 
   const onDataFetched = (newData: Data) => {
     if (props.onDataFetched) {
@@ -332,7 +346,8 @@ function WidgetCard(props: Props) {
         props.onDelete,
         props.onDuplicate,
         props.onEdit,
-        data?.timeseriesResults
+        data?.timeseriesResults,
+        canAskSeer ? askSeer : undefined
       )
     : [];
 

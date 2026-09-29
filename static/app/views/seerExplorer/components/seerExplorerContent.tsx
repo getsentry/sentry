@@ -42,8 +42,13 @@ import {
   NAVIGATION_MOBILE_CONTENT_HEIGHT,
   PRIMARY_HEADER_HEIGHT,
 } from 'sentry/views/navigation/constants';
+import {
+  CHAT_PROMPT_TTL_MS,
+  getBlockChatPrompt,
+} from 'sentry/views/seerExplorer/chatPrompt';
 import {AskUserQuestionBlock} from 'sentry/views/seerExplorer/components/askUserQuestionBlock';
 import {BlockComponent} from 'sentry/views/seerExplorer/components/chat';
+import {ChatPromptMessage} from 'sentry/views/seerExplorer/components/chat/chatPrompt';
 import {
   groupTranscript,
   ResponseGroup,
@@ -59,6 +64,10 @@ import {SeerExplorerHeader} from 'sentry/views/seerExplorer/components/seerExplo
 import {UpdateSlackAlert} from 'sentry/views/seerExplorer/components/updateSlackAlert';
 import {usePendingUserInput} from 'sentry/views/seerExplorer/hooks/usePendingUserInput';
 import {useSeerExplorer} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
+import {
+  useSeerExplorerChatDispatch,
+  useSeerExplorerChatState,
+} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
 import type {
   Block,
   PendingUserInput,
@@ -253,6 +262,29 @@ export function SeerExplorerContent({
     }
   }, [requestError, setInputValue]);
 
+  // An "Ask Seer" question nobody answers leaves after an hour, but not while a reply is
+  // being written. Background tabs throttle timers, so check again when the tab returns.
+  const {chatPrompt} = useSeerExplorerChatState();
+  const chatDispatch = useSeerExplorerChatDispatch();
+  const hasDraft = !!inputValue.trim();
+  useEffect(() => {
+    if (!chatPrompt || hasDraft) {
+      return;
+    }
+    const expiresAt = chatPrompt.openedAt + CHAT_PROMPT_TTL_MS;
+    const expire = () => {
+      if (Date.now() >= expiresAt) {
+        chatDispatch({type: 'set chat prompt', payload: null});
+      }
+    };
+    const timeout = window.setTimeout(expire, Math.max(expiresAt - Date.now(), 0));
+    document.addEventListener('visibilitychange', expire);
+    return () => {
+      window.clearTimeout(timeout);
+      document.removeEventListener('visibilitychange', expire);
+    };
+  }, [chatPrompt, hasDraft, chatDispatch]);
+
   const readOnly =
     sessionData?.owner_user_id !== undefined &&
     sessionData.owner_user_id !== null &&
@@ -266,7 +298,11 @@ export function SeerExplorerContent({
     for (let index = blocks.length - 1; index >= 0; index--) {
       const block = blocks[index];
       if (block?.message.role === 'user' && block.message.content?.trim()) {
-        return {insertIndex: index, query: block.message.content};
+        return {
+          insertIndex: index,
+          query: block.message.content,
+          chatPrompt: getBlockChatPrompt(block),
+        };
       }
     }
     return null;
@@ -563,7 +599,13 @@ export function SeerExplorerContent({
     if (!retryTarget || readOnly) {
       return;
     }
-    sendMessage(retryTarget.query, retryTarget.insertIndex);
+    // Seer rebuilds the retried message from this request, so resend the question it answered.
+    sendMessage(
+      retryTarget.query,
+      retryTarget.insertIndex,
+      undefined,
+      retryTarget.chatPrompt
+    );
     userScrolledUpRef.current = false;
   }, [readOnly, retryTarget, sendMessage]);
 
@@ -589,6 +631,22 @@ export function SeerExplorerContent({
     pendingComposerFocusRef.current = false;
     focusInput();
   }, [readOnly, showLoadError, focusInput]);
+
+  // Bring a new "Ask Seer" question into view and focus the composer. Deferred like the
+  // open effect above, so the drawer has mounted and a closing menu can't steal focus.
+  useEffect(() => {
+    if (!chatPrompt) {
+      return;
+    }
+    userScrolledUpRef.current = false;
+    const timeout = window.setTimeout(() => {
+      if (scrollContainerRef.current) {
+        scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+      }
+      textareaRef.current?.focus();
+    }, 100);
+    return () => window.clearTimeout(timeout);
+  }, [chatPrompt]);
 
   // Auto-scroll to bottom when new blocks are added, but only if user hasn't scrolled up
   useEffect(() => {
@@ -701,7 +759,7 @@ export function SeerExplorerContent({
           <UpdateSlackAlert num_configurations={activeSlackIntegrations.length} />
         )}
         <BlocksContainer ref={scrollContainerRef} onClick={handleBlocksClick}>
-          {isEmptyState ? (
+          {isEmptyState && (!chatPrompt || showLoadError) ? (
             <EmptyState
               isLoading={isPolling}
               isError={showLoadError}
@@ -728,6 +786,7 @@ export function SeerExplorerContent({
                 respondToUserInput={respondToUserInput}
                 showThinking={showThinking}
               />
+              {chatPrompt ? <ChatPromptMessage text={chatPrompt.text} /> : null}
               {showsPendingInputBlock && requestErrorAlert}
               {showFileApprovalBlock && (
                 <FileChangeApprovalBlock
