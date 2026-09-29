@@ -357,6 +357,22 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
             }
         ]
 
+    @with_feature({"organizations:integrations-alert-rule": False})
+    def test_does_not_return_alert_rule_actions_without_feature(self) -> None:
+        self.setup_integrations()
+        self.create_integration(
+            organization=self.organization,
+            external_id="2",
+            name="My MS Teams Integration",
+            provider="msteams",
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            status_code=200,
+        )
+        assert [action["type"] for action in response.data] == [Action.Type.GITHUB]
+
     def test_integrations_with_services(self) -> None:
         self.setup_integrations_with_services()
         response = self.get_success_response(

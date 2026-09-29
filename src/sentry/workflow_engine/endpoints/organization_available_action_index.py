@@ -35,6 +35,7 @@ from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.processors.action import (
     get_available_action_integrations_for_org,
     get_integration_services,
+    is_action_permitted,
 )
 from sentry.workflow_engine.registry import action_handler_registry
 from sentry.workflow_engine.types import ActionHandler
@@ -152,6 +153,9 @@ class OrganizationAvailableActionIndexEndpoint(OrganizationEndpoint):
 
             # add integration actions
             if hasattr(handler, "provider_slug"):
+                # skip integration actions the organization's plan doesn't allow
+                if not is_action_permitted(action_type, organization):
+                    continue
                 integrations = provider_integrations.get(handler.provider_slug, [])
                 if integrations:
                     actions.append(
