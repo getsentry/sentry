@@ -57,17 +57,21 @@ class ReleaseProjectEnvironment(Model):
         return f"releaseprojectenv:{release_id}:{project_id}:{environment_id}"
 
     @classmethod
-    def get_or_create(cls, release, project, environment, datetime, **kwargs):
-        with metrics.timer("models.releaseprojectenvironment.get_or_create") as metrics_tags:
-            return cls._get_or_create_impl(
-                release, project, environment, datetime, metrics_tags, **kwargs
+    def get_or_create(cls, release, project, environment, datetime, metrics_tags=None, **kwargs):
+        with metrics.timer("models.releaseprojectenvironment.get_or_create") as timer_tags:
+            instance = cls._get_or_create_impl(
+                release, project, environment, datetime, timer_tags, **kwargs
             )
+            if metrics_tags is not None:
+                metrics_tags.update(timer_tags)
+            return instance
 
     @classmethod
     def _get_or_create_impl(cls, release, project, environment, datetime, metrics_tags, **kwargs):
         cache_key = cls.get_cache_key(project.id, release.id, environment.id)
 
         instance = cache.get(cache_key)
+        cache_hit = instance is not None
         if instance is None:
             metrics_tags["cache_hit"] = "false"
             instance, created = cls.objects.get_or_create(
@@ -83,8 +87,9 @@ class ReleaseProjectEnvironment(Model):
 
         metrics_tags["created"] = "true" if created else "false"
 
+        bumped = False
         if not created:
-            try_bump_last_seen(
+            bumped = try_bump_last_seen(
                 model_class=cls,
                 instance=instance,
                 datetime=datetime,
@@ -94,6 +99,16 @@ class ReleaseProjectEnvironment(Model):
             )
         else:
             metrics_tags["bumped"] = "false"
+
+        # A bump is a synchronous UPDATE, so it counts as db_update even on a cache hit.
+        if bumped:
+            metrics_tags["data_access"] = "db_update"
+        elif created:
+            metrics_tags["data_access"] = "db_write"
+        elif cache_hit:
+            metrics_tags["data_access"] = "cache_hit"
+        else:
+            metrics_tags["data_access"] = "db_read"
 
         return instance
 

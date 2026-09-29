@@ -38,15 +38,19 @@ class ReleaseEnvironment(Model):
         return f"releaseenv:2:{organization_id}:{release_id}:{environment_id}"
 
     @classmethod
-    def get_or_create(cls, project, release, environment, datetime, **kwargs):
-        with metrics.timer("models.releaseenvironment.get_or_create") as metric_tags:
-            return cls._get_or_create_impl(project, release, environment, datetime, metric_tags)
+    def get_or_create(cls, project, release, environment, datetime, metrics_tags=None, **kwargs):
+        with metrics.timer("models.releaseenvironment.get_or_create") as timer_tags:
+            instance = cls._get_or_create_impl(project, release, environment, datetime, timer_tags)
+            if metrics_tags is not None:
+                metrics_tags.update(timer_tags)
+            return instance
 
     @classmethod
     def _get_or_create_impl(cls, project, release, environment, datetime, metric_tags):
         cache_key = cls.get_cache_key(project.id, release.id, environment.id)
 
         instance = cache.get(cache_key)
+        cache_hit = instance is not None
         if instance is None:
             metric_tags["cache_hit"] = "false"
             instance, created = cls.objects.get_or_create(
@@ -62,8 +66,9 @@ class ReleaseEnvironment(Model):
 
         metric_tags["created"] = "true" if created else "false"
 
+        bumped = False
         if not created:
-            try_bump_last_seen(
+            bumped = try_bump_last_seen(
                 model_class=cls,
                 instance=instance,
                 datetime=datetime,
@@ -73,5 +78,15 @@ class ReleaseEnvironment(Model):
             )
         else:
             metric_tags["bumped"] = "false"
+
+        # A bump is a synchronous UPDATE, so it counts as db_update even on a cache hit.
+        if bumped:
+            metric_tags["data_access"] = "db_update"
+        elif created:
+            metric_tags["data_access"] = "db_write"
+        elif cache_hit:
+            metric_tags["data_access"] = "cache_hit"
+        else:
+            metric_tags["data_access"] = "db_read"
 
         return instance

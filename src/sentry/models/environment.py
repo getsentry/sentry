@@ -88,21 +88,25 @@ class Environment(Model):
         return env
 
     @classmethod
-    def get_or_create(cls, project, name):
-        with metrics.timer("models.environment.get_or_create") as metrics_tags:
+    def get_or_create(cls, project, name, metrics_tags=None):
+        with metrics.timer("models.environment.get_or_create") as timer_tags:
             name = cls.get_name_or_default(name)
 
             cache_key = cls.get_cache_key(project.organization_id, name)
 
             env = cache.get(cache_key)
             if env is None:
-                metrics_tags["cache_hit"] = "false"
-                env = cls.objects.get_or_create(name=name, organization_id=project.organization_id)[
-                    0
-                ]
+                timer_tags["cache_hit"] = "false"
+                env, created = cls.objects.get_or_create(
+                    name=name, organization_id=project.organization_id
+                )
                 cache.set(cache_key, env, 3600)
+                if metrics_tags is not None:
+                    metrics_tags["data_access"] = "db_write" if created else "db_read"
             else:
-                metrics_tags["cache_hit"] = "true"
+                timer_tags["cache_hit"] = "true"
+                if metrics_tags is not None:
+                    metrics_tags["data_access"] = "cache_hit"
 
             env.add_project(project)
 

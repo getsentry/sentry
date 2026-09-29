@@ -43,7 +43,7 @@ class GroupRelease(Model):
         )
 
     @classmethod
-    def get_or_create(cls, group, release, environment, datetime, **kwargs):
+    def get_or_create(cls, group, release, environment, datetime, metrics_tags=None, **kwargs):
         cache_key = cls.get_cache_key(group.id, release.id, environment.name)
 
         instance = cache.get(cache_key)
@@ -58,8 +58,10 @@ class GroupRelease(Model):
                     "project_id": group.project_id,
                 },
             )
+            data_access = "db_write" if created else "db_read"
         else:
             created = False
+            data_access = "cache_hit"
 
         if not created and instance.last_seen < datetime - timedelta(seconds=60):
             buffer_incr(
@@ -69,6 +71,9 @@ class GroupRelease(Model):
                 extra={"last_seen": datetime},
             )
             instance.last_seen = datetime
+
+        if metrics_tags is not None:
+            metrics_tags["data_access"] = data_access
 
         cache.set(cache_key, instance, 3600)
         return instance
