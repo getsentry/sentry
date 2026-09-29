@@ -251,6 +251,77 @@ def _strict_trim_inner(
     return (result, current_value_size)
 
 
+def _trim_single_element(
+    element: Any,
+    punctuation_size: int,
+    current_budget: int,
+    max_recursion_depth: int,
+    current_depth: int,
+) -> tuple[Any, int]:
+    """
+    Trim a sequence element to fit the remaining budget.
+
+    Returns the trimmed element, along with its total size, including punctuation. If total size
+    exceeds the current budget, or if trimming would remove all of the element's contents, a total
+    size of 0 is returned instead, so we know not to add the element (or any others after it) to the
+    final result.
+    """
+    trimmed_element, trimmed_element_size = _strict_trim_inner(
+        element,
+        incoming_budget=current_budget - punctuation_size,
+        max_recursion_depth=max_recursion_depth,
+        current_depth=current_depth,
+    )
+    full_element_size = trimmed_element_size + punctuation_size
+
+    if full_element_size > current_budget or _was_emptied_by_trimming(element, trimmed_element):
+        full_element_size = 0  # Signal to the caller to stop
+
+    return (trimmed_element, full_element_size)
+
+
+def _trim_key_value_pair(
+    key: Any,
+    orig_value: Any,
+    punctuation_size: int,
+    current_budget: int,
+    max_recursion_depth: int,
+    current_depth: int,
+) -> tuple[Any, int]:
+    """
+    Trim the value of a key-value pair to fit the remaining budget.
+
+    Used both for dictionary entries and for entries in a list of key-value pairs. Because the two
+    shapes punctuate their entries differently, the caller is the one to supply the total size of
+    the punctuation for the pair.
+
+    The key is never trimmed, and the caller already has it, so returns just the trimmed value,
+    along with the total size of the pair, including punctuation. If total pair size exceeds the
+    current budget, or if trimming would remove all of the value's contents, a total pair size of 0
+    is returned instead, so we know not to add the pair (or any others after it) to the final
+    result.
+    """
+    key_size = get_json_bytes(key)
+    key_and_punctuation_size = key_size + punctuation_size
+    value_budget = current_budget - key_and_punctuation_size
+
+    if value_budget <= 0:
+        return (None, 0)  # Signal the caller to stop
+
+    trimmed_value, trimmed_value_size = _strict_trim_inner(
+        orig_value,
+        incoming_budget=value_budget,
+        max_recursion_depth=max_recursion_depth,
+        current_depth=current_depth,
+    )
+    full_pair_size = key_and_punctuation_size + trimmed_value_size
+
+    if full_pair_size > current_budget or _was_emptied_by_trimming(orig_value, trimmed_value):
+        full_pair_size = 0  # Signal the caller to stop
+
+    return (trimmed_value, full_pair_size)
+
+
 def _is_empty_string_or_collection(value: Any) -> bool:
     return isinstance(value, (str, list, tuple, dict)) and len(value) == 0
 
