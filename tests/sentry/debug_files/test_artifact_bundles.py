@@ -225,7 +225,9 @@ class ArtifactLookupTest(TestCase):
             archive.close()
 
         # No index rows should have been created.
-        assert ArtifactBundleIndex.objects.filter(artifact_bundle_id=artifact_bundle_id).count() == 0
+        assert (
+            ArtifactBundleIndex.objects.filter(artifact_bundle_id=artifact_bundle_id).count() == 0
+        )
 
 
 class GetArtifactBundlesContainingUrlTest(TestCase):
