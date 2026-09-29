@@ -722,7 +722,7 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
         </FieldGroup>
 
         {organization.features.includes('code-mappings-refactor') && (
-          <ConnectedRepositoriesPanel />
+          <ConnectedRepositoriesPanel project={project} />
         )}
 
         <FieldGroup title={t('Email')}>
