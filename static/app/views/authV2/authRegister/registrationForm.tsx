@@ -18,6 +18,7 @@ import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestEr
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
+import type {AuthenticatedResult} from 'sentry/views/authV2/authLogin/types';
 
 const schema = z.object({
   email: z.email(t('Enter a valid email address')),
@@ -30,6 +31,8 @@ type RegistrationValues = z.infer<typeof schema>;
 
 type Props = {
   hasNewsletter: boolean;
+  initialEmail?: string;
+  onSuccess?: (result: AuthenticatedResult) => void;
   secondaryAction?: ReactNode;
 };
 
@@ -39,11 +42,16 @@ const PasswordStrengthRing = lazy(() =>
   }))
 );
 
-export function RegistrationForm({hasNewsletter, secondaryAction}: Props) {
+export function RegistrationForm({
+  hasNewsletter,
+  initialEmail = '',
+  onSuccess,
+  secondaryAction,
+}: Props) {
   const [isPasswordVisible, setPasswordVisible] = useState(false);
   const mutation = useMutation({
     mutationFn: (value: RegistrationValues) =>
-      fetchMutation<{nextUri: string}>({
+      fetchMutation<AuthenticatedResult>({
         url: getApiUrl('/auth/register/'),
         method: 'POST',
         data: {
@@ -53,12 +61,13 @@ export function RegistrationForm({hasNewsletter, secondaryAction}: Props) {
           ...(hasNewsletter ? {subscribe: value.subscribe} : {}),
         },
       }),
-    onSuccess: result => testableWindowLocation.assign(result.nextUri),
+    onSuccess: result =>
+      onSuccess ? onSuccess(result) : testableWindowLocation.assign(result.nextUri),
   });
 
   const form = useScrapsForm({
     ...defaultFormOptions,
-    defaultValues: {email: '', name: '', password: '', subscribe: false},
+    defaultValues: {email: initialEmail, name: '', password: '', subscribe: false},
     validators: {onDynamic: schema},
     onSubmit: ({value, formApi}) =>
       mutation.mutateAsync(schema.parse(value)).catch((error: unknown) => {
