@@ -193,7 +193,7 @@ def assemble_file_blobs(task, org_or_project, name, checksum, chunks) -> IO[byte
     try:
         for blob in file_blobs:
             with blob.getfile() as blobfile:
-                for chunk in blobfile.chunks():
+                for chunk in blobfile.chunks(chunk_size=1024 * 1024):
                     assembled_checksum.update(chunk)
                     temp_file.write(chunk)
     except Exception:
