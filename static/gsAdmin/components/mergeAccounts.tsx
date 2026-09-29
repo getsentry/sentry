@@ -1,6 +1,4 @@
-import {useState} from 'react';
-import {useDebouncedValue} from '@tanstack/react-pacer';
-import {useMutation, useQuery} from '@tanstack/react-query';
+import {queryOptions, useMutation, useQuery} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
@@ -27,9 +25,6 @@ const mergeSchema = z.object({
 
 export function MergeAccountsModal(props: Props) {
   const {userId, onAction, closeModal, Header, Body, Footer} = props;
-  const [searchInput, setSearchInput] = useState('');
-  const [debouncedSearch] = useDebouncedValue(searchInput, {wait: 300});
-
   const endpoint = getApiUrl('/users/$userId/merge-accounts/', {
     path: {userId},
   });
@@ -46,17 +41,6 @@ export function MergeAccountsModal(props: Props) {
   } = useQuery(accountsQueryOptions);
 
   const mergeAccounts = fetchedMergeAccounts ?? {users: []};
-  const {
-    data: searchedUsers = [],
-    isFetching: isSearching,
-    isError: isSearchError,
-  } = useQuery({
-    ...apiOptions.as<User[]>()('/users/', {
-      query: {query: debouncedSearch, per_page: 10},
-      staleTime: 30_000,
-    }),
-  });
-
   const doMergeMutation = useMutation({
     mutationFn: (userIds: string[]) => {
       addLoadingMessage();
@@ -102,44 +86,37 @@ export function MergeAccountsModal(props: Props) {
         <Stack gap="sm">
           <Text as="p">Selected accounts will be merged into this user.</Text>
           <form.AppField name="users">
-            {field => {
-              const users = [
-                ...mergeAccounts.users,
-                ...searchedUsers,
-                ...field.state.value,
-              ].filter(
-                (user, index, allUsers) =>
-                  allUsers.findIndex(candidate => candidate.id === user.id) === index &&
-                  user.id !== userId
-              );
-              return (
-                <field.Layout.Stack label="Accounts to merge">
-                  <field.Select
-                    multiple
-                    isSearchable
-                    value={field.state.value}
-                    onChange={field.handleChange}
-                    options={users.map(user => ({value: user, label: user.username}))}
-                    isValueEqual={(a, b) => a.id === b.id}
-                    isLoading={searchInput !== debouncedSearch || isSearching}
-                    filterOption={null}
-                    placeholder="Search users"
-                    noOptionsMessage={() =>
-                      isSearchError
-                        ? 'Unable to search users'
-                        : searchInput
-                          ? 'No matching users'
-                          : 'No users available'
-                    }
-                    onInputChange={(value, action) => {
-                      if (action.action === 'input-change') {
-                        setSearchInput(value);
-                      }
-                    }}
-                  />
-                </field.Layout.Stack>
-              );
-            }}
+            {field => (
+              <field.Layout.Stack label="Accounts to merge">
+                <field.SelectAsync
+                  multiple
+                  isSearchable
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  queryOptions={search => {
+                    const options = apiOptions.as<User[]>()('/users/', {
+                      query: {query: search, per_page: 10},
+                      staleTime: 30_000,
+                    });
+                    return queryOptions({
+                      ...options,
+                      select: ({json}) =>
+                        [...mergeAccounts.users, ...json, ...field.state.value]
+                          .filter(
+                            (user, index, users) =>
+                              users.findIndex(candidate => candidate.id === user.id) ===
+                                index && user.id !== userId
+                          )
+                          .map(user => ({value: user, label: user.username})),
+                    });
+                  }}
+                  isValueEqual={(a, b) => a.id === b.id}
+                  filterOption={null}
+                  placeholder="Search users"
+                  noOptionsMessage={() => 'No users available'}
+                />
+              </field.Layout.Stack>
+            )}
           </form.AppField>
         </Stack>
       </Body>
