@@ -242,7 +242,19 @@ function FailureChip({label}: {label: ReactNode}) {
   );
 }
 
-function InputBox({input}: {input: ReactNode}) {
+interface ToolCallInputProps {
+  input: ReactNode;
+  className?: string;
+  /** Replaces the default `Input:` label, e.g. `Query:` for a search string. */
+  label?: ReactNode;
+}
+
+/**
+ * The labelled, clamped box a `ToolCall` renders its `input` in. Exported so
+ * other surfaces showing a request (e.g. a Seer query embed's search string)
+ * render it the same way.
+ */
+export function ToolCallInput({input, className, label}: ToolCallInputProps) {
   const {t} = useTranslation();
   return (
     <Container
@@ -251,10 +263,11 @@ function InputBox({input}: {input: ReactNode}) {
       radius="md"
       padding="sm"
       width="100%"
+      className={className}
     >
       <Flex align="center" gap="sm" wrap="wrap">
         <Text size="sm" variant="secondary" monospace bold>
-          {t('Input:')}
+          {label ?? t('Input:')}
         </Text>
         <ClippedDetail>{input}</ClippedDetail>
       </Flex>
@@ -365,7 +378,7 @@ export function ToolCall({
         <Flex gap="md" align="start" width="100%">
           <Flex width={GLYPH_SLOT_WIDTH} flexShrink={0} aria-hidden />
           <Stack gap="xs" flex={1} minWidth={0}>
-            {input ? <InputBox input={input} /> : null}
+            {input ? <ToolCallInput input={input} /> : null}
             {output ? <OutputBox output={output} /> : null}
             {notifications?.map((note, i) => (
               <Text key={i} size="sm" variant="muted">
