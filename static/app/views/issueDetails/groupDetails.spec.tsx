@@ -148,6 +148,14 @@ describe('groupDetails', () => {
       body: project,
     });
     MockApiClient.addMockResponse({
+      url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/autofix/`,
+      body: {autofix: null},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${defaultInit.organization.slug}/seer/onboarding-check/`,
+      body: {isSeerConfigured: false},
+    });
+    MockApiClient.addMockResponse({
       url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/autofix/setup/`,
       body: AutofixSetupFixture({}),
     });
@@ -236,7 +244,6 @@ describe('groupDetails', () => {
       const organization = {
         ...defaultInit.organization,
         hideAiFeatures: false,
-        features: ['gen-ai-features'],
       };
       const query = {
         project: group.project.id,
@@ -307,6 +314,31 @@ describe('groupDetails', () => {
     // Sample event alert should not show up
     expect(screen.queryByText(SAMPLE_EVENT_ALERT_TEXT)).not.toBeInTheDocument();
     expect(hasSeenMock).toHaveBeenCalled();
+  });
+
+  it('replaces the history entry when redirecting from a short id', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${defaultInit.organization.slug}/issues/${group.shortId}/`,
+      body: {...group},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${defaultInit.organization.slug}/issues/${group.shortId}/events/recommended/`,
+      body: {...event},
+    });
+
+    const {router} = createWrapper({
+      ...initialRouterConfig,
+      location: {pathname: `/organizations/org-slug/issues/${group.shortId}/`},
+    });
+
+    await waitFor(() => {
+      expect(router.location.pathname).toBe(
+        `/organizations/org-slug/issues/${group.id}/`
+      );
+    });
+    // Pushing would leave the short id URL in history, and going back to it
+    // would redirect forward again, trapping the back button.
+    expect(router.historyAction).toBe('REPLACE');
   });
 
   it('renders error when issue is not found', async () => {

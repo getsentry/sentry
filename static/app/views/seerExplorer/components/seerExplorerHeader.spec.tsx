@@ -7,7 +7,7 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {SeerExplorerHeader} from 'sentry/views/seerExplorer/components/seerExplorerHeader';
 import {SeerExplorerSessionsProvider} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
 
-const BASE_FEATURES = ['seer-explorer', 'gen-ai-features'];
+const BASE_FEATURES = ['seer-explorer'];
 
 function orgWith(...extraFeatures: string[]) {
   return OrganizationFixture({

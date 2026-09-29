@@ -5,10 +5,10 @@ import {
   normalizeToMessages,
 } from 'sentry/views/insights/pages/agents/utils/aiMessageNormalizer';
 import {
-  AGENT_NAME_FIELDS,
   getNumberAttr,
   getStringAttr,
   hasError,
+  resolveAgentName,
 } from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {
   getIsAiGenerationSpan,
@@ -578,13 +578,7 @@ export function turnsToMessages(turns: ConversationTurn[]): ConversationMessage[
       const endTs = Math.max(genEnd, lastToolEnd);
       const duration = endTs > startTs ? endTs - startTs : undefined;
 
-      let agentName: string | undefined;
-      for (const field of AGENT_NAME_FIELDS) {
-        agentName = getStringAttr(turn.generation, field);
-        if (agentName) {
-          break;
-        }
-      }
+      const agentName = resolveAgentName(turn.generation.attributes ?? {});
       const modelName = getStringAttr(turn.generation, SpanFields.GEN_AI_RESPONSE_MODEL);
 
       messages.push({

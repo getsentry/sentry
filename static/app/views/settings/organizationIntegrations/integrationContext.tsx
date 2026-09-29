@@ -1,7 +1,11 @@
 import {createContext} from 'react';
 
 import type {MessagingIntegrationAnalyticsView} from 'sentry/components/messagingIntegrations/setupMessagingIntegrationButton';
-import type {IntegrationProvider, IntegrationType} from 'sentry/types/integrations';
+import type {
+  IntegrationProvider,
+  IntegrationType,
+  OrganizationIntegration,
+} from 'sentry/types/integrations';
 
 type IntegrationContextProps = {
   analyticsParams: {
@@ -23,6 +27,8 @@ type IntegrationContextProps = {
   installStatus: string;
   provider: IntegrationProvider;
   type: IntegrationType;
+  /** Loaded workspaces for choosing a single upgrade on a deep link. */
+  configurations?: OrganizationIntegration[];
   onAddIntegration?: () => void;
   /**
    * When true, the "%s added" success toast is not shown on install.
