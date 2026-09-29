@@ -5,12 +5,18 @@ import pytest
 from django.test import override_settings
 from rest_framework import status
 
-from sentry.seer.endpoints.search_agent_start import send_search_agent_start_request
+from sentry.models.apitoken import ApiToken
+from sentry.seer.endpoints.search_agent_start import (
+    SearchAgentResultTarget,
+    send_search_agent_start_request,
+)
 from sentry.seer.models import SeerApiError
 from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.seer.signed_seer_api import SeerViewerContext
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.silo import assume_test_silo_mode
 
 
 class SendSearchAgentStartRequestTest(TestCase):
@@ -83,6 +89,7 @@ class SendSearchAgentStartRequestTest(TestCase):
         sent_options = mock_request.call_args[0][0]["options"]
         for flag in ["cross_event", "reflection_step", "code_mode"]:
             assert sent_options[flag] is False
+        assert "result_target" not in sent_options
 
     @patch("sentry.receivers.outbox.cell.make_search_agent_start_request")
     def test_flag_options_are_sent_to_seer(self, mock_request: Mock) -> None:
@@ -97,12 +104,14 @@ class SendSearchAgentStartRequestTest(TestCase):
             cross_event=True,
             reflection_step=True,
             code_mode=True,
+            result_target=SearchAgentResultTarget.AGENT_SEARCH,
         )
 
         sent_options = mock_request.call_args[0][0]["options"]
         for flag in ["cross_event", "reflection_step", "code_mode"]:
             assert sent_options[flag] is True
         assert sent_options["model_name"] == "gpt-5"
+        assert sent_options["result_target"] == "agent_search"
 
 
 @with_feature("organizations:gen-ai-search-agent-translate")
@@ -135,6 +144,12 @@ class SearchAgentStartEndpointTest(APITestCase):
             },
             format="json",
         )
+
+    def _post_with_token(self, **extra_data: Any) -> Any:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            token = ApiToken.objects.create(user=self.user, scope_list=["org:read"])
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
+        return self._post(**extra_data)
 
     @patch("sentry.seer.endpoints.search_agent_start.send_search_agent_start_request")
     @patch("django.conf.settings.SEER_AUTOFIX_URL", "https://seer.example.com")
@@ -201,3 +216,65 @@ class SearchAgentStartEndpointTest(APITestCase):
         kwargs = mock_send_request.call_args.kwargs
         assert kwargs["code_mode"] is True
         assert kwargs["model_name"] == "gpt-5"
+
+    @patch("sentry.seer.endpoints.search_agent_start.send_search_agent_start_request")
+    @patch("django.conf.settings.SEER_AUTOFIX_URL", "https://seer.example.com")
+    def test_session_request_infers_ui_search(self, mock_send_request: MagicMock) -> None:
+        mock_send_request.return_value = Mock(seer_run_state_id=42, uuid="run-uuid")
+
+        response = self._post()
+
+        assert response.status_code == status.HTTP_200_OK
+        assert (
+            mock_send_request.call_args.kwargs["result_target"] == SearchAgentResultTarget.UI_SEARCH
+        )
+
+    @patch("sentry.seer.endpoints.search_agent_start.send_search_agent_start_request")
+    @patch("django.conf.settings.SEER_AUTOFIX_URL", "https://seer.example.com")
+    def test_token_request_infers_agent_search(self, mock_send_request: MagicMock) -> None:
+        mock_send_request.return_value = Mock(seer_run_state_id=42, uuid="run-uuid")
+
+        response = self._post_with_token()
+
+        assert response.status_code == status.HTTP_200_OK
+        assert (
+            mock_send_request.call_args.kwargs["result_target"]
+            == SearchAgentResultTarget.AGENT_SEARCH
+        )
+
+    @patch("sentry.seer.endpoints.search_agent_start.send_search_agent_start_request")
+    @patch("django.conf.settings.SEER_AUTOFIX_URL", "https://seer.example.com")
+    def test_declared_result_target_overrides_session_inference(
+        self, mock_send_request: MagicMock
+    ) -> None:
+        mock_send_request.return_value = Mock(seer_run_state_id=42, uuid="run-uuid")
+
+        response = self._post(options={"result_target": "agent_search"})
+
+        assert response.status_code == status.HTTP_200_OK
+        assert (
+            mock_send_request.call_args.kwargs["result_target"]
+            == SearchAgentResultTarget.AGENT_SEARCH
+        )
+
+    @patch("sentry.seer.endpoints.search_agent_start.send_search_agent_start_request")
+    @patch("django.conf.settings.SEER_AUTOFIX_URL", "https://seer.example.com")
+    def test_declared_result_target_overrides_token_inference(
+        self, mock_send_request: MagicMock
+    ) -> None:
+        mock_send_request.return_value = Mock(seer_run_state_id=42, uuid="run-uuid")
+
+        response = self._post_with_token(options={"result_target": "ui_search"})
+
+        assert response.status_code == status.HTTP_200_OK
+        assert (
+            mock_send_request.call_args.kwargs["result_target"] == SearchAgentResultTarget.UI_SEARCH
+        )
+
+    @patch("sentry.seer.endpoints.search_agent_start.send_search_agent_start_request")
+    @patch("django.conf.settings.SEER_AUTOFIX_URL", "https://seer.example.com")
+    def test_invalid_result_target_rejected(self, mock_send_request: MagicMock) -> None:
+        response = self._post(options={"result_target": "somewhere_else"})
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        mock_send_request.assert_not_called()
