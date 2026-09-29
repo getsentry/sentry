@@ -1,5 +1,6 @@
 from datetime import timedelta
 from typing import Any
+from unittest.mock import patch
 
 from django.urls import reverse
 
@@ -78,6 +79,26 @@ class OrganizationEventsDroppedEndpointTest(APITestCase, OutcomesSnubaTest):
         assert accepted[0]["reason"] == "accepted"
         assert accepted[0]["count"] == 1000
         assert "byteSize" not in accepted[0]
+
+    def test_records_usage_metric(self) -> None:
+        self._store_outcome(Outcome.ACCEPTED, DataCategory.LOG_ITEM, 1000)
+        self._store_outcome(Outcome.RATE_LIMITED, DataCategory.LOG_ITEM, 400, reason="key_quota")
+
+        with patch("sentry.api.helpers.data_annotations.metrics.incr") as mock_incr:
+            response = self._do_request()
+        assert response.status_code == 200, response.content
+
+        # The test client authenticates with a session cookie, so the caller
+        # classifies as the web UI (frontend).
+        mock_incr.assert_any_call(
+            "dropped_events.served",
+            tags={
+                "endpoint": "events-dropped",
+                "client_kind": "frontend",
+                "dataset": "logs",
+                "had_drops": True,
+            },
+        )
 
     def test_same_reason_under_different_outcomes_stays_distinct(self) -> None:
         # Volume is keyed by (bucket, outcome, reason). The same reason string can
