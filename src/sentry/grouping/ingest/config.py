@@ -124,18 +124,6 @@ def update_or_set_grouping_config_if_needed(project: Project, source: str) -> st
                         "current_config": current_config,
                     },
                 )
-                # TODO: Temporary log to debug how we're still landing in this branch even though
-                # theoretically there are no projects on outdated configs
-                logger.info(
-                    "grouping.outdated_config_updated",
-                    extra={
-                        "project_id": project.id,
-                        "source": source,
-                        "current_config": current_config,
-                        "project_option_exists": project_option_exists,
-                        "options_epoch": project.get_option("sentry:option-epoch"),
-                    },
-                )
                 outcome = "record updated"
 
             return outcome
