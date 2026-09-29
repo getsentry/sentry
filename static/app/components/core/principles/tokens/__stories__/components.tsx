@@ -5,7 +5,38 @@ import {Container, Flex} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import * as Storybook from 'sentry/stories';
-import {BORDER_WIDTHS, TOKEN_REFERENCES} from 'sentry/stories/tokenDefinitions';
+// eslint-disable-next-line @sentry/scraps/no-token-import -- temporary until theme.borderWidth is exposed
+import {size} from 'sentry/utils/theme/scraps/tokens/size';
+
+interface ColorGroup {
+  tokens: Record<string, string>;
+  label?: string;
+}
+
+function sortByValue(tokens: Record<string, string>): Record<string, string> {
+  return Object.fromEntries(
+    Object.entries(tokens).sort(
+      ([, a], [, b]) => Number.parseFloat(a) - Number.parseFloat(b)
+    )
+  );
+}
+
+function flattenTokens(
+  obj: Record<string, unknown>,
+  prefix = ''
+): Record<string, string> {
+  return Object.entries(obj).reduce<Record<string, string>>((result, entry) => {
+    const key = entry[0];
+    const value = entry[1];
+    const path = prefix ? `${prefix}.${key}` : key;
+    if (typeof value === 'string') {
+      result[path] = value;
+    } else if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+      Object.assign(result, flattenTokens(value as Record<string, unknown>, path));
+    }
+    return result;
+  }, {});
+}
 
 export function Space() {
   const theme = useTheme();
@@ -161,7 +192,7 @@ export function BorderWidth() {
   return (
     <Storybook.TokenReference
       scale="border"
-      tokens={BORDER_WIDTHS}
+      tokens={sortByValue(size.border)}
       renderToken={({value}) => (
         <Container
           as="div"
@@ -203,11 +234,36 @@ export function ShadowOffset() {
 
 export function BackgroundColors() {
   const theme = useTheme();
-  const reference = TOKEN_REFERENCES.background;
+  const bg = theme.tokens.background;
+  const groups: ColorGroup[] = [
+    {
+      label: 'surface',
+      tokens: {
+        primary: bg.primary,
+        secondary: bg.secondary,
+        tertiary: bg.tertiary,
+        overlay: bg.overlay,
+      },
+    },
+    {
+      label: 'semantic',
+      tokens: {
+        'accent.vibrant': bg.accent.vibrant,
+        'promotion.vibrant': bg.promotion.vibrant,
+        'danger.vibrant': bg.danger.vibrant,
+        'warning.vibrant': bg.warning.vibrant,
+        'success.vibrant': bg.success.vibrant,
+      },
+    },
+    {
+      label: 'transparent',
+      tokens: flattenTokens(bg.transparent),
+    },
+  ];
   return (
     <Storybook.ColorReference
-      scale={reference.scale}
-      groups={reference.groups(theme)}
+      scale="background"
+      groups={groups}
       fill
       renderToken={({value}) => (
         <Container
@@ -228,11 +284,39 @@ export function BackgroundColors() {
 
 export function ContentColors() {
   const theme = useTheme();
-  const reference = TOKEN_REFERENCES.content;
+  const ct = theme.tokens.content;
+  const groups: ColorGroup[] = [
+    {
+      label: 'text',
+      tokens: {
+        primary: ct.primary,
+        secondary: ct.secondary,
+        headings: ct.headings,
+        disabled: ct.disabled,
+      },
+    },
+    {
+      label: 'semantic',
+      tokens: {
+        accent: ct.accent,
+        promotion: ct.promotion,
+        danger: ct.danger,
+        warning: ct.warning,
+        success: ct.success,
+      },
+    },
+    {
+      label: 'onVibrant',
+      tokens: {
+        'onVibrant.light': ct.onVibrant.light,
+        'onVibrant.dark': ct.onVibrant.dark,
+      },
+    },
+  ];
   return (
     <Storybook.ColorReference
-      scale={reference.scale}
-      groups={reference.groups(theme)}
+      scale="content"
+      groups={groups}
       renderToken={({value}) => (
         <Text size="xl" style={{color: value}}>
           Aa
@@ -244,12 +328,28 @@ export function ContentColors() {
 
 export function BorderColors() {
   const theme = useTheme();
-  const reference = TOKEN_REFERENCES.border;
+  const bd = theme.tokens.border;
+  const groups: ColorGroup[] = [
+    {
+      label: 'base',
+      tokens: {
+        primary: bd.primary,
+        secondary: bd.secondary,
+      },
+    },
+    {label: 'neutral', tokens: flattenTokens(bd.neutral)},
+    {label: 'accent', tokens: flattenTokens(bd.accent)},
+    {label: 'promotion', tokens: flattenTokens(bd.promotion)},
+    {label: 'danger', tokens: flattenTokens(bd.danger)},
+    {label: 'warning', tokens: flattenTokens(bd.warning)},
+    {label: 'success', tokens: flattenTokens(bd.success)},
+    {label: 'onVibrant', tokens: flattenTokens(bd.onVibrant)},
+  ];
   return (
     <Storybook.ColorReference
-      scale={reference.scale}
+      scale="border"
       list
-      groups={reference.groups(theme)}
+      groups={groups}
       renderToken={({value}) => (
         <Container
           as="div"
@@ -271,12 +371,20 @@ export function BorderColors() {
 
 export function GraphicsColors() {
   const theme = useTheme();
-  const reference = TOKEN_REFERENCES.graphics;
+  const gx = theme.tokens.graphics;
+  const groups: ColorGroup[] = [
+    {label: 'neutral', tokens: flattenTokens(gx.neutral)},
+    {label: 'accent', tokens: flattenTokens(gx.accent)},
+    {label: 'promotion', tokens: flattenTokens(gx.promotion)},
+    {label: 'danger', tokens: flattenTokens(gx.danger)},
+    {label: 'warning', tokens: flattenTokens(gx.warning)},
+    {label: 'success', tokens: flattenTokens(gx.success)},
+  ];
   return (
     <Storybook.ColorReference
-      scale={reference.scale}
+      scale="graphics"
       list
-      groups={reference.groups(theme)}
+      groups={groups}
       renderToken={({value}) => (
         <Container
           as="div"
@@ -295,11 +403,20 @@ export function GraphicsColors() {
 
 export function ShadowColors() {
   const theme = useTheme();
-  const reference = TOKEN_REFERENCES.shadow;
+  const groups: ColorGroup[] = [
+    {
+      label: 'elevation',
+      tokens: {
+        low: theme.shadow.low,
+        medium: theme.shadow.medium,
+        high: theme.shadow.high,
+      },
+    },
+  ];
   return (
     <Storybook.ColorReference
-      scale={reference.scale}
-      groups={reference.groups(theme)}
+      scale="shadow"
+      groups={groups}
       renderToken={({value}) => (
         <Container
           as="div"
@@ -320,11 +437,27 @@ export function ShadowColors() {
 
 export function FocusColors() {
   const theme = useTheme();
-  const reference = TOKEN_REFERENCES.focus;
+  const fc = theme.tokens.focus;
+  const groups: ColorGroup[] = [
+    {
+      label: 'states',
+      tokens: {
+        default: fc.default,
+        invalid: fc.invalid,
+      },
+    },
+    {
+      label: 'onVibrant',
+      tokens: {
+        'onVibrant.light': fc.onVibrant.light,
+        'onVibrant.dark': fc.onVibrant.dark,
+      },
+    },
+  ];
   return (
     <Storybook.ColorReference
-      scale={reference.scale}
-      groups={reference.groups(theme)}
+      scale="focus"
+      groups={groups}
       renderToken={({value}) => (
         <Container
           as="div"
@@ -345,11 +478,14 @@ export function FocusColors() {
 
 export function DatavizCategoricalColors() {
   const theme = useTheme();
-  const reference = TOKEN_REFERENCES.categorical;
+  const categorical = theme.tokens.dataviz.categorical;
+  const fullPalette = categorical[categorical.length - 1] ?? [];
+  const tokens = Object.fromEntries(fullPalette.map((value, i) => [String(i), value]));
+  const groups: ColorGroup[] = [{tokens}];
   return (
     <Storybook.ColorReference
-      scale={reference.scale}
-      groups={reference.groups(theme)}
+      scale="dataviz.categorical"
+      groups={groups}
       renderToken={({value}) => (
         <Container
           as="div"
@@ -368,11 +504,24 @@ export function DatavizCategoricalColors() {
 
 export function DatavizSemanticColors() {
   const theme = useTheme();
-  const reference = TOKEN_REFERENCES.semantic;
+  const semantic = theme.tokens.dataviz.semantic;
+  const groups: ColorGroup[] = [
+    {
+      tokens: {
+        neutral: semantic.neutral,
+        accent: semantic.accent,
+        good: semantic.good,
+        meh: semantic.meh,
+        bad: semantic.bad,
+        release: semantic.release,
+        other: semantic.other,
+      },
+    },
+  ];
   return (
     <Storybook.ColorReference
-      scale={reference.scale}
-      groups={reference.groups(theme)}
+      scale="dataviz.semantic"
+      groups={groups}
       renderToken={({value}) => (
         <Container
           as="div"

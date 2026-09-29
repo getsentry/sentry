@@ -1,6 +1,5 @@
 import type {Key} from 'react';
 import {useMemo, useRef, useState} from 'react';
-import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {type AriaComboBoxProps} from '@react-aria/combobox';
 import {Item, Section} from '@react-stately/collections';
@@ -21,7 +20,6 @@ import {
   storyFrontmatterIndex,
   storyHeadingIndex,
 } from 'sentry/stories/storyManifest.generated';
-import {TOKEN_REFERENCES} from 'sentry/stories/tokenDefinitions';
 import type {StoryTreeNode} from 'sentry/stories/view/storyTree';
 import {
   COMPONENT_SUBCATEGORY_CONFIG,
@@ -36,7 +34,6 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface SearchItem {
   key: string;
-  kind: 'page' | 'section' | 'token';
   label: string;
   node: StoryTreeNode;
   title: string;
@@ -54,65 +51,16 @@ interface SearchSection {
   options: SearchItem[];
 }
 
-type StoryHeading = (typeof storyHeadingIndex)[string][number];
-
-const TOKENS_STORY = 'app/components/core/principles/tokens/tokens.mdx';
-const KIND_ORDER: Record<SearchItem['kind'], number> = {page: 0, section: 1, token: 2};
-
-function headingHash(heading: StoryHeading) {
-  return `#${encodeURIComponent(heading.id)}`;
-}
-
-// Token swatches are rendered from the theme at runtime, so the build-time
-// heading index cannot see them. Index them from the same definitions the
-// Tokens page renders and link to the section that contains each token.
-function tokenItems(node: StoryTreeNode, theme: Theme): SearchItem[] {
-  const headings = storyHeadingIndex[node.filesystemPath] ?? [];
-  const items = new Map<string, SearchItem>();
-  for (const [id, reference] of Object.entries(TOKEN_REFERENCES)) {
-    const heading = headings.find(h => h.id === id);
-    if (!heading) {
-      continue;
-    }
-    for (const group of reference.groups(theme)) {
-      for (const token of Object.keys(group.tokens)) {
-        const title = `${reference.scale}.${token}`;
-        // Shadow tokens are documented as both colors and offsets; link to the first.
-        if (!items.has(title)) {
-          items.set(title, {
-            key: `${node.filesystemPath}#${heading.id}:${title}`,
-            kind: 'token',
-            label: [node.label, heading.title, title].join(' › '),
-            title,
-            node,
-            hash: headingHash(heading),
-            parents: [heading.title],
-          });
-        }
-      }
-    }
-  }
-  return [...items.values()];
-}
-
 function matchScore(item: SearchItem, term: string) {
-  // There are hundreds of tokens, and their breadcrumbs fuzzy-match most short
-  // queries. Require the query within the token name instead.
-  if (item.kind === 'token') {
-    return item.title.toLowerCase().includes(term)
-      ? fzf(item.title, term, false).score
-      : 0;
-  }
   return Math.max(
     ...[item.label, ...(item.keywords ?? [])].map(text => fzf(text, term, false).score)
   );
 }
 
-function searchItems(nodes: StoryTreeNode[], query: string, theme: Theme): SearchItem[] {
+function searchItems(nodes: StoryTreeNode[], query: string): SearchItem[] {
   const items = nodes.flatMap(node => {
     const page: SearchItem = {
       key: node.filesystemPath,
-      kind: 'page',
       label: node.label,
       title: node.label,
       node,
@@ -127,14 +75,12 @@ function searchItems(nodes: StoryTreeNode[], query: string, theme: Theme): Searc
       page,
       ...(storyHeadingIndex[node.filesystemPath] ?? []).map((heading): SearchItem => ({
         key: `${node.filesystemPath}#${heading.id}`,
-        kind: 'section',
         label: [node.label, ...heading.parents, heading.title].join(' › '),
         title: heading.title,
         node,
-        hash: headingHash(heading),
+        hash: `#${encodeURIComponent(heading.id)}`,
         parents: heading.parents,
       })),
-      ...(node.filesystemPath === TOKENS_STORY ? tokenItems(node, theme) : []),
     ];
   });
   const term = query.trim().toLowerCase();
@@ -160,7 +106,7 @@ function searchItems(nodes: StoryTreeNode[], query: string, theme: Theme): Searc
 function compareMatches(a: SearchItem, b: SearchItem) {
   return (
     (b.match?.rank ?? 0) - (a.match?.rank ?? 0) ||
-    KIND_ORDER[a.kind] - KIND_ORDER[b.kind] ||
+    Number(!!a.hash) - Number(!!b.hash) ||
     (b.match?.score ?? 0) - (a.match?.score ?? 0)
   );
 }
@@ -232,7 +178,6 @@ function isSearchSection(item: SearchItem | SearchSection): item is SearchSectio
 export function StorySearch() {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const hierarchy = useStoryHierarchy();
-  const theme = useTheme();
   const [inputValue, setInputValue] = useState('');
   useHotkeys([{match: '/', callback: () => inputRef.current?.focus()}]);
 
@@ -255,7 +200,7 @@ export function StorySearch() {
           sections.push({
             key: section,
             label: SECTION_CONFIG[section].label,
-            options: searchItems(allCoreNodes, inputValue, theme),
+            options: searchItems(allCoreNodes, inputValue),
           });
         }
       } else if (section === 'product' && data.stories.length > 0) {
@@ -263,14 +208,14 @@ export function StorySearch() {
         sections.push({
           key: section,
           label: SECTION_CONFIG[section].label,
-          options: searchItems(flattenedStories, inputValue, theme),
+          options: searchItems(flattenedStories, inputValue),
         });
       } else if (data.stories.length > 0) {
         // Other sections (principles, patterns) don't need flattening
         sections.push({
           key: section,
           label: SECTION_CONFIG[section].label,
-          options: searchItems(data.stories, inputValue, theme),
+          options: searchItems(data.stories, inputValue),
         });
       }
     }
@@ -280,14 +225,14 @@ export function StorySearch() {
     const results = sections
       .filter(section => section.options.length > 0)
       .map(section => ({...section, options: collapseBreadcrumbs(section.options)}));
-    // Section headings and tokens make weak matches common in the sections
+    // Section headings make weak matches common in the sections
     // listed first, so lead with the section that holds the best match.
     return inputValue.trim()
       ? results.sort(({options: [a]}, {options: [b]}) =>
           a && b ? compareMatches(a, b) : 0
         )
       : results;
-  }, [hierarchy, inputValue, theme]);
+  }, [hierarchy, inputValue]);
 
   return (
     <SearchComboBox

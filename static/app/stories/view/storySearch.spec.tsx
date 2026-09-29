@@ -33,12 +33,7 @@ jest.mock('sentry/stories/storyManifest.generated', () => ({
       {id: 'tag-accessibility', title: 'Accessibility', parents: ['Tag']},
     ],
     'app/components/core/badge/tag.mdx': [],
-    'app/components/core/principles/tokens/tokens.mdx': [
-      {id: 'color', title: 'Color', parents: []},
-      {id: 'background', title: 'Background', parents: ['Color']},
-      {id: 'size', title: 'Size', parents: []},
-      {id: 'space', title: 'Space', parents: ['Size']},
-    ],
+    'app/components/core/principles/tokens/tokens.mdx': [],
   },
 }));
 
@@ -121,33 +116,6 @@ describe('StorySearch', () => {
     await waitFor(() =>
       expect(router.location.pathname).toContain('/scraps/product/components/example/')
     );
-  });
-
-  it('finds a token value and navigates to the section that renders it', async () => {
-    const {router} = render(<StorySearch />);
-    await userEvent.type(
-      screen.getByRole('combobox', {name: 'Search stories'}),
-      'background.danger.vibrant'
-    );
-
-    const option = await screen.findByRole('option', {
-      name: 'Tokens › Background › background.danger.vibrant',
-    });
-    expect(option).toHaveTextContent('Tokens › … › background.danger.vibrant');
-    await userEvent.click(option);
-    await waitFor(() => expect(router.location.hash).toBe('#background'));
-    expect(router.location.pathname).toContain('/scraps/principles/tokens/');
-  });
-
-  it('ranks token sections ahead of individual tokens', async () => {
-    render(<StorySearch />);
-    await userEvent.type(screen.getByRole('combobox', {name: 'Search stories'}), 'space');
-
-    const options = await screen.findAllByRole('option');
-    expect(options[0]).toHaveTextContent('Tokens › … › Space');
-    expect(
-      screen.getByRole('option', {name: 'Tokens › Space › space.md'})
-    ).toBeInTheDocument();
   });
 
   it('matches page keywords', async () => {
