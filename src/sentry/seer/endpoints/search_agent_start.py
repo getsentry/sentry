@@ -35,14 +35,7 @@ class SearchAgentResultTarget(StrEnum):
 
 
 def infer_result_target(request: Request) -> SearchAgentResultTarget:
-    """Pick a result target for callers that don't declare one.
-
-    Only the web UI renders ``ui_search`` results, and it authenticates with a session
-    cookie rather than a token. Every token-authenticated caller (MCP, CLI, scripts) is
-    consuming the result programmatically. Misreading a UI request as an agent can hand
-    the UI a query shape it can't render, so anything cookie-authenticated stays on
-    ``ui_search``.
-    """
+    """Classify web UI requests as ``ui_search`` and all other callers as ``agent_search``."""
     if is_frontend_request(request):
         return SearchAgentResultTarget.UI_SEARCH
     return SearchAgentResultTarget.AGENT_SEARCH
