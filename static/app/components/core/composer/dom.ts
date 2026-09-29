@@ -54,6 +54,17 @@ function getTextRuns(root: Node): TextRun[] {
       return;
     }
 
+    if (node.nodeType === Node.ELEMENT_NODE) {
+      const element = node as HTMLElement;
+      const text = element.dataset.mentionText;
+      const parent = node.parentNode;
+      if (text !== undefined && parent) {
+        const index = Array.from(parent.childNodes).indexOf(element);
+        append(text, {node: parent, offset: index}, {node: parent, offset: index + 1});
+        return;
+      }
+    }
+
     if (isLineBreak(node)) {
       const parent = node.parentNode;
       if (parent) {
@@ -90,12 +101,14 @@ export function readEditorValue(root: Node): string {
 }
 
 /** Writes the controlled value without making React own contenteditable children. */
-export function writeEditorValue(
+export function writeEditorValue<T extends {end: number; start: number; text: string}>(
   root: HTMLElement,
   value: string,
-  mentions: ReadonlyArray<{end: number; start: number; text: string}>
+  mentions: readonly T[],
+  renderMention?: (mention: T, element: HTMLElement) => void
 ) {
   if (
+    value !== '' &&
     mentions.length === 0 &&
     !root.querySelector('[data-mention]') &&
     readEditorValue(root) === value
@@ -111,9 +124,15 @@ export function writeEditorValue(
       fragment.append(value.slice(offset, mention.start));
     }
 
-    const element = root.ownerDocument.createElement('strong');
+    const element = root.ownerDocument.createElement(renderMention ? 'span' : 'strong');
     element.dataset.mention = '';
-    element.textContent = mention.text;
+    if (renderMention) {
+      element.contentEditable = 'false';
+      element.dataset.mentionText = mention.text;
+      renderMention(mention, element);
+    } else {
+      element.textContent = mention.text;
+    }
     fragment.append(element);
     offset = mention.end;
   }
@@ -126,7 +145,12 @@ export function writeEditorValue(
 }
 
 /** Converts a DOM boundary point into an offset in the normalized editor string. */
-function getTextOffset(root: HTMLElement, node: Node, offset: number): number | null {
+function getTextOffset(
+  root: HTMLElement,
+  node: Node,
+  offset: number,
+  edge: 'start' | 'end'
+): number | null {
   if (node !== root && !root.contains(node)) {
     return null;
   }
@@ -135,7 +159,18 @@ function getTextOffset(root: HTMLElement, node: Node, offset: number): number | 
   range.selectNodeContents(root);
 
   try {
-    range.setEnd(node, offset);
+    const element =
+      node.nodeType === Node.ELEMENT_NODE ? (node as Element) : node.parentElement;
+    const token = element?.closest('[data-mention-text]');
+    if (token && root.contains(token)) {
+      if (edge === 'start') {
+        range.setEndBefore(token);
+      } else {
+        range.setEndAfter(token);
+      }
+    } else {
+      range.setEnd(node, offset);
+    }
   } catch {
     return null;
   }
@@ -148,17 +183,23 @@ function getTextOffset(root: HTMLElement, node: Node, offset: number): number | 
 /** Reads the browser selection as an ordered range of flat string offsets. */
 export function getEditorSelection(root: HTMLElement): EditorSelection | null {
   const selection = root.ownerDocument.defaultView?.getSelection();
-  if (!selection?.anchorNode || !selection.focusNode) {
+  if (!selection?.rangeCount) {
     return null;
   }
 
-  const anchor = getTextOffset(root, selection.anchorNode, selection.anchorOffset);
-  const focus = getTextOffset(root, selection.focusNode, selection.focusOffset);
-  if (anchor === null || focus === null) {
+  const range = selection.getRangeAt(0);
+  const start = getTextOffset(
+    root,
+    range.startContainer,
+    range.startOffset,
+    range.collapsed ? 'end' : 'start'
+  );
+  const end = getTextOffset(root, range.endContainer, range.endOffset, 'end');
+  if (start === null || end === null) {
     return null;
   }
 
-  return {start: Math.min(anchor, focus), end: Math.max(anchor, focus)};
+  return {start, end};
 }
 
 /** Converts a flat string offset back into a browser Range boundary point. */

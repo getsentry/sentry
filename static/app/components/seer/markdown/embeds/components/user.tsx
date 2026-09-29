@@ -8,15 +8,15 @@ import {
   defineSeerEmbed,
   type EmbedOutput,
 } from 'sentry/components/seer/markdown/embeds/utils';
-import type {Actor} from 'sentry/types/core';
+import type {Actor as ActorType} from 'sentry/types/core';
 
 /** A team is written with the `#` its name always carries. */
 function getActorTitle({type, name}: Pick<EmbedOutput<'user'>, 'type' | 'name'>) {
   return type === 'team' ? `#${name}` : name;
 }
 
-function Actor({id, type, name}: EmbedOutput<'user'>) {
-  const actor: Actor = useMemo(() => ({id, type, name}), [id, type, name]);
+export function Actor({id, type, name}: EmbedOutput<'user'>) {
+  const actor: ActorType = useMemo(() => ({id, type, name}), [id, type, name]);
   const title = getActorTitle({type, name});
 
   // Rendered inline within Seer markdown paragraphs (`Text as="p"`), so every

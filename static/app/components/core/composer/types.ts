@@ -3,7 +3,7 @@ import type {AnyUseQueryOptions} from '@tanstack/react-query';
 
 import type {FormSize} from 'sentry/utils/theme';
 
-import type {ComposerValue} from './model';
+import type {ComposerValue, Mention} from './model';
 
 interface ComposerSourceBase<TSuggestion> {
   /** Returns a stable identity for a suggestion. */
@@ -56,5 +56,7 @@ export interface ComposerProps extends Omit<
   minHeight?: number;
   placeholder?: string;
   ref?: React.Ref<HTMLDivElement>;
+  /** Renders mentions as atomic tokens while preserving their canonical text. */
+  renderMention?: (mention: Mention) => React.ReactNode;
   size?: FormSize;
 }

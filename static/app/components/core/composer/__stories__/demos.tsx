@@ -6,8 +6,10 @@ import {
   type ComposerPlugin,
   type ComposerValue,
   type ComposerSource,
+  type ComposerProps,
 } from '@sentry/scraps/composer';
 import {Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 interface Suggestion {
   id: string;
@@ -118,7 +120,9 @@ export function ComposerDemo() {
   );
 }
 
-export function RestoredComposerDemo() {
+export function RestoredComposerDemo({
+  renderMention,
+}: Pick<ComposerProps, 'renderMention'>) {
   const [value, setValue] = useState<ComposerValue>({
     text: RESTORED_TEXT,
     mentions: RESTORED_MENTIONS,
@@ -132,8 +136,21 @@ export function RestoredComposerDemo() {
         plugins={[MENTION_PLUGIN]}
         value={value}
         onChange={setValue}
+        renderMention={renderMention}
       />
     </Stack>
+  );
+}
+
+export function RenderedMentionComposerDemo() {
+  return (
+    <RestoredComposerDemo
+      renderMention={mention => (
+        <Text variant="accent" bold>
+          {mention.text.slice(1)}
+        </Text>
+      )}
+    />
   );
 }
 
