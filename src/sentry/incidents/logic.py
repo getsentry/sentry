@@ -2,25 +2,23 @@ from __future__ import annotations
 
 import bisect
 import logging
-from collections.abc import Collection, Iterable, Mapping, Sequence
+from collections.abc import Collection, Iterable, Sequence
 from copy import deepcopy
-from dataclasses import dataclass, replace
-from datetime import datetime, timedelta, timezone
+from dataclasses import dataclass
+from datetime import datetime, timedelta
 from re import Match
 from typing import Any, TypedDict
 from uuid import UUID, uuid4
 
 import sentry_sdk
 from django.db import router, transaction
-from django.db.models import QuerySet
 from django.db.models.signals import post_save
 from django.forms import ValidationError
 from django.utils import timezone as django_timezone
-from snuba_sdk import Column, Condition, Limit, Op
 
-from sentry import analytics, audit_log, features, options, quotas
+from sentry import analytics, audit_log, features, options
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS, ObjectStatus
+from sentry.constants import ObjectStatus
 from sentry.db.models import Model
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
@@ -56,14 +54,11 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.notifications.models.notificationaction import ActionService, ActionTarget
 from sentry.relay.config.metric_extraction import on_demand_metrics_feature_flags
-from sentry.search.eap.types import SearchResolverConfig
-from sentry.search.events.builder.base import BaseQueryBuilder
 from sentry.search.events.constants import (
     METRICS_LAYER_UNSUPPORTED_TRANSACTION_METRICS_FUNCTIONS,
     SPANS_METRICS_FUNCTIONS,
 )
 from sentry.search.events.fields import is_function, resolve_field
-from sentry.search.events.types import SnubaParams
 from sentry.seer.anomaly_detection.delete_rule import delete_rule_in_seer
 from sentry.seer.anomaly_detection.store_data import send_new_rule_data, update_rule_data_legacy
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation, app_service
@@ -72,14 +67,7 @@ from sentry.shared_integrations.exceptions import (
     DuplicateDisplayNameError,
     IntegrationError,
 )
-from sentry.snuba.dataset import Dataset, EntityKey
-from sentry.snuba.entity_subscription import (
-    ENTITY_TIME_COLUMNS,
-    EntitySubscription,
-    get_entity_from_query_builder,
-    get_entity_key_from_query_builder,
-    get_entity_subscription_from_snuba_query,
-)
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import should_use_on_demand_metrics
 from sentry.snuba.metrics.naming_layer.mri import get_available_operations, is_mri, parse_mri
 from sentry.snuba.models import (
@@ -88,8 +76,6 @@ from sentry.snuba.models import (
     SnubaQuery,
     SnubaQueryEventType,
 )
-from sentry.snuba.referrer import Referrer
-from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.subscriptions import (
     bulk_create_snuba_subscriptions,
     bulk_delete_snuba_subscriptions,
@@ -102,16 +88,10 @@ from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.types.actor import Actor
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
-from sentry.utils import metrics
 from sentry.utils.audit import create_audit_entry_from_user
 from sentry.utils.not_set import NOT_SET, NotSet
 from sentry.utils.snuba import is_measurement
 from sentry.workflow_engine.models.detector import Detector
-
-# We can return an incident as "windowed" which returns a range of points around the start of the incident
-# It attempts to center the start of the incident, only showing earlier data if there isn't enough time
-# after the incident started to display the correct start date.
-WINDOWED_STATS_DATA_POINTS = 200
 
 CRITICAL_TRIGGER_LABEL = "critical"
 WARNING_TRIGGER_LABEL = "warning"
@@ -283,189 +263,6 @@ def _unpack_organization(alert_rule: AlertRule) -> Organization:
     if organization is None:
         raise ValueError("The alert rule must have a non-null organization")
     return organization
-
-
-@dataclass
-class BaseMetricIssueQueryParams:
-    snuba_query: SnubaQuery
-    date_started: datetime
-    current_end_date: datetime
-    organization: Organization
-
-
-@dataclass
-class CalculateOpenPeriodTimeRangeParams(BaseMetricIssueQueryParams):
-    start_arg: datetime | None = None
-    end_arg: datetime | None = None
-
-
-@dataclass
-class BuildMetricQueryBuilderParams(BaseMetricIssueQueryParams):
-    project_ids: list[int]
-    entity_subscription: EntitySubscription
-    start_arg: datetime | None = None
-    end_arg: datetime | None = None
-
-
-@dataclass
-class GetMetricIssueAggregatesParams(BaseMetricIssueQueryParams):
-    project_ids: list[int]
-    start_arg: datetime | None = None
-    end_arg: datetime | None = None
-
-
-def _build_metric_query_builder(
-    params: BuildMetricQueryBuilderParams,
-) -> BaseQueryBuilder:
-    start, end = _calculate_open_period_time_range(
-        CalculateOpenPeriodTimeRangeParams(
-            snuba_query=params.snuba_query,
-            date_started=params.date_started,
-            current_end_date=params.current_end_date,
-            organization=params.organization,
-            start_arg=params.start_arg,
-            end_arg=params.end_arg,
-        )
-    )
-
-    query_builder = params.entity_subscription.build_query_builder(
-        query=params.snuba_query.query,
-        project_ids=params.project_ids,
-        environment=params.snuba_query.environment,
-        params={
-            "organization_id": params.organization.id,
-            "project_id": params.project_ids,
-            "start": start,
-            "end": end,
-        },
-    )
-    for i, column in enumerate(query_builder.columns):
-        if column.alias == CRASH_RATE_ALERT_AGGREGATE_ALIAS:
-            query_builder.columns[i] = replace(column, alias="count")
-    entity_key = get_entity_key_from_query_builder(query_builder)
-    time_col = ENTITY_TIME_COLUMNS[entity_key]
-    entity = get_entity_from_query_builder(query_builder)
-    query_builder.add_conditions(
-        [
-            Condition(Column(time_col, entity=entity), Op.GTE, start),
-            Condition(Column(time_col, entity=entity), Op.LT, end),
-        ]
-    )
-    query_builder.limit = Limit(10000)
-    return query_builder
-
-
-def _calculate_open_period_time_range(
-    params: CalculateOpenPeriodTimeRangeParams,
-) -> tuple[datetime, datetime]:
-    time_window = params.snuba_query.time_window
-    time_window_delta = timedelta(seconds=time_window)
-    start = (
-        (params.date_started - time_window_delta) if params.start_arg is None else params.start_arg
-    )
-    end = (
-        (params.current_end_date + time_window_delta) if params.end_arg is None else params.end_arg
-    )
-
-    retention = quotas.backend.get_event_retention(organization=params.organization) or 90
-    start = max(
-        start.replace(tzinfo=timezone.utc),
-        datetime.now(timezone.utc) - timedelta(days=retention),
-    )
-    end = max(start, end.replace(tzinfo=timezone.utc))
-
-    return start, end
-
-
-def get_metric_issue_aggregates(
-    params: GetMetricIssueAggregatesParams,
-) -> dict[str, float | int]:
-    """
-    Calculates aggregate stats across the life of an incident, or the provided range.
-    """
-    entity_subscription = get_entity_subscription_from_snuba_query(
-        params.snuba_query,
-        params.organization.id,
-    )
-
-    if entity_subscription.dataset == Dataset.EventsAnalyticsPlatform:
-        start, end = _calculate_open_period_time_range(
-            CalculateOpenPeriodTimeRangeParams(
-                snuba_query=params.snuba_query,
-                date_started=params.date_started,
-                current_end_date=params.current_end_date,
-                organization=params.organization,
-                start_arg=params.start_arg,
-                end_arg=params.end_arg,
-            )
-        )
-
-        snuba_params = SnubaParams(
-            environments=[params.snuba_query.environment],
-            projects=[
-                Project.objects.get_from_cache(id=project_id) for project_id in params.project_ids
-            ],
-            organization=params.organization,
-            start=start,
-            end=end,
-        )
-
-        try:
-            results = Spans.run_table_query(
-                params=snuba_params,
-                query_string=params.snuba_query.query,
-                selected_columns=[entity_subscription.aggregate],
-                orderby=None,
-                offset=0,
-                limit=1,
-                referrer=Referrer.API_ALERTS_ALERT_RULE_CHART.value,
-                sampling_mode=None,
-                config=SearchResolverConfig(
-                    auto_fields=True,
-                ),
-            )
-
-        except Exception:
-            entity_key = EntityKey.EAPItems
-            metrics.incr(
-                "incidents.get_incident_aggregates.snql.query.error",
-                tags={
-                    "dataset": params.snuba_query.dataset,
-                    "entity": entity_key.value,
-                },
-            )
-            raise
-    else:
-        query_builder = _build_metric_query_builder(
-            BuildMetricQueryBuilderParams(
-                snuba_query=params.snuba_query,
-                organization=params.organization,
-                project_ids=params.project_ids,
-                entity_subscription=entity_subscription,
-                date_started=params.date_started,
-                current_end_date=params.current_end_date,
-                start_arg=params.start_arg,
-                end_arg=params.end_arg,
-            )
-        )
-        try:
-            results = query_builder.run_query(referrer="incidents.get_incident_aggregates")
-        except Exception:
-            metrics.incr(
-                "incidents.get_incident_aggregates.snql.query.error",
-                tags={
-                    "dataset": params.snuba_query.dataset,
-                    "entity": get_entity_key_from_query_builder(query_builder).value,
-                },
-            )
-            raise
-
-    aggregated_result = entity_subscription.aggregate_query_results(results["data"], alias="count")
-    return aggregated_result[0]
-
-
-class AlertRuleNameAlreadyUsedError(Exception):
-    pass
 
 
 # Default values for `SnubaQuery.resolution`, in minutes.
@@ -1055,22 +852,6 @@ def update_alert_rule(
     return alert_rule
 
 
-def enable_alert_rule(alert_rule: AlertRule) -> None:
-    if alert_rule.status != AlertRuleStatus.DISABLED.value:
-        return
-    with transaction.atomic(router.db_for_write(AlertRule)):
-        alert_rule.update(status=AlertRuleStatus.PENDING.value)
-        bulk_enable_snuba_subscriptions(_unpack_snuba_query(alert_rule).subscriptions.all())
-
-
-def disable_alert_rule(alert_rule: AlertRule) -> None:
-    if alert_rule.status != AlertRuleStatus.PENDING.value:
-        return
-    with transaction.atomic(router.db_for_write(AlertRule)):
-        alert_rule.update(status=AlertRuleStatus.DISABLED.value)
-        bulk_disable_snuba_subscriptions(_unpack_snuba_query(alert_rule).subscriptions.all())
-
-
 def enable_disable_subscriptions(
     query_subscriptions: BaseQuerySet[QuerySubscription], enabled: bool
 ) -> None:
@@ -1227,80 +1008,6 @@ def delete_alert_rule_trigger(trigger: AlertRuleTrigger) -> None:
     Deletes an AlertRuleTrigger
     """
     trigger.delete()
-
-
-def get_triggers_for_alert_rule(alert_rule: AlertRule) -> QuerySet[AlertRuleTrigger]:
-    return AlertRuleTrigger.objects.filter(alert_rule=alert_rule)
-
-
-def _sort_by_priority_list(
-    triggers: Collection[AlertRuleTrigger],
-) -> list[AlertRuleTrigger]:
-    priority_dict = {
-        WARNING_TRIGGER_LABEL: 0,
-        CRITICAL_TRIGGER_LABEL: 1,
-    }
-    return sorted(
-        triggers,
-        key=lambda t: priority_dict.get(t.label, len(triggers) + t.id),
-    )
-
-
-def _prioritize_actions(
-    triggers: Collection[AlertRuleTrigger],
-) -> list[AlertRuleTriggerAction]:
-    """
-    Function that given an input array of AlertRuleTriggers, prioritizes those triggers
-    based on their label, and then re-orders actions based on that ordering
-    Inputs:
-        * triggers: Array of instances of `AlertRuleTrigger`
-    Returns:
-        List of instances of `AlertRuleTriggerAction` that are ordered according to the ordering
-        of related prioritized instances of `AlertRuleTrigger`
-    """
-    actions = list(
-        AlertRuleTriggerAction.objects.filter(alert_rule_trigger__in=triggers).select_related(
-            "alert_rule_trigger"
-        )
-    )
-
-    triggers = _sort_by_priority_list(triggers=triggers)
-    triggers_dict = {t.id: idx for idx, t in enumerate(triggers)}
-
-    sorted_actions = sorted(
-        actions,
-        key=lambda action: triggers_dict.get(
-            action.alert_rule_trigger.id, len(actions) + action.id
-        ),
-    )
-    return sorted_actions
-
-
-def deduplicate_trigger_actions(
-    triggers: Collection[AlertRuleTrigger],
-) -> list[AlertRuleTriggerAction]:
-    """
-    Given a list of alert rule triggers, we fetch actions, this returns a list of actions that is
-    unique on (type, target_type, target_identifier, integration_id, sentry_app_id). If there are
-    duplicate actions, we'll prefer the action from a warning trigger over a critical
-    trigger. If there are duplicate actions on a single trigger, we'll just choose
-    one arbitrarily.
-    :param triggers: A list of `AlertRuleTrigger` instances from the same `AlertRule`
-    :return: A list of deduplicated `AlertRuleTriggerAction` instances.
-    """
-    actions = _prioritize_actions(triggers=triggers)
-
-    deduped: dict[tuple[int, int, str | None, int | None, int | None], AlertRuleTriggerAction] = {}
-    for action in actions:
-        key = (
-            action.type,
-            action.target_type,
-            action.target_identifier,
-            action.integration_id,
-            action.sentry_app_id,
-        )
-        deduped.setdefault(key, action)
-    return list(deduped.values())
 
 
 def create_alert_rule_trigger_action(
@@ -1707,34 +1414,6 @@ def delete_alert_rule_trigger_action(trigger_action: AlertRuleTriggerAction) -> 
     trigger_action.update(status=ObjectStatus.PENDING_DELETION)
 
 
-def get_actions_for_trigger(
-    trigger: AlertRuleTrigger,
-) -> QuerySet[AlertRuleTriggerAction]:
-    return AlertRuleTriggerAction.objects.filter(alert_rule_trigger=trigger)
-
-
-def get_available_action_integrations_for_org(
-    organization: Organization,
-) -> list[RpcIntegration]:
-    """
-    Returns a list of integrations that the organization has installed. Integrations are
-    filtered by the list of registered providers.
-    :param organization:
-    """
-
-    providers = [
-        registration.integration_provider
-        for registration in AlertRuleTriggerAction.get_registered_factories()
-        if registration.integration_provider is not None
-    ]
-    return integration_service.get_integrations(
-        status=ObjectStatus.ACTIVE,
-        org_integration_status=ObjectStatus.ACTIVE,
-        organization_id=organization.id,
-        providers=providers,
-    )
-
-
 # TODO: This is temporarily needed to support back and forth translations for snuba / frontend.
 # Uses a function from discover to break the aggregate down into parts, and then compare the "field"
 # to a list of accepted fields, or a list of fields we need to translate.
@@ -1761,16 +1440,6 @@ INSIGHTS_FUNCTION_VALID_ARGS_MAP = {
         "measurements.score.total",
     ],
 }
-EAP_COLUMNS = [
-    "span.duration",
-    "span.self_time",
-    "ai.total_tokens.used",
-    "ai.total_cost",
-    "cache.item_size",
-    "http.decoded_response_content_length",
-    "http.response_content_length",
-    "http.response_transfer_size",
-]
 EAP_FUNCTIONS = [
     "count",
     "count_unique",
@@ -1906,25 +1575,6 @@ def rewrite_trigger_action_fields(action_data: dict[str, Any]) -> dict[str, Any]
     if "settings" in action_data:
         action_data["sentry_app_config"] = action_data.pop("settings")
     return action_data
-
-
-def get_filtered_actions(
-    alert_rule_data: Mapping[str, Any],
-    action_type: ActionService,
-) -> list[dict[str, Any]]:
-    def is_included(action: Mapping[str, Any]) -> bool:
-        type_slug = action.get("type")
-        if type_slug is None or not isinstance(type_slug, str):
-            return False
-        factory = AlertRuleTriggerAction.look_up_factory_by_slug(type_slug)
-        return factory is not None and factory.service_type == action_type
-
-    return [
-        rewrite_trigger_action_fields(action)
-        for trigger in alert_rule_data.get("triggers", [])
-        for action in trigger.get("actions", [])
-        if is_included(action)
-    ]
 
 
 def schedule_update_project_config(

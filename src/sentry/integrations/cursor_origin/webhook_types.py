@@ -160,9 +160,8 @@ class PullRequestAuthor(OriginModel):
 
 
 class PullRequest(OriginModel):
-    """Origin's own id is not kept: it is a prefixed string, and
-    `PullRequest.external_id` is an integer column."""
-
+    # Origin's provider-global id (`pr_…`), stored as `PullRequest.external_id_str`.
+    id: str = Field(min_length=1)
     number: str = Field(min_length=1)
     title: str
     body: str

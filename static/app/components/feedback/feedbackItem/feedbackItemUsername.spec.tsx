@@ -3,6 +3,7 @@ import {FeedbackIssueFixture} from 'sentry-fixture/feedbackIssue';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {FeedbackItemUsername} from 'sentry/components/feedback/feedbackItem/feedbackItemUsername';
+import {ConfigStore} from 'sentry/stores/configStore';
 
 describe('FeedbackItemUsername', () => {
   let seerSetupMock: any;
@@ -135,6 +136,10 @@ describe('FeedbackItemUsername', () => {
   });
 
   describe('AI summary functionality', () => {
+    beforeEach(() => {
+      ConfigStore.set('isSelfHosted', false);
+    });
+
     it('should display summary and include it in email subject when AI summary is enabled', async () => {
       seerSetupMock = mockSeerSetup();
 
@@ -146,11 +151,7 @@ describe('FeedbackItemUsername', () => {
         },
       });
 
-      render(<FeedbackItemUsername feedbackIssue={issue} />, {
-        organization: {
-          features: ['gen-ai-features'],
-        },
-      });
+      render(<FeedbackItemUsername feedbackIssue={issue} />);
 
       await waitFor(() => {
         expect(seerSetupMock).toHaveBeenCalled();
@@ -168,17 +169,18 @@ describe('FeedbackItemUsername', () => {
     it.each([
       {
         description: 'AI features are disabled',
-        features: [] as string[],
+        isSelfHosted: true,
         summary: 'Login issue with payment flow',
       },
       {
         description: 'AI features enabled but summary is null',
-        features: ['gen-ai-features'],
+        isSelfHosted: false,
         summary: null,
       },
     ])(
       'should not display summary or include it in email subject when $description',
-      async ({features, summary}) => {
+      async ({isSelfHosted, summary}) => {
+        ConfigStore.set('isSelfHosted', isSelfHosted);
         seerSetupMock = mockSeerSetup();
 
         const issue = FeedbackIssueFixture({
@@ -189,11 +191,7 @@ describe('FeedbackItemUsername', () => {
           },
         });
 
-        render(<FeedbackItemUsername feedbackIssue={issue} />, {
-          organization: {
-            features,
-          },
-        });
+        render(<FeedbackItemUsername feedbackIssue={issue} />);
 
         await waitFor(() => {
           expect(seerSetupMock).toHaveBeenCalled();

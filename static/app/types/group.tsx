@@ -1360,7 +1360,7 @@ export interface GroupOpenPeriodActivity {
 export interface GroupOpenPeriod {
   activities: GroupOpenPeriodActivity[];
   duration: string;
-  end: string;
+  end: string | null;
   id: string;
   isOpen: boolean;
   lastChecked: string;
