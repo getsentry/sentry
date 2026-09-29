@@ -96,7 +96,7 @@ export function MergeAccountsModal(props: Props) {
                   queryOptions={search => {
                     const options = apiOptions.as<User[]>()('/users/', {
                       query: {query: search, per_page: 10},
-                      staleTime: 30_000,
+                      staleTime: 0,
                     });
                     return queryOptions({
                       ...options,
