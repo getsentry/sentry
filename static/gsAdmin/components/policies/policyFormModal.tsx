@@ -19,7 +19,7 @@ import {slugify} from 'sentry/utils/slugify';
 
 import type {Policy, PolicyRevision} from 'getsentry/types';
 
-const schema = z.object({
+const baseSchema = z.object({
   name: z.string(),
   slug: z.string(),
   active: z.boolean(),
@@ -35,18 +35,18 @@ const schema = z.object({
   file: z.tuple([z.string(), z.string()]).nullable(),
   current: z.boolean(),
 });
-const newPolicySchema = schema.extend({
+const policySchema = baseSchema.extend({
   name: z.string().trim().min(1, 'Name is required'),
   slug: z.string().trim().min(1, 'Slug is required'),
 });
-const newRevisionSchema = schema.extend({
+const revisionSchema = baseSchema.extend({
   version: z
     .string()
     .trim()
     .min(1, 'Version is required')
     .min(3, 'Version must be at least 3 characters'),
 });
-type Values = z.infer<typeof schema>;
+type Values = z.infer<typeof baseSchema>;
 
 type Props = ModalRenderProps & {
   onSuccess: (data: Policy | PolicyRevision) => void;
@@ -95,7 +95,7 @@ export function PolicyFormModal({
       file: null,
       current: !isNewPolicy,
     } as Values,
-    validators: {onDynamic: isNewPolicy ? newPolicySchema : newRevisionSchema},
+    validators: {onDynamic: isNewPolicy ? policySchema : revisionSchema},
     onSubmit: ({value}) => {
       if (isReadingFile) {
         addErrorMessage('Please wait for the selected file to finish loading.');
