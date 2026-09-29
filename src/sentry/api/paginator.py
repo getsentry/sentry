@@ -550,6 +550,11 @@ class GenericOffsetPaginator:
             has_more = len(data["data"]) == limit + 1
             if has_more:
                 data["data"].pop()
+                # `meta.matches` is keyed by row index, so the popped row's entry would outlive
+                # it. On raw Snuba bodies `meta` is a list of column descriptors, not a mapping.
+                meta = data.get("meta")
+                if isinstance(meta, dict) and isinstance(meta.get("matches"), dict):
+                    meta["matches"].pop(len(data["data"]), None)
         else:
             raise NotImplementedError
 

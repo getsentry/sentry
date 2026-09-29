@@ -396,7 +396,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
         assert response.status_code == 200, response.content
         assert "matches" not in response.data["meta"]
 
-    def test_regex_filter_keys_matches_by_row_index_when_a_next_page_exists(self) -> None:
+    def test_regex_filter_omits_the_over_fetched_row_when_a_next_page_exists(self) -> None:
         logs = [
             self.create_ourlog({"body": f"{'.' * i} ERROR boom"}, timestamp=self.ten_mins_ago)
             for i in range(5)
@@ -422,7 +422,6 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
         assert response.data["meta"]["matches"] == {
             0: {"fields": {"log.body": [(1, 6)]}},
             1: {"fields": {"log.body": [(2, 7)]}},
-            2: {"fields": {"log.body": [(3, 8)]}},
         }
 
     def test_regex_filter_returns_matches_alongside_the_default_log_fields(self) -> None:

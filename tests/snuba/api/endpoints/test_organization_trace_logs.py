@@ -279,7 +279,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsEndpointTestBase):
 
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 2
-        assert [0, 1] == sorted(response.data["meta"]["matches"])[:2]
+        assert sorted(response.data["meta"]["matches"]) == [0, 1]
 
     def test_pagelimit(self) -> None:
         trace_id = "1" * 32
