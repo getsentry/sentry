@@ -125,60 +125,42 @@ interface BackendJsonSubmitFormProps {
 /**
  * Build a Zod schema from the field configuration.
  */
-function isEmptyFieldValue(field: JsonFormAdapterFieldConfig, value: unknown) {
-  return (
-    value === null ||
-    value === undefined ||
-    (typeof value === 'string' && value.trim() === '') ||
-    ((field.type === 'select' || field.type === 'choice') &&
-      field.multiple &&
-      Array.isArray(value) &&
-      value.length === 0)
-  );
-}
-
 function buildValidationSchema(fields: JsonFormAdapterFieldConfig[]) {
   const shape: Record<string, z.ZodTypeAny> = {};
   for (const field of fields) {
     if (field.type === 'blank') {
       continue;
     }
-    if (
-      field.type === 'string' ||
-      field.type === 'text' ||
-      field.type === 'textarea' ||
-      field.type === 'url' ||
-      field.type === 'email' ||
-      field.type === 'datetime-local'
-    ) {
-      if (!field.required && field.type !== 'url' && field.maxLength === undefined) {
-        continue;
-      }
-      let schema = z.string();
-      if (field.required) {
-        schema = schema.refine(value => value.trim() !== '', {
-          message: t('This field is required'),
-        });
-      }
-      if (field.type === 'url') {
-        schema = schema.refine(
-          value => value.trim() === '' || z.url().safeParse(value).success,
-          {message: t('Enter a valid URL.')}
-        );
-      }
-      if (field.maxLength !== undefined) {
-        schema = schema.max(field.maxLength, {
-          message: t('Must be %s characters or fewer.', field.maxLength),
-        });
-      }
-      shape[field.name] = schema;
-    } else if (field.required) {
-      const requiredSchema = z
-        .unknown()
-        .refine(value => !isEmptyFieldValue(field, value), {
-          message: t('This field is required'),
-        });
-      shape[field.name] = requiredSchema;
+    const maxLength = 'maxLength' in field ? field.maxLength : undefined;
+    if (field.required || field.type === 'url' || maxLength !== undefined) {
+      shape[field.name] = z.any().superRefine((value, context) => {
+        const isEmpty =
+          value === null ||
+          value === undefined ||
+          (typeof value === 'string' && value.trim() === '') ||
+          ((field.type === 'select' || field.type === 'choice') &&
+            field.multiple &&
+            Array.isArray(value) &&
+            value.length === 0);
+
+        if (field.required && isEmpty) {
+          context.addIssue({code: 'custom', message: t('This field is required')});
+          return;
+        }
+        if (field.type === 'url' && !isEmpty && !z.url().safeParse(value).success) {
+          context.addIssue({code: 'custom', message: t('Enter a valid URL.')});
+        }
+        if (
+          maxLength !== undefined &&
+          typeof value === 'string' &&
+          value.length > maxLength
+        ) {
+          context.addIssue({
+            code: 'custom',
+            message: t('Must be %s characters or fewer.', maxLength),
+          });
+        }
+      });
     }
   }
   return z.object(shape).passthrough();

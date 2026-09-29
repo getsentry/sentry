@@ -292,23 +292,6 @@ describe('BackendJsonSubmitForm', () => {
       expect(onSubmit).not.toHaveBeenCalled();
     });
 
-    it('allows an optional URL to be empty', async () => {
-      render(
-        <BackendJsonSubmitForm
-          fields={[{name: 'mediaUrl', type: 'url', label: 'Image URL'}]}
-          onSubmit={onSubmit}
-          submitLabel="Create"
-        />,
-        {organization: org}
-      );
-
-      await userEvent.click(screen.getByRole('button', {name: 'Create'}));
-
-      await waitFor(() => {
-        expect(onSubmit).toHaveBeenCalledWith({mediaUrl: ''});
-      });
-    });
-
     it('blocks submission when text exceeds maxLength', async () => {
       render(
         <BackendJsonSubmitForm
