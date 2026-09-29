@@ -1,3 +1,4 @@
+from typing import Any
 from unittest import mock
 
 import pytest
@@ -8,13 +9,22 @@ from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import (
 from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 
+from sentry.exceptions import InvalidSearchQuery
+from sentry.explore.models import (
+    ExploreSavedFormula,
+    ExploreSavedVariable,
+    KindItemTypes,
+    ParamItemTypes,
+)
 from sentry.search.eap import utils
 from sentry.search.eap.constants import SearchType
 from sentry.search.eap.utils import (
     attribute_name_exists,
     check_attribute_names_exist,
+    parse_formula,
     serialize_search_type,
 )
+from sentry.testutils.cases import TestCase
 
 
 @pytest.mark.parametrize(
@@ -89,3 +99,89 @@ def test_check_attribute_names_exist_gives_up_past_the_page_bound() -> None:
 
     assert found == set()
     assert offsets == [0, page_limit, page_limit * 2]
+
+
+class TestParseFormula(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.org = self.create_organization(owner=self.user)
+        self.project = self.create_project(organization=self.org)
+        data: dict[Any, Any] = {
+            "name": "formula.apdex",
+            "formula": "({count_satisfied} + {count_tolerating} / 2) / count()",
+            "unit": None,
+            "references": [
+                {"name": "count_satisfied", "value": "count_if(`{duration}:<{threshold}`)"},
+                {
+                    "name": "count_tolerating",
+                    "value": "count_if(`{duration}:>={threshold} and {duration}:<={4threshold}`)",
+                },
+            ],
+            "params": [
+                {
+                    "name": "duration",
+                    "type": "column",
+                    "order": 0,
+                    "value": "",
+                },
+                {
+                    "name": "threshold",
+                    "type": "number",
+                    "order": 1,
+                    "value": "",
+                },
+                {
+                    "name": "4threshold",
+                    "type": "calculation",
+                    "order": 2,
+                    "value": "{threshold} * 4",
+                },
+            ],
+        }
+        self.formula = ExploreSavedFormula.objects.create(
+            organization=self.org,
+            formula=data["formula"],
+            name=data["name"],
+            unit=data["unit"],
+        )
+        for reference in data["references"]:
+            ExploreSavedVariable.objects.create(
+                organization=self.org,
+                name=reference["name"],
+                value=reference["value"],
+                kind=KindItemTypes.REFERENCE,
+                explore_saved_formula=self.formula,
+            )
+        for param in data["params"]:
+            ExploreSavedVariable.objects.create(
+                organization=self.org,
+                name=param["name"],
+                value=param["value"],
+                param_type=ParamItemTypes.get_id_for_type_name(param["type"]),
+                kind=KindItemTypes.PARAM,
+                explore_saved_formula=self.formula,
+                order=param["order"],
+            )
+
+    def test_parse_formula_wrong_args(self) -> None:
+        with pytest.raises(InvalidSearchQuery, match="formula.apdex expected 2 arguments got 5"):
+            parse_formula("formula.apdex(span.duration, 300, 300, 300, 300)", self.org)
+
+    def test_parse_formula_wrong_arg_type(self) -> None:
+        with pytest.raises(
+            InvalidSearchQuery, match="threshold expected a number but got 'hello_world' instead"
+        ):
+            parse_formula("formula.apdex(span.duration, hello_world)", self.org)
+
+    def test_parse_formula_simple(self) -> None:
+        equation = parse_formula("formula.apdex(span.duration, 300)", self.org)
+        assert (
+            equation
+            == "equation|(count_if(`span.duration:<300.0`) + count_if(`span.duration:>=300.0 and span.duration:<=1200.0`) / 2) / count()"
+        )
+
+        equation = parse_formula("formula.apdex(measurements.lcp, 400)", self.org)
+        assert (
+            equation
+            == "equation|(count_if(`measurements.lcp:<400.0`) + count_if(`measurements.lcp:>=400.0 and measurements.lcp:<=1600.0`) / 2) / count()"
+        )
