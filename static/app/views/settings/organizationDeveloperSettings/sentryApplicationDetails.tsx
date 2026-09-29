@@ -555,6 +555,11 @@ function ClaudeRoutineTemplateForm() {
             </field.Layout.Row>
           )}
         </form.AppField>
+
+        <AlertableField
+          form={form}
+          fields={{isAlertable: 'isAlertable', webhookUrl: 'webhookUrl'}}
+        />
       </form.FieldGroup>
 
       <PermissionsObserver

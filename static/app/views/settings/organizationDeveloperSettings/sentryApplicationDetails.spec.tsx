@@ -287,6 +287,8 @@ describe('Sentry Application Details', () => {
         expect(screen.getByText('Trigger a Claude routine')).toBeInTheDocument();
         expect(screen.getByRole('textbox', {name: 'Name'})).toHaveValue('Claude Routine');
         expect(screen.getByRole('textbox', {name: 'Routine Token'})).toHaveValue('');
+        expect(screen.getByRole('checkbox', {name: 'Alert Action'})).toBeChecked();
+        expect(screen.getByRole('checkbox', {name: 'Alert Action'})).toBeEnabled();
         expect(
           screen.getByRole('button', {name: 'Copy a starter prompt'})
         ).toBeInTheDocument();
@@ -320,9 +322,6 @@ describe('Sentry Application Details', () => {
           organization,
         });
 
-        expect(
-          screen.queryByRole('checkbox', {name: 'Alert Action'})
-        ).not.toBeInTheDocument();
         expect(screen.queryByRole('textbox', {name: 'Schema'})).not.toBeInTheDocument();
         expect(screen.queryByRole('textbox', {name: 'Overview'})).not.toBeInTheDocument();
         expect(
@@ -374,6 +373,37 @@ describe('Sentry Application Details', () => {
               isAlertable: true,
               overview: '',
             }),
+          })
+        );
+      });
+
+      it('saves with the alert action turned off', async () => {
+        createAppRequest = MockApiClient.addMockResponse({
+          url: '/sentry-apps/',
+          method: 'POST',
+          body: [],
+        });
+
+        render(<SentryApplicationDetails />, {
+          initialRouterConfig: templateRouterConfig,
+          organization,
+        });
+
+        await userEvent.type(
+          screen.getByRole('textbox', {name: 'Anthropic Routine URL'}),
+          'https://api.anthropic.com/v1/claude_code/routines/trig_123/fire'
+        );
+        await userEvent.type(
+          screen.getByRole('textbox', {name: 'Routine Token'}),
+          'sk-ant-oat01-test'
+        );
+        await userEvent.click(screen.getByRole('checkbox', {name: 'Alert Action'}));
+        await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
+
+        expect(createAppRequest).toHaveBeenCalledWith(
+          '/sentry-apps/',
+          expect.objectContaining({
+            data: expect.objectContaining({isAlertable: false}),
           })
         );
       });
