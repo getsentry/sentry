@@ -224,6 +224,8 @@ class GroupHistory(Model):
             models.Index(fields=("project", "status", "release")),
             models.Index(fields=("group", "status")),
             models.Index(fields=("project", "date_added")),
+            # Latest history row of a given status per group (auto-ongoing transitions).
+            models.Index(fields=("group", "status", "date_added")),
         )
 
     __repr__ = sane_repr("group_id", "release_id")
