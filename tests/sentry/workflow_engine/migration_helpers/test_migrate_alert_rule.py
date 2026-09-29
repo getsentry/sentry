@@ -6,7 +6,6 @@ import pytest
 from django.forms import ValidationError
 from urllib3.response import HTTPResponse
 
-from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.logic import update_alert_rule_trigger_action
 from sentry.incidents.models.alert_rule import (
@@ -34,10 +33,8 @@ from sentry.users.services.user.service import user_service
 from sentry.workflow_engine.migration_helpers.alert_rule import (
     PRIORITY_MAP,
     MissingDataConditionGroup,
-    dual_delete_migrated_alert_rule,
     dual_delete_migrated_alert_rule_trigger,
     dual_delete_migrated_alert_rule_trigger_action,
-    dual_update_alert_rule,
     dual_update_migrated_alert_rule,
     dual_update_migrated_alert_rule_trigger,
     dual_update_migrated_alert_rule_trigger_action,
@@ -539,146 +536,6 @@ class DualWriteAlertRuleTest(APITestCase):
         metric_detector = aci_objects[3]
         metric_detector.refresh_from_db()
         assert metric_detector.enabled is True
-
-
-class DualDeleteAlertRuleTest(BaseMetricAlertMigrationTest):
-    def setUp(self) -> None:
-        self.metric_alert = self.create_alert_rule()
-        (
-            self.data_source,
-            self.detector_data_condition_group,
-            self.workflow,
-            self.detector,
-            self.detector_state,
-            self.alert_rule_detector,
-            self.alert_rule_workflow,
-            self.detector_workflow,
-            self.data_source_detector,
-        ) = self.create_migrated_metric_alert_objects(self.metric_alert)
-        # we need to set up the resolve condition here, because the dual delete helper expects it
-        # its content doesn't matter, it just needs to exist
-        self.resolve_detector_trigger = self.create_migrated_metric_alert_rule_resolve_objects(
-            self.metric_alert, 67, Condition.LESS_OR_EQUAL
-        )
-
-    def test_dual_delete_metric_alert_workflow(self) -> None:
-        dual_delete_migrated_alert_rule(self.metric_alert)
-        with self.tasks():
-            run_scheduled_deletions()
-
-        # check workflow-related tables
-        assert not Workflow.objects.filter(id=self.workflow.id).exists()
-        assert not AlertRuleWorkflow.objects.filter(id=self.alert_rule_workflow.id).exists()
-
-    def test_dual_delete_metric_alert_detector(self) -> None:
-        dual_delete_migrated_alert_rule(self.metric_alert)
-        with self.tasks():
-            run_scheduled_deletions()
-
-        # check detector-related tables
-        assert not Detector.objects.filter(id=self.detector.id).exists()
-        assert not AlertRuleDetector.objects.filter(id=self.alert_rule_detector.id).exists()
-        assert not DetectorWorkflow.objects.filter(id=self.detector_workflow.id).exists()
-        assert not DetectorState.objects.filter(id=self.detector_state.id).exists()
-        assert not DataSourceDetector.objects.filter(id=self.data_source_detector.id).exists()
-        assert not DataConditionGroup.objects.filter(
-            id=self.detector_data_condition_group.id
-        ).exists()
-
-    def test_dual_delete_metric_alert_data_source(self) -> None:
-        dual_delete_migrated_alert_rule(self.metric_alert)
-        with self.tasks():
-            run_scheduled_deletions()
-
-        # check data source
-        assert not DataSource.objects.filter(id=self.data_source.id).exists()
-
-    def test_dual_delete_comprehensive(self) -> None:
-        """
-        If we dual delete an alert rule, the associated ACI objects for its triggers and trigger actions
-        also need to be deleted.
-        """
-        alert_rule_trigger = self.create_alert_rule_trigger(
-            alert_rule=self.metric_alert, label="critical", alert_threshold=200
-        )
-        alert_rule_trigger_action = self.create_alert_rule_trigger_action(
-            alert_rule_trigger=alert_rule_trigger
-        )
-
-        detector_trigger, action_filter, resolve_action_filter = (
-            self.create_migrated_metric_alert_rule_trigger_objects(
-                alert_rule_trigger, DetectorPriorityLevel.HIGH, Condition.GREATER
-            )
-        )
-        action_filter_dcg = action_filter.condition_group
-        action, data_condition_group_action, aarta = (
-            self.create_migrated_metric_alert_rule_action_objects(alert_rule_trigger_action)
-        )
-
-        dual_delete_migrated_alert_rule(self.metric_alert)
-        with self.tasks():
-            run_scheduled_deletions()
-
-        # check trigger action objects
-        assert not Action.objects.filter(id=action.id).exists()
-        assert not DataConditionGroupAction.objects.filter(
-            id=data_condition_group_action.id
-        ).exists()
-        assert not ActionAlertRuleTriggerAction.objects.filter(id=aarta.id).exists()
-
-        # check resolution objects
-        assert not DataCondition.objects.filter(id=self.resolve_detector_trigger.id).exists()
-
-        # check trigger objects
-        assert not DataConditionGroup.objects.filter(id=action_filter_dcg.id).exists()
-        assert not DataCondition.objects.filter(id=detector_trigger.id).exists()
-        assert not DataCondition.objects.filter(id=resolve_action_filter.id).exists()
-        assert not DataConditionAlertRuleTrigger.objects.filter(
-            data_condition=detector_trigger
-        ).exists()
-        assert not DataCondition.objects.filter(id=action_filter.id).exists()
-
-    @mock.patch("sentry.workflow_engine.migration_helpers.alert_rule.logger")
-    def test_dual_delete_twice(self, mock_logger: mock.MagicMock) -> None:
-        """
-        Test that nothing happens if dual delete is run twice. We should just quit early the
-        second time.
-        """
-        dual_delete_migrated_alert_rule(self.metric_alert)
-        with self.tasks():
-            run_scheduled_deletions()
-        assert not Detector.objects.filter(id=self.detector.id).exists()
-
-        dual_delete_migrated_alert_rule(self.metric_alert)
-        with self.tasks():
-            run_scheduled_deletions()
-        mock_logger.info.assert_called_with(
-            "alert rule was not dual written or objects were already deleted, returning early",
-            extra={"alert_rule_id": self.metric_alert.id},
-        )
-
-    def test_dual_delete_twice_before_running_scheduled_deletions(self) -> None:
-        """
-        Test that nothing happens if dual delete is run twice (before scheduled deletions
-        are run).
-        """
-        dual_delete_migrated_alert_rule(self.metric_alert)
-        dual_delete_migrated_alert_rule(self.metric_alert)
-        with self.tasks():
-            run_scheduled_deletions()
-        assert not Detector.objects.filter(id=self.detector.id).exists()
-
-    def test_dual_delete_missing_workflow(self) -> None:
-        """
-        Test that if we are missing the Workflow and AlertRuleWorkflow models that we still delete the detector
-        """
-        self.workflow.delete()
-        self.alert_rule_workflow.delete()
-
-        dual_delete_migrated_alert_rule(self.metric_alert)
-        with self.tasks():
-            run_scheduled_deletions()
-        assert not Detector.objects.filter(id=self.detector.id).exists()
 
 
 class DualUpdateAlertRuleTest(BaseMetricAlertMigrationTest):
@@ -1455,8 +1312,8 @@ class DataConditionLookupHelpersTest(BaseMetricAlertMigrationTest):
 
 class SinglePointOfEntryTest(BaseMetricAlertMigrationTest):
     """
-    Test that the SPE create/update methods properly create and update all relevant ACI
-    objects for an alert rule, its triggers, and its actions.
+    Test that the SPE create method properly creates all relevant ACI objects for an alert rule,
+    its triggers, and its actions.
     """
 
     def setUp(self) -> None:
@@ -1469,30 +1326,6 @@ class SinglePointOfEntryTest(BaseMetricAlertMigrationTest):
             alert_rule_trigger=self.alert_rule_trigger
         )
 
-        # rule for testing SPE update
-        resolve_threshold = 50
-        self.dual_written_alert = self.create_alert_rule(resolve_threshold=resolve_threshold)
-        self.dual_written_trigger = self.create_alert_rule_trigger(
-            alert_rule=self.dual_written_alert, label="critical", alert_threshold=100
-        )
-        self.dual_written_trigger_action = self.create_alert_rule_trigger_action(
-            alert_rule_trigger=self.dual_written_trigger
-        )
-
-        self.create_migrated_metric_alert_objects(self.dual_written_alert)
-        self.detector_trigger, self.action_filter, self.resolve_action_filter = (
-            self.create_migrated_metric_alert_rule_trigger_objects(
-                self.dual_written_trigger, DetectorPriorityLevel.HIGH, Condition.GREATER
-            )
-        )
-        self.action, self.data_condition_group_action, self.aarta = (
-            self.create_migrated_metric_alert_rule_action_objects(self.dual_written_trigger_action)
-        )
-        self.create_migrated_metric_alert_rule_resolve_objects(
-            self.dual_written_alert, resolve_threshold, Condition.LESS_OR_EQUAL
-        )
-
-        # rule for testing anomaly detection updates
         self.anomaly_detection_alert = self.create_dynamic_alert()
         self.anomaly_detection_alert_trigger = self.create_alert_rule_trigger(
             alert_rule=self.anomaly_detection_alert, label="critical", alert_threshold=0
@@ -1523,150 +1356,3 @@ class SinglePointOfEntryTest(BaseMetricAlertMigrationTest):
             condition_group=detector.workflow_condition_group,
             condition_result=DetectorPriorityLevel.OK,
         ).exists()
-
-    def test_spe_update(self) -> None:
-        # do some updates on all legacy objects
-        user_2 = self.create_user()
-        self.dual_written_alert.update(name="sencha")
-        self.dual_written_trigger.update(alert_threshold=95)
-        self.dual_written_trigger_action.update(target_identifier=user_2.id)
-
-        dual_update_alert_rule(self.dual_written_alert)
-        detector = AlertRuleDetector.objects.get(alert_rule_id=self.dual_written_alert.id).detector
-        self.detector_trigger.refresh_from_db()
-        self.action.refresh_from_db()
-
-        assert detector.name == "sencha"
-        assert self.detector_trigger.comparison == 95
-        assert self.action.config["target_identifier"] == str(user_2.id)
-
-    def test_spe_update_new_objects(self) -> None:
-        # create new trigger and action on migrated alert rule
-        new_trigger = self.create_alert_rule_trigger(
-            alert_rule=self.dual_written_alert, label="warning", alert_threshold=75
-        )
-        new_trigger_action = self.create_alert_rule_trigger_action(alert_rule_trigger=new_trigger)
-
-        dual_update_alert_rule(self.dual_written_alert)
-
-        assert_alert_rule_trigger_migrated(new_trigger)
-        assert_alert_rule_trigger_action_migrated(new_trigger_action, Action.Type.EMAIL)
-
-    def test_spe_regular_to_anomaly_detection(self) -> None:
-        self.dual_written_alert.update(
-            detection_type=AlertRuleDetectionType.DYNAMIC,
-            sensitivity=AlertRuleSensitivity.MEDIUM,
-            seasonality=AlertRuleSeasonality.AUTO,
-            threshold_type=AlertRuleThresholdType.BELOW.value,
-        )
-        self.dual_written_trigger.update(alert_threshold=0)
-        self.dual_written_alert.refresh_from_db()
-        self.dual_written_trigger.refresh_from_db()
-
-        dual_update_alert_rule(self.dual_written_alert)
-
-        # check detector
-        detector = AlertRuleDetector.objects.get(alert_rule_id=self.dual_written_alert.id).detector
-        assert detector.config["detection_type"] == AlertRuleDetectionType.DYNAMIC
-
-        # check detector trigger
-        self.detector_trigger.refresh_from_db()
-        assert self.detector_trigger.type == Condition.ANOMALY_DETECTION
-        assert self.detector_trigger.comparison == {
-            "sensitivity": self.dual_written_alert.sensitivity,
-            "seasonality": self.dual_written_alert.seasonality,
-            "threshold_type": self.dual_written_alert.threshold_type,
-        }
-
-        # check that resolve detector trigger was deleted
-        assert not DataCondition.objects.filter(
-            condition_group=detector.workflow_condition_group,
-            condition_result=DetectorPriorityLevel.OK,
-        ).exists()
-
-    def test_spe_anomaly_detection_to_regular(self) -> None:
-        dual_write_alert_rule(self.anomaly_detection_alert)
-        self.anomaly_detection_alert.update(
-            detection_type=AlertRuleDetectionType.STATIC,
-            sensitivity=None,
-            seasonality=None,
-            threshold_type=AlertRuleThresholdType.BELOW.value,
-        )
-        self.anomaly_detection_alert_trigger.update(alert_threshold=200)
-        self.anomaly_detection_alert.refresh_from_db()
-        self.anomaly_detection_alert_trigger.refresh_from_db()
-
-        dual_update_alert_rule(self.anomaly_detection_alert)
-
-        # check detector
-        detector = AlertRuleDetector.objects.get(
-            alert_rule_id=self.anomaly_detection_alert.id
-        ).detector
-        assert detector.config["detection_type"] == AlertRuleDetectionType.STATIC
-
-        # check detector trigger
-        detector_trigger = DataCondition.objects.get(
-            condition_group=detector.workflow_condition_group,
-            condition_result=DetectorPriorityLevel.HIGH,
-        )
-        assert detector_trigger.type == Condition.LESS
-        assert detector_trigger.comparison == 200
-
-        # check explicit resolve detector trigger
-        assert DataCondition.objects.filter(
-            condition_group=detector.workflow_condition_group,
-            condition_result=DetectorPriorityLevel.OK,
-            type=Condition.GREATER_OR_EQUAL,
-            comparison=200,
-        ).exists()
-
-    def test_spe_anomaly_detection_to_percent(self) -> None:
-        dual_write_alert_rule(self.anomaly_detection_alert)
-        self.anomaly_detection_alert.update(
-            detection_type=AlertRuleDetectionType.PERCENT,
-            comparison_delta=90,
-        )
-        self.anomaly_detection_alert_trigger.update(alert_threshold=150)
-        self.anomaly_detection_alert.refresh_from_db()
-        self.anomaly_detection_alert_trigger.refresh_from_db()
-
-        dual_update_alert_rule(self.anomaly_detection_alert)
-
-        # check detector
-        detector = AlertRuleDetector.objects.get(
-            alert_rule_id=self.anomaly_detection_alert.id
-        ).detector
-        assert detector.config["detection_type"] == AlertRuleDetectionType.PERCENT
-        assert detector.config["comparison_delta"] == 90
-
-        # check detector trigger
-        detector_trigger = DataCondition.objects.get(
-            condition_group=detector.workflow_condition_group,
-            condition_result=DetectorPriorityLevel.HIGH,
-        )
-        assert detector_trigger.type == Condition.GREATER
-        assert detector_trigger.comparison == 150
-
-        # check explicit resolve detector trigger
-        assert DataCondition.objects.filter(
-            condition_group=detector.workflow_condition_group,
-            condition_result=DetectorPriorityLevel.OK,
-            type=Condition.LESS_OR_EQUAL,
-            comparison=150,
-        ).exists()
-
-    def test_spe_anomaly_detection_update(self) -> None:
-        dual_write_alert_rule(self.anomaly_detection_alert)
-        self.anomaly_detection_alert.update(sensitivity=AlertRuleSensitivity.LOW)
-
-        dual_update_alert_rule(self.anomaly_detection_alert)
-
-        detector = AlertRuleDetector.objects.get(
-            alert_rule_id=self.anomaly_detection_alert.id
-        ).detector
-
-        detector_trigger = DataCondition.objects.get(
-            condition_group=detector.workflow_condition_group,
-            condition_result=DetectorPriorityLevel.HIGH,
-        )
-        assert detector_trigger.comparison["sensitivity"] == AlertRuleSensitivity.LOW

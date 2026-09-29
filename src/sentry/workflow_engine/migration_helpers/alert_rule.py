@@ -5,8 +5,6 @@ from typing import Any
 from django.db import router, transaction
 from django.forms import ValidationError
 
-from sentry.constants import ObjectStatus
-from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import (
     AlertRule,
@@ -651,51 +649,6 @@ def dual_write_alert_rule(alert_rule: AlertRule, user: RpcUser | None = None) ->
             migrate_resolve_threshold_data_condition(alert_rule)
 
 
-def dual_update_alert_rule(alert_rule: AlertRule) -> None:
-    """
-    Comprehensively dual update the ACI objects corresponding to an alert rule, its triggers, and
-    its actions. All of these objects will have been created/updated prior to calling this method.
-    If an alert was not dual written, then quit early. If a trigger/trigger action on a dual written
-    alert rule has no ACI equivalent, then create the corresponding ACI objects. Otherwise, update
-    the corresponding ACI objects.
-    """
-    try:
-        AlertRuleDetector.objects.get(alert_rule_id=alert_rule.id)
-    except AlertRuleDetector.DoesNotExist:
-        logger.info(
-            "alert rule was not dual written, returning early",
-            extra={"alert_rule": alert_rule},
-        )
-        # This alert rule was not dual written
-        return None
-
-    with transaction.atomic(router.db_for_write(Detector)):
-        # step 1: update the alert rule
-        dual_update_migrated_alert_rule(alert_rule)
-        triggers = AlertRuleTrigger.objects.filter(alert_rule=alert_rule)
-        # step 2: create/update the ACI objects for triggers
-        for trigger in triggers:
-            try:
-                get_detector_trigger(trigger, PRIORITY_MAP[trigger.label])
-            except DataCondition.DoesNotExist:
-                # we need to migrate this trigger
-                migrate_metric_data_conditions(trigger)
-            dual_update_migrated_alert_rule_trigger(trigger)
-            trigger_actions = AlertRuleTriggerAction.objects.filter(alert_rule_trigger=trigger)
-            # step 3: create/update the ACI objects for this trigger's actions
-            for trigger_action in trigger_actions:
-                try:
-                    ActionAlertRuleTriggerAction.objects.get(
-                        alert_rule_trigger_action_id=trigger_action.id
-                    )
-                except ActionAlertRuleTriggerAction.DoesNotExist:
-                    # we need to migrate this action
-                    migrate_metric_action(trigger_action)
-                dual_update_migrated_alert_rule_trigger_action(trigger_action)
-        # step 4: update alert rule resolution
-        dual_update_resolve_condition(alert_rule)
-
-
 def dual_update_migrated_alert_rule(
     alert_rule: AlertRule,
 ) -> (
@@ -891,43 +844,6 @@ def get_data_source(alert_rule: AlertRule) -> DataSource | None:
     except DataSource.DoesNotExist:
         return None
     return data_source
-
-
-def dual_delete_migrated_alert_rule(alert_rule: AlertRule) -> None:
-    try:
-        alert_rule_detector = AlertRuleDetector.objects.get(alert_rule_id=alert_rule.id)
-    except AlertRuleDetector.DoesNotExist:
-        # NOTE: we run the dual delete even if the user isn't flagged into dual write
-        logger.info(
-            "alert rule was not dual written or objects were already deleted, returning early",
-            extra={"alert_rule_id": alert_rule.id},
-        )
-        return
-
-    detector: Detector = alert_rule_detector.detector
-    alert_rule_workflow = None
-
-    try:
-        alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule_id=alert_rule.id)
-    except AlertRuleWorkflow.DoesNotExist:
-        logger.exception(
-            "AlertRuleWorkflow not found for AlertRule, workflow may be orphaned",
-            extra={"detector_id": detector.id},
-        )
-    if alert_rule_workflow:
-        workflow: Workflow = alert_rule_workflow.workflow
-        with transaction.atomic(router.db_for_write(Detector)):
-            detector.update(status=ObjectStatus.PENDING_DELETION)
-            workflow.update(status=ObjectStatus.PENDING_DELETION)
-            CellScheduledDeletion.schedule(instance=detector, days=0)
-            CellScheduledDeletion.schedule(instance=workflow, days=0)
-
-    else:
-        with transaction.atomic(router.db_for_write(Detector)):
-            detector.update(status=ObjectStatus.PENDING_DELETION)
-            CellScheduledDeletion.schedule(instance=detector, days=0)
-
-    return
 
 
 def dual_delete_migrated_alert_rule_trigger(alert_rule_trigger: AlertRuleTrigger) -> None:
