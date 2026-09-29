@@ -115,7 +115,7 @@ export function getBroadcastSchema(): JsonFormAdapterFieldConfig[] {
     },
     {
       name: 'dateExpires',
-      type: 'datetime',
+      type: 'datetime-local',
       required: false,
       label: 'Expires At',
       help: 'The broadcast will automatically deactivate upon expiration.',

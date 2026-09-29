@@ -233,7 +233,7 @@ export function BackendJsonAutoSaveForm<
             );
           case 'string':
           case 'text':
-          case 'datetime':
+          case 'datetime-local':
           case 'url':
           case 'email':
             return (
@@ -244,11 +244,7 @@ export function BackendJsonAutoSaveForm<
                   placeholder={field.placeholder}
                   disabled={getDisabledProp(field)}
                   type={
-                    field.type === 'datetime'
-                      ? 'datetime-local'
-                      : field.type === 'string' || field.type === 'text'
-                        ? 'text'
-                        : field.type
+                    field.type === 'string' || field.type === 'text' ? 'text' : field.type
                   }
                 />
               </fieldApi.Layout.Row>
