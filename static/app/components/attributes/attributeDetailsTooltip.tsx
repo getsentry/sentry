@@ -65,12 +65,13 @@ export function AttributeDetailsTooltip({
 
   return (
     <InfoText
+      monospace
       variant="muted"
       title={
         <Fragment>
           <Tooltip.Grid gap="md">
             <Stack gap="2xs">
-              <Text bold wordBreak="break-word">
+              <Text bold monospace wordBreak="break-word">
                 {attributeName}
               </Text>
               <TypeBadge valueType={valueType} />
