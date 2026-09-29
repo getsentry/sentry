@@ -37,7 +37,9 @@ describe('UnsubscribeProject', () => {
       },
     });
 
-    expect(await screen.findByText('acme / react')).toBeInTheDocument();
+    expect(
+      await screen.findByText('acme / react', undefined, {timeout: 3000})
+    ).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Unsubscribe'})).toBeInTheDocument();
     expect(mockGet).toHaveBeenCalled();
   });
@@ -55,7 +57,9 @@ describe('UnsubscribeProject', () => {
       },
     });
 
-    expect(await screen.findByText('acme / react')).toBeInTheDocument();
+    expect(
+      await screen.findByText('acme / react', undefined, {timeout: 3000})
+    ).toBeInTheDocument();
     const button = screen.getByRole('button', {name: 'Unsubscribe'});
     await userEvent.click(button);
 

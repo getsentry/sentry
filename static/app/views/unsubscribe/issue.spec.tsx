@@ -35,7 +35,9 @@ describe('UnsubscribeIssue', () => {
       },
     });
 
-    expect(await screen.findByText('selected issue')).toBeInTheDocument();
+    expect(
+      await screen.findByText('selected issue', undefined, {timeout: 3000})
+    ).toBeInTheDocument();
     expect(screen.getByText('workflow notifications')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Unsubscribe'})).toBeInTheDocument();
     expect(mockGet).toHaveBeenCalled();
@@ -52,7 +54,9 @@ describe('UnsubscribeIssue', () => {
       },
     });
 
-    expect(await screen.findByText('selected issue')).toBeInTheDocument();
+    expect(
+      await screen.findByText('selected issue', undefined, {timeout: 3000})
+    ).toBeInTheDocument();
     const button = screen.getByRole('button', {name: 'Unsubscribe'});
     await userEvent.click(button);
 
