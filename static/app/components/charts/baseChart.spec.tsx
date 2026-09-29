@@ -112,7 +112,7 @@ describe('BaseChart', () => {
       attachInstance(undefined);
       expect(getLatestProps().shouldSetOption()).toBe(false);
 
-      rerender(<BaseChart height={200} />);
+      rerender(<BaseChart />);
       attachInstance({isDisposed: () => false});
       expect(getLatestProps().shouldSetOption()).toBe(true);
     });
