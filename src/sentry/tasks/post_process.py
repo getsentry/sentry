@@ -568,19 +568,22 @@ def post_process_group(
         from sentry.services import eventstore
 
         if occurrence_id is None:
-            assert event_id is not None
             lock_key = f"ppg:{project_id}:{event_id}-once"
             lock_name = "post_process_event_once"
         else:
             lock_key = f"ppg:{occurrence_id}-once"
             lock_name = "post_process_w_o"
 
-        # Forwarders can replay events and occurrences. Keep the lock until its TTL
-        # expires rather than releasing it after processing.
+        # Note: We attempt to acquire the lock here, but we don't release it and instead just
+        # rely on the ttl. The goal here is to make sure we only ever run post process group
+        # at most once per occurrence. Even though we don't use retries on the task, this is
+        # still necessary since the consumer that sends these might reprocess a batch.
         lock = locks.get(lock_key, duration=600, name=lock_name)
         try:
             lock.acquire()
         except UnableToAcquireLock:
+            # If we fail to acquire the lock, we've already run post process group for this
+            # occurrence
             return
 
         occurrence = None

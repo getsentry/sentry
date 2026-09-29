@@ -618,16 +618,7 @@ def _do_save_event(
                     cache_key=cache_key,
                     attachments=attachments,
                 )
-                if consumer_type != ConsumerType.Transactions:
-                    data = manager.get_data()
-                    if not isinstance(data, dict):
-                        data = dict(data.items())
-
         except HashDiscarded:
-            # Delete the event payload from cache since it won't show up in post-processing.
-            if cache_key:
-                processing_store.delete_by_key(cache_key)
-
             # Mark all the attachments as `rate_limited`, so they are being properly cleaned up in the `finally` block:
             for attachment in all_attachments:
                 attachment.rate_limited = True
