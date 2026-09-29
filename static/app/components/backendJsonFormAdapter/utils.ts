@@ -10,6 +10,7 @@ export function getZodType(fieldType: JsonFormAdapterFieldConfig['type']) {
       return z.boolean();
     case 'string':
     case 'text':
+    case 'datetime':
     case 'secret':
     case 'textarea':
       return z.string();
@@ -122,6 +123,7 @@ export function getDefaultForField(field: JsonFormAdapterFieldConfig): unknown {
       return false;
     case 'string':
     case 'text':
+    case 'datetime':
     case 'url':
     case 'email':
     case 'secret':

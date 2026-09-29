@@ -568,6 +568,7 @@ export function BackendJsonSubmitForm({
                       );
                     case 'string':
                     case 'text':
+                    case 'datetime':
                     case 'url':
                     case 'email':
                       return (
@@ -583,10 +584,11 @@ export function BackendJsonSubmitForm({
                             disabled={disabledProp}
                             maxLength={field.maxLength}
                             type={
-                              field.inputType ??
-                              (field.type === 'string' || field.type === 'text'
-                                ? 'text'
-                                : field.type)
+                              field.type === 'datetime'
+                                ? 'datetime-local'
+                                : field.type === 'string' || field.type === 'text'
+                                  ? 'text'
+                                  : field.type
                             }
                           />
                         </fieldApi.Layout.Stack>

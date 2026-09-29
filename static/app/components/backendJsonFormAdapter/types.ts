@@ -34,9 +34,8 @@ interface JsonFormAdapterBoolean extends JsonFormAdapterBase {
 }
 
 interface JsonFormAdapterString extends JsonFormAdapterBase {
-  type: 'string' | 'text' | 'textarea' | 'url' | 'email';
+  type: 'string' | 'text' | 'textarea' | 'url' | 'email' | 'datetime';
   autosize?: boolean;
-  inputType?: 'datetime-local';
   maxLength?: number;
   maxRows?: number;
 }

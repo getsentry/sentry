@@ -19,6 +19,13 @@ interface CreateBroadcastModal extends ModalRenderProps {
   fields: JsonFormAdapterFieldConfig[];
 }
 
+type CreateBroadcastPayload = Pick<Broadcast, 'title' | 'message' | 'link'> & {
+  category?: string;
+  mediaUrl?: string;
+  organizations?: number[];
+  region?: string;
+};
+
 export function CreateBroadcastModal({
   Header,
   Body,
@@ -28,7 +35,7 @@ export function CreateBroadcastModal({
 }: CreateBroadcastModal) {
   const navigate = useNavigate();
   const updateBroadcast = useMutation({
-    mutationFn: (data: Record<string, unknown>) => {
+    mutationFn: (data: CreateBroadcastPayload) => {
       return fetchMutation<Broadcast>({
         url: getApiUrl('/broadcasts/'),
         method: 'POST',
@@ -44,6 +51,8 @@ export function CreateBroadcastModal({
   });
 
   const handleSubmit = (data: Record<string, unknown>) => {
+    const title = typeof data.title === 'string' ? data.title : '';
+    const message = typeof data.message === 'string' ? data.message : '';
     const link = typeof data.link === 'string' ? data.link : '';
     const mediaUrl = typeof data.mediaUrl === 'string' ? data.mediaUrl : '';
     if (!safeURL(link)) {
@@ -56,12 +65,15 @@ export function CreateBroadcastModal({
       return Promise.reject(new Error('Invalid image URL'));
     }
 
-    const newData: Record<string, unknown> = {
+    const newData: CreateBroadcastPayload = {
       ...data,
+      title,
+      message,
       link,
-      category: data.category || undefined,
+      category:
+        typeof data.category === 'string' ? data.category || undefined : undefined,
       mediaUrl: mediaUrl || undefined,
-      region: data.region || undefined,
+      region: typeof data.region === 'string' ? data.region || undefined : undefined,
       organizations:
         typeof data.organizations === 'string'
           ? data.organizations

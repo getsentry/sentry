@@ -78,9 +78,8 @@ describe('BackendJsonSubmitForm', () => {
           fields={[
             {
               name: 'expires_at',
-              type: 'string',
+              type: 'datetime',
               label: 'Expires At',
-              inputType: 'datetime-local',
               maxLength: 64,
             },
           ]}
