@@ -104,7 +104,7 @@ export function FeatureTourModal({
     });
   }, [steps, handleAdvance, doneText, doneUrl, handleClose]);
 
-  return <>{children({showModal: handleShow})}</>;
+  return <React.Fragment>{children({showModal: handleShow})}</React.Fragment>;
 }
 
 type ContentsProps = ModalRenderProps &
