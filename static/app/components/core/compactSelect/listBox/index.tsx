@@ -16,7 +16,7 @@ import {
 import type {SelectKey} from '@sentry/scraps/compactSelect';
 import type {ListItemBase} from '@sentry/scraps/compactSelect/types';
 import {Container} from '@sentry/scraps/layout';
-import {useTranslation} from '@sentry/scraps/translationContext';
+import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 import type {FormSize} from 'sentry/utils/theme';
 

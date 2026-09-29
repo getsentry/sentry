@@ -793,7 +793,7 @@ class Referrer(StrEnum):
     SEARCH_SAMPLE = "search_sample"
     SEARCH = "search"
     SEARCH_GROUP_INDEX = "search.group_index"
-    SEER_NIGHT_SHIFT_FIXABILITY_SCORE_STRATEGY = "seer.night_shift.fixability_score_strategy"
+    SEER_AGENTIC_TRIAGE_FIXABILITY_SCORE_STRATEGY = "seer.night_shift.fixability_score_strategy"
     SEARCH_GROUP_INDEX_SAMPLE = "search.group_index_sample"
     SEARCH_GROUP_INDEX_API = "search.group_index.api"
     SEARCH_GROUP_INDEX_API_SAMPLE = "search.group_index.api_sample"

@@ -148,6 +148,13 @@ register(
     default=[],
 )
 
+# Opt-in to Relay expanding JSON-like string attributes on EAP items into KVList
+# attributes, so the nested keys become searchable.
+register(
+    key="sentry:relay_automatic_json_expansion",
+    default=False,
+)
+
 register(
     key="sentry:feedback_user_report_notifications",
     epoch_defaults={12: True},
@@ -203,7 +210,7 @@ register(key="sentry:autofix_automation_tuning", default=AUTOFIX_AUTOMATION_TUNI
 # Should seer scanner run automatically on new issues
 register(key="sentry:seer_scanner_automation", default=True)
 
-# Per-project JSON blob of Seer Night Shift tweaks. Prototyping only — not a
+# Per-project JSON blob of Seer Agentic triage tweaks. Prototyping only — not a
 # stable API; the shape of the blob is expected to change.
 register(key="sentry:seer_nightshift_tweaks", default=None)
 

@@ -30,10 +30,8 @@ def _routable_lookups(data: Mapping[str, Any]) -> list[Mapping[str, Any]]:
     """
     lookups: list[Mapping[str, Any]] = []
 
-    # The bot embeds an "integrationId" in the card action context of the cards it builds, and
-    # Teams echoes that context back when a user interacts with the card. Cards built by the
-    # notification platform omit it, since the renderer has no access to the target it is being
-    # sent to, leaving only the conversation the request arrived on to identify the integration.
+    # The bot embeds an "integrationId" in the card action context of the cards it sends, and
+    # Teams echoes that context back when a user interacts with the card.
     #
     # See: https://learn.microsoft.com/en-us/microsoftteams/platform/task-modules-and-cards/cards/cards-actions?tabs=json#actionsubmit
     integration_id = get_path(data, "value", "payload", "integrationId")

@@ -1,6 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import type {Block} from 'sentry/views/seerExplorer/types';
 
@@ -133,6 +133,31 @@ describe('deriveThinkingTitle', () => {
 
 describe('ResponseGroup', () => {
   const organization = OrganizationFixture();
+
+  afterEach(() => jest.useRealTimers());
+
+  it('keeps elapsed time when the optimistic placeholder becomes a server block', () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2025-01-01T00:00:00Z'));
+    const optimistic = {
+      ...assistantBlock('optimistic', '', true),
+      timestamp: '2025-01-01T00:00:00Z',
+    };
+    const {rerender} = render(<ResponseGroup group={[optimistic]} blockIndex={1} />, {
+      organization,
+    });
+
+    act(() => jest.advanceTimersByTime(5000));
+    expect(screen.getByText('5.0s')).toBeInTheDocument();
+
+    const server = {
+      ...assistantBlock('server', '', true),
+      timestamp: '2025-01-01T00:00:05Z',
+    };
+    rerender(<ResponseGroup group={[server]} blockIndex={1} />);
+
+    expect(screen.getByText('5.0s')).toBeInTheDocument();
+  });
 
   it('renders a single reasoning block titled by the latest activity, answer outside it', () => {
     const group = [
