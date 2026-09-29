@@ -20,6 +20,10 @@ import {
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {
+  toChatPromptMetadata,
+  type ChatPrompt,
+} from 'sentry/views/seerExplorer/chatPrompt';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import type {
   LLMContextLocation,
@@ -190,9 +194,11 @@ export const useSeerExplorer = () => {
     false
   );
 
-  const {runId, chatStates} = useSeerExplorerChatState();
+  const {runId, chatStates, chatPrompt: pendingChatPrompt} = useSeerExplorerChatState();
   const dispatch = useSeerExplorerChatDispatch();
   const [lastSentMessage, setLastSentMessage] = useState<{
+    /** The "Ask Seer" question this message answers, if any. */
+    chatPrompt: ChatPrompt | null;
     insertIndex: number;
     loadingPlaceholderContent: string;
     prevInsertIndexBlockId: string | undefined;
@@ -301,6 +307,7 @@ export const useSeerExplorer = () => {
     SeerExplorerChatResponse,
     RequestError,
     {
+      chatPrompt: ChatPrompt | null;
       insertIndex: number;
       orgSlug: string;
       overrideBashModeEnabled: boolean;
@@ -308,6 +315,8 @@ export const useSeerExplorer = () => {
       overrideCtxEngEnable: boolean;
       pageLocation: LLMContextLocation | undefined;
       pageName: string;
+      /** The pending prompt this send took from chat state, put back if it fails. */
+      pendingChatPrompt: ChatPrompt | null;
       query: string;
       requestId: string;
       runId: SeerExplorerRunId | null;
@@ -336,6 +345,8 @@ export const useSeerExplorer = () => {
           override_ce_enable: params.overrideCtxEngEnable,
           override_bash_mode_enabled: params.overrideBashModeEnabled,
           override_code_mode_enable: params.overrideCodeModeEnable,
+          chat_prompt: params.chatPrompt?.text,
+          chat_prompt_context: params.chatPrompt?.context,
         },
       });
     },
@@ -359,6 +370,9 @@ export const useSeerExplorer = () => {
     onError: (_e, params, context) => {
       // A later send (possibly in another conversation) may own the optimistic blocks now.
       setLastSentMessage(prev => (prev?.requestId === params.requestId ? null : prev));
+      if (params.pendingChatPrompt) {
+        dispatch({type: 'restore chat prompt', payload: params.pendingChatPrompt});
+      }
       if (!isLatestRequest(params)) {
         return;
       }
@@ -575,7 +589,8 @@ export const useSeerExplorer = () => {
     (
       query: string,
       explicitInsertIndex?: number,
-      explicitRunId?: SeerExplorerRunId | null
+      explicitRunId?: SeerExplorerRunId | null,
+      explicitChatPrompt?: ChatPrompt | null
     ) => {
       if (!orgSlug) {
         return;
@@ -583,6 +598,16 @@ export const useSeerExplorer = () => {
 
       // explicitRunId: undefined = use current runId, null = force new run, number = use that run
       const effectiveRunId = explicitRunId === undefined ? runId : explicitRunId;
+
+      // explicitChatPrompt: undefined = the pending question, which moves to the optimistic
+      // block now and back to chat state if the send fails; retry passes the one it answered.
+      const usesPendingChatPrompt = explicitChatPrompt === undefined;
+      const chatPrompt: ChatPrompt | null = usesPendingChatPrompt
+        ? pendingChatPrompt
+        : explicitChatPrompt;
+      if (usesPendingChatPrompt && pendingChatPrompt) {
+        dispatch({type: 'set chat prompt', payload: null});
+      }
 
       // The snapshot is the source of location for both branches below, so take it
       // once here rather than only on the structured path.
@@ -643,6 +668,7 @@ export const useSeerExplorer = () => {
       setLastSentMessage({
         requestId,
         query,
+        chatPrompt,
         insertIndex: newInsertIndex,
         prevInsertIndexBlockId: blocks[newInsertIndex]?.id,
         loadingPlaceholderContent: placeholderContent,
@@ -652,6 +678,8 @@ export const useSeerExplorer = () => {
       // Send POST request
       sendMessageMutate({
         query,
+        chatPrompt,
+        pendingChatPrompt: usesPendingChatPrompt ? pendingChatPrompt : null,
         requestId,
         insertIndex: newInsertIndex,
         runId: effectiveRunId,
@@ -681,12 +709,14 @@ export const useSeerExplorer = () => {
       runId,
       apiData,
       captureAsciiSnapshot,
+      dispatch,
       getLLMContext,
       getPageReferrer,
       organization,
       overrideBashModeEnabled,
       overrideCtxEngEnable,
       overrideCodeModeEnable,
+      pendingChatPrompt,
       sendMessageMutate,
       setLastSentMessage,
       timezone,
@@ -791,6 +821,7 @@ export const useSeerExplorer = () => {
     const {
       insertIndex,
       query: userQuery,
+      chatPrompt,
       prevInsertIndexBlockId,
       loadingPlaceholderContent,
       sentAt,
@@ -815,7 +846,11 @@ export const useSeerExplorer = () => {
     // Apply optimistic blocks with insertIndex truncation
     const optimisticUserBlock: Block = {
       id: `user-${insertIndex}-optimistic`,
-      message: {role: 'user', content: userQuery},
+      message: {
+        role: 'user',
+        content: userQuery,
+        metadata: chatPrompt ? toChatPromptMetadata(chatPrompt) : undefined,
+      },
       timestamp: sentAt,
       loading: false,
     };
