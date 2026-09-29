@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from typing import Any
 from unittest import mock
+from urllib.parse import parse_qs, urlparse
 
 import pytest
 import responses
@@ -21,6 +22,7 @@ from sentry.testutils.silo import control_silo_test
 INSTALLATION_ID = "i_01example"
 JWT = "my_cool_jwt"
 TOKEN_URL = f"{CURSOR_ORIGIN_API_BASE_URL}/app/installations/{INSTALLATION_ID}/access_tokens"
+REPOS_URL = f"{CURSOR_ORIGIN_API_BASE_URL}/installation/repos"
 
 
 def _prepared(path: str) -> PreparedRequest:
@@ -235,6 +237,25 @@ class AuthorizeRequestTest(TestCase):
 
         assert request.headers["Authorization"] == "Bearer oit_stored"
 
+    @responses.activate
+    @mock.patch("sentry.integrations.cursor_origin.client.get_jwt", return_value=JWT)
+    def test_an_scm_platform_request_names_a_credential_set(self, mock_jwt: mock.MagicMock) -> None:
+        responses.add(
+            responses.GET,
+            f"{CURSOR_ORIGIN_API_BASE_URL}/app/installations/{INSTALLATION_ID}",
+            json={"id": INSTALLATION_ID, "scopes": ["repository:contents:read"]},
+        )
+
+        response = self.origin_client.request(
+            "GET",
+            f"/app/installations/{INSTALLATION_ID}",
+            raw_response=True,
+            credentials_set="application",
+        )
+
+        assert response.json()["scopes"] == ["repository:contents:read"]
+        assert responses.calls[0].request.headers["Authorization"] == f"Bearer {JWT}"
+
 
 @control_silo_test
 class PaginateTest(TestCase):
@@ -249,42 +270,47 @@ class PaginateTest(TestCase):
         )
         self.origin_client = CursorOriginApiClient(integration=self.integration)
 
+    def _stub_page(self, *ids: str, next_page_token: str = "") -> None:
+        responses.add(
+            responses.GET,
+            REPOS_URL,
+            json={"repositories": [{"id": i} for i in ids], "nextPageToken": next_page_token},
+        )
+
+    def _query(self, index: int) -> dict[str, list[str]]:
+        return parse_qs(urlparse(responses.calls[index].request.url).query)
+
+    @responses.activate
     def test_follows_page_tokens(self) -> None:
-        pages = [
-            {"repositories": [{"id": "1"}], "nextPageToken": "cursor-2"},
-            {"repositories": [{"id": "2"}], "nextPageToken": ""},
-        ]
-        with mock.patch.object(self.origin_client, "get", side_effect=pages) as mock_get:
-            result: list[dict[str, Any]] = self.origin_client._paginate(
-                "/installation/repos", "repositories"
-            )
+        self._stub_page("1", next_page_token="cursor-2")
+        self._stub_page("2")
+
+        result: list[dict[str, Any]] = self.origin_client._paginate(
+            "/installation/repos", "repositories"
+        )
 
         assert result == [{"id": "1"}, {"id": "2"}]
-        assert mock_get.call_args_list[0].kwargs["params"] == {"pageSize": 100}
-        assert mock_get.call_args_list[1].kwargs["params"] == {
-            "pageSize": 100,
-            "pageToken": "cursor-2",
-        }
+        assert self._query(0) == {"pageSize": ["100"]}
+        assert self._query(1) == {"pageSize": ["100"], "pageToken": ["cursor-2"]}
 
+    @responses.activate
     def test_stops_on_a_single_page(self) -> None:
-        with mock.patch.object(
-            self.origin_client,
-            "get",
-            return_value={"repositories": [{"id": "1"}], "nextPageToken": ""},
-        ) as mock_get:
-            result: list[dict[str, Any]] = self.origin_client._paginate(
-                "/installation/repos", "repositories"
-            )
+        self._stub_page("1")
+
+        result: list[dict[str, Any]] = self.origin_client._paginate(
+            "/installation/repos", "repositories"
+        )
 
         assert result == [{"id": "1"}]
-        assert mock_get.call_count == 1
+        assert len(responses.calls) == 1
 
+    @responses.activate
     def test_raises_when_the_page_limit_is_hit(self) -> None:
         """A short list reads as removed repositories to the sync, so never truncate silently."""
-        endless = {"repositories": [{"id": "1"}], "nextPageToken": "always-more"}
-        with mock.patch.object(self.origin_client, "get", return_value=endless) as mock_get:
-            with pytest.raises(ApiPaginationTruncated) as excinfo:
-                self.origin_client._paginate("/installation/repos", "repositories")
+        self._stub_page("1", next_page_token="always-more")
 
-        assert mock_get.call_count == self.origin_client.page_number_limit
+        with pytest.raises(ApiPaginationTruncated) as excinfo:
+            self.origin_client._paginate("/installation/repos", "repositories")
+
+        assert len(responses.calls) == self.origin_client.page_number_limit
         assert len(excinfo.value.partial_data) == self.origin_client.page_number_limit

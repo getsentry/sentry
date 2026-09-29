@@ -127,6 +127,7 @@ type Cursor =
 type Contain =
   | Globals
   | 'content'
+  | 'inline-size'
   | 'layout'
   | 'none'
   | 'paint'

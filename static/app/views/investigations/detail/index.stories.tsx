@@ -12,6 +12,7 @@ import {
   InvestigationBreachedMetricDetailFixture,
   InvestigationDetailFixture,
   InvestigationFailedDetailFixture,
+  InvestigationOrchestrationFixture,
   InvestigationAwaitingInputExecutionFixture,
   InvestigationExecutionDetailFixture,
   InvestigationQueryOutputFixture,
@@ -37,6 +38,7 @@ const completedInvestigation = InvestigationBreachedMetricDetailFixture({
     type: 'metric_open_period',
     ref: {groupId: 'metric-alert-42', openPeriodId: 'open-period-17'},
     revision: 1,
+    snapshot: {monitor: {id: '42', name: 'Checkout p95 latency'}},
   },
   blocks: [
     InvestigationBlockFixture({
@@ -239,6 +241,75 @@ const runningInvestigation = InvestigationRunningDetailFixture({
   ],
 });
 
+const skeletonSummaryExecutionId = 'skeleton-summary-execution';
+const skeletonQueryExecutionId = 'skeleton-query-execution';
+const skeletonInvestigation = InvestigationDetailFixture({
+  id: 'skeleton-investigation',
+  title: 'Checkout latency after the payments-api deploy',
+  status: 'active',
+  sourceType: 'metric_open_period',
+  template: {key: 'breached_metric', version: 1},
+  blocks: [
+    InvestigationBlockFixture({
+      id: 'skeleton-summary',
+      title: 'Analyze the breach',
+      content: '',
+      outputStatus: 'running',
+      config: {autoRun: true},
+      currentExecution: InvestigationBlockExecutionFixture({
+        id: skeletonSummaryExecutionId,
+        status: 'running',
+        completedAt: null,
+      }),
+    }),
+    InvestigationBlockFixture({
+      id: 'skeleton-query',
+      position: 1,
+      kind: 'query',
+      title: 'Compare affected releases',
+      content: '',
+      generationPrompt: 'Compare event volume and users across active releases.',
+      outputStatus: 'running',
+      config: {autoRun: true},
+      dependencies: ['skeleton-summary'],
+      currentExecution: InvestigationBlockExecutionFixture({
+        id: skeletonQueryExecutionId,
+        status: 'running',
+        completedAt: null,
+      }),
+    }),
+  ],
+});
+
+const reportingInvestigation = InvestigationDetailFixture({
+  id: 'reporting-investigation',
+  title: 'Checkout latency after the payments-api deploy',
+  status: 'active',
+  sourceType: 'metric_open_period',
+  template: {key: 'breached_metric', version: 1},
+  orchestration: {
+    phase: 'reporting',
+    status: 'processing',
+    heartbeatAt: '2026-08-27T15:31:22Z',
+    notebookRevision: 5,
+  },
+  blocks: [
+    InvestigationBlockFixture({
+      id: 'reporting-summary',
+      title: 'What happened',
+      outputStatus: 'available',
+      output: {
+        schemaVersion: 1,
+        markdown:
+          'Checkout latency rose from **420 ms to 1.84 s** immediately after the `payments-api` deploy.',
+      },
+      currentExecution: InvestigationBlockExecutionFixture({
+        id: 'reporting-summary-execution',
+      }),
+    }),
+  ],
+});
+
 const awaitingInputExecutionId = 'awaiting-input-execution';
 const awaitingInputInvestigation = InvestigationDetailFixture({
   id: 'awaiting-input-investigation',
@@ -401,6 +472,52 @@ export default Storybook.story('Investigations — Detail', story => {
     >
       <Container minHeight="760px" border="primary" radius="md" overflow="hidden">
         <InvestigationBootstrapPage investigationId={runningInvestigation.id} />
+      </Container>
+    </InvestigationFixtureApi>
+  ));
+
+  story('Cells Seer is still writing', () => (
+    <InvestigationFixtureApi
+      organizationSlug="storybook-investigation-skeleton"
+      details={[skeletonInvestigation]}
+      executions={{
+        [investigationExecutionFixtureKey(
+          'skeleton-summary',
+          skeletonSummaryExecutionId
+        )]: InvestigationExecutionDetailFixture({
+          id: skeletonSummaryExecutionId,
+          status: 'running',
+          partialMarkdown: null,
+          blocks: [],
+        }),
+        [investigationExecutionFixtureKey('skeleton-query', skeletonQueryExecutionId)]:
+          InvestigationExecutionDetailFixture({
+            id: skeletonQueryExecutionId,
+            status: 'running',
+            blocks: [],
+          }),
+      }}
+    >
+      <Container minHeight="520px" border="primary" radius="md" overflow="hidden">
+        <InvestigationBootstrapPage investigationId={skeletonInvestigation.id} />
+      </Container>
+    </InvestigationFixtureApi>
+  ));
+
+  story('Report pending while the run is still reporting', () => (
+    <InvestigationFixtureApi
+      organizationSlug="storybook-investigation-reporting"
+      details={[reportingInvestigation]}
+      orchestration={{
+        [reportingInvestigation.id]: InvestigationOrchestrationFixture({
+          investigationId: reportingInvestigation.id,
+          phase: 'reporting',
+          status: 'processing',
+        }),
+      }}
+    >
+      <Container minHeight="720px" border="primary" radius="md" overflow="hidden">
+        <InvestigationBootstrapPage investigationId={reportingInvestigation.id} />
       </Container>
     </InvestigationFixtureApi>
   ));

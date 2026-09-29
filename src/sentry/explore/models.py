@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from typing import ClassVar
+from typing import ClassVar, Literal
 
 from django.contrib.postgres.fields.array import ArrayField
 from django.db import models, router, transaction
-from django.db.models import Q, UniqueConstraint
+from django.db.models import CheckConstraint, Q, UniqueConstraint
 from django.utils import timezone
 
 from sentry import features
@@ -17,6 +17,7 @@ from sentry.db.models.manager.base import BaseManager
 from sentry.models.dashboard_widget import TypesClass
 from sentry.models.organization import Organization
 from sentry.search.eap.types import SupportedTraceItemType
+from sentry.search.events.constants import DURATION_UNITS, SIZE_UNITS
 from sentry.users.models.user import User
 
 
@@ -569,3 +570,113 @@ class TraceItemAttributeValueContext(DefaultFieldsModel):
         ]
 
     __repr__ = sane_repr("organization_id", "item_type", "attribute_name")
+
+
+@cell_silo_model
+class ExploreSavedFormula(DefaultFieldsModel):
+    __relocation_scope__ = RelocationScope.Organization
+
+    organization = FlexibleForeignKey("sentry.Organization")
+
+    created_by_id = HybridCloudForeignKey("sentry.User", null=True, on_delete="SET_NULL")
+    updated_by_id = HybridCloudForeignKey("sentry.User", null=True, on_delete="SET_NULL")
+
+    # Matching 280 from attribute.brief
+    description = models.CharField(max_length=280, null=True)
+    # Making this 200 to match the max length of a tag
+    name = models.CharField(max_length=200)
+    unit = models.CharField(max_length=200, null=True)
+    # max operators is 10 (so 3 characters each assuming a space)
+    # which means 11 terms, assuming we eventually allow attributes, 200 characters each
+    # for a total of 2230, rounding to 2500 for now
+    formula = models.CharField(max_length=2500)
+
+    class Meta:
+        app_label = "explore"
+        db_table = "explore_exploresavedformula"
+        constraints = [
+            UniqueConstraint(
+                fields=["organization_id", "name"],
+                name="explore_exploresavedformula_unique_name_per_organization",
+            ),
+        ]
+
+    @property
+    def formula_type(self) -> Literal["duration", "size", "number"]:
+        if self.unit in DURATION_UNITS:
+            return "duration"
+        elif self.unit in SIZE_UNITS:
+            return "size"
+        else:
+            return "number"
+
+
+class ParamItemTypes(TypesClass):
+    COLUMN = 0
+    NUMBER = 1
+    CALCULATION = 2
+
+    TYPES = [
+        (COLUMN, "column"),
+        (NUMBER, "number"),
+        (CALCULATION, "calculation"),
+    ]
+    TYPE_NAMES = [t[1] for t in TYPES]
+
+
+class KindItemTypes(TypesClass):
+    PARAM = 0
+    REFERENCE = 1
+
+    TYPES = [
+        (PARAM, "param"),
+        (REFERENCE, "reference"),
+    ]
+    TYPE_NAMES = [t[1] for t in TYPES]
+
+
+@cell_silo_model
+class ExploreSavedVariable(DefaultFieldsModel):
+    __relocation_scope__ = RelocationScope.Organization
+
+    organization = FlexibleForeignKey("sentry.Organization")
+
+    # Matching 280 from attribute.brief
+    description = models.CharField(max_length=280, null=True)
+    # Making this 200 to match the max length of a tag
+    name = models.CharField(max_length=200)
+    # Where does this param go in the list of function arguments
+    order = BoundedPositiveIntegerField(null=True)
+    kind = BoundedPositiveIntegerField(choices=KindItemTypes.as_choices())
+    param_type = BoundedPositiveIntegerField(choices=ParamItemTypes.as_choices(), null=True)
+    # TODO(wmak): Should this be longer?
+    value = models.CharField(max_length=200)
+    explore_saved_formula = FlexibleForeignKey(
+        "explore.ExploreSavedFormula",
+        related_name="variables",
+    )
+
+    class Meta:
+        app_label = "explore"
+        db_table = "explore_exploresavedvariable"
+        constraints = [
+            UniqueConstraint(
+                fields=["explore_saved_formula_id", "order"],
+                name="explore_exploresavedvariable_unique_order_per_formula",
+                condition=Q(kind=KindItemTypes.PARAM),
+            ),
+            UniqueConstraint(
+                fields=["explore_saved_formula_id", "name"],
+                name="explore_exploresavedvariable_unique_name_per_formula",
+            ),
+            CheckConstraint(
+                condition=Q(kind=KindItemTypes.PARAM, order__isnull=False)
+                | ~Q(kind=KindItemTypes.PARAM),
+                name="explore_exploresavedvariable_order_required_for_param",
+            ),
+            CheckConstraint(
+                condition=Q(kind=KindItemTypes.PARAM, param_type__isnull=False)
+                | ~Q(kind=KindItemTypes.PARAM),
+                name="explore_exploresavedvariable_param_type_required_for_param",
+            ),
+        ]

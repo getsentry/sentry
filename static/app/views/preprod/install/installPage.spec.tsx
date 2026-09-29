@@ -42,20 +42,19 @@ describe('InstallPage', () => {
     });
   });
 
-  function renderInstallPage() {
-    return render(
+  function ExampleInstallPage() {
+    return (
       <TopBar.Slot.Provider>
         <TopBar.Slot.Outlet name="title">
           {props => <div {...props} data-test-id="topbar-title-slot" />}
         </TopBar.Slot.Outlet>
         <InstallPage />
-      </TopBar.Slot.Provider>,
-      {organization, initialRouterConfig}
+      </TopBar.Slot.Provider>
     );
   }
 
   it('renders the Releases breadcrumb linking to the mobile-builds distribution view', async () => {
-    renderInstallPage();
+    render(<ExampleInstallPage />, {organization, initialRouterConfig});
 
     expect(await screen.findByText('Test App')).toBeInTheDocument();
 
@@ -69,7 +68,7 @@ describe('InstallPage', () => {
   });
 
   it('renders the app info as the current crumb after Releases', async () => {
-    renderInstallPage();
+    render(<ExampleInstallPage />, {organization, initialRouterConfig});
 
     expect(await screen.findByText('Test App')).toBeInTheDocument();
 
@@ -107,7 +106,7 @@ describe('InstallPage', () => {
       body: {platform: 'ios', install_url: 'https://example.com/install'},
     });
 
-    renderInstallPage();
+    render(<ExampleInstallPage />, {organization, initialRouterConfig});
 
     expect(await screen.findByText('Install Groups')).toBeInTheDocument();
     expect(screen.getByText('qa')).toBeInTheDocument();
@@ -122,7 +121,7 @@ describe('InstallPage', () => {
       body: {detail: 'Internal Error'},
     });
 
-    renderInstallPage();
+    render(<ExampleInstallPage />, {organization, initialRouterConfig});
 
     expect(await screen.findByText('Install')).toBeInTheDocument();
 

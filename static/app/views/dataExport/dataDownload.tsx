@@ -9,16 +9,13 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {isAggregateField} from 'sentry/utils/discover/fields';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {AuthLayoutContent as Layout} from 'sentry/views/auth/layout';
-import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getLogsUrl} from 'sentry/views/explore/logs/utils';
 import {TraceItemDataset} from 'sentry/views/explore/types';
@@ -104,12 +101,10 @@ function ExpiredDownload({actionLink}: {actionLink: string}) {
 function OpenInButton({
   onOpenInDiscover,
   onOpenInExplore,
-  organization,
   type,
 }: {
   onOpenInDiscover: () => void;
   onOpenInExplore: () => void;
-  organization: Organization | null;
   type: Download['query']['type'];
 }) {
   // default to IssuesByTag because we don't want to
@@ -129,11 +124,7 @@ function OpenInButton({
         variant="primary"
         onClick={type === ExportQueryType.DISCOVER ? onOpenInDiscover : onOpenInExplore}
       >
-        {type === ExportQueryType.DISCOVER
-          ? organization && getDiscoverDeprecation(organization)
-            ? t('Open in Explore')
-            : t('Open in Discover')
-          : t('Open in Explore')}
+        {t('Open in Explore')}
       </Button>
       <br />
     </Fragment>
@@ -145,7 +136,6 @@ function ValidDownload({
   download,
   onOpenInDiscover,
   onOpenInExplore,
-  organization,
   orgSlug,
 }: {
   dataExportId: string;
@@ -153,7 +143,6 @@ function ValidDownload({
   onOpenInDiscover: () => void;
   onOpenInExplore: () => void;
   orgSlug: string;
-  organization: Organization | null;
 }) {
   const {dateExpired, checksum, export_format} = download;
   const exportFormatLabel = export_format?.toUpperCase() ?? 'CSV';
@@ -184,7 +173,6 @@ function ValidDownload({
         <OpenInButton
           onOpenInDiscover={onOpenInDiscover}
           onOpenInExplore={onOpenInExplore}
-          organization={organization}
           type={download.query.type}
         />
         <p>
@@ -214,7 +202,6 @@ export default function DataDownload() {
     dataExportId: string;
     orgId: string;
   }>();
-  const organization = useOrganization({allowNull: true});
 
   const {
     data: download,
@@ -406,7 +393,6 @@ export default function DataDownload() {
         download={download}
         onOpenInDiscover={openInDiscover}
         onOpenInExplore={openInExplore}
-        organization={organization}
         orgSlug={orgSlug}
       />
     );
