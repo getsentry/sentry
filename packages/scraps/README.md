@@ -43,9 +43,9 @@ pnpm --dir packages/scraps test
 pnpm --dir packages/scraps typecheck
 ```
 
-Tests import React Testing Library directly and pass `ThemeWrapper` as the
-`wrapper` option. The package owns its Jest config and setup in `test`, including
-the copied `getEmotionRules` helper. No Sentry providers or test aliases are used.
+Tests import `render` and `renderHook` from `test/env`; both include the default
+light-theme provider. Jest setup and the copied `getEmotionRules` helper also
+live under `test/env`. No Sentry providers or test aliases are used.
 
 ## Verify the package
 

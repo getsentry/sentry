@@ -1,14 +1,13 @@
 import {createRef, Fragment} from 'react';
-import {render, screen} from '@testing-library/react';
 import {expectTypeOf} from 'expect-type';
 
-import {ThemeWrapper} from '../../test/theme';
+import {render, screen} from '../../test/env';
 
 import {Grid, type GridProps, type GridPropsWithRenderFunction} from './grid';
 
 describe('Grid', () => {
   it('renders children', () => {
-    render(<Grid>Hello</Grid>, {wrapper: ThemeWrapper});
+    render(<Grid>Hello</Grid>);
     expect(screen.getByText('Hello')).toBeInTheDocument();
   });
 
@@ -16,8 +15,7 @@ describe('Grid', () => {
     render(
       <section>
         <Grid justify="between">{props => <p {...props}>Hello</p>}</Grid>
-      </section>,
-      {wrapper: ThemeWrapper}
+      </section>
     );
 
     expect(screen.getByText('Hello')?.tagName).toBe('P');
@@ -32,8 +30,7 @@ describe('Grid', () => {
       <Grid justify="between" aria-activedescendant="what">
         {/* @ts-expect-error - this should be a React.ElementType */}
         {props => <p {...props}>Hello</p>}
-      </Grid>,
-      {wrapper: ThemeWrapper}
+      </Grid>
     );
 
     expect(screen.getByText('Hello')).not.toHaveAttribute('aria-activedescendant');
@@ -49,23 +46,22 @@ describe('Grid', () => {
       <Grid justify="between">
         {/* @ts-expect-error - className is incompatible */}
         {props => <Child {...props} />}
-      </Grid>,
-      {wrapper: ThemeWrapper}
+      </Grid>
     );
   });
 
   it('passes attributes to the underlying element', () => {
-    render(<Grid data-test-id="container">Hello</Grid>, {wrapper: ThemeWrapper});
+    render(<Grid data-test-id="container">Hello</Grid>);
     expect(screen.getByTestId('container')).toBeInTheDocument();
   });
 
   it('renders as a different element if specified', () => {
-    render(<Grid as="section">Hello</Grid>, {wrapper: ThemeWrapper});
+    render(<Grid as="section">Hello</Grid>);
     expect(screen.getByText('Hello').tagName).toBe('SECTION');
   });
 
   it('does not bleed attributes to the underlying element', () => {
-    render(<Grid radius="sm">Hello</Grid>, {wrapper: ThemeWrapper});
+    render(<Grid radius="sm">Hello</Grid>);
     expect(screen.getByText('Hello')).not.toHaveAttribute('radius');
   });
 
@@ -73,8 +69,7 @@ describe('Grid', () => {
     render(
       <Grid align="center" justify="center">
         Hello
-      </Grid>,
-      {wrapper: ThemeWrapper}
+      </Grid>
     );
 
     expect(screen.getByText('Hello')).not.toHaveAttribute('align');
@@ -82,7 +77,7 @@ describe('Grid', () => {
   });
 
   it('allows settings native html attributes', () => {
-    render(<Grid style={{color: 'red'}}>Hello</Grid>, {wrapper: ThemeWrapper});
+    render(<Grid style={{color: 'red'}}>Hello</Grid>);
     expect(screen.getByText('Hello')).toHaveStyle({color: 'rgb(255, 0, 0)'});
   });
 
@@ -91,8 +86,7 @@ describe('Grid', () => {
     render(
       <Grid ref={ref} as="ol">
         Hello
-      </Grid>,
-      {wrapper: ThemeWrapper}
+      </Grid>
     );
     expect(ref.current).toBeInTheDocument();
     expect(ref.current?.tagName).toBe('OL');
@@ -107,8 +101,7 @@ describe('Grid', () => {
         <Grid radius="sm" padding="md">
           PaddingBottom First
         </Grid>
-      </Fragment>,
-      {wrapper: ThemeWrapper}
+      </Fragment>
     );
 
     const paddingFirst = screen.getByText('Padding First').className;

@@ -1,6 +1,6 @@
 const config = {
-  testEnvironment: '<rootDir>/test/environment.mjs',
-  setupFilesAfterEnv: ['<rootDir>/test/setup.ts'],
+  testEnvironment: '<rootDir>/test/env/environment.mjs',
+  setupFilesAfterEnv: ['<rootDir>/test/env/setup.ts'],
   testMatch: ['<rootDir>/src/**/*.spec.tsx'],
   moduleNameMapper: {
     '^@sentry/scraps$': '<rootDir>/src/index.ts',
