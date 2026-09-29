@@ -119,9 +119,10 @@ class CustomInboundFilterConditionSerializer(serializers.Serializer[CustomInboun
         allow_empty=False,
         help_text=(
             "Glob patterns the field is matched against. The condition matches when any "
-            "pattern matches, so multiple values act as OR. A `release` value that starts "
-            "with `>`, `>=`, `<`, `<=` or `=` compares versions instead, e.g. `>=1.2.0` "
-            "or `<myapp@2.0`. `ip_address` values are addresses or CIDR ranges."
+            "pattern matches, so multiple values act as OR. A `release` value that is a "
+            "version, such as `1.2.0` or `myapp@1.2.0`, or that starts with `>`, `>=`, `<`, "
+            "`<=` or `=`, compares versions instead of matching the text. `ip_address` "
+            "values are addresses or CIDR ranges."
         ),
     )
 

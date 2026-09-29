@@ -332,7 +332,7 @@ def release_version_rule_condition(comparator: str, release: str) -> dict:
             "log",
             [
                 {"type": "log_message", "value": ["*DEBUG*"]},
-                {"type": "release", "value": ["1.2.3"]},
+                {"type": "release", "value": ["1.2.*"]},
             ],
             {
                 "op": "and",
@@ -341,7 +341,7 @@ def release_version_rule_condition(comparator: str, release: str) -> dict:
                     {
                         "op": "glob",
                         "name": "log.attributes.sentry.release.value",
-                        "value": ["1.2.3"],
+                        "value": ["1.2.*"],
                     },
                 ],
             },
@@ -351,7 +351,7 @@ def release_version_rule_condition(comparator: str, release: str) -> dict:
             "metric",
             [
                 {"type": "metric_name", "value": ["checkout.*"]},
-                {"type": "release", "value": ["1.2.3"]},
+                {"type": "release", "value": ["1.2.*"]},
             ],
             {
                 "op": "and",
@@ -360,7 +360,7 @@ def release_version_rule_condition(comparator: str, release: str) -> dict:
                     {
                         "op": "glob",
                         "name": "trace_metric.attributes.sentry.release.value",
-                        "value": ["1.2.3"],
+                        "value": ["1.2.*"],
                     },
                 ],
             },
@@ -374,9 +374,36 @@ def release_version_rule_condition(comparator: str, release: str) -> dict:
         ),
         pytest.param(
             "span",
-            [{"type": "release", "value": ["1.2.3"]}],
-            {"op": "glob", "name": "span.attributes.sentry.release.value", "value": ["1.2.3"]},
+            [{"type": "release", "value": ["1.2.*"]}],
+            {"op": "glob", "name": "span.attributes.sentry.release.value", "value": ["1.2.*"]},
             id="release_on_spans",
+        ),
+        pytest.param(
+            "span",
+            [{"type": "release", "value": ["1.2.3", "myapp@2.0", "a4b7e0f9c2d1"]}],
+            {
+                "op": "or",
+                "inner": [
+                    {
+                        "op": "glob",
+                        "name": "span.attributes.sentry.release.value",
+                        "value": ["a4b7e0f9c2d1"],
+                    },
+                    {
+                        "op": "semver",
+                        "name": "span.attributes.sentry.release.value",
+                        "comparator": "eq",
+                        "value": "1.2.3",
+                    },
+                    {
+                        "op": "semver",
+                        "name": "span.attributes.sentry.release.value",
+                        "comparator": "eq",
+                        "value": "myapp@2.0",
+                    },
+                ],
+            },
+            id="plain_version_compares_as_equal",
         ),
         pytest.param(
             "error",

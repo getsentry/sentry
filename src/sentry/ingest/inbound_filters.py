@@ -612,14 +612,20 @@ class ReleaseComparison:
 
 def parse_release_comparison(value: str) -> ReleaseComparison | None:
     """
-    Reads a release condition value written as a version comparison, such as
-    `>=1.2.0` or `<myapp@2.0`. Returns None for a value without a leading comparator,
-    which is a glob pattern.
+    Reads a release condition value that compares versions: one with a leading
+    comparator, such as `>=1.2.0` or `<myapp@2.0`, or a plain release with a version,
+    such as `1.2.0`, which compares as equal. Returns None for any other value, which
+    is a glob pattern.
+
+    A value with a comparator is returned whether or not its release carries a
+    version, so that the caller can reject one that does not.
     """
     match = _RELEASE_COMPARISON_RE.fullmatch(value)
-    if match is None:
-        return None
-    return ReleaseComparison(_RELEASE_COMPARATORS[match.group(1)], match.group(2))
+    if match is not None:
+        return ReleaseComparison(_RELEASE_COMPARATORS[match.group(1)], match.group(2))
+    if is_release_version(value):
+        return ReleaseComparison("eq", value)
+    return None
 
 
 def is_release_version(release: str) -> bool:
