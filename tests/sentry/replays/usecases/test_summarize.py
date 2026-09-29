@@ -1057,6 +1057,371 @@ def test_as_log_message_foreground() -> None:
     assert get_timestamp_unit(which(event)) == "ms"
 
 
+@patch("sentry.replays.usecases.summarize.logger.exception")
+def test_as_log_message_navigation_span_without_description(mock_exception: Mock) -> None:
+    event = {
+        "type": 5,
+        "timestamp": 1790662162.845,
+        "data": {
+            "tag": "performanceSpan",
+            "payload": {
+                "op": "navigation.push",
+                "startTimestamp": 1790662162.845,
+                "endTimestamp": 1790662162.845,
+                "data": {"previous": "[omitted]"},
+            },
+        },
+    }
+    assert as_log_message(event) == "User navigated at 1790662162845.0"
+    mock_exception.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "event, expected",
+    [
+        (
+            {
+                "type": 5,
+                "timestamp": 1756400639566,
+                "data": {"tag": "breadcrumb", "payload": {"category": "ui.click"}},
+            },
+            "User clicked on an element at 1756400639566.0",
+        ),
+        (
+            {
+                "type": 5,
+                "timestamp": 1758212015458,
+                "data": {"tag": "breadcrumb", "payload": {"category": "ui.tap"}},
+            },
+            "User tapped on an element at 1758212015458.0",
+        ),
+        (
+            {
+                "type": 5,
+                "timestamp": 1756406283937,
+                "data": {"tag": "breadcrumb", "payload": {"category": "console"}},
+            },
+            "Logged a console message at 1756406283937.0",
+        ),
+        (
+            {
+                "type": 5,
+                "timestamp": 1756401153.805,
+                "data": {
+                    "tag": "performanceSpan",
+                    "payload": {"op": "resource.fetch", "data": {"method": "GET"}},
+                },
+            },
+            'Fetch request "GET" failed with no response at 1756401153805.0',
+        ),
+        (
+            {
+                "type": 5,
+                "timestamp": 1756401153.805,
+                "data": {"tag": "performanceSpan", "payload": {"op": "resource.xhr"}},
+            },
+            "XHR request failed with no response at 1756401153805.0",
+        ),
+        (
+            {
+                "type": 5,
+                "timestamp": 1756400489.048,
+                "data": {
+                    "tag": "performanceSpan",
+                    "payload": {
+                        "op": "web-vital",
+                        "description": "largest-contentful-paint",
+                        "data": {"size": 623},
+                    },
+                },
+            },
+            "Application largest contentful paint: 623 ms at 1756400489048.0",
+        ),
+        (
+            {
+                "type": 5,
+                "timestamp": 1753203886279,
+                "data": {
+                    "tag": "breadcrumb",
+                    "payload": {"category": "device.battery", "data": {"level": 42}},
+                },
+            },
+            "Device battery was 42% at 1753203886279.0",
+        ),
+        (
+            {
+                "type": 5,
+                "timestamp": 1760948639388,
+                "data": {
+                    "tag": "breadcrumb",
+                    "payload": {"category": "ui.scroll", "data": {"direction": "up"}},
+                },
+            },
+            "User scrolled up at 1760948639388.0",
+        ),
+        (
+            {
+                "type": 5,
+                "timestamp": 1760948640299,
+                "data": {"tag": "breadcrumb", "payload": {"category": "ui.swipe", "data": None}},
+            },
+            "User swiped at 1760948640299.0",
+        ),
+        (
+            {
+                "type": 5,
+                "timestamp": None,
+                "data": {"tag": "breadcrumb", "payload": {"category": "ui.click", "message": "a"}},
+            },
+            "User clicked on a at an unknown time",
+        ),
+    ],
+)
+@patch("sentry.replays.usecases.summarize.logger.exception")
+def test_as_log_message_partial_data(
+    mock_exception: Mock, event: dict[str, Any], expected: str
+) -> None:
+    assert as_log_message(event) == expected
+    mock_exception.assert_not_called()
+
+
+_MESSAGE_PRODUCING_EVENTS: list[tuple[dict[str, Any], bool]] = [
+    (
+        {
+            "type": 5,
+            "timestamp": 1756400639566,
+            "data": {
+                "tag": "breadcrumb",
+                "payload": {
+                    "timestamp": 1756400639.566,
+                    "category": "ui.click",
+                    "message": "div#root",
+                    "data": {"nodeId": 1},
+                },
+            },
+        },
+        False,
+    ),
+    (
+        {
+            "type": 5,
+            "timestamp": 1756176027605,
+            "data": {
+                "tag": "breadcrumb",
+                "payload": {
+                    "category": "ui.slowClickDetected",
+                    "message": "a#link",
+                    "data": {
+                        "node": {"tagName": "a"},
+                        "endReason": "timeout",
+                        "timeAfterClickMs": 7000,
+                        "clickCount": 5,
+                    },
+                },
+            },
+        },
+        False,
+    ),
+    (
+        {
+            "type": 5,
+            "timestamp": 1756400579.304,
+            "data": {
+                "tag": "performanceSpan",
+                "payload": {
+                    "op": "navigation.push",
+                    "description": "https://example.com",
+                    "data": {"previous": "https://example.com/prev"},
+                },
+            },
+        },
+        False,
+    ),
+    (
+        {
+            "type": 5,
+            "timestamp": 1756406283937,
+            "data": {
+                "tag": "breadcrumb",
+                "payload": {"category": "console", "message": "hello", "data": {"logger": "x"}},
+            },
+        },
+        False,
+    ),
+    *(
+        (
+            {
+                "type": 5,
+                "timestamp": 1756401153.805,
+                "data": {
+                    "tag": "performanceSpan",
+                    "payload": {
+                        "op": op,
+                        "description": "https://example.com/api/items",
+                        "data": {
+                            "method": "GET",
+                            "statusCode": 500,
+                            "response": {"size": 12},
+                        },
+                    },
+                },
+            },
+            False,
+        )
+        for op in ("resource.fetch", "resource.xhr")
+    ),
+    (
+        {
+            "type": 5,
+            "timestamp": 1756400489.048,
+            "data": {
+                "tag": "performanceSpan",
+                "payload": {
+                    "op": "web-vital",
+                    "description": "largest-contentful-paint",
+                    "data": {"size": 623, "rating": "good"},
+                },
+            },
+        },
+        False,
+    ),
+    (
+        {
+            "type": 5,
+            "timestamp": 1758212015458,
+            "data": {
+                "tag": "breadcrumb",
+                "payload": {"category": "ui.tap", "message": "View", "data": {"path": []}},
+            },
+        },
+        True,
+    ),
+    *(
+        (
+            {
+                "type": 5,
+                "timestamp": 1753203886279,
+                "data": {"tag": "breadcrumb", "payload": {"category": category, "data": data}},
+            },
+            True,
+        )
+        for category, data in [
+            ("device.battery", {"level": 100.0, "charging": False}),
+            ("device.orientation", {"position": "landscape"}),
+            ("device.connectivity", {"state": "wifi"}),
+            ("ui.scroll", {"view.id": "list", "direction": "up"}),
+            ("ui.swipe", {"view.id": "list", "direction": "up"}),
+            ("navigation", {"to": "MainActivity"}),
+        ]
+    ),
+]
+
+
+def _all_paths(value: Any, prefix: tuple[str, ...] = ()) -> Generator[tuple[str, ...]]:
+    if isinstance(value, dict):
+        for key, child in value.items():
+            yield (*prefix, key)
+            yield from _all_paths(child, (*prefix, key))
+
+
+def _mutate(event: dict[str, Any], path: tuple[str, ...], replacement: Any) -> dict[str, Any]:
+    mutated = json.loads(json.dumps(event))
+    node = mutated
+    for key in path[:-1]:
+        node = node[key]
+    if replacement is _DELETE:
+        del node[path[-1]]
+    else:
+        node[path[-1]] = replacement
+    return mutated
+
+
+_DELETE = object()
+
+
+@pytest.mark.parametrize("event, is_mobile_replay", _MESSAGE_PRODUCING_EVENTS)
+@patch("sentry.replays.usecases.summarize.logger.exception")
+def test_as_log_message_never_raises_on_missing_or_malformed_fields(
+    mock_exception: Mock, event: dict[str, Any], is_mobile_replay: bool
+) -> None:
+    """Every field of every message-producing event can be absent or malformed without the
+    formatter raising, and the event still yields a log row as long as its type is unchanged."""
+    assert as_log_message(event, is_mobile_replay) is not None
+    event_type = which(event)
+
+    for path in _all_paths(event):
+        for replacement in (_DELETE, None, "", "[Filtered]", [], {}, 0, True):
+            mutated = _mutate(event, path, replacement)
+            message = as_log_message(mutated, is_mobile_replay)
+            if which(mutated) != event_type:
+                continue
+            # Network events with a 2xx status are intentionally skipped.
+            status = mutated["data"]["payload"].get("data")
+            if isinstance(status, dict) and str(status.get("statusCode", "")).startswith("2"):
+                continue
+            assert message is not None, (path, replacement)
+
+    mock_exception.assert_not_called()
+
+
+@patch("sentry.replays.usecases.summarize.fetch_feedback_details")
+def test_get_summary_logs_keeps_events_with_malformed_fields(
+    mock_fetch_feedback_details: Mock,
+) -> None:
+    mock_fetch_feedback_details.return_value = None
+
+    def _faker() -> Generator[tuple[int, memoryview]]:
+        yield (
+            0,
+            memoryview(
+                json.dumps(
+                    [
+                        {
+                            "type": 5,
+                            "timestamp": 1756400489863,
+                            "data": {"tag": "breadcrumb", "payload": {"category": "console"}},
+                        },
+                        {
+                            "type": 5,
+                            "timestamp": "not-a-timestamp",
+                            "data": {
+                                "tag": "breadcrumb",
+                                "payload": {"category": "ui.click", "message": "button"},
+                            },
+                        },
+                        {
+                            "type": 5,
+                            "timestamp": 1756400490870,
+                            "data": {
+                                "tag": "breadcrumb",
+                                "payload": {"category": "sentry.feedback", "data": "[Filtered]"},
+                            },
+                        },
+                        {
+                            "type": 5,
+                            "timestamp": 1790662162.845,
+                            "data": {
+                                "tag": "performanceSpan",
+                                "payload": {"op": "navigation.push", "data": {}},
+                            },
+                        },
+                    ]
+                ).encode()
+            ),
+        )
+
+    result = get_summary_logs(
+        _faker(), error_events=[], project_id=1, replay_start="2025-08-28T00:00:00Z"
+    )
+
+    assert result == [
+        "Logged a console message at 1756400489863.0",
+        "User clicked on button at an unknown time",
+        "User navigated at 1790662162845.0",
+    ]
+    mock_fetch_feedback_details.assert_called_once_with(None, 1)
+
+
 def test_parse_iso_timestamp_to_ms() -> None:
     # Without timezone
     assert _parse_iso_timestamp_to_ms("2023-01-01T12:00:00") == 1672574400000
