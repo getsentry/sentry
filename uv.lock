@@ -2358,7 +2358,7 @@ requires-dist = [
     { name = "sentry-forked-email-reply-parser", specifier = ">=0.5.12.post1" },
     { name = "sentry-kafka-schemas", specifier = ">=3.0.2" },
     { name = "sentry-ophio", specifier = ">=1.1.3" },
-    { name = "sentry-options", specifier = ">=1.2.12" },
+    { name = "sentry-options", specifier = ">=1.2.13" },
     { name = "sentry-protos", specifier = ">=0.76.1" },
     { name = "sentry-redis-tools", specifier = ">=0.5.0" },
     { name = "sentry-relay", specifier = ">=0.9.31" },
@@ -2529,12 +2529,12 @@ wheels = [
 
 [[package]]
 name = "sentry-options"
-version = "1.2.12"
+version = "1.2.13"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_options-1.2.12-cp311-abi3-macosx_11_0_arm64.whl", hash = "sha256:dc1c59d00a1fcd899fd680bdac42cc9f7a88680d114a472a36d740dfc8eddf37" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_options-1.2.12-cp311-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:cd96f01414dc57ed11f82a51d6e2e2ae740be8422f769b29014c54345095c6dd" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_options-1.2.12-cp311-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:33f819a59bd1528d0f9ae8401eb2a9303314b5d96383f2c30ddacdd5f82726b7" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_options-1.2.13-cp311-abi3-macosx_11_0_arm64.whl", hash = "sha256:93e88c74c398309d571359210ef5474eae2a82d8e768a9f9d339dfeea766840d" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_options-1.2.13-cp311-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:01b155ccb5e481a81dc60a160047cb99c5389e22615dee6b9c276814ef988c2f" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_options-1.2.13-cp311-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:cec6e4a15da2b7b6c5e530f2489322ac33a0bdab5d147a01fead0e0b3cab3890" },
 ]
 
 [[package]]

@@ -475,6 +475,15 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
       'Toggles whether or not to create Session Replay Hydration Error Issues during replay ingest. Using inbound filters to filter out hydration errors does not affect this setting.'
     ),
   },
+  'project-logs.sentry:relay_automatic_json_expansion': {
+    name: 'sentry:relay_automatic_json_expansion',
+    formId: 'project-logs',
+    route: '/settings/:orgId/projects/:projectId/logs/',
+    label: t('Expand JSON Attributes'),
+    hintText: t(
+      'Object attributes are sent as strings. Turn this on to expand them into nested attributes you can search on. Only applies to logs received after this is enabled.'
+    ),
+  },
   'csp.sentry:csp_ignored_sources_defaults': {
     name: 'sentry:csp_ignored_sources_defaults',
     formId: 'csp',
