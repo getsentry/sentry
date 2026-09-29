@@ -98,13 +98,11 @@ export function AddOpButton({
       {...dropdownProps}
       trigger={
         trigger ??
-        ((triggerProps, isOpen) => (
+        (triggerProps => (
           <OverlayTrigger.Button
             {...triggerProps}
-            isOpen={isOpen}
             aria-label={t('Add Assertion')}
             showChevron={false}
-            size={dropdownProps.size}
           >
             {triggerLabel ?? ''}
           </OverlayTrigger.Button>
