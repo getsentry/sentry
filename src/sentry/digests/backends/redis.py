@@ -5,7 +5,7 @@ import time
 import zlib
 from collections.abc import Generator, Iterable
 from contextlib import contextmanager
-from typing import Any, cast
+from typing import Any
 
 import rb
 from rb.clients import LocalClient
@@ -98,13 +98,13 @@ class RedisBackend(Backend):
         self.is_redis_cluster, cluster, options = get_dynamic_cluster_from_options(
             "SENTRY_DIGESTS_OPTIONS", options
         )
-        if self.is_redis_cluster:
+        if isinstance(cluster, rb.Cluster):
+            self.cluster = cluster
+            self.locks = LockManager(RedisBlasterLockBackend(cluster))
+        else:
             cluster_name = options.pop("cluster", "default")
             self.cluster = redis_clusters.get_binary(cluster_name)
             self.locks = LockManager(RedisClusterLockBackend(cluster_name))
-        else:
-            self.cluster = cast(rb.Cluster, cluster)
-            self.locks = LockManager(RedisBlasterLockBackend(self.cluster))
 
         self.namespace = options.pop("namespace", "d")
 
@@ -138,12 +138,12 @@ class RedisBackend(Backend):
         super().__init__(**options)
 
     def validate(self) -> None:
-        if self.is_redis_cluster:
+        if not isinstance(self.cluster, rb.Cluster):
             validate_dynamic_cluster(True, self.cluster)
             return
 
         logger.debug("Validating Redis version...")
-        check_cluster_versions(cast(rb.Cluster, self.cluster), Version((2, 8, 9)), label="Digests")
+        check_cluster_versions(self.cluster, Version((2, 8, 9)), label="Digests")
 
     def _get_partition_namespace(self, partition: int) -> str:
         return f"{{{self.namespace}:{partition}}}"
@@ -160,11 +160,10 @@ class RedisBackend(Backend):
         return f"{self._get_timeline_namespace(key)}:t:{key}"
 
     def _get_connection(self, key: str) -> LocalClient | RedisCluster[bytes] | StrictRedis[bytes]:
-        if self.is_redis_cluster:
-            return self.cluster
+        if isinstance(self.cluster, rb.Cluster):
+            return self.cluster.get_local_client_for_key(self._get_timeline_key(key))
 
-        cluster = cast(rb.Cluster, self.cluster)
-        return cluster.get_local_client_for_key(self._get_timeline_key(key))
+        return self.cluster
 
     def _get_timeline_lock(self, key: str, duration: int) -> Lock:
         lock_key = self._get_timeline_key(key)
@@ -179,14 +178,13 @@ class RedisBackend(Backend):
         Returns the partition id, the namespace, and the client for each
         schedule partition.
         """
-        if self.is_redis_cluster:
-            client = self.cluster
-            for partition in range(self.schedule_partitions):
-                yield partition, self._get_partition_namespace(partition), client
-        else:
-            cluster = cast(rb.Cluster, self.cluster)
+        cluster = self.cluster
+        if isinstance(cluster, rb.Cluster):
             for host in cluster.hosts:
                 yield host, self.namespace, cluster.get_local_client(host)
+        else:
+            for partition in range(self.schedule_partitions):
+                yield partition, self._get_partition_namespace(partition), cluster
 
     def add(
         self,
