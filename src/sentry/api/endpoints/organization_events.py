@@ -161,6 +161,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                     feature_name, organization=organization, actor=request.user
                 )
 
+        # Expose eligibility from the legacy flag or the platform rate after rollover.
         all_features["organizations:dynamic-sampling"] = has_dynamic_sampling(
             organization, actor=request.user
         )
