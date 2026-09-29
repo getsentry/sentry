@@ -103,22 +103,22 @@ class TestParseFormula(TestCase):
 
     def test_parse_formula_wrong_args(self) -> None:
         with pytest.raises(InvalidSearchQuery, match="formula.apdex expected 2 arguments got 5"):
-            parse_formula("formula.apdex(span.duration, 300, 300, 300, 300)", self.org)
+            parse_formula("formula.apdex(span.duration, 300, 300, 300, 300)", self.org, lambda x: x)
 
     def test_parse_formula_wrong_arg_type(self) -> None:
         with pytest.raises(
             InvalidSearchQuery, match="threshold expected a number but got 'hello_world' instead"
         ):
-            parse_formula("formula.apdex(span.duration, hello_world)", self.org)
+            parse_formula("formula.apdex(span.duration, hello_world)", self.org, lambda x: x)
 
     def test_parse_formula_simple(self) -> None:
-        equation = parse_formula("formula.apdex(span.duration, 300)", self.org)
+        equation = parse_formula("formula.apdex(span.duration, 300)", self.org, lambda x: x)
         assert (
             equation
             == "equation|(count_if(`span.duration:<300.0`) + count_if(`span.duration:>=300.0 and span.duration:<=1200.0`) / 2) / count()"
         )
 
-        equation = parse_formula("formula.apdex(measurements.lcp, 400)", self.org)
+        equation = parse_formula("formula.apdex(measurements.lcp, 400)", self.org, lambda x: x)
         assert (
             equation
             == "equation|(count_if(`measurements.lcp:<400.0`) + count_if(`measurements.lcp:>=400.0 and measurements.lcp:<=1600.0`) / 2) / count()"

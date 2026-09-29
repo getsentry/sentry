@@ -1,7 +1,7 @@
 import re
 from collections.abc import Collection, Mapping
 from datetime import datetime
-from typing import Literal
+from typing import Any, Callable, Literal
 
 from django.db.models import Q
 from google.protobuf.timestamp_pb2 import Timestamp
@@ -12,7 +12,7 @@ from sentry_protos.snuba.v1.request_common_pb2 import PageToken, RequestMeta
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import ExistsFilter, OrFilter, TraceItemFilter
 
-from sentry.discover.arithmetic import parse_arithmetic, resolve_arithmetic
+from sentry.discover.arithmetic import ArithmeticError, parse_arithmetic, resolve_arithmetic
 from sentry.exceptions import InvalidSearchQuery
 from sentry.explore.models import ExploreSavedFormula, KindItemTypes, ParamItemTypes
 from sentry.models.organization import Organization
@@ -512,7 +512,9 @@ def check_attribute_names_exist(
 FORMAT_RE = r"\{((?:\w|\.)+)\}"
 
 
-def parse_formula(formula: str, organization: Organization) -> str:
+def parse_formula(
+    formula: str, organization: Organization, resolve_column: Callable[[str], Any]
+) -> str:
     """Given a formula, parse its parameters and create its rpc definition"""
     match = is_function(formula)
     if not match:
@@ -545,6 +547,17 @@ def parse_formula(formula: str, organization: Organization) -> str:
                 raise InvalidSearchQuery(
                     f"{saved_arg.name} expected a number but got '{arg}' instead"
                 )
+            if "e" in arg or "E" in arg:
+                raise InvalidSearchQuery(
+                    f"{saved_arg.name} resolved to {arg}, which is outside the supported number range"
+                )
+        elif saved_arg.param_type == ParamItemTypes.COLUMN:
+            try:
+                resolve_column(arg)
+            except InvalidSearchQuery:
+                raise InvalidSearchQuery(
+                    f"{saved_arg.name} expected a valid column but got '{arg}'"
+                )
         variables[saved_arg.name] = arg
 
     # Resolve all the calculations
@@ -558,7 +571,10 @@ def parse_formula(formula: str, organization: Organization) -> str:
             raise InvalidSearchQuery(
                 f"Missing parameters for {calculation.name}; {', '.join(unmatched)}"
             )
-        parsed, _, _ = parse_arithmetic(value)
+        try:
+            parsed, _, _ = parse_arithmetic(value)
+        except ArithmeticError as e:
+            raise InvalidSearchQuery(e)
         calculations[calculation.name] = resolve_arithmetic(parsed)
     # Do this at the end so that calculations aren't accidentally used within each other
     variables.update(calculations)
