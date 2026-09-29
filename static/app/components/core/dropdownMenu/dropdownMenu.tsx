@@ -6,7 +6,7 @@ import {useMenuTrigger} from '@react-aria/menu';
 import {Item, Section} from '@react-stately/collections';
 import type {LocationDescriptor} from 'history';
 
-import {ControlContext} from '@sentry/scraps/compactSelect';
+import {ControlContext} from '@sentry/scraps/compactSelect/control';
 
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import type {UseOverlayProps} from 'sentry/utils/useOverlay';
