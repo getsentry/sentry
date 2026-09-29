@@ -22,3 +22,32 @@ To check package imports through the Sentry app's aliases, run the app integrati
 ```sh
 pnpm test-ci static/app/components/core/scraps.spec.tsx
 ```
+
+## Build and pack
+
+```sh
+pnpm --dir static/packages/scraps pack --pack-destination .artifacts
+```
+
+The `prepack` hook builds JavaScript and declarations with
+[Rslib](./rslib.config.mjs), including from a clean checkout. Only `dist`, the
+package manifest, README, and license ship.
+
+The `exports` field in [package.json](./package.json) defines the published API.
+Add an entry only when its runtime and type dependencies belong to the package
+or are declared dependencies. App stories cover more components than this API;
+for example, the hotkey story uses both `Hotkey` and `Kbd`, but only `Kbd` is
+isolated. Published consumers have no fallback to app components.
+
+## Verify the package
+
+```sh
+pnpm --dir static/packages/scraps verify
+```
+
+Verification deletes `dist` before packing to exercise `prepack`, checks the
+tarball contents and dependencies, typechecks and imports each public export,
+and server renders representative components in both themes.
+
+Consumers provide Emotion's `ThemeProvider` with `lightTheme` or `darkTheme`.
+The package does not include application providers, global CSS, or fonts.
