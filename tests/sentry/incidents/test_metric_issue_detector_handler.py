@@ -5,12 +5,15 @@ from sentry.incidents.grouptype import (
     SessionsAggregate,
     get_alert_type_from_aggregate_dataset,
 )
-from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+from sentry.incidents.utils.types import (
+    DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
+    ProcessedSubscriptionUpdate,
+)
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.workflow_engine.models import DataCondition
+from sentry.workflow_engine.models import DataCondition, DataPacket, DetectorState
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.processors.data_packet import process_data_packet
 from tests.sentry.incidents.utils.test_metric_issue_base import BaseMetricIssueTest
@@ -389,35 +392,47 @@ class TestGetAnomalyDetectionIssueTitle(TestCase):
         )
 
 
-class TestMetricIssueFingerprint(BaseMetricIssueTest):
-    ROTATION_FEATURE = "organizations:workflow-engine-rotate-activation-id"
+class TestMetricIssueDetectorActivationId(BaseMetricIssueTest):
+    def firing_packet(self, time_jump: int) -> DataPacket[ProcessedSubscriptionUpdate]:
+        value = self.critical_detector_trigger.comparison + 1
 
-    CRITICAL = 10
-    RESOLVED = 1
+        return self.create_subscription_packet(value, time_jump)
 
-    def fingerprint(self, value: int, time_jump: int) -> list[str]:
-        result = self.process_packet_and_return_result(
-            self.create_subscription_packet(value, time_jump)
-        )
+    def resolution_packet(self, time_jump: int) -> DataPacket[ProcessedSubscriptionUpdate]:
+        value = self.resolve_detector_trigger.comparison - 1
 
-        assert result is not None
-        return list(result.fingerprint)
+        return self.create_subscription_packet(value, time_jump)
 
-    def legacy_key(self) -> str:
-        return f"detector:{self.detector.id}"
+    def fingerprint(self, packet: DataPacket[ProcessedSubscriptionUpdate]) -> list[str]:
+        detector_result = self.process_packet_and_return_result(packet)
 
-    def test_each_activation__gets_its_own_fingerprint(self) -> None:
-        with self.feature(self.ROTATION_FEATURE), freeze_time() as frozen_time:
-            first_firing = self.fingerprint(self.CRITICAL, 1)
-            first_resolve = self.fingerprint(self.RESOLVED, 2)
+        assert detector_result is not None
+        return list(detector_result.fingerprint)
+
+    def activation_id(self) -> int | None:
+        return DetectorState.objects.get(detector=self.detector).activation_id
+
+    def activation_fingerprint(self, activation_id: int | None) -> list[str]:
+        return [f"detector:{self.detector.id}:activation:{activation_id}"]
+
+    def test_detector_each_activation_gets_its_own_fingerprint(self) -> None:
+        with (
+            self.feature("organizations:workflow-engine-rotate-activation-id"),
+            freeze_time() as frozen_time,
+        ):
+            firing_update_fingerprint = self.fingerprint(self.firing_packet(1))
+
+            initial_activation_id = self.activation_id()
+
+            resolution_update_fingerprint = self.fingerprint(self.resolution_packet(2))
 
             frozen_time.shift(timedelta(seconds=1))
 
-            second_firing = self.fingerprint(self.CRITICAL, 3)
+            next_firing_update_fingerprint = self.fingerprint(self.firing_packet(3))
 
-        assert first_firing[0].startswith(f"{self.legacy_key()}:activation:")
+            assert firing_update_fingerprint == self.activation_fingerprint(initial_activation_id)
 
-        # The resolve has to match the firing it closes, or the issue is stranded open.
-        assert first_resolve == first_firing
+            # The resolve has to match the firing it closes, or the issue is stranded open.
+            assert resolution_update_fingerprint == firing_update_fingerprint
 
-        assert second_firing != first_firing
+            assert next_firing_update_fingerprint != firing_update_fingerprint
