@@ -88,8 +88,6 @@ class OrganizationEventsDroppedEndpointTest(APITestCase, OutcomesSnubaTest):
             response = self._do_request()
         assert response.status_code == 200, response.content
 
-        # The test client authenticates with a session cookie, so the caller
-        # classifies as the web UI (frontend).
         mock_incr.assert_any_call(
             "dropped_events.served",
             tags={
