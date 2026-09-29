@@ -40,7 +40,7 @@ MAX_MAPPINGS = 300
 
 class MappingItemSerializer(serializers.Serializer[dict[str, object]]):
     stack_root = gen_path_regex_field()
-    source_root = gen_path_regex_field()
+    source_root = gen_path_regex_field(validate_source=True)
 
 
 class BulkCodeMappingsRequestSerializer(CamelSnakeSerializer[dict[str, object]]):

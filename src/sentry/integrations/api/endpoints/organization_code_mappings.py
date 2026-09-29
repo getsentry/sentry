@@ -20,18 +20,30 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.source_code_management.path import normalize_repository_source_root
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.projectrepository import ProjectRepository, ProjectRepositorySource
 from sentry.models.repository import Repository
 
+INVALID_SOURCE_ROOT_ERROR_MESSAGE = "Source root must resolve within the repository"
 
-def gen_path_regex_field():
+
+def validate_source_root(path: str) -> None:
+    if "\x00" in path:
+        return
+
+    if normalize_repository_source_root(path) is None:
+        raise serializers.ValidationError(_(INVALID_SOURCE_ROOT_ERROR_MESSAGE))
+
+
+def gen_path_regex_field(*, validate_source: bool = False):
     return serializers.RegexField(
         r"^[^\s'\"]+$",  # may need to add more characters to prevent in the future
         required=True,
         allow_blank=True,
+        validators=[validate_source_root] if validate_source else [],
         error_messages={"invalid": _("Path may not contain spaces or quotations")},
     )
 
@@ -43,7 +55,7 @@ class RepositoryProjectPathConfigSerializer(CamelSnakeModelSerializer):
     repository_id = serializers.IntegerField(required=True)
     project_id = serializers.IntegerField(required=True)
     stack_root = gen_path_regex_field()
-    source_root = gen_path_regex_field()
+    source_root = gen_path_regex_field(validate_source=True)
     default_branch = serializers.RegexField(
         r"^(^(?![\/]))([\w\.\/-]+)(?<![\/])$",
         required=False,  # Validated in validate_default_branch based on integration type

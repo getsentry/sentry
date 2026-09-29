@@ -3,6 +3,9 @@ from unittest import mock
 from django.db import IntegrityError
 from django.urls import reverse
 
+from sentry.integrations.api.endpoints.organization_code_mappings import (
+    INVALID_SOURCE_ROOT_ERROR_MESSAGE,
+)
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.models.projectrepository import ProjectRepository
@@ -77,6 +80,36 @@ class OrganizationCodeMappingsBulkTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert response.data["created"] == 1
+
+    def test_allows_parent_directory_in_stack_root(self) -> None:
+        response = self.make_post(
+            {
+                "mappings": [
+                    {
+                        "stackRoot": "../../",
+                        "sourceRoot": "src/",
+                    }
+                ]
+            }
+        )
+
+        assert response.status_code == 200
+
+    def test_rejects_unsafe_source_root(self) -> None:
+        response = self.make_post(
+            {
+                "mappings": [
+                    {
+                        "stackRoot": "src/",
+                        "sourceRoot": "src/../../config",
+                    }
+                ]
+            }
+        )
+
+        assert response.status_code == 400
+        assert response.data["mappings"] == [{"sourceRoot": [INVALID_SOURCE_ROOT_ERROR_MESSAGE]}]
+        assert "indices: [0]" in response.data["detail"]
 
     def test_create_multiple_mappings(self) -> None:
         response = self.make_post(
