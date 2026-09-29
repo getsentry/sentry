@@ -67,7 +67,6 @@ export function Policies() {
       </PageHeader>
 
       <ResultGrid
-        key={status}
         inPanel
         path="/_admin/policies/"
         endpoint="/policies/"
