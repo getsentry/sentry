@@ -1,15 +1,11 @@
+import dataclasses
 from datetime import date
+from typing import Any
 
 import click
+import yaml
 
-from flagpole import Feature, OwnerInfo, Segment
-from flagpole.conditions import (
-    ConditionBase,
-    ConditionOperatorKind,
-    EqualsCondition,
-    InCondition,
-    condition_from_dict,
-)
+from flagpole.conditions import ConditionOperatorKind
 from sentry.runner.decorators import configuration
 
 valid_scopes = ["organizations", "projects"]
@@ -24,11 +20,48 @@ hardcoded_condition_properties = {
     "user_email",
 }
 
+
+@dataclasses.dataclass(frozen=True)
+class Condition:
+    property: str
+    value: Any
+    operator: str
+
+
+@dataclasses.dataclass
+class Segment:
+    name: str
+    conditions: list[Condition] = dataclasses.field(default_factory=list)
+    rollout: int = 100
+
+
+@dataclasses.dataclass(frozen=True)
+class OwnerInfo:
+    team: str
+    email: str | None = None
+
+
+@dataclasses.dataclass(frozen=True)
+class Feature:
+    name: str
+    owner: OwnerInfo
+    created_at: str
+    segments: list[Segment] = dataclasses.field(default_factory=list)
+    enabled: bool = True
+
+    def to_yaml_str(self) -> str:
+        config = dataclasses.asdict(self)
+        name = config.pop("name")
+        # Indent one level so the output pastes under `options:` in flagpole.yaml.
+        dump = yaml.dump({"dummy": {name: config}})
+        return "\n".join(dump.split("\n")[1:])
+
+
 feature_scopes_choices = click.Choice(valid_scopes)
 condition_type_choices = click.Choice([op.value for op in ConditionOperatorKind])
 
 
-def condition_wizard(display_sample_condition_properties: bool = False) -> ConditionBase:
+def condition_wizard(display_sample_condition_properties: bool = False) -> Condition:
     if display_sample_condition_properties:
         click.echo("Here are some example condition properties available:\n")
         for property_name in hardcoded_condition_properties:
@@ -38,20 +71,17 @@ def condition_wizard(display_sample_condition_properties: bool = False) -> Condi
     property_name = click.prompt("Context property name", type=str)
     operator_kind = click.prompt("Operator type", type=condition_type_choices, show_choices=True)
 
-    value: str | list[str] = ""
-    if operator_kind in {
+    list_operators = {
         ConditionOperatorKind.IN,
         ConditionOperatorKind.NOT_IN,
         ConditionOperatorKind.MATCHES,
         ConditionOperatorKind.NOT_MATCHES,
-    }:
-        value = []
-    condition = {
-        "property": property_name,
-        "operator": operator_kind,
-        "value": value,
     }
-    return condition_from_dict(condition)
+    return Condition(
+        property=property_name,
+        operator=ConditionOperatorKind(operator_kind).value,
+        value=[] if operator_kind in list_operators else "",
+    )
 
 
 def segment_wizard() -> list[Segment]:
@@ -182,9 +212,9 @@ def createissueflag(
                 name="LA",
                 rollout=0,
                 conditions=[
-                    InCondition(
-                        "organization_slug",
-                        ["sentry", "sentry-eu", "sentry-sdks", "sentry-st"],
+                    Condition(
+                        property="organization_slug",
+                        value=["sentry", "sentry-eu", "sentry-sdks", "sentry-st"],
                         operator=ConditionOperatorKind.IN.value,
                     )
                 ],
@@ -193,9 +223,9 @@ def createissueflag(
                 name="EA",
                 rollout=0,
                 conditions=[
-                    EqualsCondition(
-                        "organization_is-early-adopter",
-                        True,
+                    Condition(
+                        property="organization_is-early-adopter",
+                        value=True,
                         operator=ConditionOperatorKind.EQUALS.value,
                     )
                 ],

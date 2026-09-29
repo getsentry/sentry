@@ -523,6 +523,7 @@ class MergeEventWebhook(GitlabWebhook):
             "state": state,
             "draft": draft,
             "external_id": external_id,
+            "external_id_str": str(external_id),
         }
 
         # GitLab has no closed_at, so derive it from the lifecycle action. A

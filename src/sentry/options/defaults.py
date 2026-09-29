@@ -270,6 +270,12 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "auth.email-verification-at-signup.email-password-enabled",
+    default=True,
+    type=Bool,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "auth.email-verification-at-signup.sso-enabled",
     default=False,
     type=Bool,
@@ -1656,6 +1662,20 @@ register(
     "post_process.disable-pipeline-steps",
     type=Sequence,
     default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "post_process.read-from-nodestore-sample-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Enable only after the Nodestore read sample rate is 1.0 and queued post-process
+# tasks without event_id have drained.
+register(
+    "post_process.delete-processing-store-in-save-event",
+    type=Bool,
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -3485,6 +3505,13 @@ register(
 )
 
 # Notification Options - Start
+register(
+    "notifications.issue-alerts.disable-rule-snooze",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Options for migrating to the notification platform
 # Notifications for internal testing
 register(
@@ -3710,15 +3737,6 @@ register(
     "workflow_engine.max_more_workflows_per_org",
     type=Int,
     default=10000,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Whether the data source by detector and source id cache is enabled
-# When disabled, detector handlers query directly instead of using the cache
-register(
-    "workflow_engine.data_source_by_detector_and_source_id_cache.enabled",
-    type=Bool,
-    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -4218,12 +4236,6 @@ register(
 
 register(
     "warmup.url_resolver.enabled",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "warmup.enabled",
     type=Bool,
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,

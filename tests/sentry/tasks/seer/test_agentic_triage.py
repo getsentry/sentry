@@ -5,6 +5,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 from django.conf import settings
+from django.test import override_settings
 from taskbroker_client.scheduler.config import crontab
 from taskbroker_client.scheduler.runner import ScheduleEntry
 
@@ -34,6 +35,7 @@ from sentry.tasks.seer.agentic_triage.cron import (
     _complete_run,
     _current_schedule_id,
     _dispatch_pending_shards,
+    _get_eligible_orgs_from_batch,
     _get_eligible_projects,
     _record_run_error,
     _update_run_extras,
@@ -73,6 +75,7 @@ def _dispatched_feature_body(organization):
     return seer_run, outbox.payload["body"]
 
 
+@override_settings(SENTRY_SELF_HOSTED=False)
 @django_db_all
 @pytest.mark.parametrize("enabled,mode", [(False, "off"), (True, "only")])
 def test_code_mode_flag_applies_to_every_dispatched_shard(default_organization, enabled, mode):
@@ -85,7 +88,6 @@ def test_code_mode_flag_applies_to_every_dispatched_shard(default_organization, 
 
     with with_feature(
         {
-            "organizations:gen-ai-features": True,
             "organizations:seer-night-shift-code-mode": enabled,
         }
     ):
@@ -102,6 +104,7 @@ def test_code_mode_flag_applies_to_every_dispatched_shard(default_organization, 
         assert outbox.payload["body"]["agent_run_options"]["enable_code_mode_tools"] == mode
 
 
+@override_settings(SENTRY_SELF_HOSTED=False)
 @django_db_all
 def test_redispatch_preserves_recorded_code_mode_after_flag_is_disabled(default_organization):
     run = Factories.create_seer_workflow_run(organization=default_organization)
@@ -110,7 +113,6 @@ def test_redispatch_preserves_recorded_code_mode_after_flag_is_disabled(default_
 
     with with_feature(
         {
-            "organizations:gen-ai-features": True,
             "organizations:seer-night-shift-code-mode": True,
         }
     ):
@@ -122,7 +124,6 @@ def test_redispatch_preserves_recorded_code_mode_after_flag_is_disabled(default_
 
     with with_feature(
         {
-            "organizations:gen-ai-features": True,
             "organizations:seer-night-shift-code-mode": False,
         }
     ):
@@ -291,6 +292,7 @@ class TestCurrentScheduleId:
 
 
 @django_db_all
+@override_settings(SENTRY_SELF_HOSTED=False)
 class TestScheduleAgenticTriage(TestCase):
     def create_org_with_seer(self):
         """Create an org with a SeerProjectRepository so it survives the pre-filter."""
@@ -299,6 +301,18 @@ class TestScheduleAgenticTriage(TestCase):
         repo = self.create_repo(project=project, provider="github", name=f"owner/{project.slug}")
         self.create_seer_project_repository(project=project, repository=repo)
         return org
+
+    def test_eligible_orgs_empty_on_self_hosted(self) -> None:
+        org = self.create_organization()
+        with self.feature(
+            {
+                "organizations:seer-night-shift": [org.slug],
+                "organizations:seat-based-seer-enabled": [org.slug],
+            }
+        ):
+            assert _get_eligible_orgs_from_batch([org]) == [org]
+            with override_settings(SENTRY_SELF_HOSTED=True):
+                assert _get_eligible_orgs_from_batch([org]) == []
 
     def test_disabled_by_option(self) -> None:
         with (
@@ -319,7 +333,6 @@ class TestScheduleAgenticTriage(TestCase):
             self.feature(
                 {
                     "organizations:seer-night-shift": [org.slug],
-                    "organizations:gen-ai-features": [org.slug],
                     "organizations:seat-based-seer-enabled": [org.slug],
                 }
             ),
@@ -351,7 +364,6 @@ class TestScheduleAgenticTriage(TestCase):
             self.feature(
                 {
                     "organizations:seer-night-shift": [org.slug],
-                    "organizations:gen-ai-features": [org.slug],
                     "organizations:seat-based-seer-enabled": [org.slug],
                 }
             ),
@@ -377,7 +389,6 @@ class TestScheduleAgenticTriage(TestCase):
             self.feature(
                 {
                     "organizations:seer-night-shift": [org.slug],
-                    "organizations:gen-ai-features": [org.slug],
                     "organizations:seat-based-seer-enabled": [org.slug],
                 }
             ),
@@ -406,7 +417,6 @@ class TestScheduleAgenticTriage(TestCase):
             self.feature(
                 {
                     "organizations:seer-night-shift": [org.slug],
-                    "organizations:gen-ai-features": [org.slug],
                     # seat-based-seer-enabled intentionally omitted
                 }
             ),
@@ -430,7 +440,6 @@ class TestScheduleAgenticTriage(TestCase):
             self.feature(
                 {
                     "organizations:seer-night-shift": [org.slug],
-                    "organizations:gen-ai-features": [org.slug],
                     # seat-based-seer-enabled intentionally omitted
                 }
             ),
@@ -451,7 +460,6 @@ class TestScheduleAgenticTriage(TestCase):
             self.feature(
                 {
                     "organizations:seer-night-shift": [org.slug],
-                    "organizations:gen-ai-features": [org.slug],
                     "organizations:seat-based-seer-enabled": [org.slug],
                 }
             ),
@@ -471,7 +479,6 @@ class TestScheduleAgenticTriage(TestCase):
             self.feature(
                 {
                     "organizations:seer-night-shift": [org.slug],
-                    "organizations:gen-ai-features": [org.slug],
                     "organizations:seat-based-seer-enabled": [org.slug],
                 }
             ),
@@ -492,7 +499,6 @@ class TestScheduleAgenticTriage(TestCase):
             self.feature(
                 {
                     "organizations:seer-night-shift": [org.slug],
-                    "organizations:gen-ai-features": [org.slug],
                     "organizations:seat-based-seer-enabled": [org.slug],
                 }
             ),
@@ -704,6 +710,7 @@ class TestGetEligibleProjects(AgenticTriageFixtures, TestCase):
         assert result[0].automation_tuning is None
 
 
+@override_settings(SENTRY_SELF_HOSTED=False)
 @django_db_all
 class TestRunAgenticTriageForOrg(AgenticTriageFixtures, TestCase, SnubaTestCase):
     reset_snuba_data = False
@@ -869,8 +876,7 @@ class TestRunAgenticTriageForOrg(AgenticTriageFixtures, TestCase, SnubaTestCase)
 
         mark_skipped(skipped_group.id)
         try:
-            with self.feature("organizations:gen-ai-features"):
-                run_agentic_triage_for_org(org.id)
+            run_agentic_triage_for_org(org.id)
         finally:
             redis_clusters.get("default").delete(skip_cache_key(skipped_group.id))
 
@@ -1029,6 +1035,7 @@ class TestRunAgenticTriageForOrg(AgenticTriageFixtures, TestCase, SnubaTestCase)
         assert [p.id for p in mock_score.call_args.args[0]] == [enabled.id]
 
 
+@override_settings(SENTRY_SELF_HOSTED=False)
 @django_db_all
 class TestRunAgenticTriageFeatureDelivery(AgenticTriageFixtures, TestCase, SnubaTestCase):
     """Coverage for the dispatch path, which hands triage off to Seer's
@@ -1052,7 +1059,6 @@ class TestRunAgenticTriageFeatureDelivery(AgenticTriageFixtures, TestCase, Snuba
 
         with (
             self.options({"seer.night_shift.shard_size": 2}),
-            self.feature("organizations:gen-ai-features"),
             patch(
                 "sentry.tasks.seer.agentic_triage.cron.fixability_score_strategy",
                 return_value=scored,
@@ -1077,7 +1083,6 @@ class TestRunAgenticTriageFeatureDelivery(AgenticTriageFixtures, TestCase, Snuba
 
         with (
             self.options({"seer.night_shift.shard_size": 10}),
-            self.feature("organizations:gen-ai-features"),
             patch(
                 "sentry.tasks.seer.agentic_triage.cron.fixability_score_strategy",
                 return_value=scored,
@@ -1099,7 +1104,6 @@ class TestRunAgenticTriageFeatureDelivery(AgenticTriageFixtures, TestCase, Snuba
 
         with (
             self.options({"seer.night_shift.shard_size": 0}),
-            self.feature("organizations:gen-ai-features"),
             patch(
                 "sentry.tasks.seer.agentic_triage.cron.fixability_score_strategy",
                 return_value=scored,
@@ -1120,10 +1124,7 @@ class TestRunAgenticTriageFeatureDelivery(AgenticTriageFixtures, TestCase, Snuba
             project, "fixable", seer_fixability_score=0.9, times_seen=5, priority=75
         )
 
-        with (
-            self.feature("organizations:gen-ai-features"),
-            patch("sentry.seer.agentic_triage.delivery.trigger_autofix_agent") as mock_autofix,
-        ):
+        with patch("sentry.seer.agentic_triage.delivery.trigger_autofix_agent") as mock_autofix:
             run_agentic_triage_for_org(org.id)
 
         # Autofix is fired by Seer's pushed-back verdicts, not in-process.
@@ -1161,8 +1162,7 @@ class TestRunAgenticTriageFeatureDelivery(AgenticTriageFixtures, TestCase, Snuba
         )
         self._store_event_and_update_group(project, "fixable", seer_fixability_score=0.9)
 
-        with self.feature("organizations:gen-ai-features"):
-            run_agentic_triage_for_org(org.id)
+        run_agentic_triage_for_org(org.id)
 
         _, body = _dispatched_feature_body(org)
         assert body["payload"]["candidates"][0]["automation_tuning"] == "high"
@@ -1174,7 +1174,6 @@ class TestRunAgenticTriageFeatureDelivery(AgenticTriageFixtures, TestCase, Snuba
         self._store_event_and_update_group(project, "fixable", seer_fixability_score=0.9)
 
         with (
-            self.feature("organizations:gen-ai-features"),
             patch(
                 "sentry.tasks.seer.agentic_triage.cron.is_seer_seat_based_tier_enabled",
                 return_value=True,
@@ -1200,8 +1199,7 @@ class TestRunAgenticTriageFeatureDelivery(AgenticTriageFixtures, TestCase, Snuba
             always, "always-fixable", seer_fixability_score=0.9
         )
 
-        with self.feature("organizations:gen-ai-features"):
-            run_agentic_triage_for_org(org.id)
+        run_agentic_triage_for_org(org.id)
 
         _, body = _dispatched_feature_body(org)
         tuning_by_group_id = {
@@ -1224,7 +1222,6 @@ class TestRunAgenticTriageFeatureDelivery(AgenticTriageFixtures, TestCase, Snuba
         )
 
         with (
-            self.feature("organizations:gen-ai-features"),
             self.options(
                 {
                     "seer.night_shift.org_tweaks": {
@@ -1260,10 +1257,7 @@ class TestRunAgenticTriageFeatureDelivery(AgenticTriageFixtures, TestCase, Snuba
             for i in range(3)
         ]
 
-        with (
-            self.options({"seer.night_shift.shard_size": 2}),
-            self.feature("organizations:gen-ai-features"),
-        ):
+        with self.options({"seer.night_shift.shard_size": 2}):
             run_agentic_triage_for_org(org.id)
 
         run = SeerWorkflowRun.objects.get(organization=org)
@@ -1310,7 +1304,6 @@ class TestRunAgenticTriageFeatureDelivery(AgenticTriageFixtures, TestCase, Snuba
 
         with (
             self.options({"seer.night_shift.shard_size": 1}),
-            self.feature("organizations:gen-ai-features"),
             patch(
                 "sentry.tasks.seer.agentic_triage.cron.fixability_score_strategy",
                 return_value=scored,
@@ -1364,6 +1357,7 @@ class TestRunAgenticTriageFeatureDelivery(AgenticTriageFixtures, TestCase, Snuba
 
     def test_no_seer_access_keeps_shard_plan_for_resume(self) -> None:
         org = self.create_organization()
+        org.update_option("sentry:hide_ai_features", True)
         project = self.create_project(organization=org)
         self._make_eligible(project)
         self._store_event_and_update_group(
@@ -1395,7 +1389,6 @@ class TestRunAgenticTriageFeatureDelivery(AgenticTriageFixtures, TestCase, Snuba
         )
 
         with (
-            self.feature("organizations:gen-ai-features"),
             patch(
                 "sentry.seer.agent.client.SeerAgentClient.start_feature_run",
                 side_effect=RuntimeError("boom"),
@@ -1417,8 +1410,7 @@ class TestRunAgenticTriageFeatureDelivery(AgenticTriageFixtures, TestCase, Snuba
             project, "fixable", seer_fixability_score=0.9, times_seen=5
         )
 
-        with self.feature("organizations:gen-ai-features"):
-            run_agentic_triage_for_org(org.id)
+        run_agentic_triage_for_org(org.id)
 
         seer_run = SeerRun.objects.get(organization=org, type=SeerRunType.FEATURE_RUN)
         assert seer_run.mirror_status == SeerRunMirrorStatus.PENDING

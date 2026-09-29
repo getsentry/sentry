@@ -13,7 +13,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.helpers.auth import get_auth_success_payload
-from sentry.api.invite_helper import ApiInviteHelper, remove_invite_details_from_session
+from sentry.api.invite_helper import ApiInviteHelper
 from sentry.api.serializers.models.auth import AuthSuccessSerializer
 from sentry.api.validators.auth import (
     EMAIL_ALREADY_REGISTERED,
@@ -83,18 +83,10 @@ def _complete_user_registration(
     request.session.pop("invite_email", None)
 
 
-def _apply_registration_membership(request: Request, user: User) -> RpcOrganization | None:
-    """Accept a pending invite or add the user to the configured single organization."""
-    invite_helper = ApiInviteHelper.from_session(request=request, logger=auth.logger)
-    if invite_helper is not None:
-        if not invite_helper.valid_request:
-            return None
-
-        invite_helper.accept_invite(user)
-        organization = invite_helper.invite_context.organization
-        auth.set_active_org(request, organization.slug)
-        remove_invite_details_from_session(request=request)
-        return organization
+def _apply_single_organization_membership(request: Request, user: User) -> RpcOrganization | None:
+    """Add the user to the configured single organization when no invite is pending."""
+    if ApiInviteHelper.from_session(request=request, logger=auth.logger) is not None:
+        return None
 
     if not settings.SENTRY_SINGLE_ORGANIZATION:
         return None
@@ -146,6 +138,6 @@ class AuthRegisterEndpoint(Endpoint):
 
         user = _create_user(serializer.validated_data)
         _complete_user_registration(request, user, serializer.validated_data, self)
-        _apply_registration_membership(request, user)
+        _apply_single_organization_membership(request, user)
 
         return Response(get_auth_success_payload(request, user))

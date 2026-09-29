@@ -139,7 +139,7 @@ class SearchAgentTranslateEndpoint(OrganizationEndpoint):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        has_seer_access, detail = has_seer_access_with_detail(organization, actor=request.user)
+        has_seer_access, detail = has_seer_access_with_detail(organization)
         if not has_seer_access:
             return Response(
                 {"detail": detail},
@@ -159,11 +159,6 @@ class SearchAgentTranslateEndpoint(OrganizationEndpoint):
         viewer_context = SeerViewerContext(organization_id=organization.id, user_id=request.user.id)
         options["cross_event"] = features.has(
             "organizations:seer-assisted-query-cross-event-explorer",
-            organization,
-            actor=request.user,
-        )
-        options["project_expansion"] = features.has(
-            "organizations:seer-assisted-query-project-expansion",
             organization,
             actor=request.user,
         )
