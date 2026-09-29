@@ -9,6 +9,8 @@ import type {SelectValue} from '@sentry/scraps/select';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {PathMappingList} from 'sentry/components/connectRepository/pathMappingList';
+import type {PathMappingValue} from 'sentry/components/connectRepository/type';
 import {ScmVirtualizedMenuList} from 'sentry/components/onboarding/scm/scmVirtualizedMenuList';
 import {IconLock} from 'sentry/icons';
 import {IconArrow} from 'sentry/icons/iconArrow';
@@ -23,6 +25,7 @@ const REPOS_STALE_TIME_MS = 60_000;
 
 type RepoSelectOption = SelectValue<string> & {
   defaultBranch?: string | null;
+  providerKey?: string;
 };
 
 type RepoGroup = {
@@ -81,6 +84,7 @@ function useGroupedRepoOptions(orgSlug: string): {
           label: repo.name,
           leadingItems: getIntegrationIcon(integration.provider.key, 'sm'),
           defaultBranch: repo.defaultBranch,
+          providerKey: integration.provider.key,
         })),
       })),
       isReposPending: results.some(r => r.isPending),
@@ -138,7 +142,10 @@ export function ConnectRepositoryModal({
 }: Props) {
   const organization = useOrganization();
   const [selectedOption, setSelectedOption] = useState<RepoSelectOption | null>(null);
+  const [pathMappings, setPathMappings] = useState<PathMappingValue[]>([]);
   const {groupedOptions, isPending} = useGroupedRepoOptions(organization.slug);
+
+  const canSave = selectedOption !== null && pathMappings.length > 0;
 
   return (
     <Fragment>
@@ -170,32 +177,50 @@ export function ConnectRepositoryModal({
             <Text size="sm" bold>
               {t('Repository')}
             </Text>
-            <LockedProjectField project={project} />
+            <Container minWidth={0}>
+              <LockedProjectField project={project} />
+            </Container>
             <IconArrow direction="right" />
-            <Select
-              aria-label={t('Repository')}
-              options={groupedOptions}
-              value={selectedOption?.value ?? null}
-              onChange={option => setSelectedOption(option as RepoSelectOption | null)}
-              placeholder={t('Search repositories')}
-              isLoading={isPending}
-              searchable
-              components={{MenuList: ScmVirtualizedMenuList}}
-            />
+            <Container minWidth={0}>
+              <Select
+                aria-label={t('Repository')}
+                options={groupedOptions}
+                value={selectedOption?.value ?? null}
+                onChange={option => {
+                  setSelectedOption(option as RepoSelectOption | null);
+                  setPathMappings([]);
+                }}
+                placeholder={t('Search repositories')}
+                isLoading={isPending}
+                searchable
+                components={{MenuList: ScmVirtualizedMenuList}}
+              />
+            </Container>
           </Grid>
 
-          <Stack gap="xs" paddingTop="2xl">
-            <Text size="sm" bold>
-              {t('Paths')}
-            </Text>
-            {!selectedOption && <PathsPlaceholder />}
-          </Stack>
+          {selectedOption ? (
+            <Container paddingTop="2xl">
+              <PathMappingList
+                key={selectedOption.value}
+                providerKey={selectedOption.providerKey}
+                defaultBranch={selectedOption.defaultBranch ?? undefined}
+                onChange={setPathMappings}
+              />
+            </Container>
+          ) : (
+            <Stack gap="xs" paddingTop="2xl">
+              <Text size="sm" bold>
+                {t('Paths')}
+              </Text>
+              <PathsPlaceholder />
+            </Stack>
+          )}
         </Stack>
       </Body>
       <Footer>
         <Flex justify="end" gap="md">
           <Button onClick={closeModal}>{t('Cancel')}</Button>
-          <Button variant="primary" disabled>
+          <Button variant="primary" disabled={!canSave}>
             {t('Save')}
           </Button>
         </Flex>
