@@ -328,13 +328,6 @@ export default function LogBlock(props: LogData) {
 
   return (
     <SeerEmbedBlock
-      badge={
-        displayTimestampMs === null ? null : (
-          <Text size="sm" variant="muted">
-            <DateTime date={displayTimestampMs} />
-          </Text>
-        )
-      }
       // The resolved identity, not the raw props: when Seer gave only an id,
       // the link would otherwise scope Explore to My Projects and miss the very
       // row this card just loaded.
@@ -352,13 +345,24 @@ export default function LogBlock(props: LogData) {
         <Text variant="danger">{t('Unable to load log details')}</Text>
       ) : (
         <Stack gap="lg">
-          <Flex align="baseline" gap="sm">
-            <Text monospace size="sm">
-              {String(message ?? '')}
-            </Text>
-            <Flex flexShrink="0">
-              <Tag variant={severityTagVariant(level)}>{severityLevelToText(level)}</Tag>
+          <Flex align="baseline" gap="sm" justify="between">
+            <Flex align="baseline" gap="sm" minWidth="0">
+              <Text monospace size="sm">
+                {String(message ?? '')}
+              </Text>
+              <Flex flexShrink="0">
+                <Tag variant={severityTagVariant(level)}>
+                  {severityLevelToText(level)}
+                </Tag>
+              </Flex>
             </Flex>
+            {displayTimestampMs === null ? null : (
+              <Flex flexShrink="0">
+                <Text size="sm" variant="muted">
+                  <DateTime date={displayTimestampMs} />
+                </Text>
+              </Flex>
+            )}
           </Flex>
           <LogBlockContent
             attribute={attribute}
