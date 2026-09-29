@@ -22,6 +22,7 @@ type Props = ModalRenderProps & {
 const mergeSchema = z.object({
   users: z.array(z.custom<User>()).min(1, 'Select at least one account'),
 });
+const defaultValues: z.infer<typeof mergeSchema> = {users: []};
 
 export function MergeAccountsModal(props: Props) {
   const {userId, onAction, closeModal, Header, Body, Footer} = props;
@@ -63,7 +64,7 @@ export function MergeAccountsModal(props: Props) {
 
   const form = useScrapsForm({
     ...defaultFormOptions,
-    defaultValues: {users: [] as User[]},
+    defaultValues,
     validators: {onDynamic: mergeSchema},
     onSubmit: ({value}) =>
       doMergeMutation.mutateAsync(value.users.map(user => user.id)).catch(() => {}),
