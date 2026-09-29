@@ -1,7 +1,7 @@
 import {Fragment, useState} from 'react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 
-import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -11,10 +11,13 @@ import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicato
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {IconAdd} from 'sentry/icons';
 import type {User} from 'sentry/types/user';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
+
+import {AdminSearchCombobox} from 'admin/components/adminSearchCombobox';
 
 type Props = ModalRenderProps & {
   onAction: (data: any) => void;
@@ -24,6 +27,7 @@ type Props = ModalRenderProps & {
 export function MergeAccountsModal(props: Props) {
   const {userId, onAction, closeModal, Header, Body, Footer} = props;
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
+  const [isAddingUser, setIsAddingUser] = useState(false);
   const queryClient = useQueryClient();
 
   const endpoint = getApiUrl('/users/$userId/merge-accounts/', {
@@ -43,24 +47,18 @@ export function MergeAccountsModal(props: Props) {
 
   const mergeAccounts = fetchedMergeAccounts ?? {users: []};
 
-  const lookupMutation = useMutation({
-    mutationFn: async (username: string) => {
-      const response = await queryClient.fetchQuery(
-        apiOptions.as<{user: User}>()('/users/$userId/merge-accounts/', {
-          path: {userId},
-          query: {username},
-          staleTime: 0,
-        })
-      );
-      return response.json;
-    },
-    onSuccess: ({user}) => {
-      queryClient.setQueryData(accountsQueryOptions.queryKey, previous => ({
-        json: {users: [...(previous?.json.users ?? []), user]},
+  const addAccount = (user: User) => {
+    queryClient.setQueryData(accountsQueryOptions.queryKey, previous => {
+      const users = previous?.json.users ?? [];
+      return {
+        json: {
+          users: users.some(account => account.id === user.id) ? users : [...users, user],
+        },
         headers: previous?.headers ?? {},
-      }));
-    },
-  });
+      };
+    });
+    setIsAddingUser(false);
+  };
 
   const doMergeMutation = useMutation({
     mutationFn: () => {
@@ -82,11 +80,6 @@ export function MergeAccountsModal(props: Props) {
     },
   });
 
-  const form = useScrapsForm({
-    ...defaultFormOptions,
-    defaultValues: {username: ''},
-    onSubmit: ({value}) => lookupMutation.mutateAsync(value.username).catch(() => {}),
-  });
   const mergeForm = useScrapsForm({
     ...defaultFormOptions,
     defaultValues: {},
@@ -129,26 +122,27 @@ export function MergeAccountsModal(props: Props) {
               </Flex>
             ))}
           </Stack>
-          <form.AppForm form={form}>
-            {lookupMutation.isError && (
-              <Alert.Container>
-                <Alert variant="danger" showIcon={false}>
-                  Could not find user(s)
-                </Alert>
-              </Alert.Container>
-            )}
-            <form.AppField name="username">
-              {field => (
-                <field.Layout.Stack label="Add another username:">
-                  <field.Input
-                    value={field.state.value}
-                    onChange={field.handleChange}
-                    placeholder="username"
-                  />
-                </field.Layout.Stack>
-              )}
-            </form.AppField>
-          </form.AppForm>
+          {isAddingUser ? (
+            <AdminSearchCombobox
+              label="Search users"
+              getResultKey={user => user.id}
+              getResultSearchTerms={user => [user.username, user.email, user.name]}
+              onSelectResult={addAccount}
+              queryOptions={query =>
+                apiOptions.as<User[]>()('/users/', {
+                  query: {query, per_page: 10},
+                  staleTime: 30_000,
+                })
+              }
+              renderResult={user => user.username}
+            />
+          ) : (
+            <Flex>
+              <Button icon={<IconAdd />} onClick={() => setIsAddingUser(true)}>
+                Add another user
+              </Button>
+            </Flex>
+          )}
         </Stack>
       </Body>
       <Footer>
