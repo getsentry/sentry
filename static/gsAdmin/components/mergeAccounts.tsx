@@ -45,12 +45,16 @@ export function MergeAccountsModal(props: Props) {
   const mergeAccounts = fetchedMergeAccounts ?? {users: []};
 
   const lookupMutation = useMutation({
-    mutationFn: (username: string) =>
-      fetchMutation<{user: User}>({
-        url: endpoint,
-        method: 'GET',
-        options: {query: {username}},
-      }),
+    mutationFn: async (username: string) => {
+      const response = await queryClient.fetchQuery(
+        apiOptions.as<{user: User}>()('/users/$userId/merge-accounts/', {
+          path: {userId},
+          query: {username},
+          staleTime: 0,
+        })
+      );
+      return response.json;
+    },
     onSuccess: ({user}) => {
       queryClient.setQueryData(accountsQueryOptions.queryKey, previous => ({
         json: {users: [...(previous?.json.users ?? []), user]},
