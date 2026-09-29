@@ -694,8 +694,10 @@ def _custom_filter_condition(
 
 def get_custom_inbound_filter_generic_filters(project: Project) -> list[GenericFilter]:
     generic_filters: list[GenericFilter] = []
+    # A row with legacy_filter set is the double write of a legacy list that Relay still receives
+    # through the legacy path, so serving it here would filter the same data twice.
     custom_filters = CustomInboundFilter.objects.filter(
-        project_id=project.id, active=True
+        project_id=project.id, active=True, legacy_filter__isnull=True
     ).order_by("id")
     for custom_filter in custom_filters:
         condition = _custom_filter_condition(custom_filter.conditions, custom_filter.data_type)

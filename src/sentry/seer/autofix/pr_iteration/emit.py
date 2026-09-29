@@ -11,7 +11,7 @@ the completion hook knows which row the finished work belongs to.
 Nothing here may change what the product does. Every entry point swallows its
 own failures: a caller records what it can and carries on regardless --
 ``bootstrap_iteration`` excepted, since it runs before there is an identity to
-record under.
+record under. Rows nothing ever completes are taken by ``sweep``.
 """
 
 from __future__ import annotations
@@ -30,12 +30,7 @@ from sentry.analytics.events.pr_iteration_events import (
 )
 from sentry.models.group import Group
 from sentry.seer.agent.client_models import SeerRunState
-from sentry.seer.autofix.autofix_agent import (
-    get_iterations,
-    get_latest_iteration_index,
-    get_open_iteration_index,
-    iteration_repos,
-)
+from sentry.seer.autofix.autofix_agent import get_iterations, iteration_repos
 from sentry.seer.autofix.pr_iteration.current_iteration import triggered_iteration_id
 from sentry.seer.autofix.pr_iteration.details_store import (
     claim_iteration,
@@ -55,6 +50,9 @@ EventT = TypeVar("EventT", bound=analytics.Event)
 # Blocking outcomes a row has already reported, so each is emitted once per
 # iteration.
 BLOCKED_OUTCOMES_DATA_KEY = "blocked_outcomes"
+
+# The latest reason a gate refused this batch. Cleared when the batch is triggered.
+FAILURE_REASON_DATA_KEY = "failure_reason"
 
 
 class PrIterationOutcome(StrEnum):
@@ -96,6 +94,18 @@ class PrIterationOutcome(StrEnum):
     PAUSED_RUN_ERRORED = "paused_run_errored"
     PAUSED_PR_CLOSED = "paused_pr_closed"
     PAUSED_DRAIN_FAILED = "paused_drain_failed"
+
+    # the trigger gate refused the batch, so no drain was scheduled
+    STALE_HEAD = "stale_head"
+    HARD_CAP_REACHED = "hard_cap_reached"
+
+    # a drain claimed the batch but dropped every item
+    NO_CONSUMABLE_FEEDBACK = "no_consumable_feedback"
+
+    # the sweep deleted a row nothing reported: never triggered, or
+    # triggered but the agent never finished
+    NEVER_TRIGGERED = "never_triggered"
+    NEVER_COMPLETED = "never_completed"
 
 
 # Every pause reason has its own outcome; there is no catch-all. mypy flags a
@@ -223,6 +233,8 @@ def trigger_pr_iteration_details(
         if iteration is None:
             return None
 
+        # The batch is running, so any earlier refusal no longer applies.
+        iteration.data.pop(FAILURE_REASON_DATA_KEY, None)
         update_iteration(iteration, trigger_source=trigger_source)
         set_pr_iteration_attributes(iteration_id=iteration.id)
         return iteration.id
@@ -305,12 +317,11 @@ def _pushed_head_shas(run_state: SeerRunState) -> list[str]:
     return sorted(shas)
 
 
-def _build_event(
+def build_iteration_event(
     log_ctx: PrIterationLogContext,
     iteration: SeerRunPrIteration,
     event_cls: type[EventT],
     *,
-    iteration_index: int,
     outcome: str,
     head_shas: list[str] | None = None,
 ) -> EventT | None:
@@ -323,25 +334,22 @@ def _build_event(
     """
     known = {f.name for f in fields(event_cls)}
     payload = {key: value for key, value in iteration.data.items() if key in known}
+
     # Only the blocked event carries how long the batch waited; the completed
     # event reports what the drain wrote instead.
     if "duration_ms" in known:
         payload["duration_ms"] = int((timezone.now() - iteration.date_added).total_seconds() * 1000)
     if head_shas is not None and "head_shas" in known:
         payload["head_shas"] = head_shas
+
     try:
         return event_cls(
             iteration_id=iteration.id,
-            iteration_index=iteration_index,
             outcome=outcome,
             **payload,
         )
     except TypeError:
-        written = payload.keys() | {
-            "iteration_id",
-            "iteration_index",
-            "outcome",
-        }
+        written = payload.keys() | {"iteration_id", "outcome"}
         log_ctx.error(
             "autofix.pr_iteration.details.incomplete_row",
             exc_info=False,
@@ -389,11 +397,10 @@ def record_pr_iteration_blocked(
         if outcome in recorded:
             return
 
-        event = _build_event(
+        event = build_iteration_event(
             log_ctx,
             iteration,
             AiAutofixPrIterationFeedbackBatchBlockedEvent,
-            iteration_index=get_latest_iteration_index(run_state),
             outcome=outcome,
         )
         if event is None:
@@ -405,6 +412,37 @@ def record_pr_iteration_blocked(
         analytics.record(event)
     except Exception:
         log_ctx.error("autofix.pr_iteration.details.blocked_failed")
+
+
+def record_pr_iteration_failure_reason(
+    *,
+    log_ctx: PrIterationLogContext,
+    run_id: int,
+    organization_id: int,
+    reason: str,
+    iteration_id: int | None = None,
+) -> None:
+    """Save why a gate refused this batch, for the sweep to report.
+
+    Uses the run's waiting row unless ``iteration_id`` is given. Emits nothing,
+    since a later trigger can still run the batch.
+    """
+    try:
+        seer_run = _seer_run(run_id=run_id, organization_id=organization_id)
+        if seer_run is None:
+            return
+
+        iteration = (
+            get_iteration(seer_run, iteration_id)
+            if iteration_id is not None
+            else untriggered_iteration(seer_run)
+        )
+        if iteration is None:
+            return
+
+        update_iteration(iteration, **{FAILURE_REASON_DATA_KEY: reason})
+    except Exception:
+        log_ctx.error("autofix.pr_iteration.details.failure_reason_failed")
 
 
 @trace
@@ -433,7 +471,6 @@ def complete_pr_iteration_details(
         run_state=run_state,
         organization_id=organization_id,
         iteration_id=iteration_id,
-        iteration_index=get_latest_iteration_index(run_state),
         outcome=outcome,
     )
 
@@ -456,7 +493,6 @@ def fail_pr_iteration_details(
         run_state=run_state,
         organization_id=organization_id,
         iteration_id=iteration_id,
-        iteration_index=get_open_iteration_index(run_state),
         outcome=outcome,
     )
 
@@ -467,7 +503,6 @@ def _complete_iteration(
     run_state: SeerRunState,
     organization_id: int,
     iteration_id: int,
-    iteration_index: int,
     outcome: str,
 ) -> None:
     try:
@@ -488,11 +523,10 @@ def _complete_iteration(
             if outcome == PrIterationOutcome.ALREADY_PUSHED.value
             else []
         )
-        event = _build_event(
+        event = build_iteration_event(
             log_ctx,
             iteration,
             AiAutofixPrIterationFeedbackBatchCompletedEvent,
-            iteration_index=iteration_index,
             outcome=outcome,
             head_shas=head_shas,
         )

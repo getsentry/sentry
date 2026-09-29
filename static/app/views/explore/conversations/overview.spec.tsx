@@ -340,17 +340,17 @@ describe('ConversationsOverviewPage', () => {
     render(<ConversationsOverviewPage />, {organization});
 
     expect(
-      await screen.findByRole('heading', {name: 'Capture Your Conversation Messages'})
+      await screen.findByText(/These conversations' inputs and outputs weren't captured/)
     ).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('tab', {name: 'Traces'}));
     expect(
-      screen.getByRole('heading', {name: 'Capture Your Conversation Messages'})
+      screen.getByText(/These conversations' inputs and outputs weren't captured/)
     ).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('tab', {name: 'LLM Calls'}));
     expect(
-      screen.getByRole('heading', {name: 'Capture Your Conversation Messages'})
+      screen.getByText(/These conversations' inputs and outputs weren't captured/)
     ).toBeInTheDocument();
   });
 
