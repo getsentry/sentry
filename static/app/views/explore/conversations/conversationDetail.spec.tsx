@@ -388,4 +388,28 @@ describe('ConversationDetailPage time window', () => {
       expect(options.query).not.toHaveProperty('statsPeriod');
     }
   });
+
+  it('reads offset-less URL timestamps as UTC', async () => {
+    // The page filters container rewrites `start`/`end` in this format when it
+    // mounts, e.g. when navigating back to the page.
+    const conversationRequest = MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/agents/conversations/${CONVERSATION_ID}/`,
+      body: {conversationId: CONVERSATION_ID, title: null, spans: CONVERSATION_BODY},
+    });
+
+    renderPage([], {
+      start: '2026-09-29T10:04:11',
+      end: '2026-09-29T10:04:11',
+    });
+
+    await waitFor(() => expect(conversationRequest).toHaveBeenCalled());
+    for (const [, options] of conversationRequest.mock.calls) {
+      expect(options.query).toEqual(
+        expect.objectContaining({
+          start: '2026-09-29T09:04:11.000Z',
+          end: '2026-09-29T11:04:11.000Z',
+        })
+      );
+    }
+  });
 });

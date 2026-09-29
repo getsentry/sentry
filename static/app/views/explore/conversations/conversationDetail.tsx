@@ -1,10 +1,6 @@
 import {useCallback, useEffect, useMemo, type ReactNode} from 'react';
-import {
-  parseAsIsoDateTime,
-  parseAsString,
-  parseAsStringLiteral,
-  useQueryStates,
-} from 'nuqs';
+import moment from 'moment-timezone';
+import {createParser, parseAsString, parseAsStringLiteral, useQueryStates} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -30,13 +26,27 @@ import {
   messagesToMarkdown,
 } from 'sentry/views/explore/conversations/utils/conversationMessages';
 
+// When the page filters container mounts (direct hit, or navigating back from
+// another page) it rewrites `start`/`end` as UTC without an offset, e.g.
+// `2026-09-29T10:04:11`. `new Date()` (and nuqs' `parseAsIsoDateTime`) reads
+// that as local time, shifting the window by the user's UTC offset so the
+// conversation falls outside it.
+const parseAsUtcDateTime = createParser({
+  parse: (value: string) => {
+    const date = moment.utc(value, moment.ISO_8601);
+    return date.isValid() ? date.toDate() : null;
+  },
+  serialize: (value: Date) => value.toISOString(),
+  eq: (a: Date, b: Date) => a.getTime() === b.getTime(),
+});
+
 function useConversationDetailQueryState() {
   return useQueryStates(
     {
       spanId: parseAsString,
       focusedTool: parseAsString,
-      start: parseAsIsoDateTime,
-      end: parseAsIsoDateTime,
+      start: parseAsUtcDateTime,
+      end: parseAsUtcDateTime,
       tab: parseAsStringLiteral(CONVERSATION_VIEW_TABS).withDefault('transcript'),
     },
     {history: 'replace'}
