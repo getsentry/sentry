@@ -68,19 +68,21 @@ export function QueryEmbedCard({
       title={title}
     >
       {query ? (
-        // Runs edge to edge like the table, with the same inset as the log
-        // embed's row so its label lines up with the header's title. The label
-        // keeps its line while the tokens wrap
-        // beside it, so a long query grows downward instead of dropping below.
-        // The label's box is one filter token tall (24px) so it centers on the
-        // first row of tokens.
-        <Flex align="start" gap="sm" padding="lg">
-          <Flex align="center" height="24px" flexShrink={0}>
-            <Text size="sm" variant="secondary" monospace bold>
-              {t('Query:')}
-            </Text>
-          </Flex>
-          <Container flex="1" minWidth="0">
+        // A white row edge to edge under the header, like the table below it.
+        // The tokens sit together in one inset box that fills the row and
+        // wraps a long query onto more lines inside it.
+        <Flex align="center" gap="md" padding="lg" borderTop="primary">
+          <Text variant="muted" wrap="nowrap">
+            {t('Query:')}
+          </Text>
+          <Container
+            flex="1"
+            minWidth="0"
+            background="secondary"
+            border="primary"
+            radius="md"
+            padding="xs"
+          >
             <ProvidedFormattedQuery query={query} />
           </Container>
         </Flex>
