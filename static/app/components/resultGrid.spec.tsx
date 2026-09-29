@@ -1,6 +1,5 @@
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {Client} from 'sentry/api';
 import {ResultGrid} from 'sentry/components/resultGrid';
 import {ConfigStore} from 'sentry/stores/configStore';
 
@@ -118,21 +117,6 @@ describe('ResultGrid', () => {
     await userEvent.click(await screen.findByRole('option', {name: 'Any'}));
 
     await waitFor(() => expect(router.location.query).not.toHaveProperty('status'));
-  });
-
-  it('shows the error state when the fetch itself rejects', async () => {
-    // The API client swallows a fetch-level rejection without running either
-    // callback, so the grid has to observe requestPromise to leave loading.
-    jest.spyOn(Client.prototype, 'request').mockReturnValue({
-      requestPromise: Promise.reject(new Error('Failed to fetch')),
-      alive: true,
-      cancel: () => {},
-    });
-
-    render(<ExampleBasicResultGrid />);
-    const alert = await screen.findByText('Something bad happened :/');
-
-    expect(alert).toBeInTheDocument();
   });
 });
 
@@ -635,33 +619,25 @@ describe('ResultGrid allowAllRegions', () => {
   });
 
   it('shows the loading state instead of stale rows when the region changes', async () => {
-    let respond = true;
-    const stubApi = {
-      clear: jest.fn(),
-      request: jest.fn((url: string, options: any) => {
-        if (respond) {
-          const name = url.startsWith('/_admin/cells/us/') ? 'Acme' : 'Beta';
-          options.success([{id: '1', name, members: 5}], 'success', {
-            getResponseHeader: () => null,
-          });
-        }
-        return {requestPromise: new Promise(() => {})};
-      }),
-    };
+    MockApiClient.addMockResponse({
+      url: '/_admin/cells/us/customers/',
+      body: [{id: '1', name: 'Acme', members: 5}],
+    });
+    // The de region never answers, so the grid stays on its loading state.
+    MockApiClient.addMockResponse({
+      url: '/_admin/cells/de/customers/',
+      body: [{id: '2', name: 'Beta', members: 10}],
+      asyncDelay: new Promise<void>(() => {}),
+    });
 
-    renderGrid(undefined, {}, {...allRegionsProps, api: stubApi});
+    renderGrid(undefined, {regionUrl: US_URL}, allRegionsProps);
 
     expect(await screen.findByText('Acme')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', {name: /Region/}));
-    await userEvent.click(await screen.findByRole('option', {name: 'us'}));
-    await waitFor(() => expect(screen.queryByText('Beta')).not.toBeInTheDocument());
+    await userEvent.click(await screen.findByRole('option', {name: 'de'}));
 
-    respond = false;
-    await userEvent.click(screen.getByRole('button', {name: /Region/}));
-    await userEvent.click(await screen.findByRole('option', {name: 'All regions'}));
-
+    expect(await screen.findByText('Hold on to your butts!')).toBeInTheDocument();
     expect(screen.queryByText('Acme')).not.toBeInTheDocument();
-    expect(screen.getByText('Hold on to your butts!')).toBeInTheDocument();
   });
 
   it('flags a failed region with a warning icon and tooltip', async () => {
@@ -705,32 +681,6 @@ describe('ResultGrid allowAllRegions', () => {
     expect(await screen.findByText('Beta')).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'View in de'})).not.toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'View in us'})).not.toBeInTheDocument();
-  });
-
-  it('marks a region as failed when the fetch itself rejects (e.g. blocked request)', async () => {
-    // The real API client swallows fetch rejections without calling success
-    // or error, so the grid must resolve the region through requestPromise.
-    const stubApi = {
-      clear: jest.fn(),
-      request: jest.fn((url: string, options: any) => {
-        if (url.startsWith('/_admin/cells/us/')) {
-          options.success([{id: '1', name: 'Acme', members: 5}], 'success', {
-            getResponseHeader: () => null,
-          });
-          return {requestPromise: Promise.resolve()};
-        }
-        return {requestPromise: Promise.reject(new Error('Failed to fetch'))};
-      }),
-    };
-
-    renderGrid(undefined, {}, {...allRegionsProps, api: stubApi});
-
-    expect(await screen.findByText('Acme')).toBeInTheDocument();
-    expect(await screen.findByText('1 region failed')).toBeInTheDocument();
-    await userEvent.hover(screen.getByLabelText('Some regions failed to load'));
-    expect(
-      await screen.findByText('Could not load results from: de')
-    ).toBeInTheDocument();
   });
 
   it('loads the next page of every region that has one', async () => {

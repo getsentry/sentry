@@ -11,7 +11,6 @@ import {
   addSuccessMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
 import {UserBadge} from 'sentry/components/idBadge/userBadge';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -21,7 +20,6 @@ import type {Organization} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getLocalities} from 'sentry/utils/cells';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
 
@@ -183,8 +181,6 @@ export function RelocationDetails() {
 
   const localities = getLocalities();
   const locality = localities.find(l => l.name === regionName);
-  const regionClient = new Client({baseUrl: `${locality?.url || ''}/api/0`});
-  const regionApi = useApi({api: regionClient});
 
   const {data, isPending, isError, refetch} = useApiQuery<Relocation>(
     [
@@ -489,7 +485,7 @@ export function RelocationDetails() {
           inPanel
           panelTitle="Relocation Artifacts"
           path={`/_admin/relocations/${relocationData.uuid}/`}
-          api={regionApi}
+          host={locality?.url}
           endpoint={`/relocations/${relocationData.uuid}/artifacts/`}
           columns={[
             <th key="file" style={{width: 240}}>
@@ -552,7 +548,7 @@ export function RelocationDetails() {
         inPanel
         panelTitle="Relocated Customers"
         path={`/_admin/relocations/${relocationData.uuid}/`}
-        api={regionApi}
+        host={locality?.url}
         endpoint={`/_admin/cells/${regionName}/customers/`}
         columns={[
           <th key="customer">Customer</th>,

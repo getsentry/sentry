@@ -4,11 +4,16 @@ import {
   isValidElement,
   useEffect,
   useEffectEvent,
-  useRef,
   useState,
 } from 'react';
 import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
+import {
+  keepPreviousData,
+  queryOptions,
+  useQueries,
+  useQuery,
+} from '@tanstack/react-query';
 import type {Location} from 'history';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -21,7 +26,6 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import type {Client} from 'sentry/api';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
@@ -29,9 +33,10 @@ import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {ResultTable} from 'sentry/components/resultTable';
 import {IconList, IconSearch, IconWarning} from 'sentry/icons';
 import type {Cell} from 'sentry/types/system';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
+import type {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getCells} from 'sentry/utils/cells';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
-import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
@@ -162,10 +167,6 @@ interface ResultGridProps {
    */
   allowAllRegions?: boolean;
   /**
-   * Overrides the API client used to make requests
-   */
-  api?: Client;
-  /**
    * Button on the right side of the header
    */
   buttonGroup?: React.ReactNode;
@@ -215,6 +216,11 @@ interface ResultGridProps {
    * @default false
    */
   hasSearch?: boolean;
+  /**
+   * The host to send requests to. A region-scoped grid sends them to the
+   * selected region instead.
+   */
+  host?: string;
   /**
    * Wrap the table in a panel.
    *
@@ -400,11 +406,37 @@ type RegionProbe = {
   regionMatches: Cell[];
 };
 
-const IDLE_PROBE: RegionProbe = {
-  regionMatches: [],
-  probingRegions: false,
-  missingExactMatch: false,
+type LoadedPages = {
+  /**
+   * Cursors of the pages loaded after each region's first page, keyed by cell
+   * name.
+   */
+  cursors: Record<string, string[]>;
+  region: RegionSelection;
+  requestKey: string;
 };
+
+type ApiUrl = ReturnType<typeof getApiUrl>;
+
+function resultGridQueryOptions({
+  url,
+  host,
+  method,
+  data,
+}: {
+  data: Record<string, unknown>;
+  host: string | undefined;
+  method: 'GET' | 'POST';
+  url: string;
+}) {
+  return queryOptions({
+    // The endpoint is a runtime prop, so it cannot be one of the known API URLs
+    // that `getApiUrl` accepts.
+    queryKey: [url as ApiUrl, {data, host, method}, {infinite: false}] as const,
+    queryFn: apiFetch<unknown>,
+    staleTime: 0,
+  });
+}
 
 const extractQuery = (query: Location['query'][string], defaultVal = '') =>
   (Array.isArray(query) ? query[0] : query) ?? defaultVal;
@@ -422,7 +454,6 @@ function buildRequest(query: Location['query'], defaultSort: string): Request {
 }
 
 export function ResultGrid({
-  api: apiProp,
   method = 'GET',
   endpoint,
   path,
@@ -442,6 +473,7 @@ export function ResultGrid({
   buttonGroup,
   exactMatchQuery,
   hasSearch,
+  host,
   inPanel,
   onError,
   onLoad,
@@ -452,8 +484,6 @@ export function ResultGrid({
   sortOptions,
   sortValueForRow,
 }: ResultGridProps) {
-  const defaultApi = useApi();
-  const api = apiProp ?? defaultApi;
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -484,22 +514,6 @@ export function ResultGrid({
     : localRequest;
 
   const [queryInput, setQueryInput] = useState(request.query);
-  const [results, setResults] = useState<Results>({
-    ...IDLE_REGIONS,
-    rows: [],
-    loading: true,
-    error: false,
-    pageLinks: null,
-  });
-  const [probe, setProbe] = useState<RegionProbe>(IDLE_PROBE);
-
-  // Monotonic token used to discard results from stale region probes (e.g.
-  // when the user switches regions or searches again before probes resolve).
-  const probeTokenRef = useRef(0);
-  // Monotonic token used to discard responses from a superseded all-regions
-  // fetch (e.g. the user changed the sort or region while regions were still
-  // responding).
-  const fetchTokenRef = useRef(0);
 
   // Transform endpoint to cell-scoped URL if needed
   // Currently using region.name (e.g., "us", "de") as the cell_id.
@@ -507,336 +521,227 @@ export function ResultGrid({
   const cellEndpoint = (target: Cell | undefined) =>
     isCellScoped && target ? `/_admin/cells/${target.name}${endpoint}` : endpoint;
 
-  /**
-   * Fire a cheap (`per_page: 1`) search against every other region to find out
-   * which ones have matches for the current query. Runs only after the active
-   * region returns no results, so there is no cost on the common path.
-   */
-  const probeOtherRegions = (
-    baseParams: Record<string, any>,
-    currentCell: Cell | undefined
-  ) => {
-    const otherCells = getCells().filter(
-      c => c.locality_url !== currentCell?.locality_url
-    );
-    if (otherCells.length === 0) {
-      return;
-    }
-
-    const token = ++probeTokenRef.current;
-    setProbe(prev => ({...prev, probingRegions: true, regionMatches: []}));
-
-    // per_page: 1 — we only need to know whether the region has any match, not
-    // how many. The admin customers endpoint doesn't return an X-Hits total, so
-    // we deliberately surface presence only rather than an unreliable count.
-    const probeParams = {...baseParams, cursor: '', per_page: 1};
-    const matches: Cell[] = [];
-    let remaining = otherCells.length;
-
-    const finalize = () => {
-      remaining -= 1;
-      // Ignore results from a probe that has since been superseded.
-      if (remaining > 0 || token !== probeTokenRef.current) {
-        return;
-      }
-      matches.sort((a, b) => a.name.localeCompare(b.name));
-      setProbe(prev => ({...prev, probingRegions: false, regionMatches: matches}));
-    };
-
-    otherCells.forEach(probedCell => {
-      api.request(cellEndpoint(probedCell), {
-        method,
-        host: probedCell.locality_url,
-        data: probeParams,
-        success: data => {
-          const rows = rowsFromData?.(data, probedCell) ?? data;
-          if (Array.isArray(rows) && rows.length > 0) {
-            matches.push(probedCell);
-          }
-          finalize();
-        },
-        error: () => finalize(),
-      });
+  const queryOptionsFor = (target: Cell | undefined, data: Record<string, any>) =>
+    resultGridQueryOptions({
+      url: cellEndpoint(target),
+      host: target ? target.locality_url : host,
+      method,
+      data,
     });
+
+  const rowsFor = (json: unknown, target: Cell | undefined): any[] => {
+    const rows = rowsFromData?.(json, target) ?? json;
+    return Array.isArray(rows) ? rows : [];
   };
 
   // TODO(dcramer): this should whitelist filters/sortBy/cursor/perPage
-  const buildQueryParams = (): Record<string, any> => ({
+  const queryParams: Record<string, any> = {
     ...defaultParams,
     ...(useQueryString ? location.query : request.query ? {query: request.query} : {}),
     sortBy: request.sortBy,
     cursor: request.cursor,
-  });
+  };
 
   // Merged all-regions rows are re-sorted descending to match the server's
-  // ordering. Without `sortValueForRow`, rows keep arrival order.
+  // ordering. Without `sortValueForRow`, rows keep region order.
   const sortRows = (rows: any[], sortBy: string) =>
     sortValueForRow
       ? rows.toSorted((a, b) => sortValueForRow(b, sortBy) - sortValueForRow(a, sortBy))
       : rows;
 
-  /**
-   * Request one page from each given region, merge the rows into the table and
-   * record the cursor of any region that reports a further page.
-   */
-  const fetchRegionPages = (
-    pages: Array<{cell: Cell; cursor: string}>,
-    queryParams: Record<string, any>
-  ) => {
-    const token = fetchTokenRef.current;
-    const names = pages.map(page => page.cell.name);
-    const sortBy = request.sortBy;
+  const activeQuery = useQuery({
+    ...queryOptionsFor(cell, queryParams),
+    enabled: !allRegions,
+    // Holds on to the previous page links while the next page loads, so a
+    // `useQueryString: false` pagination control does not vanish out from under
+    // the cursor that was just clicked.
+    placeholderData: keepPreviousData,
+  });
+  const activeResponse =
+    allRegions || activeQuery.isPlaceholderData ? undefined : activeQuery.data;
+  const activeRows = activeResponse ? rowsFor(activeResponse.json, cell) : [];
 
-    pages.forEach(({cell: pageCell, cursor}) => {
-      const markFailed = () => {
-        if (token !== fetchTokenRef.current) {
-          return;
-        }
-        setResults(prev => {
-          if (!prev.pendingRegions.includes(pageCell.name)) {
-            return prev;
-          }
-          const regionErrors = [...prev.regionErrors, pageCell.name];
-          return {
-            ...prev,
-            // Every region of this load failing with nothing to show is a
-            // failed load. A region failing under rows we already have is a
-            // partial result, so keep the table.
-            error:
-              prev.rows.length === 0 && names.every(name => regionErrors.includes(name)),
-            pendingRegions: prev.pendingRegions.filter(name => name !== pageCell.name),
-            regionErrors,
-          };
-        });
-      };
+  // The query lives in the URL when useQueryString is on, otherwise in
+  // component state — fall back so probes always carry the search term.
+  const searchQuery = queryParams.query ?? request.query;
+  // Normalize once (trim + lower-case) so `exactMatchQuery` implementations
+  // can compare against an already-normalized field without re-normalizing.
+  const normalizedQuery = extractQuery(searchQuery).trim().toLowerCase();
 
-      const pageRequest = api.request(cellEndpoint(pageCell), {
-        method,
-        host: pageCell.locality_url,
-        data: {...queryParams, cursor},
-        success: (data, _, resp) => {
-          if (token !== fetchTokenRef.current) {
-            return;
-          }
-          const rows = rowsFromData?.(data, pageCell) ?? data;
-          const tagged = (Array.isArray(rows) ? rows : []).map(row => ({
-            ...row,
-            __region: pageCell,
-          }));
-          const next = parseLinkHeader(resp?.getResponseHeader('Link') ?? '').next;
-          const nextCursor = next?.results === true ? (next.cursor ?? '') : '';
+  // We can only conclude that a region lacks an exact match when we're
+  // looking at its *complete* result set: the first page with no further
+  // pages. If results span multiple pages the exact slug could live on a
+  // page we haven't loaded, which would both produce a misleading "No
+  // exact match" hint and make the hint vanish the moment the user
+  // paginates. An empty result is naturally a complete set.
+  const isFirstPage = !extractQuery(queryParams.cursor);
+  const hasNextPage =
+    parseLinkHeader(activeResponse?.headers.Link ?? null).next?.results === true;
+  const isCompleteResultSet = isFirstPage && !hasNextPage;
 
-          setResults(prev => {
-            if (!prev.pendingRegions.includes(pageCell.name)) {
-              return prev;
-            }
-            const regionCursors = {...prev.regionCursors};
-            if (nextCursor) {
-              regionCursors[pageCell.name] = nextCursor;
-            } else {
-              delete regionCursors[pageCell.name];
-            }
-            return {
-              ...prev,
-              rows: sortRows([...prev.rows, ...tagged], sortBy),
-              pendingRegions: prev.pendingRegions.filter(name => name !== pageCell.name),
-              regionCursors,
-            };
-          });
-          onLoad?.();
-        },
-        error: res => {
-          markFailed();
-          onError?.(res);
-        },
-      });
+  // Probe other regions whenever the active region lacks an *exact* match
+  // for the search. With an `exactMatchQuery` predicate this includes the
+  // case where the region returns only fuzzy/similar matches (e.g. a
+  // look-alike org slug) but not the exact slug searched. Without the
+  // predicate we fall back to probing only on a completely empty result.
+  const missingExactMatch = Boolean(
+    activeResponse &&
+    probeAcrossRegions &&
+    isCompleteResultSet &&
+    hasSearchQuery(searchQuery) &&
+    (exactMatchQuery
+      ? !activeRows.some(row => exactMatchQuery(row, normalizedQuery))
+      : activeRows.length === 0)
+  );
 
-      // The API client swallows a rejection of the fetch itself (a blocked
-      // request, a network failure) without running either callback, which
-      // would leave the region pending forever. Catch it here so the region
-      // resolves to failed. An abort from api.clear() also lands here, but
-      // the fetch token was already bumped by then, so markFailed ignores it.
-      pageRequest?.requestPromise?.catch(markFailed);
-    });
+  // `probeAllRegions` always checks the other regions for presence, even
+  // when the active region has results or no search is active. This flags
+  // that the same subject (e.g. a user) also has records elsewhere.
+  const shouldProbe =
+    activeResponse !== undefined && (missingExactMatch || probeAllRegions);
+  const otherCells = getCells().filter(c => c.locality_url !== cell?.locality_url);
+
+  // per_page: 1 — we only need to know whether the region has any match, not
+  // how many. The admin customers endpoint doesn't return an X-Hits total, so
+  // we deliberately surface presence only rather than an unreliable count.
+  const probeQueries = useQueries({
+    queries: otherCells.map(probedCell => ({
+      ...queryOptionsFor(probedCell, {
+        ...queryParams,
+        query: searchQuery,
+        cursor: '',
+        per_page: 1,
+      }),
+      enabled: shouldProbe,
+    })),
+  });
+  const probingRegions = shouldProbe && probeQueries.some(query => query.isPending);
+  const probe: RegionProbe = {
+    missingExactMatch,
+    probingRegions,
+    // Matches surface together once every probe has answered.
+    regionMatches:
+      shouldProbe && !probingRegions
+        ? otherCells
+            .filter((probedCell, i) => {
+              const response = probeQueries[i]?.data;
+              return (
+                response !== undefined && rowsFor(response.json, probedCell).length > 0
+              );
+            })
+            .toSorted((a, b) => a.name.localeCompare(b.name))
+        : [],
   };
 
-  /**
-   * Query every region in parallel and merge the results into one table. Each
-   * region's rows are tagged with their cell (rendered as the Region column)
-   * and the merged set is re-sorted as every response arrives, so the table
-   * stays coherently ordered while regions trickle in.
-   */
-  const fetchAllRegions = (queryParams: Record<string, any>) => {
-    const cells = getCells();
+  // The pages "Load more" added after each region's first page belong to one
+  // request and region selection, and start over when either changes.
+  const requestKey = JSON.stringify(queryParams);
+  const [loadedPages, setLoadedPages] = useState<LoadedPages>(() => ({
+    cursors: {},
+    region,
+    requestKey,
+  }));
+  const extraCursors =
+    loadedPages.region === region && loadedPages.requestKey === requestKey
+      ? loadedPages.cursors
+      : {};
 
-    if (cells.length === 0) {
-      setResults(prev => ({
-        ...prev,
-        ...IDLE_REGIONS,
-        loading: false,
-        error: false,
-        rows: [],
-        pageLinks: null,
-      }));
-      return;
-    }
-
-    setResults(prev => ({
-      ...prev,
-      ...IDLE_REGIONS,
-      loading: false,
-      error: false,
-      rows: [],
-      pageLinks: null,
-      pendingRegions: cells.map(c => c.name),
-    }));
-
-    fetchRegionPages(
-      cells.map(pageCell => ({cell: pageCell, cursor: ''})),
-      queryParams
-    );
-  };
-
-  /**
-   * Load the next page of every region that still has one and append it to the
-   * merged table. A merged view has no cursor of its own — cursors do not
-   * compose across regions — so it grows a page per region at a time.
-   */
-  const loadMoreRegions = () => {
-    const {regionCursors} = results;
-    const pages = getCells().flatMap(pageCell => {
-      const cursor = regionCursors[pageCell.name];
-      return cursor ? [{cell: pageCell, cursor}] : [];
-    });
-
-    if (pages.length === 0) {
-      return;
-    }
-
-    const names = pages.map(page => page.cell.name);
-    // A region that failed keeps its warning unless this load asks it again —
-    // it holds no cursor, so nothing here retries it, and its results are
-    // still missing from the table.
-    setResults(prev => ({
-      ...prev,
-      pendingRegions: names,
-      regionErrors: prev.regionErrors.filter(name => !names.includes(name)),
-    }));
-    fetchRegionPages(pages, buildQueryParams());
-  };
-
-  const fetchData = useEffectEvent(() => {
-    // Avoid slow-fetch race conditions
-    api.clear();
-
-    // api.clear() aborts any in-flight region probe, and aborted requests never
-    // run their success/error callbacks — so probeOtherRegions' finalize() would
-    // never fire and probingRegions would stay stuck. Invalidate the probe (bump
-    // the token) and clear its UI state here, the single entry point for fetches,
-    // so it's reset regardless of which caller we hit.
-    probeTokenRef.current += 1;
-    fetchTokenRef.current += 1;
-    setProbe(prev => (prev === IDLE_PROBE ? prev : IDLE_PROBE));
-    // Only a URL-driven reload drops the page links. Clearing them on a
-    // `useQueryString: false` cursor click would make the pagination control
-    // vanish out from under the cursor that just clicked it.
-    setResults(prev => ({
-      ...prev,
-      ...IDLE_REGIONS,
-      loading: true,
-      error: false,
-      pageLinks: useQueryString ? null : prev.pageLinks,
-    }));
-
-    const queryParams = buildQueryParams();
-
-    if (allRegions) {
-      fetchAllRegions(queryParams);
-      return;
-    }
-
-    const activeCell = cell;
-    const token = fetchTokenRef.current;
-
-    const activeRequest = api.request(cellEndpoint(activeCell), {
-      method,
-      host: activeCell ? activeCell.locality_url : undefined,
-      data: queryParams,
-      success: (data, _, resp) => {
-        const rows = rowsFromData?.(data, activeCell) ?? data;
-        const rowsArray = Array.isArray(rows) ? rows : [];
-
-        // The query lives in the URL when useQueryString is on, otherwise in
-        // component state — fall back so probes always carry the search term.
-        const query = queryParams.query ?? request.query;
-        // Normalize once (trim + lower-case) so `exactMatchQuery` implementations
-        // can compare against an already-normalized field without re-normalizing.
-        const normalizedQuery = extractQuery(query).trim().toLowerCase();
-
-        const pageLinks = resp?.getResponseHeader('Link') ?? '';
-        // We can only conclude that a region lacks an exact match when we're
-        // looking at its *complete* result set: the first page with no further
-        // pages. If results span multiple pages the exact slug could live on a
-        // page we haven't loaded, which would both produce a misleading "No
-        // exact match" hint and make the hint vanish the moment the user
-        // paginates. An empty result is naturally a complete set.
-        const isFirstPage = !extractQuery(queryParams.cursor);
-        const hasNextPage = parseLinkHeader(pageLinks).next?.results === true;
-        const isCompleteResultSet = isFirstPage && !hasNextPage;
-
-        // Probe other regions whenever the active region lacks an *exact* match
-        // for the search. With an `exactMatchQuery` predicate this includes the
-        // case where the region returns only fuzzy/similar matches (e.g. a
-        // look-alike org slug) but not the exact slug searched. Without the
-        // predicate we fall back to probing only on a completely empty result.
-        const isEmpty = rowsArray.length === 0;
-        const missingExactMatch = Boolean(
-          probeAcrossRegions &&
-          isCompleteResultSet &&
-          hasSearchQuery(query) &&
-          (exactMatchQuery
-            ? !rowsArray.some(row => exactMatchQuery(row, normalizedQuery))
-            : isEmpty)
-        );
-
-        setResults({...IDLE_REGIONS, loading: false, error: false, rows, pageLinks});
-        setProbe({...IDLE_PROBE, missingExactMatch});
-        onLoad?.();
-
-        // `probeAllRegions` always checks the other regions for presence, even
-        // when the active region has results or no search is active. This flags
-        // that the same subject (e.g. a user) also has records elsewhere.
-        if (missingExactMatch || probeAllRegions) {
-          probeOtherRegions({...queryParams, query}, activeCell);
-        }
-      },
-      error: res => {
-        setResults(prev => ({...prev, loading: false, error: true}));
-        onError?.(res);
-      },
-    });
-
-    // The API client swallows a rejection of the fetch itself (a blocked
-    // request, a network failure) without running either callback, which would
-    // leave the grid stuck on its loading state. Surface it as an error here.
-    // An abort from api.clear() also lands here, but the fetch token was
-    // already bumped by then, so a superseded request is ignored.
-    activeRequest?.requestPromise?.catch(() => {
-      if (token === fetchTokenRef.current) {
-        setResults(prev => ({...prev, loading: false, error: true}));
-      }
-    });
+  // Every region is queried in parallel, one query per page, so rows render as
+  // each region responds.
+  const regionPages = allRegions
+    ? getCells().flatMap(pageCell => {
+        const cursors = ['', ...(extraCursors[pageCell.name] ?? [])];
+        return cursors.map((cursor, index) => ({
+          cell: pageCell,
+          cursor,
+          isLast: index === cursors.length - 1,
+        }));
+      })
+    : [];
+  const pageQueries = useQueries({
+    queries: regionPages.map(page =>
+      queryOptionsFor(page.cell, {...queryParams, cursor: page.cursor})
+    ),
   });
 
-  // A fetch is driven by the URL when `useQueryString` is on, and by the local
-  // request otherwise. Either way a new identity means "go fetch again".
-  const requestSignal = useQueryString ? location : localRequest;
+  let results: Results;
+  if (allRegions) {
+    const lastPages = regionPages.flatMap((page, i) =>
+      page.isLast ? [{cell: page.cell, query: pageQueries[i]!}] : []
+    );
+    const rows = sortRows(
+      pageQueries.flatMap((query, i) => {
+        const pageCell = regionPages[i]!.cell;
+        return query.data
+          ? rowsFor(query.data.json, pageCell).map(row => ({...row, __region: pageCell}))
+          : [];
+      }),
+      request.sortBy
+    );
+    results = {
+      rows,
+      loading: false,
+      // Every region failing with nothing to show is a failed load. A region
+      // failing under rows we already have is a partial result, so keep the
+      // table.
+      error:
+        rows.length === 0 &&
+        lastPages.length > 0 &&
+        lastPages.every(page => page.query.isError),
+      pageLinks: null,
+      pendingRegions: lastPages
+        .filter(page => page.query.isPending)
+        .map(page => page.cell.name),
+      // A failed region holds no cursor, so "Load more" never asks it again and
+      // its warning stays while its results are missing from the table.
+      regionErrors: lastPages
+        .filter(page => page.query.isError)
+        .map(page => page.cell.name),
+      regionCursors: Object.fromEntries(
+        lastPages.flatMap(page => {
+          const next = parseLinkHeader(page.query.data?.headers.Link ?? null).next;
+          return next?.results && next.cursor ? [[page.cell.name, next.cursor]] : [];
+        })
+      ),
+    };
+  } else {
+    results = {
+      ...IDLE_REGIONS,
+      rows: activeRows,
+      loading: activeQuery.isPending || activeQuery.isPlaceholderData,
+      error: activeQuery.isError,
+      // Only a URL-driven reload drops the page links.
+      pageLinks:
+        (useQueryString ? activeResponse : activeQuery.data)?.headers.Link ?? null,
+    };
+  }
+
+  // Queries take no callbacks. Every settled fetch moves a query's update
+  // timestamp forward instead, so `onLoad` and `onError` follow those.
+  const observedQueries = allRegions ? pageQueries : [activeQuery];
+  const loadedAt = Math.max(
+    0,
+    ...observedQueries.map(query => (query.isFetching ? 0 : query.dataUpdatedAt))
+  );
+  const lastFailure = observedQueries
+    .filter(query => query.isError)
+    .toSorted((a, b) => b.errorUpdatedAt - a.errorUpdatedAt)[0];
+  const failedAt = lastFailure?.errorUpdatedAt ?? 0;
+
+  const notifyLoad = useEffectEvent(() => onLoad?.());
+  const notifyError = useEffectEvent(() => onError?.(lastFailure?.error));
 
   useEffect(() => {
-    // oxlint-disable-next-line react/set-state-in-effect
-    fetchData();
-    // oxlint-disable-next-line react/exhaustive-effect-dependencies
-  }, [requestSignal, region]);
+    if (loadedAt > 0) {
+      notifyLoad();
+    }
+  }, [loadedAt]);
+
+  useEffect(() => {
+    if (failedAt > 0) {
+      notifyError();
+    }
+  }, [failedAt]);
 
   useEffect(() => {
     if (useQueryString) {
@@ -858,6 +763,19 @@ export function ResultGrid({
     stripRegionUrl();
   }, []);
 
+  /**
+   * Load the next page of every region that still has one and append it to the
+   * merged table. A merged view has no cursor of its own — cursors do not
+   * compose across regions — so it grows a page per region at a time.
+   */
+  const loadMoreRegions = () => {
+    const cursors = {...extraCursors};
+    for (const [name, cursor] of Object.entries(results.regionCursors)) {
+      cursors[name] = [...(cursors[name] ?? []), cursor];
+    }
+    setLoadedPages({cursors, region, requestKey});
+  };
+
   const onChangeCell = (localityUrl: string | undefined) => {
     const nextRegion: RegionSelection | undefined =
       localityUrl === ALL_REGIONS
@@ -866,18 +784,9 @@ export function ResultGrid({
             const nextCell = getCells().find(c => c.locality_url === localityUrl);
             return nextCell ? {allRegions: false, cell: nextCell} : undefined;
           })();
-    if (nextRegion === undefined) {
-      return;
+    if (nextRegion !== undefined) {
+      setRegion(nextRegion);
     }
-    // Invalidate any in-flight probe before switching regions.
-    probeTokenRef.current += 1;
-    setProbe(IDLE_PROBE);
-    setResults(prev => ({
-      ...prev,
-      loading: true,
-      rows: nextRegion.allRegions ? [] : prev.rows,
-    }));
-    setRegion(nextRegion);
   };
 
   // TODO(dcramer): doesnt correctly respect filters without query strings
