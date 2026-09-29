@@ -122,13 +122,20 @@ def rekey_external_issues(
     if old_key == new_key:
         return 0
 
-    stale_issues = list(ExternalIssue.objects.get_for_integration(integration, old_key))
+    # Rows at the new key are only needed when nothing is at the old one, but fetching both
+    # keys at once saves a second organization lookup on that path.
+    matching = list(
+        ExternalIssue.objects.get_for_integration(integration).filter(key__in=[old_key, new_key])
+    )
+    stale_issues = [issue for issue in matching if issue.key == old_key]
     if not stale_issues:
         # Most renames are of issues nobody linked in Sentry, so a miss is a rate to watch
         # rather than an error. Whether the new key is already ours separates a redelivery,
         # which is safe, from the bucket that also holds a link left at a third key by moves
-        # that arrived out of order -- the one case nothing else reports.
-        already_moved = ExternalIssue.objects.get_for_integration(integration, new_key).exists()
+        # that arrived out of order -- the one case nothing else reports. With the integration
+        # installed in several organizations, one that holds the new key reports the whole
+        # rename as a redelivery, even if another lost its link.
+        already_moved = any(issue.key == new_key for issue in matching)
         outcome = "already_at_new_key" if already_moved else "no_match"
         _record_rekey_outcome(integration, outcome)
         logger.info(
@@ -186,6 +193,8 @@ def rekey_external_issues(
         logger.info("external_issue.rekey.applied", extra=log_context)
         rekeyed += 1
 
+    # One outcome per rename, not per organization: a rename that moved any row is
+    # `applied`, even if another organization's reconciliation failed and logged above.
     if rekeyed:
         outcome = "applied"
     else:

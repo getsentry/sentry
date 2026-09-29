@@ -1,5 +1,7 @@
 from unittest.mock import MagicMock, patch
 
+from django.db import IntegrityError
+
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.utils import external_issue_key
 from sentry.integrations.utils.external_issue_key import (
@@ -222,6 +224,27 @@ class RekeyExternalIssuesTest(TestCase):
 
         # Losing the race is not a failure: the rename it describes did happen.
         assert self._rekey_outcomes(incr) == ["already_at_new_key"]
+
+    @patch("sentry.integrations.utils.external_issue_key.metrics.incr")
+    def test_reports_a_rename_whose_reconciliation_failed(self, incr: MagicMock) -> None:
+        stale = self.create_integration_external_issue(
+            group=self.create_group(), integration=self.integration, key="APP-123"
+        )
+        self.create_integration_external_issue(
+            group=self.create_group(), integration=self.integration, key="PLATFORM-45"
+        )
+
+        with (
+            patch.object(external_issue_key, "_find_survivor", return_value=None),
+            patch.object(
+                external_issue_key, "_reconcile_after_conflict", side_effect=IntegrityError
+            ),
+        ):
+            assert rekey_external_issues(self.integration, "APP-123", "PLATFORM-45") == 0
+
+        stale.refresh_from_db()
+        assert stale.key == "APP-123"
+        assert self._rekey_outcomes(incr) == ["failed"]
 
     def test_merge_drops_duplicate_group_links(self) -> None:
         # The same group linked to both keys: GroupLink is unique on
