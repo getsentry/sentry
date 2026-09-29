@@ -150,6 +150,7 @@ export function getNavigationConfiguration({
         {
           path: `${pathPrefix}/logs/`,
           title: t('Logs'),
+          badge: () => 'alpha',
           keywords: [t('log'), t('logs'), t('attributes'), t('json')],
           show: () =>
             !!organization?.features?.includes('explore-automatic-json-expansion-ui') &&
