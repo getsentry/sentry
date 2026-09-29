@@ -12,13 +12,13 @@ live in [scripts](./scripts). The package's `files` list includes `dist`, while 
 also includes package metadata, this README, and the license. Verification
 checks that the scripts are absent from the tarball.
 
-The [Sentry MDX stories](../../static/app/components/core) document the broader
+The [Sentry MDX stories](../../app/components/core) document the broader
 in-app design system. Their `@sentry/scraps` imports do not imply that the same
 subpaths are in this package. For example, the hotkey story uses `Hotkey` and
 `Kbd`, but the package exports only `Kbd`. Check `exports` before adding a
 story's import to a package consumer.
 
-The [Scraps contribution guide](../../static/app/components/core/overview/contributing.mdx)
+The [Scraps contribution guide](../../app/components/core/overview/contributing.mdx)
 identifies Figma as the source of truth for design tokens. The generated theme
 and token files live in this package; change tokens through that source process.
 
