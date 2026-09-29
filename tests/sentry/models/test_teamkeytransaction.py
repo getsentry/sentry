@@ -5,8 +5,10 @@ from sentry.discover.models import TeamKeyTransaction, TeamKeyTransactionModelMa
 from sentry.models.projectteam import ProjectTeam
 from sentry.signals import receivers_raise_on_send
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.features import with_feature
 
 
+@with_feature("organizations:dynamic-sampling-platform-rate-rollover")
 class TeamKeyTransactionModelManagerTestCase(TestCase):
     def test_custom_manger(self) -> None:
         self.assertIsInstance(TeamKeyTransaction.objects, TeamKeyTransactionModelManager)

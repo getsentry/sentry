@@ -4,8 +4,10 @@ import pytest
 
 from sentry.testutils.cases import APITestCase, SnubaTestCase, SpanTestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.features import with_feature
 
 
+@with_feature("organizations:dynamic-sampling-platform-rate-rollover")
 class OrganizationSamplingEffectiveSampleRateEndpointTest(APITestCase, SnubaTestCase, SpanTestCase):
     endpoint = "sentry-api-0-organization-sampling-effective-sample-rate"
     method = "GET"

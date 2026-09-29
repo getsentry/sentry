@@ -40,22 +40,64 @@ class HasDynamicSamplingTestCase(TestCase):
 
     def test_positive(self) -> None:
         org1 = self.create_organization("test-org")
-        with patch("sentry.quotas.backend.get_blended_sample_rate", return_value=0.5):
+        with self.feature("organizations:dynamic-sampling"):
             assert has_dynamic_sampling(org1)
+
+    def test_legacy_flag_does_not_check_rate(self) -> None:
+        org1 = self.create_organization("test-org")
+        with (
+            self.feature({"organizations:dynamic-sampling": True}),
+            patch("sentry.quotas.backend.get_blended_sample_rate") as get_rate,
+        ):
+            assert has_dynamic_sampling(org1)
+        get_rate.assert_not_called()
+
+    def test_rollover_uses_rate_instead_of_legacy_flag(self) -> None:
+        org1 = self.create_organization("test-org")
+        with (
+            self.feature(
+                {
+                    "organizations:dynamic-sampling-platform-rate-rollover": True,
+                    "organizations:dynamic-sampling": False,
+                }
+            ),
+            patch("sentry.quotas.backend.get_blended_sample_rate", return_value=0.5),
+        ):
+            assert has_dynamic_sampling(org1)
+
+        with (
+            self.feature(
+                {
+                    "organizations:dynamic-sampling-platform-rate-rollover": True,
+                    "organizations:dynamic-sampling": True,
+                }
+            ),
+            patch("sentry.quotas.backend.get_blended_sample_rate", return_value=None),
+        ):
+            assert not has_dynamic_sampling(org1)
 
     def test_zero_rate_is_enabled(self) -> None:
         org1 = self.create_organization("test-org")
-        with patch("sentry.quotas.backend.get_blended_sample_rate", return_value=0.0):
+        with (
+            self.feature("organizations:dynamic-sampling-platform-rate-rollover"),
+            patch("sentry.quotas.backend.get_blended_sample_rate", return_value=0.0),
+        ):
             assert has_dynamic_sampling(org1)
 
     def test_full_rate_is_enabled(self) -> None:
         org1 = self.create_organization("test-org")
-        with patch("sentry.quotas.backend.get_blended_sample_rate", return_value=1.0):
+        with (
+            self.feature("organizations:dynamic-sampling-platform-rate-rollover"),
+            patch("sentry.quotas.backend.get_blended_sample_rate", return_value=1.0),
+        ):
             assert has_dynamic_sampling(org1)
 
     def test_negative(self) -> None:
         org1 = self.create_organization("test-org")
-        with patch("sentry.quotas.backend.get_blended_sample_rate", return_value=None):
+        with (
+            self.feature("organizations:dynamic-sampling-platform-rate-rollover"),
+            patch("sentry.quotas.backend.get_blended_sample_rate", return_value=None),
+        ):
             assert not has_dynamic_sampling(org1)
 
 

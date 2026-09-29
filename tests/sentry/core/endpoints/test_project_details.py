@@ -1755,6 +1755,7 @@ class TestProjectDetailsBase(APITestCase, ABC):
         self.project.update(date_added=old_date)
 
 
+@with_feature("organizations:dynamic-sampling-platform-rate-rollover")
 class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsBase):
     endpoint = "sentry-api-0-project-details"
 

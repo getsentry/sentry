@@ -1126,7 +1126,12 @@ def test_individual_attachments_missing_chunks(default_project, factories) -> No
 @django_db_all
 def test_collect_span_metrics(default_project) -> None:
     with (
-        Feature({"organization:am3-tier": True}),
+        Feature(
+            {
+                "organizations:dynamic-sampling-platform-rate-rollover": True,
+                "organization:am3-tier": True,
+            }
+        ),
         patch("sentry.quotas.backend.get_blended_sample_rate", return_value=0.5),
     ):
         with patch("sentry.ingest.consumer.processors.metrics") as mock_metrics:
@@ -1135,7 +1140,12 @@ def test_collect_span_metrics(default_project) -> None:
             assert mock_metrics.incr.call_count == 0
 
     with (
-        Feature({"organization:am3-tier": False}),
+        Feature(
+            {
+                "organizations:dynamic-sampling-platform-rate-rollover": True,
+                "organization:am3-tier": False,
+            }
+        ),
         patch("sentry.quotas.backend.get_blended_sample_rate", return_value=None),
     ):
         with patch("sentry.ingest.consumer.processors.metrics") as mock_metrics:

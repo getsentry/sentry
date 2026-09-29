@@ -59,7 +59,7 @@ class OrganizationSamplingEffectiveSampleRateEndpoint(OrganizationEndpoint):
     def get(
         self, request: Request, organization: Organization
     ) -> Response[OrganizationSamplingEffectiveSampleRateResponse]:
-        if not has_dynamic_sampling(organization):
+        if not has_dynamic_sampling(organization, actor=request.user):
             raise ResourceDoesNotExist
 
         projects = list(

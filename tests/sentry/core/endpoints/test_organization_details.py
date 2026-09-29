@@ -124,6 +124,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         response = self.get_success_response(self.organization.slug)
         assert "features" not in response.data
 
+    @with_feature("organizations:dynamic-sampling-platform-rate-rollover")
     def test_dynamic_sampling_feature_uses_quota_rate(self) -> None:
         with (
             self.feature({"organizations:dynamic-sampling": False}),
@@ -314,6 +315,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         response = self.get_success_response(self.organization.slug)
         assert response.data["hasAuthProvider"] is True
 
+    @with_feature("organizations:dynamic-sampling-platform-rate-rollover")
     def test_is_dynamically_sampled(self) -> None:
         with patch(
             "sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate",

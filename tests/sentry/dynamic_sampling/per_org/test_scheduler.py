@@ -18,6 +18,7 @@ from sentry.dynamic_sampling.per_org.telemetry import DynamicSamplingStatus
 from sentry.dynamic_sampling.types import DynamicSamplingMode
 from sentry.models.organization import Organization
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from tests.sentry.dynamic_sampling.per_org.test_helpers import (
     BLENDED_SAMPLE_RATE,
@@ -163,6 +164,7 @@ class SchedulePerOrgCalculationsTest(TestCase):
             kwargs = MockScheduler.call_args.kwargs
             return set(kwargs["prevalidate_batch"](list(kwargs["queryset"])))
 
+    @with_feature("organizations:dynamic-sampling-platform-rate-rollover")
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     def test_skips_orgs_without_dynamic_sampling(self) -> None:
         with_dynamic_sampling = self.create_organization()
@@ -181,6 +183,7 @@ class SchedulePerOrgCalculationsTest(TestCase):
         assert with_dynamic_sampling.id in org_ids
         assert without_dynamic_sampling.id not in org_ids
 
+    @with_feature("organizations:dynamic-sampling-platform-rate-rollover")
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     def test_raises_when_the_quota_service_fails(self) -> None:
         org = self.create_organization()

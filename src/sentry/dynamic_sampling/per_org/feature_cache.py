@@ -11,7 +11,7 @@ from taskbroker_client.retry import Retry
 
 from sentry.constants import ObjectStatus
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
-from sentry.dynamic_sampling.utils import has_dynamic_sampling
+from sentry.dynamic_sampling.utils import orgs_with_dynamic_sampling
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.project import Project
 from sentry.silo.base import SiloMode
@@ -67,7 +67,7 @@ def get_orgs_with_dynamic_sampling() -> list[int] | None:
 
 
 def _orgs_with_dynamic_sampling(organizations: Sequence[Organization]) -> list[int]:
-    return [org.id for org in organizations if has_dynamic_sampling(org)]
+    return orgs_with_dynamic_sampling(organizations)
 
 
 @instrumented_task(
@@ -82,9 +82,8 @@ def _orgs_with_dynamic_sampling(organizations: Sequence[Organization]) -> list[i
 )
 def cache_dynamic_sampling_feature_flags() -> int:
     """
-    An empty result leaves the previous entry in place. If the quota backend temporarily
-    returns no rates, serving that result would stop the pipeline for everyone until the
-    next successful refresh.
+    An empty result leaves the previous entry in place. A temporary empty answer from
+    either backend would stop the pipeline for everyone until the next successful refresh.
     """
     org_ids: list[int] = []
     for organizations in chunked(
@@ -96,7 +95,7 @@ def cache_dynamic_sampling_feature_flags() -> int:
     if not org_ids:
         logger.warning(
             "dynamic_sampling.per_org.feature_cache.empty_refresh",
-            extra={"source": "subscription_quota"},
+            extra={"source": "dynamic_sampling"},
         )
         metrics.incr("dynamic_sampling.per_org.feature_cache.empty_refresh")
         return 0

@@ -31,7 +31,7 @@ from sentry.dynamic_sampling.per_org.telemetry import (
     track_dynamic_sampling,
 )
 from sentry.dynamic_sampling.rules.utils import OrganizationId
-from sentry.dynamic_sampling.utils import has_dynamic_sampling
+from sentry.dynamic_sampling.utils import orgs_with_dynamic_sampling
 from sentry.models.organization import Organization
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -129,7 +129,7 @@ def schedule_per_org_calculations() -> None:
         return True
 
     def keep_orgs_with_dynamic_sampling(organizations: Sequence[Organization]) -> list[int]:
-        kept = [org.id for org in organizations if has_dynamic_sampling(org)]
+        kept = orgs_with_dynamic_sampling(organizations)
         emit_status(
             SCHEDULER_BUCKET_ORG_STATUS_METRIC,
             DynamicSamplingStatus.ORG_HAS_NO_DYNAMIC_SAMPLING,
@@ -140,9 +140,9 @@ def schedule_per_org_calculations() -> None:
     organizations = candidate_organizations()
     # A cold cache reads as None, and falling back to the full population keeps the
     # pipeline running. The per-item check still rejects any org that does not qualify.
-    orgs_with_dynamic_sampling = get_orgs_with_dynamic_sampling()
-    if orgs_with_dynamic_sampling is not None:
-        organizations = organizations.filter(id__in=orgs_with_dynamic_sampling)
+    cached_org_ids = get_orgs_with_dynamic_sampling()
+    if cached_org_ids is not None:
+        organizations = organizations.filter(id__in=cached_org_ids)
 
     scheduler = CursoredScheduler(
         name="ds_per_org",

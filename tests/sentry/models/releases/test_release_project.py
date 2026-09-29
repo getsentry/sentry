@@ -6,8 +6,10 @@ from sentry.models.release import Release
 from sentry.models.releases.release_project import ReleaseProject, ReleaseProjectModelManager
 from sentry.signals import receivers_raise_on_send
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.features import with_feature
 
 
+@with_feature("organizations:dynamic-sampling-platform-rate-rollover")
 class ReleaseProjectManagerTestCase(TestCase):
     def test_custom_manager(self) -> None:
         self.assertIsInstance(ReleaseProject.objects, ReleaseProjectModelManager)

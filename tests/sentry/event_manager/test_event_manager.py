@@ -3710,6 +3710,7 @@ class ReleaseIssueTest(TestCase):
         )
 
 
+@with_feature("organizations:dynamic-sampling-platform-rate-rollover")
 class DSLatestReleaseBoostTest(TestCase):
     def setUp(self) -> None:
         quota_rate = patch("sentry.quotas.backend.get_blended_sample_rate", return_value=0.5)

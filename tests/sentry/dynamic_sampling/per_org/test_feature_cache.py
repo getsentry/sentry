@@ -13,8 +13,10 @@ from sentry.dynamic_sampling.per_org.feature_cache import (
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 from sentry.models.organization import OrganizationStatus
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.features import with_feature
 
 
+@with_feature("organizations:dynamic-sampling-platform-rate-rollover")
 class FeatureCacheTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -58,6 +60,30 @@ class FeatureCacheTest(TestCase):
         assert get_orgs_with_dynamic_sampling() == [with_rate.id]
         assert without_rate.id not in (get_orgs_with_dynamic_sampling() or [])
 
+    def test_refresh_supports_legacy_and_rollover_orgs(self) -> None:
+        legacy_org = self._org_with_project()
+        rollover_org = self._org_with_project()
+        excluded_org = self._org_with_project()
+
+        with (
+            self.feature(
+                {
+                    "organizations:dynamic-sampling-platform-rate-rollover": [rollover_org.slug],
+                    "organizations:dynamic-sampling": [legacy_org.slug],
+                }
+            ),
+            patch(
+                "sentry.quotas.backend.get_blended_sample_rate",
+                side_effect=lambda organization_id: 0.5
+                if organization_id == rollover_org.id
+                else None,
+            ),
+        ):
+            assert cache_dynamic_sampling_feature_flags() == 2
+
+        assert set(get_orgs_with_dynamic_sampling() or []) == {legacy_org.id, rollover_org.id}
+        assert excluded_org.id not in (get_orgs_with_dynamic_sampling() or [])
+
     def test_refresh_sets_the_ttl(self) -> None:
         self._org_with_project()
 
@@ -82,6 +108,15 @@ class FeatureCacheTest(TestCase):
 
         with (
             patch("sentry.quotas.backend.get_blended_sample_rate", side_effect=RuntimeError),
+            pytest.raises(RuntimeError),
+        ):
+            cache_dynamic_sampling_feature_flags()
+
+    def test_refresh_raises_when_the_rollover_flag_cannot_be_evaluated(self) -> None:
+        self._org_with_project()
+
+        with (
+            patch("sentry.features.batch_has_for_organizations", return_value=None),
             pytest.raises(RuntimeError),
         ):
             cache_dynamic_sampling_feature_flags()

@@ -515,7 +515,7 @@ class OrganizationSummarySerializer(Serializer[OrganizationSummarySerializerResp
         if not getattr(obj.flags, "disable_shared_issues"):
             feature_set.add("shared-issues")
 
-        if has_dynamic_sampling(obj):
+        if has_dynamic_sampling(obj, actor=user):
             feature_set.add("dynamic-sampling")
 
         return sorted(feature_set)
@@ -760,7 +760,7 @@ class OrganizationSerializer(OrganizationSummarySerializer):
                     .filter(value_as_json__lt=1.0)
                     .exists()
                 )
-        elif has_dynamic_sampling(obj):
+        elif has_dynamic_sampling(obj, actor=user):
             sample_rate = quotas.backend.get_blended_sample_rate(organization_id=obj.id)
             is_dynamically_sampled = sample_rate is not None and sample_rate < 1.0
 

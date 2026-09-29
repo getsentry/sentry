@@ -32,6 +32,7 @@ from sentry.apidocs.parameters import (
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryTypes
+from sentry.dynamic_sampling.utils import has_dynamic_sampling
 from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetTypes
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
@@ -159,6 +160,10 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                 all_features[feature_name] = features.has(
                     feature_name, organization=organization, actor=request.user
                 )
+
+        all_features["organizations:dynamic-sampling"] = has_dynamic_sampling(
+            organization, actor=request.user
+        )
 
         return all_features
 

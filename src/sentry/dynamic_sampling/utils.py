@@ -1,3 +1,5 @@
+from collections.abc import Sequence
+
 from django.contrib.auth.models import AnonymousUser
 from django.core.exceptions import ObjectDoesNotExist
 
@@ -8,15 +10,53 @@ from sentry.models.organization import Organization
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 
+DYNAMIC_SAMPLING_FEATURE = "organizations:dynamic-sampling"
+RATE_ROLLOVER_FEATURE = "organizations:dynamic-sampling-platform-rate-rollover"
 
-def has_dynamic_sampling(organization: Organization | None) -> bool:
-    # If an organization can't be fetched, we will assume it has no dynamic sampling.
-    if organization is None:
-        return False
+
+def _has_dynamic_sampling_rate(organization: Organization) -> bool:
     try:
         return quotas.backend.get_blended_sample_rate(organization_id=organization.id) is not None
     except ObjectDoesNotExist:
         return False
+
+
+def has_dynamic_sampling(
+    organization: Organization | None, actor: User | RpcUser | AnonymousUser | None = None
+) -> bool:
+    # If an organization can't be fetched, we will assume it has no dynamic sampling.
+    if organization is None:
+        return False
+    if features.has(RATE_ROLLOVER_FEATURE, organization, actor=actor):
+        return _has_dynamic_sampling_rate(organization)
+    return features.has(DYNAMIC_SAMPLING_FEATURE, organization, actor=actor)
+
+
+def orgs_with_dynamic_sampling(organizations: Sequence[Organization]) -> list[int]:
+    rollover = features.batch_has_for_organizations(RATE_ROLLOVER_FEATURE, organizations)
+    if rollover is None:
+        raise RuntimeError(f"Unable to evaluate {RATE_ROLLOVER_FEATURE} for a batch of orgs")
+
+    legacy_orgs = [
+        org for org in organizations if not rollover.get(f"organization:{org.id}", False)
+    ]
+    legacy = (
+        features.batch_has_for_organizations(DYNAMIC_SAMPLING_FEATURE, legacy_orgs)
+        if legacy_orgs
+        else {}
+    )
+    if legacy is None:
+        raise RuntimeError(f"Unable to evaluate {DYNAMIC_SAMPLING_FEATURE} for a batch of orgs")
+
+    return [
+        org.id
+        for org in organizations
+        if (
+            _has_dynamic_sampling_rate(org)
+            if rollover.get(f"organization:{org.id}", False)
+            else legacy.get(f"organization:{org.id}", False)
+        )
+    ]
 
 
 def has_custom_dynamic_sampling(
