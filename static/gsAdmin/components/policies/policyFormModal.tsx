@@ -35,6 +35,17 @@ const schema = z.object({
   file: z.tuple([z.string(), z.string()]).nullable(),
   current: z.boolean(),
 });
+const newPolicySchema = schema.extend({
+  name: z.string().trim().min(1, 'Name is required'),
+  slug: z.string().trim().min(1, 'Slug is required'),
+});
+const newRevisionSchema = schema.extend({
+  version: z
+    .string()
+    .trim()
+    .min(1, 'Version is required')
+    .min(3, 'Version must be at least 3 characters'),
+});
 type Values = z.infer<typeof schema>;
 
 type Props = ModalRenderProps & {
@@ -56,18 +67,6 @@ export function PolicyFormModal({
 }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isReadingFile, setIsReadingFile] = useState(false);
-  const formSchema = isNewPolicy
-    ? schema.extend({
-        name: z.string().trim().min(1, 'Name is required'),
-        slug: z.string().trim().min(1, 'Slug is required'),
-      })
-    : schema.extend({
-        version: z
-          .string()
-          .trim()
-          .min(1, 'Version is required')
-          .min(3, 'Version must be at least 3 characters'),
-      });
   const mutation = useMutation({
     mutationFn: fetchMutation<Policy | PolicyRevision>,
     onSuccess: data => {
@@ -96,7 +95,7 @@ export function PolicyFormModal({
       file: null,
       current: !isNewPolicy,
     } as Values,
-    validators: {onDynamic: formSchema},
+    validators: {onDynamic: isNewPolicy ? newPolicySchema : newRevisionSchema},
     onSubmit: ({value}) => {
       if (isReadingFile) {
         addErrorMessage('Please wait for the selected file to finish loading.');
