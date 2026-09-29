@@ -12,7 +12,7 @@ class FileDeletionTask(ModelDeletionTask[File]):
         """
         Returns a Q object that filters for the following orphaned Files:
         - Release-type Files, that are:
-            1. Of release-related types (release.file, release.artifact-index)
+            1. Of release-related types (release.file, release.bundle, release.artifact-index)
             2. Have no corresponding ReleaseFile entry
             3. Are older than 90 days
         - project.dif Files older than 90 days with no corresponding ProjectDebugFile entry
@@ -33,7 +33,7 @@ class FileDeletionTask(ModelDeletionTask[File]):
 
         releasefiles = Q(
             Q(
-                type__in=["release.file", "release.artifact-index"],
+                type__in=["release.file", "release.bundle", "release.artifact-index"],
                 timestamp__lt=cutoff,
             )
             & ~releasefile_exists
