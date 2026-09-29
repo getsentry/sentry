@@ -52,19 +52,22 @@ export function CrossEventQueryingDropdown() {
 
   return (
     <Container width={{zero: '100%', md: 'auto'}}>
-      <DropdownMenu
-        onAction={onAction}
-        items={getCrossEventDropdownItems(crossEventDatasetAvailability)}
-        isDisabled={isDisabled}
-        trigger={triggerProps => (
-          <OverlayTrigger.IconButton
-            {...triggerProps}
-            tooltipProps={{title: tooltipTitle}}
-            icon={<IconAdd />}
-            aria-label={t('Add a cross event query')}
-          />
-        )}
-      />
+      {containerProps => (
+        <DropdownMenu
+          onAction={onAction}
+          items={getCrossEventDropdownItems(crossEventDatasetAvailability)}
+          isDisabled={isDisabled}
+          trigger={triggerProps => (
+            <OverlayTrigger.IconButton
+              {...containerProps}
+              {...triggerProps}
+              tooltipProps={{title: tooltipTitle}}
+              icon={<IconAdd />}
+              aria-label={t('Add a cross event query')}
+            />
+          )}
+        />
+      )}
     </Container>
   );
 }
