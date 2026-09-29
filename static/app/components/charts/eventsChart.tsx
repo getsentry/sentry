@@ -36,7 +36,6 @@ import {
   axisLabelFormatterUsingAggregateOutputType,
   tooltipFormatter,
 } from 'sentry/utils/discover/charts';
-import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {
   aggregateMultiPlotType,
@@ -61,7 +60,6 @@ type ChartProps = {
   previousSeriesNames: string[];
   reloading: boolean;
   stacked: boolean;
-  tableData: TableDataWithTitle[];
   theme: Theme;
   timeseriesData: Series[];
   yAxis: string;
@@ -300,7 +298,6 @@ const ThemedChart = memo(withTheme(Chart), (prevProps, nextProps) => {
     isEqual(prevProps.timeseriesData, nextProps.timeseriesData) &&
     isEqual(prevProps.releaseSeries, nextProps.releaseSeries) &&
     isEqual(prevProps.previousTimeseriesData, nextProps.previousTimeseriesData) &&
-    isEqual(prevProps.tableData, nextProps.tableData) &&
     isEqual(prevProps.additionalSeries, nextProps.additionalSeries)
   ) {
     return true;
@@ -602,7 +599,6 @@ export function EventsChart(props: EventsChartProps) {
                     height={height}
                     timeframe={timeframe}
                     topEvents={topEvents}
-                    tableData={[]}
                     fromDiscover={fromDiscover}
                     timeseriesResultsTypes={timeseriesResultsTypes}
                   />
