@@ -12,10 +12,13 @@ from sentry.investigations.models import (
     InvestigationOrchestrationCommand,
     InvestigationOrchestrationRun,
 )
+from sentry.models.organization import Organization
 from sentry.net.http import connection_from_url
+from sentry.seer.agent.embed_widgets import get_embed_widgets
 from sentry.seer.agent.monitoring_providers import get_monitoring_provider_connections
 from sentry.seer.models import SeerApiError
 from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
+from sentry.users.services.user.service import user_service
 
 _CREATE_REQUEST_NAMESPACE = UUID("3bed27f2-9ab9-49ce-8d64-7d78d5c3fd76")
 investigation_connection_pool = connection_from_url(
@@ -146,6 +149,16 @@ def _validate_viewer_organization(
         raise SeerApiError("Viewer context organization does not match investigation", 400)
 
 
+def _get_embed_widgets(organization: Organization, user_id: int | None) -> list[dict[str, Any]]:
+    """The embed schema the report writer must follow when it emits Markdoc embeds.
+
+    Without it the model guesses prop names from Seer's tool data (``trace_id``,
+    ``event_id``) and the frontend rejects the embed.
+    """
+    user = user_service.get_user(user_id=user_id) if user_id is not None else None
+    return get_embed_widgets(organization, user)
+
+
 def create_investigation_orchestration_run(
     run: InvestigationOrchestrationRun,
     *,
@@ -163,6 +176,10 @@ def create_investigation_orchestration_run(
         "source": run.source,
         "activeTimeBudgetSeconds": 1800,
     }
+    body["embedWidgets"] = _get_embed_widgets(
+        run.investigation.organization,
+        run.investigation.created_by_id,
+    )
     monitoring_providers = get_monitoring_provider_connections(
         run.investigation.organization,
         run.investigation.created_by_id,
@@ -193,6 +210,10 @@ def dispatch_investigation_orchestration_command(
         "expectedWorkflowVersion": command.expected_workflow_version,
         "command": {"type": command.type, **command.payload},
     }
+    body["embedWidgets"] = _get_embed_widgets(
+        investigation.organization,
+        command.actor_id or investigation.created_by_id,
+    )
     monitoring_providers = get_monitoring_provider_connections(
         investigation.organization,
         command.actor_id or investigation.created_by_id,

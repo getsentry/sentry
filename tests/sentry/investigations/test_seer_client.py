@@ -117,6 +117,9 @@ class InvestigationOrchestrationSeerClientTest(TestCase):
         assert create_body["source"] == run.source
         assert create_body["activeTimeBudgetSeconds"] == 1800
         assert create_body["monitoringProviders"] == [provider.dict.return_value]
+        widgets = {widget["name"]: widget for widget in create_body["embedWidgets"]}
+        assert widgets["trace"]["body"]["required"] == ["traceId"]
+        assert widgets["event"]["body"]["required"] == ["id", "issueId"]
         assert "Authorization" in create_request.kwargs["headers"]
         assert "X-Viewer-Context" in create_request.kwargs["headers"]
 
@@ -132,6 +135,7 @@ class InvestigationOrchestrationSeerClientTest(TestCase):
             "expectedWorkflowVersion": 1,
             "command": {"type": "retry", "target": "run"},
             "monitoringProviders": [provider.dict.return_value],
+            "embedWidgets": create_body["embedWidgets"],
         }
         assert "Authorization" in command_request.kwargs["headers"]
         assert "X-Viewer-Context" in command_request.kwargs["headers"]
