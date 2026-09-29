@@ -25,11 +25,11 @@ ruleTester.run('no-token-import', noTokenImport, {
     },
     {
       code: 'import {size} from "@sentry/scraps/tokens/size";',
-      filename: '/packages/scraps/src/theme/base.tsx',
+      filename: '/static/packages/scraps/src/theme/base.tsx',
     },
     {
       code: 'import {size} from "@sentry/scraps/tokens";',
-      filename: '/packages/scraps/src/tokens/index.ts',
+      filename: '/static/packages/scraps/src/tokens/index.ts',
     },
   ],
 
@@ -46,7 +46,7 @@ ruleTester.run('no-token-import', noTokenImport, {
     },
     {
       code: 'import {color} from "@sentry/scraps/tokens/color";',
-      filename: '/packages/scraps/src/text/text.tsx',
+      filename: '/static/packages/scraps/src/text/text.tsx',
       errors: [{messageId: 'forbidden'}],
     },
   ],

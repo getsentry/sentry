@@ -49,7 +49,10 @@ describe('SentryComponentInspector', () => {
 
   it.each([
     ['static/app/components/test/component.tsx', 'app/components/test/component.tsx'],
-    ['packages/scraps/src/layout/stack.tsx', 'packages/scraps/src/layout/stack.tsx'],
+    [
+      'static/packages/scraps/src/layout/stack.tsx',
+      'packages/scraps/src/layout/stack.tsx',
+    ],
   ])('renders a preview trace of %s', async (sourcePath, displayPath) => {
     jest.mocked(constants).NODE_ENV = 'development';
 

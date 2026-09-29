@@ -39,8 +39,8 @@ and use a workspace dependency.
 Run the isolated component suite and its typecheck from the repository root:
 
 ```sh
-pnpm --dir packages/scraps test
-pnpm --dir packages/scraps typecheck
+pnpm --dir static/packages/scraps test
+pnpm --dir static/packages/scraps typecheck
 ```
 
 Tests import `render` and `renderHook` from `test/env`; both include the default
@@ -52,7 +52,7 @@ live under `test/env`. No Sentry providers or test aliases are used.
 From the repository root, run:
 
 ```sh
-pnpm --dir packages/scraps verify
+pnpm --dir static/packages/scraps verify
 ```
 
 The command builds and packs the package, typechecks each public subpath in a

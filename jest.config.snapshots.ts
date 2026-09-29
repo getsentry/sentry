@@ -59,7 +59,7 @@ const config: Config.InitialOptions = {
   // testEnvironment and testMatch are the core differences between this and the main config
   testEnvironment: '<rootDir>/tests/js/sentry-test/jest-environment-node.js',
   testMatch: ['<rootDir>/static/**/*.snapshots.tsx'],
-  testPathIgnorePatterns: ['/node_modules/'],
+  testPathIgnorePatterns: ['/node_modules/', '<rootDir>/static/packages/scraps/'],
   // Coding agents check out nested git worktrees under .claude/worktrees/, each a
   // full copy of this repo. jest-haste-map crawls all of rootDir, so every manual
   // mock in static/ collides with its copies and the file that ends up backing
@@ -93,9 +93,9 @@ const config: Config.InitialOptions = {
       '<rootDir>/tests/js/sentry-test/mocks/importStyleMock.js',
     '^sentry/(.*)': '<rootDir>/static/app/$1',
     '^@sentry/scraps/text$': '<rootDir>/static/app/components/core/text',
-    '^@sentry/scraps$': '<rootDir>/packages/scraps/src/index.ts',
+    '^@sentry/scraps$': '<rootDir>/static/packages/scraps/src/index.ts',
     '^@sentry/scraps/(.*)$': [
-      '<rootDir>/packages/scraps/src/$1',
+      '<rootDir>/static/packages/scraps/src/$1',
       '<rootDir>/static/app/components/core/$1',
     ],
     '^getsentry/(.*)': '<rootDir>/static/gsApp/$1',

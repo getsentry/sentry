@@ -47,8 +47,11 @@
 
     "paths": {
       "@sentry/scraps/text": ["./static/app/components/core/text/index.tsx"],
-      "@sentry/scraps": ["./packages/scraps/src/index.ts"],
-      "@sentry/scraps/*": ["./packages/scraps/src/*", "./static/app/components/core/*"],
+      "@sentry/scraps": ["./static/packages/scraps/src/index.ts"],
+      "@sentry/scraps/*": [
+        "./static/packages/scraps/src/*",
+        "./static/app/components/core/*"
+      ],
       "sentry/*": ["./static/app/*"],
       "sentry-fixture/*": ["./tests/js/fixtures/*"],
       "sentry-test/*": ["./tests/js/sentry-test/*"],
@@ -65,7 +68,7 @@
   "include": [
     "*.config.*s",
     "static/app",
-    "packages/scraps/src",
+    "static/packages/scraps/src",
     "static/gsApp",
     "static/gsAdmin",
     "static/oxlint",
@@ -76,6 +79,6 @@
   "exclude": [
     "./node_modules",
     "static/app/serviceWorker/worker",
-    "packages/scraps/src/**/*.spec.tsx"
+    "static/packages/scraps/src/**/*.spec.tsx"
   ]
 }

@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: Version with an entry in packages/scraps/CHANGELOG.md
+        description: Version with an entry in static/packages/scraps/CHANGELOG.md
         required: true
 
 permissions:
@@ -33,6 +33,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ steps.token.outputs.token }}
         with:
-          path: packages/scraps
+          path: static/packages/scraps
           version: ${{ inputs.version }}
           publish_repo: getsentry/publish

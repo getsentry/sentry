@@ -6,7 +6,7 @@
     "include": ["**/*.{tsx,jsx}"],
     "paths": {
       "@sentry/scraps/text": ["static/app/components/core/text/index.tsx"],
-      "@sentry/scraps/*": ["packages/scraps/src/*", "static/app/components/core/*"]
+      "@sentry/scraps/*": ["static/packages/scraps/src/*", "static/app/components/core/*"]
     }
   }
 }

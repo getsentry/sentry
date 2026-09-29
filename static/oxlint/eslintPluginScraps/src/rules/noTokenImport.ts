@@ -9,8 +9,8 @@ import {defineRule} from '@oxlint/plugins';
 const TOKEN_PATH = 'utils/theme/scraps';
 const EXCEPT_DIRS = [
   'static/app/utils/theme/',
-  'packages/scraps/src/theme/',
-  'packages/scraps/src/tokens/',
+  'static/packages/scraps/src/theme/',
+  'static/packages/scraps/src/tokens/',
 ];
 
 /**

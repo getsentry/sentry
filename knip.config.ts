@@ -47,7 +47,7 @@ const storyBookEntryPoints = [
 
 const config: KnipConfig = {
   // Scraps public exports are verified by its standalone package verification.
-  ignoreWorkspaces: ['packages/scraps'],
+  ignoreWorkspaces: ['static/packages/scraps'],
   workspaces: {
     '.': {
       entry: [

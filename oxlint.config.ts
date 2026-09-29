@@ -191,7 +191,7 @@ const storyFilesPolicy = {
 const testFiles = ['**/*.spec.{ts,js,tsx,jsx}', 'tests/js/**/*.{ts,js,tsx,jsx}'];
 const coreComponentFiles = [
   'static/app/components/core/**/*.{js,mjs,ts,jsx,tsx}',
-  'packages/scraps/src/**/*.{ts,tsx}',
+  'static/packages/scraps/src/**/*.{ts,tsx}',
 ];
 
 /**
@@ -286,12 +286,12 @@ const config = defineConfig({
       },
       {
         type: 'test',
-        pattern: ['tests/js', 'packages/scraps/test'],
+        pattern: ['tests/js', 'static/packages/scraps/test'],
       },
       // Scraps core components.
       {
         type: 'scraps',
-        pattern: ['static/app/components/core', 'packages/scraps/src'],
+        pattern: ['static/app/components/core', 'static/packages/scraps/src'],
       },
       // Sentry application and assets.
       {
@@ -353,7 +353,6 @@ const config = defineConfig({
         category: 'test',
         pattern: [
           'static/**/*.spec.{js,jsx,ts,tsx}',
-          'packages/scraps/src/**/*.spec.tsx',
           'static/**/*.test.{js,jsx,ts,tsx}',
           'static/**/*.snapshots.{js,jsx,ts,tsx}',
           'tests/js/**/*.spec.{js,jsx,ts,tsx}',
@@ -365,7 +364,7 @@ const config = defineConfig({
         pattern: [
           'tests/js/fixtures/**/*',
           'tests/js/sentry-test/**/*',
-          'packages/scraps/test/**/*',
+          'static/packages/scraps/test/**/*',
           'tests/js/getsentry-test/**/*',
           'static/gsApp/__fixtures__/**/*',
           'static/**/*{t,T}estUtils*.{js,jsx,mjs,ts,tsx}',
@@ -1697,11 +1696,11 @@ const config = defineConfig({
       },
     },
     {
-      files: ['packages/scraps/*.config.mjs'],
+      files: ['static/packages/scraps/*.config.mjs'],
       rules: {'boundaries/no-unknown-files': 'off'},
     },
     {
-      files: ['packages/scraps/scripts/*.mjs'],
+      files: ['static/packages/scraps/scripts/*.mjs'],
       rules: {
         'boundaries/no-unknown-files': 'off',
         'import-js/no-extraneous-dependencies': 'off',
@@ -1713,7 +1712,7 @@ const config = defineConfig({
       },
     },
     {
-      files: ['packages/scraps/src/**/*.{ts,tsx}'],
+      files: ['static/packages/scraps/src/**/*.{ts,tsx}'],
       rules: {
         'boundaries/no-unknown-files': 'off',
         'eslint/no-shadow': 'off',
@@ -1829,8 +1828,8 @@ const config = defineConfig({
     },
     {
       files: [
-        'packages/scraps/src/**/*.spec.tsx',
-        'packages/scraps/test/**/*.{ts,tsx,mjs}',
+        'static/packages/scraps/src/**/*.spec.tsx',
+        'static/packages/scraps/test/**/*.{ts,tsx,mjs}',
       ],
       rules: {
         'import/no-relative-parent-imports': 'off',

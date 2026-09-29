@@ -717,11 +717,7 @@ function getSourcePath(el: unknown): string {
     return 'unknown path';
   }
   const sourcePath = el.dataset.sentrySourcePath;
-  return (
-    sourcePath?.match(/packages\/scraps\/src\/.*/)?.[0] ??
-    sourcePath?.split(/static\//)[1] ??
-    'unknown path'
-  );
+  return sourcePath?.split(/static\//)[1] ?? 'unknown path';
 }
 
 const getFileName = (path: string) => {

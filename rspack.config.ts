@@ -510,7 +510,7 @@ const appConfig: Configuration = {
         'text'
       ),
       '@sentry/scraps': [
-        path.join(import.meta.dirname, 'packages', 'scraps', 'src'),
+        path.join(staticPrefix, 'packages', 'scraps', 'src'),
         path.join(staticPrefix, 'app', 'components', 'core'),
       ],
 

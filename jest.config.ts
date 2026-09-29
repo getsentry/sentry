@@ -269,9 +269,9 @@ const config: Config.InitialOptions = {
       '<rootDir>/tests/js/sentry-test/mocks/storyManifestMock.ts',
     '^sentry/(.*)': '<rootDir>/static/app/$1',
     '^@sentry/scraps/text$': '<rootDir>/static/app/components/core/text',
-    '^@sentry/scraps$': '<rootDir>/packages/scraps/src/index.ts',
+    '^@sentry/scraps$': '<rootDir>/static/packages/scraps/src/index.ts',
     '^@sentry/scraps/(.*)$': [
-      '<rootDir>/packages/scraps/src/$1',
+      '<rootDir>/static/packages/scraps/src/$1',
       '<rootDir>/static/app/components/core/$1',
     ],
     '^getsentry/(.*)': '<rootDir>/static/gsApp/$1',
@@ -308,7 +308,10 @@ const config: Config.InitialOptions = {
   testMatch: testMatch?.length
     ? testMatch
     : ['<rootDir>/(static|tests/js)/**/?(*.)+(spec|test).[jt]s?(x)'],
-  testPathIgnorePatterns: ['<rootDir>/tests/sentry/lang/javascript/'],
+  testPathIgnorePatterns: [
+    '<rootDir>/tests/sentry/lang/javascript/',
+    '<rootDir>/static/packages/scraps/',
+  ],
   // Coding agents check out nested git worktrees under .claude/worktrees/, each a
   // full copy of this repo. jest-haste-map crawls all of rootDir, so every manual
   // mock in static/ collides with its copies and the file that ends up backing

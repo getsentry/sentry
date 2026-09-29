@@ -723,7 +723,7 @@ importers:
         specifier: ^0.7.0
         version: 0.7.0
 
-  packages/scraps:
+  static/packages/scraps:
     dependencies:
       '@emotion/is-prop-valid':
         specifier: 1.4.0
