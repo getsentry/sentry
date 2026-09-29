@@ -1,5 +1,6 @@
 import type {Key} from 'react';
 import {useMemo, useRef, useState} from 'react';
+import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {type AriaComboBoxProps} from '@react-aria/combobox';
 import {Item, Section} from '@react-stately/collections';
@@ -20,6 +21,7 @@ import {
   storyFrontmatterIndex,
   storyHeadingIndex,
 } from 'sentry/stories/storyManifest.generated';
+import {TOKEN_REFERENCES} from 'sentry/stories/tokenDefinitions';
 import type {StoryTreeNode} from 'sentry/stories/view/storyTree';
 import {
   COMPONENT_SUBCATEGORY_CONFIG,
@@ -34,10 +36,13 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface SearchItem {
   key: string;
+  kind: 'page' | 'section' | 'token';
   label: string;
   node: StoryTreeNode;
   title: string;
   hash?: string;
+  keywords?: string[];
+  match?: {rank: number; score: number};
 }
 
 interface SearchSection {
@@ -46,13 +51,68 @@ interface SearchSection {
   options: SearchItem[];
 }
 
-function searchItems(nodes: StoryTreeNode[], query: string): SearchItem[] {
+type StoryHeading = (typeof storyHeadingIndex)[string][number];
+
+const TOKENS_STORY = 'app/components/core/principles/tokens/tokens.mdx';
+const KIND_ORDER: Record<SearchItem['kind'], number> = {page: 0, section: 1, token: 2};
+
+function headingHash(heading: StoryHeading) {
+  return `#${encodeURIComponent(heading.id)}`;
+}
+
+// Token swatches are rendered from the theme at runtime, so the build-time
+// heading index cannot see them. Index them from the same definitions the
+// Tokens page renders and link to the section that contains each token.
+function tokenItems(node: StoryTreeNode, theme: Theme): SearchItem[] {
+  const headings = storyHeadingIndex[node.filesystemPath] ?? [];
+  const items = new Map<string, SearchItem>();
+  for (const [id, reference] of Object.entries(TOKEN_REFERENCES)) {
+    const heading = headings.find(h => h.id === id);
+    if (!heading) {
+      continue;
+    }
+    for (const group of reference.groups(theme)) {
+      for (const token of Object.keys(group.tokens)) {
+        const title = `${reference.scale}.${token}`;
+        // Shadow tokens are documented as both colors and offsets; link to the first.
+        if (!items.has(title)) {
+          items.set(title, {
+            key: `${node.filesystemPath}#${heading.id}:${title}`,
+            kind: 'token',
+            label: [node.label, heading.title, title].join(' › '),
+            title,
+            node,
+            hash: headingHash(heading),
+          });
+        }
+      }
+    }
+  }
+  return [...items.values()];
+}
+
+function matchScore(item: SearchItem, term: string) {
+  // There are hundreds of tokens, and their breadcrumbs fuzzy-match most short
+  // queries. Require the query within the token name instead.
+  if (item.kind === 'token') {
+    return item.title.toLowerCase().includes(term)
+      ? fzf(item.title, term, false).score
+      : 0;
+  }
+  return Math.max(
+    ...[item.label, ...(item.keywords ?? [])].map(text => fzf(text, term, false).score)
+  );
+}
+
+function searchItems(nodes: StoryTreeNode[], query: string, theme: Theme): SearchItem[] {
   const items = nodes.flatMap(node => {
     const page: SearchItem = {
       key: node.filesystemPath,
+      kind: 'page',
       label: node.label,
       title: node.label,
       node,
+      keywords: storyFrontmatterIndex[node.filesystemPath]?.keywords,
     };
     // Keep the empty-query menu compact. Sections are discovery results, not
     // additional pages in the navigation tree.
@@ -61,13 +121,15 @@ function searchItems(nodes: StoryTreeNode[], query: string): SearchItem[] {
     }
     return [
       page,
-      ...(storyHeadingIndex[node.filesystemPath] ?? []).map(heading => ({
+      ...(storyHeadingIndex[node.filesystemPath] ?? []).map((heading): SearchItem => ({
         key: `${node.filesystemPath}#${heading.id}`,
+        kind: 'section',
         label: [node.label, ...heading.parents, heading.title].join(' › '),
         title: heading.title,
         node,
-        hash: `#${encodeURIComponent(heading.id)}`,
+        hash: headingHash(heading),
       })),
+      ...(node.filesystemPath === TOKENS_STORY ? tokenItems(node, theme) : []),
     ];
   });
   const term = query.trim().toLowerCase();
@@ -76,22 +138,26 @@ function searchItems(nodes: StoryTreeNode[], query: string): SearchItem[] {
   }
   return items
     .map(item => {
-      const title = item.title.toLowerCase();
-      const match = fzf(item.label, term, false);
-      return {
-        item,
-        score: match.score,
-        rank: title === term ? 2 : title.startsWith(term) ? 1 : 0,
-      };
+      const names = [item.title, ...(item.keywords ?? [])].map(name =>
+        name.toLowerCase()
+      );
+      const rank = names.includes(term)
+        ? 2
+        : names.some(name => name.startsWith(term))
+          ? 1
+          : 0;
+      return {...item, match: {rank, score: matchScore(item, term)}};
     })
-    .filter(({score}) => score > 0)
-    .sort(
-      (a, b) =>
-        b.rank - a.rank ||
-        Number(!!a.item.hash) - Number(!!b.item.hash) ||
-        b.score - a.score
-    )
-    .map(({item}) => item);
+    .filter(item => item.match.score > 0)
+    .sort(compareMatches);
+}
+
+function compareMatches(a: SearchItem, b: SearchItem) {
+  return (
+    (b.match?.rank ?? 0) - (a.match?.rank ?? 0) ||
+    KIND_ORDER[a.kind] - KIND_ORDER[b.kind] ||
+    (b.match?.score ?? 0) - (a.match?.score ?? 0)
+  );
 }
 
 function isSearchSection(item: SearchItem | SearchSection): item is SearchSection {
@@ -101,6 +167,7 @@ function isSearchSection(item: SearchItem | SearchSection): item is SearchSectio
 export function StorySearch() {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const hierarchy = useStoryHierarchy();
+  const theme = useTheme();
   const [inputValue, setInputValue] = useState('');
   useHotkeys([{match: '/', callback: () => inputRef.current?.focus()}]);
 
@@ -123,7 +190,7 @@ export function StorySearch() {
           sections.push({
             key: section,
             label: SECTION_CONFIG[section].label,
-            options: searchItems(allCoreNodes, inputValue),
+            options: searchItems(allCoreNodes, inputValue, theme),
           });
         }
       } else if (section === 'product' && data.stories.length > 0) {
@@ -131,20 +198,25 @@ export function StorySearch() {
         sections.push({
           key: section,
           label: SECTION_CONFIG[section].label,
-          options: searchItems(flattenedStories, inputValue),
+          options: searchItems(flattenedStories, inputValue, theme),
         });
       } else if (data.stories.length > 0) {
         // Other sections (principles, patterns) don't need flattening
         sections.push({
           key: section,
           label: SECTION_CONFIG[section].label,
-          options: searchItems(data.stories, inputValue),
+          options: searchItems(data.stories, inputValue, theme),
         });
       }
     }
 
-    return sections.filter(section => section.options.length > 0);
-  }, [hierarchy, inputValue]);
+    const results = sections.filter(section => section.options.length > 0);
+    // Section headings and tokens make weak matches common in the sections
+    // listed first, so lead with the section that holds the best match.
+    return inputValue.trim()
+      ? results.sort((a, b) => compareMatches(a.options[0]!, b.options[0]!))
+      : results;
+  }, [hierarchy, inputValue, theme]);
 
   return (
     <SearchComboBox

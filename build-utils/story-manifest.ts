@@ -21,6 +21,7 @@ const WATCH_DEBOUNCE_MS = 25;
 interface StoryFrontmatter {
   category?: string;
   figma?: string;
+  keywords?: string[];
   title?: string;
 }
 
@@ -43,6 +44,9 @@ function parseStoryFrontmatter(
       data.resources && typeof data.resources === 'object'
         ? data.resources.figma
         : undefined,
+    keywords: Array.isArray(data.keywords)
+      ? data.keywords.filter((keyword: unknown) => typeof keyword === 'string')
+      : undefined,
     title: typeof data.title === 'string' ? data.title : undefined,
   };
 }
