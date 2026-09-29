@@ -1,19 +1,21 @@
 import {Fragment, useState} from 'react';
-import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
+import {Checkbox} from '@sentry/scraps/checkbox';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {User} from 'sentry/types/user';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
-import {useApi} from 'sentry/utils/useApi';
+import {fetchMutation} from 'sentry/utils/queryClient';
 
 type Props = ModalRenderProps & {
   onAction: (data: any) => void;
@@ -24,59 +26,52 @@ export function MergeAccountsModal(props: Props) {
   const {userId, onAction, closeModal, Header, Body, Footer} = props;
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
   const [error, setError] = useState(false);
-  const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
 
-  const makeMergeAccountsQueryKey = (): ApiQueryKey => [
-    getApiUrl('/users/$userId/merge-accounts/', {
-      path: {userId},
-    }),
-  ];
+  const endpoint = getApiUrl('/users/$userId/merge-accounts/', {
+    path: {userId},
+  });
+  const accountsQueryOptions = apiOptions.as<{users: User[]}>()(
+    '/users/$userId/merge-accounts/',
+    {path: {userId}, staleTime: 0}
+  );
 
   const {
     data: fetchedMergeAccounts,
     isPending,
     isError,
     refetch,
-  } = useApiQuery<{users: User[]}>(makeMergeAccountsQueryKey(), {
-    staleTime: 0,
-  });
+  } = useQuery(accountsQueryOptions);
 
   const mergeAccounts = fetchedMergeAccounts ?? {users: []};
 
-  const fetchUserByUsername = async (username: string) => {
-    try {
-      const encodedUsername = encodeURIComponent(username);
-      const data = await api.requestPromise(
-        `${getApiUrl('/users/$userId/merge-accounts/', {path: {userId}})}?username=${encodedUsername}`
-      );
-      setApiQueryData(
-        queryClient,
-        makeMergeAccountsQueryKey(),
-        (prev: {users: User[]} | undefined) => {
-          const users = prev?.users || [];
-          return {
-            ...prev,
-            users: [...users, data.user],
-          };
-        }
-      );
-    } catch {
+  const lookupMutation = useMutation({
+    mutationFn: (username: string) =>
+      fetchMutation<{user: User}>({
+        url: endpoint,
+        method: 'GET',
+        options: {query: {username}},
+      }),
+    onSuccess: ({user}) => {
+      setError(false);
+      queryClient.setQueryData(accountsQueryOptions.queryKey, previous => ({
+        json: {users: [...(previous?.json.users ?? []), user]},
+        headers: previous?.headers ?? {},
+      }));
+    },
+    onError: () => {
       setError(true);
-    }
-  };
+    },
+  });
 
   const doMergeMutation = useMutation({
-    mutationFn: async () => {
-      const userIds = selectedUserIds;
+    mutationFn: () => {
       addLoadingMessage();
-      await api.requestPromise(
-        getApiUrl('/users/$userId/merge-accounts/', {path: {userId}}),
-        {
-          method: 'POST',
-          data: {users: userIds},
-        }
-      );
+      return fetchMutation({
+        url: endpoint,
+        method: 'POST',
+        data: {users: selectedUserIds},
+      });
     },
     onSuccess: () => {
       clearIndicators();
@@ -92,7 +87,7 @@ export function MergeAccountsModal(props: Props) {
   const form = useScrapsForm({
     ...defaultFormOptions,
     defaultValues: {username: ''},
-    onSubmit: ({value}) => fetchUserByUsername(value.username),
+    onSubmit: ({value}) => lookupMutation.mutateAsync(value.username).catch(() => {}),
   });
 
   if (isPending) {
@@ -110,50 +105,53 @@ export function MergeAccountsModal(props: Props) {
         : [...prevSelectedUserIds, newUserId]
     );
 
-  const renderUsernames = () => {
-    return mergeAccounts.users.map((user, key) => (
-      <label key={key} style={{display: 'block', width: 200, marginBottom: 10}}>
-        <input
-          type="checkbox"
-          name="user"
-          value={user.id}
-          onChange={() => selectUser(user.id)}
-          style={{margin: 5}}
-        />
-        {user.username}
-      </label>
-    ));
-  };
-
   return (
     <Fragment>
-      <Header> Merge Accounts </Header>
+      <Header>Merge Accounts</Header>
       <Body>
-        <h5>Listed accounts will be merged into this user.</h5>
-        <div>{renderUsernames()}</div>
-        <form.AppForm form={form}>
-          {error && (
-            <Alert.Container>
-              <Alert variant="danger" showIcon={false}>
-                Could not find user(s)
-              </Alert>
-            </Alert.Container>
-          )}
-          <form.AppField name="username">
-            {field => (
-              <field.Layout.Stack label="Add another username:">
-                <field.Input
-                  value={field.state.value}
-                  onChange={field.handleChange}
-                  placeholder="username"
+        <Stack gap="md">
+          <Heading as="h5">Listed accounts will be merged into this user.</Heading>
+          <Stack gap="sm">
+            {mergeAccounts.users.map(user => (
+              <Flex as="label" key={user.id} align="center" gap="sm">
+                <Checkbox
+                  name="user"
+                  value={user.id}
+                  checked={selectedUserIds.includes(user.id)}
+                  onChange={() => selectUser(user.id)}
                 />
-              </field.Layout.Stack>
+                <Text as="span">{user.username}</Text>
+              </Flex>
+            ))}
+          </Stack>
+          <form.AppForm form={form}>
+            {error && (
+              <Alert.Container>
+                <Alert variant="danger" showIcon={false}>
+                  Could not find user(s)
+                </Alert>
+              </Alert.Container>
             )}
-          </form.AppField>
-        </form.AppForm>
+            <form.AppField name="username">
+              {field => (
+                <field.Layout.Stack label="Add another username:">
+                  <field.Input
+                    value={field.state.value}
+                    onChange={field.handleChange}
+                    placeholder="username"
+                  />
+                </field.Layout.Stack>
+              )}
+            </form.AppField>
+          </form.AppForm>
+        </Stack>
       </Body>
       <Footer>
-        <Button onClick={() => doMergeMutation.mutate()} variant="primary">
+        <Button
+          onClick={() => doMergeMutation.mutate()}
+          variant="primary"
+          disabled={doMergeMutation.isPending}
+        >
           Merge Account(s)
         </Button>
       </Footer>
