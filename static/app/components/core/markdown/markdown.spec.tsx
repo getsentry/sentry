@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {expectTypeOf} from 'expect-type';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -330,18 +331,19 @@ describe('Markdown', () => {
     });
 
     it('custom Html receives sanitized content', () => {
-      let receivedHtml = '';
+      let receivedHtml: TrustedHTML | undefined;
       render(
         <Markdown
           raw="<script>alert(1)</script>"
           components={{
-            Html: ({html}: {html: string}) => {
+            Html: ({html}) => {
               receivedHtml = html;
               return <span data-test-id="custom-html" />;
             },
           }}
         />
       );
+      expectTypeOf(receivedHtml).toEqualTypeOf<TrustedHTML | undefined>();
       expect(receivedHtml).not.toContain('<script');
     });
 

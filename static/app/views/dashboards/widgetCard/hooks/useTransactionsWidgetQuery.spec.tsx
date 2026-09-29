@@ -18,9 +18,7 @@ jest.mock('sentry/views/dashboards/utils/widgetQueryQueue', () => ({
 }));
 
 describe('useTransactionsSeriesQuery', () => {
-  const organization = OrganizationFixture({
-    features: ['on-demand-metrics-extraction', 'on-demand-metrics-ui-widgets'],
-  });
+  const organization = OrganizationFixture();
   const pageFilters = PageFiltersFixture();
 
   beforeEach(() => {
@@ -75,9 +73,7 @@ describe('useTransactionsSeriesQuery', () => {
 });
 
 describe('useTransactionsTableQuery', () => {
-  const organization = OrganizationFixture({
-    features: ['on-demand-metrics-extraction', 'on-demand-metrics-ui-widgets'],
-  });
+  const organization = OrganizationFixture();
   const pageFilters = PageFiltersFixture();
 
   beforeEach(() => {

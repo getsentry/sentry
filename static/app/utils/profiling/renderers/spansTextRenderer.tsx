@@ -1,13 +1,13 @@
 import type {mat3} from 'gl-matrix';
 
+import {lowerBound} from 'sentry/utils/array/lowerBound';
+import {upperBound} from 'sentry/utils/array/upperBound';
 import type {FlamegraphSearch} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphSearch';
 import type {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {
   computeHighlightedBounds,
   getContext,
-  lowerBound,
   resizeCanvasToDisplaySize,
-  upperBound,
 } from 'sentry/utils/profiling/gl/utils';
 import {TextRenderer} from 'sentry/utils/profiling/renderers/textRenderer';
 import type {SpanChart, SpanChartNode} from 'sentry/utils/profiling/spanChart';

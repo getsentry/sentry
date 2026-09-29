@@ -1,7 +1,7 @@
 from unittest import mock
 
 from sentry.models.options.project_option import ProjectOption
-from sentry.projectoptions import default_manager, defaults
+from sentry.projectoptions import default_manager, defaults, get_well_known_default
 from sentry.projectoptions.manager import WellKnownProjectOption
 from sentry.testutils.pytest.fixtures import django_db_all
 
@@ -47,6 +47,18 @@ def test_epoch_defaults() -> None:
     assert option.get_default(epoch=20) == "new-value"
     assert option.get_default(epoch=42) == "latest-value"
     assert option.get_default(epoch=100) == "latest-value"
+
+
+def test_loader_version_defaults() -> None:
+    assert get_well_known_default("sentry:default_loader_version", epoch=14) == "9.x"
+    assert (
+        get_well_known_default("sentry:default_loader_version", epoch=defaults.LATEST_EPOCH)
+        == "10.x"
+    )
+    assert "11.x" in get_well_known_default("sentry:loader_available_sdk_versions", epoch=1)
+    assert "11.x" in get_well_known_default(
+        "sentry:loader_available_sdk_versions", epoch=defaults.LATEST_EPOCH
+    )
 
 
 @django_db_all

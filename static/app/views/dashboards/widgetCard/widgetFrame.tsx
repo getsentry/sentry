@@ -29,7 +29,7 @@ interface WidgetFrameProps extends StateProps, WidgetDescriptionProps {
   onFullScreenViewClick?: () => void | Promise<void>;
   revealTooltip?: 'always' | 'hover';
   title?: string;
-  warnings?: string[];
+  warnings?: React.ReactNode[];
 }
 
 export function WidgetFrame(props: WidgetFrameProps) {

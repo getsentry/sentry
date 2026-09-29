@@ -7,9 +7,13 @@ import type {RequestError} from 'sentry/utils/requestError/requestError';
 
 import type {PaymentCreateResponse, PaymentSetupCreateResponse} from 'getsentry/types';
 
-interface HookResult {
+interface HookResult<
+  T extends PaymentSetupCreateResponse | PaymentCreateResponse =
+    | PaymentSetupCreateResponse
+    | PaymentCreateResponse,
+> {
   error: string | undefined;
-  intentData: PaymentSetupCreateResponse | PaymentCreateResponse | undefined;
+  intentData: T | undefined;
   isError: boolean;
   isLoading: boolean;
 }
@@ -17,7 +21,11 @@ interface HookResult {
 /**
  * Get payment method setup intent data.
  */
-export function useSetupIntentData({queryKey}: {queryKey: ApiQueryKey}): HookResult {
+export function useSetupIntentData({
+  queryKey,
+}: {
+  queryKey: ApiQueryKey;
+}): HookResult<PaymentSetupCreateResponse> {
   const [setupIntentData, setSetupIntentData] = useState<
     PaymentSetupCreateResponse | undefined
   >(undefined);
@@ -60,7 +68,11 @@ export function useSetupIntentData({queryKey}: {queryKey: ApiQueryKey}): HookRes
 /**
  * Get payment intent data.
  */
-export function usePaymentIntentData({queryKey}: {queryKey: ApiQueryKey}): HookResult {
+export function usePaymentIntentData({
+  queryKey,
+}: {
+  queryKey: ApiQueryKey;
+}): HookResult<PaymentCreateResponse> {
   const {
     isLoading,
     isPending,

@@ -27,22 +27,22 @@ import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/typ
 import {
   getDurationComparison,
   MIN_PCT_DURATION_DIFFERENCE,
-} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/durationComparison';
-import {getHighlightedSpanAttributes} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/highlightedAttributes';
-import {IssueList} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/issues/issues';
-import {AIContentRenderer} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiContentRenderer';
+} from 'sentry/views/performance/traceDetails/traceDrawer/details/durationComparison';
+import {getHighlightedSpanAttributes} from 'sentry/views/performance/traceDetails/traceDrawer/details/highlightedAttributes';
+import {IssueList} from 'sentry/views/performance/traceDetails/traceDrawer/details/issues/issues';
+import {AIContentRenderer} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiContentRenderer';
 import {
   getAIInputMessages,
   getAIToolInput,
-} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiInput';
+} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiInput';
 import {
   getAIOutputData,
   getAIToolOutput,
-} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiOutput';
-import {AttributesContent} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/attributes';
-import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
-import {isEAPSpanNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
-import {traceGridCssVariables} from 'sentry/views/performance/newTraceDetails/traceWaterfallStyles';
+} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiOutput';
+import {AttributesContent} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/attributes';
+import {TraceDrawerComponents} from 'sentry/views/performance/traceDetails/traceDrawer/details/styles';
+import {isEAPSpanNode} from 'sentry/views/performance/traceDetails/traceGuards';
+import {traceGridCssVariables} from 'sentry/views/performance/traceDetails/traceWaterfallStyles';
 
 const AI_SPAN_INPUT_JSON_MAX_DEFAULT_DEPTH = 3;
 const AI_SPAN_OUTPUT_JSON_MAX_DEFAULT_DEPTH = 100;

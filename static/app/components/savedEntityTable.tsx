@@ -151,11 +151,17 @@ const StyledLink = styled(Link)`
 SavedEntityTable.CellName = function CellName({
   children,
   to,
+  title,
 }: {
   children: ReactNode;
   to: string;
+  title?: ReactNode;
 }) {
-  return <StyledLink to={to}>{children}</StyledLink>;
+  return (
+    <Tooltip title={title} disabled={!title} showOnlyOnOverflow skipWrapper>
+      <StyledLink to={to}>{children}</StyledLink>
+    </Tooltip>
+  );
 };
 
 SavedEntityTable.CellProjects = function CellProjects({

@@ -61,7 +61,7 @@ class PrIterationScmInfo(TypedDict, total=False):
 
     scm_repo_full_name: str  # ``owner/repo``
 
-    pr_id: int
+    pr_id: str
     pr_number: int
     pr_url: str
 

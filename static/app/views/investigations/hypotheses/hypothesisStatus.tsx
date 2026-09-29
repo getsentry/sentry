@@ -1,11 +1,12 @@
-import {Tag, type TagProps} from '@sentry/scraps/badge';
+import {Flex} from '@sentry/scraps/layout';
+import {StatusIndicator} from '@sentry/scraps/statusIndicator';
+import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
 import {humanize} from 'sentry/utils/string/humanize';
 import type {
   InvestigationHypothesis,
   InvestigationHypothesisStatus,
-  InvestigationOrchestrationWorkStatus,
   InvestigationVerificationStep,
 } from 'sentry/views/investigations/types';
 
@@ -17,13 +18,15 @@ function hasRun(step: InvestigationVerificationStep): boolean {
   return Boolean(step.result) || Boolean(step.error);
 }
 
+type HypothesisStatusVariant = 'accent' | 'success' | 'warning' | 'danger' | 'muted';
+
 type HypothesisStatusDisplay = {
   label: string;
-  variant: TagProps['variant'];
+  variant: HypothesisStatusVariant;
 };
 
 /**
- * The label and colour of the tag beside the hypothesis number.
+ * The label and colour of the status beside the hypothesis number.
  *
  * A hypothesis in flight is all one `effectiveStatus`, but it passes through
  * several states worth naming: formed, having its checks planned, running them,
@@ -78,7 +81,7 @@ function getHypothesisStatusDisplay(
     return {label: t('Evidence checked'), variant: 'muted'};
   }
   if (hypothesis.status === 'running') {
-    return {label: t('Verifying…'), variant: 'info'};
+    return {label: t('Verifying…'), variant: 'accent'};
   }
   return {label: t('Preparing checks'), variant: 'muted'};
 }
@@ -93,7 +96,7 @@ function getHypothesisStatusDisplay(
  *   has not reached.
  * - `dashed` — checked, and not the answer. Ruled out, inconclusive, failed and
  *   cancelled all read the same way to someone scanning the row, so one broken
- *   edge covers them and the tag carries the distinction.
+ *   edge covers them and the status carries the distinction.
  */
 export function getHypothesisCardBorder(
   status: InvestigationHypothesisStatus
@@ -104,45 +107,6 @@ export function getHypothesisCardBorder(
   return status === 'pending' || status === 'investigating' ? 'solid' : 'dashed';
 }
 
-/** The heading above the steps, which depends on whether any have run yet. */
-export function getEvidenceSectionLabel(steps: InvestigationVerificationStep[]): string {
-  return steps.some(hasRun) ? t('Evidence checked') : t('Evidence to check');
-}
-
-/**
- * What a verification step says about itself while it has no result yet. A step
- * only carries a `result` once it has finished, so everything short of that
- * needs a stand-in line rather than an empty row.
- */
-export function getVerificationStepStatusLabel(
-  status: InvestigationOrchestrationWorkStatus
-): string {
-  switch (status) {
-    // Queued and running read the same from outside: the answer is not here
-    // yet. Only the states that need someone to act get their own line.
-    case 'not_started':
-    case 'queued':
-    case 'running':
-      return t('Awaiting evidence');
-    case 'blocked':
-      return t('Blocked on an earlier step.');
-    case 'reauth_required':
-      return t('Waiting on reauthentication.');
-    case 'stalled':
-      return t('Stalled.');
-    case 'cancelled':
-      return t('Cancelled before it finished.');
-    case 'failed':
-      return t('This check failed.');
-    case 'completed':
-      // A completed step with no result is a gap in the projection, not a state
-      // worth naming in the UI.
-      return t('No result was recorded.');
-    default:
-      return humanize(status);
-  }
-}
-
 type HypothesisStatusProps = {
   hypothesis: InvestigationHypothesis;
 };
@@ -151,8 +115,15 @@ export function HypothesisStatus({hypothesis}: HypothesisStatusProps) {
   const {label, variant} = getHypothesisStatusDisplay(hypothesis);
 
   return (
-    <Tag variant={variant} data-test-id="hypothesis-status">
-      {label}
-    </Tag>
+    <Flex align="center" gap="sm" data-test-id="hypothesis-status">
+      {/* Only live work pulses; a settled status is a still dot. */}
+      <StatusIndicator
+        variant={variant}
+        animationIterationCount={variant === 'accent' ? 'infinite' : 0}
+      />
+      <Text size="xs" variant={variant}>
+        {label}
+      </Text>
+    </Flex>
   );
 }

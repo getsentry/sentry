@@ -83,7 +83,7 @@ from sentry.uptime.autodetect.ranking import get_organization_bucket_key
 from sentry.uptime.utils import get_cluster
 from sentry.users.services.user.service import user_service
 from sentry.utils import json
-from sentry.utils.cache import cache
+from sentry.utils.cache import cache, cache_key_for_event
 from sentry.utils.sdk_crashes.sdk_crash_detection_config import SdkName
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
@@ -3054,7 +3054,7 @@ class PipelineKillswitchTestMixin(BasePostProcessGroupMixin):
 
 class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
     @patch("sentry.tasks.seer.autofix.generate_summary_and_run_automation.delay")
-    @with_feature("organizations:gen-ai-features")
+    @override_settings(SENTRY_SELF_HOSTED=False)
     def test_kick_off_seer_automation_with_features(self, mock_generate_summary_and_run_automation):
         self.project.update_option("sentry:seer_scanner_automation", True)
         event = self.create_event(
@@ -3073,8 +3073,9 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
             event.group.id, trigger_path="old_seer_automation"
         )
 
+    @override_settings(SENTRY_SELF_HOSTED=True)
     @patch("sentry.tasks.seer.autofix.generate_summary_and_run_automation.delay")
-    def test_kick_off_seer_automation_without_org_feature(
+    def test_kick_off_seer_automation_when_self_hosted(
         self, mock_generate_summary_and_run_automation
     ):
         self.project.update_option("sentry:seer_scanner_automation", True)
@@ -3092,7 +3093,7 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
         mock_generate_summary_and_run_automation.assert_not_called()
 
     @patch("sentry.tasks.seer.autofix.generate_summary_and_run_automation.delay")
-    @with_feature("organizations:gen-ai-features")
+    @override_settings(SENTRY_SELF_HOSTED=False)
     def test_kick_off_seer_automation_without_scanner_on(
         self, mock_generate_summary_and_run_automation
     ):
@@ -3113,7 +3114,7 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
         mock_generate_summary_and_run_automation.assert_not_called()
 
     @patch("sentry.tasks.seer.autofix.generate_summary_and_run_automation.delay")
-    @with_feature("organizations:gen-ai-features")
+    @override_settings(SENTRY_SELF_HOSTED=False)
     def test_kick_off_seer_automation_skips_existing_fixability_score(
         self, mock_generate_summary_and_run_automation
     ):
@@ -3138,7 +3139,7 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
         mock_generate_summary_and_run_automation.assert_not_called()
 
     @patch("sentry.tasks.seer.autofix.generate_summary_and_run_automation.delay")
-    @with_feature("organizations:gen-ai-features")
+    @override_settings(SENTRY_SELF_HOSTED=False)
     def test_kick_off_seer_automation_skips_existing_issue(
         self, mock_generate_summary_and_run_automation
     ):
@@ -3162,7 +3163,7 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
         mock_generate_summary_and_run_automation.assert_not_called()
 
     @patch("sentry.tasks.seer.autofix.generate_summary_and_run_automation.delay")
-    @with_feature("organizations:gen-ai-features")
+    @override_settings(SENTRY_SELF_HOSTED=False)
     def test_kick_off_seer_automation_skips_with_existing_fixability_score(
         self, mock_generate_summary_and_run_automation
     ):
@@ -3195,7 +3196,7 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
     @patch("sentry.seer.autofix.utils.is_seer_scanner_rate_limited")
     @patch("sentry.quotas.backend.check_seer_quota")
     @patch("sentry.tasks.seer.autofix.generate_summary_and_run_automation.delay")
-    @with_feature("organizations:gen-ai-features")
+    @override_settings(SENTRY_SELF_HOSTED=False)
     def test_rate_limit_only_checked_after_all_other_checks_pass(
         self,
         mock_generate_summary_and_run_automation,
@@ -3266,7 +3267,7 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
         mock_generate_summary_and_run_automation.assert_not_called()
 
     @patch("sentry.tasks.seer.autofix.generate_summary_and_run_automation.delay")
-    @with_feature("organizations:gen-ai-features")
+    @override_settings(SENTRY_SELF_HOSTED=False)
     def test_kick_off_seer_automation_skips_when_lock_held(
         self, mock_generate_summary_and_run_automation
     ):
@@ -3315,7 +3316,7 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
         )
 
     @patch("sentry.tasks.seer.autofix.generate_summary_and_run_automation.delay")
-    @with_feature("organizations:gen-ai-features")
+    @override_settings(SENTRY_SELF_HOSTED=False)
     def test_kick_off_seer_automation_with_hide_ai_features_enabled(
         self, mock_generate_summary_and_run_automation
     ):
@@ -3403,7 +3404,7 @@ class SeatBasedSeerAutomationTestMixin(BasePostProcessGroupMixin):
         return event
 
     @patch("sentry.tasks.seer.autofix.generate_issue_summary_only.delay")
-    @with_feature({"organizations:gen-ai-features": True})
+    @override_settings(SENTRY_SELF_HOSTED=False)
     def test_seat_based_org_skips_old_issues(
         self, mock_generate_summary_only, mock_seat_based_tier
     ):
@@ -3411,7 +3412,7 @@ class SeatBasedSeerAutomationTestMixin(BasePostProcessGroupMixin):
         mock_generate_summary_only.assert_not_called()
 
     @patch("sentry.tasks.seer.autofix.generate_issue_summary_only.delay")
-    @with_feature({"organizations:gen-ai-features": True})
+    @override_settings(SENTRY_SELF_HOSTED=False)
     def test_seat_based_org_skips_when_fixability_exists(
         self, mock_generate_summary_only, mock_seat_based_tier
     ):
@@ -3422,6 +3423,7 @@ class SeatBasedSeerAutomationTestMixin(BasePostProcessGroupMixin):
 class SeerAutomationHelperFunctionsTestMixin(BasePostProcessGroupMixin):
     """Unit tests for is_issue_eligible_for_seer_automation."""
 
+    @override_settings(SENTRY_SELF_HOSTED=False)
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
     @patch("sentry.features.has", return_value=True)
     def test_is_issue_eligible_for_seer_automation(self, mock_features_has, mock_has_budget):
@@ -3447,12 +3449,11 @@ class SeerAutomationHelperFunctionsTestMixin(BasePostProcessGroupMixin):
             mock_category.return_value = GroupCategory.FEEDBACK
             assert is_issue_eligible_for_seer_automation(group) is False
 
-        # Missing feature flag
-        mock_features_has.return_value = False
-        assert is_issue_eligible_for_seer_automation(group) is False
+        # Seer unavailable on self-hosted
+        with override_settings(SENTRY_SELF_HOSTED=True):
+            assert is_issue_eligible_for_seer_automation(group) is False
 
         # Hide AI features enabled
-        mock_features_has.return_value = True
         self.organization.update_option("sentry:hide_ai_features", True)
         assert is_issue_eligible_for_seer_automation(group) is False
         self.organization.update_option("sentry:hide_ai_features", False)
@@ -3501,9 +3502,98 @@ class PostProcessGroupErrorTest(
     PipelineKillswitchTestMixin,
     CheckIfFlagsSentTestMixin,
 ):
+    @override_options(
+        {
+            "post_process.read-from-nodestore-sample-rate": 0.5,
+            "post_process.delete-processing-store-in-save-event": True,
+        }
+    )
+    @patch("sentry.options.rollout.random.random", return_value=0.25)
+    @patch("sentry.tasks.post_process.run_post_process_job")
+    def test_reads_processed_event_from_nodestore_once(
+        self, mock_run_post_process_job: MagicMock, mock_random: MagicMock
+    ) -> None:
+        event = self.create_event(
+            data={"message": "from nodestore", "tags": [["source", "nodestore"]]},
+            project_id=self.project.id,
+        )
+        cache_key = cache_key_for_event({"event_id": event.event_id, "project": event.project_id})
+
+        with (
+            patch.object(event_processing_store, "get") as mock_processing_store_get,
+            patch.object(event_processing_store, "delete_by_key") as mock_processing_store_delete,
+        ):
+            for _ in range(2):
+                post_process_group(
+                    is_new=True,
+                    is_regression=False,
+                    is_new_group_environment=True,
+                    cache_key=cache_key,
+                    group_id=event.group_id,
+                    project_id=event.project_id,
+                    event_id=event.event_id,
+                )
+
+        mock_processing_store_get.assert_not_called()
+        mock_processing_store_delete.assert_not_called()
+        assert mock_random.call_count == 2
+        mock_run_post_process_job.assert_called_once()
+        assert ["source", "nodestore"] in mock_run_post_process_job.call_args.args[0]["event"].data[
+            "tags"
+        ]
+
+    @override_options({"post_process.read-from-nodestore-sample-rate": 0.5})
+    @patch("sentry.options.rollout.random.random", return_value=0.75)
+    @patch("sentry.tasks.post_process.run_post_process_job")
+    def test_unsampled_event_reads_processing_store(
+        self, mock_run_post_process_job: MagicMock, mock_random: MagicMock
+    ) -> None:
+        event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
+        cache_key = write_event_to_cache(event)
+
+        with patch.object(
+            event_processing_store, "get", wraps=event_processing_store.get
+        ) as mock_processing_store_get:
+            post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=True,
+                cache_key=cache_key,
+                group_id=event.group_id,
+                project_id=event.project_id,
+                event_id=event.event_id,
+            )
+
+        mock_random.assert_called_once()
+        mock_processing_store_get.assert_called_once_with(cache_key)
+        mock_run_post_process_job.assert_called_once()
+
+    @override_options({"post_process.read-from-nodestore-sample-rate": 1.0})
+    @patch("sentry.tasks.post_process.run_post_process_job")
+    def test_missing_event_id_uses_processing_store(
+        self, mock_run_post_process_job: MagicMock
+    ) -> None:
+        event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
+        cache_key = write_event_to_cache(event)
+
+        with patch.object(
+            event_processing_store, "get", wraps=event_processing_store.get
+        ) as mock_processing_store_get:
+            post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=True,
+                cache_key=cache_key,
+                group_id=event.group_id,
+                project_id=event.project_id,
+            )
+
+        mock_processing_store_get.assert_called_once_with(cache_key)
+        mock_run_post_process_job.assert_called_once()
+
     @patch("sentry.seer.autofix.utils.is_seer_seat_based_tier_enabled", return_value=True)
     @patch("sentry.tasks.seer.autofix.generate_issue_summary_only.delay")
-    @with_feature({"organizations:gen-ai-features": True})
+    @override_settings(SENTRY_SELF_HOSTED=False)
     def test_seat_based_org_generates_summary_for_new_issues(
         self, mock_generate_summary_only, mock_seat_based_tier
     ):
@@ -3791,7 +3881,51 @@ class PostProcessGroupFeedbackTest(
     InboxTestMixin,
     WorkflowEngineTestMixin,
     SnoozeTestMixin,
+    UpdateExistingAttachmentsTestMixin,
 ):
+    def test_promotes_pending_attachments(self) -> None:
+        self.assert_promotes_pending_attachments(
+            is_spam=False, feedback_type=FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+        )
+
+    def test_promotes_pending_attachments_for_spam(self) -> None:
+        self.assert_promotes_pending_attachments(
+            is_spam=True, feedback_type=FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+        )
+
+    def test_promotes_pending_attachments_for_legacy_feedback(self) -> None:
+        self.assert_promotes_pending_attachments(
+            is_spam=False, feedback_type=FeedbackCreationSource.CRASH_REPORT_EMBED_FORM
+        )
+
+    def test_promotes_pending_attachments_for_legacy_spam(self) -> None:
+        self.assert_promotes_pending_attachments(
+            is_spam=True, feedback_type=FeedbackCreationSource.CRASH_REPORT_EMBED_FORM
+        )
+
+    def assert_promotes_pending_attachments(
+        self, *, is_spam: bool, feedback_type: FeedbackCreationSource
+    ) -> None:
+        self.project.update_option("sentry:feedback_user_report_notifications", False)
+        event = self.create_event(
+            data={"message": "testing"},
+            project_id=self.project.id,
+            feedback_type=feedback_type,
+            is_spam=is_spam,
+        )
+
+        with patch("sentry.event_manager.save_pending_attachments") as promote:
+            self.call_post_process_group(
+                is_new=True, is_regression=False, is_new_group_environment=True, event=event
+            )
+
+        promote.assert_called_once_with(
+            project=event.project,
+            event_id=event.event_id,
+            group_id=event.group_id,
+            source="post_process",
+        )
+
     def create_event(
         self,
         data,
