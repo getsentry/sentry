@@ -29,7 +29,6 @@ RUN groupadd -r sentry --gid 999 && useradd -r -m -g sentry --uid 999 sentry
 RUN : \
     && apt-get update \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-        gosu \
         libexpat1 \
         tini \
     && apt-get clean \
@@ -81,6 +80,12 @@ RUN : double-check some built files are available \
     && test -f /usr/src/sentry/src/sentry/integration-docs/python.json \
     && test -f /usr/src/sentry/src/sentry/static/sentry/dist/entrypoints/app.js \
     && sentry help
+
+# Pre-create /data owned by sentry so fresh named volumes are initialized
+# with the right ownership. This must happen before the VOLUME instruction.
+RUN mkdir -p /data/files && chown -R sentry:sentry /data
+
+USER sentry
 
 EXPOSE 9000
 VOLUME /data
