@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {Link} from '@sentry/scraps/link';
 
 import {tct} from 'sentry/locale';
-import type {ChunkType} from 'sentry/types/group';
+import type {ChunkType, Meta} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {DetailedProject} from 'sentry/types/project';
 import {convertRelayPiiConfig} from 'sentry/views/settings/components/dataScrubbing/convertRelayPiiConfig';
@@ -23,6 +23,17 @@ const NON_DATA_SCRUBBING_RULES = {
   '!raw': 'raw payload',
   '!config': 'SDK configuration',
 };
+
+/**
+ * Whether any remark records data Relay removed for privacy. Relay also remarks
+ * on values it trimmed for size or the SDK never sent, which are not scrubbing,
+ * so the presence of remarks alone does not mean a value was scrubbed.
+ */
+export function hasScrubbedData(rem: Meta['rem'] | undefined): boolean {
+  return (rem ?? []).some(
+    ([ruleId]) => !Object.hasOwn(NON_DATA_SCRUBBING_RULES, String(ruleId))
+  );
+}
 
 export function getTooltipText({
   remark = '',

@@ -14,6 +14,7 @@ import {
   getContextType,
   getFormattedContextData,
 } from 'sentry/components/events/contexts/utils';
+import {hasScrubbedData} from 'sentry/components/events/meta/annotatedText/utils';
 import {
   KeyValueTableCard,
   KeyValueTableDataRow,
@@ -90,7 +91,7 @@ export function ContextCardContent({
               <AttributeDetailsTooltip
                 attributeKey={getContextAttributeKey({alias, contextKey, type})}
                 fieldDefinitionType={attributeDetailsType}
-                isScrubbed={(contextMeta?.['']?.rem ?? []).length > 0}
+                isScrubbed={hasScrubbedData(contextMeta?.['']?.rem)}
               >
                 {contextSubject}
               </AttributeDetailsTooltip>
