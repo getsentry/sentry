@@ -24,7 +24,7 @@ function getException(
   );
 
   if (exceptionHasAtLeastOneStacktrace) {
-    return exceptionData as Required<ExceptionType>;
+    return {...exceptionData, values: exceptionDataValues};
   }
 
   return;
@@ -52,7 +52,13 @@ export function getThreadException(
   );
 
   if (matchedStacktraceAndExceptionThread) {
-    return getException(exceptionData, exceptionDataValues, thread);
+    return getException(
+      exceptionData,
+      exceptionDataValues.filter(
+        value => !defined(value.threadId) || value.threadId === thread.id
+      ),
+      thread
+    );
   }
 
   if (
