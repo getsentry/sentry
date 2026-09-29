@@ -1,6 +1,7 @@
 from django.db import migrations
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.migrations.state import StateApps
+from django.utils import timezone
 
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.utils.iterators import chunked
@@ -25,6 +26,10 @@ def backfill_legacy_lists(apps: StateApps, schema_editor: BaseDatabaseSchemaEdit
     double write does on every PUT: one row per list, found by legacy_filter, with one
     condition that holds all the lines. A row that exists only gets its lines replaced, so
     the name and the active flag stay with the user. An empty list writes no row.
+
+    The double write runs while this migration does. A PUT that lands between the read of a
+    batch and its writes leaves a row newer than the option the batch read, so a conflict on
+    insert is skipped and an update only lands on the lines the batch read.
     """
     ProjectOption = apps.get_model("sentry", "ProjectOption")
     CustomInboundFilter = apps.get_model("sentry", "CustomInboundFilter")
@@ -61,10 +66,11 @@ def backfill_legacy_lists(apps: StateApps, schema_editor: BaseDatabaseSchemaEdit
                     )
                 )
             elif existing.conditions != conditions:
-                existing.conditions = conditions
-                existing.save(update_fields=["conditions", "date_updated"])
+                CustomInboundFilter.objects.filter(
+                    id=existing.id, conditions=existing.conditions
+                ).update(conditions=conditions, date_updated=timezone.now())
 
-        CustomInboundFilter.objects.bulk_create(new_rows)
+        CustomInboundFilter.objects.bulk_create(new_rows, ignore_conflicts=True)
 
 
 class Migration(CheckedMigration):
