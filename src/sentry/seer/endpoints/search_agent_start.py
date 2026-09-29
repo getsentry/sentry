@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 
 
 class SearchAgentResultTarget(StrEnum):
-    """Where the caller will use the query; mirrors Seer's ``QueryResultTarget``."""
+    """Where the caller will use the translated query."""
 
     UI_SEARCH = "ui_search"
     AGENT_SEARCH = "agent_search"
