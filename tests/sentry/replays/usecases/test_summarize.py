@@ -1464,6 +1464,10 @@ class RpcGetReplaySummaryLogsTestCase(
         assert len(logs) == 1
         assert "SameProjectError" in logs[0]
         assert "visible" in logs[0]
+        all_logs = "\n".join(logs)
+        assert "OtherProjectError" not in all_logs
+        assert "restricted" not in all_logs
+        assert "Other project feedback" not in all_logs
 
     @patch("sentry.replays.usecases.summarize.fetch_feedback_details")
     def test_rpc_with_trace_errors_duplicate_feedback(

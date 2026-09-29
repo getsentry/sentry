@@ -93,10 +93,6 @@ def fetch_trace_connected_errors(
     if not trace_ids:
         return []
 
-    # Summaries are generated without the viewer's access context and are shared
-    # by everyone who can read the replay, so they must only include data from
-    # the replay's own project. Traces continue into other projects that the
-    # viewer may not be permitted to read.
     snuba_params = SnubaParams(
         projects=[project],
         start=start,
