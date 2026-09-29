@@ -74,6 +74,11 @@ export interface QueryEmbedColumn<Row> {
   /** Header text. Defaults to `key`, which is what a field-named column wants. */
   label?: ReactNode;
   /**
+   * Whether the reader can drag the column wider. Defaults to `true`; a column
+   * whose content never varies in size, like an icon, has nothing to reveal.
+   */
+  resizable?: boolean;
+  /**
    * Grid track for the column. Defaults to an equal share of the leftover
    * space; a column of fixed-size content — an icon, say — should ask for
    * `max-content` instead of being stretched to match a column of text.
@@ -142,7 +147,7 @@ export function QueryEmbedTable<Row>({
   // which is what carries the handle, at it by index.
   const columnConfig = columns.map((column, index) => ({
     key: column.key,
-    resizable: true,
+    resizable: column.resizable ?? true,
     width: column.width ?? (index === 0 ? 'minmax(0, 2fr)' : 'minmax(0, 1fr)'),
   }));
 
