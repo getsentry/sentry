@@ -28,17 +28,7 @@ def record_dropped_events_telemetry(
     dropped_count: int,
     accepted_count: int,
 ) -> None:
-    """Record who asked for dropped-events data and what they got.
-
-    Emitted from both surfaces that serve dropped events -- the dedicated
-    ``events-dropped`` endpoint and the inline annotations on
-    ``events-timeseries`` -- so the ``endpoint`` tag answers whether a caller
-    reached the dedicated endpoint or picked drops up inline.
-
-    All tags are bounded: ``client_kind`` is the caller enum, ``dataset`` a
-    dataset label, ``had_drops`` a bool. Counts go on span attributes, not tags,
-    to keep metric cardinality flat.
-    """
+    """Record who asked for dropped-events data and what they got."""
     had_drops = dropped_count > 0
     metrics.incr(
         "dropped_events.served",
