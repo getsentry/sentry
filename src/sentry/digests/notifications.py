@@ -194,6 +194,10 @@ def get_rules_from_workflows(project: Project, workflow_ids: set[int]) -> dict[i
         if alert_workflow:
             if rule := bulk_rules.get(alert_workflow.rule_id):
                 assert rule.project_id == project.id, "Rule must belong to Project"
+                if rule.data.get("actions") == []:
+                    # Nothing to annotate; downstream link building falls back to rule.id.
+                    rules[workflow_id] = rule
+                    continue
                 try:
                     rule.data["actions"][0]["legacy_rule_id"] = rule.id
                     rule.data["actions"][0]["workflow_id"] = workflow_id
@@ -246,6 +250,9 @@ def build_digest(project: Project, records: Sequence[Record]) -> DigestInfo:
     rules = Rule.objects.in_bulk(rule_ids)
 
     for rule in rules.values():
+        if rule.data.get("actions") == []:
+            # Nothing to annotate; downstream link building falls back to rule.id.
+            continue
         try:
             rule.data["actions"][0]["legacy_rule_id"] = rule.id
         except KeyError:

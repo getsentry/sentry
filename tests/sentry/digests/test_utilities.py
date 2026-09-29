@@ -15,7 +15,10 @@ from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.rule import Rule as RuleModel
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
-from sentry.notifications.utils.rules import split_rules_by_rule_workflow_id
+from sentry.notifications.utils.rules import (
+    get_rule_or_workflow_id,
+    split_rules_by_rule_workflow_id,
+)
 from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -108,6 +111,22 @@ class UtilitiesHelpersTestCase(TestCase, SnubaTestCase):
         record = records[0]
         assert record.value.identifier_key == IdentifierKey.RULE
         assert record.value.rules == [rule.data["actions"][0]["legacy_rule_id"]]
+
+    def test_build_digest_with_rule_without_actions(self) -> None:
+        project = self.create_project(fire_project_created=True)
+        rule = self.create_project_rule(project)
+        rule.data["actions"] = []
+        rule.save()
+
+        event = self.store_event(
+            data={"fingerprint": ["group1"], "timestamp": before_now(minutes=1).isoformat()},
+            project_id=project.id,
+        )
+
+        digest = build_digest(project, sort_records([event_to_record(event, (rule,))]))[0]
+
+        assert list(digest) == [rule]
+        assert get_rule_or_workflow_id(rule) == ("legacy_rule_id", str(rule.id))
 
 
 def assert_rule_ids(digest: Digest, expected_rule_ids: list[int]) -> None:

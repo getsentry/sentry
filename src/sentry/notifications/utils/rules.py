@@ -8,7 +8,8 @@ RuleIdType = Literal["workflow_id", "legacy_rule_id"]
 
 
 def get_key_from_rule_data(rule: Rule, key: str) -> str:
-    value = rule.data.get("actions", [{}])[0].get(key)
+    actions = rule.data.get("actions") or [{}]
+    value = actions[0].get(key)
     assert value is not None
     return value
 
