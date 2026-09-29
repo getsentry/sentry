@@ -16,7 +16,11 @@ jest.mock('sentry/views/performance/traceDetails/traceDrawer/tabs/traceAiSpans',
 }));
 jest.mock(
   'sentry/views/performance/traceDetails/traceDrawer/tabs/traceAiConversations',
-  () => ({TraceAiConversations: () => <div>ai-conversations</div>})
+  () => ({
+    TraceAiConversations: ({conversationIds}: {conversationIds: string[]}) => (
+      <div>ai-conversations-{conversationIds.length}</div>
+    ),
+  })
 );
 
 const mockUseAITrace = jest.mocked(useAITrace);
@@ -45,7 +49,7 @@ describe('TraceAiTab', () => {
     });
     rerender(<TraceAiTab traceSlug="trace-slug" />);
 
-    expect(screen.getByText('ai-conversations')).toBeInTheDocument();
+    expect(screen.getByText('ai-conversations-1')).toBeInTheDocument();
     expect(mockTrackAnalytics).toHaveBeenCalledTimes(1);
     expect(mockTrackAnalytics).toHaveBeenCalledWith(
       'agent-monitoring.trace.rendered',
@@ -54,5 +58,30 @@ describe('TraceAiTab', () => {
 
     rerender(<TraceAiTab traceSlug="trace-slug" />);
     expect(mockTrackAnalytics).toHaveBeenCalledTimes(1);
+  });
+
+  it('renders a trace-local transcript without a conversation id', () => {
+    mockUseAITrace.mockReturnValue({
+      nodes: [{} as AITraceSpanNode],
+      isLoading: false,
+      error: false,
+    });
+
+    render(<TraceAiTab traceSlug="trace-slug" />);
+
+    expect(screen.getByText('ai-conversations-0')).toBeInTheDocument();
+  });
+
+  it('uses trace-local data when conversations are unavailable', () => {
+    mockGetStringAttr.mockReturnValue('conversation-1');
+    mockUseAITrace.mockReturnValue({
+      nodes: [{} as AITraceSpanNode],
+      isLoading: false,
+      error: false,
+    });
+
+    render(<TraceAiTab traceSlug="trace-slug" />);
+
+    expect(screen.getByText('ai-conversations-0')).toBeInTheDocument();
   });
 });
