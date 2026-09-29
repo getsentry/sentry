@@ -19,6 +19,10 @@ from sentry.api.helpers.error_upsampling import (
     transform_orderby_for_error_upsampling,
     transform_query_columns_for_error_upsampling,
 )
+from sentry.api.helpers.ingestion_delay import (
+    get_ingestion_delay_status,
+    serialize_ingestion_status,
+)
 from sentry.api.paginator import EAPPageTokenPaginator, GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors
 from sentry.apidocs import constants as api_constants
@@ -32,6 +36,7 @@ from sentry.apidocs.parameters import (
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryTypes
+from sentry.ingestion_delay.meta import IngestionMeta
 from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetTypes
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
@@ -56,6 +61,7 @@ from sentry.snuba.preprod_size import PreprodSize
 from sentry.snuba.processing_errors_rpc import ProcessingErrors
 from sentry.snuba.profile_functions import ProfileFunctions
 from sentry.snuba.referrer import Referrer, is_valid_referrer
+from sentry.snuba.rpc_dataset_common import RPCBase
 from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.snuba.types import DatasetQuery
@@ -108,6 +114,7 @@ class EventsMeta(TypedDict, total=False):
     routingHint: str
     debug_info: Any
     matches: dict[int, RegexRowMatches]
+    ingestion: IngestionMeta
 
 
 # Only used for api docs
@@ -142,6 +149,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
             "organizations:on-demand-metrics-extraction",
             "organizations:on-demand-metrics-extraction-widgets",
             "organizations:events-endpoint-transactions-discover-blocked",
+            "organizations:measured-ingestion-delay-metadata",
         ]
         batch_features = features.batch_has(
             feature_names,
@@ -721,10 +729,19 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
 
         max_per_page = 9999 if dataset in RPC_DATASETS else None
 
+        # Only the EAP RPC datasets can measure ingestion delay, and only the item types the
+        # outcomes lookup understands. The rest would just log an unsupported item type.
+
+        include_measured_ingestion_delay_metadata = request.GET.get(
+            "includeMeasuredIngestionDelayMetadata"
+        ) is not None and batch_features.get(
+            "organizations:measured-ingestion-delay-metadata", False
+        )
+
         def _handle_results(results):
             # Apply error upsampling for regular Events API
             self.handle_error_upsampling(snuba_params.project_ids, results)
-            return self.handle_results_with_meta(
+            handled = self.handle_results_with_meta(
                 request,
                 organization,
                 snuba_params.project_ids,
@@ -732,6 +749,15 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                 standard_meta=True,
                 dataset=dataset,
             )
+            if (
+                include_measured_ingestion_delay_metadata
+                and isinstance(dataset, type)
+                and issubclass(dataset, RPCBase)
+            ):
+                status = get_ingestion_delay_status(dataset, snuba_params)
+                if status is not None:
+                    handled["meta"]["ingestion"] = serialize_ingestion_status(status)
+            return handled
 
         with handle_query_errors():
             # Don't include cursor headers if the client won't be using them

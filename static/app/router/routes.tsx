@@ -2597,22 +2597,27 @@ function buildRoutes(): RouteObject[] {
   const adminManageChildren: SentryRouteObject[] = [
     {
       index: true,
+      name: t('Environment'),
       component: make(() => import('sentry/views/admin/adminEnvironment')),
     },
     {
       path: 'relays/',
+      name: t('Relays'),
       component: make(() => import('sentry/views/admin/adminRelays')),
     },
     {
       path: 'organizations/',
+      name: t('Organizations'),
       component: make(() => import('sentry/views/admin/adminOrganizations')),
     },
     {
       path: 'projects/',
+      name: t('Projects'),
       component: make(() => import('sentry/views/admin/adminProjects')),
     },
     {
       path: 'settings/',
+      name: t('Settings'),
       component: make(() => import('sentry/views/admin/adminSettings')),
     },
     {
@@ -2632,18 +2637,22 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: 'status/mail/',
+      name: t('Mail'),
       component: make(() => import('sentry/views/admin/adminMail')),
     },
     {
       path: 'status/environment/',
+      name: t('Environment'),
       component: make(() => import('sentry/views/admin/adminEnvironment')),
     },
     {
       path: 'status/packages/',
+      name: t('Packages'),
       component: make(() => import('sentry/views/admin/adminPackages')),
     },
     {
       path: 'status/warnings/',
+      name: t('Warnings'),
       component: make(() => import('sentry/views/admin/adminWarnings')),
     },
   ];
@@ -2652,6 +2661,7 @@ function buildRoutes(): RouteObject[] {
   // the SaaS admin routes in getsentry.
   const adminManageRoutes: SentryRouteObject = {
     path: '/manage/',
+    name: t('Settings'),
     component: make(() => import('sentry/views/admin/adminLayout')),
     children: adminManageChildren,
   };

@@ -1,8 +1,7 @@
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {Stack} from '@sentry/scraps/layout';
+import {Container, Flex, type ContainerProps} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
-import {Heading, Prose} from '@sentry/scraps/text';
 
 import {IconClose, IconCopy} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -10,7 +9,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useDismissAlert} from 'sentry/utils/useDismissAlert';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {AI_INSTRUMENTATION_DOCS_LINKS} from 'sentry/views/insights/pages/agents/utils/docsLinks';
 
 const CAPTURE_MESSAGES_PROMPT = `
 > Sentry AI agent monitoring is already instrumented in this app, but the conversation input and output messages are not being recorded, so the Sentry Conversations view is empty.
@@ -35,7 +33,7 @@ function CopyCaptureMessagesPromptButton() {
 
   return (
     <Button
-      size="sm"
+      size="xs"
       icon={<IconCopy />}
       onClick={() => {
         trackAnalytics('agent-monitoring.copy-llm-prompt-click', {organization});
@@ -49,55 +47,75 @@ function CopyCaptureMessagesPromptButton() {
   );
 }
 
-export function ConversationMissingMessagesAlert() {
+interface ConversationMissingMessagesAlertProps {
+  /**
+   * Scopes the dismissal, so each page that shows the banner can be dismissed
+   * independently.
+   */
+  dismissKey: string;
+  docsLink: string;
+  /**
+   * Spacing around the banner. Applied here rather than by the caller, so it
+   * goes away together with the banner once it is dismissed.
+   */
+  padding?: ContainerProps['padding'];
+  /**
+   * Whether the banner describes a single conversation or the conversations
+   * listed on the page.
+   */
+  plural?: boolean;
+}
+
+/**
+ * Shown when conversations captured no input or output messages. Points to
+ * the docs for enabling input/output capture and offers a prompt that lets an
+ * AI agent set it up. Dismissible, since leaving capture disabled can be
+ * intentional.
+ */
+export function ConversationMissingMessagesAlert({
+  dismissKey,
+  docsLink,
+  padding,
+  plural = false,
+}: ConversationMissingMessagesAlertProps) {
   const organization = useOrganization();
   const {dismiss, isDismissed} = useDismissAlert({
-    key: `${organization.id}:conversation-missing-messages-alert`,
+    key: `${organization.id}:${dismissKey}`,
   });
 
   if (isDismissed) {
     return null;
   }
 
+  const link = <ExternalLink href={docsLink} />;
+
   return (
-    <Alert.Container>
+    <Container padding={padding}>
       <Alert
-        variant="info"
+        variant="muted"
         trailingItems={
-          <Button
-            aria-label={t('Dismiss banner')}
-            icon={<IconClose variant="accent" />}
-            onClick={dismiss}
-            size="zero"
-            variant="transparent"
-          />
+          <Flex align="center" gap="md">
+            <CopyCaptureMessagesPromptButton />
+            <Button
+              aria-label={t('Dismiss banner')}
+              icon={<IconClose />}
+              onClick={dismiss}
+              size="zero"
+              variant="transparent"
+            />
+          </Flex>
         }
       >
-        <Stack direction="column" gap="md" paddingTop="2xs">
-          <Heading as="h4" variant="accent">
-            {t('Capture Your Conversation Messages')}
-          </Heading>
-          <Prose>
-            {t(
-              'These conversations are missing their input and output. Make sure message capture is enabled in your SDK so you can see the messages in each conversation.'
+        {plural
+          ? tct(
+              "These conversations' inputs and outputs weren't captured. [link:Enable capturing inputs and outputs] in your SDK to see the messages here.",
+              {link}
+            )
+          : tct(
+              "This conversation's inputs and outputs weren't captured. [link:Enable capturing inputs and outputs] in your SDK to see the messages here.",
+              {link}
             )}
-          </Prose>
-          <Prose>
-            {tct(
-              'See the [pythonLink:Python] or [javascriptLink:JavaScript] instrumentation docs for details, or let an AI agent set it up.',
-              {
-                pythonLink: <ExternalLink href={AI_INSTRUMENTATION_DOCS_LINKS.python} />,
-                javascriptLink: (
-                  <ExternalLink href={AI_INSTRUMENTATION_DOCS_LINKS.javascript} />
-                ),
-              }
-            )}
-          </Prose>
-          <Stack direction="row" paddingTop="xs" justify="start">
-            <CopyCaptureMessagesPromptButton />
-          </Stack>
-        </Stack>
       </Alert>
-    </Alert.Container>
+    </Container>
   );
 }

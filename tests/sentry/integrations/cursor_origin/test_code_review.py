@@ -5,6 +5,7 @@ from typing import Any
 from unittest.mock import patch
 
 import pytest
+from django.test import override_settings
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.cursor_origin.code_review import review_event
@@ -23,7 +24,6 @@ REPO = "acme/rocket"
 REPO_EXTERNAL_ID = "r_01example"
 USER_ID = "user_01example"
 FEATURES = {
-    "organizations:gen-ai-features",
     "organizations:code-review-beta",
     "organizations:seer-cursor-origin-support",
 }
@@ -31,6 +31,7 @@ FEATURES = {
 
 def _payload(**overrides: Any) -> dict[str, Any]:
     pull_request: dict[str, Any] = {
+        "id": "pr_01example",
         "number": "17",
         "state": "open",
         "draft": False,
@@ -89,6 +90,14 @@ class ReviewEventTest(TestCase):
         assert review.author_external_id == USER_ID
         assert review.trigger_user == "jane"
 
+    def test_an_empty_handle_is_no_trigger_user(self) -> None:
+        review = _review(
+            "pull_request.created",
+            author={"user": {"id": USER_ID, "email": "jane@example.com", "handle": ""}},
+        )
+
+        assert review.trigger_user is None
+
     def test_an_app_author_is_its_own_contributor(self) -> None:
         review = _review("pull_request.created", author={"app": {"id": "app_01example"}})
 
@@ -96,6 +105,7 @@ class ReviewEventTest(TestCase):
 
 
 @cell_silo_test
+@override_settings(SENTRY_SELF_HOSTED=False)
 class CodeReviewFromWebhookTest(TestCase):
     @pytest.fixture(autouse=True)
     def mock_seer_request(self) -> Generator[None]:

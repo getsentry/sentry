@@ -219,8 +219,7 @@ class TestSpansTask(TestCase):
         self.project.update_option("sentry:enable_auto_release_creation", False)
         spans = self.generate_basic_spans()
 
-        with self.feature("organizations:auto-release-creation"):
-            assert process_segment(spans)
+        assert process_segment(spans)
 
         Environment.objects.get(organization_id=self.organization.id, name="development")
         assert not Release.objects.filter(organization_id=self.organization.id).exists()
@@ -235,26 +234,17 @@ class TestSpansTask(TestCase):
         )
         spans = self.generate_basic_spans()
 
-        with self.feature("organizations:auto-release-creation"):
-            assert process_segment(spans)
+        assert process_segment(spans)
 
         assert ReleaseProject.objects.filter(release=release, project=self.project).exists()
         assert ReleaseProjectEnvironment.objects.filter(
             release_id=release.id, project_id=self.project.id
         ).exists()
 
-    def test_create_models_auto_creation_disabled_without_feature_flag(self) -> None:
-        self.project.update_option("sentry:enable_auto_release_creation", False)
-        spans = self.generate_basic_spans()
-        assert process_segment(spans)
-
-        assert Release.objects.filter(organization_id=self.organization.id).exists()
-
     def test_bump_release_last_seen_auto_creation_disabled(self) -> None:
         self.project.update_option("sentry:enable_auto_release_creation", False)
 
-        with self.feature("organizations:auto-release-creation"):
-            _bump_release_last_seen(self.project, "development", "1.0", timezone.now())
+        _bump_release_last_seen(self.project, "development", "1.0", timezone.now())
 
         assert not Release.objects.filter(organization_id=self.organization.id).exists()
 

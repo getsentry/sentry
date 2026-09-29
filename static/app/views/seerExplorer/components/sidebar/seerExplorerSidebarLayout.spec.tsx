@@ -21,7 +21,7 @@ import {
 
 const POSITION_KEY = 'seer-explorer-sidebar-position';
 
-const seerFeatures = ['seer-explorer', 'gen-ai-features'];
+const seerFeatures = ['seer-explorer'];
 
 const defaultHookReturn: ReturnType<typeof useSeerExplorerModule.useSeerExplorer> = {
   sessionData: null,

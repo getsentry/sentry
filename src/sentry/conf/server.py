@@ -1385,7 +1385,11 @@ LOGGING: LoggingConfig = {
             "propagate": False,
         },
         "arroyo": {"level": "INFO", "handlers": ["console"], "propagate": False},
-        "taskbroker_client": {"level": "INFO", "handlers": ["console"], "propagate": False},
+        "taskbroker_client": {
+            "level": "INFO",
+            "handlers": ["console", "internal"],
+            "propagate": False,
+        },
         # Configure grpc explicitly so its errors aren't dropped by disable_existing_loggers.
         "grpc": {"level": "ERROR", "handlers": ["console"], "propagate": False},
         "static_compiler": {"level": "INFO"},
@@ -3168,9 +3172,6 @@ SENTRY_TEAPOT_URL = f"http://{os.getenv('SENTRY_TEAPOT_HOST', 'localhost:8125')}
 SENTRY_TEAPOT_SHARED_SECRET = os.getenv("SENTRY_TEAPOT_SHARED_SECRET", "")
 
 SENTRY_REPLAYS_SERVICE_URL = "http://localhost:8090"
-
-SENTRY_ISSUE_ALERT_HISTORY = "sentry.rules.history.backends.postgres.PostgresRuleHistoryBackend"
-SENTRY_ISSUE_ALERT_HISTORY_OPTIONS: dict[str, Any] = {}
 
 # This is useful for testing SSO expiry flows
 SENTRY_SSO_EXPIRY_SECONDS = os.environ.get("SENTRY_SSO_EXPIRY_SECONDS", None)
