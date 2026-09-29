@@ -217,7 +217,6 @@ class BlockIterationForMissingPermissionsTest(TestCase):
                     project_id=self.project.id,
                     group_id=self.group.id,
                     run_id=RUN_ID,
-                    iteration_index=0,
                     duration_ms=0,
                     outcome="missing_permissions",
                 )

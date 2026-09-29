@@ -7,6 +7,7 @@ import {Button} from '@sentry/scraps/button';
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {type MarkdownTableColumn} from '@sentry/scraps/markdown';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Heading, Text} from '@sentry/scraps/text';
 import {TextArea} from '@sentry/scraps/textarea';
@@ -18,6 +19,8 @@ import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {ChartContent} from 'sentry/components/seer/markdown/embeds/components/chart';
 import {SeerEmbedBlock} from 'sentry/components/seer/markdown/embeds/components/seerEmbedBlock';
 import {ALL_SEER_EMBED_SCHEMAS} from 'sentry/components/seer/markdown/embeds/schemas';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
+import {COLUMN_ALIGN_JUSTIFY} from 'sentry/components/tables/sortableHeaderCell';
 import {IconArrow, IconClose, IconEllipsis, IconReturn, IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -316,37 +319,58 @@ function QueryResult({
     chart?.subtitle ||
     getChartMetadata(chart);
 
+  // The agent is told to write this as a bare Markdown table, with no prose
+  // around it, so it can run edge to edge beneath the card's inset content.
+  const tableMarkdown = chart ? null : output?.tableMarkdown || null;
+
+  const header =
+    (chartHeaderTitle && chartHeaderTitle !== title) || chartHeaderMetadata ? (
+      <Stack gap="2xs" data-test-id="query-cell-header">
+        {chartHeaderTitle && chartHeaderTitle !== title ? (
+          <Heading as="h3" size="md">
+            {chartHeaderTitle}
+          </Heading>
+        ) : null}
+        {chartHeaderMetadata ? (
+          <Text size="sm" variant="muted">
+            {chartHeaderMetadata}
+          </Text>
+        ) : null}
+      </Stack>
+    ) : null;
+  const body = chart ? (
+    <Container width="100%" overflow="hidden">
+      <ChartContent data={chart} showHeader={false} />
+    </Container>
+  ) : tableMarkdown ? null : isBlockWorking(block) ? (
+    // The result's own header lands here, not the cell title the
+    // card's header above already shows.
+    <InvestigationCellPlaceholder />
+  ) : (
+    <CellProgress state={progressState} />
+  );
+
   return (
     <CellHoverSurface width="100%">
-      <SeerEmbedBlock testId="query-cell" title={title} actions={actions}>
-        {(chartHeaderTitle && chartHeaderTitle !== title) || chartHeaderMetadata ? (
-          <Stack gap="2xs" data-test-id="query-cell-header">
-            {chartHeaderTitle && chartHeaderTitle !== title ? (
-              <Heading as="h3" size="md">
-                {chartHeaderTitle}
-              </Heading>
-            ) : null}
-            {chartHeaderMetadata ? (
-              <Text size="sm" variant="muted">
-                {chartHeaderMetadata}
-              </Text>
-            ) : null}
+      <SeerEmbedBlock
+        actions={actions}
+        gap="0"
+        padding="0"
+        testId="query-cell"
+        title={title}
+      >
+        {/* A table alone has nothing to inset above it; rendering the section
+            anyway would leave its padding as an empty strip. */}
+        {header || hasExecutionAlert(block) || body ? (
+          <Stack gap="md" padding="lg">
+            {header}
+            <CellExecutionAlert block={block} />
+            {body}
           </Stack>
         ) : null}
-        <Container width="100%" overflow="hidden">
-          <CellExecutionAlert block={block} />
-          {chart ? (
-            <ChartContent data={chart} showHeader={false} />
-          ) : output?.tableMarkdown ? (
-            <SeerMarkdown raw={output.tableMarkdown} components={{Table: FlushTable}} />
-          ) : isBlockWorking(block) ? (
-            // The result's own header lands here, not the cell title the
-            // card's header above already shows.
-            <InvestigationCellPlaceholder />
-          ) : (
-            <CellProgress state={progressState} />
-          )}
-        </Container>
+        {tableMarkdown ? (
+          <SeerMarkdown raw={tableMarkdown} components={{Table: QueryResultTable}} />
+        ) : null}
       </SeerEmbedBlock>
     </CellHoverSurface>
   );
@@ -361,9 +385,14 @@ type CellProgressState =
   | 'blockedByCancellation'
   | null;
 
+function hasExecutionAlert(block: InvestigationBlock): boolean {
+  const status = block.currentExecution?.status;
+  return status === 'failed' || status === 'cancelled';
+}
+
 function CellExecutionAlert({block}: {block: InvestigationBlock}) {
   const execution = block.currentExecution;
-  if (execution?.status !== 'failed' && execution?.status !== 'cancelled') {
+  if (!execution || !hasExecutionAlert(block)) {
     return null;
   }
   const failed = execution.status === 'failed';
@@ -518,11 +547,53 @@ function hasCancelledDependency(
   }
   return false;
 }
-function FlushTable({children}: {children: React.ReactNode}) {
+/**
+ * A query's results arrive as a Markdown table but render through
+ * `SimpleTable`, the same table the query embeds use, so the two can't drift
+ * apart. The Markdown renderer hands over the table's parsed columns, header,
+ * and rows rather than only its `<thead>`/`<tbody>`, which is what lets a grid
+ * table size its columns before any row renders.
+ */
+function QueryResultTable({
+  columns,
+  header,
+  rows,
+}: {
+  columns: MarkdownTableColumn[];
+  header: React.ReactNode[];
+  rows: React.ReactNode[][];
+}) {
   return (
-    <Container overflowX="auto">
-      <QueryTable>{children}</QueryTable>
-    </Container>
+    <FlushSimpleTable
+      // The same split the query embeds' tables use: the leading column tends
+      // to name the row, and the rest hold its values.
+      columns={columns.map((_, index) => ({
+        key: String(index),
+        width: index === 0 ? 'minmax(0, 2fr)' : 'minmax(0, 1fr)',
+      }))}
+      header={
+        <QueryResultHeaderRow>
+          {header.map((cell, index) => (
+            <SimpleTable.HeaderCell key={index} align={columns[index]?.align}>
+              {cell}
+            </SimpleTable.HeaderCell>
+          ))}
+        </QueryResultHeaderRow>
+      }
+    >
+      {rows.map((row, rowIndex) => (
+        <SimpleTable.Row key={rowIndex}>
+          {row.map((cell, cellIndex) => (
+            <SimpleTable.RowCell
+              key={cellIndex}
+              justify={COLUMN_ALIGN_JUSTIFY[columns[cellIndex]?.align ?? 'left']}
+            >
+              {cell}
+            </SimpleTable.RowCell>
+          ))}
+        </SimpleTable.Row>
+      ))}
+    </FlushSimpleTable>
   );
 }
 
@@ -1191,9 +1262,24 @@ const CellHoverSurface = styled(Stack)`
   }
 `;
 
-const QueryTable = styled('table')`
-  min-width: 100%;
-  border-collapse: collapse;
+/**
+ * The table runs edge to edge in the query card, whose own border already
+ * frames it, so `SimpleTable`'s border and rounding would draw a second box
+ * inside the first. Only the top rule stays, dividing the header from the
+ * card's header band or the content inset above it.
+ */
+const FlushSimpleTable = styled(SimpleTable)`
+  border-width: 1px 0 0;
+  border-radius: 0;
+`;
+
+/**
+ * Square corners to sit flush with the table, and a slimmer row than
+ * SimpleTable's own header, per the query card design.
+ */
+const QueryResultHeaderRow = styled(SimpleTable.HeaderRow)`
+  border-radius: 0;
+  min-height: ${p => p.theme.space['3xl']};
 `;
 
 const RefinementDisclosure = styled(Disclosure)`

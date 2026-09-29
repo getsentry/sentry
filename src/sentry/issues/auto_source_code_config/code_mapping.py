@@ -387,7 +387,7 @@ def convert_stacktrace_frame_path_to_source_path(
 
     candidate_paths = (
         stacktrace_path,
-        frame.abs_path if code_mapping.stack_root else None,
+        frame.abs_path,
     )
     for candidate_path in candidate_paths:
         if not candidate_path:

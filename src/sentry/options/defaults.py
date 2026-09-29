@@ -1732,6 +1732,16 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Stage of each legacy inbound filter list on its way into custom inbound filter rows,
+# keyed by list: releases, error_messages, log_messages, trace_metric_names. A value is
+# off, double_write, rows or v2; a missing list is off. See sentry.ingest.legacy_filter_lists.
+register(
+    "custom-inbound-filters.legacy-filter-stage",
+    default={},
+    type=Dict,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Controls the encoding used in Relay for encoding distributions and sets
 # when writing to Kafka.
 #
