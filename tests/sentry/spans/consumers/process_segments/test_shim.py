@@ -64,6 +64,15 @@ class TestBuildShimEventData:
         assert event["timestamp"] == segment_span["end_timestamp"]
         assert event["transaction"] == attribute_value(segment_span, "sentry.segment.name")
 
+    def test_defaults_platform_to_other(self) -> None:
+        segment_span = build_segment_span(
+            attributes={"sentry.platform": {"value": "", "type": "string"}}
+        )
+
+        event = build_shim_event_data(segment_span, [segment_span])
+
+        assert event["platform"] == "other"
+
     def test_reconstructs_contexts(self) -> None:
         segment_span = build_segment_span(
             attributes={
