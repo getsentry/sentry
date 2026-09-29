@@ -11,6 +11,7 @@ sentry_frontend_snapshots_workflow_file: &sentry_frontend_snapshots_workflow_fil
 testable_modified: &testable_modified
   - added|modified: 'package.json'
   - added|modified: 'static/**/!(*.generated).{ts,tsx,js,jsx,mjs}'
+  - added|modified: 'packages/scraps/src/**/*.{ts,tsx}'
   - added|modified: 'tests/js/**/*'
   - added|deleted|modified: 'fixtures/search-syntax/**/*'
 

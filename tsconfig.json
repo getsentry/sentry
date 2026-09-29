@@ -46,7 +46,9 @@
     "verbatimModuleSyntax": true,
 
     "paths": {
-      "@sentry/scraps/*": ["./static/app/components/core/*"],
+      "@sentry/scraps/text": ["./static/app/components/core/text/index.tsx"],
+      "@sentry/scraps": ["./packages/scraps/src/index.ts"],
+      "@sentry/scraps/*": ["./packages/scraps/src/*", "./static/app/components/core/*"],
       "sentry/*": ["./static/app/*"],
       "sentry-fixture/*": ["./tests/js/fixtures/*"],
       "sentry-test/*": ["./tests/js/sentry-test/*"],
@@ -63,6 +65,7 @@
   "include": [
     "*.config.*s",
     "static/app",
+    "packages/scraps/src",
     "static/gsApp",
     "static/gsAdmin",
     "static/oxlint",
@@ -70,5 +73,9 @@
     "config",
     "scripts"
   ],
-  "exclude": ["./node_modules", "static/app/serviceWorker/worker"]
+  "exclude": [
+    "./node_modules",
+    "static/app/serviceWorker/worker",
+    "packages/scraps/src/**/*.spec.tsx"
+  ]
 }

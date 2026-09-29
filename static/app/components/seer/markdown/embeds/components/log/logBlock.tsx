@@ -5,6 +5,7 @@ import {useQuery} from '@tanstack/react-query';
 import {Tag} from '@sentry/scraps/badge';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
+import type {TagVariant} from '@sentry/scraps/theme';
 
 import {DateTime} from 'sentry/components/dateTime';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -20,7 +21,6 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {toSplicedSorted} from 'sentry/utils/array/toSplicedSorted';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getShortEventId} from 'sentry/utils/events';
-import type {TagVariant} from 'sentry/utils/theme/types';
 import {unreachable} from 'sentry/utils/unreachable';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';

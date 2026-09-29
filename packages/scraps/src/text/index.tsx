@@ -1,2 +1,2 @@
-export {Text, type TextProps} from './text';
+export {Text, type TextProps, type TextPropsWithRenderFunction} from './text';
 export {Heading, type HeadingProps} from './heading';

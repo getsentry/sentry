@@ -9,8 +9,7 @@ import {build} from 'esbuild';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const packageJson = JSON.parse(readFileSync(resolve(root, 'package.json'), 'utf8'));
 const entries = {};
-const sourceRoot = resolve(root, '.generated/src');
-execFileSync('node', ['scripts/sync.mjs'], {cwd: root, stdio: 'inherit'});
+const sourceRoot = resolve(root, 'src');
 await rm(resolve(root, 'dist'), {recursive: true, force: true});
 
 for (const [subpath, target] of Object.entries(packageJson.exports)) {
@@ -23,7 +22,7 @@ for (const [subpath, target] of Object.entries(packageJson.exports)) {
   }
 }
 for (const relative of await readdir(sourceRoot, {recursive: true})) {
-  if (!/\.tsx?$/.test(relative)) {
+  if (!/\.tsx?$/.test(relative) || relative.endsWith('.spec.tsx')) {
     continue;
   }
   entries[relative.replace(/\.tsx?$/, '')] = resolve(sourceRoot, relative);
@@ -82,14 +81,10 @@ for (const relative of await readdir(dist, {recursive: true})) {
   }
 }
 
-execFileSync(
-  resolve(root, '../../node_modules/.bin/tsc'),
-  ['--project', 'tsconfig.json'],
-  {
-    cwd: root,
-    stdio: 'inherit',
-  }
-);
+execFileSync(resolve(root, 'node_modules/.bin/tsc'), ['--project', 'tsconfig.json'], {
+  cwd: root,
+  stdio: 'inherit',
+});
 for (const relative of await readdir(dist, {recursive: true})) {
   if (!relative.endsWith('.d.ts')) {
     continue;

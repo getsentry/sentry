@@ -7,9 +7,8 @@ Each entry points to built JavaScript and declarations. Add an entry only when
 its runtime and type dependencies belong to the package or are declared as
 dependencies.
 
-[entries.json](./entries.json) lists the Sentry source files copied into the
-temporary build directory. The local build, sync, and verification scripts live
-in [scripts](./scripts). The package's `files` list includes `dist`, while npm
+The package owns its source in [src](./src). The build and verification scripts
+live in [scripts](./scripts). The package's `files` list includes `dist`, while npm
 also includes package metadata, this README, and the license. Verification
 checks that the scripts are absent from the tarball.
 
@@ -20,8 +19,33 @@ subpaths are in this package. For example, the hotkey story uses `Hotkey` and
 story's import to a package consumer.
 
 The [Scraps contribution guide](../../static/app/components/core/overview/contributing.mdx)
-identifies Figma as the source of truth for design tokens. This package copies
-the generated Sentry token files; change tokens through that source process.
+identifies Figma as the source of truth for design tokens. The generated theme
+and token files live in this package; change tokens through that source process.
+
+## Use package sources in Sentry
+
+TypeScript, Rspack, Jest, and Figma resolve `@sentry/scraps/*` from `src` first,
+then fall back to `static/app/components/core/*` for unmigrated modules. The
+app keeps the exact `@sentry/scraps/text` alias on the core barrel while it still
+exports `Prose`. The core `code` and `hotkey` barrels also remain in the app.
+These barrels re-export migrated implementations from the package.
+
+Move components and their tests into `src` as they become isolated. Stories
+remain in the app. Once all components are migrated, remove the core fallback
+and use a workspace dependency.
+
+## Test the package
+
+Run the isolated component suite and its typecheck from the repository root:
+
+```sh
+pnpm --dir packages/scraps test
+pnpm --dir packages/scraps typecheck
+```
+
+Tests import React Testing Library directly and pass `ThemeWrapper` as the
+`wrapper` option. The package owns its Jest config and setup in `test`, including
+the copied `getEmotionRules` helper. No Sentry providers or test aliases are used.
 
 ## Verify the package
 

@@ -4,9 +4,6 @@ on:
   pull_request:
     paths:
       - 'packages/scraps/**'
-      - 'static/app/components/core/**'
-      - 'static/app/utils/theme/scraps/**'
-      - 'static/app/utils/theme/types.tsx'
       - 'pnpm-workspace.yaml'
       - 'pnpm-lock.yaml'
       - '.github/workflows/scraps-package.yml'
@@ -23,6 +20,8 @@ jobs:
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
       - uses: ./.github/actions/setup-node-pnpm
+      - run: pnpm --dir packages/scraps typecheck
+      - run: pnpm --dir packages/scraps test --ci --maxWorkers=2
       - run: pnpm --dir packages/scraps verify
       - name: Pack release artifact
         if: startsWith(github.ref, 'refs/heads/scraps-releases/')

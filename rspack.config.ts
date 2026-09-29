@@ -501,7 +501,18 @@ const appConfig: Configuration = {
       'sentry-logos': path.join(sentryDjangoAppPath, 'images', 'logos'),
       'sentry-fonts': path.join(staticPrefix, 'fonts'),
 
-      '@sentry/scraps': path.join(staticPrefix, 'app', 'components', 'core'),
+      // Keep Prose available until the text barrel is fully isolated.
+      '@sentry/scraps/text$': path.join(
+        staticPrefix,
+        'app',
+        'components',
+        'core',
+        'text'
+      ),
+      '@sentry/scraps': [
+        path.join(import.meta.dirname, 'packages', 'scraps', 'src'),
+        path.join(staticPrefix, 'app', 'components', 'core'),
+      ],
 
       getsentry: path.join(staticPrefix, 'gsApp'),
       'getsentry-images': path.join(staticPrefix, 'images'),

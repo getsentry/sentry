@@ -52,14 +52,10 @@ try {
       join(consumer, 'entry.mts'),
       `import * as entry from '${specifier}';\nvoid entry;\n`
     );
-    execFileSync(
-      resolve(root, '../../node_modules/.bin/tsc'),
-      ['--project', 'tsconfig.json'],
-      {
-        cwd: consumer,
-        stdio: 'inherit',
-      }
-    );
+    execFileSync(resolve(root, 'node_modules/.bin/tsc'), ['--project', 'tsconfig.json'], {
+      cwd: consumer,
+      stdio: 'inherit',
+    });
     const runtime = await import(join(installed, packageJson.exports[subpath].import));
     if (!Object.keys(runtime).length && subpath !== './cssTypes') {
       throw new Error(`Empty runtime entry: ${specifier}`);

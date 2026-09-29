@@ -9,11 +9,12 @@
     "strict": true,
     "declaration": true,
     "emitDeclarationOnly": true,
-    "rootDir": ".generated/src",
+    "rootDir": "src",
     "outDir": "dist",
     "skipLibCheck": true,
     "types": [],
-    "paths": {"@sentry/scraps/*": ["./.generated/src/*"]}
+    "paths": {"@sentry/scraps/*": ["./src/*"]}
   },
-  "include": [".generated/src"]
+  "include": ["src"],
+  "exclude": ["src/**/*.spec.tsx"]
 }

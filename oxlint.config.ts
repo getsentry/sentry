@@ -189,7 +189,10 @@ const storyFilesPolicy = {
 };
 
 const testFiles = ['**/*.spec.{ts,js,tsx,jsx}', 'tests/js/**/*.{ts,js,tsx,jsx}'];
-const coreComponentFiles = ['static/app/components/core/**/*.{js,mjs,ts,jsx,tsx}'];
+const coreComponentFiles = [
+  'static/app/components/core/**/*.{js,mjs,ts,jsx,tsx}',
+  'packages/scraps/src/**/*.{ts,tsx}',
+];
 
 /**
  * Import linting uses two complementary approaches:
@@ -283,12 +286,12 @@ const config = defineConfig({
       },
       {
         type: 'test',
-        pattern: 'tests/js',
+        pattern: ['tests/js', 'packages/scraps/test'],
       },
       // Scraps core components.
       {
         type: 'scraps',
-        pattern: 'static/app/components/core',
+        pattern: ['static/app/components/core', 'packages/scraps/src'],
       },
       // Sentry application and assets.
       {
@@ -350,6 +353,7 @@ const config = defineConfig({
         category: 'test',
         pattern: [
           'static/**/*.spec.{js,jsx,ts,tsx}',
+          'packages/scraps/src/**/*.spec.tsx',
           'static/**/*.test.{js,jsx,ts,tsx}',
           'static/**/*.snapshots.{js,jsx,ts,tsx}',
           'tests/js/**/*.spec.{js,jsx,ts,tsx}',
@@ -361,6 +365,7 @@ const config = defineConfig({
         pattern: [
           'tests/js/fixtures/**/*',
           'tests/js/sentry-test/**/*',
+          'packages/scraps/test/**/*',
           'tests/js/getsentry-test/**/*',
           'static/gsApp/__fixtures__/**/*',
           'static/**/*{t,T}estUtils*.{js,jsx,mjs,ts,tsx}',
@@ -401,7 +406,6 @@ const config = defineConfig({
     '!tests/js/**/*',
     '**/vendor/**/*',
     'build-utils/**/*',
-    'packages/scraps/.generated/**/*',
     'config/chartcuterie/config.js',
     'figma.config.json',
     'fixtures/artifact_bundle/**/*',
@@ -1679,7 +1683,7 @@ const config = defineConfig({
     // Scraps is its own component library rather than ordinary app code, and a
     // handful of its internal imports are deliberately parent-relative.
     {
-      files: ['static/app/components/core/**/*.{js,mjs,ts,jsx,tsx}'],
+      files: coreComponentFiles,
       rules: {
         'import/no-relative-parent-imports': 'off',
       },
@@ -1691,6 +1695,10 @@ const config = defineConfig({
       rules: {
         'import/no-relative-parent-imports': 'off',
       },
+    },
+    {
+      files: ['packages/scraps/*.config.mjs'],
+      rules: {'boundaries/no-unknown-files': 'off'},
     },
     {
       files: ['packages/scraps/scripts/*.mjs'],
@@ -1815,6 +1823,31 @@ const config = defineConfig({
                 message: 'Translations are not needed in tests.',
               },
             ],
+          },
+        ],
+      },
+    },
+    {
+      files: [
+        'packages/scraps/src/**/*.spec.tsx',
+        'packages/scraps/test/**/*.{ts,tsx,mjs}',
+      ],
+      rules: {
+        'import/no-relative-parent-imports': 'off',
+        'import/no-nodejs-modules': 'off',
+        'no-restricted-imports': [
+          'error',
+          {
+            patterns: [
+              ...restrictedImportPatterns,
+              {
+                group: ['sentry/*', 'sentry-test/*', 'sentry-fixture/*'],
+                message: 'Scraps tests must be independent of the Sentry application.',
+              },
+            ],
+            paths: restrictedImportPaths.filter(
+              ({name}) => !name.startsWith('@testing-library/')
+            ),
           },
         ],
       },
