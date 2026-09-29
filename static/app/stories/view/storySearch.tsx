@@ -230,7 +230,9 @@ export function StorySearch() {
     // Section headings and tokens make weak matches common in the sections
     // listed first, so lead with the section that holds the best match.
     return inputValue.trim()
-      ? results.sort((a, b) => compareMatches(a.options[0]!, b.options[0]!))
+      ? results.sort(({options: [a]}, {options: [b]}) =>
+          a && b ? compareMatches(a, b) : 0
+        )
       : results;
   }, [hierarchy, inputValue, theme]);
 
