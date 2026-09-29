@@ -460,7 +460,10 @@ class Exception(Interface):
         for index, value in values.items():
             if not index.isdigit():
                 continue
-            exc = self.values[int(index)]
+            try:
+                exc = self.values[int(index)]
+            except IndexError:
+                continue
             if exc is not None:
                 result[index] = exc.get_api_meta(value, is_public=is_public, platform=platform)
 
