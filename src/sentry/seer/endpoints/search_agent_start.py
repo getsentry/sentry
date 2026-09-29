@@ -69,14 +69,6 @@ class SearchAgentStartSerializer(serializers.Serializer):
             return None
         if "model_name" in value and not isinstance(value["model_name"], str):
             raise serializers.ValidationError("model_name must be a string")
-        if value.get("result_target") is not None:
-            try:
-                SearchAgentResultTarget(value["result_target"])
-            except ValueError:
-                raise serializers.ValidationError(
-                    "result_target must be one of: "
-                    + ", ".join(target.value for target in SearchAgentResultTarget)
-                ) from None
         return value
 
 
@@ -166,12 +158,7 @@ class SearchAgentStartEndpoint(OrganizationEndpoint):
         model_name = options.get("model_name")
         metric_context = options.get("metric_context")
         code_mode_toggle = bool(options.get("code_mode"))
-        declared_result_target = options.get("result_target")
-        result_target = (
-            SearchAgentResultTarget(declared_result_target)
-            if declared_result_target is not None
-            else infer_result_target(request)
-        )
+        result_target = infer_result_target(request)
         sentry_sdk.set_tag("search_agent.result_target", result_target.value)
 
         projects = self.get_projects(
