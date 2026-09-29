@@ -158,3 +158,46 @@ class RequestReviewTest(TestCase):
         self._request(_event())
 
         self.mock_seer.assert_not_called()
+
+    def _logged(self, event: PullRequestReviewEvent) -> dict[str, dict[str, Any]]:
+        with patch("sentry.seer.code_review.webhooks.review_request.logger") as logger:
+            self._request(event)
+        return {call.args[0]: call.kwargs["extra"] for call in logger.info.call_args_list}
+
+    @with_feature(CODE_REVIEW_FEATURES)
+    def test_a_scheduled_review_is_logged(self) -> None:
+        self._enable()
+
+        logged = self._logged(_event())
+
+        extra = logged["code_review.review_request.scheduled"]
+        assert extra["organization_id"] == self.organization.id
+        assert extra["repository_id"] == self.repo.id
+        assert extra["provider"] == "github"
+        assert extra["pr_number"] == 17
+
+    @with_feature(CODE_REVIEW_FEATURES)
+    def test_a_denial_is_logged_with_its_reason(self) -> None:
+        self._enable()
+
+        logged = self._logged(_event(author_external_id="9999"))
+
+        assert logged["code_review.review_request.denied"]["denial_reason"] == (
+            "org_contributor_not_found"
+        )
+
+    @with_feature(CODE_REVIEW_FEATURES)
+    def test_a_disabled_trigger_is_logged(self) -> None:
+        self._enable([CodeReviewTrigger.ON_READY_FOR_REVIEW])
+
+        logged = self._logged(_event(trigger=CodeReviewTrigger.ON_NEW_COMMIT))
+
+        assert "code_review.review_request.trigger_disabled" in logged
+
+    @with_feature(CODE_REVIEW_FEATURES)
+    def test_a_skipped_draft_is_logged(self) -> None:
+        self._enable()
+
+        logged = self._logged(_event(is_draft=True))
+
+        assert "code_review.review_request.draft_skipped" in logged

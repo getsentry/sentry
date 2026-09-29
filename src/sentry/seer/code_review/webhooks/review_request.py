@@ -68,6 +68,14 @@ def request_review(
     integration: RpcIntegration,
 ) -> None:
     record_webhook_received(event.event_type, event.action)
+    log_extra = {
+        "organization_id": organization.id,
+        "repository_id": repo.id,
+        "provider": integration.provider,
+        "event_type": event.event_type,
+        "action": event.action,
+        "pr_number": event.pr_number,
+    }
 
     preflight = CodeReviewPreflightService(
         organization=organization,
@@ -78,6 +86,10 @@ def request_review(
     if not preflight.allowed:
         if preflight.denial_reason:
             record_webhook_filtered(event.event_type, event.action, preflight.denial_reason)
+        logger.info(
+            "code_review.review_request.denied",
+            extra={**log_extra, "denial_reason": preflight.denial_reason},
+        )
         return
 
     triggers = preflight.settings.triggers if preflight.settings else []
@@ -86,12 +98,18 @@ def request_review(
         record_webhook_filtered(
             event.event_type, event.action, WebhookFilteredReason.TRIGGER_DISABLED
         )
+        logger.info(
+            "code_review.review_request.trigger_disabled",
+            extra={**log_extra, "trigger": event.trigger},
+        )
         return
 
     if event.is_draft and not event.is_close:
+        logger.info("code_review.review_request.draft_skipped", extra=log_extra)
         return
 
     _schedule(event, organization=organization, repo=repo, integration=integration)
+    logger.info("code_review.review_request.scheduled", extra=log_extra)
 
 
 def _schedule(

@@ -219,7 +219,12 @@ class CodeReviewFromWebhookTest(TestCase):
 
     @with_feature(FEATURES - {"organizations:seer-cursor-origin-support"})
     def test_nothing_happens_without_the_origin_flag(self) -> None:
-        self._handle("pull_request.created")
+        with patch("sentry.integrations.cursor_origin.code_review.logger") as logger:
+            self._handle("pull_request.created")
 
         self.mock_seer.assert_not_called()
         assert not OrganizationContributors.objects.exists()
+        logger.info.assert_called_once_with(
+            "cursor_origin.code_review.feature_disabled",
+            extra={"organization_id": self.organization.id, "repository_id": self.repo.id},
+        )
