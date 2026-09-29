@@ -1,3 +1,4 @@
+import {useQueryClient} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
 import {Link} from '@sentry/scraps/link';
@@ -9,7 +10,6 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useApi} from 'sentry/utils/useApi';
 import {useParams} from 'sentry/utils/useParams';
 
@@ -25,7 +25,13 @@ export function PolicyDetails() {
   const {openModal} = useModal();
 
   const api = useApi();
+  const queryClient = useQueryClient();
   const {policySlug} = useParams<{policySlug: string}>();
+  const revisionsUrl = getApiUrl('/policies/$policySlug/revisions/', {
+    path: {policySlug},
+  });
+  const refreshRevisions = () =>
+    queryClient.invalidateQueries({queryKey: [revisionsUrl]});
 
   const {
     data: policy,
@@ -60,7 +66,7 @@ export function PolicyDetails() {
         method: 'PUT',
         data,
       });
-      testableWindowLocation.reload();
+      await Promise.all([refetch(), refreshRevisions()]);
     } catch {
       addErrorMessage('There was an error when updating the current policy version.');
     }
@@ -106,7 +112,10 @@ export function PolicyDetails() {
               <PolicyRevisionModal
                 {...deps}
                 policy={policy}
-                onSuccess={() => testableWindowLocation.reload()}
+                onSuccess={() => {
+                  refetch();
+                  refreshRevisions();
+                }}
               />
             ));
           },
