@@ -151,6 +151,7 @@ AI_CONVERSATION_ATTRIBUTES = [
 
 class AIConversationModelUsage(TypedDict):
     model: str | None
+    llmCalls: int
     inputTokens: int
     outputTokens: int
     totalTokens: int
@@ -219,6 +220,7 @@ def _parse_grouped_stats(rows: Sequence[Mapping[str, Any]]) -> AIConversationSta
             model,
             {
                 "model": model,
+                "llmCalls": 0,
                 "inputTokens": 0,
                 "outputTokens": 0,
                 "totalTokens": 0,
@@ -230,6 +232,7 @@ def _parse_grouped_stats(rows: Sequence[Mapping[str, Any]]) -> AIConversationSta
                 "totalCost": 0,
             },
         )
+        usage["llmCalls"] += llm_calls
         usage["inputTokens"] += model_pair_stats["inputTokens"]
         usage["outputTokens"] += model_pair_stats["outputTokens"]
         usage["totalTokens"] += model_pair_stats["totalTokens"]
