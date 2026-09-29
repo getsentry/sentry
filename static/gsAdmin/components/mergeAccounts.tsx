@@ -3,12 +3,10 @@ import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
+import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 
 import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {TextField} from 'sentry/components/forms/fields/textField';
-import type {FormProps} from 'sentry/components/forms/form';
-import {Form} from 'sentry/components/forms/form';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {User} from 'sentry/types/user';
@@ -40,7 +38,9 @@ export function MergeAccountsModal(props: Props) {
     isPending,
     isError,
     refetch,
-  } = useApiQuery<{users: User[]}>(makeMergeAccountsQueryKey(), {staleTime: 0});
+  } = useApiQuery<{users: User[]}>(makeMergeAccountsQueryKey(), {
+    staleTime: 0,
+  });
 
   const mergeAccounts = fetchedMergeAccounts ?? {users: []};
 
@@ -48,7 +48,7 @@ export function MergeAccountsModal(props: Props) {
     try {
       const encodedUsername = encodeURIComponent(username);
       const data = await api.requestPromise(
-        `/users/${userId}/merge-accounts/?username=${encodedUsername}`
+        `${getApiUrl('/users/$userId/merge-accounts/', {path: {userId}})}?username=${encodedUsername}`
       );
       setApiQueryData(
         queryClient,
@@ -70,10 +70,13 @@ export function MergeAccountsModal(props: Props) {
     mutationFn: async () => {
       const userIds = selectedUserIds;
       addLoadingMessage();
-      await api.requestPromise(`/users/${userId}/merge-accounts/`, {
-        method: 'POST',
-        data: {users: userIds},
-      });
+      await api.requestPromise(
+        getApiUrl('/users/$userId/merge-accounts/', {path: {userId}}),
+        {
+          method: 'POST',
+          data: {users: userIds},
+        }
+      );
     },
     onSuccess: () => {
       clearIndicators();
@@ -86,6 +89,12 @@ export function MergeAccountsModal(props: Props) {
     },
   });
 
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {username: ''},
+    onSubmit: ({value}) => fetchUserByUsername(value.username),
+  });
+
   if (isPending) {
     return <LoadingIndicator />;
   }
@@ -93,10 +102,6 @@ export function MergeAccountsModal(props: Props) {
   if (isError) {
     return <LoadingError onRetry={refetch} />;
   }
-
-  const addUsername: FormProps['onSubmit'] = data => {
-    fetchUserByUsername(data.username);
-  };
 
   const selectUser = (newUserId: string) =>
     setSelectedUserIds(prevSelectedUserIds =>
@@ -126,7 +131,7 @@ export function MergeAccountsModal(props: Props) {
       <Body>
         <h5>Listed accounts will be merged into this user.</h5>
         <div>{renderUsernames()}</div>
-        <Form onSubmit={addUsername} hideFooter>
+        <form.AppForm form={form}>
           {error && (
             <Alert.Container>
               <Alert variant="danger" showIcon={false}>
@@ -134,12 +139,18 @@ export function MergeAccountsModal(props: Props) {
               </Alert>
             </Alert.Container>
           )}
-          <TextField
-            label="Add another username:"
-            name="username"
-            placeholder="username"
-          />
-        </Form>
+          <form.AppField name="username">
+            {field => (
+              <field.Layout.Stack label="Add another username:">
+                <field.Input
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  placeholder="username"
+                />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+        </form.AppForm>
       </Body>
       <Footer>
         <Button onClick={() => doMergeMutation.mutate()} variant="primary">
