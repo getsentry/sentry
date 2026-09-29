@@ -70,6 +70,37 @@ describe('useErrorsSeriesQuery', () => {
     });
   });
 
+  it('excludes the Other series for grouped widgets with multiple aggregates', async () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.LINE,
+      queries: [
+        {
+          name: '',
+          fields: [],
+          aggregates: ['count()', 'count_unique(user)'],
+          columns: ['transaction'],
+          conditions: '',
+          orderby: '',
+        },
+      ],
+    });
+    const mockRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: {},
+    });
+
+    renderHookWithProviders(() =>
+      useErrorsSeriesQuery({widget, organization, pageFilters, enabled: true})
+    );
+
+    await waitFor(() =>
+      expect(mockRequest).toHaveBeenCalledWith(
+        '/organizations/org-slug/events-stats/',
+        expect.objectContaining({query: expect.objectContaining({excludeOther: '1'})})
+      )
+    );
+  });
+
   it('formats Date objects in query parameters', async () => {
     const widget = WidgetFixture({
       displayType: DisplayType.LINE,

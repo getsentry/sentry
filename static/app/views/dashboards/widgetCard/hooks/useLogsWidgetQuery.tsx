@@ -92,6 +92,7 @@ export function useLogsSeriesQuery(
       const queryParams = {
         ...restParams,
         ...(period ? {statsPeriod: period} : {}),
+        excludeOther: restParams.excludeOther ? '1' : undefined,
       };
 
       if (queryParams.start) {

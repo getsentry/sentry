@@ -88,6 +88,37 @@ describe('useSpansSeriesQuery', () => {
     });
   });
 
+  it('excludes the Other series for grouped widgets with multiple aggregates', async () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.LINE,
+      queries: [
+        {
+          name: '',
+          fields: [],
+          aggregates: ['count()', 'avg(span.duration)'],
+          columns: ['transaction'],
+          conditions: '',
+          orderby: '',
+        },
+      ],
+    });
+    const mockRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: {},
+    });
+
+    renderHookWithProviders(() =>
+      useSpansSeriesQuery({widget, organization, pageFilters, enabled: true})
+    );
+
+    await waitFor(() =>
+      expect(mockRequest).toHaveBeenCalledWith(
+        '/organizations/org-slug/events-stats/',
+        expect.objectContaining({query: expect.objectContaining({excludeOther: '1'})})
+      )
+    );
+  });
+
   it('applies dashboard filters correctly', async () => {
     const widget = WidgetFixture({
       displayType: DisplayType.LINE,
