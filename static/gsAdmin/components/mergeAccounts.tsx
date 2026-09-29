@@ -25,7 +25,6 @@ type Props = ModalRenderProps & {
 export function MergeAccountsModal(props: Props) {
   const {userId, onAction, closeModal, Header, Body, Footer} = props;
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
-  const [error, setError] = useState(false);
   const queryClient = useQueryClient();
 
   const endpoint = getApiUrl('/users/$userId/merge-accounts/', {
@@ -53,14 +52,10 @@ export function MergeAccountsModal(props: Props) {
         options: {query: {username}},
       }),
     onSuccess: ({user}) => {
-      setError(false);
       queryClient.setQueryData(accountsQueryOptions.queryKey, previous => ({
         json: {users: [...(previous?.json.users ?? []), user]},
         headers: previous?.headers ?? {},
       }));
-    },
-    onError: () => {
-      setError(true);
     },
   });
 
@@ -125,7 +120,7 @@ export function MergeAccountsModal(props: Props) {
             ))}
           </Stack>
           <form.AppForm form={form}>
-            {error && (
+            {lookupMutation.isError && (
               <Alert.Container>
                 <Alert variant="danger" showIcon={false}>
                   Could not find user(s)
