@@ -102,11 +102,15 @@ class ProjectRepoGetTest(APITestCase):
     def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
+        self.integration, _ = self.create_provider_integration_for(
+            self.organization, self.user, provider="github", name="GitHub", external_id="gh-1"
+        )
         self.repo = Repository.objects.create(
             organization_id=self.organization.id,
             name="getsentry/sentry",
             provider="integrations:github",
             external_id="123",
+            integration_id=self.integration.id,
         )
 
     def test_empty(self) -> None:
@@ -128,52 +132,8 @@ class ProjectRepoGetTest(APITestCase):
         assert row["providerKey"] == "github"
         assert row["source"] == "manual"
         assert row["externalId"] == "123"
-        assert row["integrationId"] is None
+        assert row["integrationId"] == str(self.integration.id)
         assert "mappingCount" not in row
-
-    def test_returns_integration_id_when_set(self) -> None:
-        integration, _ = self.create_provider_integration_for(
-            self.organization, self.user, provider="github", name="GitHub", external_id="gh-1"
-        )
-        repo = Repository.objects.create(
-            organization_id=self.organization.id,
-            name="getsentry/relay",
-            provider="integrations:github",
-            external_id="456",
-            integration_id=integration.id,
-        )
-        ProjectRepository.objects.create(
-            project=self.project,
-            repository=repo,
-            source=ProjectRepositorySource.MANUAL,
-        )
-
-        response = self.get_success_response(self.organization.slug, self.project.slug)
-
-        assert len(response.data) == 1
-        assert response.data[0]["integrationId"] == str(integration.id)
-
-    def test_returns_external_id_when_set(self) -> None:
-        integration, _ = self.create_provider_integration_for(
-            self.organization, self.user, provider="github", name="GitHub", external_id="gh-1"
-        )
-        repo = Repository.objects.create(
-            organization_id=self.organization.id,
-            name="getsentry/relay",
-            provider="integrations:github",
-            external_id="456",
-            integration_id=integration.id,
-        )
-        ProjectRepository.objects.create(
-            project=self.project,
-            repository=repo,
-            source=ProjectRepositorySource.MANUAL,
-        )
-
-        response = self.get_success_response(self.organization.slug, self.project.slug)
-
-        assert len(response.data) == 1
-        assert response.data[0]["externalId"] == "456"
 
     def test_include_mapping_count_zero(self) -> None:
         ProjectRepository.objects.create(
@@ -193,7 +153,7 @@ class ProjectRepoGetTest(APITestCase):
 
     def test_include_mapping_count_with_mappings(self) -> None:
         integration, org_integration = self.create_provider_integration_for(
-            self.organization, self.user, provider="github", name="GitHub", external_id="gh-1"
+            self.organization, self.user, provider="github", name="GitHub", external_id="gh-2"
         )
         repo_b = Repository.objects.create(
             organization_id=self.organization.id,
