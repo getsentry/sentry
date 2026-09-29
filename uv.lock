@@ -2358,8 +2358,8 @@ requires-dist = [
     { name = "sentry-forked-email-reply-parser", specifier = ">=0.5.12.post1" },
     { name = "sentry-kafka-schemas", specifier = ">=3.0.2" },
     { name = "sentry-ophio", specifier = ">=1.1.3" },
-    { name = "sentry-options", specifier = ">=1.2.8" },
-    { name = "sentry-protos", specifier = ">=0.75.3" },
+    { name = "sentry-options", specifier = ">=1.2.12" },
+    { name = "sentry-protos", specifier = ">=0.76.1" },
     { name = "sentry-redis-tools", specifier = ">=0.5.0" },
     { name = "sentry-relay", specifier = ">=0.9.31" },
     { name = "sentry-scm", specifier = ">=1.7.1" },
@@ -2529,17 +2529,17 @@ wheels = [
 
 [[package]]
 name = "sentry-options"
-version = "1.2.8"
+version = "1.2.12"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_options-1.2.8-cp311-abi3-macosx_11_0_arm64.whl", hash = "sha256:3597fc6144b4bd2601c2d67b27ad0785ef1ddd5e7e56aee4d651c3bc2c6fd451" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_options-1.2.8-cp311-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:74727b70efb5c3f05a7027c47b46a6ee7e25224ae9a4a45142b3228c86d7b44c" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_options-1.2.8-cp311-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:823fe8ff5e8bbd58b7548eea83c5d9c1811537c2985127de86ba8fe3ea35f858" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_options-1.2.12-cp311-abi3-macosx_11_0_arm64.whl", hash = "sha256:dc1c59d00a1fcd899fd680bdac42cc9f7a88680d114a472a36d740dfc8eddf37" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_options-1.2.12-cp311-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:cd96f01414dc57ed11f82a51d6e2e2ae740be8422f769b29014c54345095c6dd" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_options-1.2.12-cp311-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:33f819a59bd1528d0f9ae8401eb2a9303314b5d96383f2c30ddacdd5f82726b7" },
 ]
 
 [[package]]
 name = "sentry-protos"
-version = "0.75.3"
+version = "0.76.1"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "grpc-stubs" },
@@ -2547,7 +2547,7 @@ dependencies = [
     { name = "protobuf" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_protos-0.75.3-py3-none-any.whl", hash = "sha256:ac839dfcf1382072630021a756c8efacf9121982176666e4da8bef2c80628008" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_protos-0.76.1-py3-none-any.whl", hash = "sha256:617dd03fb23555130da91d33c89399145507d9176ff8c02a92f136da03232433" },
 ]
 
 [[package]]

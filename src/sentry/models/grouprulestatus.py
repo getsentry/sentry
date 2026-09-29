@@ -12,9 +12,9 @@ class GroupRuleStatus(Model):
     ACTIVE = 0
     INACTIVE = 1
 
-    project = FlexibleForeignKey("sentry.Project")
-    rule = FlexibleForeignKey("sentry.Rule")
-    group = FlexibleForeignKey("sentry.Group")
+    project = FlexibleForeignKey("sentry.Project", db_constraint=False)
+    rule = FlexibleForeignKey("sentry.Rule", db_constraint=False)
+    group = FlexibleForeignKey("sentry.Group", db_constraint=False)
     status = models.PositiveSmallIntegerField(default=ACTIVE)
     date_added = models.DateTimeField(default=timezone.now)
     last_active = models.DateTimeField(null=True)

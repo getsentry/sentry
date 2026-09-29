@@ -181,6 +181,7 @@ def build_shim_event_data(
         "timestamp": segment_span["end_timestamp"],
         "start_timestamp": segment_span["start_timestamp"],
         "datetime": to_datetime(segment_span["end_timestamp"]).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "platform": "other",
         **_extract_attribute_values(segment_span, TOP_LEVEL_FIELDS_BY_ATTRIBUTE_NAME),
     }
 
