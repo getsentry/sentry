@@ -27,27 +27,26 @@ export function PolicyDetails() {
   const api = useApi();
   const queryClient = useQueryClient();
   const {policySlug} = useParams<{policySlug: string}>();
+  const policyUrl = getApiUrl('/policies/$policySlug/', {
+    path: {policySlug},
+  });
   const revisionsUrl = getApiUrl('/policies/$policySlug/revisions/', {
     path: {policySlug},
   });
-  const refreshRevisions = () =>
-    queryClient.invalidateQueries({queryKey: [revisionsUrl]});
+  const invalidatePolicyQueries = () =>
+    Promise.all([
+      queryClient.invalidateQueries({queryKey: [policyUrl]}),
+      queryClient.invalidateQueries({queryKey: [revisionsUrl]}),
+    ]);
 
   const {
     data: policy,
     isPending,
     isError,
     refetch,
-  } = useApiQuery<Policy>(
-    [
-      getApiUrl('/policies/$policySlug/', {
-        path: {policySlug},
-      }),
-    ],
-    {
-      staleTime: 0,
-    }
-  );
+  } = useApiQuery<Policy>([policyUrl], {
+    staleTime: 0,
+  });
 
   if (isPending) {
     return <LoadingIndicator />;
@@ -66,7 +65,7 @@ export function PolicyDetails() {
         method: 'PUT',
         data,
       });
-      await Promise.all([refetch(), refreshRevisions()]);
+      await invalidatePolicyQueries();
     } catch {
       addErrorMessage('There was an error when updating the current policy version.');
     }
@@ -112,10 +111,7 @@ export function PolicyDetails() {
               <PolicyRevisionModal
                 {...deps}
                 policy={policy}
-                onSuccess={() => {
-                  refetch();
-                  refreshRevisions();
-                }}
+                onSuccess={invalidatePolicyQueries}
               />
             ));
           },
