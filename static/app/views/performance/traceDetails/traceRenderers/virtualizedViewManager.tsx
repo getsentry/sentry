@@ -133,7 +133,9 @@ export class VirtualizedViewManager {
   > = [];
   span_patterns: Array<Array<{ref: HTMLElement; space: [number, number]} | undefined>> =
     [];
-  invisible_bars: Array<{ref: HTMLElement; space: [number, number]} | undefined> = [];
+  invisible_bars: Array<
+    {kind: 'error' | 'autogroup'; ref: HTMLElement; space: [number, number]} | undefined
+  > = [];
   span_arrows: Array<
     | {
         position: 0 | 1;
@@ -542,10 +544,11 @@ export class VirtualizedViewManager {
   registerInvisibleBarRef(
     ref: HTMLElement | null,
     space: [number, number],
-    index: number
+    index: number,
+    kind: 'error' | 'autogroup'
   ) {
     if (ref) {
-      this.invisible_bars[index] = ref ? {ref, space} : undefined;
+      this.invisible_bars[index] = ref ? {kind, ref, space} : undefined;
       this.drawInvisibleBar(this.invisible_bars[index]);
     }
   }
@@ -2239,8 +2242,10 @@ export class VirtualizedViewManager {
     }
 
     const span_transform = this.computeSpanCSSMatrixTransform(invisible_bar.space);
-    // Error icons use their timestamp without the span bar's end-of-trace offset.
-    span_transform[4] = this.transformXFromTimestamp(invisible_bar.space[0]);
+    if (invisible_bar.kind === 'error') {
+      // Error icons use their timestamp without the span bar's end-of-trace offset.
+      span_transform[4] = this.transformXFromTimestamp(invisible_bar.space[0]);
+    }
     invisible_bar.ref.style.transform = `matrix(${span_transform.join(',')}`;
     const inverseScale = Math.round((1 / span_transform[0]) * 1e4) / 1e4;
     invisible_bar.ref.style.setProperty(

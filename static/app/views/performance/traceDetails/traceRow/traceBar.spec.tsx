@@ -4,12 +4,19 @@ import {ThemeFixture} from 'sentry-fixture/theme';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {EapSpanNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/eapSpanNode';
-import {makeEAPSpan} from 'sentry/views/performance/traceDetails/traceModels/traceTreeTestUtils';
+import {SiblingAutogroupNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/siblingAutogroupNode';
+import {
+  makeEAPSpan,
+  makeSiblingAutogroup,
+} from 'sentry/views/performance/traceDetails/traceModels/traceTreeTestUtils';
 import {TraceScheduler} from 'sentry/views/performance/traceDetails/traceRenderers/traceScheduler';
 import {TraceTimeCompression} from 'sentry/views/performance/traceDetails/traceRenderers/traceTimeCompression';
 import {TraceView} from 'sentry/views/performance/traceDetails/traceRenderers/traceView';
 import {VirtualizedViewManager} from 'sentry/views/performance/traceDetails/traceRenderers/virtualizedViewManager';
-import {InvisibleTraceBar} from 'sentry/views/performance/traceDetails/traceRow/traceBar';
+import {
+  AutogroupedTraceBar,
+  InvisibleTraceBar,
+} from 'sentry/views/performance/traceDetails/traceRow/traceBar';
 
 function createManager({
   compressed,
@@ -114,6 +121,63 @@ describe.each([false, true])('InvisibleTraceBar with compression=%s', compressed
       expect(Number(bar.style.transform.split(',')[4])).toBeCloseTo(
         timestamp === 1000 ? 0 : 500
       );
+    }
+  });
+});
+
+describe.each([false, true])('AutogroupedTraceBar with compression=%s', compressed => {
+  it('preserves the end-of-trace clearance on registration and redraw', () => {
+    const manager = createManager({
+      compressed,
+      traceStart: 0,
+      spanSpaces: [
+        [0, 100],
+        [950, 50],
+      ],
+    });
+    const node = new SiblingAutogroupNode(null, makeSiblingAutogroup(), {
+      organization: OrganizationFixture(),
+    });
+    node.space = [950, 50];
+    manager.columns.list.column_nodes[0] = node;
+
+    render(
+      <AutogroupedTraceBar
+        color="red"
+        entire_space={node.space}
+        errors={node.errors}
+        manager={manager}
+        node={node}
+        node_spaces={[
+          [950, 20],
+          [980, 20],
+        ]}
+        occurrences={node.occurrences}
+        virtualized_index={0}
+      />
+    );
+    const bar = manager.invisible_bars[0]!.ref;
+    expect(Number(bar.style.transform.split(',')[4])).toBeCloseTo(
+      manager.transformXFromTimestamp(950) - 2
+    );
+    if (!compressed) {
+      expect(Number(bar.style.transform.split(',')[4])).toBe(948);
+    }
+
+    manager.view.setTraceView({x: 500, width: 500});
+    redrawInvisibleBars(manager);
+    expect(Number(bar.style.transform.split(',')[4])).toBeCloseTo(
+      manager.transformXFromTimestamp(950) - 2
+    );
+
+    manager.view.setTraceView({x: 0, width: 1000});
+    manager.view.setTracePhysicalSpace([0, 0, 500, 1], [0, 0, 500, 1]);
+    redrawInvisibleBars(manager);
+    expect(Number(bar.style.transform.split(',')[4])).toBeCloseTo(
+      manager.transformXFromTimestamp(950) - 2
+    );
+    if (!compressed) {
+      expect(Number(bar.style.transform.split(',')[4])).toBe(473);
     }
   });
 });
