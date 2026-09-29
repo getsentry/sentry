@@ -77,7 +77,7 @@ export function MergeAccountsModal(props: Props) {
     },
   });
 
-  const mergeForm = useScrapsForm({
+  const form = useScrapsForm({
     ...defaultFormOptions,
     defaultValues: {users: [] as User[]},
     validators: {onDynamic: mergeSchema},
@@ -94,14 +94,14 @@ export function MergeAccountsModal(props: Props) {
   }
 
   return (
-    <mergeForm.AppForm form={mergeForm}>
+    <form.AppForm form={form}>
       <Header closeButton>
         <Heading as="h4">Merge Accounts</Heading>
       </Header>
       <Body>
         <Stack gap="sm">
           <Text as="p">Selected accounts will be merged into this user.</Text>
-          <mergeForm.AppField name="users">
+          <form.AppField name="users">
             {field => {
               const users = [
                 ...mergeAccounts.users,
@@ -140,14 +140,14 @@ export function MergeAccountsModal(props: Props) {
                 </field.Layout.Stack>
               );
             }}
-          </mergeForm.AppField>
+          </form.AppField>
         </Stack>
       </Body>
       <Footer>
         <Flex justify="end">
-          <mergeForm.SubmitButton>Merge Account(s)</mergeForm.SubmitButton>
+          <form.SubmitButton>Merge Account(s)</form.SubmitButton>
         </Flex>
       </Footer>
-    </mergeForm.AppForm>
+    </form.AppForm>
   );
 }
