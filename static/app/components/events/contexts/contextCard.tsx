@@ -84,23 +84,20 @@ export function ContextCardContent({
       item={{
         ...item,
         subject: contextSubject,
-        subjectNode: attributeDetailsType ? (
-          <KeyValueTableSubject>
-            <AttributeDetailsTooltip
-              attributeKey={
-                defined(alias)
-                  ? getContextAttributeKey({alias, contextKey, type})
-                  : contextKey
-              }
-              fieldDefinitionType={attributeDetailsType}
-              isScrubbed={(contextMeta?.['']?.rem ?? []).length > 0}
-            >
-              {contextSubject}
-            </AttributeDetailsTooltip>
-          </KeyValueTableSubject>
-        ) : (
-          item.subjectNode
-        ),
+        subjectNode:
+          attributeDetailsType && defined(alias) ? (
+            <KeyValueTableSubject>
+              <AttributeDetailsTooltip
+                attributeKey={getContextAttributeKey({alias, contextKey, type})}
+                fieldDefinitionType={attributeDetailsType}
+                isScrubbed={(contextMeta?.['']?.rem ?? []).length > 0}
+              >
+                {contextSubject}
+              </AttributeDetailsTooltip>
+            </KeyValueTableSubject>
+          ) : (
+            item.subjectNode
+          ),
       }}
       meta={contextMeta}
       errors={config?.disableErrors ? [] : contextErrors}
