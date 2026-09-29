@@ -69,7 +69,7 @@ COPY . .
 RUN : \
     && python3 -m tools.fast_editable --path . \
     && python3 -m compileall -q src/ \
-    && python3 -c 'import click; from sentry.runner.main import cli; print(*cli.list_commands(click.Context(cli)), sep="\n")' > /sentry-commands.txt
+    && python3 -m tools.dump_sentry_commands > /sentry-commands.txt
 
 COPY ./self-hosted/sentry.conf.py ./self-hosted/config.yml $SENTRY_CONF/
 COPY ./self-hosted/docker-entrypoint.py ./self-hosted/docker-entrypoint.sh /

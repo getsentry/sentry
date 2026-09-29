@@ -1,7 +1,7 @@
 import os
 import sys
 
-# Generated at build time from the sentry CLI, see self-hosted/Dockerfile.
+# Generated at build time by tools/dump_sentry_commands.py, see self-hosted/Dockerfile.
 with open("/sentry-commands.txt") as f:
     SENTRY_COMMANDS = frozenset(f.read().split())
 
