@@ -101,7 +101,7 @@ export default function MetricsQueryBlock({data}: {data: MetricsQueryData}) {
       <MetricsQueryChart data={data} hasTable={!isChartOnly} />
       {isChartOnly ? null : (
         <QueryEmbedTable
-          columns={eventColumns(getMetricsQueryFields(data))}
+          columns={eventColumns(getMetricsQueryFields(data), tableQuery.data?.meta)}
           emptyMessage={t('No matching metric values')}
           errorMessage={t('Unable to load metric values')}
           isError={tableQuery.isError}

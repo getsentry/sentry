@@ -201,6 +201,7 @@ function useOverflowTabs({
   useLayoutEffect(() => {
     // oxlint-disable-next-line react/set-state-in-effect
     recompute();
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [recomputeSignature]);
 
   // Recompute on container resize (available space changes) and on list resize

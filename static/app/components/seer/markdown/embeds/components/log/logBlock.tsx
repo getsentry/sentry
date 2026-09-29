@@ -281,6 +281,7 @@ export default function LogBlock(props: LogData) {
     traceId: resolvedTraceId ?? '',
     traceItemType: TraceItemDataset.LOGS,
     referrer: LOG_DETAILS_REFERRER,
+    routingHint: row ? rowQuery.data?.meta?.routingHint : undefined,
     // The details endpoint takes unix seconds, not an ISO string.
     timestamp: lookupTimestampMs === null ? undefined : lookupTimestampMs / 1000,
     enabled: canFetchDetails,

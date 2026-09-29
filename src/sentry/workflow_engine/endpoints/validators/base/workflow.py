@@ -405,7 +405,9 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
         self._validate_workflow_limits()
 
         with transaction.atomic(router.db_for_write(Workflow)):
-            when_condition_group = condition_group_validator.create(validated_value["triggers"])
+            when_condition_group = condition_group_validator.create(
+                validated_value.get("triggers", {"logic_type": DataConditionGroup.Type.ANY.value})
+            )
 
             environment = validated_value.get("environment")
 

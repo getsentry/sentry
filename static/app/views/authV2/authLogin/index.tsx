@@ -1,16 +1,16 @@
 import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Container, Grid, Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {BrandPageLayout} from 'sentry/components/brandPageLayout';
-import {IconGithub, IconGoogle, IconLab, IconSentry, IconVsts} from 'sentry/icons';
+import {IconGithub, IconGoogle, IconLab, IconVsts} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {AuthConfig} from 'sentry/types/auth';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -29,6 +29,7 @@ import {RequiredOrganizationSso} from './components/requiredOrganizationSso';
 import {SecondFactorAuth} from './components/secondFactorAuth';
 import {useAuthConfig} from './hooks/useAuthConfig';
 import {useAuthOrganization} from './hooks/useAuthOrganization';
+import {useDemoLogin} from './hooks/useDemoLogin';
 import type {EmailAuthResult} from './hooks/useEmailAuth';
 import type {AuthenticatedResult, MfaMethod} from './types';
 
@@ -47,6 +48,8 @@ export default function AuthLogin() {
   const theme = useTheme();
   const {orgSlug} = useParams<{orgSlug?: string}>();
   const location = useLocation();
+  const requestedNextUri =
+    typeof location.query.next === 'string' ? location.query.next : undefined;
   const {setAuthV2CookieState} = useEnableAuthV2();
   const hasStartedAnalyticsSession = useRef(false);
 
@@ -150,18 +153,38 @@ export default function AuthLogin() {
     [completeAuthentication, location, navigate]
   );
 
-  const mainState = hasInitialAuthConfigError
-    ? 'auth_config_error'
-    : hasAuthOrganizationError
-      ? 'organization_error'
-      : pendingMfaMethods
-        ? 'mfa'
-        : organizationSsoOnly
-          ? 'organization_sso'
-          : 'login';
+  const demoLogin = useDemoLogin({
+    authOrganization,
+    enabled: Boolean(loginConfig && !pendingMfaMethods),
+    nextUri: requestedNextUri,
+    onAuthResult: handleAuthResult,
+  });
+
+  function getMainState() {
+    if (hasInitialAuthConfigError) {
+      return 'auth_config_error' as const;
+    }
+
+    if (hasAuthOrganizationError) {
+      return 'organization_error' as const;
+    }
+
+    if (pendingMfaMethods) {
+      return 'mfa' as const;
+    }
+
+    if (organizationSsoOnly) {
+      return 'organization_sso' as const;
+    }
+
+    return 'login' as const;
+  }
+
+  const mainState = getMainState();
   const isLoginRenderable = !(
     isAuthConfigPending ||
     (orgSlug && isAuthOrganizationPending) ||
+    demoLogin.isLoading ||
     (nextUri && !focusedOrgAuth && !hasAuthOrganizationError)
   );
   useBrandedAuthLoading(!isLoginRenderable);
@@ -190,10 +213,6 @@ export default function AuthLogin() {
 
   return (
     <Fragment>
-      <BrandPageLayout.HeaderStart>
-        <IconSentry size="xl" />
-      </BrandPageLayout.HeaderStart>
-
       <BrandPageLayout.HeaderEnd>
         <Stack align="end" gap="sm" maxWidth="300px">
           <Tag variant="warning" icon={<IconLab isSolid />}>
@@ -218,8 +237,8 @@ export default function AuthLogin() {
         </Stack>
       </BrandPageLayout.HeaderEnd>
 
-      <Stack height="100%" align="center" justify="between" gap="2xl">
-        <LoginContainer width="100%" maxWidth="360px" gap="2xl">
+      <Fragment>
+        <Stack width="100%" maxWidth="360px" gap="2xl">
           <Heading as="h1" size="3xl" align="center">
             {t('Sign in to Sentry')}
           </Heading>
@@ -268,6 +287,7 @@ export default function AuthLogin() {
                 <SecondFactorAuth
                   methods={pendingMfaMethods}
                   onBack={() => {
+                    demoLogin.reset();
                     setMfaMethods(undefined);
                   }}
                   onComplete={completeAuthentication}
@@ -317,11 +337,18 @@ export default function AuthLogin() {
                       />
                     </Fragment>
                   )}
+                  {loginConfig?.canRegister && (
+                    <Text as="div" align="center" size="sm">
+                      {tct('New to Sentry? [register:Create an account]', {
+                        register: <Link to="/auth/register/" />,
+                      })}
+                    </Text>
+                  )}
                 </Fragment>
               )}
             </MotionStack>
           </AnimatePresence>
-        </LoginContainer>
+        </Stack>
 
         {(loginConfig?.warning || loginConfig?.loginBannerMarkdown) && (
           <Stack width="100%" gap="md">
@@ -335,7 +362,7 @@ export default function AuthLogin() {
             )}
           </Stack>
         )}
-      </Stack>
+      </Fragment>
     </Fragment>
   );
 }
@@ -351,9 +378,5 @@ function AuthDivider() {
     </Grid>
   );
 }
-
-const LoginContainer = styled(Stack)`
-  padding-top: 18vh;
-`;
 
 const MotionStack = motion.create(Stack);

@@ -21,7 +21,7 @@ import type {
 } from 'sentry/views/dashboards/widgets/common/types';
 import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/plottablesCanBeVisualized';
 import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
-import {Actions} from 'sentry/views/discover/table/cellAction';
+import {Actions, ActionTriggerType} from 'sentry/views/discover/table/cellAction';
 import type {AttributeBreakdownsComparison} from 'sentry/views/explore/hooks/useAttributeBreakdownComparison';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 
@@ -299,6 +299,7 @@ export default function AttributeBreakdownViewerModal(props: Props) {
       return [];
     }
     return [new Bars(singleSeries, {color: primaryColor})];
+    // oxlint-disable-next-line react/memo-dependencies
   }, [computedData.mode, chartSeries, primaryColor, secondaryColor]);
 
   return (
@@ -355,6 +356,7 @@ export default function AttributeBreakdownViewerModal(props: Props) {
           </Container>
 
           <TableWidgetVisualization
+            cellActionTrigger={ActionTriggerType.ELLIPSIS}
             scrollable
             tableData={computedData.tableData}
             columns={computedData.tableColumns}

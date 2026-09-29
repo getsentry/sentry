@@ -41,7 +41,6 @@ import {
 } from 'sentry/utils/discover/fields';
 import {DisplayModes, SavedQueryDatasets, TOP_N} from 'sentry/utils/discover/types';
 import {downloadFromHref} from 'sentry/utils/downloadFromHref';
-import {getTitle} from 'sentry/utils/events';
 import {DISCOVER_FIELDS, FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {
@@ -53,11 +52,7 @@ import {
   type WidgetQuery,
 } from 'sentry/views/dashboards/types';
 import {convertWidgetToQueryParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
-import {
-  getAllViews,
-  getTransactionViews,
-  getWebVitalsViews,
-} from 'sentry/views/discover/results/data';
+import {getAllViews} from 'sentry/views/discover/results/data';
 import {displayModeToDisplayType} from 'sentry/views/discover/savedQuery/utils';
 import type {FieldValue, TableColumn} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
@@ -146,30 +141,20 @@ export function decodeColumnOrder(
 
 export function generateTitle({
   eventView,
-  event,
   isHomepage,
-  organization,
 }: {
   eventView: EventView;
-  organization: Organization;
-  event?: Event;
   isHomepage?: boolean;
 }) {
-  const titles = [getDiscoverDeprecation(organization) ? t('Errors') : t('Discover')];
+  const titles = [t('Errors')];
 
   if (isHomepage) {
-    return getDiscoverDeprecation(organization) ? t('Errors') : t('Discover');
+    return t('Errors');
   }
 
   const eventViewName = eventView.name;
   if (typeof eventViewName === 'string' && String(eventViewName).trim().length > 0) {
     titles.push(String(eventViewName).trim());
-  }
-
-  const eventTitle = event ? getTitle(event).title : undefined;
-
-  if (eventTitle) {
-    titles.push(eventTitle);
   }
 
   titles.reverse();
@@ -178,17 +163,7 @@ export function generateTitle({
 }
 
 export function getPrebuiltQueries(organization: Organization) {
-  const views = [...getAllViews(organization)];
-  if (
-    organization.features.includes('performance-view') &&
-    !getDiscoverDeprecation(organization)
-  ) {
-    // insert transactions queries at index 2
-    views.splice(2, 0, ...getTransactionViews(organization));
-    views.push(...getWebVitalsViews(organization));
-  }
-
-  return views;
+  return getAllViews(organization);
 }
 
 function disableMacros(value: string | null | boolean | number) {
@@ -926,18 +901,3 @@ export const SAVED_QUERY_DATASET_TO_WIDGET_TYPE = {
   [SavedQueryDatasets.ERRORS]: WidgetType.ERRORS,
   [SavedQueryDatasets.TRANSACTIONS]: WidgetType.TRANSACTIONS,
 };
-
-export function getTransactionsDeprecation(organization: Organization) {
-  return organization.features.includes('discover-saved-queries-deprecation');
-}
-
-export function getDiscoverDeprecationEnabled(organization: Organization) {
-  return organization.features.includes('deprecate-discover');
-}
-
-export function getDiscoverDeprecation(organization: Organization) {
-  return (
-    getDiscoverDeprecationEnabled(organization) &&
-    getTransactionsDeprecation(organization)
-  );
-}

@@ -807,6 +807,11 @@ describe('ProjectPageFilter', () => {
     // Open menu
     await userEvent.click(screen.getByRole('button', {name: 'selected-project'}));
 
+    // Let deferred autofocus finish before moving focus by hovering a row.
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('Search…')).toHaveFocus();
+    });
+
     // All projects are members so no special items are shown
     let projectRows = screen.getAllByRole('row');
     expect(projectRows).toHaveLength(4);

@@ -1,4 +1,12 @@
-import {Fragment, useCallback, useEffect, useMemo, useRef, type ReactNode} from 'react';
+import {
+  Fragment,
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  type ReactNode,
+} from 'react';
 import styled from '@emotion/styled';
 import {skipToken, useQuery} from '@tanstack/react-query';
 
@@ -40,6 +48,7 @@ import {
   groupTranscript,
   ResponseGroup,
 } from 'sentry/views/seerExplorer/components/chat/responseGroup';
+import {findLatestTodos} from 'sentry/views/seerExplorer/components/chat/toolUse';
 import {EmptyState} from 'sentry/views/seerExplorer/components/emptyState';
 import {useExplorerMenu} from 'sentry/views/seerExplorer/components/explorerMenu';
 import {FileChangeApprovalBlock} from 'sentry/views/seerExplorer/components/fileChangeApprovalBlock';
@@ -50,7 +59,12 @@ import {SeerExplorerHeader} from 'sentry/views/seerExplorer/components/seerExplo
 import {UpdateSlackAlert} from 'sentry/views/seerExplorer/components/updateSlackAlert';
 import {usePendingUserInput} from 'sentry/views/seerExplorer/hooks/usePendingUserInput';
 import {useSeerExplorer} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
-import type {SeerExplorerSidebarPosition} from 'sentry/views/seerExplorer/types';
+import type {
+  Block,
+  PendingUserInput,
+  SeerExplorerRunId,
+  SeerExplorerSidebarPosition,
+} from 'sentry/views/seerExplorer/types';
 import {
   getExplorerFeedbackOptions,
   getExplorerUrl,
@@ -186,9 +200,10 @@ export function SeerExplorerContent({
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const blockRefs = useRef<Array<HTMLDivElement | null>>([]);
   const userScrolledUpRef = useRef(false);
   const prWidgetButtonRef = useRef<HTMLButtonElement>(null);
+  /** A new chat was started and the composer should take focus once it is back. */
+  const pendingComposerFocusRef = useRef(false);
 
   const focusInput = useCallback(() => {
     textareaRef.current?.focus();
@@ -200,9 +215,11 @@ export function SeerExplorerContent({
     sessionData,
     isPolling,
     isError,
+    hasSessionLoadError,
     errorStatusCode,
     isTimedOut,
     sendMessage,
+    requestError,
     startNewSession,
     switchToRun,
     respondToUserInput,
@@ -227,6 +244,15 @@ export function SeerExplorerContent({
     ''
   );
 
+  // Put a message that failed to send back in the composer, unless the user has
+  // already started typing something else.
+  useEffect(() => {
+    const failedQuery = requestError?.query;
+    if (failedQuery) {
+      setInputValue(current => (current.trim() ? current : failedQuery));
+    }
+  }, [requestError, setInputValue]);
+
   const readOnly =
     sessionData?.owner_user_id !== undefined &&
     sessionData.owner_user_id !== null &&
@@ -250,6 +276,9 @@ export function SeerExplorerContent({
   const isAgentWriteApprovalPending =
     isAwaitingUserInput && pendingInput?.input_type === 'agent_write_approval';
   const isEmptyState = blocks.length === 0 && !(isAwaitingUserInput && pendingInput);
+  // Only when the error empty state is what's on screen. A live conversation that hits a
+  // transient poll error still has its transcript and must keep its composer.
+  const showLoadError = isEmptyState && (isError || hasSessionLoadError);
 
   // Whether the org has an active Slack integration installed. Slack is an
   // org-level integration, so this reflects the organization, not the user.
@@ -292,8 +321,21 @@ export function SeerExplorerContent({
       return;
     }
     lastAutoSubmittedQueryRef.current = query;
+    if (showLoadError) {
+      // The open run failed to load, so appending to it would post into a dead run.
+      // A forwarded query still deserves an answer: start it in a fresh one.
+      sendMessage(query, 0, null);
+      return;
+    }
     sendMessage(query, blocks.length);
-  }, [initialQuery, appendInitialQuery, isEmptyState, sendMessage, blocks.length]);
+  }, [
+    initialQuery,
+    appendInitialQuery,
+    isEmptyState,
+    showLoadError,
+    sendMessage,
+    blocks.length,
+  ]);
 
   // The panel is already open here, so append by default; a `null` run id is how
   // `sendMessage` starts a fresh one.
@@ -344,6 +386,23 @@ export function SeerExplorerContent({
     isReauthPending &&
     !!organization?.features.includes('seer-infra-telemetry') &&
     !!organization?.features.includes('seer-infra-telemetry-user-level-auth');
+
+  // Pending-input blocks rendered at the end of the transcript. When one is showing,
+  // the request error alert sits directly above it instead of above the composer.
+  const showFileApprovalBlock =
+    !readOnly && isFileApprovalPending && fileApprovalIndex < fileApprovalTotalPatches;
+  const questionToShow = !readOnly && isQuestionPending ? currentQuestion : undefined;
+  const reauthToShow = !readOnly && showReauth ? reauthData : null;
+  const showsPendingInputBlock =
+    showFileApprovalBlock || !!questionToShow || !!reauthToShow;
+
+  const requestErrorAlert = requestError ? (
+    <Container padding="0 xl">
+      <Alert variant="danger">
+        <Text>{t('There was an error sending your message, wait and try again.')}</Text>
+      </Alert>
+    </Container>
+  ) : null;
 
   // - Topbar, menu, and slash command handlers -------------------------------
   const copySessionEnabled = runId !== null && !!organization?.slug;
@@ -454,7 +513,7 @@ export function SeerExplorerContent({
   }, [closeMenu]);
 
   // - Input section handlers -------------------------------------------------
-  const canSendMessage = !readOnly && !isPolling && !!inputValue.trim();
+  const canSendMessage = !readOnly && !showLoadError && !isPolling && !!inputValue.trim();
   const handleSend = useCallback(() => {
     if (!canSendMessage) {
       return;
@@ -487,6 +546,19 @@ export function SeerExplorerContent({
     closeMenu();
   };
 
+  const handleStartNewChat = useCallback(() => {
+    startNewSession();
+    if (readOnly || showLoadError) {
+      // Exactly when `InputSection` renders its disabled branch - a different
+      // textarea that never takes `textareaRef` - so focusing now would be a
+      // no-op. Ask for it once the real composer is back. Starting a chat clears
+      // both conditions, so the request cannot outlive the render after it.
+      pendingComposerFocusRef.current = true;
+      return;
+    }
+    focusInput();
+  }, [startNewSession, focusInput, readOnly, showLoadError]);
+
   const handleRetry = useCallback(() => {
     if (!retryTarget || readOnly) {
       return;
@@ -507,11 +579,23 @@ export function SeerExplorerContent({
     }, 100);
   }, []);
 
+  // Focus the composer once a new chat has actually replaced the error screen.
+  // `handleStartNewChat` only arms this while that screen is up, and starting a
+  // chat takes it down, so the request is consumed on the very next render.
+  useEffect(() => {
+    if (!pendingComposerFocusRef.current || readOnly || showLoadError) {
+      return;
+    }
+    pendingComposerFocusRef.current = false;
+    focusInput();
+  }, [readOnly, showLoadError, focusInput]);
+
   // Auto-scroll to bottom when new blocks are added, but only if user hasn't scrolled up
   useEffect(() => {
     if (!userScrolledUpRef.current && scrollContainerRef.current) {
       scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [blocks]);
 
   // Track scroll position to detect if user scrolled up
@@ -542,11 +626,6 @@ export function SeerExplorerContent({
     }
     return;
   }, []);
-
-  // Update block refs array when blocks change
-  useEffect(() => {
-    blockRefs.current = blockRefs.current.slice(0, blocks.length);
-  }, [blocks]);
 
   // Deep link effect
   useSeerExplorerDeepLink({callback: switchToRun});
@@ -579,10 +658,7 @@ export function SeerExplorerContent({
   const headerContent = (
     <SeerExplorerHeader
       disableNewChatButton={runId === null}
-      onNewChatClick={() => {
-        startNewSession();
-        focusInput();
-      }}
+      onNewChatClick={handleStartNewChat}
       onChangeSession={switchToRun}
       onCopySessionClick={copySessionEnabled ? copySessionToClipboard : undefined}
       onCopyLinkClick={runId === null ? undefined : handleCopyLink}
@@ -601,7 +677,10 @@ export function SeerExplorerContent({
   );
 
   return (
-    <AutofixChatProvider sendMessage={readOnly ? undefined : postMessage}>
+    <AutofixChatProvider
+      isBusy={isPolling}
+      sendMessage={readOnly ? undefined : postMessage}
+    >
       <Stack
         ref={rootRef}
         data-seer-explorer-root=""
@@ -625,71 +704,40 @@ export function SeerExplorerContent({
           {isEmptyState ? (
             <EmptyState
               isLoading={isPolling}
-              isError={isError}
+              isError={showLoadError}
               errorStatusCode={errorStatusCode}
+              onStartNewChat={showLoadError ? handleStartNewChat : undefined}
               runId={runId}
               displaySlackAgentReminder={hasSlackIntegration && !needsSlackUpgrade}
               onSuggestionClick={readOnly ? undefined : sendMessage}
             />
           ) : (
             <Fragment>
-              {groupTranscript(blocks).map(segment => {
-                const interactionPending =
+              <SeerExplorerTranscript
+                blocks={blocks}
+                runId={runId}
+                getPageReferrer={getPageReferrer}
+                interactionPending={
                   isFileApprovalPending ||
                   isAgentWriteApprovalPending ||
                   isQuestionPending ||
-                  showReauth;
-
-                if (segment.kind === 'user') {
-                  // For slide-in animation that runs on mount. Avoid running this twice on user
-                  // blocks when blocks are hydrated.
-                  return (
-                    <BlockComponent
-                      key={`user-${segment.index}`}
-                      ref={el => {
-                        blockRefs.current[segment.index] = el;
-                      }}
-                      block={segment.block}
-                      blockIndex={segment.index}
-                      blocks={blocks}
-                      runId={runId ?? undefined}
-                      getPageReferrer={getPageReferrer}
-                      interactionPending={interactionPending}
-                      pendingInput={pendingInput}
-                      readOnly={readOnly}
-                      respondToUserInput={respondToUserInput}
-                      showThinking={showThinking}
-                    />
-                  );
+                  showReauth
                 }
-
-                return (
-                  <ResponseGroup
-                    key={`response-${segment.indices[0]}`}
-                    group={segment.blocks}
-                    blockIndex={segment.indices[0]!}
-                    blocks={blocks}
-                    runId={runId ?? undefined}
-                    getPageReferrer={getPageReferrer}
-                    interactionPending={interactionPending}
-                    pendingInput={pendingInput}
-                    readOnly={readOnly}
-                    respondToUserInput={respondToUserInput}
-                    showThinking={showThinking}
-                  />
-                );
-              })}
-              {!readOnly &&
-                isFileApprovalPending &&
-                fileApprovalIndex < fileApprovalTotalPatches && (
-                  <FileChangeApprovalBlock
-                    currentIndex={fileApprovalIndex}
-                    pendingInput={pendingInput}
-                  />
-                )}
-              {!readOnly && isQuestionPending && currentQuestion && (
+                pendingInput={pendingInput}
+                readOnly={readOnly}
+                respondToUserInput={respondToUserInput}
+                showThinking={showThinking}
+              />
+              {showsPendingInputBlock && requestErrorAlert}
+              {showFileApprovalBlock && (
+                <FileChangeApprovalBlock
+                  currentIndex={fileApprovalIndex}
+                  pendingInput={pendingInput}
+                />
+              )}
+              {questionToShow && (
                 <AskUserQuestionBlock
-                  currentQuestion={currentQuestion}
+                  currentQuestion={questionToShow}
                   customText={customText}
                   isOtherSelected={isOtherSelected}
                   onCustomTextChange={handleQuestionCustomTextChange}
@@ -698,9 +746,9 @@ export function SeerExplorerContent({
                   selectedOption={selectedOption}
                 />
               )}
-              {!readOnly && showReauth && reauthData && (
+              {reauthToShow && (
                 <ReauthMonitoringProviderBlock
-                  data={reauthData}
+                  data={reauthToShow}
                   onComplete={handleReauthComplete}
                   returnUrl={
                     runId === null
@@ -733,9 +781,13 @@ export function SeerExplorerContent({
             </Alert>
           </Container>
         )}
+        {!showsPendingInputBlock && requestErrorAlert}
         <InputSection
           blocks={blocks}
-          enabled={!readOnly}
+          enabled={!readOnly && !showLoadError}
+          disabledPlaceholder={
+            showLoadError ? t('Start a new chat to keep talking to Seer') : undefined
+          }
           inputValue={inputValue}
           canSendMessage={canSendMessage}
           interruptState={interruptState}
@@ -777,6 +829,68 @@ export function SeerExplorerContent({
     </AutofixChatProvider>
   );
 }
+
+interface SeerExplorerTranscriptProps {
+  blocks: Block[];
+  getPageReferrer: () => string;
+  interactionPending: boolean;
+  pendingInput: PendingUserInput | null;
+  readOnly: boolean;
+  respondToUserInput: (inputId: string, responseData?: Record<string, unknown>) => void;
+  runId: SeerExplorerRunId | null;
+  showThinking: boolean;
+}
+
+/**
+ * The conversation itself. Memoized so typing in the composer (whose state lives in the parent)
+ * doesn't re-render every message, and `ResponseGroup`/`BlockComponent` are memoized so a poll only
+ * re-renders the segments whose blocks actually changed.
+ */
+const SeerExplorerTranscript = memo(function SeerExplorerTranscript({
+  blocks,
+  getPageReferrer,
+  interactionPending,
+  pendingInput,
+  readOnly,
+  respondToUserInput,
+  runId,
+  showThinking,
+}: SeerExplorerTranscriptProps) {
+  const segments = useMemo(() => groupTranscript(blocks), [blocks]);
+  // Walk the conversation once here rather than once per tool block.
+  const latestTodos = useMemo(() => findLatestTodos(blocks), [blocks]);
+
+  return segments.map(segment => {
+    if (segment.kind === 'user') {
+      // For slide-in animation that runs on mount. Avoid running this twice on user
+      // blocks when blocks are hydrated.
+      return (
+        <BlockComponent
+          key={`user-${segment.index}`}
+          block={segment.block}
+          blockIndex={segment.index}
+          runId={runId ?? undefined}
+        />
+      );
+    }
+
+    return (
+      <ResponseGroup
+        key={`response-${segment.indices[0]}`}
+        group={segment.blocks}
+        blockIndex={segment.indices[0]!}
+        latestTodos={latestTodos}
+        runId={runId ?? undefined}
+        getPageReferrer={getPageReferrer}
+        interactionPending={interactionPending}
+        pendingInput={pendingInput}
+        readOnly={readOnly}
+        respondToUserInput={respondToUserInput}
+        showThinking={showThinking}
+      />
+    );
+  });
+});
 
 const BlocksContainer = styled(Stack)`
   flex: 1;

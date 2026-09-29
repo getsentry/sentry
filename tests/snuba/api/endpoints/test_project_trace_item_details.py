@@ -61,6 +61,14 @@ class ProjectTraceItemDetailsEndpointTest(
                 data,
             )
 
+    def test_invalid_routing_hint(self) -> None:
+        response = self.do_request(
+            "spans", "0123456789abcdef", extra_data={"routing_hint": "invalid"}
+        )
+
+        assert response.status_code == 400, response.content
+        assert response.data == {"detail": "Invalid trace item details request."}
+
     def test_simple(self) -> None:
         log = self.create_ourlog(
             {

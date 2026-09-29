@@ -239,8 +239,6 @@ export const DURATION_UNITS = {
   week: 1000 * 60 * 60 * 24 * 7,
 };
 
-export const PERCENTAGE_UNITS = ['ratio', 'percent'];
-
 /**
  * A mapping of field types to their rendering function.
  * This mapping is used when a field is not defined in SPECIAL_FIELDS

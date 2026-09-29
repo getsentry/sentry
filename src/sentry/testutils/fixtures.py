@@ -798,9 +798,6 @@ class Fixtures:
     def create_dashboard_favorite_user(self, *args, **kwargs):
         return Factories.create_dashboard_favorite_user(*args, **kwargs)
 
-    def create_dashboard_hidden_user(self, *args, **kwargs):
-        return Factories.create_dashboard_hidden_user(*args, **kwargs)
-
     def create_dashboard_widget(self, *args, **kwargs):
         return Factories.create_dashboard_widget(*args, **kwargs)
 
@@ -1332,6 +1329,9 @@ class Fixtures:
         )
 
         return head_artifact, head_size_metrics, base_artifact, base_size_metrics
+
+    def create_seer_autofix_issue_data(self, group, **kwargs):
+        return Factories.create_seer_autofix_issue_data(group=group, **kwargs)
 
     def create_seer_run(self, organization=None, **kwargs):
         if organization is None:

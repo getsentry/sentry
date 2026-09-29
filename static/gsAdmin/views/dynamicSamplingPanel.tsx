@@ -234,6 +234,7 @@ export function DynamicSamplingPanel({projectId, organization}: Props) {
       }
     }
 
+    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
     fetchProjectConfig();
   }, [projectId, api, regionHost]);
 

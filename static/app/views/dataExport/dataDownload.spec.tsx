@@ -120,7 +120,7 @@ describe('DataDownload', () => {
     );
   });
 
-  it('should render the Open in Discover button when needed', async () => {
+  it('should render the Open in Explore button for discover exports', async () => {
     const status = DownloadStatus.VALID;
     getDataExportDetails({
       dateExpired,
@@ -133,10 +133,10 @@ describe('DataDownload', () => {
 
     render(<DataDownload />, {initialRouterConfig});
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
-    expect(screen.getByRole('button', {name: 'Open in Discover'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Open in Explore'})).toBeInTheDocument();
   });
 
-  it('should not render the Open in Discover button when not needed', () => {
+  it('should not render the Open in Explore button when not needed', () => {
     const status = DownloadStatus.VALID;
     getDataExportDetails({
       dateExpired,
@@ -149,11 +149,11 @@ describe('DataDownload', () => {
 
     render(<DataDownload />, {initialRouterConfig});
     expect(
-      screen.queryByRole('button', {name: 'Open in Discover'})
+      screen.queryByRole('button', {name: 'Open in Explore'})
     ).not.toBeInTheDocument();
   });
 
-  it('should render the Open in Explore button when needed', async () => {
+  it('should render the Open in Explore button for explore exports', async () => {
     const status = DownloadStatus.VALID;
     getDataExportDetails({
       dateExpired,

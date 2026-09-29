@@ -75,6 +75,7 @@ from sentry.seer.autofix.utils import (
     get_automation_handoff,
 )
 from sentry.seer.entrypoints.operator import (
+    SeerActivityAttribution,
     SeerAutofixOperator,
     process_autofix_updates,
     record_seer_activity,
@@ -97,6 +98,7 @@ from sentry.tasks.seer.pr_iteration import (
 )
 from sentry.utils import metrics
 from sentry.utils.tracing import start_span, trace
+from sentry.viewer_context import get_viewer_context
 
 if TYPE_CHECKING:
     from sentry.seer.agent.client_models import SeerRunState
@@ -282,7 +284,15 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             )
 
         # Send webhook for the completed step
-        cls._send_step_webhook(organization, run_id, state, group, fallback_referrer=run_referrer)
+        viewer_context = get_viewer_context()
+        cls._send_step_webhook(
+            organization,
+            run_id,
+            state,
+            group,
+            fallback_referrer=run_referrer,
+            actor_user_id=viewer_context.user_id if viewer_context is not None else None,
+        )
 
         cls._record_failed_tool_calls(organization, group, state)
 
@@ -644,6 +654,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         state: SeerRunState,
         group: Group,
         fallback_referrer: AutofixReferrer | None = None,
+        actor_user_id: int | None = None,
     ) -> None:
         """
         Send webhook for the completed step.
@@ -764,10 +775,17 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                     "autofix.on_completion_hook.process_autofix_updates",
                     tags={"event_type": str(event_type)},
                 )
+                activity_attribution: SeerActivityAttribution | None = None
+                if webhook_action_type == SeerActionType.PR_CREATED and actor_user_id is not None:
+                    activity_attribution = {
+                        "referrer": current_referrer or AutofixReferrer.UNKNOWN,
+                        "actor_user_id": actor_user_id,
+                    }
                 record_seer_activity(
                     group=group,
                     event_type=sentry_app_event_type,
                     event_payload=webhook_payload,
+                    activity_attribution=activity_attribution,
                 )
                 process_autofix_updates.apply_async(
                     kwargs={

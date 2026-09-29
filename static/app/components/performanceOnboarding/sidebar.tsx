@@ -153,6 +153,7 @@ function SidebarContent() {
     // Otherwise, pick a first project that has not sent a first transaction event.
     setCurrentProject(projectsWithoutFirstTransactionEvent[0]);
   }, [
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
     selection.projects,
     projects,
     projectsForOnboarding,
