@@ -1,6 +1,5 @@
-import {createRef, Fragment, PureComponent} from 'react';
+import {Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import isEqual from 'lodash/isEqual';
 
 import type {InputProps} from '@sentry/scraps/input';
 import {Input} from '@sentry/scraps/input';
@@ -25,155 +24,138 @@ type DropdownOptionGroup = {
   title: string;
 };
 
-type DefaultProps = {
-  options: Column[];
+type Props = InputProps & {
+  onUpdate: (value: string) => void;
+  value: string;
   className?: string;
+  hideFieldOptions?: boolean;
+  options?: Column[];
 };
 
-type Props = DefaultProps &
-  InputProps & {
-    onUpdate: (value: string) => void;
-    value: string;
-    hideFieldOptions?: boolean;
-  };
+export function ArithmeticInput({
+  options = [],
+  onUpdate,
+  value,
+  className,
+  hideFieldOptions,
+  ...inputProps
+}: Props) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const pendingFocusRef = useRef<number | null>(null);
 
-type State = {
-  activeSelection: number;
-  dropdownOptionGroups: DropdownOptionGroup[];
-  dropdownVisible: boolean;
-  partialTerm: string | null;
-  query: string;
-  rawOptions: Column[];
-};
+  const [query, setQuery] = useState(value);
+  const [partialTerm, setPartialTerm] = useState<string | null>(null);
+  const [dropdownVisible, setDropdownVisible] = useState(false);
+  const [activeSelection, setActiveSelection] = useState(NONE_SELECTED);
 
-export class ArithmeticInput extends PureComponent<Props, State> {
-  static defaultProps: DefaultProps = {
-    options: [],
-  };
+  // Reset activeSelection when options change (mirrors getDerivedStateFromProps)
+  useEffect(() => {
+    setActiveSelection(NONE_SELECTED);
+  }, [options]);
 
-  static getDerivedStateFromProps(props: Readonly<Props>, state: State): State {
-    const changed = !isEqual(state.rawOptions, props.options);
-
-    if (changed) {
-      return {
-        ...state,
-        rawOptions: props.options,
-        dropdownOptionGroups: makeOptions(
-          props.options,
-          state.partialTerm,
-          props.hideFieldOptions
-        ),
-        activeSelection: NONE_SELECTED,
-      };
+  // Apply pending focus position after query state update
+  useLayoutEffect(() => {
+    if (pendingFocusRef.current !== null) {
+      const position = pendingFocusRef.current;
+      pendingFocusRef.current = null;
+      inputRef.current?.focus();
+      inputRef.current?.setSelectionRange(position, position);
     }
+  }, [query]);
 
-    return {...state};
+  const dropdownOptionGroups = useMemo(() => {
+    const groups = makeOptions(options, partialTerm, hideFieldOptions);
+    if (activeSelection >= 0) {
+      const flattenedOptions = groups.flatMap(group => group.options);
+      if (flattenedOptions[activeSelection]) {
+        flattenedOptions[activeSelection]!.active = true;
+      }
+    }
+    return groups;
+  }, [options, partialTerm, hideFieldOptions, activeSelection]);
+
+  function blur() {
+    inputRef.current?.blur();
   }
 
-  state: State = {
-    query: this.props.value,
-    partialTerm: null,
-    rawOptions: this.props.options,
-    dropdownVisible: false,
-    dropdownOptionGroups: makeOptions(
-      this.props.options,
-      null,
-      this.props.hideFieldOptions
-    ),
-    activeSelection: NONE_SELECTED,
-  };
-
-  input = createRef<HTMLInputElement>();
-
-  blur = () => {
-    this.input.current?.blur();
-  };
-
-  focus = (position: number) => {
-    this.input.current?.focus();
-    this.input.current?.setSelectionRange(position, position);
-  };
-
-  getCursorPosition(): number {
-    return this.input.current?.selectionStart ?? -1;
+  function getCursorPosition(): number {
+    return inputRef.current?.selectionStart ?? -1;
   }
 
-  splitQuery() {
-    const {query} = this.state;
-    const currentPosition = this.getCursorPosition();
+  function splitQuery(currentQuery: string) {
+    const currentPosition = getCursorPosition();
 
     // The current term is delimited by whitespaces. So if no spaces are found,
     // the entire string is taken to be 1 term.
     //
     // TODO: add support for when there are no spaces
 
-    const matches = [...query.substring(0, currentPosition).matchAll(/\s|^/g)];
+    const matches = [...currentQuery.substring(0, currentPosition).matchAll(/\s|^/g)];
     const match = matches[matches.length - 1]!;
     const startOfTerm = match[0] === '' ? 0 : (match.index || 0) + 1;
 
-    const cursorOffset = query.slice(currentPosition).search(/\s|$/);
+    const cursorOffset = currentQuery.slice(currentPosition).search(/\s|$/);
     const endOfTerm = currentPosition + (cursorOffset === -1 ? 0 : cursorOffset);
 
     return {
       startOfTerm,
       endOfTerm,
-      prefix: query.substring(0, startOfTerm),
-      term: query.substring(startOfTerm, endOfTerm),
-      suffix: query.substring(endOfTerm),
+      prefix: currentQuery.substring(0, startOfTerm),
+      term: currentQuery.substring(startOfTerm, endOfTerm),
+      suffix: currentQuery.substring(endOfTerm),
     };
   }
 
-  handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const query = event.target.value.replace('\n', '');
-    this.setState({query}, this.updateAutocompleteOptions);
-  };
+  function updateAutocompleteOptions(currentQuery: string) {
+    const {term} = splitQuery(currentQuery);
+    const newPartialTerm = term || null;
+    setPartialTerm(newPartialTerm);
+  }
 
-  handleClick = () => {
-    this.updateAutocompleteOptions();
-  };
-
-  handleFocus = () => {
-    this.setState({dropdownVisible: true});
-  };
-
-  handleBlur = () => {
-    this.props.onUpdate(this.state.query);
-    this.setState({dropdownVisible: false});
-  };
-
-  getSelection(selection: number): DropdownOption | null {
-    const {dropdownOptionGroups} = this.state;
-
+  function getSelection(selection: number): DropdownOption | null {
     for (const group of dropdownOptionGroups) {
       if (selection >= group.options.length) {
         selection -= group.options.length;
         continue;
       }
-
       return group.options[selection]!;
     }
-
     return null;
   }
 
-  handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    const {key} = event;
+  function handleChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const newQuery = event.target.value.replace('\n', '');
+    setQuery(newQuery);
+    updateAutocompleteOptions(newQuery);
+  }
 
-    const {options, hideFieldOptions} = this.props;
-    const {activeSelection, partialTerm} = this.state;
+  function handleClick() {
+    updateAutocompleteOptions(query);
+  }
+
+  function handleFocus() {
+    setDropdownVisible(true);
+  }
+
+  function handleBlur() {
+    onUpdate(query);
+    setDropdownVisible(false);
+  }
+
+  function handleKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
+    const {key} = event;
     const startedSelection = activeSelection >= 0;
 
     // handle arrow navigation
     if (key === 'ArrowDown' || key === 'ArrowUp') {
       event.preventDefault();
 
-      const newOptionGroups = makeOptions(options, partialTerm, hideFieldOptions);
-      const flattenedOptions = newOptionGroups.flatMap(group => group.options);
+      const flattenedOptions = dropdownOptionGroups.flatMap(group => group.options);
       if (flattenedOptions.length === 0) {
         return;
       }
 
-      let newSelection: any;
+      let newSelection: number;
       if (startedSelection) {
         newSelection =
           key === 'ArrowUp'
@@ -182,14 +164,8 @@ export class ArithmeticInput extends PureComponent<Props, State> {
       } else {
         newSelection = key === 'ArrowUp' ? flattenedOptions.length - 1 : 0;
       }
-      // This is modifying the `active` value of the references so make sure to
-      // use `newOptionGroups` at the end.
-      flattenedOptions[newSelection]!.active = true;
 
-      this.setState({
-        activeSelection: newSelection,
-        dropdownOptionGroups: newOptionGroups,
-      });
+      setActiveSelection(newSelection);
       return;
     }
 
@@ -197,24 +173,24 @@ export class ArithmeticInput extends PureComponent<Props, State> {
     if (startedSelection && (key === 'Tab' || key === 'Enter')) {
       event.preventDefault();
 
-      const selection = this.getSelection(activeSelection);
+      const selection = getSelection(activeSelection);
       if (selection) {
-        this.handleSelect(selection);
+        handleSelect(selection);
       }
       return;
     }
 
     if (key === 'Enter') {
-      this.blur();
+      blur();
       return;
     }
 
     if (key === 'ArrowLeft' || key === 'ArrowRight') {
-      this.updateAutocompleteOptions();
+      updateAutocompleteOptions(query);
     }
-  };
+  }
 
-  handleKeyUp = (event: React.KeyboardEvent<HTMLInputElement>) => {
+  function handleKeyUp(event: React.KeyboardEvent<HTMLInputElement>) {
     // Other keys are managed at handleKeyDown function
     if (event.key !== 'Escape') {
       return;
@@ -222,73 +198,49 @@ export class ArithmeticInput extends PureComponent<Props, State> {
 
     event.preventDefault();
 
-    const {activeSelection} = this.state;
     const startedSelection = activeSelection >= 0;
 
     if (!startedSelection) {
-      this.blur();
+      blur();
       return;
     }
-  };
-
-  handleSelect = (option: DropdownOption) => {
-    const {prefix, suffix} = this.splitQuery();
-
-    this.setState(
-      {
-        // make sure to insert a space after the autocompleted term
-        query: `${prefix}${option.value} ${suffix}`,
-        activeSelection: NONE_SELECTED,
-      },
-      () => {
-        // updating the query will cause the input to lose focus
-        // and make sure to move the cursor behind the space after
-        // the end of the autocompleted term
-        this.focus(prefix.length + option.value.length + 1);
-        this.updateAutocompleteOptions();
-      }
-    );
-  };
-
-  updateAutocompleteOptions() {
-    const {options, hideFieldOptions} = this.props;
-
-    const {term} = this.splitQuery();
-    const partialTerm = term || null;
-
-    this.setState({
-      dropdownOptionGroups: makeOptions(options, partialTerm, hideFieldOptions),
-      partialTerm,
-    });
   }
 
-  render() {
-    const {onUpdate: _onUpdate, options: _options, className, ...props} = this.props;
-    const {dropdownVisible, dropdownOptionGroups} = this.state;
+  function handleSelect(option: DropdownOption) {
+    const {prefix, suffix} = splitQuery(query);
+    const newQuery = `${prefix}${option.value} ${suffix}`;
 
-    return (
-      <Container isOpen={dropdownVisible} className={className}>
-        <Input
-          {...props}
-          ref={this.input}
-          autoComplete="off"
-          className="form-control"
-          value={this.state.query}
-          onClick={this.handleClick}
-          onChange={this.handleChange}
-          onBlur={this.handleBlur}
-          onFocus={this.handleFocus}
-          onKeyDown={this.handleKeyDown}
-          spellCheck={false}
-        />
-        <TermDropdown
-          isOpen={dropdownVisible}
-          optionGroups={dropdownOptionGroups}
-          handleSelect={this.handleSelect}
-        />
-      </Container>
-    );
+    // Schedule focus to the position after the autocompleted term + space
+    pendingFocusRef.current = prefix.length + option.value.length + 1;
+
+    setQuery(newQuery);
+    setActiveSelection(NONE_SELECTED);
+    updateAutocompleteOptions(newQuery);
   }
+
+  return (
+    <Container isOpen={dropdownVisible} className={className}>
+      <Input
+        {...inputProps}
+        ref={inputRef}
+        autoComplete="off"
+        className="form-control"
+        value={query}
+        onClick={handleClick}
+        onChange={handleChange}
+        onBlur={handleBlur}
+        onFocus={handleFocus}
+        onKeyDown={handleKeyDown}
+        onKeyUp={handleKeyUp}
+        spellCheck={false}
+      />
+      <TermDropdown
+        isOpen={dropdownVisible}
+        optionGroups={dropdownOptionGroups}
+        handleSelect={handleSelect}
+      />
+    </Container>
+  );
 }
 
 const Container = styled('div')<{isOpen: boolean}>`
