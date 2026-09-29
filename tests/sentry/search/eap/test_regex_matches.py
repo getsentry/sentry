@@ -159,6 +159,13 @@ class FindRegexMatchesTest(TestCase):
 
         assert matches == {0: {"fields": {"message": [(8, 13)]}}}
 
+    def test_skips_a_non_ascii_value_that_has_no_matches(self) -> None:
+        matches = find_regex_matches(
+            self.resolver(), "message://ERROR//", [{"message": "\u30a8\u30e9\u30fc \U0001f525"}]
+        )
+
+        assert matches == {}
+
     def test_skips_a_numeric_column_that_shares_an_internal_name_with_the_filter(self) -> None:
         matches = find_regex_matches(
             self.resolver(), "tags[foo,string]://^3//", [{"tags[foo,number]": 3.5}]

@@ -98,7 +98,7 @@ def _spans_for_client(spans: Sequence[tuple[int, int]], value: str) -> list[tupl
         else:
             merged.append((start, end))
 
-    if value.isascii():
+    if not merged or value.isascii():
         return merged
     shift = list(accumulate((ord(character) > 0xFFFF for character in value), initial=0))
     return [(start + shift[start], end + shift[end]) for start, end in merged]
