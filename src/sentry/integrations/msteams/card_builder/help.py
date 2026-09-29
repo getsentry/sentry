@@ -35,3 +35,17 @@ def build_mentioned_card(team_name: str) -> AdaptiveCard:
             ),
         ],
     )
+
+
+def build_missing_installation_card() -> AdaptiveCard:
+    return MSTeamsMessageBuilder().build(
+        title=HelpMessages.MISSING_INSTALLATION_TITLE,
+        text=HelpMessages.MISSING_INSTALLATION_TEXT,
+        actions=[
+            OpenUrlAction(
+                type=ActionType.OPEN_URL,
+                title=HelpMessages.MISSING_INSTALLATION_BUTTON,
+                url=HelpMessages.MISSING_INSTALLATION_URL,
+            )
+        ],
+    )

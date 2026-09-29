@@ -62,6 +62,7 @@ from .card_builder.block import AdaptiveCard
 from .card_builder.help import (
     build_help_command_card,
     build_mentioned_card,
+    build_missing_installation_card,
     build_unrecognized_command_card,
 )
 from .card_builder.identity import (
@@ -687,10 +688,11 @@ class MsTeamsWebhookEndpoint(Endpoint):
             )
             if mentioned:
                 integration = parsing.get_integration_from_channel_data(data)
-                if integration is None:
-                    return self.respond(status=204)
                 client = get_preinstall_client(data["serviceUrl"])
-                card = build_mentioned_card(team_name=integration.name)
+                if integration is None:
+                    card = build_missing_installation_card()
+                else:
+                    card = build_mentioned_card(team_name=integration.name)
                 conversation_id = data["conversation"]["id"]
                 client.send_card(conversation_id, card)
 

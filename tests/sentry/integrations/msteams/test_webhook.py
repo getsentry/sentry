@@ -352,6 +352,18 @@ class MsTeamsWebhookTest(APITestCase):
     @mock.patch("sentry.utils.jwt.decode")
     @mock.patch("time.time")
     def test_mentioned(self, mock_time: MagicMock, mock_decode: MagicMock) -> None:
+        access_json = {"expires_in": 86399, "access_token": "my_token"}
+        responses.add(
+            responses.POST,
+            "https://login.microsoftonline.com/botframework.com/oauth2/v2.0/token",
+            json=access_json,
+        )
+        responses.add(
+            responses.POST,
+            "https://smba.trafficmanager.net/amer/v3/conversations/%s/activities"
+            % EXAMPLE_MENTIONED["conversation"]["id"],
+            json={},
+        )
         mock_time.return_value = 1594839999 + 60
         mock_decode.return_value = DECODED_TOKEN
         resp = self.client.post(
@@ -362,7 +374,13 @@ class MsTeamsWebhookTest(APITestCase):
         )
 
         assert resp.status_code == 204
-        assert len(responses.calls) == 2
+        response_body = responses.calls[3].request.body.decode("utf-8")
+        assert "Sentry installation is incomplete for this team." in response_body
+        assert "View Guide" in response_body
+        assert (
+            "https://docs.sentry.io/integrations/notification-incidents/msteams/" in response_body
+        )
+        assert "Bearer my_token" in responses.calls[3].request.headers["Authorization"]
 
     @responses.activate
     @mock.patch("sentry.utils.jwt.decode")

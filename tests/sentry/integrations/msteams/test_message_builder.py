@@ -25,6 +25,7 @@ from sentry.integrations.msteams.card_builder.block import (
 from sentry.integrations.msteams.card_builder.help import (
     build_help_command_card,
     build_mentioned_card,
+    build_missing_installation_card,
     build_unrecognized_command_card,
 )
 from sentry.integrations.msteams.card_builder.identity import (
@@ -200,6 +201,22 @@ class MSTeamsMessageBuilderTest(TestCase):
         assert mentioned_card["actions"][0]["url"].endswith("/settings/integrations/msteams/")
         assert mentioned_card["actions"][1]["title"] == "Alerts"
         assert mentioned_card["actions"][1]["url"].endswith("/alerts/")
+
+    def test_missing_installation_message(self) -> None:
+        missing_installation_card = build_missing_installation_card()
+
+        assert 2 == len(missing_installation_card["body"])
+        assert 1 == len(missing_installation_card["actions"])
+        assert _is_text_block(missing_installation_card["body"][0])
+        assert (
+            missing_installation_card["body"][0]["text"]
+            == "Sentry installation is incomplete for this team."
+        )
+        assert missing_installation_card["actions"][0]["title"] == "View Guide"
+        assert (
+            missing_installation_card["actions"][0]["url"]
+            == "https://docs.sentry.io/integrations/notification-incidents/msteams/"
+        )
 
     def test_insallation_confirmation_message(self) -> None:
         organization = Organization(name="test-org", slug="test-org")

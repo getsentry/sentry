@@ -17,6 +17,14 @@ class HelpMessages:
     MANAGE_BUTTON = "Installation"
     ALERT_BUTTON = "Alerts"
 
+    MISSING_INSTALLATION_TITLE = "Sentry installation is incomplete for this team."
+    MISSING_INSTALLATION_TEXT = (
+        "We couldn't find a Sentry integration for this team. Follow the Microsoft Teams setup "
+        "guide to reconnect it."
+    )
+    MISSING_INSTALLATION_BUTTON = "View Guide"
+    MISSING_INSTALLATION_URL = "https://docs.sentry.io/integrations/notification-incidents/msteams/"
+
 
 class IdentityMessages:
     LINK_IDENTITY_BUTTON = "Link Identities"
