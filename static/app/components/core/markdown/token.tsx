@@ -177,31 +177,33 @@ export function Token({
       const Th = components.TableHeaderCell ?? DefaultTableHeaderCell;
       const Td = components.TableCell ?? DefaultTableCell;
 
+      const columns = token.align.map(align => ({align: align ?? undefined}));
+      const header = token.header.map(cell => renderInline(cell.tokens, components));
+      const rows = token.rows.map(row =>
+        row.map(cell => renderInline(cell.tokens, components))
+      );
+
       return (
-        <TableComp Default={DefaultTable}>
+        <TableComp Default={DefaultTable} columns={columns} header={header} rows={rows}>
           <Thead Default={DefaultTableHead}>
             <Tr Default={DefaultTableRow}>
-              {token.header.map((cell, i) => (
-                <Th
-                  key={i}
-                  Default={DefaultTableHeaderCell}
-                  align={token.align[i] ?? undefined}
-                >
-                  {renderInline(cell.tokens, components)}
+              {header.map((cell, i) => (
+                <Th key={i} Default={DefaultTableHeaderCell} align={columns[i]?.align}>
+                  {cell}
                 </Th>
               ))}
             </Tr>
           </Thead>
           <Tbody Default={DefaultTableBody}>
-            {token.rows.map((row, rowIndex) => (
+            {rows.map((row, rowIndex) => (
               <Tr key={rowIndex} Default={DefaultTableRow}>
                 {row.map((cell, cellIndex) => (
                   <Td
                     key={cellIndex}
                     Default={DefaultTableCell}
-                    align={token.align[cellIndex] ?? undefined}
+                    align={columns[cellIndex]?.align}
                   >
-                    {renderInline(cell.tokens, components)}
+                    {cell}
                   </Td>
                 ))}
               </Tr>

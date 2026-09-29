@@ -124,7 +124,7 @@ def maybe_generate_external_issue_details(
 ) -> GeneratedExternalIssueDetails:
     organization = group.organization
     empty_result = GeneratedExternalIssueDetails(title=None, description=None)
-    if not has_seer_access(organization, actor=user):
+    if not has_seer_access(organization):
         return empty_result
     if not features.has("organizations:external-issues-ai-generate", organization, actor=user):
         return empty_result

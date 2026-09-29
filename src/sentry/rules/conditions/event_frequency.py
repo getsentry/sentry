@@ -24,11 +24,6 @@ from sentry.rules.conditions.base import EventCondition, GenericCondition
 from sentry.rules.match import MatchType
 from sentry.services.eventstore.models import GroupEvent
 from sentry.tsdb.base import TSDBModel
-from sentry.types.condition_activity import (
-    FREQUENCY_CONDITION_BUCKET_SIZE,
-    ConditionActivity,
-    round_to_five_minute,
-)
 from sentry.utils.iterators import chunked
 from sentry.utils.snuba import options_override
 
@@ -193,38 +188,6 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
 
         logging.info("event_frequency_rule current: %s, threshold: %s", current_value, value)
         return current_value > value
-
-    def passes_activity_frequency(
-        self, activity: ConditionActivity, buckets: dict[datetime, int]
-    ) -> bool:
-        interval, value = self._get_options()
-        if not (interval and value is not None):
-            return False
-        interval_delta = self.intervals[interval][1]
-        comparison_type = self.get_option("comparisonType", ComparisonType.COUNT)
-
-        # extrapolate if interval less than bucket size
-        # if comparing percent increase, both intervals will be increased, so do not extrapolate value
-        if interval_delta < FREQUENCY_CONDITION_BUCKET_SIZE:
-            if comparison_type != ComparisonType.PERCENT:
-                value *= int(FREQUENCY_CONDITION_BUCKET_SIZE / interval_delta)
-            interval_delta = FREQUENCY_CONDITION_BUCKET_SIZE
-
-        result = bucket_count(activity.timestamp - interval_delta, activity.timestamp, buckets)
-
-        if comparison_type == ComparisonType.PERCENT:
-            comparison_interval = COMPARISON_INTERVALS[self.get_option("comparisonInterval")][1]
-            comparison_end = activity.timestamp - comparison_interval
-
-            comparison_result = bucket_count(
-                comparison_end - interval_delta, comparison_end, buckets
-            )
-            result = percent_increase(result, comparison_result)
-
-        return result > value
-
-    def get_preview_aggregate(self) -> tuple[str, str]:
-        raise NotImplementedError
 
     def query(
         self, event: GroupEvent, start: datetime, end: datetime, environment_id: int
@@ -509,9 +472,6 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
 
         return batch_sums
 
-    def get_preview_aggregate(self) -> tuple[str, str]:
-        return "count", "roundedTime"
-
 
 class EventUniqueUserFrequencyCondition(BaseEventFrequencyCondition):
     id = "sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition"
@@ -582,9 +542,6 @@ class EventUniqueUserFrequencyCondition(BaseEventFrequencyCondition):
             batch_totals.update(generic_totals)
 
         return batch_totals
-
-    def get_preview_aggregate(self) -> tuple[str, str]:
-        return "uniq", "user"
 
 
 class EventUniqueUserFrequencyConditionWithConditions(EventUniqueUserFrequencyCondition):
@@ -1010,20 +967,8 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
             batch_percents[group] = 0
         return batch_percents
 
-    def passes_activity_frequency(
-        self, activity: ConditionActivity, buckets: dict[datetime, int]
-    ) -> bool:
-        raise NotImplementedError
-
     def get_form_instance(self) -> EventFrequencyPercentForm:
         return EventFrequencyPercentForm(self.data)
-
-
-def bucket_count(start: datetime, end: datetime, buckets: dict[datetime, int]) -> int:
-    rounded_end = round_to_five_minute(end)
-    rounded_start = round_to_five_minute(start)
-    count = buckets.get(rounded_end, 0) - buckets.get(rounded_start, 0)
-    return count
 
 
 def percent_increase(result: int | float, comparison_result: int | float) -> int:

@@ -122,11 +122,12 @@ export function reasonDescription(reason: string, category: string): string | un
 }
 
 export function hasDroppedData(
-  droppedAnnotations: Annotation[] | undefined
+  droppedAnnotations: Annotation[] | undefined,
+  acceptedAnnotations?: Annotation[]
 ): droppedAnnotations is Annotation[] {
   return (
     defined(droppedAnnotations) &&
-    droppedAnnotations.some(annotation => !isConfiguredDrop(annotation))
+    highlightedBuckets(droppedAnnotations, acceptedAnnotations).length > 0
   );
 }
 
@@ -158,19 +159,31 @@ function isConfiguredDrop({outcome, reason}: Annotation): boolean {
   return outcome === 'client_discard' && CONFIGURED_CLIENT_DISCARD_REASONS.has(reason);
 }
 
-/**
- * Severity opacity is a gradient from 0.15 to 1,
- * clamping full opacity at 0.5.
- */
-const MIN_OPACITY = 0.15;
-const FULL_AT_RATIO = 0.5;
+const MIN_HIGHLIGHTED_RATIO = 0.05;
 
-export function opacityForRatio(ratio: number): number {
-  if (ratio <= 0) {
-    return 0;
+export interface SeverityStyle {
+  fill: string;
+  opacity: number;
+}
+
+export function severityStyle(ratio: number, theme: Theme): SeverityStyle {
+  const warning = theme.tokens.background.warning.vibrant;
+  // TODO: Replace with a theme token once the design settles on one.
+  const orange = '#FF9500';
+
+  if (ratio >= 0.5) {
+    return {fill: theme.tokens.dataviz.semantic.bad, opacity: 1};
   }
-
-  return Math.min(1, MIN_OPACITY + (1 - MIN_OPACITY) * (ratio / FULL_AT_RATIO));
+  if (ratio >= 0.25) {
+    return {fill: orange, opacity: 1};
+  }
+  if (ratio >= 0.1) {
+    return {fill: orange, opacity: 0.55};
+  }
+  if (ratio >= MIN_HIGHLIGHTED_RATIO) {
+    return {fill: warning, opacity: 0.25};
+  }
+  return {fill: warning, opacity: 0};
 }
 
 interface AnnotationVolume {
@@ -308,4 +321,13 @@ export function groupIntoBuckets(
   const acceptedByStart = acceptedVolumeByStart(acceptedAnnotations);
 
   return Array.from(drafts.values()).map(draft => toBucket(draft, acceptedByStart));
+}
+
+export function highlightedBuckets(
+  droppedAnnotations: Annotation[],
+  acceptedAnnotations?: Annotation[]
+): AnnotationBucket[] {
+  return groupIntoBuckets(droppedAnnotations, acceptedAnnotations).filter(
+    bucket => bucket.ratio >= MIN_HIGHLIGHTED_RATIO
+  );
 }

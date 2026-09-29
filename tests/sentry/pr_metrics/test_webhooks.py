@@ -392,8 +392,9 @@ OPENED_AT = datetime(2020, 6, 4, 9, 0, 0, tzinfo=timezone.utc)  # past year avoi
 CLOSED_AT = datetime(2020, 6, 4, 10, 0, 0, tzinfo=timezone.utc)
 
 
-@with_feature(["organizations:pr-metrics", "organizations:gen-ai-features"])
+@with_feature(["organizations:pr-metrics"])
 @cell_silo_test
+@override_settings(SENTRY_SELF_HOSTED=False)
 class HandleWebhookForPrMetricsEmissionTest(TestCase):
     def setUp(self) -> None:
         self.project = self.create_project(organization=self.organization)
@@ -565,12 +566,12 @@ class HandleWebhookForPrMetricsEmissionTest(TestCase):
         ).exists()
 
     @patch("sentry.analytics.record")
+    @override_settings(SENTRY_SELF_HOSTED=True)
     def test_emits_without_seer_access(self, mock_record: MagicMock) -> None:
         # Seer access is no longer required for activity tracking, so the
         # commits-after-open signal is present regardless — a clean merge can
         # still resolve to merged_unchanged without Seer access.
-        with self.feature({"organizations:gen-ai-features": False}):
-            self._call(merged=True)
+        self._call(merged=True)
         assert get_event_count(mock_record, PrCloseMetricsEvent) == 1
         assert (
             PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict
@@ -648,8 +649,9 @@ class HandleWebhookForPrMetricsEmissionTest(TestCase):
         assert get_event_count(mock_record, PrCloseMetricsEvent) == 0
 
 
-@with_feature(["organizations:pr-metrics", "organizations:gen-ai-features"])
+@with_feature(["organizations:pr-metrics"])
 @cell_silo_test
+@override_settings(SENTRY_SELF_HOSTED=False)
 class HandleWebhookForPrMetricsCooldownTest(TestCase):
     """The webhook-side scheduling of deferred emission and its cooldown claim."""
 
@@ -1307,9 +1309,9 @@ class HandleWebhookForPrMetricsActivityTest(TestCase):
 
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
+    @override_settings(SENTRY_SELF_HOSTED=True)
     def test_activity_written_without_seer_access(self) -> None:
-        with self.feature({"organizations:gen-ai-features": False}):
-            self._call(action="opened")
+        self._call(action="opened")
 
         assert PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
@@ -1462,9 +1464,9 @@ class HandleCommentForPrMetricsTest(TestCase):
         activity = PullRequestActivity.objects.get(pull_request=self.pr)
         assert activity.payload["is_review"] is False
 
+    @override_settings(SENTRY_SELF_HOSTED=True)
     def test_comment_written_without_seer_access(self) -> None:
-        with self.feature({"organizations:gen-ai-features": False}):
-            self._call()
+        self._call()
 
         assert PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
@@ -1643,9 +1645,9 @@ class HandleReviewForPrMetricsTest(TestCase):
         )
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
+    @override_settings(SENTRY_SELF_HOSTED=True)
     def test_review_written_without_seer_access(self) -> None:
-        with self.feature({"organizations:gen-ai-features": False}):
-            self._call()
+        self._call()
 
         assert PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
@@ -1756,9 +1758,9 @@ class HandleReviewCommentForPrMetricsTest(TestCase):
         )
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
+    @override_settings(SENTRY_SELF_HOSTED=True)
     def test_review_comment_written_without_seer_access(self) -> None:
-        with self.feature({"organizations:gen-ai-features": False}):
-            self._call()
+        self._call()
 
         assert PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
@@ -1864,9 +1866,9 @@ class HandleReviewThreadForPrMetricsTest(TestCase):
         )
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
+    @override_settings(SENTRY_SELF_HOSTED=True)
     def test_thread_event_written_without_seer_access(self) -> None:
-        with self.feature({"organizations:gen-ai-features": False}):
-            self._call()
+        self._call()
 
         assert PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
@@ -2059,9 +2061,9 @@ class HandleCheckEventsForPrMetricsTest(TestCase):
 
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
+    @override_settings(SENTRY_SELF_HOSTED=True)
     def test_check_suite_written_without_seer_access(self) -> None:
-        with self.feature({"organizations:gen-ai-features": False}):
-            self._call_suite()
+        self._call_suite()
 
         assert PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
@@ -2173,9 +2175,9 @@ class HandleCheckEventsForPrMetricsTest(TestCase):
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
 
-@override_settings(SENTRY_SELF_HOSTED=False)
-@with_feature(["organizations:pr-metrics", "organizations:gen-ai-features"])
+@with_feature(["organizations:pr-metrics"])
 @cell_silo_test
+@override_settings(SENTRY_SELF_HOSTED=False)
 class HandleWebhookForPrMetricsJudgeForwardTest(TestCase):
     """The needs-judge branch: claim the sentinel and forward."""
 
@@ -2310,12 +2312,12 @@ class HandleWebhookForPrMetricsJudgeForwardTest(TestCase):
 
     @patch("sentry.pr_metrics.tasks.forward_pr_to_seer_task.delay")
     @patch("sentry.analytics.record")
+    @override_settings(SENTRY_SELF_HOSTED=True)
     def test_no_seer_access_skips_judge(
         self, mock_record: MagicMock, mock_delay: MagicMock
     ) -> None:
         # Without Seer access the judge path is not eligible regardless of attribution.
-        with self.feature({"organizations:gen-ai-features": False}):
-            self._call()
+        self._call()
         assert mock_delay.call_count == 0
         assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict is None
 
@@ -2340,17 +2342,17 @@ class HandleWebhookForPrMetricsJudgeForwardTest(TestCase):
 
     @patch(f"{MODULE}.forward_pr_to_seer_task.delay")
     @patch("sentry.analytics.record")
+    @override_settings(SENTRY_SELF_HOSTED=True)
     def test_ineligible_attribution_emits_without_seer_access(
         self, mock_record: MagicMock, mock_delay: MagicMock
     ) -> None:
         # The fallback never talks to Seer, so an org's Seer-access consent gate
-        # (gen-ai-features / hide_ai_features) must not block it — only the actual
-        # forward-to-Seer branch, reached for judge-eligible attribution, needs it.
+        # must not block it — only the actual forward-to-Seer branch, reached for
+        # judge-eligible attribution, needs it.
         PullRequestAttribution.objects.filter(pull_request=self.pull_request).update(
             signal_type=PullRequestAttributionSignalType.MCP
         )
-        with self.feature({"organizations:gen-ai-features": False}):
-            self._call()
+        self._call()
         assert mock_delay.call_count == 0
         assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict == (
             "merged_with_iteration"
@@ -2398,10 +2400,10 @@ MATCH_RPC = "sentry.pr_metrics.webhooks.make_match_coding_agent_pr_request"
 @with_feature(
     [
         "organizations:pr-metrics",
-        "organizations:gen-ai-features",
     ]
 )
 @cell_silo_test
+@override_settings(SENTRY_SELF_HOSTED=False)
 class HandleDelegatedAgentDetectionTest(TestCase):
     def setUp(self) -> None:
         self.project = self.create_project(organization=self.organization)

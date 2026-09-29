@@ -2,15 +2,14 @@ import {makeLazyloadComponent as make} from 'sentry/makeLazyloadComponent';
 import type {SentryRouteObject} from 'sentry/router/types';
 
 export const authV2Routes: SentryRouteObject = {
-  path: 'auth/',
   component: make(() => import('sentry/views/authV2/brandedAuthLayout')),
   children: [
     {
-      path: 'login/:orgSlug?/',
+      path: 'auth/login/:orgSlug?/',
       component: make(() => import('sentry/views/authV2/authLogin')),
     },
     {
-      path: 'register/',
+      path: 'auth/register/',
       component: make(() => import('sentry/views/authV2/authRegister')),
     },
   ],

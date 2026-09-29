@@ -24,7 +24,6 @@ REPO = "acme/rocket"
 REPO_EXTERNAL_ID = "r_01example"
 USER_ID = "user_01example"
 FEATURES = {
-    "organizations:gen-ai-features",
     "organizations:code-review-beta",
     "organizations:seer-cursor-origin-support",
 }
@@ -90,6 +89,14 @@ class ReviewEventTest(TestCase):
         assert review.is_draft is True
         assert review.author_external_id == USER_ID
         assert review.trigger_user == "jane"
+
+    def test_an_empty_handle_is_no_trigger_user(self) -> None:
+        review = _review(
+            "pull_request.created",
+            author={"user": {"id": USER_ID, "email": "jane@example.com", "handle": ""}},
+        )
+
+        assert review.trigger_user is None
 
     def test_an_app_author_is_its_own_contributor(self) -> None:
         review = _review("pull_request.created", author={"app": {"id": "app_01example"}})
