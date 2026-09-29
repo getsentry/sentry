@@ -1,6 +1,7 @@
 import {
   ATTRIBUTE_SEARCH_SECONDARY_ALIASES,
   getAttributeSearchDeprecationAliases,
+  getPreferredAttributeSearchKey,
 } from './getAttributeSearchSecondaryAliases';
 import {FieldKind} from './types';
 
@@ -18,6 +19,10 @@ describe('ATTRIBUTE_SEARCH_SECONDARY_ALIASES', () => {
   });
 
   it('resolves internal and overlapping names to search-facing keys', () => {
+    expect(getPreferredAttributeSearchKey('net.peer.name')).toBe('server.address');
+    expect(ATTRIBUTE_SEARCH_SECONDARY_ALIASES['net.peer.name']?.alias).toBe(
+      'server.address'
+    );
     expect(ATTRIBUTE_SEARCH_SECONDARY_ALIASES['sentry.release']?.alias).toBe('release');
     expect(ATTRIBUTE_SEARCH_SECONDARY_ALIASES['sentry.environment']?.alias).toBe(
       'environment'

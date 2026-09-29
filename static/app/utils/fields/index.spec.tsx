@@ -52,6 +52,7 @@ describe('getFieldDefinition attribute search metadata', () => {
       kind: FieldKind.FIELD,
       desc: ATTRIBUTE_SEARCH_METADATA['http.route']?.brief,
       valueType: FieldValueType.STRING,
+      keywords: ['route'],
     });
   });
 

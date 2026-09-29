@@ -32,17 +32,14 @@ export function getAttributeSearchDeprecationAliases(key: string): string[] {
 
 /**
  * Preferred search-facing name for a convention key.
- * Uses the first deprecation chain member that is itself a search metadata key
- * (e.g. `transaction` when canonical `sentry.segment.name` is not searchable).
+ * The first deprecation chain member is the preferred search attribute.
  */
 export function getPreferredAttributeSearchKey(key: string): string | undefined {
   const metadata = ATTRIBUTE_SEARCH_METADATA[key];
   if (!Object.hasOwn(ATTRIBUTE_SEARCH_METADATA, key) || !metadata) {
     return undefined;
   }
-  return metadata.deprecationChain.find(candidate =>
-    Object.hasOwn(ATTRIBUTE_SEARCH_METADATA, candidate)
-  );
+  return metadata.deprecationChain[0];
 }
 
 function attributeSearchTypeToFieldKind(type: AttributeSearchType): FieldKind {
