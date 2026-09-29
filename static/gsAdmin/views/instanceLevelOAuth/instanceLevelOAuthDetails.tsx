@@ -141,9 +141,7 @@ function ClientDetailsForm({clientDetails}: {clientDetails: ClientDetails}) {
         <p>
           <b>Date added:</b> {clientDetails.createdAt}
         </p>
-        <Button type="submit" variant="primary">
-          Save Client Settings
-        </Button>
+        <form.SubmitButton>Save Client Settings</form.SubmitButton>
       </Stack>
     </form.AppForm>
   );
