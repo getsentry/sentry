@@ -308,7 +308,7 @@ describe('PathMappingList', () => {
 
       await userEvent.click(screen.getByRole('button', {name: 'Expand path mapping'}));
 
-      expect(screen.getByText(/Code Owners/)).toBeInTheDocument();
+      expect(screen.getByRole('link', {name: 'Code Owners'})).toBeInTheDocument();
       expect(
         screen.queryByText(/Only one can be used for matching/)
       ).not.toBeInTheDocument();

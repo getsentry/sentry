@@ -76,7 +76,8 @@ describe('DisconnectRepositoryModal', () => {
     expect(
       await screen.findByText(/Disconnect getsentry\/sentry from/)
     ).toBeInTheDocument();
-    expect(screen.getByText(project.slug)).toBeInTheDocument();
+    // Slug appears in both the heading and the IdentityRow.
+    expect(screen.getAllByText(project.slug)).toHaveLength(2);
   });
 
   it('lists the read-only path mappings being removed', async () => {
