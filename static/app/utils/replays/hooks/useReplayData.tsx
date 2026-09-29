@@ -407,9 +407,11 @@ export function useReplayData({replayId, orgSlug}: Options): Result {
   const isPending = allStatuses.includes('pending') || feedbackEventsPending;
   const status = isError ? 'error' : isPending ? 'pending' : 'success';
 
+  const attachments = useMemo(() => attachmentPages.flat(2), [attachmentPages]);
+
   return useMemo(() => {
     return {
-      attachments: attachmentPages.flat(2),
+      attachments,
       errors: allErrors,
       fetchError: fetchReplayError ?? undefined,
       attachmentError: fetchAttachmentsError?.length ? fetchAttachmentsError : undefined,
@@ -422,7 +424,7 @@ export function useReplayData({replayId, orgSlug}: Options): Result {
       replayRecord,
     };
   }, [
-    attachmentPages,
+    attachments,
     fetchReplayError,
     fetchAttachmentsError,
     feedbackEvents,

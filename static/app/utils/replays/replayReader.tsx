@@ -106,6 +106,16 @@ type RequiredNotNull<T> = {
 
 const sortFrames = (a: any, b: any) => a.timestampMs - b.timestampMs;
 
+/**
+ * The player watches `getRRWebFrames()` by reference and restarts playback at
+ * 0:00 when it changes. Frames are a pure function of these inputs, so a reader
+ * rebuilt over the same ones reuses the array the previous reader produced.
+ */
+const rrwebFramesCache = new WeakMap<
+  unknown[],
+  {frames: RecordingFrame[]; key: string}
+>();
+
 function removeDuplicateClicks(frames: BreadcrumbFrame[]) {
   const slowClickFrames = frames.filter(
     frame => frame.category === 'ui.slowClickDetected'
@@ -367,6 +377,23 @@ export class ReplayReader {
 
     if (clipWindow) {
       this._applyClipWindow(clipWindow, eventTimestampMs);
+    }
+
+    const framesKey = [
+      this._replayRecord.started_at.getTime(),
+      this._replayRecord.finished_at.getTime(),
+      clipWindow?.startTimestampMs,
+      clipWindow?.endTimestampMs,
+      eventTimestampMs,
+    ].join('|');
+    const cached = rrwebFramesCache.get(attachments);
+    if (cached?.key === framesKey) {
+      this._sortedRRWebEvents = cached.frames;
+    } else {
+      rrwebFramesCache.set(attachments, {
+        frames: this._sortedRRWebEvents,
+        key: framesKey,
+      });
     }
   }
 

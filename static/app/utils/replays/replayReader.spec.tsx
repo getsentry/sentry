@@ -56,6 +56,72 @@ describe('ReplayReader', () => {
     expect(missingRecord).toBeNull();
   });
 
+  it('returns the same rrweb frames when only the errors change', () => {
+    const attachments = [
+      ...RRWebInitFrameEventsFixture({timestamp: new Date('2023-12-25T00:01:00')}),
+      RRWebFullSnapshotFrameEventFixture({timestamp: new Date('2023-12-25T00:01:00')}),
+    ];
+    const build = (errors: any[]) =>
+      ReplayReader.factory({attachments, errors, fetching: false, replayRecord});
+
+    const before = build([])!.getRRWebFrames();
+    const after = build([
+      RawReplayErrorFixture({timestamp: new Date('2023-12-25T00:01:00')}),
+    ])!.getRRWebFrames();
+
+    expect(after).toBe(before);
+  });
+
+  it('returns new rrweb frames when the recording gains a segment', () => {
+    const attachments = [
+      ...RRWebInitFrameEventsFixture({timestamp: new Date('2023-12-25T00:01:00')}),
+      RRWebFullSnapshotFrameEventFixture({timestamp: new Date('2023-12-25T00:01:00')}),
+    ];
+    const before = ReplayReader.factory({
+      attachments,
+      errors: [],
+      fetching: false,
+      replayRecord,
+    })!.getRRWebFrames();
+    const after = ReplayReader.factory({
+      attachments: [
+        ...attachments,
+        RRWebFullSnapshotFrameEventFixture({timestamp: new Date('2023-12-25T00:02:00')}),
+      ],
+      errors: [],
+      fetching: false,
+      replayRecord,
+    })!.getRRWebFrames();
+
+    expect(after).not.toBe(before);
+  });
+
+  it('returns different rrweb frames for the same attachments under a clip window', () => {
+    const attachments = [
+      ...RRWebInitFrameEventsFixture({timestamp: new Date('2023-12-25T00:01:00')}),
+      RRWebFullSnapshotFrameEventFixture({timestamp: new Date('2023-12-25T00:01:00')}),
+      RRWebFullSnapshotFrameEventFixture({timestamp: new Date('2023-12-25T00:02:00')}),
+    ];
+    const unclipped = ReplayReader.factory({
+      attachments,
+      errors: [],
+      fetching: false,
+      replayRecord,
+    })!.getRRWebFrames();
+    const clipped = ReplayReader.factory({
+      attachments,
+      clipWindow: {
+        startTimestampMs: new Date('2023-12-25T00:01:00').getTime(),
+        endTimestampMs: new Date('2023-12-25T00:01:30').getTime(),
+      },
+      errors: [],
+      fetching: false,
+      replayRecord,
+    })!.getRRWebFrames();
+
+    expect(clipped.length).toBeLessThan(unclipped.length);
+  });
+
   it('should calculate started_at/finished_at/duration based on first/last events', () => {
     const minuteZero = new Date('2023-12-25T00:00:00');
     const minuteTen = new Date('2023-12-25T00:10:00');
