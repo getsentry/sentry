@@ -197,6 +197,7 @@ class MSTeamsMessageBuilderTest(TestCase):
         assert _is_text_block(mentioned_card["body"][1])
         assert "already installed" in mentioned_card["body"][0]["text"]
         assert "Example Team" in mentioned_card["body"][1]["text"]
+        assert "To unlink your Microsoft Teams identity" in mentioned_card["body"][1]["text"]
         assert mentioned_card["actions"][0]["title"] == "Installation"
         assert mentioned_card["actions"][0]["url"].endswith("/settings/integrations/msteams/")
         assert mentioned_card["actions"][1]["title"] == "Alerts"

@@ -420,6 +420,7 @@ class MsTeamsWebhookTest(APITestCase):
         response_body = responses.calls[3].request.body.decode("utf-8")
         assert "Sentry is already installed for this team" in response_body
         assert "Example Team" in response_body
+        assert "To unlink your Microsoft Teams identity" in response_body
         assert "Installation" in response_body
         assert "Alerts" in response_body
         assert "/settings/integrations/msteams/" in response_body

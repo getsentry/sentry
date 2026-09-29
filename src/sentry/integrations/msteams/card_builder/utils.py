@@ -13,6 +13,7 @@ class HelpMessages:
     MENTIONED_TEXT = (
         "Microsoft Teams installs Sentry once per team. To receive alerts in this channel, add a "
         "MS Teams action to an alert, select the '{team_name}' team and enter this channel's name."
+        "\n\n To unlink your Microsoft Teams identity from your Sentry account, message the personal bot."
     )
     MANAGE_BUTTON = "Installation"
     ALERT_BUTTON = "Alerts"
