@@ -87,23 +87,31 @@ function isConfiguredDrop({outcome, reason}: Annotation): boolean {
   return outcome === 'client_discard' && CONFIGURED_CLIENT_DISCARD_REASONS.has(reason);
 }
 
-/**
- * Severity opacity is a gradient from 0.15 to 1,
- * clamping full opacity at 0.5.
- *
- * `curve` below 1 spreads out small ratios so differences between low drop
- * rates are easier to see; 1 is linear.
- */
-const MIN_OPACITY = 0.15;
-const FULL_AT_RATIO = 0.5;
+export const MIN_HIGHLIGHTED_RATIO = 0.05;
 
-export function opacityForRatio(ratio: number, curve = 1): number {
-  if (ratio <= 0) {
-    return 0;
+export interface SeverityStyle {
+  fill: string;
+  opacity: number;
+}
+
+export function severityStyle(ratio: number, theme: Theme): SeverityStyle {
+  const warning = theme.tokens.background.warning.vibrant;
+  // TODO: Replace with a theme token once the design settles on one.
+  const orange = '#FF9500';
+
+  if (ratio >= 0.5) {
+    return {fill: theme.tokens.dataviz.semantic.bad, opacity: 1};
   }
-
-  const severity = Math.min(1, ratio / FULL_AT_RATIO) ** curve;
-  return MIN_OPACITY + (1 - MIN_OPACITY) * severity;
+  if (ratio >= 0.25) {
+    return {fill: orange, opacity: 1};
+  }
+  if (ratio >= 0.1) {
+    return {fill: orange, opacity: 0.55};
+  }
+  if (ratio >= MIN_HIGHLIGHTED_RATIO) {
+    return {fill: warning, opacity: 0.25};
+  }
+  return {fill: warning, opacity: 0};
 }
 
 interface AnnotationVolume {
