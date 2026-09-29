@@ -31,6 +31,18 @@ ALLOWED_CONTROL_ROW_LOCKS: dict[tuple[str, str], str] = {
         "sentry.integrations.api.endpoints.organization_integration_direct_enable.OrganizationIntegrationDirectEnableEndpoint.post",
     ): "Existing before CTRL-63; not yet reviewed for load.",
     (
+        "sentry_organizationmapping",
+        "sentry.hybridcloud.services.organization_mapping.impl.DatabaseBackedOrganizationMappingService.upsert",
+    ): "Existing before CTRL-63 (implicit, via update_or_create); not yet reviewed for load.",
+    (
+        "sentry_projectkeymapping",
+        "sentry.hybridcloud.services.replica.impl.DatabaseBackedControlReplicaService.upsert_project_key_mapping",
+    ): "Existing before CTRL-63 (implicit, via update_or_create); not yet reviewed for load.",
+    (
+        "sentry_userip",
+        "sentry.audit_log.services.log.impl.DatabaseBackedLogService.record_user_ip",
+    ): "Existing before CTRL-63 (implicit, via update_or_create); not yet reviewed for load.",
+    (
         "sentry_lostpasswordhash",
         "sentry.api.endpoints.auth_recovery.AuthRecoveryConfirmEndpoint.post",
     ): "Existing before CTRL-63; not yet reviewed for load.",
