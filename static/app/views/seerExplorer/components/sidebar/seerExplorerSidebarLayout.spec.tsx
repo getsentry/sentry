@@ -65,7 +65,7 @@ function mockMatchMedia(matches: (query: string) => boolean) {
   }));
 }
 
-// Orientation is driven by media queries (the `xl` width breakpoint and a
+// Orientation is driven by media queries (the `lg` width breakpoint and a
 // short-landscape check); match every query uniformly.
 function mockWideScreen(matches: boolean) {
   mockMatchMedia(() => matches);
@@ -232,8 +232,18 @@ describe('SeerExplorerSidebarLayout', () => {
     expect(splitOrientation()).toBe('horizontal');
   });
 
+  it('docks Seer to the right from the lg breakpoint (auto)', async () => {
+    mockMatchMedia(query => query === '(min-width: 1200px)');
+    renderSidebar(orgWithSidebar);
+
+    await userEvent.click(screen.getByText('open-seer'));
+
+    expect(await screen.findByTestId('seer-explorer-input')).toBeInTheDocument();
+    expect(splitOrientation()).toBe('horizontal');
+  });
+
   it('docks Seer to the right on a short landscape viewport (auto)', async () => {
-    // Not wide (min-width: xl is false), but landscape and short — e.g. a phone
+    // Not wide (min-width: lg is false), but landscape and short — e.g. a phone
     // held sideways, where a bottom dock has no room. Auto docks right instead.
     mockMatchMedia(query => query.includes('orientation: landscape'));
     renderSidebar(orgWithSidebar);

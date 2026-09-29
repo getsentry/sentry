@@ -925,15 +925,17 @@ type SeerExplorerSidebarOrientation = 'right' | 'bottom';
 
 /**
  * Resolves the dock preference to a concrete orientation. `auto` docks right on
- * wide viewports (≥ `xl`) and on short landscape viewports (e.g. phones in
- * landscape), and bottom otherwise. Shared by the layout (to lay out the split)
+ * viewports ≥ `lg` and on short landscape viewports (e.g. phones in landscape),
+ * and bottom otherwise. `lg` is the smallest breakpoint where the expanded nav
+ * plus the sidebar layout's minimum content and Seer widths still fit side by
+ * side. Shared by the layout (to lay out the split)
  * and the provider (to persist the popped-out window's size to the right key).
  */
 export function useSeerExplorerSidebarOrientation(
   sidebarPosition: SeerExplorerSidebarPosition
 ): SeerExplorerSidebarOrientation {
   const theme = useTheme();
-  const isWideScreen = useMedia(`(min-width: ${theme.breakpoints.xl})`);
+  const isWideScreen = useMedia(`(min-width: ${theme.breakpoints.lg})`);
   const isShortLandscape = useMedia(
     `(orientation: landscape) and (max-height: ${theme.breakpoints.xs})`
   );
