@@ -1,7 +1,5 @@
-import {Component} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
@@ -19,7 +17,6 @@ import {t, tct} from 'sentry/locale';
 import type {DataCategoryInfo} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
 import {useLocation} from 'sentry/utils/useLocation';
-import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 import {formatUsageWithUnits, getFormatUsageOptions} from './utils';
@@ -29,8 +26,6 @@ const DOCS_URL = 'https://docs.sentry.io/product/accounts/membership/#restrictin
 type Props = {
   dataCategory: DataCategoryInfo;
   headers: React.ReactNode[];
-  location: Location;
-  navigate: ReactRouter3Navigate;
   usageStats: TableStat[];
   errors?: Record<string, Error>;
   isEmpty?: boolean;
@@ -51,35 +46,46 @@ export type TableStat = {
   total: number;
 };
 
-class UsageTable extends Component<Props> {
-  getErrorMessage = (errorMessage: any) => {
-    if (errorMessage.projectStats.responseJSON.detail === 'No projects available') {
-      return (
-        <EmptyMessage
-          icon={<IconWarning />}
-          title={t(
-            "You don't have access to any projects, or your organization has no projects."
-          )}
-        >
-          {tct('Learn more about [link:Project Access]', {
-            link: <ExternalLink href={DOCS_URL} />,
-          })}
-        </EmptyMessage>
-      );
-    }
-    return <IconWarning variant="muted" legacySize="48px" />;
-  };
+function getErrorMessage(errorMessage: any) {
+  if (errorMessage.projectStats.responseJSON.detail === 'No projects available') {
+    return (
+      <EmptyMessage
+        icon={<IconWarning />}
+        title={t(
+          "You don't have access to any projects, or your organization has no projects."
+        )}
+      >
+        {tct('Learn more about [link:Project Access]', {
+          link: <ExternalLink href={DOCS_URL} />,
+        })}
+      </EmptyMessage>
+    );
+  }
+  return <IconWarning variant="muted" legacySize="48px" />;
+}
 
-  loadProject(projectId: number) {
-    updateProjects([projectId], this.props.location, this.props.navigate, {
+function UsageTable({
+  dataCategory,
+  headers,
+  usageStats,
+  errors,
+  isEmpty,
+  isError,
+  isLoading,
+  showStoredOutcome,
+}: Props) {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  function loadProject(projectId: number) {
+    updateProjects([projectId], location, navigate, {
       save: true,
       environments: [], // Clear environments when switching projects
     });
     window.scrollTo({top: 0, left: 0, behavior: 'smooth'});
   }
 
-  renderTableRow(stat: TableStat & {project: Project}) {
-    const {dataCategory, showStoredOutcome} = this.props;
+  function renderTableRow(stat: TableStat & {project: Project}) {
     const {project, total, accepted, accepted_stored, filtered, invalid, rate_limited} =
       stat;
 
@@ -147,7 +153,7 @@ class UsageTable extends Component<Props> {
               data-test-id={project.slug}
               size="xs"
               onClick={() => {
-                this.loadProject(parseInt(stat.project.id, 10));
+                loadProject(parseInt(stat.project.id, 10));
               }}
             >
               {t('View Project Stats')}
@@ -161,49 +167,36 @@ class UsageTable extends Component<Props> {
     );
   }
 
-  render() {
-    const {isEmpty, isLoading, isError, errors, headers, usageStats} = this.props;
-
-    if (isError) {
-      return (
-        <Panel>
-          <ErrorPanel height="256px">{this.getErrorMessage(errors)}</ErrorPanel>
-        </Panel>
-      );
-    }
-
+  if (isError) {
     return (
-      <SimpleTable
-        columns={USAGE_COLUMNS}
-        header={
-          <SimpleTable.HeaderRow>
-            {headers.map((header, i) => (
-              <SimpleTable.HeaderCell key={i}>{header}</SimpleTable.HeaderCell>
-            ))}
-          </SimpleTable.HeaderRow>
-        }
-      >
-        {isLoading && <SimpleTable.Loading />}
-        {!isLoading && isEmpty && (
-          <SimpleTable.Empty>{t('No data available')}</SimpleTable.Empty>
-        )}
-        {!isLoading && usageStats.map(s => this.renderTableRow(s))}
-      </SimpleTable>
+      <Panel>
+        <ErrorPanel height="256px">{getErrorMessage(errors)}</ErrorPanel>
+      </Panel>
     );
   }
-}
 
-/**
- * Wrapper that injects `navigate` and `location` hooks into UsageTable.
- */
-function UsageTableWithHooks(props: Omit<Props, 'navigate' | 'location'>) {
-  const navigate = useNavigate();
-  const location = useLocation();
-  return <UsageTable {...props} navigate={navigate} location={location} />;
+  return (
+    <SimpleTable
+      columns={USAGE_COLUMNS}
+      header={
+        <SimpleTable.HeaderRow>
+          {headers.map((header, i) => (
+            <SimpleTable.HeaderCell key={i}>{header}</SimpleTable.HeaderCell>
+          ))}
+        </SimpleTable.HeaderRow>
+      }
+    >
+      {isLoading && <SimpleTable.Loading />}
+      {!isLoading && isEmpty && (
+        <SimpleTable.Empty>{t('No data available')}</SimpleTable.Empty>
+      )}
+      {!isLoading && usageStats.map(s => renderTableRow(s))}
+    </SimpleTable>
+  );
 }
 
 // eslint-disable-next-line @sentry/no-default-exports
-export default UsageTableWithHooks;
+export default UsageTable;
 
 const STAT_COLUMN_WIDTH = {zero: 'auto', xl: 'minmax(0, auto)'};
 
