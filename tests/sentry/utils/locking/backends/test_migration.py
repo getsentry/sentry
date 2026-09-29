@@ -165,22 +165,58 @@ class TestMigrationLockBackendOnRedis(TestCase):
             caller.acquire(self.key, 10)
         assert not caller.backend_old.locked(self.key)
 
-    def test_rate_zero_does_not_read_new(self) -> None:
+    def test_check_off_and_rate_zero_does_not_read_new(self) -> None:
+        # Before the rollout, a lock on the new backend is not seen.
         holder = self.build(pick_new)
         caller = self.build(post_process_locks_selector)
         holder.acquire(self.key, 10)
 
-        with override_options({"locks.post-process.migration-rollout-rate": 0.0}):
+        with override_options(
+            {
+                "locks.post-process.migration-check-new": False,
+                "locks.post-process.migration-rollout-rate": 0.0,
+            }
+        ):
             caller.acquire(self.key, 10)
         assert caller.backend_old.locked(self.key)
 
-    def test_small_rate_is_blocked_by_holder_on_new(self) -> None:
-        # The rollback path: a small rate above 0 still checks the new backend.
+    def test_check_on_at_rate_zero_is_blocked_by_holder_on_new(self) -> None:
+        # Rollout start: a process that has the check on but still reads rate 0 must
+        # see a lock that a process with the raised rate put on the new backend.
+        # Rollback: the same case, after the rate is back at 0 but before the check
+        # is turned off.
+        holder = self.build(post_process_locks_selector)
+        caller = self.build(post_process_locks_selector)
+        with override_options(
+            {
+                "locks.post-process.migration-check-new": True,
+                "locks.post-process.migration-rollout-rate": 1.0,
+            }
+        ):
+            holder.acquire(self.key, 10)
+
+        with override_options(
+            {
+                "locks.post-process.migration-check-new": True,
+                "locks.post-process.migration-rollout-rate": 0.0,
+            }
+        ):
+            with pytest.raises(Exception):
+                caller.acquire(self.key, 10)
+        assert not caller.backend_old.locked(self.key)
+
+    def test_rate_above_zero_checks_new_with_check_off(self) -> None:
         holder = self.build(pick_new)
         caller = self.build(post_process_locks_selector)
         holder.acquire(self.key, 10)
 
-        with override_options({"locks.post-process.migration-rollout-rate": 0.0001}):
+        with override_options(
+            {
+                "locks.post-process.migration-check-new": False,
+                "locks.post-process.migration-rollout-rate": 0.0001,
+            }
+        ):
+            assert caller._get_backend(self.key, None) is caller.backend_old
             with pytest.raises(Exception):
                 caller.acquire(self.key, 10)
         assert not caller.backend_old.locked(self.key)
@@ -193,6 +229,50 @@ class TestMigrationLockBackendOnRedis(TestCase):
         selector.use_new = True
         backend.release(self.key)
         assert not backend.locked(self.key)
+
+    def test_release_skips_new_when_check_is_off(self) -> None:
+        backend = self.build(post_process_locks_selector)
+        backend.backend_new.acquire(self.key, 10)
+        backend.backend_old.acquire(self.key, 10)
+
+        with override_options(
+            {
+                "locks.post-process.migration-check-new": False,
+                "locks.post-process.migration-rollout-rate": 0.0,
+            }
+        ):
+            backend.release(self.key)
+        assert not backend.backend_old.locked(self.key)
+        assert backend.backend_new.locked(self.key)
+
+    def test_release_clears_new_when_check_is_on(self) -> None:
+        backend = self.build(post_process_locks_selector)
+        backend.backend_new.acquire(self.key, 10)
+
+        with override_options(
+            {
+                "locks.post-process.migration-check-new": True,
+                "locks.post-process.migration-rollout-rate": 0.0,
+            }
+        ):
+            backend.release(self.key)
+        assert not backend.locked(self.key)
+
+    def test_release_with_check_off_raises_when_old_fails(self) -> None:
+        backend = MigrationLockBackend(
+            backend_new_config=NEW_CONFIG,
+            backend_old_config={"path": UnavailableLockBackend.path},
+            selector_func_path=post_process_locks_selector,
+        )
+
+        with override_options(
+            {
+                "locks.post-process.migration-check-new": False,
+                "locks.post-process.migration-rollout-rate": 0.0,
+            }
+        ):
+            with pytest.raises(Exception):
+                backend.release(self.key)
 
     def test_release_raises_when_no_lock_is_held(self) -> None:
         with pytest.raises(Exception):
@@ -256,3 +336,15 @@ class TestRolloutSelectors(TestCase):
         ):
             assert all(b is self.new for b in self.picks(default_locks_selector))
             assert all(b is self.old for b in self.picks(post_process_locks_selector))
+
+    def test_each_selector_reads_its_own_check_option(self) -> None:
+        with override_options(
+            {
+                "locks.default.migration-rollout-rate": 0.0,
+                "locks.default.migration-check-new": True,
+                "locks.post-process.migration-rollout-rate": 0.0,
+                "locks.post-process.migration-check-new": False,
+            }
+        ):
+            assert default_locks_selector.check_new()
+            assert not post_process_locks_selector.check_new()

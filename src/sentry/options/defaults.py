@@ -110,6 +110,22 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# When on, MigrationLockBackend also checks the new backend for keys that go to the old
+# backend. Turn it on before the matching rollout rate goes above 0, and turn it off only
+# after the rate is back at 0 and all locks on the new backend have expired. See the
+# MigrationLockBackend docstring for the full sequence.
+register(
+    "locks.default.migration-check-new",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "locks.post-process.migration-check-new",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Processing worker caches
 register(
