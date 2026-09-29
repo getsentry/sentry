@@ -606,8 +606,13 @@ class TestStatefulDetectorHandlerExtractValueFromPacket(TestCase):
         }
 
 
-class RotatingDetectorStateHandler(MockDetectorStateHandler):
-    should_generate_unique_issues = True
+class MockRotatingDetectorStateHandler(MockDetectorStateHandler):
+    activation_creates_new_issue = True
+
+
+class MockFingerprintedRotatingDetectorStateHandler(MockRotatingDetectorStateHandler):
+    def build_issue_fingerprint(self, group_key: DetectorGroupKey = None) -> list[str]:
+        return ["custom-fingerprint"]
 
 
 class TestStatefulDetectorActivationId(TestCase):
@@ -664,7 +669,7 @@ class TestStatefulDetectorActivationId(TestCase):
     def activation_fingerprint(self, activation_id: int | None) -> list[str]:
         return [f"detector:{self.detector.id}:activation:{activation_id}"]
 
-    def test_detector_without_a_project__resolves_its_organization(self) -> None:
+    def test_detector_without_a_project_uses_org_for_feature_flag(self) -> None:
         """
         An all-projects detector has project=NULL and carries its org in config, so
         `linked_project` raises for it and cannot be used to check the flag.
@@ -673,40 +678,53 @@ class TestStatefulDetectorActivationId(TestCase):
 
         assert org_scoped_detector.project is None
 
-        handler = RotatingDetectorStateHandler(detector=org_scoped_detector)
+        handler = MockRotatingDetectorStateHandler(detector=org_scoped_detector)
 
         assert handler._get_detector_organization() == self.organization
 
         with self.feature("organizations:workflow-engine-rotate-activation-id"):
             assert handler._should_rotate_activation_id() is True
 
-    def test_detector_without_a_project_or_organization__raises(self) -> None:
+    def test_detector_without_a_project_or_organization_raises_value_error(self) -> None:
         orphaned_detector = self.create_all_projects_detector(self.organization)
 
         orphaned_detector.config = {}
 
-        handler = RotatingDetectorStateHandler(detector=orphaned_detector)
+        assert orphaned_detector.project is None
+
+        handler = MockRotatingDetectorStateHandler(detector=orphaned_detector)
 
         with pytest.raises(ValueError):
             handler._get_detector_organization()
 
-    def test_no_opt_in__never_rotates(self) -> None:
+    def test_detector_opted_in_with_issue_fingerprint_override_raises_value_error(self) -> None:
+        handler = MockFingerprintedRotatingDetectorStateHandler(detector=self.detector)
+
+        with pytest.raises(ValueError):
+            handler.build_occurrence_fingerprint(self.group_key, activation_id=None)
+
+    def test_detector_not_opted_in_never_rotates_activation_id(self) -> None:
         handler = MockDetectorStateHandler(detector=self.detector)
+
+        assert handler.activation_creates_new_issue is False
 
         with self.feature("organizations:workflow-engine-rotate-activation-id"):
             handler.evaluate(self.packet(1, Level.HIGH))
 
-        assert self.activation_id(handler) is None
+            assert self.activation_id(handler) is None
 
-    def test_opt_in_without_flag__never_rotates(self) -> None:
-        handler = RotatingDetectorStateHandler(detector=self.detector)
+    def test_detector_opted_in_with_flag_off_never_rotates_activation_id(self) -> None:
+        handler = MockRotatingDetectorStateHandler(detector=self.detector)
 
-        handler.evaluate(self.packet(1, Level.HIGH))
+        assert handler.activation_creates_new_issue is True
 
-        assert self.activation_id(handler) is None
+        with self.feature({"organizations:workflow-engine-rotate-activation-id": False}):
+            handler.evaluate(self.packet(1, Level.HIGH))
 
-    def test_leaving_ok__mints_an_id(self) -> None:
-        handler = RotatingDetectorStateHandler(detector=self.detector)
+            assert self.activation_id(handler) is None
+
+    def test_detector_leaving_ok_state_sets_activation_id_to_current_time(self) -> None:
+        handler = MockRotatingDetectorStateHandler(detector=self.detector)
 
         activated_at = before_now(days=1).replace(microsecond=0)
 
@@ -716,10 +734,12 @@ class TestStatefulDetectorActivationId(TestCase):
         ):
             handler.evaluate(self.packet(1, Level.HIGH))
 
-        assert self.activation_id(handler) == int(activated_at.timestamp() * 1000)
+        activated_at_in_milliseconds = int(activated_at.timestamp() * 1000)
 
-    def test_escalation_and_resolution__keep_the_id(self) -> None:
-        handler = RotatingDetectorStateHandler(detector=self.detector)
+        assert self.activation_id(handler) == activated_at_in_milliseconds
+
+    def test_detector_escalating_and_resolving_keeps_activation_id(self) -> None:
+        handler = MockRotatingDetectorStateHandler(detector=self.detector)
 
         with (
             self.feature("organizations:workflow-engine-rotate-activation-id"),
@@ -727,25 +747,25 @@ class TestStatefulDetectorActivationId(TestCase):
         ):
             handler.evaluate(self.packet(1, Level.MEDIUM))
 
-            activated = self.activation_id(handler)
+            initial_activation_id = self.activation_id(handler)
 
             frozen_time.shift(timedelta(seconds=1))
 
             handler.evaluate(self.packet(2, Level.HIGH))
 
-            assert self.activation_id(handler) == activated
+            assert self.activation_id(handler) == initial_activation_id
 
             frozen_time.shift(timedelta(seconds=1))
 
             handler.evaluate(self.packet(3, Level.OK))
 
-            assert self.activation_id(handler) == activated
+            assert self.activation_id(handler) == initial_activation_id
 
-    def test_group_keys__rotate_independently(self) -> None:
+    def test_detector_group_keys_rotate_activation_id_independently(self) -> None:
         """
         Ensure one group key firing or resolving does not mess up another group key
         """
-        handler = RotatingDetectorStateHandler(detector=self.detector)
+        handler = MockRotatingDetectorStateHandler(detector=self.detector)
 
         with (
             self.feature("organizations:workflow-engine-rotate-activation-id"),
@@ -753,31 +773,36 @@ class TestStatefulDetectorActivationId(TestCase):
         ):
             handler.evaluate(self.grouped_packet(1, {"group_a": Level.HIGH, "group_b": Level.HIGH}))
 
-            first_a = self.activation_id(handler, "group_a")
-            first_b = self.activation_id(handler, "group_b")
+            group_a_initial_activation_id = self.activation_id(handler, "group_a")
 
-            assert first_a is not None
-            assert first_b is not None
+            group_b_initial_activation_id = self.activation_id(handler, "group_b")
+
+            assert group_a_initial_activation_id is not None
+
+            assert group_b_initial_activation_id is not None
 
             frozen_time.shift(timedelta(seconds=1))
 
             handler.evaluate(self.grouped_packet(2, {"group_a": Level.OK}))
 
-            assert self.activation_id(handler, "group_a") == first_a
-            assert self.activation_id(handler, "group_b") == first_b
+            assert self.activation_id(handler, "group_a") == group_a_initial_activation_id
+
+            assert self.activation_id(handler, "group_b") == group_b_initial_activation_id
 
             frozen_time.shift(timedelta(seconds=1))
 
             handler.evaluate(self.grouped_packet(3, {"group_a": Level.HIGH}))
 
-            second_a = self.activation_id(handler, "group_a")
+            group_a_next_activation_id = self.activation_id(handler, "group_a")
 
-            assert second_a is not None
-            assert second_a != first_a
-            assert self.activation_id(handler, "group_b") == first_b
+            assert group_a_next_activation_id is not None
 
-    def test_refiring__mints_a_new_id(self) -> None:
-        handler = RotatingDetectorStateHandler(detector=self.detector)
+            assert group_a_next_activation_id != group_a_initial_activation_id
+
+            assert self.activation_id(handler, "group_b") == group_b_initial_activation_id
+
+    def test_detector_refiring_rotates_activation_id(self) -> None:
+        handler = MockRotatingDetectorStateHandler(detector=self.detector)
 
         with (
             self.feature("organizations:workflow-engine-rotate-activation-id"),
@@ -785,97 +810,121 @@ class TestStatefulDetectorActivationId(TestCase):
         ):
             handler.evaluate(self.packet(1, Level.HIGH))
 
-            first_activation = self.activation_id(handler)
+            initial_activation_id = self.activation_id(handler)
 
             frozen_time.shift(timedelta(seconds=1))
 
             handler.evaluate(self.packet(2, Level.OK))
+
             handler.evaluate(self.packet(3, Level.HIGH))
 
-            second_activation = self.activation_id(handler)
+            next_activation_id = self.activation_id(handler)
 
-        assert first_activation is not None
-        assert second_activation is not None
-        assert second_activation != first_activation
+            assert initial_activation_id is not None
 
-    def test_no_opt_in__keeps_the_stable_fingerprint(self) -> None:
+            assert next_activation_id is not None
+
+            assert next_activation_id != initial_activation_id
+
+    def test_detector_not_opted_in_keeps_stable_fingerprint(self) -> None:
         handler = MockDetectorStateHandler(detector=self.detector)
 
+        assert handler.activation_creates_new_issue is False
+
         with self.feature("organizations:workflow-engine-rotate-activation-id"):
-            firing = self.fingerprint(handler, self.packet(1, Level.HIGH))
+            firing_update_fingerprint = self.fingerprint(handler, self.packet(1, Level.HIGH))
 
-            resolve = self.fingerprint(handler, self.packet(2, Level.OK))
+            resolution_update_fingerprint = self.fingerprint(handler, self.packet(2, Level.OK))
 
-        assert firing == self.stable_fingerprint()
-        assert resolve == self.stable_fingerprint()
+            assert firing_update_fingerprint == self.stable_fingerprint()
 
-    def test_opt_in_without_flag__keeps_the_stable_fingerprint(self) -> None:
-        handler = RotatingDetectorStateHandler(detector=self.detector)
+            assert resolution_update_fingerprint == self.stable_fingerprint()
 
-        firing = self.fingerprint(handler, self.packet(1, Level.HIGH))
+    def test_detector_opted_in_with_flag_off_keeps_stable_fingerprint(self) -> None:
+        handler = MockRotatingDetectorStateHandler(detector=self.detector)
 
-        resolve = self.fingerprint(handler, self.packet(2, Level.OK))
+        assert handler.activation_creates_new_issue is True
 
-        assert firing == self.stable_fingerprint()
-        assert resolve == self.stable_fingerprint()
+        with self.feature({"organizations:workflow-engine-rotate-activation-id": False}):
+            firing_update_fingerprint = self.fingerprint(handler, self.packet(1, Level.HIGH))
 
-    def test_each_activation__gets_its_own_fingerprint(self) -> None:
-        handler = RotatingDetectorStateHandler(detector=self.detector)
+            resolution_update_fingerprint = self.fingerprint(handler, self.packet(2, Level.OK))
+
+            assert firing_update_fingerprint == self.stable_fingerprint()
+
+            assert resolution_update_fingerprint == self.stable_fingerprint()
+
+    def test_detector_each_activation_gets_its_own_fingerprint(self) -> None:
+        handler = MockRotatingDetectorStateHandler(detector=self.detector)
 
         with (
             self.feature("organizations:workflow-engine-rotate-activation-id"),
             freeze_time() as frozen_time,
         ):
-            first_firing = self.fingerprint(handler, self.packet(1, Level.HIGH))
+            firing_update_fingerprint = self.fingerprint(handler, self.packet(1, Level.HIGH))
 
-            first_activation = self.activation_id(handler)
+            initial_activation_id = self.activation_id(handler)
 
-            first_resolve = self.fingerprint(handler, self.packet(2, Level.OK))
+            resolution_update_fingerprint = self.fingerprint(handler, self.packet(2, Level.OK))
 
             frozen_time.shift(timedelta(seconds=1))
 
-            second_firing = self.fingerprint(handler, self.packet(3, Level.HIGH))
+            next_firing_update_fingerprint = self.fingerprint(handler, self.packet(3, Level.HIGH))
 
-        assert first_firing == self.activation_fingerprint(first_activation)
+            assert firing_update_fingerprint == self.activation_fingerprint(initial_activation_id)
 
-        # The resolve has to match the firing it closes, or the issue is stranded open.
-        assert first_resolve == first_firing
+            # The resolve has to match the firing it closes, or the issue is stranded open.
+            assert resolution_update_fingerprint == firing_update_fingerprint
 
-        assert second_firing != first_firing
+            assert next_firing_update_fingerprint != firing_update_fingerprint
 
-    def test_escalation_and_de_escalation__stay_on_one_fingerprint(self) -> None:
-        handler = RotatingDetectorStateHandler(detector=self.detector)
-
-        with self.feature("organizations:workflow-engine-rotate-activation-id"):
-            activated = self.fingerprint(handler, self.packet(1, Level.MEDIUM))
-
-            assert self.fingerprint(handler, self.packet(2, Level.HIGH)) == activated
-            assert self.fingerprint(handler, self.packet(3, Level.MEDIUM)) == activated
-            assert self.fingerprint(handler, self.packet(4, Level.OK)) == activated
-
-    def test_issue_open_before_rollout__still_resolves(self) -> None:
-        handler = RotatingDetectorStateHandler(detector=self.detector)
-
-        firing = self.fingerprint(handler, self.packet(1, Level.HIGH))
+    def test_detector_escalating_and_de_escalating_keeps_fingerprint(self) -> None:
+        handler = MockRotatingDetectorStateHandler(detector=self.detector)
 
         with self.feature("organizations:workflow-engine-rotate-activation-id"):
-            resolve = self.fingerprint(handler, self.packet(2, Level.OK))
+            firing_update_fingerprint = self.fingerprint(handler, self.packet(1, Level.MEDIUM))
+
+            escalation_update_fingerprint = self.fingerprint(handler, self.packet(2, Level.HIGH))
+
+            de_escalation_update_fingerprint = self.fingerprint(
+                handler, self.packet(3, Level.MEDIUM)
+            )
+
+            resolution_update_fingerprint = self.fingerprint(handler, self.packet(4, Level.OK))
+
+            assert escalation_update_fingerprint == firing_update_fingerprint
+
+            assert de_escalation_update_fingerprint == firing_update_fingerprint
+
+            assert resolution_update_fingerprint == firing_update_fingerprint
+
+    def test_detector_turning_flag_on_still_resolves_open_issue(self) -> None:
+        handler = MockRotatingDetectorStateHandler(detector=self.detector)
+
+        with self.feature({"organizations:workflow-engine-rotate-activation-id": False}):
+            firing_update_fingerprint = self.fingerprint(handler, self.packet(1, Level.HIGH))
+
+            assert firing_update_fingerprint == self.stable_fingerprint()
+
+        with self.feature("organizations:workflow-engine-rotate-activation-id"):
+            resolution_update_fingerprint = self.fingerprint(handler, self.packet(2, Level.OK))
 
             # Only the firing after the cutover rotates.
-            next_firing = self.fingerprint(handler, self.packet(3, Level.HIGH))
+            next_firing_update_fingerprint = self.fingerprint(handler, self.packet(3, Level.HIGH))
 
-            next_activation = self.activation_id(handler)
+            next_activation_id = self.activation_id(handler)
 
-        assert firing == self.stable_fingerprint()
-        assert resolve == self.stable_fingerprint()
-        assert next_firing == self.activation_fingerprint(next_activation)
+            assert resolution_update_fingerprint == self.stable_fingerprint()
 
-    def test_turning_the_flag_off__does_not_strand_the_open_issue(self) -> None:
-        handler = RotatingDetectorStateHandler(detector=self.detector)
+            assert next_firing_update_fingerprint == self.activation_fingerprint(next_activation_id)
+
+    def test_detector_turning_flag_off_still_resolves_open_issue(self) -> None:
+        handler = MockRotatingDetectorStateHandler(detector=self.detector)
 
         with self.feature("organizations:workflow-engine-rotate-activation-id"):
-            firing = self.fingerprint(handler, self.packet(1, Level.HIGH))
+            firing_update_fingerprint = self.fingerprint(handler, self.packet(1, Level.HIGH))
 
-        resolve = self.fingerprint(handler, self.packet(2, Level.OK))
+        with self.feature({"organizations:workflow-engine-rotate-activation-id": False}):
+            resolution_update_fingerprint = self.fingerprint(handler, self.packet(2, Level.OK))
 
-        assert resolve == firing
+            assert resolution_update_fingerprint == firing_update_fingerprint

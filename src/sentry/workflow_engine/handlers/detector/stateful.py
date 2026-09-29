@@ -44,7 +44,7 @@ def get_redis_client() -> RetryingRedisCluster:
     return redis.redis_clusters.get(cluster_key)  # type: ignore[return-value]
 
 
-def _get_unix_epoch_time_in_ms() -> int:
+def _get_unix_epoch_time_in_milliseconds() -> int:
     return time.time_ns() // 1_000_000
 
 
@@ -349,7 +349,7 @@ class StatefulDetectorHandler(
 
     # If this flag is true, unique issues will be generated for each open period
     # If this flag is false, a new open period will regress a previous issue instead.
-    should_generate_unique_issues: ClassVar[bool] = False
+    activation_creates_new_issue: ClassVar[bool] = False
 
     def __init__(self, detector: Detector, thresholds: DetectorThresholds | None = None):
         super().__init__(detector)
@@ -393,12 +393,20 @@ class StatefulDetectorHandler(
         """
         detector_key = self.state_manager.build_key(group_key)
 
+        issue_fingerprint = self.build_issue_fingerprint(group_key)
+
+        if self.activation_creates_new_issue and issue_fingerprint:
+            raise ValueError(
+                f"Detector {self.detector.id} cannot override `build_issue_fingerprint` "
+                "while `activation_creates_new_issue` is set"
+            )
+
         stable_fingerprint = [
-            *self.build_issue_fingerprint(group_key),
+            *issue_fingerprint,
             detector_key,
         ]
 
-        if not self.should_generate_unique_issues:
+        if not self.activation_creates_new_issue:
             return stable_fingerprint
 
         # If the activation_id is None, that means an issue was open prior to the class variable being set to true
@@ -412,8 +420,7 @@ class StatefulDetectorHandler(
     def build_issue_fingerprint(self, group_key: DetectorGroupKey = None) -> list[str]:
         """
         A hook that allows for additional fingerprinting to be added to the detectors issue occurrences.
-        This hook is only used if `should_generate_unique_issues` is false, or else it may interfere with
-        unique issue creation
+        You may not override this hook if `activation_creates_new_issue` is true, or else it may interfere with unique issue creation
         """
         return []
 
@@ -491,7 +498,7 @@ class StatefulDetectorHandler(
             if new_priority == DetectorPriorityLevel.OK:
                 self.state_manager.enqueue_counter_reset(group_key)
 
-            activation_id = self._get_next_activation_id(
+            activation_id = self._get_activation_id(
                 state_data, new_priority, should_rotate_activation_id
             )
 
@@ -729,8 +736,10 @@ class StatefulDetectorHandler(
     def _should_rotate_activation_id(self) -> bool:
         """
         Whether this detector should start a new activation on each OK -> non-OK transition.
+        For some detectors this is never the case, while for others it depends on the
+        organization's feature flag
         """
-        if not self.should_generate_unique_issues:
+        if not self.activation_creates_new_issue:
             return False
 
         organization = self._get_detector_organization()
@@ -740,7 +749,7 @@ class StatefulDetectorHandler(
             organization,
         )
 
-    def _get_next_activation_id(
+    def _get_activation_id(
         self,
         state_data: DetectorStateData,
         new_priority: DetectorPriorityLevel,
@@ -755,7 +764,7 @@ class StatefulDetectorHandler(
         )
 
         if is_leaving_ok_state:
-            return _get_unix_epoch_time_in_ms()
+            return _get_unix_epoch_time_in_milliseconds()
 
         return state_data.activation_id
 
