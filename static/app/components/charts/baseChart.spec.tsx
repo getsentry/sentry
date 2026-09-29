@@ -55,4 +55,66 @@ describe('BaseChart', () => {
     expect(series[2].lineStyle.color).toBe('rgb(255, 213, 48)');
     expect(series[2].lineStyle.type).toBe('dotted');
   });
+
+  describe('shouldSetOption', () => {
+    function getLatestProps() {
+      // @ts-expect-error TODO: Fix this type
+      const calls = ReactEchartsCore.mock.calls;
+      return calls[calls.length - 1][0];
+    }
+
+    function attachInstance(instance: {isDisposed: () => boolean} | undefined) {
+      // Simulate echarts-for-react attaching itself to BaseChart's ref
+      getLatestProps().ref({getEchartsInstance: () => instance});
+    }
+
+    it('skips updates when no echarts instance is attached to the DOM', () => {
+      render(<BaseChart />);
+
+      attachInstance(undefined);
+
+      expect(getLatestProps().shouldSetOption()).toBe(false);
+    });
+
+    it('skips updates when the echarts instance is disposed', () => {
+      render(<BaseChart />);
+
+      attachInstance({isDisposed: () => true});
+
+      expect(getLatestProps().shouldSetOption()).toBe(false);
+    });
+
+    it('allows updates when a live echarts instance is attached', () => {
+      render(<BaseChart />);
+
+      attachInstance({isDisposed: () => false});
+
+      expect(getLatestProps().shouldSetOption()).toBe(true);
+    });
+
+    it('re-evaluates the instance state on every call', () => {
+      render(<BaseChart />);
+      const {shouldSetOption} = getLatestProps();
+
+      attachInstance(undefined);
+      expect(shouldSetOption()).toBe(false);
+
+      let disposed = false;
+      attachInstance({isDisposed: () => disposed});
+      expect(shouldSetOption()).toBe(true);
+
+      disposed = true;
+      expect(shouldSetOption()).toBe(false);
+    });
+
+    it('re-evaluates across re-renders', () => {
+      const {rerender} = render(<BaseChart height={100} />);
+      attachInstance(undefined);
+      expect(getLatestProps().shouldSetOption()).toBe(false);
+
+      rerender(<BaseChart height={200} />);
+      attachInstance({isDisposed: () => false});
+      expect(getLatestProps().shouldSetOption()).toBe(true);
+    });
+  });
 });
