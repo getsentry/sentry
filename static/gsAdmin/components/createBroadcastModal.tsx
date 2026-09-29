@@ -61,7 +61,7 @@ export function CreateBroadcastModal({
       mediaUrl: mediaUrl || undefined,
       region: typeof data.region === 'string' ? data.region || undefined : undefined,
       organizations:
-        typeof data.organizations === 'string'
+        typeof data.organizations === 'string' && data.organizations.trim()
           ? data.organizations
               .split(',')
               .map(s => Number(s.trim()))
