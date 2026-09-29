@@ -202,9 +202,7 @@ class BasePostProcessGroupMixin(BaseTestCase, metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
-    def call_post_process_group(
-        self, is_new, is_regression, is_new_group_environment, event, cache_key=None
-    ):
+    def call_post_process_group(self, is_new, is_regression, is_new_group_environment, event):
         pass
 
 
@@ -3625,21 +3623,18 @@ class PostProcessGroupErrorTest(
     def create_event(self, data, project_id, assert_no_errors=True):
         return self.store_event(data=data, project_id=project_id, assert_no_errors=assert_no_errors)
 
-    def call_post_process_group(
-        self, is_new, is_regression, is_new_group_environment, event, cache_key=None
-    ):
+    def call_post_process_group(self, is_new, is_regression, is_new_group_environment, event):
         event.data.save()
         post_process_group(
             is_new=is_new,
             is_regression=is_regression,
             is_new_group_environment=is_new_group_environment,
-            cache_key=cache_key,
+            cache_key=None,
             group_id=event.group_id,
             event_id=event.event_id,
             project_id=event.project_id,
             eventstream_type=EventStreamEventType.Error.value,
         )
-        return cache_key
 
 
 class PostProcessGroupPerformanceTest(
@@ -3659,22 +3654,19 @@ class PostProcessGroupPerformanceTest(
         fingerprint = f"{PerformanceNPlusOneGroupType.type_id}-{fingerprint}"
         return self.create_performance_issue(fingerprint=fingerprint)
 
-    def call_post_process_group(
-        self, is_new, is_regression, is_new_group_environment, event, cache_key=None
-    ):
+    def call_post_process_group(self, is_new, is_regression, is_new_group_environment, event):
         event.data.save()
         with self.feature(PerformanceNPlusOneGroupType.build_post_process_group_feature_name()):
             post_process_group(
                 is_new=is_new,
                 is_regression=is_regression,
                 is_new_group_environment=is_new_group_environment,
-                cache_key=cache_key,
+                cache_key=None,
                 group_id=event.group_id,
                 event_id=event.event_id,
                 project_id=event.project_id,
                 eventstream_type=EventStreamEventType.Error.value,
             )
-        return cache_key
 
     @patch("sentry.tasks.post_process.handle_owner_assignment")
     @patch("sentry.tasks.post_process.handle_auto_assignment")
@@ -3747,9 +3739,7 @@ class PostProcessGroupAggregateEventTest(
 
         return event
 
-    def call_post_process_group(
-        self, is_new, is_regression, is_new_group_environment, event, cache_key=None
-    ):
+    def call_post_process_group(self, is_new, is_regression, is_new_group_environment, event):
         event.data.save()
         with self.feature(
             PerformanceP95EndpointRegressionGroupType.build_post_process_group_feature_name()
@@ -3758,13 +3748,12 @@ class PostProcessGroupAggregateEventTest(
                 is_new=is_new,
                 is_regression=is_regression,
                 is_new_group_environment=is_new_group_environment,
-                cache_key=cache_key,
+                cache_key=None,
                 group_id=event.group_id,
                 event_id=event.event_id,
                 project_id=event.project_id,
                 eventstream_type=EventStreamEventType.Error.value,
             )
-        return cache_key
 
 
 class PostProcessGroupGenericTest(
@@ -3792,9 +3781,7 @@ class PostProcessGroupGenericTest(
         group_event.occurrence = occurrence
         return group_event
 
-    def call_post_process_group(
-        self, is_new, is_regression, is_new_group_environment, event, cache_key=None
-    ):
+    def call_post_process_group(self, is_new, is_regression, is_new_group_environment, event):
         post_process_group(
             is_new=is_new,
             is_regression=is_regression,
@@ -3805,7 +3792,6 @@ class PostProcessGroupGenericTest(
             project_id=event.group.project_id,
             eventstream_type=EventStreamEventType.Generic.value,
         )
-        return cache_key
 
     def test_issueless(self) -> None:
         # Skip this test since there's no way to have issueless events in the issue platform
@@ -4031,9 +4017,7 @@ class PostProcessGroupFeedbackTest(
         group_event.occurrence = occurrence
         return group_event
 
-    def call_post_process_group(
-        self, is_new, is_regression, is_new_group_environment, event, cache_key=None
-    ):
+    def call_post_process_group(self, is_new, is_regression, is_new_group_environment, event):
         with self.feature(FeedbackGroup.build_post_process_group_feature_name()):
             post_process_group(
                 is_new=is_new,
@@ -4045,7 +4029,6 @@ class PostProcessGroupFeedbackTest(
                 project_id=event.group.project_id,
                 eventstream_type=EventStreamEventType.Error.value,
             )
-        return cache_key
 
     def run_decorated_step(self, killswitch_conditions):
         # The step is wrapped by feedback_filter_decorator, so this only works if the
@@ -4068,7 +4051,6 @@ class PostProcessGroupFeedbackTest(
                 is_regression=False,
                 is_new_group_environment=True,
                 event=event,
-                cache_key="total_rubbish",
             )
         return calls
 
@@ -4101,7 +4083,6 @@ class PostProcessGroupFeedbackTest(
                 is_regression=False,
                 is_new_group_environment=True,
                 event=event,
-                cache_key="total_rubbish",
             )
         assert mock_process_func.call_count == 0
 
@@ -4126,7 +4107,6 @@ class PostProcessGroupFeedbackTest(
                 is_regression=False,
                 is_new_group_environment=True,
                 event=event,
-                cache_key="total_rubbish",
             )
         assert mock_process_func.call_count == 0
 
@@ -4152,7 +4132,6 @@ class PostProcessGroupFeedbackTest(
                 is_regression=False,
                 is_new_group_environment=True,
                 event=event,
-                cache_key="total_rubbish",
             )
         assert mock_process_func.call_count == 1
 
@@ -4177,7 +4156,6 @@ class PostProcessGroupFeedbackTest(
                 is_regression=False,
                 is_new_group_environment=True,
                 event=event,
-                cache_key="total_rubbish",
             )
         assert mock_process_func.call_count == 0
 
@@ -4201,7 +4179,6 @@ class PostProcessGroupFeedbackTest(
                 is_regression=False,
                 is_new_group_environment=True,
                 event=event,
-                cache_key="total_rubbish",
             )
         assert mock_process_func.call_count == 1
 
@@ -4225,7 +4202,6 @@ class PostProcessGroupFeedbackTest(
                 is_regression=False,
                 is_new_group_environment=True,
                 event=event,
-                cache_key="total_rubbish",
             )
         assert mock_process_func.call_count == 1
 
@@ -4251,7 +4227,6 @@ class PostProcessGroupFeedbackTest(
                     is_regression=False,
                     is_new_group_environment=True,
                     event=event,
-                    cache_key="total_rubbish",
                 )
 
         assert mock_process_func.call_count == 0
@@ -4328,20 +4303,17 @@ class ProcessDataForwardingTest(BasePostProcessGroupMixin, SnubaTestCase):
     def create_event(self, data, project_id, assert_no_errors=True):
         return self.store_event(data=data, project_id=project_id, assert_no_errors=assert_no_errors)
 
-    def call_post_process_group(
-        self, is_new, is_regression, is_new_group_environment, event, cache_key=None
-    ):
+    def call_post_process_group(self, is_new, is_regression, is_new_group_environment, event):
         event.data.save()
         post_process_group(
             is_new=is_new,
             is_regression=is_regression,
             is_new_group_environment=is_new_group_environment,
-            cache_key=cache_key,
+            cache_key=None,
             group_id=event.group_id,
             event_id=event.event_id,
             project_id=event.project_id,
         )
-        return cache_key
 
     def setup_forwarder(self, provider, is_enabled=True, **config_overrides):
         config = self.DEFAULT_FORWARDER_CONFIGS[provider].copy()

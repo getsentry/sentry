@@ -75,26 +75,23 @@ class BaseWorkflowIntegrationTest(BaseWorkflowTest):
         is_new: bool = False,
         is_regression: bool = False,
         is_new_group_environment: bool = True,
-        cache_key: str | None = None,
         eventstream_type: str = EventStreamEventType.Generic.value,
         include_occurrence: bool = True,
         event: Event | None = None,
-    ) -> str | None:
+    ) -> None:
         if event is None:
             event = self.event
         post_process_group(
             is_new=is_new,
             is_regression=is_regression,
             is_new_group_environment=is_new_group_environment,
-            cache_key=cache_key,
+            cache_key=None,
             group_id=group_id,
             occurrence_id=self.occurrence.id if include_occurrence else None,
             event_id=event.event_id,
             project_id=event.project_id,
             eventstream_type=eventstream_type,
         )
-
-        return cache_key
 
 
 class TestWorkflowEngineIntegrationToIssuePlatform(BaseWorkflowIntegrationTest):

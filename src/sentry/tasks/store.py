@@ -522,7 +522,6 @@ def _do_save_event(
     cache_key: str | None = None,
     data: MutableMapping[str, Any] | None = None,
     start_time: float | None = None,
-    event_id: str | None = None,
     project_id: int | None = None,
     has_attachments: bool = False,
     consumer_type: str | None = None,
@@ -555,9 +554,6 @@ def _do_save_event(
     )
 
     with metrics.global_tags(tags={"event_type": event_type}):
-        if event_id is None and data is not None:
-            event_id = data["event_id"]
-
         # only when we come from reprocessing we get a project_id sent into
         # the task.
         if project_id is None:
@@ -609,9 +605,8 @@ def _do_save_event(
                 ):
                     raise HashDiscarded("Load shedding save_event")
 
-                manager = EventManager(data)
                 # event.project.organization is populated after this statement.
-                manager.save(
+                EventManager(data).save(
                     project=project,
                     assume_normalized=True,
                     start_time=start_time,
@@ -667,7 +662,6 @@ def save_event(
         cache_key,
         data,
         start_time,
-        event_id,
         project_id,
         consumer_type=ConsumerType.Events,
         **kwargs,
@@ -696,7 +690,6 @@ def save_event_transaction(
         cache_key,
         data,
         start_time,
-        event_id,
         project_id,
         consumer_type=ConsumerType.Transactions,
         **kwargs,
@@ -744,7 +737,6 @@ def save_event_attachments(
         cache_key,
         data,
         start_time,
-        event_id,
         project_id,
         consumer_type=ConsumerType.Attachments,
         has_attachments=True,
