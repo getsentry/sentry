@@ -110,11 +110,13 @@ const sortFrames = (a: any, b: any) => a.timestampMs - b.timestampMs;
  * The player watches `getRRWebFrames()` by reference and restarts playback at
  * 0:00 when it changes. Frames are a pure function of these inputs, so a reader
  * rebuilt over the same ones reuses the array the previous reader produced.
+ *
+ * Several entries per attachments array: a hydration-error issue page reads one
+ * replay both clipped and unclipped, and a single slot lets those two evict each
+ * other on every rebuild.
  */
-const rrwebFramesCache = new WeakMap<
-  unknown[],
-  {frames: RecordingFrame[]; key: string}
->();
+const MAX_CACHED_FRAME_LISTS = 4;
+const rrwebFramesCache = new WeakMap<unknown[], Map<string, RecordingFrame[]>>();
 
 function removeDuplicateClicks(frames: BreadcrumbFrame[]) {
   const slowClickFrames = frames.filter(
@@ -380,20 +382,26 @@ export class ReplayReader {
     }
 
     const framesKey = [
+      this._replayRecord.id,
       this._replayRecord.started_at.getTime(),
       this._replayRecord.finished_at.getTime(),
       clipWindow?.startTimestampMs,
       clipWindow?.endTimestampMs,
       eventTimestampMs,
     ].join('|');
-    const cached = rrwebFramesCache.get(attachments);
-    if (cached?.key === framesKey) {
-      this._sortedRRWebEvents = cached.frames;
+    let cached = rrwebFramesCache.get(attachments);
+    if (!cached) {
+      cached = new Map();
+      rrwebFramesCache.set(attachments, cached);
+    }
+    const cachedFrames = cached.get(framesKey);
+    if (cachedFrames) {
+      this._sortedRRWebEvents = cachedFrames;
     } else {
-      rrwebFramesCache.set(attachments, {
-        frames: this._sortedRRWebEvents,
-        key: framesKey,
-      });
+      cached.set(framesKey, this._sortedRRWebEvents);
+      while (cached.size > MAX_CACHED_FRAME_LISTS) {
+        cached.delete(cached.keys().next().value!);
+      }
     }
   }
 

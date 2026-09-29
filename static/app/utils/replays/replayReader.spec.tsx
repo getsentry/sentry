@@ -25,6 +25,7 @@ import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 import {BreadcrumbType} from 'sentry/types/breadcrumbs';
 import {parseEventTimestampMs} from 'sentry/utils/date/eventTimestampMs';
 import {ReplayReader} from 'sentry/utils/replays/replayReader';
+import type {ClipWindow} from 'sentry/utils/replays/types';
 import {EventType, IncrementalSource} from 'sentry/utils/replays/types';
 
 describe('ReplayReader', () => {
@@ -94,6 +95,32 @@ describe('ReplayReader', () => {
     })!.getRRWebFrames();
 
     expect(after).not.toBe(before);
+  });
+
+  it('keeps both frame lists when the same attachments are read clipped and unclipped', () => {
+    const attachments = [
+      ...RRWebInitFrameEventsFixture({timestamp: new Date('2023-12-25T00:01:00')}),
+      RRWebFullSnapshotFrameEventFixture({timestamp: new Date('2023-12-25T00:01:00')}),
+      RRWebFullSnapshotFrameEventFixture({timestamp: new Date('2023-12-25T00:02:00')}),
+    ];
+    const build = (clipWindow?: ClipWindow) =>
+      ReplayReader.factory({
+        attachments,
+        clipWindow,
+        errors: [],
+        fetching: false,
+        replayRecord,
+      })!.getRRWebFrames();
+    const clipWindow = {
+      startTimestampMs: new Date('2023-12-25T00:01:00').getTime(),
+      endTimestampMs: new Date('2023-12-25T00:01:30').getTime(),
+    };
+
+    const unclipped = build();
+    build(clipWindow);
+    const unclippedAgain = build();
+
+    expect(unclippedAgain).toBe(unclipped);
   });
 
   it('returns different rrweb frames for the same attachments under a clip window', () => {
