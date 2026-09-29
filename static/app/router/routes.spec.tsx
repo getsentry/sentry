@@ -91,6 +91,17 @@ function getRedirectTarget(routes: RouteObject[], url: string): string | undefin
 }
 
 describe('buildRoutes()', () => {
+  it.each([
+    ['/manage/settings/', ['Settings', 'Settings']],
+    ['/manage/status/mail/', ['Settings', 'Mail']],
+    ['/manage/users/', ['Settings', 'Users']],
+  ])('shows the admin breadcrumb for %s', (url, names) => {
+    const matches = matchRoutes(buildRoutes(), url);
+    expect(
+      matches?.flatMap(match => (match.route.handle as {name?: string})?.name ?? [])
+    ).toEqual(names);
+  });
+
   // Until customer-domains is enabled for single-tenant, self-hosted and path
   // based slug routes are removed we need to ensure
   // that each orgId route also has slugless path.

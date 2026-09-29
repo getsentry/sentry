@@ -78,7 +78,6 @@ SENTRY_API_PAGINATION_ALLOWLIST_DO_NOT_MODIFY = {
     "ProjectMemberIndexEndpoint",
     "ProjectMonitorStatsEndpoint",
     "ProjectReleaseSetupCompletionEndpoint",
-    "ProjectRuleStatsIndexEndpoint",
     "ProjectServiceHookStatsEndpoint",
     "ProjectStatsEndpoint",
     "ProjectSymbolSourcesEndpoint",

@@ -23,6 +23,7 @@ import {
   setPageFiltersStorage,
 } from 'sentry/components/pageFilters/persistence';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
@@ -39,7 +40,7 @@ import {useOverviewSeerDrawer} from 'sentry/views/seerWorkflows/overview/useOver
 
 describe('AutofixOverview', () => {
   const organization = OrganizationFixture({
-    features: ['seer-night-shift-ui', 'gen-ai-features'],
+    features: ['seer-night-shift-ui'],
   });
   const basePath = `/organizations/${organization.slug}/issues/autofix/`;
 
@@ -374,6 +375,10 @@ describe('AutofixOverview', () => {
   });
 
   describe('Seer drawer', () => {
+    beforeEach(() => {
+      ConfigStore.set('isSelfHosted', false);
+    });
+
     // Holds setup open so the drawer sits in its loading state and fires no
     // downstream content requests.
     function mockDrawerFor(groupId: string) {
@@ -429,7 +434,8 @@ describe('AutofixOverview', () => {
       expect(groupRequest).toHaveBeenCalled();
     });
 
-    it('stays closed and clears the param when the org lacks gen-ai access', async () => {
+    it('stays closed and clears the param when self-hosted', async () => {
+      ConfigStore.set('isSelfHosted', true);
       mockOverview({base: {autofix_root_cause: [rootCauseRun]}});
       mockDrawerFor('2');
 

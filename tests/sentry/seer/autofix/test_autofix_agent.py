@@ -1,6 +1,7 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
+from django.test import override_settings
 from rest_framework.exceptions import PermissionDenied
 
 from sentry.analytics.events.autofix_events import AiAutofixSolutionCompletedEvent
@@ -1823,6 +1824,7 @@ class TestTriggerCodingAgentHandoff(TestCase):
         assert repos[0].branch_name == "main"
 
 
+@override_settings(SENTRY_SELF_HOSTED=False)
 class TestTriggerPushChanges(TestCase):
     """Tests for trigger_push_changes function."""
 
@@ -1830,7 +1832,7 @@ class TestTriggerPushChanges(TestCase):
         super().setUp()
         self.group = self.create_group(project=self.project)
 
-    def _push(self, mock_post, features="organizations:gen-ai-features", **kwargs):
+    def _push(self, mock_post, features=None, **kwargs):
         """Push with a minimal run state and return the payload sent to Seer."""
         mock_post.return_value = MagicMock(status=200)
         state = SeerRunState(
@@ -1842,7 +1844,7 @@ class TestTriggerPushChanges(TestCase):
             metadata={"group_id": self.group.id},
         )
 
-        with self.feature(features):
+        with self.feature(features or {}):
             trigger_push_changes(
                 group=self.group,
                 run_id=123,
@@ -1886,7 +1888,6 @@ class TestTriggerPushChanges(TestCase):
         payload = self._push(
             mock_post,
             features={
-                "organizations:gen-ai-features": True,
                 "organizations:autofix-pr-iteration-review-request": True,
             },
         )

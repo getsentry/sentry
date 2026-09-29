@@ -105,11 +105,6 @@ describe('Explore Investigations', () => {
     expect(
       await screen.findByRole('link', {name: 'Database latency investigation'})
     ).toHaveAttribute('href', '/explore/investigations/1/');
-    expect(screen.getByText('4')).toBeInTheDocument();
-    expect(screen.getByText('Status')).toBeInTheDocument();
-    expect(screen.getByText('Active')).toBeInTheDocument();
-    expect(screen.queryByText('All Projects')).not.toBeInTheDocument();
-    expect(screen.queryByText('All Environments')).not.toBeInTheDocument();
   });
 
   it('renders the dashboard-style empty state', async () => {

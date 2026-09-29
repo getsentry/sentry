@@ -95,11 +95,11 @@ dependencies = [
   "sentry-kafka-schemas>=3.0.2",
   "sentry-ophio>=1.1.3",
   # sentry-options is only used in getsentry for now
-  "sentry-options>=1.2.8",
-  "sentry-protos>=0.75.2",
+  "sentry-options>=1.2.12",
+  "sentry-protos>=0.75.3",
   "sentry-redis-tools>=0.5.0",
   "sentry-relay>=0.9.31",
-  "sentry-scm>=1.6.0",
+  "sentry-scm>=1.7.1",
   "sentry-sdk[http2]>=2.68.0",
   "sentry-usage-accountant>=0.0.10",
   "simplejson>=3.17.6",
@@ -154,7 +154,7 @@ default = true
 dev = [
   "codeowners-coverage>=0.3.0",
   "covdefaults>=2.3.0",
-  "devservices>=1.4.2",
+  "devservices>=1.5.1",
   "docker>=7.1.0",
   "ephemeral-port-reserve>=1.1.4",
   "flake8>=7.3.0",
@@ -265,7 +265,6 @@ ignore = [
 "devenv/*.py" = ["T20"]
 "src/sentry/build/*" = ["T20"]
 "tools/*" = ["T20"]
-"src/flagpole/*" = ["T20"]
 "**/migrations/*" = ["I"]
 
 [tool.ruff.lint.isort]
@@ -433,7 +432,6 @@ module = [
     "fixtures.sdk_crash_detection.crash_event_react_native",
     "fixtures.sudo_testutils",
     "fixtures.vsts",
-    "flagpole.*",
     "sentry",
     "sentry.__main__",
     "sentry.adoption.*",
@@ -1225,8 +1223,6 @@ module = [
     "sentry.rules.base",
     "sentry.rules.filters.*",
     "sentry.rules.history",
-    "sentry.rules.history.backends.*",
-    "sentry.rules.history.base",
     "sentry.rules.history.preview",
     "sentry.rules.history.preview_strategy",
     "sentry.rules.match",
@@ -1548,7 +1544,6 @@ module = [
     "social_auth.views",
     "tests",
     "tests.conftest",
-    "tests.flagpole.*",
     "tests.integration.*",
     "tests.relay_integration.*",
     "tests.sentry",
@@ -1976,7 +1971,6 @@ module = [
     "tests.sentry.rules.actions.test_notify_event_service",
     "tests.sentry.rules.conditions.*",
     "tests.sentry.rules.history",
-    "tests.sentry.rules.history.backends.*",
     "tests.sentry.rules.history.test_preview",
     "tests.sentry.rules.processing",
     "tests.sentry.rules.test_match",
@@ -1985,7 +1979,6 @@ module = [
     "tests.sentry.runner.commands.test_backup",
     "tests.sentry.runner.commands.test_config",
     "tests.sentry.runner.commands.test_configoptions",
-    "tests.sentry.runner.commands.test_createflag",
     "tests.sentry.runner.commands.test_createorg",
     "tests.sentry.runner.commands.test_createproject",
     "tests.sentry.runner.commands.test_createuser",
