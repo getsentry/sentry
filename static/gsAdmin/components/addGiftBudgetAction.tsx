@@ -190,9 +190,7 @@ function AddGiftBudgetModal({
             </form.AppField>
             <Flex gap="md" justify="end">
               <Button onClick={closeModal}>Cancel</Button>
-              <Button type="submit" variant="primary">
-                Confirm
-              </Button>
+              <form.SubmitButton>Confirm</form.SubmitButton>
             </Flex>
           </Stack>
         </form.AppForm>
