@@ -7,7 +7,11 @@ import type {
   CustomSeriesRenderItemParams,
   CustomSeriesRenderItemReturn,
 } from 'echarts';
-import type {TooltipPositionCallback} from 'echarts/types/dist/shared';
+import type {
+  LinearGradientObject,
+  TooltipPositionCallback,
+  ZRColor,
+} from 'echarts/types/dist/shared';
 
 import {useTimezone} from '@sentry/scraps/datetime';
 import {useRenderToString} from '@sentry/scraps/renderToString';
@@ -17,9 +21,9 @@ import {DroppedDataTooltip} from 'sentry/components/droppedData/droppedDataToolt
 import type {DroppedDataProps} from 'sentry/components/droppedData/types';
 import {
   highlightedBuckets,
-  severityStyle,
+  severityColor,
+  withAlpha,
   type AnnotationBucket,
-  type SeverityStyle,
 } from 'sentry/components/droppedData/utils';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils/defined';
@@ -32,6 +36,8 @@ export const BAND_HEIGHT = BAND_PADDING + BOX_HEIGHT + BAND_PADDING;
 const BOX_BORDER_RADIUS = 2;
 const TOOLTIP_GAP = 8;
 const TRACK_OPACITY = 0.04;
+const BLEND_WIDTH = 0.3;
+const MAX_BLEND_WIDTH = 8;
 
 const DROPPED_DATA_Y_AXIS = {
   type: 'value' as const,
@@ -43,7 +49,7 @@ const DROPPED_DATA_Y_AXIS = {
 };
 
 interface DroppedDataItem extends AnnotationBucket {
-  severity: SeverityStyle;
+  fill: string;
   value: [start: number, y: number];
 }
 
@@ -103,7 +109,7 @@ function bandRect(
   range: PixelRange,
   y: number,
   track: PixelRange,
-  style: SeverityStyle,
+  fill: ZRColor,
   options: {silent?: boolean; z2?: number} = {}
 ): BandElement {
   const left = range.left <= track.left ? BOX_BORDER_RADIUS : 0;
@@ -120,10 +126,68 @@ function bandRect(
       r: [left, right, right, left],
     },
     style: {
-      ...style,
+      fill,
       // Fakes padding so hovering anywhere in the band opens the tooltip.
       lineWidth: BAND_PADDING * 2,
       stroke: 'transparent',
+    },
+  };
+}
+
+interface BandGradient {
+  fill: LinearGradientObject;
+  range: PixelRange;
+}
+
+function bandGradient(
+  data: DroppedDataItem[],
+  api: CustomSeriesRenderItemAPI
+): BandGradient | null {
+  const stops: Array<{color: string; x: number}> = [];
+
+  data.forEach((bucket, index) => {
+    const slot = bucketSlot(bucket, api);
+    if (!slot) {
+      return;
+    }
+
+    const blend = Math.min((slot.right - slot.left) * BLEND_WIDTH, MAX_BLEND_WIDTH);
+    const clear = withAlpha(bucket.fill, 0);
+
+    if (data[index - 1]?.end !== bucket.start) {
+      stops.push({x: slot.left - blend, color: clear});
+    }
+    stops.push(
+      {x: slot.left + blend, color: bucket.fill},
+      {x: slot.right - blend, color: bucket.fill}
+    );
+    if (data[index + 1]?.start !== bucket.end) {
+      stops.push({x: slot.right + blend, color: clear});
+    }
+  });
+
+  const first = stops[0];
+  const last = stops.at(-1);
+  if (!first || !last || last.x <= first.x) {
+    return null;
+  }
+
+  const range = {left: first.x, right: last.x};
+  const width = range.right - range.left;
+
+  return {
+    range,
+    fill: {
+      type: 'linear',
+      global: true,
+      x: range.left,
+      y: 0,
+      x2: range.right,
+      y2: 0,
+      colorStops: stops.map(stop => ({
+        offset: (stop.x - range.left) / width,
+        color: stop.color,
+      })),
     },
   };
 }
@@ -133,7 +197,7 @@ function droppedDataRenderItem(
   bandOffset: number,
   theme: Theme
 ): CustomSeriesRenderItem {
-  const trackStyle = {fill: theme.tokens.dataviz.semantic.bad, opacity: TRACK_OPACITY};
+  const trackFill = withAlpha(theme.tokens.dataviz.semantic.bad, TRACK_OPACITY);
 
   return function renderDroppedDataItem(params, api) {
     const bucket = data[params.dataIndex];
@@ -151,11 +215,22 @@ function droppedDataRenderItem(
     const track = {left: x, right: x + width};
     const y = baseY + bandOffset + BAND_PADDING;
 
-    const children = [bandRect(clampRange(slot, track), y, track, bucket.severity)];
+    const children: BandElement[] = [];
 
     if (params.dataIndexInside === 0) {
-      children.unshift(bandRect(track, y, track, trackStyle, {silent: true, z2: -1}));
+      children.push(bandRect(track, y, track, trackFill, {silent: true, z2: -1}));
+
+      const gradient = bandGradient(data, api);
+      if (gradient) {
+        children.push(
+          bandRect(clampRange(gradient.range, track), y, track, gradient.fill, {
+            silent: true,
+          })
+        );
+      }
     }
+
+    children.push(bandRect(clampRange(slot, track), y, track, 'transparent'));
 
     return {type: 'group', children};
   };
@@ -218,7 +293,7 @@ function createDroppedDataSeries({
 }: DroppedDataSeriesParams): CustomSeriesOption {
   const data: DroppedDataItem[] = buckets.map(bucket => ({
     value: [bucket.start, 0],
-    severity: severityStyle(bucket.ratio, theme),
+    fill: severityColor(bucket.ratio, theme),
     ...bucket,
   }));
 
