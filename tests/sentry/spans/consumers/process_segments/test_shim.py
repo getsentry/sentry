@@ -64,6 +64,25 @@ class TestBuildShimEventData:
         assert event["timestamp"] == segment_span["end_timestamp"]
         assert event["transaction"] == attribute_value(segment_span, "sentry.segment.name")
 
+    def test_defaults_platform_to_other(self) -> None:
+        segment_span_empty_platform = build_segment_span(
+            attributes={"sentry.platform": {"value": "", "type": "string"}}
+        )
+        segment_span_no_platform = build_segment_span()
+        no_platform_attributes = segment_span_no_platform["attributes"]
+        assert no_platform_attributes is not None
+        del no_platform_attributes["sentry.platform"]
+
+        event_empty_platform = build_shim_event_data(
+            segment_span_empty_platform, [segment_span_empty_platform]
+        )
+        event_no_platform = build_shim_event_data(
+            segment_span_no_platform, [segment_span_no_platform]
+        )
+
+        assert event_empty_platform["platform"] == "other"
+        assert event_no_platform["platform"] == "other"
+
     def test_reconstructs_contexts(self) -> None:
         segment_span = build_segment_span(
             attributes={

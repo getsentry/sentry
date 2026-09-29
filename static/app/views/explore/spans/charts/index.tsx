@@ -177,7 +177,7 @@ function Chart({
   const {droppedAnnotations, acceptedAnnotations} = useDroppedData({dataset});
   const [isDroppedDataLayerOn, setIsDroppedDataLayerOn] = useState(true);
   const openDroppedDataDrawer = useDroppedDataDrawer(dataset);
-  const canShowDroppedData = hasDroppedData(droppedAnnotations);
+  const canShowDroppedData = hasDroppedData(droppedAnnotations, acceptedAnnotations);
   const showDroppedDataBand = canShowDroppedData && isDroppedDataLayerOn;
 
   const {
