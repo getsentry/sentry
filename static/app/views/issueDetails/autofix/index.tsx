@@ -10,6 +10,7 @@ import {Redirect} from 'sentry/components/redirect';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
+import {areAiFeaturesAllowed} from 'sentry/utils/seer/areAiFeaturesAllowed';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useAutofixPanel} from 'sentry/views/issueDetails/autofix/context';
 import {hasAutofixPage} from 'sentry/views/issueDetails/autofix/utils';
@@ -28,11 +29,7 @@ export default function GroupAutofix() {
 
   // The same three conditions the Seer drawer refuses to open under. Sending
   // people back to the issue keeps a shared or bookmarked URL from dead-ending.
-  if (
-    !hasAutofixPage(organization) ||
-    !organization.features.includes('gen-ai-features') ||
-    organization.hideAiFeatures
-  ) {
+  if (!hasAutofixPage(organization) || !areAiFeaturesAllowed(organization)) {
     return <Redirect to={baseUrl} />;
   }
 

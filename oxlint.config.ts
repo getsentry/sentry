@@ -272,6 +272,12 @@ const config = defineConfig({
     'boundaries/dependency-nodes': ['import', 'dynamic-import'],
     // Order matters because several element roots are nested inside static/app.
     'boundaries/elements': [
+      // Keep core stories inside Scraps; story-files still classifies them as stories.
+      {
+        type: 'scraps',
+        pattern: 'static/app/components/core',
+        partialMatch: false,
+      },
       {
         type: 'story-book',
         pattern: ['static/app/stories', '**/__stories__'],
@@ -284,11 +290,6 @@ const config = defineConfig({
       {
         type: 'test',
         pattern: 'tests/js',
-      },
-      // Scraps core components.
-      {
-        type: 'scraps',
-        pattern: 'static/app/components/core',
       },
       // Sentry application and assets.
       {
@@ -813,8 +814,7 @@ const config = defineConfig({
     'unicorn/prefer-blob-reading-methods': 'error',
     'unicorn/prefer-classlist-toggle': 'error',
     'unicorn/prefer-date-now': 'error',
-    // TODO(ryan953): Fix violations and promote this warning to an error.
-    'unicorn/prefer-default-parameters': 'warn',
+    'unicorn/prefer-default-parameters': 'error',
     'unicorn/prefer-event-target': 'error',
     'unicorn/prefer-includes': 'off',
     'unicorn/prefer-keyboard-event-key': 'error',
@@ -1100,36 +1100,8 @@ const config = defineConfig({
               },
             ],
           },
-          // Production code cannot import stories. Storybook and story files
-          // are reopened below so Storybook can load its own sources.
-          {
-            disallow: {
-              from: {
-                file: [
-                  {
-                    isUnknown: true,
-                    isIgnored: false,
-                  },
-                  {
-                    categories: {
-                      noneOf: ['story-files'],
-                    },
-                    isIgnored: false,
-                  },
-                ],
-              },
-              to: {
-                file: {
-                  categories: 'story-files',
-                },
-              },
-            },
-          },
-          storyFilesPolicy,
           // Deny every Scraps implementation file first. The public-interface
           // and Scraps-internal policies below selectively reopen intended paths.
-          // Keeping this after the story grants prevents a story allowance from
-          // reopening private Scraps implementation files.
           {
             message:
               '{{from.element.type}} can import scraps only through public index files; "{{to.element.fileInternalPath}}" is an internal scraps implementation file',
@@ -1233,6 +1205,32 @@ const config = defineConfig({
             message:
               'Scraps components must use the tracking context instead of importing from sentry/utils/analytics',
           },
+          // Apply story access after Scraps policies so core stories stay
+          // accessible to Storybook, but production code cannot import them.
+          {
+            disallow: {
+              from: {
+                file: [
+                  {
+                    isUnknown: true,
+                    isIgnored: false,
+                  },
+                  {
+                    categories: {
+                      noneOf: ['story-files'],
+                    },
+                    isIgnored: false,
+                  },
+                ],
+              },
+              to: {
+                file: {
+                  categories: 'story-files',
+                },
+              },
+            },
+          },
+          storyFilesPolicy,
         ],
       },
     ],
@@ -1648,8 +1646,8 @@ const config = defineConfig({
         'react-you-might-not-need-an-effect/no-pass-live-state-to-parent': 'off',
         'react-you-might-not-need-an-effect/no-pass-data-to-parent': 'off',
         'react-you-might-not-need-an-effect/no-initialize-state': 'off',
-        'react-you-might-not-need-an-effect/no-manage-parent': 'off',
-        'react-you-might-not-need-an-effect/no-empty-effect': 'off',
+        // TODO(ryan953): fix and turn this on
+        'react-you-might-not-need-an-effect/no-external-store-subscription': 'off',
       },
     },
     {

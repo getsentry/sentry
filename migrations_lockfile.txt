@@ -9,7 +9,7 @@ ai_monitoring: 0002_add_date_updated_index
 
 discover: 0004_discover_starred_and_last_visited
 
-explore: 0013_delete_project_column_from_metric_context
+explore: 0014_add_explore_saved_formula
 
 feedback: 0007_cleanup_failed_safe_deletes
 
@@ -33,9 +33,9 @@ releases: 0004_cleanup_failed_safe_deletes
 
 replays: 0001_squashed_0007_organizationmember_replay_access
 
-seer: 0036_disable_autofix_issue_data_fk_constraints
+seer: 0037_rename_agentic_triage_result
 
-sentry: 1181_release_drop_new_last_deploy_id_pending
+sentry: 1193_remove_grouprulestatus_fk_constraints
 
 social_auth: 0001_squashed_0003_social_auth_json_field
 

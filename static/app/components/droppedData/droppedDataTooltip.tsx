@@ -6,13 +6,16 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
 
-import type {AnnotationBucket, OutcomeVolume} from 'sentry/components/droppedData/utils';
+import {
+  type AnnotationBucket,
+  formatDroppedShare,
+  type OutcomeVolume,
+} from 'sentry/components/droppedData/utils';
 import {t} from 'sentry/locale';
 import {getFormat} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {formatNumberWithDynamicDecimalPoints} from 'sentry/utils/number/formatNumberWithDynamicDecimalPoints';
-import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 
 const BYTE_UNITS = ['B', 'kB', 'MB', 'GB', 'TB', 'PB'];
 const BYTE_THRESHOLD = 1000;
@@ -114,7 +117,7 @@ export function DroppedDataTooltip({bucket, timezone}: DroppedDataTooltipProps) 
         <Flex as="header" justify="between" gap="2xl" padding="lg xl">
           <Text bold>{t('Total Dropped')}</Text>
           <Text bold tabular>
-            {formatPercentage(bucket.ratio, undefined, {minimumValue: 0.0001})}
+            {formatDroppedShare(bucket.ratio)}
           </Text>
         </Flex>
         <Separator orientation="horizontal" />

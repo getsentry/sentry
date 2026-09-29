@@ -1,4 +1,4 @@
-from unittest import TestCase
+from unittest import TestCase, mock
 
 import pytest
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
@@ -18,6 +18,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
     TraceItemFilter,
 )
 
+from sentry import features
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.search.eap.ourlogs.definitions import OURLOG_DEFINITIONS
@@ -26,6 +27,7 @@ from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.testutils.helpers.features import with_feature
+from sentry.users.services.user import RpcUser
 
 
 class SearchResolverQueryTest(TestCase):
@@ -447,6 +449,30 @@ class SearchResolverQueryTest(TestCase):
         quoted, _, _ = self.regex_resolver.resolve_query('message:"//^ERROR//"')
 
         assert regex_shaped == quoted
+
+    def test_regex_feature_is_checked_with_the_requesting_user_as_actor(self) -> None:
+        """The flag's rollout targets user emails, which only resolve when an actor is passed."""
+        user = RpcUser(id=7, email="user@example.com")
+        resolver = SearchResolver(
+            params=SnubaParams(organization=self.organization, user=user),
+            config=SearchResolverConfig(),
+            definitions=OURLOG_DEFINITIONS,
+        )
+
+        with mock.patch.object(features, "has", return_value=True) as has:
+            where, _, _ = resolver.resolve_query("message://^ERROR//")
+
+        assert (
+            mock.call("organizations:ourlogs-regex-searches", self.organization, actor=user)
+            in has.call_args_list
+        )
+        assert where == TraceItemFilter(
+            comparison_filter=ComparisonFilter(
+                key=AttributeKey(name="sentry.body", type=AttributeKey.Type.TYPE_STRING),
+                op=ComparisonFilter.OP_REGEXP,
+                value=AttributeValue(val_str="^ERROR"),
+            )
+        )
 
     @with_feature("organizations:ourlogs-regex-searches")
     def test_regex_value_is_a_literal_outside_logs(self) -> None:
