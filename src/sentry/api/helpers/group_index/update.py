@@ -329,8 +329,9 @@ def update_groups_with_search_fn(
                 }
             )
         except ValidationError as e:
-            logger.warning("Invalid search query for bulk group update: %s", str(e))
-            return Response({"detail": str(e)}, status=400)
+            message = e.args[0] if e.args else "Invalid search query"
+            logger.warning("Invalid search query for bulk group update: %s", message)
+            return Response({"detail": message}, status=400)
 
         group_list = list(cursor_result)
 
