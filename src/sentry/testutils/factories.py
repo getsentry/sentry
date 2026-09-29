@@ -2191,6 +2191,7 @@ class Factories:
         type=AlertRuleTriggerAction.Type.EMAIL,
         target_type=AlertRuleTriggerAction.TargetType.USER,
         target_identifier=None,
+        target_display=None,
         integration=None,
         sentry_app=None,
         sentry_app_config=None,
@@ -2199,7 +2200,14 @@ class Factories:
             alert_rule_trigger=trigger,
             type=type.value,
             target_type=target_type.value,
-            target_identifier=target_identifier,
+            target_identifier=str(target_identifier) if target_identifier is not None else None,
+            target_display=(
+                target_display
+                if target_display is not None
+                else sentry_app.name
+                if sentry_app
+                else None
+            ),
             integration_id=integration.id if integration else None,
             sentry_app_id=sentry_app.id if sentry_app else None,
             sentry_app_config=sentry_app_config,
