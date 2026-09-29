@@ -91,6 +91,14 @@ class ReviewEventTest(TestCase):
         assert review.author_external_id == USER_ID
         assert review.trigger_user == "jane"
 
+    def test_an_empty_handle_is_no_trigger_user(self) -> None:
+        review = _review(
+            "pull_request.created",
+            author={"user": {"id": USER_ID, "email": "jane@example.com", "handle": ""}},
+        )
+
+        assert review.trigger_user is None
+
     def test_an_app_author_is_its_own_contributor(self) -> None:
         review = _review("pull_request.created", author={"app": {"id": "app_01example"}})
 

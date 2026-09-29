@@ -123,6 +123,11 @@ class PullRequestUser(OriginModel):
     display_name: str = Field(default="", alias="displayName")
     handle: str | None = None
 
+    @validator("handle", pre=True)
+    def _absent_handle(cls, value: Any) -> Any:
+        """Origin sends an empty string for an unset scalar."""
+        return value or None
+
 
 class PullRequestApp(OriginModel):
     id: str = Field(min_length=1)
@@ -203,6 +208,11 @@ class InstallationTarget(OriginModel):
     slug: str = Field(min_length=1)
     id: str = Field(min_length=1)
     type: Literal["team", "user"] | None = None
+
+    @validator("type", pre=True)
+    def _absent_type(cls, value: Any) -> Any:
+        """Origin sends an empty string when the owner type is unknown."""
+        return value or None
 
 
 class Installation(OriginModel):
