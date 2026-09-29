@@ -46,11 +46,12 @@ function AddGiftBudgetModal({
 
   useEffect(() => {
     if (reservedBudgetOptions.length > 0 && !selectedBudgetId) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setSelectedBudgetId(reservedBudgetOptions[0]?.id ?? null);
     }
   }, [reservedBudgetOptions, selectedBudgetId]);
 
-  const onSubmit = () => {
+  const onSubmit = async () => {
     if (!selectedBudgetId || giftAmount <= 0) {
       return;
     }
@@ -69,18 +70,18 @@ function AddGiftBudgetModal({
       notes,
     };
 
-    api.request(`/customers/${organization.slug}/`, {
-      method: 'PUT',
-      data,
-      success: () => {
-        addSuccessMessage('Added gifted budget amount.');
-        closeModal();
-        onSuccess();
-      },
-      error: () => {
-        addErrorMessage('Unable to add gifted budget amount for org.');
-      },
-    });
+    try {
+      await api.requestPromise(`/customers/${organization.slug}/`, {
+        method: 'PUT',
+        data,
+        includeAllArgs: true,
+      });
+      addSuccessMessage('Added gifted budget amount.');
+      closeModal();
+      onSuccess();
+    } catch {
+      addErrorMessage('Unable to add gifted budget amount for org.');
+    }
   };
 
   function getHelp() {

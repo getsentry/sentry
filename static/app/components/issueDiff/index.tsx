@@ -15,7 +15,7 @@ import {getStacktraceBody} from 'sentry/utils/getStacktraceBody';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-const SplitDiffLazy = lazy(() => import('../splitDiff'));
+const SplitDiffLazy = lazy(() => import('sentry/components/splitDiff'));
 const STACKTRACE_SECTION_SEPARATOR = '\n\n';
 const SKELETON_ROW_COUNT = 8;
 
@@ -215,7 +215,6 @@ export function IssueDiff({
         LazyComponent={SplitDiffLazy}
         base={combinedBase}
         target={combinedTarget}
-        type="lines"
         loadingFallback={<IssueDiffLoadingSkeletonRows />}
       />
     </Stack>

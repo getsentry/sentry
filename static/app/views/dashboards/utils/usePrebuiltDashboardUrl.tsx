@@ -9,7 +9,6 @@ import {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs
 import {useGetPrebuiltDashboard} from 'sentry/views/dashboards/utils/usePopulateLinkedDashboards';
 
 interface PrebuiltDashboardUrlOptions {
-  bare?: boolean;
   /**
    * Dashboard-specific filters (release, global filters) to apply
    * when navigating to a prebuilt dashboard URL.
@@ -36,7 +35,7 @@ export function usePrebuiltDashboardUrl(
   prebuiltId: PrebuiltDashboardId,
   options: PrebuiltDashboardUrlOptions = {}
 ): string | undefined {
-  const {bare = false, filters} = options;
+  const {filters} = options;
   const organization = useOrganization({allowNull: true});
   const {selection} = usePageFilters();
   const {dashboard: prebuiltDashboard} = useGetPrebuiltDashboard(prebuiltId);
@@ -55,7 +54,7 @@ export function usePrebuiltDashboardUrl(
 
   applyDashboardFilters(queryParams, filters);
   const query = Object.keys(queryParams).length ? `?${qs.stringify(queryParams)}` : '';
-  return bare
-    ? `dashboard/${prebuiltDashboard.id}/${query}`
-    : normalizeUrl(`/organizations/${slug}/dashboard/${prebuiltDashboard.id}/${query}`);
+  return normalizeUrl(
+    `/organizations/${slug}/dashboard/${prebuiltDashboard.id}/${query}`
+  );
 }

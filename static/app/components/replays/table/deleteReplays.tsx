@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {useQueryClient} from '@tanstack/react-query';
 import invariant from 'invariant';
+import {useQueryState} from 'nuqs';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
@@ -16,8 +17,8 @@ import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {Duration} from 'sentry/components/duration/duration';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {KeyValueData} from 'sentry/components/keyValueData';
 import {replayBulkDeleteAuditLogApiOptions} from 'sentry/components/replays/bulkDelete/replayBulkDeleteAuditLogApiOptions';
+import {KeyValueTableCard} from 'sentry/components/tables/keyValueTable';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconCalendar, IconDelete} from 'sentry/icons';
@@ -25,13 +26,12 @@ import {t, tct, tn} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import type {QueryKeyEndpointOptions} from 'sentry/utils/api/apiQueryKey';
 import {getShortEventId} from 'sentry/utils/events';
-import {decodeList} from 'sentry/utils/queryString';
 import {
   getBulkDeleteErrorReason,
   type ReplayBulkDeletePayload,
   useDeleteReplays,
 } from 'sentry/utils/replays/hooks/useDeleteReplays';
-import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
+import {parseAsStringArray} from 'sentry/utils/url/parseAsStringArray';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -52,11 +52,7 @@ export function DeleteReplays({selectedIds, replays, queryOptions}: Props) {
   const queryClient = useQueryClient();
   const analyticsArea = useAnalyticsArea();
   const organization = useOrganization();
-  const {project: selectedProjectIds} = useLocationQuery({
-    fields: {
-      project: decodeList,
-    },
-  });
+  const [selectedProjectIds] = useQueryState('project', parseAsStringArray);
   const {projects} = useProjects();
   const hasOnlyOneProject = projects.length === 1;
 
@@ -188,7 +184,7 @@ function ReplayQueryPreview({
       <Title project={project}>
         {t('Replays matching the following query will be deleted')}
       </Title>
-      <KeyValueData.Card contentItems={contentItems} />
+      <KeyValueTableCard contentItems={contentItems} />
       <Text size="sm" variant="muted">
         All dates and times are in UTC.
       </Text>

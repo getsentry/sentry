@@ -78,6 +78,9 @@ class ExternalIssue(Model):
     # GitLab's `object_attributes.updated_at`, VSTS's `System.ChangedDate` and Jira's
     # `issue.fields.updated`.
     provider_status_updated_at = models.DateTimeField(null=True)
+    # The same high-water mark for inbound assignee sync, tracked separately so a status
+    # webhook and an assignee webhook cannot mask each other.
+    provider_assignee_updated_at = models.DateTimeField(null=True)
 
     objects: ClassVar[ExternalIssueManager] = ExternalIssueManager()
 

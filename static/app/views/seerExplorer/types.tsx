@@ -30,7 +30,7 @@ const repoPRStateSchema = z.object({
   commit_sha: z.string().nullable(),
   pr_creation_error: z.string().nullable(),
   pr_creation_status: zLooseEnum(['creating', 'completed', 'error']).nullable(),
-  pr_id: z.number().nullable(),
+  pr_id: z.union([z.string(), z.number()]).nullable(),
   pr_number: z.number().nullable(),
   pr_url: z.string().nullable(),
   repo_name: z.string(),
@@ -97,13 +97,25 @@ export type AgentWriteApproval = EmbedOutput<'agentWriteApproval'>;
  */
 export interface CallRecord {
   id: number;
-  kind: 'api' | 'lib';
+  /**
+   * `api` and `lib` are observed calls; `note` is a line the agent wrote itself. Read additively:
+   * an unknown kind from a newer seer must be ignored, not break the render.
+   */
+  kind: 'api' | 'lib' | 'note';
   /** Bounded slice of the request body, if the call had one. */
   body?: string;
   /** Whether `body` was cut short. */
   body_truncated?: boolean;
-  /** Transport-level failure (no HTTP response), e.g. `ConnectError`. */
+  /**
+   * Why the call failed: a transport-level failure with no HTTP response (`ConnectError`), or a
+   * reason a caller rejected a response it did get.
+   */
   error?: string;
+  /**
+   * What the agent said it was trying to accomplish. Carried beside `title`, never instead of it.
+   * Named for its author: `title` is generated, this is not.
+   */
+  llm_description?: string;
   method?: string;
   /** Lib records only. */
   name?: string;
@@ -116,6 +128,8 @@ export interface CallRecord {
   parent?: number | null;
   path?: string;
   path_params?: Record<string, string>;
+  /** Which external provider served this call, if any. */
+  provider?: string;
   /**
    * `path` with its params interpolated and the query string appended — the literal path that was
    * requested. Seer carries the query only here, so this is the whole URL.
@@ -125,6 +139,19 @@ export interface CallRecord {
   status?: number;
   /** Human name for the operation, from the OpenAPI spec. Absent when it has none. */
   title?: string;
+}
+
+/**
+ * One in-flight update for a tool call, shaped as an MCP progress notification.
+ *
+ * `token` is the `tool_call_id`, which is the point: `live_calls` lives on the block and cannot be
+ * attributed when several calls are outstanding. Carries a string; full records arrive on the result.
+ */
+interface ProgressEvent {
+  progress: number;
+  token: string;
+  message?: string;
+  total?: number;
 }
 
 export interface ToolResult {
@@ -173,6 +200,7 @@ export interface Block {
   loading?: boolean;
   merged_file_patches?: ExplorerFilePatch[] | null;
   pr_commit_shas?: Record<string, string> | null;
+  progress?: ProgressEvent[] | null;
   todos?: TodoItem[] | null;
   tool_links?: Array<ToolLink | null> | null;
   tool_results?: Array<ToolResult | null> | null;
@@ -231,13 +259,18 @@ export type SeerExplorerRunId = number | string;
 
 export type SeerExplorerResponse = {
   session: {
-    blocks: Block[];
     status: 'processing' | 'completed' | 'error' | 'awaiting_user_input';
     updated_at: string;
+    blocks?: Block[];
     failure_reason?: 'timeout' | 'stalled' | null;
     owner_user_id?: number | null;
     pending_user_input?: PendingUserInput | null;
     repo_pr_states?: Record<string, RepoPRState>;
   } | null;
   sentry_run_id?: string | null;
+};
+
+export type RespondToUserInputOptions = {
+  /** Called when the response fails to send, so callers can undo optimistic local state. */
+  onError?: () => void;
 };

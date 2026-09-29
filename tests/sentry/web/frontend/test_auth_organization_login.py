@@ -59,10 +59,17 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         self.assertTemplateUsed(response, "sentry/base-react.html")
         self.assertTemplateNotUsed(response, "sentry/organization-login.html")
 
+    @override_options({"auth.v2.enabled": True})
+    def test_renders_react_template_with_setting(self) -> None:
+        response = self.client.get(self.path)
+
+        assert response.status_code == 200
+        self.assertTemplateUsed(response, "sentry/base-react.html")
+        self.assertTemplateNotUsed(response, "sentry/organization-login.html")
+
+    @override_options({"auth.v2.enabled": True})
     @with_feature("system:multi-region")
     def test_customer_domain_login_redirects_to_primary_domain(self) -> None:
-        self.client.cookies["sentry_react_auth"] = "1"
-
         response = self.client.get(
             f"{self.path}?next=%2Fsettings%2Faccount%2F",
             HTTP_HOST=f"{self.organization.slug}.testserver",
@@ -848,6 +855,55 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert getattr(test_member.flags, "sso:linked")
         assert not getattr(test_member.flags, "sso:invalid")
         assert not getattr(test_member.flags, "member-limit:restricted")
+
+    def test_flow_as_anonymous_with_pending_invite(self) -> None:
+        """New SSO user with a pending org invite should land once, with sso:linked."""
+        auth_provider = AuthProvider.objects.create(
+            organization_id=self.organization.id, provider="dummy"
+        )
+        invite = self.create_member(
+            email="invited@example.com",
+            organization=self.organization,
+            token="abcdef",
+        )
+
+        # Invite accept stores these before the user is bounced into SSO.
+        self.session["invite_token"] = invite.token
+        self.session["invite_member_id"] = invite.id
+        self.session["invite_organization_id"] = invite.organization_id
+        self.save_session()
+
+        resp = self.client.post(self.path, {"init": True})
+
+        assert resp.status_code == 200
+        assert PLACEHOLDER_TEMPLATE in resp.content.decode("utf-8")
+
+        path = reverse("sentry-auth-sso")
+
+        resp = self.client.post(path, {"email": "invited@example.com"})
+
+        self.assertTemplateUsed(resp, "sentry/auth-confirm-identity.html")
+        assert resp.status_code == 200
+
+        frontend_events = {"event_name": "Sign Up", "event_label": "dummy"}
+        marketing_query = urlencode({"frontend_events": json.dumps(frontend_events)})
+
+        resp = self.client.post(path, {"op": "newuser"}, follow=True)
+        assert resp.redirect_chain == [
+            (reverse("sentry-login") + f"?{marketing_query}", 302),
+            ("/organizations/foo/issues/", 302),
+        ]
+
+        auth_identity = AuthIdentity.objects.get(auth_provider=auth_provider)
+        user = auth_identity.user
+        assert user.email == "invited@example.com"
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            member = OrganizationMember.objects.get(organization=self.organization, user_id=user.id)
+
+        assert member.id == invite.id
+        assert getattr(member.flags, "sso:linked")
+        assert not getattr(member.flags, "sso:invalid")
 
     @override_settings(SENTRY_SINGLE_ORGANIZATION=True)
     @with_feature({"organizations:create": False})

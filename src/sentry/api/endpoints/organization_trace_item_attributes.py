@@ -25,8 +25,6 @@ from sentry_protos.snuba.v1.request_common_pb2 import (
 )
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
-    ExistsFilter,
-    OrFilter,
     TraceItemFilter,
 )
 
@@ -85,10 +83,12 @@ from sentry.search.eap.types import (
 from sentry.search.eap.utils import (
     can_expose_attribute,
     can_expose_attribute_to_api,
+    check_attribute_names_exist,
     get_deprecated_source_internal_names,
     get_secondary_aliases,
     is_internal_sentry_convention_attribute,
     is_sentry_convention_replacement_attribute,
+    serialize_search_type,
     translate_internal_to_public_alias,
 )
 from sentry.search.events.constants import (
@@ -108,6 +108,9 @@ from sentry.utils.tracing import set_span_data, start_span
 
 SCALAR_ATTRIBUTE_TYPES = ["string", "number", "boolean"]
 POSSIBLE_ATTRIBUTE_TYPES = [*SCALAR_ATTRIBUTE_TYPES, "array"]
+
+# Max whole-array rows the attribute-values RPC will return in one call.
+MAX_ATTRIBUTE_VALUE_ROWS = 10_000
 
 # Subset of SupportedTraceItemType that get_column_definitions handles.
 SUPPORTED_DATASETS = [
@@ -217,8 +220,8 @@ EXPAND_QUERY_PARAM = OpenApiParameter(
     type=str,
     enum=["context"],
     # Withheld from the public OpenAPI spec because the context shape it returns
-    # is still evolving. The matching half is the ``exclude_fields=["context"]``
-    # on ``TraceItemAttributeKey``, which keeps that shape out of the spec too.
+    # is still evolving. The matching half is ``omit_from_public_schema`` on
+    # ``TraceItemAttributeKey``, which keeps that shape out of the spec too.
     exclude=True,
     description=(
         "Optional fields to expand. Pass `context` to include attribute metadata "
@@ -1216,7 +1219,7 @@ class TraceItemAttributeValuesAutocompletionExecutor:
             array_key = AttributeKey(
                 name=self.attribute_key.name, type=AttributeKey.Type.TYPE_ARRAY_STRING
             )
-            return self.string_autocomplete_function(key=array_key)
+            return self.array_autocomplete_function(key=array_key)
 
         return []
 
@@ -1449,6 +1452,49 @@ class TraceItemAttributeValuesAutocompletionExecutor:
             if value
         ]
 
+    def array_autocomplete_function(self, key: AttributeKey) -> list[TagValue]:
+        """Autocomplete the element values of a string-array attribute.
+
+        Array values come back in ``value_data`` (the deprecated ``values`` field is
+        empty for arrays), each row being one item's whole array. Substring matching is
+        applied here since the RPC only supports it on scalar strings.
+        """
+        meta = self.resolver.resolve_meta(referrer=Referrer.API_SPANS_TAG_VALUES_RPC.value)
+        # Pagination is over elements, but the RPC returns whole-array rows. Read a fixed
+        # row budget so the ranked element list is identical on every page, keeping the
+        # offset slice below stable (GenericOffsetPaginator requires a total ordering).
+        rpc_request = TraceItemAttributeValuesRequest(
+            meta=meta,
+            key=key,
+            limit=MAX_ATTRIBUTE_VALUE_ROWS,
+        )
+        rpc_response = snuba_rpc.attribute_values_rpc(rpc_request)
+
+        query = translate_escape_sequences(self.query)
+
+        counts_by_value: dict[str, int] = {}
+        for value_data in rpc_response.value_data:
+            # Dedupe within a row so a value repeated in one array counts once.
+            row_values = {
+                element.val_str
+                for element in value_data.value.val_array.values
+                if element.val_str and (not query or query in element.val_str)
+            }
+            for value in row_values:
+                counts_by_value[value] = counts_by_value.get(value, 0) + value_data.count
+
+        ranked = sorted(counts_by_value.items(), key=lambda item: (-item[1], item[0]))
+        return [
+            TagValue(
+                key=self.key,
+                value=value,
+                times_seen=times_seen,
+                first_seen=None,
+                last_seen=None,
+            )
+            for value, times_seen in ranked[self.offset : self.offset + self.limit]
+        ]
+
 
 def adjust_start_end_window(start_date: datetime, end_date: datetime) -> tuple[datetime, datetime]:
     start_date = start_date.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -1486,53 +1532,6 @@ class OrganizationTraceItemAttributeValidateBodySerializer(serializers.Serialize
     )
 
 
-def serialize_type(search_type: constants.SearchType) -> str:
-    proto_type = constants.TYPE_MAP.get(search_type)
-    if proto_type == constants.STRING:
-        return "string"
-    if proto_type == constants.BOOLEAN:
-        return "boolean"
-    # DOUBLE, INT, or anything else numeric
-    return "number"
-
-
-def _check_attributes_by_type(
-    meta: RequestMeta,
-    attr_type: AttributeKey.Type.ValueType,
-    names: list[str],
-) -> set[tuple[AttributeKey.Type.ValueType, str]]:
-    """Check which typed attribute names exist in storage for the active window."""
-    if not names:
-        return set()
-
-    requested_names = set(names)
-    names_request = TraceItemAttributeNamesRequest(
-        meta=meta,
-        limit=10000,
-        type=attr_type,
-        intersecting_attributes_filter=TraceItemFilter(
-            or_filter=OrFilter(
-                filters=[
-                    TraceItemFilter(
-                        exists_filter=ExistsFilter(key=AttributeKey(type=attr_type, name=name))
-                    )
-                    for name in requested_names
-                ]
-            )
-        ),
-    )
-    names_response = snuba_rpc.attribute_names_rpc(names_request)
-    return {
-        (attr_type, attribute.name)
-        for attribute in names_response.attributes
-        if attribute.name in requested_names
-    }
-
-
-# We want to limit the number of threads to the number of attribute types to avoid overwhelming the RPC server.
-MAX_ATTRIBUTE_VALIDATION_THREADS = 3
-
-
 def _check_attributes_exist(
     resolver: SearchResolver,
     item_type: SupportedTraceItemType,
@@ -1547,19 +1546,7 @@ def _check_attributes_exist(
         item_type, ProtoTraceItemType.TRACE_ITEM_TYPE_SPAN
     )
 
-    found: set[tuple[AttributeKey.Type.ValueType, str]] = set()
-    with ContextPropagatingThreadPoolExecutor(
-        thread_name_prefix="attr_validate",
-        max_workers=MAX_ATTRIBUTE_VALIDATION_THREADS,
-    ) as pool:
-        futures = [
-            pool.submit(_check_attributes_by_type, meta, attr_type, names)
-            for attr_type, names in attrs_by_type.items()
-        ]
-        for future in futures:
-            found.update(future.result())
-
-    return found
+    return check_attribute_names_exist(meta, attrs_by_type)
 
 
 @cell_silo_endpoint
@@ -1610,7 +1597,7 @@ class OrganizationTraceItemAttributeValidateEndpoint(OrganizationTraceItemAttrib
                     # Known column or virtual context — always valid
                     results[attr_name] = {
                         "valid": True,
-                        "type": serialize_type(resolved.search_type),
+                        "type": serialize_search_type(resolved.search_type),
                     }
                 else:
                     # User tag — need to verify it exists in storage
@@ -1635,7 +1622,7 @@ class OrganizationTraceItemAttributeValidateEndpoint(OrganizationTraceItemAttrib
                 if (resolved.proto_type, resolved.internal_name) in existing:
                     results[attr_name] = {
                         "valid": True,
-                        "type": serialize_type(resolved.search_type),
+                        "type": serialize_search_type(resolved.search_type),
                     }
                 else:
                     results[attr_name] = {

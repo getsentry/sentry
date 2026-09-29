@@ -1,13 +1,17 @@
-import {useEffect, useState} from 'react';
+import {useEffect, useId, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {VisuallyHidden} from '@react-aria/visually-hidden';
+import {AnimatePresence, motion} from 'framer-motion';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconArrow, IconHide, IconShow} from 'sentry/icons';
+import {IconArrow, IconExclamation, IconHide, IconShow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {
   useEmailAuth,
@@ -25,6 +29,8 @@ interface EmailAuthProps {
 }
 
 export function EmailAuth({onAuthResult, organizationSlug}: EmailAuthProps) {
+  const theme = useTheme();
+  const authErrorDescriptionId = useId();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
@@ -36,8 +42,9 @@ export function EmailAuth({onAuthResult, organizationSlug}: EmailAuthProps) {
     ? t('Hide password')
     : t('Show password');
   const authError = emailAuth.errorMessage;
-  const errorMessage = passwordReset.errorMessage ?? authError;
-  const isPending = emailAuth.isPending || passwordReset.isPending;
+  const isEmailAuthTransitioning = emailAuth.isPending || Boolean(emailAuth.result);
+  const isPending = isEmailAuthTransitioning || passwordReset.isPending;
+  const hasLoginCredentials = Boolean(email && password);
 
   function handleEmailChange(event: React.ChangeEvent<HTMLInputElement>) {
     setEmail(event.currentTarget.value);
@@ -89,11 +96,11 @@ export function EmailAuth({onAuthResult, organizationSlug}: EmailAuthProps) {
       }}
     >
       <Container>
-        {errorMessage && (
+        {passwordReset.errorMessage && (
           <Container paddingBottom="md">
             <Alert.Container>
               <Alert role="alert" variant="danger" showIcon={false}>
-                {errorMessage}
+                {passwordReset.errorMessage}
               </Alert>
             </Alert.Container>
           </Container>
@@ -123,66 +130,65 @@ export function EmailAuth({onAuthResult, organizationSlug}: EmailAuthProps) {
                 isPasswordRecovery ? t('Email of account to recover') : t('Email')
               }
               aria-label={t('Email')}
-              aria-invalid={Boolean(errorMessage)}
+              aria-describedby={authError ? authErrorDescriptionId : undefined}
+              aria-invalid={Boolean(authError)}
               required
               onChange={handleEmailChange}
             />
+            {authError && (
+              <InputGroup.TrailingItems>
+                <Tooltip forceVisible skipWrapper title={authError}>
+                  <IconExclamation aria-hidden size="sm" variant="danger" />
+                </Tooltip>
+              </InputGroup.TrailingItems>
+            )}
           </InputGroup>
         )}
-        {!isPasswordRecovery && (
-          <Container paddingTop="md">
-            <InputGroup>
-              <InputGroup.Input
-                type={isPasswordVisible ? 'text' : 'password'}
-                name="password"
-                value={password}
-                autoComplete="current-password"
-                disabled={isPending}
-                placeholder={t('Password')}
-                aria-label={t('Password')}
-                aria-invalid={Boolean(authError)}
-                required
-                onChange={handlePasswordChange}
-              />
-              <InputGroup.TrailingItems>
-                {password && (
-                  <Button
-                    aria-label={passwordVisibilityLabel}
-                    icon={isPasswordVisible ? <IconHide /> : <IconShow />}
-                    size="zero"
-                    tooltipProps={{title: passwordVisibilityLabel}}
-                    variant="transparent"
-                    onClick={() => setIsPasswordVisible(visible => !visible)}
+        <AnimatePresence initial={false}>
+          {!isPasswordRecovery && (
+            <motion.div
+              initial={{height: 0, overflow: 'hidden'}}
+              animate={{
+                height: 'auto',
+                overflow: 'hidden',
+                transitionEnd: {overflow: 'visible'},
+              }}
+              exit={{height: 0, overflow: 'hidden'}}
+              transition={theme.motion.framer.smooth.moderate}
+            >
+              <Container paddingTop="md">
+                <InputGroup>
+                  <InputGroup.Input
+                    type={isPasswordVisible ? 'text' : 'password'}
+                    name="password"
+                    value={password}
+                    autoComplete="current-password"
+                    disabled={isPending}
+                    placeholder={t('Password')}
+                    aria-label={t('Password')}
+                    aria-invalid={Boolean(authError)}
+                    required
+                    onChange={handlePasswordChange}
                   />
-                )}
-              </InputGroup.TrailingItems>
-            </InputGroup>
-          </Container>
-        )}
+                  <InputGroup.TrailingItems>
+                    {password && (
+                      <Button
+                        aria-label={passwordVisibilityLabel}
+                        icon={isPasswordVisible ? <IconHide /> : <IconShow />}
+                        size="zero"
+                        tooltipProps={{title: passwordVisibilityLabel}}
+                        variant="transparent"
+                        onClick={() => setIsPasswordVisible(visible => !visible)}
+                      />
+                    )}
+                  </InputGroup.TrailingItems>
+                </InputGroup>
+              </Container>
+            </motion.div>
+          )}
+        </AnimatePresence>
         <Flex paddingTop="md">
-          <Container flex="1" paddingTop="sm">
-            {!passwordReset.result && !isPasswordRecovery && (
-              <Button
-                type="submit"
-                variant="primary"
-                size="sm"
-                busy={emailAuth.isPending}
-              >
-                {t('Log in to Sentry')}
-              </Button>
-            )}
-            {!passwordReset.result && isPasswordRecovery && (
-              <Button
-                type="submit"
-                variant="primary"
-                size="sm"
-                busy={passwordReset.isPending}
-              >
-                {t('Reset Password')}
-              </Button>
-            )}
-          </Container>
-          <Flex flex="1" justify="end">
+          <Flex flex="1">
             {isPasswordRecovery ? (
               <ForgotPasswordButton
                 disabled={isPending}
@@ -204,7 +210,52 @@ export function EmailAuth({onAuthResult, organizationSlug}: EmailAuthProps) {
               </ForgotPasswordButton>
             )}
           </Flex>
+          <Flex flex="1" justify="end" paddingTop="sm">
+            <AnimatePresence initial={false} mode="wait">
+              {!passwordReset.result && !isPasswordRecovery && (
+                <MotionButton
+                  key="login"
+                  type="submit"
+                  variant="primary"
+                  size="sm"
+                  busy={isEmailAuthTransitioning}
+                  tabIndex={hasLoginCredentials ? undefined : -1}
+                  initial={false}
+                  animate={
+                    hasLoginCredentials
+                      ? {opacity: 1, scale: 1, y: 0}
+                      : {opacity: 0, scale: 0.96, y: 5}
+                  }
+                  exit={{opacity: 0, scale: 0.96}}
+                  style={{pointerEvents: hasLoginCredentials ? 'auto' : 'none'}}
+                  transition={theme.motion.framer.smooth.moderate}
+                >
+                  {t('Log in to Sentry')}
+                </MotionButton>
+              )}
+              {!passwordReset.result && isPasswordRecovery && Boolean(email) && (
+                <MotionButton
+                  key="password-reset"
+                  type="submit"
+                  variant="primary"
+                  size="sm"
+                  busy={passwordReset.isPending}
+                  initial={{opacity: 0, y: 5}}
+                  animate={{opacity: 1, y: 0}}
+                  exit={{opacity: 0, scale: 0.96}}
+                  transition={theme.motion.framer.smooth.moderate}
+                >
+                  {t('Reset Password')}
+                </MotionButton>
+              )}
+            </AnimatePresence>
+          </Flex>
         </Flex>
+        {authError && (
+          <VisuallyHidden id={authErrorDescriptionId} role="alert">
+            {authError}
+          </VisuallyHidden>
+        )}
       </Container>
     </form>
   );
@@ -214,3 +265,5 @@ const ForgotPasswordButton = styled(Button)`
   color: ${p => p.theme.tokens.content.secondary};
   font-weight: ${p => p.theme.font.weight.sans.regular};
 `;
+
+const MotionButton = motion.create(Button);

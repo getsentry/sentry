@@ -6,6 +6,7 @@ import pytest
 from sentry.deletions.tasks.seer import notify_seer_repository_deleted
 from sentry.seer.code_review.utils import SeerEndpoint
 from sentry.testutils.cases import TestCase
+from sentry.viewer_context import ActorType, ViewerContext, get_viewer_context
 
 
 class NotifySeerRepositoryDeletedTest(TestCase):
@@ -18,7 +19,10 @@ class NotifySeerRepositoryDeletedTest(TestCase):
 
     @patch("sentry.seer.code_review.utils.make_seer_request")
     def test_notifies_seer_via_signed_endpoint(self, mock_make_seer_request: Any) -> None:
-        mock_make_seer_request.return_value = b"{}"
+        observed_contexts: list[ViewerContext | None] = []
+        mock_make_seer_request.side_effect = lambda **kwargs: observed_contexts.append(
+            get_viewer_context()
+        )
 
         notify_seer_repository_deleted(
             self.organization_id,
@@ -37,6 +41,12 @@ class NotifySeerRepositoryDeletedTest(TestCase):
             "repository_name": self.repository_name,
         }
         assert kwargs["viewer_context"]["organization_id"] == self.organization_id
+        assert observed_contexts == [
+            ViewerContext(
+                organization_id=self.organization_id,
+                actor_type=ActorType.SYSTEM,
+            )
+        ]
 
     @patch("sentry.seer.code_review.utils.make_seer_request")
     def test_propagates_seer_errors(self, mock_make_seer_request: Any) -> None:

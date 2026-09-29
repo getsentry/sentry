@@ -496,7 +496,7 @@ class ExploreSavedQueriesTest(APITestCase):
 
     def test_sync_prebuilt_starred_alphabetical_for_new_user(self) -> None:
         sync_prebuilt_queries(self.org)
-        sync_prebuilt_queries_starred(self.org, self.user.id)
+        sync_prebuilt_queries_starred(self.org, self.user)
 
         starred = list(
             ExploreSavedQueryStarred.objects.filter(
@@ -519,7 +519,7 @@ class ExploreSavedQueriesTest(APITestCase):
     ) -> None:
         # Seed all prebuilts as if the user had synced previously.
         sync_prebuilt_queries(self.org)
-        sync_prebuilt_queries_starred(self.org, self.user.id)
+        sync_prebuilt_queries_starred(self.org, self.user)
 
         # Simulate a "new prebuilt added later" by removing the starred record for
         # one prebuilt that lives alphabetically in the middle of the list, then
@@ -544,7 +544,7 @@ class ExploreSavedQueriesTest(APITestCase):
             row.position = idx
             row.save()
 
-        sync_prebuilt_queries_starred(self.org, self.user.id)
+        sync_prebuilt_queries_starred(self.org, self.user)
 
         starred = list(
             ExploreSavedQueryStarred.objects.filter(
@@ -562,7 +562,7 @@ class ExploreSavedQueriesTest(APITestCase):
 
     def test_sync_prebuilt_starred_preserves_user_custom_order(self) -> None:
         sync_prebuilt_queries(self.org)
-        sync_prebuilt_queries_starred(self.org, self.user.id)
+        sync_prebuilt_queries_starred(self.org, self.user)
 
         original_ids = list(
             ExploreSavedQueryStarred.objects.filter(organization=self.org, user_id=self.user.id)
@@ -574,7 +574,7 @@ class ExploreSavedQueriesTest(APITestCase):
             self.org, self.user.id, reversed_ids
         )
 
-        sync_prebuilt_queries_starred(self.org, self.user.id)
+        sync_prebuilt_queries_starred(self.org, self.user)
 
         after_ids = list(
             ExploreSavedQueryStarred.objects.filter(organization=self.org, user_id=self.user.id)

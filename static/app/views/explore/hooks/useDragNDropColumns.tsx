@@ -23,11 +23,15 @@ export function useDragNDropColumns<T>({
 }: UseDragAndDropColumnsProps<T>) {
   const uniqueIdsRef = useRef<string[]>([]);
 
+  // oxlint-disable-next-line react/refs
   uniqueIdsRef.current.length = Math.min(uniqueIdsRef.current.length, columns.length);
+  // oxlint-disable-next-line react/refs
   while (uniqueIdsRef.current.length < columns.length) {
+    // oxlint-disable-next-line react/refs
     uniqueIdsRef.current.push(uniqueId());
   }
 
+  // oxlint-disable-next-line react/refs
   const editableColumns = columns.map((column, i) => ({
     id: i + 1,
     uniqueId: uniqueIdsRef.current[i]!,

@@ -43,9 +43,5 @@ export function AnnotatedAttributeTooltip({
     return <Fragment>{children}</Fragment>;
   }
 
-  return (
-    <Tooltip title={metaTooltip} isHoverable>
-      {children}
-    </Tooltip>
-  );
+  return <Tooltip title={metaTooltip}>{children}</Tooltip>;
 }

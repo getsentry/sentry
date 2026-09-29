@@ -1,8 +1,8 @@
 import type {Key} from 'react';
 
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Container} from '@sentry/scraps/layout';
 
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -50,7 +50,7 @@ export function CrossEventQueryingDropdown() {
     : t('For more targeted results, you can also cross reference other datasets.');
 
   return (
-    <Container width="100%">
+    <Container width={{zero: '100%', md: 'auto'}}>
       {triggerProps => (
         <DropdownMenu
           onAction={onAction}

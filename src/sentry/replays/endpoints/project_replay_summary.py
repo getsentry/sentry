@@ -39,7 +39,7 @@ SEER_POLL_STATE_ENDPOINT_PATH = "/v1/automation/summarize/replay/breadcrumbs/sta
 class ReplaySummaryPermission(ProjectPermission):
     scope_map = {
         "GET": ["event:read", "event:write", "event:admin"],
-        "POST": ["event:read", "event:write", "event:admin"],
+        "POST": ["event:write", "event:admin"],
         "PUT": [],
         "DELETE": [],
     }
@@ -152,7 +152,7 @@ class ProjectReplaySummaryEndpoint(ProjectReplayEndpoint):
                 project.organization,
                 actor=request.user,
             )
-            and has_seer_access(project.organization, actor=request.user)
+            and has_seer_access(project.organization)
         )
 
     def get(self, request: Request, project: Project, replay_id: str) -> Response:

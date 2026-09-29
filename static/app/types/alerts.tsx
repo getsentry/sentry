@@ -1,4 +1,4 @@
-import type {IssueConfigField} from './integrations';
+import type {JsonFormAdapterFieldConfig} from 'sentry/components/backendJsonFormAdapter/types';
 
 export const enum IssueAlertActionType {
   SLACK = 'sentry.integrations.slack.notify_action.SlackNotifyServiceAction',
@@ -30,16 +30,8 @@ export const enum IssueAlertActionType {
 }
 
 export const enum IssueAlertConditionType {
-  EVERY_EVENT = 'sentry.rules.conditions.every_event.EveryEventCondition',
-  FIRST_SEEN_EVENT = 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition',
-  REGRESSION_EVENT = 'sentry.rules.conditions.regression_event.RegressionEventCondition',
-  REAPPEARED_EVENT = 'sentry.rules.conditions.reappeared_event.ReappearedEventCondition',
   EVENT_FREQUENCY = 'sentry.rules.conditions.event_frequency.EventFrequencyCondition',
   EVENT_UNIQUE_USER_FREQUENCY = 'sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition',
-  EVENT_UNIQUE_USER_FREQUENCY_WITH_CONDITIONS = 'sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyConditionWithConditions',
-  EVENT_FREQUENCY_PERCENT = 'sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition',
-  NEW_HIGH_PRIORITY_ISSUE = 'sentry.rules.conditions.high_priority_issue.NewHighPriorityIssueCondition',
-  EXISTING_HIGH_PRIORITY_ISSUE = 'sentry.rules.conditions.high_priority_issue.ExistingHighPriorityIssueCondition',
 }
 
 /**
@@ -61,17 +53,17 @@ interface IssueAlertRuleActionTemplate {
 export interface IssueAlertRuleAction extends IssueAlertRuleActionTemplate {
   // These are the same values as the keys in `formFields` for a template
   [key: string]: any;
-  dynamic_form_fields?: IssueConfigField[];
+  dynamic_form_fields?: JsonFormAdapterFieldConfig[];
 }
 
 type IssueAlertRuleCondition = IssueAlertRuleActionTemplate & {
-  dynamic_form_fields?: IssueConfigField[];
+  dynamic_form_fields?: JsonFormAdapterFieldConfig[];
 } & Record<string, number | string>;
 
 export interface TicketActionData {
   [key: string]: any;
   integration: string;
-  dynamic_form_fields?: IssueConfigField[];
+  dynamic_form_fields?: JsonFormAdapterFieldConfig[];
 }
 
 interface SlackAction {

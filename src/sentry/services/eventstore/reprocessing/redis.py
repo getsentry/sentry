@@ -7,6 +7,7 @@ import redis
 from django.conf import settings
 
 from sentry.utils.dates import to_datetime
+from sentry.utils.query import TaskBulkQueryState
 from sentry.utils.redis import redis_clusters
 
 from .base import ReprocessingInfo, ReprocessingStore
@@ -26,6 +27,12 @@ def _get_old_primary_hash_subset_key(project_id: int, group_id: int, primary_has
 
 def _get_remaining_key(project_id: int, group_id: int) -> str:
     return f"re2:remaining:{{{project_id}:{group_id}}}"
+
+
+def _get_page_claim_key(
+    project_id: int, group_id: int, new_group_id: int, timestamp: str, event_id: str
+) -> str:
+    return f"re2:pageclaim:{project_id}:{group_id}:{new_group_id}:{timestamp}:{event_id}"
 
 
 class RedisReprocessingStore(ReprocessingStore):
@@ -149,7 +156,8 @@ class RedisReprocessingStore(ReprocessingStore):
         pipe.expire(name=sync_counter_key, time=settings.SENTRY_REPROCESSING_SYNC_TTL)
         pipe.decrby(name=sync_counter_key, amount=num_events)
         new_decremented_value = pipe.execute()[2]
-        return new_decremented_value == 0
+        # It can be that we overshoot and end up with a negative number here as such use `<=` rather than `==`.
+        return new_decremented_value <= 0
 
     def start_reprocessing(
         self, group_id: int, date_created: datetime, sync_count: int, event_count: int
@@ -179,3 +187,18 @@ class RedisReprocessingStore(ReprocessingStore):
         if info is None:
             return None
         return orjson.loads(info)
+
+    def try_claim_page(
+        self,
+        project_id: int,
+        group_id: int,
+        new_group_id: int,
+        state: TaskBulkQueryState | None,
+        claimant: str,
+    ) -> bool:
+        timestamp = state["timestamp"] if state is not None else "start"
+        event_id = state["event_id"] if state is not None else "start"
+        key = _get_page_claim_key(project_id, group_id, new_group_id, timestamp, event_id)
+        if self.redis.set(key, claimant, nx=True, ex=settings.SENTRY_REPROCESSING_PAGE_CLAIM_TTL):
+            return True
+        return self.redis.get(key) == claimant

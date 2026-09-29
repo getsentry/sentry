@@ -63,9 +63,11 @@ import {getCountryByCode} from 'getsentry/utils/ISO3166codes';
 import {titleCase} from 'getsentry/utils/titleCase';
 import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
 
+type CustomerUpdateAction = (data: Record<string, unknown>) => Promise<unknown>;
+
 type SubscriptionSummaryProps = {
   customer: Subscription;
-  onAction: (data: any) => void;
+  onAction: CustomerUpdateAction;
 };
 
 function SoftCapTypeDetail({
@@ -498,7 +500,7 @@ function OnDemandSummary({customer}: OnDemandSummaryProps) {
 
 type Props = {
   customer: Subscription;
-  onAction: (data: any) => void;
+  onAction: CustomerUpdateAction;
   organization: Organization;
 };
 
@@ -510,10 +512,62 @@ function isWithinAcceptedMargin(
   return difference >= 0 && difference <= desiredSampleRate * 0.1;
 }
 
+const formatRate = (rate: number) => `${rate.toFixed(2)}%`;
+
+const SAMPLE_RATE_LABEL = 'Sample Rate (24h)';
+
+function SampleRateRow({
+  rate,
+  desiredSampleRate,
+}: {
+  desiredSampleRate: number | null;
+  rate: number | null;
+}) {
+  if (!defined(rate)) {
+    return (
+      <ThresholdLabel label={SAMPLE_RATE_LABEL} positive={false}>
+        n/a
+      </ThresholdLabel>
+    );
+  }
+
+  const effectiveSampleRate = rate * 100;
+
+  const getSampleRateValue = (): string => {
+    if (effectiveSampleRate && desiredSampleRate) {
+      // When rates match, show just the rate instead of "X% instead of X% (~0%)"
+      if (formatRate(effectiveSampleRate) === formatRate(desiredSampleRate)) {
+        return formatRate(effectiveSampleRate);
+      }
+      const diffSampleRate = Math.abs(effectiveSampleRate - desiredSampleRate);
+      return `${formatRate(effectiveSampleRate)} instead of ${formatRate(desiredSampleRate)} (~${formatRate(diffSampleRate)})`;
+    }
+    if (desiredSampleRate) {
+      return formatRate(desiredSampleRate);
+    }
+    return 'n/a';
+  };
+
+  return (
+    <ThresholdLabel
+      label={SAMPLE_RATE_LABEL}
+      positive={
+        effectiveSampleRate && desiredSampleRate
+          ? isWithinAcceptedMargin(effectiveSampleRate, desiredSampleRate)
+          : false
+      }
+    >
+      {getSampleRateValue()}
+    </ThresholdLabel>
+  );
+}
+
 function DynamicSampling({organization}: {organization: Organization}) {
   const dynamicSamplingEnabled = organization.features?.includes('dynamic-sampling');
 
-  const {data, isPending, isError} = useApiQuery<{effectiveSampleRate: number | null}>(
+  const {data, isPending, isError} = useApiQuery<{
+    eapEffectiveSampleRate: number | null;
+  }>(
     [
       getApiUrl('/organizations/$organizationIdOrSlug/sampling/effective-sample-rate/', {
         path: {organizationIdOrSlug: organization.slug},
@@ -526,58 +580,196 @@ function DynamicSampling({organization}: {organization: Organization}) {
   );
 
   if (!dynamicSamplingEnabled) {
-    return <ThresholdLabel positive={false}>Disabled</ThresholdLabel>;
+    return (
+      <ThresholdLabel label={SAMPLE_RATE_LABEL} positive={false}>
+        Disabled
+      </ThresholdLabel>
+    );
   }
   if (isError) {
-    return <ThresholdLabel positive={false}>Error loading data</ThresholdLabel>;
+    return (
+      <ThresholdLabel label={SAMPLE_RATE_LABEL} positive={false}>
+        Error loading data
+      </ThresholdLabel>
+    );
   }
   if (isPending) {
-    return <ThresholdLabel positive={false}>Loading...</ThresholdLabel>;
+    return (
+      <ThresholdLabel label={SAMPLE_RATE_LABEL} positive={false}>
+        Loading...
+      </ThresholdLabel>
+    );
   }
 
-  if (!defined(data.effectiveSampleRate)) {
-    return <ThresholdLabel positive={false}>n/a</ThresholdLabel>;
-  }
-
-  const effectiveSampleRate = data.effectiveSampleRate * 100;
   const desiredSampleRate = organization.desiredSampleRate
     ? organization.desiredSampleRate * 100
     : null;
-  const diffSampleRate =
-    effectiveSampleRate && desiredSampleRate
-      ? Math.abs(effectiveSampleRate - desiredSampleRate)
-      : null;
 
-  const formatRate = (rate: number) => `${rate.toFixed(2)}%`;
+  return (
+    <SampleRateRow
+      rate={data.eapEffectiveSampleRate}
+      desiredSampleRate={desiredSampleRate}
+    />
+  );
+}
 
-  const getSampleRateValue = (): string => {
-    if (effectiveSampleRate && desiredSampleRate) {
-      // When rates match, show just the rate instead of "X% instead of X% (~0%)"
-      if (formatRate(effectiveSampleRate) === formatRate(desiredSampleRate)) {
-        return formatRate(effectiveSampleRate);
-      }
-      return `${formatRate(effectiveSampleRate)} instead of ${formatRate(desiredSampleRate)} (~${formatRate(diffSampleRate!)})`;
+function TrialManagementActions({
+  category,
+  apiName,
+  customer,
+  onAction,
+  trialName,
+  isAdminOnly = false,
+}: {
+  apiName: string;
+  category: DataCategory;
+  customer: Subscription;
+  onAction: (data: Record<string, unknown>) => void;
+  trialName: string;
+  isAdminOnly?: boolean;
+}) {
+  const formattedApiName = upperFirst(apiName);
+  const formattedTrialName = toTitleCase(trialName, {allowInnerUpperCase: true});
+  const activeProductTrial = getActiveProductTrial(
+    customer.productTrials ?? [],
+    category
+  );
+  const hasActiveProductTrial = !!activeProductTrial;
+  // NOTE: we add 1 day to the end date because the trial end date is inclusive
+  // and diff() can't return a value less than 0
+  const lessThanOneDayLeft =
+    moment(activeProductTrial?.endDate).add(1, 'day').diff(moment(), 'days') < 1;
+  const hasUsedProductTrial =
+    hasActiveProductTrial ||
+    getProductTrial(customer.productTrials ?? [], category)?.isStarted;
+  const isEnterprisePlan = !!customer.planDetails?.isEnterprise;
+  // Every Seer product trial (whether triggered via a plan category or the
+  // Seer/Legacy Seer add-on) resolves to one of these billed categories, so a
+  // single category check covers both entry points.
+  const isSeerProductTrial = [
+    DataCategory.SEER_USER,
+    DataCategory.SEER_AUTOFIX,
+    DataCategory.SEER_SCANNER,
+  ].includes(category);
+  // Enterprise plans: only Seer product trials can be started from _admin.
+  // Allow Trial and Stop/Extend stay available for any in-flight non-Seer trial.
+  const blockEnterpriseNonSeerStart = isEnterprisePlan && !isSeerProductTrial;
+  const enterpriseNonSeerStartTooltip =
+    'Starting a trial for this product is disabled for enterprise plans. Use gifts as needed to add reserved volume.';
+
+  const handleExtendTrial = () => {
+    if (!activeProductTrial) {
+      return;
     }
-    if (desiredSampleRate) {
-      return formatRate(desiredSampleRate);
-    }
-    return 'n/a';
+    openAdminConfirmModal({
+      header: <h4>Extend {formattedTrialName} Trial</h4>,
+      confirmText: 'Extend Trial',
+      renderModalSpecificContent: deps => (
+        <ExtendProductTrialAction
+          activeProductTrial={activeProductTrial}
+          apiName={apiName}
+          trialName={formattedTrialName}
+          {...deps}
+        />
+      ),
+      onConfirm: onAction,
+    });
   };
 
   return (
-    <ThresholdLabel
-      positive={
-        effectiveSampleRate && desiredSampleRate
-          ? isWithinAcceptedMargin(effectiveSampleRate, desiredSampleRate)
-          : false
-      }
-    >
-      {getSampleRateValue()}
-    </ThresholdLabel>
+    <DetailLabel key={apiName} title={formattedTrialName}>
+      <Stack gap="md">
+        <StyledTag
+          variant={
+            lessThanOneDayLeft
+              ? 'promotion'
+              : hasActiveProductTrial
+                ? 'success'
+                : hasUsedProductTrial
+                  ? 'warning'
+                  : 'info'
+          }
+        >
+          {hasActiveProductTrial
+            ? `Active (until ${moment.utc(activeProductTrial.endDate).format('MMM D, YYYY')} UTC)`
+            : hasUsedProductTrial
+              ? 'Used'
+              : 'Available'}
+        </StyledTag>
+        <Flex align="center" wrap="wrap" gap="md">
+          <Button
+            size="xs"
+            onClick={() => onAction({[`allowTrial${formattedApiName}`]: true})}
+            disabled={!hasUsedProductTrial || hasActiveProductTrial}
+            tooltipProps={{
+              title: hasActiveProductTrial
+                ? `A product trial is currently active for ${formattedTrialName}`
+                : hasUsedProductTrial
+                  ? isAdminOnly
+                    ? `Reset trial eligibility for ${formattedTrialName}`
+                    : `Allow customer to start a new trial for ${formattedTrialName}`
+                  : `A product trial is already available for ${formattedTrialName}`,
+            }}
+          >
+            Allow Trial
+          </Button>
+          <Button
+            size="xs"
+            onClick={() => onAction({[`startTrial${formattedApiName}`]: true})}
+            disabled={
+              blockEnterpriseNonSeerStart || hasActiveProductTrial || hasUsedProductTrial
+            }
+            tooltipProps={{
+              title: blockEnterpriseNonSeerStart
+                ? enterpriseNonSeerStartTooltip
+                : hasActiveProductTrial
+                  ? `A product trial is currently active for ${formattedTrialName}`
+                  : hasUsedProductTrial
+                    ? `No product trial is available for ${formattedTrialName}`
+                    : `Start the 14-day ${formattedTrialName} product trial`,
+            }}
+          >
+            Start Trial
+          </Button>
+          <Button
+            size="xs"
+            onClick={() => onAction({[`stopTrial${formattedApiName}`]: true})}
+            disabled={!hasActiveProductTrial || lessThanOneDayLeft}
+            tooltipProps={{
+              title: lessThanOneDayLeft
+                ? 'Current product trial will end in less than one day'
+                : hasActiveProductTrial
+                  ? `Stop the current product trial for ${formattedTrialName}`
+                  : `No product trial is active for ${formattedTrialName}`,
+            }}
+          >
+            Stop Trial
+          </Button>
+          <Button
+            size="xs"
+            onClick={handleExtendTrial}
+            disabled={!hasActiveProductTrial}
+            tooltipProps={{
+              title: hasActiveProductTrial
+                ? `Extend the current ${formattedTrialName} product trial`
+                : `No active product trial to extend for ${formattedTrialName}`,
+            }}
+          >
+            Extend Trial
+          </Button>
+        </Flex>
+      </Stack>
+    </DetailLabel>
   );
 }
 
 export function CustomerOverview({customer, onAction, organization}: Props) {
+  const runAction = (data: Record<string, unknown>) => {
+    onAction(data).catch(() => {
+      // The mutation's onError callback surfaces the failure to the user.
+    });
+  };
+
   let orgUrl = `/organizations/${organization.slug}/issues/`;
   const configFeatures = ConfigStore.get('features');
   if (configFeatures.has('system:multi-region')) {
@@ -622,140 +814,12 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
     addOn => addOn.isAvailable
   );
 
-  const categoryHasUsedProductTrial = (category: DataCategory) => {
-    const trial = getProductTrial(customer.productTrials ?? [], category);
-
-    return trial?.isStarted;
-  };
-
   const updateCustomerStatus = (action: string) => {
     const data = {
       [action]: true,
     };
 
-    onAction(data);
-  };
-
-  const getTrialManagementActions = (
-    category: DataCategory,
-    apiName: string,
-    trialName: string,
-    isAdminOnly = false
-  ) => {
-    const formattedApiName = upperFirst(apiName);
-    const formattedTrialName = toTitleCase(trialName, {allowInnerUpperCase: true});
-    const activeProductTrial = getActiveProductTrial(
-      customer.productTrials ?? [],
-      category
-    );
-    const hasActiveProductTrial = !!activeProductTrial;
-    // NOTE: we add 1 day to the end date because the trial end date is inclusive
-    // and diff() can't return a value less than 0
-    const lessThanOneDayLeft =
-      moment(activeProductTrial?.endDate).add(1, 'day').diff(moment(), 'days') < 1;
-    const hasUsedProductTrial =
-      hasActiveProductTrial || categoryHasUsedProductTrial(category);
-
-    const handleExtendTrial = () => {
-      if (!activeProductTrial) {
-        return;
-      }
-      openAdminConfirmModal({
-        header: <h4>Extend {formattedTrialName} Trial</h4>,
-        confirmText: 'Extend Trial',
-        renderModalSpecificContent: deps => (
-          <ExtendProductTrialAction
-            activeProductTrial={activeProductTrial}
-            apiName={apiName}
-            trialName={formattedTrialName}
-            {...deps}
-          />
-        ),
-        onConfirm: onAction,
-      });
-    };
-
-    return (
-      <DetailLabel key={apiName} title={formattedTrialName}>
-        <Stack gap="md">
-          <StyledTag
-            variant={
-              lessThanOneDayLeft
-                ? 'promotion'
-                : hasActiveProductTrial
-                  ? 'success'
-                  : hasUsedProductTrial
-                    ? 'warning'
-                    : 'info'
-            }
-          >
-            {hasActiveProductTrial
-              ? `Active (until ${moment.utc(activeProductTrial.endDate).format('MMM D, YYYY')} UTC)`
-              : hasUsedProductTrial
-                ? 'Used'
-                : 'Available'}
-          </StyledTag>
-          <Flex align="center" wrap="wrap" gap="md">
-            <Button
-              size="xs"
-              onClick={() => updateCustomerStatus(`allowTrial${formattedApiName}`)}
-              disabled={!hasUsedProductTrial || hasActiveProductTrial}
-              tooltipProps={{
-                title: hasActiveProductTrial
-                  ? `A product trial is currently active for ${formattedTrialName}`
-                  : hasUsedProductTrial
-                    ? isAdminOnly
-                      ? `Reset trial eligibility for ${formattedTrialName}`
-                      : `Allow customer to start a new trial for ${formattedTrialName}`
-                    : `A product trial is already available for ${formattedTrialName}`,
-              }}
-            >
-              Allow Trial
-            </Button>
-            <Button
-              size="xs"
-              onClick={() => updateCustomerStatus(`startTrial${formattedApiName}`)}
-              disabled={hasActiveProductTrial || hasUsedProductTrial}
-              tooltipProps={{
-                title: hasActiveProductTrial
-                  ? `A product trial is currently active for ${formattedTrialName}`
-                  : hasUsedProductTrial
-                    ? `No product trial is available for ${formattedTrialName}`
-                    : `Start the 14-day ${formattedTrialName} product trial`,
-              }}
-            >
-              Start Trial
-            </Button>
-            <Button
-              size="xs"
-              onClick={() => updateCustomerStatus(`stopTrial${formattedApiName}`)}
-              disabled={!hasActiveProductTrial || lessThanOneDayLeft}
-              tooltipProps={{
-                title: lessThanOneDayLeft
-                  ? 'Current product trial will end in less than one day'
-                  : hasActiveProductTrial
-                    ? `Stop the current product trial for ${formattedTrialName}`
-                    : `No product trial is active for ${formattedTrialName}`,
-              }}
-            >
-              Stop Trial
-            </Button>
-            <Button
-              size="xs"
-              onClick={handleExtendTrial}
-              disabled={!hasActiveProductTrial}
-              tooltipProps={{
-                title: hasActiveProductTrial
-                  ? `Extend the current ${formattedTrialName} product trial`
-                  : `No active product trial to extend for ${formattedTrialName}`,
-              }}
-            >
-              Extend Trial
-            </Button>
-          </Flex>
-        </Stack>
-      </DetailLabel>
-    );
+    runAction(data);
   };
 
   return (
@@ -784,7 +848,7 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
             {customer.type === 'invoiced' && customer.billingInterval === 'annual' && (
               <span>
                 {' | '}
-                <ChangeARRAction customer={customer} onAction={onAction} />
+                <ChangeARRAction customer={customer} onAction={runAction} />
               </span>
             )}
           </DetailLabel>
@@ -970,22 +1034,34 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
                   category: categoryInfo.plural,
                   title: true,
                 });
-                return getTrialManagementActions(
-                  categoryInfo.plural,
-                  categoryInfo.plural,
-                  categoryName,
-                  !!categoryInfo.adminOnlyProductTrialFeature
+                return (
+                  <TrialManagementActions
+                    key={categoryInfo.plural}
+                    category={categoryInfo.plural}
+                    apiName={categoryInfo.plural}
+                    customer={customer}
+                    onAction={runAction}
+                    trialName={categoryName}
+                    isAdminOnly={!!categoryInfo.adminOnlyProductTrialFeature}
+                  />
                 );
               })}
               {productTrialAddOns.map(addOn => {
                 const category = getBilledCategory(customer, addOn.apiName);
                 if (category) {
-                  return getTrialManagementActions(
-                    category,
-                    addOn.apiName,
-                    addOn.apiName === AddOnCategory.LEGACY_SEER
-                      ? addOn.productName + ' (Legacy)'
-                      : addOn.productName
+                  return (
+                    <TrialManagementActions
+                      key={addOn.apiName}
+                      category={category}
+                      apiName={addOn.apiName}
+                      customer={customer}
+                      onAction={runAction}
+                      trialName={
+                        addOn.apiName === AddOnCategory.LEGACY_SEER
+                          ? addOn.productName + ' (Legacy)'
+                          : addOn.productName
+                      }
+                    />
                   );
                 }
                 return null;
@@ -1063,13 +1139,14 @@ const StyledTag = styled(Tag)`
 
 type ThresholdLabelProps = {
   children: React.ReactNode;
+  label: string;
   positive: boolean;
 };
 
-function ThresholdLabel({positive, children}: ThresholdLabelProps) {
+function ThresholdLabel({label, positive, children}: ThresholdLabelProps) {
   return (
     <Fragment>
-      <dt>Sample Rate (24h):</dt>
+      <dt>{label}:</dt>
       <ThresholdValue positive={positive}>{children}</ThresholdValue>
     </Fragment>
   );

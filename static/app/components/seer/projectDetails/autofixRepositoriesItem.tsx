@@ -178,7 +178,14 @@ export function AutofixRepositoriesItem({
 
       {isExpanded && (
         <SimpleTable.FullWidthRow>
-          <Stack gap="lg" justify="between" paddingTop="0" paddingLeft="xl">
+          <Stack
+            gap="lg"
+            justify="between"
+            paddingTop="0"
+            paddingBottom="xl"
+            paddingLeft="xl"
+            paddingRight="xl"
+          >
             <Flex align="center" justify="between">
               <Heading as="h4">
                 <Flex align="center" gap="sm">

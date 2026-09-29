@@ -135,6 +135,13 @@ def has_pending_2fa(request: HttpRequest) -> bool:
     return request.session.get("_pending_2fa") is not None
 
 
+def is_react_auth_enabled(request: HttpRequest) -> bool:
+    cookie_value = request.COOKIES.get(REACT_AUTH_COOKIE)
+    if cookie_value is not None:
+        return cookie_value == "1"
+    return options.get("auth.v2.enabled")
+
+
 def get_login_url(reset: bool = False) -> str:
     global _LOGIN_URL
 
@@ -193,7 +200,7 @@ def _get_login_redirect(request: HttpRequest, default: str | None = None) -> str
     # If there is a pending 2fa authentication bound to the session then
     # we need to go to the 2fa dialog.
     if has_pending_2fa(request):
-        if request.COOKIES.get(REACT_AUTH_COOKIE) == "1":
+        if is_react_auth_enabled(request):
             return reverse("sentry-login")
         return reverse("sentry-2fa-dialog")
 
@@ -215,7 +222,6 @@ def _get_login_redirect(request: HttpRequest, default: str | None = None) -> str
 
 def get_login_redirect(request: HttpRequest, default: str | None = None) -> str:
     login_redirect = _get_login_redirect(request, default)
-    url_prefix = None
     if hasattr(request, "subdomain") and request.subdomain:
         url_prefix = generate_organization_url(request.subdomain)
         return absolute_uri(login_redirect, url_prefix=url_prefix)

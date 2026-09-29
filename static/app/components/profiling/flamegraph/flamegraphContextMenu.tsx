@@ -288,6 +288,7 @@ export function FlamegraphContextMenu(props: FlamegraphContextMenuProps) {
       </ProfilingContextMenu>
       <div
         ref={el => {
+          // oxlint-disable-next-line react/immutability
           props.contextMenu.subMenuRef.current = el;
         }}
         id="sub-menu-portal"
@@ -544,6 +545,7 @@ export function ContinuousFlamegraphContextMenu(props: FlamegraphContextMenuProp
       </ProfilingContextMenu>
       <div
         ref={el => {
+          // oxlint-disable-next-line react/immutability
           props.contextMenu.subMenuRef.current = el;
         }}
         id="sub-menu-portal"
@@ -583,6 +585,7 @@ function ProfileIdsSubMenu(props: {
   const {projects} = useProjects();
   const [isOpen, _setIsOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
+  // oxlint-disable-next-line react/refs
   const popper = usePopper(triggerRef.current, props.subMenuPortalRef, {
     placement: 'right-start',
     modifiers: [
@@ -633,6 +636,7 @@ function ProfileIdsSubMenu(props: {
     <Fragment>
       <ProfilingContextMenuItemButton
         icon={<IconProfiling size="xs" />}
+        // oxlint-disable-next-line react/refs
         {...props.contextMenu.getMenuItemProps({
           onClick: () => {
             setIsOpen(true);

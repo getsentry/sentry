@@ -54,14 +54,8 @@ describe('trimCommonAffixes', () => {
     expect(trimCommonAffixes(['abcdef', 'abcdef'])).toEqual(['…', '…']);
   });
 
-  it('respects custom minAffixLength', () => {
-    // With default (3), 'abc' prefix wouldn't be trimmed
+  it('does not trim affixes at or below the minimum length', () => {
     expect(trimCommonAffixes(['abcfoo', 'abcbar'])).toEqual(['abcfoo', 'abcbar']);
-    // With minAffixLength 0, it should be trimmed
-    expect(trimCommonAffixes(['abcfoo', 'abcbar'], {minAffixLength: 0})).toEqual([
-      '…foo',
-      '…bar',
-    ]);
   });
 
   it('returns values unchanged when an empty string is in the array', () => {
@@ -250,9 +244,10 @@ describe('trimCommonAffixes', () => {
     it('does not trim when only the separator itself is common', () => {
       // Common prefix '/' (1 char). Snap: '/' at index 0 → snappedPrefix = 0.
       // 0 is not > anything, so no trim — there's nothing before the separator.
-      expect(
-        trimCommonAffixes(['/xxxx', '/yyyy'], {minAffixLength: 0, separator: '/'})
-      ).toEqual(['/xxxx', '/yyyy']);
+      expect(trimCommonAffixes(['/xxxx', '/yyyy'], {separator: '/'})).toEqual([
+        '/xxxx',
+        '/yyyy',
+      ]);
     });
 
     it('handles consecutive separators in paths', () => {

@@ -40,7 +40,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {Actions, CellAction, updateQuery} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {COLUMN_TITLES} from 'sentry/views/performance/data';
-import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
+import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/breadcrumbs';
 import {
   generateProfileLink,
   generateReplayLink,
@@ -95,7 +95,6 @@ type Props = {
   customColumns?: Array<'attachments' | 'minidump'>;
   excludedTags?: string[];
   hidePagination?: boolean;
-  isRegressionIssue?: boolean;
   issueId?: string;
   projectSlug?: string;
   referrer?: string;
@@ -126,7 +125,6 @@ export function EventsTable({
   customColumns,
   excludedTags,
   hidePagination,
-  isRegressionIssue,
   issueId,
   projectSlug,
   referrer,
@@ -233,7 +231,7 @@ export function EventsTable({
       if (field === 'id' || field === 'trace') {
         const isIssue = !!issueId;
         let target: LocationDescriptor | null = null;
-        if (isIssue && !isRegressionIssue && field === 'id') {
+        if (isIssue && field === 'id') {
           target = {
             pathname: `/organizations/${organization.slug}/issues/${issueId}/events/${dataRow.id}/`,
           };
@@ -366,7 +364,6 @@ export function EventsTable({
       projectSlug,
       transactionName,
       issueId,
-      isRegressionIssue,
       replayLinkGenerator,
       handleCellAction,
     ]

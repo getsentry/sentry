@@ -49,7 +49,19 @@ export function useMessagingIntegrationAlertRule(
     clearChannelValidation,
     onChannelChange,
     onCreateChannel,
-  } = useMessagingChannel({channel, integration, provider, setChannel, variant});
+  } = useMessagingChannel({
+    channel,
+    integration,
+    provider,
+    setChannel,
+    onChannelSelected: variant
+      ? () =>
+          trackAnalytics('project_creation.notify_channel_changed', {
+            organization,
+            variant,
+          })
+      : undefined,
+  });
 
   const providerOptions = useMemo(
     () =>
@@ -115,12 +127,15 @@ export function useMessagingIntegrationAlertRule(
 type ChannelSelectProps = {
   disabled: boolean;
   isLoading: boolean;
-  onChange: (option: {label: React.ReactNode; value: string} | null) => void;
+  onChange: (option: IntegrationChannel | null) => void;
   onCreateOption: (value: string) => void;
-  options: Array<{label: React.ReactNode; value: string}> | undefined;
+  options: IntegrationChannel[] | undefined;
   provider: string;
   value: IntegrationChannel | undefined;
+  autoFocus?: boolean;
   className?: string;
+  /** Lets a visible `label` reference the select through `htmlFor`. */
+  inputId?: string;
 };
 
 /**
@@ -131,7 +146,9 @@ type ChannelSelectProps = {
  * @public Consumed by the SCM layout in a downstream PR.
  */
 export function ChannelSelect({
+  autoFocus,
   className,
+  inputId,
   provider,
   options,
   value,
@@ -140,16 +157,24 @@ export function ChannelSelect({
   onChange,
   onCreateOption,
 }: ChannelSelectProps) {
+  const selectedOption = value ?? null;
+  const optionsWithSelectedValue =
+    selectedOption && !options?.some(option => option.value === selectedOption.value)
+      ? [selectedOption, ...(options ?? [])]
+      : options;
+
   return (
     <Select
       className={className}
+      inputId={inputId}
+      autoFocus={autoFocus}
       aria-label={t('channel')}
       placeholder={providerDetails[provider as keyof typeof providerDetails]?.placeholder}
       isSearchable
-      options={options}
+      options={optionsWithSelectedValue}
       isLoading={isLoading}
       disabled={disabled}
-      value={value ? {label: value.label, value: value.value} : null}
+      value={value?.value ?? null}
       onChange={onChange}
       onCreateOption={onCreateOption}
       clearable

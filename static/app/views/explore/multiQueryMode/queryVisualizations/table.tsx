@@ -36,7 +36,7 @@ import {
 } from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {MultiQueryFieldRenderer} from 'sentry/views/explore/tables/fieldRenderer';
 
-const TABLE_HEIGHT = 258;
+const TABLE_HEIGHT = '258px';
 
 interface MultiQueryTableBaseProps {
   index: number;

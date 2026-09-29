@@ -16,6 +16,7 @@ from sentry.integrations.source_code_management.status_check import (
 )
 from sentry.models.activity import Activity
 from sentry.models.group import Group
+from sentry.models.grouphistory import GroupHistoryStatus
 from sentry.models.grouplink import GroupLink
 from sentry.models.pullrequest import (
     PullRequest,
@@ -27,6 +28,7 @@ from sentry.models.pullrequest import (
 from sentry.models.repository import Repository
 from sentry.tasks.merge import merge_groups
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.types.activity import ActivityType
 
@@ -151,11 +153,57 @@ class GroupPullRequestsEndpointTest(APITestCase):
             (item["checksStatus"], item["reviewStatus"]) for item in response.data["pullRequests"]
         ]
 
-    def test_empty_response(self) -> None:
+    @patch("sentry.issues.endpoints.group_pull_requests._get_latest_regression_at")
+    def test_empty_response(self, mock_get_latest_regression_at: Mock) -> None:
         response = self.client.get(self.path)
 
         assert response.status_code == 200
-        assert response.data == {"pullRequests": []}
+        assert response.data == {"latestRegressionAt": None, "pullRequests": []}
+        mock_get_latest_regression_at.assert_not_called()
+
+    def test_returns_latest_manual_regression_and_ignores_unarchive(self) -> None:
+        self.create_linked_pull_request(key="1", state=PullRequestLifecycleState.OPEN, draft=False)
+        issue_update_path = (
+            f"/api/0/organizations/{self.organization.slug}/issues/?id={self.group.id}"
+        )
+        initial_time = timezone.now()
+        with freeze_time(initial_time):
+            self.create_group_history(
+                group=self.group,
+                status=GroupHistoryStatus.REGRESSED,
+            )
+        with freeze_time(initial_time + timedelta(days=1)):
+            response = self.client.put(issue_update_path, data={"status": "resolved"})
+            assert response.status_code == 200
+        with freeze_time(initial_time + timedelta(days=2)):
+            latest_regression_at = timezone.now()
+            response = self.client.put(
+                issue_update_path,
+                data={"status": "unresolved", "substatus": "ongoing"},
+            )
+            assert response.status_code == 200
+        with freeze_time(initial_time + timedelta(days=3)):
+            response = self.client.put(issue_update_path, data={"status": "resolved"})
+            assert response.status_code == 200
+        with freeze_time(initial_time + timedelta(days=4)):
+            response = self.client.put(
+                issue_update_path,
+                data={"status": "ignored", "substatus": "archived_forever"},
+            )
+            assert response.status_code == 200
+        with freeze_time(initial_time + timedelta(days=5)):
+            response = self.client.put(
+                issue_update_path,
+                data={"status": "unresolved", "substatus": "ongoing"},
+            )
+            assert response.status_code == 200
+
+        with freeze_time(initial_time + timedelta(days=6)):
+            response = self.client.get(self.path)
+
+        assert response.status_code == 200
+        assert response.data["latestRegressionAt"] == latest_regression_at
+        assert [item["id"] for item in response.data["pullRequests"]] == ["1"]
 
     def test_returns_resolving_pull_requests(self) -> None:
         newer_pr, newer_link = self.create_linked_pull_request(
@@ -289,7 +337,7 @@ class GroupPullRequestsEndpointTest(APITestCase):
         response = self.client.get(self.path)
 
         assert response.status_code == 200
-        assert response.data == {"pullRequests": []}
+        assert response.data == {"latestRegressionAt": None, "pullRequests": []}
 
     def test_returns_display_pull_request_attribution(self) -> None:
         delegated_pull_request, _ = self.create_linked_pull_request(key="1")

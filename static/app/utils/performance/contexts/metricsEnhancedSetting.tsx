@@ -55,7 +55,6 @@ export enum MEPState {
 }
 
 const METRIC_SETTING_PARAM = 'metricSetting';
-export const METRIC_SEARCH_SETTING_PARAM = 'metricSearchSetting'; // TODO: Clean this up since we don't need multiple params in practice.
 
 export function canUseMetricsData(organization: Organization) {
   const isRollingOut = organization.features.includes('dynamic-sampling'); // Exists on AM2 plans only.
@@ -73,11 +72,9 @@ export function canUseMetricsData(organization: Organization) {
 export function MEPSettingProvider({
   children,
   location,
-  _hasMEPState,
   forceTransactions,
 }: {
   children: ReactNode;
-  _hasMEPState?: MEPState;
   forceTransactions?: boolean;
   location?: Location;
 }) {
@@ -98,8 +95,6 @@ export function MEPSettingProvider({
 
   const metricSettingFromParam =
     allowedStates.find(s => s === _metricSettingFromParam) ?? defaultMetricsState;
-
-  const isControlledMEP = _hasMEPState !== undefined;
 
   const [_metricSettingState, _setMetricSettingState] = useReducer(
     (_: MEPState, next: MEPState) => next,
@@ -131,7 +126,7 @@ export function MEPSettingProvider({
     AutoSampleState.UNSET
   );
 
-  const metricSettingState = isControlledMEP ? _hasMEPState : _metricSettingState;
+  const metricSettingState = _metricSettingState;
 
   const shouldQueryProvideMEPAutoParams =
     canUseMEP && metricSettingState === MEPState.AUTO;

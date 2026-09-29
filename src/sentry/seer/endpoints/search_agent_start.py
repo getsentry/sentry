@@ -67,7 +67,6 @@ def send_search_agent_start_request(
     metric_context: dict[str, Any] | None = None,
     viewer_context: SeerViewerContext | None = None,
     cross_event: bool = False,
-    project_expansion: bool = False,
     reflection_step: bool = False,
     code_mode: bool = False,
 ) -> SeerRun:
@@ -86,7 +85,6 @@ def send_search_agent_start_request(
 
     options: dict[str, Any] = {
         "cross_event": cross_event,
-        "project_expansion": project_expansion,
         "reflection_step": reflection_step,
         "code_mode": code_mode,
     }
@@ -149,12 +147,6 @@ class SearchAgentStartEndpoint(OrganizationEndpoint):
         has_feature = features.has(
             "organizations:gen-ai-search-agent-translate", organization, actor=request.user
         )
-        if strategy == "Metrics":
-            has_feature = has_feature and features.has(
-                "organizations:gen-ai-explore-metrics-search",
-                organization,
-                actor=request.user,
-            )
         if strategy == "Issues":
             has_feature = has_feature and features.has(
                 "organizations:gen-ai-issues-search",
@@ -167,7 +159,7 @@ class SearchAgentStartEndpoint(OrganizationEndpoint):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        has_seer_access, detail = has_seer_access_with_detail(organization, actor=request.user)
+        has_seer_access, detail = has_seer_access_with_detail(organization)
         if not has_seer_access:
             return Response(
                 {"detail": detail},
@@ -201,11 +193,6 @@ class SearchAgentStartEndpoint(OrganizationEndpoint):
                 viewer_context=viewer_context,
                 cross_event=features.has(
                     "organizations:seer-assisted-query-cross-event-explorer",
-                    organization,
-                    actor=request.user,
-                ),
-                project_expansion=features.has(
-                    "organizations:seer-assisted-query-project-expansion",
                     organization,
                     actor=request.user,
                 ),

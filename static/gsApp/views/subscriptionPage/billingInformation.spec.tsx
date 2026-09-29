@@ -194,7 +194,7 @@ describe('Subscription > BillingInformation', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders without credit if account balance > 0', async () => {
+  it('renders balance due if account balance > 0', async () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-details/`,
       method: 'GET',
@@ -205,10 +205,10 @@ describe('Subscription > BillingInformation', () => {
 
     render(<BillingInformation subscription={sub} />, {organization});
 
-    expect(await screen.findByText('Account balance: $100')).toBeInTheDocument();
+    expect(await screen.findByText('Balance due: $100')).toBeInTheDocument();
   });
 
-  it('renders with credit if account balance < 0', async () => {
+  it('renders account credits if account balance < 0', async () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-details/`,
       method: 'GET',
@@ -219,7 +219,7 @@ describe('Subscription > BillingInformation', () => {
 
     render(<BillingInformation subscription={sub} />, {organization});
 
-    expect(await screen.findByText('Account balance: $100 credit')).toBeInTheDocument();
+    expect(await screen.findByText('Account credits: $100')).toBeInTheDocument();
   });
 
   it('hides account balance when it is 0', async () => {
@@ -229,7 +229,8 @@ describe('Subscription > BillingInformation', () => {
     render(<BillingInformation subscription={sub} />, {organization});
 
     await screen.findByText('Payment method');
-    expect(screen.queryByText(/account balance/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/account credits/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/balance due/i)).not.toBeInTheDocument();
   });
 
   it('can update credit card with setupintent', async () => {

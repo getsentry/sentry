@@ -9,7 +9,7 @@ export enum AuthV2CookieState {
   UNSET = 'unset',
 }
 
-export function getAuthV2CookieState() {
+function getAuthV2CookieState() {
   const value = Cookies.get(REACT_AUTH_COOKIE);
 
   if (value === '1') {
@@ -39,7 +39,6 @@ function getCookieDomain() {
 
 export function useEnableAuthV2() {
   const [authV2CookieState, setAuthV2CookieStateValue] = useState(getAuthV2CookieState);
-  const isAuthV2Enabled = authV2CookieState === AuthV2CookieState.ENABLED;
 
   const setAuthV2CookieState = useCallback((state: AuthV2CookieState) => {
     const domain = getCookieDomain();
@@ -66,5 +65,8 @@ export function useEnableAuthV2() {
     setAuthV2CookieStateValue(state);
   }, []);
 
-  return {authV2CookieState, isAuthV2Enabled, setAuthV2CookieState};
+  return {
+    authV2CookieState,
+    setAuthV2CookieState,
+  };
 }

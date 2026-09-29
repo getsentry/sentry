@@ -1,31 +1,38 @@
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
+import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useLocation} from 'sentry/utils/useLocation';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import type {SpanProperty} from 'sentry/views/insights/types';
 import {SpanFields} from 'sentry/views/insights/types';
 
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/components/pageFilters/usePageFilters');
+const initialRouterConfig = {
+  location: {
+    pathname: '/',
+    query: {statsPeriod: '10d'},
+  },
+};
 
 describe('useDiscover', () => {
   describe('useSpans', () => {
     const organization = OrganizationFixture();
 
-    jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
-
-    jest.mocked(useLocation).mockReturnValue(
-      LocationFixture({
-        query: {statsPeriod: '10d'},
-      })
-    );
+    beforeEach(() => {
+      PageFiltersStore.onInitializeUrlState(
+        PageFiltersFixture({
+          datetime: {
+            period: '10d',
+            start: null,
+            end: null,
+            utc: false,
+          },
+        })
+      );
+    });
 
     it('respects the `enabled` prop', () => {
       const eventsRequest = MockApiClient.addMockResponse({
@@ -41,6 +48,7 @@ describe('useDiscover', () => {
             fields: ['epm()'] as SpanProperty[],
             enabled: false,
           },
+          initialRouterConfig,
         }
       );
 
@@ -89,6 +97,7 @@ describe('useDiscover', () => {
             referrer: 'api-spec',
             cursor: undefined,
           },
+          initialRouterConfig,
         }
       );
 
@@ -127,29 +136,18 @@ describe('useDiscover', () => {
   describe('useSpanIndexed', () => {
     const organization = OrganizationFixture();
 
-    jest.mocked(usePageFilters).mockReturnValue(
-      PageFilterStateFixture({
-        selection: {
+    beforeEach(() => {
+      jest.clearAllMocks();
+      PageFiltersStore.onInitializeUrlState(
+        PageFiltersFixture({
           datetime: {
             period: '10d',
             start: null,
             end: null,
             utc: false,
           },
-          environments: [],
-          projects: [],
-        },
-      })
-    );
-
-    jest.mocked(useLocation).mockReturnValue(
-      LocationFixture({
-        query: {statsPeriod: '10d'},
-      })
-    );
-
-    beforeEach(() => {
-      jest.clearAllMocks();
+        })
+      );
     });
 
     it('respects the `enabled` prop', () => {
@@ -166,6 +164,7 @@ describe('useDiscover', () => {
             fields: [SpanFields.SPAN_DESCRIPTION] as SpanProperty[],
             enabled: false,
           },
+          initialRouterConfig,
         }
       );
 
@@ -225,6 +224,7 @@ describe('useDiscover', () => {
             referrer: 'api-spec',
             cursor: undefined,
           },
+          initialRouterConfig,
         }
       );
 

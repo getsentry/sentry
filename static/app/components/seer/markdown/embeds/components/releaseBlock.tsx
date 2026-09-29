@@ -1,0 +1,264 @@
+import {Fragment, useMemo} from 'react';
+import {useQuery} from '@tanstack/react-query';
+
+import {AvatarList, UserAvatar} from '@sentry/scraps/avatar';
+import {Tag} from '@sentry/scraps/badge';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
+import {CommitLink} from 'sentry/components/commitLink';
+import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import {DateTime} from 'sentry/components/dateTime';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {SeerEmbedBlock} from 'sentry/components/seer/markdown/embeds/components/seerEmbedBlock';
+import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
+import {TimeSince} from 'sentry/components/timeSince';
+import {IconReleases} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import type {Actor} from 'sentry/types/core';
+import type {ReleaseWithHealth} from 'sentry/types/release';
+import type {User} from 'sentry/types/user';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {deploysApiOptions} from 'sentry/utils/deploysApiOptions';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {formatVersion} from 'sentry/utils/versions/formatVersion';
+import {parseVersion} from 'sentry/utils/versions/parseVersion';
+
+import {getReleaseHref} from './releaseLink';
+
+type ReleaseData = EmbedOutput<'release'>;
+
+function releaseEmbedApiOptions({
+  organizationSlug,
+  version,
+}: {
+  organizationSlug: string;
+  version: string;
+}) {
+  return apiOptions.as<ReleaseWithHealth>()(
+    '/organizations/$organizationIdOrSlug/releases/$version/',
+    {
+      path: {organizationIdOrSlug: organizationSlug, version},
+      staleTime: 30_000,
+    }
+  );
+}
+
+function getCommitSummary(commitCount: number, authorCount: number) {
+  if (authorCount === 0) {
+    return commitCount === 1
+      ? t('1 commit')
+      : tct('[commitCount] commits', {commitCount});
+  }
+
+  if (commitCount === 1) {
+    return authorCount === 1
+      ? t('1 commit by 1 author')
+      : tct('1 commit by [authorCount] authors', {authorCount});
+  }
+
+  return authorCount === 1
+    ? tct('[commitCount] commits by 1 author', {commitCount})
+    : tct('[commitCount] commits by [authorCount] authors', {
+        authorCount,
+        commitCount,
+      });
+}
+
+/**
+ * Column counts that divide the stats evenly, so their row never ends on a
+ * dangling track: four stats step 1 -> 2 -> 4, three step 1 -> 3. Stats hold
+ * about as much text as each other, which is what makes equal tracks the right
+ * fit here — unlike the detail sections below.
+ */
+function getStatColumns(statCount: number) {
+  return statCount === 4
+    ? {
+        zero: 'minmax(0, 1fr)',
+        '3xs': 'repeat(2, minmax(0, 1fr))',
+        lg: 'repeat(4, minmax(0, 1fr))',
+      }
+    : {zero: 'minmax(0, 1fr)', sm: 'repeat(3, minmax(0, 1fr))'};
+}
+
+/**
+ * Last Commit and Deploys carry far more text than a stat, so they take a row of
+ * their own rather than an equal share of the stats' row. There are at most two
+ * of them, which is what makes `auto-fit` safe here: they either share a row or
+ * stack at full width, and can never strand an empty track. `min(..., 100%)`
+ * keeps the track from overflowing a container narrower than the minimum itself.
+ */
+const DETAIL_MIN_WIDTH = '280px';
+const DETAIL_COLUMNS = `repeat(auto-fit, minmax(min(${DETAIL_MIN_WIDTH}, 100%), 1fr))`;
+
+export function ReleaseBlock({version, projectId}: ReleaseData) {
+  const organization = useOrganization();
+  const releaseQuery = useQuery(
+    releaseEmbedApiOptions({organizationSlug: organization.slug, version})
+  );
+  const deploysQuery = useQuery(
+    deploysApiOptions({
+      orgSlug: organization.slug,
+      releaseVersion: version,
+      query: projectId === undefined ? undefined : {project: projectId},
+    })
+  );
+  const release = releaseQuery.data;
+  const authors = useMemo(
+    () =>
+      release?.authors.map<Actor | User>((author, index) => ({
+        ...author,
+        type: 'user',
+        id: 'id' in author ? author.id : `${author.email}-${index}`,
+      })) ?? [],
+    [release?.authors]
+  );
+  const recentDeploys = useMemo(
+    () =>
+      deploysQuery.data
+        ?.toSorted(
+          (a, b) =>
+            new Date(b.dateFinished).getTime() - new Date(a.dateFinished).getTime()
+        )
+        .slice(0, 3) ?? [],
+    [deploysQuery.data]
+  );
+  const packageName =
+    release?.versionInfo?.package ?? parseVersion(release?.version ?? version)?.package;
+  const newGroups =
+    release && projectId !== undefined
+      ? (release.projects.find(project => String(project.id) === String(projectId))
+          ?.newGroups ?? 0)
+      : (release?.newGroups ?? 0);
+  const lastCommitTitle = release?.lastCommit?.message?.split(/\r?\n/, 1)[0];
+  const statCount = 3 + Number((release?.commitCount ?? 0) > 0);
+
+  return (
+    <SeerEmbedBlock
+      badge={
+        <CopyToClipboardButton
+          aria-label={t('Copy release version to clipboard')}
+          size="zero"
+          text={version}
+          variant="transparent"
+        />
+      }
+      gap="lg"
+      href={getReleaseHref({version, projectId}, organization)}
+      icon={IconReleases}
+      linkLabel={t('View Release')}
+      testId="seer-release-embed"
+      title={t('Release: %s', formatVersion(version))}
+    >
+      {releaseQuery.isPending ? (
+        <Flex justify="center" padding="md">
+          <LoadingIndicator mini />
+        </Flex>
+      ) : releaseQuery.isError || !release ? (
+        <Text variant="muted">{t('Unable to load release details')}</Text>
+      ) : (
+        <Fragment>
+          <Grid columns={getStatColumns(statCount)} gap="xl">
+            <Stack gap="xs" minWidth="0">
+              <Text bold size="xs" uppercase variant="muted">
+                {t('New Issues')}
+              </Text>
+              <Text size="xl" tabular>
+                {newGroups}
+              </Text>
+            </Stack>
+
+            <Stack gap="xs" minWidth="0">
+              <Text bold size="xs" uppercase variant="muted">
+                {t('Date Created')}
+              </Text>
+              <Text>
+                <DateTime date={release.dateCreated} />
+              </Text>
+            </Stack>
+
+            <Stack gap="xs" minWidth="0">
+              <Text bold size="xs" uppercase variant="muted">
+                {t('Package')}
+              </Text>
+              <Text ellipsis>{packageName ?? '—'}</Text>
+            </Stack>
+
+            {release.commitCount > 0 ? (
+              <Stack gap="sm" minWidth="0">
+                <Text bold size="xs" uppercase variant="muted">
+                  {getCommitSummary(release.commitCount, release.authors.length)}
+                </Text>
+                <Flex>
+                  <AvatarList avatarSize={24} typeAvatars="authors" users={authors} />
+                </Flex>
+              </Stack>
+            ) : null}
+          </Grid>
+
+          <Grid columns={DETAIL_COLUMNS} gap="xl">
+            {release.lastCommit ? (
+              <Stack gap="xs" minWidth="0">
+                <Text bold size="xs" uppercase variant="muted">
+                  {t('Last Commit')}
+                </Text>
+                <Text ellipsis>
+                  <CommitLink
+                    commitId={release.lastCommit.id}
+                    commitTitle={lastCommitTitle}
+                    inline
+                    repository={release.lastCommit.repository}
+                    showIcon={false}
+                  />
+                </Text>
+                <Flex align="center" gap="xs" minWidth="0">
+                  {release.lastCommit.author ? (
+                    <Flex flexShrink="0">
+                      <UserAvatar size={16} user={release.lastCommit.author} />
+                    </Flex>
+                  ) : null}
+                  <Text bold ellipsis size="sm">
+                    {release.lastCommit.author?.name ?? t('Unknown author')}
+                  </Text>
+                  <Text size="sm" variant="muted" wrap="nowrap">
+                    <TimeSince date={release.lastCommit.dateCreated} />
+                  </Text>
+                </Flex>
+              </Stack>
+            ) : null}
+
+            <Stack gap="xs" minWidth="0">
+              <Text bold size="xs" uppercase variant="muted">
+                {t('Deploys')}
+              </Text>
+              {deploysQuery.isPending ? (
+                <Flex justify="start">
+                  <LoadingIndicator mini />
+                </Flex>
+              ) : deploysQuery.isError ? (
+                <Text size="sm" variant="muted">
+                  {t('Unable to load deploys')}
+                </Text>
+              ) : recentDeploys.length > 0 ? (
+                <Flex align="center" gap="md" wrap="wrap">
+                  {recentDeploys.map(deploy => (
+                    <Flex key={deploy.id} align="center" gap="xs" minWidth="0">
+                      <Tag variant="info">{deploy.environment}</Tag>
+                      <Text size="sm" variant="muted" wrap="nowrap">
+                        <TimeSince date={deploy.dateFinished} />
+                      </Text>
+                    </Flex>
+                  ))}
+                </Flex>
+              ) : (
+                <Text size="sm" variant="muted">
+                  {t('No deploys')}
+                </Text>
+              )}
+            </Stack>
+          </Grid>
+        </Fragment>
+      )}
+    </SeerEmbedBlock>
+  );
+}

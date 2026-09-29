@@ -58,6 +58,7 @@ function useStoryIndex(): Entry[] {
     const main = document.querySelector('main');
     if (main) {
       const initialEntries = getContentEntries(main);
+      // oxlint-disable-next-line react/set-state-in-effect
       setEntries(initialEntries);
     }
   }, []);
@@ -79,6 +80,7 @@ function useStoryIndex(): Entry[] {
     }
 
     return () => observer.disconnect();
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [hash]);
 
   return entries;

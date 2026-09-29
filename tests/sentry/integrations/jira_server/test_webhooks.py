@@ -6,11 +6,15 @@ from django.test import override_settings
 from requests.exceptions import ConnectionError
 
 from sentry.integrations.jira_server.integration import JiraServerIntegration
+from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.integration.serial import serialize_integration
+from sentry.integrations.utils.external_issue_key import PROVIDER_ISSUE_ID_KEY
+from sentry.models.group import Group
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode
+from sentry.users.models.useremail import UserEmail
 from sentry.viewer_context import ActorType, get_viewer_context
 
 from . import EXAMPLE_PAYLOAD, get_integration, link_group
@@ -67,6 +71,45 @@ class JiraServerWebhookEndpointTest(APITestCase):
         token = jwt.encode({"id": integration.external_id}, "bad-secret")
         self.get_error_response(token, status_code=400)
 
+    def test_post_issue_moved_rekeys_external_issue(self) -> None:
+        # Jira Server announces a project move the same way Jira Cloud does, so the
+        # linked `ExternalIssue` has to follow the new key here too.
+        link_group(self.organization, self.integration, self.group)
+
+        payload = {
+            "changelog": {
+                "items": [
+                    {
+                        "field": "project",
+                        "fieldtype": "jira",
+                        "from": "10000",
+                        "fromString": "APP",
+                        "to": "10001",
+                        "toString": "PLATFORM",
+                    },
+                    {
+                        "field": "Key",
+                        "fieldtype": "jira",
+                        "fromString": "APP-1",
+                        "toString": "PLATFORM-9",
+                    },
+                ],
+                "id": 12345,
+            },
+            "issue": {
+                "id": "10001",
+                "key": "PLATFORM-9",
+                "fields": {"updated": "2023-01-01T00:00:00.000+0000"},
+            },
+        }
+        self.get_success_response(self.jwt_token, **payload)
+
+        external_issue = ExternalIssue.objects.get(
+            organization_id=self.organization.id, integration_id=self.integration.id
+        )
+        assert external_issue.key == "PLATFORM-9"
+        assert external_issue.metadata[PROVIDER_ISSUE_ID_KEY] == "10001"
+
     @patch("sentry.integrations.jira_server.utils.api.sync_group_assignee_inbound")
     def test_post_update_assignee(self, mock_sync: MagicMock) -> None:
         project = self.create_project()
@@ -74,12 +117,101 @@ class JiraServerWebhookEndpointTest(APITestCase):
 
         payload = {
             "changelog": {"items": [{"field": "assignee"}], "id": 12345},
-            "issue": {"fields": {"assignee": {"emailAddress": "bob@example.org"}}, "key": "APP-1"},
+            "issue": {
+                "fields": {
+                    "assignee": {"emailAddress": "bob@example.org"},
+                    "updated": "2023-01-01T00:00:00.000+0000",
+                },
+                "key": "APP-1",
+            },
         }
         self.get_success_response(self.jwt_token, **payload)
         rpc_integration = serialize_integration(self.integration)
 
-        mock_sync.assert_called_with(rpc_integration, "bob@example.org", "APP-1", assign=True)
+        mock_sync.assert_called_with(
+            rpc_integration,
+            "bob@example.org",
+            "APP-1",
+            assign=True,
+            provider_event_updated_at="2023-01-01T00:00:00.000+0000",
+        )
+
+    def test_changelog_without_items(self) -> None:
+        # The endpoint admits any truthy `changelog`, so one carrying no `items` reaches
+        # both handlers and must not blow them up.
+        self.get_success_response(
+            self.jwt_token,
+            **{"changelog": {"id": 12345}, "issue": {"key": "APP-1", "fields": {}}},
+        )
+
+    def _linked_group_for_assignee_sync(self) -> Group:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            OrganizationIntegration.objects.get(
+                organization_id=self.organization.id, integration_id=self.integration.id
+            ).update(config={"sync_reverse_assignment": True})
+
+        group = self.create_group(project=self.project)
+        link_group(self.organization, self.integration, group)
+        return group
+
+    def _create_jira_member(self, email: str):
+        member = self.create_user(email=email)
+        self.create_member(organization=self.organization, user=member, teams=[self.team])
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            UserEmail.objects.filter(user=member).update(is_verified=True)
+        return member
+
+    def _assignee_payload(self, assignee: dict | None, updated: str) -> dict:
+        return {
+            "changelog": {"items": [{"field": "assignee"}], "id": 12345},
+            "issue": {
+                "fields": {"assignee": assignee, "updated": updated},
+                "key": EXAMPLE_PAYLOAD["issue"]["key"],
+            },
+        }
+
+    def test_assignment_delivered_out_of_order_keeps_newer_assignee(self) -> None:
+        # The reassignment to bob happened after the one to alice, so it wins even though
+        # it was delivered first.
+        group = self._linked_group_for_assignee_sync()
+        self._create_jira_member("alice@example.org")
+        bob = self._create_jira_member("bob@example.org")
+
+        with self.feature("organizations:integrations-issue-sync"):
+            self.get_success_response(
+                self.jwt_token,
+                **self._assignee_payload(
+                    {"emailAddress": "bob@example.org"}, "2023-01-01T00:00:03.000+0000"
+                ),
+            )
+            self.get_success_response(
+                self.jwt_token,
+                **self._assignee_payload(
+                    {"emailAddress": "alice@example.org"}, "2023-01-01T00:00:00.000+0000"
+                ),
+            )
+
+        assignee = group.get_assignee()
+        assert assignee is not None
+        assert assignee.id == bob.id
+
+    def test_unassignment_delivered_out_of_order_stays_unassigned(self) -> None:
+        # Jira Server deassigns via a null `assignee` snapshot, on the same code path.
+        group = self._linked_group_for_assignee_sync()
+        self._create_jira_member("alice@example.org")
+
+        with self.feature("organizations:integrations-issue-sync"):
+            self.get_success_response(
+                self.jwt_token, **self._assignee_payload(None, "2023-01-01T00:00:03.000+0000")
+            )
+            self.get_success_response(
+                self.jwt_token,
+                **self._assignee_payload(
+                    {"emailAddress": "alice@example.org"}, "2023-01-01T00:00:00.000+0000"
+                ),
+            )
+
+        assert group.get_assignee() is None
 
     @patch.object(JiraServerIntegration, "sync_status_inbound")
     def test_post_update_status(self, mock_sync: MagicMock) -> None:

@@ -131,6 +131,7 @@ export type EvidenceButtonProps =
   | EvidenceButtonPlainProps;
 
 interface GetEvidencePropsPayload {
+  isEmployee: boolean;
   organization: Organization;
   projects: Project[];
   toolCall: ToolCall;
@@ -413,7 +414,12 @@ function getReadFileEvidenceProps({
 
 function getBashEvidenceProps({
   toolCall,
+  isEmployee,
 }: GetEvidencePropsPayload): EvidenceButtonProps | null {
+  if (!isEmployee) {
+    return null;
+  }
+
   // The bash tool emits no navigable resource — its tool link only carries a
   // description — so evidence is the command itself, rendered as a plain chip
   // with the full command in the tooltip.
@@ -521,10 +527,12 @@ function extractFileName(filePath: string): string | undefined {
   return filePath.split('/').pop();
 }
 
-function truncateText(text: string, maxLength = 16): string {
+const TRUNCATE_TEXT_MAX_LENGTH = 16;
+
+function truncateText(text: string): string {
   const length = text.length;
-  if (length <= maxLength) {
+  if (length <= TRUNCATE_TEXT_MAX_LENGTH) {
     return text;
   }
-  return `${text.substring(0, maxLength / 2)}\u2026${text.substring(length - maxLength / 2, length)}`;
+  return `${text.substring(0, TRUNCATE_TEXT_MAX_LENGTH / 2)}\u2026${text.substring(length - TRUNCATE_TEXT_MAX_LENGTH / 2, length)}`;
 }

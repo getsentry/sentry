@@ -3,10 +3,13 @@ from typing import Any, Mapping
 import pytest
 from jsonschema import ValidationError
 
+from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.rules.filters.assigned_to import AssignedToFilter
 from sentry.workflow_engine.handlers.condition.assigned_to_handler import AssignedToConditionHandler
+from sentry.workflow_engine.models import DataConditionGroup
 from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.preview import ActionFilterPreviewPlan
 from sentry.workflow_engine.types import WorkflowEventData
 from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionTestCase
 
@@ -81,6 +84,26 @@ class TestAssignedToCondition(ConditionTestCase):
         self.dc.update(comparison={"target_type": "Member", "target_identifier": self.user.id})
         self.assert_passes(self.dc, self.event_data)
 
+    def test_preview_filters_groups_by_assignee(self) -> None:
+        other_group = self.create_group(project=self.project)
+        GroupAssignee.objects.create(
+            user_id=self.user.id,
+            group=self.group,
+            project=self.project,
+        )
+        plan = ActionFilterPreviewPlan(DataConditionGroup.Type.ALL)
+
+        AssignedToConditionHandler.preview_behavior.filter_preview(
+            plan, {"target_type": "Member", "target_identifier": self.user.id}
+        )
+
+        matching_group_ids = set(
+            Group.objects.filter(id__in=[self.group.id, other_group.id])
+            .filter(*plan.group_filters)
+            .values_list("id", flat=True)
+        )
+        assert matching_group_ids == {self.group.id}
+
     def test_assigned_to_member_fails(self) -> None:
         user = self.create_user()
         GroupAssignee.objects.create(user_id=user.id, group=self.group, project=self.project)
@@ -90,6 +113,18 @@ class TestAssignedToCondition(ConditionTestCase):
     def test_assigned_to_team_passes(self) -> None:
         GroupAssignee.objects.create(team=self.team, group=self.group, project=self.project)
         self.dc.update(comparison={"target_type": "Team", "target_identifier": self.team.id})
+        self.assert_passes(self.dc, self.event_data)
+
+    def test_assigned_to_team_passes_with_string_identifier(self) -> None:
+        # Already-stored string IDs (e.g. from Terraform / OpenAPI string unions)
+        # must still match integer assignee FKs at evaluate time.
+        GroupAssignee.objects.create(team=self.team, group=self.group, project=self.project)
+        self.dc.update(comparison={"target_type": "Team", "target_identifier": str(self.team.id)})
+        self.assert_passes(self.dc, self.event_data)
+
+    def test_assigned_to_member_passes_with_string_identifier(self) -> None:
+        GroupAssignee.objects.create(user_id=self.user.id, group=self.group, project=self.project)
+        self.dc.update(comparison={"target_type": "Member", "target_identifier": str(self.user.id)})
         self.assert_passes(self.dc, self.event_data)
 
     def test_assigned_to_team_fails(self) -> None:

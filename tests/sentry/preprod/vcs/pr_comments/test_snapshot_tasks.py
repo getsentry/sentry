@@ -6,7 +6,7 @@ from unittest.mock import Mock, patch
 import pytest
 
 from sentry.models.commitcomparison import CommitComparison
-from sentry.preprod.models import PreprodArtifact
+from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
 from sentry.preprod.vcs.pr_comments.snapshot_tasks import (
     create_preprod_snapshot_pr_comment_task,
@@ -15,13 +15,13 @@ from sentry.preprod.vcs.pr_comments.snapshot_tasks import (
 )
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import cell_silo_test
 
 _sentinel = object()
 
 
-@cell_silo_test
-class CreatePreprodSnapshotPrCommentTaskTest(TestCase):
+class SnapshotPrCommentTaskTestBase(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization(owner=self.user)
@@ -80,6 +80,9 @@ class CreatePreprodSnapshotPrCommentTaskTest(TestCase):
 
         return artifact, metrics
 
+
+@cell_silo_test
+class CreatePreprodSnapshotPrCommentTaskTest(SnapshotPrCommentTaskTestBase):
     @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.post_snapshot_pr_comment_task.delay")
     @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.evaluate_snapshot_changes_by_artifact_id")
     @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.get_commit_context_client")
@@ -309,7 +312,7 @@ class CreatePreprodSnapshotPrCommentTaskTest(TestCase):
 
 
 @cell_silo_test
-class CreateSnapshotPrCommentSoloTest(CreatePreprodSnapshotPrCommentTaskTest):
+class CreateSnapshotPrCommentSoloTest(SnapshotPrCommentTaskTestBase):
     def _create_previous_snapshot(self, app_id: str = "com.example.app") -> None:
         prev_cc = CommitComparison.objects.create(
             organization_id=self.organization.id,
@@ -329,6 +332,75 @@ class CreateSnapshotPrCommentSoloTest(CreatePreprodSnapshotPrCommentTaskTest):
             commit_comparison=prev_cc,
         )
         PreprodSnapshotMetrics.objects.create(preprod_artifact=prev_artifact, image_count=5)
+
+    def _approve(self, artifact: PreprodArtifact) -> None:
+        self.create_preprod_comparison_approval(
+            preprod_artifact=artifact,
+            preprod_feature_type=PreprodComparisonApproval.FeatureType.SNAPSHOTS,
+            approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
+        )
+
+    @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.post_snapshot_pr_comment_task.delay")
+    @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.get_commit_context_client")
+    @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.format_missing_base_snapshot_pr_comment")
+    def test_timeout_partially_approved_posts_missing_base_comment(
+        self, mock_format_missing, mock_get_client, mock_delay
+    ):
+        mock_get_client.return_value = Mock()
+        mock_format_missing.return_value = "missing body"
+
+        self._create_previous_snapshot()
+        artifact, _ = self._create_artifact_with_metrics()
+        self._create_artifact_with_metrics(
+            app_id="com.example.other", commit_comparison=artifact.commit_comparison
+        )
+        self._approve(artifact)
+
+        create_preprod_snapshot_pr_comment_task(artifact.id, is_timeout_check=True)
+
+        mock_format_missing.assert_called_once()
+        assert mock_delay.call_args.kwargs["comment_body"] == "missing body"
+
+    @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.post_snapshot_pr_comment_task.delay")
+    @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.get_commit_context_client")
+    @patch(
+        "sentry.preprod.vcs.pr_comments.snapshot_tasks.format_approved_without_base_snapshot_pr_comment"
+    )
+    def test_approved_without_base_posts_approved_comment(
+        self, mock_format_approved, mock_get_client, mock_delay
+    ):
+        mock_get_client.return_value = Mock()
+        mock_format_approved.return_value = "approved body"
+
+        self._create_previous_snapshot()
+        artifact, _ = self._create_artifact_with_metrics()
+        self._approve(artifact)
+
+        create_preprod_snapshot_pr_comment_task(artifact.id)
+
+        mock_format_approved.assert_called_once()
+        mock_delay.assert_called_once()
+        assert mock_delay.call_args.kwargs["comment_body"] == "approved body"
+
+    @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.post_snapshot_pr_comment_task.delay")
+    @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.get_commit_context_client")
+    @patch(
+        "sentry.preprod.vcs.pr_comments.snapshot_tasks.format_approved_without_base_snapshot_pr_comment"
+    )
+    def test_timeout_approved_without_base_posts_approved_comment(
+        self, mock_format_approved, mock_get_client, mock_delay
+    ):
+        mock_get_client.return_value = Mock()
+        mock_format_approved.return_value = "approved body"
+
+        self._create_previous_snapshot()
+        artifact, _ = self._create_artifact_with_metrics()
+        self._approve(artifact)
+
+        create_preprod_snapshot_pr_comment_task(artifact.id, is_timeout_check=True)
+
+        mock_format_approved.assert_called_once()
+        assert mock_delay.call_args.kwargs["comment_body"] == "approved body"
 
     @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.post_snapshot_pr_comment_task.delay")
     @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.get_commit_context_client")
@@ -418,7 +490,7 @@ class CreateSnapshotPrCommentSoloTest(CreatePreprodSnapshotPrCommentTaskTest):
     @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.get_commit_context_client")
     @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.format_snapshot_pr_comment")
     @patch("sentry.preprod.models.PreprodArtifact.get_base_artifacts_for_commit")
-    def test_timeout_with_base_arrived_runs_normal_path(
+    def test_timeout_with_base_arrived_skips_update(
         self, mock_get_base, mock_format_normal, mock_get_client, mock_evaluate_changes, mock_delay
     ):
         mock_get_client.return_value = Mock()
@@ -430,9 +502,9 @@ class CreateSnapshotPrCommentSoloTest(CreatePreprodSnapshotPrCommentTaskTest):
 
         create_preprod_snapshot_pr_comment_task(head_artifact.id, is_timeout_check=True)
 
-        mock_format_normal.assert_called_once()
-        mock_delay.assert_called_once()
-        assert mock_delay.call_args.kwargs["comment_body"] == "normal body"
+        mock_evaluate_changes.assert_not_called()
+        mock_format_normal.assert_not_called()
+        mock_delay.assert_not_called()
 
     @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.post_snapshot_pr_comment_task.delay")
     @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.evaluate_snapshot_changes_by_artifact_id")
@@ -469,6 +541,7 @@ class CreateSnapshotPrCommentSoloTest(CreatePreprodSnapshotPrCommentTaskTest):
 
 
 @cell_silo_test
+@with_feature("organizations:preprod-snapshot-pr-comment-head-check")
 class PostSnapshotPrCommentTaskTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -486,9 +559,16 @@ class PostSnapshotPrCommentTaskTest(TestCase):
             pr_number=42,
         )
 
-    @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.get_commit_context_client")
-    def test_creates_comment(self, mock_get_client):
+    def _create_mock_github_client(self, head_sha: str | None = None) -> Mock:
         mock_client = Mock()
+        mock_client.get_pull_request.return_value = {
+            "head": {"sha": self.commit_comparison.head_sha if head_sha is None else head_sha}
+        }
+        return mock_client
+
+    @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.get_github_client")
+    def test_creates_comment(self, mock_get_client):
+        mock_client = self._create_mock_github_client()
         mock_client.create_comment.return_value = {"id": 99999}
         mock_get_client.return_value = mock_client
 
@@ -512,14 +592,33 @@ class PostSnapshotPrCommentTaskTest(TestCase):
         assert snapshots["success"] is True
         assert snapshots["comment_id"] == "99999"
 
-    @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.get_commit_context_client")
+    @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.get_github_client")
+    def test_creates_comment_without_head_check_when_feature_disabled(self, mock_get_client):
+        mock_client = self._create_mock_github_client(head_sha="c" * 40)
+        mock_client.create_comment.return_value = {"id": 99999}
+        mock_get_client.return_value = mock_client
+
+        with self.feature({"organizations:preprod-snapshot-pr-comment-head-check": False}):
+            post_snapshot_pr_comment_task(
+                organization_id=self.organization.id,
+                repo_name="owner/repo",
+                provider="github",
+                pr_number=42,
+                commit_comparison_id=self.commit_comparison.id,
+                comment_body="body",
+            )
+
+        mock_client.get_pull_request.assert_not_called()
+        mock_client.create_comment.assert_called_once()
+
+    @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.get_github_client")
     def test_updates_existing_comment(self, mock_get_client):
         self.commit_comparison.extras = {
             "pr_comments": {"snapshots": {"success": True, "comment_id": "existing_123"}}
         }
         self.commit_comparison.save(update_fields=["extras"])
 
-        mock_client = Mock()
+        mock_client = self._create_mock_github_client()
         mock_get_client.return_value = mock_client
 
         post_snapshot_pr_comment_task(
@@ -544,9 +643,81 @@ class PostSnapshotPrCommentTaskTest(TestCase):
         assert snapshots["success"] is True
         assert snapshots["comment_id"] == "existing_123"
 
-    @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.get_commit_context_client")
+    @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.get_github_client")
+    def test_skips_comment_when_provider_head_differs(self, mock_get_client):
+        mock_client = self._create_mock_github_client(head_sha="c" * 40)
+        mock_get_client.return_value = mock_client
+
+        post_snapshot_pr_comment_task(
+            organization_id=self.organization.id,
+            repo_name="owner/repo",
+            provider="github",
+            pr_number=42,
+            commit_comparison_id=self.commit_comparison.id,
+            comment_body="stale body",
+        )
+
+        mock_client.create_comment.assert_not_called()
+        mock_client.update_comment.assert_not_called()
+        self.commit_comparison.refresh_from_db()
+        assert "pr_comments" not in self.commit_comparison.extras
+
+    @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.get_github_client")
+    def test_posts_comment_when_provider_head_check_fails(self, mock_get_client):
+        mock_client = self._create_mock_github_client()
+        mock_client.get_pull_request.side_effect = ApiError("server error", code=500)
+        mock_client.create_comment.return_value = {"id": 99999}
+        mock_get_client.return_value = mock_client
+
+        post_snapshot_pr_comment_task(
+            organization_id=self.organization.id,
+            repo_name="owner/repo",
+            provider="github",
+            pr_number=42,
+            commit_comparison_id=self.commit_comparison.id,
+            comment_body="body",
+        )
+
+        mock_client.create_comment.assert_called_once()
+
+    @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.get_github_client")
+    def test_posts_comment_when_provider_response_has_null_head(self, mock_get_client):
+        mock_client = self._create_mock_github_client()
+        mock_client.get_pull_request.return_value = {"head": None}
+        mock_client.create_comment.return_value = {"id": 99999}
+        mock_get_client.return_value = mock_client
+
+        post_snapshot_pr_comment_task(
+            organization_id=self.organization.id,
+            repo_name="owner/repo",
+            provider="github",
+            pr_number=42,
+            commit_comparison_id=self.commit_comparison.id,
+            comment_body="body",
+        )
+
+        mock_client.create_comment.assert_called_once()
+
+    @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.get_github_client")
+    def test_posts_comment_when_provider_response_has_empty_head_sha(self, mock_get_client):
+        mock_client = self._create_mock_github_client(head_sha="")
+        mock_client.create_comment.return_value = {"id": 99999}
+        mock_get_client.return_value = mock_client
+
+        post_snapshot_pr_comment_task(
+            organization_id=self.organization.id,
+            repo_name="owner/repo",
+            provider="github",
+            pr_number=42,
+            commit_comparison_id=self.commit_comparison.id,
+            comment_body="body",
+        )
+
+        mock_client.create_comment.assert_called_once()
+
+    @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.get_github_client")
     def test_handles_api_error(self, mock_get_client):
-        mock_client = Mock()
+        mock_client = self._create_mock_github_client()
         mock_client.create_comment.side_effect = ApiError("rate limited", code=429)
         mock_get_client.return_value = mock_client
 
@@ -565,14 +736,14 @@ class PostSnapshotPrCommentTaskTest(TestCase):
         assert snapshots["success"] is False
         assert snapshots["error_type"] == "api_error"
 
-    @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.get_commit_context_client")
+    @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.get_github_client")
     def test_preserves_comment_id_on_update_failure(self, mock_get_client):
         self.commit_comparison.extras = {
             "pr_comments": {"snapshots": {"success": True, "comment_id": "orig_789"}}
         }
         self.commit_comparison.save(update_fields=["extras"])
 
-        mock_client = Mock()
+        mock_client = self._create_mock_github_client()
         mock_client.update_comment.side_effect = ApiError("server error", code=500)
         mock_get_client.return_value = mock_client
 
@@ -591,9 +762,9 @@ class PostSnapshotPrCommentTaskTest(TestCase):
         assert snapshots["success"] is False
         assert snapshots["comment_id"] == "orig_789"
 
-    @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.get_commit_context_client")
+    @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.get_github_client")
     def test_no_comment_id_on_create_failure(self, mock_get_client):
-        mock_client = Mock()
+        mock_client = self._create_mock_github_client()
         mock_client.create_comment.side_effect = ApiError("server error", code=500)
         mock_get_client.return_value = mock_client
 
@@ -612,9 +783,9 @@ class PostSnapshotPrCommentTaskTest(TestCase):
         assert snapshots["success"] is False
         assert "comment_id" not in snapshots
 
-    @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.get_commit_context_client")
+    @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.get_github_client")
     def test_permanent_4xx_does_not_reraise(self, mock_get_client):
-        mock_client = Mock()
+        mock_client = self._create_mock_github_client()
         mock_client.create_comment.side_effect = ApiError("forbidden", code=403)
         mock_get_client.return_value = mock_client
 
@@ -631,7 +802,7 @@ class PostSnapshotPrCommentTaskTest(TestCase):
         snapshots = self.commit_comparison.extras["pr_comments"]["snapshots"]
         assert snapshots["success"] is False
 
-    @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.get_commit_context_client")
+    @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.get_github_client")
     def test_skips_when_no_client(self, mock_get_client):
         mock_get_client.return_value = None
 
@@ -654,9 +825,9 @@ class PostSnapshotPrCommentTaskTest(TestCase):
             comment_body="body",
         )
 
-    @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.get_commit_context_client")
+    @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.get_github_client")
     def test_skips_when_commit_comparison_missing_from_locked_rows(self, mock_get_client):
-        mock_client = Mock()
+        mock_client = self._create_mock_github_client()
         mock_get_client.return_value = mock_client
 
         post_snapshot_pr_comment_task(
@@ -671,8 +842,8 @@ class PostSnapshotPrCommentTaskTest(TestCase):
         mock_client.create_comment.assert_not_called()
         mock_client.update_comment.assert_not_called()
 
-    @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.get_commit_context_client")
-    def test_updates_when_sibling_commit_holds_comment_id(self, mock_get_client):
+    @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.get_github_client")
+    def test_updates_current_head_when_newer_comparison_holds_comment_id(self, mock_get_client):
         CommitComparison.objects.create(
             organization_id=self.organization.id,
             head_sha="c" * 40,
@@ -686,7 +857,7 @@ class PostSnapshotPrCommentTaskTest(TestCase):
             extras={"pr_comments": {"snapshots": {"success": True, "comment_id": "sibling_55"}}},
         )
 
-        mock_client = Mock()
+        mock_client = self._create_mock_github_client()
         mock_get_client.return_value = mock_client
 
         post_snapshot_pr_comment_task(
@@ -706,7 +877,7 @@ class PostSnapshotPrCommentTaskTest(TestCase):
         )
         mock_client.create_comment.assert_not_called()
 
-    @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.get_commit_context_client")
+    @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.get_github_client")
     def test_concurrent_posts_do_not_duplicate_comment(self, mock_get_client):
         cc_b = CommitComparison.objects.create(
             organization_id=self.organization.id,
@@ -720,7 +891,11 @@ class PostSnapshotPrCommentTaskTest(TestCase):
             pr_number=42,
         )
 
-        mock_client = Mock()
+        mock_client = self._create_mock_github_client()
+        mock_client.get_pull_request.side_effect = [
+            {"head": {"sha": self.commit_comparison.head_sha}},
+            {"head": {"sha": cc_b.head_sha}},
+        ]
         mock_client.create_comment.return_value = {"id": 99999}
         mock_get_client.return_value = mock_client
 

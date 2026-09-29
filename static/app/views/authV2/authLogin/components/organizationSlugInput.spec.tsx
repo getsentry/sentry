@@ -34,6 +34,10 @@ describe('OrganizationSlugInput', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Locate'}));
 
     await waitFor(() => expect(onSelect).toHaveBeenCalledWith('acme'));
+    expect(screen.getByRole('button', {name: 'Locate'})).toHaveAttribute(
+      'aria-busy',
+      'true'
+    );
   });
 
   it('latches an invalid organization until the slug changes', async () => {

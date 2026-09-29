@@ -396,36 +396,6 @@ describe('usePipeline', () => {
     expect(onComplete).toHaveBeenCalledWith({result: 'Pipeline finished successfully'});
   });
 
-  it('does not initialize when enabled is false', async () => {
-    const initRequest = MockApiClient.addMockResponse({
-      url: API_URL,
-      method: 'POST',
-      body: {
-        step: 'step_one',
-        stepIndex: 0,
-        totalSteps: 2,
-        provider: 'dummy',
-        data: {message: 'Hello!'},
-      },
-    });
-
-    function DisabledHarness() {
-      const pipeline = usePipeline('integration', 'dummy', {enabled: false});
-      return (
-        <div>
-          <div data-test-id="is-initializing">{String(pipeline.isInitializing)}</div>
-          <div data-test-id="step">{pipeline.stepDefinition?.stepId ?? 'none'}</div>
-        </div>
-      );
-    }
-
-    render(<DisabledHarness />, {organization});
-
-    // Give it a tick to potentially fire
-    expect(await screen.findByText('none')).toBeInTheDocument();
-    expect(initRequest).not.toHaveBeenCalled();
-  });
-
   it('includes initialData in the initialize request', async () => {
     const initRequest = MockApiClient.addMockResponse({
       url: API_URL,

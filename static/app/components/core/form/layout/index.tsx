@@ -3,7 +3,14 @@ import styled from '@emotion/styled';
 
 import {FieldMeta} from '@sentry/scraps/form/field/meta';
 import {useFieldContext} from '@sentry/scraps/form/formContext';
-import {Container, Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
+import {
+  Container,
+  Flex,
+  Stack,
+  useHasContainerQuery,
+  useResponsivePropValue,
+  type FlexProps,
+} from '@sentry/scraps/layout';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -18,6 +25,13 @@ interface RowLayoutProps extends LayoutProps {
 }
 
 function RowLayout(props: RowLayoutProps) {
+  const isStackAtBreakpoint = useResponsivePropValue({zero: true, md: false});
+  const isStackLayout = useHasContainerQuery() && isStackAtBreakpoint;
+
+  return isStackLayout ? <StackLayout {...props} /> : <RowLayoutContent {...props} />;
+}
+
+function RowLayoutContent(props: RowLayoutProps) {
   const isCompact = props.variant === 'compact';
   const field = useFieldContext();
 

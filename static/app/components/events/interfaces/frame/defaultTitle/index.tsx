@@ -223,7 +223,6 @@ export function DefaultTitle({
     title.push(
       <StyledQuestionTooltip
         key="info-tooltip"
-        isHoverable
         size="xs"
         delay={tooltipDelay}
         overlayStyle={{maxWidth: 400, wordBreak: 'break-all'}}

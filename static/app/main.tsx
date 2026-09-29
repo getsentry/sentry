@@ -1,6 +1,7 @@
 import {lazy, Suspense, useEffect, useState} from 'react';
 import {createBrowserRouter, RouterProvider} from 'react-router-dom';
 import {wrapCreateBrowserRouterV6} from '@sentry/react';
+import {MotionConfig} from 'framer-motion';
 import {NuqsAdapter} from 'nuqs/adapters/react-router/v6';
 
 import {setApiNavigate} from 'sentry/api';
@@ -46,27 +47,29 @@ export function Main() {
   }, [router.routes]);
 
   return (
-    <AppQueryClientProvider>
-      <DocumentTitleManager>
-        <FrontendVersionProvider releaseVersion={SENTRY_RELEASE_VERSION ?? null}>
-          <ServiceWorkerProvider>
-            <ThemeAndStyleProvider>
-              <NuqsAdapter defaultOptions={{shallow: false}}>
-                <CommandPaletteProvider>
-                  <RouteConfigProvider value={router.routes}>
-                    <RouterProvider router={router} />
-                  </RouteConfigProvider>
-                </CommandPaletteProvider>
-              </NuqsAdapter>
-              {SentryTanStackDevtools ? (
-                <Suspense fallback={null}>
-                  <SentryTanStackDevtools />
-                </Suspense>
-              ) : null}
-            </ThemeAndStyleProvider>
-          </ServiceWorkerProvider>
-        </FrontendVersionProvider>
-      </DocumentTitleManager>
-    </AppQueryClientProvider>
+    <MotionConfig reducedMotion="user">
+      <AppQueryClientProvider>
+        <DocumentTitleManager>
+          <FrontendVersionProvider releaseVersion={SENTRY_RELEASE_VERSION ?? null}>
+            <ServiceWorkerProvider>
+              <ThemeAndStyleProvider>
+                <NuqsAdapter defaultOptions={{shallow: false}}>
+                  <CommandPaletteProvider>
+                    <RouteConfigProvider value={router.routes}>
+                      <RouterProvider router={router} />
+                    </RouteConfigProvider>
+                  </CommandPaletteProvider>
+                </NuqsAdapter>
+                {SentryTanStackDevtools ? (
+                  <Suspense fallback={null}>
+                    <SentryTanStackDevtools />
+                  </Suspense>
+                ) : null}
+              </ThemeAndStyleProvider>
+            </ServiceWorkerProvider>
+          </FrontendVersionProvider>
+        </DocumentTitleManager>
+      </AppQueryClientProvider>
+    </MotionConfig>
   );
 }

@@ -51,7 +51,9 @@ export function IssuePreviewAutofixPlanSection({
             prompt={t('How can this plan be improved?')}
           />
           {section.status === 'processing' ? (
-            <WorkingIndicator>{t('Generating implementation plan...')}</WorkingIndicator>
+            <WorkingIndicator blocks={section.blocks}>
+              {t('Generating implementation plan...')}
+            </WorkingIndicator>
           ) : plan ? (
             <Markdown raw={plan.one_line_summary} />
           ) : (

@@ -727,7 +727,7 @@ class SlackAgentEntrypointTest(TestCase):
 
         SlackAgentEntrypoint.on_agent_update(
             cache_payload=cache_payload,
-            summary="Seer needs write access to continue.",
+            summary=None,
             run_id=12345,
             pending_user_input=PendingUserInput(
                 id="approval-1",
@@ -744,7 +744,10 @@ class SlackAgentEntrypointTest(TestCase):
         assert mock_send_write_approval.call_args.kwargs["slack_user_id"] == self.slack_user_id
         response_data = mock_schedule_all_thread_updates.call_args.kwargs["data"]
         assert isinstance(response_data, SeerAgentResponse)
-        assert response_data.summary == "Seer needs write access to continue."
+        assert response_data.summary == (
+            f"<@{self.slack_user_id}> I need your approval to make changes in Sentry. "
+            "I sent you a message."
+        )
 
     @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_ephemeral_message")
     @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_message")

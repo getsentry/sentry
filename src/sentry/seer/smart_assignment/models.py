@@ -89,9 +89,12 @@ class SmartAssignmentScore(models.TextChoices):
 class SmartAssignmentPayload(BaseModel):
     group_id: int
     project_slug: str | None = None
+    connected_repos: list[str] = Field(default_factory=list)
+    is_prefetch_enabled: bool = False
 
 
 class RankedCandidate(BaseModel):
+    name: str | None = None
     identifier: str
     identifier_kind: Literal["email", "username"]
     reason: str = ""

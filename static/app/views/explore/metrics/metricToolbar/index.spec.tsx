@@ -417,6 +417,7 @@ describe('MetricToolbar', () => {
 
     function Component() {
       const [queryParams, setQueryParams] = useState(initialQueryParams);
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       currentGroupBys = queryParams.groupBys;
 
       return (

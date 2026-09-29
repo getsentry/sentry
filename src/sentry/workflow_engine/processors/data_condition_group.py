@@ -1,4 +1,5 @@
 import logging
+from datetime import timedelta
 from typing import TypeVar
 
 from sentry.utils.function_cache import cache_func_for_models
@@ -29,6 +30,7 @@ def _group_id_from_condition(condition: DataCondition) -> tuple[int]:
 
 @cache_func_for_models(
     [(DataCondition, _group_id_from_condition)],
+    cache_ttl=timedelta(hours=4),
     recalculate=False,
 )
 def get_data_conditions_for_group(data_condition_group_id: int) -> list[DataCondition]:

@@ -26,6 +26,7 @@ export function EditAdminOptionModal({
       : [option];
     options.sort((a, b) => (a.groupingInfo?.order || 0) - (b.groupingInfo?.order || 0));
     return options;
+    // oxlint-disable-next-line react/memo-dependencies
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (

@@ -25,15 +25,6 @@ describe('useDispatchingReducer', () => {
 
     expect(result.current[0]).toBe(initialState);
   });
-  it('initializes state with fn initializer arg', () => {
-    const reducer = jest.fn().mockImplementation(s => s);
-    const initialState = {type: 'initial'};
-    const {result} = renderHook(() =>
-      useDispatchingReducer(reducer, undefined, () => initialState)
-    );
-
-    expect(result.current[0]).toBe(initialState);
-  });
   describe('action dispatching', () => {
     const reducer = jest.fn().mockImplementation((_s, action: string) => {
       switch (action) {

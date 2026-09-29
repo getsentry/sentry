@@ -122,7 +122,6 @@ export function DebugFileRow({
                 settingsLink: <Link to={`/settings/${orgSlug}/#debugFilesRole`} />,
               }
             )}
-            isHoverable
           >
             <LinkButton
               size="xs"

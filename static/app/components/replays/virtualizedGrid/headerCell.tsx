@@ -48,7 +48,7 @@ export function HeaderCell<T extends BaseRecord>({
     >
       {label}
       {tooltipTitle ? (
-        <Tooltip isHoverable title={<CatchClicks>{tooltipTitle}</CatchClicks>}>
+        <Tooltip title={<CatchClicks>{tooltipTitle}</CatchClicks>}>
           <StyledIconInfo size="xs" />
         </Tooltip>
       ) : null}

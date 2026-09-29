@@ -4,11 +4,11 @@ import {Button} from '@sentry/scraps/button';
 import {Link} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
 
+import {ResultGrid} from 'sentry/components/resultGrid';
 import {ConfigStore} from 'sentry/stores/configStore';
 
 import {CreateBroadcastModal} from 'admin/components/createBroadcastModal';
 import {PageHeader} from 'admin/components/pageHeader';
-import {ResultGrid} from 'admin/components/resultGrid';
 import {getBroadcastSchema} from 'admin/schemas/broadcasts';
 
 const getRow = (row: any) => [
@@ -69,7 +69,6 @@ export function Broadcasts() {
         inPanel
         path="/_admin/broadcasts/"
         endpoint="/broadcasts/?show=all"
-        method="GET"
         columns={[
           <th key="title">Title</th>,
           <th key="users" style={{width: 120, textAlign: 'center'}}>

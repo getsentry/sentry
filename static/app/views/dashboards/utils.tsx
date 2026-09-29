@@ -34,6 +34,7 @@ import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import {decodeList} from 'sentry/utils/queryString';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
+import {DEFAULT_STATS_PERIOD} from 'sentry/views/dashboards/data';
 import type {
   DashboardDetails,
   DashboardFilters,
@@ -190,10 +191,9 @@ export function getWidgetDiscoverUrl(
   widget: Widget,
   dashboardFilters: DashboardFilters | undefined,
   selection: PageFilters,
-  organization: Organization,
-  index = 0
+  organization: Organization
 ) {
-  const eventView = eventViewFromWidget(widget.title, widget.queries[index]!, selection);
+  const eventView = eventViewFromWidget(widget.title, widget.queries[0]!, selection);
   const discoverLocation = eventView.getResultsViewUrlTarget(
     organization,
     false,
@@ -416,12 +416,14 @@ export function hasUnsavedFilterChanges(
 }
 
 export function getSavedFiltersAsPageFilters(dashboard: DashboardDetails): PageFilters {
+  const hasSavedDatetime = Boolean(dashboard.period || dashboard.start || dashboard.end);
+
   return {
     datetime: {
       end: dashboard.end || null,
-      period: dashboard.period || null,
+      period: dashboard.period || (hasSavedDatetime ? null : DEFAULT_STATS_PERIOD),
       start: dashboard.start || null,
-      utc: null,
+      utc: dashboard.utc ?? false,
     },
     environments: dashboard.environment || [],
     projects: dashboard.projects || [],

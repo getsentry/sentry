@@ -171,6 +171,8 @@ def _uuid_or_empty(value: Any) -> str:
 
 
 def _anyvalue(value: Any) -> AnyValue:
+    if value is None:
+        return AnyValue()
     if isinstance(value, str):
         return AnyValue(string_value=value)
     elif isinstance(value, bool):

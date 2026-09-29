@@ -108,7 +108,7 @@ class RepoPRState(BaseModel):
     branch_name: str | None = None
     pr_number: int | None = None
     pr_url: str | None = None
-    pr_id: int | None = None
+    pr_id: str | None = None
     commit_sha: str | None = None
     pr_creation_status: Literal["creating", "completed", "error"] | None = None
     pr_creation_error: str | None = None
@@ -263,13 +263,17 @@ class SeerRunState(BaseModel):
     run_id: int
     blocks: list[MemoryBlock]
     status: Literal["processing", "completed", "error", "awaiting_user_input"]
-    updated_at: str
+    # Set only for the failures Seer can classify (currently "timeout" and
+    # "stalled"); every other failure leaves it None, so `status` is the signal
+    # for whether a run failed and this is only ever extra detail. Kept as a
+    # plain str so a new Seer reason does not fail validation mid-deploy.
     failure_reason: str | None = None
+    updated_at: str
     owner_user_id: int | None = None
     pending_user_input: PendingUserInput | None = None
     repo_pr_states: dict[str, RepoPRState] = Field(default_factory=dict)
     # exclude=True omits these from .dict() so they're not exposed via the public
-    # chat API. Internal callers (autofix, night shift) still access them directly.
+    # chat API. Internal callers (autofix, agentic triage) still access them directly.
     metadata: dict[str, Any] | None = Field(default=None, exclude=True)
     coding_agents: dict[str, CodingAgentState] = Field(default_factory=dict, exclude=True)
     usage: UsageAccumulator = Field(default_factory=UsageAccumulator, exclude=True)

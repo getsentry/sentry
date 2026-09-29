@@ -219,8 +219,7 @@ class TestSpansTask(TestCase):
         self.project.update_option("sentry:enable_auto_release_creation", False)
         spans = self.generate_basic_spans()
 
-        with self.feature("organizations:auto-release-creation"):
-            assert process_segment(spans)
+        assert process_segment(spans)
 
         Environment.objects.get(organization_id=self.organization.id, name="development")
         assert not Release.objects.filter(organization_id=self.organization.id).exists()
@@ -235,26 +234,17 @@ class TestSpansTask(TestCase):
         )
         spans = self.generate_basic_spans()
 
-        with self.feature("organizations:auto-release-creation"):
-            assert process_segment(spans)
+        assert process_segment(spans)
 
         assert ReleaseProject.objects.filter(release=release, project=self.project).exists()
         assert ReleaseProjectEnvironment.objects.filter(
             release_id=release.id, project_id=self.project.id
         ).exists()
 
-    def test_create_models_auto_creation_disabled_without_feature_flag(self) -> None:
-        self.project.update_option("sentry:enable_auto_release_creation", False)
-        spans = self.generate_basic_spans()
-        assert process_segment(spans)
-
-        assert Release.objects.filter(organization_id=self.organization.id).exists()
-
     def test_bump_release_last_seen_auto_creation_disabled(self) -> None:
         self.project.update_option("sentry:enable_auto_release_creation", False)
 
-        with self.feature("organizations:auto-release-creation"):
-            _bump_release_last_seen(self.project, "development", "1.0", timezone.now())
+        _bump_release_last_seen(self.project, "development", "1.0", timezone.now())
 
         assert not Release.objects.filter(organization_id=self.organization.id).exists()
 
@@ -605,6 +595,8 @@ def test_evidence_span_truncates_descriptions_and_data_separately() -> None:
                 "code.filepath": "F" * (MAX_SPAN_DATA_VALUE_LENGTH * 2),
                 "code.lineno": 42,  # non-strings pass through untouched
                 "db.system": "postgresql",  # not in the allowlist
+                "sentry.group": "0123456789abcdef",
+                "sentry.category": "db",
                 # The span schema allows any attribute to be an array or an object, so an
                 # allowlisted key is not guaranteed to hold a scalar.
                 "url": ["U" * (MAX_SPAN_DATA_VALUE_LENGTH * 2)] * (MAX_EVIDENCE_LIST_ITEMS * 2),
@@ -619,6 +611,9 @@ def test_evidence_span_truncates_descriptions_and_data_separately() -> None:
     assert "db.system" not in span["data"]
     assert len(span["data"]["url"]) == MAX_EVIDENCE_LIST_ITEMS
     assert {len(v) for v in span["data"]["url"]} == {MAX_SPAN_DATA_VALUE_LENGTH}
+    assert span["data"]["sentry.group"] == "0123456789abcdef"
+    assert span["data"]["sentry.category"] == "db"
+    assert span["data"]["hash"] == "abcdef0123456789"
     assert span["trace_id"] == "t" * 32
     # Raw `attributes` forms the bulk of a span's size and must not reach the occurrence
     assert "attributes" not in span

@@ -15,6 +15,7 @@ import {Client} from 'sentry/api';
 import {UserBadge} from 'sentry/components/idBadge/userBadge';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {ResultGrid} from 'sentry/components/resultGrid';
 import {Truncate} from 'sentry/components/truncate';
 import type {Organization} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -36,7 +37,6 @@ import {RelocationCancelModal} from 'admin/components/relocationCancelModal';
 import {RelocationPauseModal} from 'admin/components/relocationPauseModal';
 import {RelocationRetryModal} from 'admin/components/relocationRetryModal';
 import {RelocationUnpauseModal} from 'admin/components/relocationUnpauseModal';
-import {ResultGrid} from 'admin/components/resultGrid';
 import type {Relocation} from 'admin/types';
 import {RelocationSteps} from 'admin/types';
 import {titleCase} from 'getsentry/utils/titleCase';
@@ -491,7 +491,6 @@ export function RelocationDetails() {
           path={`/_admin/relocations/${relocationData.uuid}/`}
           api={regionApi}
           endpoint={`/relocations/${relocationData.uuid}/artifacts/`}
-          method="GET"
           columns={[
             <th key="file" style={{width: 240}}>
               File
@@ -555,7 +554,6 @@ export function RelocationDetails() {
         path={`/_admin/relocations/${relocationData.uuid}/`}
         api={regionApi}
         endpoint={`/_admin/cells/${regionName}/customers/`}
-        method="GET"
         columns={[
           <th key="customer">Customer</th>,
           <th key="joined" style={{width: 150, textAlign: 'right'}}>
@@ -576,7 +574,6 @@ export function RelocationDetails() {
         panelTitle="Relocated Users"
         path={`/_admin/relocations/${relocationData.uuid}/`}
         endpoint="/users/"
-        method="GET"
         columns={[
           <th key="user">User</th>,
           <th key="email" style={{width: 100, textAlign: 'center'}}>

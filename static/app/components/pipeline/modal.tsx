@@ -27,7 +27,7 @@ interface PipelineModalProps<
   provider: P;
   type: T;
   /** Overrides the step's default descriptive copy. */
-  description?: string;
+  description?: React.ReactNode;
   initialData?: Record<string, string>;
   onComplete?: (data: CompletionDataFor<T, P>) => void;
   onError?: (error: string) => void;
@@ -142,6 +142,7 @@ function PipelineModal<
           {pipeline.error && (
             <Alert
               variant="danger"
+              role="alert"
               trailingItems={
                 <Alert.Button onClick={pipeline.restart}>{t('Start over')}</Alert.Button>
               }
@@ -162,7 +163,7 @@ interface OpenPipelineModalOptions<
 > {
   provider: P;
   type: T;
-  description?: string;
+  description?: React.ReactNode;
   initialData?: Record<string, string>;
   onClose?: () => void;
   onComplete?: (data: CompletionDataFor<T, P>) => void;
@@ -196,6 +197,7 @@ export function openPipelineModal<
         description={description}
       />
     ),
-    {onClose, closeEvents: 'none'}
+    // Not 'all': a backdrop click must not lose a half-finished install flow.
+    {onClose, closeEvents: 'escape-key'}
   );
 }

@@ -3,11 +3,14 @@ from typing import Any, cast
 from rest_framework.request import Request
 
 from sentry.issues.formatting.mixin import (
+    _SECTIONS_BY_CONSUMER,
     FORMATTER_FEATURE,
     FORMATTER_FEATURE_API,
+    consumer_for,
     format_event_response,
     formatter_feature_for,
 )
+from sentry.issues.formatting.sections import breadcrumbs_section
 
 
 def _event_with_request_body(body_chars: int) -> dict[str, Any]:
@@ -47,3 +50,58 @@ class _FakeRequest:
 def test_ui_and_api_callers_check_different_features() -> None:
     assert formatter_feature_for(cast(Request, _FakeRequest(None))) == FORMATTER_FEATURE
     assert formatter_feature_for(cast(Request, _FakeRequest(object()))) == FORMATTER_FEATURE_API
+
+
+def _event_with_breadcrumbs() -> dict[str, Any]:
+    return {
+        "title": "t",
+        "entries": [
+            {
+                "type": "breadcrumbs",
+                "data": {
+                    "values": [
+                        {"category": "http", "level": "info", "message": "GET /devices"},
+                        {"category": "auth", "level": "warning", "message": "token refresh"},
+                    ]
+                },
+            }
+        ],
+    }
+
+
+def test_ui_gets_breadcrumbs_inlined() -> None:
+    out = format_event_response(_event_with_breadcrumbs(), "markdown", "ui")
+    assert "Breadcrumbs" in out
+    assert "GET /devices" in out
+
+
+def test_api_clients_do_not_get_breadcrumbs_inlined() -> None:
+    # the MCP keeps breadcrumbs out of issue details on purpose and serves them from its own
+    # get_issue_breadcrumbs tool; inlining them here would duplicate that tool and spend up to
+    # 5k chars on every call. Everything else still renders.
+    out = format_event_response(_event_with_breadcrumbs(), "markdown", "api")
+    assert "Breadcrumbs" not in out
+    assert "GET /devices" not in out
+    assert "## Title" in out
+
+
+def test_ui_is_the_default_consumer() -> None:
+    # the adapter is called with a consumer by the mixin; the default keeps direct callers and
+    # existing tests on the UI behaviour rather than silently dropping a section
+    assert format_event_response(_event_with_breadcrumbs(), "markdown") == format_event_response(
+        _event_with_breadcrumbs(), "markdown", "ui"
+    )
+
+
+def test_only_breadcrumbs_differ_between_consumers() -> None:
+    # if the two lists ever diverge further, that should be a deliberate edit to
+    # _SECTIONS_EXCLUDED_FOR_API rather than a surprise
+    assert set(_SECTIONS_BY_CONSUMER["ui"]) - set(_SECTIONS_BY_CONSUMER["api"]) == {
+        breadcrumbs_section
+    }
+
+
+def test_consumer_for_keys_off_auth() -> None:
+    # an unrecognised caller must land on "api", the narrower rollout
+    assert consumer_for(cast(Request, _FakeRequest(None))) == "ui"
+    assert consumer_for(cast(Request, _FakeRequest(object()))) == "api"

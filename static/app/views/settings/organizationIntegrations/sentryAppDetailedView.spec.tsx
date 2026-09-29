@@ -11,11 +11,6 @@ import {
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import SentryAppDetailedView from 'sentry/views/settings/organizationIntegrations/sentryAppDetailedView';
 
-const mockNavigate = jest.fn();
-jest.mock('sentry/utils/useNavigate', () => ({
-  useNavigate: () => mockNavigate,
-}));
-
 describe('SentryAppDetailedView', () => {
   const organization = OrganizationFixture({features: ['events']});
 
@@ -25,7 +20,7 @@ describe('SentryAppDetailedView', () => {
   });
 
   function renderSentryAppDetailedView({integrationSlug}: {integrationSlug: string}) {
-    render(<SentryAppDetailedView />, {
+    const renderResult = render(<SentryAppDetailedView />, {
       initialRouterConfig: {
         route: '/settings/:orgId/integrations/:integrationSlug/',
         location: {
@@ -35,6 +30,7 @@ describe('SentryAppDetailedView', () => {
       organization,
     });
     renderGlobalModal();
+    return renderResult;
   }
 
   describe('Published Sentry App', () => {
@@ -207,10 +203,12 @@ describe('SentryAppDetailedView', () => {
     });
 
     it('should get redirected to Developer Settings', async () => {
-      renderSentryAppDetailedView({integrationSlug: 'my-headband-washer-289499'});
+      const {router} = renderSentryAppDetailedView({
+        integrationSlug: 'my-headband-washer-289499',
+      });
 
       await waitFor(() => {
-        expect(mockNavigate).toHaveBeenLastCalledWith(
+        expect(router.location.pathname).toBe(
           `/settings/${organization.slug}/developer-settings/my-headband-washer-289499/`
         );
       });

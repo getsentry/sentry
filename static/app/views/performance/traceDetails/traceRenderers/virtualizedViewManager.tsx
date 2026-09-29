@@ -1,0 +1,2401 @@
+import type {Theme} from '@emotion/react';
+import {mat3} from 'gl-matrix';
+import * as qs from 'query-string';
+
+import {getDuration} from 'sentry/utils/duration/getDuration';
+import {clamp} from 'sentry/utils/number/clamp';
+import {
+  cancelAnimationTimeout,
+  requestAnimationTimeout,
+} from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
+import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
+import {
+  MIN_PINNED_TRACE_WIDTH,
+  TraceColumnLayout,
+} from 'sentry/views/performance/traceDetails/traceColumnLayout';
+import {
+  getRenderableTraceIssues,
+  getTraceIconGroupWidth,
+  getTraceIssueTimestamp,
+  TRACE_ICON_WIDTH,
+} from 'sentry/views/performance/traceDetails/traceIssueUtils';
+import {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
+import type {BaseNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/baseNode';
+import {TraceRowWidthMeasurer} from 'sentry/views/performance/traceDetails/traceRenderers/traceRowWidthMeasurer';
+import {TraceTextMeasurer} from 'sentry/views/performance/traceDetails/traceRenderers/traceTextMeasurer';
+import {
+  COLLAPSED_GAP_WIDTH_PX,
+  TraceTimeCompression,
+} from 'sentry/views/performance/traceDetails/traceRenderers/traceTimeCompression';
+import type {TraceTimeCompressionGap} from 'sentry/views/performance/traceDetails/traceRenderers/traceTimeCompression';
+import type {TraceView} from 'sentry/views/performance/traceDetails/traceRenderers/traceView';
+import {
+  CompressedTraceViewCalculations,
+  NormalTraceViewCalculations,
+  type CompressedView,
+  type SpanMatrix,
+  type TraceIconEdge,
+  type TraceViewCalculationContext,
+  type TraceViewCalculations,
+} from 'sentry/views/performance/traceDetails/traceRenderers/traceViewCalculations';
+
+import type {TraceScheduler} from './traceScheduler';
+
+const DIVIDER_WIDTH = 6;
+const COLLAPSED_GAP_MARKER_CLEARANCE_PX = 8;
+const VITAL_ZOOM_PADDING_RATIO = 0.05;
+
+export type TraceTimeCompressionManagerOptions = {
+  enabled: boolean;
+  indicators: TraceTree['indicators'];
+  nodes: BaseNode[];
+  traceSpace: [start: number, duration: number];
+};
+
+interface TraceIconPlacement {
+  anchorTimestamp: number;
+  bounds: [number, number];
+  edge: TraceIconEdge;
+}
+
+function easeOutSine(x: number): number {
+  return Math.sin((x * Math.PI) / 2);
+}
+
+function getHorizontalDelta(x: number, y: number): number {
+  if (x >= 0 && y >= 0) {
+    return Math.max(x, y);
+  }
+
+  return Math.min(x, y);
+}
+
+type ViewColumn = {
+  column_nodes: BaseNode[];
+  column_refs: Array<HTMLElement | undefined>;
+  translate: [number, number];
+  width: number;
+};
+
+type VerticalIndicator = {
+  ref: HTMLElement | null;
+  timestamp: number | undefined;
+};
+type SpanTextPlacement = [inside: number, textTransform: number];
+
+/**
+ * Tracks the state of the virtualized view and manages the resizing of the columns.
+ * Children components should call the appropriate register*Ref methods to register their
+ * HTML elements.
+ */
+export type ViewManagerScrollAnchor = 'top' | 'center if outside' | 'center';
+
+export class VirtualizedViewManager {
+  theme: Theme;
+  row_measurer = new TraceRowWidthMeasurer<BaseNode>();
+  indicator_label_measurer = new TraceRowWidthMeasurer<TraceTree['indicators'][0]>();
+  text_measurer: TraceTextMeasurer;
+
+  resize_observer: ResizeObserver | null = null;
+  list: VirtualizedList | null = null;
+
+  scrolling_source: 'list' | 'fake scrollbar' | null = null;
+  start_virtualized_index = 0;
+
+  // HTML refs that we need to keep track of such
+  // that rendering can be done programmatically
+  reset_zoom_button: HTMLButtonElement | null = null;
+  divider: HTMLElement | null = null;
+  container: HTMLElement | null = null;
+  horizontal_scrollbar_container: HTMLElement | null = null;
+  indicator_container: HTMLElement | null = null;
+
+  intervals: Array<number | undefined> = [];
+  // We want to render an indicator every 100px, but because we dont track resizing
+  // of the container, we need to precompute the number of intervals we need to render.
+  // We'll oversize the count by 3x, assuming no user will ever resize the window to 3x the
+  // original size.
+  interval_bars = Array.from({length: Math.ceil(window.innerWidth / 100) * 3}).fill(0);
+  indicators: Array<
+    {indicator: TraceTree['indicators'][0]; ref: HTMLElement} | undefined
+  > = [];
+  timeline_indicators: Array<HTMLElement | undefined> = [];
+  vertical_indicators: Record<string, VerticalIndicator> = {};
+  vertical_indicator_labels: Record<string, HTMLElement | undefined> = {};
+  collapsed_gap_markers: Array<
+    {gap: TraceTimeCompressionGap; ref: HTMLElement} | undefined
+  > = [];
+  private _collapsed_gap_marker_positions: Array<
+    {left: number; placement: number; right: number} | undefined
+  > = [];
+  span_bars: Array<
+    {color: string; ref: HTMLElement; space: [number, number]} | undefined
+  > = [];
+  span_patterns: Array<Array<{ref: HTMLElement; space: [number, number]} | undefined>> =
+    [];
+  invisible_bars: Array<{ref: HTMLElement; space: [number, number]} | undefined> = [];
+  span_arrows: Array<
+    | {
+        position: 0 | 1;
+        ref: HTMLElement;
+        space: [number, number];
+        visible: boolean;
+      }
+    | undefined
+  > = [];
+  span_text: Array<
+    {ref: HTMLElement; space: [number, number]; text: string} | undefined
+  > = [];
+
+  row_depth_padding = 22;
+
+  scrollbar_width = 0;
+  // the transformation matrix that is used to render scaled elements to the DOM
+  private span_to_px: mat3 = mat3.create();
+  private readonly ROW_PADDING_PX = 16;
+  private readonly span_matrix: SpanMatrix = [1, 0, 0, 1, 0, 0];
+  private _compressedViewCache: CompressedView | null = null;
+  private activeVital: string | null = null;
+  private readonly compressedViewCalculations = new CompressedTraceViewCalculations();
+  private readonly normalViewCalculations = new NormalTraceViewCalculations();
+
+  timers: {
+    onFovChange: {id: number} | null;
+    onListHorizontalScroll: {id: number} | null;
+    onRowIntoView: number | null;
+    onScrollEndSync: {id: number} | null;
+    onWheelEnd: number | null;
+    onZoomIntoSpace: number | null;
+  } = {
+    onZoomIntoSpace: null,
+    onWheelEnd: null,
+    onListHorizontalScroll: null,
+    onRowIntoView: null,
+    onScrollEndSync: null,
+    onFovChange: null,
+  };
+
+  // Column configuration
+  columns: Record<'list' | 'attribute' | 'span_list', ViewColumn>;
+  pinnedColumnLayout: TraceColumnLayout | null = null;
+  private attributeColumnPreferences: TraceColumnLayout | null = null;
+  navigate: ReactRouter3Navigate | null = null;
+  scheduler: TraceScheduler;
+  view: TraceView;
+  time_compression = TraceTimeCompression.Disabled();
+  timeCompressionOptions: TraceTimeCompressionManagerOptions | null = null;
+
+  constructor(
+    columns: {
+      list: Pick<ViewColumn, 'width'>;
+      span_list: Pick<ViewColumn, 'width'>;
+    },
+    trace_scheduler: TraceScheduler,
+    trace_view: TraceView,
+    theme: Theme
+  ) {
+    this.columns = {
+      attribute: {
+        width: 0,
+        column_nodes: [],
+        column_refs: [],
+        translate: [0, 0],
+      },
+      list: {
+        ...columns.list,
+        column_nodes: [],
+        column_refs: [],
+        translate: [0, 0],
+      },
+      span_list: {
+        ...columns.span_list,
+        column_nodes: [],
+        column_refs: [],
+        translate: [0, 0],
+      },
+    };
+    this.theme = theme;
+
+    this.text_measurer = new TraceTextMeasurer(theme);
+
+    this.scheduler = trace_scheduler;
+    this.view = trace_view;
+
+    this.registerResetZoomRef = this.registerResetZoomRef.bind(this);
+    this.registerContainerRef = this.registerContainerRef.bind(this);
+    this.registerHorizontalScrollBarContainerRef =
+      this.registerHorizontalScrollBarContainerRef.bind(this);
+    this.registerDividerRef = this.registerDividerRef.bind(this);
+    this.registerIndicatorContainerRef = this.registerIndicatorContainerRef.bind(this);
+
+    this.onDividerMouseDown = this.onDividerMouseDown.bind(this);
+    this.onDividerMouseUp = this.onDividerMouseUp.bind(this);
+    this.onDividerMouseMove = this.onDividerMouseMove.bind(this);
+    this.onSyncedScrollbarScroll = this.onSyncedScrollbarScroll.bind(this);
+    this.onWheel = this.onWheel.bind(this);
+    this.onWheelEnd = this.onWheelEnd.bind(this);
+    this.onWheelStart = this.onWheelStart.bind(this);
+    this.onNewMaxRowWidth = this.onNewMaxRowWidth.bind(this);
+    this.onHorizontalScrollbarScroll = this.onHorizontalScrollbarScroll.bind(this);
+  }
+
+  setAttributePinningEnabled(enabled: boolean) {
+    if (enabled && !this.attributeColumnPreferences) {
+      this.attributeColumnPreferences = new TraceColumnLayout(this.columns.list.width);
+      this.columns.list.width = this.attributeColumnPreferences.treeRatio;
+      this.columns.span_list.width = 1 - this.columns.list.width;
+      this.updatePinnedColumnSpace();
+    } else if (!enabled) {
+      this.attributeColumnPreferences = null;
+    }
+  }
+
+  setPinnedColumnEnabled(enabled: boolean) {
+    if (enabled === Boolean(this.pinnedColumnLayout)) {
+      return;
+    }
+    if (enabled) {
+      this.pinnedColumnLayout =
+        this.attributeColumnPreferences ?? new TraceColumnLayout(this.columns.list.width);
+    } else {
+      const remaining = this.columns.list.width + this.columns.span_list.width;
+      this.columns.list.width /= remaining;
+      this.columns.span_list.width /= remaining;
+      if (this.attributeColumnPreferences) {
+        this.attributeColumnPreferences.treeRatio = this.columns.list.width;
+        this.attributeColumnPreferences.save();
+      }
+      this.columns.attribute.width = 0;
+      this.pinnedColumnLayout = null;
+    }
+    this.updatePinnedColumnSpace();
+  }
+
+  syncPinnedColumnWidths(containerWidth: number) {
+    if (!this.pinnedColumnLayout) {
+      return;
+    }
+    const available = Math.max(
+      MIN_PINNED_TRACE_WIDTH,
+      containerWidth - this.scrollbar_width
+    );
+    const sizes = this.pinnedColumnLayout.sizes(available);
+    this.columns.list.width = sizes.list / available;
+    this.columns.attribute.width = sizes.attribute / available;
+    this.columns.span_list.width = sizes.span_list / available;
+  }
+
+  resizePinnedColumn(edge: 'left' | 'right', delta: number) {
+    this.pinnedColumnLayout?.resize(
+      edge,
+      delta,
+      this.view.trace_container_physical_space.width - this.scrollbar_width
+    );
+    this.updatePinnedColumnSpace();
+  }
+
+  finishPinnedColumnResize() {
+    this.pinnedColumnLayout?.save();
+    this.enqueueOnScrollEndOutOfBoundsCheck();
+    this.scheduler.dispatch('divider resize end', this.columns.list.width);
+  }
+
+  private updatePinnedColumnSpace() {
+    this.syncPinnedColumnWidths(this.view.trace_container_physical_space.width);
+    this.view.trace_physical_space.width =
+      (this.view.trace_container_physical_space.width - this.scrollbar_width) *
+      this.columns.span_list.width;
+    this.recomputeTimeCompression();
+    this.scheduler.dispatch('divider resize', {
+      list: this.columns.list.width,
+      span_list: this.columns.span_list.width,
+    });
+  }
+
+  setTimeCompression(compression: TraceTimeCompression) {
+    this.time_compression = compression;
+  }
+
+  recomputeTimeCompression(options = this.timeCompressionOptions) {
+    if (!options) {
+      this.time_compression = TraceTimeCompression.Disabled([
+        this.view.to_origin,
+        this.view.trace_space.width,
+      ]);
+      return;
+    }
+
+    this.time_compression = TraceTimeCompression.FromVisibleItems({
+      ...options,
+      physicalWidth: this.view.trace_physical_space.width,
+    });
+  }
+
+  dividerStartVec: [number, number] | null = null;
+  previousDividerClientVec: [number, number] | null = null;
+
+  onDividerMouseDown(event: MouseEvent) {
+    if (!this.container) {
+      return;
+    }
+
+    this.dividerStartVec = [event.clientX, event.clientY];
+    this.previousDividerClientVec = [event.clientX, event.clientY];
+
+    document.body.style.cursor = 'ew-resize !important';
+    document.body.style.userSelect = 'none';
+
+    document.addEventListener('mouseup', this.onDividerMouseUp, {passive: true});
+    document.addEventListener('mousemove', this.onDividerMouseMove, {
+      passive: true,
+    });
+  }
+
+  onDividerMouseUp(event: MouseEvent) {
+    if (!this.container || !this.dividerStartVec) {
+      return;
+    }
+
+    const distance = event.clientX - this.dividerStartVec[0];
+    const distancePercentage = distance / this.view.trace_container_physical_space.width;
+
+    const list = clamp(this.columns.list.width + distancePercentage, 0.1, 0.9);
+    const span_list = clamp(this.columns.span_list.width - distancePercentage, 0.1, 0.9);
+
+    this.columns.list.width = list;
+    this.columns.span_list.width = span_list;
+    if (this.attributeColumnPreferences) {
+      this.attributeColumnPreferences.treeRatio = list;
+      this.attributeColumnPreferences.save();
+    }
+
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+
+    this.dividerStartVec = null;
+    this.previousDividerClientVec = null;
+
+    this.enqueueOnScrollEndOutOfBoundsCheck();
+    document.removeEventListener('mouseup', this.onDividerMouseUp);
+    document.removeEventListener('mousemove', this.onDividerMouseMove);
+
+    this.scheduler.dispatch('divider resize end', this.columns.list.width);
+  }
+
+  onDividerMouseMove(event: MouseEvent) {
+    if (!this.dividerStartVec || !this.divider || !this.previousDividerClientVec) {
+      return;
+    }
+
+    const distance = event.clientX - this.dividerStartVec[0];
+    const distancePercentage = distance / this.view.trace_container_physical_space.width;
+
+    const list = clamp(this.columns.list.width + distancePercentage, 0, 1);
+    const span_list = clamp(this.columns.span_list.width - distancePercentage, 0, 1);
+
+    if (span_list * this.view.trace_container_physical_space.width <= 100) {
+      return;
+    }
+    if (list * this.view.trace_container_physical_space.width <= 100) {
+      return;
+    }
+
+    this.view.trace_physical_space.width =
+      span_list * (this.view.trace_container_physical_space.width - this.scrollbar_width);
+    this.recomputeTimeCompression();
+
+    this.scheduler.dispatch('set trace view', {
+      x: this.view.trace_view.x,
+      width: this.view.trace_view.width,
+    });
+
+    this.scheduler.dispatch('divider resize', {
+      list,
+      span_list,
+    });
+    this.previousDividerClientVec = [event.clientX, event.clientY];
+  }
+
+  onScrollbarWidthChange(width: number) {
+    if (width === this.scrollbar_width) {
+      return;
+    }
+    this.scrollbar_width = width;
+
+    // Re-dispatch the container content box so that the trace_physical_space is
+    // recomputed accounting for the new scrollbar width using the same box
+    // model as ResizeObserver's contentRect.
+    const containerPhysicalSpace = this.getContainerContentPhysicalSpace();
+    if (containerPhysicalSpace) {
+      this.scheduler.dispatch('set container physical space', containerPhysicalSpace);
+    }
+  }
+
+  private getContainerContentPhysicalSpace():
+    | [x: number, y: number, width: number, height: number]
+    | null {
+    if (!this.container) {
+      return null;
+    }
+
+    const rect = this.container.getBoundingClientRect();
+    if (rect.width === 0 && rect.height === 0) {
+      return null;
+    }
+
+    const getBoxSize = (value: string) => Number.parseFloat(value) || 0;
+    const styles = window.getComputedStyle(this.container);
+    const paddingX = getBoxSize(styles.paddingLeft) + getBoxSize(styles.paddingRight);
+    const paddingY = getBoxSize(styles.paddingTop) + getBoxSize(styles.paddingBottom);
+    const borderX =
+      getBoxSize(styles.borderLeftWidth) + getBoxSize(styles.borderRightWidth);
+    const borderY =
+      getBoxSize(styles.borderTopWidth) + getBoxSize(styles.borderBottomWidth);
+    const width = Math.max(rect.width - paddingX - borderX, 0);
+    const height = Math.max(rect.height - paddingY - borderY, 0);
+
+    return [0, 0, width, height];
+  }
+
+  registerContainerRef(container: HTMLElement | null) {
+    if (container) {
+      this.initialize(container);
+    } else {
+      this.teardown();
+    }
+  }
+
+  registerResetZoomRef(ref: HTMLButtonElement | null) {
+    this.reset_zoom_button = ref;
+    this.syncResetZoomButton();
+  }
+
+  registerGhostRowRef(column: string, ref: HTMLElement | null) {
+    if (column === 'list' && ref) {
+      const scrollableElement = ref.children[0] as HTMLElement | undefined;
+      if (scrollableElement) {
+        ref.addEventListener('wheel', this.onSyncedScrollbarScroll, {passive: false});
+      }
+    }
+
+    if (column === 'span_list' && ref) {
+      ref.addEventListener('wheel', this.onWheel, {passive: false});
+    }
+  }
+
+  registerList(list: VirtualizedList | null) {
+    this.list = list;
+  }
+
+  registerIndicatorContainerRef(ref: HTMLElement | null) {
+    this.indicator_container = ref;
+  }
+
+  registerDividerRef(ref: HTMLElement | null) {
+    if (!ref) {
+      if (this.divider) {
+        this.divider.removeEventListener('mousedown', this.onDividerMouseDown);
+      }
+      this.divider = null;
+      return;
+    }
+
+    this.divider = ref;
+    this.divider.style.width = `${DIVIDER_WIDTH}px`;
+    ref.addEventListener('mousedown', this.onDividerMouseDown, {passive: true});
+  }
+
+  registerSpanBarRef(
+    ref: HTMLElement | null,
+    space: [number, number],
+    color: string,
+    index: number
+  ) {
+    if (ref) {
+      this.span_bars[index] = {ref, space, color};
+    }
+
+    if (ref) {
+      this.drawSpanBar(this.span_bars[index]!);
+      this.span_bars[index]!.ref.style.backgroundColor = color;
+    }
+  }
+
+  registerArrowRef(ref: HTMLElement | null, space: [number, number], index: number) {
+    if (ref) {
+      this.span_arrows[index] = {ref, space, visible: false, position: 0};
+    }
+  }
+
+  registerSpanBarTextRef(
+    ref: HTMLElement | null,
+    text: string,
+    space: [number, number],
+    index: number
+  ) {
+    if (ref) {
+      this.span_text[index] = {ref, text, space};
+      this.drawSpanText(this.span_text[index], this.columns.list.column_nodes[index]);
+    }
+  }
+
+  registerInvisibleBarRef(
+    ref: HTMLElement | null,
+    space: [number, number],
+    index: number
+  ) {
+    if (ref) {
+      this.invisible_bars[index] = ref ? {ref, space} : undefined;
+
+      const span_transform = this.computeSpanCSSMatrixTransform(space);
+      ref.style.transform = `matrix(${span_transform.join(',')}`;
+      const inverseScale = Math.round((1 / span_transform[0]) * 1e4) / 1e4;
+      ref.style.setProperty(
+        '--inverse-span-scale',
+        // @ts-expect-error TS(2345): Argument of type 'number' is not assignable to par... Remove this comment to see the full error message
+        isNaN(inverseScale) ? 1 : inverseScale
+      );
+    }
+  }
+
+  registerColumnRef(
+    column: string,
+    ref: HTMLElement | null,
+    index: number,
+    node: BaseNode
+  ) {
+    if (column === 'list' && ref) {
+      const scrollableElement = ref.children[0] as HTMLElement | undefined;
+
+      if (scrollableElement) {
+        scrollableElement.style.transform = `translateX(${this.columns.list.translate[0]}px)`;
+        this.row_measurer.enqueueMeasure(node, scrollableElement);
+        ref.addEventListener('wheel', this.onSyncedScrollbarScroll, {passive: false});
+      }
+    }
+
+    if (column === 'span_list' && ref) {
+      ref.addEventListener('wheel', this.onWheel, {passive: false});
+    }
+
+    if (ref && node) {
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      this.columns[column].column_refs[index] = ref;
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      this.columns[column].column_nodes[index] = node;
+    }
+  }
+
+  registerIndicatorRef(
+    ref: HTMLElement | null,
+    index: number,
+    indicator: TraceTree['indicators'][0]
+  ) {
+    if (ref) {
+      this.indicators[index] = {ref, indicator};
+    } else {
+      const element = this.indicators[index]?.ref;
+      if (element) {
+        element.removeEventListener('wheel', this.onWheel);
+      }
+    }
+
+    if (ref) {
+      ref.addEventListener('wheel', this.onWheel, {passive: false});
+      ref.style.transform = `translateX(${this.transformXFromTimestamp(
+        indicator.start
+      )}px)`;
+    }
+  }
+
+  registerIndicatorLabelRef(
+    ref: HTMLElement | null,
+    index: number,
+    indicator: TraceTree['indicators'][0]
+  ) {
+    if (ref) {
+      this.vertical_indicator_labels[index] = ref;
+      this.indicator_label_measurer.enqueueMeasure(indicator, ref);
+    }
+  }
+
+  registerTimelineIndicatorRef(ref: HTMLElement | null, index: number) {
+    if (ref) {
+      this.timeline_indicators[index] = ref;
+      this.drawTimelineInterval(ref, index);
+    }
+  }
+
+  registerCollapsedGapMarkerRef(
+    ref: HTMLElement | null,
+    index: number,
+    gap: TraceTimeCompressionGap
+  ) {
+    if (!ref) {
+      this.collapsed_gap_markers[index] = undefined;
+      this._collapsed_gap_marker_positions[index] = undefined;
+      return;
+    }
+
+    this.collapsed_gap_markers[index] = {ref, gap};
+    this.drawCollapsedGapMarker(this.collapsed_gap_markers[index]);
+  }
+
+  registerVerticalIndicator(key: string, indicator: VerticalIndicator) {
+    if (indicator.ref) {
+      this.vertical_indicators[key] = indicator;
+      this.drawVerticalIndicator(indicator);
+    }
+  }
+
+  registerHorizontalScrollBarContainerRef(ref: HTMLElement | null) {
+    if (ref) {
+      ref.style.width = Math.round(this.columns.list.width * 100) + '%';
+      ref.addEventListener('scroll', this.onHorizontalScrollbarScroll, {passive: false});
+    } else {
+      if (this.horizontal_scrollbar_container) {
+        this.horizontal_scrollbar_container.removeEventListener(
+          'scroll',
+          this.onHorizontalScrollbarScroll
+        );
+      }
+    }
+
+    this.horizontal_scrollbar_container = ref;
+  }
+
+  onWheel(event: WheelEvent) {
+    if (event.metaKey || event.ctrlKey) {
+      event.preventDefault();
+      // If this is the first zoom event, then read the clientX and offset it from the container element as offset
+      // is relative to the **target element**. In subsequent events, we can use the offsetX property as
+      // the pointer-events are going to be disabled and we will receive the correct offsetX value
+      let offsetX = 0;
+      if (!this.timers.onWheelEnd) {
+        offsetX =
+          (event.currentTarget as HTMLElement | null)?.getBoundingClientRect()?.left ?? 0;
+        this.onWheelStart();
+      }
+      this.enqueueOnWheelEndRaf();
+
+      const scale = 1 - event.deltaY * 0.01 * -1;
+      const x = offsetX > 0 ? event.clientX - offsetX : event.offsetX;
+      const newView = this.getViewCalculations().computeWheelZoomView(
+        this.getViewCalculationContext(),
+        x,
+        scale
+      );
+
+      // When users zoom in, the matrix will compute a width value that is lower than the min,
+      // which results in the value of x being incorrectly set and the view moving to the right.
+      // To prevent this, we will only update the x position if the new width is greater than the min zoom precision.
+      this.scheduler.dispatch('set trace view', {
+        x:
+          newView[2] < this.view.MAX_ZOOM_PRECISION_MS
+            ? this.view.trace_view.x
+            : newView[0],
+        width: newView[2],
+      });
+      this.activeVital = null;
+    } else {
+      if (!this.timers.onWheelEnd) {
+        this.onWheelStart();
+      }
+      this.enqueueOnWheelEndRaf();
+
+      // Holding shift key allows for horizontal scrolling
+      const distance = event.shiftKey
+        ? getHorizontalDelta(event.deltaX, event.deltaY)
+        : event.deltaX;
+
+      if (
+        event.shiftKey ||
+        (!event.shiftKey && Math.abs(event.deltaX) > Math.abs(event.deltaY))
+      ) {
+        event.preventDefault();
+      }
+
+      const physicalDeltaPct = distance / this.view.trace_physical_space.width;
+
+      this.scheduler.dispatch(
+        'set trace view',
+        this.getViewCalculations().computeWheelPanView(
+          this.getViewCalculationContext(),
+          physicalDeltaPct
+        )
+      );
+      if (distance !== 0) {
+        this.activeVital = null;
+      }
+    }
+  }
+
+  onBringRowIntoView(space: [number, number]) {
+    if (this.timers.onZoomIntoSpace !== null) {
+      window.cancelAnimationFrame(this.timers.onZoomIntoSpace);
+      this.timers.onZoomIntoSpace = null;
+    }
+
+    if (space[0] - this.view.to_origin > this.view.trace_view.x) {
+      this.onZoomIntoSpace([
+        space[0] + space[1] / 2 - this.view.trace_view.width / 2,
+        this.view.trace_view.width,
+      ]);
+    } else if (space[0] - this.view.to_origin < this.view.trace_view.x) {
+      this.onZoomIntoSpace([
+        space[0] + space[1] / 2 - this.view.trace_view.width / 2,
+        this.view.trace_view.width,
+      ]);
+    }
+  }
+
+  animateViewTo(node_space: [number, number]) {
+    const start = node_space[0];
+    const width = node_space[1] > 0 ? node_space[1] : this.view.trace_view.width;
+    const margin = 0.2 * width;
+
+    this.scheduler.dispatch('set trace view', {
+      x: start - margin - this.view.to_origin,
+      width: width + margin * 2,
+    });
+  }
+
+  onZoomToVital(timestamp: number, vital: string) {
+    if (this.activeVital === vital) {
+      return;
+    }
+
+    if (this.timers.onZoomIntoSpace !== null) {
+      window.cancelAnimationFrame(this.timers.onZoomIntoSpace);
+      this.timers.onZoomIntoSpace = null;
+    }
+
+    const vitalDuration = timestamp - this.view.to_origin;
+    this.onZoomIntoSpace(
+      [
+        this.view.to_origin,
+        clamp(
+          vitalDuration * (1 + VITAL_ZOOM_PADDING_RATIO),
+          0,
+          this.view.trace_space.width
+        ),
+      ],
+      {padding: false}
+    );
+    this.activeVital = vital;
+  }
+
+  onZoomIntoSpace(
+    space: [number, number],
+    options: {
+      padding?: boolean;
+    } = {}
+  ) {
+    this.activeVital = null;
+
+    let final_x = space[0] - this.view.to_origin;
+    let final_width = space[1];
+
+    if (space[1] < this.view.MAX_ZOOM_PRECISION_MS) {
+      final_x -= this.view.MAX_ZOOM_PRECISION_MS / 2 - space[1] / 2;
+      final_width = this.view.MAX_ZOOM_PRECISION_MS;
+    }
+
+    // If the view is not small, then zoom into the span and keep
+    // an offset on each side. This ensures we dont need
+    // to move the duration label insdie the bar and can preserve
+    // some context around the star/end time of a span
+    if (options.padding !== false && this.view.trace_physical_space.width > 300) {
+      const paddedSpace = this.getViewCalculations().padZoomIntoSpace(
+        this.getViewCalculationContext(),
+        final_x,
+        final_width
+      );
+      final_x = paddedSpace.x;
+      final_width = paddedSpace.width;
+    }
+
+    const start_x = this.view.trace_view.x;
+    const start_width = this.view.trace_view.width;
+    const distance_x = final_x - this.view.trace_view.x;
+    const distance_width = this.view.trace_view.width - final_width;
+
+    const max_distance = Math.max(Math.abs(distance_x), Math.abs(distance_width));
+    const p = max_distance === 0 ? 1 : Math.log10(max_distance);
+    // We need to clamp the duration to prevent the animation from being too slow,
+    // sometimes the distances are very large as traces can be hours in duration
+    const duration = clamp(200 + 70 * Math.abs(p), 200, 600);
+
+    const start = performance.now();
+    const rafCallback = (now: number) => {
+      const elapsed = now - start;
+      const progress = elapsed / duration;
+      const eased = easeOutSine(progress);
+
+      if (progress <= 1) {
+        const x = start_x + distance_x * eased;
+        const width = start_width - distance_width * eased;
+        this.scheduler.dispatch('set trace view', {
+          x,
+          width,
+        });
+        this.timers.onZoomIntoSpace = window.requestAnimationFrame(rafCallback);
+      } else {
+        this.timers.onZoomIntoSpace = null;
+        this.scheduler.dispatch('set trace view', {
+          x: final_x,
+          width: final_width,
+        });
+      }
+    };
+
+    this.timers.onZoomIntoSpace = window.requestAnimationFrame(rafCallback);
+  }
+
+  resetZoom() {
+    this.onZoomIntoSpace([this.view.to_origin, this.view.trace_space.width]);
+  }
+
+  enqueueOnWheelEndRaf() {
+    if (this.timers.onWheelEnd !== null) {
+      window.cancelAnimationFrame(this.timers.onWheelEnd);
+    }
+
+    const start = performance.now();
+    const rafCallback = (now: number) => {
+      const elapsed = now - start;
+      if (elapsed > 100) {
+        this.onWheelEnd();
+      } else {
+        this.timers.onWheelEnd = window.requestAnimationFrame(rafCallback);
+      }
+    };
+
+    this.timers.onWheelEnd = window.requestAnimationFrame(rafCallback);
+  }
+
+  onWheelStart() {
+    document.body.style.overscrollBehavior = 'none';
+    for (let i = 0; i < this.columns.span_list.column_refs.length; i++) {
+      const span_list = this.columns.span_list.column_refs[i];
+      if (span_list?.children?.[0]) {
+        (span_list.children[0] as HTMLElement).style.pointerEvents = 'none';
+      }
+      const span_text = this.span_text[i];
+      if (span_text) {
+        span_text.ref.style.pointerEvents = 'none';
+      }
+    }
+
+    for (const indicator of this.indicators) {
+      if (indicator?.ref) {
+        indicator.ref.style.pointerEvents = 'none';
+      }
+    }
+  }
+
+  onWheelEnd() {
+    document.body.style.overscrollBehavior = '';
+    this.timers.onWheelEnd = null;
+
+    for (let i = 0; i < this.columns.span_list.column_refs.length; i++) {
+      const span_list = this.columns.span_list.column_refs[i];
+      if (span_list?.children?.[0]) {
+        (span_list.children[0] as HTMLElement).style.pointerEvents = 'auto';
+      }
+      const span_text = this.span_text[i];
+      if (span_text) {
+        span_text.ref.style.pointerEvents = 'auto';
+      }
+    }
+    for (const indicator of this.indicators) {
+      if (indicator?.ref) {
+        indicator.ref.style.pointerEvents = 'auto';
+      }
+    }
+  }
+
+  maybeInitializeTraceViewFromQS(fov: string): void {
+    const [x, width] = fov.split(',').map(parseFloat);
+
+    if (isNaN(x!) || isNaN(width!)) {
+      return;
+    }
+
+    if (width! <= 0 || width! > this.view.trace_space.width) {
+      return;
+    }
+
+    if (x! < 0 || x! > this.view.trace_space.width) {
+      return;
+    }
+
+    this.scheduler.dispatch('set trace view', {x, width});
+  }
+
+  enqueueFOVQueryParamSync(view: TraceView) {
+    if (this.timers.onFovChange !== null) {
+      window.cancelAnimationFrame(this.timers.onFovChange.id);
+    }
+
+    this.timers.onFovChange = requestAnimationTimeout(() => {
+      this.navigate?.(
+        {
+          pathname: location.pathname,
+          query: {
+            ...qs.parse(location.search),
+            fov: `${view.trace_view.x},${view.trace_view.width}`,
+          },
+        },
+        {replace: true}
+      );
+      this.timers.onFovChange = null;
+    }, 500);
+  }
+  onNewMaxRowWidth(max: any) {
+    this.syncHorizontalScrollbar(max);
+  }
+
+  syncHorizontalScrollbar(max: number) {
+    const child = this.horizontal_scrollbar_container?.children[0] as
+      | HTMLElement
+      | undefined;
+
+    if (child) {
+      child.style.width =
+        Math.round(max - this.scrollbar_width + this.ROW_PADDING_PX) + 'px';
+    }
+  }
+
+  syncResetZoomButton() {
+    if (!this.reset_zoom_button) {
+      return;
+    }
+    this.reset_zoom_button.disabled =
+      this.view.trace_view.width === this.view.trace_space.width;
+  }
+
+  maybeSyncViewWithVerticalIndicator(key: string) {
+    const indicator = this.vertical_indicators[key];
+    if (!indicator || typeof indicator.timestamp !== 'number') {
+      return;
+    }
+
+    const timestamp = indicator.timestamp - this.view.to_origin;
+    this.scheduler.dispatch('set trace view', {
+      x: timestamp - this.view.trace_view.width / 2,
+      width: this.view.trace_view.width,
+    });
+  }
+
+  onHorizontalScrollbarScrollStart(): void {
+    document.body.style.overscrollBehavior = 'none';
+  }
+
+  onHorizontalScrollbarScrollEnd(): void {
+    document.body.style.overscrollBehavior = '';
+  }
+
+  onHorizontalScrollbarScroll(_event: Event) {
+    if (!this.scrolling_source) {
+      this.scrolling_source = 'fake scrollbar';
+    }
+
+    if (this.scrolling_source !== 'fake scrollbar') {
+      return;
+    }
+
+    const scrollLeft = this.horizontal_scrollbar_container?.scrollLeft;
+    if (typeof scrollLeft !== 'number') {
+      return;
+    }
+
+    if (!this.timers.onListHorizontalScroll) {
+      this.onHorizontalScrollbarScrollStart();
+    }
+
+    this.enqueueOnScrollEndOutOfBoundsCheck();
+    this.columns.list.translate[0] = this.clampRowTransform(-scrollLeft);
+
+    const rows = Array.from(
+      document.querySelectorAll<HTMLElement>('.TraceRow .TraceLeftColumn > div')
+    );
+
+    for (const row of rows) {
+      row.style.transform = `translateX(${this.columns.list.translate[0]}px)`;
+    }
+
+    if (this.timers.onListHorizontalScroll) {
+      cancelAnimationTimeout(this.timers.onListHorizontalScroll);
+      this.timers.onListHorizontalScroll = null;
+    }
+
+    this.timers.onListHorizontalScroll = requestAnimationTimeout(() => {
+      this.onHorizontalScrollbarScrollEnd();
+      this.timers.onListHorizontalScroll = null;
+    }, 100);
+  }
+
+  onSyncedScrollbarScroll(event: WheelEvent) {
+    if (!this.scrolling_source) {
+      this.scrolling_source = 'list';
+    }
+
+    if (this.scrolling_source !== 'list') {
+      return;
+    }
+
+    // Holding shift key allows for horizontal scrolling
+    const distance = event.shiftKey
+      ? getHorizontalDelta(event.deltaX, event.deltaY)
+      : event.deltaX;
+
+    if (
+      event.shiftKey ||
+      (!event.shiftKey && Math.abs(event.deltaX) > Math.abs(event.deltaY))
+    ) {
+      // Prevents firing back/forward navigation
+      event.preventDefault();
+    } else {
+      return;
+    }
+
+    if (this.timers.onRowIntoView !== null) {
+      window.cancelAnimationFrame(this.timers.onRowIntoView);
+      this.timers.onRowIntoView = null;
+    }
+
+    if (!this.timers.onListHorizontalScroll) {
+      this.onHorizontalScrollbarScrollStart();
+    }
+
+    this.enqueueOnScrollEndOutOfBoundsCheck();
+
+    const newTransform = this.clampRowTransform(
+      this.columns.list.translate[0] - distance
+    );
+
+    if (newTransform === this.columns.list.translate[0]) {
+      return;
+    }
+
+    this.columns.list.translate[0] = newTransform;
+
+    const rows = Array.from(
+      document.querySelectorAll<HTMLElement>('.TraceRow .TraceLeftColumn > div')
+    );
+
+    for (const row of rows) {
+      row.style.transform = `translateX(${this.columns.list.translate[0]}px)`;
+    }
+    if (this.horizontal_scrollbar_container) {
+      this.horizontal_scrollbar_container.scrollLeft = -Math.round(
+        this.columns.list.translate[0]
+      );
+    }
+
+    if (this.timers.onListHorizontalScroll) {
+      cancelAnimationTimeout(this.timers.onListHorizontalScroll);
+      this.timers.onListHorizontalScroll = null;
+    }
+
+    this.timers.onListHorizontalScroll = requestAnimationTimeout(() => {
+      this.onHorizontalScrollbarScrollEnd();
+      this.timers.onListHorizontalScroll = null;
+    }, 100);
+  }
+
+  clampRowTransform(transform: number): number {
+    const columnWidth =
+      this.columns.list.width * this.view.trace_container_physical_space.width;
+    const max = this.row_measurer.max - columnWidth + this.ROW_PADDING_PX;
+
+    if (this.row_measurer.queue.length > 0) {
+      this.row_measurer.drain();
+    }
+
+    if (this.row_measurer.max < columnWidth) {
+      return 0;
+    }
+
+    // Sometimes the wheel event glitches or jumps to a very high value
+    if (transform > 0) {
+      return 0;
+    }
+    if (transform < -max) {
+      return -max;
+    }
+
+    return transform;
+  }
+
+  private getViewCalculationContext(): TraceViewCalculationContext {
+    return {
+      getCompressedView: () => this.getCompressedView(),
+      getConfigSpacePerPx: () => this.getConfigSpacePerPx(),
+      spanMatrix: this.span_matrix,
+      spanToPx: this.span_to_px,
+      timeCompression: this.time_compression,
+      view: this.view,
+    };
+  }
+
+  private getViewCalculations(): TraceViewCalculations {
+    return this.time_compression.enabled
+      ? this.compressedViewCalculations
+      : this.normalViewCalculations;
+  }
+
+  getCompressedView(): CompressedView {
+    if (this._compressedViewCache) {
+      return this._compressedViewCache;
+    }
+
+    const start = this.view.to_origin + this.view.trace_view.x;
+    const end = start + this.view.trace_view.width;
+    const left = this.time_compression.toCompressedOffset(start);
+    const right = this.time_compression.toCompressedOffset(end);
+
+    return {
+      left,
+      right,
+      width: Math.max(right - left, Number.EPSILON),
+    };
+  }
+
+  getConfigSpaceCursor(cursor: {x: number; y: number}): [number, number] {
+    return this.getViewCalculations().getConfigSpaceCursor(
+      this.getViewCalculationContext(),
+      cursor
+    );
+  }
+
+  recomputeSpanToPXMatrix() {
+    this.span_to_px = this.getViewCalculations().recomputeSpanToPXMatrix(
+      this.getViewCalculationContext()
+    );
+  }
+
+  private getConfigSpacePerPx(): number {
+    if (this.view.trace_physical_space.width === 0) {
+      return this.span_to_px[0] || 1;
+    }
+
+    return this.view.trace_view.width / this.view.trace_physical_space.width;
+  }
+
+  computeSpanCSSMatrixTransform(
+    space: [number, number]
+  ): [number, number, number, number, number, number] {
+    return this.getViewCalculations().computeSpanCSSMatrixTransform(
+      this.getViewCalculationContext(),
+      space
+    );
+  }
+
+  transformXFromTimestamp(timestamp: number): number {
+    return this.getViewCalculations().transformXFromTimestamp(
+      this.getViewCalculationContext(),
+      timestamp
+    );
+  }
+
+  enqueueOnScrollEndOutOfBoundsCheck() {
+    if (this.timers.onRowIntoView !== null) {
+      // Dont enqueue updates while view is scrolling
+      return;
+    }
+
+    window.cancelAnimationFrame(this.timers.onScrollEndSync?.id ?? 0);
+
+    this.timers.onScrollEndSync = requestAnimationTimeout(() => {
+      this.onScrollEndOutOfBoundsCheck();
+    }, 300);
+  }
+
+  onScrollEndOutOfBoundsCheck() {
+    this.timers.onScrollEndSync = null;
+    this.scrolling_source = null;
+
+    const translation = this.columns.list.translate[0];
+    let min = Number.POSITIVE_INFINITY;
+    let max = Number.NEGATIVE_INFINITY;
+    let innerMostNode: BaseNode | undefined;
+
+    for (let i = 5; i < this.columns.span_list.column_refs.length - 5; i++) {
+      const width = this.row_measurer.cache.get(this.columns.list.column_nodes[i]!);
+      if (width === undefined) {
+        // this is unlikely to happen, but we should trigger a sync measure event if it does
+        continue;
+      }
+
+      min = Math.min(min, width);
+      max = Math.max(max, width);
+      innerMostNode =
+        !innerMostNode ||
+        TraceTree.depth(this.columns.list.column_nodes[i]!) <
+          TraceTree.depth(innerMostNode)
+          ? this.columns.list.column_nodes[i]
+          : innerMostNode;
+    }
+
+    if (innerMostNode) {
+      if (translation + max < 0) {
+        this.scrollRowIntoViewHorizontally(innerMostNode);
+      } else if (
+        translation + TraceTree.depth(innerMostNode) * this.row_depth_padding >
+        this.columns.list.width * this.view.trace_container_physical_space.width
+      ) {
+        this.scrollRowIntoViewHorizontally(innerMostNode);
+      }
+    }
+  }
+
+  isOutsideOfView(node: BaseNode): boolean {
+    const width = this.row_measurer.cache.get(node);
+
+    if (width === undefined) {
+      return false;
+    }
+
+    const translation = this.columns.list.translate[0];
+
+    return (
+      translation + TraceTree.depth(node) * this.row_depth_padding < 0 ||
+      translation + TraceTree.depth(node) * this.row_depth_padding >
+        (this.columns.list.width * this.view.trace_container_physical_space.width) / 2
+    );
+  }
+
+  scrollRowIntoViewHorizontally(
+    node: BaseNode,
+    duration = 600,
+    offset_px = 0,
+    position: 'exact' | 'measured' = 'measured'
+  ) {
+    const depth_px = -TraceTree.depth(node) * this.row_depth_padding + offset_px;
+    const newTransform =
+      position === 'exact' ? depth_px : this.clampRowTransform(depth_px);
+
+    this.animateScrollColumnTo(newTransform, duration);
+  }
+
+  animateScrollColumnTo(x: number, duration: number) {
+    if (duration === 0) {
+      this.columns.list.translate[0] = x;
+
+      const rows = Array.from(
+        document.querySelectorAll<HTMLElement>('.TraceRow .TraceLeftColumn > div')
+      );
+
+      for (const row of rows) {
+        row.style.transform = `translateX(${this.columns.list.translate[0]}px)`;
+      }
+
+      if (this.horizontal_scrollbar_container) {
+        this.horizontal_scrollbar_container.scrollLeft = -x;
+      }
+      dispatchJestScrollUpdate(this.horizontal_scrollbar_container!);
+      return;
+    }
+
+    const start = performance.now();
+    const startPosition = this.columns.list.translate[0];
+    const distance = x - startPosition;
+
+    const animate = (now: number) => {
+      const elapsed = now - start;
+      const progress = duration > 0 ? elapsed / duration : 1;
+      const eased = easeOutSine(progress);
+
+      const pos = startPosition + distance * eased;
+
+      const rows = Array.from(
+        document.querySelectorAll<HTMLElement>('.TraceRow .TraceLeftColumn > div')
+      );
+
+      for (const row of rows) {
+        row.style.transform = `translateX(${this.columns.list.translate[0]}px)`;
+      }
+
+      if (progress < 1) {
+        this.columns.list.translate[0] = pos;
+        this.timers.onRowIntoView = window.requestAnimationFrame(animate);
+      } else {
+        this.timers.onRowIntoView = null;
+        if (this.horizontal_scrollbar_container) {
+          this.horizontal_scrollbar_container.scrollLeft = -x;
+        }
+        this.columns.list.translate[0] = x;
+      }
+
+      dispatchJestScrollUpdate(this.horizontal_scrollbar_container!);
+    };
+
+    this.timers.onRowIntoView = window.requestAnimationFrame(animate);
+  }
+
+  initialize(container: HTMLElement) {
+    if (this.container !== container && this.resize_observer !== null) {
+      this.teardown();
+      return;
+    }
+
+    this.container = container;
+    this.drawContainers(this.container, {
+      list_width: this.columns.list.width,
+      span_list_width: this.columns.span_list.width,
+    });
+
+    this.row_measurer.on('max', this.onNewMaxRowWidth);
+    this.resize_observer = new ResizeObserver(entries => {
+      const entry = entries[0];
+      if (!entry) {
+        throw new Error('ResizeObserver entry is undefined');
+      }
+
+      this.scheduler.dispatch('set container physical space', [
+        0,
+        0,
+        entry.contentRect.width,
+        entry.contentRect.height,
+      ]);
+    });
+
+    this.resize_observer.observe(container);
+  }
+
+  computeRelativeLeftPositionFromOrigin(
+    timestamp: number,
+    entire_space: [number, number]
+  ) {
+    return this.getViewCalculations().computeRelativeLeftPositionFromOrigin(
+      this.getViewCalculationContext(),
+      timestamp,
+      entire_space
+    );
+  }
+
+  computeRelativeWidth(space: [number, number], entire_space: [number, number]) {
+    return this.getViewCalculations().computeRelativeWidth(
+      this.getViewCalculationContext(),
+      space,
+      entire_space
+    );
+  }
+
+  computeTraceIconPlacement(
+    timestamp: number,
+    iconWidthPx: number,
+    span_space: [number, number]
+  ): TraceIconPlacement {
+    const span_start = span_space[0];
+    const span_end = span_space[0] + span_space[1];
+    const clamped_timestamp = clamp(timestamp, span_start, span_end);
+    const edge = this.computeTraceIconEdge(clamped_timestamp, iconWidthPx);
+    const anchorTimestamp = clamp(
+      this.computeTraceIconAnchorTimestamp(clamped_timestamp, edge),
+      span_start,
+      span_end
+    );
+    const bounds = this.computeTraceIconBounds(anchorTimestamp, iconWidthPx, edge);
+
+    return {edge, anchorTimestamp, bounds};
+  }
+
+  private computeTraceIconBounds(
+    anchorTimestamp: number,
+    iconWidthPx: number,
+    edge: TraceIconEdge
+  ): [number, number] {
+    return this.getViewCalculations().computeTraceIconBounds(
+      this.getViewCalculationContext(),
+      anchorTimestamp,
+      iconWidthPx,
+      edge
+    );
+  }
+
+  private computeTraceIconEdge(timestamp: number, iconWidthPx: number): TraceIconEdge {
+    const halfIconWidthPx = iconWidthPx / 2;
+    const x = this.transformXFromTimestamp(timestamp);
+
+    if (x - halfIconWidthPx <= 0) {
+      return 'start';
+    }
+
+    if (x + halfIconWidthPx >= this.view.trace_physical_space.width) {
+      return 'end';
+    }
+
+    return null;
+  }
+
+  private computeTraceIconAnchorTimestamp(
+    timestamp: number,
+    edge: TraceIconEdge
+  ): number {
+    if (edge === 'start') {
+      return this.view.to_origin + this.view.trace_view.x;
+    }
+
+    if (edge === 'end') {
+      return this.view.to_origin + this.view.trace_view.x + this.view.trace_view.width;
+    }
+
+    return timestamp;
+  }
+
+  recomputeTimelineIntervals() {
+    if (this.view.trace_view.width === 0) {
+      this.intervals[0] = 0;
+      this.intervals[1] = 0;
+      for (let i = 2; i < this.intervals.length; i++) {
+        this.intervals[i] = undefined;
+      }
+      return;
+    }
+
+    this.getViewCalculations().recomputeTimelineIntervals(
+      this.getViewCalculationContext(),
+      this.intervals
+    );
+  }
+
+  scrollToRow(index: number, anchor?: ViewManagerScrollAnchor) {
+    if (!this.list) {
+      return;
+    }
+    this.list.scrollToRow(index, anchor);
+  }
+
+  computeSpanTextPlacement(
+    node: BaseNode,
+    span_space: [number, number],
+    text: string
+  ): SpanTextPlacement {
+    const TEXT_PADDING = 3;
+
+    const text_anchor_left =
+      this.time_compression.toCompressedOffset(span_space[0]) >
+      this.time_compression.toCompressedOffset(
+        this.view.to_origin + this.view.trace_space.width * 0.5
+      );
+    const text_width = this.text_measurer.measure(text);
+    const text_width_ceil = Math.ceil(text_width);
+
+    const timestamps = getIconTimestamps(
+      node,
+      span_space,
+      value => this.text_measurer.measure(value),
+      (timestamp, iconWidthPx) =>
+        this.computeTraceIconPlacement(timestamp, iconWidthPx, span_space)
+    );
+    const text_left = Math.min(span_space[0], timestamps[0]);
+    const text_right = Math.max(span_space[0] + span_space[1], timestamps[1]);
+
+    // precompute all anchor points aot, so we make the control flow more readable.
+    /// |---| text
+    const right_outside = this.transformXFromTimestamp(text_right) + TEXT_PADDING;
+    // |---text|
+    const right_inside =
+      this.transformXFromTimestamp(span_space[0] + span_space[1]) -
+      TEXT_PADDING -
+      text_width_ceil;
+    // |text---|
+    const left_inside = this.transformXFromTimestamp(span_space[0]) + TEXT_PADDING;
+    /// text |---|
+    const left_outside =
+      this.transformXFromTimestamp(text_left) - TEXT_PADDING - text_width_ceil;
+
+    // Right edge of the window (when span extends beyond the view)
+    const window_right =
+      this.transformXFromTimestamp(
+        this.view.to_origin + this.view.trace_view.left + this.view.trace_view.width
+      ) -
+      text_width_ceil -
+      TEXT_PADDING;
+    const window_left =
+      this.transformXFromTimestamp(this.view.to_origin + this.view.trace_view.left) +
+      TEXT_PADDING;
+
+    const choosePlacement = (placements: SpanTextPlacement[]): SpanTextPlacement => {
+      return (
+        placements.find(
+          ([, text_transform]) =>
+            !this.spanTextOverlapsCollapsedGap(text_transform, text_width_ceil)
+        ) ?? placements[0]!
+      );
+    };
+
+    const view_left = this.view.trace_view.x;
+    const view_right = view_left + this.view.trace_view.width;
+
+    const span_left = span_space[0] - this.view.to_origin;
+    const span_right = span_left + span_space[1];
+
+    const compressedSpanStart = this.time_compression.toCompressedOffset(span_space[0]);
+    const compressedSpanEnd = this.time_compression.toCompressedOffset(
+      span_space[0] + span_space[1]
+    );
+    const compressedSpanDuration = compressedSpanEnd - compressedSpanStart;
+
+    const space_right = view_right - span_right;
+    const space_left = span_left - view_left;
+
+    // Span is completely outside of the view on the left side
+    if (span_right < this.view.trace_view.x) {
+      return text_anchor_left
+        ? choosePlacement([[1, right_inside]])
+        : choosePlacement([[0, right_outside]]);
+    }
+
+    // Span is completely outside of the view on the right side
+    if (span_left > this.view.trace_view.right) {
+      return text_anchor_left
+        ? choosePlacement([[0, left_outside]])
+        : choosePlacement([[1, left_inside]]);
+    }
+
+    // Span "spans" the entire view
+    if (span_left <= this.view.trace_view.x && span_right >= this.view.trace_view.right) {
+      return text_anchor_left
+        ? choosePlacement([
+            [1, window_left],
+            [1, window_right],
+          ])
+        : choosePlacement([
+            [1, window_right],
+            [1, window_left],
+          ]);
+    }
+
+    const full_span_px_width = compressedSpanDuration / this.span_to_px[0];
+
+    if (text_anchor_left) {
+      // While we have space on the left, place the text there
+      if (space_left > 0) {
+        const placements: SpanTextPlacement[] = [[0, left_outside]];
+        if (full_span_px_width > text_width_ceil) {
+          placements.push([1, left_inside]);
+        }
+        placements.push([0, right_outside]);
+        return choosePlacement(placements);
+      }
+
+      const compressedViewLeft = this.time_compression.toCompressedOffset(
+        this.view.to_origin + this.view.trace_view.left
+      );
+      const compressedDistance = compressedSpanEnd - compressedViewLeft;
+      const visible_width = compressedDistance / this.span_to_px[0] - TEXT_PADDING;
+
+      // If the text fits inside the visible portion of the span, anchor it to the left
+      // side of the window so that it is visible while the user pans the view
+      if (visible_width - TEXT_PADDING >= text_width_ceil) {
+        return choosePlacement([
+          [1, window_left],
+          [1, right_inside],
+        ]);
+      }
+
+      // If the text doesnt fit inside the visible portion of the span,
+      // anchor it to the inside right place in the span.
+      return choosePlacement([
+        [1, right_inside],
+        [0, left_outside],
+      ]);
+    }
+
+    // While we have space on the right, place the text there
+    if (space_right > 0) {
+      if (
+        // If the right edge of the span is within 10% to the right edge of the space,
+        // try and fit the text inside the span if possible. In case the span is too short
+        // to fit the text, text_left case above will take care of anchoring it to the left
+        // of the view.
+
+        // Note: the accurate way for us to determine if the text fits to the right side
+        // of the view would have been to compute the scaling matrix for a non zoomed view at 0,0
+        // origin and check if it fits into the distance of space right edge - span right edge. In practice
+        // however, it seems that a magical number works just fine.
+        span_right > this.view.trace_space.right * 0.9 &&
+        (this.time_compression.toCompressedOffset(this.view.to_origin + view_right) -
+          compressedSpanEnd) /
+          this.span_to_px[0] <
+          text_width_ceil
+      ) {
+        if (full_span_px_width > text_width_ceil) {
+          return choosePlacement([
+            [1, right_inside],
+            [0, left_outside],
+          ]);
+        }
+        return choosePlacement([
+          [0, left_outside],
+          [0, right_outside],
+        ]);
+      }
+      const placements: SpanTextPlacement[] = [[0, right_outside]];
+      if (full_span_px_width > text_width_ceil) {
+        placements.push([1, right_inside]);
+      }
+      placements.push([0, left_outside]);
+      return choosePlacement(placements);
+    }
+
+    // If text fits inside the span
+    if (full_span_px_width > text_width_ceil) {
+      const compressedViewRight = this.time_compression.toCompressedOffset(
+        this.view.to_origin + this.view.trace_view.right
+      );
+      const visible_width =
+        (compressedViewRight - compressedSpanStart) / this.span_to_px[0] - TEXT_PADDING;
+
+      // If the text fits inside the visible portion of the span, anchor it to the right
+      // side of the window so that it is visible while the user pans the view
+      if (visible_width - TEXT_PADDING >= text_width_ceil) {
+        return choosePlacement([
+          [1, window_right],
+          [1, left_inside],
+        ]);
+      }
+
+      // If the text doesnt fit inside the visible portion of the span,
+      // anchor it to the inside left of the span
+      return choosePlacement([
+        [1, left_inside],
+        [0, right_outside],
+      ]);
+    }
+
+    return choosePlacement([
+      [0, right_outside],
+      [0, left_outside],
+    ]);
+  }
+
+  spanTextOverlapsCollapsedGap(textTransform: number, textWidth: number): boolean {
+    if (!this.time_compression.enabled) {
+      return false;
+    }
+
+    const textLeft = textTransform;
+    const textRight = textLeft + textWidth;
+
+    for (const pos of this._collapsed_gap_marker_positions) {
+      if (!pos) {
+        continue;
+      }
+
+      if (
+        textLeft < pos.right + COLLAPSED_GAP_MARKER_CLEARANCE_PX &&
+        textRight > pos.left - COLLAPSED_GAP_MARKER_CLEARANCE_PX
+      ) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  last_indicator_width = 0;
+  draw(options: {list?: number; span_list?: number} = {}) {
+    this._compressedViewCache = this.getCompressedView();
+    this.recomputeTimelineIntervals();
+    this.recomputeSpanToPXMatrix();
+
+    const list_width = options.list ?? this.columns.list.width;
+    const span_list_width = options.span_list ?? this.columns.span_list.width;
+
+    this.drawContainers(this.container, {
+      list_width,
+      span_list_width,
+    });
+
+    // 60px error margin. ~52px is roughly the width of 500.00ms, we add a bit more, to be safe.
+    const error_margin = 60 * this.getConfigSpacePerPx();
+
+    this.drawCollapsedGapMarkers();
+
+    for (let i = 0; i < this.columns.list.column_refs.length; i++) {
+      const span = this.span_bars[i];
+
+      if (!span) {
+        continue;
+      }
+
+      const outside_left =
+        span.space[0] - this.view.to_origin + span.space[1] <
+        this.view.trace_view.x - error_margin;
+      const outside_right =
+        span.space[0] - this.view.to_origin - error_margin > this.view.trace_view.right;
+
+      if (outside_left || outside_right) {
+        this.hideSpanBar(this.span_bars[i], this.span_text[i]);
+        this.drawSpanArrow(this.span_arrows[i], true, outside_left ? 0 : 1);
+        continue;
+      }
+
+      this.drawSpanBar(this.span_bars[i]);
+      this.drawSpanText(this.span_text[i], this.columns.list.column_nodes[i]);
+      this.drawSpanArrow(this.span_arrows[i], false, 0);
+    }
+
+    this.drawInvisibleBars();
+    this.drawVerticalIndicators();
+
+    let start_indicator = -1;
+    let end_indicator = this.indicators.length;
+
+    while (start_indicator < this.indicators.length - 1) {
+      const indicator = this.indicators[start_indicator];
+      if (!indicator?.indicator) {
+        start_indicator++;
+        continue;
+      }
+
+      if (indicator.indicator.start < this.view.to_origin + this.view.trace_view.left) {
+        start_indicator++;
+        continue;
+      }
+
+      break;
+    }
+
+    while (end_indicator > start_indicator) {
+      const last_indicator = this.indicators[end_indicator - 1];
+      if (!last_indicator) {
+        end_indicator--;
+        continue;
+      }
+      if (
+        last_indicator.indicator.start >
+        this.view.to_origin + this.view.trace_view.right
+      ) {
+        end_indicator--;
+        continue;
+      }
+      break;
+    }
+
+    start_indicator = Math.max(0, start_indicator - 1);
+    end_indicator = Math.min(this.indicators.length - 1, end_indicator);
+
+    let indicator_label_right = 0;
+
+    for (let i = 0; i < this.indicators.length; i++) {
+      const entry = this.indicators[i];
+      const label = this.vertical_indicator_labels[i];
+      if (!entry || !label) {
+        continue;
+      }
+
+      if (i < start_indicator || i > end_indicator) {
+        entry.ref.style.opacity = '0';
+        label.style.opacity = '0';
+        continue;
+      }
+
+      const label_width = this.indicator_label_measurer.cache.get(entry.indicator) ?? 34;
+      const transform = this.transformXFromTimestamp(entry.indicator.start);
+
+      const indicator_max = this.view.trace_physical_space.width;
+      const indicator_min = 0;
+
+      const PADDING = 2;
+      const clamped_transform = clamp(transform, indicator_min, indicator_max);
+      let clamped_label_transform = clamp(
+        transform - label_width / 2,
+        indicator_min + PADDING,
+        indicator_max - label_width - PADDING
+      );
+
+      if (clamped_transform <= 2) {
+        // Indicator sits at the left edge: clamp the line to the edge and keep
+        // both line and label visible (they may have been hidden by the culling
+        // pass above).
+        label.style.transform = `translateX(${clamped_label_transform}px)`;
+        label.style.opacity = '1';
+        entry.ref.style.transform = `translate(${clamped_transform}px, 0)`;
+        entry.ref.style.opacity = '1';
+        indicator_label_right = clamped_label_transform + label_width;
+        continue;
+      } else if (clamped_transform + label_width / 2 >= indicator_max) {
+        // Indicator sits at the right edge: clamp the line to the edge and keep
+        // both line and label visible (they may have been hidden by the culling
+        // pass above).
+        label.style.transform = `translateX(${clamped_label_transform}px)`;
+        label.style.opacity = '1';
+        entry.ref.style.transform = `translate(${clamped_transform}px, 0)`;
+        entry.ref.style.opacity = '1';
+        indicator_label_right = clamped_label_transform;
+        continue;
+      }
+
+      if (clamped_label_transform < indicator_label_right) {
+        const previousIndicator = this.indicators[i - 1]!;
+
+        const overlapsWithLastVisibleOnLeft =
+          i - 1 === start_indicator &&
+          previousIndicator.indicator.start <
+            this.view.to_origin + this.view.trace_view.left;
+
+        if (overlapsWithLastVisibleOnLeft) {
+          const previousLabel = this.vertical_indicator_labels[i - 1];
+
+          if (previousLabel && previousIndicator) {
+            previousLabel.style.opacity = '1';
+            const overlap = indicator_label_right - clamped_label_transform;
+            previousLabel.style.transform = `translateX(${2 - overlap}px)`;
+          }
+        } else {
+          const OVERLAP_FACTOR = 0.25;
+          clamped_label_transform +=
+            (indicator_label_right - clamped_label_transform) * OVERLAP_FACTOR;
+        }
+      }
+
+      indicator_label_right = clamped_label_transform + label_width;
+
+      label.style.opacity = '1';
+      label.style.transform = `translateX(${clamp(clamped_label_transform, -1, indicator_max)}px)`;
+
+      entry.ref.style.opacity = '1';
+      entry.ref.style.transform = `translate(${clamped_transform}px, 0)`;
+    }
+
+    this.drawTimelineIntervals();
+    this._compressedViewCache = null;
+  }
+
+  // DRAW METHODS
+
+  hideSpanBar(span_bar: this['span_bars'][0], span_text: this['span_text'][0]) {
+    if (span_bar) {
+      span_bar.ref.style.transform = 'translate(-10000px, -10000px)';
+    }
+    if (span_text) {
+      span_text.ref.style.transform = 'translate(-10000px, -10000px)';
+    }
+  }
+
+  hideSpanArrow(span_arrow: this['span_arrows'][0]) {
+    if (!span_arrow) {
+      return;
+    }
+    span_arrow.ref.className = 'TraceArrow';
+    span_arrow.visible = false;
+    span_arrow.ref.style.opacity = '0';
+  }
+
+  drawSpanBar(span_bar: this['span_bars'][0]) {
+    if (!span_bar) {
+      return;
+    }
+
+    const span_transform = this.computeSpanCSSMatrixTransform(span_bar?.space);
+    span_bar.ref.style.transform = `matrix(${span_transform.join(',')}`;
+    const inverseScale = Math.round((1 / span_transform[0]) * 1e4) / 1e4;
+    span_bar.ref.style.setProperty(
+      '--inverse-span-scale',
+      // @ts-expect-error TS(2345): Argument of type 'number' is not assignable to par... Remove this comment to see the full error message
+      isNaN(inverseScale) ? 1 : inverseScale
+    );
+  }
+
+  drawSpanText(span_text: this['span_text'][0], node: BaseNode | undefined) {
+    if (!span_text || !node) {
+      return;
+    }
+
+    const [inside, text_transform] = this.computeSpanTextPlacement(
+      node,
+      span_text.space,
+      span_text.text
+    );
+
+    if (text_transform === null) {
+      return;
+    }
+
+    // We don't color the text white for missing instrumentation nodes
+    // as the text will be invisible on the light background.
+    span_text.ref.style.color = node.makeBarTextColor(!!inside, this.theme);
+    span_text.ref.style.transform = `translateX(${text_transform}px)`;
+  }
+
+  drawSpanArrow(span_arrow: this['span_arrows'][0], visible: boolean, position: 0 | 1) {
+    if (!span_arrow) {
+      return;
+    }
+
+    if (visible !== span_arrow.visible) {
+      span_arrow.visible = visible;
+      span_arrow.position = position;
+
+      if (visible) {
+        span_arrow.ref.className = `TraceArrow Visible ${span_arrow.position === 0 ? 'Left' : 'Right'}`;
+      } else {
+        span_arrow.ref.className = 'TraceArrow';
+      }
+    }
+  }
+
+  drawVerticalIndicators() {
+    for (const key in this.vertical_indicators) {
+      this.drawVerticalIndicator(this.vertical_indicators[key]!);
+    }
+  }
+
+  drawVerticalIndicator(indicator: VerticalIndicator) {
+    if (!indicator.ref) {
+      return;
+    }
+
+    if (indicator.timestamp === undefined) {
+      indicator.ref.style.opacity = '0';
+      return;
+    }
+
+    const placement = this.transformXFromTimestamp(indicator.timestamp);
+    indicator.ref.style.opacity = '1';
+    indicator.ref.style.transform = `translateX(${placement}px)`;
+  }
+
+  drawTimelineInterval(ref: HTMLElement | undefined, index: number) {
+    if (!ref) {
+      return;
+    }
+
+    const interval = this.intervals[index];
+    if (interval === undefined) {
+      ref.style.opacity = '0';
+      return;
+    }
+
+    const timestamp = this.view.to_origin + interval;
+
+    if (this.isTimestampInsideCollapsedGap(timestamp)) {
+      ref.style.opacity = '0';
+      return;
+    }
+
+    const placement = this.transformXFromTimestamp(timestamp);
+
+    if (this.timelineIndicatorOverlapsCollapsedGapMarker(ref, placement)) {
+      ref.style.opacity = '0';
+      return;
+    }
+
+    ref.style.opacity = '1';
+    ref.style.transform = `translateX(${placement}px)`;
+    const label = ref.children[0] as HTMLElement | undefined;
+    const duration = getDuration(interval / 1000, 2, true);
+
+    if (label && label?.textContent !== duration) {
+      label.textContent = duration;
+    }
+  }
+
+  timelineIndicatorOverlapsCollapsedGapMarker(
+    ref: HTMLElement,
+    indicatorPlacement: number
+  ): boolean {
+    if (!this.time_compression.enabled) {
+      return false;
+    }
+
+    const label = ref.children[0] as HTMLElement | undefined;
+    if (!label) {
+      return false;
+    }
+    const indicatorLeft = indicatorPlacement;
+    const indicatorRight = indicatorPlacement + label.offsetWidth;
+
+    for (const pos of this._collapsed_gap_marker_positions) {
+      if (!pos) {
+        continue;
+      }
+
+      if (
+        indicatorLeft < pos.right + COLLAPSED_GAP_MARKER_CLEARANCE_PX &&
+        indicatorRight > pos.left - COLLAPSED_GAP_MARKER_CLEARANCE_PX
+      ) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  isTimestampInsideCollapsedGap(timestamp: number): boolean {
+    if (!this.time_compression.enabled) {
+      return false;
+    }
+
+    return this.time_compression.gaps.some(
+      gap => timestamp > gap.start && timestamp < gap.end
+    );
+  }
+
+  private getCollapsedGapWidthPx(
+    gap: TraceTimeCompressionGap,
+    placement = this.transformXFromTimestamp(gap.start)
+  ): number {
+    const gapWidth = this.transformXFromTimestamp(gap.end) - placement;
+
+    if (!Number.isFinite(gapWidth) || gapWidth < 0) {
+      return COLLAPSED_GAP_WIDTH_PX;
+    }
+
+    return gapWidth;
+  }
+
+  drawTimelineIntervals() {
+    if (this.intervals[0] === 0 && this.intervals[1] === 0) {
+      this.drawEmptyTimelineIntervals();
+
+      for (let i = 2; i < this.timeline_indicators.length; i++) {
+        const indicator = this.timeline_indicators[i];
+        if (indicator) {
+          indicator.style.opacity = '0';
+        }
+      }
+      return;
+    }
+    for (let i = 0; i < this.timeline_indicators.length; i++) {
+      this.drawTimelineInterval(this.timeline_indicators[i], i);
+    }
+  }
+
+  drawCollapsedGapMarkers() {
+    const viewStart = this.view.to_origin + this.view.trace_view.x;
+    const viewEnd = viewStart + this.view.trace_view.width;
+
+    // Batch-read all marker widths before writing any styles to avoid layout thrashing
+    const widths: Array<number | undefined> = [];
+    for (let i = 0; i < this.collapsed_gap_markers.length; i++) {
+      const marker = this.collapsed_gap_markers[i];
+      widths[i] = marker ? marker.ref.offsetWidth : undefined;
+    }
+
+    // Now write styles and cache positions for timelineIndicatorOverlapsCollapsedGapMarker
+    for (let i = 0; i < this.collapsed_gap_markers.length; i++) {
+      const marker = this.collapsed_gap_markers[i];
+      if (!marker) {
+        this._collapsed_gap_marker_positions[i] = undefined;
+        continue;
+      }
+
+      if (
+        !this.time_compression.enabled ||
+        marker.gap.end < viewStart ||
+        marker.gap.start > viewEnd
+      ) {
+        marker.ref.style.opacity = '0';
+        this._collapsed_gap_marker_positions[i] = undefined;
+        continue;
+      }
+
+      const placement = this.transformXFromTimestamp(marker.gap.start);
+      const gapWidth = this.getCollapsedGapWidthPx(marker.gap, placement);
+      const markerWidth = widths[i] ?? 0;
+      const halfWidth = markerWidth / 2;
+      const left = placement + gapWidth / 2 - halfWidth;
+
+      marker.ref.style.opacity = '1';
+      marker.ref.style.transform = `translateX(${left}px)`;
+      this._collapsed_gap_marker_positions[i] = {
+        left,
+        right: left + markerWidth,
+        placement,
+      };
+    }
+  }
+
+  drawCollapsedGapMarker(marker: this['collapsed_gap_markers'][0]) {
+    if (!marker) {
+      return;
+    }
+
+    const viewStart = this.view.to_origin + this.view.trace_view.x;
+    const viewEnd = viewStart + this.view.trace_view.width;
+
+    if (
+      !this.time_compression.enabled ||
+      marker.gap.end < viewStart ||
+      marker.gap.start > viewEnd
+    ) {
+      marker.ref.style.opacity = '0';
+      return;
+    }
+
+    const placement = this.transformXFromTimestamp(marker.gap.start);
+    const gapWidth = this.getCollapsedGapWidthPx(marker.gap, placement);
+    const halfWidth = marker.ref.offsetWidth / 2;
+    marker.ref.style.opacity = '1';
+    marker.ref.style.transform = `translateX(${placement + gapWidth / 2 - halfWidth}px)`;
+  }
+
+  // Special case for when the timeline is empty - we want to show the first and last
+  // timeline indicators as 0ms instead of just a single 0ms indicator as it gives better
+  // context to the user that start and end are both 0ms. If we were to draw a single 0ms
+  // indicator, it leaves ambiguity for the user to think that the end might be missing
+  drawEmptyTimelineIntervals() {
+    const first = this.timeline_indicators[0];
+    const last = this.timeline_indicators[1];
+
+    if (first && last) {
+      first.style.opacity = '1';
+      last.style.opacity = '1';
+      first.style.transform = 'translateX(0)';
+
+      // 43 px offset is the width of a 0.00ms label, since we usually anchor the label to the right
+      // side of the indicator, we need to offset it by the width of the label to make it look like
+      // it is at the end of the timeline
+      last.style.transform = `translateX(${this.view.trace_physical_space.width - 43}px)`;
+      const firstLabel = first.children[0] as HTMLElement | undefined;
+      if (firstLabel) {
+        firstLabel.textContent = '0.00ms';
+      }
+      const lastLabel = last.children[0] as HTMLElement | undefined;
+      const lastLine = last.children[1] as HTMLElement | undefined;
+      if (lastLine && lastLabel) {
+        lastLabel.textContent = '0.00ms';
+        lastLine.style.opacity = '0';
+      }
+    }
+  }
+
+  drawContainers(
+    container: HTMLElement | null,
+    options: {list_width: number; span_list_width: number}
+  ) {
+    if (!container) {
+      return;
+    }
+
+    container.style.setProperty('--trace-scrollbar-width', this.scrollbar_width + 'px');
+    if (this.pinnedColumnLayout) {
+      const width = this.view.trace_container_physical_space.width - this.scrollbar_width;
+      container.style.setProperty(
+        '--pinned-list-width',
+        options.list_width * width + 'px'
+      );
+      container.style.setProperty(
+        '--pinned-attribute-width',
+        this.columns.attribute.width * width + 'px'
+      );
+    }
+
+    if (this.last_list_column_width !== options.list_width) {
+      container.style.setProperty(
+        '--list-column-width',
+        // @ts-expect-error TS(2345): Argument of type 'number' is not assignable to par... Remove this comment to see the full error message
+        options.list_width
+      );
+      this.last_list_column_width = options.list_width;
+    }
+    if (this.last_span_column_width !== options.span_list_width) {
+      container.style.setProperty(
+        '--span-column-width',
+        // @ts-expect-error TS(2345): Argument of type 'number' is not assignable to par... Remove this comment to see the full error message
+        options.span_list_width
+      );
+      this.last_span_column_width = options.span_list_width;
+    }
+
+    if (this.indicator_container) {
+      const correction =
+        (this.scrollbar_width / this.view.trace_container_physical_space.width) *
+        options.span_list_width;
+      this.indicator_container.style.transform = `translateX(${-this.scrollbar_width}px)`;
+      const new_indicator_container_width = options.span_list_width - correction;
+
+      if (this.last_indicator_width !== new_indicator_container_width) {
+        this.indicator_container.style.width = new_indicator_container_width * 100 + '%';
+        this.last_indicator_width = new_indicator_container_width;
+      }
+    }
+
+    const dividerPosition =
+      Math.round(
+        (options.list_width *
+          (this.view.trace_container_physical_space.width - this.scrollbar_width) -
+          DIVIDER_WIDTH / 2 -
+          1) *
+          10
+      ) / 10;
+
+    if (this.horizontal_scrollbar_container) {
+      this.horizontal_scrollbar_container.style.width =
+        (dividerPosition / this.view.trace_container_physical_space.width) * 100 + '%';
+    }
+
+    if (this.divider) {
+      this.divider.style.transform = `translate(
+        ${dividerPosition}px, 0)`;
+    }
+  }
+
+  last_list_column_width = 0;
+  last_span_column_width = 0;
+  drawInvisibleBars() {
+    for (let i = 0; i < this.invisible_bars.length; i++) {
+      const invisible_bar = this.invisible_bars[i];
+      const text = this.span_text[i];
+
+      if (invisible_bar) {
+        const span_transform = this.computeSpanCSSMatrixTransform(invisible_bar?.space);
+        invisible_bar.ref.style.transform = `matrix(${span_transform.join(',')}`;
+        const inverseScale = Math.round((1 / span_transform[0]) * 1e4) / 1e4;
+        invisible_bar.ref.style.setProperty(
+          '--inverse-span-scale',
+          // @ts-expect-error TS(2345): Argument of type 'number' is not assignable to par... Remove this comment to see the full error message
+          isNaN(inverseScale) ? 1 : inverseScale
+        );
+      }
+
+      if (text) {
+        const [inside, text_transform] = this.computeSpanTextPlacement(
+          this.columns.list.column_nodes[i]!,
+          text.space,
+          text.text
+        );
+
+        if (text_transform === null) {
+          return;
+        }
+
+        text.ref.style.color = inside ? 'white' : '';
+        text.ref.style.transform = `translateX(${text_transform}px)`;
+      }
+    }
+  }
+
+  // END DRAW METHODS
+
+  teardown() {
+    this.row_measurer.off('max', this.onNewMaxRowWidth);
+
+    if (this.resize_observer) {
+      this.resize_observer.disconnect();
+      this.resize_observer = null;
+      this.container = null;
+    }
+  }
+}
+
+// Computes a min and max icon timestamp. This effectively extends or reduces the hitbox
+// of the span to include the icon. We need this because when the icon is close to the edge
+// it can extend it and cause overlaps with duration labels
+function getIconTimestamps(
+  node: BaseNode,
+  span_space: [number, number],
+  measureText: (text: string) => number,
+  getTraceIconPlacement: (timestamp: number, iconWidthPx: number) => TraceIconPlacement
+): [number, number] {
+  let min_icon_timestamp = span_space[0];
+  let max_icon_timestamp = span_space[0] + span_space[1];
+
+  if (!node.errors.size && !node.occurrences.size) {
+    return [min_icon_timestamp, max_icon_timestamp];
+  }
+
+  let max_icon_width_config_space = 0;
+
+  for (const {issue, additionalIssueCount} of getRenderableTraceIssues(
+    node,
+    node.errors,
+    node.occurrences,
+    span_space
+  )) {
+    const icon_width_px =
+      additionalIssueCount === undefined
+        ? TRACE_ICON_WIDTH
+        : getTraceIconGroupWidth(additionalIssueCount, measureText);
+    const timestamp = getTraceIssueTimestamp(issue, span_space);
+    const {bounds} = getTraceIconPlacement(timestamp, icon_width_px);
+    const [icon_left, icon_right] = bounds;
+
+    min_icon_timestamp = Math.min(min_icon_timestamp, icon_left);
+    max_icon_timestamp = Math.max(max_icon_timestamp, icon_right);
+    max_icon_width_config_space = Math.max(
+      max_icon_width_config_space,
+      icon_right - icon_left
+    );
+  }
+
+  min_icon_timestamp = clamp(
+    min_icon_timestamp,
+    span_space[0] - max_icon_width_config_space,
+    span_space[0] + span_space[1] + max_icon_width_config_space
+  );
+  max_icon_timestamp = clamp(
+    max_icon_timestamp,
+    span_space[0] - max_icon_width_config_space,
+    span_space[0] + span_space[1] + max_icon_width_config_space
+  );
+
+  return [min_icon_timestamp, max_icon_timestamp];
+}
+
+export class VirtualizedList {
+  container: HTMLElement | null = null;
+
+  scrollHeight = 0;
+  scrollTop = 0;
+
+  scrollToRow(index: number, anchor?: ViewManagerScrollAnchor) {
+    if (!this.container) {
+      return;
+    }
+
+    let position = index * 24;
+
+    const top = this.container.scrollTop;
+    const height = this.scrollHeight;
+
+    if (anchor === 'top') {
+      position = index * 24;
+    } else if (anchor === 'center') {
+      position = position - height / 2;
+    } else if (anchor === 'center if outside') {
+      if (position < top) {
+        // Element is above the view
+        position = position - height / 2;
+      } else if (position > top + height) {
+        // Element below the view
+        position = position - height / 2;
+      } else {
+        // Element is inside the view
+        return;
+      }
+    } else {
+      // If no anchor is provided, we default to 'auto'
+      if (position > top + height) {
+        position = index * 24 - height + 24;
+      } else if (position >= top) {
+        return;
+      }
+    }
+
+    this.container.scrollTop = position;
+    dispatchJestScrollUpdate(this.container);
+  }
+}
+
+// Jest does not implement scroll updates, however since we have the
+// middleware to handle scroll updates, we can dispatch a scroll event ourselves
+function dispatchJestScrollUpdate(container: HTMLElement) {
+  if (!container) {
+    return;
+  }
+  if (process.env.NODE_ENV !== 'test') {
+    return;
+  }
+  // since we do not tightly control how browsers handle event dispatching, dispatch it async
+  window.requestAnimationFrame(() => {
+    container.dispatchEvent(new CustomEvent('scroll'));
+  });
+}

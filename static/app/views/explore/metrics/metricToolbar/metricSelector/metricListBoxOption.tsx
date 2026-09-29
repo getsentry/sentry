@@ -42,6 +42,7 @@ export function MetricListBoxOption({
     listState,
     ref
   );
+  // oxlint-disable-next-line react/refs
   const optionPropsMerged = mergeProps(optionProps, {
     onMouseEnter: () => {
       listState.selectionManager.setFocused(true);

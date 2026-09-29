@@ -8,7 +8,6 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import type {FieldValue, FormModel} from 'sentry/components/forms/model';
-import {DEFAULT_TOAST_DURATION} from 'sentry/constants';
 import {tct} from 'sentry/locale';
 
 /**
@@ -54,10 +53,6 @@ export function addUndoableFormChangeMessage(
       ? tct('Changed [fieldName] from [oldValue] to [newValue]', tctArgsSuccess)
       : tct('Changed [fieldName]', tctArgsSuccess),
     {
-      formModel: {
-        model,
-        id: fieldName,
-      },
       undo: () => {
         if (!model || !fieldName) {
           return;
@@ -103,10 +98,7 @@ export function addUndoableFormChangeMessage(
             showChangeText
               ? tct('Restored [fieldName] from [oldValue] to [newValue]', tctArgsRestored)
               : tct('Restored [fieldName]', tctArgsRestored),
-            'success',
-            {
-              duration: DEFAULT_TOAST_DURATION,
-            }
+            'success'
           );
         });
       },

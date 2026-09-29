@@ -1,5 +1,5 @@
 import type {FieldValue} from 'sentry/components/forms/types';
-import type {IntegrationIssueConfig, IssueConfigField} from 'sentry/types/integrations';
+import type {IntegrationIssueConfig} from 'sentry/types/integrations';
 
 export type ExternalIssueAction = 'create' | 'link';
 
@@ -31,7 +31,7 @@ export function getDynamicFields({
   const config = integrationDetails?.[getConfigName(action)];
   return Object.fromEntries(
     (config || [])
-      .filter((field: IssueConfigField) => field.updatesForm)
-      .map((field: IssueConfigField) => [field.name, field.default ?? null])
+      .filter(field => field.updatesForm)
+      .map(field => [field.name, field.default ?? null])
   );
 }

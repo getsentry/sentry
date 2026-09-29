@@ -105,6 +105,7 @@ function useTokenValidation(
   // left the token.
   useEffect(() => {
     if (!isActive && !hasLeft) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setHasLeft(true);
     }
   }, [hasLeft, isActive]);

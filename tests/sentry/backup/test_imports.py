@@ -729,7 +729,14 @@ class SignalingTests(ImportTestCase):
         owner = self.create_exhaustive_user("owner")
         invited = self.create_exhaustive_user("invited")
         member = self.create_exhaustive_user("member")
-        self.create_exhaustive_organization("some-org", owner, invited, [member])
+        organization = self.create_exhaustive_organization("some-org", owner, invited, [member])
+        project = Project.objects.get(organization=organization)
+        self.create_project_key(
+            project=project,
+            label="Secondary",
+            public_key="a" * 32,
+            secret_key="b" * 32,
+        )
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
@@ -742,11 +749,17 @@ class SignalingTests(ImportTestCase):
 
         assert OrganizationMember.objects.count() == 3
 
-        # The exhaustive org has 1 project which automatically gets 1 key and 3 options.
+        # The exhaustive org has 1 project with 2 keys and 3 options.
         assert Project.objects.count() == 1
         assert Project.objects.filter(name="project-some-org").exists()
 
-        assert ProjectKey.objects.count() == 1
+        assert ProjectKey.objects.count() == 2
+        assert ProjectKey.objects.filter(
+            project=imported_organization.project_set.get(),
+            label="Secondary",
+            public_key="a" * 32,
+            secret_key="b" * 32,
+        ).exists()
         assert ProjectOption.objects.count() == 1
         assert ProjectOption.objects.filter(key="sentry:option-epoch").exists()
 

@@ -22,17 +22,15 @@ from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.net.http import connection_from_url
 from sentry.seer.autofix.autofix import get_trace_tree_for_event
-from sentry.seer.autofix.autofix_agent import (
-    AutofixStep,
-    NoSeerQuotaException,
-    trigger_autofix_agent,
-)
+from sentry.seer.autofix.autofix_agent import trigger_autofix_agent
 from sentry.seer.autofix.constants import (
     AutofixAutomationTuningSettings,
     AutofixReferrer,
     FixabilityScoreThresholds,
     SeerAutomationSource,
 )
+from sentry.seer.autofix.exceptions import NoSeerQuotaException
+from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     is_seer_autotriggered_autofix_rate_limited,
@@ -60,18 +58,19 @@ from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.utils.cache import cache
 from sentry.utils.locking import UnableToAcquireLock
+from sentry.utils.settings import is_self_hosted
 from sentry.utils.tracing import start_span
 
 logger = logging.getLogger(__name__)
 
 auto_run_source_map = {
     SeerAutomationSource.POST_PROCESS: "issue_summary_on_post_process_fixability",
-    SeerAutomationSource.NIGHT_SHIFT: "night_shift",
+    SeerAutomationSource.AGENTIC_TRIAGE: "night_shift",
 }
 
 referrer_map = {
     SeerAutomationSource.POST_PROCESS: AutofixReferrer.ISSUE_SUMMARY_POST_PROCESS_FIXABILITY,
-    SeerAutomationSource.NIGHT_SHIFT: AutofixReferrer.NIGHT_SHIFT,
+    SeerAutomationSource.AGENTIC_TRIAGE: AutofixReferrer.AGENTIC_TRIAGE,
 }
 
 STOPPING_POINT_HIERARCHY = {
@@ -587,8 +586,8 @@ def get_issue_summary(
     """
     if user is None:
         user = AnonymousUser()
-    if not features.has("organizations:gen-ai-features", group.organization, actor=user):
-        return {"detail": "Feature flag not enabled"}, 400
+    if is_self_hosted():
+        return {"detail": "Seer is not available on this installation."}, 400
 
     if group.organization.get_option("sentry:hide_ai_features"):
         return {"detail": "AI features are disabled for this organization."}, 403

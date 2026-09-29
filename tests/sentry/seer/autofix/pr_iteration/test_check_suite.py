@@ -1,6 +1,8 @@
+from inspect import signature
 from unittest.mock import ANY, MagicMock, patch
 
 import orjson
+from scm.helpers import iter_all_pages
 
 from sentry.scm.types import CheckSuiteEvent
 from sentry.seer.agent.client_models import MemoryBlock, Message, RepoPRState, SeerRunState
@@ -17,6 +19,7 @@ from sentry.seer.autofix.pr_iteration.check_suites import (
     resolve_check_suite_flag_gate,
     resolve_check_suite_repositories,
     should_defer_pr_iteration,
+    sweep_check_runs,
 )
 from sentry.seer.autofix.pr_iteration.constants import (
     CAP_ASSIGN_FLAG,
@@ -26,9 +29,14 @@ from sentry.seer.autofix.pr_iteration.constants import (
     MANUAL_FLAG,
     REVIEW_REQUEST_FLAG,
 )
-from sentry.seer.autofix.pr_iteration.feedback import Feedback, serialize_feedback
+from sentry.seer.autofix.pr_iteration.feedback import (
+    Feedback,
+    automated_iteration_allowed,
+    serialize_feedback,
+)
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import (
     ConsumeTask,
+    ConsumeTriggerSource,
     Decision,
     TriggerDecision,
 )
@@ -98,6 +106,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.group = self.create_group(project=self.project)
+        self.create_seer_run(organization=self.organization, seer_run_state_id=67890)
         # The gate itself is covered by ``CheckSuiteFlagGateTest``; these tests are
         # about what each branch does with an event that is already through it.
         gate_patcher = patch(
@@ -140,6 +149,18 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
             repo_pr_states={"owner/repo": RepoPRState(repo_name="owner/repo", commit_sha="abc")},
             metadata={"group_id": self.group.id},
         )
+
+    def _resolved_green(self) -> MagicMock:
+        """A resolved green suite carrying real ids.
+
+        ``bootstrap_iteration`` looks the ``SeerRun`` up by run and organization,
+        so those two cannot be bare mock attributes.
+        """
+        resolved = MagicMock()
+        resolved.organization = self.organization
+        resolved.autofix_run.run_state = self._agent_state()
+        resolved.autofix_run.group_id = self.group.id
+        return resolved
 
     @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
     def test_skips_non_completed_action(self, mock_get_state: MagicMock) -> None:
@@ -198,7 +219,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         _mock_peek: MagicMock,
     ) -> None:
         event = self._event(self._raw(), conclusion="success")
-        resolved = MagicMock()
+        resolved = self._resolved_green()
         ctx = MagicMock()
         mock_resolve.return_value = resolved
         mock_confirm.return_value = ctx
@@ -239,7 +260,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
             REVIEW_REQUESTS_EXTRA,
         )
 
-        resolved = MagicMock()
+        resolved = self._resolved_green()
         ctx = MagicMock()
         mock_resolve.return_value = resolved
         mock_confirm.return_value = ctx
@@ -276,7 +297,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         _mock_flag: MagicMock,
         _mock_peek: MagicMock,
     ) -> None:
-        mock_resolve.return_value = MagicMock()
+        mock_resolve.return_value = self._resolved_green()
 
         pr_iteration_from_check_suite_listener(self._event(self._raw(), conclusion="success"))
 
@@ -303,7 +324,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         _mock_peek: MagicMock,
     ) -> None:
         """The resolve no longer implies the review-request flag; the caller checks it."""
-        mock_resolve.return_value = MagicMock()
+        mock_resolve.return_value = self._resolved_green()
 
         pr_iteration_from_check_suite_listener(self._event(self._raw(), conclusion="success"))
 
@@ -331,7 +352,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         _mock_flag: MagicMock,
         _mock_peek: MagicMock,
     ) -> None:
-        mock_resolve.return_value = MagicMock()
+        mock_resolve.return_value = self._resolved_green()
         pr_iteration_from_check_suite_listener(self._event(self._raw(), conclusion="success"))
 
         mock_mark_ready.assert_not_called()
@@ -366,7 +387,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         mock_capture.assert_called_once()
         mock_get_state.assert_not_called()
 
-    @patch(f"{CHECK_PATH}.try_enqueue_autofix_feedback")
+    @patch(f"{CHECK_PATH}.enqueue_autofix_feedback")
     @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id", return_value=None)
     @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_repositories")
     def test_skips_pr_without_run(
@@ -382,7 +403,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
 
         mock_enqueue.assert_not_called()
 
-    @patch(f"{CHECK_PATH}.try_enqueue_autofix_feedback")
+    @patch(f"{CHECK_PATH}.enqueue_autofix_feedback")
     @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
     @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_repositories")
     def test_skips_run_missing_group_id(
@@ -402,15 +423,15 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         mock_enqueue.assert_not_called()
 
     @patch(f"{CHECK_PATH}.assign_user_for_exhausted_cap")
-    @patch(TRIGGER_CONSUME_PATH)
-    @patch(f"{CHECK_PATH}.try_enqueue_autofix_feedback", return_value=False)
+    @patch(TRIGGER_CONSUME_PATH, return_value=TriggerDecision(task=None, reason="hard_cap_reached"))
+    @patch(f"{CHECK_PATH}.enqueue_autofix_feedback")
     @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
     @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_repositories")
-    def test_does_not_trigger_when_not_enqueued(
+    def test_hands_the_pr_to_a_human_at_the_hard_cap(
         self,
         mock_resolve: MagicMock,
         mock_get_state: MagicMock,
-        _mock_enqueue: MagicMock,
+        mock_enqueue: MagicMock,
         mock_trigger_consume: MagicMock,
         mock_assign: MagicMock,
     ) -> None:
@@ -420,17 +441,44 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
 
         pr_iteration_from_check_suite_listener(self._event(raw))
 
-        mock_trigger_consume.assert_not_called()
-        # Rejected feedback routes to the cap-exhausted handler, which decides
-        # itself whether this is the hard-cap case that needs a human.
+        # Queued regardless: the gate is at trigger time, and the row keeps the
+        # reason nothing will drain it.
+        mock_enqueue.assert_called_once()
+        mock_trigger_consume.assert_called_once()
         mock_assign.assert_called_once()
         event_arg, resolved_arg = mock_assign.call_args[0]
         assert event_arg.check_suite.head_sha == "abc"
         assert resolved_arg.run_state.run_id == 67890
 
     @patch(f"{CHECK_PATH}.assign_user_for_exhausted_cap")
-    @patch(TRIGGER_CONSUME_PATH)
-    @patch(f"{CHECK_PATH}.try_enqueue_autofix_feedback", return_value=True)
+    @patch(TRIGGER_CONSUME_PATH, return_value=TriggerDecision(task=None, reason="stale_head"))
+    @patch(f"{CHECK_PATH}.enqueue_autofix_feedback")
+    @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_repositories")
+    def test_a_stale_suite_is_queued_but_not_handed_off(
+        self,
+        mock_resolve: MagicMock,
+        mock_get_state: MagicMock,
+        mock_enqueue: MagicMock,
+        _mock_trigger_consume: MagicMock,
+        mock_assign: MagicMock,
+    ) -> None:
+        mock_resolve.return_value = [MagicMock(organization_id=self.organization.id, id=2)]
+        mock_get_state.return_value = self._agent_state()
+        raw = self._raw(pull_requests=[own_repo_pr(555)])
+
+        pr_iteration_from_check_suite_listener(self._event(raw))
+
+        mock_enqueue.assert_called_once()
+        # A failure on an older commit says nothing about the current head.
+        mock_assign.assert_not_called()
+
+    @patch(f"{CHECK_PATH}.assign_user_for_exhausted_cap")
+    @patch(
+        TRIGGER_CONSUME_PATH,
+        return_value=TriggerDecision(task=ConsumeTask.Now, reason="sweep_complete"),
+    )
+    @patch(f"{CHECK_PATH}.enqueue_autofix_feedback")
     @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
     @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_repositories")
     def test_enqueues_and_triggers_for_matched_run(
@@ -465,7 +513,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
 
     @patch(f"{CHECK_SUITES_PATH}.sentry_sdk.capture_exception")
     @patch(TRIGGER_CONSUME_PATH)
-    @patch(f"{CHECK_PATH}.try_enqueue_autofix_feedback", return_value=True)
+    @patch(f"{CHECK_PATH}.enqueue_autofix_feedback")
     @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
     @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_repositories")
     def test_seer_error_on_one_pr_continues_to_remaining(
@@ -491,7 +539,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         mock_trigger_consume.assert_called_once()
 
     @patch(TRIGGER_CONSUME_PATH)
-    @patch(f"{CHECK_PATH}.try_enqueue_autofix_feedback", return_value=True)
+    @patch(f"{CHECK_PATH}.enqueue_autofix_feedback")
     @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
     @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_repositories")
     def test_tries_each_org_until_agent_state_found(
@@ -539,7 +587,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
     @patch(f"{CHECK_PATH}.metrics")
     @patch(f"{CHECK_PATH}.logger")
     @patch(f"{CHECK_PATH}.sentry_sdk.capture_exception")
-    @patch(f"{CHECK_PATH}.try_enqueue_autofix_feedback", side_effect=RuntimeError("redis is down"))
+    @patch(f"{CHECK_PATH}.enqueue_autofix_feedback", side_effect=RuntimeError("redis is down"))
     @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
     @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_repositories")
     def test_an_unexpected_failure_is_reported_against_the_run_it_broke(
@@ -573,7 +621,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
 
     @patch(f"{CHECK_PATH}.sentry_sdk.capture_exception")
     @patch(TRIGGER_CONSUME_PATH, side_effect=RuntimeError("celery is down"))
-    @patch(f"{CHECK_PATH}.try_enqueue_autofix_feedback", return_value=True)
+    @patch(f"{CHECK_PATH}.enqueue_autofix_feedback")
     @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
     @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_repositories")
     def test_an_unexpected_failure_is_not_re_raised(
@@ -601,6 +649,7 @@ class GreenCheckSuiteDeferredIterationTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.group = self.create_group(project=self.project)
+        self.create_seer_run(organization=self.organization, seer_run_state_id=67890)
         gate_patcher = patch(
             f"{CHECK_PATH}.resolve_check_suite_flag_gate",
             return_value=CheckSuiteFlagGate(
@@ -711,8 +760,7 @@ class GreenCheckSuiteDeferredIterationTest(TestCase):
             organization_id=self.organization.id,
             feedback=parked.feedback,
             run_state=resolved.autofix_run.run_state,
-            bypass=True,
-            triggered_by="green_check_suite",
+            source=ConsumeTriggerSource.GREEN_CHECK_SUITE_DEFER,
         )
         mock_defer.assert_called_once_with(resolved)
         mock_confirm.assert_not_called()
@@ -742,7 +790,7 @@ class GreenCheckSuiteDeferredIterationTest(TestCase):
                 "sentry_organization_id": self.organization.id,
                 "sentry_group_id": self.group.id,
                 "scm_infos": [{"scm_repo_full_name": "owner/repo"}],
-                "triggered_by": "green_check_suite",
+                "trigger_source": ConsumeTriggerSource.GREEN_CHECK_SUITE_DEFER,
                 "outcome": "not_triggered",
                 "reason": "no_parked_feedback",
                 "countdown": None,
@@ -1198,24 +1246,28 @@ class ResolveCheckSuiteAutofixRunTest(TestCase):
 
 
 def _run_state(*, blocks: list[MemoryBlock] | None = None) -> SeerRunState:
+    """A run whose PR is on the suite's head, so the trigger's head gate passes."""
     return SeerRunState(
         run_id=1,
         blocks=blocks or [],
         status="completed",
         updated_at="2024-01-01T00:00:00Z",
+        repo_pr_states={"owner/repo": RepoPRState(repo_name="owner/repo", commit_sha="abc")},
     )
 
 
-def _autofix_run(*, blocks: list[MemoryBlock] | None = None) -> CheckSuiteAutofixRun:
+def _autofix_run(
+    *, blocks: list[MemoryBlock] | None = None, group_id: int = 1
+) -> CheckSuiteAutofixRun:
     return CheckSuiteAutofixRun(
         repository=MagicMock(organization_id=1, id=2),
         run_state=_run_state(blocks=blocks or []),
         pr_id=1,
-        group_id=1,
+        group_id=group_id,
     )
 
 
-def _check_suite_source() -> CheckSuiteFeedbackSource:
+def _check_suite_source(*, group_id: int = 1) -> CheckSuiteFeedbackSource:
     source = CheckSuiteFeedbackSource(
         event={
             "check_suite": {
@@ -1232,7 +1284,8 @@ def _check_suite_source() -> CheckSuiteFeedbackSource:
         },
     )
     with patch(
-        f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_autofix_run", return_value=_autofix_run()
+        f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_autofix_run",
+        return_value=_autofix_run(group_id=group_id),
     ):
         _ = source.autofix_run
     return source
@@ -1299,47 +1352,31 @@ class CheckSuiteHardCapTest(TestCase):
         self._options_ctx.__enter__()
         self.addCleanup(lambda: self._options_ctx.__exit__(None, None, None))
 
-    def _source(self) -> CheckSuiteFeedbackSource:
-        return _check_suite_source()
+    def _gate(self, blocks: list[MemoryBlock]) -> Decision:
+        return automated_iteration_allowed(_run_state(blocks=blocks))
 
-    def _run_state_on_head(self, *, blocks: list[MemoryBlock]) -> SeerRunState:
-        state = _run_state(blocks=blocks)
-        state.repo_pr_states = {"owner/repo": RepoPRState(repo_name="owner/repo", commit_sha="abc")}
-        return state
-
-    def test_none_when_cap_reached(self) -> None:
+    def test_run_gate_rejects_when_cap_reached(self) -> None:
         blocks = [_iteration_block(i, _check_suite_feedback()) for i in range(self.CAP)]
 
-        assert self._source().should_trigger(_run_state(blocks=blocks)) == TriggerDecision(
-            task=None, reason="hard_cap_reached"
+        assert self._gate(blocks) == Decision(ok=False, reason="hard_cap_reached")
+
+    def test_run_gate_rejects_when_project_disabled_pr_iteration(self) -> None:
+        group = self.create_group()
+        group.project.update_option("sentry:seer_pr_iteration", False)
+        run_state = _run_state(blocks=[])
+        run_state.metadata = {"group_id": group.id}
+
+        assert automated_iteration_allowed(run_state) == Decision(
+            ok=False, reason="project_disabled"
         )
 
-    def test_should_queue_false_when_cap_reached(self) -> None:
-        blocks = [_iteration_block(i, _check_suite_feedback()) for i in range(self.CAP)]
-
-        assert self._source().should_queue(self._run_state_on_head(blocks=blocks)) == Decision(
-            ok=False, reason="hard_cap_reached"
-        )
-
-    @patch(f"{CHECK_SUITES_PATH}.iter_all_pages", return_value=[{"data": []}])
-    @patch(f"{CHECK_SUITES_PATH}.ListCheckRunsForRefProtocol", object)
-    @patch("sentry.scm.factory.new")
-    def test_not_capped_when_fewer_than_cap_iterations(self, mock_new: MagicMock, _pages) -> None:
-        mock_new.return_value = MagicMock()
+    def test_not_capped_when_fewer_than_cap_iterations(self) -> None:
         blocks = [_iteration_block(i, _check_suite_feedback()) for i in range(self.CAP - 1)]
 
-        assert self._source().should_trigger(_run_state(blocks=blocks)) == TriggerDecision(
-            task=ConsumeTask.Now, reason="sweep_complete"
-        )
+        assert self._gate(blocks) == Decision(ok=True, reason="run_allows")
 
-    @patch(f"{CHECK_SUITES_PATH}.iter_all_pages", return_value=[{"data": []}])
-    @patch(f"{CHECK_SUITES_PATH}.ListCheckRunsForRefProtocol", object)
-    @patch("sentry.scm.factory.new")
-    def test_not_capped_when_one_iteration_has_human_feedback(
-        self, mock_new: MagicMock, _pages
-    ) -> None:
+    def test_not_capped_when_one_iteration_has_human_feedback(self) -> None:
         # A human UI iteration mixed into the last N breaks the automated streak.
-        mock_new.return_value = MagicMock()
         blocks = [_iteration_block(i, _check_suite_feedback()) for i in range(self.CAP - 1)]
         blocks.append(
             _iteration_block(
@@ -1349,17 +1386,13 @@ class CheckSuiteHardCapTest(TestCase):
             )
         )
 
-        assert self._source().should_trigger(_run_state(blocks=blocks)) == TriggerDecision(
-            task=ConsumeTask.Now, reason="sweep_complete"
-        )
+        assert self._gate(blocks) == Decision(ok=True, reason="run_allows")
 
     def test_only_last_n_iterations_considered(self) -> None:
         blocks = [_iteration_block(0, Feedback(source=UserUIFeedbackSource(user_id=1)))]
         blocks += [_iteration_block(i, _check_suite_feedback()) for i in range(1, self.CAP + 1)]
 
-        assert self._source().should_trigger(_run_state(blocks=blocks)) == TriggerDecision(
-            task=None, reason="hard_cap_reached"
-        )
+        assert self._gate(blocks) == Decision(ok=False, reason="hard_cap_reached")
 
     def test_none_when_mixed_automated_streak_reaches_cap(self) -> None:
         # Check suites and bot reviews share one streak: a mix of the two that
@@ -1368,19 +1401,11 @@ class CheckSuiteHardCapTest(TestCase):
         blocks = [_iteration_block(i, _check_suite_feedback()) for i in range(self.CAP - 1)]
         blocks.append(_iteration_block(self.CAP - 1, _review_comment_feedback(author_is_bot=True)))
 
-        assert self._source().should_trigger(_run_state(blocks=blocks)) == TriggerDecision(
-            task=None, reason="hard_cap_reached"
-        )
+        assert self._gate(blocks) == Decision(ok=False, reason="hard_cap_reached")
 
-    @patch(f"{CHECK_SUITES_PATH}.iter_all_pages", return_value=[{"data": []}])
-    @patch(f"{CHECK_SUITES_PATH}.ListCheckRunsForRefProtocol", object)
-    @patch("sentry.scm.factory.new")
-    def test_not_capped_when_human_review_breaks_mixed_streak(
-        self, mock_new: MagicMock, _pages
-    ) -> None:
+    def test_not_capped_when_human_review_breaks_mixed_streak(self) -> None:
         # A human review mixed into the automated (check-suite + bot-review) streak
         # resets it, so check-suite iteration resumes even at CAP iterations.
-        mock_new.return_value = MagicMock()
         blocks = [_iteration_block(0, _check_suite_feedback())]
         blocks.append(_iteration_block(1, _review_comment_feedback(author_is_bot=False)))
         blocks += [
@@ -1388,38 +1413,22 @@ class CheckSuiteHardCapTest(TestCase):
             for i in range(2, self.CAP + 1)
         ]
 
-        assert self._source().should_trigger(_run_state(blocks=blocks)) == TriggerDecision(
-            task=ConsumeTask.Now, reason="sweep_complete"
-        )
+        assert self._gate(blocks) == Decision(ok=True, reason="run_allows")
 
-    @patch(f"{CHECK_SUITES_PATH}.iter_all_pages", return_value=[{"data": []}])
-    @patch(f"{CHECK_SUITES_PATH}.ListCheckRunsForRefProtocol", object)
-    @patch("sentry.scm.factory.new")
-    def test_cap_disabled_when_zero(self, mock_new: MagicMock, _pages) -> None:
-        mock_new.return_value = MagicMock()
+    def test_cap_disabled_when_zero(self) -> None:
         blocks = [_iteration_block(i, _check_suite_feedback()) for i in range(10)]
 
         with self.options({"autofix.pr-iteration.max-iterations": 0}):
-            assert self._source().should_trigger(_run_state(blocks=blocks)) == TriggerDecision(
-                task=ConsumeTask.Now, reason="sweep_complete"
-            )
+            assert self._gate(blocks) == Decision(ok=True, reason="run_allows")
 
-    @patch(f"{CHECK_SUITES_PATH}.iter_all_pages", return_value=[{"data": []}])
-    @patch(f"{CHECK_SUITES_PATH}.ListCheckRunsForRefProtocol", object)
-    @patch("sentry.scm.factory.new")
-    def test_empty_after_parse_iteration_counts_as_automated(
-        self, mock_new: MagicMock, _pages
-    ) -> None:
-        mock_new.return_value = MagicMock()
+    def test_empty_after_parse_iteration_counts_as_automated(self) -> None:
         # An iteration whose feedback parses to [] is a metadata gap, not human
         # input: it must not reset the automated streak (``iteration_is_automated``
         # treats no-feedback as automated), so a full window still trips the cap.
         blocks = [_iteration_block(i, _check_suite_feedback()) for i in range(self.CAP - 1)]
         blocks.append(_empty_feedback_iteration_block(self.CAP - 1))
 
-        assert self._source().should_trigger(_run_state(blocks=blocks)) == TriggerDecision(
-            task=None, reason="hard_cap_reached"
-        )
+        assert self._gate(blocks) == Decision(ok=False, reason="hard_cap_reached")
 
 
 class CheckSuiteFlagGateTest(TestCase):
@@ -1619,6 +1628,97 @@ class CheckSuiteFlagGateTest(TestCase):
         resolve_check_suite_repositories(event)
 
         mock_contexts.assert_called_once()
+
+
+class SweepCheckRunsCostTest(TestCase):
+    """The sweep's GitHub cost is the thing we budget for, so pin it down."""
+
+    def _page(self, runs: list[dict]) -> dict:
+        return {
+            "data": runs,
+            "type": "github",
+            "raw": {"headers": None, "data": {}},
+            "meta": {"next_cursor": "2"},
+        }
+
+    def _run(self, *, status: str = "completed", conclusion: str | None = "success") -> dict:
+        return {"id": 1, "name": "test", "status": status, "conclusion": conclusion}
+
+    @patch(f"{CHECK_SUITES_PATH}.ListCheckRunsForRefProtocol", object)
+    @patch(f"{CHECK_SUITES_PATH}.scm_actions")
+    def test_counts_the_trailing_empty_page_as_a_request(self, mock_actions: MagicMock) -> None:
+        """``iter_all_pages`` can only stop on an empty page, so a sweep is pages + 1."""
+        mock_actions.list_check_runs_for_ref.side_effect = [
+            self._page([self._run()]),
+            self._page([self._run()]),
+            self._page([]),
+        ]
+
+        sweep = sweep_check_runs(MagicMock(), "abc", log_extra={})
+
+        assert sweep == CheckRunsSweep(total=2, incomplete=0, failed=0)
+        assert mock_actions.list_check_runs_for_ref.call_count == 3
+
+    @patch(f"{CHECK_SUITES_PATH}.ListCheckRunsForRefProtocol", object)
+    @patch(f"{CHECK_SUITES_PATH}.scm_actions")
+    def test_uses_iter_all_pages_default_page_size(self, mock_actions: MagicMock) -> None:
+        mock_actions.list_check_runs_for_ref.side_effect = [self._page([])]
+
+        sweep_check_runs(MagicMock(), "abc", log_extra={})
+
+        pagination = mock_actions.list_check_runs_for_ref.call_args.kwargs["pagination"]
+        assert pagination["per_page"] == signature(iter_all_pages).parameters["per_page"].default
+
+    @patch(f"{CHECK_SUITES_PATH}.ListCheckRunsForRefProtocol", object)
+    @patch(f"{CHECK_SUITES_PATH}.scm_actions")
+    def test_counts_incomplete_and_failed_runs(self, mock_actions: MagicMock) -> None:
+        mock_actions.list_check_runs_for_ref.side_effect = [
+            self._page(
+                [
+                    self._run(),
+                    self._run(status="in_progress", conclusion=None),
+                    self._run(conclusion="failure"),
+                    self._run(conclusion="timed_out"),
+                ]
+            ),
+            self._page([]),
+        ]
+
+        sweep = sweep_check_runs(MagicMock(), "abc", log_extra={})
+
+        assert sweep == CheckRunsSweep(total=4, incomplete=1, failed=2)
+        assert sweep.is_green is False
+
+    @patch(f"{CHECK_SUITES_PATH}.ListCheckRunsForRefProtocol", object)
+    @patch(f"{CHECK_SUITES_PATH}.scm_actions")
+    def test_listing_failure_returns_none(self, mock_actions: MagicMock) -> None:
+        mock_actions.list_check_runs_for_ref.side_effect = ValueError("boom")
+
+        assert sweep_check_runs(MagicMock(), "abc", log_extra={}) is None
+
+    def test_unsupported_provider_returns_none(self) -> None:
+        assert sweep_check_runs(MagicMock(), "abc", log_extra={}) is None
+
+    @patch(f"{CHECK_SUITES_PATH}.metrics")
+    @patch(f"{CHECK_SUITES_PATH}.ListCheckRunsForRefProtocol", object)
+    @patch(f"{CHECK_SUITES_PATH}.scm_actions")
+    def test_records_the_request_count_as_the_cost(
+        self, mock_actions: MagicMock, mock_metrics: MagicMock
+    ) -> None:
+        """The cost is the number of requests the sweep made, trailing empty page included."""
+        mock_actions.list_check_runs_for_ref.side_effect = [
+            self._page([self._run()]),
+            self._page([self._run()]),
+            self._page([]),
+        ]
+
+        sweep_check_runs(MagicMock(), "abc", log_extra={})
+
+        mock_metrics.distribution.assert_called_once_with(
+            "autofix.pr_iteration.check_runs_sweep.cost",
+            3,
+            tags={"outcome": "swept"},
+        )
 
 
 def _live_pr_result(head_sha: str = "abc") -> dict:

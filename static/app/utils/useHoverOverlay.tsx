@@ -16,6 +16,8 @@ import {usePopper} from 'react-popper';
 import {useTheme} from '@emotion/react';
 import {mergeProps} from '@react-aria/utils';
 
+import type {CSS} from '@sentry/scraps/cssTypes';
+
 import {NODE_ENV} from 'sentry/constants/env';
 import type {Theme} from 'sentry/utils/theme';
 
@@ -70,7 +72,7 @@ function makeDefaultPopperModifiers(arrowElement: HTMLElement | null, offset: nu
 const OPEN_DELAY = 400;
 
 /**
- * How long to wait before closing the overlay when isHoverable or
+ * How long to wait before closing the overlay when
  * displayTimeout is set.
  */
 const CLOSE_DELAY = 150;
@@ -167,14 +169,14 @@ interface UseHoverOverlayProps {
   /**
    * Display mode for the container element. Does nothing using skipWrapper.
    */
-  containerDisplayMode?: React.CSSProperties['display'];
+  containerDisplayMode?: CSS['display'];
   /**
    * Time to wait (in milliseconds) before showing the overlay
    */
   delay?: number;
   /**
-   * Time in ms until overlay is hidden. When used with isHoverable this is
-   * used as the time allowed for the user to move their cursor into the overlay)
+   * Time in ms until the overlay is hidden. This is the time allowed for the
+   * user to move their cursor into the overlay.
    */
   displayTimeout?: number;
   /**
@@ -182,11 +184,6 @@ interface UseHoverOverlayProps {
    * immediately, while `delayed` uses the normal open delay.
    */
   forceVisible?: boolean | 'delayed';
-  /**
-   * If true, user is able to hover overlay without it disappearing. (nice if
-   * you want the overlay to be interactive)
-   */
-  isHoverable?: boolean;
   /**
    * Offset along the main axis.
    */
@@ -288,7 +285,6 @@ function useHoverOverlay({
   style,
   delay,
   displayTimeout,
-  isHoverable,
   showUnderline,
   underlineColor,
   showOnlyOnOverflow,
@@ -500,6 +496,7 @@ function useHoverOverlay({
     }
 
     commitStatus('warming');
+    // oxlint-disable-next-line react/immutability
     openTimerRef.current = window.setTimeout(() => {
       commitStatus('open');
       warmUpGroup(group, selfTokenRef.current);
@@ -518,23 +515,13 @@ function useHoverOverlay({
       return;
     }
 
-    // Note: the NODE_ENV === 'test' bypass is intentionally only applied on
-    // the open path. Tests that want to verify close-delay behavior (the
-    // `cooling` grace window) can do so by asserting isOpen mid-timeout,
-    // which requires the timer to actually run.
-    const hasCloseDelay = isHoverable || displayTimeout !== undefined;
-    if (!hasCloseDelay) {
-      commitStatus('idle');
-      startGroupCoolDown(group);
-      return;
-    }
-
     commitStatus('cooling');
+    // oxlint-disable-next-line react/immutability
     hideTimerRef.current = window.setTimeout(() => {
       commitStatus('idle');
       startGroupCoolDown(group);
     }, displayTimeout ?? CLOSE_DELAY);
-  }, [isHoverable, displayTimeout, commitStatus, group]);
+  }, [displayTimeout, commitStatus, group]);
 
   const previousForceVisibleRef = useRef<boolean | 'delayed' | undefined>(undefined);
   useEffect(() => {
@@ -656,6 +643,7 @@ function useHoverOverlay({
 
   useEffect(() => {
     if (showOnlyOnOverflow && !isOverflowing) {
+      // oxlint-disable-next-line react/set-state-in-effect
       reset();
     }
   }, [showOnlyOnOverflow, isOverflowing, reset]);
@@ -665,14 +653,13 @@ function useHoverOverlay({
       id: describeById,
       ref: setOverlayElement,
       style: styles.popper,
-      onMouseEnter: isHoverable ? handleMouseEnter : undefined,
-      onMouseLeave: isHoverable ? handleMouseLeave : undefined,
+      onMouseEnter: handleMouseEnter,
+      onMouseLeave: handleMouseLeave,
     };
   }, [
     describeById,
     setOverlayElement,
     styles.popper,
-    isHoverable,
     handleMouseEnter,
     handleMouseLeave,
   ]);

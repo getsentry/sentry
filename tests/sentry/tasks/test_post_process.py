@@ -16,6 +16,7 @@ from django.utils import timezone
 
 from sentry import buffer, killswitches
 from sentry.analytics.events.first_flag_sent import FirstFlagSentEvent
+from sentry.constants import ObjectStatus
 from sentry.eventstream.types import EventStreamEventType
 from sentry.feedback.lib.utils import FeedbackCreationSource
 from sentry.integrations.models.integration import Integration
@@ -31,7 +32,9 @@ from sentry.issues.grouptype import (
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.issues.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.models.activity import Activity, ActivityIntegration
+from sentry.models.commit import Commit
 from sentry.models.environment import Environment
+from sentry.models.eventattachment import EventAttachment
 from sentry.models.group import GROUP_SUBSTATUS_TO_STATUS_MAP, Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupinbox import GroupInbox, GroupInboxReason
@@ -1676,16 +1679,63 @@ class ProcessCommitsTestMixin(BasePostProcessGroupMixin):
             )
         ]
 
-    @patch(
-        "sentry.integrations.github.integration.GitHubIntegration.get_commit_context_all_frames",
-        return_value=github_blame_return_value,
-    )
-    def test_logic_fallback_no_scm(self, mock_get_commit_context: MagicMock) -> None:
+    @patch("sentry.tasks.groupowner.process_suspect_commits.delay")
+    @patch("sentry.tasks.commit_context.process_commit_context.delay")
+    def test_release_fallback_when_project_has_no_code_mapping(
+        self,
+        mock_process_commit_context: MagicMock,
+        mock_process_suspect_commits: MagicMock,
+    ) -> None:
+        other_project = self.create_project(organization=self.organization)
+        other_event = self.create_event(
+            data={
+                "message": "Kaboom!",
+                "platform": "python",
+                "stacktrace": {
+                    "frames": [
+                        {
+                            "filename": "sentry/models/release.py",
+                            "in_app": True,
+                            "lineno": 39,
+                        }
+                    ]
+                },
+            },
+            project_id=other_project.id,
+        )
+
+        # Blame uses the integration on the mapping, not the repository.
+        self.repo.update(integration_id=None)
+        with patch(
+            "sentry.integrations.services.integration.integration_service.get_integrations",
+            return_value=[Mock(id=self.integration.id)],
+        ) as mock_get_integrations:
+            assert post_process_module._project_has_usable_code_mapping(self.project)
+            assert not post_process_module._project_has_usable_code_mapping(other_project)
+
+        # Projects share the organization-level integration lookup.
+        mock_get_integrations.assert_called_once()
+
+        with self.tasks():
+            self.call_post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=True,
+                event=other_event,
+            )
+
+        mock_process_commit_context.assert_not_called()
+        mock_process_suspect_commits.assert_called_once()
+
+    @patch("sentry.tasks.groupowner.process_suspect_commits.delay")
+    @patch("sentry.tasks.commit_context.process_commit_context.delay")
+    def test_release_fallback_when_code_mapping_integration_is_inactive(
+        self,
+        mock_process_commit_context: MagicMock,
+        mock_process_suspect_commits: MagicMock,
+    ) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
-            with unguarded_write(using=router.db_for_write(Integration)):
-                Integration.objects.all().delete()
-            integration = self.create_provider_integration(provider="bitbucket")
-            integration.add_organization(self.organization)
+            self.organization_integration.update(status=ObjectStatus.DISABLED)
 
         with self.tasks():
             self.call_post_process_group(
@@ -1695,7 +1745,8 @@ class ProcessCommitsTestMixin(BasePostProcessGroupMixin):
                 event=self.created_event,
             )
 
-        assert not mock_get_commit_context.called
+        mock_process_commit_context.assert_not_called()
+        mock_process_suspect_commits.assert_called_once()
 
     @patch(
         "sentry.integrations.github_enterprise.integration.GitHubEnterpriseIntegration.get_commit_context_all_frames",
@@ -1718,7 +1769,10 @@ class ProcessCommitsTestMixin(BasePostProcessGroupMixin):
         assert organization_integration is not None
 
         self.repo.update(integration_id=integration.id, provider="integrations:github_enterprise")
-        self.code_mapping.update(organization_integration_id=organization_integration.id)
+        self.code_mapping.update(
+            integration_id=integration.id,
+            organization_integration_id=organization_integration.id,
+        )
 
         with self.tasks():
             self.call_post_process_group(
@@ -1757,11 +1811,13 @@ class ProcessCommitsTestMixin(BasePostProcessGroupMixin):
     @patch(
         "sentry.integrations.github.integration.GitHubIntegration.get_commit_context_all_frames",
     )
-    def test_does_not_skip_when_is_new(self, mock_get_commit_context: MagicMock) -> None:
-        """
-        Tests that the commit context should be processed when the group is new.
-        """
+    def test_git_blame_when_is_new_without_stored_commits(
+        self, mock_get_commit_context: MagicMock
+    ) -> None:
+        Commit.objects.filter(organization_id=self.organization.id).delete()
+        cache.set(f"w-o:{self.organization.id}-h-c", False, 3600)
         mock_get_commit_context.return_value = self.github_blame_all_files_return_value
+
         with self.tasks():
             self.call_post_process_group(
                 is_new=True,
@@ -1769,7 +1825,9 @@ class ProcessCommitsTestMixin(BasePostProcessGroupMixin):
                 is_new_group_environment=True,
                 event=self.created_event,
             )
+
         assert mock_get_commit_context.called
+        assert Commit.objects.filter(key="asdfwreqr").exists()
         assert GroupOwner.objects.get(
             group=self.created_event.group,
             project=self.created_event.project,
@@ -2474,6 +2532,66 @@ class UserReportEventLinkTestMixin(BasePostProcessGroupMixin):
         assert len(mock_produce_occurrence_to_kafka.mock_calls) == 0
 
 
+class UpdateExistingAttachmentsTestMixin(BasePostProcessGroupMixin):
+    def create_attachment(self, event_id: str, group_id: int | None) -> EventAttachment:
+        return EventAttachment.objects.create(
+            project_id=self.project.id,
+            event_id=event_id,
+            group_id=group_id,
+            type="event.attachment",
+            name="hello.txt",
+            content_type="text/plain",
+            size=5,
+            blob_path=":hello",
+        )
+
+    def test_links_attachment_ingested_before_event(self) -> None:
+        """
+        An attachment sent to the standalone endpoint before its event is stored with a
+        null `group_id`. Post-processing must link it to the group.
+
+        This pins the NULL semantics of the `.exclude(group_id=...)` in
+        `update_existing_attachments`: Django renders it as
+        `NOT (group_id = %s AND group_id IS NOT NULL)`, which matches null rows. A bare
+        `NOT (group_id = %s)` would silently skip them and leave the attachment unlinked.
+        """
+        event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
+        attachment = self.create_attachment(event.event_id, group_id=None)
+
+        self.call_post_process_group(
+            is_new=True, is_regression=False, is_new_group_environment=True, event=event
+        )
+
+        attachment.refresh_from_db()
+        assert attachment.group_id == event.group_id
+
+    def test_relinks_attachment_from_a_different_group(self) -> None:
+        """Reprocessing moves an event to a new group; its attachments must follow."""
+        event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
+        other_group = self.create_group(project=self.project)
+        assert other_group.id != event.group_id
+        attachment = self.create_attachment(event.event_id, group_id=other_group.id)
+
+        self.call_post_process_group(
+            is_new=True, is_regression=False, is_new_group_environment=True, event=event
+        )
+
+        attachment.refresh_from_db()
+        assert attachment.group_id == event.group_id
+
+    def test_leaves_other_events_attachments_alone(self) -> None:
+        """The update is scoped to the event being processed."""
+        event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
+        unrelated = self.create_attachment("b" * 32, group_id=None)
+
+        self.call_post_process_group(
+            is_new=True, is_regression=False, is_new_group_environment=True, event=event
+        )
+
+        unrelated.refresh_from_db()
+        assert unrelated.group_id is None
+
+
 class DetectBaseUrlsForUptimeTestMixin(BasePostProcessGroupMixin):
     def assert_organization_key(self, organization: Organization, exists: bool) -> None:
         key = get_organization_bucket_key(organization)
@@ -2809,7 +2927,7 @@ class ProcessSimilarityTestMixin(BasePostProcessGroupMixin):
             event=event,
         )
 
-        mock_safe_execute.assert_called_with(similarity.record, mock.ANY, mock.ANY)
+        mock_safe_execute.assert_any_call(similarity.record, mock.ANY, mock.ANY)
 
     def assert_not_called_with(self, mock_function: Mock):
         """
@@ -2936,7 +3054,7 @@ class PipelineKillswitchTestMixin(BasePostProcessGroupMixin):
 
 class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
     @patch("sentry.tasks.seer.autofix.generate_summary_and_run_automation.delay")
-    @with_feature("organizations:gen-ai-features")
+    @override_settings(SENTRY_SELF_HOSTED=False)
     def test_kick_off_seer_automation_with_features(self, mock_generate_summary_and_run_automation):
         self.project.update_option("sentry:seer_scanner_automation", True)
         event = self.create_event(
@@ -2955,8 +3073,9 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
             event.group.id, trigger_path="old_seer_automation"
         )
 
+    @override_settings(SENTRY_SELF_HOSTED=True)
     @patch("sentry.tasks.seer.autofix.generate_summary_and_run_automation.delay")
-    def test_kick_off_seer_automation_without_org_feature(
+    def test_kick_off_seer_automation_when_self_hosted(
         self, mock_generate_summary_and_run_automation
     ):
         self.project.update_option("sentry:seer_scanner_automation", True)
@@ -2974,7 +3093,7 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
         mock_generate_summary_and_run_automation.assert_not_called()
 
     @patch("sentry.tasks.seer.autofix.generate_summary_and_run_automation.delay")
-    @with_feature("organizations:gen-ai-features")
+    @override_settings(SENTRY_SELF_HOSTED=False)
     def test_kick_off_seer_automation_without_scanner_on(
         self, mock_generate_summary_and_run_automation
     ):
@@ -2995,7 +3114,7 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
         mock_generate_summary_and_run_automation.assert_not_called()
 
     @patch("sentry.tasks.seer.autofix.generate_summary_and_run_automation.delay")
-    @with_feature("organizations:gen-ai-features")
+    @override_settings(SENTRY_SELF_HOSTED=False)
     def test_kick_off_seer_automation_skips_existing_fixability_score(
         self, mock_generate_summary_and_run_automation
     ):
@@ -3020,7 +3139,7 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
         mock_generate_summary_and_run_automation.assert_not_called()
 
     @patch("sentry.tasks.seer.autofix.generate_summary_and_run_automation.delay")
-    @with_feature("organizations:gen-ai-features")
+    @override_settings(SENTRY_SELF_HOSTED=False)
     def test_kick_off_seer_automation_skips_existing_issue(
         self, mock_generate_summary_and_run_automation
     ):
@@ -3044,7 +3163,7 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
         mock_generate_summary_and_run_automation.assert_not_called()
 
     @patch("sentry.tasks.seer.autofix.generate_summary_and_run_automation.delay")
-    @with_feature("organizations:gen-ai-features")
+    @override_settings(SENTRY_SELF_HOSTED=False)
     def test_kick_off_seer_automation_skips_with_existing_fixability_score(
         self, mock_generate_summary_and_run_automation
     ):
@@ -3077,7 +3196,7 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
     @patch("sentry.seer.autofix.utils.is_seer_scanner_rate_limited")
     @patch("sentry.quotas.backend.check_seer_quota")
     @patch("sentry.tasks.seer.autofix.generate_summary_and_run_automation.delay")
-    @with_feature("organizations:gen-ai-features")
+    @override_settings(SENTRY_SELF_HOSTED=False)
     def test_rate_limit_only_checked_after_all_other_checks_pass(
         self,
         mock_generate_summary_and_run_automation,
@@ -3148,7 +3267,7 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
         mock_generate_summary_and_run_automation.assert_not_called()
 
     @patch("sentry.tasks.seer.autofix.generate_summary_and_run_automation.delay")
-    @with_feature("organizations:gen-ai-features")
+    @override_settings(SENTRY_SELF_HOSTED=False)
     def test_kick_off_seer_automation_skips_when_lock_held(
         self, mock_generate_summary_and_run_automation
     ):
@@ -3197,7 +3316,7 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
         )
 
     @patch("sentry.tasks.seer.autofix.generate_summary_and_run_automation.delay")
-    @with_feature("organizations:gen-ai-features")
+    @override_settings(SENTRY_SELF_HOSTED=False)
     def test_kick_off_seer_automation_with_hide_ai_features_enabled(
         self, mock_generate_summary_and_run_automation
     ):
@@ -3285,7 +3404,7 @@ class SeatBasedSeerAutomationTestMixin(BasePostProcessGroupMixin):
         return event
 
     @patch("sentry.tasks.seer.autofix.generate_issue_summary_only.delay")
-    @with_feature({"organizations:gen-ai-features": True})
+    @override_settings(SENTRY_SELF_HOSTED=False)
     def test_seat_based_org_skips_old_issues(
         self, mock_generate_summary_only, mock_seat_based_tier
     ):
@@ -3293,7 +3412,7 @@ class SeatBasedSeerAutomationTestMixin(BasePostProcessGroupMixin):
         mock_generate_summary_only.assert_not_called()
 
     @patch("sentry.tasks.seer.autofix.generate_issue_summary_only.delay")
-    @with_feature({"organizations:gen-ai-features": True})
+    @override_settings(SENTRY_SELF_HOSTED=False)
     def test_seat_based_org_skips_when_fixability_exists(
         self, mock_generate_summary_only, mock_seat_based_tier
     ):
@@ -3304,6 +3423,7 @@ class SeatBasedSeerAutomationTestMixin(BasePostProcessGroupMixin):
 class SeerAutomationHelperFunctionsTestMixin(BasePostProcessGroupMixin):
     """Unit tests for is_issue_eligible_for_seer_automation."""
 
+    @override_settings(SENTRY_SELF_HOSTED=False)
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
     @patch("sentry.features.has", return_value=True)
     def test_is_issue_eligible_for_seer_automation(self, mock_features_has, mock_has_budget):
@@ -3329,12 +3449,11 @@ class SeerAutomationHelperFunctionsTestMixin(BasePostProcessGroupMixin):
             mock_category.return_value = GroupCategory.FEEDBACK
             assert is_issue_eligible_for_seer_automation(group) is False
 
-        # Missing feature flag
-        mock_features_has.return_value = False
-        assert is_issue_eligible_for_seer_automation(group) is False
+        # Seer unavailable on self-hosted
+        with override_settings(SENTRY_SELF_HOSTED=True):
+            assert is_issue_eligible_for_seer_automation(group) is False
 
         # Hide AI features enabled
-        mock_features_has.return_value = True
         self.organization.update_option("sentry:hide_ai_features", True)
         assert is_issue_eligible_for_seer_automation(group) is False
         self.organization.update_option("sentry:hide_ai_features", False)
@@ -3377,6 +3496,7 @@ class PostProcessGroupErrorTest(
     ReplayLinkageTestMixin,
     DetectNewEscalationTestMixin,
     UserReportEventLinkTestMixin,
+    UpdateExistingAttachmentsTestMixin,
     DetectBaseUrlsForUptimeTestMixin,
     ProcessSimilarityTestMixin,
     PipelineKillswitchTestMixin,
@@ -3384,7 +3504,7 @@ class PostProcessGroupErrorTest(
 ):
     @patch("sentry.seer.autofix.utils.is_seer_seat_based_tier_enabled", return_value=True)
     @patch("sentry.tasks.seer.autofix.generate_issue_summary_only.delay")
-    @with_feature({"organizations:gen-ai-features": True})
+    @override_settings(SENTRY_SELF_HOSTED=False)
     def test_seat_based_org_generates_summary_for_new_issues(
         self, mock_generate_summary_only, mock_seat_based_tier
     ):
@@ -3672,7 +3792,51 @@ class PostProcessGroupFeedbackTest(
     InboxTestMixin,
     WorkflowEngineTestMixin,
     SnoozeTestMixin,
+    UpdateExistingAttachmentsTestMixin,
 ):
+    def test_promotes_pending_attachments(self) -> None:
+        self.assert_promotes_pending_attachments(
+            is_spam=False, feedback_type=FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+        )
+
+    def test_promotes_pending_attachments_for_spam(self) -> None:
+        self.assert_promotes_pending_attachments(
+            is_spam=True, feedback_type=FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+        )
+
+    def test_promotes_pending_attachments_for_legacy_feedback(self) -> None:
+        self.assert_promotes_pending_attachments(
+            is_spam=False, feedback_type=FeedbackCreationSource.CRASH_REPORT_EMBED_FORM
+        )
+
+    def test_promotes_pending_attachments_for_legacy_spam(self) -> None:
+        self.assert_promotes_pending_attachments(
+            is_spam=True, feedback_type=FeedbackCreationSource.CRASH_REPORT_EMBED_FORM
+        )
+
+    def assert_promotes_pending_attachments(
+        self, *, is_spam: bool, feedback_type: FeedbackCreationSource
+    ) -> None:
+        self.project.update_option("sentry:feedback_user_report_notifications", False)
+        event = self.create_event(
+            data={"message": "testing"},
+            project_id=self.project.id,
+            feedback_type=feedback_type,
+            is_spam=is_spam,
+        )
+
+        with patch("sentry.event_manager.save_pending_attachments") as promote:
+            self.call_post_process_group(
+                is_new=True, is_regression=False, is_new_group_environment=True, event=event
+            )
+
+        promote.assert_called_once_with(
+            project=event.project,
+            event_id=event.event_id,
+            group_id=event.group_id,
+            source="post_process",
+        )
+
     def create_event(
         self,
         data,

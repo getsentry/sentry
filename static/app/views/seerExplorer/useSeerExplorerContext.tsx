@@ -31,6 +31,7 @@ import {
   useSeerExplorerDrawer,
 } from 'sentry/views/seerExplorer/components/drawer/useSeerExplorerDrawer';
 import {SeerExplorerContent} from 'sentry/views/seerExplorer/components/seerExplorerContent';
+import {SeerExplorerErrorBoundary} from 'sentry/views/seerExplorer/components/seerExplorerErrorBoundary';
 import {useSeerExplorerPolling} from 'sentry/views/seerExplorer/hooks/useSeerExplorerPolling';
 import {
   useSeerExplorerChatDispatch,
@@ -44,7 +45,9 @@ import {
   getSeerExplorerAnalyticsBrowserSize,
   useIsSeerExplorerSidebarEnabled,
   usePageReferrer,
+  useRemoveSeerExplorerRunIdParam,
   useSeerExplorerDeepLink,
+  useSyncSeerExplorerRunIdToUrl,
 } from 'sentry/views/seerExplorer/utils';
 
 type SeerExplorerSessionState = 'inactive' | 'thinking' | 'done-thinking';
@@ -171,6 +174,7 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
   // was requested via `closeSeerExplorer`. Entering/leaving PiP is tracked as a
   // position change (`pip` on enter, restored dock preference on leave).
   const suppressRedockRef = useRef(false);
+  const isRedockingRef = useRef(false);
   const wasPoppedOutRef = useRef(false);
   useEffect(() => {
     const wasPoppedOut = wasPoppedOutRef.current;
@@ -191,7 +195,9 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
         suppressRedockRef.current = false;
         return;
       }
+      isRedockingRef.current = true;
       if (isSidebarMode) {
+        // oxlint-disable-next-line react/set-state-in-effect
         openSidebar();
       } else {
         openSeerExplorerDrawer();
@@ -206,6 +212,25 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
     sidebarPosition,
   ]);
 
+  // Closing the Explorer drops `explorerRunId`, so the URL stops linking to a chat that
+  // isn't showing. Redocking from the popped-out window leaves nothing open for one render
+  // before the surface reopens; that isn't a close. Must run after the redock effect above,
+  // which flags it.
+  const wasVisibleRef = useRef(false);
+  const removeRunIdParam = useRemoveSeerExplorerRunIdParam();
+  useEffect(() => {
+    const isVisible = isOpen || isPoppedOut;
+    const wasVisible = wasVisibleRef.current;
+    wasVisibleRef.current = isVisible;
+
+    const isRedocking = isRedockingRef.current;
+    isRedockingRef.current = false;
+
+    if (wasVisible && !isVisible && !isRedocking) {
+      removeRunIdParam();
+    }
+  }, [isOpen, isPoppedOut, removeRunIdParam]);
+
   const openSeerExplorer = useCallback(
     (drawerOptions?: OpenSeerExplorerDrawerOptions) => {
       if (pipWindow) {
@@ -216,12 +241,7 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
         // Mirror `useSeerExplorerDrawer`'s option handling so deep links
         // (runId), the command palette (initialQuery), and session switching
         // behave the same in sidebar mode as in the drawer.
-        const {
-          runId: openRunId,
-          startNewRun,
-          initialQuery,
-          appendToOpenRun,
-        } = drawerOptions ?? {};
+        const {runId: openRunId, initialQuery, appendToOpenRun} = drawerOptions ?? {};
         if (initialQuery) {
           // A forwarded query starts a fresh session unless the caller asked to
           // add to the open run. Bump the nonce either way so re-forwarding the
@@ -234,8 +254,6 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
           return;
         } else if (openRunId !== undefined) {
           dispatch({type: 'set run id', payload: openRunId});
-        } else if (startNewRun) {
-          dispatch({type: 'set run id', payload: null});
         }
         setSidebarInitialQuery(initialQuery);
         setSidebarAppendInitialQuery(!!appendToOpenRun);
@@ -249,6 +267,8 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
 
   // Outside the chat, "post a message" means opening the Explorer on it;
   // `SeerExplorerContent` shadows this provider for callers inside the chat.
+  // While popped out, `openSeerExplorer` can only focus the window and the
+  // message would be lost, so the provider withholds it and callers disable.
   const openChatWithMessage = useCallback(
     (query: string, options?: SendMessageOptions) => {
       // Append by default so the caller keeps the context the run has built up.
@@ -311,7 +331,9 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
   const isPolling = pollingState === 'polling' || pollingState === 'polling-with-backoff';
 
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     setLastViewedAt(Date.now());
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [runId]);
 
   const [isWindowVisible, setIsWindowVisible] = useState(
@@ -351,6 +373,7 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
   const [hasEverOpened, setHasEverOpened] = useState(false);
   useEffect(() => {
     if (isOpen || isPoppedOut) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setHasEverOpened(true);
     }
   }, [isOpen, isPoppedOut]);
@@ -379,6 +402,7 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
 
   useEffect(() => {
     if (isOpen || isPoppedOut || runId === null) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setIsDoneThinking(false);
     }
   }, [isOpen, isPoppedOut, runId]);
@@ -435,6 +459,9 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
     enabled: !isOpen && !isPoppedOut,
   });
 
+  // Links opened with `explorerRunId` keep it in the URL and follow session switches.
+  useSyncSeerExplorerRunIdToUrl(runId);
+
   useHotkeys(
     isModalOpen
       ? []
@@ -457,26 +484,28 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
 
   return (
     <SeerExplorerContext.Provider value={contextValue}>
-      <AutofixChatProvider sendMessage={openChatWithMessage}>
+      <AutofixChatProvider sendMessage={isPoppedOut ? undefined : openChatWithMessage}>
         {children}
         {pipWindow && (
           <PictureInPicturePortal pipWindow={pipWindow}>
-            {/* Pop out the content of whichever surface is active: the decoupled
-              sidebar content when the flag is on (there is no drawer then), or
-              the drawer content otherwise. */}
-            {isSidebarMode ? (
-              <SeerExplorerContent
-                key={sidebarKey}
-                getPageReferrer={getPageReferrer}
-                initialQuery={sidebarInitialQuery}
-                appendInitialQuery={sidebarAppendInitialQuery}
-                onClose={closeSeerExplorer}
-                sidebarPosition={sidebarPosition}
-                onSidebarPositionChange={setSidebarPosition}
-              />
-            ) : (
-              <ExplorerDrawerContent getPageReferrer={getPageReferrer} />
-            )}
+            <SeerExplorerErrorBoundary>
+              {/* Pop out the content of whichever surface is active: the decoupled
+                sidebar content when the flag is on (there is no drawer then), or
+                the drawer content otherwise. */}
+              {isSidebarMode ? (
+                <SeerExplorerContent
+                  key={sidebarKey}
+                  getPageReferrer={getPageReferrer}
+                  initialQuery={sidebarInitialQuery}
+                  appendInitialQuery={sidebarAppendInitialQuery}
+                  onClose={closeSeerExplorer}
+                  sidebarPosition={sidebarPosition}
+                  onSidebarPositionChange={setSidebarPosition}
+                />
+              ) : (
+                <ExplorerDrawerContent getPageReferrer={getPageReferrer} />
+              )}
+            </SeerExplorerErrorBoundary>
           </PictureInPicturePortal>
         )}
       </AutofixChatProvider>

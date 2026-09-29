@@ -1,10 +1,11 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import type {Block} from 'sentry/views/seerExplorer/types';
 
 import {groupTranscript, deriveThinkingTitle, ResponseGroup} from './responseGroup';
+import {findLatestTodos} from './toolUse';
 
 function userBlock(id: string, content: string): Block {
   return {
@@ -39,6 +40,36 @@ function toolUseBlock(
     ],
     tool_links: [{kind: 'telemetry_live_search', params: {}}],
   };
+}
+
+/**
+ * Seer's global LLM-wait placeholder: `loading` with no tool calls. The backend sends
+ * `content: 'Thinking...'` but `normalizeBlocks` strips it to `null` at the API boundary.
+ */
+function llmWaitBlock(): Block {
+  return {
+    id: 'loading',
+    message: {role: 'assistant', content: null, tool_calls: null},
+    timestamp: '2024-01-01T00:02:00Z',
+    loading: true,
+  };
+}
+
+/**
+ * The response's `ThinkingBlock`. Located structurally rather than by title: the header shows the
+ * live tool label while active but a static summary once settled, so a title match silently stops
+ * meaning "the box is open".
+ */
+function queryReasoningBox(container: HTMLElement): HTMLElement | null {
+  return container.querySelector<HTMLElement>('[data-disclosure]');
+}
+
+function reasoningBox(container: HTMLElement): HTMLElement {
+  const box = queryReasoningBox(container);
+  if (!box) {
+    throw new Error('no reasoning box rendered');
+  }
+  return box;
 }
 
 function assistantBlock(id: string, content: string, loading = false): Block {
@@ -103,6 +134,31 @@ describe('deriveThinkingTitle', () => {
 describe('ResponseGroup', () => {
   const organization = OrganizationFixture();
 
+  afterEach(() => jest.useRealTimers());
+
+  it('keeps elapsed time when the optimistic placeholder becomes a server block', () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2025-01-01T00:00:00Z'));
+    const optimistic = {
+      ...assistantBlock('optimistic', '', true),
+      timestamp: '2025-01-01T00:00:00Z',
+    };
+    const {rerender} = render(<ResponseGroup group={[optimistic]} blockIndex={1} />, {
+      organization,
+    });
+
+    act(() => jest.advanceTimersByTime(5000));
+    expect(screen.getByText('5.0s')).toBeInTheDocument();
+
+    const server = {
+      ...assistantBlock('server', '', true),
+      timestamp: '2025-01-01T00:00:05Z',
+    };
+    rerender(<ResponseGroup group={[server]} blockIndex={1} />);
+
+    expect(screen.getByText('5.0s')).toBeInTheDocument();
+  });
+
   it('renders a single reasoning block titled by the latest activity, answer outside it', () => {
     const group = [
       toolUseBlock('t1'),
@@ -110,14 +166,115 @@ describe('ResponseGroup', () => {
       assistantBlock('a1', 'The final answer'),
     ];
 
-    render(<ResponseGroup group={group} blockIndex={1} blocks={group} showThinking />, {
-      organization,
-    });
+    render(
+      <ResponseGroup
+        group={group}
+        blockIndex={1}
+        latestTodos={findLatestTodos(group)}
+        showThinking
+      />,
+      {
+        organization,
+      }
+    );
 
-    // One consolidated reasoning toggle for the whole response, titled by the latest activity.
-    expect(screen.getByRole('button', {name: /Queried spans/})).toBeInTheDocument();
+    // One consolidated reasoning toggle for the whole response.
+    expect(
+      screen.getByRole('button', {name: /See thinking and tool calls/})
+    ).toBeInTheDocument();
     // The final answer is hoisted out of the collapsible reasoning.
     expect(screen.getByText('The final answer')).toBeInTheDocument();
+  });
+
+  it('does not open a reasoning box for a call that renders nothing', () => {
+    // `ToolCallList` suppresses a settled call that reported no rows, links, todos or markdown.
+    // Counting it as a trace anyway left an empty box between the previous answer and the next
+    // spinner.
+    const group: Block[] = [
+      {
+        id: 't1',
+        message: {
+          role: 'tool_use',
+          content: null,
+          tool_calls: [{id: 't1-call', function: 'sentry_api_execute', args: '{}'}],
+        },
+        timestamp: '2024-01-01T00:01:00Z',
+        loading: false,
+        tool_results: [
+          {
+            tool_call_id: 't1-call',
+            tool_call_function: 'sentry_api_execute',
+            content: 'ok',
+            structuredContent: null,
+          },
+        ],
+      },
+    ];
+
+    const {container} = render(
+      <ResponseGroup
+        group={group}
+        blockIndex={1}
+        latestTodos={findLatestTodos(group)}
+        showThinking
+      />,
+      {organization}
+    );
+
+    expect(queryReasoningBox(container)).not.toBeInTheDocument();
+  });
+
+  it('still opens the box when the call reported call records', () => {
+    const group: Block[] = [
+      {
+        id: 't1',
+        message: {
+          role: 'tool_use',
+          content: null,
+          tool_calls: [{id: 't1-call', function: 'sentry_api_execute', args: '{}'}],
+        },
+        timestamp: '2024-01-01T00:01:00Z',
+        loading: false,
+        tool_results: [
+          {
+            tool_call_id: 't1-call',
+            tool_call_function: 'sentry_api_execute',
+            content: 'ok',
+            structuredContent: {
+              calls: [{id: 1, kind: 'api', title: 'Retrieving issue 4521'}],
+            },
+          },
+        ],
+      },
+    ];
+
+    const {container} = render(
+      <ResponseGroup
+        group={group}
+        blockIndex={1}
+        latestTodos={findLatestTodos(group)}
+        showThinking
+      />,
+      {organization}
+    );
+
+    expect(queryReasoningBox(container)).toBeInTheDocument();
+  });
+
+  it('still opens the box for a classic tool call', () => {
+    const group = [toolUseBlock('t1')];
+
+    const {container} = render(
+      <ResponseGroup
+        group={group}
+        blockIndex={1}
+        latestTodos={findLatestTodos(group)}
+        showThinking
+      />,
+      {organization}
+    );
+
+    expect(queryReasoningBox(container)).toBeInTheDocument();
   });
 
   it('collapses the reasoning until it is expanded', async () => {
@@ -126,29 +283,124 @@ describe('ResponseGroup', () => {
       assistantBlock('a1', 'Done'),
     ];
 
-    render(<ResponseGroup group={group} blockIndex={1} blocks={group} showThinking />, {
-      organization,
-    });
+    render(
+      <ResponseGroup
+        group={group}
+        blockIndex={1}
+        latestTodos={findLatestTodos(group)}
+        showThinking
+      />,
+      {
+        organization,
+      }
+    );
 
     // A completed response's reasoning starts collapsed, so the thinking prose is hidden.
     expect(screen.getByText('my private reasoning')).not.toBeVisible();
 
-    await userEvent.click(screen.getByRole('button', {name: /Queried spans/}));
+    await userEvent.click(
+      screen.getByRole('button', {name: /See thinking and tool calls/})
+    );
 
     expect(screen.getByText('my private reasoning')).toBeVisible();
+  });
+
+  it('stays expanded between tool calls while the agent works', () => {
+    // Between tool calls seer appends its LLM-wait placeholder. The response is still in
+    // progress (no answer yet), so the ThinkingBlock stays expanded to avoid flash.
+    const group = [toolUseBlock('t1'), llmWaitBlock()];
+
+    const {container} = render(
+      <ResponseGroup
+        group={group}
+        blockIndex={1}
+        latestTodos={findLatestTodos(group)}
+        showThinking
+      />,
+      {organization}
+    );
+
+    expect(reasoningBox(container).querySelector('button')).toHaveAttribute(
+      'aria-expanded',
+      'true'
+    );
+  });
+
+  it('stays expanded in the gap between tool calls when no block is loading', () => {
+    // CW-2044: between tool calls, the backend briefly returns all blocks with
+    // loading: false before the next tool starts. The ThinkingBlock must stay
+    // expanded as long as no final answer has settled.
+    const group = [toolUseBlock('t1'), toolUseBlock('t2')];
+
+    const {container} = render(
+      <ResponseGroup
+        group={group}
+        blockIndex={1}
+        latestTodos={findLatestTodos(group)}
+        showThinking
+      />,
+      {organization}
+    );
+
+    expect(reasoningBox(container).querySelector('button')).toHaveAttribute(
+      'aria-expanded',
+      'true'
+    );
+  });
+
+  it('spins inside the box while a tool works', () => {
+    const group = [toolUseBlock('t1', {loading: true})];
+
+    const {container} = render(
+      <ResponseGroup
+        group={group}
+        blockIndex={1}
+        latestTodos={findLatestTodos(group)}
+        showThinking
+      />,
+      {organization}
+    );
+
+    expect(reasoningBox(container).querySelector('button')).toHaveAttribute(
+      'aria-expanded',
+      'true'
+    );
+    expect(reasoningBox(container).contains(screen.getByRole('status'))).toBe(true);
   });
 
   it('renders no reasoning block when the response is a direct answer', () => {
     const group = [assistantBlock('a1', 'Just an answer')];
 
-    render(<ResponseGroup group={group} blockIndex={0} blocks={group} showThinking />, {
-      organization,
-    });
+    render(
+      <ResponseGroup
+        group={group}
+        blockIndex={0}
+        latestTodos={findLatestTodos(group)}
+        showThinking
+      />,
+      {
+        organization,
+      }
+    );
 
     expect(
-      screen.queryByRole('button', {name: /Thinking|Queried/})
+      screen.queryByRole('button', {name: /See thinking and tool calls/})
     ).not.toBeInTheDocument();
     expect(screen.getByText('Just an answer')).toBeInTheDocument();
+  });
+
+  it('renders a ThinkingBlock placeholder before any trace content arrives', () => {
+    const group = [llmWaitBlock()];
+
+    const {container} = render(
+      <ResponseGroup group={group} blockIndex={0} latestTodos={findLatestTodos(group)} />,
+      {organization}
+    );
+
+    expect(queryReasoningBox(container)).toBeInTheDocument();
+    // Title only. The panel is the bordered card, so opening it around nothing draws an
+    // empty box under "Thinking..." for as long as the agent takes to report anything.
+    expect(within(reasoningBox(container)).queryByRole('group')).not.toBeInTheDocument();
   });
 
   it('gates thinking prose on the showThinking toggle but keeps tool calls', async () => {
@@ -158,11 +410,18 @@ describe('ResponseGroup', () => {
     ];
 
     render(
-      <ResponseGroup group={group} blockIndex={1} blocks={group} showThinking={false} />,
+      <ResponseGroup
+        group={group}
+        blockIndex={1}
+        latestTodos={findLatestTodos(group)}
+        showThinking={false}
+      />,
       {organization}
     );
 
-    await userEvent.click(screen.getByRole('button', {name: /Queried spans/}));
+    await userEvent.click(
+      screen.getByRole('button', {name: /See thinking and tool calls/})
+    );
 
     expect(screen.queryByText('my private reasoning')).not.toBeInTheDocument();
     // The tool call row still renders (as its own link), just without the reasoning prose.

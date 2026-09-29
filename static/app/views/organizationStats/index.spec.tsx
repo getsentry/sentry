@@ -218,6 +218,46 @@ describe('OrganizationStats', () => {
     );
   });
 
+  it('defaults to errors when dataCategory does not support external stats', async () => {
+    // monitorSeats has showExternalStats=false, so it is absent from
+    // CHART_OPTIONS_DATACATEGORY and UsageChart throws "Selected item is not
+    // supported" if it is passed through from the URL.
+    render(<OrganizationStats />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/stats/',
+          query: {dataCategory: DATA_CATEGORY_INFO.monitor_seat.plural},
+        },
+      },
+    });
+
+    // Category selector falls back to Errors
+    expect(
+      await screen.findByRole('button', {name: 'Category Errors'})
+    ).toBeInTheDocument();
+
+    // Chart cards and project table load with data instead of the error boundary
+    await waitFor(() => expect(screen.getAllByText('67')).toHaveLength(2));
+    expect(
+      screen.queryByText('There was a problem rendering this component')
+    ).not.toBeInTheDocument();
+
+    // Requests use the fallback category, never the unsupported one
+    expect(mockRequest).toHaveBeenCalledWith(
+      endpoint,
+      expect.objectContaining({query: expect.objectContaining({category: ['error']})})
+    );
+    expect(mockRequest).not.toHaveBeenCalledWith(
+      endpoint,
+      expect.objectContaining({
+        query: expect.objectContaining({
+          category: [DATA_CATEGORY_INFO.monitor_seat.name],
+        }),
+      })
+    );
+  });
+
   it('does not leak query params onto next page links', async () => {
     render(<OrganizationStats />, {
       organization,
@@ -619,7 +659,10 @@ describe('OrganizationStats', () => {
     const newOrg = OrganizationFixture({
       openMembership: false,
     });
-    act(() => ProjectsStore.loadInitialData([ProjectFixture({isMember: false})]));
+    // Without open membership, the API reports no access for a non-member.
+    act(() =>
+      ProjectsStore.loadInitialData([ProjectFixture({hasAccess: false, isMember: false})])
+    );
 
     render(<OrganizationStats />, {
       organization: newOrg,

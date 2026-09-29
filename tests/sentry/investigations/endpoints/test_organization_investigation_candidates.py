@@ -10,7 +10,11 @@ from django.utils import timezone
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
-from sentry.investigations.models import Investigation, InvestigationSourceType
+from sentry.investigations.models import (
+    Investigation,
+    InvestigationOrchestrationRun,
+    InvestigationSourceType,
+)
 from sentry.investigations.services import investigation_legacy_source_key
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.seer.anomaly_detection.types import (
@@ -107,6 +111,30 @@ class OrganizationInvestigationCandidatesTest(APITestCase):
         self.create_detector_group(detector=detector, group=group)
         return group, open_period
 
+    def test_closed_membership_organizations_cannot_check_or_launch_candidates(self) -> None:
+        group, open_period = self.create_metric_open_period()
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        source = {
+            "type": "metric_open_period",
+            "ref": {"groupId": str(group.id), "openPeriodId": str(open_period.id)},
+        }
+
+        candidate = self.client.post(
+            self.candidates_url,
+            {"templateKey": "breached_metric", "templateVersion": 1, "sources": [source]},
+            format="json",
+        )
+        assert candidate.status_code == 404
+
+        launched = self.client.post(
+            self.collection_url,
+            {"templateKey": "breached_metric", "templateVersion": 1, "source": source},
+            format="json",
+        )
+        assert launched.status_code == 404
+        assert not Investigation.objects.filter(organization=self.organization).exists()
+
     @mock.patch(
         "sentry.investigations.endpoints.organization_investigation_index.schedule_eligible_auto_run_blocks"
     )
@@ -117,6 +145,9 @@ class OrganizationInvestigationCandidatesTest(APITestCase):
             date_started=ended_at - timedelta(hours=2),
             date_ended=ended_at,
         )
+        member = self.create_user()
+        self.create_member(organization=self.organization, user=member, role="member", teams=[])
+        self.login_as(member)
         source = {
             "type": "metric_open_period",
             "ref": {"groupId": str(group.id), "openPeriodId": str(open_period.id)},
@@ -158,6 +189,83 @@ class OrganizationInvestigationCandidatesTest(APITestCase):
         assert response.data == {
             "items": [{"status": "view", "investigationId": launched.data["id"]}]
         }
+
+    @mock.patch(
+        "sentry.investigations.endpoints.organization_investigation_index.schedule_eligible_auto_run_blocks"
+    )
+    def test_metric_open_period_launches_agentic_and_candidates_report_its_run(
+        self, schedule_auto_run: mock.Mock
+    ) -> None:
+        group, open_period = self.create_metric_open_period()
+        member = self.create_user()
+        self.create_member(organization=self.organization, user=member, role="member", teams=[])
+        self.login_as(member)
+        source = {
+            "type": "metric_open_period",
+            "ref": {"groupId": str(group.id), "openPeriodId": str(open_period.id)},
+        }
+        template_investigation = self.client.post(
+            self.collection_url,
+            {
+                "templateKey": "breached_metric",
+                "templateVersion": 1,
+                "source": source,
+            },
+            format="json",
+        )
+        assert template_investigation.status_code == 201, template_investigation.data
+
+        launched = self.client.post(
+            self.collection_url,
+            {"source": source},
+            format="json",
+        )
+
+        assert launched.status_code == 201, launched.data
+        assert launched.data["id"] != template_investigation.data["id"]
+        assert launched.data["template"] is None
+        assert launched.data["source"]["ref"] == source["ref"]
+        assert launched.data["orchestration"] == {
+            "phase": "broad_scan",
+            "status": "pending",
+            "heartbeatAt": None,
+            "notebookRevision": 0,
+        }
+        investigation = Investigation.objects.get(id=launched.data["id"])
+        assert investigation.source_type == InvestigationSourceType.METRIC_OPEN_PERIOD
+        run = InvestigationOrchestrationRun.objects.get(investigation=investigation)
+        assert run.source["type"] == "breached_metric"
+        assert run.source["projectIds"] == [self.project.id]
+        assert run.source["monitor"] == investigation.source["snapshot"]["monitor"]
+        assert run.source["analysisWindow"] == investigation.source["snapshot"]["analysisWindow"]
+        assert run.source["metricQuery"] == investigation.source["snapshot"]["monitor"]["query"]
+        assert run.source["seed"]["sentrySource"] == investigation.source
+
+        candidate = self.client.post(
+            self.candidates_url,
+            {
+                "templateKey": "breached_metric",
+                "templateVersion": 1,
+                "sources": [source],
+            },
+            format="json",
+        )
+
+        assert candidate.status_code == 200, candidate.data
+        assert candidate.data == {
+            "items": [
+                {
+                    "status": "view",
+                    "investigationId": launched.data["id"],
+                    "orchestration": launched.data["orchestration"],
+                }
+            ]
+        }
+
+        duplicate = self.client.post(self.collection_url, {"source": source}, format="json")
+        assert duplicate.status_code == 200, duplicate.data
+        assert duplicate.data["id"] == launched.data["id"]
+        schedule_auto_run.assert_called_once()
 
     @mock.patch(
         "sentry.investigations.endpoints.organization_investigation_index.schedule_eligible_auto_run_blocks"
@@ -428,7 +536,7 @@ class OrganizationInvestigationCandidatesTest(APITestCase):
         assert launched.data["id"] == str(investigation.id)
         assert Investigation.objects.count() == 1
 
-    def test_launch_and_candidate_require_access_to_the_existing_investigation(self) -> None:
+    def test_members_without_project_membership_can_reuse_existing_investigations(self) -> None:
         group, open_period = self.create_metric_open_period()
         source = {
             "type": "metric_open_period",
@@ -452,18 +560,17 @@ class OrganizationInvestigationCandidatesTest(APITestCase):
         )
         self.create_investigation_project(investigation=investigation, project=restricted_project)
         viewer = self.create_user()
-        self.create_member(
-            organization=self.organization, user=viewer, role="member", teams=[self.team]
-        )
+        self.create_member(organization=self.organization, user=viewer, role="member", teams=[])
         self.login_as(viewer)
 
         with mock.patch(
             "sentry.investigations.endpoints.organization_investigation_index."
             "schedule_eligible_auto_run_blocks"
-        ) as schedule_auto_run:
+        ):
             duplicate = self.client.post(self.collection_url, launch_payload, format="json")
-        assert duplicate.status_code == 403
-        schedule_auto_run.assert_not_called()
+        assert duplicate.status_code == 200
+        assert duplicate.data["id"] == str(investigation.id)
+        assert Investigation.objects.count() == 1
 
         candidate = self.client.post(
             self.candidates_url,
@@ -475,7 +582,9 @@ class OrganizationInvestigationCandidatesTest(APITestCase):
             format="json",
         )
         assert candidate.status_code == 200
-        assert candidate.data == {"items": [{"status": "unavailable"}]}
+        assert candidate.data == {
+            "items": [{"status": "view", "investigationId": str(investigation.id)}]
+        }
 
     def test_launch_rolls_back_when_auto_run_scheduling_fails(self) -> None:
         group, open_period = self.create_metric_open_period()

@@ -2,6 +2,7 @@ from datetime import datetime
 
 import pytest
 from django.conf import settings
+from django.db import router, transaction
 from django.test import override_settings
 
 from sentry.models.organization import Organization
@@ -44,6 +45,13 @@ class SnowflakeUtilsTest(TestCase):
             )
 
             assert snowflake_id == expected_value
+
+    @freeze_time(CURRENT_TIME)
+    def test_generate_id_inside_transaction(self) -> None:
+        with transaction.atomic(using=router.db_for_write(Project)):
+            snowflake_id = generate_snowflake_id("test_redis_key")
+
+        assert snowflake_id > 0
 
     @freeze_time(CURRENT_TIME)
     def test_generate_correct_ids_with_cell_sequence(self) -> None:

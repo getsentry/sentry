@@ -1,4 +1,4 @@
-import {useQuery, useMutation} from '@tanstack/react-query';
+import {skipToken, useQuery, useMutation} from '@tanstack/react-query';
 
 import {useModal} from '@sentry/scraps/modal';
 
@@ -126,7 +126,9 @@ export function IntegrationExternalTeamMappings(props: Props) {
 
   const getBaseFormEndpoint = (mapping?: ExternalActorMappingOrSuggestion) => {
     if (!mapping) {
-      return '';
+      return getApiUrl('/teams/$organizationIdOrSlug/$teamIdOrSlug/external-teams/', {
+        path: skipToken,
+      });
     }
     // Search both initialResults and teams (filtered by hasExternalTeams).
     // Fall back to sentryName from the mutation data for teams found via search
@@ -135,15 +137,27 @@ export function IntegrationExternalTeamMappings(props: Props) {
       initialResults?.find(item => item.id === mapping.teamId) ??
       teams.find(item => item.id === mapping.teamId);
     const teamSlug = team?.slug ?? ('sentryName' in mapping ? mapping.sentryName : '');
-    return getApiUrl('/teams/$organizationIdOrSlug/$teamIdOrSlug/external-teams/', {
-      path: {
-        organizationIdOrSlug: organization.slug,
-        teamIdOrSlug: teamSlug,
-      },
-    });
+    const externalTeamId = 'id' in mapping ? mapping.id : null;
+    return externalTeamId
+      ? getApiUrl(
+          '/teams/$organizationIdOrSlug/$teamIdOrSlug/external-teams/$externalTeamId/',
+          {
+            path: {
+              organizationIdOrSlug: organization.slug,
+              teamIdOrSlug: teamSlug,
+              externalTeamId,
+            },
+          }
+        )
+      : getApiUrl('/teams/$organizationIdOrSlug/$teamIdOrSlug/external-teams/', {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            teamIdOrSlug: teamSlug,
+          },
+        });
   };
 
-  const onCreate = (mapping?: ExternalActorMappingOrSuggestion) => {
+  const onCreate = () => {
     openModal(modalProps => (
       <IntegrationExternalMappingForm
         {...modalProps}
@@ -151,7 +165,6 @@ export function IntegrationExternalTeamMappings(props: Props) {
         integration={integration}
         getBaseFormEndpoint={map => getBaseFormEndpoint(map)}
         defaultOptions={defaultTeamOptions()}
-        mapping={mapping}
         onSubmitSuccess={handleSubmitSuccess}
       />
     ));

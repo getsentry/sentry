@@ -7,6 +7,7 @@
     "module": "preserve",
     "target": "ES2022",
     "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
 
     // We add esnext to lib to pull in types for all newer ECMAScript features
     "lib": ["esnext", "dom", "dom.iterable", "webworker"],
@@ -15,7 +16,7 @@
     "skipLibCheck": true,
 
     // Explicitly list which @types/* packages to include as global types
-    "types": ["gtag.js", "jest", "node", "@rspack/core/module"],
+    "types": ["gtag.js", "jest", "node", "@rspack/core/module", "trusted-types"],
 
     // We do not actually use tsc to output any JavaScript anywhere
     "noEmit": true,
@@ -64,7 +65,7 @@
     "static/app",
     "static/gsApp",
     "static/gsAdmin",
-    "static/eslint",
+    "static/oxlint",
     "tests/js",
     "config",
     "scripts"

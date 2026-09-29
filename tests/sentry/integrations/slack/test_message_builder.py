@@ -4,6 +4,8 @@ from datetime import datetime
 from typing import Any
 from unittest.mock import MagicMock, Mock, patch
 
+from django.test import override_settings
+
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.integrations.messaging.message_builder import (
     build_attachment_text,
@@ -40,7 +42,6 @@ from sentry.services.eventstore.models import Event
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
 from sentry.testutils.factories import EventType
-from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
@@ -232,6 +233,43 @@ def build_test_message_blocks(
         "blocks": blocks,
         "text": popup_text,
     }
+
+
+class BuildAttachmentTitleTest(TestCase):
+    def test_uses_the_exception_type(self) -> None:
+        group = self.create_group(
+            data={"type": "error", "metadata": {"type": "ValueError", "value": "bad"}}
+        )
+        assert build_attachment_title(group) == "ValueError"
+
+    def test_synthetic_prefers_function_to_type(self) -> None:
+        # The type is a platform label, so the function-based title is better.
+        group = self.create_group(
+            data={
+                "type": "error",
+                "metadata": {
+                    "type": "SIGSEGV",
+                    "value": "Signal 11, Code 1",
+                    "function": "top_func",
+                    "synthetic": True,
+                },
+            }
+        )
+        assert build_attachment_title(group) == "top_func"
+
+    def test_synthetic_falls_back_to_type_if_function_missing(self) -> None:
+        # Nothing symbolicated, so the type is all that is left — still better than `<unknown>`.
+        group = self.create_group(
+            data={
+                "type": "error",
+                "metadata": {
+                    "type": "SIGSEGV",
+                    "value": "Signal 11, Code 1",
+                    "synthetic": True,
+                },
+            }
+        )
+        assert build_attachment_title(group) == "SIGSEGV: Signal 11, Code 1"
 
 
 class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTestMixin):
@@ -959,22 +997,22 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
                         return True
         return False
 
+    @override_settings(SENTRY_SELF_HOSTED=False)
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
-    @with_feature({"organizations:gen-ai-features": True})
     def test_autofix_button_shown_when_all_conditions_met(self, mock_quota: MagicMock) -> None:
         group = self.create_group(project=self.project)
         blocks = SlackIssuesMessageBuilder(group).build()
         assert self._has_autofix_button(blocks)
 
+    @override_settings(SENTRY_SELF_HOSTED=False)
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
-    @with_feature({"organizations:gen-ai-features": True})
     def test_autofix_button_hidden_on_unfurl(self, mock_quota: MagicMock) -> None:
         group = self.create_group(project=self.project)
         blocks = SlackIssuesMessageBuilder(group, is_unfurl=True).build()
         assert not self._has_autofix_button(blocks)
 
+    @override_settings(SENTRY_SELF_HOSTED=False)
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
-    @with_feature({"organizations:gen-ai-features": True})
     def test_autofix_button_hidden_when_no_other_actions(self, mock_quota: MagicMock) -> None:
         group = self.create_group(project=self.project)
         blocks = SlackIssuesMessageBuilder(group, issue_details=True).build()

@@ -25,16 +25,14 @@ export function RulesPanel({
   type,
   'data-test-id': dataTestId,
 }: Props) {
-  function renderIcon() {
-    switch (provider ?? '') {
-      case 'github':
-        return <IconGithub size="sm" />;
-      case 'gitlab':
-        return <IconGitlab size="sm" />;
-      default:
-        return <IconSentry size="sm" />;
-    }
-  }
+  const icon =
+    provider === 'github' ? (
+      <IconGithub size="sm" />
+    ) : provider === 'gitlab' ? (
+      <IconGitlab size="sm" />
+    ) : (
+      <IconSentry size="sm" />
+    );
 
   function renderTitle() {
     switch (type) {
@@ -51,7 +49,7 @@ export function RulesPanel({
     <Panel data-test-id={dataTestId}>
       <PanelHeader hasButtons>
         <Flex align="center" gap="sm">
-          {renderIcon()}
+          {icon}
           {renderTitle()}
         </Flex>
         <Flex align="center" gap="sm">

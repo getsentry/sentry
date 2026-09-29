@@ -85,6 +85,7 @@ export enum ClientDiscardReason {
   BACKPRESSURE = 'backpressure',
   IGNORED = 'ignored',
   NO_PARENT_SPAN = 'no_parent_span',
+  CALLBACK_ERROR = 'callback_error',
 }
 
 enum RateLimitedReason {
@@ -164,6 +165,13 @@ const invalidReasonsGroup: Record<string, DiscardReason[]> = {
   sampling: [DiscardReason.TRANSACTION_SAMPLED],
 };
 
+// Filter names whose words are acronyms. `startCase` would render them as
+// ordinary words, such as "Ip Address".
+const filteredReasonNames: Record<string, string> = {
+  'invalid-csp': 'Invalid CSP',
+  'ip-address': 'IP Address',
+};
+
 function getFilteredReasonGroupName(reason: string): string {
   if (reason.startsWith('Sampled:')) {
     return 'dynamic sampling';
@@ -171,7 +179,8 @@ function getFilteredReasonGroupName(reason: string): string {
 
   // A filter that exists once per configured instance, such as a custom inbound
   // filter, appends its id after a colon. Every instance belongs to one group.
-  return startCase(reason.split(':')[0]);
+  const name = reason.split(':')[0]!;
+  return filteredReasonNames[name] ?? startCase(name);
 }
 
 function getInvalidReasonGroupName(reason: string): string {
@@ -242,6 +251,7 @@ function getClientDiscardReasonGroupName(reason: ClientDiscardReason): string {
     case ClientDiscardReason.BACKPRESSURE:
     case ClientDiscardReason.IGNORED:
     case ClientDiscardReason.NO_PARENT_SPAN:
+    case ClientDiscardReason.CALLBACK_ERROR:
       return reason;
     default:
       return 'other';

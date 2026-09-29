@@ -58,12 +58,12 @@ export enum SpanFields {
   PROFILEID = 'profile.id',
   REPLAYID = 'replayId',
   REPLAY_ID = 'replay.id',
-  CODE_FILEPATH = 'code.filepath',
+  CODE_FILE_PATH = 'code.file.path',
   CODE_FUNCTION = 'code.function',
   SDK_NAME = 'sdk.name',
   SDK_VERSION = 'sdk.version',
   PLATFORM = 'platform',
-  CODE_LINENO = 'code.lineno',
+  CODE_LINE_NUMBER = 'code.line.number',
   SPAN_ACTION = 'span.action',
   SPAN_DOMAIN = 'span.domain',
   NORMALIZED_DESCRIPTION = 'sentry.normalized_description',
@@ -141,7 +141,7 @@ export enum SpanFields {
   SPANS_UI = 'spans.ui',
 
   // DB fields
-  DB_SYSTEM = 'db.system', // TODO: this is a duplicate of `SPAN_SYSTEM`
+  DB_SYSTEM_NAME = 'db.system.name', // TODO: this is a duplicate of `SPAN_SYSTEM`
 
   // Mobile fields
   DEVICE_CLASS = 'device.class',
@@ -190,6 +190,7 @@ export enum SpanFields {
   USER_DISPLAY = 'user.display', // Note: this is not implemented yet, waiting for EAP-123
 
   // Web vital fields
+  BROWSER_NAVIGATION_TYPE = 'browser.navigation.type',
   BROWSER_WEB_VITAL_LCP_VALUE = 'browser.web_vital.lcp.value',
   BROWSER_WEB_VITAL_FCP_VALUE = 'browser.web_vital.fcp.value',
   BROWSER_WEB_VITAL_CLS_VALUE = 'browser.web_vital.cls.value',
@@ -279,7 +280,7 @@ type SpanNumberFields =
   | SpanFields.FCP_SCORE
   | SpanFields.FCP_SCORE_RATIO
   | SpanFields.FCP_SCORE_WEIGHT
-  | SpanFields.CODE_LINENO
+  | SpanFields.CODE_LINE_NUMBER
   | SpanFields.APP_START_COLD
   | SpanFields.APP_START_WARM
   | SpanFields.PRECISE_START_TS
@@ -335,8 +336,8 @@ type NonNullableStringFields =
   | SpanFields.BROWSER_WEB_VITAL_CLS_SOURCE_1
   | SpanFields.TRANSACTION_SPAN_ID
   | SpanFields.TRANSACTION_EVENT_ID
-  | SpanFields.DB_SYSTEM
-  | SpanFields.CODE_FILEPATH
+  | SpanFields.DB_SYSTEM_NAME
+  | SpanFields.CODE_FILE_PATH
   | SpanFields.CODE_FUNCTION
   | SpanFields.SDK_NAME
   | SpanFields.SDK_VERSION
@@ -371,7 +372,8 @@ type NonNullableStringFields =
   | SpanFields.USER
   | SpanFields.PROFILER_ID
   | SpanFields.USER_DISPLAY
-  | SpanFields.SENTRY_ORIGIN;
+  | SpanFields.SENTRY_ORIGIN
+  | SpanFields.BROWSER_NAVIGATION_TYPE;
 
 type NullableStringFields = SpanFields.NORMALIZED_DESCRIPTION | SpanFields.SPAN_GROUP;
 
@@ -504,7 +506,7 @@ type HttpResponseFunctions =
 type CustomResponseFields = {
   [SpanFields.USER_GEO_SUBREGION]: SubregionCode;
   [SpanFields.PLATFORM]: PlatformKey;
-  [SpanFields.DB_SYSTEM]: SupportedDatabaseSystem;
+  [SpanFields.DB_SYSTEM_NAME]: SupportedDatabaseSystem;
   [SpanFields.SPAN_STATUS]:
     | 'ok'
     | 'cancelled'
@@ -525,6 +527,8 @@ type CustomResponseFields = {
     | 'data_loss'
     | 'unauthenticated';
   [SpanFields.RESOURCE_RENDER_BLOCKING_STATUS]: '' | 'non-blocking' | 'blocking';
+  // Spans from SDKs that predate the attribute come back as an empty string.
+  [SpanFields.BROWSER_NAVIGATION_TYPE]: '' | BrowserNavigationType;
 };
 
 // Fields that are used as arguments to division() queries.
@@ -623,3 +627,14 @@ export const subregionCodeToName = {
 };
 
 export type SubregionCode = keyof typeof subregionCodeToName;
+
+// Named exactly as the web-vitals library names them.
+// See https://github.com/getsentry/sentry-conventions/pull/600
+export type BrowserNavigationType =
+  | 'navigate'
+  | 'reload'
+  | 'back-forward'
+  | 'back-forward-cache'
+  | 'restore'
+  | 'prerender'
+  | 'soft-navigation';

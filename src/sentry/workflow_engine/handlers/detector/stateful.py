@@ -2,7 +2,7 @@ import abc
 import dataclasses
 import logging
 from datetime import timedelta
-from typing import Any, cast
+from typing import Any, override
 from uuid import uuid4
 
 from django.conf import settings
@@ -10,21 +10,19 @@ from django.db.models import Q
 from django.utils import timezone
 from sentry_redis_tools.retrying_cluster import RetryingRedisCluster
 
-from sentry.api.serializers import serialize
-from sentry.api.serializers.rest_framework.base import camel_to_snake_case, convert_dict_key_case
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.group import GroupStatus
 from sentry.utils import metrics, redis
 from sentry.workflow_engine.handlers.detector.base import (
-    BaseDetectorHandler,
     DataPacketEvaluationType,
     DataPacketType,
+    DetectorHandler,
     DetectorOccurrence,
     EventData,
     GroupedDetectorEvaluationResult,
 )
-from sentry.workflow_engine.models import DataPacket, DataSource, Detector, DetectorState
+from sentry.workflow_engine.models import DataPacket, Detector, DetectorState
 from sentry.workflow_engine.processors import DataConditionGroupEvaluation, DetectorEvaluation
 from sentry.workflow_engine.processors.data_condition_group import process_data_condition_group
 from sentry.workflow_engine.processors.evaluations import DetectorEvaluationData
@@ -312,7 +310,7 @@ DetectorThresholds = dict[DetectorPriorityLevel, int]
 
 
 class StatefulDetectorHandler(
-    BaseDetectorHandler[DataPacketType, DataPacketEvaluationType],
+    DetectorHandler[DataPacketType, DataPacketEvaluationType],
     abc.ABC,
 ):
     """
@@ -341,6 +339,16 @@ class StatefulDetectorHandler(
         """
         return {}
 
+    @abc.abstractmethod
+    def extract_dedupe_value(self, data_packet: DataPacket[DataPacketType]) -> int:
+        """
+        Extracts the de-duplication value from a passed data packet. This duplication
+        value is used to determine if we've already processed data to this point or not.
+
+        This is normally a timestamp, but could be any sortable value; (e.g. a sequence number, timestamp, etc).
+        """
+        pass
+
     def build_issue_fingerprint(self, group_key: DetectorGroupKey = None) -> list[str]:
         """
         A hook that allows for additional fingerprinting to be added to the detectors issue occurrences.
@@ -360,59 +368,10 @@ class StatefulDetectorHandler(
         """
         return {}
 
-    def _build_evidence_data_sources(
-        self, data_packet: DataPacket[DataPacketType]
-    ) -> list[dict[str, Any]]:
-        try:
-            data_sources = list(
-                DataSource.objects.filter(detectors=self.detector, source_id=data_packet.source_id)
-            )
-            if not data_sources:
-                logger.warning(
-                    "Matching data source not found for detector while generating occurrence evidence data",
-                    extra={
-                        "detector_id": self.detector.id,
-                        "data_packet_source_id": data_packet.source_id,
-                    },
-                )
-                return []
-            # Serializers return camelcased keys, but evidence data should use snakecase
-            return convert_dict_key_case(serialize(data_sources), camel_to_snake_case)
-        except Exception:
-            logger.exception(
-                "Failed to serialize data source definition when building workflow engine evidence data"
-            )
-            return []
-
-    def _build_workflow_engine_evidence_data(
-        self,
-        group_evaluation: DataConditionGroupEvaluation,
-        data_packet: DataPacket[DataPacketType],
-        evaluation_value: DataPacketEvaluationType,
-    ) -> dict[str, Any]:
-        """
-        Build the workflow engine specific evidence data.
-        This is data that is common to all detectors.
-        """
-
-        base: dict[str, Any] = {
-            "detector_id": self.detector.id,
-            "value": evaluation_value,
-            "data_packet_source_id": str(data_packet.source_id),
-            "conditions": [
-                condition_evaluation.condition.get_snapshot()
-                for condition_evaluation in group_evaluation.data["condition_evaluations"]
-                if condition_evaluation.triggered
-            ],
-            "config": self.detector.config,
-            "data_sources": self._build_evidence_data_sources(data_packet),
-        }
-
-        return base
-
-    def evaluate_impl(
-        self, data_packet: DataPacket[DataPacketType]
-    ) -> GroupedDetectorEvaluationResult:
+    # TODO: The stateful detector handler overrides the default evaluation logic of DetectorHandler.evaluate, yet shares
+    # much of the same logic. Refactor this method to use super().evaluate() supplemented with the state manager logic.
+    @override
+    def evaluate(self, data_packet: DataPacket[DataPacketType]) -> GroupedDetectorEvaluationResult:
         dedupe_value = self.extract_dedupe_value(data_packet)
         group_data_values = self._extract_value_from_packet(data_packet)
         state = self.state_manager.get_state_data(list(group_data_values.keys()))
@@ -499,12 +458,14 @@ class StatefulDetectorHandler(
             self.state_manager.build_key(group_key),
         ]
 
+        workflow_engine_evidence_data = self._build_workflow_engine_evidence_data(
+            group_evaluation,
+            data_packet,
+            evaluation_value,
+        )
+
         evidence_data = {
-            **self._build_workflow_engine_evidence_data(
-                group_evaluation,
-                data_packet,
-                evaluation_value,
-            ),
+            **dataclasses.asdict(workflow_engine_evidence_data),
             **self.build_detector_evidence_data(
                 group_evaluation,
                 data_packet,
@@ -520,30 +481,6 @@ class StatefulDetectorHandler(
             detector_id=self.detector.id,
             activity_data=evidence_data,
         )
-
-    def _extract_value_from_packet(
-        self,
-        data_packet: DataPacket[DataPacketType],
-    ) -> dict[DetectorGroupKey, DataPacketEvaluationType]:
-        """
-        This method will normalize the extracted value to support grouping results.
-
-        If `extract_value` returns a `dict[DetectorGroupKey, DataPacketEvaluationType]`
-        it will cast it to the correct data type.
-
-        If `extract_value` returns a single value, it will be wrapped in a dict
-        with `None` as the key, to normalize the type as `dict[DetectorGroupKey, DataPacketEvaluationType]`.
-        """
-        data_values = self.extract_value(data_packet)
-        group_data_values: dict[DetectorGroupKey, DataPacketEvaluationType] = {}
-
-        # Normalize the type to dict[DetectorGroupKey, DataPacketEvaluationType]
-        if self._is_detector_group_value(data_values):
-            group_data_values = cast(dict[DetectorGroupKey, DataPacketEvaluationType], data_values)
-        else:
-            group_data_values = {None: cast(DataPacketEvaluationType, data_values)}
-
-        return group_data_values
 
     def _build_detector_evaluation_result(
         self,
@@ -598,19 +535,6 @@ class StatefulDetectorHandler(
             priority=new_priority,
         )
 
-    def _is_detector_group_value(self, value: Any) -> bool:
-        """
-        Check if value is dict[DetectorGroupKey, DataPacketEvaluationType]
-        """
-        if not isinstance(value, dict):
-            return False
-
-        if not value:  # Empty dict case
-            return False
-
-        # Check if all keys are DetectorGroupKey instances
-        return all(isinstance(key, DetectorGroupKey) for key in value.keys())
-
     def _get_configured_detector_levels(self) -> list[DetectorPriorityLevel]:
         conditions = self.detector.get_conditions()
         return list(DetectorPriorityLevel(condition.condition_result) for condition in conditions)
@@ -638,12 +562,15 @@ class StatefulDetectorHandler(
             self.state_manager.build_key(group_key),
         ]
 
+        occurrence_id = str(uuid4())
+
         return detector_occurrence.to_issue_occurrence(
             fingerprint=fingerprint,
-            occurrence_id=str(uuid4()),
+            occurrence_id=occurrence_id,
+            event_id=occurrence_id,
             project_id=self.detector.project_id,
             status=new_priority,
-            additional_evidence_data=evidence_data,
+            additional_evidence_data=dataclasses.asdict(evidence_data),
         )
 
     def _evaluation_detector_conditions(

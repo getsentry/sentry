@@ -28,6 +28,7 @@ from sentry.workflow_engine.handlers.detector.stateful import (
 )
 from sentry.workflow_engine.models import DataPacket, DetectorState
 from sentry.workflow_engine.processors import DataConditionGroupEvaluation, DetectorEvaluation
+from sentry.workflow_engine.registry import detector_settings_registry
 from sentry.workflow_engine.types import (
     DetectorGroupKey,
     DetectorPriorityLevel,
@@ -116,7 +117,7 @@ class ProcessingErrorDetectorHandler(
 
     @override
     def extract_dedupe_value(self, data_packet: DataPacket[ProcessingErrorPacketValue]) -> int:
-        # Not used — we override evaluate_impl and skip dedupe logic
+        # Not used — we override evaluate and skip dedupe logic
         return 0
 
     @override
@@ -167,7 +168,7 @@ class ProcessingErrorDetectorHandler(
         return (occurrence, event_data)
 
     @override
-    def evaluate_impl(
+    def evaluate(
         self, data_packet: DataPacket[ProcessingErrorPacketValue]
     ) -> GroupedDetectorEvaluationResult:
         """
@@ -261,17 +262,17 @@ class SourcemapConfigurationType(GroupType):
     enable_escalation_detection = False
     creation_quota = Quota(3600, 60, 100)
     notification_config = NotificationConfig(context=[])
-    detector_settings = DetectorSettings(
-        handler=SourcemapDetectorHandler,
-        validator=None,
-        config_schema={},
-    )
     enable_user_status_and_priority_changes = False
     # For the moment, we only want to show these issue types in the ui
     enable_status_change_workflow_notifications = False
     enable_workflow_notifications = False
     # We want to show these separately to normal issue types
     in_default_search = False
+
+
+@detector_settings_registry.register(SourcemapConfigurationType.slug)
+class SourcemapConfigurationDetectorSettings(DetectorSettings):
+    handler = SourcemapDetectorHandler
 
 
 @dataclass(frozen=True)

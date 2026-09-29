@@ -39,6 +39,7 @@ class BitbucketAPIPath:
 
     repository = "/2.0/repositories/{repo}"
     repositories = "/2.0/repositories/{username}"
+    workspace_hooks = "/2.0/workspaces/{workspace}/hooks"
     repository_commits = "/2.0/repositories/{repo}/commits/{revision}"
     repository_diff = "/2.0/repositories/{repo}/diff/{spec}"
     repository_hook = "/2.0/repositories/{repo}/hooks/{uid}"
@@ -55,13 +56,13 @@ class BitbucketApiClient(ApiClient, RepositoryClient):
     """
 
     integration_name = IntegrationProviderSlug.BITBUCKET.value
+    base_url = "https://api.bitbucket.org"
 
     # Bitbucket Cloud defaults to pagelen=10 and caps at 100.
     page_size = 100
     page_number_limit = 50
 
     def __init__(self, integration: RpcIntegration | Integration):
-        self.base_url = integration.metadata["base_url"]
         self.shared_secret = integration.metadata["shared_secret"]
         # subject is probably the clientKey
         self.subject = integration.external_id
@@ -80,8 +81,9 @@ class BitbucketApiClient(ApiClient, RepositoryClient):
         path = path.split("?")[0]
         jwt_payload = {
             "iss": BITBUCKET_KEY,
-            "iat": datetime.datetime.utcnow(),
-            "exp": datetime.datetime.utcnow() + datetime.timedelta(seconds=5 * 60),
+            "iat": datetime.datetime.now(datetime.timezone.utc),
+            "exp": datetime.datetime.now(datetime.timezone.utc)
+            + datetime.timedelta(seconds=5 * 60),
             "qsh": get_query_hash(
                 uri=path, method=prepared_request.method.upper(), query_params=url_params
             ),
@@ -93,6 +95,9 @@ class BitbucketApiClient(ApiClient, RepositoryClient):
 
     def get_issue(self, repo, issue_id):
         return self.get(BitbucketAPIPath.issue.format(repo=repo, issue_id=issue_id))
+
+    def get_workspace_hooks(self, workspace: str):
+        return self.get(BitbucketAPIPath.workspace_hooks.format(workspace=workspace))
 
     def create_issue(self, repo, data):
         return self.post(path=BitbucketAPIPath.issues.format(repo=repo), data=data)

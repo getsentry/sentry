@@ -1,11 +1,12 @@
 // create a basic test for filters bar
 
+import {DashboardFixture} from 'sentry-fixture/dashboard';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ReleaseFixture} from 'sentry-fixture/release';
 import {TagsFixture} from 'sentry-fixture/tags';
 
-import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {Organization} from 'sentry/types/organization';
 import {FieldKind} from 'sentry/utils/fields';
@@ -16,6 +17,8 @@ import {
   type GlobalFilter,
 } from 'sentry/views/dashboards/types';
 import {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {WEB_VITALS_NAVIGATION_TYPE_FILTER} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/webVitals';
+import {WEB_VITALS_NAVIGATION_TYPE_FEATURE} from 'sentry/views/insights/browser/webVitals/navigationType/settings';
 
 describe('FiltersBar', () => {
   let organization: Organization;
@@ -47,6 +50,89 @@ describe('FiltersBar', () => {
     return render(<FiltersBar {...props} />, {organization});
   };
 
+  describe('web vitals navigation type switcher', () => {
+    // Like the insights route: `dashboard` is passed, `prebuiltDashboardId` isn't.
+    function renderLikeInsightsRoute() {
+      return renderFilterBar({
+        dashboard: DashboardFixture([], {
+          id: 'prebuilt-dashboard-6',
+          prebuiltId: PrebuiltDashboardId.WEB_VITALS,
+        }),
+      });
+    }
+
+    beforeEach(() => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events/`,
+        body: {data: [], meta: {fields: {}}},
+      });
+      // Value suggestions for the plain chip.
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/trace-items/attributes/browser.navigation.type/values/`,
+        body: [],
+      });
+    });
+
+    it('renders on the insights route when the flag is on', async () => {
+      organization.features = [
+        ...organization.features,
+        WEB_VITALS_NAVIGATION_TYPE_FEATURE,
+      ];
+
+      renderLikeInsightsRoute();
+
+      expect(
+        await screen.findByRole('button', {name: /Measured on/})
+      ).toBeInTheDocument();
+    });
+
+    it('stays off without the flag', () => {
+      renderLikeInsightsRoute();
+
+      expect(screen.queryByRole('button', {name: /Measured on/})).not.toBeInTheDocument();
+    });
+
+    it('replaces the plain chip on a dashboard duplicated from web vitals', async () => {
+      organization.features = [
+        ...organization.features,
+        WEB_VITALS_NAVIGATION_TYPE_FEATURE,
+      ];
+
+      // A copy has no prebuilt ID, only the filter the config seeded.
+      renderFilterBar({filters: {globalFilter: [WEB_VITALS_NAVIGATION_TYPE_FILTER]}});
+
+      expect(
+        await screen.findByRole('button', {name: /Measured on/})
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: /browser\.navigation\.type/})
+      ).not.toBeInTheDocument();
+    });
+
+    it('keeps the plain chip for a value the switcher cannot represent', async () => {
+      organization.features = [
+        ...organization.features,
+        WEB_VITALS_NAVIGATION_TYPE_FEATURE,
+      ];
+
+      renderFilterBar({
+        filters: {
+          globalFilter: [
+            {
+              ...WEB_VITALS_NAVIGATION_TYPE_FILTER,
+              value: 'browser.navigation.type:[navigate]',
+            },
+          ],
+        },
+      });
+
+      expect(
+        await screen.findByRole('button', {name: /browser\.navigation\.type/})
+      ).toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: /Measured on/})).not.toBeInTheDocument();
+    });
+  });
+
   it('should render basic global filter', async () => {
     const newLocation = LocationFixture({
       query: {
@@ -61,6 +147,49 @@ describe('FiltersBar', () => {
     expect(
       await screen.findByRole('button', {name: /browser\.name.*Chrome/i})
     ).toBeInTheDocument();
+  });
+
+  it.each([
+    ['Logs', 'logs'],
+    ['Spans', 'spans'],
+    ['Application Metrics', 'tracemetrics'],
+  ])('dynamically fetches %s filter keys when searched', async (dataset, itemType) => {
+    organization = OrganizationFixture({
+      features: [
+        'dashboards-basic',
+        'dashboards-edit',
+        'ourlogs-enabled',
+        'visibility-explore-view',
+      ],
+    });
+    const filterKey = `custom.searched.${itemType}`;
+    const searchRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/',
+      body: [
+        {
+          attributeSource: {source_type: 'user'},
+          attributeType: 'string',
+          key: filterKey,
+          name: filterKey,
+        },
+      ],
+      match: [(_url, options) => Boolean(options.query?.substringMatch)],
+    });
+
+    renderFilterBar();
+    await userEvent.click(screen.getByRole('button', {name: 'Add Global Filter'}));
+    await userEvent.click(screen.getByRole('option', {name: dataset}));
+    await userEvent.type(screen.getByRole('textbox'), 'searched');
+
+    await waitFor(() =>
+      expect(searchRequest).toHaveBeenCalledWith(
+        '/organizations/org-slug/trace-items/attributes/',
+        expect.objectContaining({
+          query: expect.objectContaining({itemType, substringMatch: 'searched'}),
+        })
+      )
+    );
+    expect(await screen.findByRole('option', {name: filterKey})).toBeInTheDocument();
   });
 
   it('should render save button with unsaved changes', async () => {
@@ -293,6 +422,7 @@ const mockNetworkRequests = () => {
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/trace-items/attributes/',
     body: [],
+    match: [(_url, options) => !options.query?.substringMatch],
   });
 
   const mockSearchResponse = [

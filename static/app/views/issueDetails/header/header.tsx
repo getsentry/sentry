@@ -57,7 +57,7 @@ export function GroupHeader({event, group, project}: GroupHeaderProps) {
   const {count: eventCount, userCount} = group;
   const useGetMaxRetentionDays =
     getOverride('react-hook:use-get-max-retention-days') ?? (() => MAX_PICKABLE_DAYS);
-  const maxRetentionDays = useGetMaxRetentionDays();
+  const maxRetentionDays = useGetMaxRetentionDays(); // oxlint-disable-line react/hooks -- Hook comes from the override registry, which is populated before React renders.
   const userCountPeriod = maxRetentionDays ? `(${maxRetentionDays}d)` : '(30d)';
   const {title: primaryTitle} = getTitle(group);
   const secondaryTitle = getMessage(group);
@@ -114,13 +114,7 @@ export function GroupHeader({event, group, project}: GroupHeaderProps) {
         </Flex>
         <HeaderGrid>
           <Title>
-            <Tooltip
-              title={primaryTitle}
-              skipWrapper
-              isHoverable
-              showOnlyOnOverflow
-              delay={1000}
-            >
+            <Tooltip title={primaryTitle} skipWrapper showOnlyOnOverflow delay={1000}>
               <PrimaryTitle>{primaryTitle}</PrimaryTitle>
             </Tooltip>
             {isAIDetectedIssue && <FeatureBadge type="new" />}

@@ -1,4 +1,4 @@
-import type {CSSProperties, HTMLAttributes} from 'react';
+import type {HTMLAttributes} from 'react';
 import {Fragment, useContext, useEffect, useMemo} from 'react';
 import {createPortal} from 'react-dom';
 import {ClassNames, ThemeProvider, useTheme} from '@emotion/react';
@@ -363,7 +363,7 @@ interface TourGuideProps extends Omit<
   actions?: React.ReactNode;
   handleDismiss?: (e: React.MouseEvent) => void;
   id?: string;
-  margin?: CSSProperties['margin'];
+  margin?: number;
   offset?: UseOverlayProps['offset'];
   position?: UseOverlayProps['position'];
   stepCount?: number;
@@ -555,7 +555,7 @@ const BlurWindow = styled('div')`
 function getTourElementStyles(
   theme: ReturnType<typeof useTheme>,
   isOpen: boolean,
-  margin?: CSSProperties['margin']
+  margin?: number
 ) {
   if (!isOpen) {
     return;
@@ -574,7 +574,7 @@ function getTourElementStyles(
       inset: 0;
       border-radius: ${theme.radius.md};
       box-shadow: inset 0 0 0 3px ${theme.tokens.border.accent.vibrant};
-      ${defined(margin) ? `margin: ${margin};` : ''}
+      ${defined(margin) ? `margin: ${margin}px;` : ''}
     }
   `;
 }

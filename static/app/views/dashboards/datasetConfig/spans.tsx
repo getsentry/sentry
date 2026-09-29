@@ -33,6 +33,7 @@ import {
 } from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {WIDGET_BUILDER_ATTRIBUTE_STALE_TIME} from 'sentry/views/dashboards/constants';
 import {
   handleOrderByReset,
   type DatasetConfig,
@@ -44,7 +45,7 @@ import {
   getTimeseriesSortOptions,
   renderTraceAsLinkable,
   transformEventsResponseToTable,
-} from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
+} from 'sentry/views/dashboards/datasetConfig/events';
 import {combineBaseFieldsWithTags} from 'sentry/views/dashboards/datasetConfig/utils/combineBaseFieldsWithEapTags';
 import {
   DisplayType,
@@ -71,8 +72,12 @@ import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {useTraceItemSearchQueryBuilderProps} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {
+  hasConditionalAggregateFilter,
+  withBaseConditionalAggregateField,
+} from 'sentry/views/explore/utils/conditionalAggregate';
 import {SpanFields} from 'sentry/views/insights/types';
-import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
+import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/breadcrumbs';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
@@ -152,24 +157,31 @@ const INTERNAL_ERROR_COUNT_FIELD =
   'count_if(span.status,equals,internal_error) + count_if(span.status,equals,error)';
 
 function useSpansSearchBarDataProvider(props: SearchBarDataProviderProps): SearchBarData {
-  const {pageFilters, widgetQuery} = props;
+  const {filterKeySearch, pageFilters, widgetQuery} = props;
   const organization = useOrganization();
+  const attributeOptions = {
+    enabled: organization.features.includes('visibility-explore-view'),
+    search: filterKeySearch,
+    staleTime: WIDGET_BUILDER_ATTRIBUTE_STALE_TIME,
+  };
 
-  const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
-    useSpanItemAttributes(
-      {enabled: organization.features.includes('visibility-explore-view')},
-      'string'
-    );
-  const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
-    useSpanItemAttributes(
-      {enabled: organization.features.includes('visibility-explore-view')},
-      'number'
-    );
-  const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
-    useSpanItemAttributes(
-      {enabled: organization.features.includes('visibility-explore-view')},
-      'boolean'
-    );
+  const {
+    attributes: stringAttributes,
+    isLoading: stringAttributesLoading,
+    secondaryAliases: stringSecondaryAliases,
+  } = useSpanItemAttributes(attributeOptions, 'string');
+  const {
+    attributes: numberAttributes,
+    isLoading: numberAttributesLoading,
+    secondaryAliases: numberSecondaryAliases,
+  } = useSpanItemAttributes(attributeOptions, 'number');
+  const {
+    attributes: booleanAttributes,
+    isLoading: booleanAttributesLoading,
+    secondaryAliases: booleanSecondaryAliases,
+  } = useSpanItemAttributes(attributeOptions, 'boolean');
+  const isFetchingFilterKeys =
+    stringAttributesLoading || numberAttributesLoading || booleanAttributesLoading;
 
   const {filterKeys, filterKeySections, getTagValues} =
     useTraceItemSearchQueryBuilderProps({
@@ -189,6 +201,7 @@ function useSpansSearchBarDataProvider(props: SearchBarDataProviderProps): Searc
     getFilterKeys: () => filterKeys,
     getFilterKeySections: () => filterKeySections,
     getTagValues,
+    isFetchingFilterKeys,
   };
 }
 
@@ -366,16 +379,22 @@ function filterAggregateParams(option: FieldValueOption, fieldValue?: QueryField
     return true;
   }
 
+  // Explore-style `_if` fields explode as `count_unique_if` / `count_if`, but
+  // column filtering must use the base aggregate name.
+  const normalizedField = fieldValue
+    ? withBaseConditionalAggregateField(fieldValue)
+    : fieldValue;
+
   if (
-    fieldValue?.kind === 'function' &&
-    fieldValue?.function[0] === AggregationKey.COUNT
+    normalizedField?.kind === 'function' &&
+    normalizedField?.function[0] === AggregationKey.COUNT
   ) {
     return option.value.meta.name === 'span.duration';
   }
 
   const expectedDataType =
-    fieldValue?.kind === 'function' &&
-    fieldValue?.function[0] === AggregationKey.COUNT_UNIQUE
+    normalizedField?.kind === 'function' &&
+    normalizedField?.function[0] === AggregationKey.COUNT_UNIQUE
       ? 'string'
       : 'number';
 
@@ -391,16 +410,8 @@ function filterYAxisOptions() {
   };
 }
 
-function getGroupByFieldOptions(
-  organization: Organization,
-  tags?: TagCollection,
-  customMeasurements?: CustomMeasurementCollection
-) {
-  const primaryFieldOptions = getPrimaryFieldOptions(
-    organization,
-    tags,
-    customMeasurements
-  );
+function getGroupByFieldOptions(organization: Organization, tags?: TagCollection) {
+  const primaryFieldOptions = getPrimaryFieldOptions(organization, tags);
   const yAxisFilter = filterYAxisOptions();
 
   const filterGroupByOptions = (option: FieldValueOption) => !yAxisFilter(option);
@@ -413,7 +424,8 @@ function filterSeriesSortOptions(columns: Set<string>) {
   return (option: FieldValueOption) => {
     if (
       option.value.kind === FieldValueKind.FUNCTION ||
-      option.value.kind === FieldValueKind.EQUATION
+      option.value.kind === FieldValueKind.EQUATION ||
+      hasConditionalAggregateFilter(option.value.meta.name)
     ) {
       return true;
     }

@@ -1,9 +1,10 @@
-import {type CSSProperties, useState} from 'react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import seerConfigConnectImg from 'sentry-images/spot/seer-config-connect-2.svg';
 
 import {Button} from '@sentry/scraps/button';
+import type {CSS} from '@sentry/scraps/cssTypes';
 import {Image} from '@sentry/scraps/image';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -36,13 +37,13 @@ export function AutofixStartCard({
   // extract startStep first here so we can depend on it directly as `autofix` itself is unstable.
   const startStep = autofix.startStep;
 
-  const [enableBashTools] = useForceBashMode();
+  const [enableBashMode] = useForceBashMode();
 
   const [startingRun, setStartingRun] = useState(false);
   const handleStartRootCause = async () => {
     setStartingRun(true);
     try {
-      await startStep('root_cause', {enableBashTools: enableBashTools || undefined});
+      await startStep('root_cause', {enableBashMode: enableBashMode || undefined});
     } catch {
       return;
     } finally {
@@ -102,7 +103,7 @@ export function AutofixStartCardContent() {
 }
 
 const ImageContainer = styled(Flex)<{
-  aspectRatio?: CSSProperties['aspectRatio'];
+  aspectRatio?: CSS['aspectRatio'];
 }>`
   ${p => p.aspectRatio && `aspect-ratio: ${p.aspectRatio}`};
 `;
