@@ -1,7 +1,7 @@
 import {cloneElement, Fragment} from 'react';
 
-import {t} from 'sentry/locale';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
+import {t} from 'sentry/locale';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
 import {SettingsNavigationGroup} from 'sentry/views/settings/components/settingsNavigationGroup';
 import type {NavigationProps, NavigationSection} from 'sentry/views/settings/types';
@@ -49,18 +49,10 @@ function SettingsSecondaryNavigation({
   );
 }
 
-export function SettingsNavigation({
-  hooks = [],
-  hookConfigs = [],
-  ...props
-}: Props) {
+export function SettingsNavigation({hooks = [], hookConfigs = [], ...props}: Props) {
   return (
     <ErrorBoundary customComponent={null}>
-      <SettingsSecondaryNavigation
-        hooks={hooks}
-        hookConfigs={hookConfigs}
-        {...props}
-      />
+      <SettingsSecondaryNavigation hooks={hooks} hookConfigs={hookConfigs} {...props} />
     </ErrorBoundary>
   );
 }
