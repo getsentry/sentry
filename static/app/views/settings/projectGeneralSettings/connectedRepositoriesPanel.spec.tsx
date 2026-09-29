@@ -2,9 +2,7 @@ import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
-
-import {GlobalModal} from '@sentry/scraps/modal';
+import {act, render, renderGlobalModal, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {ConnectedRepositoriesPanel} from 'sentry/views/settings/projectGeneralSettings/connectedRepositoriesPanel';
 
@@ -14,13 +12,7 @@ describe('ConnectedRepositoriesPanel', () => {
   const repoUrl = `/projects/${organization.slug}/${project.slug}/repo/`;
 
   function renderPanel() {
-    return render(
-      <div>
-        <GlobalModal />
-        <ConnectedRepositoriesPanel project={project} />
-      </div>,
-      {organization}
-    );
+    return render(<ConnectedRepositoriesPanel project={project} />, {organization});
   }
 
   beforeEach(() => {
@@ -224,6 +216,7 @@ describe('ConnectedRepositoriesPanel', () => {
       body: {repos: []},
     });
 
+    renderGlobalModal({organization});
     renderPanel();
 
     await userEvent.click(
