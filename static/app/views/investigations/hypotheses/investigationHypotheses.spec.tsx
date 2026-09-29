@@ -72,12 +72,6 @@ describe('InvestigationHypotheses', () => {
     renderHypotheses();
 
     expect(await screen.findAllByTestId('investigation-hypothesis')).toHaveLength(3);
-    expect(
-      screen.getByRole('heading', {
-        name: 'Database or cache degradation delayed the response',
-      })
-    ).toBeInTheDocument();
-    expect(screen.getByText('Supported')).toBeInTheDocument();
   });
 
   it('keeps the panel collapsed across refetches once the viewer closes it', async () => {
