@@ -492,7 +492,7 @@ class SnubaEventStorage(EventStorage):
             sentry_sdk.set_attribute("nodestore.event_type", event.get_event_type())
 
         if group_id is not None and (
-            event.get_event_type() == "error"
+            event.get_event_type() in ("error", "default")
             or (event.get_event_type() == "transaction" and skip_transaction_groupevent)
         ):
             event.group_id = group_id

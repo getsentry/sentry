@@ -25,7 +25,6 @@ from sentry.sentry_apps.tasks.sentry_apps import notify_sentry_app
 from sentry.silo.base import SiloMode
 from sentry.tasks.post_process import post_process_group
 from sentry.testutils.cases import RuleTestCase, TestCase
-from sentry.testutils.helpers.eventprocessing import write_event_to_cache
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
@@ -103,8 +102,9 @@ class NotifyEventServiceWebhookActionTest(RuleTestCase, BaseWorkflowTest):
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=False,
-                cache_key=write_event_to_cache(self.event),
+                cache_key=None,
                 group_id=self.event.group_id,
+                event_id=self.event.event_id,
                 project_id=self.event.project.id,
                 eventstream_type=EventStreamEventType.Error.value,
             )
@@ -147,8 +147,9 @@ class NotifyEventServiceWebhookActionTest(RuleTestCase, BaseWorkflowTest):
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=False,
-                cache_key=write_event_to_cache(self.event),
+                cache_key=None,
                 group_id=self.event.group_id,
+                event_id=self.event.event_id,
                 project_id=self.event.project.id,
                 eventstream_type=EventStreamEventType.Error.value,
             )

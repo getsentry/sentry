@@ -189,6 +189,20 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
         assert event.get_event_type() == "transaction"
         assert event.project_id == self.project2.id
 
+    def test_get_default_event_by_id_with_group_id_skips_snuba(self) -> None:
+        assert self.event1.get_event_type() == "default"
+        with mock.patch("sentry.utils.snuba.raw_query") as mock_query:
+            event = self.eventstore.get_event_by_id(
+                self.project1.id,
+                self.event1.event_id,
+                group_id=self.event1.group_id,
+            )
+
+        assert event is not None
+        assert event.event_id == self.event1.event_id
+        assert event.group_id == self.event1.group_id
+        mock_query.assert_not_called()
+
     def test_get_event_by_id_cached(self) -> None:
         # Simulate getting an event that exists in eventstore but has not yet been written to snuba.
         with mock.patch("sentry.services.eventstore.snuba.backend.Event") as mock_event:

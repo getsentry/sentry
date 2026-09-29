@@ -13,7 +13,6 @@ from sentry.services.eventstore.models import GroupEvent
 from sentry.tasks.post_process import post_process_group
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.helpers.eventprocessing import write_event_to_cache
 from sentry.testutils.skips import requires_snuba
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 from sentry.workflow_engine.typings.notification_action import (
@@ -181,8 +180,9 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase, BaseWorkflowTest):
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=False,
-                cache_key=write_event_to_cache(self.event),
+                cache_key=None,
                 group_id=self.event.group_id,
+                event_id=self.event.event_id,
                 project_id=self.project.id,
                 eventstream_type=EventStreamEventType.Error.value,
             )
@@ -204,8 +204,9 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase, BaseWorkflowTest):
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=False,
-                cache_key=write_event_to_cache(self.event),
+                cache_key=None,
                 group_id=self.event.group_id,
+                event_id=self.event.event_id,
                 project_id=self.project.id,
                 eventstream_type=EventStreamEventType.Error.value,
             )
@@ -227,8 +228,9 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase, BaseWorkflowTest):
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=False,
-                cache_key=write_event_to_cache(self.event),
+                cache_key=None,
                 group_id=self.event.group_id,
+                event_id=self.event.event_id,
                 project_id=self.project.id,
                 eventstream_type=EventStreamEventType.Error.value,
             )
@@ -244,8 +246,9 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase, BaseWorkflowTest):
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=False,
-                cache_key=write_event_to_cache(self.event),
+                cache_key=None,
                 group_id=self.event.group_id,
+                event_id=self.event.event_id,
                 project_id=self.project.id,
                 eventstream_type=EventStreamEventType.Error.value,
             )
@@ -286,8 +289,9 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase, BaseWorkflowTest):
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=False,
-                cache_key=write_event_to_cache(self.event),
+                cache_key=None,
                 group_id=self.event.group_id,
+                event_id=self.event.event_id,
                 project_id=self.project.id,
                 eventstream_type=EventStreamEventType.Error.value,
             )
@@ -334,8 +338,9 @@ class NotifyLegacyEmailTest(NotifyEmailTest):
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=False,
-                cache_key=write_event_to_cache(self.event),
+                cache_key=None,
                 group_id=self.event.group_id,
+                event_id=self.event.event_id,
                 project_id=self.project.id,
                 eventstream_type=EventStreamEventType.Error.value,
             )
@@ -363,8 +368,9 @@ class NotifyLegacyEmailTest(NotifyEmailTest):
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=False,
-                cache_key=write_event_to_cache(self.event),
+                cache_key=None,
                 group_id=self.event.group_id,
+                event_id=self.event.event_id,
                 project_id=self.project.id,
                 eventstream_type=EventStreamEventType.Error.value,
             )
@@ -392,8 +398,9 @@ class NotifyLegacyEmailTest(NotifyEmailTest):
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=False,
-                cache_key=write_event_to_cache(self.event),
+                cache_key=None,
                 group_id=self.event.group_id,
+                event_id=self.event.event_id,
                 project_id=self.project.id,
                 eventstream_type=EventStreamEventType.Error.value,
             )
@@ -417,8 +424,9 @@ class NotifyLegacyEmailTest(NotifyEmailTest):
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=False,
-                cache_key=write_event_to_cache(self.event),
+                cache_key=None,
                 group_id=self.event.group_id,
+                event_id=self.event.event_id,
                 project_id=self.project.id,
                 eventstream_type=EventStreamEventType.Error.value,
             )
@@ -454,7 +462,7 @@ class NotifyLegacyEmailTest(NotifyEmailTest):
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=False,
-                cache_key=write_event_to_cache(event),
+                cache_key=None,
                 occurrence_id=event.occurrence_id,
                 project_id=event.group.project_id,
                 group_id=event.group_id,
@@ -495,8 +503,9 @@ class NotifyLegacyEmailTest(NotifyEmailTest):
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=False,
-                cache_key=write_event_to_cache(self.event),
+                cache_key=None,
                 group_id=self.event.group_id,
+                event_id=self.event.event_id,
                 project_id=self.project.id,
                 eventstream_type=EventStreamEventType.Error.value,
             )
