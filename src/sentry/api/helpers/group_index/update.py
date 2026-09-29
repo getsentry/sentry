@@ -328,11 +328,9 @@ def update_groups_with_search_fn(
                     "paginator_options": {"max_limit": BULK_MUTATION_LIMIT},
                 }
             )
-        except ValidationError:
-            logger.exception("Error getting group ids and group list")  # Track the error in Sentry
-            return Response(
-                {"detail": "Invalid query. Error getting group ids and group list"}, status=400
-            )
+        except ValidationError as e:
+            logger.warning("Invalid search query for bulk group update: %s", str(e))
+            return Response({"detail": str(e)}, status=400)
 
         group_list = list(cursor_result)
 
