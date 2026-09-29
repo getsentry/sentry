@@ -1,5 +1,5 @@
 minVersion: '2.20.0'
-releaseBranchPrefix: scraps-releases
+releaseBranchPrefix: scraps/release
 preReleaseCommand: npm version --no-git-tag-version --allow-same-version --ignore-scripts "$CRAFT_NEW_VERSION"
 postReleaseCommand: ''
 changelog:
