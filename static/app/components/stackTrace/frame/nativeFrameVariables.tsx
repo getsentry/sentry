@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {Disclosure} from '@sentry/scraps/disclosure';
+import {InfoText} from '@sentry/scraps/info';
 import {Container, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -14,9 +15,35 @@ interface Props {
   defaultExpanded?: readonly string[];
 }
 
+const KEY_PREVIEW_LENGTH = 24;
+
+/**
+ * Preview whole child keys within a character budget, followed by an ellipsis
+ * when more keys remain. An oversized first key is truncated instead.
+ */
+function getKeyPreview(children: readonly NativeFrameVariable[]): string {
+  const [first, ...remaining] = children;
+  if (!first) {
+    return '';
+  }
+  if (first.name.length > KEY_PREVIEW_LENGTH) {
+    return `${first.name.slice(0, KEY_PREVIEW_LENGTH - 1)}…`;
+  }
+
+  let preview = first.name;
+  for (const {name} of remaining) {
+    const next = `${preview}, ${name}`;
+    if (next.length > KEY_PREVIEW_LENGTH) {
+      return `${preview}, …`;
+    }
+    preview = next;
+  }
+  return preview;
+}
+
 export function NativeFrameVariables({variables, defaultExpanded = []}: Props) {
   return (
-    <Stack borderTop="primary" aria-label={t('Native variables')}>
+    <Stack aria-label={t('Native variables')}>
       {variables.map((variable, index) => (
         <Container
           key={variable.name}
@@ -43,8 +70,11 @@ function Variable({
   defaultExpanded?: boolean;
 }) {
   const [expanded, setExpanded] = useState(defaultExpanded);
+  const hasChildren =
+    (variable.kind === 'object' || variable.kind === 'array') &&
+    variable.children.length > 0;
   const label = (
-    <Stack minWidth="0" gap="xs" align="start">
+    <Stack minWidth="0" gap="2xs" align="start">
       <VariableName
         as="div"
         monospace
@@ -52,14 +82,23 @@ function Variable({
         bold={depth === 0}
         nested={depth > 0}
         density="comfortable"
-        ellipsis
+        mode="overflowOnly"
         title={variable.name}
+        maxWidth={400}
       >
         {variable.name}
       </VariableName>
-      <Text as="div" monospace size="xs" variant="muted" ellipsis title={variable.type}>
+      <InfoText
+        as="div"
+        monospace
+        size="xs"
+        variant="muted"
+        mode="overflowOnly"
+        title={variable.type}
+        maxWidth={400}
+      >
         {variable.type}
-      </Text>
+      </InfoText>
     </Stack>
   );
 
@@ -76,14 +115,19 @@ function Variable({
         paddingRight="md"
         minWidth="0"
       >
-        {variable.kind === 'object' ? (
-          <VariableTitle
-            aria-label={
-              expanded ? t('Collapse %s', variable.name) : t('Expand %s', variable.name)
-            }
-          >
+        {hasChildren ? (
+          <Grid columns="18px minmax(0, 1fr)" align="center">
+            <CaretContainer>
+              <VariableTitle
+                aria-label={
+                  expanded
+                    ? t('Collapse %s', variable.name)
+                    : t('Expand %s', variable.name)
+                }
+              />
+            </CaretContainer>
             {label}
-          </VariableTitle>
+          </Grid>
         ) : (
           <Container paddingLeft="xl" minWidth="0">
             {label}
@@ -96,20 +140,31 @@ function Variable({
         minWidth="0"
         align="start"
       >
-        {variable.kind === 'object' ? (
-          !expanded && (
-            <SummaryButton
-              variant="transparent"
-              size="zero"
-              aria-label={t('Expand %s', variable.name)}
-              onClick={() => setExpanded(true)}
-            >
-              <Text monospace size="sm" variant="muted" density="comfortable">
-                {'{ '}
-                {tn('%s item', '%s items', variable.children.length)}
-                {' }'}
-              </Text>
-            </SummaryButton>
+        {variable.kind === 'object' || variable.kind === 'array' ? (
+          variable.children.length === 0 ? (
+            <Text monospace size="xs" variant="muted">
+              {variable.kind === 'array' ? '[ ' : '{ '}
+              {tn('%s item', '%s items', 0)}
+              {variable.kind === 'array' ? ' ]' : ' }'}
+            </Text>
+          ) : (
+            !expanded && (
+              <SummaryButton
+                variant="transparent"
+                size="zero"
+                aria-label={t('Expand %s', variable.name)}
+                onClick={() => setExpanded(true)}
+              >
+                <Text monospace size="xs" variant="muted" ellipsis>
+                  {variable.kind === 'array' ? '[ ' : '{ '}
+                  {tn('%s item', '%s items', variable.children.length)}
+                  {variable.kind === 'object' &&
+                    variable.children.length > 0 &&
+                    ` · ${getKeyPreview(variable.children)}`}
+                  {variable.kind === 'array' ? ' ]' : ' }'}
+                </Text>
+              </SummaryButton>
+            )
           )
         ) : variable.kind === 'unavailable' ? (
           <Text monospace size="sm" variant="muted" density="comfortable">
@@ -135,7 +190,10 @@ function Variable({
     </VariableRow>
   );
 
-  if (variable.kind !== 'object') {
+  if (
+    (variable.kind !== 'object' && variable.kind !== 'array') ||
+    variable.children.length === 0
+  ) {
     return row;
   }
 
@@ -153,8 +211,7 @@ function Variable({
 }
 
 const VariableRow = styled(Grid)`
-  &:hover,
-  &:focus-within {
+  &:hover {
     background: ${p => p.theme.tokens.interactive.transparent.neutral.background.hover};
   }
 
@@ -166,16 +223,17 @@ const VariableRow = styled(Grid)`
     pointer-events: none;
   }
 
-  &:hover::before,
-  &:focus-within::before {
+  &:hover::before {
     border-left-color: ${p => p.theme.tokens.border.accent.vibrant};
   }
 `;
 
 const NameCell = styled(Container)<{depth: number}>`
   padding-left: ${p => 12 + p.depth * 16}px;
+`;
 
-  /* The variable row owns the background instead of Disclosure's title wrapper. */
+const CaretContainer = styled(Container)`
+  /* Only the caret button owns the disclosure's hover/active background. */
   > div:hover,
   > div:active {
     background: transparent;
@@ -185,27 +243,38 @@ const NameCell = styled(Container)<{depth: number}>`
 const SummaryButton = styled(Button)`
   height: auto;
   min-height: 0;
-  padding: 0;
-
-  &&:hover,
-  &&:active {
-    background: transparent;
-  }
+  max-width: 100%;
+  padding: 0 2px;
+  border-radius: 2px;
 `;
 
 const VariableTitle = styled(Disclosure.Title)`
-  height: auto;
+  position: relative;
+  left: -4px;
+  height: 20px;
+  min-height: 20px;
   min-width: 0;
+  flex-grow: 0;
+  flex-shrink: 0;
+  justify-content: center;
   padding: 0;
-  text-align: left;
-  width: 100%;
+  width: 20px;
+  border-radius: 2px;
+
+  &&:hover {
+    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.hover};
+  }
+
+  &&:active {
+    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.active};
+  }
 `;
 
 const VariableContent = styled(Disclosure.Content)`
   padding: 0;
 `;
 
-const VariableName = styled(Text)<{nested: boolean}>`
+const VariableName = styled(InfoText)<{nested: boolean}>`
   max-width: 100%;
   color: ${p =>
     p.nested ? p.theme.tokens.content.danger : p.theme.tokens.content.primary};

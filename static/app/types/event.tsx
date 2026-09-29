@@ -170,6 +170,7 @@ export type NativeFrameVariable = {
   type: string;
 } & (
   | {children: readonly NativeFrameVariable[]; kind: 'object'}
+  | {children: readonly NativeFrameVariable[]; kind: 'array'}
   | {kind: 'number' | 'string' | 'enum' | 'pointer'; value: string}
   | {kind: 'null'}
   | {kind: 'unavailable'}

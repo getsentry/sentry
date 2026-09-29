@@ -39,7 +39,7 @@ const nativeVariables: NativeFrameVariable[] = [
           {
             name: 'items',
             type: 'int[2]',
-            kind: 'object',
+            kind: 'array',
             children: [
               {name: '[0]', type: 'int', kind: 'number', value: '42'},
               {name: '[1]', type: 'int', kind: 'number', value: '7'},
