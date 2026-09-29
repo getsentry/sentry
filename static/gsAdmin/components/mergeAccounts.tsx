@@ -106,10 +106,12 @@ export function MergeAccountsModal(props: Props) {
 
   return (
     <Fragment>
-      <Header>Merge Accounts</Header>
+      <Header closeButton>
+        <Heading as="h4">Merge Accounts</Heading>
+      </Header>
       <Body>
-        <Stack gap="md">
-          <Heading as="h5">Listed accounts will be merged into this user.</Heading>
+        <Stack gap="sm">
+          <Text as="p">Listed accounts will be merged into this user.</Text>
           <Stack gap="sm">
             {mergeAccounts.users.map(user => (
               <Flex as="label" key={user.id} align="center" gap="sm">
