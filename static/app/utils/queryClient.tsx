@@ -13,6 +13,7 @@ import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {selectJson} from 'sentry/utils/api/apiOptions';
 import {normalizeQueryKey} from 'sentry/utils/api/apiQueryKey';
 import type {ApiQueryKey, QueryKeyEndpointOptions} from 'sentry/utils/api/apiQueryKey';
+import type {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 
 const nonRetryCodes = new Set<number | undefined>([400, 401, 402, 403, 404]);
@@ -155,7 +156,7 @@ export function setApiQueryData<TResponseData>(
 
 type ApiMutationVariables = {
   method: 'PUT' | 'POST' | 'PATCH' | 'DELETE';
-  url: string;
+  url: ReturnType<typeof getApiUrl>;
   data?: Record<string, unknown>;
   options?: Pick<
     QueryKeyEndpointOptions,

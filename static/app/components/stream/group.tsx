@@ -14,6 +14,7 @@ import type {AssignableEntity} from 'sentry/components/assigneeSelectorDropdown'
 import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
 import {GroupStatusChart} from 'sentry/components/charts/groupStatusChart';
 import {Count} from 'sentry/components/count';
+import {AssigneeAvatar} from 'sentry/components/group/assigneeAvatar';
 import {AssigneeSelector} from 'sentry/components/group/assigneeSelector';
 import {getBadgeProperties} from 'sentry/components/group/inboxBadges/statusBadge';
 import {GroupHeaderRow} from 'sentry/components/groupHeaderRow';
@@ -328,7 +329,8 @@ export function LoadingStreamGroup({
               <Placeholder height="24px" />
             </Flex>
           )}
-          {withColumns.includes('assignee') && (
+          {(withColumns.includes('assignee') ||
+            withColumns.includes('assigneeAvatar')) && (
             <Flex
               display={{zero: 'none', [COLUMN_BREAKPOINTS.ASSIGNEE]: 'flex'}}
               alignSelf="center"
@@ -643,7 +645,6 @@ export function StreamGroup({
 
   const groupUsersCount = (
     <Tooltip
-      disabled={!usePageFilters}
       title={
         <CountTooltipContent>
           <h4>{t('Affected Users')}</h4>
@@ -857,7 +858,8 @@ export function StreamGroup({
               )}
             </Flex>
           )}
-          {withColumns.includes('assignee') && (
+          {(withColumns.includes('assignee') ||
+            withColumns.includes('assigneeAvatar')) && (
             <Flex
               display={{zero: 'none', [COLUMN_BREAKPOINTS.ASSIGNEE]: 'flex'}}
               alignSelf="center"
@@ -867,12 +869,16 @@ export function StreamGroup({
               justify="end"
               style={{textAlign: 'right'}}
             >
-              <AssigneeSelector
-                group={group}
-                assigneeLoading={assigneeLoading}
-                handleAssigneeChange={handleAssigneeChange}
-                memberList={memberList}
-              />
+              {withColumns.includes('assigneeAvatar') ? (
+                <AssigneeAvatar assignedTo={group.assignedTo} />
+              ) : (
+                <AssigneeSelector
+                  group={group}
+                  assigneeLoading={assigneeLoading}
+                  handleAssigneeChange={handleAssigneeChange}
+                  memberList={memberList}
+                />
+              )}
             </Flex>
           )}
         </Fragment>

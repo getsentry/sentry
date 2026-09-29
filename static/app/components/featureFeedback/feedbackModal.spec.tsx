@@ -37,7 +37,10 @@ describe('FeatureFeedback', () => {
 
       // Form actions
       expect(screen.getByRole('button', {name: 'Cancel'})).toBeInTheDocument();
-      expect(screen.getByRole('button', {name: 'Submit Feedback'})).toBeDisabled();
+      expect(screen.getByRole('button', {name: 'Submit Feedback'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
 
       // User enters additional feedback message
       await userEvent.click(screen.getByPlaceholderText(/what did you expect/i));
@@ -45,7 +48,10 @@ describe('FeatureFeedback', () => {
       await userEvent.keyboard('{enter}');
 
       // Submit button is still disabled
-      expect(screen.getByRole('button', {name: 'Submit Feedback'})).toBeDisabled();
+      expect(screen.getByRole('button', {name: 'Submit Feedback'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
 
       await userEvent.click(screen.getByText('Select type of feedback'));
 
@@ -58,7 +64,10 @@ describe('FeatureFeedback', () => {
       await userEvent.click(screen.getByText('I like this feature'));
 
       // Submit button is now enabled because the required field was selected
-      expect(screen.getByRole('button', {name: 'Submit Feedback'})).toBeEnabled();
+      expect(screen.getByRole('button', {name: 'Submit Feedback'})).not.toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
 
       await userEvent.click(screen.getByRole('button', {name: 'Submit Feedback'}));
 
@@ -210,14 +219,20 @@ describe('FeatureFeedback', () => {
       await userEvent.click(screen.getByRole('button', {name: 'Next'}));
 
       // Next step is rendered
-      expect(screen.getByRole('button', {name: 'Submit Feedback'})).toBeDisabled();
+      expect(screen.getByRole('button', {name: 'Submit Feedback'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
 
       // Change form field
       expect(screen.getByRole('textbox', {name: 'Surname'})).toHaveValue('');
       await userEvent.type(screen.getByRole('textbox', {name: 'Surname'}), 'new value');
       expect(screen.getByRole('textbox', {name: 'Surname'})).toHaveValue('new value');
 
-      expect(screen.getByRole('button', {name: 'Submit Feedback'})).toBeEnabled();
+      expect(screen.getByRole('button', {name: 'Submit Feedback'})).not.toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
 
       await userEvent.click(screen.getByRole('button', {name: 'Submit Feedback'}));
 

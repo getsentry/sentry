@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Sequence
-from typing import TypedDict
+from typing import NotRequired, TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Q
@@ -31,10 +31,14 @@ GITHUB_NOREPLY_DOMAIN = "users.noreply.github.com"
 
 
 class SeerCommitAuthor(TypedDict):
-    """Git commit author sent to Seer; wire-compatible with ``scm.types.CommitAuthorParam``."""
+    """Git commit author sent to Seer; wire-compatible with ``scm.types.CommitAuthorParam``.
+
+    ``scm_login`` is the GitHub handle behind ``email``, which Seer assigns the PR to.
+    """
 
     name: str
     email: str
+    scm_login: NotRequired[str]
 
 
 def _record_outcome(outcome: str) -> None:
@@ -55,7 +59,7 @@ def _build_author(
         if external_id.isdigit()
         else f"{login}@{GITHUB_NOREPLY_DOMAIN}"
     )
-    return SeerCommitAuthor(name=name or login, email=email)
+    return SeerCommitAuthor(name=name or login, email=email, scm_login=login)
 
 
 def commit_author_for_github_actor(
@@ -225,4 +229,9 @@ def parse_commit_author(raw: str | None) -> SeerCommitAuthor | None:
     name, email = data.get("name"), data.get("email")
     if not isinstance(name, str) or not isinstance(email, str):
         return None
-    return SeerCommitAuthor(name=name, email=email)
+    author = SeerCommitAuthor(name=name, email=email)
+    # Authors stored before ``scm_login`` existed have none; the PR just goes unassigned.
+    scm_login = data.get("scm_login")
+    if isinstance(scm_login, str) and scm_login:
+        author["scm_login"] = scm_login
+    return author

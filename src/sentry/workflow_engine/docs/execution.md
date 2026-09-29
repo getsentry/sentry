@@ -53,8 +53,9 @@ same after detector selection.
 
 ### 3. Evaluate each detector
 
-`process_detectors` obtains `detector.detector_handler` from the detector's registered
-`GroupType.detector_settings` and calls `evaluate(packet)`.
+`process_detectors` obtains `detector.detector_handler` from the `DetectorSettings`
+registered for the detector's type in the `detector_settings_registry`. Then, it calls the `_evaluate` method on the handler,
+which delegates to the default or overridden `evaluate` methods that contain most of the detector's logic.
 
 One packet can produce:
 
@@ -66,7 +67,32 @@ A handler returns a mapping of group keys to `DetectorEvaluation` objects. An ev
 can contain an `IssueOccurrence`, a `StatusChangeMessage`, or `None`;
 `process_detectors` publishes only non-null results.
 
-### 4. Stateful detector orchestration
+### 4. Detector orchestration
+
+Every detector handler inherits [`DetectorHandler`](../handlers/detector/base.py). Its
+default `evaluate` is stateless; `StatefulDetectorHandler` replaces it with durable
+state and thresholds.
+
+#### Stateless (default)
+
+```mermaid
+flowchart TD
+    Packet[Receive DataPacket] --> Extract[Extract evaluation values]
+    Extract --> Group[Normalize to group key and value pairs]
+    Group --> Conditions[Evaluate detector condition group]
+    Conditions --> Priority[Select highest triggered priority]
+    Priority --> Ok{Priority is OK?}
+    Ok -->|Yes| Stop[No Issue Platform output]
+    Ok -->|No| Occurrence[Build IssueOccurrence]
+```
+
+Important semantics:
+
+- Each packet is evaluated independently. There is no dedupe, threshold, or durable
+  state.
+- `OK` produces no status-change message; the default path never resolves issues.
+
+#### Stateful
 
 Most threshold-based detectors inherit
 [`StatefulDetectorHandler`](../handlers/detector/stateful.py):
@@ -112,10 +138,9 @@ empty or passing `NONE` group can also trigger without a priority-bearing result
 therefore use the stateful handler's default `OK` priority. A missing trigger group is
 invalid and produces no transition.
 
-Custom detectors can inherit the smaller
-[`BaseDetectorHandler`](../handlers/detector/base.py) or implement
-[`DetectorHandler`](../handlers/detector/base.py) directly, but then they own more of
-this orchestration.
+Detectors that need a different flow inherit `DetectorHandler` and override `evaluate`,
+but then they own this orchestration. `BaseDetectorHandler` is only the abstract
+interface and is not a base for new detectors.
 
 ### 5. Publish to Issue Platform
 

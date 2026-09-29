@@ -107,6 +107,109 @@ describe('Onboarding deployment target', () => {
     ).toBeGreaterThan(0);
   });
 
+  it('shows the unsupported platform setup for a browser project', async () => {
+    const {organization} = setupProject('javascript');
+
+    render(<Onboarding />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/',
+          query: {integration: 'openai', deploymentTarget: 'cloudflare'},
+        },
+      },
+    });
+
+    expect(
+      await screen.findByText(
+        textWithMarkupMatcher(
+          /Auto instrumentation of AI Agents is not available for your Browser JavaScript project/
+        )
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: /manually instrument/i})).toHaveAttribute(
+      'href',
+      'https://docs.sentry.io/platforms/javascript/tracing/instrumentation/ai-agents-module-browser/#manual-span-creation'
+    );
+    expect(screen.getByRole('button', {name: 'Copy instructions'})).toBeInTheDocument();
+  });
+
+  it('prefers a supported project over a selected browser project', async () => {
+    const {organization, project} = setupProject('javascript-nextjs');
+    const browserProject = ProjectFixture({
+      id: '100',
+      slug: 'browser-project',
+      platform: 'javascript',
+    });
+    ProjectsStore.loadInitialData([browserProject, project]);
+    PageFiltersStore.onInitializeUrlState(
+      PageFiltersFixture({projects: [Number(browserProject.id), Number(project.id)]}),
+      false
+    );
+
+    render(<Onboarding />, {organization});
+
+    expect(
+      await screen.findByText(
+        textWithMarkupMatcher(`Set up the Sentry SDK for ${project.slug}`)
+      )
+    ).toBeInTheDocument();
+  });
+
+  it.each([
+    ['node-mastra', 'Mastra', /@mastra\/observability/],
+    ['node-flue', 'Flue', /flue add tooling sentry/],
+    ['node-eve', 'Eve', /Install the Sentry Node SDK in your Eve project/],
+  ] as const)(
+    'uses the %s project integration without showing a selector',
+    async (platform, integration, setupCode) => {
+      const {organization} = setupProject(platform);
+
+      render(<Onboarding />, {organization});
+
+      expect(
+        (await screen.findAllByText(textWithMarkupMatcher(setupCode))).length
+      ).toBeGreaterThan(0);
+      expect(screen.queryByRole('button', {name: integration})).not.toBeInTheDocument();
+    }
+  );
+
+  it.each(['node-mastra', 'node-flue', 'node-eve'] as const)(
+    'hides generic Conversations guidance for %s projects',
+    async platform => {
+      const {organization} = setupProject(platform);
+
+      render(<Onboarding />, {organization});
+
+      expect(await screen.findByText('Install')).toBeInTheDocument();
+      expect(screen.queryByRole('link', {name: 'Conversations'})).not.toBeInTheDocument();
+    }
+  );
+
+  it('ignores integration and deployment query overrides for framework projects', async () => {
+    const {organization} = setupProject('node-eve');
+
+    render(<Onboarding />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/',
+          query: {integration: 'openai', deploymentTarget: 'cloudflare'},
+        },
+      },
+    });
+
+    expect(
+      (
+        await screen.findAllByText(
+          textWithMarkupMatcher(/Install the Sentry Node SDK in your Eve project/)
+        )
+      ).length
+    ).toBeGreaterThan(0);
+    expect(screen.queryByRole('button', {name: 'OpenAI SDK'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Cloudflare'})).not.toBeInTheDocument();
+  });
+
   it('pins Cloudflare Workers projects to the Cloudflare runtime with no Node toggle', async () => {
     const {organization} = setupProject('node-cloudflare-workers');
 

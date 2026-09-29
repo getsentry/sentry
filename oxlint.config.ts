@@ -639,7 +639,7 @@ const config = defineConfig({
     'react/exhaustive-effect-dependencies': 'error',
     'react/function-component-definition': 'error',
     'react/globals': 'error',
-    'react/hooks': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
+    'react/hooks': 'error',
     'react/immutability': 'error',
     'react/incompatible-library': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
     'react/invariant': 'error',
@@ -664,6 +664,7 @@ const config = defineConfig({
     'react/no-is-mounted': 'error',
     'react/no-render-return-value': 'error',
     'react/no-string-refs': 'error',
+    'react/no-unstable-nested-components': ['error', {allowAsProps: true}],
     'react/no-unknown-property': [
       'error',
       {
@@ -813,8 +814,7 @@ const config = defineConfig({
     'unicorn/prefer-blob-reading-methods': 'error',
     'unicorn/prefer-classlist-toggle': 'error',
     'unicorn/prefer-date-now': 'error',
-    // TODO(ryan953): Fix violations and promote this warning to an error.
-    'unicorn/prefer-default-parameters': 'warn',
+    'unicorn/prefer-default-parameters': 'error',
     'unicorn/prefer-event-target': 'error',
     'unicorn/prefer-includes': 'off',
     'unicorn/prefer-keyboard-event-key': 'error',
@@ -1646,8 +1646,8 @@ const config = defineConfig({
         'react-you-might-not-need-an-effect/no-pass-live-state-to-parent': 'off',
         'react-you-might-not-need-an-effect/no-pass-data-to-parent': 'off',
         'react-you-might-not-need-an-effect/no-initialize-state': 'off',
-        'react-you-might-not-need-an-effect/no-manage-parent': 'off',
-        'react-you-might-not-need-an-effect/no-empty-effect': 'off',
+        // TODO(ryan953): fix and turn this on
+        'react-you-might-not-need-an-effect/no-external-store-subscription': 'off',
       },
     },
     {

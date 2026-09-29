@@ -24,7 +24,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {
-  getColumnSort,
+  getAlignment,
   renderHeadCell,
 } from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
 import {SpanIdCell} from 'sentry/views/insights/common/components/tableCells/spanIdCell';
@@ -39,7 +39,7 @@ import {
   getEAPSegmentSpansListSort,
   SEGMENT_SPANS_CURSOR,
 } from 'sentry/views/performance/eap/utils';
-import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
+import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/breadcrumbs';
 import {TransactionFilterOptions} from 'sentry/views/performance/transactionSummary/utils';
 
 const LIMIT = 5;
@@ -159,7 +159,7 @@ export function SegmentSpansTable({
         data={consolidatedData}
         columnOrder={SEGMENT_SPANS_COLUMN_ORDER}
         grid={{
-          getColumnSort: column => getColumnSort({column}),
+          getColumnSort: column => ({align: getAlignment(column.key)}),
           renderHeadCell: column => renderHeadCell({column}),
           renderBodyCell: (column, row) =>
             renderBodyCell(
