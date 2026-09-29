@@ -1,5 +1,4 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {z} from 'zod';
 
 import {
   render,
@@ -272,22 +271,13 @@ describe('BackendJsonSubmitForm', () => {
   });
 
   describe('submission', () => {
-    it('shows custom Zod errors on their fields and blocks submission', async () => {
+    it('shows URL errors on their fields and blocks submission', async () => {
       render(
         <BackendJsonSubmitForm
           fields={[
-            {name: 'link', type: 'string', label: 'Link', required: true},
-            {name: 'mediaUrl', type: 'string', label: 'Image URL'},
+            {name: 'link', type: 'url', label: 'Link', required: true},
+            {name: 'mediaUrl', type: 'url', label: 'Image URL'},
           ]}
-          validationSchema={z.object({
-            link: z.url('Enter a valid URL.'),
-            mediaUrl: z
-              .string()
-              .refine(
-                value => !value || z.url().safeParse(value).success,
-                'Enter a valid image URL.'
-              ),
-          })}
           onSubmit={onSubmit}
           submitLabel="Create"
         />,
@@ -298,8 +288,26 @@ describe('BackendJsonSubmitForm', () => {
       await userEvent.type(screen.getByRole('textbox', {name: 'Image URL'}), 'invalid');
       await userEvent.click(screen.getByRole('button', {name: 'Create'}));
 
-      expect(await screen.findByText('Enter a valid URL.')).toBeInTheDocument();
-      expect(screen.getByText('Enter a valid image URL.')).toBeInTheDocument();
+      expect(await screen.findAllByText('Enter a valid URL.')).toHaveLength(2);
+      expect(onSubmit).not.toHaveBeenCalled();
+    });
+
+    it('blocks submission when text exceeds maxLength', async () => {
+      render(
+        <BackendJsonSubmitForm
+          fields={[{name: 'title', type: 'string', label: 'Title', maxLength: 3}]}
+          initialValues={{title: 'long'}}
+          onSubmit={onSubmit}
+          submitLabel="Create"
+        />,
+        {organization: org}
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Create'}));
+
+      expect(
+        await screen.findByText('Must be 3 characters or fewer.')
+      ).toBeInTheDocument();
       expect(onSubmit).not.toHaveBeenCalled();
     });
 

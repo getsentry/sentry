@@ -1,7 +1,4 @@
-import {z} from 'zod';
-
 import type {JsonFormAdapterFieldConfig} from 'sentry/components/backendJsonFormAdapter/types';
-import {safeURL} from 'sentry/utils/url/safeURL';
 
 import {
   AVAILABLE_PLANCHOICES,
@@ -15,15 +12,6 @@ import {
 
 const TITLE_MAX_LENGTH = 64;
 const MESSAGE_MAX_LENGTH = 256;
-
-export const broadcastValidationSchema = z.object({
-  title: z.string().max(TITLE_MAX_LENGTH, 'Title must be 64 characters or fewer.'),
-  message: z.string().max(MESSAGE_MAX_LENGTH, 'Message must be 256 characters or fewer.'),
-  link: z.string().refine(value => Boolean(safeURL(value)), 'Enter a valid URL.'),
-  mediaUrl: z
-    .string()
-    .refine(value => !value || Boolean(safeURL(value)), 'Enter a valid image URL.'),
-});
 
 export function getBroadcastSchema(): JsonFormAdapterFieldConfig[] {
   return [
@@ -45,7 +33,7 @@ export function getBroadcastSchema(): JsonFormAdapterFieldConfig[] {
     },
     {
       name: 'link',
-      type: 'string',
+      type: 'url',
       required: true,
       label: 'Link',
       placeholder: 'e.g. https://blog.sentry.io/2021/01/01/shiny-new-feature',
@@ -60,7 +48,7 @@ export function getBroadcastSchema(): JsonFormAdapterFieldConfig[] {
     },
     {
       name: 'mediaUrl',
-      type: 'string',
+      type: 'url',
       required: false,
       label: 'Image URL',
       placeholder: 'e.g. https://example.com/image.png',

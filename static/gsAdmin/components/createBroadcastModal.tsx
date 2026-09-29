@@ -15,8 +15,6 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
-import {broadcastValidationSchema} from 'admin/schemas/broadcasts';
-
 interface CreateBroadcastModal extends ModalRenderProps {
   fields: JsonFormAdapterFieldConfig[];
 }
@@ -87,7 +85,6 @@ export function CreateBroadcastModal({
         <BackendJsonSubmitForm
           fields={fields}
           onSubmit={handleSubmit}
-          validationSchema={broadcastValidationSchema}
           initialValues={{
             isActive: true,
             dateExpires: moment().add(7, 'days').format('YYYY-MM-DDTHH:mm'),
