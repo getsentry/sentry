@@ -94,8 +94,7 @@ RUN : double-check some built files are available \
 # with the right ownership. This must happen before the VOLUME instruction.
 RUN mkdir -p /data/files && chown -R sentry:sentry /data
 
-# Numeric so that Kubernetes' runAsNonRoot can verify it.
-USER 999:999
+USER sentry
 
 EXPOSE 9000
 VOLUME /data
