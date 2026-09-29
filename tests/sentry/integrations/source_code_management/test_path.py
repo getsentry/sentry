@@ -21,6 +21,14 @@ from sentry.integrations.source_code_management.path import (
             "lib/my%20file.py",
             id="safe-parent-with-encoded-space",
         ),
+        # This helper canonicalizes paths but does not enforce repository
+        # containment. The mapping layer rejects upward-relative results.
+        pytest.param("../file.py", "../file.py", id="upward-relative-for-caller-validation"),
+        pytest.param(
+            "src/../../file.py",
+            "../file.py",
+            id="normalized-upward-relative-for-caller-validation",
+        ),
         pytest.param("C:/src/file.py", "C:/src/file.py", id="windows-absolute"),
     ],
 )
