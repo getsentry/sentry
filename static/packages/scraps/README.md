@@ -53,3 +53,15 @@ and server renders representative components in both themes.
 
 Consumers provide Emotion's `ThemeProvider` with `lightTheme` or `darkTheme`.
 The package does not include application providers, global CSS, or fonts.
+
+## Prepare a release
+
+Add a nonempty `## <version>` section to [CHANGELOG.md](./CHANGELOG.md), then
+run the `Prepare Scraps release` GitHub workflow with that version. The initial
+entry is `0.1.0`. Craft's `simple` policy rejects a release without a matching
+entry.
+
+Craft creates a `scraps-releases/<version>` branch and opens a request in
+`getsentry/publish`. The package workflow verifies that branch and uploads its
+npm tarball. A release manager must approve the request before Craft publishes.
+The Sentry Docker release uses the root `.craft.yml`.
