@@ -10,12 +10,14 @@ function isFunctionNode(node: ESTree.Node): node is FunctionNode {
   );
 }
 
-function isJsxOrNullExpression(node: ESTree.Node | null | undefined): boolean {
+export function isJsxOrNullExpression(node: ESTree.Node | null | undefined): boolean {
   if (!node) {
     return false;
   }
 
   switch (node.type) {
+    case 'ParenthesizedExpression':
+      return isJsxOrNullExpression(node.expression);
     case 'JSXElement':
     case 'JSXFragment':
       return true;

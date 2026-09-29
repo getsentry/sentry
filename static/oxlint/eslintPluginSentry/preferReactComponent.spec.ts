@@ -1,6 +1,7 @@
+import type {ESTree} from '@oxlint/plugins';
 import {RuleTester} from 'oxlint/plugins-dev';
 
-import {preferReactComponent} from './preferReactComponent';
+import {isJsxOrNullExpression, preferReactComponent} from './preferReactComponent';
 
 const ruleTester = new RuleTester({
   languageOptions: {
@@ -79,8 +80,18 @@ ruleTester.run('prefer-react-component', preferReactComponent, {
       errors: [{messageId: 'useComponent', data: {name: 'makeHeader'}}],
     },
     {
+      name: 'parenthesized JSX return',
+      code: 'function Component() { function makeHeader() { return (<Heading />); } return <div>{makeHeader()}</div>; }',
+      errors: [{messageId: 'useComponent', data: {name: 'makeHeader'}}],
+    },
+    {
       name: 'conditional JSX expression',
       code: 'function Component() { const makeHeader = () => (condition ? <Heading /> : <Fallback />); return <div>{makeHeader()}</div>; }',
+      errors: [{messageId: 'useComponent', data: {name: 'makeHeader'}}],
+    },
+    {
+      name: 'parenthesized branches of a conditional expression',
+      code: 'function Component() { const makeHeader = () => condition ? (<Heading />) : (null); return <div>{makeHeader()}</div>; }',
       errors: [{messageId: 'useComponent', data: {name: 'makeHeader'}}],
     },
     {
@@ -94,4 +105,38 @@ ruleTester.run('prefer-react-component', preferReactComponent, {
       errors: [{messageId: 'useComponent', data: {name: 'makeHeader'}}],
     },
   ],
+});
+
+describe('isJsxOrNullExpression', () => {
+  function parenthesize(expression: ESTree.Node): ESTree.Node {
+    return {
+      type: 'ParenthesizedExpression',
+      expression,
+    } as unknown as ESTree.Node;
+  }
+
+  it('unwraps a parenthesized JSX expression', () => {
+    const jsxElement = {type: 'JSXElement'} as unknown as ESTree.Node;
+
+    expect(isJsxOrNullExpression(parenthesize(jsxElement))).toBe(true);
+  });
+
+  it('unwraps a parenthesized null expression', () => {
+    const nullLiteral = {type: 'Literal', value: null} as unknown as ESTree.Node;
+
+    expect(isJsxOrNullExpression(parenthesize(nullLiteral))).toBe(true);
+  });
+
+  it('recognizes parenthesized branches of a conditional expression', () => {
+    const jsxElement = {type: 'JSXElement'} as unknown as ESTree.Node;
+    const nullLiteral = {type: 'Literal', value: null} as unknown as ESTree.Node;
+    const conditional = {
+      type: 'ConditionalExpression',
+      test: {type: 'Identifier', name: 'condition'},
+      consequent: parenthesize(jsxElement),
+      alternate: parenthesize(nullLiteral),
+    } as unknown as ESTree.Node;
+
+    expect(isJsxOrNullExpression(conditional)).toBe(true);
+  });
 });
