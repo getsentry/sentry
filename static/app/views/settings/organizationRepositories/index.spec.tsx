@@ -2,6 +2,8 @@ import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegration
 import {GitLabIntegrationProviderFixture} from 'sentry-fixture/gitlabIntegrationProvider';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {RepositoryFixture} from 'sentry-fixture/repository';
 
 import {
   act,
@@ -478,5 +480,167 @@ describe('OrganizationRepositories', () => {
 
     await userEvent.click(screen.getByRole('checkbox', {name: 'Enable Sync'}));
     await waitFor(() => expect(updateRequest).toHaveBeenCalledTimes(1));
+  });
+
+  describe('code-mappings-refactor flag', () => {
+    const REPO = RepositoryFixture({
+      id: '42',
+      name: 'getsentry/sentry',
+      externalId: 'ext-1',
+      integrationId: GITHUB_INTEGRATION.id,
+      provider: {id: 'github', name: 'GitHub'},
+    });
+
+    const PROJECT = ProjectFixture({id: 'proj-1', slug: 'my-project'});
+
+    function setupRepoMocks(codeMappingBody: object[]) {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/config/integrations/',
+        body: {providers: [GITHUB_PROVIDER]},
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/integrations/',
+        body: [GITHUB_INTEGRATION],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/integrations/${GITHUB_INTEGRATION.id}/`,
+        body: GITHUB_INTEGRATION,
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/repos/',
+        body: [REPO],
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/code-mappings/',
+        body: codeMappingBody,
+      });
+      // The flag-on path wires repoActions which can trigger project prefetches
+      // through query-client background revalidation.
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/projects/',
+        body: [PROJECT],
+      });
+    }
+
+    it('does not render a row action when the flag is off', async () => {
+      setupRepoMocks([]);
+      render(<OrganizationRepositories />, {
+        organization: OrganizationFixture({features: []}),
+      });
+
+      await screen.findByText('getsentry/sentry');
+      expect(screen.queryByRole('button', {name: 'Connect project'})).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: 'Edit code mappings'})).not.toBeInTheDocument();
+    });
+
+    it('shows a + button for a repo with no code mappings when the flag is on', async () => {
+      setupRepoMocks([]);
+      render(<OrganizationRepositories />, {
+        organization: OrganizationFixture({features: ['code-mappings-refactor']}),
+      });
+
+      expect(
+        await screen.findByRole('button', {name: 'Connect project'})
+      ).toBeInTheDocument();
+    });
+
+    it('shows an edit button for a repo that already has code mappings when the flag is on', async () => {
+      setupRepoMocks([
+        {
+          id: '1',
+          repoId: REPO.id,
+          repoName: REPO.name,
+          projectId: PROJECT.id,
+          projectSlug: PROJECT.slug,
+          stackRoot: '',
+          sourceRoot: '',
+          defaultBranch: 'main',
+          integrationId: GITHUB_INTEGRATION.id,
+        },
+      ]);
+      render(<OrganizationRepositories />, {
+        organization: OrganizationFixture({features: ['code-mappings-refactor']}),
+      });
+
+      expect(
+        await screen.findByRole('button', {name: 'Edit code mappings'})
+      ).toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: 'Connect project'})).not.toBeInTheDocument();
+    });
+
+    it('clicking + opens the repo-locked connect modal', async () => {
+      setupRepoMocks([]);
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/projects/',
+        body: [PROJECT],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/integrations/${GITHUB_INTEGRATION.id}/repos/`,
+        body: {repos: [{name: REPO.name, identifier: REPO.name, externalId: REPO.externalId, isInstalled: true, defaultBranch: 'main'}]},
+      });
+
+      render(<OrganizationRepositories />, {
+        organization: OrganizationFixture({features: ['code-mappings-refactor']}),
+      });
+      renderGlobalModal();
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Connect project'}));
+
+      // The repo-locked modal has the repo name locked and a project selector.
+      expect(
+        await screen.findByText('Connect a project to getsentry/sentry')
+      ).toBeInTheDocument();
+      // Repository field is disabled (locked); Project field is a select.
+      expect(screen.getByRole('textbox', {name: /repository/i})).toBeDisabled();
+    });
+
+    it('save in repo-locked connect modal POSTs repo link and code mapping', async () => {
+      setupRepoMocks([]);
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/projects/',
+        body: [PROJECT],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/integrations/${GITHUB_INTEGRATION.id}/repos/`,
+        body: {repos: [{name: REPO.name, identifier: REPO.name, externalId: REPO.externalId, isInstalled: true, defaultBranch: 'main'}]},
+      });
+      const postRepo = MockApiClient.addMockResponse({
+        url: `/projects/org-slug/${PROJECT.slug}/repo/`,
+        method: 'POST',
+        body: {id: '99', projectId: PROJECT.id, repositoryId: REPO.id, source: 'scm_onboarding', created: true},
+      });
+      const postMapping = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/code-mappings/',
+        method: 'POST',
+        body: {},
+      });
+
+      render(<OrganizationRepositories />, {
+        organization: OrganizationFixture({features: ['code-mappings-refactor']}),
+      });
+      renderGlobalModal();
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Connect project'}));
+      // Select the project.
+      await userEvent.click(await screen.findByText('Search projects'));
+      await userEvent.click(await screen.findByText(PROJECT.slug));
+
+      // Save becomes enabled once a project is selected (path list appears).
+      expect(await screen.findByRole('button', {name: 'Save'})).toBeEnabled();
+      await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+
+      await waitFor(() =>
+        expect(postRepo).toHaveBeenCalledWith(
+          `/projects/org-slug/${PROJECT.slug}/repo/`,
+          expect.objectContaining({method: 'POST', data: {repositoryId: REPO.id}})
+        )
+      );
+      await waitFor(() =>
+        expect(postMapping).toHaveBeenCalledWith(
+          '/organizations/org-slug/code-mappings/',
+          expect.objectContaining({method: 'POST'})
+        )
+      );
+    });
   });
 });

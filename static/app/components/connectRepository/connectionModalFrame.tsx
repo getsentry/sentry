@@ -1,6 +1,5 @@
 import {Fragment, type ReactNode} from 'react';
 
-import {Alert} from '@sentry/scraps/alert';
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
@@ -14,6 +13,7 @@ import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 import {RequestError} from 'sentry/utils/requestError/requestError';
+
 
 export function getApiErrorMessage(error: unknown): string {
   if (error instanceof RequestError) {
@@ -80,7 +80,9 @@ export function LockedRepoField({
   );
 }
 
-// Presentational shell shared by both modes — owns no queries or mutations.
+// Presentational shell shared by all modes — owns no queries or mutations.
+// Callers provide both field slots so the frame stays layout-only and can
+// support any locked/selectable combination without internal branching.
 export interface ConnectionModalFrameProps {
   Body: ModalRenderProps['Body'];
   Footer: ModalRenderProps['Footer'];
@@ -89,10 +91,14 @@ export interface ConnectionModalFrameProps {
   canSave: boolean;
   closeModal: () => void;
   isSaving: boolean;
+  // Left column of the connection grid (label + field).
+  leftField: ReactNode;
+  leftLabel: string;
   onSave: () => void;
   pathsSection: ReactNode;
-  project: Project;
-  repoField: ReactNode;
+  // Right column of the connection grid (label + field).
+  rightField: ReactNode;
+  rightLabel: string;
   title: ReactNode;
   intro?: ReactNode;
 }
@@ -105,8 +111,10 @@ export function ConnectionModalFrame({
   title,
   intro,
   alerts,
-  project,
-  repoField,
+  leftLabel,
+  leftField,
+  rightLabel,
+  rightField,
   pathsSection,
   canSave,
   isSaving,
@@ -123,17 +131,15 @@ export function ConnectionModalFrame({
           {intro}
           <Grid columns="1fr auto 1fr" gap="xs md" align="center">
             <Text size="sm" bold>
-              {t('Project')}
+              {leftLabel}
             </Text>
             <Container />
             <Text size="sm" bold>
-              {t('Repository')}
+              {rightLabel}
             </Text>
-            <Container minWidth={0}>
-              <LockedProjectField project={project} />
-            </Container>
+            <Container minWidth={0}>{leftField}</Container>
             <IconArrow direction="right" />
-            <Container minWidth={0}>{repoField}</Container>
+            <Container minWidth={0}>{rightField}</Container>
           </Grid>
           {pathsSection}
         </Stack>

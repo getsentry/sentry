@@ -16,6 +16,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   getApiErrorMessage,
   ConnectionModalFrame,
+  LockedProjectField,
   LockedRepoField,
 } from 'sentry/components/connectRepository/connectionModalFrame';
 import {
@@ -89,11 +90,7 @@ export function EditRepositoryForm({
 }: EditFormProps) {
   const organization = useOrganization();
   const [pathMappings, setPathMappings] = useState<PathMappingValue[]>([]);
-  const invalidateQueries = useInvalidateRepoQueries(
-    organization.slug,
-    project.slug,
-    project.id
-  );
+  const invalidateQueries = useInvalidateRepoQueries(organization.slug);
 
   const codeMappingsQuery = useQuery(
     projectCodeMappingsOptions({orgSlug: organization.slug, projectId: project.id})
@@ -124,7 +121,7 @@ export function EditRepositoryForm({
   const editMutation = useMutation({
     mutationFn: editProjectRepoMappings,
     onSuccess: async () => {
-      await invalidateQueries();
+      await invalidateQueries(project);
       closeModal();
     },
   });
@@ -176,8 +173,10 @@ export function EditRepositoryForm({
       closeModal={closeModal}
       title={t('Edit code mappings')}
       alerts={alerts}
-      project={project}
-      repoField={<LockedRepoField repoName={repoName} providerKey={providerKey} />}
+      leftLabel={t('Project')}
+      leftField={<LockedProjectField project={project} />}
+      rightLabel={t('Repository')}
+      rightField={<LockedRepoField repoName={repoName} providerKey={providerKey} />}
       pathsSection={pathsSection}
       canSave={canSave}
       isSaving={editMutation.isPending}

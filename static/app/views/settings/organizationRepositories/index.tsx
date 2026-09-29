@@ -13,22 +13,22 @@ import mapValues from 'lodash/mapValues';
 import sortBy from 'lodash/sortBy';
 import uniq from 'lodash/uniq';
 
+import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
 import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {useModal} from '@sentry/scraps/modal';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
+import {ConnectRepositoryModal} from 'sentry/components/connectRepository/connectRepositoryModal';
+import {orgCodeMappingsInfiniteOptions} from 'sentry/components/connectRepository/queries';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
+import {IconAdd, IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import type {
-  Integration,
-  OrganizationIntegration,
-  Repository,
-  RepositoryProjectPathConfig,
-} from 'sentry/types/integrations';
+import type {Integration, OrganizationIntegration, Repository} from 'sentry/types/integrations';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {isScmProvider} from 'sentry/utils/integrationUtil';
@@ -168,8 +168,83 @@ const SCM_PROVIDER_ORDER = [
   'vsts',
 ];
 
+// Renders the per-row action in the Repositories table when the
+// code-mappings-refactor flag is on. Returns null while mappings are still
+// loading so a stale state doesn't flash a connect button for a mapped repo.
+function ConnectRepoRowAction({
+  repo,
+  providerKey,
+  mappedProjectSlugsByRepoId,
+  mappingsLoading,
+  openModal,
+}: {
+  mappingsLoading: boolean;
+  openModal: ReturnType<typeof useModal>['openModal'];
+  providerKey: string;
+  repo: Repository;
+  mappedProjectSlugsByRepoId?: Record<string, string[]>;
+}) {
+  if (mappingsLoading || !mappedProjectSlugsByRepoId) {
+    return null;
+  }
+
+  const mappedSlugs = mappedProjectSlugsByRepoId[repo.id] ?? [];
+
+  if (mappedSlugs.length === 0) {
+    return (
+      <Button
+        size="xs"
+        icon={<IconAdd />}
+        aria-label={t('Connect project')}
+        onClick={() =>
+          openModal(modalProps => (
+            <ConnectRepositoryModal
+              {...modalProps}
+              lockedSide="repo"
+              mode="connect"
+              repositoryId={repo.id}
+              repoName={repo.name}
+              providerKey={providerKey}
+              integrationId={repo.integrationId}
+              externalId={repo.externalId}
+            />
+          ))
+        }
+      >
+        {t('Connect project')}
+      </Button>
+    );
+  }
+
+  return (
+    <Button
+      size="xs"
+      icon={<IconEdit />}
+      aria-label={t('Edit code mappings')}
+      onClick={() =>
+        openModal(modalProps => (
+          <ConnectRepositoryModal
+            {...modalProps}
+            lockedSide="repo"
+            mode="edit"
+            repositoryId={repo.id}
+            repoName={repo.name}
+            providerKey={providerKey}
+            integrationId={repo.integrationId}
+            externalId={repo.externalId}
+          />
+        ))
+      }
+    >
+      {t('Edit code mappings')}
+    </Button>
+  );
+}
+
 export default function OrganizationRepositories() {
   const organization = useOrganization();
+  const {openModal} = useModal();
+  const hasCodeMappingsRefactor = organization.features.includes('code-mappings-refactor');
   const [searchTerm, setSearchTerm] = useState('');
   const [autoSyncIntegrationId, setAutoSyncIntegrationId] = useState<string | null>(null);
   const clearAutoSync = useCallback(() => setAutoSyncIntegrationId(null), []);
@@ -231,14 +306,7 @@ export default function OrganizationRepositories() {
   );
 
   const codeMappingsQuery = useInfiniteQuery(
-    apiOptions.asInfinite<RepositoryProjectPathConfig[]>()(
-      '/organizations/$organizationIdOrSlug/code-mappings/',
-      {
-        path: {organizationIdOrSlug: organization.slug},
-        query: {per_page: 100},
-        staleTime: 10_000,
-      }
-    )
+    orgCodeMappingsInfiniteOptions(organization.slug)
   );
   useFetchAllPages({result: codeMappingsQuery});
 
@@ -263,6 +331,17 @@ export default function OrganizationRepositories() {
       manageUrl: getProviderConfigUrl(integration) ?? undefined,
       mappedProjectSlugsByRepoId,
       mappingsLoading,
+      repoActions: hasCodeMappingsRefactor
+        ? (repo: Repository) => (
+            <ConnectRepoRowAction
+              repo={repo}
+              providerKey={integration.provider.key}
+              mappedProjectSlugsByRepoId={mappedProjectSlugsByRepoId}
+              mappingsLoading={mappingsLoading}
+              openModal={openModal}
+            />
+          )
+        : undefined,
     }));
     return groupBy(installations, i => i.integration.provider.key);
   }, [
@@ -271,6 +350,8 @@ export default function OrganizationRepositories() {
     reposLoading,
     mappedProjectSlugsByRepoId,
     mappingsLoading,
+    hasCodeMappingsRefactor,
+    openModal,
   ]);
 
   // A newly connected provider has no repos imported yet. Refetch to render its
