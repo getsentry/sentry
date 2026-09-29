@@ -267,8 +267,6 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
 
   // Outside the chat, "post a message" means opening the Explorer on it;
   // `SeerExplorerContent` shadows this provider for callers inside the chat.
-  // While popped out, `openSeerExplorer` can only focus the window and the
-  // message would be lost, so the provider withholds it and callers disable.
   const openChatWithMessage = useCallback(
     (query: string, options?: SendMessageOptions) => {
       // Append by default so the caller keeps the context the run has built up.
@@ -484,7 +482,7 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
 
   return (
     <SeerExplorerContext.Provider value={contextValue}>
-      <AutofixChatProvider sendMessage={isPoppedOut ? undefined : openChatWithMessage}>
+      <AutofixChatProvider sendMessage={openChatWithMessage}>
         {children}
         {pipWindow && (
           <PictureInPicturePortal pipWindow={pipWindow}>
