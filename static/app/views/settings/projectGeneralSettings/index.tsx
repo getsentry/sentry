@@ -750,41 +750,37 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
 
         <FieldGroup title={t('Event Settings')}>
           <AutoResolveForm project={project} disabled={disabled} />
-          {organization.features.includes('auto-release-creation') && (
-            <AutoSaveForm
-              name="enableAutoReleaseCreation"
-              schema={projectSettingsSchema}
-              initialValue={project.enableAutoReleaseCreation}
-              mutationOptions={projectMutationOptions}
-              confirm={value =>
-                value
-                  ? undefined
-                  : tct(
-                      'Turning this off means Sentry will no longer create releases from ingested events. You will need to create releases manually, for example with the [link:Sentry CLI]. Are you sure you want to disable this?',
-                      {
-                        link: (
-                          <ExternalLink href="https://docs.sentry.io/cli/releases/" />
-                        ),
-                      }
-                    )
-              }
-            >
-              {field => (
-                <field.Layout.Row
-                  label={t('Enable release auto-creation from telemetry')}
-                  hintText={t(
-                    'Automatically create releases when Sentry sees a new release in ingested events. When disabled, releases must be created manually (e.g. with the Sentry CLI).'
-                  )}
-                >
-                  <field.Switch
-                    checked={field.state.value}
-                    onChange={field.handleChange}
-                    disabled={disabled}
-                  />
-                </field.Layout.Row>
-              )}
-            </AutoSaveForm>
-          )}
+          <AutoSaveForm
+            name="enableAutoReleaseCreation"
+            schema={projectSettingsSchema}
+            initialValue={project.enableAutoReleaseCreation}
+            mutationOptions={projectMutationOptions}
+            confirm={value =>
+              value
+                ? undefined
+                : tct(
+                    'Turning this off means Sentry will no longer create releases from ingested events. You will need to create releases manually, for example with the [link:Sentry CLI]. Are you sure you want to disable this?',
+                    {
+                      link: <ExternalLink href="https://docs.sentry.io/cli/releases/" />,
+                    }
+                  )
+            }
+          >
+            {field => (
+              <field.Layout.Row
+                label={t('Enable release auto-creation from telemetry')}
+                hintText={t(
+                  'Automatically create releases when Sentry sees a new release in ingested events. When disabled, releases must be created manually (e.g. with the Sentry CLI).'
+                )}
+              >
+                <field.Switch
+                  checked={field.state.value}
+                  onChange={field.handleChange}
+                  disabled={disabled}
+                />
+              </field.Layout.Row>
+            )}
+          </AutoSaveForm>
         </FieldGroup>
 
         <FieldGroup title={t('Membership')}>

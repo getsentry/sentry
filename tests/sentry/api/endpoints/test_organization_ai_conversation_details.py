@@ -1037,6 +1037,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         expected_usage_by_model = [
             {
                 "model": "model-b",
+                "llmCalls": 1,
                 "inputTokens": 120,
                 "outputTokens": 80,
                 "totalTokens": 200,
@@ -1049,6 +1050,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
             },
             {
                 "model": "model-a",
+                "llmCalls": 1,
                 "inputTokens": 70,
                 "outputTokens": 30,
                 "totalTokens": 100,

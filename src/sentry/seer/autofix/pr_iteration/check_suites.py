@@ -47,7 +47,7 @@ from sentry.seer.autofix.pr_iteration.constants import (
     REVIEW_REQUEST_FLAG,
 )
 from sentry.seer.autofix.pr_iteration.tracing import set_pr_iteration_attributes
-from sentry.seer.models import SeerApiError
+from sentry.seer.models import SeerApiError, SeerUnavailableError
 from sentry.seer.models.run import SeerRun
 from sentry.utils import metrics
 from sentry.utils.tracing import trace
@@ -399,6 +399,9 @@ def resolve_check_suite_autofix_run(
                 state = get_agent_state_from_pr_id(
                     candidate.organization_id, SEER_GITHUB_PROVIDER, pr_id
                 )
+            except SeerUnavailableError:
+                # Seer is down; let the task retry instead of reporting "no run".
+                raise
             except SeerApiError as e:
                 sentry_sdk.capture_exception(e)
                 continue
