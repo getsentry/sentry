@@ -1,4 +1,3 @@
-from typing import Any
 from unittest import mock
 
 import pytest
@@ -10,12 +9,6 @@ from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 
 from sentry.exceptions import InvalidSearchQuery
-from sentry.explore.models import (
-    ExploreSavedFormula,
-    ExploreSavedVariable,
-    KindItemTypes,
-    ParamItemTypes,
-)
 from sentry.search.eap import utils
 from sentry.search.eap.constants import SearchType
 from sentry.search.eap.utils import (
@@ -106,62 +99,7 @@ class TestParseFormula(TestCase):
         super().setUp()
         self.org = self.create_organization(owner=self.user)
         self.project = self.create_project(organization=self.org)
-        data: dict[Any, Any] = {
-            "name": "formula.apdex",
-            "formula": "({count_satisfied} + {count_tolerating} / 2) / count()",
-            "unit": None,
-            "references": [
-                {"name": "count_satisfied", "value": "count_if(`{duration}:<{threshold}`)"},
-                {
-                    "name": "count_tolerating",
-                    "value": "count_if(`{duration}:>={threshold} and {duration}:<={4threshold}`)",
-                },
-            ],
-            "params": [
-                {
-                    "name": "duration",
-                    "type": "column",
-                    "order": 0,
-                    "value": "",
-                },
-                {
-                    "name": "threshold",
-                    "type": "number",
-                    "order": 1,
-                    "value": "",
-                },
-                {
-                    "name": "4threshold",
-                    "type": "calculation",
-                    "order": 2,
-                    "value": "{threshold} * 4",
-                },
-            ],
-        }
-        self.formula = ExploreSavedFormula.objects.create(
-            organization=self.org,
-            formula=data["formula"],
-            name=data["name"],
-            unit=data["unit"],
-        )
-        for reference in data["references"]:
-            ExploreSavedVariable.objects.create(
-                organization=self.org,
-                name=reference["name"],
-                value=reference["value"],
-                kind=KindItemTypes.REFERENCE,
-                explore_saved_formula=self.formula,
-            )
-        for param in data["params"]:
-            ExploreSavedVariable.objects.create(
-                organization=self.org,
-                name=param["name"],
-                value=param["value"],
-                param_type=ParamItemTypes.get_id_for_type_name(param["type"]),
-                kind=KindItemTypes.PARAM,
-                explore_saved_formula=self.formula,
-                order=param["order"],
-            )
+        self.formula = self.create_explore_saved_formula(organization=self.org)
 
     def test_parse_formula_wrong_args(self) -> None:
         with pytest.raises(InvalidSearchQuery, match="formula.apdex expected 2 arguments got 5"):
