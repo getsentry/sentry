@@ -7569,11 +7569,7 @@ describe('SearchQueryBuilder', () => {
 
   describe('ask seer', () => {
     it('renders ask seer in the footer', async () => {
-      render(<SearchQueryBuilder {...defaultProps} enableAISearch />, {
-        organization: {
-          features: ['gen-ai-features'],
-        },
-      });
+      render(<SearchQueryBuilder {...defaultProps} enableAISearch />);
 
       await userEvent.click(getLastInput());
 
@@ -7595,12 +7591,7 @@ describe('SearchQueryBuilder', () => {
             onCaseInsensitiveClick={jest.fn()}
           />
           <button>Next control</button>
-        </Fragment>,
-        {
-          organization: {
-            features: ['gen-ai-features'],
-          },
-        }
+        </Fragment>
       );
 
       await userEvent.click(getLastInput());
@@ -7637,12 +7628,7 @@ describe('SearchQueryBuilder', () => {
           {...defaultProps}
           enableAISearch
           initialQuery="browser.name:Firefox"
-        />,
-        {
-          organization: {
-            features: ['gen-ai-features'],
-          },
-        }
+        />
       );
 
       await userEvent.click(
@@ -7656,11 +7642,7 @@ describe('SearchQueryBuilder', () => {
     });
 
     it('does not render ask seer in the footer when AI search is disabled', async () => {
-      render(<SearchQueryBuilder {...defaultProps} />, {
-        organization: {
-          features: ['gen-ai-features'],
-        },
-      });
+      render(<SearchQueryBuilder {...defaultProps} />);
 
       await userEvent.click(getLastInput());
 
@@ -7767,12 +7749,7 @@ describe('SearchQueryBuilder', () => {
         render(
           <AskSeerWrapper>
             <SearchQueryBuilder {...defaultProps} />
-          </AskSeerWrapper>,
-          {
-            organization: {
-              features: ['gen-ai-features'],
-            },
-          }
+          </AskSeerWrapper>
         );
 
         await userEvent.click(getLastInput());
@@ -7853,11 +7830,7 @@ describe('SearchQueryBuilder', () => {
       }
 
       it('keeps ask seer in the footer when searching free text', async () => {
-        render(<SearchQueryBuilder {...defaultProps} enableAISearch />, {
-          organization: {
-            features: ['gen-ai-features'],
-          },
-        });
+        render(<SearchQueryBuilder {...defaultProps} enableAISearch />);
 
         await userEvent.click(getLastInput());
         await userEvent.type(screen.getByRole('combobox'), 'some free text');
@@ -7883,12 +7856,7 @@ describe('SearchQueryBuilder', () => {
             <AskSeerAutoSubmitTestComponent mockAskSeer={mockAskSeer}>
               <SearchQueryBuilder {...props} />
             </AskSeerAutoSubmitTestComponent>
-          </SearchQueryBuilderProvider>,
-          {
-            organization: {
-              features: ['gen-ai-features'],
-            },
-          }
+          </SearchQueryBuilderProvider>
         );
 
         await userEvent.click(getLastInput());
@@ -7925,12 +7893,7 @@ describe('SearchQueryBuilder', () => {
             <AskSeerAutoSubmitTestComponent mockAskSeer={mockAskSeer}>
               <SearchQueryBuilder {...props} />
             </AskSeerAutoSubmitTestComponent>
-          </SearchQueryBuilderProvider>,
-          {
-            organization: {
-              features: ['gen-ai-features'],
-            },
-          }
+          </SearchQueryBuilderProvider>
         );
 
         await userEvent.click(getLastInput());
@@ -7967,12 +7930,7 @@ describe('SearchQueryBuilder', () => {
             <AskSeerAutoSubmitTestComponent mockAskSeer={mockAskSeer}>
               <SearchQueryBuilder {...props} />
             </AskSeerAutoSubmitTestComponent>
-          </SearchQueryBuilderProvider>,
-          {
-            organization: {
-              features: ['gen-ai-features'],
-            },
-          }
+          </SearchQueryBuilderProvider>
         );
 
         await userEvent.click(getLastInput());
@@ -8000,12 +7958,7 @@ describe('SearchQueryBuilder', () => {
             <AskSeerAutoSubmitTestComponent mockAskSeer={mockAskSeer}>
               <SearchQueryBuilder {...props} />
             </AskSeerAutoSubmitTestComponent>
-          </SearchQueryBuilderProvider>,
-          {
-            organization: {
-              features: ['gen-ai-features'],
-            },
-          }
+          </SearchQueryBuilderProvider>
         );
 
         await userEvent.click(screen.getByRole('row', {name: 'find slow'}));
@@ -8042,12 +7995,7 @@ describe('SearchQueryBuilder', () => {
             <AskSeerAutoSubmitTestComponent mockAskSeer={mockAskSeer}>
               <SearchQueryBuilder {...props} />
             </AskSeerAutoSubmitTestComponent>
-          </SearchQueryBuilderProvider>,
-          {
-            organization: {
-              features: ['gen-ai-features'],
-            },
-          }
+          </SearchQueryBuilderProvider>
         );
 
         await userEvent.click(getLastInput());
@@ -8078,12 +8026,7 @@ describe('SearchQueryBuilder', () => {
             <AskSeerAutoSubmitTestComponent mockAskSeer={mockAskSeer}>
               <SearchQueryBuilder {...props} />
             </AskSeerAutoSubmitTestComponent>
-          </SearchQueryBuilderProvider>,
-          {
-            organization: {
-              features: ['gen-ai-features'],
-            },
-          }
+          </SearchQueryBuilderProvider>
         );
 
         await userEvent.click(getLastInput());
@@ -8115,12 +8058,7 @@ describe('SearchQueryBuilder', () => {
             <AskSeerAutoSubmitTestComponent mockAskSeer={mockAskSeer}>
               <SearchQueryBuilder {...props} />
             </AskSeerAutoSubmitTestComponent>
-          </SearchQueryBuilderProvider>,
-          {
-            organization: {
-              features: ['gen-ai-features'],
-            },
-          }
+          </SearchQueryBuilderProvider>
         );
 
         await userEvent.click(getLastInput());
@@ -8822,6 +8760,57 @@ describe('SearchQueryBuilder', () => {
           expect.anything()
         );
       });
+    });
+  });
+
+  describe('regex pattern validation', () => {
+    it('marks a pattern that RE2 rejects invalid once the engine loads', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          allowRegexOperators
+          initialQuery="browser.name://(?=a)b//"
+        />
+      );
+
+      await waitFor(() => {
+        expect(
+          screen.getByRole('row', {name: 'browser.name://(?=a)b//'})
+        ).toHaveAttribute('aria-invalid', 'true');
+      });
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('{ArrowLeft}');
+
+      expect(
+        await screen.findByText(
+          'Invalid regex (RE2 syntax): invalid or unsupported Perl syntax'
+        )
+      ).toBeInTheDocument();
+    });
+
+    it('does not mark valid RE2 patterns as invalid', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          allowRegexOperators
+          initialQuery="browser.name://^a.*b//"
+        />
+      );
+
+      expect(
+        await screen.findByRole('row', {name: 'browser.name://^a.*b//'})
+      ).toHaveAttribute('aria-invalid', 'false');
+    });
+
+    it('does not mark a pattern invalid when regex operators are disabled', async () => {
+      render(
+        <SearchQueryBuilder {...defaultProps} initialQuery="browser.name://(?=a)b//" />
+      );
+
+      expect(
+        await screen.findByRole('row', {name: 'browser.name://(?=a)b//'})
+      ).toHaveAttribute('aria-invalid', 'false');
     });
   });
 

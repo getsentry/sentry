@@ -23,6 +23,7 @@ import {
   useQueryBuilderState,
   type QueryBuilderActions,
 } from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderState';
+import {useRegexPatternValidator} from 'sentry/components/searchQueryBuilder/hooks/useRegexPatternValidator';
 import type {
   FieldDefinitionGetter,
   FilterKeySection,
@@ -34,6 +35,7 @@ import type {SavedSearchType, TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
 import {getFieldDefinition as defaultGetFieldDefinition} from 'sentry/utils/fields';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
+import {areAiFeaturesAllowed} from 'sentry/utils/seer/areAiFeaturesAllowed';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {usePrevious} from 'sentry/utils/usePrevious';
@@ -228,9 +230,7 @@ export function SearchQueryBuilderProvider({
 
   const organization = useOrganization();
   const enableAISearch =
-    Boolean(enableAISearchProp) &&
-    !organization.hideAiFeatures &&
-    organization.features.includes('gen-ai-features');
+    Boolean(enableAISearchProp) && areAiFeaturesAllowed(organization);
   const defaultToAskSeerOnFreeTextSearch =
     enableAISearch && Boolean(defaultToAskSeerOnFreeTextSearchProp);
 
@@ -289,10 +289,13 @@ export function SearchQueryBuilderProvider({
 
   const invalidFilterKeyMessage = invalidMessages?.[InvalidReason.INVALID_KEY];
 
+  const validateRegexPattern = useRegexPatternValidator(Boolean(allowRegexOperators));
+
   const parseQuery = useCallback(
     (query: string) =>
       parseQueryBuilderValue(query, getFieldDefinitionWithTagMetadata, {
         allowRegexOperators,
+        validateRegexPattern,
         getFilterTokenWarning,
         disallowFreeText,
         disallowLogicalOperators,
@@ -317,6 +320,7 @@ export function SearchQueryBuilderProvider({
       invalidMessages,
       stableInvalidFilterKeys,
       filterKeyAliases,
+      validateRegexPattern,
     ]
   );
 

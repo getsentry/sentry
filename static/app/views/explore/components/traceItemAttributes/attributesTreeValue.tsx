@@ -8,7 +8,7 @@ import {isValidUrl} from 'sentry/utils/string/isValidUrl';
 import {AnnotatedAttributeTooltip} from 'sentry/views/explore/components/annotatedAttributeTooltip';
 import {InlineJsonHighlight} from 'sentry/views/explore/components/traceItemAttributes/inlineJsonHighlight';
 import {getAttributeItem} from 'sentry/views/explore/components/traceItemAttributes/utils';
-import {TraceItemMetaInfo} from 'sentry/views/explore/utils';
+import {hasScrubbedValue} from 'sentry/views/explore/utils';
 
 import type {
   AttributesFieldRender,
@@ -69,15 +69,12 @@ export function AttributesTreeValue<RendererExtra extends RenderFunctionBaggage>
     });
   }
 
-  if (renderExtra.traceItemMeta) {
-    const metaInfo = new TraceItemMetaInfo(renderExtra.traceItemMeta);
-    if (metaInfo.hasRemarks(attributeKey)) {
-      return (
-        <AnnotatedAttributeTooltip fieldKey={attributeKey} extra={renderExtra}>
-          {defaultValue}
-        </AnnotatedAttributeTooltip>
-      );
-    }
+  if (hasScrubbedValue(renderExtra.traceItemMeta, attributeKey)) {
+    return (
+      <AnnotatedAttributeTooltip fieldKey={attributeKey} extra={renderExtra}>
+        {defaultValue}
+      </AnnotatedAttributeTooltip>
+    );
   }
 
   const parsedJson = tryParseJson(content.value);

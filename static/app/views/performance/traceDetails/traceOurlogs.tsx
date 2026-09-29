@@ -129,7 +129,7 @@ function LogsSectionContent({
           embedded
           injectedErrorRows={injectedErrorRows}
           showCellActions
-          showExploreSimilarSpansLink
+          showExploreConnectedSpansLink
         />
       </TableContainer>
     </Fragment>
