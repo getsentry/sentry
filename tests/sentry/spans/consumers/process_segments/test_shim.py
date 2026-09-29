@@ -69,7 +69,9 @@ class TestBuildShimEventData:
             attributes={"sentry.platform": {"value": "", "type": "string"}}
         )
         segment_span_no_platform = build_segment_span()
-        del segment_span_no_platform["attributes"]["sentry.platform"]
+        no_platform_attributes = segment_span_no_platform["attributes"]
+        assert no_platform_attributes is not None
+        del no_platform_attributes["sentry.platform"]
 
         event_empty_platform = build_shim_event_data(
             segment_span_empty_platform, [segment_span_empty_platform]
