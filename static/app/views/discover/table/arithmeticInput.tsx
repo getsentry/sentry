@@ -66,7 +66,7 @@ export function ArithmeticInput({
       inputRef.current?.focus();
       inputRef.current?.setSelectionRange(position, position);
     }
-  }, [query]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [query]);
 
   const dropdownOptionGroups = useMemo(() => {
     const groups = makeOptions(options, partialTerm, hideFieldOptions);
