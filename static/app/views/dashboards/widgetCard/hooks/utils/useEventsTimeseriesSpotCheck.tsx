@@ -83,7 +83,8 @@ export function useEventsTimeseriesSpotCheck({
     );
 
   useEffect(() => {
-    if (!isComparisonReady) {
+    const {transformSeries} = config;
+    if (!isComparisonReady || !transformSeries) {
       return;
     }
 
@@ -94,9 +95,12 @@ export function useEventsTimeseriesSpotCheck({
       statsResult,
       timeSeriesResult,
     } of comparisons) {
+      if (!statsResult?.data || !timeSeriesResult?.data) {
+        continue;
+      }
       const differences = findSeriesDifferences(
-        config.transformSeries!(statsResult!.data, widgetQuery, organization),
-        config.transformSeries!(timeSeriesResult!.data, widgetQuery, organization)
+        transformSeries(statsResult.data, widgetQuery, organization),
+        transformSeries(timeSeriesResult.data, widgetQuery, organization)
       );
 
       if (differences.length > 0) {
