@@ -1,5 +1,6 @@
-import {Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
+import {Fragment, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import isEqual from 'lodash/isEqual';
 
 import type {InputProps} from '@sentry/scraps/input';
 import {Input} from '@sentry/scraps/input';
@@ -48,10 +49,14 @@ export function ArithmeticInput({
   const [dropdownVisible, setDropdownVisible] = useState(false);
   const [activeSelection, setActiveSelection] = useState(NONE_SELECTED);
 
-  // Reset activeSelection when options change (mirrors getDerivedStateFromProps)
-  useEffect(() => {
+  // Derived-state pattern: reset activeSelection when options change (deep equality),
+  // mirroring getDerivedStateFromProps. Setting state during render is React's
+  // recommended approach for this pattern and avoids a useEffect.
+  const [prevOptions, setPrevOptions] = useState(options);
+  if (!isEqual(prevOptions, options)) {
+    setPrevOptions(options);
     setActiveSelection(NONE_SELECTED);
-  }, [options]);
+  }
 
   // Apply pending focus position after query state update
   useLayoutEffect(() => {
@@ -61,7 +66,7 @@ export function ArithmeticInput({
       inputRef.current?.focus();
       inputRef.current?.setSelectionRange(position, position);
     }
-  }, [query]);
+  }, [query]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const dropdownOptionGroups = useMemo(() => {
     const groups = makeOptions(options, partialTerm, hideFieldOptions);
@@ -82,8 +87,8 @@ export function ArithmeticInput({
     return inputRef.current?.selectionStart ?? -1;
   }
 
-  function splitQuery(currentQuery: string) {
-    const currentPosition = getCursorPosition();
+  function splitQuery(currentQuery: string, cursorPosition?: number) {
+    const currentPosition = cursorPosition ?? getCursorPosition();
 
     // The current term is delimited by whitespaces. So if no spaces are found,
     // the entire string is taken to be 1 term.
@@ -106,8 +111,8 @@ export function ArithmeticInput({
     };
   }
 
-  function updateAutocompleteOptions(currentQuery: string) {
-    const {term} = splitQuery(currentQuery);
+  function updateAutocompleteOptions(currentQuery: string, cursorPosition?: number) {
+    const {term} = splitQuery(currentQuery, cursorPosition);
     const newPartialTerm = term || null;
     setPartialTerm(newPartialTerm);
   }
@@ -209,13 +214,17 @@ export function ArithmeticInput({
   function handleSelect(option: DropdownOption) {
     const {prefix, suffix} = splitQuery(query);
     const newQuery = `${prefix}${option.value} ${suffix}`;
+    // The cursor will land after the autocompleted term + the inserted space
+    const focusPosition = prefix.length + option.value.length + 1;
 
-    // Schedule focus to the position after the autocompleted term + space
-    pendingFocusRef.current = prefix.length + option.value.length + 1;
+    // Schedule cursor move to run after the DOM commits
+    pendingFocusRef.current = focusPosition;
 
     setQuery(newQuery);
     setActiveSelection(NONE_SELECTED);
-    updateAutocompleteOptions(newQuery);
+    // Compute partialTerm using the known future cursor position so we don't
+    // rely on the stale DOM cursor (the cursor hasn't moved yet at this point)
+    updateAutocompleteOptions(newQuery, focusPosition);
   }
 
   return (
