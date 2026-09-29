@@ -69,7 +69,7 @@ RegexMatchesByField = dict[str, list[tuple[int, int]]]
 
 class RegexRowMatches(TypedDict):
     fields: RegexMatchesByField
-    truncated: NotRequired[Literal[True]]
+    truncated: NotRequired[list[str]]
 
 
 class EventsMeta(TypedDict):

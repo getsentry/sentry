@@ -1,4 +1,5 @@
 from unittest import TestCase
+from unittest.mock import patch
 
 from sentry.models.organization import Organization
 from sentry.search.eap.ourlogs.definitions import OURLOG_DEFINITIONS
@@ -231,7 +232,7 @@ class FindRegexMatchesTest(TestCase):
         assert matches == {
             0: {
                 "fields": {"message": [(index * 2, index * 2 + 1) for index in range(100)]},
-                "truncated": True,
+                "truncated": ["message"],
             }
         }
 
@@ -240,7 +241,7 @@ class FindRegexMatchesTest(TestCase):
             self.resolver(), "message://ERROR//", [{"message": "ERROR " + "x" * 2_000}]
         )
 
-        assert matches == {0: {"fields": {"message": [(0, 5)]}, "truncated": True}}
+        assert matches == {0: {"fields": {"message": [(0, 5)]}, "truncated": ["message"]}}
 
     def test_does_not_flag_truncation_when_the_caller_asked_for_a_shorter_value(self) -> None:
         matches = find_regex_matches(
@@ -251,3 +252,32 @@ class FindRegexMatchesTest(TestCase):
         )
 
         assert matches == {0: {"fields": {"message": [(0, 5)]}}}
+
+    def test_gives_up_when_the_deadline_has_already_passed(self) -> None:
+        with patch("sentry.search.eap.regex_matches.MAX_SCAN_SECONDS", -1):
+            matches = find_regex_matches(
+                self.resolver(), "message://ERROR//", [{"message": "ERROR disk full"}]
+            )
+
+        assert matches == {}
+
+    def test_keeps_the_rows_it_reached_before_the_deadline(self) -> None:
+        rows = [{"message": "ERROR one"}, {"message": "ERROR two"}]
+
+        # The clock is read once to set the deadline, then once per row
+        with patch("sentry.search.eap.regex_matches.monotonic", side_effect=[0, 0, 100]):
+            matches = find_regex_matches(self.resolver(), "message://ERROR//", rows)
+
+        assert matches == {0: {"fields": {"message": [(0, 5)]}}}
+
+    def test_names_only_the_field_that_was_cut_when_another_matched_in_full(self) -> None:
+        rows = [{"message": "ERROR " + "x" * 2_000, "log.body": "ERROR short"}]
+
+        matches = find_regex_matches(self.resolver(), "message://ERROR//", rows)
+
+        assert matches == {
+            0: {
+                "fields": {"message": [(0, 5)], "log.body": [(0, 5)]},
+                "truncated": ["message"],
+            }
+        }

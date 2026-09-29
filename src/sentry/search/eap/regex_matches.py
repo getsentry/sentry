@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Iterator, Sequence
 from itertools import accumulate, chain
+from time import monotonic
 from typing import TYPE_CHECKING
 
 import re2
@@ -21,6 +22,9 @@ MAX_SCANNED_CHARACTERS = 1_000
 
 # A pattern like `\w+` would otherwise put a span on every word of every row
 MAX_MATCHES_PER_VALUE = 100
+
+# Rows, fields and patterns all multiply and none of them is bounded, so cap the wall clock too
+MAX_SCAN_SECONDS = 0.1
 
 _re2_options = re2.Options()
 _re2_options.log_errors = False
@@ -139,10 +143,16 @@ def find_regex_matches(
     # Stop short of the `...` that `process_column_values` appends when it truncates
     limit = min(MAX_SCANNED_CHARACTERS, max_string_length or MAX_SCANNED_CHARACTERS)
 
+    # We'll later stop if any one row's scan exceeds our deadline budget
+    deadline = monotonic() + MAX_SCAN_SECONDS
+
     matches: dict[int, RegexRowMatches] = {}
     for index, row in enumerate(data):
+        if monotonic() > deadline:
+            break
+
         row_matches: RegexMatchesByField = {}
-        row_truncated = False
+        truncated_fields: list[str] = []
         for field, patterns in patterns_by_field.items():
             value = row.get(field)
             if not isinstance(value, str):
@@ -151,11 +161,12 @@ def find_regex_matches(
             spans, truncated = _match_value(patterns, value, limit)
             if spans:
                 row_matches[field] = spans
-                row_truncated = row_truncated or truncated
+                if truncated:
+                    truncated_fields.append(field)
 
         if row_matches:
             matches[index] = {"fields": row_matches}
-            if row_truncated:
-                matches[index]["truncated"] = True
+            if truncated_fields:
+                matches[index]["truncated"] = truncated_fields
 
     return matches
