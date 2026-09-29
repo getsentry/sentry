@@ -108,8 +108,10 @@ def request_review(
         logger.info("code_review.review_request.draft_skipped", extra=log_extra)
         return
 
-    _schedule(event, organization=organization, repo=repo, integration=integration)
-    logger.info("code_review.review_request.scheduled", extra=log_extra)
+    if _schedule(event, organization=organization, repo=repo, integration=integration):
+        logger.info("code_review.review_request.scheduled", extra=log_extra)
+    else:
+        logger.info("code_review.review_request.invalid_payload", extra=log_extra)
 
 
 def _schedule(
@@ -118,7 +120,7 @@ def _schedule(
     organization: Organization,
     repo: Repository,
     integration: RpcIntegration,
-) -> None:
+) -> bool:
     now = datetime.now(timezone.utc)
     payload = _common_codegen_request_payload(
         add_experiment_enabled=not event.is_close,
@@ -158,7 +160,7 @@ def _schedule(
         record_webhook_filtered(
             event.event_type, event.action, WebhookFilteredReason.INVALID_PAYLOAD
         )
-        return
+        return False
 
     process_github_webhook_event.delay(
         seer_path=seer_path,
@@ -171,3 +173,4 @@ def _schedule(
         },
     )
     record_webhook_enqueued(event.event_type, event.action)
+    return True

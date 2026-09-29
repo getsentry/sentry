@@ -5,9 +5,11 @@ from unittest.mock import patch
 
 import pytest
 from django.test import override_settings
+from pydantic import ValidationError
 
 from sentry.integrations.services.integration.serial import serialize_integration
 from sentry.models.repositorysettings import CodeReviewTrigger
+from sentry.seer.code_review.models import SeerCodeReviewTaskRequestForPrReview
 from sentry.seer.code_review.webhooks.review_request import (
     PullRequestReviewEvent,
     request_review,
@@ -201,3 +203,17 @@ class RequestReviewTest(TestCase):
         logged = self._logged(_event(is_draft=True))
 
         assert "code_review.review_request.draft_skipped" in logged
+
+    @with_feature(CODE_REVIEW_FEATURES)
+    def test_an_invalid_payload_is_logged_instead_of_scheduled(self) -> None:
+        self._enable()
+
+        with patch(
+            "sentry.seer.code_review.webhooks.review_request.SeerCodeReviewTaskRequestForPrReview.parse_obj",
+            side_effect=ValidationError([], SeerCodeReviewTaskRequestForPrReview),
+        ):
+            logged = self._logged(_event())
+
+        self.mock_seer.assert_not_called()
+        assert "code_review.review_request.invalid_payload" in logged
+        assert "code_review.review_request.scheduled" not in logged
