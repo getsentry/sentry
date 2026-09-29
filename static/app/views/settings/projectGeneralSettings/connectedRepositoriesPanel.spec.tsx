@@ -1,7 +1,15 @@
+import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import {ConnectedRepositoriesPanel} from 'sentry/views/settings/projectGeneralSettings/connectedRepositoriesPanel';
 
@@ -195,5 +203,35 @@ describe('ConnectedRepositoriesPanel', () => {
       'aria-disabled',
       'true'
     );
+  });
+
+  it('opens the connect repository modal when the button is clicked', async () => {
+    const integration = GitHubIntegrationFixture();
+    MockApiClient.addMockResponse({
+      url: repoUrl,
+      method: 'GET',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/`,
+      method: 'GET',
+      body: [integration],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/${integration.id}/repos/`,
+      method: 'GET',
+      body: {repos: []},
+    });
+
+    renderGlobalModal({organization});
+    renderPanel();
+
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Connect repository'})
+    );
+
+    expect(
+      await screen.findByText(`Connect a repository to ${project.slug}`)
+    ).toBeInTheDocument();
   });
 });

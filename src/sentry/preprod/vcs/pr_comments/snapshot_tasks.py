@@ -6,7 +6,6 @@ from typing import Any, Literal
 from django.db import router, transaction
 from taskbroker_client.retry import Retry
 
-from sentry import features
 from sentry.integrations.github.client import GitHubBaseClient
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.organization import Organization
@@ -349,30 +348,29 @@ def post_snapshot_pr_comment_task(
     db_alias = router.db_for_write(CommitComparison)
 
     try:
-        if features.has("organizations:preprod-snapshot-pr-comment-head-check", organization):
-            comparison_head_sha = (
-                CommitComparison.objects.filter(
-                    id=commit_comparison_id,
-                    organization_id=organization.id,
-                    head_repo_name=repo_name,
-                    pr_number=pr_number,
-                )
-                .values_list("head_sha", flat=True)
-                .first()
-            )
-            if comparison_head_sha is None:
-                raise CommitComparison.DoesNotExist
-            provider_head_status = _check_provider_pr_head(
-                client=client,
-                repo_name=repo_name,
-                pr_number=pr_number,
-                commit_comparison_id=commit_comparison_id,
-                comparison_head_sha=comparison_head_sha,
-                artifact_id=artifact_id,
+        comparison_head_sha = (
+            CommitComparison.objects.filter(
+                id=commit_comparison_id,
                 organization_id=organization.id,
+                head_repo_name=repo_name,
+                pr_number=pr_number,
             )
-            if provider_head_status == "mismatched":
-                return
+            .values_list("head_sha", flat=True)
+            .first()
+        )
+        if comparison_head_sha is None:
+            raise CommitComparison.DoesNotExist
+        provider_head_status = _check_provider_pr_head(
+            client=client,
+            repo_name=repo_name,
+            pr_number=pr_number,
+            commit_comparison_id=commit_comparison_id,
+            comparison_head_sha=comparison_head_sha,
+            artifact_id=artifact_id,
+            organization_id=organization.id,
+        )
+        if provider_head_status == "mismatched":
+            return
 
         # The comment_id is re-derived under the lock instead of trusting the
         # value passed from the create task: when several artifacts on a commit

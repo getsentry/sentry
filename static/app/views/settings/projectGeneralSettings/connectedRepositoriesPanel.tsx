@@ -4,6 +4,7 @@ import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
+import {useModal} from '@sentry/scraps/modal';
 import {Text} from '@sentry/scraps/text';
 
 import {LoadingError} from 'sentry/components/loadingError';
@@ -19,6 +20,7 @@ import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {ConnectRepositoryModal} from 'sentry/views/settings/projectGeneralSettings/connectRepositoryModal';
 
 type ProjectRepoListItem = {
   id: string;
@@ -93,6 +95,7 @@ function ConnectedRepositoryRow({repo}: {repo: ProjectRepoListItem}) {
 
 export function ConnectedRepositoriesPanel({project}: {project: Project}) {
   const organization = useOrganization();
+  const {openModal} = useModal();
 
   const query = useInfiniteQuery(
     projectRepoInfiniteOptions({
@@ -133,7 +136,15 @@ export function ConnectedRepositoriesPanel({project}: {project: Project}) {
     <Panel>
       <PanelHeader hasButtons>
         <span>{t('Connected Repositories')}</span>
-        <Button size="xs" icon={<IconAdd />}>
+        <Button
+          size="xs"
+          icon={<IconAdd />}
+          onClick={() =>
+            openModal(modalProps => (
+              <ConnectRepositoryModal {...modalProps} project={project} />
+            ))
+          }
+        >
           {t('Connect repository')}
         </Button>
       </PanelHeader>
