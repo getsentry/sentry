@@ -40,8 +40,8 @@ export function SeerExplorerSidebarLayout({children}: {children: React.ReactNode
 
 /**
  * Wraps the main app content so Seer Explorer can render as a resizable split
- * panel beside it (right on wide screens, bottom otherwise) when the persistent
- * sidebar flag is on. When off, the content is returned untouched (drawer mode).
+ * panel beside it (right when both panes fit side by side, bottom otherwise)
+ * when the persistent sidebar flag is on. When off, the content is returned untouched (drawer mode).
  *
  * The app content is `SplitPanel`'s `sized` pane and Seer is the optional `fill`
  * pane: when Seer is closed there's no `fill`, so `SplitPanel` collapses to the
@@ -64,7 +64,10 @@ function SeerExplorerSidebarLayoutInSidebarMode({children}: {children: React.Rea
   const organization = useOrganization({allowNull: true});
   const {isOpen, sidebarPosition, sidebarContainerRef} = useSeerExplorerContext();
   const {width, height} = useDimensions({elementRef: sidebarContainerRef});
-  const orientation = useSeerExplorerSidebarOrientation(sidebarPosition);
+  const orientation = useSeerExplorerSidebarOrientation(
+    sidebarPosition,
+    width >= MIN_CONTENT_WIDTH + MIN_SEER_WIDTH
+  );
 
   const isRight = orientation === 'right';
   const available = isRight ? width : height;
