@@ -145,7 +145,6 @@ function GroupReplaysContent({group}: Props) {
         </Stack>
         <ReplayTable
           columns={isVideoReplayPlatform ? VISIBLE_COLUMNS_MOBILE : VISIBLE_COLUMNS}
-          error={fetchError}
           isPending={isFetching}
           replays={[]}
           showDropdownFilters={false}
