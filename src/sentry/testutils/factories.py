@@ -48,14 +48,19 @@ from sentry.hybridcloud.models.webhookpayload import WebhookPayload
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.logic import (
-    create_alert_rule,
-    create_alert_rule_trigger,
-    create_alert_rule_trigger_action,
+    DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER,
+    get_alert_resolution,
     query_datasets_to_type,
 )
 from sentry.incidents.models.alert_rule import (
+    AlertRule,
+    AlertRuleActivity,
+    AlertRuleActivityType,
     AlertRuleDetectionType,
+    AlertRuleProjects,
+    AlertRuleSeasonality,
     AlertRuleThresholdType,
+    AlertRuleTrigger,
     AlertRuleTriggerAction,
 )
 from sentry.incidents.models.incident import (
@@ -64,6 +69,7 @@ from sentry.incidents.models.incident import (
     IncidentProject,
     IncidentType,
 )
+from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.integrations.models.data_forwarder import DataForwarder
 from sentry.integrations.models.doc_integration import DocIntegration
 from sentry.integrations.models.doc_integration_avatar import DocIntegrationAvatar
@@ -209,6 +215,7 @@ from sentry.signals import project_created
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscriptionDataSourceHandler
+from sentry.snuba.subscriptions import bulk_create_snuba_subscriptions, create_snuba_query
 from sentry.tempest.models import MessageType as TempestMessageType
 from sentry.tempest.models import TempestCredentials
 from sentry.testutils.outbox import outbox_runner
@@ -2107,27 +2114,57 @@ class Factories:
         if query_type is None:
             query_type = query_datasets_to_type[dataset]
 
-        alert_rule = create_alert_rule(
-            organization,
-            projects,
-            name,
-            query,
-            aggregate,
-            time_window,
-            threshold_type,
-            threshold_period,
-            owner=owner,
-            resolve_threshold=resolve_threshold,
+        if detection_type == AlertRuleDetectionType.DYNAMIC:
+            resolution = timedelta(minutes=time_window)
+            seasonality = AlertRuleSeasonality.AUTO
+        else:
+            resolution = get_alert_resolution(time_window, organization)
+            seasonality = None
+
+        if comparison_delta is not None:
+            resolution *= DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER
+            comparison_delta = int(timedelta(minutes=comparison_delta).total_seconds())
+            if detection_type == AlertRuleDetectionType.STATIC:
+                detection_type = AlertRuleDetectionType.PERCENT
+
+        snuba_query = create_snuba_query(
             query_type=query_type,
             dataset=dataset,
+            query=query,
+            aggregate=aggregate,
+            time_window=timedelta(minutes=time_window),
+            resolution=resolution,
             environment=environment,
-            user=user,
-            event_types=event_types,
+            event_types=event_types or (),
+        )
+        alert_rule = AlertRule(
+            organization=organization,
+            snuba_query=snuba_query,
+            name=name,
+            threshold_type=threshold_type.value,
+            resolve_threshold=resolve_threshold,
+            threshold_period=threshold_period,
             comparison_delta=comparison_delta,
             description=description,
             sensitivity=sensitivity,
             seasonality=seasonality,
             detection_type=detection_type,
+        )
+        alert_rule.owner = owner
+        alert_rule.save()
+
+        AlertRuleProjects.objects.bulk_create(
+            [AlertRuleProjects(alert_rule=alert_rule, project=project) for project in projects]
+        )
+        bulk_create_snuba_subscriptions(
+            projects,
+            INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
+            snuba_query,
+        )
+        AlertRuleActivity.objects.create(
+            alert_rule=alert_rule,
+            user_id=user.id if user else None,
+            type=AlertRuleActivityType.CREATED.value,
         )
 
         if date_added is not None:
@@ -2141,7 +2178,11 @@ class Factories:
         if not label:
             label = petname.generate(2, " ", letters=10).title()
 
-        return create_alert_rule_trigger(alert_rule, label, alert_threshold)
+        return AlertRuleTrigger.objects.create(
+            alert_rule=alert_rule,
+            label=label,
+            alert_threshold=alert_threshold,
+        )
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
@@ -2154,13 +2195,13 @@ class Factories:
         sentry_app=None,
         sentry_app_config=None,
     ):
-        return create_alert_rule_trigger_action(
-            trigger,
-            type,
-            target_type,
-            target_identifier,
-            integration.id if integration else None,
-            sentry_app.id if sentry_app else None,
+        return AlertRuleTriggerAction.objects.create(
+            alert_rule_trigger=trigger,
+            type=type.value,
+            target_type=target_type.value,
+            target_identifier=target_identifier,
+            integration_id=integration.id if integration else None,
+            sentry_app_id=sentry_app.id if sentry_app else None,
             sentry_app_config=sentry_app_config,
         )
 
