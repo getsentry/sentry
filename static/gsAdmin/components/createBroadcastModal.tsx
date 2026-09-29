@@ -6,7 +6,6 @@ import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {BackendJsonSubmitForm} from 'sentry/components/backendJsonFormAdapter/backendJsonSubmitForm';
 import type {JsonFormAdapterFieldConfig} from 'sentry/components/backendJsonFormAdapter/types';
@@ -44,9 +43,6 @@ export function CreateBroadcastModal({
     },
     onSuccess: data => {
       navigate(`/_admin/broadcasts/${data.id}/`);
-    },
-    onError: () => {
-      addErrorMessage('An error occurred while submitting this form.');
     },
   });
 
