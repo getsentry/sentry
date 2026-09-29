@@ -29,7 +29,6 @@ RUN groupadd -r sentry --gid 999 && useradd -r -m -g sentry --uid 999 sentry
 RUN : \
     && apt-get update \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-        gosu \
         libexpat1 \
         tini \
     && apt-get clean \
@@ -58,18 +57,9 @@ ENV \
 # Install dependencies first to leverage Docker layer caching.
 COPY uv.lock pyproject.toml .
 RUN set -x \
-  # uwsgi-dogstatsd
-  && buildDeps=" \
-  gcc \
-  libpcre2-dev \
-  zlib1g-dev \
-  " \
-  && apt-get update \
-  && apt-get install -y --no-install-recommends $buildDeps \
-  && uv sync --frozen --quiet --no-install-project \
-  && apt-get purge -y --auto-remove $buildDeps \
-  && apt-get clean \
-  && rm -rf /var/lib/apt/lists/* \
+  # --no-build: every locked dependency ships a wheel, so fail rather than
+  # silently compile from source (the image has no compiler).
+  && uv sync --frozen --quiet --no-install-project --no-build \
   # Fully verify that the C extension is correctly installed, it unfortunately
   # requires a full check into maxminddb.extension.Reader
   && python -c 'import maxminddb.extension; maxminddb.extension.Reader' \
@@ -90,6 +80,12 @@ RUN : double-check some built files are available \
     && test -f /usr/src/sentry/src/sentry/integration-docs/python.json \
     && test -f /usr/src/sentry/src/sentry/static/sentry/dist/entrypoints/app.js \
     && sentry help
+
+# Pre-create /data owned by sentry so fresh named volumes are initialized
+# with the right ownership. This must happen before the VOLUME instruction.
+RUN mkdir -p /data/files && chown -R sentry:sentry /data
+
+USER sentry
 
 EXPOSE 9000
 VOLUME /data
