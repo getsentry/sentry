@@ -20,36 +20,33 @@ def _default_selector_func(
     return backend_new
 
 
-def _select_by_rollout_rate(
-    option_name: str, key: str, backend_new: LockBackend, backend_old: LockBackend
-) -> LockBackend:
-    # Hash only the key, so that every process picks the same backend for a key
-    bucket = int(md5_text(key).hexdigest()[:8], 16) % 10000
-    if bucket < options.get(option_name) * 10000:
-        return backend_new
-    return backend_old
+class RolloutRateSelector:
+    """
+    Sends a share of the keys, set by a runtime option, to the new backend.
+    """
+
+    def __init__(self, option_name: str) -> None:
+        self.option_name = option_name
+
+    def rate(self) -> float:
+        return options.get(self.option_name)
+
+    def __call__(
+        self,
+        key: str,
+        routing_key: str | int | None,
+        backend_new: LockBackend,
+        backend_old: LockBackend,
+    ) -> LockBackend:
+        # Hash only the key, so that every process picks the same backend for a key
+        bucket = int(md5_text(key).hexdigest()[:8], 16) % 10000
+        if bucket < self.rate() * 10000:
+            return backend_new
+        return backend_old
 
 
-def default_locks_selector(
-    key: str,
-    routing_key: str | int | None,
-    backend_new: LockBackend,
-    backend_old: LockBackend,
-) -> LockBackend:
-    return _select_by_rollout_rate(
-        "locks.default.migration-rollout-rate", key, backend_new, backend_old
-    )
-
-
-def post_process_locks_selector(
-    key: str,
-    routing_key: str | int | None,
-    backend_new: LockBackend,
-    backend_old: LockBackend,
-) -> LockBackend:
-    return _select_by_rollout_rate(
-        "locks.post-process.migration-rollout-rate", key, backend_new, backend_old
-    )
+default_locks_selector = RolloutRateSelector("locks.default.migration-rollout-rate")
+post_process_locks_selector = RolloutRateSelector("locks.post-process.migration-rollout-rate")
 
 
 class MigrationLockBackend(LockBackend):
@@ -74,8 +71,14 @@ class MigrationLockBackend(LockBackend):
 
     The selector sends a share of the keys, set by the
     `locks.post-process.migration-rollout-rate` option, to the new backend. The
-    rate can go up or down at any time. While both backends are up, a lock is
-    never given to two callers, even while processes read different option values.
+    rate can go up at any time. While both backends are up, a lock is never given
+    to two callers, even while processes read different option values.
+
+    When the rate is 0, acquire does not read the new backend, so the new backend
+    can be down or slow without effect on locks. But then locks that are still held
+    on the new backend are not seen. To roll back, first lower the rate to a small
+    value above 0 (for example 0.0001). Set it to 0 only after the longest lock
+    duration plus the options cache time (about 70s) have passed.
 
     Each acquire also reads the other backend. If that read fails, the acquire
     still gives the lock (fail open). Locks keep working when the other backend
@@ -102,11 +105,20 @@ class MigrationLockBackend(LockBackend):
             self.backend_old,
         )
 
+    def _rollout_not_started(self, backend: LockBackend) -> bool:
+        return (
+            backend is self.backend_old
+            and isinstance(self.selector_func, RolloutRateSelector)
+            and self.selector_func.rate() == 0
+        )
+
     def acquire(self, key: str, duration: int, routing_key: str | None = None) -> None:
         backend = self._get_backend(key=key, routing_key=routing_key)
         other = self.backend_new if backend is self.backend_old else self.backend_old
 
         backend.acquire(key=key, duration=duration, routing_key=routing_key)
+        if self._rollout_not_started(backend):
+            return
         try:
             held_elsewhere = other.locked(key=key, routing_key=routing_key)
         except Exception:

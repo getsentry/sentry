@@ -165,6 +165,26 @@ class TestMigrationLockBackendOnRedis(TestCase):
             caller.acquire(self.key, 10)
         assert not caller.backend_old.locked(self.key)
 
+    def test_rate_zero_does_not_read_new(self) -> None:
+        holder = self.build(pick_new)
+        caller = self.build(post_process_locks_selector)
+        holder.acquire(self.key, 10)
+
+        with override_options({"locks.post-process.migration-rollout-rate": 0.0}):
+            caller.acquire(self.key, 10)
+        assert caller.backend_old.locked(self.key)
+
+    def test_small_rate_is_blocked_by_holder_on_new(self) -> None:
+        # The rollback path: a small rate above 0 still checks the new backend.
+        holder = self.build(pick_new)
+        caller = self.build(post_process_locks_selector)
+        holder.acquire(self.key, 10)
+
+        with override_options({"locks.post-process.migration-rollout-rate": 0.0001}):
+            with pytest.raises(Exception):
+                caller.acquire(self.key, 10)
+        assert not caller.backend_old.locked(self.key)
+
     def test_release_after_selector_change(self) -> None:
         selector = SwitchableSelector(use_new=False)
         backend = self.build(selector)
