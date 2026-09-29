@@ -13,8 +13,10 @@ import type {JsonFormAdapterFieldConfig} from 'sentry/components/backendJsonForm
 import type {Broadcast} from 'sentry/types/system';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
-import {safeURL} from 'sentry/utils/url/safeURL';
 import {useNavigate} from 'sentry/utils/useNavigate';
+
+import {broadcastValidationSchema} from 'admin/schemas/broadcasts';
+
 interface CreateBroadcastModal extends ModalRenderProps {
   fields: JsonFormAdapterFieldConfig[];
 }
@@ -55,16 +57,6 @@ export function CreateBroadcastModal({
     const message = typeof data.message === 'string' ? data.message : '';
     const link = typeof data.link === 'string' ? data.link : '';
     const mediaUrl = typeof data.mediaUrl === 'string' ? data.mediaUrl : '';
-    if (!safeURL(link)) {
-      addErrorMessage('Enter a valid URL.');
-      return Promise.reject(new Error('Invalid URL'));
-    }
-
-    if (mediaUrl && !safeURL(mediaUrl)) {
-      addErrorMessage('Enter a valid image URL.');
-      return Promise.reject(new Error('Invalid image URL'));
-    }
-
     const newData: CreateBroadcastPayload = {
       ...data,
       title,
@@ -95,6 +87,7 @@ export function CreateBroadcastModal({
         <BackendJsonSubmitForm
           fields={fields}
           onSubmit={handleSubmit}
+          validationSchema={broadcastValidationSchema}
           initialValues={{
             isActive: true,
             dateExpires: moment().add(7, 'days').format('YYYY-MM-DDTHH:mm'),

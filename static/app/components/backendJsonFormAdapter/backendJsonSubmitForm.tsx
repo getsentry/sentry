@@ -120,6 +120,8 @@ interface BackendJsonSubmitFormProps {
    * Label for the submit button.
    */
   submitLabel?: string;
+  /** Additional Zod validation applied alongside required field checks. */
+  validationSchema?: z.ZodType;
 }
 
 /**
@@ -206,6 +208,7 @@ function hasFieldValue(value: unknown): boolean {
 export function BackendJsonSubmitForm({
   fields,
   onSubmit,
+  validationSchema: additionalValidationSchema,
   submitLabel,
   submitDisabled,
   initialValues,
@@ -234,7 +237,12 @@ export function BackendJsonSubmitForm({
     [fields, initialValues]
   );
 
-  const validationSchema = useMemo(() => buildValidationSchema(fields), [fields]);
+  const validationSchema = useMemo(() => {
+    const requiredFieldsSchema = buildValidationSchema(fields);
+    return additionalValidationSchema
+      ? requiredFieldsSchema.and(additionalValidationSchema)
+      : requiredFieldsSchema;
+  }, [additionalValidationSchema, fields]);
 
   const form = useScrapsForm({
     ...defaultFormOptions,

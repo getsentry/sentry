@@ -1,4 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {z} from 'zod';
 
 import {
   render,
@@ -72,15 +73,15 @@ describe('BackendJsonSubmitForm', () => {
       );
     });
 
-    it('passes native input constraints to text fields', () => {
+    it('renders datetime fields and passes maxLength to text fields', () => {
       render(
         <BackendJsonSubmitForm
           fields={[
+            {name: 'title', type: 'string', label: 'Title', maxLength: 64},
             {
               name: 'expires_at',
               type: 'datetime-local',
               label: 'Expires At',
-              maxLength: 64,
             },
           ]}
           onSubmit={onSubmit}
@@ -93,7 +94,7 @@ describe('BackendJsonSubmitForm', () => {
         'type',
         'datetime-local'
       );
-      expect(screen.getByLabelText('Expires At')).toHaveAttribute('maxlength', '64');
+      expect(screen.getByLabelText('Title')).toHaveAttribute('maxlength', '64');
     });
 
     it('renders textarea field', () => {
@@ -271,6 +272,37 @@ describe('BackendJsonSubmitForm', () => {
   });
 
   describe('submission', () => {
+    it('shows custom Zod errors on their fields and blocks submission', async () => {
+      render(
+        <BackendJsonSubmitForm
+          fields={[
+            {name: 'link', type: 'string', label: 'Link', required: true},
+            {name: 'mediaUrl', type: 'string', label: 'Image URL'},
+          ]}
+          validationSchema={z.object({
+            link: z.url('Enter a valid URL.'),
+            mediaUrl: z
+              .string()
+              .refine(
+                value => !value || z.url().safeParse(value).success,
+                'Enter a valid image URL.'
+              ),
+          })}
+          onSubmit={onSubmit}
+          submitLabel="Create"
+        />,
+        {organization: org}
+      );
+
+      await userEvent.type(screen.getByRole('textbox', {name: 'Link'}), 'invalid');
+      await userEvent.type(screen.getByRole('textbox', {name: 'Image URL'}), 'invalid');
+      await userEvent.click(screen.getByRole('button', {name: 'Create'}));
+
+      expect(await screen.findByText('Enter a valid URL.')).toBeInTheDocument();
+      expect(screen.getByText('Enter a valid image URL.')).toBeInTheDocument();
+      expect(onSubmit).not.toHaveBeenCalled();
+    });
+
     it('submit button calls onSubmit with all field values', async () => {
       render(
         <BackendJsonSubmitForm
