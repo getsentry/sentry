@@ -5,6 +5,31 @@ import {FrameVariablesGrid} from 'sentry/components/stackTrace/frame/frameVariab
 import {NativeFrameVariables} from 'sentry/components/stackTrace/frame/nativeFrameVariables';
 import * as Storybook from 'sentry/stories';
 import type {NativeFrameVariable} from 'sentry/types/event';
+import type {Meta} from 'sentry/types/group';
+
+const filteredMeta: Partial<Meta> = {rem: [['project:0', 'x']]};
+const replacedMeta: Partial<Meta> = {rem: [['project:0', 's']]};
+const maskedAuthorization = 'Bearer ********abcd';
+const maskedMeta: Partial<Meta> = {
+  rem: [['project:0', 'm', 7, 15]],
+  chunks: [
+    {type: 'text', text: 'Bearer ', rule_id: ''},
+    {type: 'redaction', text: '********', rule_id: 'project:0', remark: 'm'},
+    {type: 'text', text: 'abcd', rule_id: ''},
+  ],
+};
+const omittedMeta: Partial<Meta> = {rem: [['!config', 'x']]};
+const truncatedMessagePrefix = 'The request was interrupted while processing';
+const truncatedMessage = `${truncatedMessagePrefix}...`;
+const truncatedStringMeta: Partial<Meta> = {
+  len: 128,
+  rem: [['!limit', 'x']],
+  chunks: [
+    {type: 'text', text: truncatedMessagePrefix, rule_id: ''},
+    {type: 'redaction', text: '...', rule_id: '!limit', remark: 'x'},
+  ],
+};
+const truncatedItemsMeta: Partial<Meta> = {len: 5, rem: [['!limit', 'x']]};
 
 const position = [
   {name: 'x', type: 'float', kind: 'number', value: '1.5'},
@@ -29,17 +54,33 @@ const nativeVariables: NativeFrameVariable[] = [
       },
       {name: 'position', type: 'Vec3', kind: 'object', children: position},
       {name: 'health', type: 'float', kind: 'number', value: '-5.5'},
+      {name: 'access_token', type: 'char *', kind: 'unavailable', meta: filteredMeta},
+      {
+        name: 'authorization',
+        type: 'char[32]',
+        kind: 'string',
+        value: maskedAuthorization,
+        meta: maskedMeta,
+      },
+      {
+        name: 'session_id',
+        type: 'char[64]',
+        kind: 'string',
+        value: '2f7c8a1d9b6e4305',
+        meta: {rem: [['project:0', 'p']]},
+      },
       {
         name: 'inventory',
         type: 'Inventory *',
         kind: 'object',
         children: [
           {name: 'capacity', type: 'int', kind: 'number', value: '16'},
-          {name: 'count', type: 'int', kind: 'number', value: '2'},
+          {name: 'count', type: 'int', kind: 'number', value: '5'},
           {
             name: 'items',
-            type: 'int[2]',
+            type: 'int[5]',
             kind: 'array',
+            meta: truncatedItemsMeta,
             children: [
               {name: '[0]', type: 'int', kind: 'number', value: '42'},
               {name: '[1]', type: 'int', kind: 'number', value: '7'},
@@ -114,6 +155,25 @@ export default Storybook.story('Frame variables', story => {
       variables={[
         {name: 'empty', type: 'Container', kind: 'object', children: []},
         {name: 'unknown', type: '<unknown>', kind: 'unavailable'},
+        {
+          name: 'sdk_omitted',
+          type: 'char *',
+          kind: 'unavailable',
+          meta: omittedMeta,
+        },
+        {
+          name: 'raw_omitted',
+          type: 'char *',
+          kind: 'unavailable',
+          meta: {rem: [['!raw', 'x']]},
+        },
+        {
+          name: 'omitted_items',
+          type: 'int[5]',
+          kind: 'array',
+          children: [],
+          meta: truncatedItemsMeta,
+        },
         {name: 'zero', type: 'int', kind: 'number', value: '0'},
         {
           name: 'large_counter',
@@ -134,6 +194,13 @@ export default Storybook.story('Frame variables', story => {
           value:
             'A long string with "quotes" and a newline\nfor checking wrapping in the value column.',
         },
+        {
+          name: 'truncated_message',
+          type: 'char[128]',
+          kind: 'string',
+          value: truncatedMessage,
+          meta: truncatedStringMeta,
+        },
       ]}
     />
   ));
@@ -149,6 +216,14 @@ export default Storybook.story('Frame variables', story => {
         local_counter: 'int',
         health_ptr: 'float*',
         unknown_type: '<unknown>',
+        access_token: '[Filtered]',
+        sdk_omitted: null,
+        truncated_message: truncatedMessage,
+      }}
+      meta={{
+        access_token: {'': replacedMeta},
+        sdk_omitted: {'': omittedMeta},
+        truncated_message: {'': truncatedStringMeta},
       }}
     />
   ));
@@ -159,10 +234,24 @@ export default Storybook.story('Frame variables', story => {
       data={{
         count: 42,
         enabled: true,
-        player: {name: 'Alice', position: {x: 1.5, y: -3.2, z: 0}},
+        player: {
+          name: 'Alice',
+          position: {x: 1.5, y: -3.2, z: 0},
+          access_token: null,
+          authorization: maskedAuthorization,
+        },
         items: [1, 2, 3],
         empty: null,
         message: '0x2a (int)',
+        truncated_message: truncatedMessage,
+      }}
+      meta={{
+        player: {
+          access_token: {'': filteredMeta},
+          authorization: {'': maskedMeta},
+        },
+        items: {'': truncatedItemsMeta},
+        truncated_message: {'': truncatedStringMeta},
       }}
     />
   ));

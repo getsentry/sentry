@@ -139,3 +139,132 @@ it('keeps unavailable values distinct from null and preserves exact numbers', ()
   expect(screen.getByText('18446744073709551615')).toBeInTheDocument();
   expect(screen.getByText('0')).toBeInTheDocument();
 });
+
+it('uses the existing redaction display and omission tooltip', async () => {
+  render(
+    <NativeFrameVariables
+      variables={[
+        {name: 'unknown', type: 'char *', kind: 'unavailable'},
+        {name: 'null_pointer', type: 'char *', kind: 'null'},
+        {
+          name: 'sdk_omitted',
+          type: 'char *',
+          kind: 'unavailable',
+          meta: {rem: [['!config', 'x']]},
+        },
+        {
+          name: 'filtered',
+          type: 'char *',
+          kind: 'string',
+          value: '[Filtered]',
+          meta: {rem: [['project:0', 's']]},
+        },
+      ]}
+    />
+  );
+
+  expect(screen.getByText('Unavailable')).toBeInTheDocument();
+  expect(screen.getByText('nullptr')).toBeInTheDocument();
+  expect(screen.getByText('[Filtered]')).toBeInTheDocument();
+  await userEvent.hover(screen.getByText('<redacted>'));
+  expect(
+    await screen.findByText('Removed because of SDK configuration')
+  ).toBeInTheDocument();
+});
+
+it('preserves captured string chunks and explains masking and truncation', async () => {
+  render(
+    <NativeFrameVariables
+      variables={[
+        {
+          name: 'authorization',
+          type: 'char[32]',
+          kind: 'string',
+          value: 'Bearer ********abcd',
+          meta: {
+            rem: [['project:0', 'm', 7, 15]],
+            chunks: [
+              {type: 'text', text: 'Bearer ', rule_id: ''},
+              {type: 'redaction', text: '********', rule_id: 'project:0', remark: 'm'},
+              {type: 'text', text: 'abcd', rule_id: ''},
+            ],
+          },
+        },
+        {
+          name: 'message',
+          type: 'char[128]',
+          kind: 'string',
+          value: 'Captured prefix...',
+          meta: {
+            len: 128,
+            rem: [['!limit', 'x']],
+            chunks: [
+              {type: 'text', text: 'Captured prefix', rule_id: ''},
+              {type: 'redaction', text: '...', rule_id: '!limit', remark: 'x'},
+            ],
+          },
+        },
+      ]}
+    />
+  );
+
+  expect(screen.getByText(/Bearer/)).toHaveTextContent('Bearer ********abcd');
+  expect(screen.getByText(/Captured prefix/)).toHaveTextContent('Captured prefix...');
+  await userEvent.hover(screen.getByText('********'));
+  expect(
+    await screen.findByText(
+      "Masked because of a data scrubbing rule in your project's settings"
+    )
+  ).toBeInTheDocument();
+  await userEvent.unhover(screen.getByText('********'));
+  await userEvent.hover(screen.getByText('...'));
+  expect(await screen.findByText('Removed because of size limits')).toBeInTheDocument();
+});
+
+it.each(['array', 'object'] as const)(
+  'counts omitted children and explains fully omitted %s values',
+  async kind => {
+    render(
+      <NativeFrameVariables
+        variables={[
+          {
+            name: 'items',
+            type: 'int[5]',
+            kind: 'array',
+            children: [
+              {name: '[0]', type: 'int', kind: 'number', value: '42'},
+              {name: '[1]', type: 'int', kind: 'number', value: '7'},
+            ],
+            meta: {len: 5, rem: [['!limit', 'x']]},
+          },
+          {
+            name: 'omitted_items',
+            type: kind === 'array' ? 'int[4]' : 'Container',
+            kind,
+            children: [],
+            meta: {len: 4, rem: [['!limit', 'x']]},
+          },
+        ]}
+      />
+    );
+
+    const omittedSummary = screen.getByText('4 items truncated');
+    expect(screen.queryByText('[ 4 items ]')).not.toBeInTheDocument();
+    expect(screen.queryByText('{ 4 items }')).not.toBeInTheDocument();
+    expect(screen.queryByText('(4 items truncated)')).not.toBeInTheDocument();
+    expect(screen.queryByText('(3 items truncated)')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Expand omitted_items'})
+    ).not.toBeInTheDocument();
+    await userEvent.hover(omittedSummary);
+    expect(await screen.findByText('Removed because of size limits')).toBeInTheDocument();
+    await userEvent.unhover(omittedSummary);
+    await userEvent.click(screen.getByText('[ 5 items ]'));
+    expect(screen.getByText('42')).toBeInTheDocument();
+    expect(screen.getByText('(3 items truncated)')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Collapse items'}));
+    expect(screen.queryByText('42')).not.toBeInTheDocument();
+    expect(screen.queryByText('(3 items truncated)')).not.toBeInTheDocument();
+    expect(omittedSummary).toBeInTheDocument();
+  }
+);

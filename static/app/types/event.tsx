@@ -13,7 +13,7 @@ import type {SymbolicatorStatus} from 'sentry/components/events/interfaces/types
 
 import type {RawCrumb} from './breadcrumbs';
 import type {Image} from './debugImage';
-import type {IssueAttachment, IssueCategory, UserReport} from './group';
+import type {IssueAttachment, IssueCategory, Meta, UserReport} from './group';
 import type {PlatformKey} from './platform';
 import type {Release} from './release';
 import type {StackTraceMechanism, StacktraceType} from './stacktrace';
@@ -168,6 +168,8 @@ export enum LockType {
 export type NativeFrameVariable = {
   name: string;
   type: string;
+  /** Event annotations for this value; `len` is the original string or collection length. */
+  meta?: Partial<Meta>;
 } & (
   | {children: readonly NativeFrameVariable[]; kind: 'object'}
   | {children: readonly NativeFrameVariable[]; kind: 'array'}

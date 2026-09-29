@@ -7,6 +7,8 @@ import {InfoText} from '@sentry/scraps/info';
 import {Container, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
+import {getTooltipText} from 'sentry/components/events/meta/annotatedText/utils';
 import {t, tn} from 'sentry/locale';
 import type {NativeFrameVariable} from 'sentry/types/event';
 
@@ -70,9 +72,13 @@ function Variable({
   defaultExpanded?: boolean;
 }) {
   const [expanded, setExpanded] = useState(defaultExpanded);
-  const hasChildren =
-    (variable.kind === 'object' || variable.kind === 'array') &&
-    variable.children.length > 0;
+  const isCollection = variable.kind === 'object' || variable.kind === 'array';
+  const hasChildren = isCollection && variable.children.length > 0;
+  const totalCount = isCollection
+    ? Math.max(variable.children.length, variable.meta?.len ?? 0)
+    : 0;
+  const truncatedCount = isCollection ? totalCount - variable.children.length : 0;
+  const [ruleId, remark] = variable.meta?.rem?.[0] ?? [];
   const label = (
     <Stack minWidth="0" gap="2xs" align="start">
       <VariableName
@@ -101,6 +107,30 @@ function Variable({
       </InfoText>
     </Stack>
   );
+
+  const summary =
+    isCollection &&
+    (!hasChildren && truncatedCount > 0 ? (
+      <InfoText
+        monospace
+        size="xs"
+        variant="muted"
+        title={
+          ruleId === undefined ? undefined : getTooltipText({rule_id: ruleId, remark})
+        }
+      >
+        {tn('%s item truncated', '%s items truncated', truncatedCount)}
+      </InfoText>
+    ) : (
+      <Text monospace size="xs" variant="muted" ellipsis>
+        {variable.kind === 'array' ? '[ ' : '{ '}
+        {tn('%s item', '%s items', totalCount)}
+        {variable.kind === 'object' &&
+          hasChildren &&
+          ` · ${getKeyPreview(variable.children)}`}
+        {variable.kind === 'array' ? ' ]' : ' }'}
+      </Text>
+    ));
 
   const row = (
     <VariableRow
@@ -140,60 +170,33 @@ function Variable({
         minWidth="0"
         align="start"
       >
-        {variable.kind === 'object' || variable.kind === 'array' ? (
-          variable.children.length === 0 ? (
-            <Text monospace size="xs" variant="muted">
-              {variable.kind === 'array' ? '[ ' : '{ '}
-              {tn('%s item', '%s items', 0)}
-              {variable.kind === 'array' ? ' ]' : ' }'}
-            </Text>
+        {isCollection ? (
+          (!hasChildren || !expanded) &&
+          (hasChildren ? (
+            <SummaryButton
+              variant="transparent"
+              size="zero"
+              aria-label={t('Expand %s', variable.name)}
+              onClick={() => setExpanded(true)}
+            >
+              {summary}
+            </SummaryButton>
           ) : (
-            !expanded && (
-              <SummaryButton
-                variant="transparent"
-                size="zero"
-                aria-label={t('Expand %s', variable.name)}
-                onClick={() => setExpanded(true)}
-              >
-                <Text monospace size="xs" variant="muted" ellipsis>
-                  {variable.kind === 'array' ? '[ ' : '{ '}
-                  {tn('%s item', '%s items', variable.children.length)}
-                  {variable.kind === 'object' &&
-                    variable.children.length > 0 &&
-                    ` · ${getKeyPreview(variable.children)}`}
-                  {variable.kind === 'array' ? ' ]' : ' }'}
-                </Text>
-              </SummaryButton>
-            )
-          )
-        ) : variable.kind === 'unavailable' ? (
-          <Text monospace size="sm" variant="muted" density="comfortable">
-            {t('Unavailable')}
-          </Text>
+            summary
+          ))
         ) : (
-          <VariableValue
-            monospace
-            size="sm"
-            kind={variable.kind}
-            density="comfortable"
-            wrap="pre-wrap"
-            wordBreak="break-word"
-          >
-            {variable.kind === 'null'
-              ? 'nullptr'
-              : variable.kind === 'string'
-                ? JSON.stringify(variable.value)
-                : variable.value}
-          </VariableValue>
+          <ScalarValue variable={variable} />
+        )}
+        {expanded && hasChildren && truncatedCount > 0 && (
+          <Text variant="muted" size="xs">
+            {`(${tn('%s item truncated', '%s items truncated', truncatedCount)})`}
+          </Text>
         )}
       </Stack>
     </VariableRow>
   );
 
-  if (
-    (variable.kind !== 'object' && variable.kind !== 'array') ||
-    variable.children.length === 0
-  ) {
+  if (!isCollection || !hasChildren) {
     return row;
   }
 
@@ -207,6 +210,57 @@ function Variable({
           ))}
       </VariableContent>
     </Disclosure>
+  );
+}
+
+function ScalarValue({
+  variable,
+}: {
+  variable: Exclude<NativeFrameVariable, {kind: 'object' | 'array'}>;
+}) {
+  const {kind, meta} = variable;
+  const hasAnnotations = Boolean(
+    meta?.rem?.length || meta?.chunks?.length || meta?.err?.length
+  );
+
+  if (kind === 'unavailable' && !hasAnnotations) {
+    return (
+      <Text monospace size="sm" variant="muted" density="comfortable">
+        {t('Unavailable')}
+      </Text>
+    );
+  }
+
+  let value: string | null;
+  switch (kind) {
+    case 'unavailable':
+      value = null;
+      break;
+    case 'null':
+      value = hasAnnotations ? null : 'nullptr';
+      break;
+    case 'string':
+      value = hasAnnotations
+        ? variable.value
+        : JSON.stringify(variable.value).slice(1, -1);
+      break;
+    default:
+      value = variable.value;
+  }
+
+  return (
+    <VariableValue
+      monospace
+      size="sm"
+      kind={kind}
+      density="comfortable"
+      wrap="pre-wrap"
+      wordBreak="break-word"
+    >
+      {kind === 'string' && '"'}
+      <AnnotatedText value={value} meta={meta} />
+      {kind === 'string' && '"'}
+    </VariableValue>
   );
 }
 
