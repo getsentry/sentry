@@ -37,9 +37,13 @@ def orgs_with_dynamic_sampling(organizations: Sequence[Organization]) -> list[in
     if rollover is None:
         raise RuntimeError(f"Unable to evaluate {RATE_ROLLOVER_FEATURE} for a batch of orgs")
 
+    rollover_orgs = [org for org in organizations if rollover.get(f"organization:{org.id}", False)]
     legacy_orgs = [
         org for org in organizations if not rollover.get(f"organization:{org.id}", False)
     ]
+
+    # TODO: Replace per-organization rate lookups with a bulk rate check for rollover orgs.
+    rollover_ids = {org.id for org in rollover_orgs if _has_dynamic_sampling_rate(org)}
     legacy = (
         features.batch_has_for_organizations(DYNAMIC_SAMPLING_FEATURE, legacy_orgs)
         if legacy_orgs
@@ -48,15 +52,9 @@ def orgs_with_dynamic_sampling(organizations: Sequence[Organization]) -> list[in
     if legacy is None:
         raise RuntimeError(f"Unable to evaluate {DYNAMIC_SAMPLING_FEATURE} for a batch of orgs")
 
-    return [
-        org.id
-        for org in organizations
-        if (
-            _has_dynamic_sampling_rate(org)
-            if rollover.get(f"organization:{org.id}", False)
-            else legacy.get(f"organization:{org.id}", False)
-        )
-    ]
+    legacy_ids = {org.id for org in legacy_orgs if legacy.get(f"organization:{org.id}", False)}
+    eligible_ids = rollover_ids | legacy_ids
+    return [org.id for org in organizations if org.id in eligible_ids]
 
 
 def has_custom_dynamic_sampling(

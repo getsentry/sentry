@@ -3,6 +3,7 @@ from unittest.mock import patch
 import orjson
 import pytest
 
+from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.dynamic_sampling.per_org.feature_cache import (
     ORGS_WITH_DYNAMIC_SAMPLING_CACHE_KEY,
@@ -135,9 +136,19 @@ class FeatureCacheRateRolloverTest(FeatureCacheTest):
                 side_effect=lambda organization_id: 0.5
                 if organization_id == rollover_org.id
                 else None,
-            ),
+            ) as get_rate,
+            patch(
+                "sentry.features.batch_has_for_organizations",
+                wraps=features.batch_has_for_organizations,
+            ) as batch_has,
         ):
             assert cache_dynamic_sampling_feature_flags() == 2
+            get_rate.assert_called_once_with(organization_id=rollover_org.id)
+            legacy_batch = [
+                call.args[1] for call in batch_has.call_args_list if call.args[0] == FEATURE
+            ]
+            assert len(legacy_batch) == 1
+            assert {org.id for org in legacy_batch[0]} == {legacy_org.id, excluded_org.id}
 
         assert set(get_orgs_with_dynamic_sampling() or []) == {legacy_org.id, rollover_org.id}
         assert excluded_org.id not in (get_orgs_with_dynamic_sampling() or [])
