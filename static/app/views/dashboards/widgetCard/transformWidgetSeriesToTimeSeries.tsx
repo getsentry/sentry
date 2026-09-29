@@ -98,9 +98,16 @@ export function transformWidgetSeriesToTimeSeries(
   // If there exists a timeSeries payload, we merge it with the
   // legacy series, since timeSeries carries metadata that the
   // legacy series does not. ie incomplete buckets, etc.
+  const originalGroupBy = series.timeSeries?.groupBy;
   const timeSeries: TimeSeries = series.timeSeries
     ? {
         ...timeSeriesFromLegacySeries,
+        // The group by parsed from the series name loses nulls and arrays, so use the
+        // response's when its keys are the widget's columns (table matching relies on them)
+        groupBy:
+          originalGroupBy && originalGroupBy.every(({key}) => columns.includes(key))
+            ? originalGroupBy
+            : timeSeriesFromLegacySeries.groupBy,
         values: series.timeSeries.values.map(item => ({
           ...item,
           value: item.value ?? 0,

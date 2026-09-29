@@ -324,4 +324,47 @@ describe('transformWidgetSeriesToTimeSeries', () => {
       isOther: false,
     });
   });
+
+  it('keeps the attached group by only when its keys are the widget columns', () => {
+    const widget = WidgetFixture({
+      queries: [
+        WidgetQueryFixture({
+          name: '',
+          aggregates: ['count()'],
+          columns: ['tags', 'browser'],
+          fields: ['tags', 'browser', 'count()'],
+        }),
+      ],
+    });
+    const series = {
+      seriesName: '[a,b],None',
+      data: [{name: 1000, value: 5}],
+    };
+    const groupBy = [
+      {key: 'tags', value: ['a', 'b']},
+      {key: 'browser', value: null},
+    ];
+
+    const result = transformWidgetSeriesToTimeSeries(
+      {...series, timeSeries: TimeSeriesFixture({yAxis: 'count()', groupBy})},
+      widget
+    );
+    expect(result?.timeSeries.groupBy).toEqual(groupBy);
+
+    // Falls back to the group by parsed from the series name
+    const mismatched = transformWidgetSeriesToTimeSeries(
+      {
+        ...series,
+        timeSeries: TimeSeriesFixture({
+          yAxis: 'count()',
+          groupBy: [{key: 'tags[browser]', value: null}],
+        }),
+      },
+      widget
+    );
+    expect(mismatched?.timeSeries.groupBy).toEqual([
+      {key: 'tags', value: '[a,b]'},
+      {key: 'browser', value: 'None'},
+    ]);
+  });
 });
