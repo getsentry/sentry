@@ -11,6 +11,57 @@ import {TraceView} from 'sentry/views/performance/traceDetails/traceRenderers/tr
 import {VirtualizedViewManager} from 'sentry/views/performance/traceDetails/traceRenderers/virtualizedViewManager';
 import {InvisibleTraceBar} from 'sentry/views/performance/traceDetails/traceRow/traceBar';
 
+function createManager({
+  compressed,
+  traceStart = 1000,
+  spanSpaces = [
+    [1000, 100],
+    [1900, 100],
+  ],
+}: {
+  compressed: boolean;
+  spanSpaces?: Array<[number, number]>;
+  traceStart?: number;
+}) {
+  const manager = new VirtualizedViewManager(
+    {list: {width: 0}, span_list: {width: 1}},
+    new TraceScheduler(),
+    new TraceView(),
+    ThemeFixture()
+  );
+  manager.view.setTraceSpace([traceStart, 0, 1000, 1]);
+  manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 1000, 1]);
+  if (compressed) {
+    manager.setTimeCompression(
+      TraceTimeCompression.FromVisibleItems({
+        enabled: true,
+        traceSpace: [traceStart, 1000],
+        physicalWidth: 1000,
+        nodes: spanSpaces.map(
+          ([start, duration]) =>
+            new EapSpanNode(
+              null,
+              makeEAPSpan({
+                start_timestamp: start / 1000,
+                end_timestamp: (start + duration) / 1000,
+              }),
+              {organization: OrganizationFixture()}
+            )
+        ),
+        indicators: [],
+      })
+    );
+    expect(manager.time_compression.enabled).toBe(true);
+  }
+  manager.recomputeSpanToPXMatrix();
+  return manager;
+}
+
+function redrawInvisibleBars(manager: VirtualizedViewManager) {
+  manager.recomputeSpanToPXMatrix();
+  manager.drawInvisibleBars();
+}
+
 describe.each([false, true])('InvisibleTraceBar with compression=%s', compressed => {
   it.each([
     {timestamp: 1000, edge: 'Start'},
@@ -19,33 +70,7 @@ describe.each([false, true])('InvisibleTraceBar with compression=%s', compressed
     {timestamp: 1999, edge: 'End'},
     {timestamp: 2000, edge: 'End'},
   ])('keeps the error icon at $timestamp inside the viewport', ({timestamp, edge}) => {
-    const manager = new VirtualizedViewManager(
-      {list: {width: 0}, span_list: {width: 1}},
-      new TraceScheduler(),
-      new TraceView(),
-      ThemeFixture()
-    );
-    manager.view.setTraceSpace([1000, 0, 1000, 1]);
-    manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 1000, 1]);
-    if (compressed) {
-      manager.setTimeCompression(
-        TraceTimeCompression.FromVisibleItems({
-          enabled: true,
-          traceSpace: [1000, 1000],
-          physicalWidth: 1000,
-          nodes: [
-            new EapSpanNode(null, makeEAPSpan({start_timestamp: 1, end_timestamp: 1.1}), {
-              organization: OrganizationFixture(),
-            }),
-            new EapSpanNode(null, makeEAPSpan({start_timestamp: 1.9, end_timestamp: 2}), {
-              organization: OrganizationFixture(),
-            }),
-          ],
-          indicators: [],
-        })
-      );
-    }
-    manager.recomputeSpanToPXMatrix();
+    const manager = createManager({compressed});
 
     render(
       <InvisibleTraceBar
@@ -70,21 +95,18 @@ describe.each([false, true])('InvisibleTraceBar with compression=%s', compressed
 
     // Changing the viewport must update alignment without a React rerender.
     manager.view.setTraceView({x: 0, width: 500});
-    manager.recomputeSpanToPXMatrix();
-    manager.drawInvisibleBars();
+    redrawInvisibleBars(manager);
     if (timestamp === 1500) {
       expect(icon).toHaveClass('TraceIconEnd');
       manager.view.setTraceView({x: 500, width: 500});
-      manager.recomputeSpanToPXMatrix();
-      manager.drawInvisibleBars();
+      redrawInvisibleBars(manager);
       expect(icon).toHaveClass('TraceIconStart');
       expect(icon).not.toHaveClass('TraceIconEnd');
     }
 
     manager.view.setTraceView({x: 0, width: 1000});
     manager.view.setTracePhysicalSpace([0, 0, 500, 1], [0, 0, 500, 1]);
-    manager.recomputeSpanToPXMatrix();
-    manager.drawInvisibleBars();
+    redrawInvisibleBars(manager);
     expect(icon).toHaveClass(`TraceIcon error${edge ? ` TraceIcon${edge}` : ''}`, {
       exact: true,
     });
