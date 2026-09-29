@@ -572,4 +572,15 @@ describe('projectGeneralSettings', () => {
       expect(screen.getByText('React')).toBeInTheDocument();
     });
   });
+
+  it('renders connected repositories panel', async () => {
+    const orgWithFlag = OrganizationFixture({features: ['code-mappings-refactor']});
+
+    render(<ProjectGeneralSettings project={project} onChangeSlug={mockOnChangeSlug} />, {
+      organization: orgWithFlag,
+      initialRouterConfig,
+    });
+
+    expect(await screen.findByText('Connected Repositories')).toBeInTheDocument();
+  });
 });
