@@ -1069,10 +1069,6 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "task": "issues:sentry.tasks.clear_expired_snoozes",
         "schedule": crontab("*/5", "*", "*", "*", "*"),
     },
-    "clear-expired-rulesnoozes": {
-        "task": "issues:sentry.tasks.clear_expired_rulesnoozes",
-        "schedule": crontab("*/5", "*", "*", "*", "*"),
-    },
     "collect-project-platforms": {
         "task": "issues:sentry.tasks.collect_project_platforms",
         "schedule": crontab("0", "3", "*", "*", "*"),
