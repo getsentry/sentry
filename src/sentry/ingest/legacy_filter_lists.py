@@ -83,7 +83,7 @@ def set_list(project: Project, filter_type: str, lines: Sequence[str]) -> None:
     """
     lines = list(lines)
     option_key = f"sentry:{filter_type}"
-    if stage(filter_type) is not Stage.DOUBLE_WRITE:
+    if stage(filter_type) != Stage.DOUBLE_WRITE:
         project.update_option(option_key, lines)
         return
 
