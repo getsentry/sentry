@@ -58,18 +58,9 @@ ENV \
 # Install dependencies first to leverage Docker layer caching.
 COPY uv.lock pyproject.toml .
 RUN set -x \
-  # uwsgi-dogstatsd
-  && buildDeps=" \
-  gcc \
-  libpcre2-dev \
-  zlib1g-dev \
-  " \
-  && apt-get update \
-  && apt-get install -y --no-install-recommends $buildDeps \
-  && uv sync --frozen --quiet --no-install-project \
-  && apt-get purge -y --auto-remove $buildDeps \
-  && apt-get clean \
-  && rm -rf /var/lib/apt/lists/* \
+  # --no-build: every locked dependency ships a wheel, so fail rather than
+  # silently compile from source (the image has no compiler).
+  && uv sync --frozen --quiet --no-install-project --no-build \
   # Fully verify that the C extension is correctly installed, it unfortunately
   # requires a full check into maxminddb.extension.Reader
   && python -c 'import maxminddb.extension; maxminddb.extension.Reader' \
