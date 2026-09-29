@@ -115,6 +115,13 @@ def _normalize_output(output: dict[SegmentKey, FlushedSegment]):
         segment.spans.sort(key=lambda span: span.payload["span_id"])
 
 
+def _delete_span_buffer_keys(client: RedisCluster[bytes]) -> None:
+    # The cluster client has no key prefix, and other xdist workers share the cluster.
+    # FLUSHALL would delete their keys too, so delete only the span buffer keys.
+    for key in client.scan_iter(match="span-buf:*"):
+        client.delete(key)
+
+
 @pytest.fixture(
     params=[
         pytest.param(("cluster", 0), id="cluster-nochunk"),
@@ -145,7 +152,7 @@ def buffer(request):
                 prefix_keys=False,
             ):
                 buf = SpansBuffer(assigned_shards=list(range(32)))
-                buf.client.flushall()
+                _delete_span_buffer_keys(buf.client)
                 yield buf
                 # Clean up cached client so it doesn't persist after the
                 # option override is restored.
@@ -162,7 +169,7 @@ def assert_ttls(client: StrictRedis[bytes] | RedisCluster[bytes]):
     flushing, we should not leak memory.
     """
 
-    for k in client.keys("*"):
+    for k in client.keys("span-buf:*"):
         assert client.ttl(k) > -1, k
 
 
@@ -173,7 +180,7 @@ def assert_clean(client: StrictRedis[bytes] | RedisCluster[bytes]):
     Note: CANNOT be done in pytest fixture as that one runs _after_ redis gets
     wiped by the test harness.
     """
-    assert not [x for x in client.keys("*") if b":hrs:" not in x]
+    assert not [x for x in client.keys("span-buf:*") if b":hrs:" not in x]
 
 
 class _SplitBatch:
@@ -2191,7 +2198,7 @@ def distributed_buffer(request):
                 prefix_keys=False,
             ):
                 buf = SpansBuffer(assigned_shards=list(range(32)))
-                buf.client.flushall()
+                _delete_span_buffer_keys(buf.client)
                 yield buf
                 redis_utils.redis_clusters._clusters_bytes.pop("span-buffer", None)
         else:
