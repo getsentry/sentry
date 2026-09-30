@@ -7,8 +7,10 @@ from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource, publish_action
 from sentry.issues.action_log.types import ReconcileStatusAction
 from sentry.issues.derived.check import StatusInconsistency, check_status_consistency
+from sentry.issues.derived.framework import DerivedDataError
 from sentry.issues.derived.gate import derived_should_be_correct
 from sentry.issues.derived.processing import PIPELINE
+from sentry.issues.derived.reporting import report_derived_data_error
 from sentry.issues.models.groupactionlogoutbox import GroupActionLogOutbox
 from sentry.issues.models.groupderiveddata import GroupDerivedData
 from sentry.locks import locks
@@ -78,7 +80,17 @@ def reconcile_group_status(group_id: int) -> None:
                 _record_result("stale_hash")
                 return
 
-            inconsistency = check_status_consistency(group, derived)
+            try:
+                inconsistency = check_status_consistency(group, derived)
+            except DerivedDataError as error:
+                report_derived_data_error(
+                    error,
+                    derived=derived,
+                    operation="reconcile",
+                    pipeline_hash=PIPELINE.pipeline_hash,
+                )
+                _record_result("error")
+                return
             if inconsistency is None:
                 _record_result("aligned")
                 return
@@ -103,7 +115,17 @@ def reconcile_group_status(group_id: int) -> None:
                 _record_result("changed_during_check")
                 return
 
-            recheck = check_status_consistency(group, derived)
+            try:
+                recheck = check_status_consistency(group, derived)
+            except DerivedDataError as error:
+                report_derived_data_error(
+                    error,
+                    derived=derived,
+                    operation="reconcile",
+                    pipeline_hash=PIPELINE.pipeline_hash,
+                )
+                _record_result("error")
+                return
             if recheck != observed_inconsistency:
                 _record_result("changed_during_check")
                 return
