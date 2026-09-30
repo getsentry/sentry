@@ -540,42 +540,45 @@ export function ProjectPageFilter({
   const hasUnstaggedChanges =
     xor(stagedSelect.value, committedSelectionIntent.ids).length > 0;
 
-  const menuFooterContent =
-    selectionLimitExceeded || canCreateProject || hasUnstaggedChanges ? (
-      <Stack gap="md" direction="column">
-        {selectionLimitExceeded && (
-          <MenuComponents.Alert variant="warning">
-            {tct(
-              "You've selected [count] projects, but only up to [limit] can be selected at a time. Select All Projects to view all projects.",
-              {
-                limit: SELECTION_COUNT_LIMIT,
-                count: stagedSelect.value.length,
-              }
-            )}
-          </MenuComponents.Alert>
-        )}
-        <Flex gap="md" align="center" justify={canCreateProject ? 'between' : 'end'}>
-          {canCreateProject ? (
-            <MenuComponents.CTALinkButton
-              icon={<IconAdd />}
-              to={makeProjectsPathname({path: '/new/', organization})}
+  const menuFooterContent = (
+    <Stack gap="md" direction="column">
+      {selectionLimitExceeded && (
+        <MenuComponents.Alert variant="warning">
+          {tct(
+            "You've selected [count] projects, but only up to [limit] can be selected at a time. Select All Projects to view all projects.",
+            {
+              limit: SELECTION_COUNT_LIMIT,
+              count: stagedSelect.value.length,
+            }
+          )}
+        </MenuComponents.Alert>
+      )}
+      <Flex gap="md" align="center" justify="between">
+        <MenuComponents.CTALinkButton
+          icon={<IconAdd />}
+          to={makeProjectsPathname({path: '/new/', organization})}
+          onClick={handleApply}
+          disabled={!canCreateProject}
+          tooltipProps={{
+            title: canCreateProject
+              ? undefined
+              : t('You do not have permission to create projects'),
+          }}
+        >
+          {t('Create Project')}
+        </MenuComponents.CTALinkButton>
+        {hasUnstaggedChanges ? (
+          <Flex gap="md" align="center" justify="end">
+            <MenuComponents.CancelButton onClick={handleCancel} />
+            <MenuComponents.ApplyButton
+              disabled={selectionLimitExceeded}
               onClick={handleApply}
-            >
-              {t('Create Project')}
-            </MenuComponents.CTALinkButton>
-          ) : undefined}
-          {hasUnstaggedChanges ? (
-            <Flex gap="md" align="center" justify="end">
-              <MenuComponents.CancelButton onClick={handleCancel} />
-              <MenuComponents.ApplyButton
-                disabled={selectionLimitExceeded}
-                onClick={handleApply}
-              />
-            </Flex>
-          ) : null}
-        </Flex>
-      </Stack>
-    ) : null;
+            />
+          </Flex>
+        ) : null}
+      </Flex>
+    </Stack>
+  );
 
   return (
     <CompactSelect

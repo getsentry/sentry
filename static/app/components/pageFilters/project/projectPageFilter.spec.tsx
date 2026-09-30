@@ -1214,7 +1214,7 @@ describe('ProjectPageFilter', () => {
       expect(screen.getByRole('button', {name: 'Create Project'})).toBeInTheDocument();
     });
 
-    it('is hidden from members when member project creation is not allowed', async () => {
+    it('is disabled with an explanation when member project creation is not allowed', async () => {
       const memberOrg = OrganizationFixture({
         features: ['open-membership'],
         access: ['org:read', 'team:read', 'project:read'],
@@ -1225,9 +1225,13 @@ describe('ProjectPageFilter', () => {
       render(<ProjectPageFilter />, {organization: memberOrg});
 
       await userEvent.click(screen.getByRole('button', {name: 'My Projects'}));
+      const createProject = screen.getByRole('button', {name: 'Create Project'});
+      expect(createProject).toHaveAttribute('aria-disabled', 'true');
+
+      await userEvent.hover(createProject);
       expect(
-        screen.queryByRole('button', {name: 'Create Project'})
-      ).not.toBeInTheDocument();
+        await screen.findByText('You do not have permission to create projects')
+      ).toBeInTheDocument();
     });
   });
 });
