@@ -1,6 +1,8 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
+  "buildCommand": "pnpm run build-production",
+  "outputDirectory": "src/sentry/static/sentry/dist",
 
   "redirects": [
     {
