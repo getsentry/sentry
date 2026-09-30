@@ -303,6 +303,9 @@ from sentry.investigations.endpoints.organization_investigation_block_order impo
 from sentry.investigations.endpoints.organization_investigation_candidates import (
     OrganizationInvestigationCandidatesEndpoint,
 )
+from sentry.investigations.endpoints.organization_investigation_comment_details import (
+    OrganizationInvestigationCommentDetailsEndpoint,
+)
 from sentry.investigations.endpoints.organization_investigation_comments_index import (
     OrganizationInvestigationCommentsEndpoint,
 )
@@ -2487,6 +2490,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/comments/$",
         OrganizationInvestigationCommentsEndpoint.as_view(),
         name="sentry-api-0-organization-investigation-comments",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/comments/(?P<comment_id>[^/]+)/$",
+        OrganizationInvestigationCommentDetailsEndpoint.as_view(),
+        name="sentry-api-0-organization-investigation-comment-details",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/duplicate/$",
