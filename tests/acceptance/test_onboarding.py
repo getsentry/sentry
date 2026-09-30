@@ -37,7 +37,7 @@ def workflow_action_types(workflow: Workflow) -> list[str]:
 # start_onboarding() walks through the agentic setup interstitial to reach the
 # browser flow, which only renders with this flag on.
 @with_feature("organizations:onboarding-agentic-setup")
-class ScmOnboardingTest(AcceptanceTestCase):
+class OnboardingTest(AcceptanceTestCase):
     def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user("foo@example.com")
