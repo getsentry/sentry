@@ -23,9 +23,6 @@ from sentry.constants import ObjectStatus
 from sentry.exceptions import HashDiscarded
 from sentry.feedback.lib.utils import FeedbackCreationSource
 from sentry.feedback.usecases.ingest.create_feedback import create_feedback_issue
-from sentry.incidents.logic import create_alert_rule, create_alert_rule_trigger, create_incident
-from sentry.incidents.models.alert_rule import AlertRuleThresholdType
-from sentry.incidents.models.incident import IncidentType
 from sentry.ingest.consumer.processors import (
     process_attachment_chunk,
     process_individual_attachment,
@@ -718,29 +715,6 @@ def generate_events(
     return generated_events
 
 
-def create_metric_alert_rule(organization: Organization, project: Project) -> None:
-    # Metric alerts
-    alert_rule = create_alert_rule(
-        organization,
-        [project],
-        "My Alert Rule",
-        "level:error",
-        "count()",
-        10,
-        AlertRuleThresholdType.ABOVE,
-        1,
-    )
-    create_alert_rule_trigger(alert_rule, "critical", 10)
-    create_incident(
-        organization,
-        incident_type=IncidentType.ALERT_TRIGGERED,
-        title="My Incident",
-        date_started=datetime.now(timezone.utc),
-        alert_rule=alert_rule,
-        projects=[project],
-    )
-
-
 def create_mock_transactions(
     project_map, load_trends=False, load_performance_issues=False, slow=False
 ):
@@ -1332,7 +1306,6 @@ def main(
                 user=user,
                 commits=raw_commits,
             )
-            create_metric_alert_rule(organization, project)
             events = generate_events(
                 project=project,
                 release=release,

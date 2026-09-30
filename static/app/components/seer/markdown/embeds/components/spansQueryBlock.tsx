@@ -82,21 +82,23 @@ export default function SpansQueryBlock({data}: {data: SpansQueryData}) {
       icon={IconSpan}
       linkLabel={t('View Spans')}
       query={data.query}
+      table={
+        isChartOnly ? null : (
+          <QueryEmbedTable
+            columns={eventColumns(fields, tableQuery.data?.meta)}
+            emptyMessage={t('No matching spans')}
+            errorMessage={t('Unable to load spans')}
+            isError={tableQuery.isError}
+            isPending={tableQuery.isPending}
+            rowKey={eventRowKey}
+            rows={tableQuery.data?.data ?? []}
+          />
+        )
+      }
       testId={`seer-spans-query-${data.mode}-embed`}
       title={getSpansQueryTitle(data)}
     >
       <SpansQueryChart data={data} eventView={eventView} hasTable={!isChartOnly} />
-      {isChartOnly ? null : (
-        <QueryEmbedTable
-          columns={eventColumns(fields, tableQuery.data?.meta)}
-          emptyMessage={t('No matching spans')}
-          errorMessage={t('Unable to load spans')}
-          isError={tableQuery.isError}
-          isPending={tableQuery.isPending}
-          rowKey={eventRowKey}
-          rows={tableQuery.data?.data ?? []}
-        />
-      )}
     </QueryEmbedCard>
   );
 }

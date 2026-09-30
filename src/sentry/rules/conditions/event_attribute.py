@@ -9,11 +9,8 @@ from django import forms
 
 from sentry.rules import MATCH_CHOICES, EventState, MatchType, match_values
 from sentry.rules.conditions.base import EventCondition
-from sentry.rules.history.preview_strategy import DATASET_TO_COLUMN_NAME, get_dataset_columns
 from sentry.services.eventstore.models import GroupEvent
-from sentry.snuba.dataset import Dataset
 from sentry.snuba.events import Columns
-from sentry.types.condition_activity import ConditionActivity
 from sentry.utils.registry import NoRegistrationExistsError, Registry
 
 
@@ -157,38 +154,6 @@ class EventAttributeCondition(EventCondition):
                 sentry_sdk.capture_exception(e)
 
         return self._passes(attribute_values)
-
-    def passes_activity(
-        self, condition_activity: ConditionActivity, event_map: dict[str, Any]
-    ) -> bool:
-        try:
-            attr = self.get_option("attribute").lower()
-            dataset = condition_activity.data["dataset"]
-            column = ATTR_CHOICES[attr]
-            if column is None:
-                raise NotImplementedError
-
-            column = getattr(column.value, DATASET_TO_COLUMN_NAME[dataset])
-            attribute_values = event_map[condition_activity.data["event_id"]][column]
-
-            if isinstance(attribute_values, str):
-                attribute_values = [attribute_values]
-
-            # flip values, since the queried column is "error.handled"
-            if attr == "error.unhandled":
-                attribute_values = [not value for value in attribute_values]
-
-            return self._passes(attribute_values)
-        except (TypeError, KeyError):
-            return False
-
-    def get_event_columns(self) -> dict[Dataset, Sequence[str]]:
-        attr = self.get_option("attribute")
-        column = ATTR_CHOICES[attr]
-        if column is None:
-            raise NotImplementedError
-        columns: dict[Dataset, Sequence[str]] = get_dataset_columns([column])
-        return columns
 
     def get_form_instance(self) -> EventAttributeForm:
         return EventAttributeForm(self.data)
