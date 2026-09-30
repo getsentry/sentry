@@ -1,5 +1,100 @@
-from sentry.tasks.seer.agentic_triage.simple_triage import _agentic_triage_score
+from collections.abc import Callable, Sequence
+from unittest.mock import patch
+
+import pytest
+
+from sentry.models.grouplink import GroupLink
+from sentry.models.project import Project
+from sentry.models.pullrequest import PullRequestLifecycleState
+from sentry.tasks.seer.agentic_triage.simple_triage import (
+    ScoredCandidate,
+    _agentic_triage_score,
+    fixability_score_strategy,
+    fixability_score_strategy_per_project,
+)
 from sentry.testutils.cases import TestCase
+from sentry.testutils.factories import Factories
+from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.pytest.fixtures import django_db_all
+
+
+@django_db_all
+@pytest.mark.parametrize("state", [None, *PullRequestLifecycleState.values])
+@pytest.mark.parametrize(
+    "relationship", [GroupLink.Relationship.references, GroupLink.Relationship.resolves]
+)
+@pytest.mark.parametrize(
+    "strategy", [fixability_score_strategy, fixability_score_strategy_per_project]
+)
+def test_excludes_linked_pull_requests_after_cooldown(
+    default_project: Project,
+    state: str | None,
+    relationship: int,
+    strategy: Callable[[Sequence[Project], int], list[ScoredCandidate]],
+) -> None:
+    linked = Factories.create_group(
+        project=default_project,
+        seer_explorer_autofix_last_triggered=before_now(days=45),
+        last_seen=before_now(minutes=1),
+    )
+    retry = Factories.create_group(
+        project=default_project,
+        seer_explorer_autofix_last_triggered=before_now(days=45),
+        last_seen=before_now(minutes=2),
+    )
+    fresh = Factories.create_group(project=default_project, last_seen=before_now(minutes=3))
+    Factories.create_group(
+        project=default_project, seer_explorer_autofix_last_triggered=before_now(days=1)
+    )
+    repository = Factories.create_repo(project=default_project)
+    pull_request = Factories.create_pull_request(
+        repository_id=repository.id, organization_id=default_project.organization_id
+    )
+    pull_request.update(state=state, date_added=before_now(days=45))
+    Factories.create_group_link(
+        group=linked,
+        linked_id=pull_request.id,
+        linked_type=GroupLink.LinkedType.pull_request,
+        relationship=relationship,
+        datetime=before_now(days=45),
+    )
+
+    with (
+        patch(
+            "sentry.tasks.seer.agentic_triage.simple_triage._agentic_triage_snuba_factors",
+            return_value={},
+        ),
+        patch("sentry.tasks.seer.agentic_triage.simple_triage.AGENTIC_TRIAGE_ISSUE_FETCH_LIMIT", 2),
+        patch("sentry.tasks.seer.agentic_triage.simple_triage.AGENTIC_TRIAGE_MAX_SEARCH_PAGES", 1),
+    ):
+        candidates = strategy([default_project], 10)
+
+    assert {candidate.group.id for candidate in candidates} == {retry.id, fresh.id}
+
+
+@django_db_all
+@pytest.mark.parametrize("linked_type", [GroupLink.LinkedType.commit, GroupLink.LinkedType.issue])
+def test_non_pr_links_do_not_exclude_candidates(default_project: Project, linked_type: int) -> None:
+    group = Factories.create_group(project=default_project)
+    other_group = Factories.create_group(project=default_project, seer_fixability_score=0.0)
+    repository = Factories.create_repo(project=default_project)
+    pull_request = Factories.create_pull_request(
+        repository_id=repository.id, organization_id=default_project.organization_id
+    )
+    Factories.create_group_link(group=group, linked_id=pull_request.id, linked_type=linked_type)
+    Factories.create_group_link(
+        group=other_group,
+        linked_id=pull_request.id,
+        linked_type=GroupLink.LinkedType.pull_request,
+    )
+
+    with patch(
+        "sentry.tasks.seer.agentic_triage.simple_triage._agentic_triage_snuba_factors",
+        return_value={},
+    ):
+        candidates = fixability_score_strategy([default_project], 10)
+
+    assert [candidate.group.id for candidate in candidates] == [group.id]
 
 
 class TestAgenticTriageScore(TestCase):

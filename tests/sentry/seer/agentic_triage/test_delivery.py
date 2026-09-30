@@ -7,8 +7,10 @@ import pytest
 from sentry.api.serializers import EventSerializer
 from sentry.issues.action_log.types import SYSTEM_ACTOR, ActionSource, TriggerAutofixAction
 from sentry.models.activity import Activity
+from sentry.models.grouplink import GroupLink
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.models.pullrequest import PullRequestLifecycleState
 from sentry.seer.agentic_triage.delivery import (
     REASON_MAX_CHARS,
     _get_serialized_event,
@@ -27,10 +29,82 @@ from sentry.tasks.seer.agentic_triage.skip_cache import key as skip_cache_key
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.action_log import capture_action_log
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.types.activity import ActivityType
 from sentry.utils.redis import redis_clusters
+
+
+@django_db_all
+@pytest.mark.parametrize("state", [None, *PullRequestLifecycleState.values])
+def test_delivery_skips_issues_linked_to_pull_requests(
+    default_project: Project, state: str | None
+) -> None:
+    organization = default_project.organization
+    linked = Factories.create_group(
+        project=default_project, seer_explorer_autofix_last_triggered=before_now(days=45)
+    )
+    eligible = Factories.create_group(
+        project=default_project, seer_explorer_autofix_last_triggered=before_now(days=45)
+    )
+    run = Factories.create_seer_workflow_run(organization=organization)
+    triage_run = Factories.create_seer_run(organization=organization)
+    Factories.create_seer_workflow_run_execution(run=run, seer_run=triage_run)
+    autofix_run = Factories.create_seer_run(organization=organization, seer_run_state_id=123)
+    # The PR arrives while the triage run is in progress.
+    repository = Factories.create_repo(project=default_project)
+    pull_request = Factories.create_pull_request(
+        repository_id=repository.id, organization_id=organization.id
+    )
+    pull_request.update(state=state)
+    Factories.create_group_link(
+        group=linked,
+        linked_id=pull_request.id,
+        linked_type=GroupLink.LinkedType.pull_request,
+    )
+
+    with (
+        patch(
+            "sentry.seer.agentic_triage.delivery.trigger_autofix_agent", return_value=autofix_run
+        ) as trigger,
+        patch(
+            "sentry.seer.agentic_triage.delivery.is_seer_seat_based_tier_enabled",
+            return_value=False,
+        ),
+        patch(
+            "sentry.seer.agentic_triage.delivery.is_seer_autotriggered_autofix_rate_limited_and_increment",
+            return_value=False,
+        ) as rate_limit,
+    ):
+        deliver_agentic_triage_result(
+            organization_id=organization.id,
+            run_uuid=triage_run.uuid,
+            status="completed",
+            result={
+                "verdicts": [
+                    {"group_id": linked.id, "action": "autofix"},
+                    {"group_id": eligible.id, "action": "autofix"},
+                ]
+            },
+            error=None,
+        )
+
+    trigger.assert_called_once()
+    assert trigger.call_args.kwargs["group"].id == eligible.id
+    rate_limit.assert_called_once()
+    assert rate_limit.call_args.args[0].id == default_project.id
+    skipped = SeerAgenticTriageRunResult.objects.get(run=run, group=linked)
+    assert skipped.extras == {"action": "autofix", "has_pull_request": True}
+    assert skipped.result_seer_run is None
+    assert skipped.seer_run_id is None
+    assert not Activity.objects.filter(
+        group=linked, type=ActivityType.TRIGGER_AUTOFIX.value
+    ).exists()
+    assert (
+        SeerAgenticTriageRunResult.objects.get(run=run, group=eligible).result_seer_run
+        == autofix_run
+    )
 
 
 @django_db_all

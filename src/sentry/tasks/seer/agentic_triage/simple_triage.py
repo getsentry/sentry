@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from datetime import timedelta
 
 import sentry_sdk
+from django.db.models import Exists, OuterRef
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from snuba_sdk import Request
@@ -19,6 +20,7 @@ from sentry import options
 from sentry.issues.grouptype import ReplayRageClickType
 from sentry.issues.search import group_types_from
 from sentry.models.group import Group, GroupStatus
+from sentry.models.grouplink import GroupLink
 from sentry.models.project import Project
 from sentry.processing_errors.grouptype import LowValueSpanConfigurationType
 from sentry.seer.autofix.constants import FixabilityScoreThresholds
@@ -228,6 +230,16 @@ def _fetch_and_score_agentic(
             last_seen__gte=occurrence_cutoff,
         )
         .exclude(seer_explorer_autofix_last_triggered__gte=seer_recency_cutoff)
+        # PR links outlive Seer runs. Any PR state blocks another automatic fix.
+        .filter(
+            ~Exists(
+                GroupLink.objects.filter(
+                    project_id=OuterRef("project_id"),
+                    group_id=OuterRef("id"),
+                    linked_type=GroupLink.LinkedType.pull_request,
+                )
+            )
+        )
         .order_by("-last_seen")
     )
 

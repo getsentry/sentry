@@ -16,6 +16,7 @@ from sentry.eventstore import backend as eventstore
 from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource, action_context_scope
 from sentry.models.activity import Activity
 from sentry.models.group import Group
+from sentry.models.grouplink import GroupLink
 from sentry.models.organization import Organization
 from sentry.seer.agent.types import FeatureRunStatus
 from sentry.seer.agentic_triage.models import TriageResponse, TriageVerdict
@@ -290,7 +291,16 @@ def _process_verdicts(
     reason_by_group_id = {v.group_id: v.reason for v in verdicts}
     run_by_group: dict[int, SeerRun] = {}
     rate_limited_group_ids: set[int] = set()
+    groups_with_pull_requests: set[int] = set()
     if not dry_run and fixable_groups:
+        # A PR may have been linked since candidate selection.
+        groups_with_pull_requests = set(
+            GroupLink.objects.filter(
+                project_id__in={group.project_id for group in fixable_groups},
+                group_id__in=[group.id for group in fixable_groups],
+                linked_type=GroupLink.LinkedType.pull_request,
+            ).values_list("group_id", flat=True)
+        )
         # Cache organization on each group's project to avoid N+1 queries
         for group in groups_by_id.values():
             group.project.organization = organization
@@ -314,6 +324,8 @@ def _process_verdicts(
         check_rate_limit = not is_seer_seat_based_tier_enabled(organization)
 
         for group in fixable_groups:
+            if group.id in groups_with_pull_requests:
+                continue
             if check_rate_limit and is_seer_autotriggered_autofix_rate_limited_and_increment(
                 group.project, organization
             ):
@@ -378,7 +390,9 @@ def _process_verdicts(
         if v.action == TriageAction.AUTOFIX and not dry_run:
             result_seer_run = run_by_group.get(v.group_id)
             if result_seer_run is None:
-                if v.group_id in rate_limited_group_ids:
+                if v.group_id in groups_with_pull_requests:
+                    extras["has_pull_request"] = True
+                elif v.group_id in rate_limited_group_ids:
                     extras["rate_limited"] = True
                 else:
                     extras["trigger_error"] = True
