@@ -122,7 +122,8 @@ class ProjectPreprodSnapshotTest(APITestCase):
             },
         }
 
-        response = self.client.post(url, data, format="json")
+        with self.feature("organizations:preprod-snapshot-billing-outcomes"):
+            response = self.client.post(url, data, format="json")
 
         assert response.status_code == 200
         assert "artifactId" in response.data
@@ -145,6 +146,26 @@ class ProjectPreprodSnapshotTest(APITestCase):
             quantity=2,
             category=DataCategory.SNAPSHOT_IMAGE,
         )
+
+    @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.track_outcome")
+    def test_successful_snapshot_upload_does_not_track_outcome_without_flag(
+        self, mock_track_outcome: MagicMock
+    ) -> None:
+        data = {
+            "app_id": "com.example.app",
+            "images": {
+                "abc123def456": {
+                    "content_hash": "abc123def456",
+                    "width": 375,
+                    "height": 812,
+                }
+            },
+        }
+
+        response = self.client.post(self._get_create_url(), data, format="json")
+
+        assert response.status_code == 200
+        mock_track_outcome.assert_not_called()
 
     def test_snapshot_upload_rejects_reserved_archive_filename(self) -> None:
         data = {
@@ -299,7 +320,8 @@ class ProjectPreprodSnapshotTest(APITestCase):
             },
         }
 
-        response = self.client.post(self._get_create_url(), data, format="json")
+        with self.feature("organizations:preprod-snapshot-billing-outcomes"):
+            response = self.client.post(self._get_create_url(), data, format="json")
 
         assert response.status_code == 500
         mock_track_outcome.assert_not_called()
@@ -341,7 +363,8 @@ class ProjectPreprodSnapshotTest(APITestCase):
             "images": {},
         }
 
-        response = self.client.post(url, data, format="json")
+        with self.feature("organizations:preprod-snapshot-billing-outcomes"):
+            response = self.client.post(url, data, format="json")
 
         assert response.status_code == 200
         assert response.data["imageCount"] == 0
@@ -547,7 +570,8 @@ class ProjectPreprodSnapshotTest(APITestCase):
     def test_selective_with_all_image_file_names_accepted(
         self, mock_track_outcome: MagicMock
     ) -> None:
-        response = self._post_selective()
+        with self.feature("organizations:preprod-snapshot-billing-outcomes"):
+            response = self._post_selective()
         assert response.status_code == 200
         mock_track_outcome.assert_called_once_with(
             org_id=self.project.organization_id,

@@ -14,7 +14,7 @@ from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics
+from sentry import analytics, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -855,7 +855,9 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
             manifest_size_bytes = len(manifest_bytes)
             session.put(manifest_bytes, key=manifest_key)
 
-        if images:
+        if images and features.has(
+            "organizations:preprod-snapshot-billing-outcomes", project.organization
+        ):
             track_outcome(
                 org_id=project.organization_id,
                 project_id=project.id,
