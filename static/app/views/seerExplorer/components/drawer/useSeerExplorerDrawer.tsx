@@ -21,9 +21,8 @@ export type OpenSeerExplorerDrawerOptions = {
   appendToOpenRun?: boolean;
   /**
    * An "Ask Seer" question to show as Seer's. Nothing is sent until the user
-   * replies. It joins `runId` when given, else the conversation on screen, or a
-   * new chat when Explorer is closed. The provider stores it in chat state; the
-   * drawer only opens.
+   * replies. It joins the conversation on screen, or a new chat when Explorer
+   * is closed. The provider stores it in chat state; the drawer only opens.
    */
   chatPrompt?: ChatPrompt;
   /**

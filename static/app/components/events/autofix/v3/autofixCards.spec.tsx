@@ -258,8 +258,7 @@ describe('ArtifactCard', () => {
 
         expect(openChatPrompt).toHaveBeenCalledWith({
           prompt: question,
-          context: {autofixStep: step},
-          runId: 123,
+          context: {autofixRunId: 123, autofixStep: step},
         });
         expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
       }

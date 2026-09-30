@@ -15,20 +15,12 @@ import {
 } from 'sentry/views/seerExplorer/useSeerExplorerContext';
 
 /** An "Ask Seer" entry point somewhere in the app. */
-function AskSeerEntryPoint({
-  label,
-  prompt,
-  runId,
-}: {
-  label: string;
-  prompt: string;
-  runId?: number;
-}) {
+function AskSeerEntryPoint({label, prompt}: {label: string; prompt: string}) {
   const {openChatPrompt} = useSeerExplorerContext();
   return (
     <button
       type="button"
-      onClick={() => openChatPrompt({prompt, context: {widget: 'p95 latency'}, runId})}
+      onClick={() => openChatPrompt({prompt, context: {widget: 'p95 latency'}})}
     >
       {label}
     </button>
@@ -58,7 +50,6 @@ function tree() {
                 label="ask-dashboard"
                 prompt="What about this dashboard?"
               />
-              <AskSeerEntryPoint label="ask-run-1" prompt="What about run 1?" runId={1} />
             </SeerExplorerContextProvider>
           </GlobalDrawer>
         </PictureInPictureProvider>
@@ -181,35 +172,6 @@ describe('openChatPrompt', () => {
           chatUrl,
           expect.objectContaining({
             data: expect.objectContaining({chat_prompt: 'What about this widget?'}),
-          })
-        );
-      });
-      expect(postExisting).not.toHaveBeenCalled();
-    });
-
-    it('asks in the run it names, even with another conversation on screen', async () => {
-      const postRun1 = MockApiClient.addMockResponse({
-        url: `${chatUrl}1/`,
-        method: 'POST',
-        body: {run_id: 1},
-      });
-      render(tree(), {organization});
-
-      await userEvent.click(await screen.findByRole('button', {name: 'open-explorer'}));
-      expect(await screen.findByText('Earlier answer')).toBeInTheDocument();
-
-      await userEvent.click(screen.getByRole('button', {name: 'ask-run-1'}));
-      expect(await screen.findByText('What about run 1?')).toBeInTheDocument();
-      expect(screen.queryByText('Earlier answer')).not.toBeInTheDocument();
-
-      await userEvent.type(screen.getByTestId('seer-explorer-input'), 'change it');
-      await userEvent.keyboard('{Enter}');
-
-      await waitFor(() => {
-        expect(postRun1).toHaveBeenCalledWith(
-          `${chatUrl}1/`,
-          expect.objectContaining({
-            data: expect.objectContaining({chat_prompt: 'What about run 1?'}),
           })
         );
       });

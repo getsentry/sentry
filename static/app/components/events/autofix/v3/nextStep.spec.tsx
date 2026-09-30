@@ -185,8 +185,7 @@ describe('SeerDrawerNextStep', () => {
 
         expect(openChatPrompt).toHaveBeenCalledWith({
           prompt: question,
-          context: {autofixStep: step},
-          runId: 1,
+          context: {autofixRunId: 1, autofixStep: step},
         });
         expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
         expect(autofix.startStep).not.toHaveBeenCalled();
