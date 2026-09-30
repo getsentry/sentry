@@ -144,10 +144,12 @@ interface and is not a base for new detectors.
 
 ### 5. Produce detector output
 
-`process_detectors` routes each non-null result according to the detector handler's
-`outcome`. `DetectorOutcome.ISSUE` passes the result to `produce_issue_platform_payload`
-and [`produce_occurrence_to_kafka`](../../issues/producer.py). A callable receives the
-result directly without publishing it to Issue Platform.
+`process_detectors` invokes the detector handler's `on_complete` lifecycle callback with
+the detector and each evaluation. The default callback is
+`DetectorOutcome.ISSUE_PLATFORM.handler`; it ignores evaluations without a result and
+passes the others to Issue Platform via
+[`produce_occurrence_to_kafka`](../../issues/producer.py). A detector can assign another
+supported outcome handler or override `on_complete` for custom processing.
 
 Issue Platform ingestion creates or updates a group. The detector ID in occurrence
 evidence allows ingestion to create a

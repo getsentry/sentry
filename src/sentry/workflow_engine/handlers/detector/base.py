@@ -18,6 +18,7 @@ from sentry.utils import metrics
 from sentry.workflow_engine.caches.data_source import (
     get_data_sources_by_detector_and_source_id,
 )
+from sentry.workflow_engine.handlers.detector_output import DetectorOutcome
 from sentry.workflow_engine.models import DataConditionGroup, DataPacket, Detector
 from sentry.workflow_engine.processors import DataConditionGroupEvaluation, DetectorEvaluation
 from sentry.workflow_engine.processors.data_condition_group import process_data_condition_group
@@ -25,7 +26,6 @@ from sentry.workflow_engine.processors.evaluations import DetectorEvaluationData
 from sentry.workflow_engine.types import (
     DetectorGroupKey,
     DetectorId,
-    DetectorOutcome,
     DetectorPriorityLevel,
 )
 
@@ -111,9 +111,9 @@ class BaseDetectorHandler(abc.ABC, Generic[DataPacketType, DataPacketEvaluationT
     def __init__(self, detector: Detector):
         self.detector = detector
 
-    @property
-    def outcome(self) -> DetectorOutcome | Callable[[DetectorEvaluation], None]:
-        return DetectorOutcome.ISSUE
+    on_complete: Callable[[Detector, DetectorEvaluation], None] = (
+        DetectorOutcome.ISSUE_PLATFORM.handler
+    )
 
     @abc.abstractmethod
     def _evaluate(

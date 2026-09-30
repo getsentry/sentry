@@ -288,9 +288,9 @@ Detector-specific consequences:
   `process_detectors` publishes only after handler evaluation returns. A failure after
   state commit but before publication can cause a retry to be skipped by dedupe.
 
-The output enters Issue Platform through
-[`produce_issue_platform_payload`](../processors/detector.py). Workflows run later from
-the resulting issue event; they are not part of the detector state transaction.
+The default `on_complete` callback enters Issue Platform through
+[`IssuePlatformOutcomeHandler`](../handlers/detector_output/issue_platform.py). Workflows
+run later from the resulting issue event; they are not part of the detector state transaction.
 
 ## Workflows
 

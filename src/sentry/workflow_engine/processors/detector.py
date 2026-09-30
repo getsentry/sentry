@@ -2,13 +2,11 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from typing import Any
 
 from sentry import features, options
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
 from sentry.issues.issue_occurrence import IssueOccurrence
-from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.organization import Organization
@@ -22,7 +20,6 @@ from sentry.utils.tracing import trace
 from sentry.workflow_engine.defaults.detectors import (
     ensure_default_detectors as ensure_default_detectors,
 )
-from sentry.workflow_engine.handlers.detector.base import BaseDetectorHandler
 from sentry.workflow_engine.models import DataPacket, Detector
 from sentry.workflow_engine.models.detector_group import DetectorGroup
 from sentry.workflow_engine.processors import DetectorEvaluation, ProcessDetectorsResult
@@ -30,7 +27,6 @@ from sentry.workflow_engine.processors.evaluations.tracking import emit_evaluati
 from sentry.workflow_engine.types import (
     DetectorGroupKey,
     DetectorId,
-    DetectorOutcome,
     WorkflowEventData,
 )
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
@@ -265,35 +261,6 @@ def get_preferred_detector(event_data: WorkflowEventData) -> Detector:
         raise
 
 
-def produce_issue_platform_payload(result: DetectorEvaluation, detector_type: str) -> None:
-    occurrence, status_change = None, None
-
-    if isinstance(result.result, IssueOccurrence):
-        occurrence = result.result
-        payload_type = PayloadType.OCCURRENCE
-
-        metrics.incr(
-            "workflow_engine.issue_platform.payload.sent.occurrence",
-            tags={"detector_type": detector_type},
-            sample_rate=1,
-        )
-    else:
-        status_change = result.result
-        payload_type = PayloadType.STATUS_CHANGE
-        metrics.incr(
-            "workflow_engine.issue_platform.payload.sent.status_change",
-            tags={"detector_type": detector_type},
-            sample_rate=1,
-        )
-
-    produce_occurrence_to_kafka(
-        payload_type=payload_type,
-        occurrence=occurrence,
-        status_change=status_change,
-        event_data=result.data["event_data"],
-    )
-
-
 def _get_detector_organization(detector: Detector) -> Organization | None:
     """
     Lookup the detector's organization through the organization cache.
@@ -336,24 +303,6 @@ def _emit_detector_evaluations(
                 "error": "organization_missing",
             },
         )
-
-
-def _produce_detector_output(
-    result: DetectorEvaluation,
-    handler: BaseDetectorHandler[Any, Any],
-) -> None:
-    """
-    Route a detector result to its configured output.
-    """
-    outcome = handler.outcome
-
-    if isinstance(outcome, DetectorOutcome):
-        match outcome:
-            # Add future platform cases here
-            case DetectorOutcome.ISSUE:
-                produce_issue_platform_payload(result, handler.detector.type)
-    else:
-        outcome(result)
 
 
 @trace
@@ -407,7 +356,11 @@ def process_detectors[T](
                     tags={"detector_type": detector.type},
                 )
 
-                _produce_detector_output(result, handler)
+            with metrics.timer(
+                "workflow_engine.process_detectors.on_complete",
+                tags={"detector_type": detector.type},
+            ):
+                handler.on_complete(detector, result)
 
         if detector_results:
             results.append((detector, detector_results))
