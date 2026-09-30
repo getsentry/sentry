@@ -35,11 +35,11 @@ class OrganizationInvestigationPresenceTest(APITestCase):
         self.login_as(self.user)
         response = self.client.put(self.url)
         assert response.status_code == 200
-        assert response.data == {"viewerIds": [str(self.user.id)]}
+        assert response.data == {"viewerIds": [str(self.user.id)], "heartbeatIntervalMs": 5000}
 
         self.login_as(other)
         response = self.client.put(self.url)
-        assert response.data == {"viewerIds": [str(other.id), str(self.user.id)]}
+        assert response.data["viewerIds"] == [str(other.id), str(self.user.id)]
 
     def test_records_seen_once_per_visit(self) -> None:
         self.login_as(self.user)
