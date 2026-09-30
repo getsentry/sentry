@@ -3540,7 +3540,7 @@ register(
 register(
     "notifications.issue-alerts.disable-rule-snooze",
     type=Bool,
-    default=False,
+    default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
