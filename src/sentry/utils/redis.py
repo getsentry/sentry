@@ -406,11 +406,16 @@ def _to_str(value: Any) -> str:
 
 
 def _key_positions(args: tuple[Any, ...]) -> list[int]:
-    name = _to_str(args[0]).lower()
+    # redis-py sends some commands as one argument with a space, such as "XGROUP CREATE". Split
+    # the name so that the arguments have the same shape as the table
+    head = _to_str(args[0]).lower().split()
+    offset = len(head) - 1
+    args = (*head, *args[1:])
+
+    name = head[0]
     if len(args) > 1 and f"{name}|{_to_str(args[1]).lower()}" in COMMAND_KEY_SPECS:
         name = f"{name}|{_to_str(args[1]).lower()}"
-    # Names that are not in the table have no keys. This includes commands that redis-py-cluster
-    # sends as one argument, such as "SCRIPT LOAD". None of them take keys.
+    # Names that are not in the table have no keys, such as "SCRIPT LOAD".
     spec = COMMAND_KEY_SPECS.get(name)
     if spec is None:
         return []
@@ -428,7 +433,7 @@ def _key_positions(args: tuple[Any, ...]) -> list[int]:
             positions.extend(range(streams + 1, streams + 1 + (len(args) - streams - 1) // 2))
         else:
             raise NotImplementedError(f"The Redis key prefix does not support {name}")
-    return positions
+    return [position - offset for position in positions]
 
 
 def _add_key_prefix(

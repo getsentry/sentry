@@ -426,6 +426,19 @@ def test_key_prefix_lua_script(prefixed_clusters: tuple[Any, Any, Any, str]) -> 
     assert raw.get(f"{prefix}{{script}}:key:copy") == "value"
 
 
+def test_key_prefix_commands_sent_as_one_name(prefixed_clusters: tuple[Any, Any, Any, str]) -> None:
+    # redis-py sends these commands as one argument, such as "XGROUP CREATE".
+    a, _, raw, prefix = prefixed_clusters
+
+    a.xadd("stream", {"field": "value"})
+    a.xgroup_create("stream", "group", id="0")
+
+    assert [group["name"] for group in a.xinfo_groups("stream")] == ["group"]
+    assert [group["name"] for group in raw.xinfo_groups(f"{prefix}stream")] == ["group"]
+    assert a.memory_usage("stream") is not None
+    assert raw.memory_usage("stream") is None
+
+
 def test_key_prefix_removed_from_returned_keys(
     prefixed_clusters: tuple[Any, Any, Any, str],
 ) -> None:
