@@ -53,6 +53,7 @@ import {
   applyDashboardFilters,
   getDashboardFiltersFromURL,
 } from 'sentry/views/dashboards/utils';
+import {WidgetNoDataPanel} from 'sentry/views/dashboards/widgets/common/widgetNoDataPanel';
 import {FRAMELESS_STYLES} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useTracesApiOptions} from 'sentry/views/explore/hooks/useTraces';
@@ -331,6 +332,7 @@ export function TracesTable({
       isLoading={tracesRequest.isPending}
       error={tracesRequest.error}
       data={tableData}
+      emptyMessage={<WidgetNoDataPanel />}
       stickyHeader
       columnOrder={columnOrder}
       grid={{

@@ -5,7 +5,6 @@ import type {LegendComponentOption} from 'echarts';
 import {Container} from '@sentry/scraps/layout';
 
 import type {Client} from 'sentry/api';
-import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {
   EChartDataZoomHandler,
@@ -28,6 +27,7 @@ import type {
   HeatMapSeries,
   TabularColumn,
 } from 'sentry/views/dashboards/widgets/common/types';
+import {WidgetNoDataPanel} from 'sentry/views/dashboards/widgets/common/widgetNoDataPanel';
 import {HEATMAP_RESIZE_DEBOUNCE_MS} from 'sentry/views/dashboards/widgets/heatMapWidget/settings';
 import {calculateHeatMapBucketDimensions} from 'sentry/views/dashboards/widgets/heatMapWidget/utils/calculateHeatMapBucketDimensions';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
@@ -76,34 +76,39 @@ type Props = {
   windowWidth?: number;
 };
 
-function getErrorOrEmptyMessage(
+type WidgetDataState = {type: 'empty'} | {message: string; type: 'error'} | undefined;
+
+export function getWidgetDataState(
   errorMessage: string | undefined,
   timeseriesResults: Series[] | undefined,
   tableResults: TableDataWithTitle[] | undefined,
   heatmapResults: HeatMapSeries | undefined,
-  widgetType: DisplayType
-) {
+  widgetType: DisplayType,
+  loading: boolean
+): WidgetDataState {
   if (widgetFetchesOwnData(widgetType)) {
+    return;
+  }
+
+  if (errorMessage) {
+    return {type: 'error', message: errorMessage};
+  }
+
+  if (loading) {
     return;
   }
 
   // Heat maps return a single series object rather than table/timeseries rows.
   if (widgetType === DisplayType.HEATMAP) {
-    return errorMessage
-      ? errorMessage
-      : heatmapResults === undefined || heatmapResults.values.length === 0
-        ? t('No data found')
-        : undefined;
+    return heatmapResults === undefined || heatmapResults.values.length === 0
+      ? {type: 'empty'}
+      : undefined;
   }
 
   // non-chart widgets need to look at tableResults
   const results = usesTimeSeriesData(widgetType) ? timeseriesResults : tableResults;
 
-  return errorMessage
-    ? errorMessage
-    : results === undefined || results?.length === 0
-      ? t('No data found')
-      : undefined;
+  return results === undefined || results.length === 0 ? {type: 'empty'} : undefined;
 }
 
 function WidgetCardDataLoaderView({
@@ -169,26 +174,22 @@ function WidgetCardDataLoaderView({
         const modifiedTimeseriesResults =
           WidgetLegendNameEncoderDecoder.modifyTimeseriesNames(widget, timeseriesResults);
 
-        const errorOrEmptyMessage = loading
-          ? errorMessage
-          : getErrorOrEmptyMessage(
-              errorMessage,
-              modifiedTimeseriesResults,
-              tableResults,
-              heatmapResults,
-              widget.displayType
-            );
+        const dataState = getWidgetDataState(
+          errorMessage,
+          modifiedTimeseriesResults,
+          tableResults,
+          heatmapResults,
+          widget.displayType,
+          loading
+        );
 
-        if (errorOrEmptyMessage) {
-          if (
-            typeof errorOrEmptyMessage === 'string' &&
-            errorOrEmptyMessage !== t('No data found') &&
-            onWidgetError
-          ) {
-            onWidgetError(widget, errorOrEmptyMessage);
-          }
+        if (dataState?.type === 'error') {
+          onWidgetError?.(widget, dataState.message);
+          return <Widget.WidgetError error={dataState.message} />;
+        }
 
-          return <Widget.WidgetError error={errorOrEmptyMessage} />;
+        if (dataState?.type === 'empty') {
+          return <WidgetNoDataPanel />;
         }
 
         return (
@@ -198,7 +199,7 @@ function WidgetCardDataLoaderView({
               timeseriesResults={modifiedTimeseriesResults}
               tableResults={tableResults}
               heatmapResults={heatmapResults}
-              errorMessage={errorOrEmptyMessage}
+              errorMessage={errorMessage}
               loading={loading}
               widget={widget}
               selection={selection}
