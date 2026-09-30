@@ -15,7 +15,6 @@ from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.notification_action.utils import issue_notification_data_factory
 from sentry.notifications.platform.shadow.capture import (
     LegacyRender,
-    is_collecting,
     record_legacy_render,
 )
 from sentry.notifications.platform.shadow.compare import diff
@@ -155,7 +154,6 @@ class ShadowReadSamplingTest(ShadowInvocationTestCase):
         source: NotificationSource = NotificationSource.ISSUE,
     ) -> None:
         with shadow(invocation, source):
-            assert not is_collecting()
             _send_legacy()
         mock_compare.assert_not_called()
 
@@ -168,7 +166,7 @@ class ShadowReadSamplingTest(ShadowInvocationTestCase):
         self.assert_not_shadowed(mock_compare, invocation, NotificationSource.ISSUE)
 
         with shadow(invocation, NotificationSource.METRIC_ALERT):
-            assert is_collecting()
+            _send_legacy()
 
         mock_compare.assert_called_once()
         args = mock_compare.call_args.args
@@ -223,22 +221,9 @@ class ShadowReadSamplingTest(ShadowInvocationTestCase):
         }
         for action_type in expected:
             with shadow(self.create_invocation(action_type), NotificationSource.ISSUE):
-                assert is_collecting()
+                _send_legacy()
 
         assert [call.args[1] for call in mock_compare.call_args_list] == list(expected.values())
-
-    @override_options(SAMPLE_ALL)
-    def test_nested_shadow_reads_compare_once(self, mock_compare: mock.MagicMock) -> None:
-        invocation = self.create_invocation()
-
-        with shadow(invocation, NotificationSource.ISSUE):
-            with shadow(invocation, NotificationSource.ISSUE):
-                with shadow(invocation, NotificationSource.METRIC_ALERT):
-                    _send_legacy()
-
-        mock_compare.assert_called_once()
-        collector = mock_compare.call_args.args[2]
-        assert collector.legacy_render.payload == {"type": "AdaptiveCard"}
 
     def test_sampling_failure_does_not_propagate(self, mock_compare: mock.MagicMock) -> None:
         with (

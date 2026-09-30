@@ -35,10 +35,6 @@ _active_collector: ContextVar[ShadowCollector | None] = ContextVar(
 )
 
 
-def is_collecting() -> bool:
-    return _active_collector.get() is not None
-
-
 @contextmanager
 def collecting() -> Generator[ShadowCollector]:
     collector = ShadowCollector()

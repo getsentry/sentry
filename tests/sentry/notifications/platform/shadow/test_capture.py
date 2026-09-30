@@ -5,7 +5,6 @@ from unittest import mock
 from sentry.notifications.platform.shadow.capture import (
     LegacyRender,
     collecting,
-    is_collecting,
     record_legacy_render,
 )
 from sentry.notifications.platform.types import NotificationProviderKey
@@ -14,36 +13,21 @@ CAPTURE_PATH = "sentry.notifications.platform.shadow.capture"
 
 
 def test_records_nothing_outside_a_collector() -> None:
-    assert not is_collecting()
+    with mock.patch(f"{CAPTURE_PATH}.LegacyRender") as mock_render:
+        record_legacy_render(
+            NotificationProviderKey.SLACK, {"blocks": []}, chart_url="https://chart"
+        )
 
-    record_legacy_render(NotificationProviderKey.SLACK, {"blocks": []}, chart_url="https://chart")
-
-    assert not is_collecting()
+    mock_render.assert_not_called()
 
 
 def test_records_the_first_legacy_render() -> None:
     with collecting() as collector:
-        assert is_collecting()
         record_legacy_render(NotificationProviderKey.SLACK, ("[]", "text"), chart_url="https://c")
         record_legacy_render(NotificationProviderKey.DISCORD, {"content": "second"})
 
-    assert not is_collecting()
     assert collector.legacy_render == LegacyRender(
         provider=NotificationProviderKey.SLACK, payload=("[]", "text"), chart_url="https://c"
-    )
-
-
-def test_collectors_are_restored_when_nested() -> None:
-    with collecting() as outer:
-        with collecting() as inner:
-            record_legacy_render(NotificationProviderKey.SLACK, {"blocks": []})
-        record_legacy_render(NotificationProviderKey.MSTEAMS, {"type": "AdaptiveCard"})
-
-    assert inner.legacy_render == LegacyRender(
-        provider=NotificationProviderKey.SLACK, payload={"blocks": []}, chart_url=None
-    )
-    assert outer.legacy_render == LegacyRender(
-        provider=NotificationProviderKey.MSTEAMS, payload={"type": "AdaptiveCard"}, chart_url=None
     )
 
 

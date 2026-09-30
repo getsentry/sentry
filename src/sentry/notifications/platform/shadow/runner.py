@@ -21,7 +21,6 @@ from sentry.notifications.platform.shadow.capture import (
     LegacyRender,
     ShadowCollector,
     collecting,
-    is_collecting,
 )
 from sentry.notifications.platform.shadow.compare import DiffEntry, diff, normalize
 from sentry.notifications.platform.types import (
@@ -69,8 +68,7 @@ class ShadowResult:
 def _should_shadow(invocation: ActionInvocation, source: NotificationSource) -> bool:
     try:
         return (
-            not is_collecting()
-            and source in SHADOW_SOURCES
+            source in SHADOW_SOURCES
             and invocation.workflow_id != TEST_NOTIFICATION_ID
             and invocation.action.id != TEST_NOTIFICATION_ID
             and source.value not in options.get(KILLSWITCH_OPTION_KEY)
@@ -188,7 +186,6 @@ def shadow_read(
     `build_data` is only called when a legacy payload was captured.
 
     The shadow never raises into the send, and an exception from the send propagates unchanged.
-    Nested shadow reads are no-ops, so an alert is compared at most once.
     """
     provider_key = SHADOW_PROVIDERS.get(invocation.action.type)
     if provider_key is None or not _should_shadow(invocation, source):
