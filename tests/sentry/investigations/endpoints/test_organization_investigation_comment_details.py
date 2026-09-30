@@ -86,6 +86,10 @@ class OrganizationInvestigationCommentDetailsTest(APITestCase):
     def test_archived_investigation_is_read_only(self) -> None:
         self.investigation.update(status=InvestigationStatus.ARCHIVED)
 
+        archived = {"detail": "Archived investigations are read-only."}
         response = self.client.put(self.url(self.comment.id), data={"body": "after"}, format="json")
         assert response.status_code == 400
-        assert self.client.delete(self.url(self.comment.id)).status_code == 400
+        assert response.data == archived
+        response = self.client.delete(self.url(self.comment.id))
+        assert response.status_code == 400
+        assert response.data == archived

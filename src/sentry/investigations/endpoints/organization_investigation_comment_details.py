@@ -9,6 +9,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.serializers import serialize
 from sentry.investigations.endpoints.base import (
+    InvestigationArchivedError,
     OrganizationInvestigationCommentEndpoint,
     require_authenticated_user,
 )
@@ -59,9 +60,6 @@ class OrganizationInvestigationCommentDetailsEndpoint(OrganizationInvestigationC
         if (error := check_is_author(request, comment)) is not None:
             return error
         if investigation.status == InvestigationStatus.ARCHIVED:
-            return Response(
-                {"detail": "Archived investigations are read-only."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            raise InvestigationArchivedError
         comment.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
