@@ -29,10 +29,6 @@ import {organizationRepositoriesInfiniteOptions} from 'sentry/utils/repositories
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-// ---------------------------------------------------------------------------
-// Project ↔ repo list (used by ConnectedRepositoriesPanel)
-// ---------------------------------------------------------------------------
-
 export type ProjectRepoListItem = {
   externalId: string | null;
   id: string;
@@ -63,10 +59,6 @@ export function projectRepoInfiniteOptions({
     }
   );
 }
-
-// ---------------------------------------------------------------------------
-// Repo select options (used by ConnectRepositoryForm)
-// ---------------------------------------------------------------------------
 
 export type RepoSelectOption = SelectValue<string> & {
   integrationId: string;
@@ -250,10 +242,6 @@ export function useGroupedRepoOptions(orgSlug: string): {
   };
 }
 
-// ---------------------------------------------------------------------------
-// Code mappings query options
-// ---------------------------------------------------------------------------
-
 export function projectCodeMappingsOptions({
   orgSlug,
   projectId,
@@ -283,10 +271,6 @@ export function useInvalidateRepoQueries(
       queryClient.invalidateQueries(projectCodeMappingsOptions({orgSlug, projectId})),
     ]);
 }
-
-// ---------------------------------------------------------------------------
-// Save / edit mutations
-// ---------------------------------------------------------------------------
 
 const DUPLICATE_CODE_MAPPING_MESSAGE = 'Code path config already exists';
 
