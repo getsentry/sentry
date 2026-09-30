@@ -95,12 +95,6 @@ export default Storybook.story('Frame variables', story => {
     </VariableStory>
   ));
 
-  story('JSON variables — narrow', () => (
-    <VariableStory narrow>
-      <FrameVariablesGrid platform="node" data={jsonVariables} meta={jsonMeta} />
-    </VariableStory>
-  ));
-
   story('Native wire values', () => (
     <VariableStory>
       <FrameVariablesGrid platform="native" data={nativeVariables} meta={nativeMeta} />
@@ -126,13 +120,7 @@ export default Storybook.story('Frame variables', story => {
 });
 
 /** Toggle the real product flag so each fixture exercises both rendering paths. */
-function VariableStory({
-  children,
-  narrow = false,
-}: {
-  children: ReactNode;
-  narrow?: boolean;
-}) {
+function VariableStory({children}: {children: ReactNode}) {
   const checkboxId = useId();
   const organization = useOrganization();
   const [enabled, setEnabled] = useState(true);
@@ -154,12 +142,7 @@ function VariableStory({
           />
           <Text>Use new variable UI</Text>
         </Flex>
-        <Container
-          width={narrow ? '360px' : undefined}
-          maxWidth={narrow ? '100%' : '960px'}
-        >
-          {children}
-        </Container>
+        <Container maxWidth="960px">{children}</Container>
       </Stack>
     </OrganizationContext.Provider>
   );
