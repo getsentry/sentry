@@ -34,9 +34,12 @@ class AuthRecoveryRequestSerializer(CamelSnakeSerializer[AuthRecoveryRequest]):
     user = serializers.CharField(max_length=128)
 
 
-class AuthRecoveryConfirmRequest(TypedDict):
+class AuthRecoveryTokenRequest(TypedDict):
     user_id: int
     token: str
+
+
+class AuthRecoveryConfirmRequest(AuthRecoveryTokenRequest):
     password: str
 
 
@@ -44,6 +47,19 @@ class AuthRecoveryConfirmRequestSerializer(CamelSnakeSerializer[AuthRecoveryConf
     user_id = serializers.IntegerField(min_value=1)
     token = serializers.CharField(max_length=64)
     password = serializers.CharField(max_length=256, trim_whitespace=False)
+
+
+class AuthRecoveryTokenRequestSerializer(CamelSnakeSerializer[AuthRecoveryTokenRequest]):
+    user_id = serializers.IntegerField(min_value=1)
+    token = serializers.CharField(max_length=64)
+
+
+class AuthRecoveryTokenResponse(TypedDict):
+    valid: bool
+
+
+class AuthRecoveryTokenResponseSerializer(serializers.Serializer):
+    valid = serializers.BooleanField()
 
 
 def is_rate_limited(request: Request, action: str) -> bool:
@@ -96,10 +112,38 @@ class AuthRecoveryEndpoint(Endpoint):
 @control_silo_endpoint
 class AuthRecoveryConfirmEndpoint(Endpoint):
     # TODO(epurkhiser): Support password recovery during self-hosted relocation.
-    publish_status = {"POST": ApiPublishStatus.PRIVATE}
+    publish_status = {"GET": ApiPublishStatus.PRIVATE, "POST": ApiPublishStatus.PRIVATE}
     owner = ApiOwner.FOUNDATIONS
     permission_classes = ()
     csrf_protect = True
+
+    @extend_schema(
+        operation_id="Validate account password recovery token",
+        parameters=[AuthRecoveryTokenRequestSerializer],
+        responses={200: AuthRecoveryTokenResponseSerializer},
+    )
+    def get(self, request: Request) -> Response:
+        if is_rate_limited(request, "validate"):
+            return Response({"detail": "Too many password recovery attempts"}, status=429)
+
+        serializer = AuthRecoveryTokenRequestSerializer(data=request.query_params.dict())
+        serializer.is_valid(raise_exception=True)
+        password_hash = (
+            LostPasswordHash.objects.select_related("user")
+            .filter(
+                user_id=serializer.validated_data["user_id"],
+                hash=serializer.validated_data["token"],
+            )
+            .first()
+        )
+        valid = bool(
+            password_hash is not None
+            and password_hash.is_valid()
+            and not password_hash.user.is_managed
+            and not getattr(password_hash.user, "is_suspended", False)
+        )
+        response: AuthRecoveryTokenResponse = {"valid": valid}
+        return Response(response)
 
     @extend_schema(
         operation_id="Complete account password recovery",

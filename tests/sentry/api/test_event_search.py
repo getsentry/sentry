@@ -1689,6 +1689,29 @@ def test_parses_a_regex_pattern_at_the_length_limit() -> None:
     ]
 
 
+def test_parses_a_regex_pattern_under_the_limit_when_escapes_count_as_one() -> None:
+    pattern = r"^(https?:\/\/)?(www\.)?([a-zA-Z0-9-]+)(\.[a-zA-Z]{2,})(\/[^\s]*)?$"
+
+    filters = parse_search_query(f"message://{pattern}//", config=regex_config)
+
+    assert filters == [
+        SearchFilter(
+            key=SearchKey(name="message"),
+            operator="=",
+            value=SearchValue(pattern, use_raw_value=True, is_regex=True),
+        )
+    ]
+
+
+def test_rejects_a_regex_pattern_over_the_limit_when_escapes_count_as_one() -> None:
+    pattern = r"\." * (MAX_REGEX_PATTERN_LENGTH + 1)
+
+    with pytest.raises(InvalidSearchQuery) as err:
+        parse_search_query(f"message://{pattern}//", config=regex_config)
+
+    assert str(err.value).startswith("message: Regex patterns are limited to")
+
+
 @pytest.mark.parametrize(
     ["query", "key", "length"],
     [

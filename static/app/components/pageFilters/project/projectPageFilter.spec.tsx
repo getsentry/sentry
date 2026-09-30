@@ -1198,4 +1198,40 @@ describe('ProjectPageFilter', () => {
       ).toBeInTheDocument();
     });
   });
+
+  describe('create project button', () => {
+    it('is shown to members when member project creation is allowed', async () => {
+      const memberOrg = OrganizationFixture({
+        features: ['open-membership'],
+        access: ['org:read', 'team:read', 'project:read'],
+        allowMemberProjectCreation: true,
+      });
+      OrganizationStore.onUpdate(memberOrg, {replace: true});
+
+      render(<ProjectPageFilter />, {organization: memberOrg});
+
+      await userEvent.click(screen.getByRole('button', {name: 'My Projects'}));
+      expect(screen.getByRole('button', {name: 'Create Project'})).toBeInTheDocument();
+    });
+
+    it('is disabled with an explanation when member project creation is not allowed', async () => {
+      const memberOrg = OrganizationFixture({
+        features: ['open-membership'],
+        access: ['org:read', 'team:read', 'project:read'],
+        allowMemberProjectCreation: false,
+      });
+      OrganizationStore.onUpdate(memberOrg, {replace: true});
+
+      render(<ProjectPageFilter />, {organization: memberOrg});
+
+      await userEvent.click(screen.getByRole('button', {name: 'My Projects'}));
+      const createProject = screen.getByRole('button', {name: 'Create Project'});
+      expect(createProject).toHaveAttribute('aria-disabled', 'true');
+
+      await userEvent.hover(createProject);
+      expect(
+        await screen.findByText('Only project or team admins can create projects')
+      ).toBeInTheDocument();
+    });
+  });
 });
