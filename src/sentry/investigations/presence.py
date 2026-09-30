@@ -1,18 +1,25 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 from django.utils import timezone
 from redis.client import StrictRedis
 from sentry_redis_tools.clients import RedisCluster
 
+from sentry.investigations.models import Investigation, InvestigationSeen
+from sentry.utils.function_cache import cache_func_for_models
 from sentry.utils.redis import redis_clusters
 
 # How often the frontend should refresh presence
 HEARTBEAT_INTERVAL = timedelta(seconds=5)
 # How long we retain presence after the last heartbeat
 PRESENCE_WINDOW = HEARTBEAT_INTERVAL * 4
+# How often an ongoing visit refreshes the viewer's "seen" time
+SEEN_REFRESH = timedelta(minutes=5)
+MAX_EARLIER_VIEWERS = 50
+# Cached seen rows per investigation, so active viewers can be removed and still leave enough.
+SEEN_CACHE_LIMIT = 100
 KEY_PREFIX = "investigations:presence:"
 
 
@@ -20,8 +27,15 @@ KEY_PREFIX = "investigations:presence:"
 class Heartbeat:
     # False on the first heartbeat of a visit, or after the viewer's entry expired.
     was_present: bool
-    # Active viewers, most recent heartbeat first. Includes the caller.
-    viewer_ids: list[int]
+    # Active viewers and their last heartbeat, most recent first. Includes the caller.
+    active: list[tuple[int, datetime]]
+
+
+@dataclass(frozen=True)
+class Viewer:
+    user_id: int
+    last_seen: datetime
+    active: bool
 
 
 def record_heartbeat(investigation_id: int, user_id: int, now: datetime | None = None) -> Heartbeat:
@@ -37,14 +51,58 @@ def record_heartbeat(investigation_id: int, user_id: int, now: datetime | None =
     pipeline.zscore(key, user_id)
     pipeline.zadd(key, {str(user_id): now_ts})
     pipeline.zremrangebyscore(key, "-inf", f"({cutoff}")
-    pipeline.zrevrange(key, 0, -1)
+    pipeline.zrevrange(key, 0, -1, withscores=True)
     pipeline.expire(key, int(PRESENCE_WINDOW.total_seconds()))
     previous, _, _, members, _ = pipeline.execute()
 
     return Heartbeat(
         was_present=previous is not None and float(previous) >= cutoff,
-        viewer_ids=[int(member) for member in members],
+        active=[(int(member), datetime.fromtimestamp(score, tz=UTC)) for member, score in members],
     )
+
+
+@cache_func_for_models(
+    [(InvestigationSeen, lambda seen: (seen.investigation_id,))],
+    cache_ttl=timedelta(hours=1),
+)
+def seen_by(investigation_id: int) -> list[tuple[int, datetime]]:
+    """(user id, last seen) for an investigation, most recent first. Recalculated on every write."""
+    return list(
+        InvestigationSeen.objects.filter(investigation_id=investigation_id)
+        .order_by("-last_seen")
+        .values_list("user_id", "last_seen")[:SEEN_CACHE_LIMIT]
+    )
+
+
+def record_visit(investigation: Investigation, user_id: int) -> list[Viewer]:
+    """
+    Record a heartbeat and list the investigation's viewers: active ones first, then historical
+    """
+    now = timezone.now()
+    heartbeat = record_heartbeat(investigation.id, user_id, now)
+    active_ids = {uid for uid, _ in heartbeat.active}
+
+    seen = seen_by(investigation.id)
+    own_last_seen = next((last_seen for uid, last_seen in seen if uid == user_id), None)
+    if own_last_seen is None and heartbeat.was_present:
+        own_last_seen = (
+            InvestigationSeen.objects.filter(investigation=investigation, user_id=user_id)
+            .values_list("last_seen", flat=True)
+            .first()
+        )
+    if not heartbeat.was_present or own_last_seen is None or now - own_last_seen >= SEEN_REFRESH:
+        InvestigationSeen.objects.update_or_create(
+            investigation=investigation, user_id=user_id, defaults={"last_seen": now}
+        )
+
+    earlier = [
+        Viewer(user_id=uid, last_seen=last_seen, active=False)
+        for uid, last_seen in seen
+        if uid not in active_ids
+    ]
+    return [
+        Viewer(user_id=uid, last_seen=last_seen, active=True) for uid, last_seen in heartbeat.active
+    ] + earlier[:MAX_EARLIER_VIEWERS]
 
 
 def _key(investigation_id: int) -> str:
