@@ -256,7 +256,6 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
             )
 
         assert response.status_code == 204, response.content
-        assert other_org_team.name.encode() not in response.content
         assert not TeamKeyTransaction.objects.filter(
             transaction=self.event_data["transaction"]
         ).exists()
@@ -609,6 +608,12 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
 
         other_org = self.create_organization(owner=self.create_user())
         other_org_team = self.create_team(organization=other_org, name="Other Org Team")
+        other_org_project = self.create_project(organization=other_org, teams=[other_org_team])
+        other_org_key_transaction = TeamKeyTransaction.objects.create(
+            organization=other_org,
+            project_team=ProjectTeam.objects.get(project=other_org_project, team=other_org_team),
+            transaction=self.event_data["transaction"],
+        )
 
         with self.feature(self.features):
             response = self.client.delete(
@@ -622,7 +627,7 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
             )
 
         assert response.status_code == 204, response.content
-        assert other_org_team.name.encode() not in response.content
+        assert TeamKeyTransaction.objects.filter(id=other_org_key_transaction.id).exists()
 
     def test_delete_key_transaction_no_access_team(self) -> None:
         org = self.create_organization(
