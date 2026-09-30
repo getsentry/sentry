@@ -76,7 +76,7 @@ export function RepoLockedConnectForm({
 
   // Repo-locked connect always needs a branch lookup since there are no
   // existing mappings to read the branch from.
-  const {defaultBranch, isPending: isBranchPending} = useEditRepoInfo({
+  const {defaultBranch} = useEditRepoInfo({
     orgSlug: organization.slug,
     integrationId,
     externalId,
