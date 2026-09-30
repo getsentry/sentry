@@ -12,10 +12,12 @@ from sentry.analytics.events.agent_monitoring_events import AgentMonitoringQuery
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
+from sentry.api.client_kind import get_client_kind
 from sentry.api.endpoints.organization_events_stats import SENTRY_BACKEND_REFERRERS
 from sentry.api.endpoints.timeseries import (
     EMPTY_STATS_RESPONSE,
     INGESTION_DELAY,
+    Annotation,
     BucketBoundaries,
     Row,
     SeriesMeta,
@@ -23,7 +25,10 @@ from sentry.api.endpoints.timeseries import (
     StatsResponse,
     TimeSeries,
 )
-from sentry.api.helpers.data_annotations import get_dropped_data_annotations
+from sentry.api.helpers.data_annotations import (
+    get_dropped_data_annotations,
+    record_dropped_events_telemetry,
+)
 from sentry.api.helpers.ingestion_delay import (
     get_ingestion_delay_status,
     serialize_ingestion_status,
@@ -249,6 +254,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                     organization,
                     include_annotations,
                     include_measured_ingestion_delay_metadata,
+                    request=request,
                 ),
                 status=200,
             )
@@ -433,6 +439,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
         organization: Organization,
         include_annotations: bool = False,
         include_measured_ingestion_delay_metadata: bool = False,
+        request: Request | None = None,
     ) -> StatsResponse:
         # We need the current timestamp for the Ingestion Delay incomplete reason
         now = datetime.now().timestamp()
@@ -454,16 +461,24 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
             # ignore typing here cause we don't want the openapi docs to include debug_info
             stats_meta["debug_info"] = debug_info  #  type: ignore[typeddict-unknown-key]
         if include_annotations:
+            dropped_annotations: list[Annotation] = []
+            accepted_annotations: list[Annotation] = []
             try:
                 dropped_annotations, accepted_annotations = get_dropped_data_annotations(
                     dataset, snuba_params, rollup
                 )
-                stats_meta["droppedAnnotations"] = dropped_annotations
-                stats_meta["acceptedAnnotations"] = accepted_annotations
             except Exception:
                 sentry_sdk.capture_exception()
-                stats_meta["droppedAnnotations"] = []
-                stats_meta["acceptedAnnotations"] = []
+            stats_meta["droppedAnnotations"] = dropped_annotations
+            stats_meta["acceptedAnnotations"] = accepted_annotations
+
+            record_dropped_events_telemetry(
+                endpoint="events-timeseries",
+                client_kind=get_client_kind(request).value if request is not None else "unknown",
+                dataset_label=DATASET_LABELS[dataset],
+                dropped_count=len(dropped_annotations),
+                accepted_count=len(accepted_annotations),
+            )
 
         # Only the EAP RPC datasets allow measured ingestion delay metadata
         if include_measured_ingestion_delay_metadata and (

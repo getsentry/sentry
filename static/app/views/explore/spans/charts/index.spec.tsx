@@ -194,6 +194,17 @@ describe('ExploreCharts', () => {
       expect(screen.queryByLabelText('Chart layers')).not.toBeInTheDocument();
     });
 
+    it('hides the Layers control when every drop ratio is below 5%', async () => {
+      const request = renderCharts({
+        droppedAnnotations: [AnnotationFixture({eventCount: 4})],
+        acceptedAnnotations: [AnnotationFixture({outcome: 'accepted', eventCount: 96})],
+      });
+
+      await waitFor(() => expect(request).toHaveBeenCalled());
+      await act(async () => {});
+      expect(screen.queryByLabelText('Chart layers')).not.toBeInTheDocument();
+    });
+
     it('shows the Layers control and toggles the dropped-data layer', async () => {
       renderCharts({droppedAnnotations: [AnnotationFixture()]});
 

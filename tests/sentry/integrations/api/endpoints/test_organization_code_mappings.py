@@ -73,6 +73,7 @@ class OrganizationCodeMappingsTest(APITestCase):
 
         assert response.data[0] == {
             "automaticallyGenerated": False,
+            "hasCodeOwner": False,
             "id": str(path_config1.id),
             "projectId": str(self.project1.id),
             "projectSlug": self.project1.slug,
@@ -101,6 +102,7 @@ class OrganizationCodeMappingsTest(APITestCase):
 
         assert response.data[1] == {
             "automaticallyGenerated": False,
+            "hasCodeOwner": False,
             "id": str(path_config2.id),
             "projectId": str(self.project2.id),
             "projectSlug": self.project2.slug,
@@ -143,6 +145,7 @@ class OrganizationCodeMappingsTest(APITestCase):
 
         assert response.data[0] == {
             "automaticallyGenerated": False,
+            "hasCodeOwner": False,
             "id": str(path_config1.id),
             "projectId": str(self.project1.id),
             "projectSlug": self.project1.slug,
@@ -168,6 +171,31 @@ class OrganizationCodeMappingsTest(APITestCase):
             "sourceRoot": "source/root",
             "defaultBranch": "master",
         }
+
+    def test_has_code_owner_reflects_linked_codeowners(self) -> None:
+        mapping_with = self.create_code_mapping(
+            project=self.project1,
+            repo=self.repo1,
+            stack_root="with/owner",
+            source_root="src/owner",
+            default_branch="master",
+        )
+        mapping_without = self.create_code_mapping(
+            project=self.project1,
+            repo=self.repo1,
+            stack_root="without/owner",
+            source_root="src/no-owner",
+            default_branch="master",
+        )
+        self.create_codeowners(project=self.project1, code_mapping=mapping_with)
+
+        url_path = f"{self.url}?integrationId={self.integration.id}"
+        response = self.client.get(url_path, format="json")
+
+        assert response.status_code == 200, response.content
+        by_id = {item["id"]: item for item in response.data}
+        assert by_id[str(mapping_with.id)]["hasCodeOwner"] is True
+        assert by_id[str(mapping_without.id)]["hasCodeOwner"] is False
 
     def test_basic_get_with_no_integrationId_and_projectId(self) -> None:
         self.create_code_mapping(
@@ -230,6 +258,7 @@ class OrganizationCodeMappingsTest(APITestCase):
         assert response.status_code == 201, response.content
         assert response.data == {
             "automaticallyGenerated": False,
+            "hasCodeOwner": False,
             "id": str(response.data["id"]),
             "projectId": str(self.project1.id),
             "projectSlug": self.project1.slug,

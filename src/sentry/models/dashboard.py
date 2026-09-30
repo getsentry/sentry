@@ -78,7 +78,11 @@ class DashboardFavoriteUserManager(BaseManager["DashboardFavoriteUser"]):
     ):
         """
         Reorders the positions of favorited dashboards for a user in an organization.
-        Does NOT add or remove favorited dashboards.
+        Does NOT add or remove favorited dashboards. Also normalizes the positions
+        to be 0...N-1, where N is the number of favorited dashboards.
+
+        Accepts a subset of dashboards IDs, which will reorder amongst the positions
+        occupied by the subset.
 
         Args:
             organization: The organization the dashboards belong to
@@ -86,16 +90,15 @@ class DashboardFavoriteUserManager(BaseManager["DashboardFavoriteUser"]):
             new_dashboard_positions: List of dashboard IDs in their new order
 
         Raises:
-            ValueError: If there's a mismatch between existing favorited dashboards and the provided list
+            ValueError: If the provided list contains a dashboard that is not favorited
+                by the user, or names the same dashboard more than once
         """
-        existing_favorite_dashboards = self.filter(
-            organization=organization,
-            user_id=user_id,
-            favorited=True,
+        existing_favorite_dashboards = list(
+            self.get_favorite_dashboards(organization=organization, user_id=user_id)
         )
 
         existing_dashboard_ids = {
-            favorite.dashboard.id for favorite in existing_favorite_dashboards
+            favorite.dashboard_id for favorite in existing_favorite_dashboards
         }
         new_dashboard_ids = set(new_dashboard_positions)
 
@@ -111,28 +114,38 @@ class DashboardFavoriteUserManager(BaseManager["DashboardFavoriteUser"]):
         sentry_sdk.set_attribute("reorder_favorite_dashboards.organization", organization.id)
         sentry_sdk.set_attribute("reorder_favorite_dashboards.user_id", user_id)
         sentry_sdk.set_attribute(
-            "reorder_favorite_dashboards.existing_dashboard_ids", json.dumps(existing_dashboard_ids)
+            "reorder_favorite_dashboards.existing_dashboard_ids",
+            json.dumps(sorted(existing_dashboard_ids)),
         )
         sentry_sdk.set_attribute(
             "reorder_favorite_dashboards.new_dashboard_positions",
             json.dumps(new_dashboard_positions),
         )
 
-        if existing_dashboard_ids != new_dashboard_ids:
+        if len(new_dashboard_ids) != len(new_dashboard_positions):
+            raise ValueError("Single dashboard cannot take up multiple positions.")
+
+        if not new_dashboard_ids.issubset(existing_dashboard_ids):
             raise ValueError("Mismatch between existing and provided favorited dashboards.")
 
-        position_map = {
-            dashboard_id: idx for idx, dashboard_id in enumerate(new_dashboard_positions)
+        favorites_by_dashboard_id = {
+            favorite.dashboard_id: favorite for favorite in existing_favorite_dashboards
         }
 
-        favorites_to_update = list(existing_favorite_dashboards)
+        # The provided dashboards only reorder amongst the positions they already occupy
+        new_positions = [
+            index
+            for index, favorite in enumerate(existing_favorite_dashboards)
+            if favorite.dashboard_id in new_dashboard_ids
+        ]
+        for position, dashboard_id in zip(new_positions, new_dashboard_positions):
+            existing_favorite_dashboards[position] = favorites_by_dashboard_id[dashboard_id]
 
-        for favorite in favorites_to_update:
-            favorite.position = position_map[favorite.dashboard.id]
+        for position, favorite in enumerate(existing_favorite_dashboards):
+            favorite.position = position
 
         with transaction.atomic(using=router.db_for_write(DashboardFavoriteUser)):
-            if favorites_to_update:
-                self.bulk_update(favorites_to_update, ["position"])
+            self.bulk_update(existing_favorite_dashboards, ["position"])
 
     def insert_favorite_dashboard(
         self,

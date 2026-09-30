@@ -4,7 +4,7 @@ import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {DetailedProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {DiffFileType} from 'sentry/components/events/autofix/types';
 import {IssueCategory, IssueType, type Group} from 'sentry/types/group';
@@ -197,6 +197,24 @@ describe('AutofixSection', () => {
     expect(screen.getByRole('button', {name: 'Open Autofix'})).toBeInTheDocument();
   });
 
+  it('starts collapsed on the autofix tab even when saved as open', async () => {
+    mockUseMatches.mockImplementation(() => matchesForTab(Tab.AUTOFIX));
+    localStorage.setItem('issue-details-fold-section-collapse:seer', 'false');
+
+    render(<AutofixSection group={mockGroup} project={mockProject} />, {
+      organization,
+    });
+
+    expect(await screen.findByRole('button', {name: 'View Section'})).toHaveAttribute(
+      'aria-expanded',
+      'false'
+    );
+    expect(localStorage.getItem('issue-details-fold-section-collapse:seer')).toBe(
+      'false'
+    );
+    localStorage.clear();
+  });
+
   it('drops the open button on the autofix tab but keeps the previews', async () => {
     mockUseMatches.mockImplementation(() => matchesForTab(Tab.AUTOFIX));
     MockApiClient.addMockResponse({
@@ -235,6 +253,8 @@ describe('AutofixSection', () => {
     render(<AutofixSection group={mockGroup} project={mockProject} />, {
       organization,
     });
+
+    await userEvent.click(await screen.findByRole('button', {name: 'View Section'}));
 
     // The previews still earn their place as a table of contents; only the
     // button, which would navigate to the page already on screen, goes.
