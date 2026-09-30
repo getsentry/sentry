@@ -863,11 +863,11 @@ interface FrameVariableBase {
   type?: string;
 }
 
-export type FrameVariableCollection = FrameVariableBase & {
+type FrameVariableCollection = FrameVariableBase & {
   children: readonly FrameVariable[];
 } & ({kind: 'object'} | {kind: 'array'});
 
-export interface FrameVariableScalar extends FrameVariableBase {
+interface FrameVariableScalar extends FrameVariableBase {
   kind: 'number' | 'string' | 'unformatted' | 'boolean' | 'enum' | 'pointer';
   /** Preserve pointer addresses and full numeric precision. */
   value: string;
