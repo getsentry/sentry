@@ -313,6 +313,12 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
 
         response = Response(status=status.HTTP_204_NO_CONTENT)
 
+        # TODO(auth-v2): Once legacy invitation acceptance is retired, remove this
+        # session check and the automatic-acceptance block below. Enrollment
+        # should always leave invitations pending for explicit acceptance.
+        if request.session.get("invite_explicit_acceptance"):
+            return response
+
         # If there is a pending organization invite accept after the
         # authenticator has been configured.
         request.user = (

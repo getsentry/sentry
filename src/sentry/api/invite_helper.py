@@ -22,12 +22,22 @@ from sentry.utils.audit import create_audit_entry
 
 
 def add_invite_details_to_session(
-    request: HttpRequest, member_id: int, token: str, organization_id: int
+    request: HttpRequest,
+    member_id: int,
+    token: str,
+    organization_id: int,
+    *,
+    explicit_acceptance: bool = False,
 ) -> None:
     """Add member ID and token to the request session"""
     request.session["invite_token"] = token
     request.session["invite_member_id"] = member_id
     request.session["invite_organization_id"] = organization_id
+
+    if explicit_acceptance:
+        request.session["invite_explicit_acceptance"] = True
+    else:
+        request.session.pop("invite_explicit_acceptance", None)
 
 
 def remove_invite_details_from_session(request: HttpRequest) -> None:
@@ -35,6 +45,7 @@ def remove_invite_details_from_session(request: HttpRequest) -> None:
     request.session.pop("invite_member_id", None)
     request.session.pop("invite_token", None)
     request.session.pop("invite_organization_id", None)
+    request.session.pop("invite_explicit_acceptance", None)
 
 
 @dataclasses.dataclass

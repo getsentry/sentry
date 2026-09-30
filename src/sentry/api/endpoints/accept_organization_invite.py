@@ -115,6 +115,15 @@ class AcceptOrganizationInvite(Endpoint):
                 status=status.HTTP_400_BAD_REQUEST, data={"details": "Invalid invite code"}
             )
 
+        # TODO(auth-v2): Remove this compatibility layer after the legacy
+        # invitation acceptance flow is retired and the composed flow is fully
+        # deployed. Invitations must then require explicit acceptance after MFA
+        # enrollment, while pending MFA sign-ins survive reloads unconditionally.
+        # Remove the acceptance query parameter (including the frontend opt-in),
+        # explicit_acceptance helper argument, and invite_explicit_acceptance
+        # session marker together with enrollment's automatic-acceptance path.
+        explicit_acceptance = request.GET.get("acceptance") == "explicit"
+
         # Keep track of the invite details in the request session
         request.session["invite_email"] = organization_member.email
 
@@ -146,6 +155,7 @@ class AcceptOrganizationInvite(Endpoint):
                 organization_member.id,
                 organization_member.token,
                 invite_context.organization.id,
+                explicit_acceptance=explicit_acceptance,
             )
 
             # When SSO is required do *not* set a next_url to return to accept
@@ -162,7 +172,9 @@ class AcceptOrganizationInvite(Endpoint):
                 if not auth_provider
                 else "/"
             )
-            auth.initiate_login(self.request, next_url=url)
+            # Reloading the composed page must preserve an in-progress MFA challenge.
+            if not (explicit_acceptance and auth.get_pending_2fa_user(request) is not None):
+                auth.initiate_login(self.request, next_url=url)
 
         # If the org has SSO setup, we'll store the invite cookie to later
         # associate the org member after authentication. We can avoid needing
@@ -174,6 +186,7 @@ class AcceptOrganizationInvite(Endpoint):
                 organization_member.id,
                 organization_member.token,
                 organization_member.organization_id,
+                explicit_acceptance=explicit_acceptance,
             )
 
             provider = auth_provider.get_provider()
@@ -187,6 +200,7 @@ class AcceptOrganizationInvite(Endpoint):
                 organization_member.id,
                 organization_member.token,
                 invite_context.organization.id,
+                explicit_acceptance=explicit_acceptance,
             )
 
         response.data = data

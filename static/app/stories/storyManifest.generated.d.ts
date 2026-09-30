@@ -4,7 +4,7 @@ export const storyFiles: string[];
 
 export const storyFrontmatterIndex: Record<
   string,
-  {category?: string; figma?: string; title?: string}
+  {category?: string; figma?: string; keywords?: string[]; title?: string}
 >;
 
 export const storyHeadingIndex: Record<
