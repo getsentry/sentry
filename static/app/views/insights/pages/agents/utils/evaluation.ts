@@ -134,7 +134,8 @@ function findEvaluationItem<T extends z.ZodType>(
   } catch {
     return null;
   }
-  for (const item of Array.isArray(parsed) ? parsed : [parsed]) {
+  const items: unknown[] = Array.isArray(parsed) ? parsed : [parsed];
+  for (const item of items) {
     const result = schema.safeParse(item);
     if (result.success) {
       return result.data;
