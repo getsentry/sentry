@@ -29,6 +29,7 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Integration, OrganizationIntegration, Repository} from 'sentry/types/integrations';
+import type {AvatarProject} from 'sentry/types/project';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {isScmProvider} from 'sentry/utils/integrationUtil';
@@ -203,6 +204,40 @@ function ConnectRepoRowAction({
   );
 }
 
+function openMappedProjectEditModal({
+  repo,
+  avatarProject,
+  providerKey,
+  mappedProjectsByRepoId,
+  openModal,
+}: {
+  avatarProject: AvatarProject;
+  mappedProjectsByRepoId: Record<string, Array<{id: string; slug: string}>>;
+  openModal: ReturnType<typeof useModal>['openModal'];
+  providerKey: string;
+  repo: Repository;
+}) {
+  const project = mappedProjectsByRepoId[repo.id]?.find(
+    p => p.slug === avatarProject.slug
+  );
+  if (!project) {
+    return;
+  }
+  openModal(modalProps => (
+    <ConnectRepositoryModal
+      {...modalProps}
+      lockedSide="repo"
+      mode="edit"
+      project={project}
+      repositoryId={repo.id}
+      repoName={repo.name}
+      providerKey={providerKey}
+      integrationId={repo.integrationId}
+      externalId={repo.externalId}
+    />
+  ));
+}
+
 export default function OrganizationRepositories() {
   const organization = useOrganization();
   const {openModal} = useModal();
@@ -314,27 +349,14 @@ export default function OrganizationRepositories() {
           )
         : undefined,
       onMappedProjectClick: hasCodeMappingsRefactor
-        ? (repo: Repository, avatarProject) => {
-            const project = mappedProjectsByRepoId[repo.id]?.find(
-              p => p.slug === avatarProject.slug
-            );
-            if (!project) {
-              return; // mapping not yet loaded — safe to ignore
-            }
-            openModal(modalProps => (
-              <ConnectRepositoryModal
-                {...modalProps}
-                lockedSide="repo"
-                mode="edit"
-                project={project}
-                repositoryId={repo.id}
-                repoName={repo.name}
-                providerKey={integration.provider.key}
-                integrationId={repo.integrationId}
-                externalId={repo.externalId}
-              />
-            ));
-          }
+        ? (repo: Repository, avatarProject: AvatarProject) =>
+            openMappedProjectEditModal({
+              repo,
+              avatarProject,
+              providerKey: integration.provider.key,
+              mappedProjectsByRepoId,
+              openModal,
+            })
         : undefined,
     }));
     return groupBy(installations, i => i.integration.provider.key);

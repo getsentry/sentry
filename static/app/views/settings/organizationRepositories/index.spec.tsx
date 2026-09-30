@@ -482,7 +482,7 @@ describe('OrganizationRepositories', () => {
     await waitFor(() => expect(updateRequest).toHaveBeenCalledTimes(1));
   });
 
-  describe('code-mappings-refactor flag', () => {
+  describe('repo row actions', () => {
     const REPO = RepositoryFixture({
       id: '42',
       name: 'getsentry/sentry',
@@ -492,6 +492,7 @@ describe('OrganizationRepositories', () => {
     });
 
     const PROJECT = ProjectFixture({id: 'proj-1', slug: 'my-project'});
+    const organization = OrganizationFixture({features: ['code-mappings-refactor']});
 
     function setupRepoMocks(codeMappingBody: object[]) {
       MockApiClient.addMockResponse({
@@ -514,29 +515,15 @@ describe('OrganizationRepositories', () => {
         url: '/organizations/org-slug/code-mappings/',
         body: codeMappingBody,
       });
-      // The flag-on path wires repoActions which can trigger project prefetches
-      // through query-client background revalidation.
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/projects/',
         body: [PROJECT],
       });
     }
 
-    it('does not render a row action when the flag is off', async () => {
+    it('shows a + button for a repo with no code mappings', async () => {
       setupRepoMocks([]);
-      render(<OrganizationRepositories />, {
-        organization: OrganizationFixture({features: []}),
-      });
-
-      await screen.findByText('getsentry/sentry');
-      expect(screen.queryByRole('button', {name: 'Connect project'})).not.toBeInTheDocument();
-    });
-
-    it('shows a + button for a repo with no code mappings when the flag is on', async () => {
-      setupRepoMocks([]);
-      render(<OrganizationRepositories />, {
-        organization: OrganizationFixture({features: ['code-mappings-refactor']}),
-      });
+      render(<OrganizationRepositories />, {organization});
 
       expect(
         await screen.findByRole('button', {name: 'Connect project'})
@@ -557,9 +544,7 @@ describe('OrganizationRepositories', () => {
           integrationId: GITHUB_INTEGRATION.id,
         },
       ]);
-      render(<OrganizationRepositories />, {
-        organization: OrganizationFixture({features: ['code-mappings-refactor']}),
-      });
+      render(<OrganizationRepositories />, {organization});
 
       expect(
         await screen.findByRole('button', {name: 'Connect project'})
@@ -573,9 +558,7 @@ describe('OrganizationRepositories', () => {
         body: {repos: []},
       });
 
-      render(<OrganizationRepositories />, {
-        organization: OrganizationFixture({features: ['code-mappings-refactor']}),
-      });
+      render(<OrganizationRepositories />, {organization});
       renderGlobalModal();
 
       await userEvent.click(await screen.findByRole('button', {name: 'Connect project'}));
@@ -609,13 +592,9 @@ describe('OrganizationRepositories', () => {
         body: {repos: []},
       });
 
-      render(<OrganizationRepositories />, {
-        organization: OrganizationFixture({features: ['code-mappings-refactor']}),
-      });
+      render(<OrganizationRepositories />, {organization});
       renderGlobalModal();
 
-      // The project chip (avatar) for the mapped project should be visible.
-      // Platform icons render with data-test-id="platform-icon-*".
       const chip = await screen.findByTestId(/^platform-icon-/);
       await userEvent.click(chip);
 
