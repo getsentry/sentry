@@ -5,7 +5,7 @@ import {z} from 'zod';
 import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -93,7 +93,9 @@ function AddGiftBudgetModal({
 
   return (
     <Fragment>
-      <Header closeButton>Add Gift Budget</Header>
+      <Header closeButton>
+        <Heading as="h2">Add Gift Budget</Heading>
+      </Header>
       <Body>
         <form.AppForm form={form}>
           <Stack gap="md">
