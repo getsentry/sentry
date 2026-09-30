@@ -210,9 +210,10 @@ export const useSeerExplorer = () => {
   const [hasSentInterrupt, setHasSentInterrupt] = useState(false);
   // Set when the last chat message or user-input response failed, so the UI can show an
   // alert until a later request succeeds. `query` is the failed chat message, if any,
-  // so the draft can be restored.
+  // so the draft can be restored, and `chatPrompt` the question it answered.
   const [requestError, setRequestError] = useState<{
     runId: SeerExplorerRunId | null;
+    chatPrompt?: ChatPrompt;
     query?: string;
   } | null>(null);
   const previousPRStatesRef = useRef<Record<string, RepoPRState>>({});
@@ -357,7 +358,7 @@ export const useSeerExplorer = () => {
       if (params.runId === null) {
         // Prefer the UUID; fall back to the numeric run_id for legacy runs.
         dispatch({
-          type: 'set run id',
+          type: 'set created run id',
           payload: response.sentry_run_id ?? response.run_id,
         });
       } else {
@@ -370,9 +371,6 @@ export const useSeerExplorer = () => {
     onError: (_e, params, context) => {
       // A later send (possibly in another conversation) may own the optimistic blocks now.
       setLastSentMessage(prev => (prev?.requestId === params.requestId ? null : prev));
-      if (params.pendingChatPrompt) {
-        dispatch({type: 'restore chat prompt', payload: params.pendingChatPrompt});
-      }
       if (!isLatestRequest(params)) {
         return;
       }
@@ -380,7 +378,11 @@ export const useSeerExplorer = () => {
       // optimistic user/loading blocks. The UI surfaces the failure and restores the draft.
       restoreSessionData(params.orgSlug, params.runId, context);
       if (isCurrentRun(params.runId)) {
-        setRequestError({runId: params.runId, query: params.query});
+        setRequestError({
+          runId: params.runId,
+          query: params.query,
+          chatPrompt: params.pendingChatPrompt ?? undefined,
+        });
       }
     },
     onSettled: (_data, _error, params) => {
@@ -532,8 +534,11 @@ export const useSeerExplorer = () => {
     setRequestError(null);
   }
 
-  const currentRequestError = useMemo<{query?: string} | null>(
-    () => (requestError?.runId === runId ? {query: requestError.query} : null),
+  const currentRequestError = useMemo<{chatPrompt?: ChatPrompt; query?: string} | null>(
+    () =>
+      requestError?.runId === runId
+        ? {query: requestError.query, chatPrompt: requestError.chatPrompt}
+        : null,
     [requestError, runId]
   );
 
@@ -605,7 +610,11 @@ export const useSeerExplorer = () => {
       const chatPrompt: ChatPrompt | null = usesPendingChatPrompt
         ? pendingChatPrompt
         : explicitChatPrompt;
-      if (usesPendingChatPrompt && pendingChatPrompt) {
+      // A retry answers a pending question only if it's the same one; any other stays pending.
+      if (
+        pendingChatPrompt &&
+        (usesPendingChatPrompt || pendingChatPrompt.text === explicitChatPrompt?.text)
+      ) {
         dispatch({type: 'set chat prompt', payload: null});
       }
 

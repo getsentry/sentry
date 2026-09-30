@@ -92,11 +92,11 @@ SAMPLED_TASKS = {
     "sentry.monitors.tasks.clock_pulse": 1.0,
     # The scheduler's decision propagates to every per-org run, and each run
     # fans out into many snuba queries. Keep both rates equal.
-    "sentry.dynamic_sampling.per_org.run_calculations_per_org": 0.1,
-    "sentry.dynamic_sampling.per_org.schedule_per_org_calculations": 0.1,
+    "sentry.dynamic_sampling.per_org.run_calculations_per_org": 0.001,
+    "sentry.dynamic_sampling.per_org.schedule_per_org_calculations": 0.001,
     "sentry.tasks.autofix.configure_seer_for_existing_org": 1.0,
     "sentry.tasks.seer.context_engine_index.schedule_context_engine_indexing_tasks": 1.0,
-    "sentry.workflow_engine.tasks.process_workflows_event": 0.00006,
+    "sentry.workflow_engine.tasks.process_workflows_event": 0.00003,
 }
 
 SAMPLED_ROUTES = {

@@ -23,6 +23,7 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.gitlab.types import GitLabIssueAction
 from sentry.integrations.mixins.issues import IssueSyncIntegration
+from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.source_code_management.webhook import SCMWebhook
@@ -228,9 +229,11 @@ class IssuesEventWebhook(GitlabWebhook):
     EVENT_TYPE = IntegrationWebhookEventType.INBOUND_SYNC
 
     def __call__(self, event: Mapping[str, Any], **kwargs):
-        if not (integration := kwargs.get("integration")):
-            raise ValueError("Integration must be provided")
-        organization: RpcOrganization | None = kwargs.get("organization")
+        if not (
+            (organization := kwargs.get("organization"))
+            and (integration := kwargs.get("integration"))
+        ):
+            raise ValueError("Organization and integration must be provided")
 
         external_issue_key = self._extract_issue_key(event, integration)
         if not external_issue_key:
@@ -242,16 +245,26 @@ class IssuesEventWebhook(GitlabWebhook):
             )
             return
 
+        # This runs once for every organization sharing the integration, and most of them
+        # never linked this issue. Skipping them before any sync-settings lookup keeps the
+        # cost of an event linear in the number of organizations.
+        if not ExternalIssue.objects.filter(
+            organization_id=organization.id,
+            integration_id=integration.id,
+            key=external_issue_key,
+        ).exists():
+            return
+
         # Extract action from object_attributes
         object_attributes = event.get("object_attributes", {})
         action = object_attributes.get("action")
 
         # Handle assignment changes — CLOSE does not affect assignment
         if action in GitLabIssueAction.values() and action != GitLabIssueAction.CLOSE:
-            self._handle_assignment(integration, event, external_issue_key)
+            self._handle_assignment(integration, event, external_issue_key, organization.id)
 
         # Handle status changes (CLOSE and REOPEN)
-        if action in [GitLabIssueAction.CLOSE, GitLabIssueAction.REOPEN] and organization:
+        if action in [GitLabIssueAction.CLOSE, GitLabIssueAction.REOPEN]:
             self._handle_status_change(
                 integration,
                 external_issue_key,
@@ -265,6 +278,7 @@ class IssuesEventWebhook(GitlabWebhook):
         integration: RpcIntegration,
         event: Mapping[str, Any],
         external_issue_key: str,
+        organization_id: int,
     ) -> None:
         """
         Handle issue assignment and unassignment events.
@@ -284,6 +298,7 @@ class IssuesEventWebhook(GitlabWebhook):
                 external_issue_key=external_issue_key,
                 assign=False,
                 provider_event_updated_at=updated_at,
+                organization_id=organization_id,
             )
             logger.info(
                 "gitlab.webhook.assignment.synced",
@@ -322,6 +337,7 @@ class IssuesEventWebhook(GitlabWebhook):
             assign=True,
             external_user_id=assignee_id,
             provider_event_updated_at=updated_at,
+            organization_id=organization_id,
         )
 
         logger.info(

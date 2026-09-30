@@ -234,6 +234,7 @@
     "@jest/environment": "30.5.1",
     "@jest/environment-jsdom-abstract": "30.5.1",
     "@jest/types": "30.5.1",
+    "@mdx-js/mdx": "3.1.1",
     "@sentry/jest-environment": "8.0.0",
     "@sentry/rrweb-types": "2.44.0",
     "@swc-contrib/mut-cjs-exports": "15.0.0",
@@ -262,7 +263,7 @@
     "jest-canvas-mock": "^2.5.8",
     "jest-environment-node": "30.5.1",
     "jest-fail-on-console": "3.3.4",
-    "jsdom": "30.1.0",
+    "jsdom": "30.1.1",
     "knip": "6.32.1",
     "odiff-bin": "4.3.8",
     "oxfmt": "^0.70.0",
@@ -344,7 +345,6 @@
     ],
     "patchedDependencies": {
       "zod@4.3.5": "patches/zod@4.3.5.patch",
-      "jsdom@30.1.0": "patches/jsdom@30.1.0.patch",
       "zrender@6.1.0": "patches/zrender@6.1.0.patch",
       "css-tree@3.2.1": "patches/css-tree@3.2.1.patch"
     }

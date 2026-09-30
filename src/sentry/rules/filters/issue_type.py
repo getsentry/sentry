@@ -8,7 +8,6 @@ from sentry.models.group import Group
 from sentry.rules import EventState
 from sentry.rules.filters import EventFilter
 from sentry.services.eventstore.models import GroupEvent
-from sentry.types.condition_activity import ConditionActivity
 
 
 def get_type_choices() -> list[tuple[str, str]]:
@@ -69,16 +68,6 @@ class IssueTypeFilter(EventFilter):
 
     def passes(self, event: GroupEvent, state: EventState, **kwargs: Any) -> bool:
         return self._passes(event.group)
-
-    def passes_activity(
-        self, condition_activity: ConditionActivity, event_map: dict[str, Any]
-    ) -> bool:
-        try:
-            group = Group.objects.get_from_cache(id=condition_activity.group_id)
-        except Group.DoesNotExist:
-            return False
-
-        return self._passes(group)
 
     def render_label(self) -> str:
         value = self.data["value"]

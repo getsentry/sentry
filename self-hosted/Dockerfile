@@ -13,7 +13,7 @@ ADD --chmod=755 \
 ARG TARGETARCH
 FROM odiff-${TARGETARCH} AS odiff
 
-FROM python:3.13.15-slim-bookworm
+FROM python:3.13.15-slim-trixie
 
 LABEL maintainer="oss@sentry.io"
 LABEL org.opencontainers.image.title="Sentry"
@@ -69,12 +69,11 @@ COPY . .
 RUN : \
     && python3 -m tools.fast_editable --path . \
     && python3 -m compileall -q src/ \
-    && sentry help | sed '1,/Commands:/d' | awk '{print $1}' >  /sentry-commands.txt
+    && python3 -m sentry.build.dump_cli_commands > /sentry-commands.txt
 
 COPY ./self-hosted/sentry.conf.py ./self-hosted/config.yml $SENTRY_CONF/
-COPY ./self-hosted/docker-entrypoint.sh /
+COPY ./self-hosted/docker_entrypoint.py /
 
-# note: sentry help is needed here since the earlier invocation doesn't have pipefail
 RUN : double-check some built files are available \
     && test -f /usr/src/sentry/src/sentry/loader/_registry.json \
     && test -f /usr/src/sentry/src/sentry/integration-docs/python.json \
@@ -90,7 +89,7 @@ USER sentry
 EXPOSE 9000
 VOLUME /data
 
-ENTRYPOINT ["/docker-entrypoint.sh"]
+ENTRYPOINT ["python3", "/docker_entrypoint.py"]
 CMD ["run", "web"]
 
 ARG SOURCE_COMMIT

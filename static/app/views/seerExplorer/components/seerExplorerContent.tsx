@@ -62,7 +62,10 @@ import {SeerExplorerHeader} from 'sentry/views/seerExplorer/components/seerExplo
 import {UpdateSlackAlert} from 'sentry/views/seerExplorer/components/updateSlackAlert';
 import {usePendingUserInput} from 'sentry/views/seerExplorer/hooks/usePendingUserInput';
 import {useSeerExplorer} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
-import {useSeerExplorerChatState} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
+import {
+  useSeerExplorerChatDispatch,
+  useSeerExplorerChatState,
+} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
 import type {
   Block,
   PendingUserInput,
@@ -257,8 +260,16 @@ export function SeerExplorerContent({
     }
   }, [requestError, setInputValue]);
 
-  // An "Ask Seer" question waiting for the user's reply.
   const {chatPrompt} = useSeerExplorerChatState();
+  const chatDispatch = useSeerExplorerChatDispatch();
+
+  // Put back the question a failed reply answered, on every failure. The error only exists
+  // for the run on screen, and this panel only exists while Explorer is showing.
+  useEffect(() => {
+    if (requestError?.chatPrompt) {
+      chatDispatch({type: 'restore chat prompt', payload: requestError.chatPrompt});
+    }
+  }, [requestError, chatDispatch]);
 
   const readOnly =
     sessionData?.owner_user_id !== undefined &&

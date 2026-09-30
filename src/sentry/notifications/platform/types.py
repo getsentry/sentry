@@ -322,6 +322,13 @@ class NotificationRenderedTemplate:
     def footer_text(self) -> str:
         return self.render_text_blocks(self.footer_blocks)
 
+    # The following are option, but may need to be included in order to preserve existing user
+    # preferences when porting legacy notifications to the platform.
+    email_headers: dict[str, str] | None = None
+    """Additional headers to include when this notification is rendered as email."""
+    email_subject_prefix: str | None = None
+    """A prefix to prepend when this notification is rendered as email."""
+
     # The following are optional, as omitting them will use a default email template which expects
     # the required fields above to be present instead.
     email_html_path: str | None = None
