@@ -1,4 +1,3 @@
-import {useMemo, useState} from 'react';
 import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
@@ -13,7 +12,7 @@ import {openModal} from 'sentry/actionCreators/modal';
 import type {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApi} from 'sentry/utils/useApi';
+import {fetchMutation} from 'sentry/utils/queryClient';
 
 import type {Subscription} from 'getsentry/types';
 import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
@@ -26,12 +25,6 @@ type Props = {
 
 type ModalProps = Props & ModalRenderProps;
 
-const schema = z.object({
-  giftAmount: z.number().positive().max(10000),
-  ticketUrl: z.union([z.literal(''), z.url()]),
-  notes: z.string().min(1).max(500),
-});
-
 function AddGiftBudgetModal({
   onSuccess,
   organization,
@@ -41,42 +34,41 @@ function AddGiftBudgetModal({
   Body,
   Footer,
 }: ModalProps) {
-  const api = useApi();
-  const [selectedBudgetId, setSelectedBudgetId] = useState<string | null>(null);
+  const reservedBudgetOptions =
+    subscription.reservedBudgets?.filter(b => b.reservedBudget > 0) ?? [];
+  const schema = z.object({
+    selectedBudgetId: z
+      .string()
+      .refine(
+        id => reservedBudgetOptions.some(budget => budget.id === id),
+        'Select a reserved budget'
+      ),
+    giftAmount: z.number().positive().max(10000),
+    ticketUrl: z.union([z.literal(''), z.url()]),
+    notes: z.string().min(1).max(500),
+  });
 
-  const reservedBudgetOptions = useMemo(
-    () => subscription.reservedBudgets?.filter(b => b.reservedBudget > 0) ?? [],
-    [subscription.reservedBudgets]
-  );
-
-  const activeBudgetId = selectedBudgetId ?? reservedBudgetOptions[0]?.id ?? null;
   const mutation = useMutation({
     mutationFn: (value: z.infer<typeof schema>) => {
-      if (!activeBudgetId) {
-        throw new Error('A reserved budget is required');
-      }
-
       const selectedBudget = reservedBudgetOptions.find(
-        budget => budget.id === activeBudgetId
+        budget => budget.id === value.selectedBudgetId
       );
 
-      return api.requestPromise(
-        getApiUrl('/customers/$organizationIdOrSlug/', {
+      return fetchMutation({
+        url: getApiUrl('/customers/$organizationIdOrSlug/', {
           path: {organizationIdOrSlug: organization.slug},
         }),
-        {
-          method: 'PUT',
-          data: {
-            freeReservedBudget: {
-              id: activeBudgetId,
-              freeBudget: value.giftAmount * 100,
-              categories: Object.keys(selectedBudget?.categories ?? []),
-            },
-            ticketUrl: value.ticketUrl || null,
-            notes: value.notes,
+        method: 'PUT',
+        data: {
+          freeReservedBudget: {
+            id: value.selectedBudgetId,
+            freeBudget: value.giftAmount * 100,
+            categories: Object.keys(selectedBudget?.categories ?? []),
           },
-        }
-      );
+          ticketUrl: value.ticketUrl || null,
+          notes: value.notes,
+        },
+      });
     },
     onSuccess: () => {
       addSuccessMessage('Added gifted budget amount.');
@@ -87,7 +79,12 @@ function AddGiftBudgetModal({
   });
   const form = useScrapsForm({
     ...defaultFormOptions,
-    defaultValues: {giftAmount: 0, ticketUrl: '', notes: ''},
+    defaultValues: {
+      selectedBudgetId: reservedBudgetOptions[0]?.id ?? '',
+      giftAmount: 0,
+      ticketUrl: '',
+      notes: '',
+    },
     validators: {onDynamic: schema},
     onSubmit: ({value}) => mutation.mutateAsync(value).catch(() => {}),
   });
@@ -98,77 +95,85 @@ function AddGiftBudgetModal({
         <Heading as="h2">Add Gift Budget</Heading>
       </Header>
       <Body>
-        <Stack gap="md">
-          {reservedBudgetOptions.length > 1 && (
-            <Text as="p">Select a reserved budget to add gift amount.</Text>
-          )}
-          {reservedBudgetOptions.length === 0 && (
-            <Text as="p">No reserved budgets available.</Text>
-          )}
-          {reservedBudgetOptions.map(budget => (
-            <Container
-              key={budget.id}
-              padding="xl"
-              border="primary"
-              radius="md"
-              background={activeBudgetId === budget.id ? 'secondary' : undefined}
-              cursor="pointer"
-              onClick={() => setSelectedBudgetId(budget.id)}
-            >
-              <Stack gap="md">
-                <Flex justify="between">
-                  <Text>
-                    <Text as="span" bold>
-                      Reserved Budget:
-                    </Text>{' '}
-                    ${(budget.reservedBudget / 100).toLocaleString()}
-                  </Text>
-                  <Text>
-                    <Text as="span" bold>
-                      Existing Free Budget:
-                    </Text>{' '}
-                    ${(budget.freeBudget / 100).toLocaleString()}
-                  </Text>
-                </Flex>
-                <Text>
-                  <Text as="span" bold>
-                    Categories:
-                  </Text>{' '}
-                  {Object.keys(budget.categories)
-                    .map(category =>
-                      getPlanCategoryName({
-                        plan: subscription.planDetails,
-                        category: category as DataCategory,
-                        capitalize: false,
-                        hadCustomDynamicSampling: true,
-                      })
-                    )
-                    .join(', ') || 'None'}
-                </Text>
-                {activeBudgetId === budget.id && (
-                  <form.AppField name="giftAmount">
-                    {field => (
-                      <field.Layout.Stack
-                        label="Gift Amount ($)"
-                        hintText="Enter gift amount in dollars (max $10,000)."
-                        required
-                      >
-                        <field.Number
-                          min={0}
-                          max={10000}
-                          value={field.state.value}
-                          onChange={value => field.handleChange(value ?? 0)}
-                          onClick={(event: React.MouseEvent) => event.stopPropagation()}
-                        />
-                        <Text>Total Gift: ${field.state.value.toLocaleString()}</Text>
-                      </field.Layout.Stack>
+        <form.AppField name="selectedBudgetId">
+          {budgetField => (
+            <Stack gap="md">
+              {reservedBudgetOptions.length > 1 && (
+                <Text as="p">Select a reserved budget to add gift amount.</Text>
+              )}
+              {reservedBudgetOptions.length === 0 && (
+                <Text as="p">No reserved budgets available.</Text>
+              )}
+              {reservedBudgetOptions.map(budget => (
+                <Container
+                  key={budget.id}
+                  padding="xl"
+                  border="primary"
+                  radius="md"
+                  background={
+                    budgetField.state.value === budget.id ? 'secondary' : undefined
+                  }
+                  cursor="pointer"
+                  onClick={() => budgetField.handleChange(budget.id)}
+                >
+                  <Stack gap="md">
+                    <Flex justify="between">
+                      <Text>
+                        <Text as="span" bold>
+                          Reserved Budget:
+                        </Text>{' '}
+                        ${(budget.reservedBudget / 100).toLocaleString()}
+                      </Text>
+                      <Text>
+                        <Text as="span" bold>
+                          Existing Free Budget:
+                        </Text>{' '}
+                        ${(budget.freeBudget / 100).toLocaleString()}
+                      </Text>
+                    </Flex>
+                    <Text>
+                      <Text as="span" bold>
+                        Categories:
+                      </Text>{' '}
+                      {Object.keys(budget.categories)
+                        .map(category =>
+                          getPlanCategoryName({
+                            plan: subscription.planDetails,
+                            category: category as DataCategory,
+                            capitalize: false,
+                            hadCustomDynamicSampling: true,
+                          })
+                        )
+                        .join(', ') || 'None'}
+                    </Text>
+                    {budgetField.state.value === budget.id && (
+                      <form.AppField name="giftAmount">
+                        {field => (
+                          <field.Layout.Stack
+                            label="Gift Amount ($)"
+                            hintText="Enter gift amount in dollars (max $10,000)."
+                            required
+                          >
+                            <field.Number
+                              min={0}
+                              max={10000}
+                              value={field.state.value}
+                              onChange={value => field.handleChange(value ?? 0)}
+                              onClick={(event: React.MouseEvent) =>
+                                event.stopPropagation()
+                              }
+                            />
+                            <Text>Total Gift: ${field.state.value.toLocaleString()}</Text>
+                          </field.Layout.Stack>
+                        )}
+                      </form.AppField>
                     )}
-                  </form.AppField>
-                )}
-              </Stack>
-            </Container>
-          ))}
-        </Stack>
+                  </Stack>
+                </Container>
+              ))}
+            </Stack>
+          )}
+        </form.AppField>
         <Stack gap="lg" marginTop="xl">
           <form.AppField name="ticketUrl">
             {field => (
