@@ -8,8 +8,6 @@ from sentry.notifications.platform.shadow.capture import (
     collecting,
     is_collecting,
     record_legacy_render,
-    record_metric_alert_context,
-    record_platform_send,
 )
 from sentry.notifications.platform.types import NotificationProviderKey
 
@@ -20,8 +18,6 @@ def test_records_nothing_outside_a_collector() -> None:
     assert not is_collecting()
 
     record_legacy_render(NotificationProviderKey.SLACK, {"blocks": []}, chart_url="https://chart")
-    record_metric_alert_context(mock.sentinel.context)
-    record_platform_send()
 
     assert not is_collecting()
 
@@ -40,29 +36,20 @@ def test_records_the_first_legacy_render() -> None:
     )
 
 
-def test_records_metric_alert_context_and_platform_send() -> None:
-    collector = ShadowCollector()
-
-    with collecting(collector):
-        record_metric_alert_context(mock.sentinel.context)
-        record_metric_alert_context(mock.sentinel.other)
-        record_platform_send()
-
-    assert collector.metric_context is mock.sentinel.context
-    assert collector.platform_sent
-    assert collector.legacy is None
-
-
 def test_collectors_are_restored_when_nested() -> None:
     outer, inner = ShadowCollector(), ShadowCollector()
 
     with collecting(outer):
         with collecting(inner):
-            record_platform_send()
+            record_legacy_render(NotificationProviderKey.SLACK, {"blocks": []})
         record_legacy_render(NotificationProviderKey.MSTEAMS, {"type": "AdaptiveCard"})
 
-    assert inner.platform_sent and inner.legacy is None
-    assert not outer.platform_sent and outer.legacy is not None
+    assert inner.legacy == LegacyRender(
+        provider=NotificationProviderKey.SLACK, payload={"blocks": []}, chart_url=None
+    )
+    assert outer.legacy == LegacyRender(
+        provider=NotificationProviderKey.MSTEAMS, payload={"type": "AdaptiveCard"}, chart_url=None
+    )
 
 
 def test_record_failures_do_not_propagate() -> None:
@@ -86,7 +73,5 @@ def test_context_failures_do_not_propagate() -> None:
     ):
         mock_var.get.side_effect = RuntimeError("boom")
         record_legacy_render(NotificationProviderKey.SLACK, {"blocks": []})
-        record_metric_alert_context(mock.sentinel.context)
-        record_platform_send()
 
-    assert mock_logger.exception.call_count == 3
+    mock_logger.exception.assert_called_once()

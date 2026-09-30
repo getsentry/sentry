@@ -24,7 +24,6 @@ from sentry.models.activity import Activity
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.rule import Rule, RuleSource
-from sentry.notifications.platform.shadow.capture import record_metric_alert_context
 from sentry.notifications.platform.shadow.runner import shadow_read
 from sentry.notifications.platform.types import NotificationSource
 from sentry.notifications.types import TEST_NOTIFICATION_ID, RuleFuture
@@ -352,7 +351,13 @@ class BaseIssueAlertHandler(ABC):
         2. activate_downstream_actions
         3. execute_futures (also in post_process process_rules)
         """
-        with shadow_read(invocation, NotificationSource.ISSUE):
+        from sentry.notifications.notification_action.utils import issue_notification_data_factory
+
+        with shadow_read(
+            invocation,
+            NotificationSource.ISSUE,
+            lambda _legacy: issue_notification_data_factory(invocation),
+        ):
             # Create a rule
             rule = cls.create_rule_instance_from_action(
                 invocation.action,
@@ -454,10 +459,18 @@ class BaseMetricAlertHandler(ABC):
 
     @classmethod
     def invoke_legacy_registry(cls, invocation: ActionInvocation) -> None:
-        with shadow_read(invocation, NotificationSource.METRIC_ALERT):
-            issue_notification_context = IssueNotificationContext(invocation)
-            record_metric_alert_context(issue_notification_context)
+        from sentry.notifications.notification_action.utils import (
+            metric_alert_notification_data_factory,
+        )
 
+        issue_notification_context = IssueNotificationContext(invocation)
+        with shadow_read(
+            invocation,
+            NotificationSource.METRIC_ALERT,
+            lambda legacy: metric_alert_notification_data_factory(
+                issue_notification_context, chart_url=legacy.chart_url
+            ),
+        ):
             notification_context = issue_notification_context.notification_context
             alert_context = issue_notification_context.alert_context
             metric_issue_context = issue_notification_context.metric_issue_context

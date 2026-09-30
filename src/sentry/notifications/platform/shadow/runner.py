@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import random
-from collections.abc import Generator
+from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from dataclasses import asdict, dataclass, field
 from enum import StrEnum
@@ -18,6 +18,7 @@ from sentry.notifications.platform.registry import (
 )
 from sentry.notifications.platform.service import KILLSWITCH_OPTION_KEY, NotificationService
 from sentry.notifications.platform.shadow.capture import (
+    LegacyRender,
     ShadowCollector,
     collecting,
     is_collecting,
@@ -29,7 +30,6 @@ from sentry.notifications.platform.types import (
     NotificationSource,
 )
 from sentry.notifications.types import TEST_NOTIFICATION_ID
-from sentry.notifications.utils.issue_notification_context import IssueNotificationContext
 from sentry.utils import metrics
 from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.models import Action
@@ -49,12 +49,13 @@ SHADOW_PROVIDERS: dict[str, NotificationProviderKey] = {
 
 SHADOW_SOURCES = frozenset({NotificationSource.ISSUE, NotificationSource.METRIC_ALERT})
 
+type BuildPlatformData = Callable[[LegacyRender], NotificationData]
+
 
 class ShadowOutcome(StrEnum):
     MATCH = "match"
     MISMATCH = "mismatch"
     LEGACY_NOT_CAPTURED = "legacy_not_captured"
-    PLATFORM_SENT = "platform_sent"
     NO_RENDERER = "no_renderer"
     PLATFORM_ERROR = "platform_error"
     COMPARE_ERROR = "compare_error"
@@ -99,22 +100,15 @@ def _capture_shadow_error(
 
 
 def _compare_with_platform(
-    invocation: ActionInvocation,
     source: NotificationSource,
     provider_key: NotificationProviderKey,
     collector: ShadowCollector,
+    build_data: BuildPlatformData,
 ) -> ShadowResult:
     """
     Renders the invocation through the notification platform and diffs it against the legacy
     payload in the collector.
     """
-    from sentry.notifications.notification_action.utils import (
-        issue_notification_data_factory,
-        metric_alert_notification_data_factory,
-    )
-
-    if collector.platform_sent:
-        return ShadowResult(outcome=ShadowOutcome.PLATFORM_SENT)
     try:
         provider = provider_registry.get(provider_key)
     except NoRegistrationExistsError:
@@ -127,12 +121,7 @@ def _compare_with_platform(
         return ShadowResult(outcome=ShadowOutcome.LEGACY_NOT_CAPTURED)
 
     try:
-        data: NotificationData
-        if source == NotificationSource.METRIC_ALERT:
-            context = collector.metric_context or IssueNotificationContext(invocation)
-            data = metric_alert_notification_data_factory(context, chart_url=legacy.chart_url)
-        else:
-            data = issue_notification_data_factory(invocation)
+        data = build_data(legacy)
         platform_payload = NotificationService.render_template(
             data=data, template=template_registry.get(data.source)(), provider=provider
         )
@@ -157,6 +146,7 @@ def _report(
     source: NotificationSource,
     provider_key: NotificationProviderKey,
     collector: ShadowCollector,
+    build_data: BuildPlatformData,
 ) -> None:
     log_extra: dict[str, Any] = {
         "source": source.value,
@@ -169,7 +159,7 @@ def _report(
         with metrics.timer(
             "notifications.platform.shadow.duration", tags=tags, sample_rate=1.0
         ) as timer_tags:
-            result = _compare_with_platform(invocation, source, provider_key, collector)
+            result = _compare_with_platform(source, provider_key, collector, build_data)
             timer_tags["outcome"] = result.outcome.value
         metrics.incr(
             "notifications.platform.shadow.result",
@@ -195,11 +185,14 @@ def _report(
 
 
 @contextmanager
-def shadow_read(invocation: ActionInvocation, source: NotificationSource) -> Generator[None]:
+def shadow_read(
+    invocation: ActionInvocation, source: NotificationSource, build_data: BuildPlatformData
+) -> Generator[None]:
     """
     Wraps a legacy alert send. When the invocation is sampled, the payload the legacy path sends is
-    captured, and once the send returns or raises an `Exception`, the same invocation is rendered
-    through the notification platform and the two payloads are compared.
+    captured, and once the send returns or raises an `Exception`, `build_data` turns that capture
+    into the data the notification platform renders, and the two payloads are compared.
+    `build_data` is only called when a legacy payload was captured.
 
     The shadow never raises into the send, and an exception from the send propagates unchanged.
     Nested shadow reads are no-ops, so an alert is compared at most once.
@@ -214,6 +207,6 @@ def shadow_read(invocation: ActionInvocation, source: NotificationSource) -> Gen
         with collecting(collector):
             yield
     except Exception:
-        _report(invocation, source, provider_key, collector)
+        _report(invocation, source, provider_key, collector, build_data)
         raise
-    _report(invocation, source, provider_key, collector)
+    _report(invocation, source, provider_key, collector, build_data)

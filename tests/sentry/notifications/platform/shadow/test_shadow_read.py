@@ -422,7 +422,7 @@ class ShadowReadMetricAlertTest(ShadowReadTestBase, MetricAlertHandlerBase):
         mock_legacy_build.assert_not_called()
         client.return_value.chat_postMessage.assert_not_called()
         mock_render.assert_not_called()
-        assert observation.outcome == ShadowOutcome.PLATFORM_SENT
+        assert observation.outcome == ShadowOutcome.LEGACY_NOT_CAPTURED
 
     def test_discord_matches(self) -> None:
         action = self.create_shadow_action("discord")
@@ -440,14 +440,6 @@ class ShadowReadMetricAlertTest(ShadowReadTestBase, MetricAlertHandlerBase):
 
         send.assert_called_once()
         assert observation.outcome == ShadowOutcome.NO_RENDERER
-
-    def test_platform_reuses_the_legacy_context(self) -> None:
-        action = self.create_shadow_action("discord")
-
-        with mock.patch(f"{RUNNER_PATH}.IssueNotificationContext") as runner_context_cls:
-            self.assert_match(self.invocation(action))
-
-        runner_context_cls.assert_not_called()
 
     def test_compares_when_the_send_raises(self) -> None:
         action = self.create_shadow_action("slack")

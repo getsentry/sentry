@@ -5,12 +5,9 @@ from collections.abc import Generator, Mapping, Sequence
 from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from sentry.notifications.platform.types import NotificationProviderKey
-
-if TYPE_CHECKING:
-    from sentry.notifications.utils.issue_notification_context import IssueNotificationContext
 
 logger = logging.getLogger(__name__)
 
@@ -28,14 +25,10 @@ class LegacyRender:
 @dataclass
 class ShadowCollector:
     """
-    Holds what the legacy send path produced while a shadow read is active: the payload handed to
-    the provider, the metric alert context it was built from, and whether the notification
-    platform sent the alert instead.
+    Holds the payload the legacy send path handed to the provider while a shadow read is active.
     """
 
     legacy: LegacyRender | None = None
-    metric_context: IssueNotificationContext | None = None
-    platform_sent: bool = False
 
 
 _active_collector: ContextVar[ShadowCollector | None] = ContextVar(
@@ -76,30 +69,3 @@ def record_legacy_render(
         logger.exception(
             "notifications.platform.shadow.record_failed", extra={"provider": str(provider)}
         )
-
-
-def record_metric_alert_context(context: IssueNotificationContext) -> None:
-    """
-    Records the context a legacy metric alert send was built from, so the platform render can
-    reuse it. Does nothing when no shadow read is active, and never raises.
-    """
-    try:
-        collector = _active_collector.get()
-        if collector is None or collector.metric_context is not None:
-            return
-        collector.metric_context = context
-    except Exception:
-        logger.exception("notifications.platform.shadow.record_failed")
-
-
-def record_platform_send() -> None:
-    """
-    Marks the alert as sent through the notification platform rather than the legacy path, so the
-    shadow read has nothing to compare. Does nothing when no shadow read is active, and never raises.
-    """
-    try:
-        collector = _active_collector.get()
-        if collector is not None:
-            collector.platform_sent = True
-    except Exception:
-        logger.exception("notifications.platform.shadow.record_failed")

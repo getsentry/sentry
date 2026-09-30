@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Generator
-from contextlib import contextmanager
+from contextlib import AbstractContextManager, contextmanager
 from dataclasses import dataclass, field
 from typing import Any
 from unittest import mock
@@ -12,10 +12,11 @@ from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.notifications.models.notificationaction import ActionTarget
+from sentry.notifications.notification_action.utils import issue_notification_data_factory
 from sentry.notifications.platform.shadow.capture import (
+    LegacyRender,
     is_collecting,
     record_legacy_render,
-    record_platform_send,
 )
 from sentry.notifications.platform.shadow.compare import diff
 from sentry.notifications.platform.shadow.runner import ShadowOutcome, shadow_read
@@ -135,6 +136,14 @@ class ShadowInvocationTestCase(TestCase):
         )
 
 
+def shadow(
+    invocation: ActionInvocation, source: NotificationSource
+) -> AbstractContextManager[None]:
+    return shadow_read(
+        invocation, source, lambda _legacy: issue_notification_data_factory(invocation)
+    )
+
+
 def _send_legacy(payload: dict[str, Any] | None = None) -> None:
     record_legacy_render(NotificationProviderKey.MSTEAMS, payload or {"type": "AdaptiveCard"})
 
@@ -147,7 +156,7 @@ class ShadowReadSamplingTest(ShadowInvocationTestCase):
         invocation: ActionInvocation,
         source: NotificationSource = NotificationSource.ISSUE,
     ) -> None:
-        with shadow_read(invocation, source):
+        with shadow(invocation, source):
             assert not is_collecting()
             _send_legacy()
         mock_compare.assert_not_called()
@@ -160,12 +169,12 @@ class ShadowReadSamplingTest(ShadowInvocationTestCase):
         invocation = self.create_invocation(action_type=Action.Type.DISCORD)
         self.assert_not_shadowed(mock_compare, invocation, NotificationSource.ISSUE)
 
-        with shadow_read(invocation, NotificationSource.METRIC_ALERT):
+        with shadow(invocation, NotificationSource.METRIC_ALERT):
             assert is_collecting()
 
         mock_compare.assert_called_once()
         args = mock_compare.call_args.args
-        assert args[1:3] == (NotificationSource.METRIC_ALERT, NotificationProviderKey.DISCORD)
+        assert args[:2] == (NotificationSource.METRIC_ALERT, NotificationProviderKey.DISCORD)
 
     @override_options({SAMPLE_RATES: {"issue": 0.25}})
     def test_sample_rate_is_applied(self, mock_compare: mock.MagicMock) -> None:
@@ -175,7 +184,7 @@ class ShadowReadSamplingTest(ShadowInvocationTestCase):
             self.assert_not_shadowed(mock_compare, invocation)
 
         with mock.patch(f"{RUNNER_PATH}.random.random", return_value=0.2):
-            with shadow_read(invocation, NotificationSource.ISSUE):
+            with shadow(invocation, NotificationSource.ISSUE):
                 _send_legacy()
         mock_compare.assert_called_once()
 
@@ -215,22 +224,22 @@ class ShadowReadSamplingTest(ShadowInvocationTestCase):
             Action.Type.MSTEAMS: NotificationProviderKey.MSTEAMS,
         }
         for action_type in expected:
-            with shadow_read(self.create_invocation(action_type), NotificationSource.ISSUE):
+            with shadow(self.create_invocation(action_type), NotificationSource.ISSUE):
                 assert is_collecting()
 
-        assert [call.args[2] for call in mock_compare.call_args_list] == list(expected.values())
+        assert [call.args[1] for call in mock_compare.call_args_list] == list(expected.values())
 
     @override_options(SAMPLE_ALL)
     def test_nested_shadow_reads_compare_once(self, mock_compare: mock.MagicMock) -> None:
         invocation = self.create_invocation()
 
-        with shadow_read(invocation, NotificationSource.ISSUE):
-            with shadow_read(invocation, NotificationSource.ISSUE):
-                with shadow_read(invocation, NotificationSource.METRIC_ALERT):
+        with shadow(invocation, NotificationSource.ISSUE):
+            with shadow(invocation, NotificationSource.ISSUE):
+                with shadow(invocation, NotificationSource.METRIC_ALERT):
                     _send_legacy()
 
         mock_compare.assert_called_once()
-        collector = mock_compare.call_args.args[3]
+        collector = mock_compare.call_args.args[2]
         assert collector.legacy.payload == {"type": "AdaptiveCard"}
 
     def test_sampling_failure_does_not_propagate(self, mock_compare: mock.MagicMock) -> None:
@@ -249,26 +258,45 @@ class ShadowReadOutcomeTest(ShadowInvocationTestCase):
         self.enterContext(override_options(SAMPLE_ALL))
 
     def test_legacy_not_captured(self) -> None:
+        build_data = mock.Mock()
+
         with observe_shadow() as observation:
-            with shadow_read(self.create_invocation(), NotificationSource.ISSUE):
+            with shadow_read(self.create_invocation(), NotificationSource.ISSUE, build_data):
                 pass
 
         assert observation.outcome == ShadowOutcome.LEGACY_NOT_CAPTURED
+        build_data.assert_not_called()
 
-    @mock.patch(f"{RUNNER_PATH}.NotificationService.render_template")
-    def test_platform_sent_skips_the_platform_render(self, mock_render: mock.MagicMock) -> None:
+    @mock.patch(
+        f"{RUNNER_PATH}.NotificationService.render_template", return_value={"type": "AdaptiveCard"}
+    )
+    def test_renders_the_data_built_from_the_legacy_render(
+        self, mock_render: mock.MagicMock
+    ) -> None:
+        invocation = self.create_invocation(Action.Type.MSTEAMS)
+        build_data = mock.Mock(return_value=issue_notification_data_factory(invocation))
+
         with observe_shadow() as observation:
-            with shadow_read(self.create_invocation(), NotificationSource.METRIC_ALERT):
-                record_platform_send()
+            with shadow_read(invocation, NotificationSource.ISSUE, build_data):
+                record_legacy_render(
+                    NotificationProviderKey.MSTEAMS, {"type": "AdaptiveCard"}, chart_url="https://c"
+                )
 
-        assert observation.outcome == ShadowOutcome.PLATFORM_SENT
-        mock_render.assert_not_called()
+        assert observation.outcome == ShadowOutcome.MATCH
+        build_data.assert_called_once_with(
+            LegacyRender(
+                provider=NotificationProviderKey.MSTEAMS,
+                payload={"type": "AdaptiveCard"},
+                chart_url="https://c",
+            )
+        )
+        assert mock_render.call_args.kwargs["data"] is build_data.return_value
 
     @mock.patch(f"{RUNNER_PATH}.renderer_registry.get", return_value=None)
     @mock.patch(f"{RUNNER_PATH}.NotificationService.render_template")
     def test_no_renderer(self, mock_render: mock.MagicMock, mock_get: mock.MagicMock) -> None:
         with observe_shadow() as observation:
-            with shadow_read(self.create_invocation(Action.Type.MSTEAMS), NotificationSource.ISSUE):
+            with shadow(self.create_invocation(Action.Type.MSTEAMS), NotificationSource.ISSUE):
                 _send_legacy()
 
         assert observation.outcome == ShadowOutcome.NO_RENDERER
@@ -282,7 +310,7 @@ class ShadowReadOutcomeTest(ShadowInvocationTestCase):
         self, mock_render: mock.MagicMock, mock_capture: mock.MagicMock
     ) -> None:
         with observe_shadow() as observation:
-            with shadow_read(self.create_invocation(Action.Type.MSTEAMS), NotificationSource.ISSUE):
+            with shadow(self.create_invocation(Action.Type.MSTEAMS), NotificationSource.ISSUE):
                 _send_legacy()
 
         assert observation.outcome == ShadowOutcome.PLATFORM_ERROR
@@ -299,7 +327,7 @@ class ShadowReadOutcomeTest(ShadowInvocationTestCase):
             observe_shadow() as observation,
             mock.patch(f"{RUNNER_PATH}.diff", side_effect=RuntimeError("compare")) as mock_diff,
         ):
-            with shadow_read(self.create_invocation(Action.Type.MSTEAMS), NotificationSource.ISSUE):
+            with shadow(self.create_invocation(Action.Type.MSTEAMS), NotificationSource.ISSUE):
                 _send_legacy()
 
         assert observation.outcome == ShadowOutcome.COMPARE_ERROR
@@ -310,7 +338,7 @@ class ShadowReadOutcomeTest(ShadowInvocationTestCase):
     )
     def test_match_records_timing(self, mock_render: mock.MagicMock) -> None:
         with mock.patch(f"{RUNNER_PATH}.metrics") as mock_metrics:
-            with shadow_read(self.create_invocation(Action.Type.MSTEAMS), NotificationSource.ISSUE):
+            with shadow(self.create_invocation(Action.Type.MSTEAMS), NotificationSource.ISSUE):
                 _send_legacy()
 
         mock_metrics.timer.assert_called_once_with(
@@ -332,7 +360,7 @@ class ShadowReadOutcomeTest(ShadowInvocationTestCase):
         invocation = self.create_invocation(Action.Type.MSTEAMS)
 
         with observe_shadow() as observation:
-            with shadow_read(invocation, NotificationSource.ISSUE):
+            with shadow(invocation, NotificationSource.ISSUE):
                 _send_legacy()
 
         assert observation.outcome == ShadowOutcome.MISMATCH
@@ -368,7 +396,7 @@ class ShadowReadOutcomeTest(ShadowInvocationTestCase):
     )
     def test_mismatch_log_is_limited_to_max_diff_entries(self, mock_render: mock.MagicMock) -> None:
         with observe_shadow() as observation:
-            with shadow_read(self.create_invocation(Action.Type.MSTEAMS), NotificationSource.ISSUE):
+            with shadow(self.create_invocation(Action.Type.MSTEAMS), NotificationSource.ISSUE):
                 _send_legacy()
 
         assert observation.mismatch is not None
@@ -383,9 +411,7 @@ class ShadowReadOutcomeTest(ShadowInvocationTestCase):
 
         with observe_shadow() as observation:
             with pytest.raises(RuntimeError) as excinfo:
-                with shadow_read(
-                    self.create_invocation(Action.Type.MSTEAMS), NotificationSource.ISSUE
-                ):
+                with shadow(self.create_invocation(Action.Type.MSTEAMS), NotificationSource.ISSUE):
                     _send_legacy()
                     raise error
 
@@ -400,9 +426,7 @@ class ShadowReadOutcomeTest(ShadowInvocationTestCase):
     ) -> None:
         with observe_shadow() as observation:
             with pytest.raises(RuntimeError, match="send failed"):
-                with shadow_read(
-                    self.create_invocation(Action.Type.MSTEAMS), NotificationSource.ISSUE
-                ):
+                with shadow(self.create_invocation(Action.Type.MSTEAMS), NotificationSource.ISSUE):
                     _send_legacy()
                     raise RuntimeError("send failed")
 
@@ -412,7 +436,7 @@ class ShadowReadOutcomeTest(ShadowInvocationTestCase):
     def test_no_compare_after_processing_deadline(self, mock_render: mock.MagicMock) -> None:
         with observe_shadow() as observation:
             with pytest.raises(ProcessingDeadlineExceeded):
-                with shadow_read(self.create_invocation(), NotificationSource.ISSUE):
+                with shadow(self.create_invocation(), NotificationSource.ISSUE):
                     _send_legacy()
                     raise ProcessingDeadlineExceeded()
 
@@ -425,7 +449,7 @@ class ShadowReadOutcomeTest(ShadowInvocationTestCase):
             mock.patch(f"{RUNNER_PATH}.logger") as mock_logger,
         ):
             mock_metrics.timer.side_effect = RuntimeError("statsd is down")
-            with shadow_read(self.create_invocation(), NotificationSource.ISSUE):
+            with shadow(self.create_invocation(), NotificationSource.ISSUE):
                 _send_legacy()
 
         mock_logger.exception.assert_called_once()
