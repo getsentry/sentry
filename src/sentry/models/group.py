@@ -684,14 +684,6 @@ class GroupManager(BaseManager["Group"]):
         from sentry.integrations.services.integration import integration_service
         from sentry.models.grouplink import GroupLink
 
-        external_issue_subquery = ExternalIssue.objects.get_for_integration(
-            integration, external_issue_key
-        ).values_list("id", flat=True)
-
-        group_link_subquery = GroupLink.objects.filter(
-            linked_id__in=external_issue_subquery
-        ).values_list("group_id", flat=True)
-
         org_ids_with_integration = list(
             i.organization_id
             for i in integration_service.get_organization_integrations(
@@ -699,6 +691,16 @@ class GroupManager(BaseManager["Group"]):
                 integration_id=integration.id,
             )
         )
+
+        external_issues = ExternalIssue.objects.filter(
+            integration_id=integration.id, organization_id__in=org_ids_with_integration
+        )
+        if external_issue_key is not None:
+            external_issues = external_issues.filter(key=external_issue_key)
+
+        group_link_subquery = GroupLink.objects.filter(
+            linked_id__in=external_issues.values_list("id", flat=True)
+        ).values_list("group_id", flat=True)
 
         return self.filter(
             id__in=group_link_subquery,
