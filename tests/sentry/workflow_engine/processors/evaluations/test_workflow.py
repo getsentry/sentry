@@ -1,5 +1,6 @@
 from concurrent.futures import Future
 from dataclasses import asdict, dataclass
+from datetime import datetime, timedelta, timezone
 from unittest import mock
 
 from arroyo.backends.kafka import FutureTrackingProducer, KafkaPayload
@@ -11,6 +12,7 @@ from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
 from sentry.conf.types.kafka_definition import Topic
+from sentry.incidents.utils.types import AnomalyDetectionValues
 from sentry.models.group import GroupStatus
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import Feature
@@ -544,6 +546,54 @@ class TestWorkflowEvaluationArtifact(TestCase):
         assert stored["input"] == {
             "values": [10, None, False, 0],
             "metadata": {"email": "synthetic@example.com", "missing": None},
+        }
+
+    def test_eap_preserves_anomaly_input_timestamp(self) -> None:
+        anomaly_input = AnomalyDetectionValues(
+            value=12.0,
+            source_id="test-source",
+            subscription_id="test-subscription",
+            timestamp=datetime(2025, 1, 2, 3, 4, 5, 123456, tzinfo=timezone(timedelta(hours=2))),
+        )
+        condition_evaluation = DataConditionEvaluation(
+            condition=self.create_data_condition(),
+            data=anomaly_input,
+            result=DetectorPriorityLevel.HIGH,
+            triggered=True,
+        )
+        detector_evaluation = DetectorEvaluation(
+            data={
+                "group_key": None,
+                "event_data": None,
+                "trigger_group_evaluation": DataConditionGroupEvaluation(
+                    data={
+                        "condition_evaluations": [condition_evaluation],
+                        "logic_type": DataConditionGroup.Type.ALL,
+                    },
+                    result=True,
+                    triggered=True,
+                ),
+            },
+            priority=DetectorPriorityLevel.HIGH,
+            triggered=True,
+        )
+        trace_item = self._emit_evaluation_to_eap(
+            ProcessDetectorsResult(
+                detector_id=self.detector.id,
+                detector_type=self.detector.type,
+                project_id=self.project.id,
+                evaluations={None: detector_evaluation},
+            )
+        )
+
+        stored = json.loads(trace_item.attributes["trigger_evaluation"].string_value)[
+            "condition_evaluations"
+        ][0]
+        assert stored["input"] == {
+            "value": 12.0,
+            "source_id": "test-source",
+            "subscription_id": "test-subscription",
+            "timestamp": "2025-01-02T03:04:05.123456+02:00",
         }
 
     def test_eap_minimizes_workflow_event_input(self) -> None:

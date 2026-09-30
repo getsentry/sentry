@@ -5,6 +5,7 @@ import uuid
 from collections.abc import Iterator, Mapping, Sequence
 from concurrent.futures import Future
 from dataclasses import fields, is_dataclass
+from datetime import datetime
 from enum import Enum
 from functools import partial
 from typing import TYPE_CHECKING, overload
@@ -99,6 +100,9 @@ def _normalize_value(value: object) -> EAPAttributeValue:
 
     if isinstance(value, Enum):
         return _normalize_value(value.value)
+
+    if isinstance(value, datetime):
+        return value.isoformat()
 
     if is_dataclass(value) and not isinstance(value, type):
         excluded_fields = {"input"} if isinstance(value, DataConditionEvaluationArtifact) else set()
@@ -374,6 +378,7 @@ def emit_evaluation_to_eap(
 
         Detector inputs retain supported dataclass, mapping, sequence, enum, and
         scalar data, including nulls.
+        Datetime values are serialized as ISO 8601 strings.
 
     How to search:
         Select the workflow-engine-evaluation item type and scope by project and time.
