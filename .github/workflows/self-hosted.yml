@@ -92,6 +92,20 @@ jobs:
           tag_nightly: false
           tag_latest: false
 
+      - uses: getsentry/action-build-and-push-images@07a1c835f7a78e0f438fc766cc6024ed0ca1bf03
+        with:
+          image_name: 'sentry'
+          platforms: linux/${{ matrix.platform }}
+          dockerfile_path: 'self-hosted/Dockerfile'
+          build_target: 'distroless'
+          tag_suffix: -distroless-${{ matrix.platform }}
+          build_args: |
+            SOURCE_COMMIT=${{ github.sha }}
+            TARGETARCH=${{ matrix.platform }}
+          ghcr: true
+          tag_nightly: false
+          tag_latest: false
+
   assemble:
     needs: [self-hosted]
     if: ${{ (github.ref_name == 'master' || startsWith(github.ref_name, 'releases/')) && github.event_name != 'pull_request' }}
@@ -115,3 +129,11 @@ jobs:
             --tag ghcr.io/getsentry/sentry:nightly \
             ghcr.io/getsentry/sentry:${{ github.sha }}-amd64 \
             ghcr.io/getsentry/sentry:${{ github.sha }}-arm64
+
+      - name: Create distroless multiplatform manifests
+        run: |
+          docker buildx imagetools create \
+            --tag ghcr.io/getsentry/sentry:${{ github.sha }}-distroless \
+            --tag ghcr.io/getsentry/sentry:nightly-distroless \
+            ghcr.io/getsentry/sentry:${{ github.sha }}-distroless-amd64 \
+            ghcr.io/getsentry/sentry:${{ github.sha }}-distroless-arm64
