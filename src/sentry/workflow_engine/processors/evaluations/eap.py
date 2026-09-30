@@ -185,7 +185,7 @@ def _build_trace_item(
         # EAP persists scalars and primitive arrays, not nested protobuf key/value lists.
         attributes={
             key: anyvalue(
-                json.dumps(value, separators=(",", ":"))
+                json.dumps(value)
                 if key in {"trigger_evaluation", "filter_evaluations", "delayed"}
                 else value
             )
