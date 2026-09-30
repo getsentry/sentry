@@ -78,10 +78,14 @@ def _record_batch_metrics(
     processed: dict[PromotionResult, int],
     *,
     metric_name: str,
+    errors: int = 0,
     tag_extra: dict[str, str] | None = None,
 ) -> None:
-    for result, count in processed.items():
-        tags = {"result": result.value}
+    counts = {result.value: count for result, count in processed.items()}
+    if errors:
+        counts["error"] = errors
+    for result, count in counts.items():
+        tags = {"result": result}
         if tag_extra:
             tags.update(tag_extra)
         metrics.incr(metric_name, amount=count, sample_rate=1.0, tags=tags)
@@ -428,6 +432,7 @@ def generate_project_derived_data_batch(
 
     _record_batch_metrics(
         result.processed,
+        errors=result.errors,
         metric_name="issues.derived.generate_project_groups_processed",
     )
     logger.info(
@@ -437,6 +442,7 @@ def generate_project_derived_data_batch(
             "group_id_start": group_id_start,
             "group_id_end": group_id_end,
             "processed": {r.value: c for r, c in result.processed.items()},
+            "errors": result.errors,
             "total": len(group_ids),
             "rescheduled": rescheduled,
             "elapsed": time.monotonic() - start,
@@ -877,6 +883,7 @@ def check_fresh_derived_data_batch(
             report_derived_data_error(
                 error, derived=derived, operation="check", pipeline_hash=PIPELINE.pipeline_hash
             )
+            _record_check_result(error)
         else:
             _record_check_result(result)
         if time.monotonic() - start >= timeout_seconds:
@@ -1026,6 +1033,7 @@ def regenerate_stale_derived_data_batch(
 
     _record_batch_metrics(
         result.processed,
+        errors=result.errors,
         metric_name="issues.derived.regenerate_stale_groups_processed",
     )
     logger.info(
@@ -1035,6 +1043,7 @@ def regenerate_stale_derived_data_batch(
             "group_id_start": group_id_start,
             "group_id_end": group_id_end,
             "processed": {r.value: c for r, c in result.processed.items()},
+            "errors": result.errors,
             "total": len(group_ids),
             "rescheduled": rescheduled,
             "elapsed": time.monotonic() - start,

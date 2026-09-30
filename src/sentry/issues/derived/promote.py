@@ -360,6 +360,7 @@ class BatchRunResult(NamedTuple):
     # to pass through to the next run so it can resume from cached progress.
     resume_generation_id: GenerationId | None
     timeout_reason: Literal["group_timeout", "batch_timeout"] | None
+    errors: int = 0
 
 
 def build_and_promote_batch(
@@ -382,6 +383,7 @@ def build_and_promote_batch(
     start = time.monotonic()
 
     processed: dict[PromotionResult, int] = {}
+    errors = 0
     resume_group_id = initial_generation_id.group_id if initial_generation_id is not None else None
 
     for group_id in group_ids:
@@ -399,9 +401,9 @@ def build_and_promote_batch(
                 extra={"group_id": group_id, "project_id": project_id},
             )
         except DerivedDataError:
-            # _process_batch reported the failed replay. Continue other groups
-            # without counting this one as promoted or retrying it in this batch.
-            pass
+            # _process_batch reported the failure. Count it without retrying it
+            # or preventing the other groups from being rebuilt.
+            errors += 1
         except PromotionFailed as e:
             processed[e.result] = processed.get(e.result, 0) + 1
             logger.exception(
@@ -411,6 +413,7 @@ def build_and_promote_batch(
         except GroupLogTimeout as e:
             return BatchRunResult(
                 processed=processed,
+                errors=errors,
                 resume_from_group_id=group_id,
                 resume_generation_id=e.generation_id,
                 timeout_reason="group_timeout",
@@ -419,6 +422,7 @@ def build_and_promote_batch(
         if time.monotonic() - start >= timeout_seconds:
             return BatchRunResult(
                 processed=processed,
+                errors=errors,
                 resume_from_group_id=group_id + 1,
                 resume_generation_id=None,
                 timeout_reason="batch_timeout",
@@ -426,6 +430,7 @@ def build_and_promote_batch(
 
     return BatchRunResult(
         processed=processed,
+        errors=errors,
         resume_from_group_id=None,
         resume_generation_id=None,
         timeout_reason=None,
