@@ -504,7 +504,24 @@ describe('ConnectRepositoryModal', () => {
         body: [],
       });
 
-      // No existing mappings, so the form fetches integrations repos by externalId.
+      // No existing mappings → slow path: fetches integration repos filtered by
+      // repoName (search param) so we avoid paginating the full installation list.
+      const branchLookup = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/integrations/${integration.id}/repos/`,
+        match: [MockApiClient.matchQuery({search: 'getsentry/relay'})],
+        body: {
+          repos: [
+            {
+              name: 'getsentry/relay',
+              identifier: 'getsentry/relay',
+              externalId: '2',
+              isInstalled: true,
+              defaultBranch: 'master',
+            },
+          ],
+        },
+      });
+
       renderEditModal(jest.fn(), {
         repositoryId: '11',
         repoName: 'getsentry/relay',
@@ -514,6 +531,8 @@ describe('ConnectRepositoryModal', () => {
       });
 
       expect(await screen.findByRole('textbox', {name: /branch/i})).toHaveValue('master');
+      // Assert the search param was actually sent (not the full unfiltered list).
+      expect(branchLookup).toHaveBeenCalled();
     });
 
     it('POSTs with the repo integration id when the connected repo has no mappings', async () => {

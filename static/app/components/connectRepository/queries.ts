@@ -85,11 +85,16 @@ function scmIntegrationsOptions(orgSlug: string) {
   );
 }
 
-function integrationReposOptions(orgSlug: string, integrationId: string) {
+function integrationReposOptions(
+  orgSlug: string,
+  integrationId: string,
+  search?: string
+) {
   return apiOptions.as<{repos: IntegrationRepository[]}>()(
     '/organizations/$organizationIdOrSlug/integrations/$integrationId/repos/',
     {
       path: {organizationIdOrSlug: orgSlug, integrationId},
+      query: search ? {search} : undefined,
       staleTime: REPOS_STALE_TIME_MS,
     }
   );
@@ -102,13 +107,16 @@ function integrationReposOptions(orgSlug: string, integrationId: string) {
  * immediately with no network calls.
  *
  * Slow path: when the repo has no mappings yet (or all have null branches),
- * fetch that one integration's repos and match by externalId. retry: false so
- * a 500 fails fast and the form still renders (falls back to "main").
+ * fetch the integration's repos filtered by repoName (a single Search API
+ * request on GitHub instead of paginating through the full installation list),
+ * then match by externalId to be collision-safe. retry: false so a 500 fails
+ * fast and the form still renders (falls back to "main").
  */
 export function useEditRepoInfo({
   orgSlug,
   integrationId,
   externalId,
+  repoName,
   defaultBranchFromMappings,
 }: {
   integrationId: string | null;
@@ -116,6 +124,7 @@ export function useEditRepoInfo({
   // undefined = mappings not yet loaded; null = loaded but no branch found.
   defaultBranchFromMappings?: string | null;
   externalId?: string | null;
+  repoName?: string;
 }): {
   defaultBranch: string | null;
   isPending: boolean;
@@ -128,7 +137,7 @@ export function useEditRepoInfo({
     Boolean(externalId);
 
   const integrationReposQuery = useQuery({
-    ...integrationReposOptions(orgSlug, integrationId ?? ''),
+    ...integrationReposOptions(orgSlug, integrationId ?? '', repoName),
     enabled: needsBranchLookup,
     retry: false,
   });

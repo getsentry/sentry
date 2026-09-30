@@ -3,11 +3,12 @@ import {useMutation, useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {ProjectAvatar} from '@sentry/scraps/avatar';
-import {Container, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
 import {Text} from '@sentry/scraps/text';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {PathMappingList} from 'sentry/components/connectRepository/pathMappingList';
 import type {PathMappingValue} from 'sentry/components/connectRepository/type';
 import {hasExactDuplicate} from 'sentry/components/connectRepository/warnings';
@@ -76,10 +77,11 @@ export function RepoLockedConnectForm({
 
   // Repo-locked connect always needs a branch lookup since there are no
   // existing mappings to read the branch from.
-  const {defaultBranch} = useEditRepoInfo({
+  const {defaultBranch, isPending: isBranchPending} = useEditRepoInfo({
     orgSlug: organization.slug,
     integrationId,
     externalId,
+    repoName,
     defaultBranchFromMappings: null,
   });
 
@@ -141,7 +143,11 @@ export function RepoLockedConnectForm({
   );
 
   const pathsSection =
-    selectedProject ? (
+    selectedProject && isBranchPending ? (
+      <Flex justify="center" paddingTop="2xl">
+        <LoadingIndicator mini />
+      </Flex>
+    ) : selectedProject ? (
       <Container paddingTop="2xl">
         <PathMappingList
           key={selectedProject.id}

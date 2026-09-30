@@ -119,6 +119,7 @@ export function EditRepositoryForm({
       orgSlug: organization.slug,
       integrationId,
       externalId,
+      repoName,
       defaultBranchFromMappings,
     });
 
