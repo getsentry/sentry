@@ -29,10 +29,6 @@ import {organizationRepositoriesInfiniteOptions} from 'sentry/utils/repositories
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-// ---------------------------------------------------------------------------
-// Project ↔ repo list (used by ConnectedRepositoriesPanel)
-// ---------------------------------------------------------------------------
-
 export type ProjectRepoListItem = {
   id: string;
   externalId: string | null;
@@ -63,10 +59,6 @@ export function projectRepoInfiniteOptions({
     }
   );
 }
-
-// ---------------------------------------------------------------------------
-// Repo select options (used by ConnectRepositoryForm)
-// ---------------------------------------------------------------------------
 
 export type RepoSelectOption = SelectValue<string> & {
   integrationId: string;
@@ -250,10 +242,6 @@ export function useGroupedRepoOptions(orgSlug: string): {
   };
 }
 
-// ---------------------------------------------------------------------------
-// Code mappings query options
-// ---------------------------------------------------------------------------
-
 export function projectCodeMappingsOptions({
   orgSlug,
   projectId,
@@ -285,10 +273,6 @@ export function orgCodeMappingsInfiniteOptions(orgSlug: string) {
   );
 }
 
-// ---------------------------------------------------------------------------
-// Org-level project options (for the repo-locked project selector)
-// ---------------------------------------------------------------------------
-
 export function orgProjectsOptions(orgSlug: string) {
   return apiOptions.as<Project[]>()(
     '/organizations/$organizationIdOrSlug/projects/',
@@ -299,10 +283,6 @@ export function orgProjectsOptions(orgSlug: string) {
     }
   );
 }
-
-// ---------------------------------------------------------------------------
-// Cache invalidation
-// ---------------------------------------------------------------------------
 
 /**
  * Returns a function that invalidates all repo-related query caches.
@@ -329,10 +309,6 @@ export function useInvalidateRepoQueries(orgSlug: string) {
       queryClient.invalidateQueries(orgCodeMappingsInfiniteOptions(orgSlug)),
     ]);
 }
-
-// ---------------------------------------------------------------------------
-// Save / edit mutations
-// ---------------------------------------------------------------------------
 
 const DUPLICATE_CODE_MAPPING_MESSAGE = 'Code path config already exists';
 
