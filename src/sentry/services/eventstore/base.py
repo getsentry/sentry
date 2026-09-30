@@ -253,7 +253,6 @@ class EventStorage(Service):
         occurrence_id: str | None = None,
         *,
         skip_transaction_groupevent: Literal[True],
-        skip_renormalization: bool = False,
     ) -> Event | None: ...
 
     @overload
@@ -266,7 +265,6 @@ class EventStorage(Service):
         occurrence_id: str | None = None,
         *,
         skip_transaction_groupevent: bool = False,
-        skip_renormalization: bool = False,
     ) -> Event | GroupEvent | None: ...
 
     def get_event_by_id(
@@ -278,7 +276,6 @@ class EventStorage(Service):
         occurrence_id: str | None = None,
         *,
         skip_transaction_groupevent: bool = False,
-        skip_renormalization: bool = False,
     ) -> Event | GroupEvent | None:
         """
         Gets a single event of any event type given a project_id and event_id.
@@ -289,7 +286,6 @@ class EventStorage(Service):
         event_id (str): Event ID
         group_id (Optional[int]): If the group ID for this event is already known, pass
             it here to save one Snuba query.
-        skip_renormalization (bool): Use for payloads already normalized during ingestion.
         """
         raise NotImplementedError
 

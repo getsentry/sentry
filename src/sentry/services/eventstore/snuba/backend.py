@@ -25,8 +25,6 @@ from snuba_sdk import (
     Request,
 )
 
-from sentry import nodestore
-from sentry.models.event import EventDict
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -446,7 +444,6 @@ class SnubaEventStorage(EventStorage):
         occurrence_id: str | None = None,
         *,
         skip_transaction_groupevent: Literal[True],
-        skip_renormalization: bool = False,
     ) -> Event | None: ...
 
     @overload
@@ -459,7 +456,6 @@ class SnubaEventStorage(EventStorage):
         occurrence_id: str | None = None,
         *,
         skip_transaction_groupevent: bool = False,
-        skip_renormalization: bool = False,
     ) -> Event | GroupEvent | None: ...
 
     def get_event_by_id(
@@ -471,7 +467,6 @@ class SnubaEventStorage(EventStorage):
         occurrence_id: str | None = None,
         *,
         skip_transaction_groupevent: bool = False,
-        skip_renormalization: bool = False,
     ) -> Event | GroupEvent | None:
         """
         Get an event given a project ID and event ID
@@ -479,7 +474,6 @@ class SnubaEventStorage(EventStorage):
 
         skip_transaction_groupevent: Temporary hack parameter to skip converting a transaction
         event into a `GroupEvent`. Used as part of `post_process_group`.
-        skip_renormalization: Use for payloads already normalized during ingestion.
         """
 
         event_id = normalize_event_id(event_id)
@@ -488,9 +482,6 @@ class SnubaEventStorage(EventStorage):
             return None
 
         event = Event(project_id=project_id, event_id=event_id)
-        if skip_renormalization:
-            data = nodestore.backend.get(event.data.id) or {}
-            event.data.bind_data(EventDict(data, skip_renormalization=True))
 
         # Return None if there was no data in nodestore
         if len(event.data) == 0:
@@ -501,7 +492,7 @@ class SnubaEventStorage(EventStorage):
             sentry_sdk.set_attribute("nodestore.event_type", event.get_event_type())
 
         if group_id is not None and (
-            event.get_event_type() in ("error", "default")
+            event.get_event_type() == "error"
             or (event.get_event_type() == "transaction" and skip_transaction_groupevent)
         ):
             event.group_id = group_id

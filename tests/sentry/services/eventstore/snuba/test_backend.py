@@ -1,10 +1,8 @@
 from datetime import timedelta
-from typing import Any
 from unittest import mock
 from unittest.mock import MagicMock
-from uuid import UUID, uuid4
+from uuid import uuid4
 
-from sentry_relay.processing import StoreNormalizer
 from snuba_sdk import Column, Condition, Op
 
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
@@ -190,46 +188,6 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
         assert event.event_id == "e" * 32
         assert event.get_event_type() == "transaction"
         assert event.project_id == self.project2.id
-
-    def test_get_default_event_by_id_with_group_id_skips_snuba(self) -> None:
-        assert self.event1.get_event_type() == "default"
-        with mock.patch("sentry.utils.snuba.raw_query") as mock_query:
-            event = self.eventstore.get_event_by_id(
-                self.project1.id,
-                self.event1.event_id,
-                group_id=self.event1.group_id,
-            )
-
-        assert event is not None
-        assert event.event_id == self.event1.event_id
-        assert event.group_id == self.event1.group_id
-        mock_query.assert_not_called()
-
-    def test_get_event_by_id_can_skip_renormalization(self) -> None:
-        original_normalize = StoreNormalizer.normalize_event
-        normalize_calls = []
-
-        def normalize(*args: Any, **kwargs: Any) -> Any:
-            normalize_calls.append(1)
-            return original_normalize(*args, **kwargs)
-
-        with mock.patch("sentry.models.event.StoreNormalizer.normalize_event", normalize):
-            event = self.eventstore.get_event_by_id(
-                self.project1.id,
-                str(UUID(self.event1.event_id)),
-                group_id=self.event1.group_id,
-                skip_renormalization=True,
-            )
-            assert event is not None
-            assert event.event_id == self.event1.event_id
-            assert event.group_id == self.event1.group_id
-            assert normalize_calls == []
-
-            event = self.eventstore.get_event_by_id(
-                self.project1.id, self.event1.event_id, group_id=self.event1.group_id
-            )
-            assert event is not None
-            assert normalize_calls == [1]
 
     def test_get_event_by_id_cached(self) -> None:
         # Simulate getting an event that exists in eventstore but has not yet been written to snuba.

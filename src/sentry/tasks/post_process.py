@@ -15,7 +15,7 @@ from django.db.models.signals import post_save
 from django.utils import timezone
 from google.api_core.exceptions import ServiceUnavailable
 
-from sentry import features, options, projectoptions
+from sentry import features, nodestore, options, projectoptions
 from sentry.constants import ObjectStatus
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.issues.grouptype import GroupCategory
@@ -25,8 +25,11 @@ from sentry.killswitches import (
     killswitch_matches_context,
     value_matches,
 )
+from sentry.models.event import EventDict
 from sentry.replays.lib.event_linking import transform_event_for_linking_payload
 from sentry.replays.lib.kafka import publish_replay_event
+from sentry.services import eventstore
+from sentry.services.eventstore.models import Event
 from sentry.signals import event_processed, issue_unignored
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -45,6 +48,7 @@ from sentry.utils.sdk import bind_organization_context, set_current_event_projec
 from sentry.utils.sdk_crashes.sdk_crash_detection_config import build_sdk_crash_detection_configs
 from sentry.utils.services import build_instance_from_options_of_type
 from sentry.utils.tracing import start_span, trace
+from sentry.utils.validators import normalize_event_id
 from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
 
 if TYPE_CHECKING:
@@ -54,7 +58,7 @@ if TYPE_CHECKING:
     from sentry.models.groupinbox import InboxReasonDetails
     from sentry.models.project import Project
     from sentry.models.team import Team
-    from sentry.services.eventstore.models import Event, GroupEvent
+    from sentry.services.eventstore.models import GroupEvent
     from sentry.users.services.user import RpcUser
 
 logger = logging.getLogger(__name__)
@@ -565,7 +569,6 @@ def post_process_group(
         from sentry.models.organization import Organization
         from sentry.models.project import Project
         from sentry.reprocessing2 import is_reprocessed_event
-        from sentry.services import eventstore
 
         if occurrence_id is None:
             # Reprocessing keeps the event ID but assigns a new group. Allow that
@@ -603,17 +606,25 @@ def post_process_group(
         assert event_id is not None
 
         def get_event_raise_exception() -> Event:
-            retrieved = eventstore.backend.get_event_by_id(
-                project_id,
-                event_id,
-                group_id=group_id,
-                skip_transaction_groupevent=True,
-                occurrence_id=occurrence_id,
-                skip_renormalization=True,
-            )
+            retrieved = None
+            if occurrence_id is not None:
+                retrieved = eventstore.backend.get_event_by_id(
+                    project_id,
+                    event_id,
+                    group_id=group_id,
+                    skip_transaction_groupevent=True,
+                    occurrence_id=occurrence_id,
+                )
+            elif normalized_id := normalize_event_id(event_id):
+                event = Event(project_id=project_id, event_id=normalized_id, group_id=group_id)
+                if data := nodestore.backend.get(event.data.id):
+                    # Ingestion already normalized the payload, and the task provides
+                    # the group ID, so this load does not need Snuba or renormalization.
+                    event.data.bind_data(EventDict(data, skip_renormalization=True))
+                    retrieved = event
             if retrieved is None:
                 raise EventLookupError(
-                    f"failed to retrieve event(project_id={project_id}, event_id={event_id}, group_id={group_id}) from eventstore"
+                    f"failed to retrieve event(project_id={project_id}, event_id={event_id}, group_id={group_id})"
                 )
             return retrieved
 
