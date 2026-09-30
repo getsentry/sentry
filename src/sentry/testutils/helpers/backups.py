@@ -41,10 +41,14 @@ from sentry.backup.scopes import ExportScope
 from sentry.backup.validate import validate
 from sentry.db.models.paranoia import ParanoidModel
 from sentry.explore.models import (
+    ExploreSavedFormula,
     ExploreSavedQuery,
     ExploreSavedQueryLastVisited,
     ExploreSavedQueryProject,
     ExploreSavedQueryStarred,
+    ExploreSavedVariable,
+    KindItemTypes,
+    ParamItemTypes,
     TraceItemAttributeContext,
     TraceItemAttributeTypes,
     TraceItemAttributeValueContext,
@@ -71,6 +75,7 @@ from sentry.models.counter import Counter
 from sentry.models.custominboundfilter import (
     CustomInboundFilter,
     DataType,
+    LegacyFilter,
 )
 from sentry.models.dashboard import (
     Dashboard,
@@ -514,6 +519,13 @@ class ExhaustiveFixtures(Fixtures):
             data_type=DataType.ALL,
             conditions=[{"type": "release", "value": ["1.0.0"]}],
         )
+        CustomInboundFilter.objects.create(
+            project=project,
+            name=f"legacy-releases-{slug}",
+            data_type=DataType.ALL,
+            conditions=[{"type": "release", "value": ["2.0.0"]}],
+            legacy_filter=LegacyFilter.RELEASE_VERSION,
+        )
 
         # Auth*
         self.create_exhaustive_organization_auth(owner, org, project)
@@ -798,6 +810,23 @@ class ExhaustiveFixtures(Fixtures):
             user_id=owner_id,
             explore_saved_query=explore_saved_query,
             last_visited=timezone.now(),
+        )
+
+        explore_saved_formula = ExploreSavedFormula.objects.create(
+            organization=org,
+            created_by_id=owner_id,
+            updated_by_id=owner_id,
+            name="formula.apdex",
+            formula="count()",
+        )
+        ExploreSavedVariable.objects.create(
+            organization=org,
+            explore_saved_formula=explore_saved_formula,
+            name="duration",
+            value="",
+            kind=KindItemTypes.PARAM,
+            param_type=ParamItemTypes.COLUMN,
+            order=0,
         )
 
         TraceItemAttributeContext.objects.create(

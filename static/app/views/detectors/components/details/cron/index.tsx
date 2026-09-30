@@ -31,6 +31,7 @@ import {
 } from 'sentry/views/alerts/rules/crons/utils';
 import {
   DisableDetectorAction,
+  DuplicateDetectorAction,
   EditDetectorAction,
 } from 'sentry/views/detectors/components/details/common/actions';
 import {DetectorDetailsAssignee} from 'sentry/views/detectors/components/details/common/assignee';
@@ -182,6 +183,7 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
                     onTimezoneSelected={setTimezoneOverride}
                   />
                   <DisableDetectorAction detector={detector} />
+                  <DuplicateDetectorAction detector={detector} />
                   <EditDetectorAction detector={detector} />
                 </Flex>
               </Flex>

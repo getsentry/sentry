@@ -3,6 +3,7 @@ import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
 import {Grid} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip';
 
 import type {ParseResultToken} from 'sentry/components/searchSyntax/parser';
@@ -59,6 +60,8 @@ export function InvalidTokenTooltip({
   const isFocused =
     state.selectionManager.isFocused && state.selectionManager.focusedKey === item.key;
 
+  const title = warning ?? tokenWarning ?? invalid?.reason ?? t('This token is invalid');
+
   return (
     <Tooltip
       skipWrapper
@@ -70,7 +73,7 @@ export function InvalidTokenTooltip({
         forceVisible,
       })}
       position="bottom"
-      title={warning ?? tokenWarning ?? invalid?.reason ?? t('This token is invalid')}
+      title={title ? <Text wrap="pre-line">{title}</Text> : null}
       {...tooltipProps}
     >
       {children}

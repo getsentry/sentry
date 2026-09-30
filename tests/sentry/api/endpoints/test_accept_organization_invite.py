@@ -110,6 +110,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
             resp = self.client.get(path)
             assert resp.status_code == 200
             assert resp.json()["needsAuthentication"]
+            assert resp.json()["inviteEmail"] == "newuser@example.com"
 
     def test_not_needs_authentication(self) -> None:
         self.login_as(self.user)

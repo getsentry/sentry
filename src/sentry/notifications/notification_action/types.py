@@ -383,8 +383,6 @@ class BaseIssueAlertHandler(ABC):
 
 
 class TicketingIssueAlertHandler(BaseIssueAlertHandler):
-    # XXX: this label template is used by the WorkflowEngineRuleSerializer to return the same label as the old APIs
-    # once we remove those, we can remove this and all the render_label methods on the IssueAlertHanders
     label_template = "Create a ticket in {integration}"
 
     @classmethod

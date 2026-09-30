@@ -10,7 +10,8 @@ from sentry.quotas.base import QuotaConfig, QuotaScope, build_metric_abuse_quota
 from sentry.quotas.redis import RedisQuota, is_rate_limited
 from sentry.sentry_metrics.use_case_id_registry import CARDINALITY_LIMIT_USE_CASES, UseCaseID
 from sentry.testutils.cases import TestCase
-from sentry.utils.redis import clusters
+from sentry.testutils.helpers.redis import use_redis_cluster
+from sentry.utils.redis import clusters, redis_clusters
 
 
 def test_is_rate_limited_script() -> None:
@@ -410,3 +411,51 @@ class RedisQuotaTest(TestCase):
 
         for key in attachment_keys:
             assert client.get(key) == b"100"
+
+
+@pytest.mark.usefixtures("_redis_cluster")
+class RedisClusterQuotaTest(TestCase):
+    @pytest.fixture
+    def _redis_cluster(self) -> Generator[None]:
+        with use_redis_cluster("quotas"):
+            self.quota.cluster.flushall()
+            yield
+            redis_clusters._clusters_str.pop("quotas", None)
+
+    @cached_property
+    def quota(self) -> RedisQuota:
+        return RedisQuota(cluster="quotas")
+
+    @mock.patch.object(RedisQuota, "get_quotas")
+    def test_is_rate_limited_refund_and_get_usage(self, mock_get_quotas: mock.MagicMock) -> None:
+        quotas = [
+            QuotaConfig(
+                id="o",
+                scope=QuotaScope.ORGANIZATION,
+                limit=2,
+                window=60,
+                reason_code="org_quota",
+                categories=[DataCategory.ERROR],
+            ),
+            QuotaConfig(
+                id="p",
+                scope=QuotaScope.PROJECT,
+                scope_id=self.project.id,
+                limit=None,
+                window=60,
+                reason_code="project_quota",
+                categories=[DataCategory.ERROR],
+            ),
+        ]
+        mock_get_quotas.return_value = quotas
+        org_id = self.project.organization_id
+        timestamp = time.time()
+
+        assert self.quota.get_usage(org_id, quotas, timestamp=timestamp) == [0, 0]
+        assert not self.quota.is_rate_limited(self.project, timestamp=timestamp).is_limited
+        assert not self.quota.is_rate_limited(self.project, timestamp=timestamp).is_limited
+        assert self.quota.is_rate_limited(self.project, timestamp=timestamp).is_limited
+        assert self.quota.get_usage(org_id, quotas, timestamp=timestamp) == [2, 2]
+
+        self.quota.refund(self.project, timestamp=timestamp)
+        assert self.quota.get_usage(org_id, quotas, timestamp=timestamp) == [1, 1]

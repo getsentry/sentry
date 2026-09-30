@@ -61,7 +61,7 @@ describe('errors query embed', () => {
     expect(screen.getByRole('button', {name: 'Recent errors'})).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'View Errors'})).toHaveAttribute(
       'href',
-      expect.stringContaining('/explore/discover/results/')
+      expect.stringContaining('/explore/errors/results/')
     );
     expect(screen.getAllByLabelText('event.type:error').length).toBeGreaterThan(0);
 

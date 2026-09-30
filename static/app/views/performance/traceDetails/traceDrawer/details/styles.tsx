@@ -12,6 +12,7 @@ import {
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Markdown, markdownRendersVisibleContent} from '@sentry/scraps/markdown';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Separator} from '@sentry/scraps/separator';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -58,7 +59,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
-import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 import {getIsAiNode} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {getIsMCPNode} from 'sentry/views/insights/pages/mcp/utils/mcpTraceNodes';
 import {traceAnalytics} from 'sentry/views/performance/traceDetails/traceAnalytics';
@@ -772,12 +772,14 @@ function KeyValueAction({
       position="bottom-end"
       size="xs"
       onOpenChange={isOpen => setIsVisible(isOpen)}
-      triggerProps={{
-        'aria-label': t('Key Value Action Menu'),
-        icon: <IconEllipsis />,
-        showChevron: false,
-        className: 'trigger-button',
-      }}
+      trigger={triggerProps => (
+        <OverlayTrigger.IconButton
+          {...triggerProps}
+          aria-label={t('Key Value Action Menu')}
+          icon={<IconEllipsis />}
+          className="trigger-button"
+        />
+      )}
       onAction={key => {
         traceAnalytics.trackExploreSearch(
           organization,
@@ -886,8 +888,7 @@ function NodeActions(props: {
 
   const transactionId = props.node.transactionId ?? '';
 
-  const canShowEAPSpanJSON =
-    getDiscoverDeprecation(props.organization) && isEAPSpanNode(props.node);
+  const canShowEAPSpanJSON = isEAPSpanNode(props.node);
 
   const transactionProfileTarget = useMemo(() => {
     if (!props.profileId) {
