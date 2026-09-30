@@ -1,4 +1,5 @@
 from datetime import timedelta
+from time import time
 
 from django.conf import settings
 from django.db import router
@@ -122,6 +123,49 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
             resp = self.client.get(path)
             assert resp.status_code == 200
             assert not resp.json()["needsAuthentication"]
+
+    def test_explicit_acceptance_is_scoped_to_the_pending_invite(self) -> None:
+        member = self.create_member(
+            email="invitee@example.com", token="abc", organization=self.organization
+        )
+        path = self._get_paths([member.id, member.token])[0]
+
+        response = self.client.get(path, {"acceptance": "explicit"})
+        assert response.status_code == 200
+        assert self.client.session["invite_explicit_acceptance"] is True
+        self._assert_pending_invite_details_in_session(member)
+
+        legacy_member = self.create_member(
+            email="another-invitee@example.com", token="def", organization=self.organization
+        )
+        response = self.client.get(self._get_paths([legacy_member.id, legacy_member.token])[0])
+        assert response.status_code == 200
+        assert "invite_explicit_acceptance" not in self.client.session
+        self._assert_pending_invite_details_in_session(legacy_member)
+
+    def test_invalid_invite_cannot_set_explicit_acceptance(self) -> None:
+        response = self.client.get(self._get_paths([1, "invalid"])[0], {"acceptance": "explicit"})
+
+        assert response.status_code == 400
+        assert "invite_explicit_acceptance" not in self.client.session
+
+    def test_explicit_acceptance_preserves_pending_mfa_on_reload(self) -> None:
+        member = self.create_member(
+            email="invitee@example.com", token="abc", organization=self.organization
+        )
+        pending_mfa = [self.user.id, time()]
+        self.session["_pending_2fa"] = pending_mfa
+        self.session["_next"] = "/settings/account/"
+        self.save_session()
+
+        response = self.client.get(
+            self._get_paths([member.id, member.token])[0], {"acceptance": "explicit"}
+        )
+
+        assert response.status_code == 200
+        assert response.json()["needsAuthentication"]
+        assert self.client.session["_pending_2fa"] == pending_mfa
+        assert self.client.session["_next"] == "/settings/account/"
 
     def test_user_needs_2fa(self) -> None:
         self._require_2fa_for_organization()
