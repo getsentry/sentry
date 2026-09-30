@@ -201,7 +201,9 @@ export function HypothesisCard({
                     variant={isRunning ? 'primary' : 'muted'}
                     wordBreak="break-word"
                   >
-                    {step.title}
+                    {step.status === 'skipped'
+                      ? t('%s (skipped)', step.title)
+                      : step.title}
                   </StepTitle>
                 }
               />

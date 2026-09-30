@@ -138,6 +138,12 @@ describe('HypothesisCard', () => {
       [InvestigationVerificationStepFixture({status: 'completed', result: 'Done.'})],
       'running',
     ],
+    [
+      'every step skipped, no verdict',
+      'Checks finished',
+      [InvestigationVerificationStepFixture({status: 'skipped', result: null})],
+      'running',
+    ],
   ] as const)('reads %s as "%s"', (_name, label, verificationSteps, status) => {
     render(
       <HypothesisCard
@@ -192,7 +198,7 @@ describe('HypothesisCard', () => {
     expect(steps[1]).toHaveTextContent(/^Second check$/);
   });
 
-  it('moves the current timeline marker as verification progresses', () => {
+  it('updates the checklist as follow-ups are inserted and pending checks are skipped', async () => {
     const first = InvestigationVerificationStepFixture({
       id: 'first',
       title: 'Compare authentication route latency',
@@ -217,23 +223,61 @@ describe('HypothesisCard', () => {
     expect(steps.getByRole('listitem', {current: 'step'})).toHaveTextContent(first.title);
     expect(screen.queryByText('Awaiting evidence')).not.toBeInTheDocument();
 
+    const followUp = InvestigationVerificationStepFixture({
+      id: 'follow-up',
+      order: 1,
+      title: 'Inspect slow authentication traces',
+      status: 'running',
+      result: null,
+    });
+    const updatedSteps = [
+      {...second, order: 2, status: 'skipped'},
+      followUp,
+      {...first, status: 'completed', result: 'Latency compared.'},
+    ];
     rerender(
       <HypothesisCard
         hypothesis={{
           ...hypothesis,
-          verificationSteps: [
-            {...first, status: 'completed', result: 'Latency compared.'},
-            {...second, status: 'running'},
-          ],
+          verificationSteps: updatedSteps,
         }}
       />
     );
 
     expect(steps.getAllByRole('listitem', {current: 'step'})).toHaveLength(1);
     expect(steps.getByRole('listitem', {current: 'step'})).toHaveTextContent(
-      second.title
+      followUp.title
     );
+    await userEvent.click(screen.getByRole('button', {name: 'Show 2 more steps'}));
+
+    expect(steps.getAllByRole('listitem').map(step => step.textContent)).toEqual([
+      'Show less',
+      first.title,
+      followUp.title,
+      `${second.title} (skipped)`,
+    ]);
     expect(screen.queryByText('Latency compared.')).not.toBeInTheDocument();
+
+    rerender(
+      <HypothesisCard
+        hypothesis={{
+          ...hypothesis,
+          verificationSteps: updatedSteps.map(step =>
+            step.id === followUp.id
+              ? {...step, status: 'completed', result: 'Traces inspected.'}
+              : step
+          ),
+        }}
+      />
+    );
+
+    expect(screen.getByText('Checks finished')).toBeInTheDocument();
+    expect(steps.queryByRole('listitem', {current: 'step'})).not.toBeInTheDocument();
+    expect(screen.getByText(`${second.title} (skipped)`)).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Show less'})).toHaveAttribute(
+      'aria-expanded',
+      'true'
+    );
   });
 
   it.each([
