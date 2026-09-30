@@ -98,21 +98,23 @@ export default function LogsQueryBlock({data}: {data: LogsQueryData}) {
       icon={IconList}
       linkLabel={t('View Logs')}
       query={data.query}
+      table={
+        isChartOnly ? null : (
+          <QueryEmbedTable
+            columns={eventColumns(getLogsQueryFields(data), tableQuery.data?.meta)}
+            emptyMessage={t('No matching logs')}
+            errorMessage={t('Unable to load logs')}
+            isError={tableQuery.isError}
+            isPending={tableQuery.isPending}
+            rowKey={eventRowKey}
+            rows={tableQuery.data?.data ?? []}
+          />
+        )
+      }
       testId={`seer-logs-query-${data.mode}-embed`}
       title={getLogsQueryTitle(data)}
     >
       <LogsQueryChart data={data} hasTable={!isChartOnly} sort={eventView.sorts[0]} />
-      {isChartOnly ? null : (
-        <QueryEmbedTable
-          columns={eventColumns(getLogsQueryFields(data), tableQuery.data?.meta)}
-          emptyMessage={t('No matching logs')}
-          errorMessage={t('Unable to load logs')}
-          isError={tableQuery.isError}
-          isPending={tableQuery.isPending}
-          rowKey={eventRowKey}
-          rows={tableQuery.data?.data ?? []}
-        />
-      )}
     </QueryEmbedCard>
   );
 }

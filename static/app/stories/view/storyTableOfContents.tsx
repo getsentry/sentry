@@ -17,7 +17,7 @@ function toAlphaNumeric(str: string): string {
 
 function getContentEntries(main: HTMLElement): Entry[] {
   const titles = Array.from(main.querySelectorAll('h2, h3, h4, h5, h6')).filter(
-    title => title.closest('[data-test-id="storybook-demo"]') === null
+    title => title.closest('[data-storybook-demo]') === null
   );
   const entries: Entry[] = [];
 
@@ -45,11 +45,13 @@ function useStoryIndex(): Entry[] {
   // automatically scroll to hash
   useEffect(() => {
     if (hash) {
-      const entry = entries.find(e => e.ref.id === hash);
+      const entry = entries.find(e => encodeURIComponent(e.ref.id) === hash);
       if (entry && hash !== scrolled.current) {
         entry.ref.scrollIntoView();
         scrolled.current = hash;
       }
+    } else {
+      scrolled.current = '';
     }
   }, [hash, entries]);
 
@@ -226,7 +228,7 @@ function StoryContentsList({
   const LinkComponent = isChild ? StyledChildLink : StyledLink;
 
   return (
-    <Stack as="li" aria-role="listitem">
+    <Stack as="li">
       <LinkComponent
         href={`#${entry.entry.ref.id}`}
         isActive={entry.entry.ref.id === activeId}

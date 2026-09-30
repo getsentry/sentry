@@ -199,18 +199,19 @@ export default function ConversationsQueryBlock({data}: {data: ConversationsQuer
       icon={IconChat}
       linkLabel={t('View Conversations')}
       query={data.query}
+      table={
+        <QueryEmbedTable
+          columns={COLUMNS}
+          emptyMessage={t('No matching conversations')}
+          errorMessage={t('Unable to load conversations')}
+          isError={conversationsQuery.isError}
+          isPending={conversationsQuery.isPending}
+          rowKey={row => row.conversationId}
+          rows={rows}
+        />
+      }
       testId="seer-conversations-query-embed"
       title={getConversationsQueryTitle(data)}
-    >
-      <QueryEmbedTable
-        columns={COLUMNS}
-        emptyMessage={t('No matching conversations')}
-        errorMessage={t('Unable to load conversations')}
-        isError={conversationsQuery.isError}
-        isPending={conversationsQuery.isPending}
-        rowKey={row => row.conversationId}
-        rows={rows}
-      />
-    </QueryEmbedCard>
+    />
   );
 }

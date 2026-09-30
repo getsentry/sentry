@@ -3542,6 +3542,40 @@ class PostProcessGroupErrorTest(
             "tags"
         ]
 
+    @override_options({"post_process.read-from-nodestore-sample-rate": 1.0})
+    @patch("sentry.tasks.post_process.run_post_process_job")
+    def test_reprocessed_event_has_independent_lock(self, mock_run_job: MagicMock) -> None:
+        event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
+        original_group_id = event.group_id
+        task_kwargs = {
+            "is_new": True,
+            "is_regression": False,
+            "is_new_group_environment": True,
+            "cache_key": cache_key_for_event(
+                {"event_id": event.event_id, "project": event.project_id}
+            ),
+            "group_id": original_group_id,
+            "project_id": event.project_id,
+            "event_id": event.event_id,
+        }
+        post_process_group(**task_kwargs)
+        post_process_group(**task_kwargs)
+        mock_run_job.assert_called_once()
+
+        event.data["contexts"]["reprocessing"] = {"original_issue_id": original_group_id}
+        event.data.save()
+        new_group = self.create_group(project=self.project)
+        task_kwargs["group_id"] = new_group.id
+        post_process_group(**task_kwargs)
+        post_process_group(**task_kwargs)
+
+        assert mock_run_job.call_count == 2
+        original_job, reprocessed_job = [call.args[0] for call in mock_run_job.call_args_list]
+        assert original_job["event"].group_id == original_group_id
+        assert original_job["is_reprocessed"] is False
+        assert reprocessed_job["event"].group_id == new_group.id
+        assert reprocessed_job["is_reprocessed"] is True
+
     @override_options({"post_process.read-from-nodestore-sample-rate": 0.5})
     @patch("sentry.options.rollout.random.random", return_value=0.75)
     @patch("sentry.tasks.post_process.run_post_process_job")
