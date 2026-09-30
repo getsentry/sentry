@@ -4,8 +4,8 @@ from typing import Any
 
 import click
 import yaml
+from sentry_options import condition_operators
 
-from flagpole.conditions import ConditionOperatorKind
 from sentry.runner.decorators import configuration
 
 valid_scopes = ["organizations", "projects"]
@@ -58,7 +58,7 @@ class Feature:
 
 
 feature_scopes_choices = click.Choice(valid_scopes)
-condition_type_choices = click.Choice([op.value for op in ConditionOperatorKind])
+condition_type_choices = click.Choice(condition_operators())
 
 
 def condition_wizard(display_sample_condition_properties: bool = False) -> Condition:
@@ -71,15 +71,10 @@ def condition_wizard(display_sample_condition_properties: bool = False) -> Condi
     property_name = click.prompt("Context property name", type=str)
     operator_kind = click.prompt("Operator type", type=condition_type_choices, show_choices=True)
 
-    list_operators = {
-        ConditionOperatorKind.IN,
-        ConditionOperatorKind.NOT_IN,
-        ConditionOperatorKind.MATCHES,
-        ConditionOperatorKind.NOT_MATCHES,
-    }
+    list_operators = {"in", "not_in", "matches", "not_matches"}
     return Condition(
         property=property_name,
-        operator=ConditionOperatorKind(operator_kind).value,
+        operator=operator_kind,
         value=[] if operator_kind in list_operators else "",
     )
 
@@ -215,7 +210,7 @@ def createissueflag(
                     Condition(
                         property="organization_slug",
                         value=["sentry", "sentry-eu", "sentry-sdks", "sentry-st"],
-                        operator=ConditionOperatorKind.IN.value,
+                        operator="in",
                     )
                 ],
             ),
@@ -226,7 +221,7 @@ def createissueflag(
                     Condition(
                         property="organization_is-early-adopter",
                         value=True,
-                        operator=ConditionOperatorKind.EQUALS.value,
+                        operator="equals",
                     )
                 ],
             ),
