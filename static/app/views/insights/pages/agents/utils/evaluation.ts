@@ -277,9 +277,9 @@ export function getAnswerLabels(
   answers: EvaluationAnswer[],
   questions?: EvaluationQuestionEntry[]
 ): Array<[string, string]> {
-  return answers.flatMap(answer => {
+  return answers.flatMap((answer): Array<[string, string]> => {
     const label = getAnswerLabel(answer, findQuestion(questions, answer.key));
-    return label === null ? [] : [[answer.key, label] as [string, string]];
+    return label === null ? [] : [[answer.key, label]];
   });
 }
 
