@@ -8,7 +8,6 @@ import {Select, components as selectComponents} from '@sentry/scraps/select';
 
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
 import {
   ActionGroup,
   ActionType,
@@ -60,29 +59,11 @@ function getActionHandler(
   return availableActions.find(handler => handler.type === action.type);
 }
 
-// Org features an action type needs, mirroring the backend's is_action_permitted
-const ACTION_TYPE_REQUIRED_FEATURES: Partial<Record<ActionType, string[]>> = {
-  [ActionType.SLACK]: ['integrations-alert-rule'],
-  [ActionType.DISCORD]: ['integrations-alert-rule'],
-  [ActionType.MSTEAMS]: ['integrations-alert-rule'],
-  [ActionType.PAGERDUTY]: ['integrations-alert-rule', 'integrations-incident-management'],
-  [ActionType.OPSGENIE]: [
-    'integrations-enterprise-alert-rule',
-    'integrations-enterprise-incident-management',
-  ],
-};
-
-function isActionTypeExcludedByPlan(actionType: ActionType, organization: Organization) {
-  const requiredFeatures = ACTION_TYPE_REQUIRED_FEATURES[actionType] ?? [];
-  return requiredFeatures.some(feature => !organization.features.includes(feature));
-}
-
 function getUnavailableActionMessage(
-  action: Action,
   actionLabel: string | undefined,
-  organization: Organization
+  handler: ActionHandler | undefined
 ) {
-  if (actionLabel && isActionTypeExcludedByPlan(action.type, organization)) {
+  if (actionLabel && handler?.disabledReason === 'plan') {
     return t(
       'Your plan no longer includes %s alerts. Remove this action to save changes, or upgrade your plan to keep it.',
       actionLabel
@@ -120,7 +101,7 @@ export function ActionNodeList({
     const otherActions: Option[] = [];
 
     availableActions.forEach(action => {
-      if (action.type === ActionType.PLUGIN) {
+      if (action.type === ActionType.PLUGIN || action.disabledReason) {
         return;
       }
       const label =
@@ -165,7 +146,7 @@ export function ActionNodeList({
           return null;
         }
         const handler = getActionHandler(action, availableActions);
-        if (!handler) {
+        if (!handler || handler.disabledReason) {
           const actionLabel = actionNodesMap.get(action.type)?.label;
           return (
             <AutomationBuilderRow
@@ -174,11 +155,7 @@ export function ActionNodeList({
                 onDeleteRow(action.id);
               }}
               hasError
-              errorMessage={getUnavailableActionMessage(
-                action,
-                actionLabel,
-                organization
-              )}
+              errorMessage={getUnavailableActionMessage(actionLabel, handler)}
             >
               {actionLabel ?? t('Unknown integration')}
             </AutomationBuilderRow>

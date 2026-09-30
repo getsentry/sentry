@@ -169,9 +169,8 @@ describe('ActionNodeList', () => {
   });
 
   it('shows an error for actions with unavailable handlers', async () => {
-    const orgWithAlertRule = OrganizationFixture({features: ['integrations-alert-rule']});
     MockApiClient.addMockResponse({
-      url: `/organizations/${orgWithAlertRule.slug}/available-actions/`,
+      url: `/organizations/${organization.slug}/available-actions/`,
       body: [], // No available actions
     });
 
@@ -180,7 +179,7 @@ describe('ActionNodeList', () => {
       <AutomationBuilderTestProvider>
         <ActionNodeList {...defaultProps} actions={[slackAction]} />
       </AutomationBuilderTestProvider>,
-      {organization: orgWithAlertRule}
+      {organization}
     );
 
     expect(
@@ -191,10 +190,10 @@ describe('ActionNodeList', () => {
     expect(screen.getByRole('button', {name: 'Delete row'})).toBeInTheDocument();
   });
 
-  it('shows plan copy for unavailable actions the plan does not include', async () => {
+  it('shows plan copy for actions the plan does not include', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/available-actions/`,
-      body: [],
+      body: [ActionHandlerFixture({disabledReason: 'plan'})],
     });
 
     const slackAction = ActionFixture();
