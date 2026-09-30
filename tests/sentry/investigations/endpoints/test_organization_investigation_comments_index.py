@@ -3,6 +3,7 @@ from __future__ import annotations
 from django.urls import reverse
 from django.utils import timezone
 
+from sentry.investigations.models import InvestigationComment, InvestigationStatus
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 
@@ -25,6 +26,63 @@ class OrganizationInvestigationCommentsTest(APITestCase):
                 "investigation_id": self.investigation.id,
             },
         )
+
+    def test_create_page_comment(self) -> None:
+        response = self.client.post(self.url, data={"body": "Looks like a deploy"}, format="json")
+
+        assert response.status_code == 201, response.data
+        assert response.data["body"] == "Looks like a deploy"
+        assert response.data["blockId"] is None
+        assert response.data["author"]["id"] == str(self.user.id)
+        comment = InvestigationComment.objects.get(id=response.data["id"])
+        assert comment.investigation_id == self.investigation.id
+        assert comment.author_id == self.user.id
+
+    def test_create_block_comment(self) -> None:
+        response = self.client.post(
+            self.url, data={"body": "This query is wrong", "blockId": self.block.id}, format="json"
+        )
+
+        assert response.status_code == 201, response.data
+        assert response.data["blockId"] == str(self.block.id)
+
+    def test_create_rejects_a_block_from_another_investigation(self) -> None:
+        other = self.create_investigation(organization=self.organization, title="Other")
+        other_block = self.create_investigation_block(investigation=other)
+
+        response = self.client.post(
+            self.url, data={"body": "Hi", "blockId": other_block.id}, format="json"
+        )
+
+        assert response.status_code == 400
+        assert "blockId" in response.data
+
+    def test_create_rejects_a_deleted_block(self) -> None:
+        self.block.update(deleted_at=timezone.now())
+
+        response = self.client.post(
+            self.url, data={"body": "Hi", "blockId": self.block.id}, format="json"
+        )
+
+        assert response.status_code == 400
+
+    def test_create_rejects_a_blank_body(self) -> None:
+        response = self.client.post(self.url, data={"body": "   "}, format="json")
+
+        assert response.status_code == 400
+        assert "body" in response.data
+
+    def test_create_rejects_unknown_fields(self) -> None:
+        response = self.client.post(self.url, data={"body": "Hi", "author": 1}, format="json")
+
+        assert response.status_code == 400
+
+    def test_archived_investigation_is_read_only(self) -> None:
+        self.investigation.update(status=InvestigationStatus.ARCHIVED)
+
+        response = self.client.post(self.url, data={"body": "Hi"}, format="json")
+
+        assert response.status_code == 400
 
     def test_list_is_newest_first(self) -> None:
         first = self.create_investigation_comment(
