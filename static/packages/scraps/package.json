@@ -24,8 +24,8 @@
     "@types/node": "24.13.2",
     "expect-type": "1.4.0",
     "jest": "30.5.1",
-    "jsdom": "30.1.0",
-    "typescript": "^7.0.2"
+    "jsdom": "30.1.1",
+    "typescript": "npm:@typescript/typescript6@6.0.2"
   },
   "peerDependencies": {
     "@emotion/react": "^11.14.0",
