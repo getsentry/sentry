@@ -562,7 +562,7 @@ export function ProjectPageFilter({
           tooltipProps={{
             title: canCreateProject
               ? undefined
-              : t('You do not have permission to create projects'),
+              : t('Only project or team admins can create projects'),
           }}
         >
           {t('Create Project')}

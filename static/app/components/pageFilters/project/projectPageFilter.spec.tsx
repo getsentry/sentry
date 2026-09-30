@@ -1230,7 +1230,7 @@ describe('ProjectPageFilter', () => {
 
       await userEvent.hover(createProject);
       expect(
-        await screen.findByText('You do not have permission to create projects')
+        await screen.findByText('Only project or team admins can create projects')
       ).toBeInTheDocument();
     });
   });
