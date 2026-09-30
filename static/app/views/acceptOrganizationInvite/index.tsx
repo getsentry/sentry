@@ -322,4 +322,5 @@ const ActionsLeft = styled('span')`
 const InviteDescription = styled('p')`
   font-size: 1.2em;
 `;
+// eslint-disable-next-line @sentry/no-default-exports -- Retained until the legacy invitation acceptance cleanup.
 export default AcceptOrganizationInvite;
