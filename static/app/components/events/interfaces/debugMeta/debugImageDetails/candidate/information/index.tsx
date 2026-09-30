@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -58,19 +58,19 @@ function getTimeSinceData({
     if (hasReprocessWarning) {
       return {
         tooltipDesc: (
-          <Fragment>
-            {tct(
-              'This debug file was uploaded [when] before this event. It takes up to 1 hour for new files to propagate. To apply new debug information, reprocess this issue.',
-              {
-                when: moment(eventDateReceived).from(dateCreated, true),
-              }
-            )}
-            <Container paddingTop="md">
-              <Text as="div" tabular>
-                {dateTime}
-              </Text>
+          <Stack gap="md">
+            <Container>
+              {tct(
+                'This debug file was uploaded [when] before this event. It takes up to 1 hour for new files to propagate. To apply new debug information, reprocess this issue.',
+                {
+                  when: moment(eventDateReceived).from(dateCreated, true),
+                }
+              )}
             </Container>
-          </Fragment>
+            <Text as="div" tabular>
+              {dateTime}
+            </Text>
+          </Stack>
         ),
         displayIcon: true,
       };
@@ -87,19 +87,19 @@ function getTimeSinceData({
 
     return {
       tooltipDesc: (
-        <Fragment>
-          {tct(
-            'This debug file was uploaded [when] before this event. It takes up to 1 hour for new files to propagate.',
-            {
-              when: moment(eventDateReceived).from(dateCreated, true),
-            }
-          )}
-          <Container paddingTop="md">
-            <Text as="div" tabular>
-              {dateTime}
-            </Text>
+        <Stack gap="md">
+          <Container>
+            {tct(
+              'This debug file was uploaded [when] before this event. It takes up to 1 hour for new files to propagate.',
+              {
+                when: moment(eventDateReceived).from(dateCreated, true),
+              }
+            )}
           </Container>
-        </Fragment>
+          <Text as="div" tabular>
+            {dateTime}
+          </Text>
+        </Stack>
       ),
       displayIcon: true,
     };
@@ -108,19 +108,19 @@ function getTimeSinceData({
   if (hasReprocessWarning) {
     return {
       tooltipDesc: (
-        <Fragment>
-          {tct(
-            'This debug file was uploaded [when] after this event. To apply new debug information, reprocess this issue.',
-            {
-              when: moment(dateCreated).from(eventDateReceived, true),
-            }
-          )}
-          <Container paddingTop="md">
-            <Text as="div" tabular>
-              {dateTime}
-            </Text>
+        <Stack gap="md">
+          <Container>
+            {tct(
+              'This debug file was uploaded [when] after this event. To apply new debug information, reprocess this issue.',
+              {
+                when: moment(dateCreated).from(eventDateReceived, true),
+              }
+            )}
           </Container>
-        </Fragment>
+          <Text as="div" tabular>
+            {dateTime}
+          </Text>
+        </Stack>
       ),
       displayIcon: true,
     };
@@ -128,16 +128,16 @@ function getTimeSinceData({
 
   return {
     tooltipDesc: (
-      <Fragment>
-        {tct('This debug file was uploaded [when] after this event.', {
-          when: moment(eventDateReceived).from(dateCreated, true),
-        })}
-        <Container paddingTop="md">
-          <Text as="div" tabular>
-            {dateTime}
-          </Text>
+      <Stack gap="md">
+        <Container>
+          {tct('This debug file was uploaded [when] after this event.', {
+            when: moment(eventDateReceived).from(dateCreated, true),
+          })}
         </Container>
-      </Fragment>
+        <Text as="div" tabular>
+          {dateTime}
+        </Text>
+      </Stack>
     ),
     displayIcon: true,
   };
