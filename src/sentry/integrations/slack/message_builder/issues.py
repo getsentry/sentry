@@ -44,6 +44,7 @@ from sentry.integrations.types import ExternalProviders
 from sentry.issues.endpoints.group_details import get_group_global_count
 from sentry.issues.grouptype import GroupCategory, NotificationContextField
 from sentry.models.commit import Commit
+from sentry.models.environment import Environment
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
@@ -102,6 +103,36 @@ SUPPORTED_CONTEXT_DATA: dict[NotificationContextField, Callable] = {
 
 
 logger = logging.getLogger(__name__)
+
+
+def get_alert_environment_id(
+    event: Event | GroupEvent | None, rules: Sequence[Rule] | None
+) -> int | None:
+    """Resolve the environment id used for the issue link in an issue alert.
+
+    Prefer the environment of the event that triggered the alert over the
+    environment of whichever rule happens to be first in the list, so the link
+    preserves the environment the alert actually fired for.
+    """
+    if event is not None:
+        try:
+            return event.get_environment().id
+        except Environment.DoesNotExist:
+            pass
+
+    if not rules:
+        return None
+
+    key, value = get_rule_or_workflow_id(rules[0])
+    rule_id = int(value)
+    match key:
+        case "workflow_id":
+            workflow = Workflow.objects.filter(id=rule_id).first()
+            return workflow.environment_id if workflow else None
+        case "legacy_rule_id":
+            rule = Rule.objects.filter(id=rule_id).first()
+            return rule.environment_id if rule else None
+    return None
 
 
 def build_assigned_text(identity: RpcIdentity, assignee: str) -> str | None:
@@ -602,19 +633,12 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             has_action = False
 
         rule_id = None
-        rule_environment_id = None
         key = "legacy_rule_id"
         if self.rules:
             key, value = get_rule_or_workflow_id(self.rules[0])
             rule_id = int(value)
 
-            match key:
-                case "workflow_id":
-                    workflow = Workflow.objects.filter(id=rule_id).first()
-                    rule_environment_id = workflow.environment_id if workflow else None
-                case "legacy_rule_id":
-                    rule = Rule.objects.filter(id=rule_id).first()
-                    rule_environment_id = rule.environment_id if rule else None
+        rule_environment_id = get_alert_environment_id(self.event, self.rules)
 
         # build up actions text
         if self.actions and self.identity and not action_text:
