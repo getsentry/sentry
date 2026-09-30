@@ -294,6 +294,7 @@ export function orgProjectsOptions(orgSlug: string) {
     '/organizations/$organizationIdOrSlug/projects/',
     {
       path: {organizationIdOrSlug: orgSlug},
+      query: {all_projects: '1', collapse: ['latestDeploys', 'unusedFeatures']},
       staleTime: 60_000,
     }
   );

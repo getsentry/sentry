@@ -19,6 +19,7 @@ import {
   LockedRepoField,
   getApiErrorMessage,
 } from 'sentry/components/connectRepository/connectionModalFrame';
+import {ScmVirtualizedMenuList} from 'sentry/components/onboarding/scm/scmVirtualizedMenuList';
 import {
   orgProjectsOptions,
   saveProjectRepoConnection,
@@ -135,6 +136,7 @@ export function RepoLockedConnectForm({
       placeholder={t('Search projects')}
       isLoading={isProjectsPending}
       searchable
+      components={{MenuList: ScmVirtualizedMenuList}}
     />
   );
 
