@@ -55,11 +55,11 @@ export function DO_NOT_USE_getButtonStyles(
   return {
     '--button-lift': buttonElevation,
     '--button-inline-padding':
-      variant !== 'transparent'
-        ? '0px'
-        : p.shapeVariant === 'square'
+      variant === 'transparent'
+        ? p.shapeVariant === 'square'
           ? `calc((${buttonSizes[p.size].height} - ${SvgIcon.ICON_SIZES[DO_NOT_USE_BUTTON_ICON_SIZES[p.size] ?? 'md']}) / 2)`
-          : getButtonSizeTheme(p.size, p.theme)['--button-inline-padding'],
+          : getButtonSizeTheme(p.size, p.theme)['--button-inline-padding']
+        : '0px',
 
     position: 'relative',
     display: 'inline-flex',

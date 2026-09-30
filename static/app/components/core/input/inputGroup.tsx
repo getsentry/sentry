@@ -13,7 +13,7 @@ import styled from '@emotion/styled';
 
 import type {InputProps} from '@sentry/scraps/input';
 
-import type {FormSize, StrictCSSObject} from 'sentry/utils/theme';
+import type {FormSize, StrictCSSObject, Theme} from 'sentry/utils/theme';
 
 // There is a cycle here if we import textarea from scraps.
 // eslint-disable-next-line @sentry/no-relative-import-paths
@@ -55,16 +55,13 @@ const itemsInset = {
 } satisfies Record<NonNullable<InputStyleProps['size']>, number>;
 
 const inputStyles = ({
+  size = 'md',
+  theme,
   leadingWidth,
   trailingWidth,
-  size = 'md',
-}: InputStyleProps): StrictCSSObject => ({
-  ...(leadingWidth && {
-    paddingLeft: `calc(${itemsInset[size] - 1}px + ${itemsPadding[size]}px + ${leadingWidth}px)`,
-  }),
-  ...(trailingWidth && {
-    paddingRight: `calc(${itemsInset[size] - 1}px + ${itemsPadding[size]}px + ${trailingWidth}px)`,
-  }),
+}: InputStyleProps & {theme: Theme}): StrictCSSObject => ({
+  paddingLeft: `calc(${itemsInset[size] - 1 + itemsPadding[size]}px + var(--input-leading-width, ${leadingWidth || theme.form[size].paddingLeft - itemsInset[size] + 1 - itemsPadding[size]}px))`,
+  paddingRight: `calc(${itemsInset[size] - 1 + itemsPadding[size]}px + var(--input-trailing-width, ${trailingWidth || theme.form[size].paddingRight - itemsInset[size] + 1 - itemsPadding[size]}px))`,
 });
 
 const StyledInput = styled(CoreInput)<InputStyleProps>`
@@ -79,10 +76,16 @@ const StyledLeadingItemsWrap = styled(InputItemsWrap)<{
   size: NonNullable<InputStyleProps['size']>;
   disablePointerEvents?: boolean;
 }>`
-  left: ${p => itemsInset[p.size]}px;
+  left: var(--input-items-inset, ${p => itemsInset[p.size]}px);
+  > [data-chip]:first-child {
+    margin-left: calc(
+      ${p => p.theme.form[p.size].paddingLeft - itemsInset[p.size]}px -
+        var(--chip-inline-padding)
+    );
+  }
   > [role='button']:first-child {
     margin-left: max(
-      ${p => 1 - itemsInset[p.size]}px,
+      calc(1px - var(--input-items-inset, ${p => itemsInset[p.size]}px)),
       calc(-1 * var(--button-inline-padding, 0px))
     );
   }
@@ -93,10 +96,16 @@ const StyledTrailingItemsWrap = styled(InputItemsWrap)<{
   size: NonNullable<InputStyleProps['size']>;
   disablePointerEvents?: boolean;
 }>`
-  right: ${p => itemsInset[p.size]}px;
+  right: var(--input-items-inset, ${p => itemsInset[p.size]}px);
+  > [data-chip]:last-child {
+    margin-right: calc(
+      ${p => p.theme.form[p.size].paddingRight - itemsInset[p.size]}px -
+        var(--chip-inline-padding)
+    );
+  }
   > [role='button']:last-child {
     margin-right: max(
-      ${p => 1 - itemsInset[p.size]}px,
+      calc(1px - var(--input-items-inset, ${p => itemsInset[p.size]}px)),
       calc(-1 * var(--button-inline-padding, 0px))
     );
   }
@@ -109,18 +118,13 @@ interface InputContext {
    * `InputGroup.LeadingItems` and `InputGroup.TrailingItems`.
    */
   inputProps: Pick<InputProps, 'size' | 'disabled'>;
-  /**
-   * Width of the leading items wrap, to be added to `Input`'s padding.
-   */
   leadingWidth?: number;
   setInputProps?: (props: Pick<InputProps, 'size' | 'disabled'>) => void;
   setLeadingWidth?: Dispatch<SetStateAction<number | undefined>>;
   setTrailingWidth?: Dispatch<SetStateAction<number | undefined>>;
-  /**
-   * Width of the trailing items wrap, to be added to `Input`'s padding.
-   */
   trailingWidth?: number;
 }
+
 const InputGroupContext = createContext<InputContext>({inputProps: {}});
 
 /**
@@ -142,8 +146,8 @@ export function InputGroup({children, ...props}: React.HTMLAttributes<HTMLDivEle
       inputProps,
       setInputProps,
       leadingWidth,
-      setLeadingWidth,
       trailingWidth,
+      setLeadingWidth,
       setTrailingWidth,
     }),
     [inputProps, leadingWidth, trailingWidth]
@@ -151,7 +155,7 @@ export function InputGroup({children, ...props}: React.HTMLAttributes<HTMLDivEle
 
   return (
     <InputGroupContext value={contextValue}>
-      <InputGroupWrap disabled={inputProps.disabled} {...props}>
+      <InputGroupWrap disabled={inputProps.disabled} data-input-group="" {...props}>
         {children}
       </InputGroupWrap>
     </InputGroupContext>
@@ -159,7 +163,7 @@ export function InputGroup({children, ...props}: React.HTMLAttributes<HTMLDivEle
 }
 
 function Input({ref, size, disabled, ...props}: InputProps) {
-  const {leadingWidth, trailingWidth, setInputProps} = useContext(InputGroupContext);
+  const {setInputProps, leadingWidth, trailingWidth} = useContext(InputGroupContext);
 
   useLayoutEffect(() => {
     setInputProps?.({size, disabled});
@@ -171,6 +175,7 @@ function Input({ref, size, disabled, ...props}: InputProps) {
       leadingWidth={leadingWidth}
       trailingWidth={trailingWidth}
       size={size}
+      data-input-size={size ?? 'md'}
       disabled={disabled}
       {...props}
     />
@@ -178,7 +183,7 @@ function Input({ref, size, disabled, ...props}: InputProps) {
 }
 
 function TextArea({ref, size, disabled, ...props}: TextAreaProps) {
-  const {leadingWidth, trailingWidth, setInputProps} = useContext(InputGroupContext);
+  const {setInputProps, leadingWidth, trailingWidth} = useContext(InputGroupContext);
 
   useLayoutEffect(() => {
     setInputProps?.({size, disabled});
@@ -190,6 +195,7 @@ function TextArea({ref, size, disabled, ...props}: TextAreaProps) {
       leadingWidth={leadingWidth}
       trailingWidth={trailingWidth}
       size={size}
+      data-input-size={size ?? 'md'}
       disabled={disabled}
       {...props}
     />
@@ -206,30 +212,38 @@ interface InputItemsProps extends React.HTMLAttributes<HTMLDivElement> {
   disablePointerEvents?: boolean;
 }
 
+export function updateInputGroupItemsWidth(node: HTMLElement) {
+  const group = node.closest<HTMLElement>('[data-input-group]');
+  const side = node.dataset.inputSide;
+  const width = node.offsetWidth;
+  if (width) {
+    group?.style.setProperty(`--input-${side}-width`, `${width}px`);
+  } else {
+    group?.style.removeProperty(`--input-${side}-width`);
+  }
+  return width;
+}
+
 function useInputItemsWidthRef(
   setWidth: Dispatch<SetStateAction<number | undefined>> | undefined
 ) {
   return useCallback(
     (node: HTMLDivElement | null) => {
-      if (!node || !setWidth) {
+      if (!node) {
         return;
       }
 
-      const updateWidth = () => {
-        setWidth(node.offsetWidth);
-      };
-
-      // Measure synchronously when the node is mounted so the input padding is
-      // correct before the browser paints. The observer handles children that
-      // change size without replacing the items wrapper.
+      const group = node.closest<HTMLElement>('[data-input-group]');
+      const updateWidth = () => setWidth?.(updateInputGroupItemsWidth(node));
       updateWidth();
-
       const observer = new ResizeObserver(updateWidth);
       observer.observe(node);
 
       return () => {
         observer.disconnect();
-        setWidth(undefined);
+        const side = node.dataset.inputSide;
+        group?.style.removeProperty(`--input-${side}-width`);
+        setWidth?.(undefined);
       };
     },
     [setWidth]
@@ -256,6 +270,7 @@ function LeadingItems({children, disablePointerEvents, ...props}: InputItemsProp
       ref={ref}
       size={size}
       disablePointerEvents={disabled || disablePointerEvents}
+      data-input-side="leading"
       data-test-id="input-leading-items"
       {...props}
     >
@@ -284,6 +299,7 @@ function TrailingItems({children, disablePointerEvents, ...props}: InputItemsPro
       ref={ref}
       size={size}
       disablePointerEvents={disabled || disablePointerEvents}
+      data-input-side="trailing"
       data-test-id="input-trailing-items"
       {...props}
     >
@@ -299,6 +315,15 @@ InputGroup.TrailingItems = TrailingItems;
 
 const InputGroupWrap = styled('div')<{disabled?: boolean}>`
   position: relative;
+  --input-items-inset: 12px;
+  --input-leading-width: initial;
+  --input-trailing-width: initial;
+  &:has(> [data-input-size='sm']) {
+    --input-items-inset: 8px;
+  }
+  &:has(> [data-input-size='xs']) {
+    --input-items-inset: 4px;
+  }
   ${p =>
     p.disabled &&
     css`
