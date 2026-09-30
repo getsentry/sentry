@@ -4509,20 +4509,6 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register(
-    "preprod.snapshots.auto-approve-sibling-diffs.enabled",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "preprod.snapshots.objectstore.snapshots-usecase.enabled",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # How far back the ingestion delay measurement window reaches, in minutes.
 register(
     "ingestion-delay.measurement-lookback-minutes",

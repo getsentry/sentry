@@ -11,6 +11,12 @@ import {
   resolveAgentName,
 } from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {
+  getAnswerLabels,
+  getNodeEvaluation,
+  isEvaluationNode,
+  type Evaluation,
+} from 'sentry/views/insights/pages/agents/utils/evaluation';
+import {
   getIsAiGenerationSpan,
   getIsExecuteToolSpan,
 } from 'sentry/views/insights/pages/agents/utils/query';
@@ -51,13 +57,14 @@ export interface ConversationMessage {
   content: string;
   id: string;
   nodeId: string;
-  role: 'user' | 'assistant' | 'embedding';
+  role: 'user' | 'assistant' | 'embedding' | 'evaluation';
   timestamp: number;
   agentName?: string;
   duration?: number;
   embeddingHasError?: boolean;
   embeddingInput?: string;
   embeddingTokens?: number;
+  evaluation?: Evaluation;
   modelName?: string;
   reasoning?: string;
   toolCalls?: ToolCall[];
@@ -94,7 +101,7 @@ export function extractMessagesFromNodes(
   nodes: AITraceSpanNode[]
 ): ConversationMessage[] {
   const enrichedNodes = enrichAnthropicAgentMessages(nodes);
-  const {generationSpans, toolSpans, embeddingSpans} =
+  const {generationSpans, toolSpans, embeddingSpans, evaluationSpans} =
     partitionSpansByType(enrichedNodes);
   const turns = buildConversationTurns(generationSpans, toolSpans);
   const displayTurns = turns.some(hasTurnContent)
@@ -103,6 +110,7 @@ export function extractMessagesFromNodes(
   const messages = [
     ...turnsToMessages(displayTurns),
     ...embeddingSpansToMessages(embeddingSpans),
+    ...evaluationSpansToMessages(evaluationSpans),
   ];
   messages.sort((a, b) => a.timestamp - b.timestamp);
   return messages;
@@ -282,15 +290,24 @@ export function enrichAnthropicAgentMessages(
 
 export function partitionSpansByType(nodes: AITraceSpanNode[]): {
   embeddingSpans: AITraceSpanNode[];
+  evaluationSpans: AITraceSpanNode[];
   generationSpans: AITraceSpanNode[];
   toolSpans: AITraceSpanNode[];
 } {
   const generationSpans: AITraceSpanNode[] = [];
   const toolSpans: AITraceSpanNode[] = [];
   const embeddingSpans: AITraceSpanNode[] = [];
+  const evaluationSpans: AITraceSpanNode[] = [];
 
   for (const node of nodes) {
     const opType = getGenAiOpType(node);
+    // Evaluations report gen_ai.operation.type "ai_client" like LLM calls, so
+    // they're recognized by gen_ai.operation.name before they'd fall through
+    // to generationSpans as empty turns.
+    if (isEvaluationNode(node)) {
+      evaluationSpans.push(node);
+      continue;
+    }
     // Embeddings are checked first: they don't get a dedicated
     // gen_ai.operation.type (it reports "ai_client"), so they're recognized by
     // their span op — or, once available, the embeddings-only input attribute.
@@ -308,8 +325,9 @@ export function partitionSpansByType(nodes: AITraceSpanNode[]): {
   generationSpans.sort((a, b) => getNodeTimestamp(a) - getNodeTimestamp(b));
   toolSpans.sort((a, b) => getNodeTimestamp(a) - getNodeTimestamp(b));
   embeddingSpans.sort((a, b) => getNodeTimestamp(a) - getNodeTimestamp(b));
+  evaluationSpans.sort((a, b) => getNodeTimestamp(a) - getNodeTimestamp(b));
 
-  return {generationSpans, toolSpans, embeddingSpans};
+  return {generationSpans, toolSpans, embeddingSpans, evaluationSpans};
 }
 
 /**
@@ -350,6 +368,29 @@ export function embeddingSpansToMessages(
   }
 
   return messages;
+}
+
+/**
+ * Maps evaluation spans to standalone messages positioned by their own
+ * timestamp, like embeddings. Parts that can't be read are left to the span
+ * detail, which shows them raw.
+ */
+export function evaluationSpansToMessages(
+  evaluationSpans: AITraceSpanNode[]
+): ConversationMessage[] {
+  return evaluationSpans.map(span => {
+    const start = getNodeStartTimestamp(span);
+    const end = getNodeEndTimestamp(span);
+    return {
+      id: `evaluation-${span.id}`,
+      role: 'evaluation',
+      content: '',
+      timestamp: getNodeTimestamp(span),
+      nodeId: span.id,
+      duration: end > start ? end - start : undefined,
+      evaluation: getNodeEvaluation(span) ?? undefined,
+    };
+  });
 }
 
 export function buildConversationTurns(
@@ -770,6 +811,32 @@ function toBlockquote(text: string): string {
     .join('\n');
 }
 
+function evaluationToMarkdown(evaluation: Evaluation | undefined): string[] {
+  const lines: string[] = [];
+  const state = evaluation?.input?.state;
+  if (state !== undefined) {
+    lines.push(toBlockquote(typeof state === 'string' ? state : JSON.stringify(state)));
+  }
+  const answers = getAnswerLabels(
+    evaluation?.answers ?? [],
+    evaluation?.input?.questions
+  ).map(([key, label]) => `- ${key}: ${label}`);
+  if (answers.length > 0) {
+    lines.push(answers.join('\n'));
+  }
+  return lines;
+}
+
+/**
+ * One-line result for the transcript row, e.g. `authIssue: Yes, urgency: high`,
+ * in the style of a tool call's arguments.
+ */
+export function getEvaluationPreview(evaluation: Evaluation | undefined): string {
+  return getAnswerLabels(evaluation?.answers ?? [], evaluation?.input?.questions)
+    .map(([key, label]) => `${key}: ${label}`)
+    .join(', ');
+}
+
 export function messagesToMarkdown(messages: ConversationMessage[]): string {
   const blocks: string[] = [];
 
@@ -783,6 +850,9 @@ export function messagesToMarkdown(messages: ConversationMessage[]): string {
     } else if (message.role === 'embedding') {
       lines.push('### Embedding');
       lines.push(toBlockquote(message.embeddingInput ?? ''));
+    } else if (message.role === 'evaluation') {
+      lines.push('### Evaluation');
+      lines.push(...evaluationToMarkdown(message.evaluation));
     } else {
       const sender = message.agentName || message.modelName || 'Assistant';
       const durationStr =
