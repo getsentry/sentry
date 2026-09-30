@@ -203,7 +203,10 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
     };
   })();
 
-  return transformedData;
+  return {
+    ...transformedData,
+    timeseriesInterval: queryRequests[0]?.interval,
+  };
 }
 
 export function useReleasesTableQuery(params: WidgetQueryParams): HookWidgetQueryResult {

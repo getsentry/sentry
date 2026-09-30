@@ -113,7 +113,7 @@ type LogsTableProps = {
   };
   numberAttributes?: TagCollection;
   showCellActions?: boolean;
-  showExploreSimilarSpansLink?: boolean;
+  showExploreConnectedSpansLink?: boolean;
   stringAttributes?: TagCollection;
   validatedFieldTypes?: Partial<Record<string, FieldValueType>>;
 };
@@ -135,7 +135,7 @@ export function LogsInfiniteTable({
   additionalData,
   injectedErrorRows,
   showCellActions,
-  showExploreSimilarSpansLink,
+  showExploreConnectedSpansLink,
   validatedFieldTypes = {},
 }: LogsTableProps) {
   const location = useLocation();
@@ -697,7 +697,7 @@ export function LogsInfiniteTable({
                   isExpanded={expandedLogRows.has(rowId)}
                   onExpandHeight={handleExpandHeight}
                   showCellActions={showCellActions}
-                  showExploreSimilarSpansLink={showExploreSimilarSpansLink}
+                  showExploreConnectedSpansLink={showExploreConnectedSpansLink}
                   isPinned={logsPinning?.hasPinnedRow?.(rowId)}
                   isHighlighted={!!linkedRowId && rowId === linkedRowId}
                   isHoverLinked={hoveredRowId === rowId}

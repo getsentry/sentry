@@ -37,7 +37,6 @@ TEST_DIRS = (
     "tests/sentry/",
     "tests/snuba/",
     "tests/relay_integration/",
-    "tests/flagpole/",
     "tests/symbolicator/",
     "tests/social_auth/",
     "tests/sentry_plugins/",

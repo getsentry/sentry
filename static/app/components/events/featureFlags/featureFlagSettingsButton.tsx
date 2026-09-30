@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -9,11 +10,13 @@ export function FeatureFlagSettingsButton({orgSlug}: {orgSlug: string}) {
   return (
     <DropdownMenu
       position="bottom-end"
-      triggerProps={{
-        showChevron: false,
-        icon: <IconSettings />,
-        'aria-label': t('Feature Flag Settings'),
-      }}
+      trigger={triggerProps => (
+        <OverlayTrigger.IconButton
+          {...triggerProps}
+          icon={<IconSettings />}
+          aria-label={t('Feature Flag Settings')}
+        />
+      )}
       size="xs"
       items={[
         {

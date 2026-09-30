@@ -197,7 +197,6 @@ def task_execution(model_name: str, chunk: tuple[int, ...], project_id: int | No
         models.UserReport,
         models.Group,
         models.GroupEmailThread,
-        models.GroupRuleStatus,
         # Handled by TTL
         similarity,
     ]
@@ -699,7 +698,6 @@ def models_which_use_deletions_code_path() -> list[tuple[type[BaseModel], str, s
     from sentry.models.artifactbundle import ArtifactBundle
     from sentry.models.commit import Commit
     from sentry.models.files.file import File
-    from sentry.models.grouprulestatus import GroupRuleStatus
     from sentry.models.pullrequest import (
         PullRequest,
         PullRequestActivity,
@@ -719,7 +717,6 @@ def models_which_use_deletions_code_path() -> list[tuple[type[BaseModel], str, s
         (ReplayRecordingSegment, "date_added", "date_added"),
         (ArtifactBundle, "date_added", "date_added"),
         (MonitorCheckIn, "date_added", "date_added"),
-        (GroupRuleStatus, "date_added", "date_added"),
         (PreprodArtifact, "date_added", "date_added"),
         (PullRequest, "date_added", "date_added"),
         (PullRequestActivity, "date_added", "date_added"),

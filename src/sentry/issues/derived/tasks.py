@@ -43,7 +43,7 @@ _MAX_CHECK_RUNS = 20
 _MAX_PROJECT_GROUPS = 10_000
 # Hard cap on distinct stale hashes discovered per scan.
 _MAX_STALE_HASHES = 5
-_STALE_HASH_DISCOVERY_TIMEOUT = timedelta(seconds=15)
+_STALE_HASH_DISCOVERY_TIMEOUT = timedelta(seconds=25)
 
 
 def _stale_pipeline_filter(qs: BaseQuerySet[Group], pipeline_hash: str) -> BaseQuerySet[Group]:
@@ -1027,3 +1027,15 @@ def regenerate_stale_derived_data_batch(
             "elapsed": time.monotonic() - start,
         },
     )
+
+
+@instrumented_task(
+    name="sentry.issues.derived.tasks.reconcile_group_status",
+    namespace=issues_tasks,
+    silo_mode=SiloMode.CELL,
+)
+def reconcile_group_status(group_id: int, **kwargs: object) -> None:
+    """Publish a ReconcileStatusAction when Group status and GDD disagree."""
+    from sentry.issues.derived.reconcile import reconcile_group_status as do_reconcile
+
+    do_reconcile(group_id)

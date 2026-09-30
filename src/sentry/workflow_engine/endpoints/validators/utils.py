@@ -11,7 +11,7 @@ from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 
-from sentry import audit_log, features
+from sentry import audit_log
 from sentry.api.permissions import enforce_scope
 from sentry.issues import grouptype
 from sentry.models.organization import Organization
@@ -142,9 +142,6 @@ def validate_detectors_exist_and_have_permissions(
     )
     found_detector_ids = {detector.id for detector in detectors}
     missing_detector_ids = set(detector_ids) - found_detector_ids
-
-    if not features.has("organizations:workflow-engine-all-projects-detector", organization):
-        missing_detector_ids |= {detector.id for detector in detectors if detector.project is None}
 
     if missing_detector_ids:
         raise serializers.ValidationError(f"Some detectors do not exist: {missing_detector_ids}")
@@ -476,18 +473,14 @@ def can_edit_all_project_detector_workflow_connections(request: Request) -> bool
 
 
 def should_include_all_projects_detector(request: Request, organization: Organization) -> bool:
-    return (
-        features.has("organizations:workflow-engine-all-projects-detector", organization)
-        and request.method == "GET"
-    )
+    return request.method == "GET"
 
 
 def should_include_all_projects_detector_workflows(
     request: Request, organization: Organization
 ) -> bool:
-    return features.has("organizations:workflow-engine-all-projects-detector", organization) and (
-        request.method == "GET"
-        or can_edit_all_project_detector_workflow_connections(request=request)
+    return request.method == "GET" or can_edit_all_project_detector_workflow_connections(
+        request=request
     )
 
 
@@ -498,8 +491,6 @@ def should_include_all_projects_detector_workflows_or_raise(
     The flag is always required to show these workflows, but if it isn't a GET request, also check
     that the caller has org:write. alerts:write is not sufficient to connect an all projects detector.
     """
-    if not features.has("organizations:workflow-engine-all-projects-detector", organization):
-        return False
     if request.method == "GET":
         return True
     enforce_scope(request, "org:write")

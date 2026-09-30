@@ -271,16 +271,11 @@ class OrganizationDetectorDetailsGetTest(OrganizationDetectorDetailsBaseTest):
         assert response.data["alertRuleId"] is None
         assert response.data["ruleId"] is None
 
-    @with_feature("organizations:workflow-engine-all-projects-detector")
     def test_all_projects_detector_get_success(self) -> None:
         all_projects_detector = ensure_default_all_projects_detector(self.organization.id)
         response = self.get_success_response(self.organization.slug, all_projects_detector.id)
         assert response.data["id"] == str(all_projects_detector.id)
         assert response.data["projectId"] is None
-
-    def test_all_projects_detector_get_error_without_flag(self) -> None:
-        all_projects_detector = ensure_default_all_projects_detector(self.organization.id)
-        self.get_error_response(self.organization.slug, all_projects_detector.id, status_code=403)
 
 
 @cell_silo_test
@@ -1159,6 +1154,22 @@ class OrganizationDetectorDetailsDeleteTest(OrganizationDetectorDetailsBaseTest)
         self.detector.refresh_from_db()
         assert self.detector.status == ObjectStatus.PENDING_DELETION
         mock_schedule_update_project_config.assert_called_once_with(self.detector)
+
+    def test_delete_denied_without_alert_write_access(self) -> None:
+        self.organization.update_option("sentry:alerts_member_write", False)
+        member = self.create_user()
+        self.create_member(
+            user=member, organization=self.organization, role="member", teams=[self.team]
+        )
+        self.login_as(member)
+
+        self.get_error_response(self.organization.slug, self.detector.id, status_code=403)
+
+        self.detector.refresh_from_db()
+        assert self.detector.status != ObjectStatus.PENDING_DELETION
+        assert not CellScheduledDeletion.objects.filter(
+            model_name="Detector", object_id=self.detector.id
+        ).exists()
 
     def test_delete_allowed_without_metric_subscription_feature(self) -> None:
         with outbox_runner():

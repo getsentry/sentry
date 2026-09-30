@@ -1,4 +1,5 @@
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {getAutofixRunId} from 'sentry/components/events/autofix/autofixRunId';
 import type {ExplorerAutofixState} from 'sentry/components/events/autofix/useExplorerAutofix';
@@ -56,13 +57,16 @@ export function AutofixDebugMenu({
       items={items}
       size="xs"
       position="bottom-end"
-      triggerLabel={t('Debug')}
-      triggerProps={{
-        'aria-label': t('Debug'),
-        icon: <IconBug />,
-        variant: 'transparent',
-        size: 'xs',
-      }}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button
+          {...triggerProps}
+          aria-label={t('Debug')}
+          icon={<IconBug />}
+          variant="transparent"
+        >
+          {t('Debug')}
+        </OverlayTrigger.Button>
+      )}
     />
   );
 }

@@ -67,7 +67,7 @@ function mockApis(
   });
 }
 
-function renderPage(features: string[] = []) {
+function renderPage(features: string[] = [], query?: Record<string, string>) {
   return render(
     <TopBar.Slot.Provider>
       <TopBar />
@@ -79,6 +79,7 @@ function renderPage(features: string[] = []) {
         route: '/organizations/:orgId/explore/agents/conversations/:conversationId/',
         location: {
           pathname: `/organizations/org-slug/explore/agents/conversations/${CONVERSATION_ID}/`,
+          query,
         },
       },
     }
@@ -341,5 +342,80 @@ describe('ConversationDetailPage summary aggregates', () => {
     // Wait for the conversation to load before asserting the icon's absence.
     expect(await screen.findByText('First answer')).toBeInTheDocument();
     expect(screen.queryByTestId('conversation-error-icon')).not.toBeInTheDocument();
+  });
+});
+
+describe('ConversationDetailPage time window', () => {
+  beforeEach(() => {
+    Element.prototype.scrollTo = jest.fn();
+    Element.prototype.scrollIntoView = jest.fn();
+    MockApiClient.clearMockResponses();
+    act(() => {
+      PageFiltersStore.reset();
+      PageFiltersStore.init();
+    });
+    mockApis();
+  });
+
+  it('queries the URL time window even when the page filters have not caught up', async () => {
+    // The page filters still hold the list page's selection, as they do right
+    // after navigating from the list.
+    act(() =>
+      PageFiltersStore.onInitializeUrlState({
+        projects: [],
+        environments: [],
+        datetime: {start: null, end: null, period: '7d', utc: null},
+      })
+    );
+    const conversationRequest = MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/agents/conversations/${CONVERSATION_ID}/`,
+      body: {conversationId: CONVERSATION_ID, title: null, spans: CONVERSATION_BODY},
+    });
+
+    renderPage([], {
+      start: '2026-09-24T08:06:04.000Z',
+      end: '2026-09-25T10:29:16.000Z',
+    });
+
+    await waitFor(() => expect(conversationRequest).toHaveBeenCalled());
+    for (const [, options] of conversationRequest.mock.calls) {
+      expect(options.query).toEqual(
+        expect.objectContaining({
+          start: '2026-09-24T07:06:04.000Z',
+          end: '2026-09-25T11:29:16.000Z',
+        })
+      );
+      expect(options.query).not.toHaveProperty('statsPeriod');
+    }
+  });
+
+  it('reads URL times without an offset as UTC', async () => {
+    // The page filters write start/end without an offset. Read in a timezone
+    // behind UTC, they must not shift the queried window.
+    const originalTimezone = process.env.TZ;
+    process.env.TZ = 'America/Los_Angeles';
+    try {
+      const conversationRequest = MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/agents/conversations/${CONVERSATION_ID}/`,
+        body: {conversationId: CONVERSATION_ID, title: null, spans: CONVERSATION_BODY},
+      });
+
+      renderPage([], {
+        start: '2026-09-24T08:06:04',
+        end: '2026-09-25T10:29:16',
+      });
+
+      await waitFor(() => expect(conversationRequest).toHaveBeenCalled());
+      for (const [, options] of conversationRequest.mock.calls) {
+        expect(options.query).toEqual(
+          expect.objectContaining({
+            start: '2026-09-24T07:06:04.000Z',
+            end: '2026-09-25T11:29:16.000Z',
+          })
+        );
+      }
+    } finally {
+      process.env.TZ = originalTimezone;
+    }
   });
 });

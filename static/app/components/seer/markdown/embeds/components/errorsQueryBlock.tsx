@@ -82,6 +82,19 @@ export default function ErrorsQueryBlock({data}: {data: ErrorsQueryData}) {
       icon={IconSearch}
       linkLabel={t('View Errors')}
       query={data.query}
+      table={
+        isChartOnly ? null : (
+          <QueryEmbedTable
+            columns={eventColumns(fields, tableQuery.data?.meta)}
+            emptyMessage={t('No matching errors')}
+            errorMessage={t('Unable to load errors')}
+            isError={tableQuery.isError}
+            isPending={tableQuery.isPending}
+            rowKey={eventRowKey}
+            rows={tableQuery.data?.data ?? []}
+          />
+        )
+      }
       testId={`seer-errors-query-${data.mode}-embed`}
       title={getErrorsQueryTitle(data)}
     >
@@ -91,17 +104,6 @@ export default function ErrorsQueryBlock({data}: {data: ErrorsQueryData}) {
         fields={fields}
         hasTable={!isChartOnly}
       />
-      {isChartOnly ? null : (
-        <QueryEmbedTable
-          columns={eventColumns(fields, tableQuery.data?.meta)}
-          emptyMessage={t('No matching errors')}
-          errorMessage={t('Unable to load errors')}
-          isError={tableQuery.isError}
-          isPending={tableQuery.isPending}
-          rowKey={eventRowKey}
-          rows={tableQuery.data?.data ?? []}
-        />
-      )}
     </QueryEmbedCard>
   );
 }

@@ -2,11 +2,9 @@ import {Fragment, memo, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {MessageRow} from '@sentry/scraps/chat';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
 import {CollapsibleChatRow} from 'sentry/components/ai/chat/collapsibleContent';
@@ -17,23 +15,22 @@ import {
 import {TURN_META_WIDTH, TurnMeta} from 'sentry/components/ai/chat/turnMeta';
 import {Count} from 'sentry/components/count';
 import {Placeholder} from 'sentry/components/placeholder';
-import {IconClose} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDuration} from 'sentry/utils/duration/getDuration';
-import {useDismissAlert} from 'sentry/utils/useDismissAlert';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
+import {ConversationMissingMessagesAlert} from 'sentry/views/explore/conversations/components/conversationMissingMessagesAlert';
 import {MessageToolCalls} from 'sentry/views/explore/conversations/components/messageToolCalls';
 import {
   type ConversationMessage,
   extractMessagesFromNodes,
   NOT_REPORTED,
 } from 'sentry/views/explore/conversations/utils/conversationMessages';
+import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {EMPTY_TEXT_CONTENT} from 'sentry/views/insights/pages/agents/utils/aiMessageNormalizer';
 import {getNumberAttr} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {getAiInstrumentationDocsLink} from 'sentry/views/insights/pages/agents/utils/docsLinks';
-import {formatLLMCosts} from 'sentry/views/insights/pages/agents/utils/formatLLMCosts';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
 import {detectAIContentType} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiContentDetection';
@@ -290,7 +287,7 @@ function AssistantMeta({cost, duration}: {cost?: number; duration?: number}) {
       metric={
         cost === undefined || cost <= 0 ? null : (
           <Text size="xs" variant="muted" tabular align="right">
-            {formatLLMCosts(cost)}
+            <LLMCosts cost={cost} />
           </Text>
         )
       }
@@ -427,16 +424,11 @@ function ReasoningSection({
 }
 
 /**
- * Shown above a transcript built from placeholders because its inference spans
- * captured no input or output data. Points to the docs for enabling
- * input/output capture, tailored to the project's platform. Dismissible, since
- * leaving capture disabled can be intentional.
+ * Links to the docs for the conversation's platform, since the transcript was
+ * built from placeholders because its inference spans captured no input or
+ * output data.
  */
 function NotReportedAlert({nodes}: {nodes: AITraceSpanNode[]}) {
-  const organization = useOrganization();
-  const {dismiss, isDismissed} = useDismissAlert({
-    key: `${organization.id}:conversation-not-reported-alert`,
-  });
   const projectSlug = useMemo(
     () => nodes.find(node => node.projectSlug)?.projectSlug,
     [nodes]
@@ -445,32 +437,13 @@ function NotReportedAlert({nodes}: {nodes: AITraceSpanNode[]}) {
   const platform = projectSlug
     ? projects.find(project => project.slug === projectSlug)?.platform
     : undefined;
-  const docsLink = getAiInstrumentationDocsLink(platform);
-
-  if (isDismissed) {
-    return null;
-  }
 
   return (
-    <Container padding="0 xl xl">
-      <Alert
-        variant="muted"
-        trailingItems={
-          <Button
-            aria-label={t('Dismiss banner')}
-            icon={<IconClose />}
-            onClick={dismiss}
-            size="zero"
-            variant="transparent"
-          />
-        }
-      >
-        {tct(
-          "This conversation's inputs and outputs weren't captured. [link:Enable capturing inputs and outputs] in your SDK to see the messages here.",
-          {link: <ExternalLink href={docsLink} />}
-        )}
-      </Alert>
-    </Container>
+    <ConversationMissingMessagesAlert
+      dismissKey="conversation-not-reported-alert"
+      docsLink={getAiInstrumentationDocsLink(platform)}
+      padding="0 xl xl"
+    />
   );
 }
 

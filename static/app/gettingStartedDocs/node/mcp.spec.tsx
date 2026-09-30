@@ -41,5 +41,7 @@ describe('getNodeMcpOnboarding data collection step', () => {
       )
       .join('\n');
     expect(code).toContain('genAI: { inputs: false, outputs: false }');
+    // The snippet shows that the options belong in `Sentry.init`.
+    expect(code).toContain('Sentry.init({');
   });
 });

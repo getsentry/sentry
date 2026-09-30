@@ -264,10 +264,9 @@ function AcceptOrganizationInvite() {
                     data-test-id="existing-member-link"
                     onClick={e => {
                       e.preventDefault();
-                      logout(
-                        api,
-                        `/accept/${params.orgId}/${params.memberId}/${params.token}/`
-                      );
+                      logout(api, {
+                        redirectUrl: `/accept/${params.orgId}/${params.memberId}/${params.token}/`,
+                      });
                     }}
                   />
                 ),
