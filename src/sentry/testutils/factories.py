@@ -61,8 +61,6 @@ from sentry.incidents.logic import (
 )
 from sentry.incidents.models.alert_rule import (
     AlertRule,
-    AlertRuleActivity,
-    AlertRuleActivityType,
     AlertRuleDetectionType,
     AlertRuleProjects,
     AlertRuleSeasonality,
@@ -2179,12 +2177,6 @@ class Factories:
             INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
             snuba_query,
         )
-        AlertRuleActivity.objects.create(
-            alert_rule=alert_rule,
-            user_id=user.id if user else None,
-            type=AlertRuleActivityType.CREATED.value,
-        )
-
         if date_added is not None:
             alert_rule.update(date_added=date_added)
 

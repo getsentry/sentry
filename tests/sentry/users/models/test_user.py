@@ -12,7 +12,7 @@ from sentry.backup.dependencies import (
 )
 from sentry.db.models.base import Model
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
-from sentry.incidents.models.alert_rule import AlertRule, AlertRuleActivity
+from sentry.incidents.models.alert_rule import AlertRule
 from sentry.models.activity import Activity
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.dashboard import (
@@ -471,7 +471,6 @@ class UserMergeToTest(BackupTestCase, HybridCloudTestMixin):
         ORG_MEMBER_MERGE_TESTED,
         Activity,
         AlertRule,
-        AlertRuleActivity,
         Dashboard,
         DashboardFavoriteUser,
         DashboardLastVisited,
@@ -514,7 +513,6 @@ class UserMergeToTest(BackupTestCase, HybridCloudTestMixin):
         ORG_MEMBER_MERGE_TESTED,
         Activity,
         AlertRule,
-        AlertRuleActivity,
         Dashboard,
         DashboardFavoriteUser,
         DashboardLastVisited,
