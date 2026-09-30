@@ -213,7 +213,7 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
         """
         has_access, error = has_seer_agent_access_with_detail(organization, request.user)
 
-        has_seer_access, _ = has_seer_access_with_detail(organization, request.user)
+        has_seer_access, _ = has_seer_access_with_detail(organization)
 
         if not has_access and not has_seer_access:
             raise PermissionDenied(error)
@@ -263,7 +263,7 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
         """
         has_access, error = has_seer_agent_access_with_detail(organization, request.user)
 
-        has_seer_access, _ = has_seer_access_with_detail(organization, request.user)
+        has_seer_access, _ = has_seer_access_with_detail(organization)
         # Orgs with Seer access can continue existing dashboard generate runs, but cannot start new runs from this endpoint.
         can_continue_dashboards_generate_run = has_seer_access and run_id is not None
 

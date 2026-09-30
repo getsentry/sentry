@@ -17,6 +17,10 @@ from sentry.api.endpoints.organization_auth_tokens import OrganizationAuthTokens
 from sentry.api.endpoints.organization_events_root_cause_analysis import (
     OrganizationEventsRootCauseAnalysisEndpoint,
 )
+from sentry.api.endpoints.organization_explore_formulas import (
+    OrganizationExploreFormulas,
+    OrganizationExploreFormulasDetail,
+)
 from sentry.api.endpoints.organization_fork import OrganizationForkEndpoint
 from sentry.api.endpoints.organization_insights_tree import OrganizationInsightsTreeEndpoint
 from sentry.api.endpoints.organization_intercom_jwt import OrganizationIntercomJwtEndpoint
@@ -534,12 +538,8 @@ from sentry.replays.endpoints.project_replay_recording_segment_index import (
 from sentry.replays.endpoints.project_replay_summary import ProjectReplaySummaryEndpoint
 from sentry.replays.endpoints.project_replay_video_details import ProjectReplayVideoDetailsEndpoint
 from sentry.replays.endpoints.project_replay_viewed_by import ProjectReplayViewedByEndpoint
-from sentry.rules.history.endpoints.project_rule_group_history import (
-    ProjectRuleGroupHistoryIndexEndpoint,
-)
-from sentry.rules.history.endpoints.project_rule_stats import ProjectRuleStatsIndexEndpoint
 from sentry.scm.endpoints.scm_rpc import ScmRpcServiceEndpoint
-from sentry.seer.endpoints.admin_night_shift_trigger import SeerAdminNightShiftTriggerEndpoint
+from sentry.seer.endpoints.admin_agentic_triage_trigger import SeerAdminAgenticTriageTriggerEndpoint
 from sentry.seer.endpoints.group_ai_autofix import GroupAutofixEndpoint
 from sentry.seer.endpoints.group_ai_summary import GroupAiSummaryEndpoint
 from sentry.seer.endpoints.group_autofix_repos import GroupAutofixReposEndpoint
@@ -566,7 +566,7 @@ from sentry.seer.endpoints.organization_seer_rpc import OrganizationSeerRpcEndpo
 from sentry.seer.endpoints.organization_seer_runs import OrganizationSeerRunsEndpoint
 from sentry.seer.endpoints.organization_seer_setup_check import OrganizationSeerSetupCheckEndpoint
 from sentry.seer.endpoints.organization_seer_workflows import OrganizationSeerWorkflowsEndpoint
-from sentry.seer.endpoints.project_seer_night_shift import ProjectSeerNightShiftEndpoint
+from sentry.seer.endpoints.project_seer_agentic_triage import ProjectSeerAgenticTriageEndpoint
 from sentry.seer.endpoints.project_seer_preferences import ProjectSeerPreferencesEndpoint
 from sentry.seer.endpoints.project_seer_repos import (
     ProjectSeerRepoEndpoint,
@@ -767,6 +767,7 @@ from .endpoints.organization_attribute_mappings import OrganizationAttributeMapp
 from .endpoints.organization_auth_provider_details import OrganizationAuthProviderDetailsEndpoint
 from .endpoints.organization_auth_providers import OrganizationAuthProvidersEndpoint
 from .endpoints.organization_events import OrganizationEventsEndpoint
+from .endpoints.organization_events_dropped import OrganizationEventsDroppedEndpoint
 from .endpoints.organization_events_facets import OrganizationEventsFacetsEndpoint
 from .endpoints.organization_events_facets_performance import (
     OrganizationEventsFacetsPerformanceEndpoint,
@@ -1530,6 +1531,16 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-explore-saved-query-detail",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/explore/formulas/$",
+        OrganizationExploreFormulas.as_view(),
+        name="sentry-api-0-explore-formulas",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/explore/formulas/(?P<id>\d+)/$",
+        OrganizationExploreFormulasDetail.as_view(),
+        name="sentry-api-0-explore-formulas-detail",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/explore/saved/(?P<id>\d+)/visit/$",
         ExploreSavedQueryVisitEndpoint.as_view(),
         name="sentry-api-0-explore-saved-query-visit",
@@ -1745,6 +1756,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/events-timeseries/$",
         OrganizationEventsTimeseriesEndpoint.as_view(),
         name="sentry-api-0-organization-events-timeseries",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/events-dropped/$",
+        OrganizationEventsDroppedEndpoint.as_view(),
+        name="sentry-api-0-organization-events-dropped",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/events-heatmap/$",
@@ -3185,16 +3201,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-project-replay-deletion-job-details",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/rules/(?P<rule_id>[^/]+)/group-history/$",
-        ProjectRuleGroupHistoryIndexEndpoint.as_view(),
-        name="sentry-api-0-project-rule-group-history-index",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/rules/(?P<rule_id>[^/]+)/stats/$",
-        ProjectRuleStatsIndexEndpoint.as_view(),
-        name="sentry-api-0-project-rule-stats-index",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/stats/$",
         ProjectStatsEndpoint.as_view(),
         name="sentry-api-0-project-stats",
@@ -3445,7 +3451,7 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/seer/night-shift/$",
-        ProjectSeerNightShiftEndpoint.as_view(),
+        ProjectSeerAgenticTriageEndpoint.as_view(),
         name="sentry-api-0-project-seer-night-shift",
     ),
     # User Issue
@@ -3718,7 +3724,7 @@ INTERNAL_URLS = [
     *notification_platform_urls.internal_urlpatterns,
     re_path(
         r"^seer/night-shift/trigger/$",
-        SeerAdminNightShiftTriggerEndpoint.as_view(),
+        SeerAdminAgenticTriageTriggerEndpoint.as_view(),
         name="sentry-admin-seer-night-shift-trigger",
     ),
 ]

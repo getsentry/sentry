@@ -296,14 +296,14 @@ describe('WidgetBuilderSlideout', () => {
         />
       </WidgetBuilderProvider>,
       {
-        organization,
+        organization: OrganizationFixture({features: ['visibility-explore-view']}),
         initialRouterConfig: {
           location: {
             pathname: '/dashboards/',
             query: {
-              field: ['count()'],
+              field: ['count(span.duration)'],
               yAxis: [],
-              dataset: WidgetType.TRANSACTIONS,
+              dataset: WidgetType.SPANS,
               displayType: DisplayType.TABLE,
             },
           },
@@ -314,7 +314,7 @@ describe('WidgetBuilderSlideout', () => {
     await userEvent.type(await screen.findByPlaceholderText('Add Alias'), 'test alias');
     expect(screen.getByPlaceholderText('Add Alias')).toHaveValue('test alias');
 
-    await userEvent.click(await screen.findByRole('button', {name: 'Transactions'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Spans'}));
     await userEvent.click(await screen.findByRole('option', {name: 'Errors'}));
 
     await waitFor(() => {
@@ -570,7 +570,7 @@ describe('WidgetBuilderSlideout', () => {
     expect(screen.getByText('Widget Library')).toBeInTheDocument();
   });
 
-  it('should render appropriate breadcrumbs if library widget is customized', async () => {
+  it('should render a back button to the library if a library widget is customized', async () => {
     const onSave = jest.fn();
     const {rerender} = render(
       <WidgetBuilderProvider>
@@ -610,8 +610,61 @@ describe('WidgetBuilderSlideout', () => {
       </WidgetBuilderProvider>
     );
 
-    expect(await screen.findByText('Widget Library')).toBeInTheDocument();
-    expect(await screen.findByText('Custom Widget Builder')).toBeInTheDocument();
+    expect(
+      await screen.findByRole('button', {name: 'Back to Widget Library'})
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', {name: 'Custom Widget Builder'})
+    ).toBeInTheDocument();
+  });
+
+  it('should return to the widget library when the back button is clicked', async () => {
+    const setOpenWidgetTemplates = jest.fn();
+    const {rerender} = render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderSlideout
+          dashboard={DashboardFixture([])}
+          dashboardFilters={{release: undefined}}
+          onClose={jest.fn()}
+          onQueryConditionChange={jest.fn()}
+          onSave={jest.fn()}
+          setIsPreviewDraggable={jest.fn()}
+          openWidgetTemplates
+          setOpenWidgetTemplates={setOpenWidgetTemplates}
+        />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+      }
+    );
+
+    await userEvent.click(screen.getByText('Duration Distribution'));
+    await userEvent.click(screen.getByText('Customize'));
+
+    rerender(
+      <WidgetBuilderProvider>
+        <WidgetBuilderSlideout
+          dashboard={DashboardFixture([])}
+          dashboardFilters={{release: undefined}}
+          onClose={jest.fn()}
+          onQueryConditionChange={jest.fn()}
+          onSave={jest.fn()}
+          setIsPreviewDraggable={jest.fn()}
+          openWidgetTemplates={false}
+          setOpenWidgetTemplates={setOpenWidgetTemplates}
+        />
+      </WidgetBuilderProvider>
+    );
+
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Back to Widget Library'})
+    );
+
+    expect(setOpenWidgetTemplates).toHaveBeenCalledWith(true);
+    // customizeFromLibrary resets, so the back button unmounts
+    expect(
+      screen.queryByRole('button', {name: 'Back to Widget Library'})
+    ).not.toBeInTheDocument();
   });
 
   it('should show deprecation alert when flag enabled', async () => {

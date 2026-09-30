@@ -30,7 +30,7 @@ const repoPRStateSchema = z.object({
   commit_sha: z.string().nullable(),
   pr_creation_error: z.string().nullable(),
   pr_creation_status: zLooseEnum(['creating', 'completed', 'error']).nullable(),
-  pr_id: z.number().nullable(),
+  pr_id: z.union([z.string(), z.number()]).nullable(),
   pr_number: z.number().nullable(),
   pr_url: z.string().nullable(),
   repo_name: z.string(),
@@ -268,4 +268,9 @@ export type SeerExplorerResponse = {
     repo_pr_states?: Record<string, RepoPRState>;
   } | null;
   sentry_run_id?: string | null;
+};
+
+export type RespondToUserInputOptions = {
+  /** Called when the response fails to send, so callers can undo optimistic local state. */
+  onError?: () => void;
 };

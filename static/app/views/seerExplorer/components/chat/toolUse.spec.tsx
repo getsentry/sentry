@@ -240,9 +240,13 @@ describe('ToolUseBlock', () => {
         })
       );
     });
-    expect(respondToUserInput).toHaveBeenCalledWith(APPROVAL_ID, {
-      decision: 'approve',
-    });
+    expect(respondToUserInput).toHaveBeenCalledWith(
+      APPROVAL_ID,
+      {
+        decision: 'approve',
+      },
+      {onError: expect.any(Function)}
+    );
   });
 
   it('allows an active approval with invalid grant data to be rejected', async () => {
@@ -264,9 +268,13 @@ describe('ToolUseBlock', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Reject'}));
 
-    expect(respondToUserInput).toHaveBeenCalledWith(APPROVAL_ID, {
-      decision: 'reject',
-    });
+    expect(respondToUserInput).toHaveBeenCalledWith(
+      APPROVAL_ID,
+      {
+        decision: 'reject',
+      },
+      {onError: expect.any(Function)}
+    );
   });
 
   it('does not resume with approval when only some scopes are granted', async () => {
@@ -299,10 +307,14 @@ describe('ToolUseBlock', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Approve'}));
 
     await waitFor(() => {
-      expect(respondToUserInput).toHaveBeenCalledWith(APPROVAL_ID, {
-        decision: 'reject',
-        reason: 'insufficient_scope',
-      });
+      expect(respondToUserInput).toHaveBeenCalledWith(
+        APPROVAL_ID,
+        {
+          decision: 'reject',
+          reason: 'insufficient_scope',
+        },
+        {onError: expect.any(Function)}
+      );
     });
 
     expect(
@@ -367,9 +379,13 @@ describe('ToolUseBlock', () => {
     });
 
     await waitFor(() => {
-      expect(respondToUserInput).toHaveBeenCalledWith(APPROVAL_ID, {
-        decision: 'approve',
-      });
+      expect(respondToUserInput).toHaveBeenCalledWith(
+        APPROVAL_ID,
+        {
+          decision: 'approve',
+        },
+        {onError: expect.any(Function)}
+      );
     });
 
     expect(
@@ -396,14 +412,39 @@ describe('ToolUseBlock', () => {
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Reject'}));
-    expect(respondToUserInput).toHaveBeenCalledWith(APPROVAL_ID, {
-      decision: 'reject',
-    });
+    expect(respondToUserInput).toHaveBeenCalledWith(
+      APPROVAL_ID,
+      {
+        decision: 'reject',
+      },
+      {onError: expect.any(Function)}
+    );
     expect(approveRequest).not.toHaveBeenCalled();
     expect(
       screen.getByText('Access not granted for reading and writing Projects')
     ).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Approve'})).not.toBeInTheDocument();
+  });
+
+  it('shows the approval prompt again when the response fails to send', async () => {
+    const respondToUserInput = jest.fn(
+      (_inputId: string, _data?: unknown, options?: {onError?: () => void}) =>
+        options?.onError?.()
+    );
+    render(
+      <BlockComponent
+        block={createAgentApprovalBlock()}
+        blockIndex={0}
+        pendingInput={createPendingAgentApproval()}
+        respondToUserInput={respondToUserInput}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Reject'}));
+
+    expect(respondToUserInput).toHaveBeenCalled();
+    expect(screen.getByRole('button', {name: 'Reject'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Approve'})).toBeInTheDocument();
   });
 
   it('renders todo list for todo_write tool calls', () => {

@@ -44,21 +44,14 @@ class TestValidateWorkflowConnections(ProjectAccessTestMixin):
             )
         ) == [self.user_workflow.id]
 
-    def test_all_projects_requires_feature_and_org_write(self) -> None:
+    def test_all_projects_requires_org_write(self) -> None:
         detector = ensure_default_all_projects_detector(self.organization.id)
         self.create_detector_workflow(workflow=self.user_workflow, detector=detector)
-        with self.feature("organizations:workflow-engine-all-projects-detector"):
-            with pytest.raises(PermissionDenied):
-                validate_workflow_connections(
-                    [self.user_workflow.id], self.organization, self.request
-                )
-
-            self.request.access = from_user(self.user, self.organization)
-            validate_workflow_connections([self.user_workflow.id], self.organization, self.request)
-
-        # Even an organization writer needs the all-projects feature enabled.
         with pytest.raises(PermissionDenied):
             validate_workflow_connections([self.user_workflow.id], self.organization, self.request)
+
+        self.request.access = from_user(self.user, self.organization)
+        validate_workflow_connections([self.user_workflow.id], self.organization, self.request)
 
     @with_feature("organizations:team-roles")
     def test_team_admin_shared_workflow_connections(self) -> None:
@@ -113,7 +106,6 @@ class TestValidateDetectorsExistAndHavePermissions(TestCase):
         )
         assert detector in result
 
-    @with_feature("organizations:workflow-engine-all-projects-detector")
     def test_null_project_detector(self) -> None:
         detector = ensure_default_all_projects_detector(self.organization.id)
         request = self._make_request_with_access(SystemAccess())
@@ -123,7 +115,6 @@ class TestValidateDetectorsExistAndHavePermissions(TestCase):
         )
         assert detector in result
 
-    @with_feature("organizations:workflow-engine-all-projects-detector")
     def test_mix_of_project_and_null_project_detectors(self) -> None:
         project_detector = self.create_detector(project=self.project)
         all_projects_detector = ensure_default_all_projects_detector(self.organization.id)
@@ -168,13 +159,6 @@ class TestValidateDetectorsExistAndHavePermissions(TestCase):
                 [other_all_projects_detector.id], self.organization, request
             )
 
-    def test_null_project_detector_unavailable_without_feature(self) -> None:
-        detector = ensure_default_all_projects_detector(self.organization.id)
-        request = self._make_request_with_access(SystemAccess())
-
-        with pytest.raises(ValidationError, match="do not exist"):
-            validate_detectors_exist_and_have_permissions([detector.id], self.organization, request)
-
     def test_permission_denied_when_no_access(self) -> None:
         detector = self.create_detector(project=self.project)
         request = self._make_request_with_access(NoAccess())
@@ -182,7 +166,6 @@ class TestValidateDetectorsExistAndHavePermissions(TestCase):
         with pytest.raises(PermissionDenied):
             validate_detectors_exist_and_have_permissions([detector.id], self.organization, request)
 
-    @with_feature("organizations:workflow-engine-all-projects-detector")
     def test_null_project_detector_permission_denied_when_no_access(self) -> None:
         detector = ensure_default_all_projects_detector(self.organization.id)
         request = self._make_request_with_access(NoAccess())

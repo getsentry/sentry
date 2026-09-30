@@ -19,6 +19,7 @@ from sentry.api.client_kind import (
     get_user_agent,
     set_client_kind_attributes,
 )
+from sentry.auth.access import NoAccess
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.auth.system import SystemToken
 from sentry.seer.agent_token import AGENT_TOKEN_KIND
@@ -48,6 +49,8 @@ def make_request(
     # otherwise run, so the request arrives pre-authenticated.
     request.user = user if user is not None else AnonymousUser()
     request.auth = auth
+    # Set by `Endpoint.dispatch` before the attribution span reads it.
+    request.access = NoAccess()
     return request
 
 
@@ -385,6 +388,33 @@ class AttributionSpanTest(TestCase):
             ATTRIBUTE_NAMES.HTTP_ROUTE,
             "client_kind_test",
         ]
+
+
+class CallerScopesMetricTest(TestCase):
+    def metrics_for(self, request: Request) -> list[str]:
+        # Keep DRF from re-running authentication, which would clear `request.auth`.
+        mark_authenticated_by(request, None)
+        with mock.patch("sentry.api.client_kind.metrics.incr") as incr:
+            set_client_kind_attributes(request)
+        return [call.args[0] for call in incr.call_args_list]
+
+    def test_token_scopes(self) -> None:
+        token = SimpleNamespace(get_scopes=lambda: ["org:read", "dashboard:read"])
+        assert self.metrics_for(make_request(auth=token)) == [
+            "api.has_deprecated_scopes",
+            "api.has_granular_scopes",
+        ]
+
+    def test_session_falls_back_to_access_scopes(self) -> None:
+        request = make_request(user=session_user())
+        request.access = SimpleNamespace(scopes=frozenset({"org:write"}))
+        assert self.metrics_for(request) == []
+
+    def test_signature_auth_falls_back_to_access_scopes(self) -> None:
+        # HMAC signature authentication sets `request.auth` to the signature string.
+        request = make_request(auth="rpc0:signature")
+        request.access = SimpleNamespace(scopes=frozenset({"project:read"}))
+        assert self.metrics_for(request) == ["api.has_deprecated_scopes"]
 
 
 class SpanRouteTest(TestCase):

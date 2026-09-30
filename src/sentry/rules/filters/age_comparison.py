@@ -2,17 +2,14 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from datetime import datetime, timedelta
-from typing import Any
 
 from django import forms
 from django.utils import timezone
 
-from sentry.models.group import Group
 from sentry.rules import EventState
 from sentry.rules.age import AgeComparisonType, age_comparison_choices, age_comparison_map
 from sentry.rules.filters.base import EventFilter
 from sentry.services.eventstore.models import GroupEvent
-from sentry.types.condition_activity import ConditionActivity
 
 timeranges = {
     "minute": ("minute(s)", timedelta(minutes=1)),
@@ -78,16 +75,6 @@ class AgeComparisonFilter(EventFilter):
 
     def passes(self, event: GroupEvent, state: EventState) -> bool:
         return self._passes(event.group.first_seen, timezone.now())
-
-    def passes_activity(
-        self, condition_activity: ConditionActivity, event_map: dict[str, Any]
-    ) -> bool:
-        try:
-            group = Group.objects.get_from_cache(id=condition_activity.group_id)
-        except Group.DoesNotExist:
-            return False
-
-        return self._passes(group.first_seen, condition_activity.timestamp)
 
     def get_form_instance(self) -> AgeComparisonForm:
         return AgeComparisonForm(self.data)

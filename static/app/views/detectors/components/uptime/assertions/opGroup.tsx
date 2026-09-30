@@ -42,6 +42,66 @@ const GROUP_TYPE_OPTIONS: Array<SelectOption<UptimeOpType.AND | UptimeOpType.OR>
   {value: UptimeOpType.OR, label: t('Assert Any')},
 ];
 
+interface AssertionOperationProps {
+  onChange: (op: UptimeOp) => void;
+  onRemove: () => void;
+  op: UptimeOp;
+  disableDropping?: boolean;
+  erroredOp?: UptimeOp;
+}
+
+function AssertionOperation({
+  op,
+  erroredOp,
+  onChange,
+  onRemove,
+  disableDropping,
+}: AssertionOperationProps) {
+  switch (op.op) {
+    case UptimeOpType.STATUS_CODE_CHECK:
+      return (
+        <AssertionOpStatusCode
+          value={op}
+          erroredOp={erroredOp}
+          onChange={onChange}
+          onRemove={onRemove}
+        />
+      );
+    case UptimeOpType.JSON_PATH:
+      return (
+        <AssertionOpJsonPath
+          value={op}
+          erroredOp={erroredOp}
+          onChange={onChange}
+          onRemove={onRemove}
+        />
+      );
+    case UptimeOpType.HEADER_CHECK:
+      return (
+        <AssertionOpHeader
+          value={op}
+          erroredOp={erroredOp}
+          onChange={onChange}
+          onRemove={onRemove}
+        />
+      );
+    case UptimeOpType.AND:
+    case UptimeOpType.OR:
+    case UptimeOpType.NOT:
+      return (
+        <AssertionOpGroup
+          value={op}
+          erroredOp={erroredOp}
+          onChange={onChange}
+          onRemove={onRemove}
+          disableDropping={disableDropping}
+        />
+      );
+    default:
+      return null;
+  }
+}
+
 export function AssertionOpGroup({
   value,
   onChange,
@@ -119,56 +179,6 @@ export function AssertionOpGroup({
 
   const innerDroppableDisabled = !root && (isDragging || !!disableDropping);
 
-  const renderOp = (op: UptimeOp, index: number) => {
-    switch (op.op) {
-      case UptimeOpType.STATUS_CODE_CHECK:
-        return (
-          <AssertionOpStatusCode
-            key={op.id}
-            value={op}
-            erroredOp={erroredOp}
-            onChange={updatedOp => handleUpdateChild(index, updatedOp)}
-            onRemove={() => handleRemoveChild(index)}
-          />
-        );
-      case UptimeOpType.JSON_PATH:
-        return (
-          <AssertionOpJsonPath
-            key={op.id}
-            value={op}
-            erroredOp={erroredOp}
-            onChange={updatedOp => handleUpdateChild(index, updatedOp)}
-            onRemove={() => handleRemoveChild(index)}
-          />
-        );
-      case UptimeOpType.HEADER_CHECK:
-        return (
-          <AssertionOpHeader
-            key={op.id}
-            value={op}
-            erroredOp={erroredOp}
-            onChange={updatedOp => handleUpdateChild(index, updatedOp)}
-            onRemove={() => handleRemoveChild(index)}
-          />
-        );
-      case UptimeOpType.AND:
-      case UptimeOpType.OR:
-      case UptimeOpType.NOT:
-        return (
-          <AssertionOpGroup
-            key={op.id}
-            value={op}
-            erroredOp={erroredOp}
-            onChange={updatedOp => handleUpdateChild(index, updatedOp)}
-            onRemove={() => handleRemoveChild(index)}
-            disableDropping={innerDroppableDisabled}
-          />
-        );
-      default:
-        return null;
-    }
-  };
-
   const opList = groupOp.children.map((child, index) => {
     const dropProps = {
       disabled: innerDroppableDisabled,
@@ -180,7 +190,13 @@ export function AssertionOpGroup({
     return (
       <Container position="relative" key={child.id}>
         <DroppableHitbox {...dropProps} position="before" />
-        {renderOp(child, index)}
+        <AssertionOperation
+          op={child}
+          erroredOp={erroredOp}
+          onChange={updatedOp => handleUpdateChild(index, updatedOp)}
+          onRemove={() => handleRemoveChild(index)}
+          disableDropping={innerDroppableDisabled}
+        />
         <DroppableHitbox {...dropProps} position="after" />
       </Container>
     );
@@ -193,8 +209,11 @@ export function AssertionOpGroup({
           {opList}
           <div>
             <AddOpButton
-              triggerProps={{icon: <IconAdd />}}
-              triggerLabel={t('Add Assertion')}
+              trigger={triggerProps => (
+                <OverlayTrigger.Button {...triggerProps} icon={<IconAdd />}>
+                  {t('Add Assertion')}
+                </OverlayTrigger.Button>
+              )}
               onAddOp={handleAddOp}
             />
           </div>
@@ -268,14 +287,17 @@ export function AssertionOpGroup({
         <Container paddingTop="md">
           <AddOpButton
             size="xs"
-            triggerProps={{
-              variant: 'transparent',
-              size: 'zero',
-              icon: <IconAdd size="xs" />,
-              tooltipProps: {title: t('Add assertion to group')},
-              'aria-label': t('Add assertion to group'),
-            }}
-            triggerLabel={t('Add Assertion')}
+            trigger={triggerProps => (
+              <OverlayTrigger.Button
+                {...triggerProps}
+                variant="transparent"
+                size="zero"
+                icon={<IconAdd size="xs" />}
+                tooltipProps={{title: t('Add assertion to group')}}
+              >
+                {t('Add Assertion')}
+              </OverlayTrigger.Button>
+            )}
             onAddOp={handleAddOp}
           />
         </Container>

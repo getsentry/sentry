@@ -21,6 +21,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {FieldKind, type FieldDefinition} from 'sentry/utils/fields';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {
   ExploreBodyContent,
   ExploreBodySearch,
@@ -40,6 +41,7 @@ import {SaveConversationQueryButton} from 'sentry/views/explore/conversations/co
 import {
   CONVERSATION_FIELDS,
   useConversations,
+  type Conversation,
 } from 'sentry/views/explore/conversations/hooks/useConversations';
 import {useShowConversationOnboarding} from 'sentry/views/explore/conversations/hooks/useShowConversationOnboarding';
 import {ConversationOnboarding} from 'sentry/views/explore/conversations/onboarding';
@@ -48,6 +50,7 @@ import {Referrer} from 'sentry/views/explore/conversations/utils/referrers';
 import {useVisitQuery} from 'sentry/views/explore/hooks/useVisitQuery';
 import {AgentSelector} from 'sentry/views/insights/common/components/agentSelector';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
+import {getAiInstrumentationDocsLink} from 'sentry/views/insights/pages/agents/utils/docsLinks';
 import {
   FilterUrlParams,
   TableUrlParams,
@@ -83,6 +86,29 @@ const CONVERSATION_PRIORITIZED_FILTER_KEYS = Object.keys(CONVERSATION_FILTER_KEY
 
 const SPANS_CURSOR_URL_PARAM = 'cursor';
 const agentsTableTabParser = parseAsStringLiteral(AGENTS_TABLE_TABS);
+
+/**
+ * Links to the listed conversations' platform docs when they all come from one
+ * project, and to the general setup docs otherwise.
+ */
+function MissingMessagesAlert({conversations}: {conversations: Conversation[]}) {
+  const {projects} = useProjects();
+  const projectIds = new Set(conversations.map(conversation => conversation.projectId));
+  const [projectId] = projectIds;
+  const platform =
+    projectIds.size === 1 && projectId !== null && projectId !== undefined
+      ? projects.find(project => project.id === String(projectId))?.platform
+      : undefined;
+
+  return (
+    <ConversationMissingMessagesAlert
+      dismissKey="conversation-missing-messages-alert"
+      docsLink={getAiInstrumentationDocsLink(platform)}
+      padding="0 0 xl"
+      plural
+    />
+  );
+}
 
 function ConversationsOverviewPage() {
   const organization = useOrganization();
@@ -267,7 +293,9 @@ function ConversationsOverviewPage() {
     content = (
       <Fragment>
         {hasAgenticSpans && <AgentsCharts />}
-        {showMissingMessagesAlert && <ConversationMissingMessagesAlert />}
+        {showMissingMessagesAlert && (
+          <MissingMessagesAlert conversations={conversations} />
+        )}
         <AgentsTable
           activeTab={activeTab}
           conversations={conversationsResult}
@@ -284,7 +312,9 @@ function ConversationsOverviewPage() {
   } else {
     content = (
       <Fragment>
-        {showMissingMessagesAlert && <ConversationMissingMessagesAlert />}
+        {showMissingMessagesAlert && (
+          <MissingMessagesAlert conversations={conversations} />
+        )}
         <ConversationsChart />
         <ConversationsTable conversations={conversationsResult} />
       </Fragment>

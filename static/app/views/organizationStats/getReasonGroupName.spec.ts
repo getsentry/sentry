@@ -93,6 +93,7 @@ describe('getReasonGroupName', () => {
       'Browser Extensions'
     );
     expect(getReasonGroupName(Outcome.FILTERED, 'ip-address')).toBe('IP Address');
+    expect(getReasonGroupName(Outcome.FILTERED, 'invalid-csp')).toBe('Invalid CSP');
 
     expect(getReasonGroupName(Outcome.CLIENT_DISCARD, 'queue_overflow')).toBe(
       ClientDiscardReason.QUEUE_OVERFLOW

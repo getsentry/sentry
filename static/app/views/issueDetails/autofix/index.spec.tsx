@@ -99,7 +99,7 @@ describe('GroupAutofix', () => {
     renderPage(
       OrganizationFixture({
         hideAiFeatures: false,
-        features: ['gen-ai-features', 'autofix-page'],
+        features: ['autofix-page'],
       })
     );
 
@@ -122,7 +122,7 @@ describe('GroupAutofix', () => {
     renderPage(
       OrganizationFixture({
         hideAiFeatures: false,
-        features: ['gen-ai-features', 'autofix-page', 'seer-billing'],
+        features: ['autofix-page', 'seer-billing'],
       })
     );
 
@@ -150,7 +150,7 @@ describe('GroupAutofix', () => {
     renderPage(
       OrganizationFixture({
         hideAiFeatures: false,
-        features: ['gen-ai-features', 'autofix-page', 'seer-billing'],
+        features: ['autofix-page', 'seer-billing'],
       })
     );
 
@@ -170,7 +170,7 @@ describe('GroupAutofix', () => {
     renderPage(
       OrganizationFixture({
         hideAiFeatures: false,
-        features: ['gen-ai-features', 'autofix-page', 'seer-billing'],
+        features: ['autofix-page', 'seer-billing'],
       })
     );
 
@@ -185,7 +185,7 @@ describe('GroupAutofix', () => {
     renderPage(
       OrganizationFixture({
         hideAiFeatures: false,
-        features: ['gen-ai-features', 'autofix-page', 'seer-billing'],
+        features: ['autofix-page', 'seer-billing'],
       })
     );
 
@@ -197,7 +197,7 @@ describe('GroupAutofix', () => {
 
   it('redirects to issue details without the autofix-page feature', async () => {
     const {router} = renderPage(
-      OrganizationFixture({hideAiFeatures: false, features: ['gen-ai-features']})
+      OrganizationFixture({hideAiFeatures: false, features: []})
     );
 
     await waitFor(() => {
@@ -211,7 +211,7 @@ describe('GroupAutofix', () => {
     const {router} = renderPage(
       OrganizationFixture({
         hideAiFeatures: true,
-        features: ['gen-ai-features', 'autofix-page'],
+        features: ['autofix-page'],
       })
     );
 

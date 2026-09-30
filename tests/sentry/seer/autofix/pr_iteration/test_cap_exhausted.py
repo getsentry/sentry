@@ -145,7 +145,7 @@ class AssignUserForExhaustedCapTest(TestCase):
         assert self._marker() is None
 
     @patch(f"{CAP_EXHAUSTED_PATH}.scm_actions")
-    def test_skips_night_shift_run_without_user(
+    def test_skips_agentic_triage_run_without_user(
         self, mock_actions: MagicMock, _mock_cap: MagicMock
     ) -> None:
         self.seer_run.update(user_id=None)
