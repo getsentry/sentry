@@ -235,10 +235,14 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
 
   const openSeerExplorer = useCallback(
     (drawerOptions?: OpenSeerExplorerDrawerOptions) => {
-      // Join the conversation on screen; with Explorer closed, the last run may be
-      // unrelated, so start a new chat. Shared chat state reaches the popped-out window.
+      // A question about a specific run asks there. Otherwise join the conversation on
+      // screen; with Explorer closed, the last run may be unrelated, so start a new chat.
+      // The prompt is set after the run id, which clears it. Shared chat state reaches
+      // the popped-out window.
       if (drawerOptions?.chatPrompt) {
-        if (!isOpen && !isPoppedOut) {
+        if (drawerOptions.runId !== undefined) {
+          dispatch({type: 'set run id', payload: drawerOptions.runId});
+        } else if (!isOpen && !isPoppedOut) {
           dispatch({type: 'set run id', payload: null});
         }
         dispatch({type: 'set chat prompt', payload: drawerOptions.chatPrompt});

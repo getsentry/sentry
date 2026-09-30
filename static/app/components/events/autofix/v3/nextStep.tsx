@@ -40,7 +40,10 @@ import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {hasAutofixPage} from 'sentry/views/issueDetails/autofix/utils';
+import {useAskSeer} from 'sentry/views/seerExplorer/hooks/useAskSeer';
 import type {SeerExplorerRunId} from 'sentry/views/seerExplorer/types';
+import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
 
 interface SeerDrawerNextStepProps {
   autofix: ReturnType<typeof useExplorerAutofix>;
@@ -155,6 +158,37 @@ interface NextStepProps {
   referrer?: string;
 }
 
+/**
+ * On the Autofix page, "no" opens Seer Agent on this run with Seer asking what
+ * to change, so the reader answers in the chat instead of a one-shot textarea.
+ * Returns undefined where that isn't available, leaving the textarea in place.
+ */
+function useRethinkInChat({
+  group,
+  prompt,
+  runId,
+  step,
+}: {
+  group: Group;
+  prompt: string;
+  runId: SeerExplorerRunId;
+  step: 'root_cause' | 'solution' | 'code_changes';
+}): (() => void) | undefined {
+  const organization = useOrganization();
+  const context = useMemo(
+    () => ({issue: group.shortId, autofixStep: step}),
+    [group.shortId, step]
+  );
+  const askSeer = useAskSeer({prompt, context, runId});
+
+  const isAvailable =
+    hasAutofixPage(organization) &&
+    organization.features.includes('seer-explorer-chat-prompts') &&
+    isSeerExplorerEnabled(organization);
+
+  return isAvailable ? askSeer : undefined;
+}
+
 function RootCauseNextStep({autofix, group, runId, section, referrer}: NextStepProps) {
   const organization = useOrganization();
   const {isPolling, startStep} = autofix;
@@ -196,6 +230,14 @@ function RootCauseNextStep({autofix, group, runId, section, referrer}: NextStepP
     [organization, group, startStep, runId, referrer, section.index]
   );
 
+  const rethinkPrompt = t('How can this root cause be improved?');
+  const rethinkInChat = useRethinkInChat({
+    group,
+    prompt: rethinkPrompt,
+    runId,
+    step: 'root_cause',
+  });
+
   const artifact = useMemo(() => getAutofixArtifactFromSection(section), [section]);
 
   if (!defined(artifact)) {
@@ -219,7 +261,8 @@ function RootCauseNextStep({autofix, group, runId, section, referrer}: NextStepP
         </Button>
       }
       placeholderPrompt={t('Give seer additional context to improve this root cause.')}
-      rethinkPrompt={t('How can this root cause be improved?')}
+      rethinkPrompt={rethinkPrompt}
+      rethinkInChat={rethinkInChat}
       labelRethink={t('Rethink root cause')}
       askSeer={isCodeMode ? {onAsk: askSeer, prompt: t('Rethink root cause')} : undefined}
       codingAgentIntegrations={codingAgentIntegrations}
@@ -270,6 +313,14 @@ function SolutionNextStep({autofix, group, runId, section, referrer}: NextStepPr
     [organization, group, startStep, runId, referrer, section.index]
   );
 
+  const rethinkPrompt = t('How can this plan be improved?');
+  const rethinkInChat = useRethinkInChat({
+    group,
+    prompt: rethinkPrompt,
+    runId,
+    step: 'solution',
+  });
+
   const artifact = useMemo(() => getAutofixArtifactFromSection(section), [section]);
 
   if (!defined(artifact)) {
@@ -293,7 +344,8 @@ function SolutionNextStep({autofix, group, runId, section, referrer}: NextStepPr
         </Button>
       }
       placeholderPrompt={t('Give seer additional context to improve this plan.')}
-      rethinkPrompt={t('How can this plan be improved?')}
+      rethinkPrompt={rethinkPrompt}
+      rethinkInChat={rethinkInChat}
       labelRethink={t('Rethink plan')}
       askSeer={isCodeMode ? {onAsk: askSeer, prompt: t('Rethink plan')} : undefined}
       codingAgentIntegrations={codingAgentIntegrations}
@@ -420,6 +472,14 @@ function CodeChangesNextStepContent({
     [organization, group, startStep, runId, referrer, section.index]
   );
 
+  const rethinkPrompt = t('How can this code change be improved?');
+  const rethinkInChat = useRethinkInChat({
+    group,
+    prompt: rethinkPrompt,
+    runId,
+    step: 'code_changes',
+  });
+
   return (
     <NextStepTemplate
       isProcessing={isPolling}
@@ -449,7 +509,8 @@ function CodeChangesNextStepContent({
         />
       }
       placeholderPrompt={t('Give seer additional context to improve this code change.')}
-      rethinkPrompt={t('How can this code change be improved?')}
+      rethinkPrompt={rethinkPrompt}
+      rethinkInChat={rethinkInChat}
       labelRethink={t('Rethink code changes')}
       askSeer={
         isCodeMode ? {onAsk: askSeer, prompt: t('Rethink code changes')} : undefined
@@ -466,7 +527,7 @@ interface NextStepTemplateProps {
   onClickNo: (prompt: string) => void;
   placeholderPrompt: string;
   prompt: ReactNode;
-  rethinkPrompt: ReactNode;
+  rethinkPrompt: string;
   yesButton: ReactNode;
   /**
    * Set only in code mode, where "no" hands the question to Seer Agent with
@@ -477,6 +538,11 @@ interface NextStepTemplateProps {
   codingAgentDisabledReason?: string;
   codingAgentIntegrations?: CodingAgentIntegration[];
   onCodingAgentHandoff?: (integration: CodingAgentIntegration) => void;
+  /**
+   * When set, "no" opens Seer Agent on `rethinkPrompt` instead of the
+   * textarea below, and the reader types their changes into the chat.
+   */
+  rethinkInChat?: () => void;
 }
 
 function NextStepTemplate({
@@ -490,6 +556,7 @@ function NextStepTemplate({
   rethinkPrompt,
   labelRethink,
   askSeer,
+  rethinkInChat,
   codingAgentIntegrations,
   codingAgentDisabledReason,
   onCodingAgentHandoff,
@@ -555,7 +622,10 @@ function NextStepTemplate({
             {t('Ask Seer')}
           </Button>
         ) : (
-          <Button disabled={isProcessing} onClick={() => handleClickedNo(true)}>
+          <Button
+            disabled={isProcessing}
+            onClick={rethinkInChat ?? (() => handleClickedNo(true))}
+          >
             {labelNo}
           </Button>
         )}

@@ -12,10 +12,15 @@ import type {
 import {AutofixChatProvider} from 'sentry/components/seer/autofixChatContext';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {ExplorerFilePatch} from 'sentry/views/seerExplorer/types';
+import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 
 import {SeerDrawerNextStep} from './nextStep';
 
 jest.mock('sentry/utils/analytics');
+jest.mock('sentry/views/seerExplorer/useSeerExplorerContext', () => ({
+  ...jest.requireActual('sentry/views/seerExplorer/useSeerExplorerContext'),
+  useSeerExplorerContext: jest.fn(),
+}));
 
 // The agent is only reachable when the Explorer is, so code mode needs the
 // Explorer's own prerequisites on top of its flag.
@@ -116,6 +121,104 @@ function makeSection(
 }
 
 describe('SeerDrawerNextStep', () => {
+  const openSeerExplorer = jest.fn();
+
+  beforeEach(() => {
+    openSeerExplorer.mockClear();
+    jest.mocked(useSeerExplorerContext).mockReturnValue({
+      closeSeerExplorer: jest.fn(),
+      isOpen: false,
+      openSeerExplorer,
+      sessionState: 'inactive',
+      sidebarContainerRef: {current: null},
+      setSidebarPosition: jest.fn(),
+      sidebarAppendInitialQuery: false,
+      sidebarInitialQuery: undefined,
+      sidebarKey: 0,
+      sidebarPosition: 'auto',
+      toggleSeerExplorer: jest.fn(),
+      unreadCount: 0,
+    });
+  });
+
+  describe('on the Autofix page', () => {
+    const autofixPageOrganization = OrganizationFixture({
+      features: ['autofix-page', 'seer-explorer-chat-prompts', 'seer-explorer'],
+      openMembership: true,
+      hideAiFeatures: false,
+    });
+
+    beforeEach(() => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/integrations/coding-agents/',
+        body: {integrations: []},
+      });
+      MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug/seer/repos/',
+        body: [{provider: 'github'}],
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/1/autofix/repos/',
+        body: {repos: [{has_write_access: true}]},
+      });
+    });
+
+    it.each([
+      ['root_cause', 'How can this root cause be improved?'],
+      ['solution', 'How can this plan be improved?'],
+      ['code_changes', 'How can this code change be improved?'],
+    ])(
+      'asks for changes to %s in Seer Agent instead of the textarea',
+      async (step, question) => {
+        const autofix = makeAutofix();
+        const group = GroupFixture();
+        render(
+          <SeerDrawerNextStep
+            group={group}
+            sections={[makeSection(step)]}
+            autofix={autofix}
+          />,
+          {organization: autofixPageOrganization}
+        );
+
+        await userEvent.click(await screen.findByRole('button', {name: 'No'}));
+
+        expect(openSeerExplorer).toHaveBeenCalledWith({
+          runId: 1,
+          chatPrompt: {
+            text: question,
+            context: JSON.stringify({issue: group.shortId, autofixStep: step}),
+            openedAt: expect.any(Number),
+          },
+        });
+        expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+        expect(autofix.startStep).not.toHaveBeenCalled();
+      }
+    );
+
+    it('keeps the textarea without chat prompts', async () => {
+      render(
+        <SeerDrawerNextStep
+          group={GroupFixture()}
+          sections={[makeSection('root_cause')]}
+          autofix={makeAutofix()}
+        />,
+        {
+          organization: OrganizationFixture({
+            features: ['autofix-page', 'seer-explorer'],
+            openMembership: true,
+            hideAiFeatures: false,
+          }),
+        }
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'No'}));
+
+      expect(openSeerExplorer).not.toHaveBeenCalled();
+      expect(screen.getByRole('textbox')).toBeInTheDocument();
+    });
+  });
+
   it('returns null when no runId', () => {
     const autofix = makeAutofix({runState: null});
     const {container} = render(
