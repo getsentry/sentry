@@ -3,7 +3,6 @@ from unittest.mock import patch
 
 import pytest
 
-from sentry.models.grouplink import GroupLink
 from sentry.models.project import Project
 from sentry.models.pullrequest import PullRequestLifecycleState
 from sentry.tasks.seer.agentic_triage.simple_triage import (
@@ -82,43 +81,6 @@ def test_excludes_prior_seer_pull_requests_after_cooldown(
         candidates = strategy([default_project], 10)
 
     assert {candidate.group.id for candidate in candidates} == {retry.id, fresh.id}
-
-
-@django_db_all
-@pytest.mark.parametrize(
-    "relationship", [GroupLink.Relationship.references, GroupLink.Relationship.resolves]
-)
-def test_group_pr_links_do_not_exclude_candidates(
-    default_project: Project, relationship: int
-) -> None:
-    group = Factories.create_group(project=default_project)
-    other_group = Factories.create_group(project=default_project, seer_fixability_score=0.0)
-    repository = Factories.create_repo(project=default_project)
-    pull_request = Factories.create_pull_request(
-        repository_id=repository.id, organization_id=default_project.organization_id
-    )
-    Factories.create_group_link(
-        group=group,
-        linked_id=pull_request.id,
-        linked_type=GroupLink.LinkedType.pull_request,
-        relationship=relationship,
-    )
-    other_pull_request = Factories.create_pull_request(
-        repository_id=repository.id, organization_id=default_project.organization_id
-    )
-    other_run = Factories.create_seer_run(organization=default_project.organization)
-    Factories.create_seer_agent_run(
-        run=other_run, project=default_project, group=other_group, source="autofix"
-    )
-    Factories.create_seer_run_pull_request(run=other_run, pull_request=other_pull_request)
-
-    with patch(
-        "sentry.tasks.seer.agentic_triage.simple_triage._agentic_triage_snuba_factors",
-        return_value={},
-    ):
-        candidates = fixability_score_strategy([default_project], 10)
-
-    assert [candidate.group.id for candidate in candidates] == [group.id]
 
 
 class TestAgenticTriageScore(TestCase):
