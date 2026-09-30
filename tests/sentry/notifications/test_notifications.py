@@ -699,7 +699,6 @@ class ActivityNotificationTest(APITestCase):
                     is_regression=False,
                     is_new_group_environment=True,
                     group_id=event.group_id,
-                    cache_key=None,
                     event_id=event.event_id,
                     project_id=self.project.id,
                     eventstream_type=EventStreamEventType.Error.value,

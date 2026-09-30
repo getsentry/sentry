@@ -85,7 +85,6 @@ class BaseWorkflowIntegrationTest(BaseWorkflowTest):
             is_new=is_new,
             is_regression=is_regression,
             is_new_group_environment=is_new_group_environment,
-            cache_key=None,
             group_id=group_id,
             occurrence_id=self.occurrence.id if include_occurrence else None,
             event_id=event.event_id,

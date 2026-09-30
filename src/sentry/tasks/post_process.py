@@ -546,7 +546,7 @@ def post_process_group(
     is_new: bool,
     is_regression: bool | None,
     is_new_group_environment: bool,
-    cache_key: str | None,
+    cache_key: str | None = None,
     group_id: int | None = None,
     occurrence_id: str | None = None,
     *,
