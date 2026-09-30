@@ -274,7 +274,7 @@ type InvestigationOrchestrationEvidence = {
   url?: string | null;
 };
 
-/** One check the agent ran against a hypothesis — an "Evidence checked" row. */
+/** One check planned against a hypothesis, including checks skipped by the agent. */
 export type InvestigationVerificationStep = {
   error: InvestigationOrchestrationError | null;
   evidence: InvestigationOrchestrationEvidence[];
@@ -283,7 +283,7 @@ export type InvestigationVerificationStep = {
   objective: string;
   order: number;
   result: string | null;
-  status: InvestigationOrchestrationWorkStatus;
+  status: InvestigationOrchestrationWorkStatus | 'skipped';
   title: string;
 };
 
