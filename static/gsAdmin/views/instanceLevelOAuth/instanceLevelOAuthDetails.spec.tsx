@@ -156,10 +156,20 @@ describe('instance level OAuth client details', () => {
       newClientDetails.privacyUrl
     );
 
+    const refreshedGetCall = MockApiClient.addMockResponse({
+      url: `/_admin/instance-level-oauth/${mockClientDetails.clientID}/`,
+      method: 'GET',
+      body: {...mockClientDetails, name: newClientDetails.name},
+    });
+
     await userEvent.click(screen.getByRole('button', {name: 'Save Client Settings'}));
     expect(mockPutCall).toHaveBeenCalledTimes(1);
     const submittedPutRequestBody = mockPutCall.mock.calls[0][1].data;
     expect(submittedPutRequestBody).toEqual(newClientDetails);
+    expect(
+      await screen.findByText('Details For Instance Level OAuth Client: New Name')
+    ).toBeInTheDocument();
+    expect(refreshedGetCall).toHaveBeenCalledTimes(1);
   });
 
   it('rejects invalid URLs', async () => {

@@ -1,5 +1,5 @@
 import {Fragment, useEffect} from 'react';
-import {useMutation, useQuery} from '@tanstack/react-query';
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
@@ -16,7 +16,6 @@ import {getFormattedDate} from 'sentry/utils/dates';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
-import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useParams} from 'sentry/utils/useParams';
 
 import {PageHeader} from 'admin/components/pageHeader';
@@ -124,7 +123,18 @@ const fields = [
   },
 ];
 
+function clientDetailsQueryOptions(clientID: string) {
+  return apiOptions.as<ClientDetailsResponse>()(
+    '/_admin/instance-level-oauth/$clientId/',
+    {
+      path: {clientId: clientID},
+      staleTime: 0,
+    }
+  );
+}
+
 function ClientDetailsForm({clientDetails}: {clientDetails: ClientDetails}) {
+  const queryClient = useQueryClient();
   const mutation = useMutation({
     mutationFn: (data: z.infer<typeof clientSchema>) =>
       fetchMutation({
@@ -134,7 +144,10 @@ function ClientDetailsForm({clientDetails}: {clientDetails: ClientDetails}) {
         method: 'PUT',
         data,
       }),
-    onSuccess: () => testableWindowLocation.reload(),
+    onSuccess: () =>
+      queryClient.invalidateQueries({
+        queryKey: clientDetailsQueryOptions(clientDetails.clientID ?? '').queryKey,
+      }),
     onError: error => {
       if (
         error instanceof RequestError &&
@@ -193,10 +206,7 @@ export function InstanceLevelOAuthDetails() {
   const {openModal} = useModal();
   const params = useParams<{clientID: string}>();
   const {data, isPending, isError} = useQuery({
-    ...apiOptions.as<ClientDetailsResponse>()('/_admin/instance-level-oauth/$clientId/', {
-      path: {clientId: params.clientID},
-      staleTime: 0,
-    }),
+    ...clientDetailsQueryOptions(params.clientID),
     retry: false,
   });
 
