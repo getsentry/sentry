@@ -58,6 +58,7 @@ from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.utils.cache import cache
 from sentry.utils.locking import UnableToAcquireLock
+from sentry.utils.settings import is_self_hosted
 from sentry.utils.tracing import start_span
 
 logger = logging.getLogger(__name__)
@@ -585,8 +586,8 @@ def get_issue_summary(
     """
     if user is None:
         user = AnonymousUser()
-    if not features.has("organizations:gen-ai-features", group.organization, actor=user):
-        return {"detail": "Feature flag not enabled"}, 400
+    if is_self_hosted():
+        return {"detail": "Seer is not available on this installation."}, 400
 
     if group.organization.get_option("sentry:hide_ai_features"):
         return {"detail": "AI features are disabled for this organization."}, 403

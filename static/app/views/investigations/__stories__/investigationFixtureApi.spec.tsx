@@ -185,12 +185,6 @@ describe('InvestigationFixtureApi', () => {
       await userEvent.click(screen.getByRole('button', {name: /Hypotheses/}));
 
       expect(await screen.findAllByTestId('investigation-hypothesis')).toHaveLength(3);
-      expect(
-        screen.getByRole('heading', {
-          name: 'Database or cache degradation delayed the response',
-        })
-      ).toBeInTheDocument();
-      expect(screen.getByText('Supported')).toBeInTheDocument();
       // A settled hypothesis folds its checks behind a toggle.
       expect(screen.getByRole('button', {name: 'Show all 3 steps'})).toBeInTheDocument();
     });

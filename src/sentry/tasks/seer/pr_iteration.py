@@ -9,7 +9,6 @@ from typing import Any, NamedTuple
 from uuid import uuid4
 
 import sentry_sdk
-from django.utils import timezone
 from scm import actions as scm_actions
 from scm.errors import ResourceNotFound, SCMError
 from scm.helpers import iter_all_pages
@@ -61,16 +60,15 @@ from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.pr_iteration.bot_identity import bot_logins_for_feedback
 from sentry.seer.autofix.pr_iteration.cap_exhausted import assign_user_for_exhausted_cap
 from sentry.seer.autofix.pr_iteration.constants import PR_ITERATION_PROVIDER
-from sentry.seer.autofix.pr_iteration.details_store import (
-    count_iterations_before,
-    remove_iterations_before,
-)
 from sentry.seer.autofix.pr_iteration.emit import (
+    PrIterationOutcome,
     bootstrap_iteration,
     discard_pr_iteration_details,
+    fail_pr_iteration_details,
     outcome_for_pause,
     record_pr_iteration_blocked,
     record_pr_iteration_counts,
+    record_pr_iteration_failure_reason,
     trigger_pr_iteration_details,
 )
 from sentry.seer.autofix.pr_iteration.feedback import (
@@ -118,6 +116,7 @@ from sentry.seer.autofix.pr_iteration.queue import (
     enqueue_autofix_feedback,
     pop_queued_autofix_feedback,
 )
+from sentry.seer.autofix.pr_iteration.sweep import sweep_stale_pr_iterations
 from sentry.seer.autofix.pr_iteration.tracing import set_pr_iteration_attributes
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.models import SeerApiError, SeerPermissionError, SeerUnavailableError
@@ -313,6 +312,13 @@ def trigger_consume_pr_iteration_feedback(
 
     if decision.task is None:
         outcome = "not_triggered"
+        # Nothing will drain this feedback. Save the reason for the sweep.
+        record_pr_iteration_failure_reason(
+            log_ctx=log_ctx,
+            run_id=run_id,
+            organization_id=organization_id,
+            reason=decision.reason,
+        )
     elif countdown:
         outcome = "delayed"
     else:
@@ -350,7 +356,7 @@ def comment_on_missing_permissions(
     organization_id: int,
     repo_name: str,
     pr_number: int,
-    pr_id: int | None,
+    pr_id: str | None,
     integration_id: int,
     repository_id: int | None = None,
     *args: Any,
@@ -549,6 +555,27 @@ def consume_queued_autofix_feedback(
             raise
 
 
+def _dropped_drain_reason(dropped: list[dict[str, Any]]) -> str:
+    """One reason for a drain that dropped everything."""
+    reasons = {item["reason"] for item in dropped}
+    if reasons <= {"stale_head", "live_head_mismatch"}:
+        return PrIterationOutcome.STALE_HEAD.value
+
+    if len(reasons) == 1:
+        return reasons.pop()
+
+    return PrIterationOutcome.NO_CONSUMABLE_FEEDBACK.value
+
+
+def _record_drain_outcome(outcome: str, trigger_source: str | None) -> None:
+    """Count how each drain ended, so the mix of outcomes can be charted."""
+    metrics.incr(
+        "autofix.pr_iteration.consume_feedback.drain",
+        tags={"outcome": outcome, "trigger_source": trigger_source or "unknown"},
+        sample_rate=1.0,
+    )
+
+
 def _discard_iteration(
     log_ctx: PrIterationLogContext, run_id: int, organization_id: int, iteration_id: int | None
 ) -> None:
@@ -616,6 +643,8 @@ def _drain_queued_autofix_feedback(
         return
 
     if state.status in ("processing", "error"):
+        # An errored run should already be paused. A processing run's
+        # completion hook drains the queue when it finishes.
         log_ctx.info(
             "autofix.pr_iteration.consume_feedback.drain",
             outcome="skipped",
@@ -625,13 +654,10 @@ def _drain_queued_autofix_feedback(
             trigger_source=trigger_source,
             left_queued_count=count_queued_autofix_feedback(run_id),
         )
+        _record_drain_outcome(f"skipped_run_{state.status}", trigger_source)
         return
 
-    # The previous iteration's push (triggered separately, from the
-    # on_completion_hook) races this drain. If it left unpushed changes
-    # behind, wait for it rather than starting a new iteration against a PR
-    # that's about to change underneath it. has_code_changes() reports
-    # synced when there was nothing to push, so that case is unaffected.
+    # Wait for the previous iteration to push. Its completion hook drains the queue.
     _, all_changes_pushed = state.has_code_changes()
     if not all_changes_pushed:
         log_ctx.info(
@@ -643,6 +669,7 @@ def _drain_queued_autofix_feedback(
             trigger_source=trigger_source,
             left_queued_count=count_queued_autofix_feedback(run_id),
         )
+        _record_drain_outcome("skipped_push_pending", trigger_source)
         return
 
     # Claim before the pop, so feedback arriving mid-drain opens its own row.
@@ -664,6 +691,7 @@ def _drain_queued_autofix_feedback(
             trigger_id=trigger_id,
             trigger_source=trigger_source,
         )
+        _record_drain_outcome("skipped_no_feedback", trigger_source)
         return
 
     consumable_items: list[QueuedAutofixFeedback] = []
@@ -738,8 +766,16 @@ def _drain_queued_autofix_feedback(
             queued_count=len(queued_items),
             dropped=dropped,
         )
-        # The drain popped the queue, so this iteration will never run.
-        _discard_iteration(log_ctx, run_id, organization_id, iteration_id)
+        _record_drain_outcome("skipped_no_feedback", trigger_source)
+        # The queue was popped, so this batch never runs. Save why for the sweep.
+        if iteration_id is not None:
+            record_pr_iteration_failure_reason(
+                log_ctx=log_ctx,
+                run_id=run_id,
+                organization_id=organization_id,
+                reason=_dropped_drain_reason(dropped),
+                iteration_id=iteration_id,
+            )
         return
 
     referrer = _get_feedback_referrer(consumable_items)
@@ -816,9 +852,31 @@ def _drain_queued_autofix_feedback(
             trigger_id=trigger_id,
             trigger_source=trigger_source,
         )
+        _record_drain_outcome(
+            "skipped_permission" if isinstance(error, SeerPermissionError) else "skipped_no_pr",
+            trigger_source,
+        )
         # The drain popped the queue, so this iteration will never run.
         _discard_iteration(log_ctx, run_id, organization_id, iteration_id)
         return
+    except Exception as error:
+        _stop_after_drain_failure(
+            log_ctx=log_ctx,
+            run_id=run_id,
+            organization_id=organization_id,
+            state=state,
+            iteration_id=iteration_id,
+        )
+        log_ctx.info(
+            "autofix.pr_iteration.consume_feedback.trigger_agent",
+            outcome="failed",
+            reason=type(error).__name__,
+            trigger_id=trigger_id,
+            trigger_source=trigger_source,
+            dropped_feedback_ids=[item.feedback.feedback_id for item in consumable_items],
+        )
+        _record_drain_outcome("failed", trigger_source)
+        raise
 
     log_ctx.info(
         "autofix.pr_iteration.consume_feedback.trigger_agent",
@@ -826,10 +884,34 @@ def _drain_queued_autofix_feedback(
         trigger_id=trigger_id,
         trigger_source=trigger_source,
     )
-    metrics.incr(
-        "autofix.pr_iteration.consume_feedback.triggered",
-        tags={"trigger_source": trigger_source or "unknown"},
-    )
+    _record_drain_outcome("started", trigger_source)
+
+
+def _stop_after_drain_failure(
+    *,
+    log_ctx: PrIterationLogContext,
+    run_id: int,
+    organization_id: int,
+    state: SeerRunState,
+    iteration_id: int | None,
+) -> None:
+    """Pause the run and record the claimed iteration as failed."""
+    if iteration_id is not None:
+        fail_pr_iteration_details(
+            log_ctx=log_ctx,
+            run_state=state,
+            organization_id=organization_id,
+            iteration_id=iteration_id,
+            outcome=PrIterationOutcome.DRAIN_FAILED.value,
+        )
+    try:
+        pause_pr_iteration(
+            run_id=run_id,
+            organization_id=organization_id,
+            reason=PauseReason.DRAIN_FAILED,
+        )
+    except Exception:
+        log_ctx.error("autofix.pr_iteration.consume_feedback.pause_failed")
 
 
 def _github_commenter_has_repo_write_access(
@@ -1118,7 +1200,7 @@ def _ack_pr_command(
         )
 
 
-def _fetch_pr_id(scm: GetPullRequestProtocol, pr_number: int) -> int | None:
+def _fetch_pr_id(scm: GetPullRequestProtocol, pr_number: int) -> str | None:
     """Recover a PR's provider-global id from its repo-scoped number.
 
     The fallback behind ``PullRequest.objects.get_or_fetch_external_id``, so it
@@ -1126,23 +1208,9 @@ def _fetch_pr_id(scm: GetPullRequestProtocol, pr_number: int) -> int | None:
     async, meaning the PR may have been deleted or made private, or the provider
     may return a transient error, between webhook receipt and execution —
     ``SCMError`` propagates to the caller, which is where the drop is logged.
-
-    ``internal_id`` is typed as a string id across providers, so a payload that
-    isn't a base-10 integer is possible in principle and is not storable in
-    ``external_id``. Treated as a miss rather than an exception: the caller
-    already handles ``None`` as "no id available", and a crashing task would
-    retry into the same unparseable payload.
     """
     pull_request = scm_actions.get_pull_request(scm, str(pr_number))
-    internal_id = pull_request["data"]["internal_id"]
-    try:
-        return int(internal_id)
-    except (TypeError, ValueError):
-        logger.warning(
-            "autofix.pr_iteration.pr_id.unparseable_internal_id",
-            extra={"pr_number": pr_number, "internal_id": internal_id},
-        )
-        return None
+    return pull_request["data"]["internal_id"] or None
 
 
 class PrCommentRunOutcome(StrEnum):
@@ -1320,6 +1388,20 @@ def _resolve_run_for_pr_comment(
 # recover. Once those run out, the worker reports NoRetriesRemainingError. Other
 # errors, including hitting the processing deadline, are not retried.
 SEER_UNAVAILABLE_RETRY = Retry(on=(SeerUnavailableError,), times=6, delay=60)
+
+
+@instrumented_task(
+    name="sentry.tasks.autofix.process_pr_iteration_check_suite",
+    namespace=seer_tasks,
+    processing_deadline_duration=65,
+    retry=SEER_UNAVAILABLE_RETRY,
+)
+def process_pr_iteration_check_suite(*, event_data: str) -> None:
+    """Act on a completed check suite: queue CI feedback, or undraft and request review."""
+    from sentry.scm.private.ipc import deserialize_check_suite_event
+    from sentry.seer.autofix.pr_iteration.listeners.check_suite import process_check_suite_event
+
+    process_check_suite_event(deserialize_check_suite_event(event_data))
 
 
 @instrumented_task(
@@ -1963,16 +2045,6 @@ def _trigger_pr_iteration_from_review(
     return None
 
 
-# How long an iteration row may sit untouched before it is discarded. A row
-# survives this long only when the iteration never reached a completion hook, so
-# nothing is emitted for it; this just keeps the table to iterations in flight.
-STALE_DETAILS_AGE = timedelta(hours=24)
-
-# Rows deleted per pass, oldest first. The sweep is a backstop, not the main
-# path, so it stays small and runs often.
-STALE_DETAILS_BATCH_SIZE = 100
-
-
 @instrumented_task(
     name="sentry.tasks.autofix.sweep_pr_iteration_details",
     namespace=seer_tasks,
@@ -1980,19 +2052,8 @@ STALE_DETAILS_BATCH_SIZE = 100
     retry=Retry(times=1),
 )
 def sweep_pr_iteration_details() -> None:
-    """Discard iteration rows left behind by iterations that never completed."""
-    cutoff = timezone.now() - STALE_DETAILS_AGE
-    backlog = count_iterations_before(cutoff)
-    metrics.gauge("autofix.pr_iteration.details.backlog", backlog)
-
-    discarded = remove_iterations_before(cutoff, STALE_DETAILS_BATCH_SIZE)
-    for triggered, count in discarded.items():
-        metrics.incr(
-            "autofix.pr_iteration.details.discarded",
-            amount=count,
-            tags={"triggered": triggered},
-        )
-    logger.info(
-        "autofix.pr_iteration.details.sweep",
-        extra={"discarded": sum(discarded.values()), "backlog": backlog},
-    )
+    """Report and delete rows from iterations that never completed."""
+    result = sweep_stale_pr_iterations()
+    metrics.gauge("autofix.pr_iteration.details.backlog", result.backlog)
+    metrics.incr("autofix.pr_iteration.details.discarded", amount=result.discarded)
+    logger.info("autofix.pr_iteration.details.sweep", extra=result._asdict())

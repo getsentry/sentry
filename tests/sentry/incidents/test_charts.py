@@ -11,7 +11,6 @@ from sentry.incidents.charts import (
     incident_date_range,
 )
 from sentry.incidents.grouptype import MetricIssue
-from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL
 from sentry.incidents.models.incident import Incident, IncidentActivityType, IncidentStatus
 from sentry.incidents.typings.metric_detector import AlertContext, OpenPeriodContext
 from sentry.incidents.utils.process_update_helpers import calculate_event_date_from_update_date
@@ -98,7 +97,7 @@ class BuildMetricAlertChartTest(TestCase):
             alert_rule=alert_rule,
             date_started=timezone.now() - datetime.timedelta(minutes=2),
         )
-        trigger = self.create_alert_rule_trigger(alert_rule, CRITICAL_TRIGGER_LABEL, 100)
+        trigger = self.create_alert_rule_trigger(alert_rule, "critical", 100)
         self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
 
         url = build_metric_alert_chart(
@@ -138,7 +137,7 @@ class BuildMetricAlertChartTest(TestCase):
             alert_rule=alert_rule,
             date_started=timezone.now() - datetime.timedelta(minutes=2),
         )
-        trigger = self.create_alert_rule_trigger(alert_rule, CRITICAL_TRIGGER_LABEL, 100)
+        trigger = self.create_alert_rule_trigger(alert_rule, "critical", 100)
         self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
 
         detector = self.create_detector(project=self.project)
@@ -178,7 +177,7 @@ class BuildMetricAlertChartTest(TestCase):
             alert_rule=alert_rule,
             date_started=timezone.now() - datetime.timedelta(minutes=2),
         )
-        trigger = self.create_alert_rule_trigger(alert_rule, CRITICAL_TRIGGER_LABEL, 100)
+        trigger = self.create_alert_rule_trigger(alert_rule, "critical", 100)
         self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
 
         url = build_metric_alert_chart(

@@ -380,7 +380,7 @@ class AcceptOrganizationInviteTest(APITestCase):
                 user_id=self.user.id, role="member", organization=self.organization
             )
 
-    def get_om_and_init_invite(self) -> OrganizationMember:
+    def get_om_and_init_invite(self, *, explicit_acceptance: bool = False) -> OrganizationMember:
         with assume_test_silo_mode(SiloMode.CELL), outbox_runner():
             om = OrganizationMember.objects.create(
                 email="newuser@example.com",
@@ -393,7 +393,8 @@ class AcceptOrganizationInviteTest(APITestCase):
             reverse(
                 "sentry-api-0-organization-accept-organization-invite",
                 args=[self.organization.slug, om.id, om.token],
-            )
+            ),
+            {"acceptance": "explicit"} if explicit_acceptance else {},
         )
         assert resp.status_code == 200
         self._assert_pending_invite_details_in_session(om)
@@ -419,6 +420,16 @@ class AcceptOrganizationInviteTest(APITestCase):
 
         assert not self.client.session.get("invite_token")
         assert not self.client.session.get("invite_member_id")
+        assert "invite_explicit_acceptance" not in self.client.session
+
+    def assert_invite_pending(self, member: OrganizationMember) -> None:
+        with assume_test_silo_mode(SiloMode.CELL):
+            member.refresh_from_db()
+
+        assert member.user_id is None
+        assert member.token is not None
+        self._assert_pending_invite_details_in_session(member)
+        assert self.client.session["invite_explicit_acceptance"] is True
 
     @override_options({"system.url-prefix": "https://testserver"})
     def setup_u2f(self, om: OrganizationMember) -> Any:
@@ -430,6 +441,9 @@ class AcceptOrganizationInviteTest(APITestCase):
         self.session["invite_token"] = self.client.session["invite_token"]
         self.session["invite_member_id"] = self.client.session["invite_member_id"]
         self.session["invite_organization_id"] = self.client.session["invite_organization_id"]
+        self.session["invite_explicit_acceptance"] = self.client.session.get(
+            "invite_explicit_acceptance", False
+        )
         self.save_session()
         return self.get_success_response(
             "me",
@@ -510,6 +524,50 @@ class AcceptOrganizationInviteTest(APITestCase):
         assert interface
 
         self.assert_invite_accepted(resp, om.id)
+
+    @mock.patch("sentry.auth.authenticators.TotpInterface.validate_otp", return_value=True)
+    def test_explicit_invite_acceptance_after_totp_enrollment(
+        self, validate_otp: mock.MagicMock
+    ) -> None:
+        validate_otp.__func__ = None
+        member = self.get_om_and_init_invite(explicit_acceptance=True)
+
+        self.get_success_response("me", "totp", method="post", secret="secret12", otp="1234")
+        self.assert_invite_pending(member)
+
+        response = self.client.post(
+            reverse(
+                "sentry-api-0-organization-accept-organization-invite",
+                args=[self.organization.slug, member.id, member.token],
+            )
+        )
+        assert response.status_code == 204
+        self.assert_invite_accepted(response, member.id)
+
+    @mock.patch("sentry.auth.authenticators.SmsInterface.validate_otp", return_value=True)
+    @mock.patch("sentry.auth.authenticators.SmsInterface.send_text", return_value=True)
+    @override_options({"sms.twilio-account": "twilio-account"})
+    def test_explicit_invite_remains_pending_after_sms_enrollment(
+        self, send_text: mock.MagicMock, validate_otp: mock.MagicMock
+    ) -> None:
+        validate_otp.__func__ = None
+        member = self.get_om_and_init_invite(explicit_acceptance=True)
+
+        self.get_success_response("me", "sms", method="post", secret="secret12", phone="1231234")
+        self.get_success_response(
+            "me", "sms", method="post", secret="secret12", phone="1231234", otp="123123"
+        )
+
+        self.assert_invite_pending(member)
+
+    @mock.patch("sentry.auth.authenticators.U2fInterface.try_enroll", return_value=True)
+    def test_explicit_invite_remains_pending_after_u2f_enrollment(
+        self, try_enroll: mock.MagicMock
+    ) -> None:
+        member = self.get_om_and_init_invite(explicit_acceptance=True)
+        self.setup_u2f(member)
+
+        self.assert_invite_pending(member)
 
     @mock.patch("sentry.users.api.endpoints.user_authenticator_enroll.logger")
     @mock.patch("sentry.auth.authenticators.U2fInterface.try_enroll", return_value=True)

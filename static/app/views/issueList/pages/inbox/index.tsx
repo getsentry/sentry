@@ -12,7 +12,7 @@ import {useInfiniteQuery, useQuery} from '@tanstack/react-query';
 import orderBy from 'lodash/orderBy';
 import {parseAsString, useQueryStates} from 'nuqs';
 
-import {ActorAvatar, UserAvatar} from '@sentry/scraps/avatar';
+import {ActorAvatar, ProjectAvatar, UserAvatar} from '@sentry/scraps/avatar';
 import {Badge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Disclosure} from '@sentry/scraps/disclosure';
@@ -754,7 +754,16 @@ function InboxIssueCard({
               {title}
             </Heading>
             <EventMessage level={group.level} message={message} type={group.type} />
-            <Container height="18px" />
+            {showPullRequests ? (
+              <Container height="18px" />
+            ) : (
+              <Flex height="18px" minWidth={0} align="center" gap="2xs">
+                <ProjectAvatar project={group.project} size={12} />
+                <Text size="xs" variant="muted" ellipsis>
+                  {group.shortId}
+                </Text>
+              </Flex>
+            )}
           </Stack>
           <Stack align="end" justify="between">
             {group.derivedData?.lastProgressedAt ? (
@@ -802,7 +811,7 @@ function InboxIssueCard({
           </Stack>
         </Grid>
       </IssueCardLink>
-      {showPullRequests && <InboxPullRequestBadges group={group} />}
+      {showPullRequests && <InboxPullRequestMetadata group={group} />}
     </Container>
   );
 }
@@ -815,7 +824,7 @@ const PULL_REQUEST_BADGE_VARIANTS = {
   unknown: 'muted',
 } satisfies Record<PullRequestStatus, ComponentProps<typeof Badge>['variant']>;
 
-function InboxPullRequestBadges({group}: {group: Group}) {
+function InboxPullRequestMetadata({group}: {group: Group}) {
   const {data} = useLinkedPullRequests({group, includeChecksAndReview: false});
   const {currentPullRequests} = partitionLinkedPullRequests(
     data?.pullRequests ?? [],
@@ -824,10 +833,6 @@ function InboxPullRequestBadges({group}: {group: Group}) {
   const pullRequests = currentPullRequests.filter(
     pullRequest => pullRequest.status !== 'closed'
   );
-
-  if (!pullRequests?.length) {
-    return null;
-  }
 
   return (
     <PullRequestBadgePositioner>
@@ -851,6 +856,12 @@ function InboxPullRequestBadges({group}: {group: Group}) {
               </Badge>
             </PullRequestBadgeLink>
           ))}
+          <Flex minWidth={0} align="center" gap="2xs">
+            <ProjectAvatar project={group.project} size={12} />
+            <Text size="xs" variant="muted" ellipsis>
+              {group.shortId}
+            </Text>
+          </Flex>
         </Flex>
         <span />
       </Grid>

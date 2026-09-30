@@ -95,6 +95,38 @@ register(
     flags=FLAG_NOSTORE | FLAG_IMMUTABLE,
 )
 
+# Share of lock keys (0.0 to 1.0) that MigrationLockBackend sends to its new backend.
+# Only used when a lock manager is configured with the matching selector in
+# sentry.utils.locking.backends.migration.
+register(
+    "locks.default.migration-rollout-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "locks.post-process.migration-rollout-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# When on, MigrationLockBackend also checks the new backend for keys that go to the old
+# backend. Turn it on before the matching rollout rate goes above 0, and turn it off only
+# after the rate is back at 0 and all locks on the new backend have expired. See the
+# MigrationLockBackend docstring for the full sequence.
+register(
+    "locks.default.migration-check-new",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "locks.post-process.migration-check-new",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Processing worker caches
 register(
     "dsym.cache-path",
@@ -268,6 +300,12 @@ register(
     type=Sequence,
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "auth.email-verification-at-signup.email-password-enabled",
+    default=True,
+    type=Bool,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "auth.email-verification-at-signup.sso-enabled",
@@ -1659,6 +1697,20 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "post_process.read-from-nodestore-sample-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Enable only after the Nodestore read sample rate is 1.0 and queued post-process
+# tasks without event_id have drained.
+register(
+    "post_process.delete-processing-store-in-save-event",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "api.organization.disable-last-deploys",
     type=Sequence,
     default=[],
@@ -1709,6 +1761,16 @@ register("relay.span-usage-metric", default=False, flags=FLAG_AUTOMATOR_MODIFIAB
 register(
     "relay.invalidation-direct-outside-atomic",
     default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Stage of each legacy inbound filter list on its way into custom inbound filter rows,
+# keyed by list: releases, error_messages, log_messages, trace_metric_names. A value is
+# off, double_write, rows or v2; a missing list is off. See sentry.ingest.legacy_filter_lists.
+register(
+    "custom-inbound-filters.legacy-filter-stage",
+    default={},
+    type=Dict,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3475,6 +3537,13 @@ register(
 )
 
 # Notification Options - Start
+register(
+    "notifications.issue-alerts.disable-rule-snooze",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Options for migrating to the notification platform
 # Notifications for internal testing
 register(
@@ -3700,15 +3769,6 @@ register(
     "workflow_engine.max_more_workflows_per_org",
     type=Int,
     default=10000,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Whether the data source by detector and source id cache is enabled
-# When disabled, detector handlers query directly instead of using the cache
-register(
-    "workflow_engine.data_source_by_detector_and_source_id_cache.enabled",
-    type=Bool,
-    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -4208,12 +4268,6 @@ register(
 
 register(
     "warmup.url_resolver.enabled",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "warmup.enabled",
     type=Bool,
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,

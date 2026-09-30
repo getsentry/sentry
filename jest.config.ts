@@ -286,10 +286,6 @@ const config: Config.InitialOptions = {
     // conditions. Jest's CJS resolver can't follow them without explicit mapping.
     '^@sentry/sqlish/react$': '<rootDir>/node_modules/@sentry/sqlish/dist/react.js',
     '^@sentry/sqlish$': '<rootDir>/node_modules/@sentry/sqlish/dist/index.js',
-
-    // Disabled @sentry/toolbar in tests. It depends on iframes and global
-    // window/cookies state.
-    '@sentry/toolbar': '<rootDir>/tests/js/sentry-test/mocks/sentryToolbarMock.js',
   },
   passWithNoTests: JEST_TESTS !== undefined,
   setupFiles: [

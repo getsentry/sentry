@@ -10,15 +10,14 @@ import {mergeProps} from '@react-aria/utils';
 import type {TreeProps, TreeState} from '@react-stately/tree';
 import {useTreeState} from '@react-stately/tree';
 import type {Node} from '@react-types/shared';
-import omit from 'lodash/omit';
 
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import type {useOverlay} from 'sentry/utils/useOverlay';
 
-import {DropdownMenu} from './dropdownMenu';
 import type {MenuItemProps} from './item';
 import {DropdownMenuItem} from './item';
 import {DropdownMenuSection} from './section';
+import {DropdownSubmenu} from './submenu';
 
 type OverlayState = ReturnType<typeof useOverlay>['state'];
 
@@ -125,42 +124,14 @@ function DropdownMenuCollectionItem({
       return null;
     }
 
-    const submenuConfig = node.value.submenu;
-    const submenuOptions = typeof submenuConfig === 'object' ? submenuConfig : {};
-
     return (
-      <DropdownMenu
-        isOpen={state.selectionManager.isSelected(node.key)}
+      <DropdownSubmenu
         items={node.value.children}
-        trigger={triggerProps => (
-          <DropdownMenuItem
-            renderAs="div"
-            node={node}
-            state={state}
-            closeOnSelect={false}
-            {...omit(triggerProps, [
-              'onClick',
-              'onDragStart',
-              'onKeyDown',
-              'onKeyUp',
-              'onMouseDown',
-              'onPointerDown',
-              'onPointerUp',
-            ])}
-          />
-        )}
+        node={node}
+        state={state}
         onClose={onClose}
         closeOnSelect={closeOnSelect}
         disableTextSelection={disableTextSelection}
-        menuTitle={submenuOptions.title}
-        shouldCloseOnBlur={false}
-        preventOverflowOptions={{
-          boundary: document.body,
-          altAxis: true,
-        }}
-        renderWrapAs="li"
-        position={submenuOptions.position ?? 'right-start'}
-        offset={-4}
         size={size}
       />
     );

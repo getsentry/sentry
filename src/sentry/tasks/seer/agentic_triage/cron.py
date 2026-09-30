@@ -72,6 +72,7 @@ from sentry.taskworker.namespaces import seer_tasks
 from sentry.utils.hashlib import md5_text
 from sentry.utils.iterators import chunked
 from sentry.utils.query import RangeQuerySetWrapper
+from sentry.utils.settings import is_self_hosted
 
 logger = logging.getLogger("sentry.tasks.seer.agentic_triage")
 
@@ -79,7 +80,6 @@ AGENTIC_TRIAGE_SPREAD_DURATION = timedelta(hours=1)
 
 BATCH_FEATURE_NAMES = [
     "organizations:seer-night-shift",
-    "organizations:gen-ai-features",
 ]
 PER_ORG_FEATURE_NAMES = [
     # INTERNAL handlers aren't routed through batch_has_for_organizations,
@@ -611,6 +611,9 @@ def _get_eligible_orgs_from_batch(
     Check feature flags for a batch of orgs.
     Returns orgs that have all required feature flags enabled.
     """
+    if is_self_hosted():
+        return []
+
     # enable_seer_coding off => agentic triage can't open a PR for the org.
     enable_coding = OrganizationOption.objects.get_value_bulk(
         orgs, "sentry:enable_seer_coding", ENABLE_SEER_CODING_DEFAULT
@@ -639,7 +642,7 @@ def _get_eligible_orgs_from_batch(
     for org in eligible:
         if all(features.has(f, org) for f in PER_ORG_FEATURE_NAMES):
             paid_eligible.append(org)
-        elif features.has("organizations:gen-ai-features", org) and is_free_cohort_org(org):
+        elif is_free_cohort_org(org):
             free_cohort_eligible.append(org)
 
     return paid_eligible + free_cohort_eligible

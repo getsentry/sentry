@@ -1796,7 +1796,7 @@ class DiscoverStalePipelineHashesTest(DerivedDataTaskTestBase):
         with patch("sentry.issues.derived.tasks.statement_timeout") as timeout:
             _discover_stale_pipeline_hashes(PIPELINE.pipeline_hash, limit=5)
 
-        assert timeout.call_args.args[1] == timedelta(seconds=15)
+        assert timeout.call_args.args[1] == timedelta(seconds=25)
 
     def test_excludes_null_pipeline_hash(self) -> None:
         current = PIPELINE.pipeline_hash
