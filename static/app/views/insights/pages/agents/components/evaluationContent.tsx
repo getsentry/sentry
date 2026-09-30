@@ -11,6 +11,7 @@ import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {
   findQuestion,
   getAnswerLabel,
+  getAnswerLabels,
   getScoreName,
   type EvaluationAnswer,
   type EvaluationQuestion,
@@ -107,14 +108,11 @@ export function EvaluationResultSummary({
 }) {
   return (
     <Flex wrap="wrap" gap="xs">
-      {answers.map(answer => {
-        const label = getAnswerLabel(answer, findQuestion(questions, answer.key));
-        return label === null ? null : (
-          <Tag key={answer.key} variant="muted">
-            {`${answer.key}: ${label}`}
-          </Tag>
-        );
-      })}
+      {getAnswerLabels(answers, questions).map(([key, label]) => (
+        <Tag key={key} variant="muted">
+          {`${key}: ${label}`}
+        </Tag>
+      ))}
     </Flex>
   );
 }
