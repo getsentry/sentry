@@ -143,7 +143,7 @@ describe('Frame - Line', () => {
       );
 
       for (const [key, value] of Object.entries(vars)) {
-        const row = screen.getByText(key).closest('[role="row"]');
+        const row = screen.getByText(key).closest<HTMLElement>('[role="row"]');
         expect(row).toBeTruthy();
 
         if (!row) {
