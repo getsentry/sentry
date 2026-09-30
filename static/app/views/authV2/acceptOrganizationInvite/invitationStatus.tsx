@@ -1,0 +1,94 @@
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
+import {t} from 'sentry/locale';
+import {ConfigStore} from 'sentry/stores/configStore';
+
+import type {InvitationStep} from './getInvitationStep';
+
+interface InvitationStatusProps {
+  isAccepting: boolean;
+  onAccept: () => void;
+  onSwitchAccount: () => void;
+  step: Exclude<InvitationStep, 'authentication'>;
+}
+
+export function InvitationStatus({
+  isAccepting,
+  onAccept,
+  onSwitchAccount,
+  step,
+}: InvitationStatusProps) {
+  if (step === 'refreshing') {
+    return (
+      <Text align="center" variant="muted">
+        {t('Checking your invitation…')}
+      </Text>
+    );
+  }
+
+  if (step === 'existing-member') {
+    return (
+      <Stack gap="md" align="start">
+        <Text>{t('This account is already a member of the organization.')}</Text>
+        <Button size="xs" onClick={onSwitchAccount}>
+          {t('Switch account')}
+        </Button>
+      </Stack>
+    );
+  }
+
+  if (step === 'required-2fa') {
+    return (
+      <Stack gap="lg" align="start">
+        <Stack gap="xs">
+          <Text>
+            {t(
+              'This organization requires all members to configure two-factor authentication.'
+            )}
+          </Text>
+          <Text size="xs" variant="muted">
+            {t(
+              'Return to this tab after setting up two-factor authentication to accept your invitation.'
+            )}
+          </Text>
+        </Stack>
+        <LinkButton
+          external
+          variant="primary"
+          href={`${ConfigStore.get('links').sentryUrl}/settings/account/security/`}
+        >
+          {t('Configure Two-Factor Auth')}
+        </LinkButton>
+      </Stack>
+    );
+  }
+
+  if (step === 'sign-in-sso') {
+    return (
+      <Text align="center" variant="muted">
+        {t('Sign in with the organization’s SSO provider to continue.')}
+      </Text>
+    );
+  }
+
+  if (step === 'authenticate-sso') {
+    return (
+      <Text align="center" variant="muted">
+        {t('Authenticate with the organization’s SSO provider to continue.')}
+      </Text>
+    );
+  }
+
+  return (
+    <Button
+      variant="primary"
+      busy={isAccepting}
+      disabled={isAccepting}
+      onClick={onAccept}
+    >
+      {t('Accept invitation')}
+    </Button>
+  );
+}
