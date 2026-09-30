@@ -146,14 +146,14 @@ interface and is not a base for new detectors.
 
 `process_detectors` invokes the detector handler's `on_complete` lifecycle callback with
 the detector and each evaluation. The default callback is
-`DetectorOutcome.ISSUE_PLATFORM.handler`; it ignores evaluations without a result and
-passes the others to Issue Platform via
-[`produce_occurrence_to_kafka`](../../issues/producer.py). A detector can assign another
-supported outcome handler or override `on_complete` for custom processing.
+`DetectorOutcome.ISSUE_PLATFORM.dispatch`; it resolves the registered outcome handler,
+whose `handle` method ignores evaluations without a result and passes the others to Issue
+Platform via [`produce_occurrence_to_kafka`](../../issues/producer.py). A detector can
+assign another supported outcome dispatcher or override `on_complete` for custom processing.
 
 Supported outcome implementations register their `DetectorOutcomeHandler` class with
 `@detector_outcome_registry.add(DetectorOutcome.<KEY>)`. The closed, typed set of keys
-lives in `supported_outcomes.py`; the registry maps each key to its handler.
+lives in `supported_outcomes.py`; the registry maps each key to its handler implementation.
 
 Issue Platform ingestion creates or updates a group. The detector ID in occurrence
 evidence allows ingestion to create a

@@ -14,7 +14,7 @@ from sentry.workflow_engine.processors import DetectorEvaluation
 
 @detector_outcome_registry.add(DetectorOutcome.ISSUE_PLATFORM)
 class IssuePlatformOutcomeHandler(DetectorOutcomeHandler):
-    def handler(self, detector: Detector, evaluation: DetectorEvaluation) -> None:
+    def handle(self, detector: Detector, evaluation: DetectorEvaluation) -> None:
         occurrence, status_change = None, None
         result = evaluation.result
         if result is None:

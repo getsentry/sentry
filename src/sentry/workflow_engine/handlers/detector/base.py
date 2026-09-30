@@ -112,7 +112,7 @@ class BaseDetectorHandler(abc.ABC, Generic[DataPacketType, DataPacketEvaluationT
         self.detector = detector
 
     on_complete: Callable[[Detector, DetectorEvaluation], None] = (
-        DetectorOutcome.ISSUE_PLATFORM.handler
+        DetectorOutcome.ISSUE_PLATFORM.dispatch
     )
 
     @abc.abstractmethod
