@@ -6,6 +6,7 @@ import {Button} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -227,26 +228,29 @@ const LogsSearchSection = memo(function LogsSearchSectionImpl({
               >
                 <DropdownMenu
                   items={saveAsItems}
-                  trigger={triggerProps => (
-                    <Container width={{zero: '100%', sm: 'auto'}}>
-                      {buttonProps => (
-                        <Button
-                          {...buttonProps}
-                          {...triggerProps}
-                          variant="primary"
-                          aria-label={t('Save as')}
-                          onClick={e => {
-                            e.stopPropagation();
-                            e.preventDefault();
+                  trigger={triggerProps => {
+                    const onClick: typeof triggerProps.onClick = e => {
+                      e.stopPropagation();
+                      e.preventDefault();
 
-                            triggerProps.onClick?.(e);
-                          }}
-                        >
-                          {t('Save as')}
-                        </Button>
-                      )}
-                    </Container>
-                  )}
+                      triggerProps.onClick?.(e);
+                    };
+                    return (
+                      <Container width={{zero: '100%', sm: 'auto'}}>
+                        {buttonProps => (
+                          <OverlayTrigger.Button
+                            showChevron={false}
+                            {...buttonProps}
+                            {...{...triggerProps, onClick}}
+                            variant="primary"
+                            aria-label={t('Save as')}
+                          >
+                            {t('Save as')}
+                          </OverlayTrigger.Button>
+                        )}
+                      </Container>
+                    );
+                  }}
                 />
               </Flex>
             )}

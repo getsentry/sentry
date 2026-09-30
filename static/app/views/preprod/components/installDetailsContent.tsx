@@ -3,9 +3,10 @@ import {useTheme} from '@emotion/react';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {DropdownButton, DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Separator} from '@sentry/scraps/separator';
 import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -289,16 +290,14 @@ export function InstallDetailsContent({
                             }),
                         },
                       ]}
-                      trigger={(triggerProps, _isOpen) => (
-                        <DropdownButton
+                      trigger={triggerProps => (
+                        <OverlayTrigger.IconButton
+                          icon={<IconEllipsis />}
                           {...triggerProps}
                           size="md"
                           aria-label={t('More install options')}
-                          showChevron={false}
                           style={{width: '100%'}}
-                        >
-                          <IconEllipsis />
-                        </DropdownButton>
+                        />
                       )}
                     />
                   </Flex>

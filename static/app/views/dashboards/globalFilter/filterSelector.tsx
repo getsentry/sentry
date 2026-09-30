@@ -6,7 +6,6 @@ import {keepPreviousData, useQuery} from '@tanstack/react-query';
 import isEqual from 'lodash/isEqual';
 import xor from 'lodash/xor';
 
-import {Button} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {
   CompactSelect,
@@ -542,12 +541,17 @@ export function FilterSelector({
                   <FilterValueTruncated>
                     {prettifyTagKey(globalFilter.tag.key)}
                   </FilterValueTruncated>
-                  <Button {...triggerProps} size="zero" variant="transparent">
+                  <OverlayTrigger.Button
+                    showChevron={false}
+                    {...triggerProps}
+                    size="zero"
+                    variant="transparent"
+                  >
                     <Flex gap="xs" align="center">
                       <SubText>{OP_LABELS[stagedOperator]}</SubText>
                       <IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />
                     </Flex>
-                  </Button>
+                  </OverlayTrigger.Button>
                 </WildcardButton>
               )}
               items={operatorDropdownItems}

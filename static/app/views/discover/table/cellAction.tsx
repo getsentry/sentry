@@ -1,9 +1,9 @@
 import {useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from '@sentry/scraps/button';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {IconEllipsis} from 'sentry/icons';
@@ -530,7 +530,7 @@ const Container = styled('div')`
   justify-content: center;
 `;
 
-const ActionMenuTrigger = styled(Button)`
+const ActionMenuTrigger = styled(OverlayTrigger.IconButton)`
   &,
   * {
     -webkit-user-select: none;

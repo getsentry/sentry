@@ -1,7 +1,8 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
 
-import {DropdownButton, DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {NotificationActionItem} from 'sentry/components/notificationActions/notificationActionItem';
@@ -224,7 +225,7 @@ export function NotificationActionManager({
       <DropdownMenu
         items={menuItems}
         trigger={(triggerProps, isOpen) => (
-          <DropdownButton
+          <OverlayTrigger.Button
             {...triggerProps}
             isOpen={isOpen}
             aria-label={t('Add Action')}
@@ -233,7 +234,7 @@ export function NotificationActionManager({
             disabled={isAddAlertDisabled}
           >
             {t('Add Action')}
-          </DropdownButton>
+          </OverlayTrigger.Button>
         )}
         isDisabled={isAddAlertDisabled}
         data-test-id="add-action-button"

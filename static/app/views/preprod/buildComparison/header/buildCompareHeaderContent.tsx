@@ -2,12 +2,9 @@ import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
-import {
-  DropdownButton,
-  DropdownMenu,
-  type MenuItemProps,
-} from '@sentry/scraps/dropdownMenu';
+import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -183,16 +180,14 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
             return (
               <DropdownMenu
                 items={menuItems}
-                trigger={(triggerProps, _isOpen) => (
-                  <DropdownButton
+                trigger={triggerProps => (
+                  <OverlayTrigger.IconButton
+                    icon={<IconEllipsis />}
                     {...triggerProps}
                     size="sm"
                     aria-label="More actions"
-                    showChevron={false}
                     disabled={isRerunning}
-                  >
-                    <IconEllipsis />
-                  </DropdownButton>
+                  />
                 )}
               />
             );

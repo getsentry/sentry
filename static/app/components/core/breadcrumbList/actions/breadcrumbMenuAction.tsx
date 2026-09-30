@@ -1,6 +1,6 @@
-import {Button} from '@sentry/scraps/button';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 export interface BreadcrumbMenuActionProps {
   /** Menu entries rendered inside the dropdown. */
@@ -25,11 +25,11 @@ export function BreadcrumbMenuAction({
     <DropdownMenu
       items={items}
       trigger={(triggerProps, isOpen) => (
-        <Button
+        <OverlayTrigger.IconButton
           {...triggerProps}
           size="zero"
           variant="transparent"
-          icon={triggerIcon}
+          icon={triggerIcon ?? null}
           aria-label={triggerLabel}
           aria-expanded={isOpen}
         />

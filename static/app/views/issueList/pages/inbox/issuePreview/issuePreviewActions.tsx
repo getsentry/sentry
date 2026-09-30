@@ -6,6 +6,7 @@ import {Button, ButtonBar, LinkButton, type ButtonProps} from '@sentry/scraps/bu
 import {MenuComponents} from '@sentry/scraps/compactSelect';
 import {DropdownMenu, DropdownMenuFooter} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {bulkUpdate} from 'sentry/actionCreators/group';
 import {addSuccessMessage, clearIndicators} from 'sentry/actionCreators/indicator';
@@ -358,7 +359,7 @@ function StartAutofixAction({
         items={codingAgentOptions}
         isDisabled={defined(codingAgentDisabledReason)}
         trigger={(triggerProps, isOpen) => (
-          <Button
+          <OverlayTrigger.IconButton
             {...triggerProps}
             variant={variant}
             size="sm"

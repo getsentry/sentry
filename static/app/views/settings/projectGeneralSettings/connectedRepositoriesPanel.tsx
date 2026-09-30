@@ -5,6 +5,7 @@ import {Button} from '@sentry/scraps/button';
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
 import {LoadingError} from 'sentry/components/loadingError';
@@ -78,7 +79,7 @@ function ConnectedRepositoryRow({repo}: {repo: ProjectRepoListItem}) {
             items={OVERFLOW_ITEMS}
             position="bottom-end"
             trigger={triggerProps => (
-              <Button
+              <OverlayTrigger.IconButton
                 {...triggerProps}
                 size="xs"
                 variant="transparent"

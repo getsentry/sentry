@@ -6,6 +6,7 @@ import {UserAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Link} from '@sentry/scraps/link';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -208,7 +209,7 @@ SavedEntityTable.CellActions = function CellActions({items}: {items: MenuItemPro
   return (
     <DropdownMenu
       trigger={triggerProps => (
-        <Button
+        <OverlayTrigger.IconButton
           {...triggerProps}
           aria-label={t('More options')}
           size="sm"
@@ -306,7 +307,6 @@ const LoadingCell = styled(SavedEntityTable.Cell)`
 const FormattedQueryNoWrap = styled(ProvidedFormattedQuery)`
   flex-wrap: nowrap;
   overflow: hidden;
-
   > * {
     min-width: min-content;
   }

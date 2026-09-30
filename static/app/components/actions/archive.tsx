@@ -5,6 +5,7 @@ import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import type {SelectValue} from '@sentry/scraps/select';
 
 import {openModal} from 'sentry/actionCreators/modal';
@@ -324,7 +325,7 @@ export function ArchiveActions({
         className={className}
         minMenuWidth={270}
         trigger={(triggerProps, isOpen) => (
-          <Button
+          <OverlayTrigger.IconButton
             {...triggerProps}
             aria-label={t('Archive options')}
             size={size}

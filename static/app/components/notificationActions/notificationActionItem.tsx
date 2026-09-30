@@ -6,6 +6,7 @@ import {Button} from '@sentry/scraps/button';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex, Grid} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {
@@ -173,7 +174,7 @@ function NotificationActionEditButton({
       <DropdownMenu
         items={menuItems}
         trigger={triggerProps => (
-          <Button
+          <OverlayTrigger.IconButton
             {...triggerProps}
             aria-label={t('Actions')}
             size="xs"

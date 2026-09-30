@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {Button, ButtonBar} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {useModal} from '@sentry/scraps/modal';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import Feature from 'sentry/components/acl/feature';
@@ -209,7 +210,7 @@ export function IssueViewSaveButton({query, sort}: IssueViewSaveButtonProps) {
 
 const PrimarySaveButton = Button;
 
-const DropdownTrigger = styled(Button)`
+const DropdownTrigger = styled(OverlayTrigger.IconButton)`
   box-shadow: none;
   border-radius: 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0;
   padding-left: ${p => p.theme.space.md};

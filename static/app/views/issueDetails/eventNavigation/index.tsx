@@ -6,8 +6,9 @@ import {keepPreviousData} from '@tanstack/react-query';
 
 import {Badge} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
-import {DropdownButton, DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex, Grid} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Text} from '@sentry/scraps/text';
 
@@ -292,7 +293,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
                   analyticsEventName="Issue Details: Issue Content Dropdown Opened"
                   analyticsEventKey="issue_details.issue_content_dropdown_opened"
                 >
-                  {TabName[currentTab] ?? TabName[Tab.DETAILS]}
+                  {TabName[currentTab] ?? TabName[Tab.DETAILS] ?? ''}
                 </NavigationDropdownButton>
               )
             }
@@ -438,7 +439,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
   );
 }
 
-const NavigationDropdownButton = styled(DropdownButton)`
+const NavigationDropdownButton = styled(OverlayTrigger.Button)`
   font-size: ${p => p.theme.font.size.lg};
   font-weight: ${p => p.theme.font.weight.sans.medium};
   padding-right: ${p => p.theme.space.xs};

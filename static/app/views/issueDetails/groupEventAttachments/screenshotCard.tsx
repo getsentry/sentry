@@ -1,11 +1,11 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Card} from 'sentry/components/card';
@@ -126,7 +126,7 @@ export function ScreenshotCard({
           ]}
           position="bottom-end"
           trigger={triggerProps => (
-            <Button
+            <OverlayTrigger.IconButton
               {...triggerProps}
               aria-label={t('Actions')}
               size="xs"

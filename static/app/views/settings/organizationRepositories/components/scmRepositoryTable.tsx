@@ -15,6 +15,7 @@ import {Button, LinkButton} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex, Grid, useResponsivePropValue} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {StatusIndicator} from '@sentry/scraps/statusIndicator';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -485,7 +486,7 @@ function InstallationActions({installation, providerName}: InstallationActionsPr
               items={overflowMenuItems}
               position="bottom-end"
               trigger={triggerProps => (
-                <Button
+                <OverlayTrigger.IconButton
                   {...triggerProps}
                   size="xs"
                   variant="transparent"

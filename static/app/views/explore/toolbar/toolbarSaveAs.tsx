@@ -2,9 +2,10 @@ import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import {Button, LinkButton} from '@sentry/scraps/button';
+import {LinkButton} from '@sentry/scraps/button';
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Grid} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {
   addErrorMessage,
@@ -291,21 +292,24 @@ export function ToolbarSaveAs() {
       <Grid flow="column" align="center" gap="md">
         <DropdownMenu
           items={items}
-          trigger={triggerProps => (
-            <SaveAsButton
-              {...triggerProps}
-              variant="primary"
-              aria-label={t('Save as')}
-              onClick={e => {
-                e.stopPropagation();
-                e.preventDefault();
+          trigger={triggerProps => {
+            const onClick: typeof triggerProps.onClick = e => {
+              e.stopPropagation();
+              e.preventDefault();
 
-                triggerProps.onClick?.(e);
-              }}
-            >
-              {shouldHighlightSaveButton ? t('Save') : t('Save as')}
-            </SaveAsButton>
-          )}
+              triggerProps.onClick?.(e);
+            };
+            return (
+              <SaveAsButton
+                showChevron={false}
+                {...{...triggerProps, onClick}}
+                variant="primary"
+                aria-label={t('Save as')}
+              >
+                {shouldHighlightSaveButton ? t('Save') : t('Save as')}
+              </SaveAsButton>
+            );
+          }}
         />
 
         <WideLinkButton
@@ -357,6 +361,6 @@ export const SaveStyledToolbarSection = styled(ToolbarSection)`
   padding-top: ${p => p.theme.space['2xl']};
 `;
 
-const SaveAsButton = styled(Button)`
+const SaveAsButton = styled(OverlayTrigger.Button)`
   width: 100%;
 `;

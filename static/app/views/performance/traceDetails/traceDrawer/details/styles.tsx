@@ -861,7 +861,8 @@ function PanelPositionDropDown({organization}: {organization: Organization}) {
       menuTitle={<div>{t('Panel Position')}</div>}
       trigger={triggerProps => (
         <Tooltip title={t('Panel Position')}>
-          <ActionButton
+          <OverlayTrigger.IconButton
+            css={actionButtonStyles}
             {...triggerProps}
             size="zero"
             aria-label={t('Panel position')}

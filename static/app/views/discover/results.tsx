@@ -12,6 +12,7 @@ import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import type {CursorHandler} from '@sentry/scraps/pagination';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -1225,19 +1226,21 @@ function DiscoverContextMenu({
   return (
     <DropdownMenu
       items={items}
-      trigger={triggerProps => (
-        <Button
-          {...triggerProps}
-          aria-label={t('Discover Context Menu')}
-          size="sm"
-          onClick={e => {
-            e.stopPropagation();
-            e.preventDefault();
-            triggerProps.onClick?.(e);
-          }}
-          icon={<IconEllipsis />}
-        />
-      )}
+      trigger={triggerProps => {
+        const onClick: typeof triggerProps.onClick = e => {
+          e.stopPropagation();
+          e.preventDefault();
+          triggerProps.onClick?.(e);
+        };
+        return (
+          <OverlayTrigger.IconButton
+            {...{...triggerProps, onClick}}
+            aria-label={t('Discover Context Menu')}
+            size="sm"
+            icon={<IconEllipsis />}
+          />
+        );
+      }}
       position="bottom-end"
       offset={4}
     />

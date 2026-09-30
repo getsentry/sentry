@@ -3,10 +3,10 @@ import styled from '@emotion/styled';
 import type {Location, Query} from 'history';
 import moment from 'moment-timezone';
 
-import {Button} from '@sentry/scraps/button';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Grid} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
 
 import type {Client} from 'sentry/api';
@@ -121,22 +121,24 @@ class QueryList extends Component<Props> {
     return (
       <DropdownMenu
         items={items}
-        trigger={triggerProps => (
-          <DropdownTrigger
-            {...triggerProps}
-            aria-label={t('Query actions')}
-            size="xs"
-            variant="transparent"
-            onClick={e => {
-              e.stopPropagation();
-              e.preventDefault();
+        trigger={triggerProps => {
+          const onClick: typeof triggerProps.onClick = e => {
+            e.stopPropagation();
+            e.preventDefault();
 
-              triggerProps.onClick?.(e);
-            }}
-            icon={<IconEllipsis direction="down" size="sm" />}
-            data-test-id="menu-trigger"
-          />
-        )}
+            triggerProps.onClick?.(e);
+          };
+          return (
+            <DropdownTrigger
+              {...{...triggerProps, onClick}}
+              aria-label={t('Query actions')}
+              size="xs"
+              variant="transparent"
+              icon={<IconEllipsis direction="down" size="sm" />}
+              data-test-id="menu-trigger"
+            />
+          );
+        }}
         position="bottom-end"
         offset={4}
       />
@@ -400,7 +402,7 @@ const PaginationRow = styled(Pagination)`
   margin-bottom: 20px;
 `;
 
-const DropdownTrigger = styled(Button)`
+const DropdownTrigger = styled(OverlayTrigger.IconButton)`
   transform: translateX(${p => p.theme.space.md});
 `;
 

@@ -9,6 +9,7 @@ import {
   DropdownMenuFooter,
 } from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {useAutofixCreatePrGate} from 'sentry/components/events/autofix/useAutofixCreatePrGate';
@@ -176,7 +177,7 @@ export function OverviewCardAction({
       <DropdownMenu
         items={menuItems}
         trigger={(triggerProps, isOpen) => (
-          <Button
+          <OverlayTrigger.IconButton
             {...triggerProps}
             size="sm"
             variant="secondary"

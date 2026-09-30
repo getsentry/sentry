@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {Button} from '@sentry/scraps/button';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -33,7 +33,7 @@ export function generateAction({
   return onAction;
 }
 
-export const ActionMenuTrigger = styled(Button)`
+export const ActionMenuTrigger = styled(OverlayTrigger.IconButton)`
   position: absolute;
   top: 50%;
   transform: translateY(-50%);

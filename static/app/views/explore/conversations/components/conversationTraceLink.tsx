@@ -1,12 +1,9 @@
 import styled from '@emotion/styled';
 
-import {
-  DropdownButton,
-  DropdownMenu,
-  type MenuItemProps,
-} from '@sentry/scraps/dropdownMenu';
+import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -123,7 +120,7 @@ const MenuTraceIcon = styled(IconSpan)`
   align-self: center;
 `;
 
-const TraceTrigger = styled(DropdownButton)`
+const TraceTrigger = styled(OverlayTrigger.Button)`
   color: ${p => p.theme.tokens.interactive.link.accent.rest};
 
   &:hover {

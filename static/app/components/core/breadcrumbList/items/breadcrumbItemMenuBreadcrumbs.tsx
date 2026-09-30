@@ -1,6 +1,7 @@
-import {DropdownButton, DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 import type {LinkProps} from '@sentry/scraps/link';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 import {IconEllipsis} from 'sentry/icons';
@@ -31,13 +32,12 @@ export function BreadcrumbItemMenuBreadcrumbs({
         size="sm"
         items={items}
         trigger={(triggerProps, isOpen) => (
-          <DropdownButton
+          <OverlayTrigger.IconButton
             {...triggerProps}
             aria-label={t('More breadcrumbs')}
             aria-expanded={isOpen}
             size="zero"
             variant="transparent"
-            showChevron={false}
             icon={<IconEllipsis size="xs" aria-hidden />}
           />
         )}

@@ -169,13 +169,14 @@ export function AggregateColumnEditorModal({
                   },
                 ]}
                 trigger={triggerProps => (
-                  <Button
+                  <OverlayTrigger.Button
+                    showChevron={false}
                     {...triggerProps}
                     aria-label={t('Add a Column')}
                     icon={<IconAdd />}
                   >
                     {t('Add a Column')}
-                  </Button>
+                  </OverlayTrigger.Button>
                 )}
               />
             </RowContainer>
@@ -766,7 +767,6 @@ const RowContainer = styled('div')`
    * icons to the top of the row. */
   &:has([data-test-id='editor-visualize-filter']) {
     align-items: flex-start;
-
     > button {
       height: ${p => p.theme.form.md.height};
     }

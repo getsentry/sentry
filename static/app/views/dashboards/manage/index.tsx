@@ -312,14 +312,15 @@ function ManageDashboards() {
                 },
               ]}
               trigger={triggerProps => (
-                <Button
+                <OverlayTrigger.Button
+                  showChevron={false}
                   {...triggerProps}
                   data-test-id="dashboard-create"
                   variant="primary"
                   icon={<IconAdd />}
                 >
                   {t('Create Dashboard')}
-                </Button>
+                </OverlayTrigger.Button>
               )}
             />
           )}

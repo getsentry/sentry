@@ -2,12 +2,9 @@ import {Fragment} from 'react';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {
-  DropdownButton,
-  DropdownMenu,
-  type MenuItemProps,
-} from '@sentry/scraps/dropdownMenu';
+import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
 import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
@@ -270,18 +267,16 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
               return (
                 <DropdownMenu
                   items={menuItems}
-                  trigger={(triggerProps, _isOpen) => (
-                    <DropdownButton
+                  trigger={triggerProps => (
+                    <OverlayTrigger.IconButton
+                      icon={<IconEllipsis />}
                       {...triggerProps}
                       size="sm"
                       aria-label="More actions"
-                      showChevron={false}
                       disabled={
                         isDeletingArtifact || isRerunningStatusChecks || !artifactId
                       }
-                    >
-                      <IconEllipsis />
-                    </DropdownButton>
+                    />
                   )}
                 />
               );

@@ -1,7 +1,7 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button, LinkButton} from '@sentry/scraps/button';
+import {LinkButton} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
@@ -89,23 +89,26 @@ export function SavedQueriesLandingContent() {
                 },
               },
             ]}
-            trigger={triggerProps => (
-              <Button
-                {...triggerProps}
-                variant="primary"
-                icon={<IconAdd />}
-                size="md"
-                aria-label={t('Create Query')}
-                onClick={e => {
-                  e.stopPropagation();
-                  e.preventDefault();
+            trigger={triggerProps => {
+              const onClick: typeof triggerProps.onClick = e => {
+                e.stopPropagation();
+                e.preventDefault();
 
-                  triggerProps.onClick?.(e);
-                }}
-              >
-                {t('Create Query')}
-              </Button>
-            )}
+                triggerProps.onClick?.(e);
+              };
+              return (
+                <OverlayTrigger.Button
+                  showChevron={false}
+                  {...{...triggerProps, onClick}}
+                  variant="primary"
+                  icon={<IconAdd />}
+                  size="md"
+                  aria-label={t('Create Query')}
+                >
+                  {t('Create Query')}
+                </OverlayTrigger.Button>
+              );
+            }}
           />
         ) : (
           <LinkButton
