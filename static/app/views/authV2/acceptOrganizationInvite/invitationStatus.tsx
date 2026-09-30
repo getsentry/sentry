@@ -42,18 +42,11 @@ export function InvitationStatus({
   if (step === 'required-2fa') {
     return (
       <Stack gap="lg" align="start">
-        <Stack gap="xs">
-          <Text>
-            {t(
-              'This organization requires all members to configure two-factor authentication.'
-            )}
-          </Text>
-          <Text size="xs" variant="muted">
-            {t(
-              'Return to this tab after setting up two-factor authentication to accept your invitation.'
-            )}
-          </Text>
-        </Stack>
+        <Text>
+          {t(
+            'This organization requires all members to configure two-factor authentication. Return to this tab after setting up two-factor to accept your invitation.'
+          )}
+        </Text>
         <LinkButton
           external
           variant="primary"
