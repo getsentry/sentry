@@ -31,6 +31,7 @@ import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
+import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -534,13 +535,13 @@ export function ProjectPageFilter({
   // oxlint-disable-next-line react/preserve-manual-memoization
   const defaultMenuWidth = useMemo(() => computeMenuWidth(options), [options]);
 
-  const canWrite = organization.access.includes('project:write');
+  const canCreateProject = useCanCreateProject();
 
   const hasUnstaggedChanges =
     xor(stagedSelect.value, committedSelectionIntent.ids).length > 0;
 
   const menuFooterContent =
-    selectionLimitExceeded || canWrite || hasUnstaggedChanges ? (
+    selectionLimitExceeded || canCreateProject || hasUnstaggedChanges ? (
       <Stack gap="md" direction="column">
         {selectionLimitExceeded && (
           <MenuComponents.Alert variant="warning">
@@ -553,8 +554,8 @@ export function ProjectPageFilter({
             )}
           </MenuComponents.Alert>
         )}
-        <Flex gap="md" align="center" justify={canWrite ? 'between' : 'end'}>
-          {canWrite ? (
+        <Flex gap="md" align="center" justify={canCreateProject ? 'between' : 'end'}>
+          {canCreateProject ? (
             <MenuComponents.CTALinkButton
               icon={<IconAdd />}
               to={makeProjectsPathname({path: '/new/', organization})}

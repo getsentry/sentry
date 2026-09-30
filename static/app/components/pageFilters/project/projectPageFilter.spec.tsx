@@ -1198,4 +1198,36 @@ describe('ProjectPageFilter', () => {
       ).toBeInTheDocument();
     });
   });
+
+  describe('create project button', () => {
+    it('is shown to members when member project creation is allowed', async () => {
+      const memberOrg = OrganizationFixture({
+        features: ['open-membership'],
+        access: ['org:read', 'team:read', 'project:read'],
+        allowMemberProjectCreation: true,
+      });
+      OrganizationStore.onUpdate(memberOrg, {replace: true});
+
+      render(<ProjectPageFilter />, {organization: memberOrg});
+
+      await userEvent.click(screen.getByRole('button', {name: 'My Projects'}));
+      expect(screen.getByRole('button', {name: 'Create Project'})).toBeInTheDocument();
+    });
+
+    it('is hidden from members when member project creation is not allowed', async () => {
+      const memberOrg = OrganizationFixture({
+        features: ['open-membership'],
+        access: ['org:read', 'team:read', 'project:read'],
+        allowMemberProjectCreation: false,
+      });
+      OrganizationStore.onUpdate(memberOrg, {replace: true});
+
+      render(<ProjectPageFilter />, {organization: memberOrg});
+
+      await userEvent.click(screen.getByRole('button', {name: 'My Projects'}));
+      expect(
+        screen.queryByRole('button', {name: 'Create Project'})
+      ).not.toBeInTheDocument();
+    });
+  });
 });
