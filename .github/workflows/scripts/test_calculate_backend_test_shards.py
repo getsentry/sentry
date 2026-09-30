@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib
+import json
 import textwrap
 from pathlib import Path
 
@@ -400,6 +401,30 @@ class TestCollectTestCount:
         monkeypatch.setenv("SELECTED_TESTS_FILE", str(selected))
 
         assert collect_test_count() == 3
+
+    def test_coverage_counts_raise_ast_counts(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        (tmp_path / "test_a.py").write_text("def test_one(): pass\ndef test_two(): pass\n")
+        (tmp_path / "test_b.py").write_text("def test_three(): pass\n")
+        (tmp_path / "test_c.py").write_text("def test_four(): pass\n")
+        selected = tmp_path / "selected.txt"
+        selected.write_text("test_a.py\ntest_b.py\ntest_c.py\n")
+        counts = tmp_path / "counts.json"
+        counts.write_text(json.dumps({"test_a.py": 1, "test_b.py": 500}))
+        monkeypatch.setenv("SELECTED_TESTS_FILE", str(selected))
+        monkeypatch.setenv("SELECTED_TEST_COUNTS_FILE", str(counts))
+
+        assert collect_test_count() == 2 + 500 + 1
+
+    def test_unreadable_coverage_counts_fall_back_to_ast(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        (tmp_path / "test_a.py").write_text("def test_one(): pass\n")
+        selected = tmp_path / "selected.txt"
+        selected.write_text("test_a.py\n")
+        monkeypatch.setenv("SELECTED_TESTS_FILE", str(selected))
+        monkeypatch.setenv("SELECTED_TEST_COUNTS_FILE", str(tmp_path / "nope.json"))
+
+        assert collect_test_count() == 1
 
     def test_selected_tests_file_empty(self, tmp_path, monkeypatch):
         selected = tmp_path / "selected.txt"

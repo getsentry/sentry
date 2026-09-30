@@ -16,6 +16,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import re
 import sqlite3
@@ -237,6 +238,22 @@ def _query_coverage(coverage_db_path: str, db_file_paths: list[str]) -> set[str]
     return test_files
 
 
+def _query_test_counts(coverage_db_path: str, test_files: list[str]) -> dict[str, int]:
+    """Count distinct test ids per test file, including generated and parametrized tests."""
+    wanted = {DB_PREFIX + f: f for f in test_files}
+    tests: dict[str, set[str]] = {f: set() for f in test_files}
+    conn = sqlite3.connect(coverage_db_path)
+    try:
+        for (context,) in conn.execute("SELECT context FROM context WHERE context LIKE '%::%'"):
+            f = wanted.get(context.split("::", 1)[0])
+            if f is not None:
+                # Contexts are '<nodeid>|run', '<nodeid>|setup' and '<nodeid>|teardown'.
+                tests[f].add(context.rsplit("|", 1)[0])
+    finally:
+        conn.close()
+    return {f: len(ids) for f, ids in tests.items() if ids}
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Compute selected sentry tests from coverage data")
     parser.add_argument("--coverage-db", required=True, help="Path to coverage SQLite database")
@@ -251,6 +268,10 @@ def main() -> int:
         help="Space-separated previous filenames for renamed files (queried against coverage DB)",
     )
     parser.add_argument("--output", help="Output file path for selected test files (one per line)")
+    parser.add_argument(
+        "--test-counts-output",
+        help="Output JSON file mapping each selected test file to its test count on master",
+    )
     parser.add_argument("--github-output", action="store_true", help="Write to GITHUB_OUTPUT")
     args = parser.parse_args()
 
@@ -360,6 +381,17 @@ def main() -> int:
             for test_file in output_tests:
                 f.write(f"{test_file}\n")
         print(f"Wrote selected tests to {output_path}")
+
+    if args.test_counts_output and output_tests:
+        try:
+            counts = _query_test_counts(str(coverage_db), output_tests)
+        except sqlite3.Error as e:
+            print(f"Warning: could not count tests from coverage database: {e}", file=sys.stderr)
+        else:
+            counts_path = Path(args.test_counts_output)
+            counts_path.parent.mkdir(parents=True, exist_ok=True)
+            counts_path.write_text(json.dumps(counts, indent=2, sort_keys=True) + "\n")
+            print(f"Wrote test counts for {len(counts)} files to {counts_path}")
 
     if args.github_output:
         github_output = os.environ.get("GITHUB_OUTPUT")

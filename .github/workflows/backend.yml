@@ -147,6 +147,7 @@ jobs:
             --changed-files "$CHANGED_FILES" \
             --previous-filenames "$PREVIOUS_FILENAMES" \
             --output .artifacts/selected-tests.txt \
+            --test-counts-output .artifacts/selected-test-counts.json \
             --github-output
 
       - name: Upload selected tests artifact
@@ -154,7 +155,9 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: selected-tests-${{ github.run_id }}
-          path: .artifacts/selected-tests.txt
+          path: |
+            .artifacts/selected-tests.txt
+            .artifacts/selected-test-counts.json
           retention-days: 1
 
   calculate-shards:
@@ -195,6 +198,7 @@ jobs:
         if: needs.select-tests.outputs.has-selected-tests == 'true'
         env:
           SELECTED_TESTS_FILE: '.artifacts/selected-tests.txt'
+          SELECTED_TEST_COUNTS_FILE: '.artifacts/selected-test-counts.json'
           SELECTED_TEST_COUNT: ${{ needs.select-tests.outputs.test-count || '' }}
         run: |
           python3 .github/workflows/scripts/calculate-backend-test-shards.py

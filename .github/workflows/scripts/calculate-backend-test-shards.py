@@ -4,6 +4,9 @@
 Uses AST-based static analysis to count tests instead of running
 pytest --collect-only, which requires importing every module and
 bootstrapping Django (~100s). AST parsing takes a few seconds.
+
+AST cannot see tests generated at import time, so selected files also use
+their count on master from the coverage DB (SELECTED_TEST_COUNTS_FILE).
 """
 
 from __future__ import annotations
@@ -105,6 +108,17 @@ def count_tests_in_file(filepath: Path) -> int:
     return total
 
 
+def load_coverage_test_counts() -> dict[str, int]:
+    counts_file = os.environ.get("SELECTED_TEST_COUNTS_FILE")
+    if not counts_file:
+        return {}
+    try:
+        return json.loads(Path(counts_file).read_text())
+    except (OSError, ValueError) as e:
+        print(f"Could not read test counts from {counts_file}: {e}", file=sys.stderr)
+        return {}
+
+
 def collect_test_count() -> int | None:
     """Count tests via AST analysis of test files."""
     selected_tests_file = os.environ.get("SELECTED_TESTS_FILE")
@@ -138,8 +152,18 @@ def collect_test_count() -> int | None:
         )
         print(f"Found {len(test_files)} test files", file=sys.stderr)
 
-    total = sum(count_tests_in_file(f) for f in test_files)
-    print(f"Counted {total} tests via AST analysis", file=sys.stderr)
+    coverage_counts = load_coverage_test_counts() if selected_tests_file else {}
+    total = 0
+    for f in test_files:
+        ast_count = count_tests_in_file(f)
+        coverage_count = coverage_counts.get(str(f), 0)
+        if coverage_count > ast_count:
+            print(
+                f"  {f}: {coverage_count} tests in coverage DB, {ast_count} via AST",
+                file=sys.stderr,
+            )
+        total += max(ast_count, coverage_count)
+    print(f"Counted {total} tests", file=sys.stderr)
     return total
 
 

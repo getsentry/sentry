@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import os
 import sqlite3
 import sys
@@ -27,6 +28,7 @@ from compute_sentry_selected_tests import (
     PUBLIC_API_MATRIX_TEST,
     _changed_files_match_public_api_matrix_paths,
     _query_coverage,
+    _query_test_counts,
     main,
 )
 
@@ -125,6 +127,35 @@ class TestQueryCoverage:
         assert _query_coverage(db, ["../sentry/src/sentry/foo.py"]) == set()
 
 
+class TestQueryTestCounts:
+    def test_counts_distinct_test_ids_per_file(self, tmp_path):
+        db_path = tmp_path / "coverage.db"
+        _create_coverage_db(
+            str(db_path),
+            {
+                "../sentry/src/sentry/a.py": [
+                    "../sentry/tests/sentry/test_a.py::T::test_one|setup",
+                    "../sentry/tests/sentry/test_a.py::T::test_one|run",
+                    "../sentry/tests/sentry/test_a.py::T::test_one|teardown",
+                    "../sentry/tests/sentry/test_a.py::T::test_gen_000|run",
+                    "../sentry/tests/sentry/test_a.py::T::test_gen_001|run",
+                    "../sentry/tests/sentry/test_b.py::test_x[1]|run",
+                ],
+                "../sentry/src/sentry/b.py": [
+                    "../sentry/tests/sentry/test_b.py::test_x[1]|run",
+                    "../sentry/tests/sentry/test_b.py::test_x[2]|run",
+                    "../sentry/tests/sentry/test_c.py::test_y|run",
+                    "tests/getsentry/test_a.py::test_z|run",
+                ],
+            },
+        )
+        counts = _query_test_counts(
+            str(db_path),
+            ["tests/sentry/test_a.py", "tests/sentry/test_b.py", "tests/sentry/test_new.py"],
+        )
+        assert counts == {"tests/sentry/test_a.py": 3, "tests/sentry/test_b.py": 2}
+
+
 class TestMain:
     @pytest.fixture(autouse=True)
     def _patch_find_test_imports(self):
@@ -206,6 +237,35 @@ class TestMain:
         assert f"test-count={1 + len(ALWAYS_RUN_TESTS)}" in gh
         expected_output = sorted({"tests/sentry/test_org.py"} | ALWAYS_RUN_TESTS)
         assert output.read_text().splitlines() == expected_output
+
+    def test_writes_test_counts(self, tmp_path):
+        db_path = tmp_path / "coverage.db"
+        _create_coverage_db(
+            str(db_path),
+            {
+                "../sentry/src/sentry/models/org.py": [
+                    "../sentry/tests/sentry/test_org.py::T::test_a|run",
+                    "../sentry/tests/sentry/test_org.py::T::test_b|run",
+                ],
+            },
+        )
+        counts_output = tmp_path / "counts.json"
+
+        with mock.patch("compute_sentry_selected_tests.Path.exists", return_value=True):
+            _run(
+                [
+                    "--coverage-db",
+                    str(db_path),
+                    "--changed-files",
+                    "src/sentry/models/org.py",
+                    "--output",
+                    str(tmp_path / "output.txt"),
+                    "--test-counts-output",
+                    str(counts_output),
+                ]
+            )
+
+        assert json.loads(counts_output.read_text()) == {"tests/sentry/test_org.py": 2}
 
     def test_getsentry_tests_filtered_out(self, tmp_path):
         """Coverage may return getsentry tests — they should be filtered."""
