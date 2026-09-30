@@ -371,9 +371,9 @@ def emit_evaluation_to_eap(
 
         Workflow inputs omit full event/group models and the event-local cache.
         Use the top-level event_id, group_id, and issue state for that context.
+
         Detector inputs retain supported dataclass, mapping, sequence, enum, and
-        scalar data, including nulls. Complex inputs remain redacted from logs;
-        comparisons retain their existing JSON-string format in EAP and logs.
+        scalar data, including nulls.
 
     How to search:
         Select the workflow-engine-evaluation item type and scope by project and time.
