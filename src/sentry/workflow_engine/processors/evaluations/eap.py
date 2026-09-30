@@ -63,7 +63,7 @@ def _get_eap_items_producer() -> KafkaProducer:
     )
 
 
-# Artifact delivery must not gate task completion or block workflow action dispatch.
+# Artifact delivery should be best effort. It should not block task completion or triggering workflow actions
 _eap_producer = FutureTrackingProducer(
     name=EAP_PRODUCER_NAME,
     producer_factory=_get_eap_items_producer,
@@ -242,7 +242,101 @@ def emit_evaluation_to_eap(
     organization: Organization,
     result: WorkflowEngineResult,
 ) -> None:
-    """Store workflow engine evaluation artifacts in EAP."""
+    """
+    Send evaluation artifacts to EAP, one item per evaluation.
+    If no evaluations were produced, send one item with the batch outcome and available context.
+
+    Properties:
+        TraceItem:
+            organization_id: int
+            project_id: int
+            item_id: bytes  # Random UUID4
+            item_type: TRACE_ITEM_TYPE_WORKFLOW_ENGINE_EVALUATION
+            trace_id: str
+            timestamp: Timestamp  # Batch emission time
+            received: Timestamp  # Same as timestamp
+            retention_days: int = 7
+            client_sample_rate: float = 1.0
+            server_sample_rate: float = 1.0
+            attributes: dict[str, AnyValue]
+
+        CommonAttributes:
+            evaluation_type: "detector" | "workflow"
+            project_id: int
+            outcome: str
+            error?: str
+            detector_id?: int
+            detector_type?: str
+            event_id?: str  # GroupEvent event ID or stringified Activity ID
+
+        DetectorAttributes(CommonAttributes):
+            triggered: bool
+            group_key?: str
+            priority: int
+            trigger_evaluation: str  # JSON[ConditionGroup]
+
+        WorkflowAttributes(CommonAttributes):
+            evaluation_phase: "initial" | "delayed"
+            triggered: bool
+            workflow_id: int
+            group_id: int  # Issue ID
+            trigger_evaluation: str  # JSON[ConditionGroup], WHEN
+            filter_evaluations: str  # JSON[list[ConditionGroup]], IF
+            triggered_action_ids: list[int]
+            delayed?: str  # JSON[DeferredWorkflow]
+
+        InitialWorkflowAttributes(WorkflowAttributes):
+            event_kind: "group_event" | "activity"
+            issue_status: int
+            issue_substatus?: int
+            issue_priority?: int
+            environment_id?: int
+            is_resolved: bool
+            is_new?: bool
+            is_regression?: bool
+            is_new_group_environment?: bool
+            has_escalated?: bool
+            activity_type?: str | int  # ActivityType name or unknown numeric ID
+
+        ConditionGroup:
+            triggered: bool
+            error?: str
+            logic_type: "any" | "any-short" | "all" | "none"
+            result: bool
+            condition_evaluations: list[Condition]
+
+        Condition:
+            condition_id: int
+            condition_type: str
+            input_type: str
+            triggered: bool
+            error?: str
+            result?: bool | int | float
+
+        DeferredWorkflow:
+            trigger_group_id?: int
+            filter_group_ids: list[int]
+            passing_filter_group_ids: list[int]
+
+        Condition comparison and input values are excluded.
+        None-valued fields are omitted, including inside JSON; false, zero, and
+        empty arrays are kept. Delayed evaluations have no detector or initial
+        event context, no delayed property, and an empty triggered_action_ids
+        array even when actions will fire. Empty batches only have the common
+        fields, plus evaluation_phase and group_id where available; they have
+        no triggered flag or condition details.
+
+    How to search:
+        Select the workflow-engine-evaluation item type and scope by project and time.
+        Use evaluation_type and evaluation_phase to narrow the stage, then use
+        workflow_id, detector_id, group_id, or event_id to find the evaluation.
+        outcome and triggered explain the result (for example, "deferred",
+        "not_triggered", "actions_triggered", or "error").
+
+        trigger_evaluation, filter_evaluations, and delayed are stored as JSON
+        strings, so parse them to inspect conditions or deferred group IDs.
+        Other attributes keep their native types.
+    """
     topic = ArroyoTopic(get_topic_definition(Topic.SNUBA_ITEMS)["real_topic_name"])
     timestamp = Timestamp()
     timestamp.FromDatetime(timezone.now())
