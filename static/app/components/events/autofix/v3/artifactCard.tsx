@@ -6,8 +6,7 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconRefresh} from 'sentry/icons';
-import {IconCopy} from 'sentry/icons/iconCopy';
+import {IconMarkdown, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 interface ArtifactCardProps {
@@ -50,7 +49,7 @@ export function ArtifactCard({
               <Button
                 size="xs"
                 variant="transparent"
-                icon={<IconCopy size="xs" />}
+                icon={<IconMarkdown size="xs" />}
                 aria-label={t('Copy as Markdown')}
                 tooltipProps={{title: t('Copy as Markdown')}}
                 onClick={onCopy}
