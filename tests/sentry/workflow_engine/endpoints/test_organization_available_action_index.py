@@ -358,7 +358,7 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
         ]
 
     @with_feature({"organizations:integrations-alert-rule": False})
-    def test_does_not_return_alert_rule_actions_without_feature(self) -> None:
+    def test_flags_alert_rule_actions_without_feature(self) -> None:
         self.setup_integrations()
         self.create_integration(
             organization=self.organization,
@@ -371,17 +371,24 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
             self.organization.slug,
             status_code=200,
         )
-        assert [action["type"] for action in response.data] == [Action.Type.GITHUB]
+        assert {action["type"]: action.get("disabledReason") for action in response.data} == {
+            Action.Type.SLACK: "plan",
+            Action.Type.GITHUB: None,
+            Action.Type.MSTEAMS: "plan",
+        }
 
     @with_feature({"organizations:integrations-issue-basic": False})
-    def test_does_not_return_ticket_actions_without_issue_feature(self) -> None:
+    def test_flags_ticket_actions_without_feature(self) -> None:
         self.setup_integrations()
 
         response = self.get_success_response(
             self.organization.slug,
             status_code=200,
         )
-        assert [action["type"] for action in response.data] == [Action.Type.SLACK]
+        assert {action["type"]: action.get("disabledReason") for action in response.data} == {
+            Action.Type.SLACK: None,
+            Action.Type.GITHUB: "plan",
+        }
 
     def test_integrations_with_services(self) -> None:
         self.setup_integrations_with_services()
