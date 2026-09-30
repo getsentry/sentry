@@ -156,6 +156,15 @@ def create_investigation_orchestration_run(
     _validate_viewer_organization(viewer_context, run.investigation.organization_id)
     user_id = viewer_context.get("user_id")
     user = user_service.get_user(user_id=user_id) if user_id else None
+    user_org_context = collect_user_org_context(user, run.investigation.organization)
+    project_ids = set(run.investigation.projects.values_list("id", flat=True))
+    if project_ids:
+        user_org_context["all_org_projects"] = [
+            project
+            for project in user_org_context.get("all_org_projects", [])
+            if project["id"] in project_ids
+        ]
+    user_org_context["user_projects"] = user_org_context.get("all_org_projects", [])
     body: dict[str, Any] = {
         "requestId": str(
             uuid5(
@@ -165,7 +174,7 @@ def create_investigation_orchestration_run(
         ),
         "investigationId": run.investigation_id,
         "source": run.source,
-        "userOrgContext": collect_user_org_context(user, run.investigation.organization),
+        "userOrgContext": user_org_context,
         "activeTimeBudgetSeconds": 1800,
     }
     monitoring_providers = get_monitoring_provider_connections(
