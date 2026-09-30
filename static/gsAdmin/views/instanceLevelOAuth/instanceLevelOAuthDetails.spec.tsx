@@ -174,18 +174,49 @@ describe('instance level OAuth client details', () => {
     expect(mockPutCall).not.toHaveBeenCalled();
   });
 
+  it('rejects comma-separated URLs', async () => {
+    render(<InstanceLevelOAuthDetails />, {initialRouterConfig});
+    await screen.findByText('Details For Instance Level OAuth Client: CodeCov');
+
+    await userEvent.clear(
+      screen.getByRole('textbox', {name: 'Redirect URIs (space separated)'})
+    );
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Redirect URIs (space separated)'}),
+      'https://example.com/one,https://example.com/two'
+    );
+    await userEvent.clear(
+      screen.getByRole('textbox', {name: 'Allowed Origins (space separated)'})
+    );
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Allowed Origins (space separated)'}),
+      'https://example.com/one, https://example.com/two'
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Save Client Settings'}));
+
+    expect(
+      await screen.findByText('Enter valid redirect URLs separated by spaces')
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('Enter valid allowed origins separated by spaces')
+    ).toBeInTheDocument();
+    expect(mockPutCall).not.toHaveBeenCalled();
+  });
+
   it('deletes a client correctly', async () => {
     render(<InstanceLevelOAuthDetails />, {
       initialRouterConfig,
     });
     await userEvent.click(await screen.findByRole('button', {name: 'Delete client'}));
     renderGlobalModal();
-    expect(await screen.findByText('Delete client')).toBeVisible();
-    await userEvent.click(
-      await screen.findByRole('button', {
-        name: 'Permanently and Irreversibly Delete Client',
-      })
-    );
+    expect(
+      await screen.findByRole('heading', {name: /Delete client:/})
+    ).toBeInTheDocument();
+    const deleteButton = await screen.findByRole('button', {
+      name: 'Permanently and Irreversibly Delete Client',
+    });
+    expect(deleteButton.closest('footer')).toBeInTheDocument();
+    await userEvent.click(deleteButton);
     expect(mockDeleteCall).toHaveBeenCalledTimes(1);
   });
 });

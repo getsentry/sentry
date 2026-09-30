@@ -55,7 +55,9 @@ const clientSchema = z.object({
     .trim()
     .min(1)
     .refine(
-      value => value.split(/\s+/).every(url => z.url().safeParse(url).success),
+      value =>
+        !value.includes(',') &&
+        value.split(/\s+/).every(url => z.url().safeParse(url).success),
       'Enter valid redirect URLs separated by spaces'
     ),
   allowedOrigins: z
@@ -63,7 +65,9 @@ const clientSchema = z.object({
     .trim()
     .refine(
       value =>
-        value === '' || value.split(/\s+/).every(url => z.url().safeParse(url).success),
+        value === '' ||
+        (!value.includes(',') &&
+          value.split(/\s+/).every(url => z.url().safeParse(url).success)),
       'Enter valid allowed origins separated by spaces'
     ),
   homepageUrl: optionalUrlValidation,

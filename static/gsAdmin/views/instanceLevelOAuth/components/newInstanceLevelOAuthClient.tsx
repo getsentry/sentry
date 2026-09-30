@@ -41,7 +41,8 @@ function spaceSeparatedUrls(requiredMessage: string, invalidMessage: string) {
     .refine(
       value =>
         value === '' ||
-        value.split(/\s+/).every(url => urlValidation.safeParse(url).success),
+        (!value.includes(',') &&
+          value.split(/\s+/).every(url => urlValidation.safeParse(url).success)),
       invalidMessage
     );
 }
@@ -53,7 +54,8 @@ function optionalSpaceSeparatedUrls(invalidMessage: string) {
     .refine(
       value =>
         value === '' ||
-        value.split(/\s+/).every(url => urlValidation.safeParse(url).success),
+        (!value.includes(',') &&
+          value.split(/\s+/).every(url => urlValidation.safeParse(url).success)),
       invalidMessage
     );
 }
