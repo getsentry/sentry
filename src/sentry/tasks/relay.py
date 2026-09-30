@@ -241,10 +241,6 @@ def invalidate_project_config(
 
     Both these mean that an outdated version of the project config could still end up in the
     cache.  These will be addressed in the future using config revisions tracked in Redis.
-
-    Each config is written to the cache as soon as it is computed.  An organization-wide
-    invalidation therefore updates Relay project by project instead of holding every config
-    back until the whole organization is done.
     """
     # Make sure we start by deleting the deduplication key so that new invalidation triggers
     # can schedule a new message while we already started computing the project config.
