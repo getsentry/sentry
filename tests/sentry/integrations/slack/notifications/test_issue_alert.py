@@ -355,7 +355,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         assert event.group
         assert (
             blocks[1]["text"]["text"]
-            == f":red_circle: <http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&environment=production&alert_rule_id={rule.id}&alert_type=issue|*Hello world*>"
+            == f":red_circle: <http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&environment={environment.name}&alert_rule_id={rule.id}&alert_type=issue|*Hello world*>"
         )
         assert (
             blocks[4]["elements"][0]["text"]
