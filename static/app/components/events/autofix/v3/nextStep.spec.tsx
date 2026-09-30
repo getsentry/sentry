@@ -121,14 +121,15 @@ function makeSection(
 }
 
 describe('SeerDrawerNextStep', () => {
-  const openSeerExplorer = jest.fn();
+  const openChatPrompt = jest.fn();
 
   beforeEach(() => {
-    openSeerExplorer.mockClear();
+    openChatPrompt.mockClear();
     jest.mocked(useSeerExplorerContext).mockReturnValue({
       closeSeerExplorer: jest.fn(),
       isOpen: false,
-      openSeerExplorer,
+      openChatPrompt,
+      openSeerExplorer: jest.fn(),
       sessionState: 'inactive',
       sidebarContainerRef: {current: null},
       setSidebarPosition: jest.fn(),
@@ -182,13 +183,10 @@ describe('SeerDrawerNextStep', () => {
 
         await userEvent.click(await screen.findByRole('button', {name: 'No'}));
 
-        expect(openSeerExplorer).toHaveBeenCalledWith({
+        expect(openChatPrompt).toHaveBeenCalledWith({
+          prompt: question,
+          context: {autofixStep: step},
           runId: 1,
-          chatPrompt: {
-            text: question,
-            context: JSON.stringify({autofixStep: step}),
-            openedAt: expect.any(Number),
-          },
         });
         expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
         expect(autofix.startStep).not.toHaveBeenCalled();
@@ -213,7 +211,7 @@ describe('SeerDrawerNextStep', () => {
 
       await userEvent.click(screen.getByRole('button', {name: 'No'}));
 
-      expect(openSeerExplorer).not.toHaveBeenCalled();
+      expect(openChatPrompt).not.toHaveBeenCalled();
       expect(screen.getByRole('textbox')).toBeInTheDocument();
     });
   });

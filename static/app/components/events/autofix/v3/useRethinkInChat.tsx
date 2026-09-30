@@ -1,11 +1,11 @@
-import {useMemo} from 'react';
+import {useCallback} from 'react';
 
 import type {AutofixExplorerStep} from 'sentry/components/events/autofix/useExplorerAutofix';
 import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {hasAutofixPage} from 'sentry/views/issueDetails/autofix/utils';
-import {useAskSeer} from 'sentry/views/seerExplorer/hooks/useAskSeer';
 import type {SeerExplorerRunId} from 'sentry/views/seerExplorer/types';
+import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
 
 interface UseRethinkInChatOptions {
@@ -27,8 +27,11 @@ export function useRethinkInChat({
   step,
 }: UseRethinkInChatOptions): (() => void) | undefined {
   const organization = useOrganization();
-  const context = useMemo(() => ({autofixStep: step}), [step]);
-  const askSeer = useAskSeer({prompt, context, runId});
+  const {openChatPrompt} = useSeerExplorerContext();
+  const askSeer = useCallback(
+    () => openChatPrompt({prompt, context: {autofixStep: step}, runId}),
+    [openChatPrompt, prompt, step, runId]
+  );
 
   const isAvailable =
     defined(runId) &&

@@ -53,7 +53,7 @@ import type {
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
-import {useAskSeer} from 'sentry/views/seerExplorer/hooks/useAskSeer';
+import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
 
 import {VisualizationWidget} from './visualizationWidget';
@@ -168,12 +168,14 @@ function WidgetCard(props: Props) {
   };
   useLLMContext(widgetLLMContext);
 
-  const askSeer = useAskSeer({
-    prompt: props.widget.title
-      ? t('What would you like to know about the "%s" widget?', props.widget.title)
-      : t('What would you like to know about this widget?'),
-    context: widgetLLMContext,
-  });
+  const {openChatPrompt} = useSeerExplorerContext();
+  const askSeer = () =>
+    openChatPrompt({
+      prompt: props.widget.title
+        ? t('What would you like to know about the "%s" widget?', props.widget.title)
+        : t('What would you like to know about this widget?'),
+      context: widgetLLMContext,
+    });
   const canAskSeer =
     organization.features.includes('seer-explorer-chat-prompts') &&
     isSeerExplorerEnabled(organization);

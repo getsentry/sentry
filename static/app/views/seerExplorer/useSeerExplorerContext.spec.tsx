@@ -1,12 +1,10 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {GlobalDrawer} from '@sentry/scraps/drawer';
 import {PictureInPictureProvider} from '@sentry/scraps/pictureInPicture';
 
-import {CHAT_PROMPT_TTL_MS} from 'sentry/views/seerExplorer/chatPrompt';
-import {useAskSeer} from 'sentry/views/seerExplorer/hooks/useAskSeer';
 import {SeerExplorerChatStateProvider} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
 import {SeerExplorerSessionsProvider} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
 import {
@@ -24,9 +22,12 @@ function AskSeerEntryPoint({
   prompt: string;
   runId?: number;
 }) {
-  const askSeer = useAskSeer({prompt, context: {widget: 'p95 latency'}, runId});
+  const {openChatPrompt} = useSeerExplorerContext();
   return (
-    <button type="button" onClick={askSeer}>
+    <button
+      type="button"
+      onClick={() => openChatPrompt({prompt, context: {widget: 'p95 latency'}, runId})}
+    >
       {label}
     </button>
   );
@@ -64,7 +65,7 @@ function tree() {
   );
 }
 
-describe('useAskSeer', () => {
+describe('openChatPrompt', () => {
   const organization = OrganizationFixture({
     openMembership: true,
     hideAiFeatures: false,
@@ -100,10 +101,6 @@ describe('useAskSeer', () => {
       method: 'GET',
       body: [],
     });
-  });
-
-  afterEach(() => {
-    jest.restoreAllMocks();
   });
 
   it("shows the question as Seer's and sends it with the reply", async () => {
@@ -263,28 +260,5 @@ describe('useAskSeer', () => {
     await userEvent.click(screen.getByRole('button', {name: 'ask-dashboard'}));
     expect(await screen.findByText('What about this dashboard?')).toBeInTheDocument();
     expect(screen.queryByText('What about this widget?')).not.toBeInTheDocument();
-  });
-
-  it('removes an unanswered question after its time is up, unless a reply is drafted', async () => {
-    const openedAt = Date.now();
-    const now = jest.spyOn(Date, 'now').mockReturnValue(openedAt);
-    render(tree(), {organization});
-
-    await userEvent.click(await screen.findByRole('button', {name: 'ask-widget'}));
-    const textarea = await screen.findByTestId('seer-explorer-input');
-    await userEvent.type(textarea, 'draft');
-
-    // The tab comes back after the deadline while a reply is being written.
-    now.mockReturnValue(openedAt + CHAT_PROMPT_TTL_MS);
-    act(() => {
-      document.dispatchEvent(new Event('visibilitychange'));
-    });
-    expect(screen.getByText('What about this widget?')).toBeInTheDocument();
-
-    // Clearing the draft lets the expired question go.
-    await userEvent.clear(textarea);
-    await waitFor(() => {
-      expect(screen.queryByText('What about this widget?')).not.toBeInTheDocument();
-    });
   });
 });

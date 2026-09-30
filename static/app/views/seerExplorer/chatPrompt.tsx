@@ -1,8 +1,5 @@
 import type {Block} from 'sentry/views/seerExplorer/types';
 
-/** How long an unanswered "Ask Seer" question stays in Explorer. */
-export const CHAT_PROMPT_TTL_MS = 60 * 60 * 1000;
-
 /**
  * An "Ask Seer" question: shown in Explorer as Seer's, and sent with the user's reply.
  * `context` is the JSON the entry point captured when it was clicked.
@@ -12,11 +9,6 @@ export type ChatPrompt = {
   context?: string;
 };
 
-export type PendingChatPrompt = ChatPrompt & {
-  /** When the question was opened, so it can expire if nobody answers it. */
-  openedAt: number;
-};
-
 /** The question a user message answered, which the chat endpoint stores in its metadata. */
 export function getBlockChatPrompt(block: Block): ChatPrompt | null {
   const text = block.message.metadata?.chat_prompt;
@@ -24,6 +16,19 @@ export function getBlockChatPrompt(block: Block): ChatPrompt | null {
     return null;
   }
   return {text, context: block.message.metadata?.chat_prompt_context};
+}
+
+/** The JSON a prompt's context travels as, or nothing if it can't be serialized. */
+export function serializeChatPromptContext(context: unknown): string | undefined {
+  if (context === undefined) {
+    return undefined;
+  }
+  try {
+    return JSON.stringify(context);
+  } catch {
+    // Not serializable (e.g. circular); the question still works without it.
+    return undefined;
+  }
 }
 
 /** The metadata the chat endpoint stores for a prompt, mirrored on the optimistic block. */

@@ -25,6 +25,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDateFromTimestampAssumeUtc} from 'sentry/utils/dates';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {serializeChatPromptContext} from 'sentry/views/seerExplorer/chatPrompt';
 import {ExplorerDrawerContent} from 'sentry/views/seerExplorer/components/drawer/explorerDrawerContent';
 import {
   type OpenSeerExplorerDrawerOptions,
@@ -52,9 +53,22 @@ import {
 
 type SeerExplorerSessionState = 'inactive' | 'thinking' | 'done-thinking';
 
+type ChatPromptOptions = {
+  prompt: string;
+  context?: unknown;
+  runId?: SeerExplorerRunId;
+};
+
 type SeerExplorerContextValue = {
   closeSeerExplorer: () => void;
   isOpen: boolean;
+  /**
+   * Opens Explorer on an "Ask Seer" question from Seer and sends nothing until the user
+   * replies. `context` is any JSON-serializable value describing what the question is about.
+   * `runId` asks in that conversation, for entry points that are views of a run (like an
+   * Autofix step); without it the question joins whatever Explorer shows.
+   */
+  openChatPrompt: (options: ChatPromptOptions) => void;
   openSeerExplorer: (options?: OpenSeerExplorerDrawerOptions) => void;
   sessionState: SeerExplorerSessionState;
   /**
@@ -87,6 +101,7 @@ type SeerExplorerContextValue = {
 const SeerExplorerContext = createContext<SeerExplorerContextValue>({
   closeSeerExplorer: () => {},
   isOpen: false,
+  openChatPrompt: () => {},
   openSeerExplorer: () => {},
   sessionState: 'inactive',
   sidebarContainerRef: {current: null},
@@ -287,6 +302,16 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
     ]
   );
 
+  const openChatPrompt = useCallback(
+    ({prompt, context, runId: promptRunId}: ChatPromptOptions) => {
+      openSeerExplorer({
+        chatPrompt: {text: prompt, context: serializeChatPromptContext(context)},
+        runId: promptRunId,
+      });
+    },
+    [openSeerExplorer]
+  );
+
   // Outside the chat, "post a message" means opening the Explorer on it;
   // `SeerExplorerContent` shadows this provider for callers inside the chat.
   // While popped out, `openSeerExplorer` can only focus the window and the
@@ -440,6 +465,7 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
   const contextValue = useMemo<SeerExplorerContextValue>(
     () => ({
       isOpen,
+      openChatPrompt,
       openSeerExplorer,
       closeSeerExplorer,
       toggleSeerExplorer,
@@ -454,6 +480,7 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
     }),
     [
       isOpen,
+      openChatPrompt,
       openSeerExplorer,
       closeSeerExplorer,
       toggleSeerExplorer,

@@ -5,7 +5,7 @@ import {useDrawer} from '@sentry/scraps/drawer';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {PendingChatPrompt} from 'sentry/views/seerExplorer/chatPrompt';
+import type {ChatPrompt} from 'sentry/views/seerExplorer/chatPrompt';
 import {ExplorerDrawerContent} from 'sentry/views/seerExplorer/components/drawer/explorerDrawerContent';
 import {useSeerExplorerChatDispatch} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
 import type {SeerExplorerRunId} from 'sentry/views/seerExplorer/types';
@@ -25,7 +25,7 @@ export type OpenSeerExplorerDrawerOptions = {
    * new chat when Explorer is closed. The provider stores it in chat state; the
    * drawer only opens.
    */
-  chatPrompt?: PendingChatPrompt;
+  chatPrompt?: ChatPrompt;
   /**
    * Optional query string to auto-submit once the drawer opens. Takes effect on
    * an empty session, or the open one with `appendToOpenRun`.

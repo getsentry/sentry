@@ -23,7 +23,6 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   toChatPromptMetadata,
   type ChatPrompt,
-  type PendingChatPrompt,
 } from 'sentry/views/seerExplorer/chatPrompt';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import type {
@@ -317,7 +316,7 @@ export const useSeerExplorer = () => {
       pageLocation: LLMContextLocation | undefined;
       pageName: string;
       /** The pending prompt this send took from chat state, put back if it fails. */
-      pendingChatPrompt: PendingChatPrompt | null;
+      pendingChatPrompt: ChatPrompt | null;
       query: string;
       requestId: string;
       runId: SeerExplorerRunId | null;

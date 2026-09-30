@@ -176,7 +176,7 @@ describe('ArtifactCard', () => {
       openMembership: true,
       hideAiFeatures: false,
     });
-    const openSeerExplorer = jest.fn();
+    const openChatPrompt = jest.fn();
     const {useSeerExplorerContext: actualUseSeerExplorerContext} = jest.requireActual(
       'sentry/views/seerExplorer/useSeerExplorerContext'
     );
@@ -184,7 +184,7 @@ describe('ArtifactCard', () => {
     beforeEach(() => {
       jest.mocked(useSeerExplorerContext).mockImplementation(() => ({
         ...actualUseSeerExplorerContext(),
-        openSeerExplorer,
+        openChatPrompt,
       }));
     });
 
@@ -256,13 +256,10 @@ describe('ArtifactCard', () => {
 
         await userEvent.click(chatButton);
 
-        expect(openSeerExplorer).toHaveBeenCalledWith({
+        expect(openChatPrompt).toHaveBeenCalledWith({
+          prompt: question,
+          context: {autofixStep: step},
           runId: 123,
-          chatPrompt: {
-            text: question,
-            context: JSON.stringify({autofixStep: step}),
-            openedAt: expect.any(Number),
-          },
         });
         expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
       }
@@ -288,7 +285,7 @@ describe('ArtifactCard', () => {
 
       await userEvent.click(screen.getByRole('button', {name: 'Re-run step'}));
 
-      expect(openSeerExplorer).not.toHaveBeenCalled();
+      expect(openChatPrompt).not.toHaveBeenCalled();
       expect(screen.getByRole('textbox')).toBeInTheDocument();
     });
   });

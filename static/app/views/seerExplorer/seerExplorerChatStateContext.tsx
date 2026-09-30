@@ -9,7 +9,7 @@ import {
 } from 'react';
 
 import {sessionStorageWrapper} from 'sentry/utils/sessionStorage';
-import type {PendingChatPrompt} from 'sentry/views/seerExplorer/chatPrompt';
+import type {ChatPrompt} from 'sentry/views/seerExplorer/chatPrompt';
 import {useSeerExplorerPolling} from 'sentry/views/seerExplorer/hooks/useSeerExplorerPolling';
 import type {SeerExplorerRunId} from 'sentry/views/seerExplorer/types';
 import {SeerExplorerDeepLinkParamProvider} from 'sentry/views/seerExplorer/utils';
@@ -26,7 +26,7 @@ type ChatState = {
 
 type SeerExplorerChatState = {
   /** An "Ask Seer" question waiting for the user's reply. Never persisted. */
-  chatPrompt: PendingChatPrompt | null;
+  chatPrompt: ChatPrompt | null;
   chatStates: Record<SeerExplorerRunId, ChatState>;
   runId: SeerExplorerRunId | null;
 };
@@ -34,9 +34,9 @@ type SeerExplorerChatState = {
 type ChatStateAction =
   | {payload: {polling: PollingState; runId: SeerExplorerRunId}; type: 'set polling'}
   | {payload: SeerExplorerRunId | null; type: 'set run id'}
-  | {payload: PendingChatPrompt | null; type: 'set chat prompt'}
+  | {payload: ChatPrompt | null; type: 'set chat prompt'}
   /** Puts back a prompt whose send failed, unless a newer one has taken its place. */
-  | {payload: PendingChatPrompt; type: 'restore chat prompt'};
+  | {payload: ChatPrompt; type: 'restore chat prompt'};
 
 const RUN_ID_STORAGE_KEY = 'seer-explorer-run-id';
 
