@@ -90,7 +90,6 @@ describe('EvaluationAnswers', () => {
     expect(screen.getByText('97%')).toBeInTheDocument();
     expect(screen.getByText('No')).toBeInTheDocument();
     expect(screen.getByText('90%')).toBeInTheDocument();
-    // The chosen option is the highlighted row, not repeated in the header.
     expect(screen.getByText('billing')).toBeInTheDocument();
     expect(screen.getByText('59%')).toBeInTheDocument();
     expect(screen.getByText('technical')).toBeInTheDocument();

@@ -125,10 +125,6 @@ function UnrecognizedTag() {
   return <Tag variant="muted">{t('Unrecognized')}</Tag>;
 }
 
-/**
- * A tag that truncates long text, e.g. a sentence-long option, with the full
- * text in a tooltip.
- */
 function TruncatedTag({children}: {children: string}) {
   return (
     <Tooltip title={children} showOnlyOnOverflow skipWrapper>
@@ -156,8 +152,6 @@ function Card({
     <Container border="primary" radius="md" padding="md lg">
       <Stack gap="sm">
         <Flex align="center" justify="between" gap="md">
-          {/* Keys are usually short; cap them so a long one leaves room for
-           * the answer. Both truncate with the full text in a tooltip. */}
           <Container flex="0 0 auto" maxWidth="50%">
             <InfoText title={title} mode="overflowOnly" bold>
               {title}
@@ -234,8 +228,6 @@ function AnswerSummary({
       );
     }
     case 'score': {
-      // With a distribution, the named value is the highlighted row below, so
-      // only the score is repeated here.
       if (hasDistribution(answer)) {
         return <Text bold>{round(answer.score, 2)}</Text>;
       }
@@ -254,7 +246,6 @@ function AnswerSummary({
       );
     }
     case 'choice':
-      // With a distribution, the choice is the highlighted row below.
       if (hasDistribution(answer)) {
         return null;
       }
@@ -346,8 +337,6 @@ function ProbabilityList({
 
   return (
     <Container paddingTop="xs">
-      {/* Labels take at most half the width, so long option names don't
-       * squeeze the bars; they truncate with the full text in a tooltip. */}
       <Grid columns="fit-content(50%) minmax(0, 1fr) 3em" gap="xs md" align="center">
         {entries.map(([label, probability]) => {
           const isSelected = label === selected;
