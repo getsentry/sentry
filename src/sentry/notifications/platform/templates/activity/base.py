@@ -6,7 +6,6 @@ from django.conf import settings
 from django.core.mail.message import make_msgid
 
 from sentry import features
-from sentry.mail.notifications import build_subject_prefix
 from sentry.models.activity import Activity
 from sentry.models.commit import Commit
 from sentry.models.group import Group
@@ -227,6 +226,7 @@ def build_activity_notification_data(
         build_attachment_text,
         build_attachment_title,
     )
+    from sentry.mail.notifications import build_subject_prefix
     from sentry.notifications.notifications.activity.assigned import get_assignee_str
 
     source = ACTIVITY_TYPE_TO_SOURCE.get(activity.type)

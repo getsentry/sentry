@@ -9,7 +9,6 @@ from django.core.mail.message import make_msgid
 from django.template.defaultfilters import pluralize
 from sentry_relay.processing import parse_release
 
-from sentry.mail.notifications import build_subject_prefix
 from sentry.models.activity import Activity
 from sentry.models.commit import Commit
 from sentry.models.commitfilechange import CommitFileChange
@@ -369,6 +368,8 @@ def create_target_specific_deploy_data(
     target: NotificationTarget,
     organization: Organization,
 ) -> DeployReleaseData:
+    from sentry.mail.notifications import build_subject_prefix
+
     is_email_target = target.provider_key == NotificationProviderKey.EMAIL
     email_headers = (
         build_deploy_email_headers(project=activity.project, organization=organization)
