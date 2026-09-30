@@ -519,12 +519,8 @@ export function CustomerDetails() {
               : 'Mark as test organization',
             help: 'Change the internal test marker without changing plans or invoices. ARR filtering is managed separately.',
             disabled:
-              !isBillingAdmin ||
-              subscription.isTest === undefined ||
-              onSetTestFlagMutation.isPending,
-            disabledReason: isBillingAdmin
-              ? 'The test flag is unavailable or an update is in progress.'
-              : 'Requires billing admin permissions.',
+              subscription.isTest === undefined || onSetTestFlagMutation.isPending,
+            disabledReason: 'The test flag is unavailable or an update is in progress.',
             confirmModalOpts: {
               confirmText: subscription.isTest ? 'Remove test flag' : 'Mark as test',
             },

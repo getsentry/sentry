@@ -1388,7 +1388,7 @@ describe('Customer Details', () => {
     }
 
     beforeEach(() => {
-      ConfigStore.set('user', UserFixture({permissions: new Set(['billing.admin'])}));
+      ConfigStore.set('user', UserFixture({permissions: new Set()}));
     });
 
     it.each([false, true])(
@@ -1436,13 +1436,12 @@ describe('Customer Details', () => {
       ).not.toBeInTheDocument();
     });
 
-    it('requires billing admin permissions', async () => {
-      ConfigStore.set('user', UserFixture({permissions: new Set()}));
+    it('does not require billing admin permissions', async () => {
       setUpMocks(testOrg, {isTest: false});
       await openActions();
       expect(
         screen.getByRole('option', {name: 'Mark as test organization'})
-      ).toHaveAttribute('aria-disabled', 'true');
+      ).not.toHaveAttribute('aria-disabled', 'true');
     });
 
     it('disables the action when the backend does not expose the flag', async () => {
@@ -1474,8 +1473,8 @@ describe('Customer Details', () => {
       const update = MockApiClient.addMockResponse({
         url: `/_admin/customers/${testOrg.slug}/test-flag/`,
         method: 'PUT',
-        statusCode: 403,
-        body: {detail: 'Requires billing.admin permissions.'},
+        statusCode: 500,
+        body: {detail: 'Internal Error'},
       });
       await openActions();
       await userEvent.click(
