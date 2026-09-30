@@ -1,5 +1,5 @@
 import type {ReactElement} from 'react';
-import {ThemeProvider} from '@emotion/react';
+import {Global, ThemeProvider} from '@emotion/react';
 
 import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
 
@@ -11,5 +11,12 @@ export function renderWithSnapshotTheme(
   theme: SnapshotTheme,
   children: ReactElement
 ): ReactElement {
-  return <ThemeProvider theme={THEMES[theme]}>{children}</ThemeProvider>;
+  return (
+    <ThemeProvider theme={THEMES[theme]}>
+      <Global
+        styles={{body: {color: THEMES[theme].tokens.content.primary, colorScheme: theme}}}
+      />
+      {children}
+    </ThemeProvider>
+  );
 }

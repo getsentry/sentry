@@ -15,5 +15,9 @@ export function IconDefaultsProvider({children, ...props}: SVGIconProps) {
  * Provides default props for SVGIconProps via
  */
 export function useIconDefaults(props: SVGIconProps) {
-  return {...useContext(IconDefaultsContext), ...props};
+  return {
+    ...useContext(IconDefaultsContext),
+    ...(props.size && {legacySize: undefined}),
+    ...props,
+  };
 }

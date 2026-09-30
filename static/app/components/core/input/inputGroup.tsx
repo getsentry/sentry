@@ -13,6 +13,7 @@ import styled from '@emotion/styled';
 
 import type {InputProps} from '@sentry/scraps/input';
 
+import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import type {FormSize, StrictCSSObject, Theme} from 'sentry/utils/theme';
 
 // There is a cycle here if we import textarea from scraps.
@@ -274,7 +275,9 @@ function LeadingItems({children, disablePointerEvents, ...props}: InputItemsProp
       data-test-id="input-leading-items"
       {...props}
     >
-      {children}
+      <IconDefaultsProvider legacySize="var(--input-icon-size)">
+        {children}
+      </IconDefaultsProvider>
     </StyledLeadingItemsWrap>
   );
 }
@@ -303,7 +306,9 @@ function TrailingItems({children, disablePointerEvents, ...props}: InputItemsPro
       data-test-id="input-trailing-items"
       {...props}
     >
-      {children}
+      <IconDefaultsProvider legacySize="var(--input-icon-size)">
+        {children}
+      </IconDefaultsProvider>
     </StyledTrailingItemsWrap>
   );
 }
@@ -316,13 +321,16 @@ InputGroup.TrailingItems = TrailingItems;
 const InputGroupWrap = styled('div')<{disabled?: boolean}>`
   position: relative;
   --input-items-inset: 12px;
+  --input-icon-size: 16px;
   --input-leading-width: initial;
   --input-trailing-width: initial;
   &:has(> [data-input-size='sm']) {
     --input-items-inset: 8px;
+    --input-icon-size: 14px;
   }
   &:has(> [data-input-size='xs']) {
     --input-items-inset: 4px;
+    --input-icon-size: 12px;
   }
   ${p =>
     p.disabled &&

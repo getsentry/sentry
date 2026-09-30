@@ -15,6 +15,10 @@ const interaction: SnapshotInteraction = {
       await items.evaluate(updateInputGroupItemsWidth);
     }
     await page.locator('[data-input-group]').evaluateAll(groups => {
+      const bodyStyle = getComputedStyle(document.body);
+      if (!['light', 'dark'].includes(bodyStyle.colorScheme)) {
+        throw new Error('Snapshot body has no theme color scheme');
+      }
       for (const group of groups) {
         const input = group.querySelector<HTMLInputElement>('input, textarea');
         if (!input) {
@@ -25,6 +29,23 @@ const interaction: SnapshotInteraction = {
         const leading = group.querySelector<HTMLElement>('[data-input-side="leading"]');
         const trailing = group.querySelector<HTMLElement>('[data-input-side="trailing"]');
         const gap = input.dataset.inputSize === 'xs' ? 2 : 4;
+        const iconSize = {md: 16, sm: 14, xs: 12}[
+          input.dataset.inputSize as 'md' | 'sm' | 'xs'
+        ];
+        for (const icon of group.querySelectorAll<SVGSVGElement>(
+          '[data-input-side] > svg'
+        )) {
+          const expected = Number(icon.dataset.expectedSize ?? iconSize);
+          const iconBounds = icon.getBoundingClientRect();
+          if (iconBounds.width !== expected || iconBounds.height !== expected) {
+            throw new Error(
+              `Input icon is ${iconBounds.width}px, expected ${expected}px`
+            );
+          }
+          if (!input.disabled && getComputedStyle(icon).fill !== bodyStyle.color) {
+            throw new Error('Input icon does not inherit the snapshot theme text color');
+          }
+        }
         const textLeft =
           bounds.left + parseFloat(style.borderLeftWidth) + parseFloat(style.paddingLeft);
         const textRight =
@@ -143,6 +164,9 @@ describe('InputGroup', () => {
     size => (
       <div style={{padding: 8, width: 300}}>
         <InputGroup>
+          <InputGroup.LeadingItems disablePointerEvents>
+            <IconSettings />
+          </InputGroup.LeadingItems>
           <InputGroup.Input size={size} placeholder="Search…" />
           <InputGroup.TrailingItems disablePointerEvents>
             <IconSearch />
@@ -151,6 +175,34 @@ describe('InputGroup', () => {
       </div>
     ),
     size => ({interaction, tags: {size: String(size), area: 'core'}})
+  );
+
+  it.snapshot(
+    'with-explicit-icon-size',
+    () => (
+      <div style={{padding: 8, width: 300}}>
+        <InputGroup>
+          <InputGroup.LeadingItems disablePointerEvents>
+            <IconSearch size="lg" data-expected-size="24" />
+          </InputGroup.LeadingItems>
+          <InputGroup.Input size="xs" />
+          <InputGroup.TrailingItems>
+            <Button size="sm" icon={<IconSettings />} aria-label="Settings" />
+          </InputGroup.TrailingItems>
+        </InputGroup>
+      </div>
+    ),
+    {
+      interaction: {
+        prepare: async page => {
+          await interaction.prepare?.(page);
+          const icon = page.getByRole('button', {name: 'Settings'}).locator('svg');
+          const bounds = await icon.boundingBox();
+          expect(bounds?.width).toBe(14);
+          expect(bounds?.height).toBe(14);
+        },
+      },
+    }
   );
 
   it.snapshot(
