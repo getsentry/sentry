@@ -1,5 +1,4 @@
-import {Fragment, lazy, Suspense, useState, type ReactNode} from 'react';
-import {useDebouncedValue} from '@tanstack/react-pacer';
+import {Fragment, useState, type ReactNode} from 'react';
 import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
@@ -8,7 +7,7 @@ import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
-import {ProgressRing} from 'sentry/components/progressRing';
+import {PasswordStrengthIndicator} from 'sentry/components/passwordStrengthIndicator';
 import {IconHide} from 'sentry/icons/iconHide';
 import {IconShow} from 'sentry/icons/iconShow';
 import {t} from 'sentry/locale';
@@ -35,12 +34,6 @@ type Props = {
   onSuccess?: (result: AuthenticatedResult) => void;
   secondaryAction?: ReactNode;
 };
-
-const PasswordStrengthRing = lazy(() =>
-  import('sentry/components/passwordStrength').then(module => ({
-    default: module.PasswordStrengthRing,
-  }))
-);
 
 export function RegistrationForm({
   hasNewsletter,
@@ -124,7 +117,7 @@ export function RegistrationForm({
                   autoComplete="new-password"
                   trailingItems={
                     <Fragment>
-                      <RegistrationPasswordStrength value={field.state.value} />
+                      <PasswordStrengthIndicator value={field.state.value} />
                       <Button
                         size="xs"
                         variant="transparent"
@@ -183,29 +176,5 @@ export function RegistrationForm({
         </form.Subscribe>
       </Flex>
     </Stack>
-  );
-}
-
-function RegistrationPasswordStrength({value}: {value: string}) {
-  const [debouncedPassword] = useDebouncedValue(value, {wait: 100});
-
-  return (
-    <Suspense
-      fallback={
-        <ProgressRing
-          role="progressbar"
-          aria-label={t('Password strength')}
-          aria-valuenow={0}
-          aria-valuemin={0}
-          aria-valuemax={5}
-          aria-valuetext={t('No password entered')}
-          value={0}
-          maxValue={5}
-          size={18}
-        />
-      }
-    >
-      <PasswordStrengthRing value={debouncedPassword} />
-    </Suspense>
   );
 }
