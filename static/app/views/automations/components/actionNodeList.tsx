@@ -81,7 +81,7 @@ export function ActionNodeList({
     const otherActions: Option[] = [];
 
     availableActions.forEach(action => {
-      if (action.type === ActionType.PLUGIN) {
+      if (action.type === ActionType.PLUGIN || action.disabledReason) {
         return;
       }
       const label =
@@ -126,7 +126,7 @@ export function ActionNodeList({
           return null;
         }
         const handler = getActionHandler(action, availableActions);
-        if (!handler) {
+        if (!handler || handler.disabledReason) {
           const actionLabel = actionNodesMap.get(action.type)?.label;
           return (
             <AutomationBuilderRow

@@ -190,6 +190,28 @@ describe('ActionNodeList', () => {
     expect(screen.getByRole('button', {name: 'Delete row'})).toBeInTheDocument();
   });
 
+  it('flags actions the plan does not include', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/available-actions/`,
+      body: [ActionHandlerFixture({disabledReason: 'plan'})],
+    });
+
+    const slackAction = ActionFixture();
+    render(
+      <AutomationBuilderTestProvider>
+        <ActionNodeList {...defaultProps} actions={[slackAction]} />
+      </AutomationBuilderTestProvider>,
+      {organization}
+    );
+
+    expect(
+      await screen.findByText(
+        'This action is no longer available. Remove it to save changes.'
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Delete row'})).toBeInTheDocument();
+  });
+
   it('shows warnings for incompatible actions', async () => {
     const model = new FormModel();
     model.setInitialData({
