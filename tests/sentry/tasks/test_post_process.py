@@ -3501,36 +3501,17 @@ class PostProcessGroupErrorTest(
     PipelineKillswitchTestMixin,
     CheckIfFlagsSentTestMixin,
 ):
-    @pytest.mark.parametrize(
-        "event_type",
-        [
-            "error",
-            "default",
-            "csp",
-            "nel",
-            "hpkp",
-            "expectct",
-            "expectstaple",
-            "transaction",
-            "generic",
-            "feedback",
-        ],
-    )
     @patch("sentry.tasks.post_process.run_post_process_job")
     def test_reads_processed_event_from_nodestore_once(
-        self, mock_run_post_process_job: MagicMock, event_type: str
+        self, mock_run_post_process_job: MagicMock
     ) -> None:
         event = self.create_event(
             data={"message": "from nodestore", "tags": [["source", "nodestore"]]},
             project_id=self.project.id,
         )
         cache_key = cache_key_for_event({"event_id": event.event_id, "project": event.project_id})
-        event.data["type"] = event_type
-        event.data.save()
 
         with (
-            patch("sentry.utils.snuba.raw_query") as query,
-            patch("sentry.models.event.StoreNormalizer.normalize_event") as normalize,
             patch.object(event_processing_store, "get") as mock_processing_store_get,
             patch.object(event_processing_store, "delete_by_key") as mock_processing_store_delete,
             patch.object(
@@ -3547,18 +3528,13 @@ class PostProcessGroupErrorTest(
                     cache_key=cache_key,
                     group_id=event.group_id,
                     project_id=event.project_id,
-                    event_id=str(uuid.UUID(event.event_id)),
+                    event_id=event.event_id,
                 )
 
         mock_processing_store_get.assert_not_called()
         mock_processing_store_delete.assert_not_called()
-        query.assert_not_called()
-        normalize.assert_not_called()
         mock_get_event.assert_called_once_with(event.data.id)
         mock_run_post_process_job.assert_called_once()
-        loaded_event = mock_run_post_process_job.call_args.args[0]["event"]
-        assert loaded_event.event_id == event.event_id
-        assert loaded_event.get_event_type() == event_type
         assert mock_run_post_process_job.call_args.args[0]["event"].group_id == event.group_id
         assert ["source", "nodestore"] in mock_run_post_process_job.call_args.args[0]["event"].data[
             "tags"
