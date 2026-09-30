@@ -34,7 +34,7 @@ export function AutomationForm({model}: {model: FormModel}) {
       <Card>
         <FormSection
           title={t('Filter Issues')}
-          description={t('Only get alerted on Issues from these environments.')}
+          description={t('Only get alerted on issues from this environment.')}
         >
           <EnvironmentSelector />
         </FormSection>
