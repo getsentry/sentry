@@ -325,15 +325,19 @@ export function DeprecatedLine({
             ) : null}
             {data.inApp ? <Tag variant="info">{t('In App')}</Tag> : null}
             {isExpandable ? (
-              <ToggleContextButton
+              <Button
                 data-test-id={`toggle-button-${isExpanded ? 'expanded' : 'collapsed'}`}
                 size="zero"
                 aria-label={t('Toggle Context')}
                 onClick={toggleContext}
                 variant="transparent"
               >
-                <IconChevron direction={isExpanded ? 'up' : 'down'} size="sm" />
-              </ToggleContextButton>
+                <IconChevron
+                  direction={isExpanded ? 'up' : 'down'}
+                  size="sm"
+                  variant="secondary"
+                />
+              </Button>
             ) : (
               <Container height="20px" width="26px" />
             )}
@@ -414,10 +418,6 @@ function DefaultLine({isExpandable, isSubFrame, ...props}: DefaultLineProps) {
     />
   );
 }
-
-const ToggleContextButton = styled(Button)`
-  color: ${p => p.theme.tokens.content.secondary};
-`;
 
 const ToggleButton = styled(Button)`
   color: ${p => p.theme.tokens.content.secondary};

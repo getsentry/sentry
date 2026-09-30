@@ -1,6 +1,7 @@
 import type {MouseEvent} from 'react';
 import {useState} from 'react';
 import styled from '@emotion/styled';
+import {mergeProps} from '@react-aria/utils';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
@@ -278,7 +279,6 @@ export function NativeFrame({
       <StrictClick onClick={handleToggleContext}>
         <RowHeader
           expandable={!!expandable}
-          hasHiddenFrames={!!hiddenFrameCount}
           isInAppFrame={frame.inApp}
           isSubFrame={!!isSubFrame}
           onMouseEnter={handleMouseEnter}
@@ -470,12 +470,17 @@ export function NativeFrame({
             row={{zero: hiddenFrameCount ? '4' : '1', xl: '1'}}
           >
             {expandable && (
-              <ToggleButton
-                type="button"
+              <Button
                 size="zero"
                 variant="transparent"
                 aria-label={expanded ? t('Collapse Context') : t('Expand Context')}
-                icon={<IconChevron size="sm" direction={expanded ? 'up' : 'down'} />}
+                icon={
+                  <IconChevron
+                    size="sm"
+                    direction={expanded ? 'up' : 'down'}
+                    variant="secondary"
+                  />
+                }
               />
             )}
           </Container>
@@ -509,11 +514,6 @@ const AddressCell = styled('div')`
   ${p => p.onClick && 'color:' + p.theme.tokens.interactive.link.accent.rest};
 `;
 
-const ToggleButton = styled(Button)`
-  display: block;
-  color: ${p => p.theme.tokens.content.secondary};
-`;
-
 const Registers = styled(Context)`
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   padding: 0;
@@ -530,10 +530,7 @@ const FileName = styled('span')`
   border-bottom: 1px dashed ${p => p.theme.tokens.border.primary};
 `;
 
-function RowHeader({
-  hasHiddenFrames,
-  ...props
-}: React.ComponentProps<typeof StyledRowHeader> & {hasHiddenFrames: boolean}) {
+function RowHeader(props: React.ComponentProps<typeof StyledRowHeader>) {
   return (
     <Grid
       align="center"
@@ -546,12 +543,8 @@ function RowHeader({
       gap={{zero: 'xs sm', xl: '0 sm'}}
       padding={{zero: 'md', xl: 'sm lg'}}
       position="relative"
-      rows={{
-        zero: hasHiddenFrames ? 'auto auto auto auto' : 'auto auto auto',
-        xl: 'auto',
-      }}
     >
-      {gridProps => <StyledRowHeader {...props} {...gridProps} />}
+      {gridProps => <StyledRowHeader {...mergeProps(props, gridProps)} />}
     </Grid>
   );
 }

@@ -1,5 +1,6 @@
 import {useMemo} from 'react';
 import {css} from '@emotion/react';
+import {mergeProps} from '@react-aria/utils';
 import sortBy from 'lodash/sortBy';
 
 import {Container, Grid} from '@sentry/scraps/layout';
@@ -134,9 +135,7 @@ export function FrameVariables({data, meta, platform}: Props) {
                 <Container overflow="visible">
                   {layoutProps => (
                     <StructuredEventData
-                      {...textProps}
-                      {...layoutProps}
-                      className={`${textProps.className} ${layoutProps.className}`}
+                      {...mergeProps(textProps, layoutProps)}
                       config={config}
                       data={data[key]}
                       meta={meta?.[key]}
