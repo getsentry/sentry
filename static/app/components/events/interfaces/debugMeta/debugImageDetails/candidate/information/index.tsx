@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -65,7 +65,11 @@ function getTimeSinceData({
                 when: moment(eventDateReceived).from(dateCreated, true),
               }
             )}
-            <DateTimeWrapper>{dateTime}</DateTimeWrapper>
+            <Container paddingTop="md">
+              <Text as="div" tabular>
+                {dateTime}
+              </Text>
+            </Container>
           </Fragment>
         ),
         displayIcon: true,
@@ -90,7 +94,11 @@ function getTimeSinceData({
               when: moment(eventDateReceived).from(dateCreated, true),
             }
           )}
-          <DateTimeWrapper>{dateTime}</DateTimeWrapper>
+          <Container paddingTop="md">
+            <Text as="div" tabular>
+              {dateTime}
+            </Text>
+          </Container>
         </Fragment>
       ),
       displayIcon: true,
@@ -107,7 +115,11 @@ function getTimeSinceData({
               when: moment(dateCreated).from(eventDateReceived, true),
             }
           )}
-          <DateTimeWrapper>{dateTime}</DateTimeWrapper>
+          <Container paddingTop="md">
+            <Text as="div" tabular>
+              {dateTime}
+            </Text>
+          </Container>
         </Fragment>
       ),
       displayIcon: true,
@@ -120,7 +132,11 @@ function getTimeSinceData({
         {tct('This debug file was uploaded [when] after this event.', {
           when: moment(eventDateReceived).from(dateCreated, true),
         })}
-        <DateTimeWrapper>{dateTime}</DateTimeWrapper>
+        <Container paddingTop="md">
+          <Text as="div" tabular>
+            {dateTime}
+          </Text>
+        </Container>
       </Fragment>
     ),
     displayIcon: true,
@@ -203,14 +219,14 @@ function ExtraDetails({
   return (
     <Fragment>
       <Tooltip title={tooltipDesc}>
-        <TimeSinceWrapper>
+        <Grid columns="max-content 1fr" align="center" gap="xs">
           {displayIcon && <IconWarning variant="danger" size="xs" />}
           <Text size="sm" tabular variant="muted">
             {tct('Uploaded [timesince]', {
               timesince: <TimeSince disabledAbsoluteTooltip date={dateCreated} />,
             })}
           </Text>
-        </TimeSinceWrapper>
+        </Grid>
       </Tooltip>
       <Divider />
       <Text size="sm" tabular variant="muted">
@@ -291,17 +307,4 @@ const Wrapper = styled('div')`
 const FilenameOrLocation = styled('span')`
   padding-left: ${p => p.theme.space.md};
   font-size: ${p => p.theme.font.size.sm};
-`;
-
-const TimeSinceWrapper = styled('div')`
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
-  font-variant-numeric: tabular-nums;
-`;
-
-const DateTimeWrapper = styled('div')`
-  padding-top: ${p => p.theme.space.md};
-  font-variant-numeric: tabular-nums;
 `;
