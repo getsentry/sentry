@@ -8,6 +8,7 @@ import {Button} from '@sentry/scraps/button';
 import {InfoText} from '@sentry/scraps/info';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
@@ -320,9 +321,9 @@ export function NativeFrame({
           </Container>
           <Container maxWidth="100%" minWidth="0" width="fit-content">
             {!fullStackTrace && !expanded && leadsToApp && (
-              <PackageNote>
+              <Text as="div" size="xs" variant="secondary">
                 {getLeadHint({event, hasNextFrame: defined(nextFrame)})}
-              </PackageNote>
+              </Text>
             )}
             <InfoText
               title={
@@ -347,7 +348,14 @@ export function NativeFrame({
             </InfoText>
           </Container>
           <Flex column={{zero: '2', xl: '3'}} minWidth="0" row={{zero: '2', xl: '1'}}>
-            <AddressCell onClick={packageClickable ? handleGoToImagesLoaded : undefined}>
+            <Text
+              as="div"
+              monospace
+              size="sm"
+              cursor={packageClickable ? 'pointer' : undefined}
+              variant={packageClickable ? 'accent' : undefined}
+              onClick={packageClickable ? handleGoToImagesLoaded : undefined}
+            >
               <Tooltip
                 title={addressTooltip}
                 disabled={!(foundByStackScanning || inlineFrame)}
@@ -356,7 +364,7 @@ export function NativeFrame({
               >
                 {!relativeAddress || absolute ? frame.instructionAddr : relativeAddress}
               </Tooltip>
-            </AddressCell>
+            </Text>
           </Flex>
           <Container
             alignSelf="center"
@@ -415,7 +423,7 @@ export function NativeFrame({
               minWidth="0"
               row={{zero: '4', xl: '1'}}
             >
-              <ShowHideButton
+              <Button
                 analyticsEventName="Stacktrace Frames: toggled"
                 analyticsEventKey="stacktrace_frames.toggled"
                 analyticsParams={{
@@ -428,10 +436,12 @@ export function NativeFrame({
                   onShowFramesToggle?.(e);
                 }}
               >
-                {isShowFramesToggleExpanded
-                  ? tn('Hide %s more frame', 'Hide %s more frames', hiddenFrameCount)
-                  : tn('Show %s more frame', 'Show %s more frames', hiddenFrameCount)}
-              </ShowHideButton>
+                <Text as="span" bold={false} italic size="sm" variant="secondary">
+                  {isShowFramesToggleExpanded
+                    ? tn('Hide %s more frame', 'Hide %s more frames', hiddenFrameCount)
+                    : tn('Show %s more frame', 'Show %s more frames', hiddenFrameCount)}
+                </Text>
+              </Button>
             </Flex>
           ) : null}
           <Flex
@@ -508,21 +518,10 @@ export function NativeFrame({
   );
 }
 
-const AddressCell = styled('div')`
-  font-family: ${p => p.theme.font.family.mono};
-  ${p => p.onClick && 'cursor: pointer'};
-  ${p => p.onClick && 'color:' + p.theme.tokens.interactive.link.accent.rest};
-`;
-
 const Registers = styled(Context)`
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   padding: 0;
   margin: 0;
-`;
-
-const PackageNote = styled('div')`
-  color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.font.size.xs};
 `;
 
 const FileName = styled('span')`
@@ -569,16 +568,5 @@ const StackTraceFrame = styled('li')`
     ${StyledRowHeader} {
       border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
     }
-  }
-`;
-
-const ShowHideButton = styled(Button)`
-  color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.font.size.sm};
-  font-style: italic;
-  font-weight: ${p => p.theme.font.weight.sans.regular};
-  padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.xs};
-  &:hover {
-    color: ${p => p.theme.tokens.content.secondary};
   }
 `;

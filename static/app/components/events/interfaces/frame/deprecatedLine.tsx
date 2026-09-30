@@ -1,6 +1,5 @@
 import {Fragment, useMemo, useState} from 'react';
 import {css} from '@emotion/react';
-import styled from '@emotion/styled';
 import classNames from 'classnames';
 
 import {Tag} from '@sentry/scraps/badge';
@@ -208,7 +207,7 @@ export function DeprecatedLine({
           <Text italic={!data.inApp} variant={data.inApp ? 'inherit' : 'muted'}>
             {textProps => (
               <Flex {...textProps} align="center" minWidth={0}>
-                <div>
+                <Container>
                   <LeadHint
                     nextFrame={nextFrame}
                     event={event}
@@ -222,7 +221,7 @@ export function DeprecatedLine({
                     meta={frameMeta}
                     isPotentiallyThirdParty={isPotentiallyThirdPartyFrame(data, event)}
                   />
-                </div>
+                </Container>
               </Flex>
             )}
           </Text>
@@ -253,7 +252,7 @@ export function DeprecatedLine({
               </ErrorBoundary>
             )}
             {hiddenFrameCount ? (
-              <ToggleButton
+              <Button
                 analyticsEventName="Stacktrace Frames: toggled"
                 analyticsEventKey="stacktrace_frames.toggled"
                 analyticsParams={{
@@ -266,16 +265,19 @@ export function DeprecatedLine({
                   onShowFramesToggle?.(e);
                 }}
               >
-                {isShowFramesToggleExpanded
-                  ? tn('Hide %s more frame', 'Hide %s more frames', hiddenFrameCount)
-                  : tn('Show %s more frame', 'Show %s more frames', hiddenFrameCount)}
-              </ToggleButton>
+                <Text as="span" bold={false} italic size="sm" variant="secondary">
+                  {isShowFramesToggleExpanded
+                    ? tn('Hide %s more frame', 'Hide %s more frames', hiddenFrameCount)
+                    : tn('Show %s more frame', 'Show %s more frames', hiddenFrameCount)}
+                </Text>
+              </Button>
             ) : null}
             {shouldShowSourceMapDebuggerButton ? (
               <Fragment>
-                <SourceMapDebuggerModalButton
+                <Button
                   size="zero"
                   variant="secondary"
+                  icon={<IconFix size="xs" />}
                   tooltipProps={{
                     title: t(
                       'Click to learn how to show the original source code for this stack frame.'
@@ -314,13 +316,10 @@ export function DeprecatedLine({
                     );
                   }}
                 >
-                  <IconFix size="xs" />
-                  <Container as="span" marginLeft="xs">
-                    <Text as="span" variant="inherit">
-                      {t('Unminify Code')}
-                    </Text>
-                  </Container>
-                </SourceMapDebuggerModalButton>
+                  <Text as="span" size="sm" variant="inherit">
+                    {t('Unminify Code')}
+                  </Text>
+                </Button>
               </Fragment>
             ) : null}
             {data.inApp ? <Tag variant="info">{t('In App')}</Tag> : null}
@@ -376,7 +375,7 @@ function RepeatsIndicator({timesRepeated}: {timesRepeated: number}) {
     >
       <Flex align="center" gap="2xs" justify="center" minWidth={0}>
         <IconRefresh />
-        <span>{timesRepeated}</span>
+        <Text as="span">{timesRepeated}</Text>
       </Flex>
     </Container>
   );
@@ -418,21 +417,3 @@ function DefaultLine({isExpandable, isSubFrame, ...props}: DefaultLineProps) {
     />
   );
 }
-
-const ToggleButton = styled(Button)`
-  color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.font.size.sm};
-  font-style: italic;
-  font-weight: ${p => p.theme.font.weight.sans.regular};
-  padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.xs};
-
-  &:hover {
-    color: ${p => p.theme.tokens.content.secondary};
-  }
-`;
-
-const SourceMapDebuggerModalButton = styled(Button)`
-  height: 20px;
-  padding: 0 ${p => p.theme.space.sm};
-  font-size: ${p => p.theme.font.size.sm};
-`;
