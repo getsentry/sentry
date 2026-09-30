@@ -689,7 +689,7 @@ class GroupManager(BaseManager["Group"]):
         ).values_list("id", flat=True)
 
         group_link_subquery = GroupLink.objects.filter(
-            linked_id__in=external_issue_subquery
+            linked_type=GroupLink.LinkedType.issue, linked_id__in=external_issue_subquery
         ).values_list("group_id", flat=True)
 
         org_ids_with_integration = list(
