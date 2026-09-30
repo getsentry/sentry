@@ -8,6 +8,7 @@ import {Button} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
 import {Text} from '@sentry/scraps/text';
 
@@ -298,14 +299,15 @@ function TagValueActionsMenu({
   return (
     <DropdownMenu
       size="xs"
-      className={isVisible ? '' : 'invisible'}
       onOpenChange={isOpen => setIsVisible(isOpen)}
-      triggerProps={{
-        'aria-label': t('Tag Value Actions Menu'),
-        icon: <IconEllipsis />,
-        showChevron: false,
-        size: 'xs',
-      }}
+      trigger={triggerProps => (
+        <OverlayTrigger.IconButton
+          {...triggerProps}
+          aria-label={t('Tag Value Actions Menu')}
+          className={isVisible ? '' : 'invisible'}
+          icon={<IconEllipsis />}
+        />
+      )}
       items={[
         {
           key: 'open-in-discover',
@@ -402,12 +404,22 @@ const Row = styled(Body)`
   padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.md};
 
   .invisible {
-    visibility: hidden;
+    /* Keep the trigger focusable when closing the menu restores focus. */
+    opacity: 0;
+    pointer-events: none;
   }
   &:hover,
-  &:active {
+  &:active,
+  &:focus-within {
     .invisible {
-      visibility: visible;
+      opacity: 1;
+      pointer-events: auto;
+    }
+  }
+  @media (hover: none) {
+    .invisible {
+      opacity: 1;
+      pointer-events: auto;
     }
   }
 `;
