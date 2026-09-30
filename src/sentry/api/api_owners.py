@@ -1,41 +1,5 @@
-from enum import Enum
+from sentry.owners import Owner
 
-
-class ApiOwner(Enum):
-    """
-    Used to track ownership of APIs
-    Value should map to team's github group
-    """
-
-    ALERTS_MONITORS = "alerts-monitors"
-    BILLING = "revenue"
-    CODING_WORKFLOWS = "agent-interfaces-sentry-backend"
-    COMMUNITY = "app-backend"
-    CRONS = "crons"
-    DASHBOARDS = "dashboards"
-    DATA_BROWSING = "data-browsing"
-    EMERGE_TOOLS = "emerge-tools"
-    EXPLORE = "explore"
-    FEEDBACK = "feedback-backend"
-    FLAG = "replay-backend"
-    FOUNDATIONAL_STORAGE = "foundational-storage"
-    FOUNDATIONS = "foundations"
-    GDX = "gdx"
-    HYBRID_CLOUD = "hybrid-cloud"
-    INFRA_ENG = "sre-infrastructure-engineering"
-    INTEGRATION_PLATFORM = "integration-platform"
-    ISSUE_DETECTION_BACKEND = "issue-detection-backend"
-    ISSUES = "issues-feed"  # Most of these endpoints are owned but all 3 issues teams but APIOwner doesn't allow multiple owners now
-    MESSAGING_INTEGRATIONS = "messaging-integrations"
-    ML_AI = "machine-learning-ai"
-    NOTIFICATIONS = "notifications"
-    OWNERS_INGEST = "ingest"
-    OWNERS_SNUBA = "owners-snuba"
-    PROFILING = "profiling"
-    PROJECT_MANAGEMENT_INTEGRATIONS = "project-management-integrations"
-    REPLAY = "replay-backend"
-    SECURITY = "security"
-    TELEMETRY_EXPERIENCE = "telemetry-experience"
-    UNOWNED = "unowned"
-    VALUE_DISCOVERY = "value-discovery"
-    WEB_FRONTEND_SDKS = "team-javascript-sdks"
+# Endpoints, tasks, and consumers share one owner enum. New code should import
+# `Owner` from `sentry.owners`; this alias keeps existing endpoint imports working.
+ApiOwner = Owner

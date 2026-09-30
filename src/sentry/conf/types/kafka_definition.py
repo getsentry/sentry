@@ -8,6 +8,8 @@ import click
 from sentry_kafka_schemas import get_codec
 from sentry_kafka_schemas.codecs import Codec
 
+from sentry.owners import Owner
+
 
 class Topic(Enum):
     """
@@ -80,6 +82,10 @@ class ConsumerDefinition(TypedDict, total=False):
     validate_schema: bool | None
 
     strategy_factory: Required[str]
+
+    # The team that owns the consumer. Every span, log, and error the consumer
+    # process emits carries it.
+    owner: Owner
 
     # Additional CLI options the consumer should accept. These arguments are
     # passed as kwargs to the strategy_factory.

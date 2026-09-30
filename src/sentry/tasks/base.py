@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import datetime
+import functools
 import logging
 from collections.abc import Callable
 from typing import TypeVar
@@ -11,7 +12,9 @@ from taskbroker_client.registry import TaskNamespace
 from taskbroker_client.retry import Retry
 from taskbroker_client.task import P, R, Task
 
+from sentry.owners import Owner, set_owner
 from sentry.silo.base import SiloMode
+from sentry.taskworker.namespaces import namespace_owner
 from sentry.taskworker.silolimiter import TaskSiloLimit
 from sentry.utils import metrics
 
@@ -46,6 +49,7 @@ def instrumented_task(
     silenced_exceptions: tuple[type[BaseException], ...] | None = None,
     silo_mode: SiloMode | None = None,
     pass_headers: bool = False,
+    owner: Owner | None = None,
     **kwargs,
 ) -> Callable[[Callable[P, R]], Task[P, R]]:
     """
@@ -115,9 +119,19 @@ def instrumented_task(
         A tuple of exception types that will not be reported by Sentry.
     silo_mode : SiloMode | None
         The silo that the task will run in. This should be the silo that the task was called from.
+    owner : Owner | None
+        The team that owns the task. Every span, log, and error the task emits carries it.
+        Defaults to the owner of the namespace.
     """
 
     def wrapped(func: Callable[P, R]) -> Task[P, R]:
+        task_owner = owner or namespace_owner(namespace)
+
+        @functools.wraps(func)
+        def owned(*args: P.args, **kwargs: P.kwargs) -> R:
+            set_owner(task_owner)
+            return func(*args, **kwargs)
+
         task = namespace.register(
             name=name,
             retry=retry,
@@ -129,7 +143,7 @@ def instrumented_task(
             report_timeout_errors=report_timeout_errors,
             silenced_exceptions=silenced_exceptions,
             pass_headers=pass_headers,
-        )(func)
+        )(owned)
 
         if silo_mode:
             silo_limiter = TaskSiloLimit(silo_mode)
@@ -153,7 +167,7 @@ def instrumented_task(
                 report_timeout_errors=report_timeout_errors,
                 silenced_exceptions=silenced_exceptions,
                 pass_headers=pass_headers,
-            )(func)
+            )(owned)
 
             if silo_mode:
                 silo_limiter = TaskSiloLimit(silo_mode)

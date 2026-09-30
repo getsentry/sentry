@@ -31,7 +31,6 @@ api_access_logger = logging.getLogger("sentry.access.api")
 
 from sentry import analytics, features, tsdb
 from sentry.analytics.events.release_set_commits import ReleaseSetCommitsLocalEvent
-from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.client_kind import FEATURE_FLAG as CLIENT_KIND_FEATURE_FLAG
 from sentry.api.client_kind import set_client_kind_attributes
@@ -50,6 +49,7 @@ from sentry.middleware import is_frontend_request
 from sentry.models.organization import Organization
 from sentry.organizations.absolute_url import generate_organization_url
 from sentry.organizations.services.organization import RpcOrganization
+from sentry.owners import Owner, set_owner
 from sentry.ratelimits.config import DEFAULT_RATE_LIMIT_CONFIG, RateLimitConfig
 from sentry.seer import agent_token
 from sentry.silo.base import SiloLimit, SiloMode
@@ -266,7 +266,7 @@ class Endpoint(APIView):
 
     cursor_name = "cursor"
 
-    owner: ApiOwner = ApiOwner.UNOWNED
+    owner: Owner = Owner.UNOWNED
     publish_status: dict[HTTP_METHOD_NAME, ApiPublishStatus] = {}
     rate_limits: RateLimitConfig | Callable[..., RateLimitConfig] = DEFAULT_RATE_LIMIT_CONFIG
     enforce_rate_limit: bool = settings.SENTRY_RATELIMITER_ENABLED
@@ -454,6 +454,7 @@ class Endpoint(APIView):
         Identical to rest framework's dispatch except we add the ability
         to convert arguments (for common URL params).
         """
+        set_owner(self.owner)
         with start_span(op="base.dispatch.setup", name=type(self).__name__):
             self.args = args
             self.kwargs = kwargs

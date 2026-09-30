@@ -1672,7 +1672,6 @@ module = [
     "tests.sentry.api.helpers.test_events",
     "tests.sentry.api.helpers.test_group_index",
     "tests.sentry.api.serializers.*",
-    "tests.sentry.api.test_api_owners",
     "tests.sentry.api.test_api_pagination_check",
     "tests.sentry.api.test_authentication",
     "tests.sentry.api.test_base",

@@ -6,6 +6,7 @@ from collections.abc import Mapping, Sequence
 from typing import Any, Union, get_args, get_origin, get_type_hints
 
 import click
+import sentry_sdk
 from arroyo.backends.abstract import Consumer
 from arroyo.backends.kafka.configuration import build_kafka_consumer_configuration
 from arroyo.backends.kafka.consumer import KafkaConsumer
@@ -27,6 +28,7 @@ from sentry.consumers.profiler import JoinProfiler
 from sentry.consumers.validate_schema import ValidateSchema
 from sentry.eventstream.types import EventStreamEventType
 from sentry.ingest.types import ConsumerType
+from sentry.owners import Owner, set_owner
 from sentry.utils import json
 from sentry.utils.imports import import_string
 from sentry.utils.kafka_config import get_topic_definition
@@ -337,24 +339,29 @@ _POST_PROCESS_FORWARDER_OPTIONS = multiprocessing_options(
 # consumer name -> consumer definition
 KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
     "ingest-monitors": {
+        "owner": Owner.CRONS,
         "topic": Topic.INGEST_MONITORS,
         "strategy_factory": "sentry.monitors.consumers.monitor_consumer.StoreMonitorCheckInStrategyFactory",
         "click_options": ingest_monitors_options(),
     },
     "monitors-clock-tick": {
+        "owner": Owner.CRONS,
         "topic": Topic.MONITORS_CLOCK_TICK,
         "strategy_factory": "sentry.monitors.consumers.clock_tick_consumer.MonitorClockTickStrategyFactory",
     },
     "monitors-clock-tasks": {
+        "owner": Owner.CRONS,
         "topic": Topic.MONITORS_CLOCK_TASKS,
         "strategy_factory": "sentry.monitors.consumers.clock_tasks_consumer.MonitorClockTasksStrategyFactory",
         "click_options": clock_tasks_options(),
     },
     "monitors-incident-occurrences": {
+        "owner": Owner.CRONS,
         "topic": Topic.MONITORS_INCIDENT_OCCURRENCES,
         "strategy_factory": "sentry.monitors.consumers.incident_occurrences_consumer.MonitorIncidentOccurenceStrategyFactory",
     },
     "uptime-results": {
+        "owner": Owner.CRONS,
         "topic": Topic.UPTIME_RESULTS,
         "strategy_factory": "sentry.uptime.consumers.results_consumer.UptimeResultsStrategyFactory",
         "click_options": uptime_options(),
@@ -364,11 +371,13 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
     # - ingest_consumer_types metric tag is missing. Use the kafka_topic and
     #   group_id tags provided by run_basic_consumer instead
     "ingest-occurrences": {
+        "owner": Owner.ISSUE_DETECTION_BACKEND,
         "topic": Topic.INGEST_OCCURRENCES,
         "strategy_factory": "sentry.issues.run.OccurrenceStrategyFactory",
         "click_options": issue_occurrence_options(),
     },
     "ingest-events": {
+        "owner": Owner.OWNERS_INGEST,
         "topic": Topic.INGEST_EVENTS,
         "strategy_factory": "sentry.ingest.consumer.factory.IngestStrategyFactory",
         "click_options": ingest_events_options(),
@@ -379,6 +388,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "stale_topic": Topic.INGEST_EVENTS_BACKLOG,
     },
     "ingest-feedback-events": {
+        "owner": Owner.OWNERS_INGEST,
         "topic": Topic.INGEST_FEEDBACK_EVENTS,
         "strategy_factory": "sentry.ingest.consumer.factory.IngestStrategyFactory",
         "click_options": ingest_events_options(),
@@ -388,6 +398,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "dlq_topic": Topic.INGEST_FEEDBACK_EVENTS_DLQ,
     },
     "ingest-attachments": {
+        "owner": Owner.OWNERS_INGEST,
         "topic": Topic.INGEST_ATTACHMENTS,
         "strategy_factory": "sentry.ingest.consumer.factory.IngestStrategyFactory",
         "click_options": ingest_events_options(),
@@ -397,6 +408,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "dlq_topic": Topic.INGEST_ATTACHMENTS_DLQ,
     },
     "ingest-transactions": {
+        "owner": Owner.OWNERS_INGEST,
         "topic": Topic.INGEST_TRANSACTIONS,
         "strategy_factory": "sentry.ingest.consumer.factory.IngestTransactionsStrategyFactory",
         "click_options": ingest_events_options(),
@@ -404,6 +416,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "stale_topic": Topic.INGEST_TRANSACTIONS_BACKLOG,
     },
     "ingest-metrics": {
+        "owner": Owner.OWNERS_SNUBA,
         "topic": Topic.INGEST_METRICS,
         "strategy_factory": "sentry.sentry_metrics.consumers.indexer.parallel.MetricsConsumerStrategyFactory",
         "click_options": _METRICS_INDEXER_OPTIONS,
@@ -413,6 +426,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "dlq_topic": Topic.INGEST_METRICS_DLQ,
     },
     "metrics-last-seen-updater": {
+        "owner": Owner.OWNERS_SNUBA,
         "topic": Topic.SNUBA_METRICS,
         "strategy_factory": "sentry.sentry_metrics.consumers.last_seen_updater.LastSeenUpdaterStrategyFactory",
         "click_options": _METRICS_LAST_SEEN_UPDATER_OPTIONS,
@@ -421,6 +435,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         },
     },
     "post-process-forwarder-issue-platform": {
+        "owner": Owner.UNOWNED,
         "topic": Topic.EVENTSTREAM_GENERIC,
         "strategy_factory": "sentry.eventstream.kafka.dispatch.EventPostProcessForwarderStrategyFactory",
         "synchronize_commit_log_topic_default": "snuba-generic-events-commit-log",
@@ -431,6 +446,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         },
     },
     "post-process-forwarder-transactions": {
+        "owner": Owner.UNOWNED,
         "topic": Topic.TRANSACTIONS,
         "strategy_factory": "sentry.eventstream.kafka.dispatch.EventPostProcessForwarderStrategyFactory",
         "synchronize_commit_log_topic_default": "snuba-transactions-commit-log",
@@ -441,6 +457,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         },
     },
     "post-process-forwarder-errors": {
+        "owner": Owner.UNOWNED,
         "topic": Topic.EVENTS,
         "strategy_factory": "sentry.eventstream.kafka.dispatch.EventPostProcessForwarderStrategyFactory",
         "synchronize_commit_log_topic_default": "snuba-commit-log",
@@ -451,6 +468,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         },
     },
     "process-spans": {
+        "owner": Owner.STREAMING_PLATFORM,
         "topic": Topic.INGEST_SPANS,
         "dlq_topic": Topic.INGEST_SPANS_DLQ,
         "strategy_factory": "sentry.spans.consumers.process.factory.ProcessSpansStrategyFactory",
@@ -508,6 +526,8 @@ def get_stream_processor(
         raise click.ClickException(
             f"Invalid consumer definition configured for {consumer_name}"
         ) from e
+
+    set_owner(consumer_definition.get("owner", Owner.UNOWNED), scope=sentry_sdk.get_global_scope())
 
     strategy_factory_cls = import_string(consumer_definition["strategy_factory"])
     consumer_topic = consumer_definition["topic"]

@@ -34,6 +34,7 @@ from sentry_sdk.utils import logger as sdk_error_logger
 from sentry import options
 from sentry.conf.types.sdk_config import SdkConfig
 from sentry.options.rollout import in_random_rollout
+from sentry.owners import Owner, set_owner
 from sentry.utils import json, warnings
 from sentry.utils.db import DjangoAtomicIntegration
 from sentry.utils.rust import RustInfoIntegration
@@ -349,6 +350,7 @@ def configure_sdk():
     """
     Setup and initialize the Sentry SDK.
     """
+    set_owner(Owner.UNOWNED, scope=sentry_sdk.get_global_scope())
     sdk_options, dsns = _get_sdk_options()
     if settings.SPOTLIGHT:
         sdk_options["spotlight"] = (

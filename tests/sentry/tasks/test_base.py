@@ -1,9 +1,11 @@
 import pytest
+import sentry_sdk
 from django.test import override_settings
 from taskbroker_client.constants import CompressionType
 from taskbroker_client.registry import TaskRegistry
 from taskbroker_client.retry import Retry
 
+from sentry.owners import OWNER_ATTRIBUTE, Owner
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.adapters import SentryRouter, make_metrics, make_producer
@@ -35,6 +37,15 @@ def control_task(param) -> str:
 )
 def task_with_alias(param) -> str:
     return f"Task with alias {param}"
+
+
+@instrumented_task(
+    name="tests.tasks.test_base.owned_task",
+    namespace=test_tasks,
+    owner=Owner.CRONS,
+)
+def owned_task(param) -> str:
+    return f"Owned task {param}"
 
 
 @instrumented_task(
@@ -178,3 +189,19 @@ def test_instrumented_task_with_alias_silo_limit_call_control() -> None:
     assert test_tasks.contains("tests.tasks.test_base.region_alias_task")
     with pytest.raises(SiloLimit.AvailabilityError):
         test_tasks.get("tests.tasks.test_base.region_alias_task")("test")
+
+
+def test_task_inherits_namespace_owner() -> None:
+    with sentry_sdk.isolation_scope() as scope:
+        assert task_with_alias("hello") == "Task with alias hello"
+
+        assert scope._tags[OWNER_ATTRIBUTE] == Owner.UNOWNED.value
+        assert scope._attributes[OWNER_ATTRIBUTE] == Owner.UNOWNED.value
+
+
+def test_task_owner_overrides_namespace_owner() -> None:
+    with sentry_sdk.isolation_scope() as scope:
+        assert owned_task("hello") == "Owned task hello"
+
+        assert scope._tags[OWNER_ATTRIBUTE] == "crons"
+        assert scope._attributes[OWNER_ATTRIBUTE] == "crons"

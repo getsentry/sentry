@@ -6,6 +6,7 @@ from arroyo.processing.strategies.abstract import ProcessingStrategyFactory
 from sentry import consumers
 from sentry.conf.types.kafka_definition import ConsumerDefinition, Topic
 from sentry.consumers import get_stream_processor
+from sentry.owners import Owner
 from sentry.utils.imports import import_string
 
 
@@ -20,6 +21,13 @@ def test_all_importable(consumer_def, settings) -> None:
 
     topic = defn["topic"]
     assert topic.value in settings.KAFKA_TOPIC_TO_CLUSTER
+
+
+@pytest.mark.parametrize("consumer_def", list(consumers.KAFKA_CONSUMERS.items()))
+def test_has_owner(consumer_def) -> None:
+    _, defn = consumer_def
+
+    assert isinstance(defn.get("owner"), Owner)
 
 
 @pytest.mark.parametrize("consumer_def", list(consumers.KAFKA_CONSUMERS.items()))

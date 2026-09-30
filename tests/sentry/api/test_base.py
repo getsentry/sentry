@@ -4,6 +4,7 @@ from typing import Any
 from unittest import mock
 from unittest.mock import MagicMock
 
+import sentry_sdk
 from django.http import QueryDict, StreamingHttpResponse
 from django.test import override_settings
 from pytest import raises
@@ -19,6 +20,7 @@ from sentry.api.permissions import SuperuserPermission
 from sentry.auth import access
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.models.apikey import ApiKey
+from sentry.owners import OWNER_ATTRIBUTE, Owner
 from sentry.silo.base import FunctionSiloLimit, SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.options import override_options
@@ -45,6 +47,10 @@ class DummyEndpoint(Endpoint):
 
 class DummyCsrfProtectedEndpoint(DummyEndpoint):
     csrf_protect = True
+
+
+class DummyOwnedEndpoint(DummyEndpoint):
+    owner = Owner.CRONS
 
 
 class DummyDeclaredScopePermission(AllowAny):
@@ -138,6 +144,16 @@ _dummy_streaming_endpoint = DummyPaginationStreamingEndpoint.as_view()
 
 @all_silo_test
 class EndpointTest(APITestCase):
+    def test_dispatch_sets_owner(self) -> None:
+        request = self.make_request(method="GET")
+        with sentry_sdk.isolation_scope() as scope, assume_test_silo_mode(SiloMode.MONOLITH):
+            response = DummyOwnedEndpoint.as_view()(request)
+            response.render()
+
+        assert response.status_code == 200, response.content
+        assert scope._tags[OWNER_ATTRIBUTE] == "crons"
+        assert scope._attributes[OWNER_ATTRIBUTE] == "crons"
+
     def test_csrf_protection_defaults_to_disabled(self) -> None:
         assert DummyEndpoint.as_view().csrf_exempt is True
 
