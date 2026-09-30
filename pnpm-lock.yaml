@@ -15,9 +15,6 @@ patchedDependencies:
   css-tree@3.2.1:
     hash: ec4e8a1e54e91be1bbca26a0c6047f0832c2fd45d01795becd6cc0144334a489
     path: patches/css-tree@3.2.1.patch
-  jsdom@30.1.0:
-    hash: 5dac761088e7baf0d6a93f505737e3e3f0dc178680ab47fb53483561d730388a
-    path: patches/jsdom@30.1.0.patch
   zod@4.3.5:
     hash: 2bb6d33b2c713a7a2c559c18ad0aa6cfb261f01d935ee1288dfec6c84411aa76
     path: patches/zod@4.3.5.patch
@@ -563,7 +560,7 @@ importers:
         version: 30.5.1
       '@jest/environment-jsdom-abstract':
         specifier: 30.5.1
-        version: 30.5.1(@types/jsdom@21.1.7)(jsdom@30.1.0(patch_hash=5dac761088e7baf0d6a93f505737e3e3f0dc178680ab47fb53483561d730388a))
+        version: 30.5.1(@types/jsdom@21.1.7)(jsdom@30.1.1)
       '@jest/types':
         specifier: 30.5.1
         version: 30.5.1
@@ -572,7 +569,7 @@ importers:
         version: 3.1.1
       '@sentry/jest-environment':
         specifier: 8.0.0
-        version: 8.0.0(@jest/environment-jsdom-abstract@30.5.1(@types/jsdom@21.1.7)(jsdom@30.1.0(patch_hash=5dac761088e7baf0d6a93f505737e3e3f0dc178680ab47fb53483561d730388a)))(@sentry/node@11.0.0)(jest-environment-node@30.5.1)(jest@30.5.1(@types/node@24.13.2)(babel-plugin-macros@3.1.0)(ts-node@10.9.2(@swc/core@1.16.2)(@types/node@24.13.2)(@typescript/typescript6@6.0.2)))(jsdom@30.1.0(patch_hash=5dac761088e7baf0d6a93f505737e3e3f0dc178680ab47fb53483561d730388a))
+        version: 8.0.0(@jest/environment-jsdom-abstract@30.5.1(@types/jsdom@21.1.7)(jsdom@30.1.1))(@sentry/node@11.0.0)(jest-environment-node@30.5.1)(jest@30.5.1(@types/node@24.13.2)(babel-plugin-macros@3.1.0)(ts-node@10.9.2(@swc/core@1.16.2)(@types/node@24.13.2)(@typescript/typescript6@6.0.2)))(jsdom@30.1.1)
       '@sentry/rrweb-types':
         specifier: 2.44.0
         version: 2.44.0
@@ -655,8 +652,8 @@ importers:
         specifier: 3.3.4
         version: 3.3.4(@jest/globals@30.5.1)
       jsdom:
-        specifier: 30.1.0
-        version: 30.1.0(patch_hash=5dac761088e7baf0d6a93f505737e3e3f0dc178680ab47fb53483561d730388a)
+        specifier: 30.1.1
+        version: 30.1.1
       knip:
         specifier: 6.32.1
         version: 6.32.1
@@ -845,8 +842,8 @@ packages:
     resolution: {integrity: sha512-IxddtGnnoidVSO6O/aiTueptbTThHvi2qGHu9/AWuD1J7i86Ox+jl+Y5SXcDH1RixzQlP2cjH/PjnlImZiAurQ==}
     engines: {node: ^22.22.2 || ^24.15.0 || >=26.0.0}
 
-  '@asamuzakjp/dom-selector@9.1.4':
-    resolution: {integrity: sha512-ynDE7RDZM1z+YuSU+iGhRp8WcSXHqK9+G32ZEzsL35TKSoy72fYR7VfrJCQkWe3ciiIWGSTAIBc9XB5jVpqyTw==}
+  '@asamuzakjp/dom-selector@9.2.2':
+    resolution: {integrity: sha512-lSWTBMjAcmu2xn5yEDU7jh6QDV+C8GEKtdJ4pIQhXh26RkKQ7S3FuQlt+zZkUbTdJ4d3XyV1kPI/G0zWXxqaqw==}
     engines: {node: ^22.22.2 || ^24.15.0 || >=26.0.0}
 
   '@babel/code-frame@7.26.2':
@@ -6380,9 +6377,9 @@ packages:
     resolution: {integrity: sha512-Y22oTqIU4uuPgEemfz7NDJz6OeKf12Lsu+QC+s3BVpda64lTiMYCyGwg5ki4vFxkMwQdeZDl2adZoqUgdFuTgQ==}
     engines: {node: '>=18'}
 
-  html-encoding-sniffer@6.0.0:
-    resolution: {integrity: sha512-CV9TW3Y3f8/wT0BRFc1/KAVQ3TUHiXmaAb6VW9vtiMFf7SLoMd1PdAc4W3KFOFETBJUb90KatHqlsZMWV+R9Gg==}
-    engines: {node: ^20.19.0 || ^22.12.0 || >=24.0.0}
+  html-encoding-sniffer@7.0.0:
+    resolution: {integrity: sha512-UikN5yr7xsCDAq87Or5or0PAlD3HJJOKVzM05az588WnpDJ4Ux7a2A53Qi6gofGg2/EtvF/H4hCi/TXfCW4Y6w==}
+    engines: {node: ^22.13.0 || >=24.0.0}
 
   html-escaper@2.0.2:
     resolution: {integrity: sha512-H2iMtd0I4Mt5eYiapRdIDjp+XzelXQ0tFE4JS7YFwFevXXMmOp9myNrUvCg0D6ws8iqkRPBfKHgbwig1SmlLfg==}
@@ -6931,8 +6928,8 @@ packages:
       canvas:
         optional: true
 
-  jsdom@30.1.0:
-    resolution: {integrity: sha512-h/Q+H+KmlGf49ITw3TrykSVbg04S75S2O7ZtJc9gMGOWBrQRZmx5AJIKLtJ01e6Kszl+/tpFthCVqxNifxhoqg==}
+  jsdom@30.1.1:
+    resolution: {integrity: sha512-FahmoPK5vbPc+jxV1iErMHmAZypCZ942NHF4+qqaWAuvaKKTBZxawnmAtrbGWLU7MtlxfqIP0qw6aSI+aWGtLg==}
     engines: {node: ^22.22.2 || ^24.15.0 || >=26.0.0}
     peerDependencies:
       canvas: ^3.2.3
@@ -7119,6 +7116,10 @@ packages:
 
   lru-cache@11.5.2:
     resolution: {integrity: sha512-4pfM1Ff0x50o0tQwb5ucw/RzNyD0/YJME6IVcStalZuMWxdt3sR3huStTtxz4PUmvZfRguvDejasvQ2kifR11g==}
+    engines: {node: 20 || >=22}
+
+  lru-cache@11.5.3:
+    resolution: {integrity: sha512-U4N8FgzmWxc8k1VH8Kr6lQg18U7Fjvby6wXHVRX/ZZ7IwWbRMgrRbP0Wrb5q5NVinryp4SQampHKdvtecItxUg==}
     engines: {node: 20 || >=22}
 
   lru-cache@5.1.1:
@@ -9117,6 +9118,10 @@ packages:
     resolution: {integrity: sha512-o8qghlI8NZHU1lLPrpi2+Uq7abh4GGPpYANlalzWxyWteJOCsr/P+oPBA49TOLu5FTZO4d3F9MnWJfiMo4BkmA==}
     engines: {node: '>=18'}
 
+  w3c-xmlserializer@6.0.0:
+    resolution: {integrity: sha512-4Nsy8K5Tr6SPDH9jhKJOHf7ChDrc1zufZTVSF7x72hwuEXBqxqk9G6cK+K2NRUtB3iELRJqjXb4JPDMBjMTl2Q==}
+    engines: {node: ^22.22.2 || ^24.15.0 || >=26.0.0}
+
   walk-up-path@4.0.0:
     resolution: {integrity: sha512-3hu+tD8YzSLGuFYtPRb48vdhKMi0KQV5sn+uWr8+7dMEq/2G/dtLrdDinkLjqq5TIbIBjYJ4Ax/n3YiaW7QM8A==}
     engines: {node: 20 || >=22}
@@ -9445,12 +9450,12 @@ snapshots:
       '@csstools/css-tokenizer': 4.0.0
       lru-cache: 11.5.2
 
-  '@asamuzakjp/dom-selector@9.1.4':
+  '@asamuzakjp/dom-selector@9.2.2':
     dependencies:
       bidi-js: 1.1.0
       css-tree: 3.2.1(patch_hash=ec4e8a1e54e91be1bbca26a0c6047f0832c2fd45d01795becd6cc0144334a489)
       is-potential-custom-element-name: 1.0.1
-      lru-cache: 11.5.2
+      lru-cache: 11.5.3
 
   '@babel/code-frame@7.26.2':
     dependencies:
@@ -10334,7 +10339,7 @@ snapshots:
 
   '@jest/diff-sequences@30.5.0': {}
 
-  '@jest/environment-jsdom-abstract@30.5.1(@types/jsdom@21.1.7)(jsdom@30.1.0(patch_hash=5dac761088e7baf0d6a93f505737e3e3f0dc178680ab47fb53483561d730388a))':
+  '@jest/environment-jsdom-abstract@30.5.1(@types/jsdom@21.1.7)(jsdom@30.1.1)':
     dependencies:
       '@jest/environment': 30.5.1
       '@jest/fake-timers': 30.5.1
@@ -10343,7 +10348,7 @@ snapshots:
       '@types/node': 24.13.2
       jest-mock: 30.5.1
       jest-util: 30.5.1
-      jsdom: 30.1.0(patch_hash=5dac761088e7baf0d6a93f505737e3e3f0dc178680ab47fb53483561d730388a)
+      jsdom: 30.1.1
 
   '@jest/environment@30.5.1':
     dependencies:
@@ -11962,14 +11967,14 @@ snapshots:
     dependencies:
       '@sentry/core': 11.0.0
 
-  '@sentry/jest-environment@8.0.0(@jest/environment-jsdom-abstract@30.5.1(@types/jsdom@21.1.7)(jsdom@30.1.0(patch_hash=5dac761088e7baf0d6a93f505737e3e3f0dc178680ab47fb53483561d730388a)))(@sentry/node@11.0.0)(jest-environment-node@30.5.1)(jest@30.5.1(@types/node@24.13.2)(babel-plugin-macros@3.1.0)(ts-node@10.9.2(@swc/core@1.16.2)(@types/node@24.13.2)(@typescript/typescript6@6.0.2)))(jsdom@30.1.0(patch_hash=5dac761088e7baf0d6a93f505737e3e3f0dc178680ab47fb53483561d730388a))':
+  '@sentry/jest-environment@8.0.0(@jest/environment-jsdom-abstract@30.5.1(@types/jsdom@21.1.7)(jsdom@30.1.1))(@sentry/node@11.0.0)(jest-environment-node@30.5.1)(jest@30.5.1(@types/node@24.13.2)(babel-plugin-macros@3.1.0)(ts-node@10.9.2(@swc/core@1.16.2)(@types/node@24.13.2)(@typescript/typescript6@6.0.2)))(jsdom@30.1.1)':
     dependencies:
       '@sentry/node': 11.0.0
       jest: 30.5.1(@types/node@24.13.2)(babel-plugin-macros@3.1.0)(ts-node@10.9.2(@swc/core@1.16.2)(@types/node@24.13.2)(@typescript/typescript6@6.0.2))
     optionalDependencies:
-      '@jest/environment-jsdom-abstract': 30.5.1(@types/jsdom@21.1.7)(jsdom@30.1.0(patch_hash=5dac761088e7baf0d6a93f505737e3e3f0dc178680ab47fb53483561d730388a))
+      '@jest/environment-jsdom-abstract': 30.5.1(@types/jsdom@21.1.7)(jsdom@30.1.1)
       jest-environment-node: 30.5.1
-      jsdom: 30.1.0(patch_hash=5dac761088e7baf0d6a93f505737e3e3f0dc178680ab47fb53483561d730388a)
+      jsdom: 30.1.1
 
   '@sentry/node@11.0.0':
     dependencies:
@@ -15139,7 +15144,7 @@ snapshots:
     dependencies:
       whatwg-encoding: 3.1.1
 
-  html-encoding-sniffer@6.0.0:
+  html-encoding-sniffer@7.0.0:
     dependencies:
       '@exodus/bytes': 1.15.1
     transitivePeerDependencies:
@@ -15899,24 +15904,24 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  jsdom@30.1.0(patch_hash=5dac761088e7baf0d6a93f505737e3e3f0dc178680ab47fb53483561d730388a):
+  jsdom@30.1.1:
     dependencies:
       '@asamuzakjp/css-color': 7.0.0
-      '@asamuzakjp/dom-selector': 9.1.4
+      '@asamuzakjp/dom-selector': 9.2.2
       '@bramus/specificity': 2.4.2
       '@csstools/css-syntax-patches-for-csstree': 1.1.14(css-tree@3.2.1(patch_hash=ec4e8a1e54e91be1bbca26a0c6047f0832c2fd45d01795becd6cc0144334a489))
       '@exodus/bytes': 1.15.1
       css-tree: 3.2.1(patch_hash=ec4e8a1e54e91be1bbca26a0c6047f0832c2fd45d01795becd6cc0144334a489)
       data-urls: 7.0.0
       decimal.js: 10.6.0
-      html-encoding-sniffer: 6.0.0
+      html-encoding-sniffer: 7.0.0
       is-potential-custom-element-name: 1.0.1
       lru-cache: 11.5.2
       parse5: 8.0.1
       saxes: 6.0.0
       tough-cookie: 6.0.2
       undici: 8.10.2
-      w3c-xmlserializer: 5.0.0
+      w3c-xmlserializer: 6.0.0
       webidl-conversions: 8.0.1
       whatwg-mimetype: 5.0.0
       whatwg-url: 17.1.1
@@ -16104,6 +16109,8 @@ snapshots:
   lru-cache@11.5.1: {}
 
   lru-cache@11.5.2: {}
+
+  lru-cache@11.5.3: {}
 
   lru-cache@5.1.1:
     dependencies:
@@ -18776,6 +18783,10 @@ snapshots:
       vfile-message: 4.0.2
 
   w3c-xmlserializer@5.0.0:
+    dependencies:
+      xml-name-validator: 5.0.0
+
+  w3c-xmlserializer@6.0.0:
     dependencies:
       xml-name-validator: 5.0.0
 
