@@ -284,7 +284,10 @@ class TestMain:
             {
                 "../sentry/src/sentry/a.py": [
                     "../sentry/tests/sentry/test_a.py::test_one|run",
-                    *[f"../sentry/tests/sentry/test_b.py::test_generated_{i}|run" for i in range(500)],
+                    *[
+                        f"../sentry/tests/sentry/test_b.py::test_generated_{i}|run"
+                        for i in range(500)
+                    ],
                 ],
             },
         )
@@ -294,16 +297,19 @@ class TestMain:
                 mock.Mock(side_effect=sqlite3.OperationalError("unavailable")),
             )
         github_output = tmp_path / "github_output"
-        assert _run(
-            [
-                "--coverage-db",
-                str(db_path),
-                "--changed-files",
-                "src/sentry/a.py tests/sentry/test_new.py",
-                "--github-output",
-            ],
-            {"GITHUB_OUTPUT": str(github_output)},
-        ) == 0
+        assert (
+            _run(
+                [
+                    "--coverage-db",
+                    str(db_path),
+                    "--changed-files",
+                    "src/sentry/a.py tests/sentry/test_new.py",
+                    "--github-output",
+                ],
+                {"GITHUB_OUTPUT": str(github_output)},
+            )
+            == 0
+        )
 
         assert "test-count=3\n" in github_output.read_text()
         expected_count = 503 if coverage_available else 4

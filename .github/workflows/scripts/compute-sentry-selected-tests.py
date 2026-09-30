@@ -385,7 +385,9 @@ def main() -> int:
             try:
                 coverage_counts = _query_test_counts(str(coverage_db), output_tests)
             except sqlite3.Error as e:
-                print(f"Warning: could not count tests from coverage database: {e}", file=sys.stderr)
+                print(
+                    f"Warning: could not count tests from coverage database: {e}", file=sys.stderr
+                )
         test_item_count = 0
         for test_file in output_tests:
             ast_count = count_tests_in_file(Path(test_file))
