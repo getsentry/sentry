@@ -67,6 +67,56 @@ describe('applySeerWidgetDefaults', () => {
       expect(result!.limit).toBe(5);
     });
   });
+
+  describe('query defaults', () => {
+    it('fills in empty arrays for missing aggregates and columns', () => {
+      const widgets = [
+        makeWidget({
+          queries: [
+            {
+              name: undefined,
+              conditions: undefined,
+              aggregates: undefined,
+              columns: undefined,
+              orderby: undefined,
+            } as any,
+          ],
+        }),
+      ];
+      const [result] = applySeerWidgetDefaults(widgets);
+      const query = result!.queries[0]!;
+
+      expect(query.aggregates).toEqual([]);
+      expect(query.columns).toEqual([]);
+      expect(query.conditions).toBe('');
+      expect(query.name).toBe('');
+      expect(query.orderby).toBe('');
+    });
+
+    it('preserves existing query field values', () => {
+      const widgets = [
+        makeWidget({
+          queries: [
+            {
+              name: 'my query',
+              conditions: 'is:unresolved',
+              aggregates: ['count()', 'p95(span.duration)'],
+              columns: ['project'],
+              orderby: '-count()',
+            },
+          ],
+        }),
+      ];
+      const [result] = applySeerWidgetDefaults(widgets);
+      const query = result!.queries[0]!;
+
+      expect(query.aggregates).toEqual(['count()', 'p95(span.duration)']);
+      expect(query.columns).toEqual(['project']);
+      expect(query.conditions).toBe('is:unresolved');
+      expect(query.name).toBe('my query');
+      expect(query.orderby).toBe('-count()');
+    });
+  });
 });
 
 describe('statusIsTerminal', () => {
