@@ -3,8 +3,10 @@ import styled from '@emotion/styled';
 import round from 'lodash/round';
 
 import {Tag} from '@sentry/scraps/badge';
+import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t, tct} from 'sentry/locale';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
@@ -109,9 +111,7 @@ export function EvaluationResultSummary({
   return (
     <Flex wrap="wrap" gap="xs">
       {getAnswerLabels(answers, questions).map(([key, label]) => (
-        <Tag key={key} variant="muted">
-          {`${key}: ${label}`}
-        </Tag>
+        <TruncatedTag key={key}>{`${key}: ${label}`}</TruncatedTag>
       ))}
     </Flex>
   );
@@ -123,6 +123,18 @@ export function EvaluationResultSummary({
  */
 function UnrecognizedTag() {
   return <Tag variant="muted">{t('Unrecognized')}</Tag>;
+}
+
+/**
+ * A tag that truncates long text, e.g. a sentence-long option, with the full
+ * text in a tooltip.
+ */
+function TruncatedTag({children}: {children: string}) {
+  return (
+    <Tooltip title={children} showOnlyOnOverflow skipWrapper>
+      <Tag variant="muted">{children}</Tag>
+    </Tooltip>
+  );
 }
 
 function RawValue({value}: {value: unknown}) {
@@ -144,8 +156,16 @@ function Card({
     <Container border="primary" radius="md" padding="md lg">
       <Stack gap="sm">
         <Flex align="center" justify="between" gap="md">
-          <Text bold>{title}</Text>
-          {trailing}
+          {/* Keys are usually short; cap them so a long one leaves room for
+           * the answer. Both truncate with the full text in a tooltip. */}
+          <Container flex="0 0 auto" maxWidth="50%">
+            <InfoText title={title} mode="overflowOnly" bold>
+              {title}
+            </InfoText>
+          </Container>
+          <Flex flex="0 1 auto" minWidth="0" justify="end">
+            {trailing}
+          </Flex>
         </Flex>
         {description ? (
           <Text size="sm" variant="muted">
@@ -166,9 +186,9 @@ function QuestionOptions({question}: {question: EvaluationQuestion}) {
     return criteria.length > 0 ? (
       <Flex wrap="wrap" gap="xs">
         {criteria.map((label, index) => (
-          <Tag key={index} variant="muted">
+          <TruncatedTag key={index}>
             {question.type === 'score' ? `${index} · ${label}` : label}
-          </Tag>
+          </TruncatedTag>
         ))}
       </Flex>
     ) : null;
@@ -180,11 +200,11 @@ function QuestionOptions({question}: {question: EvaluationQuestion}) {
     return null;
   }
   return (
-    <Grid columns="max-content minmax(0, 1fr)" gap="xs md" paddingTop="xs">
+    <Grid columns="fit-content(40%) minmax(0, 1fr)" gap="xs md" paddingTop="xs">
       {options.map(([label, description]) => [
-        <Tag key={`${label}:label`} variant="muted">
-          {label}
-        </Tag>,
+        <Container key={`${label}:label`} minWidth="0">
+          <TruncatedTag>{label}</TruncatedTag>
+        </Container>,
         <Text key={`${label}:description`} size="sm" variant="muted">
           {description}
         </Text>,
@@ -214,10 +234,17 @@ function AnswerSummary({
       );
     }
     case 'score': {
+      // With a distribution, the named value is the highlighted row below, so
+      // only the score is repeated here.
+      if (hasDistribution(answer)) {
+        return <Text bold>{round(answer.score, 2)}</Text>;
+      }
       const name = getScoreName(answer, answer.score, question);
       return (
-        <Flex align="baseline" gap="xs">
-          <Text bold>{name ?? round(answer.score, 2)}</Text>
+        <Flex align="baseline" gap="xs" minWidth="0">
+          <InfoText title={name} mode="overflowOnly" bold>
+            {name ?? round(answer.score, 2)}
+          </InfoText>
           {name ? (
             <Text size="sm" variant="muted">
               {round(answer.score, 2)}
@@ -227,12 +254,24 @@ function AnswerSummary({
       );
     }
     case 'choice':
-      return <Text bold>{getAnswerLabel(answer)}</Text>;
+      // With a distribution, the choice is the highlighted row below.
+      if (hasDistribution(answer)) {
+        return null;
+      }
+      return (
+        <InfoText title={answer.choice} mode="overflowOnly" bold>
+          {answer.choice}
+        </InfoText>
+      );
     case 'invalid':
       return <UnrecognizedTag />;
     default:
       return null;
   }
+}
+
+function hasDistribution(answer: {probabilities?: Record<string, number>}): boolean {
+  return Object.keys(answer.probabilities ?? {}).length > 0;
 }
 
 function AnswerDetail({
@@ -307,18 +346,22 @@ function ProbabilityList({
 
   return (
     <Container paddingTop="xs">
-      <Grid columns="max-content minmax(0, 1fr) 3em" gap="xs md" align="center">
+      {/* Labels take at most half the width, so long option names don't
+       * squeeze the bars; they truncate with the full text in a tooltip. */}
+      <Grid columns="fit-content(50%) minmax(0, 1fr) 3em" gap="xs md" align="center">
         {entries.map(([label, probability]) => {
           const isSelected = label === selected;
           return [
-            <Text
+            <InfoText
               key={`${label}:label`}
+              title={getLabel(label)}
+              mode="overflowOnly"
               size="sm"
               variant={isSelected ? 'primary' : 'muted'}
               bold={isSelected}
             >
               {getLabel(label)}
-            </Text>,
+            </InfoText>,
             <BarTrack key={`${label}:bar`}>
               <BarFill
                 isSelected={isSelected}

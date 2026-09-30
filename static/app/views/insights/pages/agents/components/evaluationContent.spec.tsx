@@ -90,7 +90,8 @@ describe('EvaluationAnswers', () => {
     expect(screen.getByText('97%')).toBeInTheDocument();
     expect(screen.getByText('No')).toBeInTheDocument();
     expect(screen.getByText('90%')).toBeInTheDocument();
-    expect(screen.getAllByText('billing')).toHaveLength(2);
+    // The chosen option is the highlighted row, not repeated in the header.
+    expect(screen.getByText('billing')).toBeInTheDocument();
     expect(screen.getByText('59%')).toBeInTheDocument();
     expect(screen.getByText('technical')).toBeInTheDocument();
     expect(screen.getByText('Confidence: 24%')).toBeInTheDocument();
@@ -150,9 +151,24 @@ describe('EvaluationAnswers', () => {
       />
     );
 
-    expect(screen.getAllByText('high')).toHaveLength(2);
+    expect(screen.getByText('high')).toBeInTheDocument();
     expect(screen.getByText('medium')).toBeInTheDocument();
     expect(screen.getByText('1.6')).toBeInTheDocument();
+  });
+
+  it('shows the answer in the header without a distribution', () => {
+    render(
+      <EvaluationAnswers
+        answers={[
+          {kind: 'score', key: 'urgency', score: 1.6, legend: {2: 'high'}},
+          {kind: 'choice', key: 'department', choice: 'billing'},
+        ]}
+      />
+    );
+
+    expect(screen.getByText('high')).toBeInTheDocument();
+    expect(screen.getByText('1.6')).toBeInTheDocument();
+    expect(screen.getByText('billing')).toBeInTheDocument();
   });
 });
 
