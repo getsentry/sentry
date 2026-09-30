@@ -17,7 +17,9 @@ HEARTBEAT_INTERVAL = timedelta(seconds=5)
 PRESENCE_WINDOW = HEARTBEAT_INTERVAL * 4
 # How often an ongoing visit refreshes the viewer's "seen" time
 SEEN_REFRESH = timedelta(minutes=5)
-MAX_EARLIER_VIEWERS = 50
+# How many viewers a heartbeat returns when the caller does not ask for a number
+DEFAULT_VIEWER_LIMIT = 20
+MAX_VIEWER_LIMIT = 50
 # Cached seen rows per investigation, so active viewers can be removed and still leave enough.
 SEEN_CACHE_LIMIT = 100
 KEY_PREFIX = "investigations:presence:"
@@ -36,6 +38,14 @@ class Viewer:
     user_id: int
     last_seen: datetime
     active: bool
+
+
+@dataclass(frozen=True)
+class Viewers:
+    # Active viewers first, then earlier ones, up to the requested limit.
+    viewers: list[Viewer]
+    # All viewers found, before the limit.
+    total: int
 
 
 def record_heartbeat(investigation_id: int, user_id: int, now: datetime | None = None) -> Heartbeat:
@@ -74,9 +84,11 @@ def seen_by(investigation_id: int) -> list[tuple[int, datetime]]:
     )
 
 
-def record_visit(investigation: Investigation, user_id: int) -> list[Viewer]:
+def record_visit(
+    investigation: Investigation, user_id: int, limit: int = DEFAULT_VIEWER_LIMIT
+) -> Viewers:
     """
-    Record a heartbeat and list the investigation's viewers: active ones first, then historical
+    Record a heartbeat and list the investigation's other viewers: active ones first, then historical
     """
     now = timezone.now()
     heartbeat = record_heartbeat(investigation.id, user_id, now)
@@ -95,14 +107,16 @@ def record_visit(investigation: Investigation, user_id: int) -> list[Viewer]:
             investigation=investigation, user_id=user_id, defaults={"last_seen": now}
         )
 
-    earlier = [
+    viewers = [
+        Viewer(user_id=uid, last_seen=last_seen, active=True)
+        for uid, last_seen in heartbeat.active
+        if uid != user_id
+    ] + [
         Viewer(user_id=uid, last_seen=last_seen, active=False)
         for uid, last_seen in seen
         if uid not in active_ids
     ]
-    return [
-        Viewer(user_id=uid, last_seen=last_seen, active=True) for uid, last_seen in heartbeat.active
-    ] + earlier[:MAX_EARLIER_VIEWERS]
+    return Viewers(viewers=viewers[:limit], total=len(viewers))
 
 
 def _key(investigation_id: int) -> str:

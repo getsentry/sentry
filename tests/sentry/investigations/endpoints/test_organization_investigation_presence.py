@@ -36,26 +36,28 @@ class OrganizationInvestigationPresenceTest(APITestCase):
         self.create_member(organization=self.organization, user=user, role="member")
         return user
 
-    def test_lists_active_viewers_most_recent_first(self) -> None:
-        other = self.member()
+    def test_lists_other_active_viewers_most_recent_first(self) -> None:
+        second = self.member()
+        third = self.member()
         start = timezone.now().replace(microsecond=0)
 
         self.login_as(self.user)
         with freeze_time(start):
             response = self.client.put(self.url)
         assert response.status_code == 200
-        assert response.data == {
-            "viewers": [{"userId": str(self.user.id), "lastSeen": start, "active": True}],
-            "heartbeatIntervalMs": 5000,
-        }
+        assert response.data == {"viewers": [], "total": 0, "heartbeatIntervalMs": 5000}
 
-        self.login_as(other)
+        self.login_as(second)
         with freeze_time(start + timedelta(seconds=1)):
+            self.client.put(self.url)
+        self.login_as(third)
+        with freeze_time(start + timedelta(seconds=2)):
             response = self.client.put(self.url)
-        assert [(v["userId"], v["active"]) for v in response.data["viewers"]] == [
-            (str(other.id), True),
-            (str(self.user.id), True),
+        assert response.data["viewers"] == [
+            {"userId": str(second.id), "lastSeen": start + timedelta(seconds=1), "active": True},
+            {"userId": str(self.user.id), "lastSeen": start, "active": True},
         ]
+        assert response.data["total"] == 2
 
     def test_lists_earlier_viewers_after_active_ones(self) -> None:
         earlier = self.member()
@@ -72,11 +74,31 @@ class OrganizationInvestigationPresenceTest(APITestCase):
         response = self.client.put(self.url)
 
         assert [(v["userId"], v["active"]) for v in response.data["viewers"]] == [
-            (str(self.user.id), True),
             (str(earlier.id), False),
             (str(earliest.id), False),
         ]
-        assert response.data["viewers"][1]["lastSeen"] == now - timedelta(hours=1)
+        assert response.data["viewers"][0]["lastSeen"] == now - timedelta(hours=1)
+
+    def test_limit_caps_the_list_but_not_the_total(self) -> None:
+        now = timezone.now()
+        for hours in range(1, 4):
+            self.create_investigation_seen(
+                investigation=self.investigation,
+                user=self.member(),
+                last_seen=now - timedelta(hours=hours),
+            )
+
+        self.login_as(self.user)
+        response = self.client.put(f"{self.url}?limit=2")
+
+        assert len(response.data["viewers"]) == 2
+        assert response.data["total"] == 3
+
+    def test_rejects_an_invalid_limit(self) -> None:
+        self.login_as(self.user)
+
+        assert self.client.put(f"{self.url}?limit=0").status_code == 400
+        assert self.client.put(f"{self.url}?limit=500").status_code == 400
 
     def test_records_seen_on_a_new_visit_and_during_a_long_one(self) -> None:
         self.login_as(self.user)
@@ -130,7 +152,6 @@ class OrganizationInvestigationPresenceTest(APITestCase):
 
         # The other viewer's presence has expired, so they are listed as an earlier viewer.
         assert [(v["userId"], v["active"]) for v in response.data["viewers"]] == [
-            (str(self.user.id), True),
             (str(other.id), False),
         ]
 
