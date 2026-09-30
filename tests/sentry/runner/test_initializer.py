@@ -351,6 +351,24 @@ def test_single_organization_reuses_github_app_secret(settings) -> None:
     assert settings.GITHUB_API_SECRET == "app-secret"
 
 
+def test_single_organization_keeps_option_github_secret_remap(settings) -> None:
+    """With the option key configured, the single organization remap decides the SSO secret."""
+    settings.SENTRY_SINGLE_ORGANIZATION = True
+    settings.SENTRY_OPTIONS = {
+        "github-app.client-secret": "app-secret",
+        "github-login.client-secret": "login-secret",
+    }
+
+    with patch.dict(
+        "sentry.runner.initializer.options_mapper",
+        {"github-app.client-id": "GITHUB_APP_ID", "github-app.client-secret": "GITHUB_API_SECRET"},
+    ):
+        bootstrap_options(settings)
+
+    assert settings.GITHUB_API_SECRET == "login-secret"
+    assert settings.SENTRY_GITHUB_APP_CLIENT_SECRET == "app-secret"
+
+
 def test_self_hosted_validate_options_skips_migrated_keys(settings) -> None:
     """validate_options does not warn about migrated option keys on self-hosted."""
     settings.SENTRY_SELF_HOSTED = True
