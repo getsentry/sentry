@@ -171,10 +171,9 @@ describe('SeerDrawerNextStep', () => {
       'asks for changes to %s in Seer Agent instead of the textarea',
       async (step, question) => {
         const autofix = makeAutofix();
-        const group = GroupFixture();
         render(
           <SeerDrawerNextStep
-            group={group}
+            group={GroupFixture()}
             sections={[makeSection(step)]}
             autofix={autofix}
           />,
@@ -187,7 +186,7 @@ describe('SeerDrawerNextStep', () => {
           runId: 1,
           chatPrompt: {
             text: question,
-            context: JSON.stringify({issue: group.shortId, autofixStep: step}),
+            context: JSON.stringify({autofixStep: step}),
             openedAt: expect.any(Number),
           },
         });

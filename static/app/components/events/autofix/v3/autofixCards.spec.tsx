@@ -20,6 +20,15 @@ import type {
   ExplorerFilePatch,
   RepoPRState,
 } from 'sentry/views/seerExplorer/types';
+import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
+
+jest.mock('sentry/views/seerExplorer/useSeerExplorerContext', () => {
+  const actual = jest.requireActual('sentry/views/seerExplorer/useSeerExplorerContext');
+  return {
+    ...actual,
+    useSeerExplorerContext: jest.fn(actual.useSeerExplorerContext),
+  };
+});
 
 jest.mock('sentry/views/seerExplorer/components/fileDiffViewer', () => ({
   FileDiffViewer: ({defaultExpanded}: {defaultExpanded?: boolean}) => (
@@ -159,6 +168,129 @@ describe('ArtifactCard', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+  });
+
+  describe('on the Autofix page', () => {
+    const chatOrganization = OrganizationFixture({
+      features: ['autofix-page', 'seer-explorer-chat-prompts', 'seer-explorer'],
+      openMembership: true,
+      hideAiFeatures: false,
+    });
+    const openSeerExplorer = jest.fn();
+    const {useSeerExplorerContext: actualUseSeerExplorerContext} = jest.requireActual(
+      'sentry/views/seerExplorer/useSeerExplorerContext'
+    );
+
+    beforeEach(() => {
+      jest.mocked(useSeerExplorerContext).mockImplementation(() => ({
+        ...actualUseSeerExplorerContext(),
+        openSeerExplorer,
+      }));
+    });
+
+    afterEach(() => {
+      jest
+        .mocked(useSeerExplorerContext)
+        .mockImplementation(actualUseSeerExplorerContext);
+    });
+
+    it.each([
+      [
+        'root cause',
+        () => (
+          <RootCauseCard
+            autofix={mockAutofixWithRunState}
+            groupId="1"
+            section={makeSection('root_cause', 'completed', [
+              makeRootCauseArtifact({one_line_description: 'Bug', five_whys: []}),
+            ])}
+          />
+        ),
+        'root_cause',
+        'How can this root cause be improved?',
+      ],
+      [
+        'plan',
+        () => (
+          <SolutionCard
+            autofix={mockAutofixWithRunState}
+            section={makeSection('solution', 'completed', [
+              makeSolutionArtifact({one_line_summary: 'Fix it', steps: []}),
+            ])}
+          />
+        ),
+        'solution',
+        'How can this plan be improved?',
+      ],
+      [
+        'code changes',
+        () => (
+          <CodeChangesCard
+            autofix={mockAutofixWithRunState}
+            groupId="1"
+            section={makeSection('code_changes', 'completed', [
+              [makePatch('org/repo', 'src/app.py')],
+            ])}
+          />
+        ),
+        'code_changes',
+        'How can this code change be improved?',
+      ],
+    ])(
+      'opens Seer Agent from the %s re-run button',
+      async (_name, card, step, question) => {
+        render(card(), {organization: chatOrganization});
+
+        expect(
+          screen.queryByRole('button', {name: 'Re-run step'})
+        ).not.toBeInTheDocument();
+        const chatButton = screen.getByRole('button', {
+          name: 'Chat with Seer about this step',
+        });
+        await userEvent.hover(chatButton);
+        expect(
+          await screen.findByText(
+            'Chat with Seer about this step, or provide more context for it to re-run'
+          )
+        ).toBeInTheDocument();
+
+        await userEvent.click(chatButton);
+
+        expect(openSeerExplorer).toHaveBeenCalledWith({
+          runId: 123,
+          chatPrompt: {
+            text: question,
+            context: JSON.stringify({autofixStep: step}),
+            openedAt: expect.any(Number),
+          },
+        });
+        expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+      }
+    );
+
+    it('keeps the re-run prompt without chat prompts', async () => {
+      render(
+        <RootCauseCard
+          autofix={mockAutofixWithRunState}
+          groupId="1"
+          section={makeSection('root_cause', 'completed', [
+            makeRootCauseArtifact({one_line_description: 'Bug', five_whys: []}),
+          ])}
+        />,
+        {
+          organization: OrganizationFixture({
+            features: ['autofix-page', 'seer-explorer'],
+            openMembership: true,
+            hideAiFeatures: false,
+          }),
+        }
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Re-run step'}));
+
+      expect(openSeerExplorer).not.toHaveBeenCalled();
+      expect(screen.getByRole('textbox')).toBeInTheDocument();
+    });
   });
 
   describe('RootCauseCard', () => {

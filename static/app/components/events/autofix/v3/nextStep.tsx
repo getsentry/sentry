@@ -32,6 +32,7 @@ import {
   useAskSeerHandoff,
 } from 'sentry/components/events/autofix/v3/useAskSeerHandoff';
 import {useCodingAgents} from 'sentry/components/events/autofix/v3/useCodingAgents';
+import {useRethinkInChat} from 'sentry/components/events/autofix/v3/useRethinkInChat';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
@@ -40,10 +41,7 @@ import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {hasAutofixPage} from 'sentry/views/issueDetails/autofix/utils';
-import {useAskSeer} from 'sentry/views/seerExplorer/hooks/useAskSeer';
 import type {SeerExplorerRunId} from 'sentry/views/seerExplorer/types';
-import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
 
 interface SeerDrawerNextStepProps {
   autofix: ReturnType<typeof useExplorerAutofix>;
@@ -158,37 +156,6 @@ interface NextStepProps {
   referrer?: string;
 }
 
-/**
- * On the Autofix page, "no" opens Seer Agent on this run with Seer asking what
- * to change, so the reader answers in the chat instead of a one-shot textarea.
- * Returns undefined where that isn't available, leaving the textarea in place.
- */
-function useRethinkInChat({
-  group,
-  prompt,
-  runId,
-  step,
-}: {
-  group: Group;
-  prompt: string;
-  runId: SeerExplorerRunId;
-  step: 'root_cause' | 'solution' | 'code_changes';
-}): (() => void) | undefined {
-  const organization = useOrganization();
-  const context = useMemo(
-    () => ({issue: group.shortId, autofixStep: step}),
-    [group.shortId, step]
-  );
-  const askSeer = useAskSeer({prompt, context, runId});
-
-  const isAvailable =
-    hasAutofixPage(organization) &&
-    organization.features.includes('seer-explorer-chat-prompts') &&
-    isSeerExplorerEnabled(organization);
-
-  return isAvailable ? askSeer : undefined;
-}
-
 function RootCauseNextStep({autofix, group, runId, section, referrer}: NextStepProps) {
   const organization = useOrganization();
   const {isPolling, startStep} = autofix;
@@ -232,7 +199,6 @@ function RootCauseNextStep({autofix, group, runId, section, referrer}: NextStepP
 
   const rethinkPrompt = t('How can this root cause be improved?');
   const rethinkInChat = useRethinkInChat({
-    group,
     prompt: rethinkPrompt,
     runId,
     step: 'root_cause',
@@ -315,7 +281,6 @@ function SolutionNextStep({autofix, group, runId, section, referrer}: NextStepPr
 
   const rethinkPrompt = t('How can this plan be improved?');
   const rethinkInChat = useRethinkInChat({
-    group,
     prompt: rethinkPrompt,
     runId,
     step: 'solution',
@@ -474,7 +439,6 @@ function CodeChangesNextStepContent({
 
   const rethinkPrompt = t('How can this code change be improved?');
   const rethinkInChat = useRethinkInChat({
-    group,
     prompt: rethinkPrompt,
     runId,
     step: 'code_changes',
