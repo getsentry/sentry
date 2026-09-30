@@ -43,6 +43,7 @@ import {
   useConversations,
   type Conversation,
 } from 'sentry/views/explore/conversations/hooks/useConversations';
+import {useConversationDirectHitRedirect} from 'sentry/views/explore/conversations/hooks/useConversationDirectHitRedirect';
 import {useShowConversationOnboarding} from 'sentry/views/explore/conversations/hooks/useShowConversationOnboarding';
 import {ConversationOnboarding} from 'sentry/views/explore/conversations/onboarding';
 import {MAX_PICKABLE_DAYS} from 'sentry/views/explore/conversations/settings';
@@ -130,6 +131,10 @@ function ConversationsOverviewPage() {
     isFetching: isConversationsFetching,
     error: conversationsError,
   } = conversationsResult;
+  useConversationDirectHitRedirect({
+    isDirectHit: conversationsResult.isDirectHit,
+    conversations,
+  });
   const showMissingMessagesAlert =
     !isConversationsFetching &&
     !conversationsError &&

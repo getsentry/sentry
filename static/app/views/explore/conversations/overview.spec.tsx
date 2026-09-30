@@ -286,6 +286,50 @@ describe('ConversationsOverviewPage', () => {
     expect(await screen.findByRole('button', {name: 'Copy prompt'})).toBeInTheDocument();
   });
 
+  it('opens a pasted conversation ID from the traces tab', async () => {
+    const {router} = render(<ConversationsOverviewPage />, {organization});
+
+    await userEvent.click(await screen.findByRole('tab', {name: 'Traces'}));
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/agents/conversations/`,
+      body: [
+        {
+          conversationId: 'abcdef12',
+          duration: 1000,
+          endTimestamp: 2000,
+          errors: 0,
+          firstInput: null,
+          generationDuration: 500,
+          inputTokens: 0,
+          lastOutput: null,
+          llmCalls: 1,
+          outputTokens: 0,
+          projectId: null,
+          startTimestamp: 1000,
+          toolCalls: 0,
+          toolErrors: 0,
+          toolNames: [],
+          totalCost: null,
+          totalTokens: 100,
+          traceCount: 1,
+          traceIds: ['trace-id'],
+          user: null,
+        },
+      ],
+      headers: {'X-Sentry-Direct-Hit': '1'},
+    });
+
+    await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
+    await userEvent.keyboard('abcdef12{Enter}');
+
+    await waitFor(() => {
+      expect(router.location.pathname).toBe(
+        `/organizations/${organization.slug}/explore/agents/conversations/abcdef12/`
+      );
+    });
+  });
+
   it('shows conversation onboarding without data tabs when there are no gen AI spans', async () => {
     localStorage.clear();
     ProjectsStore.loadInitialData([

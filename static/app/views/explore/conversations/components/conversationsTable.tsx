@@ -34,7 +34,6 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
-import {useConversationDirectHitRedirect} from 'sentry/views/explore/conversations/hooks/useConversationDirectHitRedirect';
 import {
   CONVERSATION_FIELDS,
   type Conversation,
@@ -220,11 +219,9 @@ export function ConversationsTable({conversations}: ConversationsTableProps) {
     pageLinks,
     setCursor,
     unsetCursor,
-    isDirectHit,
     sort,
     setSort,
   } = conversations;
-  useConversationDirectHitRedirect({isDirectHit, conversations: data});
 
   const [highlightedRowKey, setHighlightedRowKey] = useState<number | undefined>();
 
