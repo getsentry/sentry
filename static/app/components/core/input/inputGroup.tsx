@@ -51,8 +51,8 @@ const itemsPadding = {
 
 const itemsInset = {
   md: 12,
-  sm: 8,
-  xs: 4,
+  sm: 10,
+  xs: 8,
 } satisfies Record<NonNullable<InputStyleProps['size']>, number>;
 
 const inputStyles = ({
@@ -325,11 +325,11 @@ const InputGroupWrap = styled('div')<{disabled?: boolean}>`
   --input-leading-width: initial;
   --input-trailing-width: initial;
   &:has(> [data-input-size='sm']) {
-    --input-items-inset: 8px;
+    --input-items-inset: 10px;
     --input-icon-size: 14px;
   }
   &:has(> [data-input-size='xs']) {
-    --input-items-inset: 4px;
+    --input-items-inset: 8px;
     --input-icon-size: 12px;
   }
   ${p =>
