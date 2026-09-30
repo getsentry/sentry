@@ -5,12 +5,12 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
 import {t, tct, tn} from 'sentry/locale';
+import {MonitorIndicator} from 'sentry/views/insights/crons/components/monitorIndicator';
+import {CheckInStatus} from 'sentry/views/insights/crons/types';
 import {
   DEFAULT_CHECKIN_MARGIN,
   DEFAULT_MAX_RUNTIME,
-} from 'sentry/views/insights/crons/components/monitorForm';
-import {MonitorIndicator} from 'sentry/views/insights/crons/components/monitorIndicator';
-import {CheckInStatus} from 'sentry/views/insights/crons/types';
+} from 'sentry/views/insights/crons/utils';
 
 interface Props {
   checkInMargin: number | null;

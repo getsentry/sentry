@@ -25,9 +25,11 @@ import {QuickContextHovercard} from 'sentry/views/discover/table/quickContext/qu
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
 import type {CheckIn, CheckInCellKey} from 'sentry/views/insights/crons/types';
 import {CheckInStatus} from 'sentry/views/insights/crons/types';
-import {statusToText} from 'sentry/views/insights/crons/utils';
-
-import {DEFAULT_CHECKIN_MARGIN, DEFAULT_MAX_RUNTIME} from './monitorForm';
+import {
+  DEFAULT_CHECKIN_MARGIN,
+  DEFAULT_MAX_RUNTIME,
+  statusToText,
+} from 'sentry/views/insights/crons/utils';
 
 /**
  * How many seconds can a check-in have been stuck in Relay before being

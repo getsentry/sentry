@@ -8,8 +8,8 @@ import type {Project} from 'sentry/types/project';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {getNextCheckInEnv} from 'sentry/views/alerts/rules/crons/utils';
 import type {MonitorEnvironment} from 'sentry/views/insights/crons/types';
+import {getNextCheckInEnv} from 'sentry/views/insights/crons/utils';
 import {monitorCheckInsApiOptions} from 'sentry/views/insights/crons/utils/monitorCheckInsApiOptions';
 
 import {MonitorCheckInsGrid} from './monitorCheckInsGrid';

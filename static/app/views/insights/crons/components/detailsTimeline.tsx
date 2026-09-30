@@ -21,9 +21,11 @@ import {useApi} from 'sentry/utils/useApi';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {getNextCheckInEnv} from 'sentry/views/alerts/rules/crons/utils';
 import type {Monitor, MonitorBucket} from 'sentry/views/insights/crons/types';
-import {makeMonitorDetailsQueryKey} from 'sentry/views/insights/crons/utils';
+import {
+  getNextCheckInEnv,
+  makeMonitorDetailsQueryKey,
+} from 'sentry/views/insights/crons/utils';
 import {useMonitorStats} from 'sentry/views/insights/crons/utils/useMonitorStats';
 
 import {OverviewRow} from './overviewTimeline/overviewRow';

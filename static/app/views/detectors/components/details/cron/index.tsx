@@ -26,10 +26,6 @@ import {toArray} from 'sentry/utils/array/toArray';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
-  getMonitorRefetchInterval,
-  getNextCheckInEnv,
-} from 'sentry/views/alerts/rules/crons/utils';
-import {
   DisableDetectorAction,
   DuplicateDetectorAction,
   EditDetectorAction,
@@ -55,6 +51,10 @@ import {TimezoneOverride} from 'sentry/views/insights/crons/components/timezoneO
 import type {MonitorBucket, MonitorEnvironment} from 'sentry/views/insights/crons/types';
 import {ScheduleType} from 'sentry/views/insights/crons/types';
 import {useMonitorProcessingErrors} from 'sentry/views/insights/crons/useMonitorProcessingErrors';
+import {
+  getMonitorRefetchInterval,
+  getNextCheckInEnv,
+} from 'sentry/views/insights/crons/utils';
 import {scheduleAsText} from 'sentry/views/insights/crons/utils/scheduleAsText';
 
 type CronDetectorDetailsProps = {

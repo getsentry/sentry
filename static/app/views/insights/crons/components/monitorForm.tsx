@@ -36,7 +36,11 @@ import type {
   MonitorConfig,
 } from 'sentry/views/insights/crons/types';
 import {ScheduleType} from 'sentry/views/insights/crons/types';
-import {getScheduleIntervals} from 'sentry/views/insights/crons/utils';
+import {
+  DEFAULT_CHECKIN_MARGIN,
+  DEFAULT_MAX_RUNTIME,
+  getScheduleIntervals,
+} from 'sentry/views/insights/crons/utils';
 import {crontabAsText} from 'sentry/views/insights/crons/utils/crontabAsText';
 
 import {platformsWithGuides} from './monitorQuickStartGuide';
@@ -56,9 +60,6 @@ const DEFAULT_CRONTAB = '0 0 * * *';
 const RULE_TARGET_MAP = {team: 'Team', user: 'Member'} as const;
 const RULES_SELECTOR_MAP = {Team: 'team', Member: 'user'} as const;
 
-// In minutes
-export const DEFAULT_MAX_RUNTIME = 30;
-export const DEFAULT_CHECKIN_MARGIN = 1;
 const CHECKIN_MARGIN_MINIMUM = 1;
 const TIMEOUT_MINIMUM = 1;
 

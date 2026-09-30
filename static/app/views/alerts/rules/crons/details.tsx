@@ -32,9 +32,11 @@ import {StatusToggleButton} from 'sentry/views/insights/crons/components/statusT
 import {TimezoneOverride} from 'sentry/views/insights/crons/components/timezoneOverride';
 import type {Monitor, MonitorBucket} from 'sentry/views/insights/crons/types';
 import {useMonitorProcessingErrors} from 'sentry/views/insights/crons/useMonitorProcessingErrors';
-import {makeMonitorDetailsQueryKey} from 'sentry/views/insights/crons/utils';
-
-import {getMonitorRefetchInterval, getNextCheckInEnv} from './utils';
+import {
+  getMonitorRefetchInterval,
+  getNextCheckInEnv,
+  makeMonitorDetailsQueryKey,
+} from 'sentry/views/insights/crons/utils';
 
 function hasLastCheckIn(monitor: Monitor) {
   return monitor.environments.some(e => e.lastCheckIn);
