@@ -1,4 +1,4 @@
-import {Fragment, useEffect} from 'react';
+import {Fragment} from 'react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
@@ -205,16 +205,10 @@ function ClientDetailsForm({clientDetails}: {clientDetails: ClientDetails}) {
 export function InstanceLevelOAuthDetails() {
   const {openModal} = useModal();
   const params = useParams<{clientID: string}>();
-  const {data, isPending, isError} = useQuery({
+  const {data, isPending, isError, isFetching, refetch} = useQuery({
     ...clientDetailsQueryOptions(params.clientID),
     retry: false,
   });
-
-  useEffect(() => {
-    if (isError) {
-      addErrorMessage('Unable to load client data');
-    }
-  }, [isError]);
 
   const clientDetails: ClientDetails | null = data
     ? {
@@ -233,6 +227,14 @@ export function InstanceLevelOAuthDetails() {
   return (
     <div>
       {isPending && <LoadingIndicator />}
+      {isError && !clientDetails && (
+        <Stack gap="md" align="start">
+          <Text>Unable to load client data.</Text>
+          <Button onClick={() => refetch()} disabled={isFetching}>
+            Retry
+          </Button>
+        </Stack>
+      )}
       {clientDetails && (
         <Fragment>
           <PageHeader
