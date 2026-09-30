@@ -375,8 +375,7 @@ class Quota(Service):
     to, for example error events or attachments. For more information on quota
     parameters, see ``QuotaConfig``.
 
-    To retrieve a list of active quotas, use ``quotas.get_quotas``. Also, to
-    check the current status of quota usage, call ``quotas.get_usage``.
+    To retrieve a list of active quotas, use ``quotas.get_quotas``.
     """
 
     __all__ = (

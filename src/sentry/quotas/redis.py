@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from time import time
-from typing import Any
 
 import rb
 from sentry_redis_tools.clients import RedisCluster
@@ -117,38 +116,6 @@ class RedisQuota(Quota):
                     )
 
         return results
-
-    def get_usage(
-        self, organization_id: int, quotas: list[QuotaConfig], timestamp: float | None = None
-    ) -> list[int | None]:
-        if timestamp is None:
-            timestamp = time()
-
-        def get_usage_for_quota(client: RedisCluster, quota: QuotaConfig) -> tuple[Any, Any] | None:
-            if not quota.should_track:
-                return None
-
-            key = self.__get_redis_key(
-                quota, timestamp, organization_id % quota.window, organization_id
-            )
-            refund_key = self.get_refunded_quota_key(key)
-
-            return client.get(key), client.get(refund_key)
-
-        def get_value_for_result(result, refund_result) -> int:
-            return int(result or 0) - int(refund_result or 0)
-
-        if is_instance_redis_cluster(self.cluster, self.is_redis_cluster):
-            results = [get_usage_for_quota(self.cluster, quota) for quota in quotas]
-        elif is_instance_rb_cluster(self.cluster, self.is_redis_cluster):
-            with self.cluster.fanout() as client:
-                target = client.target_key(str(organization_id))
-                promises = [get_usage_for_quota(target, quota) for quota in quotas]
-            results = [None if p is None else (p[0].value, p[1].value) for p in promises]
-        else:
-            raise AssertionError("unreachable")
-
-        return [None if r is None else get_value_for_result(*r) for r in results]
 
     def get_refunded_quota_key(self, key: str) -> str:
         return f"r:{key}"
