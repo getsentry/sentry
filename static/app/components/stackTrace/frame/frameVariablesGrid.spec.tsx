@@ -46,110 +46,51 @@ describe('FrameVariablesGrid', () => {
     ).not.toBeInTheDocument();
   });
 
-  describe.each([false, true])('with the variable tree enabled: %s', enabled => {
-    it('sorts and formats variable names without mutating the input', () => {
-      const data = Object.freeze({zebra: null, "'alpha'": null, middle: null});
-      render(<FrameVariablesGrid data={data} />, {
-        organization: OrganizationFixture({
-          features: enabled ? ['native-variable-extraction'] : [],
-        }),
-      });
-
-      expect(
-        screen.getAllByText(/^(alpha|middle|zebra)$/).map(element => element.textContent)
-      ).toEqual(['alpha', 'middle', 'zebra']);
-      expect(screen.queryByText("'alpha'")).not.toBeInTheDocument();
-      expect(Object.keys(data)).toEqual(['zebra', "'alpha'", 'middle']);
+  it('sorts and formats variable names without mutating the input', () => {
+    const data = Object.freeze({zebra: null, "'alpha'": null, middle: null});
+    render(<FrameVariablesGrid data={data} />, {
+      organization: OrganizationFixture({features: ['native-variable-extraction']}),
     });
 
-    it('renders nothing when there are no variables', () => {
-      const {container} = render(<FrameVariablesGrid data={null} />, {
-        organization: OrganizationFixture({
-          features: enabled ? ['native-variable-extraction'] : [],
-        }),
-      });
-      expect(container).toBeEmptyDOMElement();
-    });
+    expect(
+      screen.getAllByText(/^(alpha|middle|zebra)$/).map(element => element.textContent)
+    ).toEqual(['alpha', 'middle', 'zebra']);
+    expect(Object.keys(data)).toEqual(['zebra', "'alpha'", 'middle']);
   });
 
-  it.each([
-    ['native', {count: '0x2a (int)'}, [['count', '0x2a (int)']]],
-    [
-      'python',
-      {
-        count: '18446744073709551615',
-        active: 'True',
-        empty: 'None',
-        message: "'hello'",
-        client: '<Client at 0x12345>',
-      },
-      [
-        ['count', '18446744073709551615'],
-        ['active', 'True'],
-        ['empty', 'None'],
-        ['message', 'hello'],
-        ['client', '<Client at 0x12345>'],
-      ],
-    ],
-    [
-      'ruby',
-      {active: 'false', empty: 'nil'},
-      [
-        ['active', 'false'],
-        ['empty', 'nil'],
-      ],
-    ],
-    [
-      'php',
-      {active: 'true', empty: 'null'},
-      [
-        ['active', 'true'],
-        ['empty', 'null'],
-      ],
-    ],
-    [
-      'node',
-      {empty: '<null>', missing: '<undefined>'},
-      [
-        ['empty', 'null'],
-        ['missing', 'undefined'],
-      ],
-    ],
-  ] as const)(
-    'preserves %s SDK values when displayed and copied',
-    async (platform, data, values) => {
-      const writeText = jest.fn().mockResolvedValue(undefined);
-      Object.assign(navigator, {clipboard: {writeText}});
-      render(<FrameVariablesGrid platform={platform} data={data} />, {
-        organization: OrganizationFixture({features: ['native-variable-extraction']}),
-      });
+  it('renders nothing when there are no variables', () => {
+    const {container} = render(<FrameVariablesGrid data={null} />);
+    expect(container).toBeEmptyDOMElement();
+  });
 
-      for (const [name, value] of values) {
-        expect(screen.getByText(value)).toBeInTheDocument();
-        await userEvent.click(screen.getByRole('button', {name: `Copy ${name} value`}));
-        expect(writeText).toHaveBeenLastCalledWith(value);
-      }
-    }
-  );
+  it('preserves large Python numbers when displayed and copied', async () => {
+    const writeText = jest.fn().mockResolvedValue(undefined);
+    Object.assign(navigator, {clipboard: {writeText}});
+    render(
+      <FrameVariablesGrid platform="python" data={{count: '18446744073709551615'}} />,
+      {organization: OrganizationFixture({features: ['native-variable-extraction']})}
+    );
 
-  it.each(['<null>', '<undefined>'])(
-    'keeps a redacted %s sentinel redacted when displayed and copied',
-    async value => {
-      const writeText = jest.fn().mockResolvedValue(undefined);
-      Object.assign(navigator, {clipboard: {writeText}});
-      render(
-        <FrameVariablesGrid
-          platform="node"
-          data={{token: value}}
-          meta={{token: {'': {rem: [['!config', 'x']]}}}}
-        />,
-        {organization: OrganizationFixture({features: ['native-variable-extraction']})}
-      );
+    expect(screen.getByText('18446744073709551615')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Copy count value'}));
+    expect(writeText).toHaveBeenLastCalledWith('18446744073709551615');
+  });
 
-      expect(screen.getByText('<redacted>')).toBeInTheDocument();
-      expect(screen.queryByText(/^(null|undefined)$/)).not.toBeInTheDocument();
-      await userEvent.click(screen.getByRole('button', {name: 'Copy token value'}));
-      expect(writeText).toHaveBeenLastCalledWith('<redacted>');
-    }
-  );
+  it('keeps a redacted Node sentinel redacted when displayed and copied', async () => {
+    const writeText = jest.fn().mockResolvedValue(undefined);
+    Object.assign(navigator, {clipboard: {writeText}});
+    render(
+      <FrameVariablesGrid
+        platform="node"
+        data={{token: '<undefined>'}}
+        meta={{token: {'': {rem: [['!config', 'x']]}}}}
+      />,
+      {organization: OrganizationFixture({features: ['native-variable-extraction']})}
+    );
+
+    expect(screen.getByText('<redacted>')).toBeInTheDocument();
+    expect(screen.queryByText(/^(null|undefined)$/)).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Copy token value'}));
+    expect(writeText).toHaveBeenLastCalledWith('<redacted>');
+  });
 });

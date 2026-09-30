@@ -160,28 +160,6 @@ export enum LockType {
   BLOCKED = 8,
 }
 
-/**
- * Frontend variable tree shared by native and JSON frames.
- * Optional type names come from source data, rather than being inferred from JSON.
- * Current native wire strings are preserved verbatim; type names are not parsed from them.
- * Scalar values stay strings to preserve pointer addresses and full numeric precision.
- */
-export type FrameVariable = {
-  name: string;
-  /** Event annotations for this value; `len` is the original string or collection length. */
-  meta?: Partial<Meta>;
-  type?: string;
-} & (
-  | {children: readonly FrameVariable[]; kind: 'object'}
-  | {children: readonly FrameVariable[]; kind: 'array'}
-  | {
-      kind: 'number' | 'string' | 'unformatted' | 'boolean' | 'enum' | 'pointer';
-      value: string;
-    }
-  | {kind: 'null'; value?: string}
-  | {kind: 'unavailable'}
-);
-
 export type Frame = {
   absPath: string | null;
   colNo: number | null;
@@ -876,3 +854,44 @@ export type EventIdResponse = {
   organizationSlug: string;
   projectSlug: string;
 };
+
+interface FrameVariableBase {
+  name: string;
+  /** Annotations for this value; len is the original string or collection length. */
+  meta?: Partial<Meta>;
+  /** Optional type label for typed fixtures; current native wire strings stay unparsed. */
+  type?: string;
+}
+
+export type FrameVariableCollection = FrameVariableBase & {
+  children: readonly FrameVariable[];
+} & ({kind: 'object'} | {kind: 'array'});
+
+export interface FrameVariableScalar extends FrameVariableBase {
+  kind: 'number' | 'string' | 'unformatted' | 'boolean' | 'enum' | 'pointer';
+  /** Preserve pointer addresses and full numeric precision. */
+  value: string;
+}
+
+interface FrameVariableNull extends FrameVariableBase {
+  kind: 'null';
+  value?: string;
+}
+
+interface FrameVariableUnavailable extends FrameVariableBase {
+  kind: 'unavailable';
+}
+
+/**
+ * Renderer model built from frame.vars; typed native fixtures are synthetic.
+ * Native extraction currently sends a name-to-string map containing values and type names.
+ * Those strings are preserved verbatim by the JSON adapter.
+ *
+ * Symbolicator wire format:
+ * https://github.com/getsentry/symbolicator/blob/bedb76b4a7e60113ac5ca020d065ef951c69edce/crates/symbolicator-native/src/symbolication/native.rs#L168-L203
+ */
+export type FrameVariable =
+  | FrameVariableCollection
+  | FrameVariableScalar
+  | FrameVariableNull
+  | FrameVariableUnavailable;

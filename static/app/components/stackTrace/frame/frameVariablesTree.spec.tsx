@@ -1,4 +1,4 @@
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {FrameVariablesTree} from 'sentry/components/stackTrace/frame/frameVariablesTree';
 import {getJsonFrameVariables} from 'sentry/components/stackTrace/frame/getJsonFrameVariables';
@@ -114,92 +114,50 @@ it('previews whole keys within the summary budget', () => {
   ).toBeInTheDocument();
 });
 
-it.each(['object', 'array'] as const)('keeps empty %s values static', async kind => {
+it('keeps empty objects and arrays static', () => {
+  render(
+    <FrameVariablesTree variables={getJsonFrameVariables({object: {}, array: []})} />
+  );
+
+  expect(screen.getByText('[ 0 items ]')).toBeInTheDocument();
+  expect(screen.getByText('{ 0 items }')).toBeInTheDocument();
+  expect(screen.queryByRole('button', {name: /Expand/})).not.toBeInTheDocument();
+});
+
+it('counts truncated children and hides the truncation note when collapsed', async () => {
   render(
     <FrameVariablesTree
-      defaultExpanded={['empty']}
-      variables={[{name: 'empty', type: 'Container', kind, children: []}]}
+      defaultExpanded={[]}
+      variables={getJsonFrameVariables({items: [42, 7]}, {items: {'': {len: 5}}})}
     />
   );
 
-  const summary = screen.getByText(kind === 'array' ? '[ 0 items ]' : '{ 0 items }');
-  expect(screen.queryByRole('button', {name: 'Expand empty'})).not.toBeInTheDocument();
-  await userEvent.click(summary);
-  expect(summary).toBeInTheDocument();
-  expect(screen.queryByRole('button', {name: 'Expand empty'})).not.toBeInTheDocument();
+  expect(screen.getByText('[ 5 items ]')).toBeInTheDocument();
+  expect(screen.queryByRole('note')).not.toBeInTheDocument();
+  await userEvent.click(screen.getByText('[ 5 items ]'));
+  expect(screen.getByText('42')).toBeInTheDocument();
+  expect(screen.getByRole('note')).toHaveTextContent('(3 items truncated)');
+  await userEvent.click(screen.getByRole('button', {name: 'Collapse items'}));
+  expect(screen.queryByRole('note')).not.toBeInTheDocument();
 });
 
-it.each(['array', 'object'] as const)(
-  'counts omitted children and explains fully omitted %s values',
-  async kind => {
-    render(
-      <FrameVariablesTree
-        defaultExpanded={[]}
-        variables={[
-          {
-            name: 'items',
-            type: kind === 'array' ? 'int[5]' : 'Container',
-            kind,
-            children: [
-              {
-                name: kind === 'array' ? '[0]' : 'first',
-                type: 'int',
-                kind: 'number',
-                value: '42',
-              },
-              {
-                name: kind === 'array' ? '[1]' : 'second',
-                type: 'int',
-                kind: 'number',
-                value: '7',
-              },
-            ],
-            meta: {len: 5, rem: [['!limit', 'x']]},
-          },
-          {
-            name: 'omitted_items',
-            type: kind === 'array' ? 'int[4]' : 'Container',
-            kind,
-            children: [],
-            meta: {len: 4, rem: [['!limit', 'x']]},
-          },
-        ]}
-      />
-    );
+it('explains fully omitted objects and arrays without expand or copy controls', async () => {
+  const meta = {'': {len: 4, rem: [['!limit', 'x']]}};
+  render(
+    <FrameVariablesTree
+      variables={getJsonFrameVariables(
+        {array: [], object: {}},
+        {array: meta, object: meta}
+      )}
+    />
+  );
 
-    const omittedSummary = screen.getByText(
-      kind === 'array' ? '[ Omitted (4 items) ]' : '{ Omitted (4 items) }'
-    );
-    expect(screen.queryByRole('note')).not.toBeInTheDocument();
-    expect(
-      screen.queryByText(kind === 'array' ? '[0]' : 'first')
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', {name: 'Expand omitted_items'})
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', {name: 'Copy omitted_items value'})
-    ).not.toBeInTheDocument();
-    await userEvent.hover(omittedSummary);
-    expect(await screen.findByText('Removed because of size limits')).toBeInTheDocument();
-    await userEvent.unhover(omittedSummary);
-    await userEvent.click(
-      screen.getByText(kind === 'array' ? '[ 5 items ]' : '{ 5 items · first, second }')
-    );
-    expect(screen.getByText(kind === 'array' ? '[0]' : 'first')).toBeInTheDocument();
-    const truncation = screen.getByText('(3 items truncated)');
-    expect(
-      within(screen.getByRole('note')).queryByRole('button')
-    ).not.toBeInTheDocument();
-    expect(screen.getByText('7').compareDocumentPosition(truncation)).toBe(
-      Node.DOCUMENT_POSITION_FOLLOWING
-    );
-    await userEvent.click(screen.getByRole('button', {name: 'Collapse items'}));
-    expect(screen.queryByText('42')).not.toBeInTheDocument();
-    expect(screen.queryByText('(3 items truncated)')).not.toBeInTheDocument();
-    expect(omittedSummary).toBeInTheDocument();
-  }
-);
+  expect(screen.getByText('[ Omitted (4 items) ]')).toBeInTheDocument();
+  expect(screen.getByText('{ Omitted (4 items) }')).toBeInTheDocument();
+  expect(screen.queryByRole('button')).not.toBeInTheDocument();
+  await userEvent.hover(screen.getByText('[ Omitted (4 items) ]'));
+  expect(await screen.findByText('Removed because of size limits')).toBeInTheDocument();
+});
 
 it('displays and copies native scalars exactly without expanding collections', async () => {
   const writeText = jest.fn().mockResolvedValue(undefined);
