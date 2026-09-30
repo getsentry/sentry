@@ -670,7 +670,11 @@ if (
     // Hot reload react components on save
     // We include the library here as to not break docker/google cloud builds
     // since we do not install devDeps there.
-    appConfig.plugins?.push(new ReactRefreshRspackPlugin());
+    // tools.rspack replaces Rsbuild's plugins, including its HMR plugin.
+    appConfig.plugins?.push(
+      new rspack.HotModuleReplacementPlugin(),
+      new ReactRefreshRspackPlugin()
+    );
 
     // TODO: figure out why defining output breaks hot reloading
     if (IS_UI_DEV_ONLY) {
