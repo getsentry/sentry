@@ -21,7 +21,6 @@ from sentry.workflow_engine.models import Action, Workflow
 pytestmark = pytest.mark.sentry_metrics
 
 SCM_MESSAGING_TREATMENT = {
-    "organizations:onboarding-scm-experiment": True,
     "organizations:onboarding-scm-messaging-experiment": True,
 }
 
@@ -187,11 +186,6 @@ class ScmOnboardingTest(AcceptanceTestCase):
         }
 
         with (
-            self.feature(
-                {
-                    "organizations:onboarding-scm-experiment": True,
-                }
-            ),
             mock.patch(
                 "sentry.integrations.github.integration.GitHubIntegration.get_repositories",
                 return_value=mock_repos,
@@ -285,11 +279,6 @@ class ScmOnboardingTest(AcceptanceTestCase):
             return {"id": "22222" if "frontend" in repo else "11111"}
 
         with (
-            self.feature(
-                {
-                    "organizations:onboarding-scm-experiment": True,
-                }
-            ),
             mock.patch(
                 "sentry.integrations.github.integration.GitHubIntegration.get_repositories",
                 return_value=mock_repos,
@@ -337,19 +326,18 @@ class ScmOnboardingTest(AcceptanceTestCase):
 
     def test_scm_onboarding_header_skip_onboarding(self) -> None:
         """Header skip on scm-platform-features navigates to issues with step-specific referrer."""
-        with self.feature({"organizations:onboarding-scm-experiment": True}):
-            self.start_onboarding()
+        self.start_onboarding()
 
-            # SCM Connect: skip for now to advance to platform features
-            self.browser.click(xpath='//button[contains(., "Continue without a repo")]')
-            self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
+        # SCM Connect: skip for now to advance to platform features
+        self.browser.click(xpath='//button[contains(., "Continue without a repo")]')
+        self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
 
-            # Click the header "Skip setup" button
-            self.browser.click(xpath='//a[contains(., "Skip setup")]')
+        # Click the header "Skip setup" button
+        self.browser.click(xpath='//a[contains(., "Skip setup")]')
 
-            # Navigation leaves the onboarding step and carries the step-specific referrer
-            self.browser.wait_until_not('[data-test-id="onboarding-step-scm-platform-features"]')
-            assert "onboarding-scm-platform-features-skip" in self.browser.current_url
+        # Navigation leaves the onboarding step and carries the step-specific referrer
+        self.browser.wait_until_not('[data-test-id="onboarding-step-scm-platform-features"]')
+        assert "onboarding-scm-platform-features-skip" in self.browser.current_url
 
     def test_scm_onboarding_with_integration_install(self) -> None:
         """Install flow: welcome → install GitHub via API pipeline → repo search → detected platform → create project."""
@@ -391,11 +379,6 @@ class ScmOnboardingTest(AcceptanceTestCase):
         }
 
         with (
-            self.feature(
-                {
-                    "organizations:onboarding-scm-experiment": True,
-                }
-            ),
             mock.patch(
                 "sentry.integrations.github.integration.GitHubIntegration.get_repositories",
                 return_value=mock_repos,
@@ -521,11 +504,6 @@ class ScmOnboardingTest(AcceptanceTestCase):
         ]
 
         with (
-            self.feature(
-                {
-                    "organizations:onboarding-scm-experiment": True,
-                }
-            ),
             mock.patch(
                 "sentry.integrations.github.integration.GitHubIntegration.get_repositories",
                 return_value=mock_repos,
@@ -578,7 +556,6 @@ class ScmOnboardingTest(AcceptanceTestCase):
         self.create_github_integration()
 
         with (
-            self.feature({"organizations:onboarding-scm-experiment": True}),
             mock.patch(
                 "sentry.integrations.github.integration.GitHubIntegration.get_repositories",
                 return_value=[],
@@ -594,30 +571,25 @@ class ScmOnboardingTest(AcceptanceTestCase):
 
     def test_scm_onboarding_control_skip_integration(self) -> None:
         """Control path skip flow: skip connect → manual platform → Continue auto-creates project."""
-        with self.feature(
-            {
-                "organizations:onboarding-scm-experiment": True,
-            }
-        ):
-            self.start_onboarding()
-            self.continue_past_platform_features("React", "React")
+        self.start_onboarding()
+        self.continue_past_platform_features("React", "React")
 
-            # Skips scm-project-details entirely and lands on setup-docs.
-            self.browser.wait_until(xpath='//h2[text()="Configure React SDK"]')
-            assert not self.browser.element_exists(
-                '[data-test-id="onboarding-step-scm-project-details"]'
-            )
+        # Skips scm-project-details entirely and lands on setup-docs.
+        self.browser.wait_until(xpath='//h2[text()="Configure React SDK"]')
+        assert not self.browser.element_exists(
+            '[data-test-id="onboarding-step-scm-project-details"]'
+        )
 
-            project = Project.objects.get(organization=self.org)
-            assert project.platform == "javascript-react"
-            assert project.slug == "javascript-react"
-            assert not Rule.objects.filter(project=project).exists()
-            assert Workflow.objects.filter(
-                organization=project.organization, name=DEFAULT_WORKFLOW_LABEL
-            ).exists()
-            assert_existing_projects_status(
-                self.org, active_project_ids=[project.id], deleted_project_ids=[]
-            )
+        project = Project.objects.get(organization=self.org)
+        assert project.platform == "javascript-react"
+        assert project.slug == "javascript-react"
+        assert not Rule.objects.filter(project=project).exists()
+        assert Workflow.objects.filter(
+            organization=project.organization, name=DEFAULT_WORKFLOW_LABEL
+        ).exists()
+        assert_existing_projects_status(
+            self.org, active_project_ids=[project.id], deleted_project_ids=[]
+        )
 
     def test_scm_onboarding_control_happy_path(self) -> None:
         """Control path full flow: connect repo → detected platform → Continue auto-creates project."""
@@ -648,11 +620,6 @@ class ScmOnboardingTest(AcceptanceTestCase):
         }
 
         with (
-            self.feature(
-                {
-                    "organizations:onboarding-scm-experiment": True,
-                }
-            ),
             mock.patch(
                 "sentry.integrations.github.integration.GitHubIntegration.get_repositories",
                 return_value=mock_repos,
@@ -697,44 +664,32 @@ class ScmOnboardingTest(AcceptanceTestCase):
 
     def test_scm_back_from_setup_docs_control_non_active_project(self) -> None:
         """Control path: non-active project is deleted on back-nav; Continue creates a fresh one."""
-        with self.feature(
-            {
-                "organizations:onboarding-scm-experiment": True,
-            }
-        ):
-            self.start_onboarding()
-            self.continue_past_platform_features("React", "React")
+        self.start_onboarding()
+        self.continue_past_platform_features("React", "React")
 
-            self.browser.wait_until(xpath='//h2[text()="Configure React SDK"]')
-            project1 = Project.objects.get(organization=self.org)
-            assert project1.platform == "javascript-react"
+        self.browser.wait_until(xpath='//h2[text()="Configure React SDK"]')
+        project1 = Project.objects.get(organization=self.org)
+        assert project1.platform == "javascript-react"
 
-            # Back from setup-docs lands on scm-platform-features; project has no
-            # events, so useBackActions deletes it.
-            self.browser.click('[aria-label="Back"]')
-            self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
-            self.browser.wait_until_clickable(xpath='//button[contains(., "Continue")]')
-            self.browser.click(xpath='//button[contains(., "Continue")]')
+        # Back from setup-docs lands on scm-platform-features; project has no
+        # events, so useBackActions deletes it.
+        self.browser.click('[aria-label="Back"]')
+        self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
+        self.browser.wait_until_clickable(xpath='//button[contains(., "Continue")]')
+        self.browser.click(xpath='//button[contains(., "Continue")]')
 
-            self.browser.wait_until(xpath='//h2[text()="Configure React SDK"]')
-            project2 = Project.objects.get(organization=self.org, slug="javascript-react", status=0)
-            assert project2.id != project1.id
-            assert_existing_projects_status(
-                self.org,
-                active_project_ids=[project2.id],
-                deleted_project_ids=[project1.id],
-            )
+        self.browser.wait_until(xpath='//h2[text()="Configure React SDK"]')
+        project2 = Project.objects.get(organization=self.org, slug="javascript-react", status=0)
+        assert project2.id != project1.id
+        assert_existing_projects_status(
+            self.org,
+            active_project_ids=[project2.id],
+            deleted_project_ids=[project1.id],
+        )
 
     def test_scm_back_from_setup_docs_control_active_project_no_changes(self) -> None:
         """Control path: active project survives back-nav; Continue reuses it (no duplicate)."""
-        with (
-            self.feature(
-                {
-                    "organizations:onboarding-scm-experiment": True,
-                }
-            ),
-            self.projects_born_active(),
-        ):
+        with self.projects_born_active():
             self.start_onboarding()
             self.continue_past_platform_features("React", "React")
 
@@ -754,14 +709,7 @@ class ScmOnboardingTest(AcceptanceTestCase):
 
     def test_scm_back_from_setup_docs_control_active_project_platform_changed(self) -> None:
         """Control path: active project survives back-nav; changing platform creates a new project."""
-        with (
-            self.feature(
-                {
-                    "organizations:onboarding-scm-experiment": True,
-                }
-            ),
-            self.projects_born_active(),
-        ):
+        with self.projects_born_active():
             self.start_onboarding()
             self.continue_past_platform_features("React", "React")
 
