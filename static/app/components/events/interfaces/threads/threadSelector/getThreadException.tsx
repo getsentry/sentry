@@ -6,28 +6,23 @@ function getException(
   exceptionDataValues: ExceptionValue[],
   thread: Thread
 ) {
-  if (exceptionDataValues.length === 1 && !exceptionDataValues[0]!.stacktrace) {
-    return {
-      ...exceptionData,
-      values: [
-        {
-          ...exceptionDataValues[0]!,
-          stacktrace: thread.stacktrace,
-          rawStacktrace: thread.rawStacktrace,
-        },
-      ],
-    };
-  }
+  // Exception chains are ordered oldest to newest.
+  const threadException =
+    exceptionDataValues.findLast(value => value.threadId === thread.id) ??
+    exceptionDataValues.at(-1);
 
-  const exceptionHasAtLeastOneStacktrace = exceptionDataValues.some(
-    exceptionDataValue => exceptionDataValue.stacktrace
-  );
-
-  if (exceptionHasAtLeastOneStacktrace) {
-    return {...exceptionData, values: exceptionDataValues};
-  }
-
-  return;
+  return {
+    ...exceptionData,
+    values: exceptionDataValues.map(value =>
+      value === threadException && !value.stacktrace
+        ? {
+            ...value,
+            stacktrace: thread.stacktrace,
+            rawStacktrace: thread.rawStacktrace,
+          }
+        : value
+    ),
+  };
 }
 
 export function getThreadException(
