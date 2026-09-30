@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from rest_framework import status
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import APIException, PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -25,6 +25,11 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 
 FEATURE = "organizations:investigations"
+
+
+class InvestigationArchivedError(APIException):
+    status_code = status.HTTP_400_BAD_REQUEST
+    default_detail = "Archived investigations are read-only."
 
 
 def feature_enabled(request: Request, organization: Organization) -> bool:

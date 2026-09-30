@@ -10,9 +10,15 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import serialize
-from sentry.investigations.endpoints.base import OrganizationInvestigationEndpoint
+from sentry.investigations.endpoints.base import (
+    OrganizationInvestigationEndpoint,
+    require_authenticated_user,
+)
 from sentry.investigations.endpoints.serializers.comment import InvestigationCommentSerializer
-from sentry.investigations.endpoints.validators.comment import CommentListValidator
+from sentry.investigations.endpoints.validators.comment import (
+    CommentCreateValidator,
+    CommentListValidator,
+)
 from sentry.investigations.models import Investigation, InvestigationComment
 from sentry.models.organization import Organization
 
@@ -20,7 +26,7 @@ from sentry.models.organization import Organization
 @extend_schema(tags=["Investigations"])
 @cell_silo_endpoint
 class OrganizationInvestigationCommentsEndpoint(OrganizationInvestigationEndpoint):
-    publish_status = {"GET": ApiPublishStatus.PRIVATE}
+    publish_status = {"GET": ApiPublishStatus.PRIVATE, "POST": ApiPublishStatus.PRIVATE}
 
     def get(
         self, request: Request, organization: Organization, investigation: Investigation
@@ -42,4 +48,19 @@ class OrganizationInvestigationCommentsEndpoint(OrganizationInvestigationEndpoin
             on_results=lambda results: serialize(
                 list(results), request.user, InvestigationCommentSerializer()
             ),
+        )
+
+    def post(
+        self, request: Request, organization: Organization, investigation: Investigation
+    ) -> Response:
+        author_id = require_authenticated_user(request)
+        validator = CommentCreateValidator(
+            data=request.data, context={"investigation": investigation}
+        )
+        if not validator.is_valid():
+            return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
+        comment = validator.save(author_id=author_id)
+        return Response(
+            serialize(comment, request.user, InvestigationCommentSerializer()),
+            status=status.HTTP_201_CREATED,
         )
