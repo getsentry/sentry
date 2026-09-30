@@ -40,6 +40,7 @@ from sentry.workflow_engine.processors.evaluations.workflow import (
     ProcessWorkflowsResult,
     WorkflowEvaluation,
 )
+from sentry.workflow_engine.types import WorkflowEventData
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
@@ -52,7 +53,14 @@ EAP_PRODUCER_NAME = "sentry.workflow_engine.evaluations.eap"
 EAP_ITEMS_CODEC: Codec[TraceItem] = get_topic_codec(Topic.SNUBA_ITEMS)
 EAP_RETENTION_DAYS = 7  # TODO - We'll probably need to store metric issues for longer
 type EAPAttributeValue = (
-    bool | int | float | str | bytes | list["EAPAttributeValue"] | dict[str, "EAPAttributeValue"]
+    None
+    | bool
+    | int
+    | float
+    | str
+    | bytes
+    | list["EAPAttributeValue"]
+    | dict[str, "EAPAttributeValue"]
 )
 
 
@@ -87,20 +95,22 @@ def _normalize_value(value: object) -> EAPAttributeValue: ...
 
 
 def _normalize_value(value: object) -> EAPAttributeValue:
-    """Convert a value to the closed set supported by EAP's AnyValue."""
+    """Convert a value to EAP attributes, omitting absent optional metadata."""
+
     if isinstance(value, Enum):
         return _normalize_value(value.value)
 
     if is_dataclass(value) and not isinstance(value, type):
-        excluded_fields = (
-            {"comparison", "input"} if isinstance(value, DataConditionEvaluationArtifact) else set()
-        )
-        return {
+        excluded_fields = {"input"} if isinstance(value, DataConditionEvaluationArtifact) else set()
+        normalized = {
             field.name: _normalize_value(field_value)
             for field in fields(value)
             if field.name not in excluded_fields
             and (field_value := getattr(value, field.name)) is not None
         }
+        if isinstance(value, DataConditionEvaluationArtifact):
+            normalized["input"] = _normalize_input(value.input)
+        return normalized
 
     if isinstance(value, Mapping):
         return {str(key): _normalize_value(item) for key, item in value.items() if item is not None}
@@ -112,6 +122,40 @@ def _normalize_value(value: object) -> EAPAttributeValue:
         return value
 
     raise TypeError(f"Unsupported EAP evaluation attribute type: {type(value).__name__}")
+
+
+def _normalize_input(value: object) -> EAPAttributeValue:
+    """Preserve condition input, including nulls, without traversing workflow models."""
+    if isinstance(value, WorkflowEventData):
+        # Event/group IDs and issue state are already attributes on the TraceItem.
+        return _normalize_value(
+            {
+                "group_state": (
+                    {key: item for key, item in value.group_state.items() if key != "id"}
+                    if value.group_state is not None
+                    else None
+                ),
+                "has_escalated": value.has_escalated,
+                "workflow_env": value.workflow_env.id if value.workflow_env is not None else None,
+            }
+        )
+
+    if value is None:
+        return None
+
+    if isinstance(value, Enum):
+        return _normalize_input(value.value)
+
+    if is_dataclass(value) and not isinstance(value, type):
+        return {field.name: _normalize_input(getattr(value, field.name)) for field in fields(value)}
+
+    if isinstance(value, Mapping):
+        return {str(key): _normalize_input(item) for key, item in value.items()}
+
+    if isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray)):
+        return [_normalize_input(item) for item in value]
+
+    return _normalize_value(value)
 
 
 def _workflow_event_attributes(evaluation: WorkflowEvaluation) -> dict[str, object]:
@@ -309,18 +353,27 @@ def emit_evaluation_to_eap(
             condition_id: int
             condition_type: str
             input_type: str
+            comparison: str  # JSON-encoded comparison operand
+            input: JSON  # Detector input (nulls preserved) or compact WorkflowEventInput
             triggered: bool
             error?: str
             result?: bool | int | float
+
+        WorkflowEventInput:
+            group_state?: JSON  # GroupState without the redundant issue ID
+            has_escalated?: bool
+            workflow_env?: int  # Environment ID, not the Django model
 
         DeferredWorkflow:
             trigger_group_id?: int
             filter_group_ids: list[int]
             passing_filter_group_ids: list[int]
 
-        NOTE; currently Condition comparison and input values are excluded. This will
-        be addressed in a subsequent update to ensure both are correctly captured as
-        both attributes are critical to store in EAP.
+        Workflow inputs omit full event/group models and the event-local cache.
+        Use the top-level event_id, group_id, and issue state for that context.
+        Detector inputs retain supported dataclass, mapping, sequence, enum, and
+        scalar data, including nulls. Complex inputs remain redacted from logs;
+        comparisons retain their existing JSON-string format in EAP and logs.
 
     How to search:
         Select the workflow-engine-evaluation item type and scope by project and time.
