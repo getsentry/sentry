@@ -1,5 +1,10 @@
 import {defineConfig} from 'oxlint';
 
+export const incubator = defineConfig({
+  rules: {},
+  overrides: [],
+});
+
 const IS_PRECOMMIT =
   process.env.SENTRY_PRECOMMIT !== undefined &&
   Boolean(JSON.parse(process.env.SENTRY_PRECOMMIT));
@@ -747,6 +752,7 @@ const config = defineConfig({
           'analyze-styled\\.ts$',
           'type-coverage\\.ts$',
           'type-coverage-diff\\.ts$',
+          '^custom-oxlint\\.ts$',
           'AiSetupDataConsent\\.tsx$',
           'CredentialRow\\.tsx$',
           'DevKitSettings\\.tsx$',
@@ -1933,8 +1939,21 @@ const config = defineConfig({
       },
       excludeFiles: ['**/*.spec.{js,mjs,ts,jsx,tsx}'],
     },
+    ...incubator.overrides,
   ],
 });
 
-export const oxlintIgnorePatterns = config.ignorePatterns ?? [];
-export default config;
+const enrolledRules = new Set(
+  Object.keys(incubator.rules).map(rule => rule.replace(/^eslint\//, ''))
+);
+export default defineConfig({
+  ...config,
+  rules: {
+    ...Object.fromEntries(
+      Object.entries(config.rules).filter(
+        ([rule]) => !enrolledRules.has(rule.replace(/^eslint\//, ''))
+      )
+    ),
+    ...incubator.rules,
+  },
+});

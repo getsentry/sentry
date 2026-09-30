@@ -78,6 +78,16 @@ jobs:
 
       - uses: ./.github/actions/setup-node-pnpm
 
+      - name: Verify lint ratchet
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          if [ "$EVENT_NAME" = pull_request ]; then
+            pnpm run lint:js --ci --base HEAD^1
+          else
+            pnpm run lint:js --ci
+          fi
+
       # Decide whether to lint just the PR's impacted files or everything (see
       # frontend-changed-scope.sh): we scope to impacted files only when a merge base
       # resolves and every changed file lives under static/, otherwise we lint everything —
@@ -98,7 +108,7 @@ jobs:
       - name: oxlint (impacted files)
         id: oxlint-impacted
         if: steps.strategy.outputs.scope == 'scoped'
-        run: pnpm run lint:js:changed --since "$MERGE_BASE..HEAD^2" -- oxlint --no-error-on-unmatched-pattern
+        run: pnpm run lint:js:changed --since "$MERGE_BASE..HEAD^2" -- pnpm run lint:js --no-error-on-unmatched-pattern
         env:
           MERGE_BASE: ${{ steps.strategy.outputs.merge_base }}
           DEBUG: 'run-on-changed:*'
