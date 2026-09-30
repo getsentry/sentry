@@ -3,9 +3,6 @@ from functools import cached_property
 
 from arroyo.utils import metrics
 
-from sentry.incidents.tasks import (
-    handle_snuba_query_update,  # noqa: F401 | Import "handle_snuba_query_update" to ensure that "incidents" are loaded into subscriber registry
-)
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.snuba.dataset import Dataset
