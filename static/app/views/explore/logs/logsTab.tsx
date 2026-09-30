@@ -1,6 +1,5 @@
 import {memo, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import {mergeProps} from '@react-aria/utils';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
@@ -232,7 +231,8 @@ const LogsSearchSection = memo(function LogsSearchSectionImpl({
                     <Container width={{zero: '100%', sm: 'auto'}}>
                       {buttonProps => (
                         <Button
-                          {...mergeProps(buttonProps, triggerProps)}
+                          {...buttonProps}
+                          {...triggerProps}
                           variant="primary"
                           aria-label={t('Save as')}
                           onClick={e => {
