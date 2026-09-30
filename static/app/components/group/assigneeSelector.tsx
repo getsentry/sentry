@@ -23,7 +23,9 @@ interface AssigneeSelectorProps {
   assigneeLoading: boolean;
   group: AssigneeGroup;
   handleAssigneeChange: (assignedActor: AssignableEntity | null) => void;
-  additionalMenuFooterItems?: React.ReactNode;
+  additionalMenuFooterItems?:
+    | ((props: {closeOverlay: () => void}) => React.ReactNode)
+    | React.ReactNode;
   assignmentDetails?: AssignmentDetails;
   memberList?: User[];
   owners?: Array<Omit<SuggestedAssignee, 'assignee'>>;

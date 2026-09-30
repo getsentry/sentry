@@ -86,9 +86,13 @@ interface AssigneeSelectorDropdownProps {
    */
   loading: boolean;
   /**
-   * Additional items to render in the menu footer
+   * Additional items to render in the menu footer. Can be a ReactNode or a
+   * render prop that receives `closeOverlay` so the overlay can be dismissed
+   * before opening a modal (preventing concurrent focus-trap conflicts).
    */
-  additionalMenuFooterItems?: React.ReactNode;
+  additionalMenuFooterItems?:
+    | ((props: {closeOverlay: () => void}) => React.ReactNode)
+    | React.ReactNode;
   assignmentDetails?: AssignmentDetails;
   /**
    * Additional styles to apply to the dropdown
@@ -679,7 +683,9 @@ export function AssigneeSelectorDropdown({
             >
               {t('Invite Member')}
             </MenuComponents.CTAButton>
-            {additionalMenuFooterItems}
+            {typeof additionalMenuFooterItems === 'function'
+              ? additionalMenuFooterItems({closeOverlay})
+              : additionalMenuFooterItems}
           </Flex>
         )}
         sizeLimit={sizeLimit}
