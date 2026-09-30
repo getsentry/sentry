@@ -30,16 +30,19 @@ function CollapsedProjectsTooltip({
 }) {
   return (
     <Stack gap="xs" width="200px">
-      {projects.map(project => (
-        <ProjectBadge
-          key={project.slug}
-          project={project}
-          avatarSize={16}
-          disableLink={Boolean(onProjectClick)}
-          onClick={onProjectClick ? () => onProjectClick(project) : undefined}
-          style={onProjectClick ? {cursor: 'pointer'} : undefined}
-        />
-      ))}
+      {projects.map(project =>
+        onProjectClick ? (
+          <SlugButton
+            key={project.slug}
+            type="button"
+            onClick={() => onProjectClick(project)}
+          >
+            <ProjectBadge project={project} avatarSize={16} disableLink />
+          </SlugButton>
+        ) : (
+          <ProjectBadge key={project.slug} project={project} avatarSize={16} />
+        )
+      )}
     </Stack>
   );
 }
@@ -80,7 +83,12 @@ export function ProjectList({
             )
           }
         >
-          <CollapsedBadge size={20} fontSize={10} data-test-id="collapsed-projects-badge">
+          <CollapsedBadge
+            size={20}
+            fontSize={10}
+            data-test-id="collapsed-projects-badge"
+            $clickable={Boolean(onProjectClick)}
+          >
             +{numCollapsedProjects}
           </CollapsedBadge>
         </Tooltip>
@@ -94,7 +102,7 @@ export function ProjectList({
           avatarProps={{hasTooltip: true, tooltip: project.slug}}
           disableLink={Boolean(onProjectClick)}
           onClick={onProjectClick ? () => onProjectClick(project) : undefined}
-          style={onProjectClick ? {cursor: 'pointer'} : undefined}
+          $clickable={Boolean(onProjectClick)}
         />
       ))}
     </ProjectListWrapper>
@@ -109,24 +117,34 @@ const ProjectListWrapper = styled('div')`
   padding-right: 8px;
 `;
 
-const AvatarStyle = (p: {theme: Theme}) => css`
+const AvatarStyle = (p: {theme: Theme; $clickable?: boolean}) => css`
   /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   border: 2px solid ${p.theme.tokens.background.primary};
   margin-right: -8px;
-  cursor: default;
+  cursor: ${p.$clickable ? 'pointer' : 'default'};
 
   &:hover {
     z-index: 1;
   }
 `;
 
-const StyledProjectBadge = styled(ProjectBadge)`
+const StyledProjectBadge = styled(ProjectBadge, {
+  shouldForwardProp: prop => prop !== '$clickable',
+})<{$clickable?: boolean}>`
   overflow: hidden;
   z-index: 0;
   ${AvatarStyle}
+
+  ${p =>
+    p.$clickable &&
+    css`
+      img {
+        cursor: pointer;
+      }
+    `}
 `;
 
-const CollapsedBadge = styled('div')<{fontSize: number; size: number}>`
+const CollapsedBadge = styled('div')<{fontSize: number; size: number; $clickable?: boolean}>`
   display: flex;
   align-items: center;
   justify-content: center;
@@ -140,4 +158,12 @@ const CollapsedBadge = styled('div')<{fontSize: number; size: number}>`
   height: ${p => p.size}px;
   border-radius: ${p => p.theme.radius.md};
   ${AvatarStyle}
+`;
+
+const SlugButton = styled('button')`
+  all: unset;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  color: ${p => p.theme.tokens.content.accent};
 `;
