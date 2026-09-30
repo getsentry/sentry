@@ -19,7 +19,7 @@ import {investigationPresenceQueryOptions} from 'sentry/views/investigations/api
 const MAX_VISIBLE = 6;
 
 /** Sends heartbeats at the interval the backend returns, while the tab is visible. */
-export function useInvestigationPresence(investigationId: string, limit: number) {
+function useInvestigationPresence(investigationId: string, limit: number) {
   const organization = useOrganization();
   const {data} = useQuery({
     ...investigationPresenceQueryOptions(organization.slug, investigationId, limit),
