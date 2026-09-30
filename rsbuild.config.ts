@@ -823,6 +823,8 @@ if (IS_UI_DEV_ONLY) {
 
   appConfig.devServer = {
     ...appConfig.devServer,
+    // dev.getsentry.net resolves to IPv4; localhost can bind to IPv6 only.
+    host: SENTRY_WEBPACK_PROXY_HOST ?? '127.0.0.1',
     compress: true,
     server: {
       type: 'https',
