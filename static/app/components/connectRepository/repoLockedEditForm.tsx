@@ -1,9 +1,8 @@
-import {Fragment, useEffect, useMemo, useState} from 'react';
-import {useInfiniteQuery, useMutation, useQuery} from '@tanstack/react-query';
+import {Fragment, useMemo, useState} from 'react';
+import {useMutation, useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Container, Flex} from '@sentry/scraps/layout';
-import {Select} from '@sentry/scraps/select';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {DEFAULT_BRANCH} from 'sentry/components/connectRepository/normalization';
@@ -12,16 +11,16 @@ import type {PathMappingValue} from 'sentry/components/connectRepository/type';
 import {hasExactDuplicate} from 'sentry/components/connectRepository/warnings';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
+import type {Project} from 'sentry/types/project';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   ConnectionModalFrame,
+  LockedProjectField,
   LockedRepoField,
   getApiErrorMessage,
 } from 'sentry/components/connectRepository/connectionModalFrame';
 import {
   editProjectRepoMappings,
-  orgCodeMappingsInfiniteOptions,
   projectCodeMappingsOptions,
   useEditRepoInfo,
   useInvalidateRepoQueries,
@@ -30,46 +29,13 @@ import {
 export type RepoLockedEditFormProps = ModalRenderProps & {
   externalId: string | null;
   integrationId: string | null;
+  // The project to edit is resolved by the caller from the code-mappings cache
+  // and passed in — both fields are locked in edit mode.
+  project: Pick<Project, 'id' | 'slug'>;
   providerKey: string | null;
   repoName: string;
   repositoryId: string;
 };
-
-type MappedProject = {id: string; slug: string};
-
-/** Derives the set of projects already connected to this repo from the cached
- *  org code-mappings query. Fast path: data is already in cache from the
- *  Repositories page. Slow path: fetches all pages if needed. */
-function useMappedProjectsForRepo(
-  orgSlug: string,
-  repositoryId: string
-): {mappedProjects: MappedProject[]; isPending: boolean} {
-  const codeMappingsQuery = useInfiniteQuery(orgCodeMappingsInfiniteOptions(orgSlug));
-  useFetchAllPages({result: codeMappingsQuery});
-
-  const mappedProjects = useMemo(() => {
-    const allMappings = codeMappingsQuery.data?.pages.flatMap(p => p.json) ?? [];
-    const seen = new Set<string>();
-    return allMappings
-      .filter(m => m.repoId === repositoryId)
-      .filter(m => {
-        if (seen.has(m.projectId)) {
-          return false;
-        }
-        seen.add(m.projectId);
-        return true;
-      })
-      .map(m => ({id: m.projectId, slug: m.projectSlug}));
-  }, [codeMappingsQuery.data, repositoryId]);
-
-  const isPending =
-    !codeMappingsQuery.isError &&
-    (codeMappingsQuery.isPending ||
-      codeMappingsQuery.isFetchingNextPage ||
-      Boolean(codeMappingsQuery.hasNextPage));
-
-  return {mappedProjects, isPending};
-}
 
 function buildPathsSection({
   isPending,
@@ -122,33 +88,18 @@ export function RepoLockedEditForm({
   providerKey,
   integrationId,
   externalId,
+  project,
 }: RepoLockedEditFormProps) {
   const organization = useOrganization();
-  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [pathMappings, setPathMappings] = useState<PathMappingValue[]>([]);
   const invalidateQueries = useInvalidateRepoQueries(organization.slug);
 
-  const {mappedProjects, isPending: isMappedProjectsPending} = useMappedProjectsForRepo(
-    organization.slug,
-    repositoryId
-  );
-
-  // Auto-select when there is exactly one mapped project.
-  useEffect(() => {
-    if (mappedProjects.length === 1 && selectedProjectId === null) {
-      setSelectedProjectId(mappedProjects[0]!.id);
-    }
-  }, [mappedProjects, selectedProjectId]);
-
-  const selectedProject = mappedProjects.find(p => p.id === selectedProjectId) ?? null;
-
-  const codeMappingsQuery = useQuery({
-    ...projectCodeMappingsOptions({
+  const codeMappingsQuery = useQuery(
+    projectCodeMappingsOptions({
       orgSlug: organization.slug,
-      projectId: selectedProjectId ?? '',
-    }),
-    enabled: selectedProjectId !== null,
-  });
+      projectId: project.id,
+    })
+  );
 
   const seededMappings = useMemo(() => {
     if (!codeMappingsQuery.isSuccess) {
@@ -174,13 +125,12 @@ export function RepoLockedEditForm({
   const editMutation = useMutation({
     mutationFn: editProjectRepoMappings,
     onSuccess: async () => {
-      await invalidateQueries(selectedProject ?? undefined);
+      await invalidateQueries(project);
       closeModal();
     },
   });
 
   const canSave =
-    selectedProject !== null &&
     codeMappingsQuery.isSuccess &&
     Boolean(integrationId) &&
     pathMappings.length > 0 &&
@@ -194,33 +144,13 @@ export function RepoLockedEditForm({
     hasCodeOwner: m.hasCodeOwner,
   }));
 
-  const projectOptions = mappedProjects.map(p => ({value: p.id, label: p.slug}));
-
-  const projectField = (
-    <Select
-      aria-label={t('Project')}
-      options={projectOptions}
-      value={selectedProjectId}
-      onChange={option => {
-        setSelectedProjectId((option as {value: string} | null)?.value ?? null);
-        setPathMappings([]);
-        editMutation.reset();
-      }}
-      placeholder={t('Select a project')}
-      isLoading={isMappedProjectsPending}
-    />
-  );
-
   const pathsSection = buildPathsSection({
-    isPending:
-      isMappedProjectsPending ||
-      codeMappingsQuery.isPending ||
-      isRepoInfoPending,
+    isPending: codeMappingsQuery.isPending || isRepoInfoPending,
     seededPathMappings,
-    listKey: `${repositoryId}:${selectedProjectId}`,
+    listKey: `${repositoryId}:${project.id}`,
     providerKey,
     defaultBranch: repoDefaultBranch ?? undefined,
-    projectSlug: selectedProject?.slug,
+    projectSlug: project.slug,
     onChange: setPathMappings,
   });
 
@@ -250,17 +180,17 @@ export function RepoLockedEditForm({
       leftLabel={t('Repository')}
       leftField={<LockedRepoField repoName={repoName} providerKey={providerKey} />}
       rightLabel={t('Project')}
-      rightField={projectField}
+      rightField={<LockedProjectField project={project} />}
       pathsSection={pathsSection}
       canSave={canSave}
       isSaving={editMutation.isPending}
       onSave={() => {
-        if (!selectedProject || !seededMappings || !integrationId) {
+        if (!seededMappings || !integrationId) {
           return;
         }
         editMutation.mutate({
           orgSlug: organization.slug,
-          project: selectedProject,
+          project,
           repositoryId,
           integrationId,
           seededMappings,

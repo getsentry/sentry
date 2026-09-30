@@ -675,6 +675,7 @@ describe('ConnectRepositoryModal', () => {
             closeModal={closeModal}
             lockedSide="repo"
             mode="edit"
+            project={{id: project.id, slug: project.slug}}
             {...repoIdentity}
           />
         </Fragment>,
@@ -792,12 +793,6 @@ describe('ConnectRepositoryModal', () => {
       };
 
       beforeEach(() => {
-        // The repo-locked edit form reads org code-mappings to discover which
-        // projects are already connected to this repo.
-        MockApiClient.addMockResponse({
-          url: `/organizations/${organization.slug}/code-mappings/`,
-          body: [seededMapping],
-        });
         // Per-project code-mappings query used to seed path rows.
         MockApiClient.addMockResponse({
           url: `/organizations/${organization.slug}/code-mappings/`,
@@ -806,20 +801,23 @@ describe('ConnectRepositoryModal', () => {
         });
       });
 
-      it('auto-selects the only mapped project and shows seeded paths', async () => {
+      it('locks both repository and project fields and shows seeded paths', async () => {
         renderRepoLockedEdit();
 
-        // Repository is locked; project is auto-selected.
-        expect(screen.getByRole('textbox', {name: /repository/i})).toBeDisabled();
+        // Both selects are locked in edit mode.
+        const [repoSelect, projectSelect] = screen.getAllByRole('textbox');
+        expect(repoSelect).toBeDisabled();
+        expect(projectSelect).toBeDisabled();
+
+        // Seeded row appears; Save enabled once paths load.
         expect(await screen.findByText('src/')).toBeInTheDocument();
         expect(await screen.findByRole('button', {name: 'Save'})).toBeEnabled();
       });
 
-      it('project selector is limited to mapped projects', async () => {
+      it('displays the passed project slug in the locked project field', async () => {
         renderRepoLockedEdit();
 
-        // The auto-selected project slug is visible as the select label.
-        // Only mapped projects are available; none other should appear.
+        // The locked select renders the slug as visible text content.
         expect(await screen.findByText(project.slug)).toBeInTheDocument();
       });
     });

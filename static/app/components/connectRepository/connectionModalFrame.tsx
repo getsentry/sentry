@@ -54,7 +54,7 @@ function LockedSelectField({
   );
 }
 
-export function LockedProjectField({project}: {project: Project}) {
+export function LockedProjectField({project}: {project: Pick<Project, 'id' | 'slug'>}) {
   return (
     <LockedSelectField
       ariaLabel={t('Project')}

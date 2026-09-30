@@ -4,6 +4,7 @@ import type {ButtonProps} from '@sentry/scraps/button';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 
 import type {OrganizationIntegration, Repository} from 'sentry/types/integrations';
+import type {AvatarProject} from 'sentry/types/project';
 
 /**
  * Fuse match results keyed by `repository.id`, used to highlight the matched
@@ -79,6 +80,12 @@ export interface ScmInstallation {
    * omitted or empty, the menu trigger is hidden.
    */
   overflowMenuItems?: MenuItemProps[];
+  /**
+   * Called when the user clicks a mapped project chip on a repository row.
+   * When set, chips become buttons (not project-details links). When omitted,
+   * chips keep their default link behavior.
+   */
+  onMappedProjectClick?: (repo: Repository, project: AvatarProject) => void;
   /**
    * Renders an action element in the right slot of each repository row.
    * Only called when `mappedProjectSlugsByRepoId` is set on the installation.

@@ -19,7 +19,13 @@ type ProjectLockedEdit = {lockedSide?: 'project'; mode: 'edit'; project: Project
 
 // Repo-locked: the repository is fixed; the user picks the project.
 type RepoLockedConnect = {lockedSide: 'repo'; mode: 'connect'} & RepoIdentity;
-type RepoLockedEdit = {lockedSide: 'repo'; mode: 'edit'} & RepoIdentity;
+// Both fields are locked in edit mode: repo comes from RepoIdentity, project
+// is resolved by the caller from the code-mappings cache and passed in.
+type RepoLockedEdit = {
+  lockedSide: 'repo';
+  mode: 'edit';
+  project: Pick<Project, 'id' | 'slug'>;
+} & RepoIdentity;
 
 export type ConnectRepositoryModalProps = ModalRenderProps &
   (ProjectLockedConnect | ProjectLockedEdit | RepoLockedConnect | RepoLockedEdit);

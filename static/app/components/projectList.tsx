@@ -6,7 +6,7 @@ import {Stack} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import type {Project} from 'sentry/types/project';
+import type {AvatarProject, Project} from 'sentry/types/project';
 import {useProjects} from 'sentry/utils/useProjects';
 
 type ProjectListProps = {
@@ -14,25 +14,41 @@ type ProjectListProps = {
   className?: string;
   collapsedProjectsTooltip?: (projects: Array<Project | {slug: string}>) => ReactNode;
   maxVisibleProjects?: number;
+  /**
+   * When set, project chips become clickable buttons instead of project-details
+   * links. The callback receives the project that was clicked.
+   */
+  onProjectClick?: (project: AvatarProject) => void;
 };
 
-function DefaultCollapsedProjectsTooltip({
+function CollapsedProjectsTooltip({
   projects,
+  onProjectClick,
 }: {
-  projects: Array<Project | {slug: string}>;
+  projects: Array<AvatarProject>;
+  onProjectClick?: (project: AvatarProject) => void;
 }) {
   return (
     <Stack gap="xs" width="200px">
       {projects.map(project => (
-        <ProjectBadge key={project.slug} project={project} avatarSize={16} />
+        <ProjectBadge
+          key={project.slug}
+          project={project}
+          avatarSize={16}
+          disableLink={Boolean(onProjectClick)}
+          onClick={onProjectClick ? () => onProjectClick(project) : undefined}
+          style={onProjectClick ? {cursor: 'pointer'} : undefined}
+        />
       ))}
     </Stack>
   );
 }
+
 export function ProjectList({
   projectSlugs,
   maxVisibleProjects = 2,
   collapsedProjectsTooltip,
+  onProjectClick,
   className,
 }: ProjectListProps) {
   const {projects} = useProjects({slugs: projectSlugs});
@@ -57,7 +73,10 @@ export function ProjectList({
             collapsedProjectsTooltip ? (
               collapsedProjectsTooltip(collapsedProjectAvatars)
             ) : (
-              <DefaultCollapsedProjectsTooltip projects={collapsedProjectAvatars} />
+              <CollapsedProjectsTooltip
+                projects={collapsedProjectAvatars}
+                onProjectClick={onProjectClick}
+              />
             )
           }
         >
@@ -73,6 +92,9 @@ export function ProjectList({
           project={project}
           avatarSize={16}
           avatarProps={{hasTooltip: true, tooltip: project.slug}}
+          disableLink={Boolean(onProjectClick)}
+          onClick={onProjectClick ? () => onProjectClick(project) : undefined}
+          style={onProjectClick ? {cursor: 'pointer'} : undefined}
         />
       ))}
     </ProjectListWrapper>

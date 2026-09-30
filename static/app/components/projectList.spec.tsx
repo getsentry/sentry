@@ -34,4 +34,21 @@ describe('ProjectList', () => {
     expect(await screen.findByText('project2')).toBeInTheDocument();
     expect(await screen.findByText('project3')).toBeInTheDocument();
   });
+
+  it('calls onProjectClick with the project when a visible chip is clicked', async () => {
+    const onProjectClick = jest.fn();
+    render(
+      <ProjectList
+        projectSlugs={['project1', 'project2']}
+        onProjectClick={onProjectClick}
+      />
+    );
+
+    await screen.findAllByTestId(/^platform-icon-/);
+    // Each avatar has a tooltip set to the project slug — click any avatar element.
+    const avatars = screen.getAllByTestId(/^platform-icon-/);
+    await userEvent.click(avatars[0]!);
+    expect(onProjectClick).toHaveBeenCalledTimes(1);
+    expect(onProjectClick).toHaveBeenCalledWith(expect.objectContaining({slug: 'project2'}));
+  });
 });

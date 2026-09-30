@@ -26,7 +26,7 @@ import {orgCodeMappingsInfiniteOptions} from 'sentry/components/connectRepositor
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {IconAdd, IconEdit} from 'sentry/icons';
+import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Integration, OrganizationIntegration, Repository} from 'sentry/types/integrations';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
@@ -168,65 +168,29 @@ const SCM_PROVIDER_ORDER = [
   'vsts',
 ];
 
-// Renders the per-row action in the Repositories table when the
-// code-mappings-refactor flag is on. Returns null while mappings are still
-// loading so a stale state doesn't flash a connect button for a mapped repo.
+// Always renders the + connect action on each repo row (flag-gated at the
+// call site via `repoActions`). No edit branch — editing is triggered by
+// clicking a mapped project chip instead.
 function ConnectRepoRowAction({
   repo,
   providerKey,
-  mappedProjectSlugsByRepoId,
-  mappingsLoading,
   openModal,
 }: {
-  mappingsLoading: boolean;
   openModal: ReturnType<typeof useModal>['openModal'];
   providerKey: string;
   repo: Repository;
-  mappedProjectSlugsByRepoId?: Record<string, string[]>;
 }) {
-  if (mappingsLoading || !mappedProjectSlugsByRepoId) {
-    return null;
-  }
-
-  const mappedSlugs = mappedProjectSlugsByRepoId[repo.id] ?? [];
-
-  if (mappedSlugs.length === 0) {
-    return (
-      <Button
-        size="xs"
-        icon={<IconAdd />}
-        aria-label={t('Connect project')}
-        onClick={() =>
-          openModal(modalProps => (
-            <ConnectRepositoryModal
-              {...modalProps}
-              lockedSide="repo"
-              mode="connect"
-              repositoryId={repo.id}
-              repoName={repo.name}
-              providerKey={providerKey}
-              integrationId={repo.integrationId}
-              externalId={repo.externalId}
-            />
-          ))
-        }
-      >
-        {t('Connect project')}
-      </Button>
-    );
-  }
-
   return (
     <Button
-      size="xs"
-      icon={<IconEdit />}
-      aria-label={t('Edit code mappings')}
+      size="zero"
+      icon={<IconAdd />}
+      aria-label={t('Connect project')}
       onClick={() =>
         openModal(modalProps => (
           <ConnectRepositoryModal
             {...modalProps}
             lockedSide="repo"
-            mode="edit"
+            mode="connect"
             repositoryId={repo.id}
             repoName={repo.name}
             providerKey={providerKey}
@@ -235,9 +199,7 @@ function ConnectRepoRowAction({
           />
         ))
       }
-    >
-      {t('Edit code mappings')}
-    </Button>
+    />
   );
 }
 
@@ -310,12 +272,22 @@ export default function OrganizationRepositories() {
   );
   useFetchAllPages({result: codeMappingsQuery});
 
-  const mappedProjectSlugsByRepoId = useMemo(() => {
+  const {mappedProjectSlugsByRepoId, mappedProjectsByRepoId} = useMemo(() => {
     const mappings = codeMappingsQuery.data?.pages.flatMap(p => p.json) ?? [];
-    return mapValues(
-      groupBy(mappings, m => m.repoId),
-      ms => uniq(ms.map(m => m.projectSlug))
-    );
+    const byRepoId = groupBy(mappings, m => m.repoId);
+    return {
+      mappedProjectSlugsByRepoId: mapValues(byRepoId, ms =>
+        uniq(ms.map(m => m.projectSlug))
+      ),
+      // Deduplicated {id, slug} pairs per repo — used to resolve project identity
+      // when opening the edit modal from a project chip click.
+      mappedProjectsByRepoId: mapValues(byRepoId, ms =>
+        uniq(ms.map(m => m.projectId)).map(id => ({
+          id,
+          slug: ms.find(m => m.projectId === id)!.projectSlug,
+        }))
+      ),
+    };
   }, [codeMappingsQuery.data]);
 
   const mappingsLoading =
@@ -331,16 +303,38 @@ export default function OrganizationRepositories() {
       manageUrl: getProviderConfigUrl(integration) ?? undefined,
       mappedProjectSlugsByRepoId,
       mappingsLoading,
+      // Both actions are flag-gated: + connect button and chip-click edit.
       repoActions: hasCodeMappingsRefactor
         ? (repo: Repository) => (
             <ConnectRepoRowAction
               repo={repo}
               providerKey={integration.provider.key}
-              mappedProjectSlugsByRepoId={mappedProjectSlugsByRepoId}
-              mappingsLoading={mappingsLoading}
               openModal={openModal}
             />
           )
+        : undefined,
+      onMappedProjectClick: hasCodeMappingsRefactor
+        ? (repo: Repository, avatarProject) => {
+            const project = mappedProjectsByRepoId[repo.id]?.find(
+              p => p.slug === avatarProject.slug
+            );
+            if (!project) {
+              return; // mapping not yet loaded — safe to ignore
+            }
+            openModal(modalProps => (
+              <ConnectRepositoryModal
+                {...modalProps}
+                lockedSide="repo"
+                mode="edit"
+                project={project}
+                repositoryId={repo.id}
+                repoName={repo.name}
+                providerKey={integration.provider.key}
+                integrationId={repo.integrationId}
+                externalId={repo.externalId}
+              />
+            ));
+          }
         : undefined,
     }));
     return groupBy(installations, i => i.integration.provider.key);
@@ -349,6 +343,7 @@ export default function OrganizationRepositories() {
     reposByIntegrationId,
     reposLoading,
     mappedProjectSlugsByRepoId,
+    mappedProjectsByRepoId,
     mappingsLoading,
     hasCodeMappingsRefactor,
     openModal,

@@ -530,7 +530,6 @@ describe('OrganizationRepositories', () => {
 
       await screen.findByText('getsentry/sentry');
       expect(screen.queryByRole('button', {name: 'Connect project'})).not.toBeInTheDocument();
-      expect(screen.queryByRole('button', {name: 'Edit code mappings'})).not.toBeInTheDocument();
     });
 
     it('shows a + button for a repo with no code mappings when the flag is on', async () => {
@@ -544,7 +543,7 @@ describe('OrganizationRepositories', () => {
       ).toBeInTheDocument();
     });
 
-    it('shows an edit button for a repo that already has code mappings when the flag is on', async () => {
+    it('always shows the + button even when a repo already has code mappings', async () => {
       setupRepoMocks([
         {
           id: '1',
@@ -563,9 +562,8 @@ describe('OrganizationRepositories', () => {
       });
 
       expect(
-        await screen.findByRole('button', {name: 'Edit code mappings'})
+        await screen.findByRole('button', {name: 'Connect project'})
       ).toBeInTheDocument();
-      expect(screen.queryByRole('button', {name: 'Connect project'})).not.toBeInTheDocument();
     });
 
     it('clicking + opens the repo-locked connect modal', async () => {
@@ -587,7 +585,7 @@ describe('OrganizationRepositories', () => {
       ).toBeInTheDocument();
     });
 
-    it('clicking edit opens the repo-locked edit modal', async () => {
+    it('clicking a mapped project chip opens the repo-locked edit modal', async () => {
       setupRepoMocks([
         {
           id: '1',
@@ -616,9 +614,11 @@ describe('OrganizationRepositories', () => {
       });
       renderGlobalModal();
 
-      await userEvent.click(await screen.findByRole('button', {name: 'Edit code mappings'}));
+      // The project chip (avatar) for the mapped project should be visible.
+      // Platform icons render with data-test-id="platform-icon-*".
+      const chip = await screen.findByTestId(/^platform-icon-/);
+      await userEvent.click(chip);
 
-      // Modal heading appears — different from the row button label.
       expect(await screen.findByRole('heading', {name: 'Edit code mappings'})).toBeInTheDocument();
     });
   });
