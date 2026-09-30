@@ -3539,6 +3539,25 @@ class PostProcessGroupErrorTest(
         ]
 
     @patch("sentry.tasks.post_process.run_post_process_job")
+    def test_reads_event_with_dashed_id(self, mock_run_job: MagicMock) -> None:
+        event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
+        event.data.save()
+
+        with patch.object(nodestore.backend, "get", wraps=nodestore.backend.get) as mock_get_node:
+            post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=True,
+                cache_key=None,
+                group_id=event.group_id,
+                project_id=event.project_id,
+                event_id=str(uuid.UUID(event.event_id)),
+            )
+
+        mock_get_node.assert_called_once_with(event.data.id)
+        assert mock_run_job.call_args.args[0]["event"].event_id == event.event_id
+
+    @patch("sentry.tasks.post_process.run_post_process_job")
     def test_reprocessed_event_has_independent_lock(self, mock_run_job: MagicMock) -> None:
         event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
         original_group_id = event.group_id
