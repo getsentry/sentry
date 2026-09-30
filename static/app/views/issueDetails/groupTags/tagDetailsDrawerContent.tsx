@@ -406,17 +406,20 @@ const Row = styled(Body)`
   .invisible {
     /* Keep the trigger focusable when closing the menu restores focus. */
     opacity: 0;
+    pointer-events: none;
   }
   &:hover,
   &:active,
   &:focus-within {
     .invisible {
       opacity: 1;
+      pointer-events: auto;
     }
   }
   @media (hover: none) {
     .invisible {
       opacity: 1;
+      pointer-events: auto;
     }
   }
 `;
