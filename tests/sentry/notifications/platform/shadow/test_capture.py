@@ -4,7 +4,6 @@ from unittest import mock
 
 from sentry.notifications.platform.shadow.capture import (
     LegacyRender,
-    ShadowCollector,
     collecting,
     is_collecting,
     record_legacy_render,
@@ -23,9 +22,7 @@ def test_records_nothing_outside_a_collector() -> None:
 
 
 def test_records_the_first_legacy_render() -> None:
-    collector = ShadowCollector()
-
-    with collecting(collector):
+    with collecting() as collector:
         assert is_collecting()
         record_legacy_render(NotificationProviderKey.SLACK, ("[]", "text"), chart_url="https://c")
         record_legacy_render(NotificationProviderKey.DISCORD, {"content": "second"})
@@ -37,10 +34,8 @@ def test_records_the_first_legacy_render() -> None:
 
 
 def test_collectors_are_restored_when_nested() -> None:
-    outer, inner = ShadowCollector(), ShadowCollector()
-
-    with collecting(outer):
-        with collecting(inner):
+    with collecting() as outer:
+        with collecting() as inner:
             record_legacy_render(NotificationProviderKey.SLACK, {"blocks": []})
         record_legacy_render(NotificationProviderKey.MSTEAMS, {"type": "AdaptiveCard"})
 
@@ -53,10 +48,8 @@ def test_collectors_are_restored_when_nested() -> None:
 
 
 def test_record_failures_do_not_propagate() -> None:
-    collector = ShadowCollector()
-
     with (
-        collecting(collector),
+        collecting() as collector,
         mock.patch(f"{CAPTURE_PATH}.LegacyRender", side_effect=RuntimeError("boom")),
         mock.patch(f"{CAPTURE_PATH}.logger") as mock_logger,
     ):

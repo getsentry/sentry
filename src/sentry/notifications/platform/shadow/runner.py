@@ -202,9 +202,8 @@ def shadow_read(
         yield
         return
 
-    collector = ShadowCollector()
     try:
-        with collecting(collector):
+        with collecting() as collector:
             yield
     except Exception:
         _report(invocation, source, provider_key, collector, build_data)

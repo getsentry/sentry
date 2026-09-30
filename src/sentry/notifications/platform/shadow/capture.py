@@ -40,7 +40,8 @@ def is_collecting() -> bool:
 
 
 @contextmanager
-def collecting(collector: ShadowCollector) -> Generator[ShadowCollector]:
+def collecting() -> Generator[ShadowCollector]:
+    collector = ShadowCollector()
     token = _active_collector.set(collector)
     try:
         yield collector
