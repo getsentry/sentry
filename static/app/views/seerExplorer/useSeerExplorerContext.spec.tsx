@@ -1,10 +1,12 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {GlobalDrawer} from '@sentry/scraps/drawer';
 import {PictureInPictureProvider} from '@sentry/scraps/pictureInPicture';
 
+import {ConfigStore} from 'sentry/stores/configStore';
 import {SeerExplorerChatStateProvider} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
 import {SeerExplorerSessionsProvider} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
 import {
@@ -235,6 +237,67 @@ describe('openChatPrompt', () => {
           })
         );
       });
+    });
+  });
+
+  describe("when the conversation on screen can't take a reply", () => {
+    beforeEach(() => {
+      ConfigStore.set('user', UserFixture({id: '1'}));
+      sessionStorage.setItem('seer-explorer-run-id', '8');
+    });
+
+    async function askAndReply() {
+      await userEvent.click(await screen.findByRole('button', {name: 'open-explorer'}));
+      await userEvent.click(await screen.findByRole('button', {name: 'ask-widget'}));
+      expect(await screen.findByText('What about this widget?')).toBeInTheDocument();
+
+      await userEvent.type(screen.getByTestId('seer-explorer-input'), 'why?');
+      await userEvent.keyboard('{Enter}');
+      await waitFor(() => {
+        expect(postChat).toHaveBeenCalledWith(
+          chatUrl,
+          expect.objectContaining({
+            data: expect.objectContaining({chat_prompt: 'What about this widget?'}),
+          })
+        );
+      });
+    }
+
+    it("moves the question to a new chat from someone else's run", async () => {
+      MockApiClient.addMockResponse({
+        url: `${chatUrl}8/`,
+        method: 'GET',
+        body: {
+          session: {
+            run_id: 8,
+            owner_user_id: 2,
+            blocks: [
+              {
+                id: 'assistant-1',
+                message: {role: 'assistant', content: 'Their answer'},
+                timestamp: '2024-01-01T00:01:00Z',
+              },
+            ],
+            status: 'completed',
+            updated_at: '2024-01-01T00:01:00Z',
+          },
+        },
+      });
+      render(tree(), {organization});
+
+      await askAndReply();
+    });
+
+    it('moves the question to a new chat from a run that failed to load', async () => {
+      MockApiClient.addMockResponse({
+        url: `${chatUrl}8/`,
+        method: 'GET',
+        statusCode: 500,
+        body: {detail: 'Failed to fetch run state'},
+      });
+      render(tree(), {organization});
+
+      await askAndReply();
     });
   });
 

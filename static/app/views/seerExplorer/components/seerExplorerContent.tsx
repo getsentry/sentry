@@ -302,6 +302,15 @@ export function SeerExplorerContent({
   // transient poll error still has its transcript and must keep its composer.
   const showLoadError = isEmptyState && (isError || hasSessionLoadError);
 
+  // A question can't be answered in a run that won't take a reply (someone else's, or one
+  // that failed to load), so it moves to a new chat instead of being lost.
+  useEffect(() => {
+    if (chatPrompt && (readOnly || showLoadError)) {
+      chatDispatch({type: 'set run id', payload: null});
+      chatDispatch({type: 'set chat prompt', payload: chatPrompt});
+    }
+  }, [chatPrompt, readOnly, showLoadError, chatDispatch]);
+
   // Whether the org has an active Slack integration installed. Slack is an
   // org-level integration, so this reflects the organization, not the user.
   const {data: slackIntegrations = []} = useQuery({
