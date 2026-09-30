@@ -33,49 +33,49 @@ Aggregators must be deterministic: same state and entry always produce the same 
 
 ## Corruption policy
 
-Missing JSON keys use the feature default; explicit invalid values fail decoding.
-Optional `None` remains valid where declared (including closed-issue progress).
-Codec and aggregator failures raise `DerivedDataError`, retaining their original
-cause and identifying the stage, feature or aggregator, and action entry when available.
-These errors indicate a failed computation, not proof that the stored row is corrupt.
+Missing JSON keys use feature defaults; explicit invalid values fail decoding.
+Optional `None` remains valid where declared. `DerivedDataError` identifies the
+stage, feature/aggregator, and action entry when available, retaining the cause.
+It means computation failed, not necessarily that the stored row is corrupt.
 
-- A failed processing batch writes neither state nor cursor. Earlier completed
-  batches remain committed; action-log entries remain available for replay.
-- Inline and asynchronous processing report the failure and stop that attempt.
-  Synchronous processing raises. Replay and validation batches continue other groups;
-  a failed group is neither counted as successful nor immediately rescheduled.
-  Database and infrastructure errors retain their existing failure behavior.
-- Serialization omits unreadable derived data for that group. Status checks report
-  an error rather than alignment. Progress sorting gives unknown strings the lowest
-  rank in both Python and SQL; filters do not classify them as a known state.
-- Reads never repair data. The debug endpoint preserves cursor/hash metadata and
-  reports stored-state and replay errors separately, within its existing replay limit.
+- Failed batches write neither state nor cursor; earlier batches stay committed.
+  Keep the action log intact for replay. Never skip an action or replace an invalid
+  value with a default to make processing succeed.
+- Inline/async processing reports the failure and stops that attempt. Synchronous
+  calls raise. Replay/check batches count errors and continue with other groups;
+  failed groups are not immediately rescheduled. Infrastructure errors propagate.
+- Reads omit unreadable derived data, report failed status checks as errors, and
+  use the existing unknown-progress sort rank. Only successfully serialized rows
+  count as served. The debug endpoint reports stored/replayed failures separately.
+- There is no failure state or quarantine. Later actions and stale-row sweeps may
+  retry. A current hash only means pipeline versions match, not that the cursor is caught
+  up; replay checks verify only through that cursor. Current-hash stuck groups need
+  explicit recovery. Lag detection is tracked in [ISWF-3533](https://linear.app/getsentry/issue/ISWF-3533).
 
-There is no persistent failure state or quarantine. Later actions, manual tasks,
-and scheduled stale-row sweeps can attempt the group again. Hash freshness alone
-does not establish correctness, and corruption of a current-hash row does not
-automatically make it eligible for stale-row healing.
+## Rollout and recovery
 
-## Production response
+Stricter validators must deploy with or after failure containment. Keep readers
+compatible with both stored formats while versions coexist; hashes do not gate
+reads. Action payload changes must also tolerate old workers: new fields or enum
+values can fail action construction during a rolling deploy. Roll back only to
+code that can read the data and actions already written.
 
-1. **Locate and contain.** Inspect `issues.derived.feature_error` logs for group,
-   cursor, stored/current pipeline hashes, stage, feature/aggregator, entry ID, and
-   chained cause. The metric of the same name is tagged only by operation and stage.
-   Group failures by deployment/hash and feature to distinguish isolated bad data
-   from a rollout regression. For widespread failures, stop the offending rollout
-   or disable its consumer. If scheduled repair/check work amplifies the incident,
-   set `issues.derived.heal-enabled=False`; this stops new scheduler fanout, not
-   already queued work or incremental processing. Keep recording actions.
-2. **Fix the cause before replay.** A decode failure may need a compatible reader
-   or writer fix; replay is sufficient only when the log and current code can
-   reconstruct valid state. Aggregate/encode failures need a regression test and
-   a deterministic code or historical-payload compatibility fix. Do not silently
-   skip the offending action or substitute a default for an invalid value. Bump
-   affected feature versions when computed outputs change. Support old/new stored
-   representations during rollout; the hash does not gate readers. Roll back only
-   to code that can read values already written.
-3. **Rebuild a small sample.** In the affected region's production shell, use the
-   existing full-replay task after deploying the fix:
+1. **Locate and contain.** Use `issues.derived.feature_error` metrics (operation,
+   stage, feature, aggregator) and logs (group, cursor, hashes, entry, cause).
+   Stop a bad rollout or disable its consumer. If scheduled repair/check work
+   amplifies failures, `issues.derived.heal-enabled=False` stops new scheduler
+   fanout, not queued work or incremental processing. Keep recording actions.
+2. **Choose the repair.** Bad stored values can be repaired by full replay without
+   a code change if the log and current code can reconstruct valid state. Decode
+   errors alone do not prove this. For a code or historical-payload incompatibility,
+   fix it with a regression test before replaying. Do not repeatedly enqueue a
+   replay that still fails.
+3. **Ensure catch-up.** Every computation fix, including an aggregator crash fix,
+   needs a recovery plan: bump the affected feature's version for broad regeneration,
+   or explicitly replay all known affected groups. A bump makes every row on the
+   previous pipeline hash stale, including healthy rows; targeted replay is cheaper
+   for a small known set. Do not assume a new action will arrive.
+4. **Replay a sample, verify, expand.** Use the existing task in the affected region:
 
    ```python
    from sentry.issues.derived.tasks import generate_group_derived_data
@@ -83,15 +83,11 @@ automatically make it eligible for stale-row healing.
    generate_group_derived_data.delay(group_id=affected_group_id)
    ```
 
-   Start without resume arguments. Replay builds a replacement and uses the
-   existing promotion guards; do not delete the live row, reset its cursor, edit
-   the action log, or repeatedly enqueue the same failing replay. Soft invalidation
-   only marks a row stale and is not a read quarantine.
-
-4. **Verify, then expand.** Confirm task completion, decode the rebuilt row, and run
-   `check_derived_data` against the current pipeline; require `CheckPassed` (a timeout
-   or invalidated check is inconclusive). Confirm the original consumer works and
-   feature-error rates fall. For confirmed project-wide damage, use
-   `generate_project_derived_data.delay(project_id=affected_project_id, stale_only=False)`
-   in controlled waves, watching queue depth and database load. `stale_only=True`
-   misses corrupt current-hash rows. Recheck samples and restore any incident switches.
+   Start without resume arguments; keep the live row and cursor so promotion guards
+   apply. Confirm the rebuilt cursor reaches the intended log position, require
+   `check_derived_data` to return `CheckPassed`, and check the original consumer.
+   A timeout or invalidated check is inconclusive. Expand in controlled waves,
+   watching errors, queue depth, and database load. For confirmed project-wide
+   damage, use `generate_project_derived_data.delay(project_id=..., stale_only=False)`;
+   stale-only repair misses corrupt current-hash rows. Restore incident switches
+   after verification. Reads never initiate repairs.
