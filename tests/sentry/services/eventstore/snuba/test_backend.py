@@ -1,4 +1,5 @@
 from datetime import timedelta
+from typing import Any
 from unittest import mock
 from unittest.mock import MagicMock
 from uuid import UUID, uuid4
@@ -208,7 +209,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
         original_normalize = StoreNormalizer.normalize_event
         normalize_calls = []
 
-        def normalize(*args, **kwargs):
+        def normalize(*args: Any, **kwargs: Any) -> Any:
             normalize_calls.append(1)
             return original_normalize(*args, **kwargs)
 

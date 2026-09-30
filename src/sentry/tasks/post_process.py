@@ -578,14 +578,13 @@ def post_process_group(
 
         # Note: We attempt to acquire the lock here, but we don't release it and instead just
         # rely on the ttl. The goal here is to make sure we only ever run post process group
-        # at most once per occurrence. Even though we don't use retries on the task, this is
+        # at most once per event. Even though we don't use retries on the task, this is
         # still necessary since the consumer that sends these might reprocess a batch.
         lock = locks.get(lock_key, duration=600, name=lock_name)
         try:
             lock.acquire()
         except UnableToAcquireLock:
-            # If we fail to acquire the lock, we've already run post process group for this
-            # occurrence
+            # If we fail to acquire the lock, we've already run post process group
             return
 
         occurrence = None
