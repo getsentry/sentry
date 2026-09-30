@@ -24,6 +24,7 @@ from sentry.integrations.types import ExternalProviders
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.group import Group, GroupStatus
+from sentry.models.groupassignee import GroupAssignee
 from sentry.models.grouplink import GroupLink
 from sentry.models.pullrequest import PullRequest, PullRequestLifecycleState
 from sentry.seer.code_review.webhooks.merge_request import handle_merge_request_event
@@ -937,6 +938,27 @@ class WebhookTest(GitLabWebhookTestCase):
             if call.args[1] == "inbound_assignee"
         ]
         assert checked_org_ids == [self.organization.id]
+
+    def test_unassignment_syncs_every_organization_that_linked_the_issue(self) -> None:
+        group = self._linked_group_for_assignee_sync()
+        other_org = self.create_organization(owner=self.user)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.integration.add_organization(other_org, self.user)
+            OrganizationIntegration.objects.get(
+                organization_id=other_org.id, integration_id=self.integration.id
+            ).update(config={"sync_reverse_assignment": True})
+        other_group = self.create_group(project=self.create_project(organization=other_org))
+        self.create_integration_external_issue(
+            group=other_group, integration=self.integration, key=ISSUE_KEY
+        )
+        GroupAssignee.objects.assign(group, self.user)
+        GroupAssignee.objects.assign(other_group, self.user)
+
+        with self.feature(self.ASSIGNEE_SYNC_FEATURES):
+            self._post_issue_event(orjson.loads(ISSUE_UNASSIGNED_EVENT))
+
+        assert group.get_assignee() is None
+        assert other_group.get_assignee() is None
 
 
 class TestIssuesEventWebhookStatusSync(GitLabWebhookTestCase):
