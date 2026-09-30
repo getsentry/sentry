@@ -10,9 +10,9 @@ import {ModelName} from './modelName';
 
 export interface CostBreakdownDetails {
   inputCost: number;
+  model: string | null;
   outputCost: number;
   totalCost: number;
-  model?: string;
 }
 
 export interface TokenBreakdownDetails {
@@ -52,7 +52,7 @@ export function CostBreakdownTooltip({breakdowns}: {breakdowns: CostBreakdownDet
     <Stack gap="0">
       {breakdowns.map((breakdown, index) => (
         <BreakdownGroup gap="sm" key={breakdown.model ?? index}>
-          {breakdown.model && <ModelName modelId={breakdown.model} size={14} gap="sm" />}
+          <ModelName modelId={breakdown.model ?? t('Unknown model')} size={14} gap="sm" />
           <BreakdownGrid>
             <span>{t('Input cost')}</span>
             <span>{formatLLMCosts(breakdown.inputCost)}</span>

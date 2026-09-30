@@ -39,6 +39,7 @@ import type {
 import type {ConversationUser} from 'sentry/views/explore/conversations/hooks/useConversations';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
+import {ModelName} from 'sentry/views/insights/pages/agents/components/modelName';
 import {NegativeCostInfo} from 'sentry/views/insights/pages/agents/components/negativeCostWarning';
 import {
   CostBreakdownTooltip,
@@ -51,6 +52,7 @@ import {
   getStringAttr,
   hasError,
 } from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
+import {formatLLMCosts} from 'sentry/views/insights/pages/agents/utils/formatLLMCosts';
 import {
   getIsAiGenerationSpan,
   getIsExecuteToolSpan,
@@ -96,10 +98,14 @@ export function ConversationSummary({
   const {selection} = usePageFilters();
 
   const errorState = useMemo(() => getConversationErrorState(nodes), [nodes]);
-  const tokenBreakdowns = stats ? getTokenBreakdowns(stats.usageByModel) : [];
-  const costBreakdowns = stats ? getCostBreakdowns(stats.usageByModel) : [];
+  const usageByModel = stats?.usageByModel ?? [];
+  const tokenBreakdowns = getTokenBreakdowns(usageByModel);
   const toolNames = stats
-    ? orderToolNames(stats.toolNames, errorState.erroredToolNames)
+    ? [...stats.toolNames].sort(
+        (a, b) =>
+          Number(errorState.erroredToolNames.has(b)) -
+          Number(errorState.erroredToolNames.has(a))
+      )
     : [];
   const startTimestamp = stats?.startTimestamp || null;
   const user = useMemo(() => getConversationUser(nodes), [nodes]);
@@ -269,7 +275,13 @@ export function ConversationSummary({
       <Flex align="start" gap="xl" wrap="wrap" flexShrink={0}>
         <Stat
           label={t('LLM Calls')}
-          value={<Count value={stats?.llmCalls ?? 0} />}
+          value={
+            <ModelMetricBreakdown
+              breakdowns={usageByModel}
+              metric="llmCalls"
+              total={stats?.llmCalls ?? 0}
+            />
+          }
           isLoading={isLoading}
         />
         <Stat
@@ -302,7 +314,7 @@ export function ConversationSummary({
         />
         <Stat
           label={t('Cost')}
-          value={<CostCount breakdowns={costBreakdowns} total={stats?.totalCost ?? 0} />}
+          value={<CostCount breakdowns={usageByModel} total={stats?.totalCost ?? 0} />}
           isLoading={isLoading}
         />
       </Flex>
@@ -375,6 +387,7 @@ function Stat({
 interface TraceAggregates {
   errorCount: number;
   llmCalls: number;
+  modelBreakdowns: ModelBreakdownDetails[];
   tokenBreakdowns: TokenBreakdownDetails[];
   toolNames: string[];
   totalCost: number;
@@ -385,6 +398,11 @@ interface ConversationErrorState {
   errorCount: number;
   erroredToolNames: Set<string>;
 }
+
+type ModelBreakdownDetails = Pick<
+  ConversationModelUsage,
+  'llmCalls' | 'model' | 'totalCost'
+>;
 
 function getGenAiOpType(node: AITraceSpanNode): string | undefined {
   return getStringAttr(node, SpanFields.GEN_AI_OPERATION_TYPE);
@@ -424,16 +442,6 @@ function getNumberAttrByConvention(
   return undefined;
 }
 
-function orderToolNames(
-  toolNames: string[],
-  erroredToolNames: ReadonlySet<string>
-): string[] {
-  return [
-    ...toolNames.filter(name => erroredToolNames.has(name)),
-    ...toolNames.filter(name => !erroredToolNames.has(name)),
-  ];
-}
-
 function getTokenBreakdowns(
   usageByModel: ConversationModelUsage[]
 ): TokenBreakdownDetails[] {
@@ -460,21 +468,11 @@ function getTokenBreakdowns(
   });
 }
 
-function getCostBreakdowns(
-  usageByModel: ConversationModelUsage[]
-): CostBreakdownDetails[] {
-  return usageByModel.map(usage => ({
-    inputCost: usage.inputCost,
-    model: usage.model ?? t('Unknown model'),
-    outputCost: usage.outputCost,
-    totalCost: usage.totalCost,
-  }));
-}
-
 function calculateTraceAggregates(nodes: AITraceSpanNode[]): TraceAggregates {
   const {errorCount, erroredToolNames} = getConversationErrorState(nodes);
   let llmCalls = 0;
   let totalCost = 0;
+  const metricsByModel = new Map<string, ModelBreakdownDetails>();
   const tokensByModel = new Map<string, TokenBreakdownDetails>();
   const toolNameSet = new Set<string>();
 
@@ -508,6 +506,15 @@ function calculateTraceAggregates(nodes: AITraceSpanNode[]): TraceAggregates {
         getStringAttr(node, SpanFields.GEN_AI_RESPONSE_MODEL) ||
         getStringAttr(node, SpanFields.GEN_AI_REQUEST_MODEL) ||
         t('Unknown model');
+      const cost = getNumberAttr(node, SpanFields.GEN_AI_COST_TOTAL_TOKENS) ?? 0;
+      const modelMetrics = metricsByModel.get(model) ?? {
+        llmCalls: 0,
+        model,
+        totalCost: 0,
+      };
+      modelMetrics.llmCalls++;
+      modelMetrics.totalCost += cost;
+      metricsByModel.set(model, modelMetrics);
       const modelTokens = tokensByModel.get(model) ?? {
         cacheRead: 0,
         cacheWrite: 0,
@@ -526,7 +533,7 @@ function calculateTraceAggregates(nodes: AITraceSpanNode[]): TraceAggregates {
       modelTokens.isComplete &&= isComplete;
       modelTokens.total += isComplete ? inputTotal + breakdown.output : reportedTotal;
       tokensByModel.set(model, modelTokens);
-      totalCost += getNumberAttr(node, SpanFields.GEN_AI_COST_TOTAL_TOKENS) ?? 0;
+      totalCost += cost;
     } else if (getIsExecuteToolSpan(opType)) {
       const toolName = getStringAttr(node, SpanFields.GEN_AI_TOOL_NAME);
       if (toolName) {
@@ -536,7 +543,11 @@ function calculateTraceAggregates(nodes: AITraceSpanNode[]): TraceAggregates {
   }
 
   // Errored tools lead, so they survive the row's truncation.
-  const toolNames = orderToolNames(Array.from(toolNameSet).sort(), erroredToolNames);
+  const toolNames = Array.from(toolNameSet).sort(
+    (a, b) =>
+      Number(erroredToolNames.has(b)) - Number(erroredToolNames.has(a)) ||
+      a.localeCompare(b)
+  );
   const tokenBreakdowns = Array.from(tokensByModel.values()).sort(
     (a, b) => b.total - a.total
   );
@@ -544,6 +555,7 @@ function calculateTraceAggregates(nodes: AITraceSpanNode[]): TraceAggregates {
   return {
     llmCalls,
     errorCount,
+    modelBreakdowns: Array.from(metricsByModel.values()),
     tokenBreakdowns,
     totalTokens: tokenBreakdowns.reduce((total, breakdown) => total + breakdown.total, 0),
     totalCost,
@@ -607,7 +619,13 @@ export function ConversationAggregatesBar({
     <Flex align="center" gap="lg" minWidth={0} minHeight="20px">
       <AggregateItem
         label={t('LLM Calls')}
-        value={<Count value={aggregates.llmCalls} />}
+        value={
+          <ModelMetricBreakdown
+            breakdowns={aggregates.modelBreakdowns}
+            metric="llmCalls"
+            total={aggregates.llmCalls}
+          />
+        }
         isLoading={isLoading}
       />
       <AggregateItem
@@ -633,7 +651,11 @@ export function ConversationAggregatesBar({
           aggregates.totalCost < 0 ? (
             <NegativeCostInfo cost={aggregates.totalCost} />
           ) : (
-            <LLMCosts cost={aggregates.totalCost} />
+            <ModelMetricBreakdown
+              breakdowns={aggregates.modelBreakdowns}
+              metric="totalCost"
+              total={aggregates.totalCost}
+            />
           )
         }
         isLoading={isLoading}
@@ -710,15 +732,61 @@ function CostCount({
   breakdowns: CostBreakdownDetails[];
   total: number;
 }) {
-  const value = total < 0 ? <NegativeCostInfo cost={total} /> : <LLMCosts cost={total} />;
-
-  if (total <= 0 || breakdowns.length === 0) {
-    return value;
+  if (total < 0) {
+    return <NegativeCostInfo cost={total} />;
+  }
+  if (total === 0 || breakdowns.length === 0) {
+    return <LLMCosts cost={total} />;
   }
 
+  const sortedBreakdowns = [...breakdowns].sort((a, b) => b.totalCost - a.totalCost);
   return (
-    <Tooltip title={<CostBreakdownTooltip breakdowns={breakdowns} />}>
-      <BreakdownValue>{value}</BreakdownValue>
+    <Tooltip title={<CostBreakdownTooltip breakdowns={sortedBreakdowns} />}>
+      <BreakdownValue>{formatLLMCosts(total)}</BreakdownValue>
+    </Tooltip>
+  );
+}
+
+function ModelMetricBreakdown({
+  breakdowns,
+  metric,
+  total,
+}: {
+  breakdowns: ModelBreakdownDetails[];
+  metric: 'llmCalls' | 'totalCost';
+  total: number;
+}) {
+  if (total === 0 || breakdowns.length === 0) {
+    return metric === 'llmCalls' ? <Count value={total} /> : <LLMCosts cost={total} />;
+  }
+
+  const formatValue = metric === 'llmCalls' ? formatAbbreviatedNumber : formatLLMCosts;
+  const sortedBreakdowns = [...breakdowns].sort((a, b) => b[metric] - a[metric]);
+
+  return (
+    <Tooltip
+      title={
+        <Stack gap="sm" width="100%">
+          {sortedBreakdowns.map(breakdown => (
+            <Flex key={breakdown.model} align="center" gap="xl" width="100%">
+              <Container minWidth={0} flex={1} overflow="hidden">
+                <ModelName
+                  modelId={breakdown.model ?? t('Unknown model')}
+                  size={14}
+                  gap="sm"
+                />
+              </Container>
+              <Container flexShrink={0}>
+                <Text tabular align="right">
+                  {formatValue(breakdown[metric])}
+                </Text>
+              </Container>
+            </Flex>
+          ))}
+        </Stack>
+      }
+    >
+      <BreakdownValue>{formatValue(total)}</BreakdownValue>
     </Tooltip>
   );
 }

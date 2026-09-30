@@ -6,6 +6,7 @@ import {
   screen,
   userEvent,
   waitFor,
+  waitForElementToBeRemoved,
   within,
 } from 'sentry-test/reactTestingLibrary';
 
@@ -238,6 +239,7 @@ describe('ConversationDetailPage summary stats', () => {
           cacheWriteTokens: 0,
           inputCost: 0,
           inputTokens: 100,
+          llmCalls: 1,
           model: null,
           outputCost: 0,
           outputTokens: 0,
@@ -267,6 +269,7 @@ describe('ConversationDetailPage summary stats', () => {
           cacheWriteTokens: 10,
           inputCost: 0.02,
           inputTokens: 200,
+          llmCalls: 1,
           model: 'model-beta',
           outputCost: 0.01,
           outputTokens: 100,
@@ -279,6 +282,7 @@ describe('ConversationDetailPage summary stats', () => {
           cacheWriteTokens: 5,
           inputCost: 0.015,
           inputTokens: 180,
+          llmCalls: 1,
           model: 'model-alpha',
           outputCost: 0.01,
           outputTokens: 70,
@@ -304,14 +308,16 @@ describe('ConversationDetailPage summary stats', () => {
     );
   });
 
-  it('shows the API cost breakdown by model', async () => {
+  it('orders API call and cost breakdowns by their metric', async () => {
     mockApis(null, CONVERSATION_BODY, {
+      llmCalls: 3,
       usageByModel: [
         {
           cacheReadTokens: 0,
           cacheWriteTokens: 0,
           inputCost: 0.02,
           inputTokens: 70,
+          llmCalls: 2,
           model: 'model-alpha',
           outputCost: 0.01,
           outputTokens: 30,
@@ -319,18 +325,79 @@ describe('ConversationDetailPage summary stats', () => {
           totalCost: 0.03,
           totalTokens: 100,
         },
+        {
+          cacheReadTokens: 0,
+          cacheWriteTokens: 0,
+          inputCost: 0.03,
+          inputTokens: 50,
+          llmCalls: 1,
+          model: 'model-beta',
+          outputCost: 0.01,
+          outputTokens: 20,
+          reasoningTokens: 0,
+          totalCost: 0.04,
+          totalTokens: 70,
+        },
       ],
-      totalCost: 0.03,
+      totalCost: 0.07,
     });
     renderPage();
 
-    const cost = await screen.findByTitle('$0.03');
-    await userEvent.hover(cost.parentElement!);
+    const llmCallsStat = (await screen.findByText('LLM Calls')).parentElement!;
+    const llmCalls = await within(llmCallsStat).findByText('3');
+    expect(llmCalls).not.toHaveAttribute('title');
+    await userEvent.hover(llmCalls);
 
-    expect(await screen.findByText('Input cost')).toBeInTheDocument();
-    expect(screen.getByText('Output cost')).toBeInTheDocument();
-    expect(screen.getByText('model-alpha')).toBeInTheDocument();
+    const callsAlpha = await screen.findByText('model-alpha');
+    const callsBeta = screen.getByText('model-beta');
+    expect(callsAlpha.compareDocumentPosition(callsBeta)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING
+    );
+    expect(
+      within(callsAlpha.parentElement!.parentElement!.parentElement!).getByText('2')
+    ).toBeInTheDocument();
+    expect(
+      within(callsBeta.parentElement!.parentElement!.parentElement!).getByText('1')
+    ).toBeInTheDocument();
+
+    await userEvent.unhover(llmCalls);
+    await waitForElementToBeRemoved(callsAlpha);
+
+    const costStat = screen.getByText('Cost').parentElement!;
+    const cost = within(costStat).getByText('$0.07');
+    expect(cost).not.toHaveAttribute('title');
+    await userEvent.hover(cost);
+
+    const costBeta = await screen.findByText('model-beta');
+    const costAlpha = screen.getByText('model-alpha');
+    expect(costBeta.compareDocumentPosition(costAlpha)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING
+    );
+    expect(screen.getAllByText('Input cost')).toHaveLength(2);
+    expect(screen.getAllByText('Output cost')).toHaveLength(2);
     expect(screen.queryByText('Input')).not.toBeInTheDocument();
+  });
+
+  it('preserves the no-cost explanation when no cost is recorded', async () => {
+    mockApis();
+    renderPage();
+
+    const costStat = (await screen.findByText('Cost')).parentElement!;
+    await userEvent.hover(await within(costStat).findByText('—'));
+
+    expect(await screen.findByText(/No cost recorded/)).toBeInTheDocument();
+  });
+
+  it('does not show a model breakdown when there are no LLM calls', async () => {
+    mockApis(null, CONVERSATION_BODY, {llmCalls: 0});
+    renderPage();
+
+    const llmCallsStat = (await screen.findByText('LLM Calls')).parentElement!;
+    const llmCalls = await within(llmCallsStat).findByText('0');
+    expect(llmCalls).toHaveAttribute('title', '0');
+
+    await userEvent.hover(llmCalls);
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
   });
 
   it('renders the fire icon in the summary when a span errored', async () => {

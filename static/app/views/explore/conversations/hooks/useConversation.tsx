@@ -84,6 +84,7 @@ export interface ConversationModelUsage {
   cacheWriteTokens: number;
   inputCost: number;
   inputTokens: number;
+  llmCalls: number;
   model: string | null;
   outputCost: number;
   outputTokens: number;

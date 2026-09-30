@@ -32,6 +32,7 @@ const STATS: ConversationStats = {
       cacheWriteTokens: 0,
       inputCost: 0.0006,
       inputTokens: 70,
+      llmCalls: 1,
       model: 'model-a',
       outputCost: 0.0004,
       outputTokens: 30,
