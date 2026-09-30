@@ -12,6 +12,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects
 from sentry.api.bases.organization_events import OrganizationEventsEndpointBase
+from sentry.api.utils import handle_query_errors
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
 from sentry.apidocs.examples.replay_examples import ReplayExamples
 from sentry.apidocs.omissions import sentry_schema_serializer
@@ -137,15 +138,16 @@ class OrganizationReplayCountEndpoint(OrganizationEventsEndpointBase):
             else query_params["data_source"]
         )
 
-        try:
-            replay_counts = get_replay_counts(
-                snuba_params,
-                query_params["query"],
-                data_source,
-                return_ids=query_params["returnIds"],
-            )
-        except (InvalidSearchQuery, ValueError) as e:
-            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        with handle_query_errors():
+            try:
+                replay_counts = get_replay_counts(
+                    snuba_params,
+                    query_params["query"],
+                    data_source,
+                    return_ids=query_params["returnIds"],
+                )
+            except (InvalidSearchQuery, ValueError) as e:
+                return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         return self.respond(replay_counts)
 
