@@ -6,13 +6,13 @@ from django.conf import settings
 from django.core.mail.message import make_msgid
 
 from sentry import features
+from sentry.mail.notifications import build_subject_prefix
 from sentry.models.activity import Activity
 from sentry.models.commit import Commit
 from sentry.models.group import Group
 from sentry.models.groupemailthread import GroupEmailThread
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.notifications.platform.email.utils import build_email_subject_prefix
 from sentry.notifications.platform.types import (
     CodeSection,
     CodeTextBlock,
@@ -243,7 +243,7 @@ def build_activity_notification_data(
         target=target,
     )
     email_subject_prefix = (
-        build_email_subject_prefix(project=project)
+        f"{build_subject_prefix(project).rstrip()} "
         if target.provider_key == NotificationProviderKey.EMAIL
         else None
     )

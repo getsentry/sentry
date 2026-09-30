@@ -4,13 +4,13 @@ from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
 
 from sentry import options
+from sentry.mail.notifications import build_subject_prefix
 from sentry.models.activity import Activity
 from sentry.models.groupemailthread import GroupEmailThread
 from sentry.notifications.platform.email.provider import (
     EmailNotificationProvider,
     EmailRenderer,
 )
-from sentry.notifications.platform.email.utils import build_email_subject_prefix
 from sentry.notifications.platform.target import GenericNotificationTarget
 from sentry.notifications.platform.templates.activity.assigned import AssignedActivityTemplate
 from sentry.notifications.platform.templates.activity.base import (
@@ -178,7 +178,7 @@ class EmailRendererTest(TestCase):
 
         assert email.subject == "[Project] Test subject"
 
-    def test_subject_uses_first_line(self) -> None:
+    def test_subject_removes_line_breaks(self) -> None:
         rendered_template = NotificationRenderedTemplate(
             subject="Test subject",
             body=[],
@@ -187,15 +187,15 @@ class EmailRendererTest(TestCase):
 
         email = EmailRenderer.render(data=self.data, rendered_template=rendered_template)
 
-        assert email.subject == "[Project]"
+        assert email.subject == "[Project] Injected: Test subject"
 
     def test_subject_prefix_uses_project_option_with_global_fallback(self) -> None:
         with self.options({"mail.subject-prefix": "[Global]"}):
-            assert build_email_subject_prefix(self.project) == "[Global] "
+            assert build_subject_prefix(self.project) == "[Global]"
 
             self.project.update_option("mail:subject_prefix", "[Project]")
 
-            assert build_email_subject_prefix(self.project) == "[Project] "
+            assert build_subject_prefix(self.project) == "[Project]"
 
 
 class EmailNotificationProviderTest(TestCase):
