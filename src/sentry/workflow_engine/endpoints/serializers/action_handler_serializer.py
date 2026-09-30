@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import Any, Literal, NotRequired, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 from sentry.api.serializers import Serializer, register
 from sentry.rules.actions.notify_event_service import PLUGINS_WITH_FIRST_PARTY_EQUIVALENTS
@@ -24,7 +24,6 @@ class ActionHandlerSerializerResponse(TypedDict):
     sentryApp: NotRequired[SentryAppContext]
     integrations: NotRequired[list[Any]]
     services: NotRequired[list[Any]]
-    disabledReason: NotRequired[Literal["plan"]]
 
 
 @register(ActionHandler)
@@ -89,9 +88,5 @@ class ActionHandlerSerializer(Serializer[ActionHandlerSerializerResponse]):
             ]
             services_list.sort(key=lambda x: x["name"])
             result["services"] = services_list
-
-        disabled_reason = kwargs.get("disabled_reason")
-        if disabled_reason:
-            result["disabledReason"] = disabled_reason
 
         return result

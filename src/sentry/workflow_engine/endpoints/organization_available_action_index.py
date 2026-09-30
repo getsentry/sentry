@@ -153,6 +153,8 @@ class OrganizationAvailableActionIndexEndpoint(OrganizationEndpoint):
 
             # add integration actions
             if hasattr(handler, "provider_slug"):
+                if not is_action_permitted(Action.Type(action_type), organization):
+                    continue
                 integrations = provider_integrations.get(handler.provider_slug, [])
                 if integrations:
                     actions.append(
@@ -162,9 +164,6 @@ class OrganizationAvailableActionIndexEndpoint(OrganizationEndpoint):
                             ActionHandlerSerializer(),
                             action_type=action_type,
                             integrations=integrations,
-                            disabled_reason=(
-                                None if is_action_permitted(action_type, organization) else "plan"
-                            ),
                         )
                     )
 
