@@ -46,7 +46,7 @@ class GroupEnvironment(Model):
                 group_id=group_id, environment_id=environment_id, defaults=defaults
             )
             cache.set(cache_key, instance, 3600)
-            data_access = "db_write" if created else "db_read"
+            data_access = "db_create" if created else "db_read"
         else:
             created = False
             data_access = "cache_hit"

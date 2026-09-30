@@ -104,7 +104,7 @@ class ReleaseProjectEnvironment(Model):
         if bumped:
             metrics_tags["data_access"] = "db_update"
         elif created:
-            metrics_tags["data_access"] = "db_write"
+            metrics_tags["data_access"] = "db_create"
         elif cache_hit:
             metrics_tags["data_access"] = "cache_hit"
         else:

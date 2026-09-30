@@ -58,7 +58,7 @@ class GroupRelease(Model):
                     "project_id": group.project_id,
                 },
             )
-            data_access = "db_write" if created else "db_read"
+            data_access = "db_create" if created else "db_read"
         else:
             created = False
             data_access = "cache_hit"

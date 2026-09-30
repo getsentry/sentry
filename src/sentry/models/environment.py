@@ -102,7 +102,7 @@ class Environment(Model):
                 )
                 cache.set(cache_key, env, 3600)
                 if metrics_tags is not None:
-                    metrics_tags["data_access"] = "db_write" if created else "db_read"
+                    metrics_tags["data_access"] = "db_create" if created else "db_read"
             else:
                 timer_tags["cache_hit"] = "true"
                 if metrics_tags is not None:

@@ -586,7 +586,7 @@ class Release(Model):
             # the new "latest release" for this project
             cache.set(cache_key, release, 3600)
             metric_tags["cache_hit"] = "false"
-            metric_tags["data_access"] = "db_write" if created else "db_read"
+            metric_tags["data_access"] = "db_create" if created else "db_read"
         else:
             metric_tags["cache_hit"] = "true"
             metric_tags["data_access"] = "cache_hit"

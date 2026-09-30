@@ -748,7 +748,7 @@ def _set_project_platform_if_needed(project: Project, event: Event) -> None:
 
 
 # How often each cache-fronted model lookup on the save path reached Postgres.
-# `data_access` is set by the model: cache_hit, db_read, or db_write.
+# `data_access` is set by the model: cache_hit, db_read, db_create, or db_update.
 def _record_resolve_model(model: str, tags: dict[str, str]) -> None:
     metrics.incr(
         "save_event.resolve_model",

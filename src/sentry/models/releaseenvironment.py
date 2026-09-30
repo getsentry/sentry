@@ -83,7 +83,7 @@ class ReleaseEnvironment(Model):
         if bumped:
             metric_tags["data_access"] = "db_update"
         elif created:
-            metric_tags["data_access"] = "db_write"
+            metric_tags["data_access"] = "db_create"
         elif cache_hit:
             metric_tags["data_access"] = "cache_hit"
         else:
