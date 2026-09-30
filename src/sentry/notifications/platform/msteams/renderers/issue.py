@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 from sentry import eventstore
+from sentry.integrations.msteams.card_builder.issues import get_workflow_ids
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
@@ -196,6 +197,7 @@ class IssueMSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
                 "groupId": data.group_id,
                 "eventId": data.event_id,
                 "rules": [rule.id for rule in rules],
+                "workflows": get_workflow_ids(rules),
             }
         }
 
