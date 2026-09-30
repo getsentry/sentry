@@ -196,7 +196,6 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
 
   const rethinkInChat = useRethinkInChat({
     prompt: t('How can this code change be improved?'),
-    runId: getAutofixRunId(autofix.runState),
     step: 'code_changes',
   });
   // Feedback on an open PR goes through the PR iteration form, not the chat.

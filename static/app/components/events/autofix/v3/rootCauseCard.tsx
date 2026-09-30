@@ -5,7 +5,6 @@ import {Container, Flex} from '@sentry/scraps/layout';
 import {Markdown} from '@sentry/scraps/markdown';
 import {Text} from '@sentry/scraps/text';
 
-import {getAutofixRunId} from 'sentry/components/events/autofix/autofixRunId';
 import {
   getAutofixArtifactFromSection,
   isRootCauseArtifact,
@@ -55,7 +54,6 @@ export function RootCauseCard({autofix, groupId, section}: RootCauseCardProps) {
   const rethinkPrompt = t('How can this root cause be improved?');
   const rethinkInChat = useRethinkInChat({
     prompt: rethinkPrompt,
-    runId: getAutofixRunId(autofix.runState),
     step: 'root_cause',
   });
 

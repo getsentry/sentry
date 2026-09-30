@@ -5,7 +5,6 @@ import {Container, Stack} from '@sentry/scraps/layout';
 import {Markdown} from '@sentry/scraps/markdown';
 import {Text} from '@sentry/scraps/text';
 
-import {getAutofixRunId} from 'sentry/components/events/autofix/autofixRunId';
 import {
   getAutofixArtifactFromSection,
   isSolutionArtifact,
@@ -52,7 +51,6 @@ export function SolutionCard({autofix, section}: SolutionCardProps) {
   const rethinkPrompt = t('How can this plan be improved?');
   const rethinkInChat = useRethinkInChat({
     prompt: rethinkPrompt,
-    runId: getAutofixRunId(autofix.runState),
     step: 'solution',
   });
 

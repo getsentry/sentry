@@ -194,7 +194,6 @@ function RootCauseNextStep({autofix, group, runId, section, referrer}: NextStepP
   const rethinkPrompt = t('How can this root cause be improved?');
   const rethinkInChat = useRethinkInChat({
     prompt: rethinkPrompt,
-    runId,
     step: 'root_cause',
   });
 
@@ -272,7 +271,6 @@ function SolutionNextStep({autofix, group, runId, section, referrer}: NextStepPr
   const rethinkPrompt = t('How can this plan be improved?');
   const rethinkInChat = useRethinkInChat({
     prompt: rethinkPrompt,
-    runId,
     step: 'solution',
   });
 
@@ -419,7 +417,6 @@ function CodeChangesNextStepContent({
   const rethinkPrompt = t('How can this code change be improved?');
   const rethinkInChat = useRethinkInChat({
     prompt: rethinkPrompt,
-    runId,
     step: 'code_changes',
   });
 
