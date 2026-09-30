@@ -69,17 +69,14 @@ class ShadowResult:
 
 def _should_shadow(invocation: ActionInvocation, source: NotificationSource) -> bool:
     try:
-        if (
-            is_collecting()
-            or source not in SHADOW_SOURCES
-            or invocation.workflow_id == TEST_NOTIFICATION_ID
-            or invocation.action.id == TEST_NOTIFICATION_ID
-        ):
-            return False
-        if source.value in options.get(KILLSWITCH_OPTION_KEY):
-            return False
-        rate = options.get(SAMPLE_RATES_OPTION_KEY).get(source.value, 0.0)
-        return random.random() < float(rate)
+        return (
+            not is_collecting()
+            and source in SHADOW_SOURCES
+            and invocation.workflow_id != TEST_NOTIFICATION_ID
+            and invocation.action.id != TEST_NOTIFICATION_ID
+            and source.value not in options.get(KILLSWITCH_OPTION_KEY)
+            and random.random() < float(options.get(SAMPLE_RATES_OPTION_KEY).get(source.value, 0.0))
+        )
     except Exception:
         logger.exception("notifications.platform.shadow.sample_failed", extra={"source": source})
         return False
