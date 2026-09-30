@@ -890,6 +890,7 @@ class Project(Model):
         Returns True if the settings have successfully been copied over
         Returns False otherwise
         """
+        from sentry.ingest import legacy_filter_lists
         from sentry.models.environment import EnvironmentProject
         from sentry.models.options.project_option import ProjectOption
         from sentry.models.projectownership import ProjectOwnership
@@ -919,7 +920,10 @@ class Project(Model):
 
                 options = ProjectOption.objects.get_all_values(project=project)
                 for key, value in options.items():
-                    self.update_option(key, value)
+                    if key in legacy_filter_lists.OPTION_KEYS:
+                        legacy_filter_lists.set_list(self, key.removeprefix("sentry:"), value)
+                    else:
+                        self.update_option(key, value)
 
         except IntegrityError as e:
             logging.exception(

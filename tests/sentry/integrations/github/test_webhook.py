@@ -1415,8 +1415,7 @@ class PullRequestEventWebhookTest(APITestCase):
         self._post_pull_request_event(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
 
         pr = PullRequest.objects.get(repository_id=repo.id, key="1")
-        assert pr.external_id == 34778301
-        assert pr.external_id_str == "34778301"
+        assert pr.external_id == "34778301"
 
     @patch("sentry.integrations.github.webhook.PullRequestEventWebhook.__call__")
     def test_github_delivery_id_extracted_and_passed_to_processors(
@@ -1549,7 +1548,7 @@ class PullRequestEventWebhookTest(APITestCase):
         pr = prs[0]
 
         assert pr.key == "1"
-        assert pr.external_id == 34778301
+        assert pr.external_id == "34778301"
         assert (
             pr.message
             == "This is a pretty simple change that we need to pull into master. Fixes BAR-7"
