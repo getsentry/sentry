@@ -1,6 +1,7 @@
 import pytest
 from django.test import override_settings
-from sentry_relay.processing import is_glob_match, validate_rule_condition
+from sentry_ophio.glob import is_glob_match
+from sentry_relay.processing import validate_rule_condition
 
 from sentry.ingest.inbound_filters import (
     ACTIVE_GENERIC_FILTERS,
