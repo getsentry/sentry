@@ -159,8 +159,29 @@ class OrganizationCodeMappingsBulkEndpoint(OrganizationEndpoint):
                     f"Check the mappings at the following indices: {invalid_indices}. "
                     "See the 'mappings' field below for per-mapping validation errors."
                 )
+                rejected_source_roots = []
+                submitted_mappings = request.data.get("mappings")
+                if isinstance(submitted_mappings, list):
+                    for index in invalid_indices:
+                        item_errors = mapping_errors[index]
+                        submitted_mapping = submitted_mappings[index]
+                        if (
+                            isinstance(item_errors, dict)
+                            and ("sourceRoot" in item_errors or "source_root" in item_errors)
+                            and isinstance(submitted_mapping, dict)
+                        ):
+                            source_root = submitted_mapping.get(
+                                "sourceRoot", submitted_mapping.get("source_root")
+                            )
+                            rejected_source_roots.append(
+                                {"index": index, "sourceRoot": source_root}
+                            )
+
+                response_data = {"detail": detail, **errors}
+                if rejected_source_roots:
+                    response_data["rejectedSourceRoots"] = rejected_source_roots
                 return Response(
-                    {"detail": detail, **errors},
+                    response_data,
                     status=status.HTTP_400_BAD_REQUEST,
                 )
             return Response(errors, status=status.HTTP_400_BAD_REQUEST)

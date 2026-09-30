@@ -27,7 +27,7 @@ from sentry.models.project import Project
 from sentry.models.projectrepository import ProjectRepository, ProjectRepositorySource
 from sentry.models.repository import Repository
 
-INVALID_SOURCE_ROOT_ERROR_MESSAGE = "Source root must resolve within the repository"
+INVALID_SOURCE_ROOT_ERROR_MESSAGE = "Source root cannot point outside the repository"
 
 
 def validate_source_root(path: str) -> None:

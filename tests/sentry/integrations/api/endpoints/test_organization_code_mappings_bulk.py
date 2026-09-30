@@ -109,6 +109,9 @@ class OrganizationCodeMappingsBulkTest(APITestCase):
 
         assert response.status_code == 400
         assert response.data["mappings"] == [{"sourceRoot": [INVALID_SOURCE_ROOT_ERROR_MESSAGE]}]
+        assert response.data["rejectedSourceRoots"] == [
+            {"index": 0, "sourceRoot": "src/../../config"}
+        ]
         assert "indices: [0]" in response.data["detail"]
 
     def test_create_multiple_mappings(self) -> None:

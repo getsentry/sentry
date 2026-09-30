@@ -420,7 +420,7 @@ class OrganizationCodeMappingsTest(APITestCase):
         assert response.status_code == 400
         assert response.data == {"stackRoot": ["Null characters are not allowed."]}
 
-    def test_null_byte_in_source_root(self) -> None:
+    def test_null_byte_in_source_root_uses_builtin_validation(self) -> None:
         response = self.make_post({"sourceRoot": "src/\x00/file.py"})
         assert response.status_code == 400
         assert response.data == {"sourceRoot": ["Null characters are not allowed."]}
