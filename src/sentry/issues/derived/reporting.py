@@ -14,7 +14,7 @@ def report_derived_data_error(
     error: DerivedDataError,
     *,
     derived: GroupDerivedData,
-    operation: Literal["process", "replay", "check", "serialize", "status_check"],
+    operation: Literal["process", "replay", "check", "serialize", "status_check", "reconcile"],
     pipeline_hash: str | None = None,
 ) -> None:
     """Call from an exception handler so the original cause is captured."""

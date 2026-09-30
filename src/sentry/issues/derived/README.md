@@ -47,6 +47,8 @@ It means computation failed, not necessarily that the stored row is corrupt.
 - Reads omit unreadable derived data, report failed status checks as errors, and
   use the existing unknown-progress sort rank. Only successfully serialized rows
   count as served. The debug endpoint reports stored/replayed failures separately.
+- Status reconciliation reports an error and publishes no correction if status
+  decoding fails on either the initial check or the recheck.
 - There is no failure state or quarantine. Later actions and stale-row sweeps may
   retry. A current hash only means pipeline versions match, not that the cursor is caught
   up; replay checks verify only through that cursor. Current-hash stuck groups need
