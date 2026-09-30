@@ -48,7 +48,7 @@ describe('InvitationStatus', () => {
       screen.getByRole('button', {name: 'Configure Two-Factor Auth'})
     ).toHaveAttribute('target', '_blank');
     const setupInstructions = screen.getByText(
-      'Return to this tab after setting up two-factor authentication to accept your invitation.'
+      'This organization requires all members to configure two-factor authentication. Return to this tab after setting up two-factor to accept your invitation.'
     );
     expect(setupInstructions).toBeVisible();
     expect(setupInstructions).toAppearBefore(
