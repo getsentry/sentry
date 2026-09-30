@@ -388,7 +388,7 @@ describe('ConversationDetailPage summary stats', () => {
     expect(await screen.findByText(/No cost recorded/)).toBeInTheDocument();
   });
 
-  it('does not show a model breakdown when there are no LLM calls', async () => {
+  it('does not show empty metric breakdown tooltips', async () => {
     mockApis(null, CONVERSATION_BODY, {llmCalls: 0});
     renderPage();
 
@@ -397,6 +397,11 @@ describe('ConversationDetailPage summary stats', () => {
     expect(llmCalls).toHaveAttribute('title', '0');
 
     await userEvent.hover(llmCalls);
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+    await userEvent.unhover(llmCalls);
+
+    const tokensStat = screen.getByText('Tokens').parentElement!;
+    await userEvent.hover(within(tokensStat).getByText('0'));
     expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
   });
 

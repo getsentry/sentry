@@ -798,9 +798,14 @@ function TokenCount({
   breakdowns: TokenBreakdownDetails[];
   total: number;
 }) {
+  const value = formatAbbreviatedNumber(total);
+  if (breakdowns.length === 0) {
+    return value;
+  }
+
   return (
     <Tooltip title={<TokenBreakdownTooltip breakdowns={breakdowns} />}>
-      <BreakdownValue>{formatAbbreviatedNumber(total)}</BreakdownValue>
+      <BreakdownValue>{value}</BreakdownValue>
     </Tooltip>
   );
 }
