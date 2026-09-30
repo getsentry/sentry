@@ -333,15 +333,15 @@ describe('SeerDrawerNextStep', () => {
         ).not.toBeInTheDocument();
       });
 
-      it('hands the yes to the agent instead of starting the next step', async () => {
+      it('still starts the next step on yes', async () => {
         const autofix = makeAutofix();
         const sendMessage = jest.fn();
         renderCodeMode(autofix, sendMessage);
 
         await userEvent.click(screen.getByRole('button', {name: 'Yes, make a plan'}));
 
-        expect(sendMessage).toHaveBeenCalledWith('Run the next Autofix step');
-        expect(autofix.startStep).not.toHaveBeenCalled();
+        expect(autofix.startStep).toHaveBeenCalledWith('solution', {runId: 1});
+        expect(sendMessage).not.toHaveBeenCalled();
       });
 
       it('keeps the ordinary buttons when no chat is reachable', async () => {
@@ -801,42 +801,16 @@ describe('SeerDrawerNextStep', () => {
       expect(autofix.createPR).toHaveBeenCalledWith(1);
     });
 
-    it('skips the write-access gate in code mode', async () => {
+    it('keeps the write-access gate in code mode', async () => {
       addRepoPermissionsResponse(false);
       addGithubIntegrationResponse();
       const autofix = makeAutofix();
       const sendMessage = jest.fn();
 
+      // "Yes" opens a pull request in code mode too, so missing write access
+      // still needs the permissions check in front of it.
       render(
         <AutofixChatProvider sendMessage={sendMessage}>
-          <SeerDrawerNextStep
-            group={GroupFixture()}
-            sections={[makeSection('code_changes')]}
-            autofix={autofix}
-          />
-        </AutofixChatProvider>,
-        {organization: codeModeOrganization}
-      );
-
-      // No pull request is opened in code mode, so missing write access must
-      // not swap the question for a permissions errand.
-      await userEvent.click(await screen.findByRole('button', {name: 'Yes, draft a PR'}));
-      expect(sendMessage).toHaveBeenCalledWith('Run the next Autofix step');
-      expect(autofix.createPR).not.toHaveBeenCalled();
-      expect(
-        screen.queryByRole('button', {name: 'Yes, view GitHub permissions'})
-      ).not.toBeInTheDocument();
-    });
-
-    it('keeps the write-access gate when code mode has no chat to hand to', async () => {
-      addRepoPermissionsResponse(false);
-      addGithubIntegrationResponse();
-      const autofix = makeAutofix();
-
-      // With nowhere to send the question, "yes" falls back to creating the PR,
-      // so the permissions check has to stay in front of it.
-      render(
-        <AutofixChatProvider sendMessage={undefined}>
           <SeerDrawerNextStep
             group={GroupFixture()}
             sections={[makeSection('code_changes')]}
@@ -853,6 +827,7 @@ describe('SeerDrawerNextStep', () => {
         screen.queryByRole('button', {name: 'Yes, draft a PR'})
       ).not.toBeInTheDocument();
       expect(autofix.createPR).not.toHaveBeenCalled();
+      expect(sendMessage).not.toHaveBeenCalled();
     });
 
     it('checks provider permissions on refocus and proceeds when access is granted', async () => {

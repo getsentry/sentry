@@ -27,10 +27,7 @@ import {
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {PrIterationFeedbackForm} from 'sentry/components/events/autofix/v3/prIterationFeedbackForm';
 import {RepositoryWritePermissionButton} from 'sentry/components/events/autofix/v3/repositoryWritePermissionButton';
-import {
-  ASK_SEER_CONTINUE_PROMPT,
-  useAskSeerHandoff,
-} from 'sentry/components/events/autofix/v3/useAskSeerHandoff';
+import {useAskSeerHandoff} from 'sentry/components/events/autofix/v3/useAskSeerHandoff';
 import {useCodingAgents} from 'sentry/components/events/autofix/v3/useCodingAgents';
 import {useRethinkInChat} from 'sentry/components/events/autofix/v3/useRethinkInChat';
 import {IconAdd} from 'sentry/icons/iconAdd';
@@ -171,11 +168,7 @@ function RootCauseNextStep({autofix, group, runId, section, referrer}: NextStepP
     });
 
   const handleYesClick = () => {
-    if (isCodeMode) {
-      askSeer(ASK_SEER_CONTINUE_PROMPT);
-    } else {
-      startStep('solution', {runId});
-    }
+    startStep('solution', {runId});
     trackAnalytics('autofix.root_cause.find_solution', {
       organization,
       group_id: group.id,
@@ -253,11 +246,7 @@ function SolutionNextStep({autofix, group, runId, section, referrer}: NextStepPr
     });
 
   const handleYesClick = () => {
-    if (isCodeMode) {
-      askSeer(ASK_SEER_CONTINUE_PROMPT);
-    } else {
-      startStep('code_changes', {runId});
-    }
+    startStep('code_changes', {runId});
     trackAnalytics('autofix.solution.code', {
       organization,
       group_id: group.id,
@@ -322,17 +311,10 @@ function SolutionNextStep({autofix, group, runId, section, referrer}: NextStepPr
 
 function CodeChangesNextStep({autofix, group, runId, section, referrer}: NextStepProps) {
   const artifact = useMemo(() => getAutofixArtifactFromSection(section), [section]);
-  // The same answer `CodeChangesNextStepContent` uses to route "yes", so the
-  // gate is only skipped when the click really goes to the agent.
-  const {isCodeMode} = useAskSeerHandoff();
 
-  // In code mode "yes" asks the agent rather than opening a pull request, so
-  // repository write access is beside the point. Leaving the gate on would hide
-  // the whole row while it resolves, then offer a permissions CTA in place of
-  // the question.
   const {permissionsTarget, isPending, checkTargetWriteAccess} = useAutofixCreatePrGate({
     group,
-    enabled: defined(artifact) && !isCodeMode,
+    enabled: defined(artifact),
   });
 
   if (!defined(artifact)) {
@@ -411,11 +393,7 @@ function CodeChangesNextStepContent({
   const {askSeer, isCodeMode} = useAskSeerHandoff();
 
   const handleYesClick = () => {
-    if (isCodeMode) {
-      askSeer(ASK_SEER_CONTINUE_PROMPT);
-    } else {
-      createPR(runId);
-    }
+    createPR(runId);
     trackAnalytics('autofix.create_pr_clicked', {
       organization,
       group_id: group.id,
