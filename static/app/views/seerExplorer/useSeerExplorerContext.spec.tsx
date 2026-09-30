@@ -238,7 +238,7 @@ describe('openChatPrompt', () => {
     expect(screen.getByText('What about this dashboard?')).toBeInTheDocument();
   });
 
-  it('puts the question back when the reply fails, so the next attempt carries it', async () => {
+  it('puts the question back after every failed reply, so each attempt carries it', async () => {
     const postFailing = MockApiClient.addMockResponse({
       url: chatUrl,
       method: 'POST',
@@ -257,15 +257,19 @@ describe('openChatPrompt', () => {
     await waitFor(() => expect(textarea).toHaveValue('why?'));
     expect(screen.getByText('What about this widget?')).toBeInTheDocument();
 
-    await userEvent.click(textarea);
-    await userEvent.keyboard('{Enter}');
-    await waitFor(() => expect(postFailing).toHaveBeenCalledTimes(2));
-    expect(postFailing).toHaveBeenLastCalledWith(
-      chatUrl,
-      expect.objectContaining({
-        data: expect.objectContaining({chat_prompt: 'What about this widget?'}),
-      })
-    );
+    // Every failure puts it back, not only the first.
+    for (const attempt of [2, 3]) {
+      await waitFor(() => expect(textarea).toHaveValue('why?'));
+      await userEvent.click(textarea);
+      await userEvent.keyboard('{Enter}');
+      await waitFor(() => expect(postFailing).toHaveBeenCalledTimes(attempt));
+      expect(postFailing).toHaveBeenLastCalledWith(
+        chatUrl,
+        expect.objectContaining({
+          data: expect.objectContaining({chat_prompt: 'What about this widget?'}),
+        })
+      );
+    }
   });
 
   it('keeps one question, replacing it on each click', async () => {

@@ -263,14 +263,13 @@ export function SeerExplorerContent({
   const {chatPrompt} = useSeerExplorerChatState();
   const chatDispatch = useSeerExplorerChatDispatch();
 
-  // Put back the question a failed reply answered. The error only exists for the run on
-  // screen, and this panel only exists while Explorer is showing.
-  const failedChatPrompt = requestError?.chatPrompt;
+  // Put back the question a failed reply answered, on every failure. The error only exists
+  // for the run on screen, and this panel only exists while Explorer is showing.
   useEffect(() => {
-    if (failedChatPrompt) {
-      chatDispatch({type: 'restore chat prompt', payload: failedChatPrompt});
+    if (requestError?.chatPrompt) {
+      chatDispatch({type: 'restore chat prompt', payload: requestError.chatPrompt});
     }
-  }, [failedChatPrompt, chatDispatch]);
+  }, [requestError, chatDispatch]);
 
   const readOnly =
     sessionData?.owner_user_id !== undefined &&

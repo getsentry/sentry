@@ -610,7 +610,11 @@ export const useSeerExplorer = () => {
       const chatPrompt: ChatPrompt | null = usesPendingChatPrompt
         ? pendingChatPrompt
         : explicitChatPrompt;
-      if (usesPendingChatPrompt && pendingChatPrompt) {
+      // A retry answers a pending question only if it's the same one; any other stays pending.
+      if (
+        pendingChatPrompt &&
+        (usesPendingChatPrompt || pendingChatPrompt.text === explicitChatPrompt?.text)
+      ) {
         dispatch({type: 'set chat prompt', payload: null});
       }
 
