@@ -162,7 +162,6 @@ class OrganizationAvailableActionIndexEndpoint(OrganizationEndpoint):
                             ActionHandlerSerializer(),
                             action_type=action_type,
                             integrations=integrations,
-                            # flag integration actions the organization's plan doesn't allow
                             disabled_reason=(
                                 None if is_action_permitted(action_type, organization) else "plan"
                             ),

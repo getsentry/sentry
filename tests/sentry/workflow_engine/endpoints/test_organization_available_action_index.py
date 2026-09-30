@@ -377,6 +377,19 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
             Action.Type.MSTEAMS: "plan",
         }
 
+    @with_feature({"organizations:integrations-issue-basic": False})
+    def test_flags_ticket_actions_without_feature(self) -> None:
+        self.setup_integrations()
+
+        response = self.get_success_response(
+            self.organization.slug,
+            status_code=200,
+        )
+        assert {action["type"]: action.get("disabledReason") for action in response.data} == {
+            Action.Type.SLACK: None,
+            Action.Type.GITHUB: "plan",
+        }
+
     def test_integrations_with_services(self) -> None:
         self.setup_integrations_with_services()
         response = self.get_success_response(
