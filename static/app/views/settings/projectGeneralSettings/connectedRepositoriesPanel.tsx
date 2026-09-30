@@ -7,6 +7,11 @@ import {Flex} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 import {Text} from '@sentry/scraps/text';
 
+import {ConnectRepositoryModal} from 'sentry/components/connectRepository/connectRepositoryModal';
+import {
+  projectRepoInfiniteOptions,
+  type ProjectRepoListItem,
+} from 'sentry/components/connectRepository/queries';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
@@ -19,11 +24,6 @@ import type {Project} from 'sentry/types/project';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {ConnectRepositoryModal} from 'sentry/views/settings/projectGeneralSettings/connectRepositoryModal';
-import {
-  projectRepoInfiniteOptions,
-  type ProjectRepoListItem,
-} from 'sentry/views/settings/projectGeneralSettings/queries';
 
 function ConnectedRepositoryRow({
   repo,

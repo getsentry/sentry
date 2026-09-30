@@ -5,25 +5,25 @@ import {Alert} from '@sentry/scraps/alert';
 import {Container, Flex} from '@sentry/scraps/layout';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {
+  getApiErrorMessage,
+  ConnectionModalFrame,
+  LockedRepoField,
+} from 'sentry/components/connectRepository/connectionModalFrame';
 import {DEFAULT_BRANCH} from 'sentry/components/connectRepository/normalization';
 import {PathMappingList} from 'sentry/components/connectRepository/pathMappingList';
+import {
+  editProjectRepoMappings,
+  projectCodeMappingsOptions,
+  useEditRepoInfo,
+  useInvalidateRepoQueries,
+} from 'sentry/components/connectRepository/queries';
 import type {PathMappingValue} from 'sentry/components/connectRepository/type';
 import {hasExactDuplicate} from 'sentry/components/connectRepository/warnings';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {
-  getApiErrorMessage,
-  ConnectionModalFrame,
-  LockedRepoField,
-} from 'sentry/views/settings/projectGeneralSettings/connectionModalFrame';
-import {
-  editProjectRepoMappings,
-  projectCodeMappingsOptions,
-  useEditRepoInfo,
-  useInvalidateRepoQueries,
-} from 'sentry/views/settings/projectGeneralSettings/queries';
 
 function buildPathsSection({
   isPending,

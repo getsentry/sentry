@@ -30,7 +30,7 @@ import {
   ModalFooter,
 } from '@sentry/scraps/modal';
 
-import {ConnectRepositoryModal} from 'sentry/views/settings/projectGeneralSettings/connectRepositoryModal';
+import {ConnectRepositoryModal} from 'sentry/components/connectRepository/connectRepositoryModal';
 
 describe('ConnectRepositoryModal', () => {
   const organization = OrganizationFixture();
@@ -494,7 +494,7 @@ describe('ConnectRepositoryModal', () => {
       const branchInput = screen.getByRole('textbox', {name: /branch/i});
       expect(stackInput).toBeDisabled();
       expect(sourceInput).toBeDisabled();
-      expect(branchInput).not.toBeDisabled();
+      expect(branchInput).toBeEnabled();
     });
 
     it('seeds new mappings with the repository default branch', async () => {

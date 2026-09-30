@@ -1,16 +1,16 @@
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {ConnectRepositoryForm} from 'sentry/components/connectRepository/connectRepositoryForm';
+import {EditRepositoryForm} from 'sentry/components/connectRepository/editRepositoryForm';
 import type {Project} from 'sentry/types/project';
-import {ConnectRepositoryForm} from 'sentry/views/settings/projectGeneralSettings/connectRepositoryForm';
-import {EditRepositoryForm} from 'sentry/views/settings/projectGeneralSettings/editRepositoryForm';
 
 type ConnectRepositoryModalProps = ModalRenderProps & {
   project: Project;
 } & (
     | {mode: 'connect'}
     | {
-        mode: 'edit';
         externalId: string | null;
         integrationId: string | null;
+        mode: 'edit';
         providerKey: string | null;
         repoName: string;
         repositoryId: string;
