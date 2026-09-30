@@ -78,7 +78,7 @@ def unsplit_key(
 
 def event_to_record(
     event: Event | GroupEvent,
-    rules: Sequence[NotificationRule],
+    rules: Sequence[Rule | NotificationRule],
     notification_uuid: str | None = None,
     identifier_key: IdentifierKey = IdentifierKey.RULE,
 ) -> Record:
@@ -88,7 +88,16 @@ def event_to_record(
     # TODO(iamrajjoshi): The typing on this function is wrong, the type should be GroupEvent
     # TODO(iamrajjoshi): Creating a PR to fix this
     assert event.group is not None
-    rule_ids = [int(get_rule_or_workflow_id(rule)[1]) for rule in rules]
+    rule_ids = []
+    for rule in rules:
+        if isinstance(rule, NotificationRule):
+            rule_id = (
+                rule.legacy_rule_id if identifier_key == IdentifierKey.RULE else rule.workflow_id
+            )
+            assert rule_id is not None
+        else:
+            rule_id = int(get_rule_or_workflow_id(rule)[1])
+        rule_ids.append(rule_id)
     return Record(
         event.event_id,
         Notification(event, rule_ids, notification_uuid, identifier_key),

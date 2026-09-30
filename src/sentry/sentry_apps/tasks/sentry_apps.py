@@ -46,7 +46,6 @@ from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.project import Project
 from sentry.notifications.types import RuleFuture
-from sentry.notifications.utils.rules import get_rule_or_workflow_id
 from sentry.sentry_apps.api.serializers.app_platform_event import AppPlatformEvent
 from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.sentry_apps.metrics import (
@@ -808,12 +807,10 @@ def notify_sentry_app(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
 
         # If the future comes from a rule with a UI component form in the schema, append the issue alert payload
         # TODO(ecosystem): We need to change this payload format after alerts create issues
-        rule_or_workflow_id: int | str = f.rule.id
-
-        # if we are using the new workflow engine, we need to use the legacy rule id
-        # Ignore test notifications
-        if int(rule_or_workflow_id) != -1:
-            _, rule_or_workflow_id = get_rule_or_workflow_id(f.rule)
+        rule_or_workflow_id = (
+            f.rule.legacy_rule_id if f.rule.legacy_rule_id is not None else f.rule.workflow_id
+        )
+        assert rule_or_workflow_id is not None
 
         settings = f.kwargs.get("schema_defined_settings")
         if settings:

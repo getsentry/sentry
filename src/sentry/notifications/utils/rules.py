@@ -11,24 +11,34 @@ RuleIdType = Literal["workflow_id", "legacy_rule_id"]
 def get_legacy_rule_id(rule: Rule | NotificationRule) -> int | None:
     if isinstance(rule, Rule):
         return rule.id
-
-    value = rule.data.get("actions", [{}])[0].get("legacy_rule_id")
-    return int(value) if value is not None else None
+    return rule.legacy_rule_id
 
 
 def get_key_from_rule_data(rule: Rule | NotificationRule, key: str) -> str:
+    if isinstance(rule, NotificationRule):
+        if key == "legacy_rule_id":
+            value = rule.legacy_rule_id
+        elif key == "workflow_id":
+            value = rule.workflow_id
+        else:
+            raise KeyError(key)
+        assert value is not None
+        return str(value)
+
     value = rule.data.get("actions", [{}])[0].get(key)
     assert value is not None
     return value
 
 
 @dataclass
-class RulesAndWorkflows:
-    rules: list[NotificationRule]
-    workflow_rules: list[NotificationRule]
+class RulesAndWorkflows[RuleT: Rule | NotificationRule]:
+    rules: list[RuleT]
+    workflow_rules: list[RuleT]
 
 
-def split_rules_by_rule_workflow_id(rules: Sequence[NotificationRule]) -> RulesAndWorkflows:
+def split_rules_by_rule_workflow_id[RuleT: Rule | NotificationRule](
+    rules: Sequence[RuleT],
+) -> RulesAndWorkflows[RuleT]:
     parsed_rules = []
     workflow_rules = []
     for rule in rules:
@@ -58,4 +68,6 @@ def get_rule_or_workflow_id(
             return (key, get_key_from_rule_data(rule, key))
         except AssertionError:
             pass
-    return ("legacy_rule_id", str(rule.id))
+    if isinstance(rule, Rule):
+        return ("legacy_rule_id", str(rule.id))
+    raise AssertionError("NotificationRule must have a workflow or legacy rule ID")

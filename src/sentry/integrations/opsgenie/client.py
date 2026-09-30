@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Literal
+from collections.abc import Sequence
+from typing import Any, Literal
 
 from sentry.integrations.client import ApiClient
 from sentry.integrations.models.integration import Integration
@@ -9,8 +10,9 @@ from sentry.integrations.opsgenie.metrics import record_event, record_lifecycle_
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.group import Group
+from sentry.notifications.types import NotificationRule
 from sentry.notifications.utils.links import create_link_to_workflow
-from sentry.notifications.utils.rules import get_key_from_rule_data, split_rules_by_rule_workflow_id
+from sentry.notifications.utils.rules import split_rules_by_rule_workflow_id
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.shared_integrations.exceptions import ApiError
 
@@ -41,35 +43,38 @@ class OpsgenieClient(ApiClient):
         path = f"/alerts?limit={limit}"
         return self.get(path=path, headers=self._get_auth_headers())
 
-    def _get_workflow_urls(self, group, rules):
+    def _get_workflow_urls(self, group: Group, rules: Sequence[NotificationRule]) -> list[str]:
         organization = group.project.organization
         workflow_urls = []
         for rule in rules:
-            # fetch the workflow_id from the rule.data
-            workflow_id = get_key_from_rule_data(rule, "workflow_id")
+            workflow_id = rule.workflow_id
+            assert workflow_id is not None
             workflow_urls.append(
-                organization.absolute_url(create_link_to_workflow(organization.slug, workflow_id))
+                organization.absolute_url(
+                    create_link_to_workflow(organization.slug, str(workflow_id))
+                )
             )
         return workflow_urls
 
-    def _get_rule_urls(self, group, rules):
+    def _get_rule_urls(self, group: Group, rules: Sequence[NotificationRule]) -> list[str]:
         organization = group.project.organization
         rule_urls = []
         for rule in rules:
-            rule_id = get_key_from_rule_data(rule, "legacy_rule_id")
+            rule_id = rule.legacy_rule_id
+            assert rule_id is not None
             path = f"/organizations/{organization.slug}/issues/alerts/rules/{group.project.slug}/{rule_id}/details/"
             rule_urls.append(organization.absolute_url(path))
         return rule_urls
 
     def build_issue_alert_payload(
         self,
-        data,
-        rules,
+        data: Any,
+        rules: Sequence[NotificationRule],
         event: Event | GroupEvent,
         group: Group | None,
         priority: OpsgeniePriority | None = "P3",
         notification_uuid: str | None = None,
-    ):
+    ) -> dict[str, Any]:
         payload = {
             "message": event.message or event.title,
             "source": "Sentry",

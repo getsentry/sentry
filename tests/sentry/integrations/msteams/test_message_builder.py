@@ -453,6 +453,8 @@ class MSTeamsMessageBuilderTest(TestCase):
                 data={"actions": [{"legacy_rule_id": legacy_rule.id}]},
                 project=self.project1,
                 environment_id=None,
+                workflow_id=123,
+                legacy_rule_id=legacy_rule.id,
             ),
             NotificationRule(
                 id=legacy_rule.id + 2000,
@@ -460,6 +462,8 @@ class MSTeamsMessageBuilderTest(TestCase):
                 data={"actions": [{"workflow_id": 123}]},
                 project=self.project1,
                 environment_id=None,
+                workflow_id=123,
+                legacy_rule_id=None,
             ),
         ]
         builder = MSTeamsIssueMessageBuilder(

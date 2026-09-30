@@ -72,6 +72,8 @@ class IssueCardLegacyParityTest(TestCase):
                     data=self.rule.data,
                     project=self.project,
                     environment_id=self.rule.environment_id,
+                    workflow_id=123,
+                    legacy_rule_id=self.rule.id,
                 )
             ),
         )
