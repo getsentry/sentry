@@ -221,17 +221,6 @@ class AlertRule(Model):
     __repr__ = sane_repr("id", "name", "date_added")
 
     @property
-    def created_by_id(self) -> int | None:
-        try:
-            created_activity = AlertRuleActivity.objects.get(
-                alert_rule=self, type=AlertRuleActivityType.CREATED.value
-            )
-            return created_activity.user_id
-        except AlertRuleActivity.DoesNotExist:
-            pass
-        return None
-
-    @property
     def owner(self) -> Actor | None:
         """Part of ActorOwned Protocol"""
         return Actor.from_id(user_id=self.user_id, team_id=self.team_id)
