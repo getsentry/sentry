@@ -670,7 +670,8 @@ if (
 
     // TODO: figure out why defining output breaks hot reloading
     if (IS_UI_DEV_ONLY) {
-      appConfig.output = {};
+      // Rsbuild's dev server serves files from output.distPath.root.
+      appConfig.output = {path: distPath};
     }
   }
 
