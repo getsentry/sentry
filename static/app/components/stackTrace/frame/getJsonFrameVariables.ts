@@ -38,10 +38,16 @@ function toVariable(
       ? {...base, kind: 'null', value}
       : {...base, kind: 'null'};
   }
-  if (typeof value === 'boolean' || config.isBoolean?.(value)) {
+  if (
+    typeof value === 'boolean' ||
+    (typeof value === 'string' && config.isBoolean?.(value))
+  ) {
     return {...base, kind: 'boolean', value: String(value)};
   }
-  if (typeof value === 'number' || config.isNumber?.(value)) {
+  if (
+    typeof value === 'number' ||
+    (typeof value === 'string' && config.isNumber?.(value))
+  ) {
     return {...base, kind: 'number', value: String(value)};
   }
   if (Array.isArray(value)) {

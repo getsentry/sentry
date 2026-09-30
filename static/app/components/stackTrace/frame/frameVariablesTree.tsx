@@ -301,16 +301,13 @@ function ScalarValue({
     case 'null':
       value = hasAnnotations
         ? null
-        : String(
-            config.renderNull?.(variable.value ?? null) ??
-              (platform === 'native' ? 'nullptr' : 'null')
-          );
+        : (config.renderNull?.(variable.value ?? null) ??
+          (platform === 'native' ? 'nullptr' : 'null'));
       break;
     case 'boolean':
-      value = String(
+      value =
         config.renderBoolean?.(variable.value === 'true' || variable.value === 'True') ??
-          variable.value
-      );
+        variable.value;
       break;
     case 'string':
       value = hasAnnotations

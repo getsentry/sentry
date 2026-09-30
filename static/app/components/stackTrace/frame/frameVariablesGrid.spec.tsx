@@ -6,7 +6,7 @@ import {FrameVariablesGrid} from 'sentry/components/stackTrace/frame/frameVariab
 import {OrganizationContext} from 'sentry/utils/organizationContext';
 
 describe('FrameVariablesGrid', () => {
-  it('switches the complete variable experience with the organization flag', async () => {
+  it('switches the complete variable experience with the organization flag', () => {
     const organization = OrganizationFixture({features: []});
     const data = {"'player'": {x: 1, y: 2}, count: 42};
     function Example({enabled}: {enabled: boolean}) {

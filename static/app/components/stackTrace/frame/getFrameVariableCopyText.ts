@@ -12,10 +12,10 @@ export function getFrameVariableCopyText(
   const value = getCopyValue(variable, platform);
   const config = getStructuredDataConfig({platform});
   if (value === null && config.renderNull) {
-    return String(config.renderNull(null));
+    return config.renderNull(null);
   }
   if (typeof value === 'boolean' && config.renderBoolean) {
-    return String(config.renderBoolean(value));
+    return config.renderBoolean(value);
   }
   return typeof value === 'string' ? value : JSON.stringify(value, null, 2);
 }
