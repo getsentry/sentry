@@ -23,6 +23,7 @@ import {t, tn} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import type {CronDetector} from 'sentry/types/workflowEngine/detectors';
 import {toArray} from 'sentry/utils/array/toArray';
+import {getMonitorRefetchInterval, getNextCheckInEnv} from 'sentry/utils/monitor/cron';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
@@ -51,10 +52,6 @@ import {TimezoneOverride} from 'sentry/views/insights/crons/components/timezoneO
 import type {MonitorBucket, MonitorEnvironment} from 'sentry/views/insights/crons/types';
 import {ScheduleType} from 'sentry/views/insights/crons/types';
 import {useMonitorProcessingErrors} from 'sentry/views/insights/crons/useMonitorProcessingErrors';
-import {
-  getMonitorRefetchInterval,
-  getNextCheckInEnv,
-} from 'sentry/views/insights/crons/utils';
 import {scheduleAsText} from 'sentry/views/insights/crons/utils/scheduleAsText';
 
 type CronDetectorDetailsProps = {

@@ -26,6 +26,7 @@ import {PanelBody} from 'sentry/components/panels/panelBody';
 import {timezoneOptions} from 'sentry/data/timezones';
 import {t, tct, tn} from 'sentry/locale';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
+import {DEFAULT_CHECKIN_MARGIN, DEFAULT_MAX_RUNTIME} from 'sentry/utils/monitor/cron';
 import {slugify} from 'sentry/utils/slugify';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -36,11 +37,7 @@ import type {
   MonitorConfig,
 } from 'sentry/views/insights/crons/types';
 import {ScheduleType} from 'sentry/views/insights/crons/types';
-import {
-  DEFAULT_CHECKIN_MARGIN,
-  DEFAULT_MAX_RUNTIME,
-  getScheduleIntervals,
-} from 'sentry/views/insights/crons/utils';
+import {getScheduleIntervals} from 'sentry/views/insights/crons/utils';
 import {crontabAsText} from 'sentry/views/insights/crons/utils/crontabAsText';
 
 import {platformsWithGuides} from './monitorQuickStartGuide';

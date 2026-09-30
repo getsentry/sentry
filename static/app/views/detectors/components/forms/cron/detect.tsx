@@ -17,6 +17,7 @@ import {
 } from 'sentry/components/workflowEngine/ui/formSection';
 import {timezoneOptions} from 'sentry/data/timezones';
 import {t, tct, tn} from 'sentry/locale';
+import {DEFAULT_CHECKIN_MARGIN, DEFAULT_MAX_RUNTIME} from 'sentry/utils/monitor/cron';
 import {
   CRON_DEFAULT_FAILURE_ISSUE_THRESHOLD,
   CRON_DEFAULT_SCHEDULE_INTERVAL_UNIT,
@@ -26,11 +27,7 @@ import {
   useCronDetectorFormField,
 } from 'sentry/views/detectors/components/forms/cron/fields';
 import {ScheduleType} from 'sentry/views/insights/crons/types';
-import {
-  DEFAULT_CHECKIN_MARGIN,
-  DEFAULT_MAX_RUNTIME,
-  getScheduleIntervals,
-} from 'sentry/views/insights/crons/utils';
+import {getScheduleIntervals} from 'sentry/views/insights/crons/utils';
 import {crontabAsText} from 'sentry/views/insights/crons/utils/crontabAsText';
 
 const SCHEDULE_OPTIONS: Array<SelectValue<string>> = [

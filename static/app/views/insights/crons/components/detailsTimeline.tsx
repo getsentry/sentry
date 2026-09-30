@@ -16,16 +16,14 @@ import {
 import {useTimeWindowConfig} from 'sentry/components/checkInTimeline/hooks/useTimeWindowConfig';
 import {Panel} from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
+import {getNextCheckInEnv} from 'sentry/utils/monitor/cron';
 import {setApiQueryData} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {Monitor, MonitorBucket} from 'sentry/views/insights/crons/types';
-import {
-  getNextCheckInEnv,
-  makeMonitorDetailsQueryKey,
-} from 'sentry/views/insights/crons/utils';
+import {makeMonitorDetailsQueryKey} from 'sentry/views/insights/crons/utils';
 import {useMonitorStats} from 'sentry/views/insights/crons/utils/useMonitorStats';
 
 import {OverviewRow} from './overviewTimeline/overviewRow';

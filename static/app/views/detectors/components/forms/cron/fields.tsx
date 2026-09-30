@@ -4,15 +4,12 @@ import type {
   CronDetectorUpdatePayload,
 } from 'sentry/types/workflowEngine/detectors';
 import {defined} from 'sentry/utils/defined';
+import {DEFAULT_CHECKIN_MARGIN, DEFAULT_MAX_RUNTIME} from 'sentry/utils/monitor/cron';
 import {
   ScheduleType,
   type MonitorConfig,
   type MonitorIntervalUnit,
 } from 'sentry/views/insights/crons/types';
-import {
-  DEFAULT_CHECKIN_MARGIN,
-  DEFAULT_MAX_RUNTIME,
-} from 'sentry/views/insights/crons/utils';
 
 const CRON_DEFAULT_TIMEZONE = 'UTC';
 export const CRON_DEFAULT_SCHEDULE_TYPE = ScheduleType.CRONTAB;
