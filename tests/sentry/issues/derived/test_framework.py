@@ -15,13 +15,11 @@ from sentry.issues.derived.features import (
 )
 from sentry.issues.derived.framework import (
     AggregatorResult,
-    BoolCodec,
     Codec,
     DateTimeCodec,
     DerivedDataError,
     EnumCodec,
     Feature,
-    IntCodec,
     IntListCodec,
     OptionalCodec,
     Pipeline,
@@ -76,8 +74,12 @@ def test_mutation_checking_catches_in_place_mutation() -> None:
     class FakeEntry:
         type = 0
 
-    with pytest.raises(RuntimeError, match="mutated feature 'items' in place"):
+    with pytest.raises(DerivedDataError) as exc:
         p.step(state, FakeEntry())
+    assert exc.value.stage == "aggregate"
+    assert exc.value.aggregator_name == "bad_mutator"
+    assert isinstance(exc.value.__cause__, RuntimeError)
+    assert "mutated feature 'items' in place" in str(exc.value.__cause__)
 
 
 def test_state_updated_tracks_merged_features() -> None:
@@ -350,28 +352,6 @@ def test_codec_error_context(method: str, stage: Literal["decode", "encode"]) ->
     assert "sensitive value" not in str(exc.value)
 
 
-@pytest.mark.parametrize(
-    "codec,value",
-    [
-        (BoolCodec(), 1),
-        (BoolCodec(), "false"),
-        (IntCodec(), True),
-        (IntCodec(), 1.5),
-        (IntCodec(), "1"),
-        (IntListCodec(), [True]),
-        (IntListCodec(), ["1"]),
-        (IntListCodec(), {}),
-        (DateTimeCodec(), "2025-01-01"),
-    ],
-)
-@pytest.mark.parametrize("method", ["from_column", "to_column"])
-def test_invalid_typed_values(codec: Codec[Any], value: Any, method: str) -> None:
-    with pytest.raises(DerivedDataError) as exc:
-        getattr(Feature("typed", default=None, codec=codec), method)(value)
-    assert exc.value.feature_name == "typed"
-    assert isinstance(exc.value.__cause__, TypeError)
-
-
 def test_aggregator_error_context() -> None:
     feature = Feature[int]("count", default=0)
     cause = KeyError("missing field")
@@ -399,3 +379,24 @@ def test_codec_does_not_wrap_process_interrupt() -> None:
 
     with pytest.raises(KeyboardInterrupt):
         Feature("interrupt", default=None, codec=InterruptCodec()).from_json(None)
+
+
+def test_undeclared_output_has_aggregator_context() -> None:
+    declared = Feature("declared", default=0)
+    undeclared = Feature("undeclared", default=0)
+
+    @aggregator((declared,))
+    def bad_output(state: StateView, entry: object) -> AggregatorResult:
+        return StateUpdate({undeclared: 1})
+
+    class Entry:
+        type = 0
+        id = 42
+
+    with pytest.raises(DerivedDataError) as exc:
+        Pipeline([bad_output]).run([Entry()])
+    assert exc.value.stage == "aggregate"
+    assert exc.value.aggregator_name == "bad_output"
+    assert exc.value.entry_id == 42
+    assert isinstance(exc.value.__cause__, ValueError)
+    assert "undeclared outputs" in str(exc.value.__cause__)

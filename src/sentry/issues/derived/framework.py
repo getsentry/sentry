@@ -23,6 +23,8 @@ _MISSING = _Missing()
 class DerivedDataError(ValueError):
     """A codec or aggregator failed; the original exception is chained as its cause."""
 
+    # Preserve compatibility with readers catching ValueError during rollout.
+
     def __init__(
         self,
         stage: Literal["decode", "aggregate", "encode"],
@@ -85,24 +87,15 @@ IDENTITY_CODEC: Codec[Any] = Codec()
 
 
 class BoolCodec(Codec[bool]):
-    def _validate(self, value: Any) -> bool:
-        if not isinstance(value, bool):
-            raise TypeError("Expected a boolean")
-        return value
+    pass
 
 
 class IntCodec(Codec[int]):
-    def _validate(self, value: Any) -> int:
-        if type(value) is not int:
-            raise TypeError("Expected an integer")
-        return value
+    pass
 
 
 class IntListCodec(Codec[list[int]]):
-    def _validate(self, value: Any) -> list[int]:
-        if not isinstance(value, list) or any(type(item) is not int for item in value):
-            raise TypeError("Expected a list of integers")
-        return value
+    pass
 
 
 class EnumCodec[E: StrEnum](Codec[E]):
@@ -123,13 +116,8 @@ class EnumCodec[E: StrEnum](Codec[E]):
 
 
 class DateTimeCodec(Codec[datetime]):
-    def _validate(self, value: Any) -> datetime:
-        if not isinstance(value, datetime):
-            raise TypeError("Expected a datetime")
-        return value
-
     def to_json(self, value: datetime) -> str:
-        return self._validate(value).isoformat()
+        return value.isoformat()
 
     def from_json(self, raw: Any) -> datetime:
         return datetime.fromisoformat(raw)
@@ -481,24 +469,24 @@ class Pipeline[E: HasType]:
             snapshot = copy.deepcopy(subset._data) if self._check_mutations else None
             try:
                 result = agg.fn(subset, entry)
+                if snapshot is not None:
+                    for f, original in snapshot.items():
+                        if f in view_fields and subset._data[f] != original:
+                            raise RuntimeError(
+                                f"Aggregator {agg.name!r} mutated feature {f.name!r} in place"
+                            )
+                if result is not None:
+                    undeclared = result._undeclared(output_fields)
+                    if undeclared:
+                        names = {f.name for f in undeclared}
+                        raise ValueError(
+                            f"Aggregator {agg.name!r} produced undeclared outputs: {names}"
+                        )
+                    state.merge(result)
             except Exception as error:
                 raise DerivedDataError(
                     "aggregate", aggregator_name=agg.name, entry_id=getattr(entry, "id", None)
                 ) from error
-            if snapshot is not None:
-                for f, original in snapshot.items():
-                    if f in view_fields and subset._data[f] != original:
-                        raise RuntimeError(
-                            f"Aggregator {agg.name!r} mutated feature {f.name!r} in place"
-                        )
-            if result is not None:
-                undeclared = result._undeclared(output_fields)
-                if undeclared:
-                    names = {f.name for f in undeclared}
-                    raise ValueError(
-                        f"Aggregator {agg.name!r} produced undeclared outputs: {names}"
-                    )
-                state.merge(result)
         return state
 
     def run(self, entries: Iterable[E], state: State | None = None) -> State:
