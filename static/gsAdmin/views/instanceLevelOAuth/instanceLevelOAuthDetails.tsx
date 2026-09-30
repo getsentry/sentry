@@ -4,7 +4,7 @@ import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 import {Text} from '@sentry/scraps/text';
 
@@ -214,8 +214,8 @@ export function InstanceLevelOAuthDetails() {
           <PageHeader
             title={`Details For Instance Level OAuth Client: ${clientDetails.name}`}
           />
-          <ClientDetailsForm clientDetails={clientDetails} />
-          <Container paddingTop="lg" paddingBottom="lg">
+          <Stack gap="lg">
+            <ClientDetailsForm clientDetails={clientDetails} />
             <Flex justify="right">
               <Button
                 size="sm"
@@ -233,7 +233,7 @@ export function InstanceLevelOAuthDetails() {
                 Delete client
               </Button>
             </Flex>
-          </Container>
+          </Stack>
         </Fragment>
       )}
     </div>
