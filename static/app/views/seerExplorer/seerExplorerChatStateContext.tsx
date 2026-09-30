@@ -34,6 +34,8 @@ type SeerExplorerChatState = {
 type ChatStateAction =
   | {payload: {polling: PollingState; runId: SeerExplorerRunId}; type: 'set polling'}
   | {payload: SeerExplorerRunId | null; type: 'set run id'}
+  /** The unsaved chat on screen was created on the server; it's the same conversation. */
+  | {payload: SeerExplorerRunId; type: 'set created run id'}
   | {payload: ChatPrompt | null; type: 'set chat prompt'}
   /** Puts back a prompt whose send failed, unless a newer one has taken its place. */
   | {payload: ChatPrompt; type: 'restore chat prompt'};
@@ -84,6 +86,18 @@ function chatStateReducer(
       }
       // A pending question belongs to the conversation it was asked in.
       return {...state, runId: action.payload, chatPrompt: null};
+    }
+    case 'set created run id': {
+      if (state.runId === action.payload) {
+        return state;
+      }
+      // Still on the unsaved chat, so its pending question stays; otherwise the user has
+      // moved on and this is an ordinary run change.
+      return {
+        ...state,
+        runId: action.payload,
+        chatPrompt: state.runId === null ? state.chatPrompt : null,
+      };
     }
     case 'set chat prompt': {
       if (state.chatPrompt === action.payload) {

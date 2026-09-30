@@ -1,6 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {GlobalDrawer} from '@sentry/scraps/drawer';
 import {PictureInPictureProvider} from '@sentry/scraps/pictureInPicture';
@@ -210,6 +210,62 @@ describe('openChatPrompt', () => {
     // Explorer is already open now; clicking elsewhere must still hand focus back.
     await userEvent.click(screen.getByRole('button', {name: 'ask-dashboard'}));
     await waitFor(() => expect(textarea).toHaveFocus());
+  });
+
+  it('keeps a question asked while the first reply is creating the run', async () => {
+    let finishSend!: () => void;
+    const postDelayed = MockApiClient.addMockResponse({
+      url: chatUrl,
+      method: 'POST',
+      body: {run_id: 1},
+      asyncDelay: new Promise<void>(resolve => {
+        finishSend = resolve;
+      }),
+    });
+    render(tree(), {organization});
+
+    await userEvent.click(await screen.findByRole('button', {name: 'ask-widget'}));
+    await userEvent.type(await screen.findByTestId('seer-explorer-input'), 'why?');
+    await userEvent.keyboard('{Enter}');
+    await waitFor(() => expect(postDelayed).toHaveBeenCalled());
+
+    // Explorer is showing the unsaved chat, so a second question joins it.
+    await userEvent.click(screen.getByRole('button', {name: 'ask-dashboard'}));
+    expect(await screen.findByText('What about this dashboard?')).toBeInTheDocument();
+
+    act(() => finishSend());
+    await waitFor(() => expect(sessionStorage.getItem('seer-explorer-run-id')).toBe('1'));
+    expect(screen.getByText('What about this dashboard?')).toBeInTheDocument();
+  });
+
+  it('puts the question back when the reply fails, so the next attempt carries it', async () => {
+    const postFailing = MockApiClient.addMockResponse({
+      url: chatUrl,
+      method: 'POST',
+      statusCode: 500,
+      body: {detail: 'Failed to start or continue chat session'},
+    });
+    render(tree(), {organization});
+
+    await userEvent.click(await screen.findByRole('button', {name: 'ask-widget'}));
+    const textarea = await screen.findByTestId('seer-explorer-input');
+    await userEvent.type(textarea, 'why?');
+    await userEvent.keyboard('{Enter}');
+    await waitFor(() => expect(postFailing).toHaveBeenCalledTimes(1));
+
+    // The failed reply is back in the composer and the question is back above it.
+    await waitFor(() => expect(textarea).toHaveValue('why?'));
+    expect(screen.getByText('What about this widget?')).toBeInTheDocument();
+
+    await userEvent.click(textarea);
+    await userEvent.keyboard('{Enter}');
+    await waitFor(() => expect(postFailing).toHaveBeenCalledTimes(2));
+    expect(postFailing).toHaveBeenLastCalledWith(
+      chatUrl,
+      expect.objectContaining({
+        data: expect.objectContaining({chat_prompt: 'What about this widget?'}),
+      })
+    );
   });
 
   it('keeps one question, replacing it on each click', async () => {
