@@ -32,7 +32,9 @@ class AuthenticationForm(forms.Form):
     )
     password = forms.CharField(
         label=_("Password"),
-        widget=forms.PasswordInput(attrs={"placeholder": _("password"), "tabindex": 2}),
+        widget=forms.PasswordInput(
+            attrs={"placeholder": _("password"), "tabindex": 2, "class": "password-input"}
+        ),
     )
 
     error_messages = {

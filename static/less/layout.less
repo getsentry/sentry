@@ -176,6 +176,39 @@ body.auth {
     flex: 1;
   }
 
+  .login-form-field {
+    &.password-field {
+      position: relative;
+
+      .password-visibility-toggle {
+        position: absolute;
+        top: 34px;
+        right: 10px;
+        z-index: 3;
+        padding: 0;
+        border: 0;
+        background: none;
+        color: @gray;
+        cursor: pointer;
+        line-height: 1;
+        font-size: 16px;
+
+        &:hover,
+        &:focus {
+          color: @gray-dark;
+        }
+
+        .icon-eye {
+          font-size: 16px;
+        }
+      }
+
+      input.password-input {
+        padding-right: 34px;
+      }
+    }
+  }
+
   .auth-provider-column {
     width: 46%;
     padding-left: 30px;

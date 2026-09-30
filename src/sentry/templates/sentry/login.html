@@ -40,7 +40,19 @@
             {{ login_form|as_crispy_errors }}
 
             {% for field in login_form %}
-              {{ field|as_crispy_field }}
+              <div class="login-form-field{% if field.name == 'password' %} password-field{% endif %}">
+                {{ field|as_crispy_field }}
+                {% if field.name == 'password' %}
+                  <button
+                    type="button"
+                    class="password-visibility-toggle"
+                    aria-label="Show password"
+                    aria-pressed="false"
+                  >
+                    <span class="icon-eye"></span>
+                  </button>
+                {% endif %}
+              </div>
             {% endfor %}
 
             <div class="auth-footer m-t-1">
@@ -165,6 +177,42 @@
     document.cookie = `sentry_react_auth=1; Path=/auth/; SameSite=None; Secure${domainAttribute}`;
     window.location.reload();
   };
+
+  (function() {
+    function bindPasswordVisibilityToggles() {
+      document
+        .querySelectorAll('.password-visibility-toggle:not([data-bound])')
+        .forEach(function(button) {
+          button.setAttribute('data-bound', 'true');
+          button.addEventListener('click', function() {
+            var container = button.closest('.password-field');
+            if (!container) {
+              return;
+            }
+            var input = container.querySelector('input');
+            if (!input) {
+              return;
+            }
+            var isHidden = input.type === 'password';
+            input.type = isHidden ? 'text' : 'password';
+            // "pressed" means the password is currently visible. isHidden is
+            // the pre-toggle state, so after flipping to visible it is true.
+            button.setAttribute('aria-pressed', String(isHidden));
+            var label = button.getAttribute('aria-label');
+            button.setAttribute(
+              'aria-label',
+              label === 'Show password' ? 'Hide password' : 'Show password'
+            );
+          });
+        });
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', bindPasswordVisibilityToggles);
+    } else {
+      bindPasswordVisibilityToggles();
+    }
+  })();
 </script>
 {% endscript %}
 {% endblock %}
