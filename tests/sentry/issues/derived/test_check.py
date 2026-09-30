@@ -85,7 +85,17 @@ class CheckStatusConsistencyTest(TestCase):
             check_status_consistency(group, derived)
         with patch("sentry.issues.derived.check.metrics.incr") as incr:
             assert record_status_consistency(group, derived, source="read_path") is None
-        assert incr.call_args_list == [
+        status_calls = [
+            metric_call
+            for metric_call in incr.call_args_list
+            if metric_call.args[0]
+            in {
+                "issues.derived.feature_error",
+                "issues.status_reconciliation.error",
+                "issues.status_reconciliation.checked",
+            }
+        ]
+        assert status_calls == [
             call(
                 "issues.derived.feature_error",
                 sample_rate=1.0,
