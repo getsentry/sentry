@@ -141,7 +141,7 @@ export function RepoLockedConnectForm({
   );
 
   const pathsSection =
-    selectedProject && !isBranchPending ? (
+    selectedProject ? (
       <Container paddingTop="2xl">
         <PathMappingList
           key={selectedProject.id}
