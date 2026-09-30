@@ -1,17 +1,26 @@
 import {t} from 'sentry/locale';
-import type {NativeFrameVariable} from 'sentry/types/event';
+import type {FrameVariable} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/platform';
+
+import {getStructuredDataConfig} from './getStructuredDataConfig';
 
 /** Copy scalar values as text or captured collections as JSON, using annotated display text. */
 export function getFrameVariableCopyText(
-  variable: NativeFrameVariable,
+  variable: FrameVariable,
   platform: PlatformKey
 ): string {
   const value = getCopyValue(variable, platform);
+  const config = getStructuredDataConfig({platform});
+  if (value === null && config.renderNull) {
+    return String(config.renderNull(null));
+  }
+  if (typeof value === 'boolean' && config.renderBoolean) {
+    return String(config.renderBoolean(value));
+  }
   return typeof value === 'string' ? value : JSON.stringify(value, null, 2);
 }
 
-function getCopyValue(variable: NativeFrameVariable, platform: PlatformKey): unknown {
+function getCopyValue(variable: FrameVariable, platform: PlatformKey): unknown {
   if (variable.kind === 'array') {
     return variable.children.map(child => getCopyValue(child, platform));
   }
@@ -26,7 +35,8 @@ function getCopyValue(variable: NativeFrameVariable, platform: PlatformKey): unk
     return meta.chunks.map(chunk => chunk.text).join('');
   }
 
-  const hasValue = 'value' in variable && Boolean(variable.value);
+  const hasValue =
+    variable.kind !== 'null' && 'value' in variable && Boolean(variable.value);
   if (!hasValue && meta?.err?.length) {
     return `<${t('invalid')}>`;
   }
@@ -36,13 +46,18 @@ function getCopyValue(variable: NativeFrameVariable, platform: PlatformKey): unk
 
   switch (variable.kind) {
     case 'null':
+      if (platform === 'node' && variable.value === '<undefined>') {
+        return 'undefined';
+      }
       return platform === 'native' ? 'nullptr' : null;
     case 'unavailable':
       return t('Unavailable');
     case 'boolean':
-      return variable.value === 'true';
+      return variable.value === 'true' || variable.value === 'True';
     case 'number':
-      return platform === 'native' ? variable.value : Number(variable.value);
+      return platform === 'native' || platform === 'python'
+        ? variable.value
+        : Number(variable.value);
     default:
       return variable.value;
   }

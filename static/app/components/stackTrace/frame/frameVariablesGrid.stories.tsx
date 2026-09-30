@@ -1,12 +1,15 @@
-import {Container, Stack} from '@sentry/scraps/layout';
+import type {ReactNode} from 'react';
+import {useId, useState} from 'react';
+
+import {Checkbox} from '@sentry/scraps/checkbox';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {FrameVariablesGrid} from 'sentry/components/stackTrace/frame/frameVariablesGrid';
-import {getJsonFrameVariables} from 'sentry/components/stackTrace/frame/getJsonFrameVariables';
-import {NativeFrameVariables} from 'sentry/components/stackTrace/frame/nativeFrameVariables';
 import * as Storybook from 'sentry/stories';
-import type {NativeFrameVariable} from 'sentry/types/event';
 import type {Meta} from 'sentry/types/group';
+import {OrganizationContext} from 'sentry/utils/organizationContext';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 const filteredMeta: Partial<Meta> = {rem: [['project:0', 'x']]};
 const replacedMeta: Partial<Meta> = {rem: [['project:0', 's']]};
@@ -32,97 +35,6 @@ const truncatedStringMeta: Partial<Meta> = {
 };
 const truncatedItemsMeta: Partial<Meta> = {len: 5, rem: [['!limit', 'x']]};
 
-const position = [
-  {name: 'x', type: 'float', kind: 'number', value: '1.5'},
-  {name: 'y', type: 'float', kind: 'number', value: '-3.2'},
-  {name: 'z', type: 'float', kind: 'number', value: '0.0'},
-] satisfies NativeFrameVariable[];
-
-// Synthetic, decoded presentation fixtures. These are not the current API format.
-const nativeVariables: NativeFrameVariable[] = [
-  {
-    name: 'player',
-    type: 'Player *',
-    kind: 'object',
-    children: [
-      {name: 'id', type: 'int', kind: 'number', value: '1'},
-      {name: 'name', type: 'char[64]', kind: 'string', value: 'Alice'},
-      {
-        name: 'status',
-        type: 'RequestStatus',
-        kind: 'enum',
-        value: 'STATUS_OK',
-      },
-      {name: 'position', type: 'Vec3', kind: 'object', children: position},
-      {name: 'health', type: 'float', kind: 'number', value: '-5.5'},
-      {name: 'access_token', type: 'char *', kind: 'unavailable', meta: filteredMeta},
-      {
-        name: 'authorization',
-        type: 'char[32]',
-        kind: 'string',
-        value: maskedAuthorization,
-        meta: maskedMeta,
-      },
-      {
-        name: 'session_id',
-        type: 'char[64]',
-        kind: 'string',
-        value: '2f7c8a1d9b6e4305',
-        meta: {rem: [['project:0', 'p']]},
-      },
-      {
-        name: 'inventory',
-        type: 'Inventory *',
-        kind: 'object',
-        children: [
-          {name: 'capacity', type: 'int', kind: 'number', value: '16'},
-          {name: 'count', type: 'int', kind: 'number', value: '5'},
-          {
-            name: 'items',
-            type: 'int[5]',
-            kind: 'array',
-            meta: truncatedItemsMeta,
-            children: [
-              {name: '[0]', type: 'int', kind: 'number', value: '42'},
-              {name: '[1]', type: 'int', kind: 'number', value: '7'},
-            ],
-          },
-        ],
-      },
-    ],
-  },
-  {name: 'frame_number', type: 'int', kind: 'number', value: '1'},
-  {name: 'local_counter', type: 'int', kind: 'number', value: '10'},
-  {
-    name: 'm_attachmentDescriptorPoolAllocator',
-    type: 'vk::DescriptorPoolAllocator *',
-    kind: 'object',
-    children: [
-      {name: 'capacity', type: 'uint32_t', kind: 'number', value: '128'},
-      {name: 'allocated', type: 'uint32_t', kind: 'number', value: '12'},
-    ],
-  },
-  {
-    name: 'deferredLightingResolveFullscreenPass',
-    type: 'vk::RenderPass',
-    kind: 'object',
-    children: [
-      {
-        name: 'handle',
-        type: 'VkRenderPass',
-        kind: 'pointer',
-        value: '0x102a4c1e0',
-      },
-    ],
-  },
-  {name: 'damage', type: 'float', kind: 'number', value: '25.5'},
-  {name: 'velocity', type: 'Vec3', kind: 'object', children: position},
-  {name: 'pos_ptr', type: 'Vec3 *', kind: 'object', children: position},
-  {name: 'health_ptr', type: 'float *', kind: 'number', value: '-5.5'},
-  {name: 'status_ptr', type: 'RequestStatus *', kind: 'unavailable'},
-  {name: 'null_player', type: 'Player *', kind: 'null'},
-];
-
 const jsonVariables = {
   count: 42,
   enabled: true,
@@ -134,8 +46,12 @@ const jsonVariables = {
   },
   items: [1, 2, 3],
   empty: null,
+  empty_array: [],
+  empty_object: {},
   message: '0x2a (int)',
   sdk_omitted: null,
+  raw_omitted: null,
+  replaced_token: '[Filtered]',
   omitted_items: [],
   truncated_message: truncatedMessage,
 };
@@ -147,123 +63,104 @@ const jsonMeta = {
   },
   items: {'': truncatedItemsMeta},
   sdk_omitted: {'': omittedMeta},
+  raw_omitted: {'': {rem: [['!raw', 'x']]}},
+  replaced_token: {'': replacedMeta},
   omitted_items: {'': truncatedItemsMeta},
   truncated_message: {'': truncatedStringMeta},
 };
 
-const jsonTreeVariables = getJsonFrameVariables(jsonVariables, jsonMeta);
+const nativeVariables = {
+  count: '0x2a (int)',
+  damage: '0x3fc00000 (float)',
+  player: '0x16dc05ff0 (void*)',
+  null_pointer: '0x0 (int*)',
+  local_counter: 'int',
+  health_ptr: 'float*',
+  unknown_type: '<unknown>',
+  access_token: '[Filtered]',
+  sdk_omitted: null,
+  truncated_message: truncatedMessage,
+};
+
+const nativeMeta = {
+  access_token: {'': replacedMeta},
+  sdk_omitted: {'': omittedMeta},
+  truncated_message: {'': truncatedStringMeta},
+};
 
 export default Storybook.story('Frame variables', story => {
-  story('Native variables — typed tree preview', () => (
-    <Stack gap="lg">
-      <Text>Design preview with synthetic typed values. API integration is pending.</Text>
-      <Container borderTop="primary" maxWidth="960px">
-        <NativeFrameVariables variables={nativeVariables} defaultExpanded={['player']} />
-      </Container>
-    </Stack>
-  ));
-
-  story('Native variables — narrow', () => (
-    <Container width="360px" maxWidth="100%" borderTop="primary">
-      <NativeFrameVariables variables={nativeVariables} defaultExpanded={['player']} />
-    </Container>
-  ));
-
-  story('Native variables — empty, unavailable, and exact values', () => (
-    <Container borderTop="primary" maxWidth="960px">
-      <NativeFrameVariables
-        variables={[
-          {name: 'empty', type: 'Container', kind: 'object', children: []},
-          {name: 'unknown', type: '<unknown>', kind: 'unavailable'},
-          {
-            name: 'sdk_omitted',
-            type: 'char *',
-            kind: 'unavailable',
-            meta: omittedMeta,
-          },
-          {
-            name: 'raw_omitted',
-            type: 'char *',
-            kind: 'unavailable',
-            meta: {rem: [['!raw', 'x']]},
-          },
-          {
-            name: 'omitted_items',
-            type: 'int[5]',
-            kind: 'array',
-            children: [],
-            meta: truncatedItemsMeta,
-          },
-          {name: 'zero', type: 'int', kind: 'number', value: '0'},
-          {
-            name: 'large_counter',
-            type: 'uint64_t',
-            kind: 'number',
-            value: '18446744073709551615',
-          },
-          {
-            name: 'address',
-            type: 'void *',
-            kind: 'pointer',
-            value: '0xffffffffffffffff',
-          },
-          {
-            name: 'message',
-            type: 'char[128]',
-            kind: 'string',
-            value:
-              'A long string with "quotes" and a newline\nfor checking wrapping in the value column.',
-          },
-          {
-            name: 'truncated_message',
-            type: 'char[128]',
-            kind: 'string',
-            value: truncatedMessage,
-            meta: truncatedStringMeta,
-          },
-        ]}
-      />
-    </Container>
-  ));
-
-  story('Current native wire values', () => (
-    <Container maxWidth="960px">
-      <FrameVariablesGrid
-        platform="native"
-        data={{
-          count: '0x2a (int)',
-          damage: '0x3fc00000 (float)',
-          player: '0x16dc05ff0 (void*)',
-          null_pointer: '0x0 (int*)',
-          local_counter: 'int',
-          health_ptr: 'float*',
-          unknown_type: '<unknown>',
-          access_token: '[Filtered]',
-          sdk_omitted: null,
-          truncated_message: truncatedMessage,
-        }}
-        meta={{
-          access_token: {'': replacedMeta},
-          sdk_omitted: {'': omittedMeta},
-          truncated_message: {'': truncatedStringMeta},
-        }}
-      />
-    </Container>
-  ));
-
-  story('Existing JSON variables', () => (
-    <Container maxWidth="960px">
+  story('JSON variables', () => (
+    <VariableStory>
       <FrameVariablesGrid platform="node" data={jsonVariables} meta={jsonMeta} />
-    </Container>
+    </VariableStory>
   ));
 
-  story('JSON variables — tree preview', () => (
-    <Container borderTop="primary" maxWidth="960px">
-      <NativeFrameVariables
-        variables={jsonTreeVariables}
-        platform="node"
-        defaultExpanded={['player']}
+  story('JSON variables — narrow', () => (
+    <VariableStory narrow>
+      <FrameVariablesGrid platform="node" data={jsonVariables} meta={jsonMeta} />
+    </VariableStory>
+  ));
+
+  story('Native wire values', () => (
+    <VariableStory>
+      <FrameVariablesGrid platform="native" data={nativeVariables} meta={nativeMeta} />
+    </VariableStory>
+  ));
+
+  story('Python variables', () => (
+    <VariableStory>
+      <FrameVariablesGrid
+        platform="python"
+        data={{
+          "'status'": 'True',
+          "'empty'": 'None',
+          "'count'": '18446744073709551615',
+          "'message'": "'hello world'",
+          "'client'": '<Client at 0x12345>',
+          "'items'": ['1', '2'],
+        }}
+        meta={{"'items'": {'': truncatedItemsMeta}}}
       />
-    </Container>
+    </VariableStory>
   ));
 });
+
+/** Toggle the real product flag so each fixture exercises both rendering paths. */
+function VariableStory({
+  children,
+  narrow = false,
+}: {
+  children: ReactNode;
+  narrow?: boolean;
+}) {
+  const checkboxId = useId();
+  const organization = useOrganization();
+  const [enabled, setEnabled] = useState(true);
+  const features = organization.features.filter(
+    feature => feature !== 'native-variable-extraction'
+  );
+  if (enabled) {
+    features.push('native-variable-extraction');
+  }
+
+  return (
+    <OrganizationContext.Provider value={{...organization, features}}>
+      <Stack gap="lg">
+        <Flex as="label" align="center" gap="sm" htmlFor={checkboxId}>
+          <Checkbox
+            id={checkboxId}
+            checked={enabled}
+            onChange={() => setEnabled(value => !value)}
+          />
+          <Text>Use new variable UI</Text>
+        </Flex>
+        <Container
+          width={narrow ? '360px' : undefined}
+          maxWidth={narrow ? '100%' : '960px'}
+        >
+          {children}
+        </Container>
+      </Stack>
+    </OrganizationContext.Provider>
+  );
+}

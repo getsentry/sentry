@@ -1,21 +1,31 @@
-import type {NativeFrameVariable} from 'sentry/types/event';
+import type {FrameVariable} from 'sentry/types/event';
 import type {Meta} from 'sentry/types/group';
+import type {PlatformKey} from 'sentry/types/platform';
+
+import {getStructuredDataConfig} from './getStructuredDataConfig';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-/** Convert JSON variables into the tree preview model, preserving annotations at each path. */
+/** Convert frame variables into a tree, preserving SDK formatting and annotations at each path. */
 export function getJsonFrameVariables(
   data: Record<string, unknown>,
-  meta?: Record<string, unknown>
-): NativeFrameVariable[] {
+  meta?: Record<string, unknown>,
+  platform?: PlatformKey
+): FrameVariable[] {
   return Object.keys(data)
     .sort()
-    .map(name => toVariable(name, data[name], meta?.[name]));
+    .map(name => toVariable(name, data[name], meta?.[name], platform));
 }
 
-function toVariable(name: string, value: unknown, meta: unknown): NativeFrameVariable {
+function toVariable(
+  name: string,
+  value: unknown,
+  meta: unknown,
+  platform?: PlatformKey
+): FrameVariable {
+  const config = getStructuredDataConfig({platform});
   const localMeta = isRecord(meta) ? meta : undefined;
   const valueMeta = localMeta?.[''];
   const base = {
@@ -23,15 +33,23 @@ function toVariable(name: string, value: unknown, meta: unknown): NativeFrameVar
     meta: isRecord(valueMeta) ? (valueMeta as Partial<Meta>) : undefined,
   };
 
-  if (value === null) {
-    return {...base, kind: 'null'};
+  if (value === null || config.isNull?.(value)) {
+    return typeof value === 'string'
+      ? {...base, kind: 'null', value}
+      : {...base, kind: 'null'};
+  }
+  if (typeof value === 'boolean' || config.isBoolean?.(value)) {
+    return {...base, kind: 'boolean', value: String(value)};
+  }
+  if (typeof value === 'number' || config.isNumber?.(value)) {
+    return {...base, kind: 'number', value: String(value)};
   }
   if (Array.isArray(value)) {
     return {
       ...base,
       kind: 'array',
       children: value.map((child, index) =>
-        toVariable(`[${index}]`, child, localMeta?.[index])
+        toVariable(`[${index}]`, child, localMeta?.[index], platform)
       ),
     };
   }
@@ -39,17 +57,16 @@ function toVariable(name: string, value: unknown, meta: unknown): NativeFrameVar
     return {
       ...base,
       kind: 'object',
-      children: getJsonFrameVariables(value, localMeta),
+      children: getJsonFrameVariables(value, localMeta, platform),
     };
   }
 
   switch (typeof value) {
     case 'string':
-      return {...base, kind: 'string', value};
-    case 'number':
-      return {...base, kind: 'number', value: String(value)};
-    case 'boolean':
-      return {...base, kind: 'boolean', value: String(value)};
+      if (platform === 'native' || (platform === 'python' && !config.isString?.(value))) {
+        return {...base, kind: 'unformatted', value};
+      }
+      return {...base, kind: 'string', value: config.renderString?.(value) ?? value};
     default:
       return {...base, kind: 'unavailable'};
   }

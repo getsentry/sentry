@@ -1,152 +1,155 @@
-import {DataScrubbingRelayPiiConfigFixture} from 'sentry-fixture/dataScrubbingRelayPiiConfig';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {DetailedProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
-import {textWithMarkupMatcher} from 'sentry-test/utils';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {FrameVariablesGrid} from 'sentry/components/stackTrace/frame/frameVariablesGrid';
-import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {OrganizationContext} from 'sentry/utils/organizationContext';
 
 describe('FrameVariablesGrid', () => {
-  it('renders variables sorted alphabetically', () => {
-    render(
-      <FrameVariablesGrid
-        data={{
-          zebra: null,
-          alpha: null,
-          middle: null,
-        }}
-      />
+  it('switches the complete variable experience with the organization flag', async () => {
+    const organization = OrganizationFixture({features: []});
+    const data = {"'player'": {x: 1, y: 2}, count: 42};
+    function Example({enabled}: {enabled: boolean}) {
+      return (
+        <OrganizationContext.Provider
+          value={{
+            ...organization,
+            features: enabled ? ['native-variable-extraction'] : [],
+          }}
+        >
+          <FrameVariablesGrid platform="node" data={data} />
+        </OrganizationContext.Provider>
+      );
+    }
+    const {rerender} = render(<Example enabled={false} />);
+
+    expect(screen.getByText('player')).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: /Copy .* value/})).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Expand player'})).not.toBeInTheDocument();
+
+    rerender(<Example enabled />);
+
+    expect(screen.getByText('player')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Copy player value'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Collapse player'})).toHaveAttribute(
+      'aria-expanded',
+      'true'
     );
+    expect(screen.getByText('x')).toBeInTheDocument();
 
-    const keys = screen.getAllByText(/^(alpha|middle|zebra)$/);
-    expect(keys[0]).toHaveTextContent('alpha');
-    expect(keys[1]).toHaveTextContent('middle');
-    expect(keys[2]).toHaveTextContent('zebra');
+    rerender(<Example enabled={false} />);
+
+    expect(screen.getByText('player')).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: /Copy .* value/})).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Collapse player'})
+    ).not.toBeInTheDocument();
   });
 
-  it('strips quotes from variable keys', () => {
-    render(
-      <FrameVariablesGrid
-        data={{
-          "'quoted'": 'value',
-          unquoted: 'value',
-        }}
-      />
-    );
+  describe.each([false, true])('with the variable tree enabled: %s', enabled => {
+    it('sorts and formats variable names without mutating the input', () => {
+      const data = Object.freeze({zebra: null, "'alpha'": null, middle: null});
+      render(<FrameVariablesGrid data={data} />, {
+        organization: OrganizationFixture({
+          features: enabled ? ['native-variable-extraction'] : [],
+        }),
+      });
 
-    expect(screen.getByText('quoted')).toBeInTheDocument();
-    expect(screen.getByText('unquoted')).toBeInTheDocument();
-  });
-
-  it('renders null when data is null', () => {
-    const {container} = render(<FrameVariablesGrid data={null} />);
-    expect(container).toBeEmptyDOMElement();
-  });
-
-  it('renders meta annotations with tooltips for filtered values', async () => {
-    const organization = OrganizationFixture();
-    const project = DetailedProjectFixture({id: '0'});
-    const projectDetails = DetailedProjectFixture({
-      ...project,
-      relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfigFixture()),
+      expect(
+        screen.getAllByText(/^(alpha|middle|zebra)$/).map(element => element.textContent)
+      ).toEqual(['alpha', 'middle', 'zebra']);
+      expect(screen.queryByText("'alpha'")).not.toBeInTheDocument();
+      expect(Object.keys(data)).toEqual(['zebra', "'alpha'", 'middle']);
     });
 
-    MockApiClient.addMockResponse({
-      url: `/projects/org-slug/${project.slug}/`,
-      body: projectDetails,
+    it('renders nothing when there are no variables', () => {
+      const {container} = render(<FrameVariablesGrid data={null} />, {
+        organization: OrganizationFixture({
+          features: enabled ? ['native-variable-extraction'] : [],
+        }),
+      });
+      expect(container).toBeEmptyDOMElement();
     });
-    ProjectsStore.loadInitialData([project]);
+  });
 
-    const initialRouterConfig = {
-      location: {
-        pathname: '/organizations/org-slug/issues/1/',
-        query: {project: project.id},
+  it.each([
+    ['native', {count: '0x2a (int)'}, [['count', '0x2a (int)']]],
+    [
+      'python',
+      {
+        count: '18446744073709551615',
+        active: 'True',
+        empty: 'None',
+        message: "'hello'",
+        client: '<Client at 0x12345>',
       },
-      route: '/organizations/:orgId/issues/:groupId/',
-    };
+      [
+        ['count', '18446744073709551615'],
+        ['active', 'True'],
+        ['empty', 'None'],
+        ['message', 'hello'],
+        ['client', '<Client at 0x12345>'],
+      ],
+    ],
+    [
+      'ruby',
+      {active: 'false', empty: 'nil'},
+      [
+        ['active', 'false'],
+        ['empty', 'nil'],
+      ],
+    ],
+    [
+      'php',
+      {active: 'true', empty: 'null'},
+      [
+        ['active', 'true'],
+        ['empty', 'null'],
+      ],
+    ],
+    [
+      'node',
+      {empty: '<null>', missing: '<undefined>'},
+      [
+        ['empty', 'null'],
+        ['missing', 'undefined'],
+      ],
+    ],
+  ] as const)(
+    'preserves %s SDK values when displayed and copied',
+    async (platform, data, values) => {
+      const writeText = jest.fn().mockResolvedValue(undefined);
+      Object.assign(navigator, {clipboard: {writeText}});
+      render(<FrameVariablesGrid platform={platform} data={data} />, {
+        organization: OrganizationFixture({features: ['native-variable-extraction']}),
+      });
 
-    render(
-      <FrameVariablesGrid
-        data={{
-          "'client'": '',
-          "'data'": null,
-        }}
-        meta={{
-          "'client'": {
-            '': {
-              rem: [['project:0', 's', 0, 0]],
-              len: 41,
-              chunks: [
-                {
-                  type: 'redaction',
-                  text: '',
-                  rule_id: 'project:0',
-                  remark: 's',
-                },
-              ],
-            },
-          },
-        }}
-      />,
-      {organization, initialRouterConfig}
-    );
+      for (const [name, value] of values) {
+        expect(screen.getByText(value)).toBeInTheDocument();
+        await userEvent.click(screen.getByRole('button', {name: `Copy ${name} value`}));
+        expect(writeText).toHaveBeenLastCalledWith(value);
+      }
+    }
+  );
 
-    expect(screen.getByText(/redacted/)).toBeInTheDocument();
+  it.each(['<null>', '<undefined>'])(
+    'keeps a redacted %s sentinel redacted when displayed and copied',
+    async value => {
+      const writeText = jest.fn().mockResolvedValue(undefined);
+      Object.assign(navigator, {clipboard: {writeText}});
+      render(
+        <FrameVariablesGrid
+          platform="node"
+          data={{token: value}}
+          meta={{token: {'': {rem: [['!config', 'x']]}}}}
+        />,
+        {organization: OrganizationFixture({features: ['native-variable-extraction']})}
+      );
 
-    await userEvent.hover(screen.getByText(/redacted/));
-
-    expect(
-      await screen.findByText(
-        textWithMarkupMatcher(
-          'Replaced because of the data scrubbing rule [Replace] [Password fields] with [Scrubbed] from [password] in the settings of the project project-slug'
-        )
-      )
-    ).toBeInTheDocument();
-  });
-
-  it('renders python variables correctly', () => {
-    render(
-      <FrameVariablesGrid
-        data={{
-          null_val: 'None',
-          bool_val: 'True',
-          str_val: "'string'",
-          number_val: '123.45',
-          other_val: '<Class at 0x12345>',
-        }}
-        platform="python"
-      />
-    );
-
-    expect(
-      within(screen.getByTestId('value-null')).getByText('None')
-    ).toBeInTheDocument();
-    expect(
-      within(screen.getByTestId('value-boolean')).getByText('True')
-    ).toBeInTheDocument();
-    expect(
-      within(screen.getByTestId('value-string')).getByText('"string"')
-    ).toBeInTheDocument();
-    expect(
-      within(screen.getByTestId('value-number')).getByText('123.45')
-    ).toBeInTheDocument();
-    expect(
-      within(screen.getByTestId('value-unformatted')).getByText('<Class at 0x12345>')
-    ).toBeInTheDocument();
-  });
-
-  it('does not mutate the data prop', () => {
-    const data = {
-      zebra: 'last',
-      alpha: 'first',
-      middle: 'middle',
-    };
-    const originalKeys = Object.keys(data);
-
-    render(<FrameVariablesGrid data={data} />);
-
-    expect(Object.keys(data)).toEqual(originalKeys);
-  });
+      expect(screen.getByText('<redacted>')).toBeInTheDocument();
+      expect(screen.queryByText(/^(null|undefined)$/)).not.toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', {name: 'Copy token value'}));
+      expect(writeText).toHaveBeenLastCalledWith('<redacted>');
+    }
+  );
 });

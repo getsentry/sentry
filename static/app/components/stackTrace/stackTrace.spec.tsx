@@ -266,95 +266,102 @@ describe('Core StackTrace', () => {
     expect(screen.queryByText('System')).not.toBeInTheDocument();
   });
 
-  it('renders captured python frame variables', async () => {
-    render(<ExampleStackTrace />);
+  it('renders captured variables through the new tree in an expanded frame', async () => {
+    render(<ExampleStackTrace />, {
+      organization: OrganizationFixture({features: ['native-variable-extraction']}),
+    });
 
     expect(await screen.findByText('args')).toBeInTheDocument();
     expect(screen.getByText('dsn')).toBeInTheDocument();
   });
 
-  it('renders variable redaction metadata like legacy frame variables', async () => {
-    const {event, stacktrace} = makeStackTraceData();
-    const frame = stacktrace.frames[stacktrace.frames.length - 1]!;
-    const organization = OrganizationFixture();
-    const project = DetailedProjectFixture({id: event.projectID});
-    const projectDetails = DetailedProjectFixture({
-      ...project,
-      relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfigFixture()),
-    });
-    const initialRouterConfig = {
-      location: {
-        pathname: `/organizations/${organization.slug}/issues/1/`,
-        query: {project: project.id},
-      },
-      route: '/organizations/:orgId/issues/:groupId/',
-    };
+  it.each([false, true])(
+    'renders variable redaction metadata (tree: %s)',
+    async enabled => {
+      const {event, stacktrace} = makeStackTraceData();
+      const frame = stacktrace.frames[stacktrace.frames.length - 1]!;
+      const organization = OrganizationFixture({
+        features: enabled ? ['native-variable-extraction'] : [],
+      });
+      const project = DetailedProjectFixture({id: event.projectID});
+      const projectDetails = DetailedProjectFixture({
+        ...project,
+        relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfigFixture()),
+      });
+      const initialRouterConfig = {
+        location: {
+          pathname: `/organizations/${organization.slug}/issues/1/`,
+          query: {project: project.id},
+        },
+        route: '/organizations/:orgId/issues/:groupId/',
+      };
 
-    ProjectsStore.loadInitialData([project]);
-    MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/`,
-      body: projectDetails,
-    });
+      ProjectsStore.loadInitialData([project]);
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/`,
+        body: projectDetails,
+      });
 
-    render(
-      <TestStackTraceProvider
-        event={event}
-        stacktrace={{
-          ...stacktrace,
-          frames: [
-            {
-              ...frame,
-              inApp: true,
-              vars: {
-                "'client'": '',
+      render(
+        <TestStackTraceProvider
+          event={event}
+          stacktrace={{
+            ...stacktrace,
+            frames: [
+              {
+                ...frame,
+                inApp: true,
+                vars: {
+                  "'client'": '',
+                },
               },
-            },
-          ],
-        }}
-        meta={{
-          frames: [
-            {
-              vars: {
-                "'client'": {
-                  '': {
-                    rem: [['project:0', 's', 0, 0]],
-                    len: 41,
-                    chunks: [
-                      {
-                        type: 'redaction',
-                        text: '',
-                        rule_id: 'project:0',
-                        remark: 's',
-                      },
-                    ],
+            ],
+          }}
+          meta={{
+            frames: [
+              {
+                vars: {
+                  "'client'": {
+                    '': {
+                      rem: [['project:0', 's', 0, 0]],
+                      len: 41,
+                      chunks: [
+                        {
+                          type: 'redaction',
+                          text: '',
+                          rule_id: 'project:0',
+                          remark: 's',
+                        },
+                      ],
+                    },
                   },
                 },
               },
-            },
-          ],
-        }}
-      >
-        <DisplayOptions />
-        <StackTraceFrames frameContextComponent={FrameContent} />
-      </TestStackTraceProvider>,
-      {
-        organization,
-        initialRouterConfig,
-      }
-    );
+            ],
+          }}
+        >
+          <DisplayOptions />
+          <StackTraceFrames frameContextComponent={FrameContent} />
+        </TestStackTraceProvider>,
+        {
+          organization,
+          initialRouterConfig,
+        }
+      );
 
-    expect(screen.getByText(/redacted/i)).toBeInTheDocument();
+      expect(screen.getByText(/redacted/i)).toBeInTheDocument();
 
-    await userEvent.hover(screen.getByText(/redacted/i));
+      await userEvent.hover(screen.getByText(/redacted/i));
 
-    expect(
-      await screen.findByText(
-        textWithMarkupMatcher(
-          'Replaced because of the data scrubbing rule [Replace] [Password fields] with [Scrubbed] from [password] in the settings of the project project-slug'
+      expect(
+        await screen.findByText(
+          textWithMarkupMatcher(
+            'Replaced because of the data scrubbing rule [Replace] [Password fields] with [Scrubbed] from [password] in the settings of the project project-slug'
+          )
         )
-      )
-    ).toBeInTheDocument();
-  });
+      ).toBeInTheDocument();
+    }
+  );
 
   it('renders custom frame context via StackTraceFrames slot', async () => {
     const {event, stacktrace} = makeStackTraceData();

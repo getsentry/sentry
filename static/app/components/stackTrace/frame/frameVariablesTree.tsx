@@ -12,24 +12,28 @@ import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {getTooltipText} from 'sentry/components/events/meta/annotatedText/utils';
 import {t, tn} from 'sentry/locale';
-import type {NativeFrameVariable} from 'sentry/types/event';
+import type {FrameVariable} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/platform';
 
 import {getFrameVariableCopyText} from './getFrameVariableCopyText';
+import {getStructuredDataConfig} from './getStructuredDataConfig';
 
 interface Props {
-  variables: readonly NativeFrameVariable[];
+  variables: readonly FrameVariable[];
+  /** Override automatic expansion with the top-level variable names to open. */
   defaultExpanded?: readonly string[];
   platform?: PlatformKey;
 }
 
-const KEY_PREVIEW_LENGTH = 24;
+const KEY_PREVIEW_LENGTH = 32;
+const AUTO_EXPAND_MAX_ITEMS = 5;
+const AUTO_EXPAND_MAX_DEPTH = 2;
 
 /**
  * Preview whole child keys within a character budget, followed by an ellipsis
  * when more keys remain. An oversized first key is truncated instead.
  */
-function getKeyPreview(children: readonly NativeFrameVariable[]): string {
+function getKeyPreview(children: readonly FrameVariable[]): string {
   const [first, ...remaining] = children;
   if (!first) {
     return '';
@@ -49,9 +53,9 @@ function getKeyPreview(children: readonly NativeFrameVariable[]): string {
   return preview;
 }
 
-export function NativeFrameVariables({
+export function FrameVariablesTree({
   variables,
-  defaultExpanded = [],
+  defaultExpanded,
   platform = 'native',
 }: Props) {
   return (
@@ -65,7 +69,8 @@ export function NativeFrameVariables({
             variable={variable}
             platform={platform}
             depth={0}
-            defaultExpanded={defaultExpanded.includes(variable.name)}
+            defaultExpanded={defaultExpanded?.includes(variable.name)}
+            autoExpand={defaultExpanded === undefined}
           />
         </Container>
       ))}
@@ -77,14 +82,15 @@ function Variable({
   variable,
   platform,
   depth,
-  defaultExpanded = false,
+  autoExpand,
+  defaultExpanded,
 }: {
+  autoExpand: boolean;
   depth: number;
   platform: PlatformKey;
-  variable: NativeFrameVariable;
+  variable: FrameVariable;
   defaultExpanded?: boolean;
 }) {
-  const [expanded, setExpanded] = useState(defaultExpanded);
   const copyText = useMemo(
     () => getFrameVariableCopyText(variable, platform),
     [variable, platform]
@@ -94,7 +100,15 @@ function Variable({
   const totalCount = isCollection
     ? Math.max(variable.children.length, variable.meta?.len ?? 0)
     : 0;
+  const shouldAutoExpand =
+    autoExpand &&
+    hasChildren &&
+    depth < AUTO_EXPAND_MAX_DEPTH &&
+    totalCount <= AUTO_EXPAND_MAX_ITEMS;
+  const [expanded, setExpanded] = useState(defaultExpanded ?? shouldAutoExpand);
   const truncatedCount = isCollection ? totalCount - variable.children.length : 0;
+  const name =
+    depth === 0 ? variable.name.replace(/^['"](.*)['"]$/, '$1') : variable.name;
   const [ruleId, remark] = variable.meta?.rem?.[0] ?? [];
   const label = (
     <Stack minWidth="0" gap="2xs" align="start">
@@ -106,10 +120,10 @@ function Variable({
         nested={depth > 0}
         density="comfortable"
         mode="overflowOnly"
-        title={variable.name}
+        title={name}
         maxWidth={400}
       >
-        {variable.name}
+        {name}
       </VariableName>
       {variable.type && (
         <InfoText
@@ -171,11 +185,7 @@ function Variable({
           <Grid columns="18px minmax(0, 1fr)" align="center">
             <CaretContainer>
               <VariableTitle
-                aria-label={
-                  expanded
-                    ? t('Collapse %s', variable.name)
-                    : t('Expand %s', variable.name)
-                }
+                aria-label={expanded ? t('Collapse %s', name) : t('Expand %s', name)}
               />
             </CaretContainer>
             {label}
@@ -201,7 +211,7 @@ function Variable({
               <SummaryButton
                 variant="transparent"
                 size="zero"
-                aria-label={t('Expand %s', variable.name)}
+                aria-label={t('Expand %s', name)}
                 onClick={() => setExpanded(true)}
               >
                 {summary}
@@ -218,7 +228,7 @@ function Variable({
             text={copyText}
             size="zero"
             variant="transparent"
-            aria-label={t('Copy %s value', variable.name)}
+            aria-label={t('Copy %s value', name)}
             tooltipProps={{title: t('Copy value')}}
           />
         )}
@@ -242,6 +252,7 @@ function Variable({
                 variable={child}
                 depth={depth + 1}
                 platform={platform}
+                autoExpand={shouldAutoExpand}
               />
             ))}
             {truncatedCount > 0 && (
@@ -266,7 +277,7 @@ function ScalarValue({
   platform,
 }: {
   platform: PlatformKey;
-  variable: Exclude<NativeFrameVariable, {kind: 'object' | 'array'}>;
+  variable: Exclude<FrameVariable, {kind: 'object' | 'array'}>;
 }) {
   const {kind, meta} = variable;
   const hasAnnotations = Boolean(
@@ -282,12 +293,24 @@ function ScalarValue({
   }
 
   let value: string | null;
+  const config = getStructuredDataConfig({platform});
   switch (kind) {
     case 'unavailable':
       value = null;
       break;
     case 'null':
-      value = hasAnnotations ? null : platform === 'native' ? 'nullptr' : 'null';
+      value = hasAnnotations
+        ? null
+        : String(
+            config.renderNull?.(variable.value ?? null) ??
+              (platform === 'native' ? 'nullptr' : 'null')
+          );
+      break;
+    case 'boolean':
+      value = String(
+        config.renderBoolean?.(variable.value === 'true' || variable.value === 'True') ??
+          variable.value
+      );
       break;
     case 'string':
       value = hasAnnotations
@@ -397,7 +420,7 @@ const VariableName = styled(InfoText)<{nested: boolean}>`
     p.nested ? p.theme.tokens.content.danger : p.theme.tokens.content.primary};
 `;
 
-const VariableValue = styled(Text)<{kind: NativeFrameVariable['kind']}>`
+const VariableValue = styled(Text)<{kind: FrameVariable['kind']}>`
   color: ${p =>
     p.kind === 'string'
       ? p.theme.tokens.content.success
