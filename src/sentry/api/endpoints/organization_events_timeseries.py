@@ -282,7 +282,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                     organization,
                     include_annotations,
                     ingestion_delay_status,
-                    request,
+                    request=request,
                 ),
                 status=200,
             )
