@@ -318,13 +318,9 @@ def emit_evaluation_to_eap(
             filter_group_ids: list[int]
             passing_filter_group_ids: list[int]
 
-        Condition comparison and input values are excluded.
-        None-valued fields are omitted, including inside JSON; false, zero, and
-        empty arrays are kept. Delayed evaluations have no detector or initial
-        event context, no delayed property, and an empty triggered_action_ids
-        array even when actions will fire. Empty batches only have the common
-        fields, plus evaluation_phase and group_id where available; they have
-        no triggered flag or condition details.
+        NOTE; currently Condition comparison and input values are excluded. This will
+        be addressed in a subsequent update to ensure both are correctly captured as
+        both attributes are critical to store in EAP.
 
     How to search:
         Select the workflow-engine-evaluation item type and scope by project and time.
