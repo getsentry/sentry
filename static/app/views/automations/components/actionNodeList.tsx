@@ -59,26 +59,6 @@ function getActionHandler(
   return availableActions.find(handler => handler.type === action.type);
 }
 
-function getUnavailableActionMessage(
-  actionLabel: string | undefined,
-  handler: ActionHandler | undefined
-) {
-  if (actionLabel && handler?.disabledReason === 'plan') {
-    return t(
-      'Your plan no longer includes %s alerts. Remove this action to save changes, or upgrade your plan to keep it.',
-      actionLabel
-    );
-  }
-  return actionLabel
-    ? t(
-        'The %s action is no longer available. Please remove and reconfigure this action.',
-        actionLabel
-      )
-    : t(
-        'The integration is no longer available. Please remove and reconfigure this action.'
-      );
-}
-
 export function ActionNodeList({
   conditionGroupId,
   placeholder,
@@ -101,7 +81,7 @@ export function ActionNodeList({
     const otherActions: Option[] = [];
 
     availableActions.forEach(action => {
-      if (action.type === ActionType.PLUGIN || action.disabledReason) {
+      if (action.type === ActionType.PLUGIN) {
         return;
       }
       const label =
@@ -146,7 +126,7 @@ export function ActionNodeList({
           return null;
         }
         const handler = getActionHandler(action, availableActions);
-        if (!handler || handler.disabledReason) {
+        if (!handler) {
           const actionLabel = actionNodesMap.get(action.type)?.label;
           return (
             <AutomationBuilderRow
@@ -155,7 +135,9 @@ export function ActionNodeList({
                 onDeleteRow(action.id);
               }}
               hasError
-              errorMessage={getUnavailableActionMessage(actionLabel, handler)}
+              errorMessage={t(
+                'This action is no longer available. Remove it to save changes.'
+              )}
             >
               {actionLabel ?? t('Unknown integration')}
             </AutomationBuilderRow>
