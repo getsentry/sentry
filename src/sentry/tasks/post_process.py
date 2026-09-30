@@ -15,7 +15,7 @@ from django.db.models.signals import post_save
 from django.utils import timezone
 from google.api_core.exceptions import ServiceUnavailable
 
-from sentry import features, options, projectoptions
+from sentry import features, nodestore, options, projectoptions
 from sentry.constants import ObjectStatus
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.issues.grouptype import GroupCategory
@@ -562,10 +562,11 @@ def post_process_group(
 
     with snuba.options_override({"consistent": True}):
         from sentry.issues.occurrence_consumer import EventLookupError
+        from sentry.models.event import EventDict
         from sentry.models.organization import Organization
         from sentry.models.project import Project
         from sentry.reprocessing2 import is_reprocessed_event
-        from sentry.services import eventstore
+        from sentry.services.eventstore.models import Event
 
         if occurrence_id is None:
             # Reprocessing keeps the event ID but assigns a new group. Allow that
@@ -604,17 +605,18 @@ def post_process_group(
         assert event_id is not None
 
         def get_event_raise_exception() -> Event:
-            retrieved = eventstore.backend.get_event_by_id(
-                project_id,
-                event_id,
-                group_id=group_id,
-                skip_transaction_groupevent=True,
-                occurrence_id=occurrence_id,
-            )
-            if retrieved is None:
+            # Bypass eventstore and go to nodestore directly. This allows us to
+            # customize renormalization below.
+            data = nodestore.backend.get(Event.generate_node_id(project_id, event_id))
+            if not data:
                 raise EventLookupError(
-                    f"failed to retrieve event(project_id={project_id}, event_id={event_id}, group_id={group_id}) from eventstore"
+                    f"failed to retrieve event(project_id={project_id}, event_id={event_id}, group_id={group_id}) from nodestore"
                 )
+
+            retrieved = Event(project_id=project_id, event_id=event_id, group_id=group_id)
+            # The stored payload was already normalized during ingestion. Bind it
+            # before any data access so post-processing does not normalize it again.
+            retrieved.data.bind_data(EventDict(data, skip_renormalization=True))
             return retrieved
 
         event = fetch_retry_policy(get_event_raise_exception)

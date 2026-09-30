@@ -15,7 +15,7 @@ from django.test import override_settings
 from django.utils import timezone
 from google.api_core.exceptions import ServiceUnavailable
 
-from sentry import buffer, killswitches
+from sentry import buffer, killswitches, nodestore
 from sentry.analytics.events.first_flag_sent import FirstFlagSentEvent
 from sentry.constants import ObjectStatus
 from sentry.eventstream.types import EventStreamEventType
@@ -31,6 +31,7 @@ from sentry.issues.grouptype import (
     PerformanceP95EndpointRegressionGroupType,
 )
 from sentry.issues.ingest import save_issue_occurrence
+from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.occurrence_consumer import EventLookupError
 from sentry.issues.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.models.activity import Activity, ActivityIntegration
@@ -52,7 +53,6 @@ from sentry.models.organization import Organization
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.userreport import UserReport
-from sentry.services import eventstore
 from sentry.services.eventstore.models import Event
 from sentry.services.eventstore.processing import event_processing_store
 from sentry.silo.base import SiloMode
@@ -3514,9 +3514,8 @@ class PostProcessGroupErrorTest(
         with (
             patch.object(event_processing_store, "get") as mock_processing_store_get,
             patch.object(event_processing_store, "delete_by_key") as mock_processing_store_delete,
-            patch.object(
-                eventstore.backend, "get_event_by_id", wraps=eventstore.backend.get_event_by_id
-            ) as mock_get_event,
+            patch.object(nodestore.backend, "get", wraps=nodestore.backend.get) as mock_get_node,
+            patch("sentry.models.event.StoreNormalizer.normalize_event") as mock_normalize,
         ):
             for _ in range(2):
                 post_process_group(
@@ -3531,14 +3530,10 @@ class PostProcessGroupErrorTest(
 
         mock_processing_store_get.assert_not_called()
         mock_processing_store_delete.assert_not_called()
-        mock_get_event.assert_called_once_with(
-            event.project_id,
-            event.event_id,
-            group_id=event.group_id,
-            skip_transaction_groupevent=True,
-            occurrence_id=None,
-        )
+        mock_get_node.assert_called_once_with(event.data.id)
+        mock_normalize.assert_not_called()
         mock_run_post_process_job.assert_called_once()
+        assert mock_run_post_process_job.call_args.args[0]["event"].group_id == event.group_id
         assert ["source", "nodestore"] in mock_run_post_process_job.call_args.args[0]["event"].data[
             "tags"
         ]
@@ -3568,9 +3563,7 @@ class PostProcessGroupErrorTest(
     @patch("sentry.utils.retries.time.sleep")
     def test_retries_missing_event(self, mock_sleep: MagicMock, mock_run_job: MagicMock) -> None:
         event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
-        with patch.object(
-            eventstore.backend, "get_event_by_id", side_effect=[None, event]
-        ) as fetch:
+        with patch.object(nodestore.backend, "get", side_effect=[None, dict(event.data)]) as fetch:
             self.call_post_process_group(True, False, True, event)
 
         assert fetch.call_count == 2
@@ -3584,7 +3577,7 @@ class PostProcessGroupErrorTest(
     ) -> None:
         event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
         with patch.object(
-            eventstore.backend, "get_event_by_id", side_effect=[ServiceUnavailable("retry"), event]
+            nodestore.backend, "get", side_effect=[ServiceUnavailable("retry"), dict(event.data)]
         ) as fetch:
             self.call_post_process_group(True, False, True, event)
 
@@ -3599,7 +3592,7 @@ class PostProcessGroupErrorTest(
     ) -> None:
         event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
         with (
-            patch.object(eventstore.backend, "get_event_by_id", return_value=None) as fetch,
+            patch.object(nodestore.backend, "get", return_value=None) as fetch,
             pytest.raises(EventLookupError),
         ):
             self.call_post_process_group(True, False, True, event)
@@ -3616,7 +3609,7 @@ class PostProcessGroupErrorTest(
         event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
         with (
             patch.object(
-                eventstore.backend, "get_event_by_id", side_effect=ServiceUnavailable("unavailable")
+                nodestore.backend, "get", side_effect=ServiceUnavailable("unavailable")
             ) as fetch,
             pytest.raises(ServiceUnavailable),
         ):
@@ -3818,6 +3811,33 @@ class PostProcessGroupGenericTest(
         # Skip this test since there's no way to have issueless events in the issue platform
         pass
 
+    @patch("sentry.tasks.post_process.run_post_process_job")
+    def test_reads_occurrence_event_without_renormalization(self, mock_run_job: MagicMock) -> None:
+        event = self.create_event(
+            data={"message": "from nodestore", "tags": [["source", "nodestore"]]},
+            project_id=self.project.id,
+        )
+        with (
+            patch.object(nodestore.backend, "get", wraps=nodestore.backend.get) as mock_get_node,
+            patch("sentry.models.event.StoreNormalizer.normalize_event") as mock_normalize,
+        ):
+            self.call_post_process_group(True, False, True, event)
+
+        assert mock_get_node.call_args_list == [
+            mock.call(
+                IssueOccurrence.build_storage_identifier(event.occurrence.id, event.project_id)
+            ),
+            mock.call(event.data.id),
+        ]
+        mock_normalize.assert_not_called()
+        mock_run_job.assert_called_once()
+        retrieved = mock_run_job.call_args.args[0]["event"]
+        assert retrieved.event_id == event.event_id
+        assert retrieved.group_id == event.group_id
+        assert retrieved.occurrence.id == event.occurrence.id
+        assert retrieved.get_event_type() == "generic"
+        assert ["source", "nodestore"] in retrieved.data["tags"]
+
     @patch("sentry.workflow_engine.tasks.workflows.process_workflows_event")
     def test_occurrence_deduping(self, mock_process_workflows_event: MagicMock) -> None:
         event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
@@ -3874,22 +3894,14 @@ class PostProcessGroupGenericTest(
         self, mock_sleep: MagicMock, mock_run_job: MagicMock
     ) -> None:
         event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
-        retrieved = Event(
-            project_id=event.project_id, event_id=event.event_id, group_id=event.group_id
-        )
-        with patch.object(
-            eventstore.backend, "get_event_by_id", side_effect=[None, retrieved]
-        ) as fetch:
+        with (
+            patch.object(IssueOccurrence, "fetch", return_value=event.occurrence),
+            patch.object(nodestore.backend, "get", side_effect=[None, dict(event.data)]) as fetch,
+        ):
             self.call_post_process_group(True, False, True, event)
 
         assert fetch.call_count == 2
-        fetch.assert_called_with(
-            event.project_id,
-            event.event_id,
-            group_id=event.group_id,
-            skip_transaction_groupevent=True,
-            occurrence_id=event.occurrence.id,
-        )
+        fetch.assert_called_with(event.data.id)
         mock_sleep.assert_called_once_with(1.0)
         assert mock_run_job.call_args.args[0]["event"].occurrence.id == event.occurrence.id
 
