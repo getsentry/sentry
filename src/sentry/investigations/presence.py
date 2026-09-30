@@ -29,6 +29,9 @@ def record_heartbeat(investigation_id: int, user_id: int, now: datetime | None =
     cutoff = now_ts - PRESENCE_WINDOW.total_seconds()
     key = _key(investigation_id)
 
+    # A sorted set of user id -> last heartbeat time. Read the caller's previous time
+    # (new visit if missing or stale), update it, prune members older than the window,
+    # and list who is left. The TTL removes the key once everyone has left.
     pipeline = _client().pipeline(transaction=False)
     pipeline.zscore(key, user_id)
     pipeline.zadd(key, {str(user_id): now_ts})
