@@ -185,7 +185,7 @@ export function parseEvaluationOutput(raw: unknown): EvaluationAnswer[] | null {
 /**
  * Whether a span is an evaluation, from its `gen_ai.operation.name`.
  */
-function isEvaluationNode(
+export function isEvaluationNode(
   node: AITraceSpanNode,
   attributes?: TraceItemResponseAttribute[],
   event?: EventTransaction
@@ -266,6 +266,21 @@ export function getScoreName(
   const index = Math.round(value);
   const scale = Array.isArray(question?.criteria) ? question.criteria : undefined;
   return answer.legend?.[index] ?? scale?.[index];
+}
+
+/**
+ * `[key, label]` for each answer with a short label, e.g.
+ * `["urgency", "high (1.6)"]`, for one-line summaries. Invalid answers are
+ * skipped.
+ */
+export function getAnswerLabels(
+  answers: EvaluationAnswer[],
+  questions?: EvaluationQuestionEntry[]
+): Array<[string, string]> {
+  return answers.flatMap((answer): Array<[string, string]> => {
+    const label = getAnswerLabel(answer, findQuestion(questions, answer.key));
+    return label === null ? [] : [[answer.key, label]];
+  });
 }
 
 /**
