@@ -32,7 +32,6 @@ import {useParams} from 'sentry/utils/useParams';
 import {addGiftBudgetAction} from 'admin/components/addGiftBudgetAction';
 import {AddGiftEventsAction} from 'admin/components/addGiftEventsAction';
 import {triggerAddToStartupProgramModal} from 'admin/components/addToStartupProgramAction';
-import type {AdminConfirmParams} from 'admin/components/adminConfirmationModal';
 import {CancelSubscriptionAction} from 'admin/components/cancelSubscriptionAction';
 import {triggerChangeBalanceModal} from 'admin/components/changeBalanceAction';
 import {openChangeDashboardsParallelLimitModal} from 'admin/components/changeDashboardsParallelLimitModal';
@@ -195,7 +194,7 @@ export function CustomerDetails() {
   };
 
   const onSetTestFlagMutation = useMutation({
-    mutationFn: (params: AdminConfirmParams & {isTest: boolean}) =>
+    mutationFn: (params: {isTest: boolean; notes?: string}) =>
       fetchMutation<{isTest: boolean}>({
         url: getApiUrl('/_admin/customers/$organizationIdOrSlug/test-flag/', {
           path: {organizationIdOrSlug: orgId},
@@ -513,7 +512,6 @@ export function CustomerDetails() {
           },
           {
             key: 'setTestFlag',
-            visible: orgFeatures.includes('admin-set-test-flag'),
             name: subscription.isTest
               ? 'Remove test organization flag'
               : 'Mark as test organization',
@@ -523,9 +521,10 @@ export function CustomerDetails() {
             disabledReason: 'The test flag is unavailable or an update is in progress.',
             confirmModalOpts: {
               confirmText: subscription.isTest ? 'Remove test flag' : 'Mark as test',
+              showTicketURL: false,
             },
-            onAction: params =>
-              onSetTestFlagMutation.mutate({...params, isTest: !subscription.isTest}),
+            onAction: ({notes}) =>
+              onSetTestFlagMutation.mutate({notes, isTest: !subscription.isTest}),
           },
           {
             key: 'toggleBillingPlatformMigration',

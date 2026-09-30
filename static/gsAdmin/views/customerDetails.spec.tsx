@@ -1372,7 +1372,7 @@ describe('Customer Details', () => {
   });
 
   describe('test organization flag', () => {
-    const testOrg = OrganizationFixture({features: ['admin-set-test-flag']});
+    const testOrg = OrganizationFixture();
     async function openActions() {
       render(<CustomerDetails />, {
         initialRouterConfig: {
@@ -1428,12 +1428,15 @@ describe('Customer Details', () => {
       }
     );
 
-    it('hides the action when the feature is disabled', async () => {
-      setUpMocks({...testOrg, features: []}, {isTest: false});
+    it('does not ask for a ticket URL', async () => {
+      setUpMocks(testOrg, {isTest: false});
       await openActions();
-      expect(
-        screen.queryByRole('option', {name: 'Mark as test organization'})
-      ).not.toBeInTheDocument();
+      await userEvent.click(
+        screen.getByRole('option', {name: 'Mark as test organization'})
+      );
+      renderGlobalModal();
+      expect(await screen.findByRole('textbox', {name: 'Notes'})).toBeInTheDocument();
+      expect(screen.queryByRole('textbox', {name: 'TicketURL'})).not.toBeInTheDocument();
     });
 
     it('does not require billing admin permissions', async () => {
