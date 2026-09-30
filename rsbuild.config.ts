@@ -662,6 +662,10 @@ if (
   (HAS_WEBPACK_DEV_SERVER_CONFIG && !NO_DEV_SERVER) ||
   IS_UI_DEV_ONLY
 ) {
+  // Preserve the previous dev server's errors-only build diagnostics.
+  appConfig.stats = {warnings: false};
+  workerConfig.stats = {warnings: false};
+
   if (SHOULD_HOT_MODULE_RELOAD) {
     // Hot reload react components on save
     // We include the library here as to not break docker/google cloud builds
@@ -701,9 +705,6 @@ if (
     hot: SHOULD_HOT_MODULE_RELOAD ? 'only' : false,
     liveReload: !SENTRY_DEVSERVER_NGROK,
     port: Number(SENTRY_WEBPACK_PROXY_PORT),
-    devMiddleware: {
-      stats: 'errors-only',
-    },
     client: {
       overlay: false,
       // When behind a reverse proxy (ngrok/Coder), the WebSocket client must
