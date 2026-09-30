@@ -27,8 +27,6 @@ const productionEntryPoints = [
   'static/app/components/brandPageLayout/**/*.{ts,tsx}',
   // React authentication routes are discovered dynamically by the frontend route registry
   'static/app/views/authV2/authLogin/**/*.{ts,tsx}',
-  // Retained until the legacy organization invitation acceptance cleanup.
-  'static/app/views/acceptOrganizationInvite/index.tsx',
 ];
 
 const testingEntryPoints = [
