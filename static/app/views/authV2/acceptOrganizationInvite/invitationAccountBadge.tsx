@@ -23,7 +23,7 @@ export function InvitationAccountBadge({
       radius="md"
       padding="lg"
     >
-      <UserBadge user={user} avatarSize={40} flex="1" minWidth="0" />
+      <UserBadge user={user} avatarSize={32} flex="1" minWidth="0" />
       <Button size="xs" variant="transparent" onClick={onSwitchAccount}>
         {t('Switch account')}
       </Button>
