@@ -192,6 +192,41 @@ describe('SeerDrawerNextStep', () => {
       }
     );
 
+    it('asks through the rethink chat from Ask Seer in code mode', async () => {
+      const autofix = makeAutofix();
+      const sendMessage = jest.fn();
+      render(
+        <AutofixChatProvider sendMessage={sendMessage}>
+          <SeerDrawerNextStep
+            group={GroupFixture()}
+            sections={[makeSection('root_cause')]}
+            autofix={autofix}
+          />
+        </AutofixChatProvider>,
+        {
+          organization: OrganizationFixture({
+            features: [
+              'autofix-page',
+              'seer-explorer-chat-prompts',
+              'seer-explorer-code-mode-tools',
+              'seer-explorer',
+            ],
+            openMembership: true,
+            hideAiFeatures: false,
+          }),
+        }
+      );
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Ask Seer'}));
+
+      expect(openChatPrompt).toHaveBeenCalledWith({
+        prompt: 'How can this root cause be improved?',
+        context: {autofixStep: 'root_cause'},
+      });
+      expect(sendMessage).not.toHaveBeenCalled();
+      expect(autofix.startStep).not.toHaveBeenCalled();
+    });
+
     it('keeps the textarea without chat prompts', async () => {
       render(
         <SeerDrawerNextStep

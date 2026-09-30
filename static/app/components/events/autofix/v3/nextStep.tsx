@@ -472,15 +472,17 @@ interface NextStepTemplateProps {
   /**
    * Set only in code mode, where "no" hands the question to Seer Agent with
    * this prompt instead of collecting context for another Autofix step. The
-   * agent asks its own follow-ups, so the textarea is redundant there.
+   * agent asks its own follow-ups, so the textarea is redundant there. When
+   * `rethinkInChat` is also set, the button asks through that instead.
    */
   askSeer?: {onAsk: (prompt: string) => void; prompt: string};
   codingAgentDisabledReason?: string;
   codingAgentIntegrations?: CodingAgentIntegration[];
   onCodingAgentHandoff?: (integration: CodingAgentIntegration) => void;
   /**
-   * When set, "no" opens Seer Agent on `rethinkPrompt` instead of the
-   * textarea below, and the reader types their changes into the chat.
+   * When set, "no" (or "Ask Seer" in code mode) opens Seer Agent on
+   * `rethinkPrompt` instead of the textarea below, and the reader types their
+   * changes into the chat.
    */
   rethinkInChat?: () => void;
 }
@@ -561,7 +563,7 @@ function NextStepTemplate({
           <Button
             disabled={isProcessing}
             icon={<IconSeer />}
-            onClick={() => askSeer.onAsk(askSeer.prompt)}
+            onClick={rethinkInChat ?? (() => askSeer.onAsk(askSeer.prompt))}
           >
             {t('Ask Seer')}
           </Button>
