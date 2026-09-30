@@ -130,7 +130,6 @@ class GetSendToMemberTest(_ParticipantsTest):
         )
         assert self.get_send_to_member(self.project, user_3.id) == {}
 
-
 class GetSendToTeamTest(_ParticipantsTest):
     def setUp(self) -> None:
         super().setUp()

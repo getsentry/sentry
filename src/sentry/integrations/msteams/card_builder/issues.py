@@ -30,6 +30,8 @@ from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
 from sentry.models.rule import Rule
+from sentry.notifications.types import NotificationRule
+from sentry.notifications.utils.rules import get_legacy_rule_id
 from sentry.services.eventstore.models import Event, GroupEvent
 
 from .base import MSTeamsMessageBuilder
@@ -52,7 +54,7 @@ from .block import (
 logger = logging.getLogger(__name__)
 
 
-def get_workflow_ids(rules: Sequence[Rule]) -> list[int]:
+def get_workflow_ids(rules: Sequence[Rule | NotificationRule]) -> list[int]:
     workflow_ids = []
     for rule in rules:
         action = rule.data.get("actions", [{}])[0]
@@ -69,7 +71,7 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
         self,
         group: Group,
         event: Event | GroupEvent | None,
-        rules: Sequence[Rule],
+        rules: Sequence[Rule | NotificationRule],
         integration: RpcIntegration,
         workflow_ids: Sequence[int] = (),
     ):
@@ -87,7 +89,11 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
                 "actionType": action_type,
                 "groupId": self.group.id,
                 "eventId": self.event.event_id if self.event else None,
-                "rules": [rule.id for rule in self.rules],
+                "rules": [
+                    rule_id
+                    for rule in self.rules
+                    if (rule_id := get_legacy_rule_id(rule)) is not None
+                ],
                 "workflows": list(dict.fromkeys([*workflow_ids, *self.workflow_ids])),
                 "integrationId": self.integration.id,
             }

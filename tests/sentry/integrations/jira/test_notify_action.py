@@ -4,12 +4,12 @@ from fixtures.integrations.stub_service import StubService
 from sentry.integrations.jira import JiraCreateTicketAction
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.models.grouplink import GroupLink
+from sentry.notifications.types import RuleFuture
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
-from sentry.types.rules import RuleFuture
 from sentry.utils import json
 
 pytestmark = [requires_snuba]

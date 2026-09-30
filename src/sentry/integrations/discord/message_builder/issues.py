@@ -23,8 +23,8 @@ from sentry.integrations.messaging.message_builder import (
 from sentry.integrations.types import ExternalProviders
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
-from sentry.models.rule import Rule
 from sentry.notifications.notifications.base import ProjectNotification
+from sentry.notifications.types import NotificationRule
 from sentry.notifications.utils.rules import RuleIdType, get_rule_or_workflow_id
 from sentry.services.eventstore.models import GroupEvent
 
@@ -37,7 +37,7 @@ class DiscordIssuesMessageBuilder(DiscordMessageBuilder):
         group: Group,
         event: GroupEvent | None = None,
         tags: set[str] | None = None,
-        rules: list[Rule] | None = None,
+        rules: list[NotificationRule] | None = None,
         link_to_event: bool = False,
         issue_details: bool = False,
         notification: ProjectNotification | None = None,

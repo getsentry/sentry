@@ -3,8 +3,6 @@ from unittest import mock
 
 import pytest
 
-from sentry.constants import ObjectStatus
-from sentry.models.rule import Rule, RuleSource
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.notification_action.issue_alert_registry import (
     AzureDevopsIssueAlertHandler,
@@ -25,7 +23,12 @@ from sentry.notifications.notification_action.types import (
     BaseIssueAlertHandler,
     TicketingIssueAlertHandler,
 )
-from sentry.notifications.types import TEST_NOTIFICATION_ID, ActionTargetType, FallthroughChoiceType
+from sentry.notifications.types import (
+    TEST_NOTIFICATION_ID,
+    ActionTargetType,
+    FallthroughChoiceType,
+    NotificationRule,
+)
 from sentry.testutils.helpers.data_blobs import (
     AZURE_DEVOPS_ACTION_DATA_BLOBS,
     EMAIL_ACTION_DATA_BLOBS,
@@ -112,12 +115,12 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
             )
 
     def test_create_rule_instance_from_action(self) -> None:
-        """Test that create_rule_instance_from_action creates a Rule with correct attributes"""
+        """Test that create_rule_instance_from_action creates a notification rule."""
         rule = self.handler.create_rule_instance_from_action(
             self.action, self.detector, self.event_data, workflow_id=self.workflow.id
         )
 
-        assert isinstance(rule, Rule)
+        assert isinstance(rule, NotificationRule)
         assert rule.id == self.action.id
         assert rule.project == self.detector.project
         assert rule.environment_id is not None
@@ -136,17 +139,21 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
                 }
             ],
         }
-        assert rule.status == ObjectStatus.ACTIVE
-        assert rule.source == RuleSource.ISSUE
+        assert rule.project_id == self.detector.project.id
+
+        other_rule = self.handler.create_rule_instance_from_action(
+            self.action, self.detector, self.event_data, workflow_id=self.workflow.id
+        )
+        assert len({rule: "first", other_rule: "second"}) == 2
 
     def test_create_rule_instance_from_action_with_workflow_only(self) -> None:
-        """Test that create_rule_instance_from_action creates a Rule with correct attributes"""
+        """Test that create_rule_instance_from_action creates a notification rule."""
         self.rule.delete()
         rule = self.handler.create_rule_instance_from_action(
             self.action, self.detector, self.event_data, workflow_id=self.workflow.id
         )
 
-        assert isinstance(rule, Rule)
+        assert isinstance(rule, NotificationRule)
         assert rule.id == self.action.id
         assert rule.project == self.detector.project
         assert rule.environment_id is not None
@@ -164,8 +171,6 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
                 }
             ]
         }
-        assert rule.status == ObjectStatus.ACTIVE
-        assert rule.source == RuleSource.ISSUE
 
     def test_create_rule_instance_from_action_deleted_workflow_falls_back_to_detector_name(
         self,
@@ -177,7 +182,7 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
             self.action, self.detector, self.event_data, workflow_id=workflow_id
         )
 
-        assert isinstance(rule, Rule)
+        assert isinstance(rule, NotificationRule)
         assert rule.label == self.detector.name
         assert rule.data == {
             "actions": [
@@ -198,7 +203,7 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
         rule = self.handler.create_rule_instance_from_action(
             self.action, self.detector, self.event_data, workflow_id=self.workflow.id
         )
-        assert isinstance(rule, Rule)
+        assert isinstance(rule, NotificationRule)
         assert rule.label == "Renamed Alert Name"
         assert rule.label != self.rule.label  # legacy rule label is still "Test Alert"
 
@@ -208,7 +213,7 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
             self.action, self.detector, self.event_data, workflow_id=TEST_NOTIFICATION_ID
         )
 
-        assert isinstance(rule, Rule)
+        assert isinstance(rule, NotificationRule)
         assert rule.label == self.detector.name
         assert rule.data == {
             "actions": [
@@ -223,14 +228,14 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
         }
 
     def test_create_rule_instance_from_action_no_environment(self) -> None:
-        """Test that create_rule_instance_from_action creates a Rule with correct attributes"""
+        """Test that create_rule_instance_from_action creates a notification rule."""
         self.create_workflow()
         job = WorkflowEventData(event=self.group_event, workflow_env=None, group=self.group)
         rule = self.handler.create_rule_instance_from_action(
             self.action, self.detector, job, workflow_id=self.workflow.id
         )
 
-        assert isinstance(rule, Rule)
+        assert isinstance(rule, NotificationRule)
         assert rule.id == self.action.id
         assert rule.project == self.detector.project
         assert rule.environment_id is None
@@ -247,8 +252,6 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
                 }
             ],
         }
-        assert rule.status == ObjectStatus.ACTIVE
-        assert rule.source == RuleSource.ISSUE
 
     @mock.patch("sentry.notifications.notification_action.types.invoke_future_with_error_handling")
     @mock.patch("sentry.notifications.notification_action.types.activate_downstream_actions")

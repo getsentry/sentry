@@ -8,12 +8,12 @@ from slack_sdk.web import SlackResponse
 from sentry.integrations.slack import SlackNotifyServiceAction
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.notifications.models.notificationmessage import NotificationMessage
+from sentry.notifications.types import RuleFuture
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_failure_metric
 from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.silo import assume_test_silo_mode
-from sentry.types.rules import RuleFuture
 
 
 class TestInit(RuleTestCase):

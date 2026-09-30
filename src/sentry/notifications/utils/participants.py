@@ -371,7 +371,6 @@ def get_send_to(
         notification_uuid,
     )
 
-
 def get_fallthrough_recipients(
     project: Project, fallthrough_choice: FallthroughChoiceType | None
 ) -> Iterable[RpcUser]:

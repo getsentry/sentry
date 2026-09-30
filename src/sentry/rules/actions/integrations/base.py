@@ -15,8 +15,7 @@ from sentry.integrations.services.integration import (
 )
 from sentry.mail.analytics import EmailNotificationSent
 from sentry.models.organization import OrganizationStatus
-from sentry.models.rule import Rule
-from sentry.notifications.types import RuleFuture
+from sentry.notifications.types import NotificationRule, RuleFuture
 from sentry.rules.actions import EventAction
 from sentry.rules.base import CallbackFuture
 from sentry.services.eventstore.models import GroupEvent
@@ -110,7 +109,7 @@ class IntegrationEventAction(EventAction, abc.ABC):
         self,
         event: GroupEvent,
         external_id: str,
-        rule: Rule | None = None,
+        rule: NotificationRule | None = None,
         notification_uuid: str | None = None,
     ) -> None:
         from sentry.integrations.discord.analytics import DiscordIntegrationNotificationSent

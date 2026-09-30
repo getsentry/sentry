@@ -52,6 +52,7 @@ from sentry.models.rule import Rule
 from sentry.models.team import Team
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.platform.slack.renderers.seer import SeerSlackRenderer
+from sentry.notifications.types import NotificationRule
 from sentry.notifications.utils.actions import BlockKitMessageAction, MessageAction
 from sentry.notifications.utils.participants import (
     dedupe_suggested_assignees,
@@ -195,7 +196,7 @@ def get_tags(
     return fields
 
 
-def get_context(group: Group, rules: list[Rule] | None = None) -> str:
+def get_context(group: Group, rules: list[Rule | NotificationRule] | None = None) -> str:
     context_text = ""
 
     context = group.issue_type.notification_config.context.copy()
@@ -416,7 +417,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         tags: set[str] | None = None,
         identity: RpcIdentity | None = None,
         actions: Sequence[MessageAction | BlockKitMessageAction] | None = None,
-        rules: list[Rule] | None = None,
+        rules: list[Rule | NotificationRule] | None = None,
         link_to_event: bool = False,
         issue_details: bool = False,
         notification: ProjectNotification | None = None,

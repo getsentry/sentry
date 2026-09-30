@@ -7,12 +7,12 @@ from sentry.api.serializers.rest_framework.rule import validate_actions
 from sentry.integrations.jira_server import JiraServerCreateTicketAction, JiraServerIntegration
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.models.rule import Rule
+from sentry.notifications.types import RuleFuture
 from sentry.services.eventstore.models import GroupEvent
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
-from sentry.types.rules import RuleFuture
 from tests.sentry.integrations.jira_server import EXAMPLE_PRIVATE_KEY
 
 pytestmark = [requires_snuba]

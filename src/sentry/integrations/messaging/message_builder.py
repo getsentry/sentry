@@ -13,6 +13,7 @@ from sentry.models.rule import Rule
 from sentry.models.team import Team
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notifications.rules import AlertRuleNotification
+from sentry.notifications.types import NotificationRule
 from sentry.notifications.utils.links import create_link_to_workflow
 from sentry.notifications.utils.rules import get_key_from_rule_data, get_rule_or_workflow_id
 from sentry.services.eventstore.models import Event, GroupEvent
@@ -263,7 +264,7 @@ def build_footer(
     group: Group,
     project: Project,
     url_format: str,
-    rules: Sequence[Rule] | None = None,
+    rules: Sequence[Rule | NotificationRule] | None = None,
 ) -> str:
     footer = f"{group.qualified_short_id}"
     if rules:

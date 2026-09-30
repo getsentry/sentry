@@ -14,8 +14,7 @@ from sentry.integrations.pagerduty.client import (
     build_pagerduty_event_payload,
 )
 from sentry.integrations.types import IntegrationProviderSlug
-from sentry.models.rule import Rule
-from sentry.notifications.types import RuleFuture
+from sentry.notifications.types import NotificationRule, RuleFuture
 from sentry.rules.actions import IntegrationEventAction
 from sentry.rules.base import CallbackFuture
 from sentry.services.eventstore.models import GroupEvent
@@ -106,7 +105,7 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
                 severity=severity,
             )
 
-            rules: list[Rule] = [f.rule for f in futures]
+            rules: list[NotificationRule] = [f.rule for f in futures]
             rule = rules[0] if rules else None
 
             if rule and rule.label:

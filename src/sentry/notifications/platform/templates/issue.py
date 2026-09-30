@@ -4,7 +4,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict
 
-from sentry.models.rule import Rule
+from sentry.models.project import Project
 from sentry.notifications.platform.registry import template_registry
 from sentry.notifications.platform.types import (
     NotificationCategory,
@@ -13,6 +13,7 @@ from sentry.notifications.platform.types import (
     NotificationSource,
     NotificationTemplate,
 )
+from sentry.notifications.types import NotificationRule
 
 
 class SerializableRuleProxy(BaseModel):
@@ -29,11 +30,8 @@ class SerializableRuleProxy(BaseModel):
     project_id: int
 
     @classmethod
-    def from_rule(cls, rule: Rule) -> SerializableRuleProxy:
-        """
-        Temporary method to convert a Rule to a NotificationRuleInfo. This will
-        be removed once we no longer rely on the Rule ORM model.
-        """
+    def from_rule(cls, rule: NotificationRule) -> SerializableRuleProxy:
+        """Create a serializable representation of a notification rule."""
         return cls(
             id=rule.id,
             label=rule.label,
@@ -42,17 +40,13 @@ class SerializableRuleProxy(BaseModel):
             project_id=rule.project.id,
         )
 
-    def to_rule(self) -> Rule:
-        """
-        Temporary method to convert a NotificationRuleInfo to a Rule. This will
-        be removed once we no longer rely on the Rule ORM model.
-        """
-        return Rule(
+    def to_notification_rule(self, project: Project) -> NotificationRule:
+        return NotificationRule(
             id=self.id,
             label=self.label,
             data=self.data,
             environment_id=self.environment_id,
-            project_id=self.project_id,
+            project=project,
         )
 
 

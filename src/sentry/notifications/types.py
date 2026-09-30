@@ -8,11 +8,24 @@ from sentry.hybridcloud.rpc import ValueEqualityEnum
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
-    from sentry.models.rule import Rule
+    from sentry.models.project import Project
+
+
+@dataclass(eq=False)
+class NotificationRule:
+    id: int
+    label: str
+    data: dict[str, Any]
+    project: Project
+    environment_id: int | None
+
+    @property
+    def project_id(self) -> int:
+        return self.project.id
 
 
 class RuleFuture(NamedTuple):
-    rule: Rule
+    rule: NotificationRule
     kwargs: dict[str, Any]
 
 

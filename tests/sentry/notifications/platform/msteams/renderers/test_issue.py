@@ -115,7 +115,7 @@ class IssueMSTeamsRendererTest(TestCase):
                 label="Test Detector",
                 data={"actions": [{"workflow_id": 1}]},
                 project_id=self.project.id,
-            ).to_rule()
+            ).to_notification_rule(project)
         ]
         footer_text = build_footer(
             group=group, project=project, url_format=MSTEAMS_URL_FORMAT, rules=rules
@@ -148,7 +148,7 @@ class IssueMSTeamsRendererTest(TestCase):
                     "actionType": action_type,
                     "groupId": group.id,
                     "eventId": event.event_id,
-                    "rules": [1],
+                    "rules": [],
                     "workflows": [1],
                 }
             }

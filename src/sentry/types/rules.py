@@ -2,7 +2,6 @@ from dataclasses import dataclass
 
 from sentry.notifications.types import RuleFuture as RuleFuture
 
-
 @dataclass
 class NotificationRuleDetails:
     """
