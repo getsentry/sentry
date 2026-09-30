@@ -1,7 +1,9 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
+import {useDebouncedValue} from '@tanstack/react-pacer';
+import {useMutation, useQueries, useQuery, useQueryClient} from '@tanstack/react-query';
+import escapeRegExp from 'lodash/escapeRegExp';
 import startCase from 'lodash/startCase';
 import {z} from 'zod';
 
@@ -28,12 +30,13 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Placeholder} from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
-import {DATA_CATEGORY_INFO} from 'sentry/constants';
-import {IconAdd, IconDelete, IconEdit, IconSearch} from 'sentry/icons';
-import {t, tn} from 'sentry/locale';
+import {DATA_CATEGORY_INFO, DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
+import {IconAdd, IconDelete, IconEdit, IconSearch, IconWarning} from 'sentry/icons';
+import {t, tct, tn} from 'sentry/locale';
 import type {DataCategoryExact} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import type {Release} from 'sentry/types/release';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -429,17 +432,120 @@ function ConditionSummary({condition}: {condition: CustomInboundFilterCondition}
   );
 }
 
+// The largest page the releases API serves. A page this full may hide a match on
+// the next page, so the check stays silent instead of warning.
+const RELEASE_PAGE_SIZE = 100;
+
+// The longest run of literal text in a glob. Every release the glob matches
+// contains it, so a search for it finds a superset of the glob's matches.
+function getGlobLiteral(glob: string): string {
+  return glob
+    .split(/[*?[\]{}]/)
+    .reduce((longest, part) => (part.length > longest.length ? part : longest), '');
+}
+
+// A regular expression with the same matches as the glob, for the wildcards `*`
+// and `?`. Undefined for a glob with character classes or braces, which the
+// check does not evaluate.
+function globToRegExp(glob: string): RegExp | undefined {
+  if (/[[\]{}]/.test(glob)) {
+    return undefined;
+  }
+  const source = glob
+    .split(/([*?])/)
+    .map(part => (part === '*' ? '.*' : part === '?' ? '.' : escapeRegExp(part)))
+    .join('');
+  return new RegExp(`^${source}$`, 'i');
+}
+
+// Whether the project is known to have no release matching the glob. The
+// releases were searched for the glob's literal text, so an empty page settles
+// it. A partial page settles it too when no version on it matches the glob. A
+// full page, an unknown glob, or no answer yet leaves the question open.
+function isReleaseMissing(glob: string, releases: Release[] | undefined): boolean {
+  if (!releases) {
+    return false;
+  }
+  if (releases.length === 0) {
+    return true;
+  }
+  if (releases.length >= RELEASE_PAGE_SIZE) {
+    return false;
+  }
+  const pattern = globToRegExp(glob);
+  return (
+    pattern !== undefined && !releases.some(release => pattern.test(release.version))
+  );
+}
+
+// The patterns of a release condition, one per line, that no release of the
+// project matches. Only patterns the check can settle count, so an empty list
+// does not mean every pattern matches something.
+function useMissingReleasePatterns(project: Project, text: string): string[] {
+  const organization = useOrganization();
+  const [debouncedText] = useDebouncedValue(text, {wait: DEFAULT_DEBOUNCE_DURATION});
+  const patterns = useMemo(
+    () =>
+      [...new Set(stripComments(splitConditionValues(debouncedText)))].filter(
+        getGlobLiteral
+      ),
+    [debouncedText]
+  );
+  const collectMissing = useCallback(
+    (results: Array<{data: Release[] | undefined}>) =>
+      patterns.filter((pattern, index) =>
+        isReleaseMissing(pattern, results[index]?.data)
+      ),
+    [patterns]
+  );
+
+  return useQueries({
+    queries: patterns.map(pattern => ({
+      ...apiOptions.as<Release[]>()(
+        '/projects/$organizationIdOrSlug/$projectIdOrSlug/releases/',
+        {
+          path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
+          query: {query: getGlobLiteral(pattern), per_page: RELEASE_PAGE_SIZE},
+          staleTime: 60_000,
+        }
+      ),
+      retry: false,
+    })),
+    combine: collectMissing,
+  });
+}
+
+// A note per pattern of a release condition that matches no release of the
+// project. The filter still saves: the pattern may be meant for releases that
+// have not shipped yet.
+function ReleaseMatchWarnings({project, text}: {project: Project; text: string}) {
+  const missing = useMissingReleasePatterns(project, text);
+
+  return missing.map(pattern => (
+    <Flex key={pattern} gap="xs" align="center">
+      <IconWarning size="xs" variant="warning" />
+      <Text size="sm" variant="warning">
+        {tct('No release of this project matches [pattern] yet.', {
+          pattern: <Text monospace>{pattern}</Text>,
+        })}
+      </Text>
+    </Flex>
+  ));
+}
+
 function CustomFilterModal({
   Header,
   Body,
   Footer,
   closeModal,
+  project,
   filter,
   dataTypeOptions,
   onSave,
 }: ModalRenderProps & {
   dataTypeOptions: DataTypeOption[];
   onSave: (values: FilterFormValues) => Promise<unknown>;
+  project: Project;
   filter?: CustomInboundFilter;
 }) {
   const defaultValues = filter
@@ -587,18 +693,26 @@ function CustomFilterModal({
                             <Container area="value">
                               <form.AppField name={`conditions[${index}].value`}>
                                 {valueField => (
-                                  <valueField.TextArea
-                                    aria-label={t('Condition value')}
-                                    placeholder={
-                                      getCondition(condition.property).placeholder
-                                    }
-                                    value={valueField.state.value}
-                                    onChange={valueField.handleChange}
-                                    monospace
-                                    autosize
-                                    rows={1}
-                                    maxRows={10}
-                                  />
+                                  <Stack gap="xs">
+                                    <valueField.TextArea
+                                      aria-label={t('Condition value')}
+                                      placeholder={
+                                        getCondition(condition.property).placeholder
+                                      }
+                                      value={valueField.state.value}
+                                      onChange={valueField.handleChange}
+                                      monospace
+                                      autosize
+                                      rows={1}
+                                      maxRows={10}
+                                    />
+                                    {condition.property === 'release' && (
+                                      <ReleaseMatchWarnings
+                                        project={project}
+                                        text={valueField.state.value}
+                                      />
+                                    )}
+                                  </Stack>
                                 )}
                               </form.AppField>
                             </Container>
@@ -1062,6 +1176,7 @@ export function CustomFilters({project}: {project: Project}) {
               deps => (
                 <CustomFilterModal
                   {...deps}
+                  project={project}
                   dataTypeOptions={dataTypeOptions}
                   onSave={handleCreate}
                 />
@@ -1176,6 +1291,7 @@ export function CustomFilters({project}: {project: Project}) {
                           deps => (
                             <CustomFilterModal
                               {...deps}
+                              project={project}
                               filter={filter}
                               dataTypeOptions={dataTypeOptions}
                               onSave={values => handleEdit(filter.id, values)}
