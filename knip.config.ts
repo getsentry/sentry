@@ -70,7 +70,6 @@ const config: KnipConfig = {
         '!static/oxlint/**/*.ts!',
       ],
       ignoreDependencies: [
-        'core-js',
         'tslib', // subdependency of many packages, declare the latest version
         'odiff-bin', // raw binary consumed by Python backend, not a JS import
         '@swc-contrib/mut-cjs-exports', // used in jest config
@@ -81,6 +80,9 @@ const config: KnipConfig = {
       // Knip's Less compiler expects the extension in `project`; styles are handled by Rspack,
       // so do not report them as unused files.
       ignoreFiles: ['static/**/*.less'],
+      rspack: {
+        config: 'build-utils/knip-rspack.config.ts',
+      },
     },
     'static/oxlint/eslintPluginSentry': {
       // RuleTester resolves these cross-file fixtures by filename.

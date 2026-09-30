@@ -988,7 +988,7 @@ if (env.WEBPACK_CACHE_PATH) {
   };
 }
 
-const configs = [appConfig, workerConfig];
+export const configs = [appConfig, workerConfig];
 
 // Configure JSON stats explicitly; the CLI defaults to errors and warnings.
 // Keep module detail for bundle analysis without embedding source text.
