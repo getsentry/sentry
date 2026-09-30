@@ -9,9 +9,10 @@ from sentry_redis_tools.clients import RedisCluster
 
 from sentry.utils.redis import redis_clusters
 
-# Longer than the frontend's heartbeat interval, so a viewer who misses a few
-# heartbeats still counts as present.
-PRESENCE_WINDOW = timedelta(seconds=20)
+# How often the frontend should refresh presence
+HEARTBEAT_INTERVAL = timedelta(seconds=5)
+# How long we retain presence after the last heartbeat
+PRESENCE_WINDOW = HEARTBEAT_INTERVAL * 4
 KEY_PREFIX = "investigations:presence:"
 
 

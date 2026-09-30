@@ -12,7 +12,7 @@ from sentry.investigations.endpoints.base import (
     require_authenticated_user,
 )
 from sentry.investigations.models import Investigation, InvestigationSeen
-from sentry.investigations.presence import record_heartbeat
+from sentry.investigations.presence import HEARTBEAT_INTERVAL, record_heartbeat
 from sentry.models.organization import Organization
 
 
@@ -36,4 +36,9 @@ class OrganizationInvestigationPresenceEndpoint(OrganizationInvestigationEndpoin
                 user_id=viewer_id,
                 defaults={"last_seen": timezone.now()},
             )
-        return Response({"viewerIds": [str(uid) for uid in heartbeat.viewer_ids]})
+        return Response(
+            {
+                "viewerIds": [str(uid) for uid in heartbeat.viewer_ids],
+                "heartbeatIntervalMs": int(HEARTBEAT_INTERVAL.total_seconds() * 1000),
+            }
+        )
