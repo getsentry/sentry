@@ -31,7 +31,7 @@ class ShadowCollector:
 
 
 _active_collector: ContextVar[ShadowCollector | None] = ContextVar(
-    "notifications_platform_shadow_collector", default=None
+    "notification_platform_shadow_collector", default=None
 )
 
 
