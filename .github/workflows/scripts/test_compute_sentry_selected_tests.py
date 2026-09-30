@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import importlib.util
-import json
 import os
 import sqlite3
 import sys
@@ -238,7 +237,8 @@ class TestMain:
         expected_output = sorted({"tests/sentry/test_org.py"} | ALWAYS_RUN_TESTS)
         assert output.read_text().splitlines() == expected_output
 
-    def test_writes_test_counts(self, tmp_path):
+    def test_writes_test_item_count(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
         db_path = tmp_path / "coverage.db"
         _create_coverage_db(
             str(db_path),
@@ -249,7 +249,7 @@ class TestMain:
                 ],
             },
         )
-        counts_output = tmp_path / "counts.json"
+        github_output = tmp_path / "github_output"
 
         with mock.patch("compute_sentry_selected_tests.Path.exists", return_value=True):
             _run(
@@ -260,12 +260,54 @@ class TestMain:
                     "src/sentry/models/org.py",
                     "--output",
                     str(tmp_path / "output.txt"),
-                    "--test-counts-output",
-                    str(counts_output),
-                ]
+                    "--github-output",
+                ],
+                {"GITHUB_OUTPUT": str(github_output)},
             )
 
-        assert json.loads(counts_output.read_text()) == {"tests/sentry/test_org.py": 2}
+        assert "test-item-count=2\n" in github_output.read_text()
+        assert f"test-count={1 + len(ALWAYS_RUN_TESTS)}\n" in github_output.read_text()
+
+    @pytest.mark.parametrize("coverage_available", [True, False])
+    def test_item_count_uses_per_file_maximum_and_new_files(
+        self, tmp_path, monkeypatch, coverage_available
+    ):
+        monkeypatch.chdir(tmp_path)
+        tests_dir = tmp_path / "tests/sentry"
+        tests_dir.mkdir(parents=True)
+        (tests_dir / "test_a.py").write_text("def test_one(): pass\ndef test_two(): pass\n")
+        (tests_dir / "test_b.py").write_text("def test_three(): pass\n")
+        (tests_dir / "test_new.py").write_text("def test_four(): pass\n")
+        db_path = tmp_path / "coverage.db"
+        _create_coverage_db(
+            str(db_path),
+            {
+                "../sentry/src/sentry/a.py": [
+                    "../sentry/tests/sentry/test_a.py::test_one|run",
+                    *[f"../sentry/tests/sentry/test_b.py::test_generated_{i}|run" for i in range(500)],
+                ],
+            },
+        )
+        if not coverage_available:
+            monkeypatch.setattr(
+                "compute_sentry_selected_tests._query_test_counts",
+                mock.Mock(side_effect=sqlite3.OperationalError("unavailable")),
+            )
+        github_output = tmp_path / "github_output"
+        assert _run(
+            [
+                "--coverage-db",
+                str(db_path),
+                "--changed-files",
+                "src/sentry/a.py tests/sentry/test_new.py",
+                "--github-output",
+            ],
+            {"GITHUB_OUTPUT": str(github_output)},
+        ) == 0
+
+        assert "test-count=3\n" in github_output.read_text()
+        expected_count = 503 if coverage_available else 4
+        assert f"test-item-count={expected_count}\n" in github_output.read_text()
 
     def test_getsentry_tests_filtered_out(self, tmp_path):
         """Coverage may return getsentry tests — they should be filtered."""

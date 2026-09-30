@@ -16,13 +16,13 @@ Usage:
 from __future__ import annotations
 
 import argparse
-import json
 import os
 import re
 import sqlite3
 import sys
 from pathlib import Path
 
+from count_test_items import count_tests_in_file
 from find_test_imports import find_test_imports
 
 # -- Path conventions --
@@ -268,10 +268,6 @@ def main() -> int:
         help="Space-separated previous filenames for renamed files (queried against coverage DB)",
     )
     parser.add_argument("--output", help="Output file path for selected test files (one per line)")
-    parser.add_argument(
-        "--test-counts-output",
-        help="Output JSON file mapping each selected test file to its test count on master",
-    )
     parser.add_argument("--github-output", action="store_true", help="Write to GITHUB_OUTPUT")
     args = parser.parse_args()
 
@@ -382,16 +378,22 @@ def main() -> int:
                 f.write(f"{test_file}\n")
         print(f"Wrote selected tests to {output_path}")
 
-    if args.test_counts_output and output_tests:
-        try:
-            counts = _query_test_counts(str(coverage_db), output_tests)
-        except sqlite3.Error as e:
-            print(f"Warning: could not count tests from coverage database: {e}", file=sys.stderr)
-        else:
-            counts_path = Path(args.test_counts_output)
-            counts_path.parent.mkdir(parents=True, exist_ok=True)
-            counts_path.write_text(json.dumps(counts, indent=2, sort_keys=True) + "\n")
-            print(f"Wrote test counts for {len(counts)} files to {counts_path}")
+    test_item_count = None
+    if output_tests or selective_applied:
+        coverage_counts: dict[str, int] = {}
+        if output_tests:
+            try:
+                coverage_counts = _query_test_counts(str(coverage_db), output_tests)
+            except sqlite3.Error as e:
+                print(f"Warning: could not count tests from coverage database: {e}", file=sys.stderr)
+        test_item_count = 0
+        for test_file in output_tests:
+            ast_count = count_tests_in_file(Path(test_file))
+            coverage_count = coverage_counts.get(test_file, 0)
+            if coverage_count > ast_count:
+                print(f"  {test_file}: {coverage_count} tests in coverage DB, {ast_count} via AST")
+            test_item_count += max(ast_count, coverage_count)
+        print(f"Estimated {test_item_count} test items")
 
     if args.github_output:
         github_output = os.environ.get("GITHUB_OUTPUT")
@@ -399,6 +401,8 @@ def main() -> int:
             has_selected = bool(output_tests) or selective_applied
             with open(github_output, "a") as f:
                 f.write(f"test-count={len(output_tests)}\n")
+                if test_item_count is not None:
+                    f.write(f"test-item-count={test_item_count}\n")
                 f.write(f"has-selected-tests={'true' if has_selected else 'false'}\n")
             if has_selected:
                 print(f"Wrote to GITHUB_OUTPUT: test-count={len(output_tests)}")
