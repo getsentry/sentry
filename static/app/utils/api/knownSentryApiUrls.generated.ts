@@ -215,6 +215,7 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/investigations/$investigationId/orchestration/'
   | '/organizations/$organizationIdOrSlug/investigations/$investigationId/orchestration/commands/'
   | '/organizations/$organizationIdOrSlug/investigations/$investigationId/parameters/'
+  | '/organizations/$organizationIdOrSlug/investigations/$investigationId/presence/'
   | '/organizations/$organizationIdOrSlug/investigations/$investigationId/title-generation/'
   | '/organizations/$organizationIdOrSlug/investigations/candidates/'
   | '/organizations/$organizationIdOrSlug/invite-requests/'
