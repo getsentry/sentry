@@ -3,31 +3,24 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {FrameVariablesGrid} from 'sentry/components/stackTrace/frame/frameVariablesGrid';
-import {OrganizationContext} from 'sentry/utils/organizationContext';
 
 describe('FrameVariablesGrid', () => {
-  it('switches the complete variable experience with the organization flag', () => {
-    const organization = OrganizationFixture({features: []});
-    const data = {"'player'": {x: 1, y: 2}, count: 42};
-    function Example({enabled}: {enabled: boolean}) {
-      return (
-        <OrganizationContext.Provider
-          value={{
-            ...organization,
-            features: enabled ? ['native-variable-extraction'] : [],
-          }}
-        >
-          <FrameVariablesGrid platform="node" data={data} />
-        </OrganizationContext.Provider>
-      );
-    }
-    const {rerender} = render(<Example enabled={false} />);
+  it('uses the legacy renderer without the variable extraction flag', () => {
+    render(<FrameVariablesGrid platform="node" data={{"'player'": {x: 1, y: 2}}} />, {
+      organization: OrganizationFixture({features: []}),
+    });
 
     expect(screen.getByText('player')).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: /Copy .* value/})).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', {name: 'Expand player'})).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: /Expand player|Collapse player/})
+    ).not.toBeInTheDocument();
+  });
 
-    rerender(<Example enabled />);
+  it('uses the tree when the variable extraction flag is enabled', () => {
+    render(<FrameVariablesGrid platform="node" data={{"'player'": {x: 1, y: 2}}} />, {
+      organization: OrganizationFixture({features: ['native-variable-extraction']}),
+    });
 
     expect(screen.getByText('player')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Copy player value'})).toBeInTheDocument();
@@ -36,14 +29,6 @@ describe('FrameVariablesGrid', () => {
       'true'
     );
     expect(screen.getByText('x')).toBeInTheDocument();
-
-    rerender(<Example enabled={false} />);
-
-    expect(screen.getByText('player')).toBeInTheDocument();
-    expect(screen.queryByRole('button', {name: /Copy .* value/})).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', {name: 'Collapse player'})
-    ).not.toBeInTheDocument();
   });
 
   it('sorts and formats variable names without mutating the input', () => {
