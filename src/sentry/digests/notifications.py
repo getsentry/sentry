@@ -188,6 +188,7 @@ def get_rules_from_workflows(project: Project, workflow_ids: set[int]) -> dict[i
                 label=workflow.name,
                 id=workflow_id,
                 project_id=project.id,
+                environment_id=workflow.environment_id,
                 data={"actions": [{"workflow_id": workflow_id}]},
             )
             for workflow_id, workflow in workflows.items()

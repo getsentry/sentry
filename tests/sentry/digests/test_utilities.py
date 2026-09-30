@@ -144,7 +144,8 @@ class UtilitiesHelpersTestCase(TestCase, SnubaTestCase):
 
     def test_workflow_rendering_does_not_use_rule_when_enabled(self) -> None:
         project = self.create_project(fire_project_created=True)
-        rule = self.create_project_rule(project)
+        environment = self.create_environment(project=project)
+        rule = self.create_project_rule(project, environment_id=environment.id)
         workflow_id = int(rule.data["actions"][0]["workflow_id"])
 
         with self.options({"workflow_engine.notifications.use_workflow_data": True}):
@@ -153,6 +154,8 @@ class UtilitiesHelpersTestCase(TestCase, SnubaTestCase):
         assert rendered_rule.id == workflow_id
         assert rendered_rule.id != rule.id
         assert rendered_rule.data == {"actions": [{"workflow_id": workflow_id}]}
+        # The environment comes from the workflow, not the correlated Rule.
+        assert rendered_rule.environment_id == environment.id
 
     def test_legacy_digest_records_still_render_when_enabled(self) -> None:
         project = self.create_project(fire_project_created=True)
