@@ -25,11 +25,8 @@ from sentry.killswitches import (
     killswitch_matches_context,
     value_matches,
 )
-from sentry.models.event import EventDict
 from sentry.replays.lib.event_linking import transform_event_for_linking_payload
 from sentry.replays.lib.kafka import publish_replay_event
-from sentry.services import eventstore
-from sentry.services.eventstore.models import Event
 from sentry.signals import event_processed, issue_unignored
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -58,7 +55,7 @@ if TYPE_CHECKING:
     from sentry.models.groupinbox import InboxReasonDetails
     from sentry.models.project import Project
     from sentry.models.team import Team
-    from sentry.services.eventstore.models import GroupEvent
+    from sentry.services.eventstore.models import Event, GroupEvent
     from sentry.users.services.user import RpcUser
 
 logger = logging.getLogger(__name__)
@@ -566,9 +563,12 @@ def post_process_group(
 
     with snuba.options_override({"consistent": True}):
         from sentry.issues.occurrence_consumer import EventLookupError
+        from sentry.models.event import EventDict
         from sentry.models.organization import Organization
         from sentry.models.project import Project
         from sentry.reprocessing2 import is_reprocessed_event
+        from sentry.services import eventstore
+        from sentry.services.eventstore.models import Event
 
         if occurrence_id is None:
             # Reprocessing keeps the event ID but assigns a new group. Allow that
