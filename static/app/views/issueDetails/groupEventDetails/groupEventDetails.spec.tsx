@@ -1,10 +1,13 @@
+import {QueryClientProvider} from '@tanstack/react-query';
 import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
 import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
+import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {
+  act,
   render,
   screen,
   userEvent,
@@ -25,6 +28,7 @@ import {
 } from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
 import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 import {
@@ -453,6 +457,70 @@ describe('groupEventDetails', () => {
         query: expect.objectContaining({...query, environment: ['dev']}),
       })
     );
+  });
+
+  it('keeps a loaded event after a failed refresh, but not for different filters', async () => {
+    const props = makeDefaultMockData();
+    mockGroupApis(props.organization, props.project, props.group, props.event);
+    const queryClient = makeTestQueryClient();
+    const {router} = render(<GroupEventDetails />, {
+      organization: props.organization,
+      initialRouterConfig: props.initialRouterConfig,
+      additionalWrapper: ({children}) => (
+        <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      ),
+    });
+    const eventHeader = await screen.findByRole('button', {name: 'Copy Event ID'});
+    const url = `/organizations/${props.organization.slug}/issues/${props.group.id}/events/recommended/`;
+    const refreshRequest = MockApiClient.addMockResponse({url, statusCode: 503});
+
+    jest.useFakeTimers();
+    try {
+      await act(async () => {
+        await queryClient.refetchQueries({
+          predicate: ({queryKey}) => safeParseQueryKey(queryKey)?.url === url,
+        });
+        await jest.advanceTimersByTimeAsync(1);
+      });
+      expect(refreshRequest).toHaveBeenCalledTimes(1);
+      expect(eventHeader).toBeInTheDocument();
+    } finally {
+      jest.useRealTimers();
+    }
+
+    router.navigate(`${router.location.pathname}?query=release:next`);
+    expect(
+      await screen.findByText(
+        'The server is temporarily unavailable. Please try again in a few moments.'
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Retry'})).toBeInTheDocument();
+  });
+
+  it('shows a permission error when refreshing a previously loaded event', async () => {
+    const props = makeDefaultMockData();
+    mockGroupApis(props.organization, props.project, props.group, props.event);
+    const queryClient = makeTestQueryClient();
+    render(<GroupEventDetails />, {
+      organization: props.organization,
+      initialRouterConfig: props.initialRouterConfig,
+      additionalWrapper: ({children}) => (
+        <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      ),
+    });
+    await screen.findByRole('button', {name: 'Copy Event ID'});
+    const url = `/organizations/${props.organization.slug}/issues/${props.group.id}/events/recommended/`;
+    MockApiClient.addMockResponse({url, statusCode: 403});
+
+    await act(async () => {
+      await queryClient.refetchQueries({
+        predicate: ({queryKey}) => safeParseQueryKey(queryKey)?.url === url,
+      });
+    });
+
+    expect(
+      await screen.findByText('You do not have permission to load this data.')
+    ).toBeInTheDocument();
   });
 
   it.each([
