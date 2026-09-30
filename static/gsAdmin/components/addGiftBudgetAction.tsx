@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useState} from 'react';
+import {useMemo, useState} from 'react';
 import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
@@ -28,7 +28,7 @@ type ModalProps = Props & ModalRenderProps;
 
 const schema = z.object({
   giftAmount: z.number().positive().max(10000),
-  ticketUrl: z.string(),
+  ticketUrl: z.union([z.literal(''), z.url()]),
   notes: z.string().min(1).max(500),
 });
 
@@ -39,6 +39,7 @@ function AddGiftBudgetModal({
   closeModal,
   Header,
   Body,
+  Footer,
 }: ModalProps) {
   const api = useApi();
   const [selectedBudgetId, setSelectedBudgetId] = useState<string | null>(null);
@@ -92,114 +93,114 @@ function AddGiftBudgetModal({
   });
 
   return (
-    <Fragment>
+    <form.AppForm form={form}>
       <Header closeButton>
         <Heading as="h2">Add Gift Budget</Heading>
       </Header>
       <Body>
-        <form.AppForm form={form}>
-          <Stack gap="md">
-            {reservedBudgetOptions.length > 1 && (
-              <Text as="p">Select a reserved budget to add gift amount.</Text>
-            )}
-            {reservedBudgetOptions.length === 0 && (
-              <Text as="p">No reserved budgets available.</Text>
-            )}
-            {reservedBudgetOptions.map(budget => (
-              <Container
-                key={budget.id}
-                padding="xl"
-                border="primary"
-                radius="md"
-                background={activeBudgetId === budget.id ? 'secondary' : undefined}
-                cursor="pointer"
-                onClick={() => setSelectedBudgetId(budget.id)}
-              >
-                <Stack gap="md">
-                  <Flex justify="between">
-                    <Text>
-                      <Text as="span" bold>
-                        Reserved Budget:
-                      </Text>{' '}
-                      ${(budget.reservedBudget / 100).toLocaleString()}
-                    </Text>
-                    <Text>
-                      <Text as="span" bold>
-                        Existing Free Budget:
-                      </Text>{' '}
-                      ${(budget.freeBudget / 100).toLocaleString()}
-                    </Text>
-                  </Flex>
+        <Stack gap="md">
+          {reservedBudgetOptions.length > 1 && (
+            <Text as="p">Select a reserved budget to add gift amount.</Text>
+          )}
+          {reservedBudgetOptions.length === 0 && (
+            <Text as="p">No reserved budgets available.</Text>
+          )}
+          {reservedBudgetOptions.map(budget => (
+            <Container
+              key={budget.id}
+              padding="xl"
+              border="primary"
+              radius="md"
+              background={activeBudgetId === budget.id ? 'secondary' : undefined}
+              cursor="pointer"
+              onClick={() => setSelectedBudgetId(budget.id)}
+            >
+              <Stack gap="md">
+                <Flex justify="between">
                   <Text>
                     <Text as="span" bold>
-                      Categories:
+                      Reserved Budget:
                     </Text>{' '}
-                    {Object.keys(budget.categories)
-                      .map(category =>
-                        getPlanCategoryName({
-                          plan: subscription.planDetails,
-                          category: category as DataCategory,
-                          capitalize: false,
-                          hadCustomDynamicSampling: true,
-                        })
-                      )
-                      .join(', ') || 'None'}
+                    ${(budget.reservedBudget / 100).toLocaleString()}
                   </Text>
-                  {activeBudgetId === budget.id && (
-                    <form.AppField name="giftAmount">
-                      {field => (
-                        <field.Layout.Stack
-                          label="Gift Amount ($)"
-                          hintText="Enter gift amount in dollars (max $10,000)."
-                          required
-                        >
-                          <field.Number
-                            min={0}
-                            max={10000}
-                            value={field.state.value}
-                            onChange={value => field.handleChange(value ?? 0)}
-                            onClick={(event: React.MouseEvent) => event.stopPropagation()}
-                          />
-                          <Text>Total Gift: ${field.state.value.toLocaleString()}</Text>
-                        </field.Layout.Stack>
-                      )}
-                    </form.AppField>
-                  )}
-                </Stack>
-              </Container>
-            ))}
-          </Stack>
-          <Stack gap="lg" marginTop="xl">
-            <form.AppField name="ticketUrl">
-              {field => (
-                <field.Layout.Stack label="Ticket URL">
-                  <field.Input
-                    type="url"
-                    value={field.state.value}
-                    onChange={field.handleChange}
-                  />
-                </field.Layout.Stack>
-              )}
-            </form.AppField>
-            <form.AppField name="notes">
-              {field => (
-                <field.Layout.Stack label="Notes" required>
-                  <field.Input
-                    value={field.state.value}
-                    onChange={field.handleChange}
-                    maxLength={500}
-                  />
-                </field.Layout.Stack>
-              )}
-            </form.AppField>
-            <Flex gap="md" justify="end">
-              <Button onClick={closeModal}>Cancel</Button>
-              <form.SubmitButton>Confirm</form.SubmitButton>
-            </Flex>
-          </Stack>
-        </form.AppForm>
+                  <Text>
+                    <Text as="span" bold>
+                      Existing Free Budget:
+                    </Text>{' '}
+                    ${(budget.freeBudget / 100).toLocaleString()}
+                  </Text>
+                </Flex>
+                <Text>
+                  <Text as="span" bold>
+                    Categories:
+                  </Text>{' '}
+                  {Object.keys(budget.categories)
+                    .map(category =>
+                      getPlanCategoryName({
+                        plan: subscription.planDetails,
+                        category: category as DataCategory,
+                        capitalize: false,
+                        hadCustomDynamicSampling: true,
+                      })
+                    )
+                    .join(', ') || 'None'}
+                </Text>
+                {activeBudgetId === budget.id && (
+                  <form.AppField name="giftAmount">
+                    {field => (
+                      <field.Layout.Stack
+                        label="Gift Amount ($)"
+                        hintText="Enter gift amount in dollars (max $10,000)."
+                        required
+                      >
+                        <field.Number
+                          min={0}
+                          max={10000}
+                          value={field.state.value}
+                          onChange={value => field.handleChange(value ?? 0)}
+                          onClick={(event: React.MouseEvent) => event.stopPropagation()}
+                        />
+                        <Text>Total Gift: ${field.state.value.toLocaleString()}</Text>
+                      </field.Layout.Stack>
+                    )}
+                  </form.AppField>
+                )}
+              </Stack>
+            </Container>
+          ))}
+        </Stack>
+        <Stack gap="lg" marginTop="xl">
+          <form.AppField name="ticketUrl">
+            {field => (
+              <field.Layout.Stack label="Ticket URL">
+                <field.Input
+                  type="url"
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+          <form.AppField name="notes">
+            {field => (
+              <field.Layout.Stack label="Notes" required>
+                <field.Input
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  maxLength={500}
+                />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+        </Stack>
       </Body>
-    </Fragment>
+      <Footer>
+        <Flex gap="md" justify="end">
+          <Button onClick={closeModal}>Cancel</Button>
+          <form.SubmitButton>Confirm</form.SubmitButton>
+        </Flex>
+      </Footer>
+    </form.AppForm>
   );
 }
 
