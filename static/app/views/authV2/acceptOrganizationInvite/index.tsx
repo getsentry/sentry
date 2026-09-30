@@ -73,6 +73,7 @@ function AcceptOrganizationInvite() {
   }
 
   const {authOrganization, initialEmail, loginConfig, signedInUser, step} = state;
+  const isAuthenticatingAccount = step === 'authentication' || step === 'sign-in-sso';
   const ssoAction = authOrganization.provider ? (
     <OrganizationSsoButton
       authOrganization={authOrganization}
@@ -83,7 +84,7 @@ function AcceptOrganizationInvite() {
 
   return (
     <InvitationLayout>
-      <Stack gap="lg">
+      <Stack gap={signedInUser ? 'lg' : '2xl'}>
         <Stack gap="sm">
           <Text as="p" size="sm" variant="muted" align="left">
             {t("You've been invited to join…")}
@@ -91,53 +92,65 @@ function AcceptOrganizationInvite() {
           <OrganizationCard authOrganization={authOrganization} action={ssoAction} />
         </Stack>
 
-        {switchAccountError}
-
-        {signedInUser && (
-          <Stack gap="sm">
-            <Text as="p" size="sm" variant="muted" align="left">
-              {t("You're joining with the account…")}
-            </Text>
-            <InvitationAccountBadge
-              user={signedInUser}
-              onSwitchAccount={actions.switchAccount}
-            />
-          </Stack>
-        )}
-      </Stack>
-
-      {state.hasAcceptError && (
-        <Alert variant="danger">
-          {t('Failed to accept this invitation. Please try again.')}
-        </Alert>
-      )}
-
-      <Stack position="relative">
-        <AnimatePresence initial={false} mode="popLayout">
-          <MotionStack
-            key={step}
-            gap="lg"
-            initial={{opacity: 0, y: -10}}
-            animate={{opacity: 1, y: 0}}
-            exit={{opacity: 0, y: 10}}
-            transition={theme.motion.framer.smooth.moderate}
-          >
-            {step === 'authentication' ? (
-              <InvitationAuthentication
-                authConfig={loginConfig}
-                initialEmail={initialEmail}
-                onAuthenticated={actions.handleAuthenticated}
-              />
-            ) : (
-              <InvitationStatus
-                step={step}
-                isAccepting={state.isAccepting}
-                onAccept={actions.acceptInvitation}
-                onSwitchAccount={actions.switchAccount}
-              />
-            )}
-          </MotionStack>
-        </AnimatePresence>
+        <Stack position="relative">
+          <AnimatePresence initial={false} mode="popLayout">
+            <MotionStack
+              key={isAuthenticatingAccount ? 'authentication' : 'account'}
+              gap="2xl"
+              initial={{opacity: 0, y: -10}}
+              animate={{opacity: 1, y: 0}}
+              exit={{opacity: 0, y: 10}}
+              transition={theme.motion.framer.smooth.moderate}
+            >
+              {signedInUser && (
+                <Stack gap="sm">
+                  <Text as="p" size="sm" variant="muted" align="left">
+                    {t("You're joining with the account…")}
+                  </Text>
+                  <InvitationAccountBadge
+                    user={signedInUser}
+                    isSwitchingAccount={state.isSwitchingAccount}
+                    onSwitchAccount={actions.switchAccount}
+                  />
+                </Stack>
+              )}
+              {switchAccountError}
+              {state.hasAcceptError && (
+                <Alert variant="danger">
+                  {t('Failed to accept this invitation. Please try again.')}
+                </Alert>
+              )}
+              {step === 'authentication' ? (
+                <InvitationAuthentication
+                  authConfig={loginConfig}
+                  initialEmail={initialEmail}
+                  onAuthenticated={actions.handleAuthenticated}
+                />
+              ) : (
+                <Stack position="relative">
+                  <AnimatePresence initial={false} mode="popLayout">
+                    <MotionStack
+                      key={step}
+                      initial={{opacity: 0, y: -10}}
+                      animate={{opacity: 1, y: 0}}
+                      exit={{opacity: 0, y: 10}}
+                      transition={theme.motion.framer.smooth.moderate}
+                    >
+                      <InvitationStatus
+                        step={step}
+                        isAccepting={state.isAccepting}
+                        isCheckingInvite={state.isCheckingInvite}
+                        isSwitchingAccount={state.isSwitchingAccount}
+                        onAccept={actions.acceptInvitation}
+                        onSwitchAccount={actions.switchAccount}
+                      />
+                    </MotionStack>
+                  </AnimatePresence>
+                </Stack>
+              )}
+            </MotionStack>
+          </AnimatePresence>
+        </Stack>
       </Stack>
     </InvitationLayout>
   );

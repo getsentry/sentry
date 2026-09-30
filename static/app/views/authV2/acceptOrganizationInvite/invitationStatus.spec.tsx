@@ -7,7 +7,7 @@ import {InvitationStatus} from './invitationStatus';
 describe('InvitationStatus', () => {
   it('asks an existing member to switch accounts', async () => {
     const onSwitchAccount = jest.fn();
-    render(
+    const {rerender} = render(
       <InvitationStatus
         step="existing-member"
         isAccepting={false}
@@ -23,10 +23,20 @@ describe('InvitationStatus', () => {
 
     expect(onSwitchAccount).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    rerender(
+      <InvitationStatus
+        step="existing-member"
+        isAccepting={false}
+        isCheckingInvite
+        onAccept={jest.fn()}
+        onSwitchAccount={onSwitchAccount}
+      />
+    );
+    expect(screen.getByRole('button', {name: 'Switch account'})).toBeDisabled();
   });
 
   it('links to account security when two-factor setup is required', () => {
-    render(
+    const {rerender} = render(
       <InvitationStatus
         step="required-2fa"
         isAccepting={false}
@@ -54,10 +64,21 @@ describe('InvitationStatus', () => {
     expect(setupInstructions).toAppearBefore(
       screen.getByRole('button', {name: 'Configure Two-Factor Auth'})
     );
+    rerender(
+      <InvitationStatus
+        step="required-2fa"
+        isAccepting={false}
+        isCheckingInvite
+        onAccept={jest.fn()}
+        onSwitchAccount={jest.fn()}
+      />
+    );
+    const setupButton = screen.getByRole('button', {name: 'Configure Two-Factor Auth'});
+    expect(setupButton).toHaveAttribute('aria-disabled', 'true');
+    expect(setupButton).not.toHaveAttribute('href');
   });
 
   it.each([
-    ['refreshing', 'Checking your invitation…'],
     ['sign-in-sso', 'Sign in with the organization’s SSO provider to continue.'],
     [
       'authenticate-sso',
@@ -101,6 +122,17 @@ describe('InvitationStatus', () => {
         onSwitchAccount={jest.fn()}
       />
     );
+    expect(screen.getByRole('button', {name: 'Accept invitation'})).toBeDisabled();
+    rerender(
+      <InvitationStatus
+        step="accept"
+        isAccepting={false}
+        isCheckingInvite
+        onAccept={onAccept}
+        onSwitchAccount={jest.fn()}
+      />
+    );
+
     expect(screen.getByRole('button', {name: 'Accept invitation'})).toBeDisabled();
   });
 });
