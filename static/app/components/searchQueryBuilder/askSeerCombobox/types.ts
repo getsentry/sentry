@@ -9,6 +9,8 @@ export interface SeerRawResponseItem {
   sort: string;
   start: string | null;
   stats_period: string;
+  // User-requested attributes to surface as table columns.
+  extra_fields?: string[];
   // Cross-event queries; null if absent. Only applicable for explore/traces
   log_query?: string | null;
   metric_query?: string | null;
@@ -62,6 +64,12 @@ export interface AskSeerSearchQuery extends QueryTokensProps {
   start: string | null;
   statsPeriod: string;
   visualizations: Array<{yAxes: string[]; chartType?: ChartType}>;
+  /**
+   * Additional attributes the agent wants surfaced as table columns, on top of
+   * whatever the page already has selected. Applied to the page's columns and
+   * the `field` URL param. Ignored by the issue list, which has no columns.
+   */
+  extraFields?: string[];
 }
 
 /**

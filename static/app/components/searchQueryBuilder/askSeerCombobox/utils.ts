@@ -110,6 +110,17 @@ export function getExpandedProjectIds(
 }
 
 /**
+ * The user's existing columns are kept in place and the extras are
+ * appended. Duplicates are dropped, keeping the first occurrence.
+ */
+export function mergeSeerExtraFields(
+  currentFields: readonly string[],
+  extraFields: readonly string[] | undefined
+): string[] {
+  return [...new Set([...currentFields, ...(extraFields ?? [])])].filter(Boolean);
+}
+
+/**
  * Whether the query contains any `OR` boolean operator (including ones nested
  * inside parenthesized groups). When it does, we skip moving `project:` to the
  * page-level selector, since a project term could be scoped to one branch of the

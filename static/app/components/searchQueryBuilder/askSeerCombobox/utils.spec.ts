@@ -7,6 +7,7 @@ import {
   generateQueryTokensString,
   getCrossEventFilterQuery,
   getExpandedProjectIds,
+  mergeSeerExtraFields,
   normalizeSeerDateTimeParams,
   parseNaturalLanguageToQuery,
   resolveSeerProjectSelection,
@@ -110,6 +111,42 @@ describe('getExpandedProjectIds', () => {
       expect(getExpandedProjectIds(returned, selected)).toEqual(returned);
     }
   );
+});
+
+describe('mergeSeerExtraFields', () => {
+  it.each([undefined, []])(
+    'returns the current fields unchanged when extras are %p',
+    extraFields => {
+      expect(mergeSeerExtraFields(['timestamp', 'message'], extraFields)).toEqual([
+        'timestamp',
+        'message',
+      ]);
+    }
+  );
+
+  it('appends extras after the current fields', () => {
+    expect(mergeSeerExtraFields(['timestamp', 'message'], ['span.op'])).toEqual([
+      'timestamp',
+      'message',
+      'span.op',
+    ]);
+  });
+
+  it('keeps the first occurrence of a field the page already has', () => {
+    expect(
+      mergeSeerExtraFields(['timestamp', 'message'], ['message', 'span.op'])
+    ).toEqual(['timestamp', 'message', 'span.op']);
+  });
+
+  it('dedupes repeated extras and drops empty values', () => {
+    expect(mergeSeerExtraFields([''], ['span.op', 'span.op', ''])).toEqual(['span.op']);
+  });
+
+  it('returns a new array rather than mutating the current fields', () => {
+    const currentFields = ['timestamp'];
+    expect(mergeSeerExtraFields(currentFields, ['span.op'])).not.toBe(currentFields);
+    expect(currentFields).toEqual(['timestamp']);
+  });
 });
 
 describe('resolveSeerProjectSelection', () => {
