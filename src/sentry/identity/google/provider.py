@@ -1,6 +1,7 @@
 from typing import Any
 
 import orjson
+from django.conf import settings
 
 from sentry import options
 from sentry.auth.exceptions import IdentityNotValid
@@ -37,7 +38,7 @@ class GoogleIdentityProvider(OAuth2Provider):
         return options.get("auth-google.client-id")
 
     def get_oauth_client_secret(self):
-        return options.get("auth-google.client-secret")
+        return settings.SENTRY_AUTH_GOOGLE_CLIENT_SECRET
 
     def build_identity(self, state):
         data = state.get("data", {})

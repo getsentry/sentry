@@ -294,6 +294,7 @@ def pytest_configure(config: pytest.Config) -> None:
             "github-app.name": "sentry-test-app",
             "github-app.client-id": "github-client-id",
             "github-app.client-secret": "github-client-secret",
+            "github-app.webhook-secret": "b3002c3e321d4b7880360d397db2ccfd",
             "github-console-sdk-app.id": 42,
             "github-console-sdk-app.client-id": "github-client-id",
             "github-console-sdk-app.client-secret": "github-client-secret",

@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable, Mapping
 from typing import Any
 
+from django.conf import settings
 from django.http.request import HttpRequest
 
 from sentry import options
@@ -32,7 +33,7 @@ class FlyOAuth2Provider(OAuth2Provider):
         return options.get("auth-fly.client-id")
 
     def get_client_secret(self) -> str:
-        return options.get("auth-fly.client-secret")
+        return settings.SENTRY_AUTH_FLY_CLIENT_SECRET
 
     def get_configure_view(
         self,

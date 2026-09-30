@@ -29,6 +29,7 @@ def settings():
         SENTRY_DEFAULT_OPTIONS={},
         SENTRY_EMAIL_BACKEND_ALIASES={"dummy": "alias-for-dummy"},
         SENTRY_SELF_HOSTED=False,
+        SENTRY_SINGLE_ORGANIZATION=False,
     )
 
 
@@ -230,6 +231,7 @@ def test_apply_legacy_settings(settings) -> None:
         "filestore.relocation-backend": "some-other-filestore",
         "filestore.relocation-options": {"relocation-baz": "relocation-qux"},
     }
+    assert settings.SENTRY_MAILGUN_API_KEY == "mailgun-api-key"
     assert settings.DEFAULT_FROM_EMAIL == "mail-from"
     assert settings.ALLOWED_HOSTS == ["*"]
 
@@ -312,6 +314,59 @@ def test_non_self_hosted_filestore_config_yml_not_promoted(settings, config_yml)
 
     assert settings.SENTRY_FILE_STORAGE_BACKEND == "filesystem"
     assert settings.SENTRY_FILE_STORAGE_CONFIG == {}
+
+
+def test_migrated_options_promoted(settings, config_yml) -> None:
+    """Configured values for migrated options reach their settings in every mode."""
+    settings.SENTRY_SLACK_SIGNING_SECRET = ""
+    settings.SENTRY_GITHUB_APP_WEBHOOK_SECRET = ""
+    settings.SENTRY_OPTIONS = {"github-app.webhook-secret": "webhook-secret"}
+
+    config_yml.write("slack.signing-secret: signing-secret\n")
+    bootstrap_options(settings, str(config_yml))
+
+    assert settings.SENTRY_SLACK_SIGNING_SECRET == "signing-secret"
+    assert settings.SENTRY_GITHUB_APP_WEBHOOK_SECRET == "webhook-secret"
+
+
+def test_migrated_options_defaults_not_promoted(settings) -> None:
+    """A registered option default never replaces a directly configured setting."""
+    settings.SENTRY_SLACK_SIGNING_SECRET = "signing-secret"
+    settings.SENTRY_DEFAULT_OPTIONS = {"slack.signing-secret": ""}
+
+    bootstrap_options(settings)
+
+    assert settings.SENTRY_SLACK_SIGNING_SECRET == "signing-secret"
+    assert "slack.signing-secret" not in settings.SENTRY_OPTIONS
+
+
+def test_single_organization_reuses_github_app_secret(settings) -> None:
+    """Single organization SSO uses the GitHub integration app secret setting."""
+    settings.SENTRY_SINGLE_ORGANIZATION = True
+    settings.SENTRY_GITHUB_APP_CLIENT_SECRET = "app-secret"
+    settings.SENTRY_OPTIONS = {"github-login.client-secret": "login-secret"}
+
+    bootstrap_options(settings)
+
+    assert settings.GITHUB_API_SECRET == "app-secret"
+
+
+def test_single_organization_keeps_option_github_secret_remap(settings) -> None:
+    """With the option key configured, the single organization remap decides the SSO secret."""
+    settings.SENTRY_SINGLE_ORGANIZATION = True
+    settings.SENTRY_OPTIONS = {
+        "github-app.client-secret": "app-secret",
+        "github-login.client-secret": "login-secret",
+    }
+
+    with patch.dict(
+        "sentry.runner.initializer.options_mapper",
+        {"github-app.client-id": "GITHUB_APP_ID", "github-app.client-secret": "GITHUB_API_SECRET"},
+    ):
+        bootstrap_options(settings)
+
+    assert settings.GITHUB_API_SECRET == "login-secret"
+    assert settings.SENTRY_GITHUB_APP_CLIENT_SECRET == "app-secret"
 
 
 def test_self_hosted_validate_options_skips_migrated_keys(settings) -> None:

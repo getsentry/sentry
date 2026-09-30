@@ -10,7 +10,7 @@ import pytest
 import responses
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.contrib.sessions.backends.base import SessionBase
-from django.test import Client, RequestFactory
+from django.test import Client, RequestFactory, override_settings
 
 import sentry.identity
 from sentry.auth.exceptions import IdentityNotValid
@@ -164,11 +164,11 @@ class GCPIdentityProviderTest(TestCase):
     def test_get_refresh_token_url(self) -> None:
         assert self.provider.get_refresh_token_url() == TOKEN_URL
 
+    @override_settings(SENTRY_GCP_CLIENT_SECRET="my-client-secret")
     @patch("sentry.identity.gcp.provider.options.get")
     def test_get_refresh_token_params(self, mock_options: MagicMock) -> None:
         mock_options.side_effect = lambda key: {
             "gcp.client-id": "my-client-id",
-            "gcp.client-secret": "my-client-secret",
         }[key]
 
         identity = MagicMock()

@@ -117,6 +117,37 @@ self_hosted_options_mapper = {
     "filestore.control.options": "SENTRY_CONTROL_FILE_STORAGE_CONFIG",
 }
 
+# Options whose consumers now read Django settings. Values configured for the
+# option key (config.yml or SENTRY_OPTIONS) are still promoted into the setting,
+# in every mode, until deployments configure the setting directly. Registered
+# defaults are never promoted, so a setting configured directly is never
+# overwritten.
+migrated_options_mapper = {
+    "auth-fly.client-secret": "SENTRY_AUTH_FLY_CLIENT_SECRET",
+    "auth-google.client-secret": "SENTRY_AUTH_GOOGLE_CLIENT_SECRET",
+    "aws-lambda.secret-access-key": "SENTRY_AWS_LAMBDA_SECRET_ACCESS_KEY",
+    "codecov.signing_secret": "SENTRY_CODECOV_SIGNING_SECRET",
+    "cursor-origin-app.private-key": "SENTRY_CURSOR_ORIGIN_APP_PRIVATE_KEY",
+    "discord.bot-token": "SENTRY_DISCORD_BOT_TOKEN",
+    "discord.client-secret": "SENTRY_DISCORD_CLIENT_SECRET",
+    "gcp.client-secret": "SENTRY_GCP_CLIENT_SECRET",
+    "github-app.client-secret": "SENTRY_GITHUB_APP_CLIENT_SECRET",
+    "github-app.private-key": "SENTRY_GITHUB_APP_PRIVATE_KEY",
+    "github-app.webhook-secret": "SENTRY_GITHUB_APP_WEBHOOK_SECRET",
+    "mail.mailgun-api-key": "SENTRY_MAILGUN_API_KEY",
+    "msteams.client-secret": "SENTRY_MSTEAMS_CLIENT_SECRET",
+    "slack.client-secret": "SENTRY_SLACK_CLIENT_SECRET",
+    "slack.signing-secret": "SENTRY_SLACK_SIGNING_SECRET",
+    "slack-staging.client-secret": "SENTRY_SLACK_STAGING_CLIENT_SECRET",
+    "slack-staging.signing-secret": "SENTRY_SLACK_STAGING_SIGNING_SECRET",
+    "slack.verification-token": "SENTRY_SLACK_VERIFICATION_TOKEN",
+    "sms.twilio-token": "SENTRY_SMS_TWILIO_TOKEN",
+    "vercel.client-secret": "SENTRY_VERCEL_CLIENT_SECRET",
+    "vsts.client-secret": "SENTRY_VSTS_CLIENT_SECRET",
+    "vsts-limited.client-secret": "SENTRY_VSTS_LIMITED_CLIENT_SECRET",
+    "vsts_new.client-secret": "SENTRY_VSTS_NEW_CLIENT_SECRET",
+}
+
 
 def bootstrap_options(settings: Any, config: str | None = None) -> None:
     """
@@ -186,6 +217,19 @@ def bootstrap_options(settings: Any, config: str | None = None) -> None:
                         pass
                 # Escalate the few needed to actually get the app bootstrapped into settings
                 setattr(settings, effective_mapper[k], v)
+
+    for k, v in settings.SENTRY_OPTIONS.items():
+        if k in migrated_options_mapper and v is not None:
+            setattr(settings, migrated_options_mapper[k], v)
+
+    # Single organization mode reuses the GitHub integration app for SSO. The
+    # remap in initialize_app handles the option key; this handles the setting.
+    if (
+        settings.SENTRY_SINGLE_ORGANIZATION
+        and "github-app.client-secret" not in settings.SENTRY_OPTIONS
+        and settings.SENTRY_GITHUB_APP_CLIENT_SECRET
+    ):
+        settings.GITHUB_API_SECRET = settings.SENTRY_GITHUB_APP_CLIENT_SECRET
 
 
 def configure_structlog() -> None:
@@ -568,9 +612,9 @@ def apply_legacy_settings(settings: Any) -> None:
             # whose consumers read the setting (e.g. filestore.* -> SENTRY_FILE_STORAGE_*).
             # Re-promote the legacy value so the override actually takes effect.
             effective_mapper = (
-                {**options_mapper, **self_hosted_options_mapper}
+                {**options_mapper, **migrated_options_mapper, **self_hosted_options_mapper}
                 if settings.SENTRY_SELF_HOSTED
-                else options_mapper
+                else {**options_mapper, **migrated_options_mapper}
             )
             if new in effective_mapper:
                 setattr(settings, effective_mapper[new], value)

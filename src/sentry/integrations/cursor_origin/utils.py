@@ -4,6 +4,7 @@ import time
 
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+from django.conf import settings
 
 from sentry import options
 from sentry.integrations.cursor_origin.constants import (
@@ -28,7 +29,7 @@ def get_jwt(app_id: str | None = None, private_key: str | None = None) -> str:
     if app_id is None:
         app_id = str(options.get("cursor-origin-app.id"))
     if private_key is None:
-        private_key = options.get("cursor-origin-app.private-key")
+        private_key = settings.SENTRY_CURSOR_ORIGIN_APP_PRIVATE_KEY
     if not app_id:
         raise ValueError("cursor-origin-app.id is not configured")
 

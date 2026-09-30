@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable, Mapping
 from typing import Any
 
+from django.conf import settings
 from django.http import HttpRequest
 
 from sentry import options
@@ -68,7 +69,7 @@ class GoogleOAuth2Provider(OAuth2Provider):
         return options.get("auth-google.client-id")
 
     def get_client_secret(self) -> str:
-        return options.get("auth-google.client-secret")
+        return settings.SENTRY_AUTH_GOOGLE_CLIENT_SECRET
 
     def get_configure_view(
         self,

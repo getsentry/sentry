@@ -5,6 +5,7 @@ import logging
 from datetime import datetime
 from typing import Any, Literal, NotRequired, TypedDict
 
+from django.conf import settings
 from django.db import router, transaction
 from django.http import HttpRequest, HttpResponse
 from django.utils import timezone
@@ -14,7 +15,6 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.generic.base import View
 from rest_framework.request import Request
 
-from sentry import options
 from sentry.locks import locks
 from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
 from sentry.models.apidevicecode import DEFAULT_INTERVAL, ApiDeviceCode, DeviceCodeStatus
@@ -401,11 +401,11 @@ class OAuthTokenView(View):
         token_data: dict[str, Any] = {"token": api_token}
 
         # OpenID token generation (stays in endpoint)
-        if grant_has_openid and options.get("codecov.signing_secret"):
+        if grant_has_openid and settings.SENTRY_CODECOV_SIGNING_SECRET:
             open_id_token = OpenIDToken(
                 application.client_id,
                 grant_user_id,
-                options.get("codecov.signing_secret"),
+                settings.SENTRY_CODECOV_SIGNING_SECRET,
                 nonce=request.POST.get("nonce"),
             )
             # Use api_token.user instead of grant since grant is deleted
