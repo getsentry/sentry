@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from typing import Any
 
 import sentry_sdk
+from django.db import connections
 from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -90,6 +91,16 @@ TOP_EVENTS_DATASETS = {
 logger = logging.getLogger(__name__)
 
 INGESTION_DELAY_TIMEOUT = 1.0  # p99 returns in less than 1 second
+
+
+def _get_ingestion_delay_status_in_thread(
+    dataset: type[RPCBase], snuba_params: SnubaParams
+) -> IngestionDelayStatus | None:
+    with sentry_sdk.new_scope():
+        try:
+            return get_ingestion_delay_status(dataset, snuba_params)
+        finally:
+            connections.close_all()
 
 
 def null_zero(value: float) -> float | None:
@@ -236,7 +247,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
             pool = ContextPropagatingThreadPoolExecutor(max_workers=1)
             try:
                 ingestion_delay_future = (
-                    pool.submit(get_ingestion_delay_status, dataset, snuba_params)
+                    pool.submit(_get_ingestion_delay_status_in_thread, dataset, snuba_params)
                     if include_measured_ingestion_delay_metadata
                     and isinstance(dataset, type)
                     and issubclass(dataset, RPCBase)
