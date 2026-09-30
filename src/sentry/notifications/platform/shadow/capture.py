@@ -28,7 +28,7 @@ class ShadowCollector:
     Holds the payload the legacy send path handed to the provider while a shadow read is active.
     """
 
-    legacy: LegacyRender | None = None
+    legacy_render: LegacyRender | None = None
 
 
 _active_collector: ContextVar[ShadowCollector | None] = ContextVar(
@@ -62,9 +62,11 @@ def record_legacy_render(
     """
     try:
         collector = _active_collector.get()
-        if collector is None or collector.legacy is not None:
+        if collector is None or collector.legacy_render is not None:
             return
-        collector.legacy = LegacyRender(provider=provider, payload=payload, chart_url=chart_url)
+        collector.legacy_render = LegacyRender(
+            provider=provider, payload=payload, chart_url=chart_url
+        )
     except Exception:
         logger.exception(
             "notifications.platform.shadow.record_failed", extra={"provider": str(provider)}

@@ -356,7 +356,7 @@ class BaseIssueAlertHandler(ABC):
         with shadow_read(
             invocation,
             NotificationSource.ISSUE,
-            lambda _legacy: issue_notification_data_factory(invocation),
+            lambda _: issue_notification_data_factory(invocation),
         ):
             # Create a rule
             rule = cls.create_rule_instance_from_action(
@@ -467,8 +467,8 @@ class BaseMetricAlertHandler(ABC):
         with shadow_read(
             invocation,
             NotificationSource.METRIC_ALERT,
-            lambda legacy: metric_alert_notification_data_factory(
-                issue_notification_context, chart_url=legacy.chart_url
+            lambda legacy_render: metric_alert_notification_data_factory(
+                issue_notification_context, chart_url=legacy_render.chart_url
             ),
         ):
             notification_context = issue_notification_context.notification_context

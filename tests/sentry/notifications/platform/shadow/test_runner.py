@@ -139,9 +139,7 @@ class ShadowInvocationTestCase(TestCase):
 def shadow(
     invocation: ActionInvocation, source: NotificationSource
 ) -> AbstractContextManager[None]:
-    return shadow_read(
-        invocation, source, lambda _legacy: issue_notification_data_factory(invocation)
-    )
+    return shadow_read(invocation, source, lambda _: issue_notification_data_factory(invocation))
 
 
 def _send_legacy(payload: dict[str, Any] | None = None) -> None:
@@ -240,7 +238,7 @@ class ShadowReadSamplingTest(ShadowInvocationTestCase):
 
         mock_compare.assert_called_once()
         collector = mock_compare.call_args.args[2]
-        assert collector.legacy.payload == {"type": "AdaptiveCard"}
+        assert collector.legacy_render.payload == {"type": "AdaptiveCard"}
 
     def test_sampling_failure_does_not_propagate(self, mock_compare: mock.MagicMock) -> None:
         with (

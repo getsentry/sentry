@@ -31,7 +31,7 @@ def test_records_the_first_legacy_render() -> None:
         record_legacy_render(NotificationProviderKey.DISCORD, {"content": "second"})
 
     assert not is_collecting()
-    assert collector.legacy == LegacyRender(
+    assert collector.legacy_render == LegacyRender(
         provider=NotificationProviderKey.SLACK, payload=("[]", "text"), chart_url="https://c"
     )
 
@@ -44,10 +44,10 @@ def test_collectors_are_restored_when_nested() -> None:
             record_legacy_render(NotificationProviderKey.SLACK, {"blocks": []})
         record_legacy_render(NotificationProviderKey.MSTEAMS, {"type": "AdaptiveCard"})
 
-    assert inner.legacy == LegacyRender(
+    assert inner.legacy_render == LegacyRender(
         provider=NotificationProviderKey.SLACK, payload={"blocks": []}, chart_url=None
     )
-    assert outer.legacy == LegacyRender(
+    assert outer.legacy_render == LegacyRender(
         provider=NotificationProviderKey.MSTEAMS, payload={"type": "AdaptiveCard"}, chart_url=None
     )
 
@@ -62,7 +62,7 @@ def test_record_failures_do_not_propagate() -> None:
     ):
         record_legacy_render(NotificationProviderKey.SLACK, {"blocks": []})
 
-    assert collector.legacy is None
+    assert collector.legacy_render is None
     mock_logger.exception.assert_called_once()
 
 

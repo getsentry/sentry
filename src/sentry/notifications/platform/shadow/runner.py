@@ -116,12 +116,12 @@ def _compare_with_platform(
     renderer_key = provider.renderer_key or provider.key
     if renderer_registry.get(provider_key=renderer_key, source=source) is None:
         return ShadowResult(outcome=ShadowOutcome.NO_RENDERER)
-    legacy = collector.legacy
-    if legacy is None:
+    legacy_render = collector.legacy_render
+    if legacy_render is None:
         return ShadowResult(outcome=ShadowOutcome.LEGACY_NOT_CAPTURED)
 
     try:
-        data = build_data(legacy)
+        data = build_data(legacy_render)
         platform_payload = NotificationService.render_template(
             data=data, template=template_registry.get(data.source)(), provider=provider
         )
@@ -130,7 +130,7 @@ def _compare_with_platform(
 
     try:
         entries = diff(
-            normalize(legacy.provider, legacy.payload),
+            normalize(legacy_render.provider, legacy_render.payload),
             normalize(provider_key, platform_payload),
         )
     except Exception as e:
