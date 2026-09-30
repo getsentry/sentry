@@ -857,8 +857,8 @@ if (IS_UI_DEV_ONLY) {
         cookieDomainRewrite: {'.sentry.io': 'localhost'},
         logger: proxyLoggerQuiet,
         router: req => {
-          const host = req.headers.host!.split(':')[0]!;
-          const orgSlug = extractSlug(host);
+          const host = req.headers.host?.split(':')[0];
+          const orgSlug = host ? extractSlug(host) : null;
           return orgSlug ? `https://${orgSlug}.sentry.io` : 'https://sentry.io';
         },
       },
