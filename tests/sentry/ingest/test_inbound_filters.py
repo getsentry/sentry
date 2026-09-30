@@ -12,6 +12,7 @@ from sentry.ingest.inbound_filters import (
     _error_message_condition,
     get_custom_inbound_filter_generic_filters,
     get_generic_filters,
+    strip_comments,
 )
 from sentry.models.project import Project
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -423,6 +424,17 @@ def release_rule_condition(values: list[str]) -> dict:
             },
             id="ip_address_combines_with_item_conditions",
         ),
+        pytest.param(
+            "error",
+            [
+                {
+                    "type": "release",
+                    "value": ["# builds before the fix", "1.2.* # first bad one", "build#12"],
+                }
+            ],
+            {"op": "glob", "name": "event.release", "value": ["1.2.*", "build#12"]},
+            id="comments_are_left_out_of_the_values",
+        ),
     ],
 )
 def test_custom_inbound_filter_condition_translation(
@@ -439,6 +451,57 @@ def test_custom_inbound_filter_condition_translation(
         "condition": expected_condition,
     }
     assert_relay_accepts_condition(generic_filter["condition"])
+
+
+@pytest.mark.parametrize(
+    ("lines", "patterns"),
+    [
+        pytest.param(["1.2.*", "3.*"], ["1.2.*", "3.*"], id="plain_lines_stay"),
+        pytest.param(["# old builds", "1.2.*"], ["1.2.*"], id="full_line_comment"),
+        pytest.param(["  # indented", "1.2.*"], ["1.2.*"], id="indented_full_line_comment"),
+        pytest.param(["1.2.* # first bad one"], ["1.2.*"], id="inline_comment"),
+        pytest.param(["1.2.*\t#tab before hash"], ["1.2.*"], id="inline_comment_after_tab"),
+        pytest.param(["build#12"], ["build#12"], id="hash_inside_a_value_stays"),
+        pytest.param(["", "   ", "1.2.*"], ["1.2.*"], id="blank_lines_go"),
+        pytest.param(["# only", "# comments"], [], id="only_comments"),
+    ],
+)
+def test_strip_comments(lines, patterns) -> None:
+    assert strip_comments(lines) == patterns
+
+
+@django_db_all
+def test_custom_inbound_filter_with_only_comments_is_not_served(default_project, factories) -> None:
+    factories.create_project_custom_inbound_filter(
+        default_project,
+        data_type="error",
+        conditions=[{"type": "release", "value": ["# nothing yet"]}],
+    )
+
+    assert get_custom_inbound_filter_generic_filters(default_project) == []
+
+
+@django_db_all
+def test_legacy_lists_reach_relay_without_comments(default_project) -> None:
+    for builtin_filter_id, _ in ACTIVE_GENERIC_FILTERS:
+        default_project.update_option(f"filters:{builtin_filter_id}", "0")
+    default_project.update_option("sentry:blacklisted_ips", ["# office", "10.0.0.0/8 # vpn"])
+    default_project.update_option("sentry:log_messages", ["*health* # probes", "# noise"])
+    default_project.update_option("sentry:trace_metric_names", ["# all of them", "test.*"])
+
+    generic_filters = get_generic_filters(
+        default_project,
+        InboundFilterFeatures(
+            custom_inbound_filters=True, logs=True, metrics=True, generic_ip_filter=True
+        ),
+    )
+
+    assert generic_filters is not None
+    assert [(f["id"], f["condition"]["value"]) for f in generic_filters["filters"]] == [
+        ("ip-address", ["10.0.0.0/8"]),
+        ("log-message", ["*health*"]),
+        ("trace-metric-name", ["test.*"]),
+    ]
 
 
 @django_db_all

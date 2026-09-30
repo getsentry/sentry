@@ -152,6 +152,41 @@ def test_get_experimental_config_dyn_sampling(mock_logger, _, default_project) -
 
 @django_db_all
 @cell_silo_test
+def test_project_config_strips_comments_from_legacy_filter_lists(default_project) -> None:
+    default_project.update_option("sentry:releases", ["# before the fix", "1.2.* # first bad one"])
+    default_project.update_option("sentry:error_messages", ["*timeout* # flaky", "# noise"])
+    default_project.update_option("sentry:blacklisted_ips", ["# office", "10.0.0.0/8 # vpn"])
+
+    with Feature({"projects:custom-inbound-filters": True}):
+        cfg = get_project_config(default_project).to_dict()
+
+    _validate_project_config(cfg["config"])
+    filter_settings = cfg["config"]["filterSettings"]
+    assert filter_settings["releases"] == {"releases": ["1.2.*"]}
+    assert filter_settings["errorMessages"] == {"patterns": ["*timeout*"]}
+    assert filter_settings["clientIps"] == {"blacklistedIps": ["10.0.0.0/8"]}
+
+
+@django_db_all
+@cell_silo_test
+def test_project_config_omits_legacy_filter_lists_that_hold_only_comments(
+    default_project,
+) -> None:
+    default_project.update_option("sentry:releases", ["# nothing yet"])
+    default_project.update_option("sentry:error_messages", ["# nothing yet"])
+    default_project.update_option("sentry:blacklisted_ips", ["# nothing yet"])
+
+    with Feature({"projects:custom-inbound-filters": True}):
+        cfg = get_project_config(default_project).to_dict()
+
+    filter_settings = cfg["config"]["filterSettings"]
+    assert "releases" not in filter_settings
+    assert "errorMessages" not in filter_settings
+    assert "clientIps" not in filter_settings
+
+
+@django_db_all
+@cell_silo_test
 @pytest.mark.parametrize("has_custom_filters", [False, True])
 @pytest.mark.parametrize("has_blacklisted_ips", [False, True])
 @pytest.mark.parametrize("has_generic_ip_filter", [False, True])

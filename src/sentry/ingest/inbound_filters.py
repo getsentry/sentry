@@ -1,3 +1,4 @@
+import re
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any, cast
@@ -18,6 +19,21 @@ from sentry.signals import inbound_filter_toggled
 from sentry.tsdb.base import TSDBModel
 
 GENERIC_FILTERS_VERSION = 1
+
+# A filter list holds one pattern per line. A line that starts with ``#`` is a comment,
+# and so is the rest of a line from a ``#`` that follows whitespace. A ``#`` inside a
+# value stays, so a release such as ``build#12`` is still a pattern.
+_COMMENT = re.compile(r"(?:^|\s)#.*")
+
+
+def strip_comments(lines: Sequence[str]) -> list[str]:
+    """The patterns of a filter list: its lines without comments and blank lines."""
+    patterns = []
+    for line in lines:
+        pattern = _COMMENT.sub("", line).strip()
+        if pattern:
+            patterns.append(pattern)
+    return patterns
 
 
 class FilterStatKeys:
@@ -435,7 +451,7 @@ def _generic_filter(filter_id: str, condition: RuleCondition) -> GenericFilter:
 
 
 def _log_messages_generic_filters(project: Project) -> list[GenericFilter]:
-    globs = project.get_option(f"sentry:{FilterTypes.LOG_MESSAGES}")
+    globs = strip_comments(project.get_option(f"sentry:{FilterTypes.LOG_MESSAGES}") or [])
     if not globs:
         return []
 
@@ -444,7 +460,7 @@ def _log_messages_generic_filters(project: Project) -> list[GenericFilter]:
 
 
 def _trace_metric_names_generic_filters(project: Project) -> list[GenericFilter]:
-    globs = project.get_option(f"sentry:{FilterTypes.TRACE_METRIC_NAMES}")
+    globs = strip_comments(project.get_option(f"sentry:{FilterTypes.TRACE_METRIC_NAMES}") or [])
     if not globs:
         return []
 
@@ -457,7 +473,7 @@ def _ip_denylist_generic_filters(project: Project) -> list[GenericFilter]:
     The legacy IP address list as a generic filter. It keeps the outcome reason of the
     native ``clientIps`` filter it replaces, so filter stats stay continuous.
     """
-    ips = project.get_option("sentry:blacklisted_ips")
+    ips = strip_comments(project.get_option("sentry:blacklisted_ips") or [])
     if not ips:
         return []
 
@@ -658,9 +674,9 @@ def _custom_filter_condition(
 
     Conditions are combined with AND. Returns None if the filter cannot be translated
     (a missing data type, a data type, condition type, or value shape unknown to this
-    revision, or a condition type whose field the filter's data type does not carry):
-    since every condition narrows the match, dropping only the broken condition would
-    filter more data than configured.
+    revision, a condition type whose field the filter's data type does not carry, or a
+    condition whose values are all comments): since every condition narrows the match,
+    dropping only the broken condition would filter more data than configured.
     """
     if not conditions or data_type is None:
         return None
@@ -682,9 +698,10 @@ def _custom_filter_condition(
             return None
 
         matcher = matchers.get(condition_type)
-        if matcher is None:
+        patterns = strip_comments(values)
+        if matcher is None or not patterns:
             return None
-        rule_conditions.append(matcher(values))
+        rule_conditions.append(matcher(patterns))
 
     if len(rule_conditions) == 1:
         return rule_conditions[0]
