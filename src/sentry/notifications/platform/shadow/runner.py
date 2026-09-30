@@ -31,7 +31,6 @@ from sentry.notifications.platform.types import (
 )
 from sentry.notifications.types import TEST_NOTIFICATION_ID
 from sentry.utils import metrics
-from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.types import ActionInvocation
 
@@ -106,10 +105,7 @@ def _compare_with_platform(
     Renders the invocation through the notification platform and diffs it against the legacy
     payload in the collector.
     """
-    try:
-        provider = provider_registry.get(provider_key)
-    except NoRegistrationExistsError:
-        return ShadowResult(outcome=ShadowOutcome.NO_RENDERER)
+    provider = provider_registry.get(provider_key)
     renderer_key = provider.renderer_key or provider.key
     if renderer_registry.get(provider_key=renderer_key, source=source) is None:
         return ShadowResult(outcome=ShadowOutcome.NO_RENDERER)
