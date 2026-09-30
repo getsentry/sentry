@@ -1121,6 +1121,7 @@ function MultilineText({
   children,
   renderFormatted,
   clip = true,
+  mode,
 }: {
   children: string;
   /**
@@ -1128,9 +1129,15 @@ function MultilineText({
    * scrolls on its own, so content flows instead of being clipped and hidden.
    */
   clip?: boolean;
+  /**
+   * Forces the pretty or raw view and hides the hover toggle, for callers that
+   * control the format themselves.
+   */
+  mode?: 'pretty' | 'raw';
   renderFormatted?: (text: string) => React.ReactNode;
 }) {
-  const [showRaw, setShowRaw] = useState(false);
+  const [showRawState, setShowRaw] = useState(false);
+  const showRaw = mode ? mode === 'raw' : showRawState;
   const {hoverProps, isHovered} = useHover({});
   const theme = useTheme();
 
@@ -1145,7 +1152,7 @@ function MultilineText({
   const content = (
     <MultilineTextWrapper {...hoverProps}>
       <Container position="absolute" top={theme.space.xs} right={theme.space.xs}>
-        {isHovered && (
+        {isHovered && !mode && (
           <SegmentedControl
             size="xs"
             value={showRaw ? 'raw' : 'formatted'}
@@ -1203,6 +1210,7 @@ function MultilineJSON({
   maxDefaultDepth = 2,
   autoCollapseLimit,
   clip = false,
+  mode,
 }: {
   value: any;
   autoCollapseLimit?: number;
@@ -1212,8 +1220,14 @@ function MultilineJSON({
    */
   clip?: boolean;
   maxDefaultDepth?: number;
+  /**
+   * Forces the pretty (tree) or raw (JSON text) view and hides the hover toggle,
+   * for callers that control the format themselves.
+   */
+  mode?: 'pretty' | 'raw';
 }) {
-  const [showRaw, setShowRaw] = useState(false);
+  const [showRawState, setShowRaw] = useState(false);
+  const showRaw = mode ? mode === 'raw' : showRawState;
   const {hoverProps, isHovered} = useHover({});
   const theme = useTheme();
 
@@ -1227,7 +1241,7 @@ function MultilineJSON({
 
   const content = (
     <MultilineTextWrapperMonospace {...hoverProps}>
-      {isHovered && (
+      {isHovered && !mode && (
         <Container
           position="absolute"
           top={theme.space.xs}
