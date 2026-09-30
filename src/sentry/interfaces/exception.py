@@ -458,7 +458,12 @@ class Exception(Interface):
         result = {}
         values = meta.get("values", meta)
         for index, value in values.items():
-            exc = self.values[int(index)]
+            if not index.isdigit():
+                continue
+            try:
+                exc = self.values[int(index)]
+            except IndexError:
+                continue
             if exc is not None:
                 result[index] = exc.get_api_meta(value, is_public=is_public, platform=platform)
 

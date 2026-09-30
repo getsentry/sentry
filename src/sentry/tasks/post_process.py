@@ -584,8 +584,10 @@ def post_process_group(
                 # Post process forwarder can replay previously handled events.
                 # To prevent this, we "leak" a lock preventing any subsequent
                 # processing of the same event.
+                # Reprocessing keeps the event ID but assigns a new group. Allow that
+                # group's post-processing to run even while the original lock exists.
                 lock = locks.get(
-                    f"ppg:{project_id}:{event_id}-once",
+                    f"ppg:{project_id}:{event_id}:{group_id}-once",
                     duration=600,
                     name="post_process_event_once",
                 )

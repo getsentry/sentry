@@ -318,6 +318,9 @@ function EventTagsTreeRowDropdown({
   return (
     <RevealOnHover.Action visible={isMenuOpen}>
       <TreeValueDropdown
+        // Inline, the menu is trapped in the focused row's stacking context and
+        // renders under positioned content further down the page.
+        usePortal
         preventOverflowOptions={{padding: 4}}
         position="bottom-end"
         size="xs"
