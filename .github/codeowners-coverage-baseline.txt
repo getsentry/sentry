@@ -1652,9 +1652,6 @@ tests/acceptance/test_teams_list.py
 tests/acceptance/test_trace_view_from_explore.py
 tests/acceptance/test_trace_view_waterfall.py
 tests/conftest.py
-tests/flagpole/__init__.py
-tests/flagpole/test_conditions.py
-tests/flagpole/test_experiment_mode.py
 tests/integration/__init__.py
 tests/integration/fixtures/csp/chrome_input.json
 tests/integration/fixtures/csp/chrome_output.json
