@@ -16,6 +16,7 @@ from sentry.incidents.models.alert_rule import AlertRule, AlertRuleActivity
 from sentry.incidents.models.incident import IncidentActivity
 from sentry.models.activity import Activity
 from sentry.models.authidentity import AuthIdentity
+from sentry.models.custominboundfilter import CustomInboundFilter
 from sentry.models.dashboard import (
     Dashboard,
     DashboardFavoriteUser,
@@ -473,6 +474,7 @@ class UserMergeToTest(BackupTestCase, HybridCloudTestMixin):
         Activity,
         AlertRule,
         AlertRuleActivity,
+        CustomInboundFilter,
         Dashboard,
         DashboardFavoriteUser,
         DashboardLastVisited,
@@ -517,6 +519,7 @@ class UserMergeToTest(BackupTestCase, HybridCloudTestMixin):
         Activity,
         AlertRule,
         AlertRuleActivity,
+        CustomInboundFilter,
         Dashboard,
         DashboardFavoriteUser,
         DashboardLastVisited,

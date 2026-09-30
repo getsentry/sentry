@@ -5,7 +5,7 @@ from collections.abc import Mapping
 from typing import Any, TypedDict
 
 from django.db.models import QuerySet
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import extend_schema, extend_schema_field
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -25,6 +25,7 @@ from sentry.apidocs.response_types import (
     ValidationErrorResponse,
     as_validation_errors,
 )
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.ingest.inbound_filters import get_supported_condition_types
 from sentry.models.custominboundfilter import (
     ConditionType,
@@ -33,6 +34,9 @@ from sentry.models.custominboundfilter import (
 )
 from sentry.models.project import Project
 from sentry.tasks.relay import schedule_invalidate_project_config
+from sentry.users.api.serializers.user import UserSerializerResponse
+from sentry.users.services.user.serial import serialize_generic_user
+from sentry.users.services.user.service import user_service
 
 MAX_CONDITIONS_PER_FILTER = 10
 MAX_FILTERS_PER_PROJECT = 50
@@ -62,6 +66,7 @@ class CustomInboundFilterResponse(TypedDict):
     conditions: list[CustomInboundFilterCondition]
     dateCreated: str
     dateUpdated: str
+    lastModifiedBy: UserSerializerResponse | None
 
 
 def _condition_value_chars(conditions: list[CustomInboundFilterCondition]) -> int:
@@ -171,10 +176,33 @@ class CustomInboundFilterSerializer(serializers.ModelSerializer[CustomInboundFil
     dateUpdated = serializers.DateTimeField(
         source="date_updated", read_only=True, help_text="When the filter was last changed."
     )
+    lastModifiedBy = serializers.SerializerMethodField(
+        help_text="The user who last changed the filter. Null once that user is deleted."
+    )
 
     class Meta:
         model = CustomInboundFilter
-        fields = ["id", "name", "active", "dataType", "conditions", "dateCreated", "dateUpdated"]
+        fields = [
+            "id",
+            "name",
+            "active",
+            "dataType",
+            "conditions",
+            "dateCreated",
+            "dateUpdated",
+            "lastModifiedBy",
+        ]
+
+    @extend_schema_field(
+        inline_sentry_response_serializer("CustomInboundFilterUser", UserSerializerResponse)
+    )
+    def get_lastModifiedBy(
+        self, custom_filter: CustomInboundFilter
+    ) -> UserSerializerResponse | None:
+        # Resolved in bulk by serialize_custom_inbound_filters; users live in the
+        # control silo, so a lookup per row would be a remote call per row.
+        users_by_id: dict[str, UserSerializerResponse] = self.context.get("users_by_id", {})
+        return users_by_id.get(str(custom_filter.last_modified_by_id))
 
     def create(self, validated_data: dict[str, Any]) -> CustomInboundFilter:
         return CustomInboundFilter.objects.create(**validated_data)
@@ -223,19 +251,46 @@ class CustomInboundFilterSerializer(serializers.ModelSerializer[CustomInboundFil
         return attrs
 
 
-def serialize_custom_inbound_filter(
-    custom_filter: CustomInboundFilter,
-) -> CustomInboundFilterResponse:
-    data = CustomInboundFilterSerializer(custom_filter).data
-    return {
-        "id": data["id"],
-        "name": data["name"],
-        "active": data["active"],
-        "dataType": data["dataType"],
-        "conditions": data["conditions"],
-        "dateCreated": data["dateCreated"],
-        "dateUpdated": data["dateUpdated"],
+def serialize_custom_inbound_filters(
+    custom_filters: list[CustomInboundFilter], request: Request
+) -> list[CustomInboundFilterResponse]:
+    user_ids = {
+        custom_filter.last_modified_by_id
+        for custom_filter in custom_filters
+        if custom_filter.last_modified_by_id is not None
     }
+    users_by_id: dict[str, UserSerializerResponse] = {}
+    if user_ids:
+        users_by_id = {
+            user["id"]: user
+            for user in user_service.serialize_many(
+                filter={"user_ids": list(user_ids)},
+                as_user=serialize_generic_user(request.user),
+            )
+        }
+
+    serializer = CustomInboundFilterSerializer(
+        custom_filters, many=True, context={"users_by_id": users_by_id}
+    )
+    return [
+        {
+            "id": data["id"],
+            "name": data["name"],
+            "active": data["active"],
+            "dataType": data["dataType"],
+            "conditions": data["conditions"],
+            "dateCreated": data["dateCreated"],
+            "dateUpdated": data["dateUpdated"],
+            "lastModifiedBy": data["lastModifiedBy"],
+        }
+        for data in serializer.data
+    ]
+
+
+def serialize_custom_inbound_filter(
+    custom_filter: CustomInboundFilter, request: Request
+) -> CustomInboundFilterResponse:
+    return serialize_custom_inbound_filters([custom_filter], request)[0]
 
 
 def _user_filters(project: Project) -> QuerySet[CustomInboundFilter]:
@@ -320,7 +375,7 @@ class CustomInboundFiltersEndpoint(ProjectCustomInboundFilterEndpoint):
             queryset=filters,
             order_by="id",
             paginator_cls=OffsetPaginator,
-            on_results=lambda results: [serialize_custom_inbound_filter(f) for f in results],
+            on_results=lambda results: serialize_custom_inbound_filters(results, request),
         )
 
     @extend_schema(
@@ -369,7 +424,7 @@ class CustomInboundFiltersEndpoint(ProjectCustomInboundFilterEndpoint):
         if not serializer.is_valid():
             return Response(as_validation_errors(serializer), status=400)
 
-        custom_filter = serializer.save(project=project)
+        custom_filter = serializer.save(project=project, last_modified_by_id=request.user.id)
 
         self.create_audit_entry(
             request=request,
@@ -380,7 +435,7 @@ class CustomInboundFiltersEndpoint(ProjectCustomInboundFilterEndpoint):
         )
         schedule_invalidate_project_config(project_id=project.id, trigger="custom_inbound_filters")
 
-        return Response(serialize_custom_inbound_filter(custom_filter), status=201)
+        return Response(serialize_custom_inbound_filter(custom_filter, request), status=201)
 
 
 @cell_silo_endpoint
@@ -423,7 +478,7 @@ class CustomInboundFilterDetailsEndpoint(ProjectCustomInboundFilterEndpoint):
             return Response({"detail": "You do not have that feature enabled"}, status=400)
 
         custom_filter = self.get_custom_inbound_filter(project, filter_id)
-        return Response(serialize_custom_inbound_filter(custom_filter))
+        return Response(serialize_custom_inbound_filter(custom_filter, request))
 
     @extend_schema(
         operation_id="Update a Custom Inbound Filter",
@@ -476,7 +531,10 @@ class CustomInboundFilterDetailsEndpoint(ProjectCustomInboundFilterEndpoint):
                 setattr(custom_filter, field, new_value)
 
         if changes:
-            custom_filter.save(update_fields=[*changes.keys(), "date_updated"])
+            custom_filter.last_modified_by_id = request.user.id
+            custom_filter.save(
+                update_fields=[*changes.keys(), "last_modified_by_id", "date_updated"]
+            )
             self.create_audit_entry(
                 request=request,
                 organization=project.organization,
@@ -489,7 +547,7 @@ class CustomInboundFilterDetailsEndpoint(ProjectCustomInboundFilterEndpoint):
                     project_id=project.id, trigger="custom_inbound_filters"
                 )
 
-        return Response(serialize_custom_inbound_filter(custom_filter))
+        return Response(serialize_custom_inbound_filter(custom_filter, request))
 
     @extend_schema(
         operation_id="Delete a Custom Inbound Filter",

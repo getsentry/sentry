@@ -109,6 +109,7 @@ class CustomInboundFiltersTest(APITestCase):
             "active": True,
             "dataType": "all",
             "conditions": [{"type": "release", "value": ["1.*"]}],
+            "lastModifiedBy": None,
         }
         assert second_data == {
             "id": str(second_filter.id),
@@ -116,7 +117,27 @@ class CustomInboundFiltersTest(APITestCase):
             "active": False,
             "dataType": "error",
             "conditions": [{"type": "error_message", "value": ["TypeError*"]}],
+            "lastModifiedBy": None,
         }
+
+    def test_get_resolves_the_user_behind_the_last_change(self) -> None:
+        editor = self.create_user(name="Jane Doe")
+        edited_by_editor = self.create_project_custom_inbound_filter(
+            project=self.project, last_modified_by_id=editor.id
+        )
+        edited_by_deleted_user = self.create_project_custom_inbound_filter(
+            project=self.project, last_modified_by_id=editor.id + 100000
+        )
+
+        with self.feature(self.features):
+            response = self.get_success_response(self.organization.slug, self.project.slug)
+
+        by_id = {data["id"]: data for data in response.data}
+        last_modified_by = by_id[str(edited_by_editor.id)]["lastModifiedBy"]
+        assert last_modified_by["id"] == str(editor.id)
+        assert last_modified_by["name"] == "Jane Doe"
+        assert last_modified_by["avatarUrl"]
+        assert by_id[str(edited_by_deleted_user.id)]["lastModifiedBy"] is None
 
     def test_post(self) -> None:
         conditions = [
@@ -142,6 +163,8 @@ class CustomInboundFiltersTest(APITestCase):
         assert custom_filter.active is False
         assert custom_filter.data_type == "error"
         assert custom_filter.conditions == conditions
+        assert custom_filter.last_modified_by_id == self.user.id
+        assert response.data["lastModifiedBy"]["id"] == str(self.user.id)
 
         with assume_test_silo_mode(SiloMode.CONTROL):
             audit_entry = AuditLogEntry.objects.get(
@@ -596,9 +619,11 @@ class CustomInboundFilterDetailsTest(APITestCase):
         assert response.data["name"] == "Renamed filter"
         assert response.data["active"] is False
         assert response.data["conditions"] == new_conditions
+        assert response.data["lastModifiedBy"]["id"] == str(self.user.id)
         assert self.custom_filter.name == "Renamed filter"
         assert self.custom_filter.active is False
         assert self.custom_filter.conditions == new_conditions
+        assert self.custom_filter.last_modified_by_id == self.user.id
 
         with assume_test_silo_mode(SiloMode.CONTROL):
             audit_entry = AuditLogEntry.objects.get(
@@ -659,7 +684,7 @@ class CustomInboundFilterDetailsTest(APITestCase):
 
     def test_put_no_changes_skips_audit_log(self) -> None:
         with self.feature(self.features), outbox_runner():
-            self.get_success_response(
+            response = self.get_success_response(
                 self.organization.slug,
                 self.project.slug,
                 self.custom_filter.id,
@@ -671,6 +696,10 @@ class CustomInboundFilterDetailsTest(APITestCase):
                 organization_id=self.organization.id,
                 event=audit_log.get_event_id("CUSTOM_INBOUND_FILTER"),
             ).exists()
+
+        self.custom_filter.refresh_from_db()
+        assert self.custom_filter.last_modified_by_id is None
+        assert response.data["lastModifiedBy"] is None
 
     def test_put_validates_new_conditions_against_stored_data_type(self) -> None:
         """A partial update sending conditions alone keeps the stored data type."""

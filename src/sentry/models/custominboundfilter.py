@@ -6,6 +6,7 @@ from django.db import models
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, cell_silo_model, sane_repr
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 
 
 class ConditionType(StrEnum):
@@ -58,6 +59,9 @@ class CustomInboundFilter(DefaultFieldsModel):
         choices=[(legacy_filter, legacy_filter) for legacy_filter in LegacyFilter],
         null=True,
     )
+    # The user behind the last change through the API. Null on a row a legacy list
+    # wrote, and again once that user is deleted.
+    last_modified_by_id = HybridCloudForeignKey("sentry.User", null=True, on_delete="SET_NULL")
 
     class Meta:
         app_label = "sentry"

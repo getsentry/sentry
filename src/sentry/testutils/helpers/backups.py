@@ -518,6 +518,7 @@ class ExhaustiveFixtures(Fixtures):
             name=f"custom-inbound-filter-{slug}",
             data_type=DataType.ALL,
             conditions=[{"type": "release", "value": ["1.0.0"]}],
+            last_modified_by_id=owner_id,
         )
         CustomInboundFilter.objects.create(
             project=project,

@@ -20,6 +20,7 @@ from sentry.incidents.models.alert_rule import AlertRule, AlertRuleActivity
 from sentry.incidents.models.incident import IncidentActivity
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.models.activity import Activity
+from sentry.models.custominboundfilter import CustomInboundFilter
 from sentry.models.dashboard import (
     Dashboard,
     DashboardFavoriteUser,
@@ -588,6 +589,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
                 Activity,
                 AlertRule,
                 AlertRuleActivity,
+                CustomInboundFilter,
                 Dashboard,
                 DashboardFavoriteUser,
                 DashboardLastVisited,
