@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect} from 'react';
 import {useMutation, useQuery} from '@tanstack/react-query';
 import {z} from 'zod';
 
@@ -45,6 +45,8 @@ type ClientDetailsResponse = {
   termsUrl: string | null;
 };
 
+const optionalUrlValidation = z.url('Enter a valid URL').or(z.literal(''));
+
 const clientSchema = z.object({
   clientID: z.string(),
   name: z.string().min(1),
@@ -64,24 +66,9 @@ const clientSchema = z.object({
         value === '' || value.split(/\s+/).every(url => z.url().safeParse(url).success),
       'Enter valid allowed origins separated by spaces'
     ),
-  homepageUrl: z
-    .string()
-    .refine(
-      value => value === '' || z.url().safeParse(value).success,
-      'Enter a valid URL'
-    ),
-  privacyUrl: z
-    .string()
-    .refine(
-      value => value === '' || z.url().safeParse(value).success,
-      'Enter a valid URL'
-    ),
-  termsUrl: z
-    .string()
-    .refine(
-      value => value === '' || z.url().safeParse(value).success,
-      'Enter a valid URL'
-    ),
+  homepageUrl: optionalUrlValidation,
+  privacyUrl: optionalUrlValidation,
+  termsUrl: optionalUrlValidation,
 });
 
 const fields = [
@@ -180,7 +167,7 @@ function ClientDetailsForm({clientDetails}: {clientDetails: ClientDetails}) {
           </form.AppField>
         ))}
         <Text as="p">
-          <b>Date added:</b> {clientDetails.createdAt}
+          <Text bold>Date added:</Text> {clientDetails.createdAt}
         </Text>
         <form.SubmitButton>Save Client Settings</form.SubmitButton>
       </Stack>
@@ -198,6 +185,13 @@ export function InstanceLevelOAuthDetails() {
     }),
     retry: false,
   });
+
+  useEffect(() => {
+    if (isError) {
+      addErrorMessage('Unable to load client data');
+    }
+  }, [isError]);
+
   const clientDetails: ClientDetails | null = data
     ? {
         name: data.name,
@@ -242,7 +236,6 @@ export function InstanceLevelOAuthDetails() {
           </Container>
         </Fragment>
       )}
-      {isError && <Text as="p">Unable to load client data</Text>}
     </div>
   );
 }

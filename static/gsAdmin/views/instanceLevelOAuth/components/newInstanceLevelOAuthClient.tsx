@@ -31,12 +31,7 @@ type ClientResponse = {
 
 const urlValidation = z.url('Enter a valid URL');
 
-const optionalUrlValidation = z
-  .string()
-  .refine(
-    value => value === '' || urlValidation.safeParse(value).success,
-    'Enter a valid URL'
-  );
+const optionalUrlValidation = urlValidation.or(z.literal(''));
 
 function spaceSeparatedUrls(requiredMessage: string, invalidMessage: string) {
   return z

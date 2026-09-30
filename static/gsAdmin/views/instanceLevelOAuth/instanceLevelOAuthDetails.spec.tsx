@@ -3,7 +3,10 @@ import {
   renderGlobalModal,
   screen,
   userEvent,
+  waitFor,
 } from 'sentry-test/reactTestingLibrary';
+
+import * as indicators from 'sentry/actionCreators/indicator';
 
 import {InstanceLevelOAuthDetails} from './instanceLevelOAuthDetails';
 
@@ -93,6 +96,7 @@ describe('instance level OAuth client details', () => {
   });
 
   it('shows an error when client details cannot be loaded', async () => {
+    jest.spyOn(indicators, 'addErrorMessage');
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/_admin/instance-level-oauth/${mockClientDetails.clientID}/`,
@@ -102,7 +106,11 @@ describe('instance level OAuth client details', () => {
 
     render(<InstanceLevelOAuthDetails />, {initialRouterConfig});
 
-    expect(await screen.findByText('Unable to load client data')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(indicators.addErrorMessage).toHaveBeenCalledWith(
+        'Unable to load client data'
+      )
+    );
     expect(
       screen.queryByRole('button', {name: 'Save Client Settings'})
     ).not.toBeInTheDocument();
