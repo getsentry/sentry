@@ -21,20 +21,16 @@ from sentry.testutils.pytest.fixtures import django_db_all
 @django_db_all
 @pytest.mark.parametrize("state", [None, *PullRequestLifecycleState.values])
 @pytest.mark.parametrize(
-    "relationship", [GroupLink.Relationship.references, GroupLink.Relationship.resolves]
-)
-@pytest.mark.parametrize(
     "strategy", [fixability_score_strategy, fixability_score_strategy_per_project]
 )
-def test_excludes_linked_pull_requests_after_cooldown(
+def test_excludes_prior_seer_pull_requests_after_cooldown(
     default_project: Project,
     state: str | None,
-    relationship: int,
     strategy: Callable[[Sequence[Project], int], list[ScoredCandidate]],
 ) -> None:
     linked = Factories.create_group(
         project=default_project,
-        seer_explorer_autofix_last_triggered=before_now(days=45),
+        seer_explorer_autofix_last_triggered=before_now(days=31),
         last_seen=before_now(minutes=1),
     )
     retry = Factories.create_group(
@@ -51,12 +47,28 @@ def test_excludes_linked_pull_requests_after_cooldown(
         repository_id=repository.id, organization_id=default_project.organization_id
     )
     pull_request.update(state=state, date_added=before_now(days=45))
-    Factories.create_group_link(
+    prior_run = Factories.create_seer_run(
+        organization=default_project.organization, last_triggered_at=before_now(days=45)
+    )
+    Factories.create_seer_agent_run(
+        run=prior_run,
+        project=default_project,
         group=linked,
-        linked_id=pull_request.id,
-        linked_type=GroupLink.LinkedType.pull_request,
-        relationship=relationship,
-        datetime=before_now(days=45),
+        source="autofix",
+    )
+    Factories.create_seer_run_pull_request(run=prior_run, pull_request=pull_request)
+    # A newer run without a PR must not hide an earlier run's PR.
+    newer_run = Factories.create_seer_run(
+        organization=default_project.organization, last_triggered_at=before_now(days=31)
+    )
+    Factories.create_seer_agent_run(
+        run=newer_run, project=default_project, group=linked, source="autofix"
+    )
+    no_pr_run = Factories.create_seer_run(
+        organization=default_project.organization, last_triggered_at=before_now(days=45)
+    )
+    Factories.create_seer_agent_run(
+        run=no_pr_run, project=default_project, group=retry, source="autofix"
     )
 
     with (
@@ -73,20 +85,32 @@ def test_excludes_linked_pull_requests_after_cooldown(
 
 
 @django_db_all
-@pytest.mark.parametrize("linked_type", [GroupLink.LinkedType.commit, GroupLink.LinkedType.issue])
-def test_non_pr_links_do_not_exclude_candidates(default_project: Project, linked_type: int) -> None:
+@pytest.mark.parametrize(
+    "relationship", [GroupLink.Relationship.references, GroupLink.Relationship.resolves]
+)
+def test_group_pr_links_do_not_exclude_candidates(
+    default_project: Project, relationship: int
+) -> None:
     group = Factories.create_group(project=default_project)
     other_group = Factories.create_group(project=default_project, seer_fixability_score=0.0)
     repository = Factories.create_repo(project=default_project)
     pull_request = Factories.create_pull_request(
         repository_id=repository.id, organization_id=default_project.organization_id
     )
-    Factories.create_group_link(group=group, linked_id=pull_request.id, linked_type=linked_type)
     Factories.create_group_link(
-        group=other_group,
+        group=group,
         linked_id=pull_request.id,
         linked_type=GroupLink.LinkedType.pull_request,
+        relationship=relationship,
     )
+    other_pull_request = Factories.create_pull_request(
+        repository_id=repository.id, organization_id=default_project.organization_id
+    )
+    other_run = Factories.create_seer_run(organization=default_project.organization)
+    Factories.create_seer_agent_run(
+        run=other_run, project=default_project, group=other_group, source="autofix"
+    )
+    Factories.create_seer_run_pull_request(run=other_run, pull_request=other_pull_request)
 
     with patch(
         "sentry.tasks.seer.agentic_triage.simple_triage._agentic_triage_snuba_factors",

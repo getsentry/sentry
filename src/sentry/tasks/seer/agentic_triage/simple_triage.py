@@ -20,11 +20,11 @@ from sentry import options
 from sentry.issues.grouptype import ReplayRageClickType
 from sentry.issues.search import group_types_from
 from sentry.models.group import Group, GroupStatus
-from sentry.models.grouplink import GroupLink
 from sentry.models.project import Project
 from sentry.processing_errors.grouptype import LowValueSpanConfigurationType
 from sentry.seer.autofix.constants import FixabilityScoreThresholds
 from sentry.seer.autofix.utils import is_issue_category_eligible
+from sentry.seer.models.run import SeerRunPullRequest
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.seer.agentic_triage.models import TriageAction, TriageResult
@@ -230,13 +230,12 @@ def _fetch_and_score_agentic(
             last_seen__gte=occurrence_cutoff,
         )
         .exclude(seer_explorer_autofix_last_triggered__gte=seer_recency_cutoff)
-        # PR links outlive Seer runs. Any PR state blocks another automatic fix.
+        # Any prior Seer PR blocks triage, regardless of the PR's age or state.
         .filter(
             ~Exists(
-                GroupLink.objects.filter(
-                    project_id=OuterRef("project_id"),
-                    group_id=OuterRef("id"),
-                    linked_type=GroupLink.LinkedType.pull_request,
+                SeerRunPullRequest.objects.filter(
+                    seer_run__agent__project_id=OuterRef("project_id"),
+                    seer_run__agent__group_id=OuterRef("id"),
                 )
             )
         )
