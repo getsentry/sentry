@@ -5,7 +5,6 @@ import path from 'node:path';
 
 import {defineConfig} from '@rsbuild/core';
 import type {ProxyOptions, RsbuildConfig} from '@rsbuild/core';
-import {pluginBasicSsl} from '@rsbuild/plugin-basic-ssl';
 import {RsdoctorRspackPlugin} from '@rsdoctor/rspack-plugin';
 import type {
   Configuration,
@@ -671,8 +670,7 @@ if (
 
     // TODO: figure out why defining output breaks hot reloading
     if (IS_UI_DEV_ONLY) {
-      // Rsbuild's dev server serves files from output.distPath.root.
-      appConfig.output = {path: distPath};
+      appConfig.output = {};
     }
   }
 
@@ -818,7 +816,7 @@ if (IS_UI_DEV_ONLY) {
         key: fs.readFileSync(path.join(certPath, 'localhost-key.pem')),
         cert: fs.readFileSync(path.join(certPath, 'localhost.pem')),
       }
-    : // Rsbuild's basic SSL plugin generates a certificate when mkcert is unavailable.
+    : // Will attempt to self sign via the selfsigned package
       {};
 
   appConfig.devServer = {
@@ -1022,13 +1020,6 @@ const server = appConfig.devServer || undefined;
 const rsbuildConfig: RsbuildConfig = {
   root: import.meta.dirname,
   mode: WEBPACK_MODE,
-  plugins: IS_UI_DEV_ONLY
-    ? [
-        pluginBasicSsl({
-          outputPath: path.join(import.meta.dirname, 'node_modules/.cache/rsbuild'),
-        }),
-      ]
-    : [],
   dev: {
     assetPrefix:
       typeof appConfig.output?.publicPath === 'string'
