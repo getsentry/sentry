@@ -1,11 +1,11 @@
 import {useCallback} from 'react';
-import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
+import {Heading} from '@sentry/scraps/text';
 
 import {CopyAsDropdown} from 'sentry/components/copyAsDropdown';
 import {displayRawContent} from 'sentry/components/events/interfaces/crashContent/stackTrace/rawContent';
@@ -547,17 +547,12 @@ function InlineThreadSection({
   return (
     <Container>
       <Flex justify="between" align="center" marginBottom="md">
-        <ThreadHeading>{title}</ThreadHeading>
+        <Heading as="h3" size="md" variant="secondary">
+          {title}
+        </Heading>
         {actions}
       </Flex>
       {children}
     </Container>
   );
 }
-
-const ThreadHeading = styled('h3')`
-  color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.font.size.md};
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  margin-bottom: ${p => p.theme.space.md};
-`;

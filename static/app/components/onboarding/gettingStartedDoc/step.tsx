@@ -60,12 +60,14 @@ export function Step({
         }}
       >
         {stepTitle}
-        <ToggleButton
-          variant="link"
-          size="zero"
-          icon={<IconChevron direction={showOptionalConfig ? 'down' : 'right'} />}
-          aria-label={t('Toggle optional configuration')}
-        />
+        <Flex flexGrow={1} justify="start">
+          <Button
+            variant="transparent"
+            size="zero"
+            icon={<IconChevron direction={showOptionalConfig ? 'down' : 'right'} />}
+            aria-label={t('Toggle optional configuration')}
+          />
+        </Flex>
         {trailingItemsContent}
       </OptionalConfigWrapper>
       {showOptionalConfig ? config : null}
@@ -99,15 +101,4 @@ const OptionalConfigWrapper = styled('div')<{expanded: boolean}>`
   gap: ${p => p.theme.space.md};
   margin-bottom: ${p => (p.expanded ? p.theme.space.xl : 0)};
   cursor: pointer;
-`;
-
-const ToggleButton = styled(Button)`
-  flex: 1;
-  display: flex;
-  justify-content: flex-start;
-  padding: 0;
-  &,
-  :hover {
-    color: ${p => p.theme.colors.gray800};
-  }
 `;
