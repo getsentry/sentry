@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from collections.abc import Generator
 from contextlib import contextmanager
 from dataclasses import dataclass, field
@@ -16,6 +17,7 @@ from sentry.notifications.platform.shadow.capture import (
     record_legacy_render,
     record_platform_send,
 )
+from sentry.notifications.platform.shadow.compare import diff
 from sentry.notifications.platform.shadow.runner import ShadowOutcome, shadow_read
 from sentry.notifications.platform.types import NotificationProviderKey, NotificationSource
 from sentry.notifications.types import TEST_NOTIFICATION_ID
@@ -29,11 +31,33 @@ SAMPLE_RATES = "notifications.platform.shadow-render.sample-rates"
 KILLSWITCH = "notifications.platform.killswitch.sources"
 SAMPLE_ALL = {SAMPLE_RATES: {"issue": 1.0, "metric-alert": 1.0}}
 
+_PATH_STEP = re.compile(r"\.(\w+)|\[(\d+)\]")
+
+
+def resolve(payload: Any, path: str) -> Any:
+    """
+    Returns the value at a diff entry path like `$.blocks[0].text.text`.
+    """
+    assert path.startswith("$")
+    value = payload
+    for key, index in _PATH_STEP.findall(path[1:]):
+        value = value[key] if key else value[int(index)]
+    return value
+
 
 @dataclass
 class ShadowObservation:
     results: list[dict[str, str]] = field(default_factory=list)
     mismatch_logs: list[dict[str, Any]] = field(default_factory=list)
+    compared: list[tuple[Any, Any]] = field(default_factory=list)
+
+    @property
+    def payloads(self) -> tuple[Any, Any]:
+        """
+        The normalized legacy and platform payloads that were diffed.
+        """
+        [pair] = self.compared
+        return pair
 
     @property
     def outcome(self) -> str:
@@ -56,10 +80,14 @@ def observe_shadow() -> Generator[ShadowObservation]:
     with (
         mock.patch(f"{RUNNER_PATH}.metrics") as mock_metrics,
         mock.patch(f"{RUNNER_PATH}.logger") as mock_logger,
+        mock.patch(f"{RUNNER_PATH}.diff", wraps=diff) as mock_diff,
     ):
         try:
             yield observation
         finally:
+            observation.compared = [
+                (call.args[0], call.args[1]) for call in mock_diff.call_args_list
+            ]
             observation.results = [
                 call.kwargs["tags"]
                 for call in mock_metrics.incr.call_args_list
@@ -261,14 +289,16 @@ class ShadowReadOutcomeTest(ShadowInvocationTestCase):
         mock_capture.assert_called_once_with(mock_render.side_effect)
 
     @mock.patch(f"{RUNNER_PATH}.sentry_sdk.capture_exception")
-    @mock.patch(f"{RUNNER_PATH}.diff", side_effect=RuntimeError("compare"))
     @mock.patch(
         f"{RUNNER_PATH}.NotificationService.render_template", return_value={"type": "AdaptiveCard"}
     )
     def test_compare_error_is_captured(
-        self, mock_render: mock.MagicMock, mock_diff: mock.MagicMock, mock_capture: mock.MagicMock
+        self, mock_render: mock.MagicMock, mock_capture: mock.MagicMock
     ) -> None:
-        with observe_shadow() as observation:
+        with (
+            observe_shadow() as observation,
+            mock.patch(f"{RUNNER_PATH}.diff", side_effect=RuntimeError("compare")) as mock_diff,
+        ):
             with shadow_read(self.create_invocation(Action.Type.MSTEAMS), NotificationSource.ISSUE):
                 _send_legacy()
 
@@ -316,8 +346,18 @@ class ShadowReadOutcomeTest(ShadowInvocationTestCase):
             "detector_id": self.detector.id,
             "diff_count": 2,
             "diff": [
-                {"path": "$.extra", "kind": "missing", "legacy": "<missing>", "platform": 1},
-                {"path": "$.type", "kind": "value", "legacy": "AdaptiveCard", "platform": "Card"},
+                {
+                    "path": "$.extra",
+                    "kind": "missing",
+                    "legacy": None,
+                    "platform": {"type": "int", "length": None},
+                },
+                {
+                    "path": "$.type",
+                    "kind": "value",
+                    "legacy": {"type": "str", "length": 12},
+                    "platform": {"type": "str", "length": 4},
+                },
             ],
         }
 

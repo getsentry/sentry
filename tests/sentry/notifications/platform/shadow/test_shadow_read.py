@@ -35,6 +35,7 @@ from tests.sentry.notifications.platform.shadow.test_runner import (
     SAMPLE_ALL,
     ShadowObservation,
     observe_shadow,
+    resolve,
 )
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
@@ -148,10 +149,12 @@ class ShadowReadIssueAlertTest(ShadowReadTestBase):
         assert log["diff_count"] == 1
         [entry] = log["diff"]
         assert entry["path"] == path
-        assert f"notification_uuid={NOTIFICATION_UUID}" in entry["legacy"]
-        assert f"/events/{self.event.event_id}/" not in entry["legacy"]
-        assert f"/events/{self.event.event_id}/" in entry["platform"]
-        assert "notification_uuid" not in entry["platform"]
+        assert entry["kind"] == "value"
+        legacy, platform = (resolve(payload, path) for payload in observation.payloads)
+        assert f"notification_uuid={NOTIFICATION_UUID}" in legacy
+        assert f"/events/{self.event.event_id}/" not in legacy
+        assert f"/events/{self.event.event_id}/" in platform
+        assert "notification_uuid" not in platform
 
     def test_slack_differs_only_by_event_link(self) -> None:
         action = self.create_shadow_action("slack", {"tags": "level,foo", "notes": "@on-call"})
@@ -194,15 +197,17 @@ class ShadowReadIssueAlertTest(ShadowReadTestBase):
         assert first == {
             "path": "$.blocks",
             "kind": "length",
-            "legacy": len(sent_blocks),
-            "platform": len(sent_blocks) - 1,
+            "legacy": {"type": "list", "length": len(sent_blocks)},
+            "platform": {"type": "list", "length": len(sent_blocks) - 1},
         }
         assert last == {
             "path": f"$.blocks[{len(sent_blocks) - 1}]",
             "kind": "missing",
-            "legacy": nudge,
-            "platform": "<missing>",
+            "legacy": {"type": "dict", "length": len(nudge)},
+            "platform": None,
         }
+        legacy, _ = observation.payloads
+        assert resolve(legacy, last["path"]) == nudge
         assert "$.blocks[0].text.text" in observation.diff_paths
 
     def test_slack_additional_attachment_is_missing_from_platform(self) -> None:
@@ -221,9 +226,10 @@ class ShadowReadIssueAlertTest(ShadowReadTestBase):
         first, *_, last = log["diff"]
         assert first["path"] == "$.blocks"
         assert first["kind"] == "length"
-        assert first["legacy"] == first["platform"] + 1
-        assert last["legacy"] == attachment
-        assert last["platform"] == "<missing>"
+        assert first["legacy"]["length"] == first["platform"]["length"] + 1
+        assert last["platform"] is None
+        legacy, _ = observation.payloads
+        assert resolve(legacy, last["path"]) == attachment
         assert "$.blocks[0].text.text" in observation.diff_paths
 
     def test_slack_staging_differs_only_by_event_link(self) -> None:
@@ -392,8 +398,9 @@ class ShadowReadMetricAlertTest(ShadowReadTestBase, MetricAlertHandlerBase):
         assert log is not None
         [entry] = log["diff"]
         assert entry["path"] == "$.text"
-        assert "referrer=metric_alert_slack&" in entry["legacy"]
-        assert "referrer=metric_alert_slack_staging&" in entry["platform"]
+        legacy, platform = (resolve(payload, "$.text") for payload in observation.payloads)
+        assert "referrer=metric_alert_slack&" in legacy
+        assert "referrer=metric_alert_slack_staging&" in platform
 
     @mock.patch(f"{SLACK_METRIC_HANDLER}._send_via_notification_platform")
     @mock.patch(f"{SLACK_METRIC_HANDLER}.NotificationService.has_access", return_value=True)

@@ -1,18 +1,25 @@
 from __future__ import annotations
 
+from dataclasses import asdict
+
 import orjson
 from slack_sdk.models.blocks import MarkdownTextObject, SectionBlock
 
 from sentry.notifications.platform.shadow.compare import (
-    MAX_VALUE_LENGTH,
     DiffEntry,
     DiffKind,
-    DiffMarker,
+    ValueShape,
     diff,
     normalize,
 )
 from sentry.notifications.platform.slack.provider import SlackRenderable
 from sentry.notifications.platform.types import NotificationProviderKey
+
+INT = ValueShape(type="int")
+
+
+def _str(length: int) -> ValueShape:
+    return ValueShape(type="str", length=length)
 
 
 def test_diff_identical_payloads() -> None:
@@ -21,56 +28,83 @@ def test_diff_identical_payloads() -> None:
 
 
 def test_diff_scalar_change() -> None:
-    assert diff({"text": "a"}, {"text": "b"}) == [
-        DiffEntry(path="$.text", kind=DiffKind.VALUE, legacy="a", platform="b")
+    assert diff({"text": "a"}, {"text": "bc"}) == [
+        DiffEntry(path="$.text", kind=DiffKind.VALUE, legacy=_str(1), platform=_str(2))
     ]
 
 
 def test_diff_type_change() -> None:
     assert diff({"flag": 1}, {"flag": True}) == [
-        DiffEntry(path="$.flag", kind=DiffKind.VALUE, legacy=1, platform=True)
+        DiffEntry(path="$.flag", kind=DiffKind.VALUE, legacy=INT, platform=ValueShape(type="bool"))
     ]
     assert diff({"a": [1]}, {"a": {"0": 1}}) == [
-        DiffEntry(path="$.a", kind=DiffKind.VALUE, legacy=[1], platform={"0": 1})
+        DiffEntry(
+            path="$.a",
+            kind=DiffKind.VALUE,
+            legacy=ValueShape(type="list", length=1),
+            platform=ValueShape(type="dict", length=1),
+        )
+    ]
+    assert diff({"a": None}, {"a": ""}) == [
+        DiffEntry(
+            path="$.a", kind=DiffKind.VALUE, legacy=ValueShape(type="NoneType"), platform=_str(0)
+        )
     ]
 
 
 def test_diff_missing_key_on_platform() -> None:
     assert diff({"text": "a", "color": "#fff"}, {"text": "a"}) == [
-        DiffEntry(path="$.color", kind=DiffKind.MISSING, legacy="#fff", platform=DiffMarker.MISSING)
+        DiffEntry(path="$.color", kind=DiffKind.MISSING, legacy=_str(4), platform=None)
     ]
 
 
 def test_diff_missing_key_on_legacy() -> None:
     assert diff({"text": "a"}, {"text": "a", "color": "#fff"}) == [
-        DiffEntry(path="$.color", kind=DiffKind.MISSING, legacy=DiffMarker.MISSING, platform="#fff")
+        DiffEntry(path="$.color", kind=DiffKind.MISSING, legacy=None, platform=_str(4))
     ]
 
 
 def test_diff_list_length_mismatch() -> None:
     assert diff({"blocks": [1, 2, 3]}, {"blocks": [1, 5]}) == [
-        DiffEntry(path="$.blocks", kind=DiffKind.LENGTH, legacy=3, platform=2),
-        DiffEntry(path="$.blocks[1]", kind=DiffKind.VALUE, legacy=2, platform=5),
-        DiffEntry(path="$.blocks[2]", kind=DiffKind.MISSING, legacy=3, platform=DiffMarker.MISSING),
+        DiffEntry(
+            path="$.blocks",
+            kind=DiffKind.LENGTH,
+            legacy=ValueShape(type="list", length=3),
+            platform=ValueShape(type="list", length=2),
+        ),
+        DiffEntry(path="$.blocks[1]", kind=DiffKind.VALUE, legacy=INT, platform=INT),
+        DiffEntry(path="$.blocks[2]", kind=DiffKind.MISSING, legacy=INT, platform=None),
     ]
     assert diff([], [{"a": 1}]) == [
-        DiffEntry(path="$", kind=DiffKind.LENGTH, legacy=0, platform=1),
-        DiffEntry(path="$[0]", kind=DiffKind.MISSING, legacy=DiffMarker.MISSING, platform={"a": 1}),
+        DiffEntry(
+            path="$",
+            kind=DiffKind.LENGTH,
+            legacy=ValueShape(type="list", length=0),
+            platform=ValueShape(type="list", length=1),
+        ),
+        DiffEntry(
+            path="$[0]",
+            kind=DiffKind.MISSING,
+            legacy=None,
+            platform=ValueShape(type="dict", length=1),
+        ),
     ]
 
 
 def test_diff_nested_paths() -> None:
     legacy = {"blocks": [{}, {}, {"text": {"text": "old", "type": "mrkdwn"}}]}
-    platform = {"blocks": [{}, {}, {"text": {"text": "new", "type": "mrkdwn"}}]}
+    platform = {"blocks": [{}, {}, {"text": {"text": "newer", "type": "mrkdwn"}}]}
     assert diff(legacy, platform) == [
-        DiffEntry(path="$.blocks[2].text.text", kind=DiffKind.VALUE, legacy="old", platform="new")
+        DiffEntry(
+            path="$.blocks[2].text.text", kind=DiffKind.VALUE, legacy=_str(3), platform=_str(5)
+        )
     ]
 
 
 def test_diff_quotes_non_identifier_keys() -> None:
     assert diff({"a-b": 1, "c d": 1}, {"a-b": 2, "c d": 2}) == [
-        DiffEntry(path='$["a-b"]', kind=DiffKind.VALUE, legacy=1, platform=2),
-        DiffEntry(path='$["c d"]', kind=DiffKind.VALUE, legacy=1, platform=2),
+        DiffEntry(path='$["a-b"]', kind=DiffKind.VALUE, legacy=INT, platform=INT),
+        DiffEntry(path='$["c d"]', kind=DiffKind.VALUE, legacy=INT, platform=INT),
     ]
 
 
@@ -80,18 +114,15 @@ def test_diff_orders_keys_deterministically() -> None:
     assert [entry.path for entry in diff(legacy, platform)] == ["$.a", "$.m", "$.z"]
 
 
-def test_diff_truncates_long_values() -> None:
-    long_text = "x" * (MAX_VALUE_LENGTH + 50)
-    long_list = list(range(200))
-    [text_entry] = diff({"text": long_text}, {"text": "short"})
-    assert text_entry.legacy == "x" * MAX_VALUE_LENGTH + "…"
-    assert text_entry.platform == "short"
+def test_diff_entries_exclude_values() -> None:
+    legacy = {"text": "user@example.com", "tags": [{"value": "10.0.0.1"}], "level": "fatal"}
+    platform = {"text": "other@example.com", "level": "warning"}
+    entries = diff(legacy, platform)
 
-    [missing_entry] = diff({"blocks": long_list}, {})
-    assert isinstance(missing_entry.legacy, str)
-    assert missing_entry.legacy.startswith("[0,1,2,")
-    assert len(missing_entry.legacy) == MAX_VALUE_LENGTH + 1
-    assert missing_entry.platform is DiffMarker.MISSING
+    assert [entry.path for entry in entries] == ["$.level", "$.tags", "$.text"]
+    serialized = orjson.dumps([asdict(entry) for entry in entries]).decode()
+    for value in ("example.com", "10.0.0.1", "fatal", "warning"):
+        assert value not in serialized
 
 
 def test_normalize_slack_metric_json_string_attachments() -> None:
@@ -134,8 +165,8 @@ def test_normalize_slack_metric_surfaces_attachment_differences() -> None:
         DiffEntry(
             path="$.attachments[0].color",
             kind=DiffKind.MISSING,
-            legacy="#FF0000",
-            platform=DiffMarker.MISSING,
+            legacy=_str(7),
+            platform=None,
         )
     ]
 

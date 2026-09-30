@@ -11,8 +11,6 @@ import orjson
 from sentry.notifications.platform.shadow.capture import ShadowPayload
 from sentry.notifications.platform.types import NotificationProviderKey
 
-MAX_VALUE_LENGTH = 300
-
 DISCORD_VOLATILE_EMBED_KEYS = frozenset({"timestamp"})
 
 
@@ -22,16 +20,27 @@ class DiffKind(StrEnum):
     LENGTH = "length"
 
 
-class DiffMarker(StrEnum):
-    MISSING = "<missing>"
+@dataclass(frozen=True)
+class ValueShape:
+    """
+    The type and size of a payload value. Payloads carry customer data, so diff entries describe
+    values without containing them.
+    """
+
+    type: str
+    length: int | None = None
 
 
 @dataclass(frozen=True)
 class DiffEntry:
+    """
+    A difference at `path`. The side a `MISSING` entry is absent from has no shape.
+    """
+
     path: str
     kind: DiffKind
-    legacy: Any
-    platform: Any
+    legacy: ValueShape | None
+    platform: ValueShape | None
 
 
 def _to_jsonable(value: Any) -> Any:
@@ -109,22 +118,10 @@ def normalize(provider: NotificationProviderKey, payload: ShadowPayload) -> Any:
 _IDENTIFIER = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
 
-def _truncate(value: Any) -> Any:
-    if value is DiffMarker.MISSING:
-        return value
-    if isinstance(value, str):
-        text = value
-    else:
-        text = orjson.dumps(
-            value, option=orjson.OPT_SORT_KEYS | orjson.OPT_NON_STR_KEYS, default=str
-        ).decode()
-    if len(text) <= MAX_VALUE_LENGTH:
-        return value
-    return text[:MAX_VALUE_LENGTH] + "…"
-
-
-def _entry(path: str, kind: DiffKind, legacy: Any, platform: Any) -> DiffEntry:
-    return DiffEntry(path=path, kind=kind, legacy=_truncate(legacy), platform=_truncate(platform))
+def _shape(value: Any) -> ValueShape:
+    if isinstance(value, (str, bytes, Mapping, list, tuple)):
+        return ValueShape(type=type(value).__name__, length=len(value))
+    return ValueShape(type=type(value).__name__)
 
 
 def _walk(legacy: Any, platform: Any, path: str) -> Iterator[DiffEntry]:
@@ -136,24 +133,24 @@ def _walk(legacy: Any, platform: Any, path: str) -> Iterator[DiffEntry]:
             else:
                 child = f"{path}[{orjson.dumps(name).decode()}]"
             if key not in platform:
-                yield _entry(child, DiffKind.MISSING, legacy[key], DiffMarker.MISSING)
+                yield DiffEntry(child, DiffKind.MISSING, _shape(legacy[key]), None)
             elif key not in legacy:
-                yield _entry(child, DiffKind.MISSING, DiffMarker.MISSING, platform[key])
+                yield DiffEntry(child, DiffKind.MISSING, None, _shape(platform[key]))
             else:
                 yield from _walk(legacy[key], platform[key], child)
     elif isinstance(legacy, (list, tuple)) and isinstance(platform, (list, tuple)):
         if len(legacy) != len(platform):
-            yield _entry(path, DiffKind.LENGTH, len(legacy), len(platform))
+            yield DiffEntry(path, DiffKind.LENGTH, _shape(legacy), _shape(platform))
         for index in range(max(len(legacy), len(platform))):
             child = f"{path}[{index}]"
             if index >= len(platform):
-                yield _entry(child, DiffKind.MISSING, legacy[index], DiffMarker.MISSING)
+                yield DiffEntry(child, DiffKind.MISSING, _shape(legacy[index]), None)
             elif index >= len(legacy):
-                yield _entry(child, DiffKind.MISSING, DiffMarker.MISSING, platform[index])
+                yield DiffEntry(child, DiffKind.MISSING, None, _shape(platform[index]))
             else:
                 yield from _walk(legacy[index], platform[index], child)
     elif legacy != platform or isinstance(legacy, bool) != isinstance(platform, bool):
-        yield _entry(path, DiffKind.VALUE, legacy, platform)
+        yield DiffEntry(path, DiffKind.VALUE, _shape(legacy), _shape(platform))
 
 
 def diff(legacy: Any, platform: Any) -> list[DiffEntry]:
