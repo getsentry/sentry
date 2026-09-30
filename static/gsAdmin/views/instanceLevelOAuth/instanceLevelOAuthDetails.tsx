@@ -3,7 +3,7 @@ import {useMutation, useQuery} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 import {Text} from '@sentry/scraps/text';
@@ -14,6 +14,8 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getFormattedDate} from 'sentry/utils/dates';
 import {fetchMutation} from 'sentry/utils/queryClient';
+import {RequestError} from 'sentry/utils/requestError/requestError';
+import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useParams} from 'sentry/utils/useParams';
 
@@ -133,7 +135,15 @@ function ClientDetailsForm({clientDetails}: {clientDetails: ClientDetails}) {
         data,
       }),
     onSuccess: () => testableWindowLocation.reload(),
-    onError: () => addErrorMessage('Unable to update client settings.'),
+    onError: error => {
+      if (
+        error instanceof RequestError &&
+        setFieldErrors(form, requestErrorToFieldErrors(error, form.state.values))
+      ) {
+        return;
+      }
+      addErrorMessage('Unable to update client settings.');
+    },
   });
   const form = useScrapsForm({
     ...defaultFormOptions,

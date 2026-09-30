@@ -174,6 +174,23 @@ describe('instance level OAuth client details', () => {
     expect(mockPutCall).not.toHaveBeenCalled();
   });
 
+  it('shows server validation errors on the affected fields', async () => {
+    MockApiClient.addMockResponse({
+      url: `/_admin/instance-level-oauth/${mockClientDetails.clientID}/`,
+      method: 'PUT',
+      statusCode: 400,
+      body: {name: ['This client name is already in use.']},
+    });
+
+    render(<InstanceLevelOAuthDetails />, {initialRouterConfig});
+    await screen.findByRole('button', {name: 'Save Client Settings'});
+    await userEvent.click(screen.getByRole('button', {name: 'Save Client Settings'}));
+
+    expect(
+      await screen.findByText('This client name is already in use.')
+    ).toBeInTheDocument();
+  });
+
   it('rejects comma-separated URLs', async () => {
     render(<InstanceLevelOAuthDetails />, {initialRouterConfig});
     await screen.findByText('Details For Instance Level OAuth Client: CodeCov');
