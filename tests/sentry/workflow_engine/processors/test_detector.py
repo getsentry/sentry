@@ -366,7 +366,7 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
         )
 
     @mock.patch(
-        "sentry.workflow_engine.handlers.detector_output.issue_platform.produce_occurrence_to_kafka"
+        "sentry.workflow_engine.handlers.detector_outcome.issue_platform.produce_occurrence_to_kafka"
     )
     def test_state_results(self, mock_produce_occurrence_to_kafka: MagicMock) -> None:
         detector, _ = self.create_detector_and_condition(type=self.handler_state_type.slug)
@@ -408,7 +408,7 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
         )
 
     @mock.patch(
-        "sentry.workflow_engine.handlers.detector_output.issue_platform.produce_occurrence_to_kafka"
+        "sentry.workflow_engine.handlers.detector_outcome.issue_platform.produce_occurrence_to_kafka"
     )
     def test_on_complete_override_calls_handler(
         self, mock_produce_occurrence_to_kafka: MagicMock
@@ -438,7 +438,7 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
         mock_produce_occurrence_to_kafka.assert_not_called()
 
     @mock.patch(
-        "sentry.workflow_engine.handlers.detector_output.issue_platform.produce_occurrence_to_kafka"
+        "sentry.workflow_engine.handlers.detector_outcome.issue_platform.produce_occurrence_to_kafka"
     )
     def test_state_results_multi_group(self, mock_produce_occurrence_to_kafka: MagicMock) -> None:
         detector, _ = self.create_detector_and_condition(type=self.handler_state_type.slug)
@@ -542,7 +542,7 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
             )
 
     @mock.patch(
-        "sentry.workflow_engine.handlers.detector_output.issue_platform.produce_occurrence_to_kafka"
+        "sentry.workflow_engine.handlers.detector_outcome.issue_platform.produce_occurrence_to_kafka"
     )
     @mock.patch("sentry.workflow_engine.processors.detector.metrics")
     def test_metrics_triggered(
@@ -596,7 +596,7 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
         )
 
     @mock.patch(
-        "sentry.workflow_engine.handlers.detector_output.issue_platform.produce_occurrence_to_kafka"
+        "sentry.workflow_engine.handlers.detector_outcome.issue_platform.produce_occurrence_to_kafka"
     )
     @mock.patch("sentry.workflow_engine.processors.detector.metrics")
     def test_metrics_resolved(

@@ -3,16 +3,16 @@ from __future__ import annotations
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.utils import metrics
-from sentry.workflow_engine.handlers.detector_output.base import DetectorOutcomeHandler
-from sentry.workflow_engine.handlers.detector_output.registry import (
+from sentry.workflow_engine.handlers.detector_outcome.base import DetectorOutcomeHandler
+from sentry.workflow_engine.handlers.detector_outcome.supported_outcomes import (
     DetectorOutcome,
-    detector_outcome,
+    detector_outcome_registry,
 )
 from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.processors import DetectorEvaluation
 
 
-@detector_outcome.add(DetectorOutcome.ISSUE_PLATFORM)
+@detector_outcome_registry.add(DetectorOutcome.ISSUE_PLATFORM)
 class IssuePlatformOutcomeHandler(DetectorOutcomeHandler):
     def handler(self, detector: Detector, evaluation: DetectorEvaluation) -> None:
         occurrence, status_change = None, None

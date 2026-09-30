@@ -18,7 +18,7 @@ from sentry.utils import metrics
 from sentry.workflow_engine.caches.data_source import (
     get_data_sources_by_detector_and_source_id,
 )
-from sentry.workflow_engine.handlers.detector_output import DetectorOutcome
+from sentry.workflow_engine.handlers.detector_outcome import DetectorOutcome
 from sentry.workflow_engine.models import DataConditionGroup, DataPacket, Detector
 from sentry.workflow_engine.processors import DataConditionGroupEvaluation, DetectorEvaluation
 from sentry.workflow_engine.processors.data_condition_group import process_data_condition_group

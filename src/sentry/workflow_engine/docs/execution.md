@@ -151,9 +151,9 @@ passes the others to Issue Platform via
 [`produce_occurrence_to_kafka`](../../issues/producer.py). A detector can assign another
 supported outcome handler or override `on_complete` for custom processing.
 
-Supported output implementations register their `DetectorOutcomeHandler` class with
-`@detector_outcome.add(DetectorOutcome.<KEY>)`. The enum provides the closed, typed set
-of platform outcomes; the registry maps each key to its handler.
+Supported outcome implementations register their `DetectorOutcomeHandler` class with
+`@detector_outcome_registry.add(DetectorOutcome.<KEY>)`. The closed, typed set of keys
+lives in `supported_outcomes.py`; the registry maps each key to its handler.
 
 Issue Platform ingestion creates or updates a group. The detector ID in occurrence
 evidence allows ingestion to create a

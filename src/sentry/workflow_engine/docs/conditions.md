@@ -289,7 +289,7 @@ Detector-specific consequences:
   state commit but before publication can cause a retry to be skipped by dedupe.
 
 The default `on_complete` callback enters Issue Platform through
-[`IssuePlatformOutcomeHandler`](../handlers/detector_output/issue_platform.py). Workflows
+[`IssuePlatformOutcomeHandler`](../handlers/detector_outcome/issue_platform.py). Workflows
 run later from the resulting issue event; they are not part of the detector state transaction.
 
 ## Workflows
