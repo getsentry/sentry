@@ -138,7 +138,7 @@ describe('useMetricDetectorChart', () => {
     const intervalSeconds = detector.dataSources[0].queryObj.snubaQuery.timeWindow;
     const lastBucketStartSeconds = Date.parse('2026-09-22T17:30:00Z') / 1000;
     const openPeriod = GroupOpenPeriodFixture({
-      end: undefined,
+      end: null,
       isOpen: true,
       start: '2026-09-22T17:29:00Z',
       activities: [
