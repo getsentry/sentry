@@ -523,7 +523,10 @@ class TestWorkflowEvaluationArtifact(TestCase):
 
         assert trace_item.organization_id == self.organization.id
         assert trace_item.project_id == self.project.id
-        assert trace_item.item_type == TraceItemType.TRACE_ITEM_TYPE_LOG
+        assert trace_item.item_type == TraceItemType.TRACE_ITEM_TYPE_WORKFLOW_ENGINE_EVALUATION
+        assert "sentry.body" not in trace_item.attributes
+        assert "sentry.severity_number" not in trace_item.attributes
+        assert "sentry.severity_text" not in trace_item.attributes
         assert trace_item.attributes["event_id"].string_value == self.event.event_id
         assert trace_item.attributes["event_kind"].string_value == "group_event"
         assert trace_item.attributes["is_new"].bool_value is True

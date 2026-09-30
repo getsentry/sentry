@@ -54,12 +54,6 @@ type EAPAttributeValue = (
     bool | int | float | str | bytes | list["EAPAttributeValue"] | dict[str, "EAPAttributeValue"]
 )
 
-EAP_LOG_ATTRIBUTES: dict[str, EAPAttributeValue] = {
-    "sentry.body": "workflow_engine.evaluation",
-    "sentry.severity_number": 9,
-    "sentry.severity_text": "INFO",
-}
-
 
 def _get_eap_items_producer() -> KafkaProducer:
     return get_arroyo_producer(
@@ -174,18 +168,17 @@ def _build_trace_item(
         EVALUATION_NAMESPACE,
         f"{organization_id}:{project_id}:{correlation_id}",
     ).hex
-    trace_attributes = {**attributes, **EAP_LOG_ATTRIBUTES}
 
     return TraceItem(
         organization_id=organization_id,
         project_id=project_id,
         item_id=hex_to_item_id(uuid.uuid4().hex),
-        item_type=TraceItemType.TRACE_ITEM_TYPE_LOG,
+        item_type=TraceItemType.TRACE_ITEM_TYPE_WORKFLOW_ENGINE_EVALUATION,
         timestamp=timestamp,
         received=timestamp,
         trace_id=trace_id,
         retention_days=EAP_RETENTION_DAYS,
-        attributes={key: anyvalue(value) for key, value in trace_attributes.items()},
+        attributes={key: anyvalue(value) for key, value in attributes.items()},
         client_sample_rate=1.0,
         server_sample_rate=1.0,
     )

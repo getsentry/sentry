@@ -410,9 +410,13 @@ The engine emits metrics for detector lookup/evaluation, condition evaluation, w
 processing, delayed scheduling, caches, and actions. Logging helpers in
 [`utils/log_context.py`](../utils/log_context.py) attach workflow and event context.
 
-[`GroupedWorkflowEvaluationResult`](../processors/evaluations/workflow.py) can produce a
-structured snapshot of workflow evaluations. Runtime options and feature flags control
-sampling and direct logging.
+[`emit_evaluations`](../processors/evaluations/tracking.py) records detector and workflow
+evaluations. Runtime options and feature flags control sampling and direct logging.
+
+When `organizations:workflow-engine-evaluation-artifacts-eap` is enabled,
+[`emit_evaluation_to_eap`](../processors/evaluations/eap.py) publishes artifacts to
+`SNUBA_ITEMS` as `TRACE_ITEM_TYPE_WORKFLOW_ENGINE_EVALUATION` trace items. These are not
+log trace items and do not include log body or severity attributes.
 
 When tracing a missing action, check the boundaries in order:
 
