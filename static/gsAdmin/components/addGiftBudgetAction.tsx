@@ -25,6 +25,13 @@ type Props = {
 
 type ModalProps = Props & ModalRenderProps;
 
+const schema = z.object({
+  selectedBudgetId: z.string().min(1, 'Select a reserved budget'),
+  giftAmount: z.number().positive().max(10000),
+  ticketUrl: z.union([z.literal(''), z.url()]),
+  notes: z.string().min(1).max(500),
+});
+
 function AddGiftBudgetModal({
   onSuccess,
   organization,
@@ -36,17 +43,6 @@ function AddGiftBudgetModal({
 }: ModalProps) {
   const reservedBudgetOptions =
     subscription.reservedBudgets?.filter(b => b.reservedBudget > 0) ?? [];
-  const schema = z.object({
-    selectedBudgetId: z
-      .string()
-      .refine(
-        id => reservedBudgetOptions.some(budget => budget.id === id),
-        'Select a reserved budget'
-      ),
-    giftAmount: z.number().positive().max(10000),
-    ticketUrl: z.union([z.literal(''), z.url()]),
-    notes: z.string().min(1).max(500),
-  });
 
   const mutation = useMutation({
     mutationFn: (value: z.infer<typeof schema>) => {
@@ -119,22 +115,16 @@ function AddGiftBudgetModal({
                   <Stack gap="md">
                     <Flex justify="between">
                       <Text>
-                        <Text as="span" bold>
-                          Reserved Budget:
-                        </Text>{' '}
-                        ${(budget.reservedBudget / 100).toLocaleString()}
+                        <Text bold>Reserved Budget:</Text> $
+                        {(budget.reservedBudget / 100).toLocaleString()}
                       </Text>
                       <Text>
-                        <Text as="span" bold>
-                          Existing Free Budget:
-                        </Text>{' '}
-                        ${(budget.freeBudget / 100).toLocaleString()}
+                        <Text bold>Existing Free Budget:</Text> $
+                        {(budget.freeBudget / 100).toLocaleString()}
                       </Text>
                     </Flex>
                     <Text>
-                      <Text as="span" bold>
-                        Categories:
-                      </Text>{' '}
+                      <Text bold>Categories:</Text>{' '}
                       {Object.keys(budget.categories)
                         .map(category =>
                           getPlanCategoryName({
