@@ -21,8 +21,6 @@ class CommentListValidator(serializers.Serializer[None]):
 
 
 class CommentCreateValidator(StrictCamelSnakeValidator[InvestigationComment]):
-    """Needs `context["investigation"]`; save with `save(author_id=...)`."""
-
     body = serializers.CharField(max_length=MAX_COMMENT_LENGTH)
     block_id = serializers.IntegerField(min_value=1, required=False)
 
