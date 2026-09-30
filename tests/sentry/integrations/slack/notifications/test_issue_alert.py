@@ -403,6 +403,33 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
 
         self._assert_issue_owners_env_block(rule, environment)
 
+    def test_issue_alert_environment_uses_workflow_environment(self) -> None:
+        """
+        The legacy Rule keeps the environment it had at migration time, so the link must use the
+        environment from the workflow that fired after the workflow's environment is changed.
+        """
+        development = self.create_environment(self.project, name="development")
+        production = self.create_environment(self.project, name="production")
+        ProjectOwnership.objects.create(project_id=self.project.id)
+        action_data = {
+            "id": "sentry.mail.actions.NotifyEmailAction",
+            "targetType": "IssueOwners",
+            "targetIdentifier": "",
+        }
+        rule = self.create_project_rule(
+            project=self.project,
+            action_data=[action_data],
+            name="ja rule",
+            environment_id=development.id,
+        )
+        workflow = IssueAlertMigrator(rule).run()
+        workflow.update(environment_id=production.id)
+
+        rule.data["actions"][0]["legacy_rule_id"] = rule.id
+        rule.data["actions"][0]["workflow_id"] = workflow.id
+
+        self._assert_issue_owners_env_block(rule, production)
+
     @responses.activate
     def test_issue_alert_team_issue_owners_block(self) -> None:
         """

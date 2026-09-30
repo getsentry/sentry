@@ -608,13 +608,16 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             key, value = get_rule_or_workflow_id(self.rules[0])
             rule_id = int(value)
 
-            match key:
-                case "workflow_id":
-                    workflow = Workflow.objects.filter(id=rule_id).first()
-                    rule_environment_id = workflow.environment_id if workflow else None
-                case "legacy_rule_id":
-                    rule = Rule.objects.filter(id=rule_id).first()
-                    rule_environment_id = rule.environment_id if rule else None
+            # Prefer the workflow's environment whenever one fired, even if a legacy rule id is
+            # also present: the legacy Rule keeps the environment it had at migration time and
+            # isn't updated when the workflow is edited.
+            workflow_id = self.rules[0].data.get("actions", [{}])[0].get("workflow_id")
+            if workflow_id is not None:
+                workflow = Workflow.objects.filter(id=workflow_id).first()
+                rule_environment_id = workflow.environment_id if workflow else None
+            else:
+                rule = Rule.objects.filter(id=rule_id).first()
+                rule_environment_id = rule.environment_id if rule else None
 
         # build up actions text
         if self.actions and self.identity and not action_text:
