@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Generator, Mapping, Sequence
+from collections.abc import Generator, Mapping
 from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass
@@ -11,8 +11,7 @@ from sentry.notifications.platform.types import NotificationProviderKey
 
 logger = logging.getLogger(__name__)
 
-type SlackAttachmentsAndText = tuple[str | Sequence[Mapping[str, Any]], str]
-type ShadowPayload = Mapping[str, Any] | SlackAttachmentsAndText
+type ShadowPayload = Mapping[str, Any] | tuple[str, str]
 
 
 @dataclass(frozen=True)
