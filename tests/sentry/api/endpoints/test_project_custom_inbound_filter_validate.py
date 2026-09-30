@@ -22,7 +22,11 @@ def seer_answer(content: str | None) -> MagicMock:
 class CustomInboundFilterValidateTest(APITestCase):
     endpoint = "sentry-api-0-project-custom-inbound-filter-validate"
     method = "post"
-    features = ["organizations:inbound-filters-v2", "projects:custom-inbound-filters"]
+    features = [
+        "organizations:inbound-filters-v2",
+        "projects:custom-inbound-filters",
+        "organizations:inbound-filters-name-suggestion",
+    ]
 
     def setUp(self) -> None:
         super().setUp()
@@ -103,6 +107,19 @@ class CustomInboundFilterValidateTest(APITestCase):
         assert str(response.data["errors"]["conditions"][1]["value"][0]) == (
             "not-an-address is not an IP address or CIDR range."
         )
+        mock_request.assert_not_called()
+
+    @patch(SEER_PATH)
+    def test_without_name_suggestion_feature_still_validates(self, mock_request: MagicMock) -> None:
+        with self.feature(["organizations:inbound-filters-v2", "projects:custom-inbound-filters"]):
+            response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                dataType="error",
+                conditions=[{"type": "error_message", "value": ["*"]}],
+            )
+
+        assert response.data == {"errors": {}, "suggestedName": None}
         mock_request.assert_not_called()
 
     @patch(SEER_PATH)

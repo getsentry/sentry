@@ -7,6 +7,7 @@ from typing import Any, TypedDict
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.endpoints.project_custom_inbound_filters import (
@@ -142,7 +143,8 @@ class CustomInboundFilterValidateEndpoint(ProjectCustomInboundFilterEndpoint):
         existing filter, so the checks that depend on the stored filter apply. `errors`
         holds what the create or update endpoint would refuse, in the same shape. It is
         empty when the definition is valid. `suggestedName` is set when the definition
-        is valid, the organization has not hidden AI features, and Seer answered.
+        is valid, the organization has the name suggestion feature and has not hidden
+        AI features, and Seer answered.
         """
         if not self.has_feature(request, project):
             return Response({"detail": "You do not have that feature enabled"}, status=400)
@@ -159,12 +161,15 @@ class CustomInboundFilterValidateEndpoint(ProjectCustomInboundFilterEndpoint):
         if not serializer.is_valid():
             return Response({"errors": as_validation_errors(serializer), "suggestedName": None})
 
-        if project.organization.get_option("sentry:hide_ai_features", False):
+        organization = project.organization
+        if not features.has(
+            "organizations:inbound-filters-name-suggestion", organization, actor=request.user
+        ) or organization.get_option("sentry:hide_ai_features", False):
             return Response({"errors": {}, "suggestedName": None})
 
         suggested_name = suggest_filter_name(
             DataType(serializer.validated_data["data_type"]),
             serializer.validated_data["conditions"],
-            SeerViewerContext(organization_id=project.organization.id, user_id=request.user.id),
+            SeerViewerContext(organization_id=organization.id, user_id=request.user.id),
         )
         return Response({"errors": {}, "suggestedName": suggested_name})
