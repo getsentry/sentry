@@ -1271,8 +1271,6 @@ static/app/types/workflowEngine/dataConditions.tsx
 static/app/types/workflowEngine/detectors.tsx
 static/app/utils.spec.tsx
 static/app/utils.tsx
-static/app/views/acceptOrganizationInvite/index.spec.tsx
-static/app/views/acceptOrganizationInvite/index.tsx
 static/app/views/acceptProjectTransfer/index.spec.tsx
 static/app/views/acceptProjectTransfer/index.tsx
 static/app/views/app/alertMessage.tsx
