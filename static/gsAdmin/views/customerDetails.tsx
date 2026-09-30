@@ -515,7 +515,7 @@ export function CustomerDetails() {
             name: subscription.isTest
               ? 'Remove test organization flag'
               : 'Mark as test organization',
-            help: 'Change the internal test marker without changing plans or invoices. ARR filtering is managed separately.',
+            help: 'Change the internal test marker',
             disabled:
               subscription.isTest === undefined || onSetTestFlagMutation.isPending,
             disabledReason: 'The test flag is unavailable or an update is in progress.',
