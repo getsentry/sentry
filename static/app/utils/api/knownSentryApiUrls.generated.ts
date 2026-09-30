@@ -210,6 +210,7 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/investigations/$investigationId/blocks/$blockId/executions/'
   | '/organizations/$organizationIdOrSlug/investigations/$investigationId/blocks/$blockId/executions/$executionId/'
   | '/organizations/$organizationIdOrSlug/investigations/$investigationId/blocks/order/'
+  | '/organizations/$organizationIdOrSlug/investigations/$investigationId/comments/'
   | '/organizations/$organizationIdOrSlug/investigations/$investigationId/duplicate/'
   | '/organizations/$organizationIdOrSlug/investigations/$investigationId/favorite/'
   | '/organizations/$organizationIdOrSlug/investigations/$investigationId/orchestration/'
