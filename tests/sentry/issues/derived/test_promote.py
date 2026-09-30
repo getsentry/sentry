@@ -763,6 +763,7 @@ class PromoteToLiveTest(TestCase):
             [bad_group.id, good_group.id], timeout=timedelta(minutes=1), log_key="test.batch"
         )
         assert result.processed == {PromotionResult.PROMOTED: 1}
+        assert result.errors == 1
         assert result.resume_from_group_id is None
         assert GroupDerivedData.objects.filter(id=bad.id).values().get() == before
         assert GroupDerivedData.objects.get(group_id=good_group.id).view_count == 1

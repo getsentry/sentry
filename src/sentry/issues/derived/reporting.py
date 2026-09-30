@@ -1,6 +1,7 @@
 """Contextual diagnostics for failed derived computations."""
 
 import logging
+from typing import Literal
 
 from sentry.issues.derived.framework import DerivedDataError
 from sentry.issues.models.groupderiveddata import GroupDerivedData
@@ -13,7 +14,7 @@ def report_derived_data_error(
     error: DerivedDataError,
     *,
     derived: GroupDerivedData,
-    operation: str,
+    operation: Literal["process", "replay", "check", "serialize", "status_check"],
     pipeline_hash: str | None = None,
 ) -> None:
     """Call from an exception handler so the original cause is captured."""
@@ -35,5 +36,10 @@ def report_derived_data_error(
     metrics.incr(
         "issues.derived.feature_error",
         sample_rate=1.0,
-        tags={"operation": operation, "stage": error.stage},
+        tags={
+            "operation": operation,
+            "stage": error.stage,
+            "feature": error.feature_name or "none",
+            "aggregator": error.aggregator_name or "none",
+        },
     )

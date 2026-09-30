@@ -10,7 +10,7 @@ and Features don't have to.
 from typing import Any, Protocol
 
 from sentry.issues.derived.features import LAST_PROGRESSED_AT, PROGRESS, VIEW_COUNT
-from sentry.issues.derived.framework import Feature, State
+from sentry.issues.derived.framework import DerivedDataError, Feature, State
 from sentry.issues.models.groupderiveddata import GroupDerivedData
 
 # Features whose values are stored in dedicated model columns rather than
@@ -40,6 +40,8 @@ class GroupDerivedDataStore:
     @staticmethod
     def load(pipeline: PipelineFeatures, derived: GroupDerivedData) -> State:
         data: dict[str, Any] = derived.data
+        if not isinstance(data, dict):
+            raise DerivedDataError("decode") from TypeError("Expected derived data to be an object")
         result: dict[Feature[Any], Any] = {}
         for f in pipeline.features:
             column = COLUMN_MAP.get(f)

@@ -1,5 +1,7 @@
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from datetime import datetime, timedelta, timezone
+from functools import partial
+from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
@@ -47,6 +49,7 @@ from sentry.issues.derived.features import (
 )
 from sentry.issues.derived.framework import (
     AggregatorResult,
+    DerivedDataError,
     Feature,
     Pipeline,
     State,
@@ -111,13 +114,15 @@ class ProcessGroupLogTest(TestCase):
                 actor=GroupActionActor.user(self.user.id),
             )
 
-    def test_inline_corruption_preserves_data_without_rescheduling(self) -> None:
-        self._assert_corruption_preserves_data(ProcessingStrategy.INLINE)
+    def test_inline_corruption_preserves_data(self) -> None:
+        self._assert_corruption_preserves_data(
+            partial(processing.trigger_group_log_processing, strategy=ProcessingStrategy.INLINE)
+        )
 
-    def test_async_corruption_preserves_data_without_rescheduling(self) -> None:
-        self._assert_corruption_preserves_data(ProcessingStrategy.ASYNC)
+    def test_async_corruption_preserves_data(self) -> None:
+        self._assert_corruption_preserves_data(process_group_log_task)
 
-    def _assert_corruption_preserves_data(self, strategy: ProcessingStrategy) -> None:
+    def _assert_corruption_preserves_data(self, run: Callable[[int], None]) -> None:
         group = self.create_group()
         derived = self.create_group_derived_data(
             group, data={"status": "invalid"}, pipeline_hash=PIPELINE.pipeline_hash
@@ -125,18 +130,24 @@ class ProcessGroupLogTest(TestCase):
         entry = self.create_group_action_log_entry(group)
         before = GroupDerivedData.objects.filter(id=derived.id).values().get()
         with (
-            patch("sentry.issues.derived.processing.process_group_log_task.delay") as delay,
+            patch(
+                "sentry.issues.derived.processing._process_batch", wraps=processing._process_batch
+            ) as batch,
             patch("sentry.issues.derived.reporting.logger") as logger,
+            patch("sentry.issues.derived.reporting.metrics.incr") as incr,
         ):
-            # The async task is executed directly to exercise its exception boundary.
-            runners = {
-                ProcessingStrategy.INLINE: lambda: processing.trigger_group_log_processing(
-                    group.id, strategy=ProcessingStrategy.INLINE
-                ),
-                ProcessingStrategy.ASYNC: lambda: process_group_log_task(group.id),
-            }
-            runners[strategy]()
-        delay.assert_not_called()
+            run(group.id)
+        batch.assert_called_once()
+        incr.assert_any_call(
+            "issues.derived.feature_error",
+            sample_rate=1.0,
+            tags={
+                "operation": "process",
+                "stage": "decode",
+                "feature": "status",
+                "aggregator": "none",
+            },
+        )
         assert GroupDerivedData.objects.filter(id=derived.id).values().get() == before
         assert GroupActionLogEntry.objects.filter(id=entry.id).exists()
         extra = logger.exception.call_args.kwargs["extra"]
@@ -190,12 +201,14 @@ class ProcessGroupLogTest(TestCase):
         assert GroupDerivedData.objects.filter(id=derived.id).values().get() == before
 
     def test_inline_database_failure_propagates(self) -> None:
-        self._assert_database_failure_propagates(ProcessingStrategy.INLINE)
+        self._assert_database_failure_propagates(
+            partial(processing.trigger_group_log_processing, strategy=ProcessingStrategy.INLINE)
+        )
 
     def test_async_database_failure_propagates(self) -> None:
-        self._assert_database_failure_propagates(ProcessingStrategy.ASYNC)
+        self._assert_database_failure_propagates(process_group_log_task)
 
-    def _assert_database_failure_propagates(self, strategy: ProcessingStrategy) -> None:
+    def _assert_database_failure_propagates(self, run: Callable[[int], None]) -> None:
         group = self.create_group()
         with (
             patch(
@@ -204,13 +217,15 @@ class ProcessGroupLogTest(TestCase):
             ),
             pytest.raises(OperationalError),
         ):
-            runners = {
-                ProcessingStrategy.INLINE: lambda: processing.trigger_group_log_processing(
-                    group.id, strategy=ProcessingStrategy.INLINE
-                ),
-                ProcessingStrategy.ASYNC: lambda: process_group_log_task(group.id),
-            }
-            runners[strategy]()
+            run(group.id)
+
+    def test_inline_corruption_does_not_schedule_async_retry(self) -> None:
+        group = self.create_group()
+        self.create_group_derived_data(group, data={"status": "invalid"})
+        self.create_group_action_log_entry(group)
+        with patch("sentry.issues.derived.processing.process_group_log_task.delay") as delay:
+            processing.trigger_group_log_processing(group.id, strategy=ProcessingStrategy.INLINE)
+        delay.assert_not_called()
 
     def test_missing_group_raises_does_not_exist(self) -> None:
         group = self.create_group()
@@ -1422,3 +1437,46 @@ class ProcessGroupLogTimeoutTest(TestCase):
 
         derived = process_group_log(group.id, timeout=timedelta(minutes=5))
         assert derived.view_count == 3
+
+
+@pytest.mark.parametrize("data", [[], "invalid", None, 42])
+def test_store_rejects_non_object_data(data: Any) -> None:
+    with pytest.raises(DerivedDataError) as exc:
+        GroupDerivedDataStore.load(PIPELINE, GroupDerivedData(data=data))
+    assert exc.value.stage == "decode"
+    assert isinstance(exc.value.__cause__, TypeError)
+
+
+@pytest.mark.parametrize(
+    "values,feature",
+    [
+        ({"data": {"status": "invalid"}}, "status"),
+        ({"data": {"status": None}}, "status"),
+        ({"data": {"has_open_fix_pr": "false"}}, "has_open_fix_pr"),
+        ({"data": {"no_change_reconcile_ids": [True]}}, "no_change_reconcile_ids"),
+        ({"progress": "invalid"}, "progress"),
+        ({"view_count": True}, "view_count"),
+        ({"last_progressed_at": "invalid"}, "last_progressed_at"),
+    ],
+)
+def test_store_rejects_invalid_features(values: dict[str, Any], feature: str) -> None:
+    with pytest.raises(DerivedDataError) as exc:
+        GroupDerivedDataStore.load(PIPELINE, GroupDerivedData(**values))
+    assert exc.value.stage == "decode"
+    assert exc.value.feature_name == feature
+
+
+def test_store_preserves_missing_defaults_and_optional_null() -> None:
+    state = GroupDerivedDataStore.load(PIPELINE, GroupDerivedData(data={}, progress=None))
+    assert state[STATUS] == STATUS.initial_value()
+    assert state[PROGRESS] is None
+    assert state[LAST_PROGRESSED_AT] is None
+
+
+def test_store_rejects_invalid_output() -> None:
+    state = PIPELINE.initial_state()
+    state.merge(StateUpdate({VIEW_COUNT: "invalid"}))
+    with pytest.raises(DerivedDataError) as exc:
+        GroupDerivedDataStore.build_update(PIPELINE, state)
+    assert exc.value.stage == "encode"
+    assert exc.value.feature_name == VIEW_COUNT.name
