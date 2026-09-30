@@ -725,7 +725,7 @@ def _process_checkin(item: CheckinItem, span: Transaction | Span | StreamedSpan)
         set_span_tag(span, "result", "failed_checkin_validation")
         logger.info(
             "monitors.consumer.checkin_validation_failed",
-            extra={"guid": guid.hex, **params},
+            extra={"guid": guid.hex, "params": params},
         )
         track_outcome(
             org_id=project.organization_id,
@@ -797,7 +797,7 @@ def _process_checkin(item: CheckinItem, span: Transaction | Span | StreamedSpan)
         set_span_tag(span, "result", "failed_validation")
         logger.info(
             "monitors.consumer.monitor_validation_failed",
-            extra={"guid": guid.hex, "project": project.id, **params},
+            extra={"guid": guid.hex, "project": project.id, "params": params},
         )
         track_outcome(
             org_id=project.organization_id,
