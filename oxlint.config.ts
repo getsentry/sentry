@@ -1,10 +1,20 @@
 import {defineConfig, type OxlintConfig} from 'oxlint';
 
+const coreComponentFiles = [
+  'static/app/components/core/**/*.{js,mjs,ts,jsx,tsx}',
+  'static/packages/scraps/src/**/*.{ts,tsx}',
+];
+
 // incubator rules disallow new violations from being introduced
 // but suppress pre-existing violations on `master`
 export const incubator = defineConfig({
-  rules: {},
-  overrides: [],
+  rules: {'@sentry/scraps/prefer-primitives': 'error'},
+  overrides: [
+    {
+      files: coreComponentFiles,
+      rules: {'@sentry/scraps/prefer-primitives': 'off'},
+    },
+  ],
 });
 
 const IS_PRECOMMIT =
@@ -196,10 +206,6 @@ const storyFilesPolicy = {
 };
 
 const testFiles = ['**/*.spec.{ts,js,tsx,jsx}', 'tests/js/**/*.{ts,js,tsx,jsx}'];
-const coreComponentFiles = [
-  'static/app/components/core/**/*.{js,mjs,ts,jsx,tsx}',
-  'static/packages/scraps/src/**/*.{ts,tsx}',
-];
 
 /**
  * Import linting uses two complementary approaches:
