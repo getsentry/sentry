@@ -1,5 +1,5 @@
-import {useState} from 'react';
-import {useMutation, useQuery} from '@tanstack/react-query';
+import {useCallback, useState} from 'react';
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {logout} from 'sentry/actionCreators/account';
 import {ConfigStore} from 'sentry/stores/configStore';
@@ -25,6 +25,7 @@ interface InvitationParams {
 
 export function useInvitationFlow(params: InvitationParams) {
   const api = useApi({persistInFlight: true});
+  const queryClient = useQueryClient();
   // Undefined uses the bootstrap account; null marks a completed logout.
   const [authenticatedUser, setAuthenticatedUser] = useState<User | null>();
   const invitePath = {
@@ -64,6 +65,9 @@ export function useInvitationFlow(params: InvitationParams) {
     inviteQuery.isPending ||
     Boolean(inviteDetails?.orgSlug && authOrganizationQuery.isPending) ||
     isInitialAuthConfigLoading;
+  const sessionUser =
+    authenticatedUser === undefined ? ConfigStore.get('user') : authenticatedUser;
+  const invitationUser = inviteDetails?.needsAuthentication ? null : sessionUser;
 
   const acceptMutation = useMutation({
     mutationFn: () => fetchMutation({url: inviteApiUrl, method: 'POST'}),
@@ -75,6 +79,11 @@ export function useInvitationFlow(params: InvitationParams) {
   });
 
   const switchAccountMutation = useMutation({
+    onMutate: () =>
+      ({
+        step: inviteDetails ? getInvitationStep(inviteDetails) : undefined,
+        user: invitationUser,
+      }) as const,
     mutationFn: async () => {
       const didRedirect = await logout(api, {redirect: false});
       if (didRedirect) {
@@ -83,14 +92,21 @@ export function useInvitationFlow(params: InvitationParams) {
 
       setAuthenticatedUser(null);
       acceptMutation.reset();
-      await inviteQuery.refetch();
+      const {data} = await inviteQuery.refetch();
+      if (data?.needsAuthentication && !data.requireSso) {
+        await queryClient.fetchQuery(authConfigQueryOptions);
+      }
     },
   });
 
-  const handleAuthenticated = async (result: AuthenticatedResult) => {
-    setAuthenticatedUser(result.user);
-    await inviteQuery.refetch();
-  };
+  const {refetch: refetchInvitation} = inviteQuery;
+  const handleAuthenticated = useCallback(
+    async (result: AuthenticatedResult) => {
+      setAuthenticatedUser(result.user);
+      await refetchInvitation();
+    },
+    [refetchInvitation]
+  );
 
   const retryInvitation = async () => {
     await Promise.all([
@@ -111,6 +127,7 @@ export function useInvitationFlow(params: InvitationParams) {
     hasAcceptError: acceptMutation.isError,
     isSwitchingAccount: switchAccountMutation.isPending,
     hasSwitchAccountError: switchAccountMutation.isError,
+    isCheckingInvite: inviteQuery.isFetching || isLoadingAuthConfig,
     isRetrying:
       inviteQuery.isFetching ||
       authOrganizationQuery.isFetching ||
@@ -127,10 +144,16 @@ export function useInvitationFlow(params: InvitationParams) {
       (inviteQuery.error.status === 400 || inviteQuery.error.status === 404);
 
     if (isInvalidInvite) {
-      return {state: {...mutationState, status: 'invalid'} as const, actions};
+      return {
+        state: {...mutationState, status: 'invalid'} as const,
+        actions,
+      };
     }
 
-    return {state: {...mutationState, status: 'unavailable'} as const, actions};
+    return {
+      state: {...mutationState, status: 'unavailable'} as const,
+      actions,
+    };
   }
 
   const authOrganization = authOrganizationQuery.data;
@@ -140,21 +163,18 @@ export function useInvitationFlow(params: InvitationParams) {
     authOrganizationQuery.isError ||
     (needsAccountAuthentication && authConfigQuery.isError)
   ) {
-    return {state: {...mutationState, status: 'unavailable'} as const, actions};
+    return {
+      state: {...mutationState, status: 'unavailable'} as const,
+      actions,
+    };
   }
 
-  const sessionUser =
-    authenticatedUser === undefined ? ConfigStore.get('user') : authenticatedUser;
-  const signedInUser =
-    inviteDetails.needsAuthentication || switchAccountMutation.isPending
-      ? null
-      : sessionUser;
-  const step = getInvitationStep(
-    inviteDetails,
-    switchAccountMutation.isPending ||
-      isLoadingAuthConfig ||
-      Boolean(authenticatedUser && inviteQuery.isFetching)
-  );
+  // Keep the account and its disabled action together until the new form is ready.
+  const previousAccount = switchAccountMutation.isPending
+    ? switchAccountMutation.context
+    : undefined;
+  const signedInUser = previousAccount ? previousAccount.user : invitationUser;
+  const step = previousAccount?.step ?? getInvitationStep(inviteDetails);
 
   return {
     state: {
