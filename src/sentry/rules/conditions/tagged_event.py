@@ -9,12 +9,8 @@ from django.core.validators import RegexValidator
 from sentry import tagstore
 from sentry.rules import MATCH_CHOICES, EventState, MatchType, match_values
 from sentry.rules.conditions.base import EventCondition
-from sentry.rules.history.preview_strategy import get_dataset_columns
 from sentry.services.eventstore.models import GroupEvent
-from sentry.snuba.dataset import Dataset
-from sentry.snuba.events import Columns
 from sentry.tagstore.base import TAG_KEY_RE
-from sentry.types.condition_activity import ConditionActivity
 
 
 class TaggedEventForm(forms.Form):
@@ -95,15 +91,6 @@ class TaggedEventCondition(EventCondition):
     def passes(self, event: GroupEvent, state: EventState, **kwargs: Any) -> bool:
         return self._passes(event.tags)
 
-    def passes_activity(
-        self, condition_activity: ConditionActivity, event_map: dict[str, Any]
-    ) -> bool:
-        try:
-            tags = event_map[condition_activity.data["event_id"]]["tags"]
-            return self._passes(tags.items())
-        except (TypeError, KeyError):
-            return False
-
     def render_label(self) -> str:
         data = {
             "key": self.data["key"],
@@ -111,12 +98,6 @@ class TaggedEventCondition(EventCondition):
             "match": MATCH_CHOICES[self.data["match"]],
         }
         return self.label.format(**data)
-
-    def get_event_columns(self) -> dict[Dataset, Sequence[str]]:
-        columns: dict[Dataset, Sequence[str]] = get_dataset_columns(
-            [Columns.TAGS_KEY, Columns.TAGS_VALUE]
-        )
-        return columns
 
     def get_form_instance(self) -> TaggedEventForm:
         return TaggedEventForm(self.data)

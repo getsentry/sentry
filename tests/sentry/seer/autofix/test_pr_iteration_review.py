@@ -336,7 +336,7 @@ class TriggerPrIterationFromReviewTest(TestCase):
             key="7",
         )
         if external_id is not None:
-            pr.update(external_id_str=external_id)
+            pr.update(external_id=external_id)
         return pr
 
     def _run(
@@ -379,8 +379,7 @@ class TriggerPrIterationFromReviewTest(TestCase):
             self.mock_make_scm.return_value, "7"
         )
         pr.refresh_from_db()
-        assert pr.external_id_str == "555"
-        assert pr.external_id == 555
+        assert pr.external_id == "555"
 
     def test_stops_on_a_repo_whose_provider_is_not_pinned(self) -> None:
         # Everything downstream reads github.com off `PR_ITERATION_PROVIDER`
