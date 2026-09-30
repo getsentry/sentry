@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum, StrEnum
-from typing import TYPE_CHECKING, Any, NamedTuple
+from typing import TYPE_CHECKING, Any, NamedTuple, TypedDict
 
 from sentry.hybridcloud.rpc import ValueEqualityEnum
 
@@ -11,13 +11,48 @@ if TYPE_CHECKING:
     from sentry.models.project import Project
 
 
+class NotificationRuleData(TypedDict):
+    actions: list[dict[str, Any]]
+
+
 @dataclass(eq=False)
 class NotificationRule:
+    """Rule-like notification context for the legacy action registry.
+
+    ``id`` identifies the source of this delivery. It is usually a workflow-engine
+    Action ID, but its domain is not stable across every notification path. It must
+    not be used to look up a persisted Rule; use ``legacy_rule_id`` explicitly.
+    """
+
     id: int
     label: str
-    data: dict[str, Any]
+    data: NotificationRuleData
     project: Project
     environment_id: int | None
+    workflow_id: int | None
+    legacy_rule_id: int | None
+
+    def __post_init__(self) -> None:
+        if not self.data["actions"]:
+            raise ValueError("NotificationRule requires at least one action")
+
+        if self.legacy_rule_id == TEST_NOTIFICATION_ID:
+            if self.workflow_id is not None:
+                raise ValueError("Test notification cannot have a workflow ID")
+        elif self.workflow_id is None or self.workflow_id == TEST_NOTIFICATION_ID:
+            raise ValueError("NotificationRule requires a workflow ID")
+
+    @property
+    def is_test_notification(self) -> bool:
+        return self.legacy_rule_id == TEST_NOTIFICATION_ID
+
+    @property
+    def is_workflow_only(self) -> bool:
+        return self.workflow_id is not None and self.legacy_rule_id is None
+
+    @property
+    def is_workflow_with_legacy_rule(self) -> bool:
+        return self.workflow_id is not None and self.legacy_rule_id is not None
 
     @property
     def project_id(self) -> int:

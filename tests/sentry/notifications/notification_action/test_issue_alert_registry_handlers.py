@@ -127,6 +127,11 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
         assert self.workflow.environment is not None
         assert rule.environment_id == self.workflow.environment.id
         assert rule.label == self.workflow.name
+        assert rule.workflow_id == self.workflow.id
+        assert rule.legacy_rule_id == self.rule.id
+        assert rule.is_workflow_with_legacy_rule
+        assert not rule.is_workflow_only
+        assert not rule.is_test_notification
         assert rule.data == {
             "actions": [
                 {
@@ -160,6 +165,9 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
         assert self.workflow.environment is not None
         assert rule.environment_id == self.workflow.environment.id
         assert rule.label == self.workflow.name
+        assert rule.workflow_id == self.workflow.id
+        assert rule.legacy_rule_id is None
+        assert rule.is_workflow_only
         assert rule.data == {
             "actions": [
                 {
@@ -184,6 +192,9 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
 
         assert isinstance(rule, NotificationRule)
         assert rule.label == self.detector.name
+        assert rule.workflow_id == workflow_id
+        assert rule.legacy_rule_id is None
+        assert rule.is_workflow_only
         assert rule.data == {
             "actions": [
                 {
@@ -215,6 +226,9 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
 
         assert isinstance(rule, NotificationRule)
         assert rule.label == self.detector.name
+        assert rule.workflow_id is None
+        assert rule.legacy_rule_id == TEST_NOTIFICATION_ID
+        assert rule.is_test_notification
         assert rule.data == {
             "actions": [
                 {
@@ -226,6 +240,42 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
                 }
             ],
         }
+
+    def test_notification_rule_rejects_invalid_identity(self) -> None:
+        data = {"actions": [{"id": "test-action"}]}
+
+        with pytest.raises(ValueError, match="requires at least one action"):
+            NotificationRule(
+                id=self.action.id,
+                label="Invalid",
+                data={"actions": []},
+                project=self.project,
+                environment_id=None,
+                workflow_id=self.workflow.id,
+                legacy_rule_id=None,
+            )
+
+        with pytest.raises(ValueError, match="requires a workflow ID"):
+            NotificationRule(
+                id=self.action.id,
+                label="Invalid",
+                data=data,
+                project=self.project,
+                environment_id=None,
+                workflow_id=None,
+                legacy_rule_id=None,
+            )
+
+        with pytest.raises(ValueError, match="cannot have a workflow ID"):
+            NotificationRule(
+                id=self.action.id,
+                label="Invalid",
+                data=data,
+                project=self.project,
+                environment_id=None,
+                workflow_id=self.workflow.id,
+                legacy_rule_id=TEST_NOTIFICATION_ID,
+            )
 
     def test_create_rule_instance_from_action_no_environment(self) -> None:
         """Test that create_rule_instance_from_action creates a notification rule."""

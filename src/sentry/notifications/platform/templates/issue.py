@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Any
-
 from pydantic import BaseModel, ConfigDict
 
 from sentry.models.project import Project
@@ -13,7 +11,7 @@ from sentry.notifications.platform.types import (
     NotificationSource,
     NotificationTemplate,
 )
-from sentry.notifications.types import NotificationRule
+from sentry.notifications.types import NotificationRule, NotificationRuleData
 
 
 class SerializableRuleProxy(BaseModel):
@@ -25,9 +23,11 @@ class SerializableRuleProxy(BaseModel):
 
     id: int
     label: str
-    data: dict[str, Any]
+    data: NotificationRuleData
     environment_id: int | None = None
     project_id: int
+    workflow_id: int | None
+    legacy_rule_id: int | None
 
     @classmethod
     def from_rule(cls, rule: NotificationRule) -> SerializableRuleProxy:
@@ -38,6 +38,8 @@ class SerializableRuleProxy(BaseModel):
             data=rule.data,
             environment_id=rule.environment_id,
             project_id=rule.project.id,
+            workflow_id=rule.workflow_id,
+            legacy_rule_id=rule.legacy_rule_id,
         )
 
     def to_notification_rule(self, project: Project) -> NotificationRule:
@@ -47,6 +49,8 @@ class SerializableRuleProxy(BaseModel):
             data=self.data,
             environment_id=self.environment_id,
             project=project,
+            workflow_id=self.workflow_id,
+            legacy_rule_id=self.legacy_rule_id,
         )
 
 
@@ -78,6 +82,8 @@ class IssueNotificationTemplate(NotificationTemplate[IssueNotificationData]):
             data={
                 "actions": [{"workflow_id": 3}],
             },
+            workflow_id=3,
+            legacy_rule_id=None,
         ),
     )
     hide_from_debugger = True

@@ -2,7 +2,7 @@ import logging
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Collection, Sequence
 from dataclasses import asdict
-from typing import Any, ClassVar, NotRequired, Protocol, TypedDict
+from typing import Any, ClassVar, Protocol
 
 from django.core.exceptions import ValidationError
 from taskbroker_client.retry import RetryTaskError
@@ -24,7 +24,12 @@ from sentry.models.activity import Activity
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.rule import Rule
-from sentry.notifications.types import TEST_NOTIFICATION_ID, NotificationRule, RuleFuture
+from sentry.notifications.types import (
+    TEST_NOTIFICATION_ID,
+    NotificationRule,
+    NotificationRuleData,
+    RuleFuture,
+)
 from sentry.notifications.utils.issue_notification_context import IssueNotificationContext
 from sentry.rules.processing.processor import activate_downstream_actions
 from sentry.services.eventstore.models import GroupEvent
@@ -50,11 +55,6 @@ from sentry.workflow_engine.typings.notification_action import (
 logger = logging.getLogger(__name__)
 
 FutureCallback = Callable[[GroupEvent, Sequence[RuleFuture]], Any]
-
-
-class RuleData(TypedDict):
-    actions: list[dict[str, Any]]
-    legacy_rule_id: NotRequired[int]
 
 
 class LegacyRegistryHandler(ABC):
@@ -217,7 +217,7 @@ class BaseIssueAlertHandler(ABC):
         """
         environment_id = event_data.workflow_env.id if event_data.workflow_env else None
 
-        data: RuleData = {
+        data: NotificationRuleData = {
             "actions": [
                 cls.build_rule_action_blob(action, detector.linked_project.organization.id)
             ],
@@ -276,7 +276,9 @@ class BaseIssueAlertHandler(ABC):
             project=detector.linked_project,
             environment_id=environment_id,
             label=label,
-            data=dict(data),
+            data=data,
+            workflow_id=(None if workflow_id == TEST_NOTIFICATION_ID else workflow_id),
+            legacy_rule_id=(data["actions"][0].get("legacy_rule_id")),
         )
 
         return rule
@@ -370,7 +372,7 @@ class BaseIssueAlertHandler(ABC):
 
         # Execute the futures
         # If the rule id is -1, we are sending a test notification
-        if rule.id == TEST_NOTIFICATION_ID:
+        if rule.is_test_notification:
             cls.send_test_notification(invocation.event_data, futures)
         else:
             cls.execute_futures(invocation.event_data, futures)

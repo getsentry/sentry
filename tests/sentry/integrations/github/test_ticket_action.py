@@ -14,7 +14,7 @@ from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource, action_context_
 from sentry.issues.action_log.types import CreateExternalIssueAction
 from sentry.models.activity import Activity
 from sentry.models.repository import Repository
-from sentry.notifications.types import RuleFuture
+from sentry.notifications.types import NotificationRule, RuleFuture
 from sentry.services.eventstore.models import GroupEvent
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import RuleTestCase
@@ -71,7 +71,16 @@ class GitHubTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
         results = list(action_inst.after(event=event))
         assert len(results) == 1
 
-        rule_future = RuleFuture(rule=rule_object, kwargs=results[0].kwargs)
+        notification_rule = NotificationRule(
+            id=rule_object.id,
+            label=rule_object.label,
+            data={"actions": [action]},
+            project=rule_object.project,
+            environment_id=rule_object.environment_id,
+            workflow_id=123,
+            legacy_rule_id=rule_object.id,
+        )
+        rule_future = RuleFuture(rule=notification_rule, kwargs=results[0].kwargs)
         return results[0].callback(event, futures=[rule_future])
 
     def get_key(self, event: GroupEvent):

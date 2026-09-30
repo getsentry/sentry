@@ -80,7 +80,12 @@ class IssueNotificationDataTest(IssueAlertInvocationMixin):
             organization_id=1,
             group_id=self.group.id,
             rule=SerializableRuleProxy(
-                id=1, label="Test Detector", data={}, project_id=self.project.id
+                id=1,
+                label="Test Detector",
+                data={"actions": [{"workflow_id": 1}]},
+                project_id=self.project.id,
+                workflow_id=1,
+                legacy_rule_id=None,
             ),
         )
         assert data.source == NotificationSource.ISSUE
@@ -100,6 +105,8 @@ class IssueNotificationDataTest(IssueAlertInvocationMixin):
         assert isinstance(result.rule, SerializableRuleProxy)
         assert result.rule.id == invocation.action.id
         assert result.rule.label == "Test Workflow"
+        assert result.rule.workflow_id == invocation.workflow_id
+        assert result.rule.legacy_rule_id is None
         assert result.tags == ["environment", "level"]
         assert result.notes == "test note"
         assert len(result.rule.data["actions"]) == 1
@@ -339,7 +346,12 @@ class IssueAlertProviderDispatchTest(TestCase):
             organization_id=1,
             group_id=self.group.id,
             rule=SerializableRuleProxy(
-                id=1, label="Test Detector", data={}, project_id=self.project.id
+                id=1,
+                label="Test Detector",
+                data={"actions": [{"workflow_id": 1}]},
+                project_id=self.project.id,
+                workflow_id=1,
+                legacy_rule_id=None,
             ),
         )
         renderer = SlackNotificationProvider.get_renderer(data=data)
