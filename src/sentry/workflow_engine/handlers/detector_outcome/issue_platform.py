@@ -14,9 +14,17 @@ from sentry.workflow_engine.processors import DetectorEvaluation
 
 @detector_outcome_registry.add(DetectorOutcome.ISSUE_PLATFORM)
 class IssuePlatformOutcomeHandler(DetectorOutcomeHandler):
+    """
+    This class is used to produce occurrences for the Issue Platform from the workflow_engine.
+
+    It registers to the detector_outcome_registry, and is used by default in the
+    BaseDetectorHandler for all detector outcomes.
+    """
+
     def handle(self, detector: Detector, evaluation: DetectorEvaluation) -> None:
         occurrence, status_change = None, None
         result = evaluation.result
+
         if result is None:
             return
 

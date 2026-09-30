@@ -12,11 +12,13 @@ if TYPE_CHECKING:
 
 class DetectorOutcome(StrEnum):
     """
-    The DetectorOutcome enum is used to access the different handlers in this module.
+    The DetectorOutcome enumerator is used to define and access the different handlers in this module.
+    First, a handler is registered. Once the handler is registered here, it can be accessed through the
+    `dispatch` method.
 
-    Usage:
+    Usage
     - When registering a new outcome; `@detector_outcome_registry.add(DetectorOutcome.ISSUE_PLATFORM)`
-    - When adding an outcome to a DetectorHandler: `on_complete = DetectorOutcome.ISSUE_PLATFORM.dispatch`
+    - When adding an outcome to a DetectorHandler; `on_complete = DetectorOutcome.ISSUE_PLATFORM.dispatch`
     """
 
     ISSUE_PLATFORM = "issue_platform"
