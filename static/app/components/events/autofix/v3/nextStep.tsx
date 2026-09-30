@@ -32,6 +32,7 @@ import {useCodingAgents} from 'sentry/components/events/autofix/v3/useCodingAgen
 import {useRethinkInChat} from 'sentry/components/events/autofix/v3/useRethinkInChat';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconChevron} from 'sentry/icons/iconChevron';
+import {IconSeer} from 'sentry/icons/iconSeer';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
@@ -560,7 +561,11 @@ function NextStepTemplate({
       <Text>{prompt}</Text>
       <Flex gap="md">
         {askSeer ? (
-          <Button disabled={isProcessing} onClick={() => askSeer.onAsk(askSeer.prompt)}>
+          <Button
+            disabled={isProcessing}
+            icon={<IconSeer />}
+            onClick={() => askSeer.onAsk(askSeer.prompt)}
+          >
             {t('Ask Seer')}
           </Button>
         ) : (
