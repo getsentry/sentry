@@ -220,7 +220,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         if using_replica:
             queryset = OrganizationIntegration.objects.using_replica()
 
-        ois = queryset.filter(**oi_kwargs).select_related("integration")
+        ois = queryset.filter(**oi_kwargs)
         if limit is not None:
             ois = ois[:limit]
 
