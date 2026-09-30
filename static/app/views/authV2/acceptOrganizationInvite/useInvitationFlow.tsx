@@ -39,7 +39,7 @@ export function useInvitationFlow(params: InvitationParams) {
   const inviteQuery = useQuery({
     ...apiOptions.as<InviteDetails>()(
       '/accept-invite/$organizationIdOrSlug/$memberId/$token/',
-      {path: invitePath, query: {acceptance: 'explicit'}, staleTime: Infinity}
+      {path: invitePath, staleTime: Infinity}
     ),
     retry: false,
     refetchOnWindowFocus: query => (query.state.data?.json.needs2fa ? 'always' : false),

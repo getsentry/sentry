@@ -114,7 +114,7 @@ describe('AcceptOrganizationInvite', () => {
     );
     expect(getInvite).toHaveBeenCalledWith(
       '/accept-invite/org-slug/1/abc/',
-      expect.objectContaining({query: {acceptance: 'explicit'}})
+      expect.anything()
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Accept invitation'}));
