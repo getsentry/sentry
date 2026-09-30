@@ -122,14 +122,14 @@ def compute_configs(organization_id=None, project_id=None, public_key=None):
 
     You must only provide one single argument, not all.
 
-    :returns: A dict mapping all affected public keys to their config.  The dict will not
-       contain keys which should be retained in the cache unchanged.
+    :returns: An iterator of ``(public_key, config)`` pairs.  Each pair is yielded as soon
+       as its config is computed, so the caller can write it to the cache without waiting
+       for the rest.  Keys which should be retained in the cache unchanged are not yielded.
     """
     from sentry.models.project import Project
     from sentry.models.projectkey import ProjectKey
 
     validate_args(organization_id, project_id, public_key)
-    configs = {}
 
     if organization_id:
         # We want to re-compute all projects in an organization, instead of simply
@@ -147,7 +147,7 @@ def compute_configs(organization_id=None, project_id=None, public_key=None):
                     # recalculate it.  If the config was not there at all, we leave it and avoid the
                     # cost of re-computation.
                     if projectconfig_cache.backend.get(key.public_key) is not None:
-                        configs[key.public_key] = compute_projectkey_config(key)
+                        yield key.public_key, compute_projectkey_config(key)
                         action = "recompute"
                     else:
                         action = "not-cached"
@@ -163,7 +163,7 @@ def compute_configs(organization_id=None, project_id=None, public_key=None):
                 # recalculate it.  If the config was not there at all, we leave it and avoid the
                 # cost of re-computation.
                 if projectconfig_cache.backend.get(key.public_key) is not None:
-                    configs[key.public_key] = compute_projectkey_config(key)
+                    yield key.public_key, compute_projectkey_config(key)
                     action = "recompute"
                 else:
                     action = "not-cached"
@@ -183,14 +183,12 @@ def compute_configs(organization_id=None, project_id=None, public_key=None):
             # handlers that sent off the invalidation tasks before the DB
             # transaction was committed, causing us to write stale caches. That
             # bug was fixed in https://github.com/getsentry/sentry/pull/35671
-            configs[public_key] = {"disabled": True}
+            yield public_key, {"disabled": True}
         else:
-            configs[public_key] = compute_projectkey_config(key)
+            yield public_key, compute_projectkey_config(key)
 
     else:
         raise TypeError("One of the arguments must not be None")
-
-    return configs
 
 
 def compute_projectkey_config(key):
@@ -243,6 +241,10 @@ def invalidate_project_config(
 
     Both these mean that an outdated version of the project config could still end up in the
     cache.  These will be addressed in the future using config revisions tracked in Redis.
+
+    Each config is written to the cache as soon as it is computed.  An organization-wide
+    invalidation therefore updates Relay project by project instead of holding every config
+    back until the whole organization is done.
     """
     # Make sure we start by deleting the deduplication key so that new invalidation triggers
     # can schedule a new message while we already started computing the project config.
@@ -267,10 +269,10 @@ def invalidate_project_config(
     sentry_sdk.set_context("kwargs", kwargs)
     sentry_sdk.set_attribute("kwargs", str(kwargs))
 
-    updated_configs = compute_configs(
+    for updated_public_key, config in compute_configs(
         organization_id=organization_id, project_id=project_id, public_key=public_key
-    )
-    projectconfig_cache.backend.set_many(updated_configs)
+    ):
+        projectconfig_cache.backend.set_many({updated_public_key: config})
 
 
 @trace
