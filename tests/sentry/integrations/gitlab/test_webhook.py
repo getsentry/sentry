@@ -948,8 +948,8 @@ class WebhookTest(GitLabWebhookTestCase):
         assert group.get_assignee() is None
 
     def test_assignment_checks_sync_settings_only_where_the_issue_is_linked(self) -> None:
-        # Every organization sharing the integration gets its own pass over the event, so a
-        # sync-settings lookup per organization inside each pass grows quadratically.
+        # Each organization that linked the issue gets its own pass over the event, so a pass
+        # must look up sync settings for its own organization only, not for every install.
         group = self._linked_group_for_assignee_sync()
         alice = self._create_gitlab_member("alice", 11)
         self.install_on_other_organizations(3)
