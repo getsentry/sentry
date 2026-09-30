@@ -14,10 +14,10 @@ import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
-  getApiErrorMessage,
   ConnectionModalFrame,
   LockedProjectField,
   LockedRepoField,
+  getApiErrorMessage,
 } from 'sentry/components/connectRepository/connectionModalFrame';
 import {
   editProjectRepoMappings,
@@ -25,6 +25,18 @@ import {
   useEditRepoInfo,
   useInvalidateRepoQueries,
 } from 'sentry/components/connectRepository/queries';
+
+export type EditFormProps = ModalRenderProps & {
+  externalId: string | null;
+  integrationId: string | null;
+  project: Pick<Project, 'id' | 'slug'>;
+  providerKey: string | null;
+  repoName: string;
+  repositoryId: string;
+  // When 'repo', the repo field is on the left and project on the right.
+  // Defaults to 'project' (project on the left, repo on the right).
+  lockedSide?: 'project' | 'repo';
+};
 
 function buildPathsSection({
   isPending,
@@ -67,15 +79,6 @@ function buildPathsSection({
   );
 }
 
-export type EditFormProps = ModalRenderProps & {
-  externalId: string | null;
-  integrationId: string | null;
-  project: Project;
-  providerKey: string | null;
-  repoName: string;
-  repositoryId: string;
-};
-
 export function EditRepositoryForm({
   Header,
   Body,
@@ -87,6 +90,7 @@ export function EditRepositoryForm({
   providerKey,
   integrationId,
   externalId,
+  lockedSide = 'project',
 }: EditFormProps) {
   const organization = useOrganization();
   const [pathMappings, setPathMappings] = useState<PathMappingValue[]>([]);
@@ -165,6 +169,15 @@ export function EditRepositoryForm({
     </Fragment>
   );
 
+  const projectField = <LockedProjectField project={project} />;
+  const repoField = <LockedRepoField repoName={repoName} providerKey={providerKey} />;
+
+  // lockedSide determines field order only; both are always locked in edit mode.
+  const [leftLabel, leftField, rightLabel, rightField] =
+    lockedSide === 'repo'
+      ? [t('Repository'), repoField, t('Project'), projectField]
+      : [t('Project'), projectField, t('Repository'), repoField];
+
   return (
     <ConnectionModalFrame
       Header={Header}
@@ -173,10 +186,10 @@ export function EditRepositoryForm({
       closeModal={closeModal}
       title={t('Edit code mappings')}
       alerts={alerts}
-      leftLabel={t('Project')}
-      leftField={<LockedProjectField project={project} />}
-      rightLabel={t('Repository')}
-      rightField={<LockedRepoField repoName={repoName} providerKey={providerKey} />}
+      leftLabel={leftLabel}
+      leftField={leftField}
+      rightLabel={rightLabel}
+      rightField={rightField}
       pathsSection={pathsSection}
       canSave={canSave}
       isSaving={editMutation.isPending}

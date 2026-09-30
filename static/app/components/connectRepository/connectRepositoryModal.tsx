@@ -3,7 +3,6 @@ import type {Project} from 'sentry/types/project';
 import {ConnectRepositoryForm} from 'sentry/components/connectRepository/connectRepositoryForm';
 import {EditRepositoryForm} from 'sentry/components/connectRepository/editRepositoryForm';
 import {RepoLockedConnectForm} from 'sentry/components/connectRepository/repoLockedConnectForm';
-import {RepoLockedEditForm} from 'sentry/components/connectRepository/repoLockedEditForm';
 
 type RepoIdentity = {
   externalId: string | null;
@@ -15,12 +14,15 @@ type RepoIdentity = {
 
 // Project-locked: the project is fixed; the user picks the repository.
 type ProjectLockedConnect = {lockedSide?: 'project'; mode: 'connect'; project: Project};
-type ProjectLockedEdit = {lockedSide?: 'project'; mode: 'edit'; project: Project} & RepoIdentity;
+type ProjectLockedEdit = {
+  lockedSide?: 'project';
+  mode: 'edit';
+  project: Pick<Project, 'id' | 'slug'>;
+} & RepoIdentity;
 
-// Repo-locked: the repository is fixed; the user picks the project.
+// Repo-locked: the repository is fixed; the user picks the project (connect)
+// or both fields are locked (edit, project resolved by the caller).
 type RepoLockedConnect = {lockedSide: 'repo'; mode: 'connect'} & RepoIdentity;
-// Both fields are locked in edit mode: repo comes from RepoIdentity, project
-// is resolved by the caller from the code-mappings cache and passed in.
 type RepoLockedEdit = {
   lockedSide: 'repo';
   mode: 'edit';
@@ -31,15 +33,11 @@ export type ConnectRepositoryModalProps = ModalRenderProps &
   (ProjectLockedConnect | ProjectLockedEdit | RepoLockedConnect | RepoLockedEdit);
 
 export function ConnectRepositoryModal(props: ConnectRepositoryModalProps) {
-  if (props.lockedSide === 'repo') {
-    if (props.mode === 'edit') {
-      return <RepoLockedEditForm {...props} />;
-    }
-    return <RepoLockedConnectForm {...props} />;
-  }
-
   if (props.mode === 'edit') {
     return <EditRepositoryForm {...props} />;
+  }
+  if (props.lockedSide === 'repo') {
+    return <RepoLockedConnectForm {...props} />;
   }
   return <ConnectRepositoryForm {...props} />;
 }

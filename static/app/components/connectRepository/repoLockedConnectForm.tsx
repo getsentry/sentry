@@ -138,23 +138,24 @@ export function RepoLockedConnectForm({
     />
   );
 
-  const pathsSection = selectedProject && !isBranchPending ? (
-    <Container paddingTop="2xl">
-      <PathMappingList
-        key={selectedProject.id}
-        providerKey={providerKey ?? undefined}
-        defaultBranch={defaultBranch ?? undefined}
-        onChange={setPathMappings}
-      />
-    </Container>
-  ) : (
-    <Stack gap="xs" paddingTop="2xl">
-      <Text size="sm" bold>
-        {t('Paths')}
-      </Text>
-      <PathsPlaceholder />
-    </Stack>
-  );
+  const pathsSection =
+    selectedProject && !isBranchPending ? (
+      <Container paddingTop="2xl">
+        <PathMappingList
+          key={selectedProject.id}
+          providerKey={providerKey ?? undefined}
+          defaultBranch={defaultBranch ?? undefined}
+          onChange={setPathMappings}
+        />
+      </Container>
+    ) : (
+      <Stack gap="xs" paddingTop="2xl">
+        <Text size="sm" bold>
+          {t('Paths')}
+        </Text>
+        <PathsPlaceholder />
+      </Stack>
+    );
 
   return (
     <ConnectionModalFrame
