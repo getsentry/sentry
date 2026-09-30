@@ -255,7 +255,33 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
                 format="json",
             )
 
-        assert response.status_code == 204, response.content
+        assert response.status_code == 400, response.content
+        assert response.data == {"team": ["One or more teams do not exist."]}
+        assert not TeamKeyTransaction.objects.filter(
+            transaction=self.event_data["transaction"]
+        ).exists()
+
+    def test_post_key_transaction_mixed_org_teams(self) -> None:
+        team = self.create_team(organization=self.org, name="Team Foo")
+        self.create_team_membership(team, user=self.user)
+        self.project.add_team(team)
+
+        other_org = self.create_organization(owner=self.create_user())
+        other_org_team = self.create_team(organization=other_org, name="Other Org Team")
+
+        with self.feature(self.features):
+            response = self.client.post(
+                self.url,
+                data={
+                    "project": [self.project.id],
+                    "transaction": self.event_data["transaction"],
+                    "team": [team.id, other_org_team.id],
+                },
+                format="json",
+            )
+
+        assert response.status_code == 400, response.content
+        assert response.data == {"team": ["One or more teams do not exist."]}
         assert not TeamKeyTransaction.objects.filter(
             transaction=self.event_data["transaction"]
         ).exists()
@@ -626,7 +652,8 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
                 format="json",
             )
 
-        assert response.status_code == 204, response.content
+        assert response.status_code == 400, response.content
+        assert response.data == {"team": ["One or more teams do not exist."]}
         assert TeamKeyTransaction.objects.filter(id=other_org_key_transaction.id).exists()
 
     def test_delete_key_transaction_no_access_team(self) -> None:
