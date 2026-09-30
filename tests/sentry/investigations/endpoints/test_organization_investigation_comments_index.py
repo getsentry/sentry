@@ -83,6 +83,7 @@ class OrganizationInvestigationCommentsTest(APITestCase):
         response = self.client.post(self.url, data={"body": "Hi"}, format="json")
 
         assert response.status_code == 400
+        assert response.data == {"detail": "Archived investigations are read-only."}
 
     def test_list_is_newest_first(self) -> None:
         first = self.create_investigation_comment(

@@ -4,6 +4,7 @@ from typing import Any
 
 from rest_framework import serializers
 
+from sentry.investigations.endpoints.base import InvestigationArchivedError
 from sentry.investigations.endpoints.validators.base import StrictCamelSnakeValidator
 from sentry.investigations.models import (
     InvestigationBlock,
@@ -34,7 +35,7 @@ class CommentCreateValidator(StrictCamelSnakeValidator[InvestigationComment]):
 
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
         if self.context["investigation"].status == InvestigationStatus.ARCHIVED:
-            raise serializers.ValidationError("Archived investigations are read-only.")
+            raise InvestigationArchivedError
         if "block_id" in attrs:
             attrs["block"] = attrs.pop("block_id")
         return attrs
