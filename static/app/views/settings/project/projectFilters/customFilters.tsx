@@ -241,6 +241,16 @@ function splitConditionValues(text: string): string[] {
     .filter(Boolean);
 }
 
+// A line that starts with `#` is a comment, and so is the rest of a line from a `#`
+// that follows whitespace. A `#` inside a value stays, so `build#12` is a pattern.
+// The backend drops comments the same way before it sends the values to Relay.
+const COMMENT = /(?:^|\s)#.*/;
+
+// The patterns among the values of a condition: its lines without the comments.
+function stripComments(values: string[]): string[] {
+  return values.map(value => value.replace(COMMENT, '').trim()).filter(Boolean);
+}
+
 const filterSchema = z.object({
   name: z.string().trim().min(1, t('Give the filter a name')),
   dataType: z.enum(FILTER_DATA_TYPES),
@@ -251,7 +261,7 @@ const filterSchema = z.object({
         value: z
           .string()
           .refine(
-            text => splitConditionValues(text).length > 0,
+            text => stripComments(splitConditionValues(text)).length > 0,
             t('Enter a value to match')
           ),
       })
@@ -374,8 +384,9 @@ function ValueTag({value}: {value: string}) {
 
 // One condition of a filter: its property, then the values any of which matches.
 function ConditionSummary({condition}: {condition: CustomInboundFilterCondition}) {
-  const visible = condition.value.slice(0, MAX_VISIBLE_VALUES);
-  const hidden = condition.value.slice(MAX_VISIBLE_VALUES);
+  const patterns = stripComments(condition.value);
+  const visible = patterns.slice(0, MAX_VISIBLE_VALUES);
+  const hidden = patterns.slice(MAX_VISIBLE_VALUES);
 
   return (
     <Flex wrap="wrap" gap="xs" align="center">
@@ -463,7 +474,7 @@ function CustomFilterModal({
           </Heading>
           <Text variant="muted" size="sm">
             {t(
-              'Sentry only filters data that matches every condition below. Each value is a glob pattern, so * matches any text. Put one pattern per line to match any of them.'
+              'Sentry only filters data that matches every condition below. Each value is a glob pattern, so * matches any text. Put one pattern per line to match any of them. A # at the start of a line or after a space begins a comment.'
             )}
           </Text>
         </Stack>

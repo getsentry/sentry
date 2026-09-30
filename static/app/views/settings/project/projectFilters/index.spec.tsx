@@ -708,6 +708,71 @@ describe('ProjectFilters', () => {
     );
   });
 
+  it('hides comment lines in the table and keeps them in the editor', async () => {
+    renderInboundFilters([
+      CustomInboundFilterFixture({
+        id: '1',
+        name: 'Old releases',
+        conditions: [
+          {
+            type: 'release',
+            value: ['# builds before the fix', '1.* # first bad one', '2.*'],
+          },
+        ],
+      }),
+    ]);
+
+    expect(await screen.findByText('Old releases')).toBeInTheDocument();
+    expect(screen.getByText('1.*')).toBeInTheDocument();
+    expect(screen.getByText('2.*')).toBeInTheDocument();
+    expect(screen.queryByText(/before the fix/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/first bad one/)).not.toBeInTheDocument();
+    expect(screen.getAllByText('or')).toHaveLength(1);
+
+    await userEvent.click(screen.getByRole('button', {name: 'Edit filter'}));
+    expect(await screen.findByText('Edit Custom Filter')).toBeInTheDocument();
+    expect(screen.getByRole('textbox', {name: 'Condition value'})).toHaveValue(
+      '# builds before the fix\n1.* # first bad one\n2.*'
+    );
+  });
+
+  it('needs a pattern besides comments and saves the comments with it', async () => {
+    renderInboundFilters([]);
+    expect(await screen.findByText('No inbound filters found')).toBeInTheDocument();
+
+    const createMock = MockApiClient.addMockResponse({
+      url: CUSTOM_INBOUND_FILTERS_URL,
+      method: 'POST',
+      body: CustomInboundFilterFixture({id: '10', name: 'Noise'}),
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Add Filter'}));
+    expect(await screen.findByText('Create Custom Filter')).toBeInTheDocument();
+    await userEvent.type(screen.getByRole('textbox', {name: 'Name'}), 'Noise');
+    const value = screen.getByRole('textbox', {name: 'Condition value'});
+    await userEvent.type(value, '# nothing yet');
+    await userEvent.click(screen.getByRole('button', {name: 'Create Filter'}));
+
+    expect(await screen.findByText('Enter a value to match')).toBeInTheDocument();
+    expect(createMock).not.toHaveBeenCalled();
+
+    await userEvent.type(value, '{enter}*timeout* # flaky');
+    await userEvent.click(screen.getByRole('button', {name: 'Create Filter'}));
+
+    await waitFor(() =>
+      expect(createMock).toHaveBeenCalledWith(
+        CUSTOM_INBOUND_FILTERS_URL,
+        expect.objectContaining({
+          data: expect.objectContaining({
+            conditions: [
+              {type: 'error_message', value: ['# nothing yet', '*timeout* # flaky']},
+            ],
+          }),
+        })
+      )
+    );
+  });
+
   it('keeps a condition type it does not know', async () => {
     // A newer deploy can store a condition type this bundle has no description
     // for. It has to stay visible and editable, not break the page or the modal.
