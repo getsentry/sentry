@@ -24,6 +24,8 @@ export const documentation = import('!!type-loader!@sentry/scraps/dropdownMenu')
 
 Use `DropdownMenu` for an action menu or a short list of links. It renders an accessible trigger and menu together.
 
+Provide either `triggerLabel` for the default button or `trigger` for a custom trigger. One is required, and they cannot be used together.
+
 Use `CompactSelect` when the user chooses a value that stays selected. Use `DropdownMenu` when the items perform actions or navigate somewhere.
 
 ```jsx

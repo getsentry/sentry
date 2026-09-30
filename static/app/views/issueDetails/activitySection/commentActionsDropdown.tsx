@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {DropdownMenu, type DropdownMenuProps} from '@sentry/scraps/dropdownMenu';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {openConfirmModal} from 'sentry/components/confirm';
@@ -15,12 +15,7 @@ type Props = {
   user?: User | null;
 };
 
-export function CommentActionsDropdown({
-  user,
-  onDelete,
-  onEdit,
-  ...props
-}: Props & Partial<DropdownMenuProps>) {
+export function CommentActionsDropdown({user, onDelete, onEdit}: Props) {
   const activeUser = useUser();
   const canEdit = activeUser && (activeUser.isSuperuser || user?.id === activeUser.id);
 
@@ -70,7 +65,6 @@ export function CommentActionsDropdown({
           tooltipOptions: {delay: 1000},
         },
       ]}
-      {...props}
     />
   );
 }
