@@ -1,21 +1,20 @@
-import {Fragment, useCallback, useEffect, useState} from 'react';
-import {useMutation} from '@tanstack/react-query';
+import {Fragment} from 'react';
+import {useMutation, useQuery} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
+import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getFormattedDate} from 'sentry/utils/dates';
-import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {fetchMutation} from 'sentry/utils/queryClient';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
-import {useApi} from 'sentry/utils/useApi';
 import {useParams} from 'sentry/utils/useParams';
 
 import {PageHeader} from 'admin/components/pageHeader';
@@ -34,15 +33,103 @@ type ClientDetails = {
   termsUrl: string | null;
 };
 
+type ClientDetailsResponse = {
+  allowedOrigins: string[];
+  clientID: string | null;
+  dateAdded: string;
+  homepageUrl: string | null;
+  id: string | null;
+  name: string | null;
+  privacyUrl: string | null;
+  redirectUris: string[];
+  termsUrl: string | null;
+};
+
 const clientSchema = z.object({
   clientID: z.string(),
   name: z.string().min(1),
-  redirectUris: z.string().min(1),
-  allowedOrigins: z.string(),
-  homepageUrl: z.string(),
-  privacyUrl: z.string(),
-  termsUrl: z.string(),
+  redirectUris: z
+    .string()
+    .trim()
+    .min(1)
+    .refine(
+      value => value.split(/\s+/).every(url => z.url().safeParse(url).success),
+      'Enter valid redirect URLs separated by spaces'
+    ),
+  allowedOrigins: z
+    .string()
+    .trim()
+    .refine(
+      value =>
+        value === '' || value.split(/\s+/).every(url => z.url().safeParse(url).success),
+      'Enter valid allowed origins separated by spaces'
+    ),
+  homepageUrl: z
+    .string()
+    .refine(
+      value => value === '' || z.url().safeParse(value).success,
+      'Enter a valid URL'
+    ),
+  privacyUrl: z
+    .string()
+    .refine(
+      value => value === '' || z.url().safeParse(value).success,
+      'Enter a valid URL'
+    ),
+  termsUrl: z
+    .string()
+    .refine(
+      value => value === '' || z.url().safeParse(value).success,
+      'Enter a valid URL'
+    ),
 });
+
+const fields = [
+  {
+    name: 'clientID' as const,
+    label: 'Client ID',
+    hintText: 'ID of the selected client (not modifiable)',
+    disabled: true,
+  },
+  {
+    name: 'name' as const,
+    label: 'Client Name',
+    hintText: 'Human readable name for the client',
+    placeholder: 'e.g. CodeCov',
+    required: true,
+  },
+  {
+    name: 'redirectUris' as const,
+    label: 'Redirect URIs (space separated)',
+    hintText: 'The URL that users will redirect to after login/signup',
+    placeholder: 'e.g. https://notsentry.io/redirect',
+    required: true,
+  },
+  {
+    name: 'allowedOrigins' as const,
+    label: 'Allowed Origins (space separated)',
+    hintText: 'Allowed origins for the client',
+    placeholder: 'e.g. https://notsentry.io/origin',
+  },
+  {
+    name: 'homepageUrl' as const,
+    label: 'Homepage URL',
+    hintText: "Client's homepage",
+    placeholder: 'e.g. https://notsentry.io/home',
+  },
+  {
+    name: 'privacyUrl' as const,
+    label: 'Privacy Policy URL',
+    hintText: "URL to client's privacy policy",
+    placeholder: 'e.g. https://notsentry.io/privacy',
+  },
+  {
+    name: 'termsUrl' as const,
+    label: 'Terms and Conditions URL',
+    hintText: "URL to client's terms and conditions",
+    placeholder: 'e.g. https://notsentry.io/terms',
+  },
+];
 
 function ClientDetailsForm({clientDetails}: {clientDetails: ClientDetails}) {
   const mutation = useMutation({
@@ -71,52 +158,6 @@ function ClientDetailsForm({clientDetails}: {clientDetails: ClientDetails}) {
     validators: {onDynamic: clientSchema},
     onSubmit: ({value}) => mutation.mutateAsync(value).catch(() => {}),
   });
-  const fields = [
-    {
-      name: 'clientID' as const,
-      label: 'Client ID',
-      hintText: 'ID of the selected client (not modifiable)',
-      disabled: true,
-    },
-    {
-      name: 'name' as const,
-      label: 'Client Name',
-      hintText: 'Human readable name for the client',
-      placeholder: 'e.g. CodeCov',
-      required: true,
-    },
-    {
-      name: 'redirectUris' as const,
-      label: 'Redirect URIs (space separated)',
-      hintText: 'The URL that users will redirect to after login/signup',
-      placeholder: 'e.g. https://notsentry.io/redirect',
-      required: true,
-    },
-    {
-      name: 'allowedOrigins' as const,
-      label: 'Allowed Origins (space separated)',
-      hintText: 'Allowed origins for the client',
-      placeholder: 'e.g. https://notsentry.io/origin',
-    },
-    {
-      name: 'homepageUrl' as const,
-      label: 'Homepage URL',
-      hintText: "Client's homepage",
-      placeholder: 'e.g. https://notsentry.io/home',
-    },
-    {
-      name: 'privacyUrl' as const,
-      label: 'Privacy Policy URL',
-      hintText: "URL to client's privacy policy",
-      placeholder: 'e.g. https://notsentry.io/privacy',
-    },
-    {
-      name: 'termsUrl' as const,
-      label: 'Terms and Conditions URL',
-      hintText: "URL to client's terms and conditions",
-      placeholder: 'e.g. https://notsentry.io/terms',
-    },
-  ];
   return (
     <form.AppForm form={form}>
       <Stack gap="lg">
@@ -138,9 +179,9 @@ function ClientDetailsForm({clientDetails}: {clientDetails: ClientDetails}) {
             )}
           </form.AppField>
         ))}
-        <p>
+        <Text as="p">
           <b>Date added:</b> {clientDetails.createdAt}
-        </p>
+        </Text>
         <form.SubmitButton>Save Client Settings</form.SubmitButton>
       </Stack>
     </form.AppForm>
@@ -149,78 +190,59 @@ function ClientDetailsForm({clientDetails}: {clientDetails: ClientDetails}) {
 
 export function InstanceLevelOAuthDetails() {
   const {openModal} = useModal();
-
-  const api = useApi();
   const params = useParams<{clientID: string}>();
-
-  const [clientDetails, setClientDetails] = useState<ClientDetails | null>();
-  const [errorMessage, setErrorMessage] = useState<string | null>();
-  const [loading, setLoading] = useState(true);
-
-  const fetchClientData = useCallback(async () => {
-    try {
-      const response = await api.requestPromise(
-        getApiUrl('/_admin/instance-level-oauth/$clientId/', {
-          path: {clientId: params.clientID},
-        }),
-        {}
-      );
-
-      setClientDetails({
-        name: response.name,
-        id: response.id,
-        clientID: response.clientID,
-        createdAt: getFormattedDate(response.dateAdded, 'MMM Do YYYY'),
-        allowedOrigins: response.allowedOrigins.join(' '),
-        homepageUrl: response.homepageUrl,
-        redirectUris: response.redirectUris.join(' '),
-        privacyUrl: response.privacyUrl,
-        termsUrl: response.termsUrl,
-      });
-    } catch (err) {
-      const message = 'Unable to load client data';
-      handleXhrErrorResponse(message, err as RequestError);
-      addErrorMessage(message);
-      setErrorMessage(message);
-    } finally {
-      setLoading(false);
-    }
-  }, [params.clientID, api]);
-
-  useEffect(() => {
-    // oxlint-disable-next-line react/set-state-in-effect
-    fetchClientData();
-  }, [fetchClientData]);
+  const {data, isPending, isError} = useQuery({
+    ...apiOptions.as<ClientDetailsResponse>()('/_admin/instance-level-oauth/$clientId/', {
+      path: {clientId: params.clientID},
+      staleTime: 0,
+    }),
+    retry: false,
+  });
+  const clientDetails: ClientDetails | null = data
+    ? {
+        name: data.name,
+        id: data.id,
+        clientID: data.clientID,
+        createdAt: getFormattedDate(data.dateAdded, 'MMM Do YYYY'),
+        allowedOrigins: data.allowedOrigins.join(' '),
+        homepageUrl: data.homepageUrl,
+        redirectUris: data.redirectUris.join(' '),
+        privacyUrl: data.privacyUrl,
+        termsUrl: data.termsUrl,
+      }
+    : null;
 
   return (
     <div>
-      {loading && <LoadingIndicator />}
+      {isPending && <LoadingIndicator />}
       {clientDetails && (
         <Fragment>
           <PageHeader
             title={`Details For Instance Level OAuth Client: ${clientDetails.name}`}
           />
           <ClientDetailsForm clientDetails={clientDetails} />
-          <Flex justify="right" padding="lg 0">
-            <Button
-              size="sm"
-              variant="danger"
-              onClick={() =>
-                openModal(deps => (
-                  <ConfirmClientDeleteModal
-                    {...deps}
-                    clientID={clientDetails.clientID}
-                    name={clientDetails.name}
-                  />
-                ))
-              }
-            >
-              Delete client
-            </Button>
-          </Flex>
+          <Container paddingTop="lg" paddingBottom="lg">
+            <Flex justify="right">
+              <Button
+                size="sm"
+                variant="danger"
+                onClick={() =>
+                  openModal(deps => (
+                    <ConfirmClientDeleteModal
+                      {...deps}
+                      clientID={clientDetails.clientID}
+                      name={clientDetails.name}
+                    />
+                  ))
+                }
+              >
+                Delete client
+              </Button>
+            </Flex>
+          </Container>
         </Fragment>
       )}
-      {errorMessage && <p>{errorMessage}</p>}
+      {isError && <Text as="p">Unable to load client data</Text>}
     </div>
   );
 }

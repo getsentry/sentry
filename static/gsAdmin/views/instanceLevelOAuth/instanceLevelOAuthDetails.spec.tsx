@@ -92,6 +92,22 @@ describe('instance level OAuth client details', () => {
     expect(mockGetDetailsCall).toHaveBeenCalledTimes(1);
   });
 
+  it('shows an error when client details cannot be loaded', async () => {
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: `/_admin/instance-level-oauth/${mockClientDetails.clientID}/`,
+      method: 'GET',
+      statusCode: 500,
+    });
+
+    render(<InstanceLevelOAuthDetails />, {initialRouterConfig});
+
+    expect(await screen.findByText('Unable to load client data')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Save Client Settings'})
+    ).not.toBeInTheDocument();
+  });
+
   it('allows a client to be updated', async () => {
     render(<InstanceLevelOAuthDetails />, {
       initialRouterConfig,
@@ -136,6 +152,18 @@ describe('instance level OAuth client details', () => {
     expect(mockPutCall).toHaveBeenCalledTimes(1);
     const submittedPutRequestBody = mockPutCall.mock.calls[0][1].data;
     expect(submittedPutRequestBody).toEqual(newClientDetails);
+  });
+
+  it('rejects invalid URLs', async () => {
+    render(<InstanceLevelOAuthDetails />, {initialRouterConfig});
+    await screen.findByText('Details For Instance Level OAuth Client: CodeCov');
+
+    await userEvent.clear(screen.getByRole('textbox', {name: 'Homepage URL'}));
+    await userEvent.type(screen.getByRole('textbox', {name: 'Homepage URL'}), 'invalid');
+    await userEvent.click(screen.getByRole('button', {name: 'Save Client Settings'}));
+
+    expect(await screen.findByText('Enter a valid URL')).toBeInTheDocument();
+    expect(mockPutCall).not.toHaveBeenCalled();
   });
 
   it('deletes a client correctly', async () => {

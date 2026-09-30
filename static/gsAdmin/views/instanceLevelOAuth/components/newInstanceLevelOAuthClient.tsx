@@ -12,7 +12,6 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
-import {safeURL} from 'sentry/utils/url/safeURL';
 
 import {ClientSecretModal} from './clientSecretModal';
 
@@ -30,14 +29,14 @@ type ClientResponse = {
   clientSecret: string;
 };
 
-const urlValidation = z
-  .string()
-  .min(1, 'Field is required')
-  .pipe(z.string().refine(value => Boolean(safeURL(value)), 'Enter a valid URL'));
+const urlValidation = z.url('Enter a valid URL');
 
 const optionalUrlValidation = z
   .string()
-  .refine(value => value === '' || Boolean(safeURL(value)), 'Enter a valid URL');
+  .refine(
+    value => value === '' || urlValidation.safeParse(value).success,
+    'Enter a valid URL'
+  );
 
 function spaceSeparatedUrls(requiredMessage: string, invalidMessage: string) {
   return z
