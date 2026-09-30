@@ -1,5 +1,3 @@
-import {Flex, useResponsivePropValue} from '@sentry/scraps/layout';
-
 import {INTERNAL_SOURCE} from 'sentry/components/events/interfaces/debugMeta/debugImageDetails/utils';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import type {ImageCandidate} from 'sentry/types/debugImage';
@@ -33,7 +31,6 @@ export function Candidate({
 }: Props) {
   const {source} = candidate;
   const isInternalSource = source === INTERNAL_SOURCE;
-  const isWide = useResponsivePropValue({zero: false, lg: true});
 
   return (
     <SimpleTable.Row>
@@ -48,22 +45,15 @@ export function Candidate({
           eventDateReceived={eventDateReceived}
           hasReprocessWarning={hasReprocessWarning}
         />
-        {!isWide && haveCandidatesAtLeastOneAction && (
-          <Flex justify="end" paddingTop="lg" width="100%">
-            <Actions
-              onDelete={onDelete}
-              baseUrl={baseUrl}
-              projSlug={projSlug}
-              organization={organization}
-              candidate={candidate}
-              isInternalSource={isInternalSource}
-            />
-          </Flex>
-        )}
       </SimpleTable.RowCell>
 
-      {isWide && haveCandidatesAtLeastOneAction && (
-        <SimpleTable.RowCell justify="end">
+      {haveCandidatesAtLeastOneAction && (
+        <SimpleTable.RowCell
+          justify="end"
+          column={{zero: '2', lg: '3'}}
+          row={{zero: '2', lg: '1'}}
+          padding={{zero: '0 xl lg xl', lg: 'lg xl'}}
+        >
           <Actions
             onDelete={onDelete}
             baseUrl={baseUrl}
