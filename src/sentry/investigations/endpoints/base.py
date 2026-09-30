@@ -15,6 +15,7 @@ from sentry.constants import ObjectStatus
 from sentry.investigations.models import (
     Investigation,
     InvestigationBlock,
+    InvestigationComment,
 )
 from sentry.investigations.services import (
     InvestigationConflictError,
@@ -152,5 +153,29 @@ class OrganizationInvestigationBlockEndpoint(OrganizationInvestigationEndpoint):
                 id=block_id, investigation=kwargs["investigation"]
             )
         except (InvestigationBlock.DoesNotExist, ValueError):
+            raise ResourceDoesNotExist
+        return args, kwargs
+
+
+class OrganizationInvestigationCommentEndpoint(OrganizationInvestigationEndpoint):
+    """Base for endpoints addressing a single comment."""
+
+    def convert_args(
+        self,
+        request: Request,
+        organization_id_or_slug: str | int,
+        investigation_id: str,
+        comment_id: str,
+        *args: Any,
+        **kwargs: Any,
+    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
+        args, kwargs = super().convert_args(
+            request, organization_id_or_slug, investigation_id, *args, **kwargs
+        )
+        try:
+            kwargs["comment"] = InvestigationComment.objects.get(
+                id=comment_id, investigation=kwargs["investigation"]
+            )
+        except (InvestigationComment.DoesNotExist, ValueError):
             raise ResourceDoesNotExist
         return args, kwargs
