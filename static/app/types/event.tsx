@@ -855,11 +855,22 @@ export type EventIdResponse = {
   projectSlug: string;
 };
 
+/**
+ * Proposed Symbolicator native variable payload. `kind` describes the variable's scope.
+ * TODO(scttcper): Revisit this type once the Symbolicator schema lands and confirm it is still needed.
+ * https://github.com/getsentry/symbolicator/blob/90490595bfc14c929b295b97afd6f9789c3266dc/crates/symbolicator-native/src/interface/variables.rs
+ */
+export interface NativeFrameVariable {
+  formatted: string | null;
+  kind: 'local' | 'parameter';
+  type: string;
+}
+
 interface FrameVariableBase {
   name: string;
   /** Annotations for this value; len is the original string or collection length. */
   meta?: Partial<Meta>;
-  /** Optional type label for typed fixtures; current native wire strings stay unparsed. */
+  /** Native type label, when provided separately by Symbolicator. */
   type?: string;
 }
 
@@ -868,7 +879,7 @@ type FrameVariableCollection = FrameVariableBase & {
 } & ({kind: 'object'} | {kind: 'array'});
 
 interface FrameVariableScalar extends FrameVariableBase {
-  kind: 'number' | 'string' | 'unformatted' | 'boolean' | 'enum' | 'pointer';
+  kind: 'number' | 'string' | 'unformatted' | 'boolean';
   /** Preserve pointer addresses and full numeric precision. */
   value: string;
 }
@@ -883,12 +894,10 @@ interface FrameVariableUnavailable extends FrameVariableBase {
 }
 
 /**
- * Renderer model built from frame.vars; typed native fixtures are synthetic.
- * Native extraction currently sends a name-to-string map containing values and type names.
- * Those strings are preserved verbatim by the JSON adapter.
- *
- * Symbolicator wire format:
- * https://github.com/getsentry/symbolicator/blob/bedb76b4a7e60113ac5ca020d065ef951c69edce/crates/symbolicator-native/src/symbolication/native.rs#L168-L203
+ * Renderer model built from frame.vars. Here `kind` selects the display representation,
+ * unlike NativeFrameVariable.kind, which describes local variables and parameters.
+ * Legacy native strings are preserved verbatim; proposed native payloads supply
+ * a separate type label and an already-formatted value.
  */
 export type FrameVariable =
   | FrameVariableCollection

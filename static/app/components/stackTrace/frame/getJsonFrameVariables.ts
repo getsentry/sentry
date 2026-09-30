@@ -1,4 +1,4 @@
-import type {FrameVariable} from 'sentry/types/event';
+import type {FrameVariable, NativeFrameVariable} from 'sentry/types/event';
 import type {Meta} from 'sentry/types/group';
 import type {PlatformKey} from 'sentry/types/platform';
 
@@ -6,6 +6,10 @@ import {getStructuredDataConfig} from './getStructuredDataConfig';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function isNativeVariable(value: unknown): value is NativeFrameVariable {
+  return isRecord(value) && 'formatted' in value;
 }
 
 /** Convert frame variables into a tree, preserving SDK formatting and annotations at each path. */
@@ -32,6 +36,18 @@ function toVariable(
     name,
     meta: isRecord(valueMeta) ? (valueMeta as Partial<Meta>) : undefined,
   };
+
+  if (platform === 'native' && isNativeVariable(value)) {
+    const formattedMeta = localMeta?.formatted as {'': Partial<Meta>} | undefined;
+    const nativeBase = {
+      ...base,
+      type: value.type,
+      meta: formattedMeta?.[''] ?? base.meta,
+    };
+    return value.formatted === null
+      ? {...nativeBase, kind: 'unavailable'}
+      : {...nativeBase, kind: 'unformatted', value: value.formatted};
+  }
 
   if (value === null || config.isNull?.(value)) {
     return typeof value === 'string'

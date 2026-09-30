@@ -5,6 +5,38 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {FrameVariablesGrid} from 'sentry/components/stackTrace/frame/frameVariablesGrid';
 
 describe('FrameVariablesGrid', () => {
+  it('renders proposed native payloads with type labels and formatted values', async () => {
+    const writeText = jest.fn().mockResolvedValue(undefined);
+    Object.assign(navigator, {clipboard: {writeText}});
+    render(
+      <FrameVariablesGrid
+        platform="native"
+        data={{
+          argc: {kind: 'parameter', type: 'int', formatted: '0x2'},
+          player: {kind: 'local', type: 'Player *', formatted: null},
+          token: {kind: 'local', type: 'char *', formatted: null},
+          legacy: '0x1 (int)',
+        }}
+        meta={{token: {formatted: {'': {rem: [['!config', 'x']]}}}}}
+      />,
+      {organization: OrganizationFixture({features: ['native-variable-extraction']})}
+    );
+
+    expect(screen.getByText('int')).toBeInTheDocument();
+    expect(screen.getByText('Player *')).toBeInTheDocument();
+    expect(screen.getByText('Unavailable')).toBeInTheDocument();
+    expect(screen.getByText('<redacted>')).toBeInTheDocument();
+    expect(screen.getByText('0x1 (int)')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Copy player value'})
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Copy token value'})
+    ).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Copy argc value'}));
+    expect(writeText).toHaveBeenCalledWith('0x2');
+  });
+
   it('uses the legacy renderer without the variable extraction flag', () => {
     render(<FrameVariablesGrid platform="node" data={{"'player'": {x: 1, y: 2}}} />, {
       organization: OrganizationFixture({features: []}),

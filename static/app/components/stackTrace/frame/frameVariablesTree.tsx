@@ -441,7 +441,7 @@ const VariableValue = styled(Text)<{kind: FrameVariable['kind']}>`
   color: ${p =>
     p.kind === 'string'
       ? p.theme.tokens.content.success
-      : p.kind === 'number' || p.kind === 'null' || p.kind === 'pointer'
+      : p.kind === 'number' || p.kind === 'null'
         ? p.theme.tokens.content.accent
         : p.theme.tokens.content.primary};
 `;

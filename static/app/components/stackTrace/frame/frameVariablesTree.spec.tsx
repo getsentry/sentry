@@ -175,7 +175,12 @@ it('displays and copies native scalars exactly without expanding collections', a
           kind: 'number',
           value: '18446744073709551615',
         },
-        {name: 'address', type: 'void *', kind: 'pointer', value: '0xffffffffffffffff'},
+        {
+          name: 'address',
+          type: 'void *',
+          kind: 'unformatted',
+          value: '0xffffffffffffffff',
+        },
         {
           name: 'message',
           type: 'char[32]',

@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {ClippedBox} from 'sentry/components/clippedBox';
 import {parseAssembly} from 'sentry/components/events/interfaces/utils';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {FrameVariablesGrid} from 'sentry/components/stackTrace/frame/frameVariablesGrid';
 import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event, Frame} from 'sentry/types/event';
@@ -175,11 +176,22 @@ export function Context({
         </CodeWrapper>
       ) : null}
 
-      {hasContextVars && (
-        <StyledClippedBox clipHeight={100}>
-          <FrameVariables platform={platform} data={frame.vars} meta={frameMeta?.vars} />
-        </StyledClippedBox>
-      )}
+      {hasContextVars &&
+        (organization.features.includes('native-variable-extraction') ? (
+          <FrameVariablesGrid
+            platform={platform}
+            data={frame.vars}
+            meta={frameMeta?.vars}
+          />
+        ) : (
+          <StyledClippedBox clipHeight={100}>
+            <FrameVariables
+              platform={platform}
+              data={frame.vars}
+              meta={frameMeta?.vars}
+            />
+          </StyledClippedBox>
+        ))}
 
       {hasContextRegisters && (
         <FrameRegisters

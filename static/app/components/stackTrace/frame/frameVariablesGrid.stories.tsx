@@ -6,9 +6,8 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {FrameVariablesGrid} from 'sentry/components/stackTrace/frame/frameVariablesGrid';
-import {FrameVariablesTree} from 'sentry/components/stackTrace/frame/frameVariablesTree';
 import * as Storybook from 'sentry/stories';
-import type {FrameVariable} from 'sentry/types/event';
+import type {NativeFrameVariable} from 'sentry/types/event';
 import type {Meta} from 'sentry/types/group';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -37,108 +36,24 @@ const truncatedStringMeta: Partial<Meta> = {
 };
 const truncatedItemsMeta: Partial<Meta> = {len: 5, rem: [['!limit', 'x']]};
 
-// Synthetic extracted values for previewing the typed native experience.
-const extractedNativeVariables: FrameVariable[] = [
-  {
-    name: 'player',
-    type: 'Player *',
-    kind: 'object',
-    children: [
-      {name: 'id', type: 'int', kind: 'number', value: '1'},
-      {name: 'name', type: 'char[64]', kind: 'string', value: 'Alice'},
-      {name: 'status', type: 'RequestStatus', kind: 'enum', value: 'STATUS_OK'},
-      {
-        name: 'position',
-        type: 'Vec3',
-        kind: 'object',
-        children: [
-          {name: 'x', type: 'float', kind: 'number', value: '1.5'},
-          {name: 'y', type: 'float', kind: 'number', value: '-3.2'},
-          {name: 'z', type: 'float', kind: 'number', value: '0.0'},
-        ],
-      },
-      {name: 'health', type: 'float', kind: 'number', value: '-5.5'},
-      {name: 'access_token', type: 'char *', kind: 'unavailable', meta: filteredMeta},
-      {
-        name: 'authorization',
-        type: 'char[32]',
-        kind: 'string',
-        value: maskedAuthorization,
-        meta: maskedMeta,
-      },
-      {
-        name: 'inventory',
-        type: 'Inventory *',
-        kind: 'object',
-        children: [
-          {name: 'capacity', type: 'int', kind: 'number', value: '16'},
-          {name: 'count', type: 'int', kind: 'number', value: '5'},
-          {
-            name: 'items',
-            type: 'int[5]',
-            kind: 'array',
-            meta: truncatedItemsMeta,
-            children: [
-              {name: '[0]', type: 'int', kind: 'number', value: '42'},
-              {name: '[1]', type: 'int', kind: 'number', value: '7'},
-            ],
-          },
-        ],
-      },
-    ],
-  },
-  {name: 'frame_number', type: 'int', kind: 'number', value: '1'},
-  {
-    name: 'm_attachmentDescriptorPoolAllocator',
-    type: 'vk::DescriptorPoolAllocator *',
-    kind: 'object',
-    children: [
-      {name: 'capacity', type: 'uint32_t', kind: 'number', value: '128'},
-      {name: 'allocated', type: 'uint32_t', kind: 'number', value: '12'},
-    ],
-  },
-  {name: 'address', type: 'void *', kind: 'pointer', value: '0xffffffffffffffff'},
-  {name: 'null_player', type: 'Player *', kind: 'null'},
-  {name: 'status_ptr', type: 'RequestStatus *', kind: 'unavailable'},
-  {name: 'empty_array', type: 'std::vector<int>', kind: 'array', children: []},
-  {name: 'empty_object', type: 'Empty', kind: 'object', children: []},
-  {name: 'sdk_omitted', type: 'char *', kind: 'unavailable', meta: omittedMeta},
-  {
-    name: 'raw_omitted',
-    type: 'char *',
-    kind: 'unavailable',
-    meta: {rem: [['!raw', 'x']]},
-  },
-  {
-    name: 'replaced_token',
-    type: 'char *',
-    kind: 'string',
-    value: '[Filtered]',
-    meta: replacedMeta,
-  },
-  {
-    name: 'omitted_items',
-    type: 'int[5]',
-    kind: 'array',
-    children: [],
-    meta: truncatedItemsMeta,
-  },
-  {name: 'zero', type: 'int', kind: 'number', value: '0'},
-  {
-    name: 'large_counter',
-    type: 'uint64_t',
-    kind: 'number',
-    value: '18446744073709551615',
-  },
-  {name: 'enabled', type: 'bool', kind: 'boolean', value: 'true'},
-  {
-    name: 'truncated_message',
-    type: 'char[128]',
-    kind: 'string',
-    value: truncatedMessage,
-    meta: truncatedStringMeta,
-  },
-];
+// Synthetic payload matching Symbolicator's proposed schema; nested values are not defined yet.
+const extractedNativeVariables = {
+  player: {kind: 'parameter', type: 'Player *', formatted: '0x16dc05ff0'},
+  frame_number: {kind: 'parameter', type: 'int', formatted: '0x1'},
+  address: {kind: 'local', type: 'void *', formatted: '0xffffffffffffffff'},
+  null_player: {kind: 'local', type: 'Player *', formatted: '0x0'},
+  status_ptr: {kind: 'local', type: 'RequestStatus *', formatted: null},
+  access_token: {kind: 'local', type: 'char *', formatted: null},
+  authorization: {kind: 'local', type: 'char[32]', formatted: maskedAuthorization},
+  large_counter: {kind: 'local', type: 'uint64_t', formatted: '0xffffffffffffffff'},
+  truncated_message: {kind: 'local', type: 'char[128]', formatted: truncatedMessage},
+} satisfies Record<string, NativeFrameVariable>;
+
+const extractedNativeMeta = {
+  access_token: {formatted: {'': filteredMeta}},
+  authorization: {formatted: {'': maskedMeta}},
+  truncated_message: {formatted: {'': truncatedStringMeta}},
+};
 
 const jsonVariables = {
   count: 42,
@@ -195,15 +110,14 @@ const nativeMeta = {
 
 export default Storybook.story('Frame variables', story => {
   story('Extracted native variables', () => (
-    <Stack gap="lg">
-      <Text>Preview of extracted native values with types and nested fields.</Text>
-      <Container maxWidth="960px" borderTop="primary">
-        <FrameVariablesTree
-          variables={extractedNativeVariables}
-          defaultExpanded={['player']}
-        />
-      </Container>
-    </Stack>
+    <VariableStory>
+      <Text>Preview of Symbolicator's proposed native variable schema.</Text>
+      <FrameVariablesGrid
+        platform="native"
+        data={extractedNativeVariables}
+        meta={extractedNativeMeta}
+      />
+    </VariableStory>
   ));
 
   story('JSON variables', () => (
