@@ -12,7 +12,7 @@ from sentry.digests.types import IdentifierKey, Notification, Record, RecordWith
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
 from sentry.models.rule import Rule
-from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
+from sentry.notifications.types import ActionTargetType, FallthroughChoiceType, NotificationRule
 from sentry.notifications.utils.rules import get_rule_or_workflow_id
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.tsdb.base import TSDBModel
@@ -78,7 +78,7 @@ def unsplit_key(
 
 def event_to_record(
     event: Event | GroupEvent,
-    rules: Sequence[Rule],
+    rules: Sequence[NotificationRule],
     notification_uuid: str | None = None,
     identifier_key: IdentifierKey = IdentifierKey.RULE,
 ) -> Record:

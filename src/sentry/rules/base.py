@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any, ClassVar, NamedTuple
 from django import forms
 
 from sentry.models.project import Project
-from sentry.notifications.types import RuleFuture
+from sentry.notifications.types import NotificationRule, RuleFuture
 from sentry.services.eventstore.models import GroupEvent
 
 if TYPE_CHECKING:
@@ -61,7 +61,7 @@ class RuleBase(abc.ABC):
         self,
         project: Project,
         data: MutableMapping[str, Any] | None = None,
-        rule: Rule | None = None,
+        rule: Rule | NotificationRule | None = None,
     ) -> None:
         self.project = project
         self.data = data or {}

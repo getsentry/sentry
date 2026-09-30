@@ -138,7 +138,7 @@ def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
     organization = event.group.project.organization
 
     for future in futures:
-        rule_id = future.rule.id
+        action_id = future.rule.id
         data: dict[str, Any] = future.kwargs["data"]
         provider = future.kwargs.get("provider")
         integration_id = future.kwargs.get("integration_id")
@@ -146,8 +146,7 @@ def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
 
         # If we invoked this handler from the notification action, we need to replace the rule_id with the legacy_rule_id, so we link notifications correctly
         # In the Notification Action, we store the rule_id in the action_id field
-        action_id = rule_id
-        rule_id = data.get("legacy_rule_id", rule_id)
+        legacy_rule_id = data.get("legacy_rule_id")
 
         integration = integration_service.get_integration(
             integration_id=integration_id,
@@ -172,7 +171,10 @@ def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
                 event, workflow_id, installation, generate_footer
             )
         else:
-            data["description"] = build_description(event, rule_id, installation, generate_footer)
+            assert isinstance(legacy_rule_id, int)
+            data["description"] = build_description(
+                event, legacy_rule_id, installation, generate_footer
+            )
 
         if data.get("dynamic_form_fields"):
             del data["dynamic_form_fields"]
@@ -182,7 +184,7 @@ def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
                 "%s.rule_trigger.link_already_exists",
                 provider,
                 extra={
-                    "rule_id": rule_id,
+                    "rule_id": legacy_rule_id,
                     "project_id": event.group.project.id,
                     "group_id": event.group.id,
                 },
@@ -195,7 +197,7 @@ def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
         ).capture() as lifecycle:
             lifecycle.add_extra("provider", provider)
             lifecycle.add_extra("integration_id", integration.id)
-            lifecycle.add_extra("rule_id", rule_id)
+            lifecycle.add_extra("rule_id", legacy_rule_id)
 
             if action_id:
                 lifecycle.add_extra("action_id", action_id)

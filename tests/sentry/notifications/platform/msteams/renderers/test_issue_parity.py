@@ -13,6 +13,7 @@ from sentry.notifications.platform.templates.issue import (
     SerializableRuleProxy,
 )
 from sentry.notifications.platform.types import NotificationRenderedTemplate
+from sentry.notifications.types import NotificationRule
 from sentry.testutils.cases import TestCase
 
 
@@ -65,7 +66,15 @@ class IssueCardLegacyParityTest(TestCase):
             group_id=self.issue_group.id,
             event_id=self.event.event_id,
             notification_uuid="",
-            rule=SerializableRuleProxy.from_rule(self.rule),
+            rule=SerializableRuleProxy.from_rule(
+                NotificationRule(
+                    id=self.rule.id,
+                    label=self.rule.label,
+                    data=self.rule.data,
+                    project=self.project,
+                    environment_id=self.rule.environment_id,
+                )
+            ),
         )
         return IssueMSTeamsRenderer.render(
             data=data,

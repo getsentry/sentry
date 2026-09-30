@@ -49,6 +49,7 @@ from sentry.integrations.msteams.utils import ACTION_TYPE
 from sentry.models.group import GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.organization import Organization
+from sentry.notifications.types import NotificationRule
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.notifications import (
     DummyNotification,
@@ -442,6 +443,35 @@ class MSTeamsMessageBuilderTest(TestCase):
         ).build_group_card()
 
         assert 3 == len(issue_card["body"])
+
+    def test_action_payload_uses_only_legacy_rule_ids(self) -> None:
+        legacy_rule = self.rules[0]
+        rules = [
+            NotificationRule(
+                id=legacy_rule.id + 1000,
+                label="Workflow with legacy rule",
+                data={"actions": [{"legacy_rule_id": legacy_rule.id}]},
+                project=self.project1,
+                environment_id=None,
+            ),
+            NotificationRule(
+                id=legacy_rule.id + 2000,
+                label="Workflow only",
+                data={"actions": [{"workflow_id": 123}]},
+                project=self.project1,
+                environment_id=None,
+            ),
+        ]
+        builder = MSTeamsIssueMessageBuilder(
+            group=self.group1,
+            event=self.event1,
+            rules=rules,
+            integration=self.integration,
+        )
+
+        payload = builder.generate_action_payload(ACTION_TYPE.RESOLVE)
+
+        assert payload["payload"]["rules"] == [legacy_rule.id]
 
     def test_issue_with_only_one_rule(self) -> None:
         one_rule = self.rules[:1]

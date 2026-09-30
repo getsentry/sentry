@@ -10,6 +10,7 @@ from sentry.integrations.jira import JiraCreateTicketAction, JiraIntegration
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.activity import Activity
+from sentry.notifications.types import RuleFuture
 from sentry.services.eventstore.models import GroupEvent
 from sentry.shared_integrations.exceptions import (
     ApiInvalidRequestError,
@@ -20,7 +21,6 @@ from sentry.testutils.asserts import assert_halt_metric
 from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
-from sentry.types.rules import RuleFuture
 from sentry.utils import json
 
 pytestmark = [requires_snuba]

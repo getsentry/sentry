@@ -14,6 +14,7 @@ from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIn
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.models.activity import Activity
 from sentry.models.repository import Repository
+from sentry.notifications.types import RuleFuture
 from sentry.rules import rules
 from sentry.services.eventstore.models import GroupEvent
 from sentry.silo.base import SiloMode
@@ -22,7 +23,6 @@ from sentry.testutils.helpers.integrations import get_installation_of_type
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
-from sentry.types.rules import RuleFuture
 
 pytestmark = [requires_snuba]
 

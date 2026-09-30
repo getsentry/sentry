@@ -29,9 +29,8 @@ from sentry.integrations.slack.utils.nudge import should_send_nudge_block
 from sentry.integrations.slack.utils.threads import NotificationActionThreadUtils
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import EventLifecycle
-from sentry.models.rule import Rule
 from sentry.notifications.additional_attachment_manager import get_additional_attachment
-from sentry.notifications.types import RuleFuture
+from sentry.notifications.types import NotificationRule, RuleFuture
 from sentry.notifications.utils.open_period import open_period_start_for_group
 from sentry.rules.actions import IntegrationEventAction
 from sentry.rules.base import CallbackFuture
@@ -77,7 +76,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
     def _build_notification_blocks(
         self,
         event: GroupEvent,
-        rules: Sequence[Rule],
+        rules: Sequence[NotificationRule],
         tags: set,
         integration: RpcIntegration,
         notification_uuid: str | None = None,
