@@ -267,6 +267,37 @@ describe('GlobalCommandPaletteActions - project settings ordering', () => {
     expect(screen.getByRole('option', {name: 'project-b'})).toBeInTheDocument();
     expect(screen.getByRole('option', {name: 'project-c'})).toBeInTheDocument();
   });
+
+  it('places starred projects before other projects', async () => {
+    ProjectsStore.loadInitialData([
+      projectA,
+      projectB,
+      ProjectFixture({...projectC, isBookmarked: true}),
+    ]);
+
+    render(
+      <CommandPaletteProvider>
+        <GlobalCommandPaletteActions />
+        <SlotOutlets />
+        <CommandPalette {...makeRenderProps(jest.fn())} />
+      </CommandPaletteProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {pathname: `/organizations/${organization.slug}/issues/`},
+        },
+      }
+    );
+
+    await drillIntoGeneralSettings();
+
+    await screen.findByRole('option', {name: 'project-c'});
+    const projectOptions = screen
+      .getAllByRole('option')
+      .filter(el => !el.hasAttribute('aria-disabled'))
+      .map(el => el.textContent);
+    expect(projectOptions).toEqual(['project-c', 'project-a', 'project-b']);
+  });
 });
 
 describe('GlobalCommandPaletteActions - search recall', () => {

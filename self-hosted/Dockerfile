@@ -72,7 +72,7 @@ RUN : \
     && python3 -m sentry.build.dump_cli_commands > /sentry-commands.txt
 
 COPY ./self-hosted/sentry.conf.py ./self-hosted/config.yml $SENTRY_CONF/
-COPY ./self-hosted/docker_entrypoint.py ./self-hosted/docker-entrypoint.sh /
+COPY ./self-hosted/docker_entrypoint.py /
 
 RUN : double-check some built files are available \
     && test -f /usr/src/sentry/src/sentry/loader/_registry.json \

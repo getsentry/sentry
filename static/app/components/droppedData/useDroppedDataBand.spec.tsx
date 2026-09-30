@@ -13,7 +13,7 @@ import {
   DROPPED_DATA_SERIES_ID,
   useDroppedDataBand,
 } from 'sentry/components/droppedData/useDroppedDataBand';
-import {severityStyle} from 'sentry/components/droppedData/utils';
+import {severityColor, withAlpha} from 'sentry/components/droppedData/utils';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import type {Annotation} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 
@@ -212,10 +212,39 @@ describe('useDroppedDataBand', () => {
       coord: ([time]: number[]) => [(time ?? 0) / 1000, 100],
     } as unknown as CustomSeriesRenderItemAPI;
 
+    interface Gradient {
+      colorStops: Array<{color: string; offset: number}>;
+      global: boolean;
+      x: number;
+      x2: number;
+    }
+
     interface BandRect {
       shape: {width: number; x: number};
-      style: {fill: string; opacity: number};
+      style: {fill: string | Gradient};
       silent?: boolean;
+    }
+
+    function span({shape}: BandRect) {
+      return [shape.x, shape.x + shape.width];
+    }
+
+    function gradientRect(shapes: BandRect[] | undefined) {
+      const rect = shapes?.find(shape => typeof shape.style.fill !== 'string');
+      if (!rect) {
+        throw new Error('Expected the bucket to draw a gradient');
+      }
+
+      const gradient = rect.style.fill as Gradient;
+      return {
+        rect,
+        gradient,
+        colors: gradient.colorStops.map(stop => stop.color),
+        offsets: gradient.colorStops.map(stop => stop.offset),
+        xs: gradient.colorStops.map(stop =>
+          Math.round(gradient.x + stop.offset * (gradient.x2 - gradient.x))
+        ),
+      };
     }
 
     function renderShapes(dropped: Annotation[], accepted: Annotation[] = []) {
@@ -254,18 +283,18 @@ describe('useDroppedDataBand', () => {
       });
     }
 
-    it('draws the track once, on the first bucket', () => {
+    it('draws the track and the gradient once, on the first bucket', () => {
       const [first, second] = renderShapes([bucket(2), bucket(3)]);
 
       expect(first?.[0]).toMatchObject({shape: {x: 0, width: TRACK_WIDTH}, silent: true});
+      expect(first).toHaveLength(3);
       expect(second).toHaveLength(1);
     });
 
-    it('centres each bucket on its start, clamped to the track', () => {
-      const spans = renderShapes([bucket(0), bucket(5), bucket(10)]).map(shapes => {
-        const {x, width} = shapes.at(-1)!.shape;
-        return [x, x + width];
-      });
+    it('centres each hover target on its bucket start, clamped to the track', () => {
+      const spans = renderShapes([bucket(0), bucket(5), bucket(10)]).map(shapes =>
+        span(shapes.at(-1)!)
+      );
 
       expect(spans).toEqual([
         [0, 30],
@@ -274,15 +303,68 @@ describe('useDroppedDataBand', () => {
       ]);
     });
 
-    it('colors each bucket by its drop ratio', () => {
+    it('limits hovering to the slot while the gradient stays silent', () => {
+      const [shapes] = renderShapes([bucket(3)]);
+      const hover = shapes!.at(-1)!;
+
+      expect(hover.silent).toBeUndefined();
+      expect(hover).toMatchObject({style: {fill: 'transparent'}});
+      expect(span(hover)).toEqual([150, 210]);
+      expect(gradientRect(shapes).rect.silent).toBe(true);
+    });
+
+    it('blends adjacent buckets evenly around their shared edge', () => {
       const theme = ThemeFixture();
-      const [first, second] = renderShapes(
+      const [first] = renderShapes(
         [bucket(3, 9), bucket(4, 12)],
         [bucket(3, 91), bucket(4, 88)]
       );
+      const nine = severityColor(0.09, theme);
+      const twelve = severityColor(0.12, theme);
+      const {colors, xs} = gradientRect(first);
 
-      expect(first?.[1]?.style).toMatchObject(severityStyle(0.09, theme));
-      expect(second?.[0]?.style).toMatchObject(severityStyle(0.12, theme));
+      expect(colors).toEqual([
+        withAlpha(nine, 0),
+        nine,
+        nine,
+        twelve,
+        twelve,
+        withAlpha(twelve, 0),
+      ]);
+      // The shared edge sits at 210, halfway between the 9% and 12% stops.
+      expect(xs).toEqual([142, 158, 202, 218, 262, 278]);
+    });
+
+    it('fades a lone bucket to clear across both of its edges', () => {
+      const [shapes] = renderShapes([bucket(3)]);
+      const color = severityColor(1, ThemeFixture());
+      const {rect, colors, xs} = gradientRect(shapes);
+
+      expect(span(rect)).toEqual([142, 218]);
+      expect(colors).toEqual([withAlpha(color, 0), color, color, withAlpha(color, 0)]);
+      expect(xs).toEqual([142, 158, 202, 218]);
+    });
+
+    it('fades runs one empty slot apart without overlapping', () => {
+      const [first] = renderShapes([bucket(3), bucket(5)]);
+      const color = severityColor(1, ThemeFixture());
+      const clear = withAlpha(color, 0);
+      const {colors, xs} = gradientRect(first);
+
+      expect(colors).toEqual([clear, color, color, clear, clear, color, color, clear]);
+      expect(xs).toEqual([142, 158, 202, 218, 262, 278, 322, 338]);
+    });
+
+    it('cuts the gradient off at the edge of the plot', () => {
+      const [shapes] = renderShapes([bucket(0)]);
+      const {rect, gradient, offsets} = gradientRect(shapes);
+
+      expect(span(rect)).toEqual([0, 38]);
+      expect(gradient).toMatchObject({global: true, x: -38, x2: 38});
+      for (const offset of offsets) {
+        expect(offset).toBeGreaterThanOrEqual(0);
+        expect(offset).toBeLessThanOrEqual(1);
+      }
     });
   });
 });
