@@ -1,6 +1,6 @@
 import type {ButtonProps} from '@sentry/scraps/button';
 
-import {type SVGIconProps} from 'sentry/icons/svgIcon';
+import {SvgIcon, type SVGIconProps} from 'sentry/icons/svgIcon';
 import type {StrictCSSObject, Theme} from 'sentry/utils/theme';
 
 import {
@@ -54,6 +54,12 @@ export function DO_NOT_USE_getButtonStyles(
 
   return {
     '--button-lift': buttonElevation,
+    '--button-inline-padding':
+      variant !== 'transparent'
+        ? '0px'
+        : p.shapeVariant === 'square'
+          ? `calc((${buttonSizes[p.size].height} - ${SvgIcon.ICON_SIZES[DO_NOT_USE_BUTTON_ICON_SIZES[p.size] ?? 'md']}) / 2)`
+          : getButtonSizeTheme(p.size, p.theme)['--button-inline-padding'],
 
     position: 'relative',
     display: 'inline-flex',
@@ -294,21 +300,25 @@ function getButtonSizeTheme(size: ButtonSize, theme: Theme): StrictCSSObject {
   switch (size) {
     case 'md':
       return {
+        '--button-inline-padding': theme.space.xl,
         borderRadius: theme.radius.lg,
         padding: `${theme.space.md} ${theme.space.xl}`,
       };
     case 'sm':
       return {
+        '--button-inline-padding': theme.space.lg,
         borderRadius: theme.radius.md,
         padding: `${theme.space.md} ${theme.space.lg}`,
       };
     case 'xs':
       return {
+        '--button-inline-padding': theme.space.md,
         borderRadius: theme.radius.sm,
         padding: `${theme.space.sm} ${theme.space.md}`,
       };
     case 'zero':
       return {
+        '--button-inline-padding': theme.space.sm,
         borderRadius: theme.radius.xs,
         padding: `${theme.space.xs} ${theme.space.sm}`,
       };

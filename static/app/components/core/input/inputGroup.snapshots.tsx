@@ -1,10 +1,35 @@
+import {Button} from '@sentry/scraps/button';
 import {Chip} from '@sentry/scraps/chip';
 import {InputGroup} from '@sentry/scraps/input';
 import type {InputProps} from '@sentry/scraps/input';
 
-import {IconSearch} from 'sentry/icons';
+import {IconSearch, IconSettings} from 'sentry/icons';
 
 describe('InputGroup', () => {
+  it.snapshot.each(['transparent', 'secondary'] as const)('with-%s-buttons', variant => (
+    <div style={{padding: 8, width: 300}}>
+      <InputGroup>
+        <InputGroup.LeadingItems>
+          <Button
+            variant={variant}
+            size="zero"
+            icon={<IconSearch />}
+            aria-label="Search"
+          />
+        </InputGroup.LeadingItems>
+        <InputGroup.Input placeholder="Search…" />
+        <InputGroup.TrailingItems>
+          <Button
+            variant={variant}
+            size="zero"
+            icon={<IconSettings />}
+            aria-label="Settings"
+          />
+        </InputGroup.TrailingItems>
+      </InputGroup>
+    </div>
+  ));
+
   it.snapshot.each<InputProps['size']>(['md', 'sm', 'xs'])(
     'size-%s',
     size => (

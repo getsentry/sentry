@@ -13,7 +13,7 @@ import styled from '@emotion/styled';
 
 import type {InputProps} from '@sentry/scraps/input';
 
-import type {FormSize, StrictCSSObject, Theme} from 'sentry/utils/theme';
+import type {FormSize, StrictCSSObject} from 'sentry/utils/theme';
 
 // There is a cycle here if we import textarea from scraps.
 // eslint-disable-next-line @sentry/no-relative-import-paths
@@ -48,17 +48,22 @@ const itemsPadding = {
   xs: 2,
 } satisfies Record<NonNullable<InputStyleProps['size']>, number>;
 
+const itemsInset = {
+  md: 12,
+  sm: 8,
+  xs: 4,
+} satisfies Record<NonNullable<InputStyleProps['size']>, number>;
+
 const inputStyles = ({
   leadingWidth,
   trailingWidth,
   size = 'md',
-  theme,
-}: InputStyleProps & {theme: Theme}): StrictCSSObject => ({
+}: InputStyleProps): StrictCSSObject => ({
   ...(leadingWidth && {
-    paddingLeft: `calc(${theme.form[size].paddingLeft}px + ${itemsPadding[size]}px + ${leadingWidth}px)`,
+    paddingLeft: `calc(${itemsInset[size] - 1}px + ${itemsPadding[size]}px + ${leadingWidth}px)`,
   }),
   ...(trailingWidth && {
-    paddingRight: `calc(${theme.form[size].paddingRight}px + ${itemsPadding[size]}px + ${trailingWidth}px)`,
+    paddingRight: `calc(${itemsInset[size] - 1}px + ${itemsPadding[size]}px + ${trailingWidth}px)`,
   }),
 });
 
@@ -74,7 +79,13 @@ const StyledLeadingItemsWrap = styled(InputItemsWrap)<{
   size: NonNullable<InputStyleProps['size']>;
   disablePointerEvents?: boolean;
 }>`
-  left: ${p => p.theme.form[p.size].paddingLeft + 1}px;
+  left: ${p => itemsInset[p.size]}px;
+  > [role='button']:first-child {
+    margin-left: max(
+      ${p => 1 - itemsInset[p.size]}px,
+      calc(-1 * var(--button-inline-padding, 0px))
+    );
+  }
   ${p => p.disablePointerEvents && 'pointer-events: none;'}
 `;
 
@@ -82,7 +93,13 @@ const StyledTrailingItemsWrap = styled(InputItemsWrap)<{
   size: NonNullable<InputStyleProps['size']>;
   disablePointerEvents?: boolean;
 }>`
-  right: ${p => p.theme.form[p.size].paddingRight + 1}px;
+  right: ${p => itemsInset[p.size]}px;
+  > [role='button']:last-child {
+    margin-right: max(
+      ${p => 1 - itemsInset[p.size]}px,
+      calc(-1 * var(--button-inline-padding, 0px))
+    );
+  }
   ${p => p.disablePointerEvents && 'pointer-events: none;'}
 `;
 
