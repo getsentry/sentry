@@ -1,4 +1,4 @@
-import {useContext, useLayoutEffect} from 'react';
+import {useCallback, useContext} from 'react';
 import {useMenuTrigger} from '@react-aria/menu';
 import type {TreeState} from '@react-stately/tree';
 import type {Node} from '@react-types/shared';
@@ -6,7 +6,6 @@ import type {Node} from '@react-types/shared';
 import {Container} from '@sentry/scraps/layout';
 
 import {useOverlay} from 'sentry/utils/useOverlay';
-import {usePrevious} from 'sentry/utils/usePrevious';
 
 import {DropdownMenuContent} from './content';
 import {DropdownMenuItem, type MenuItemProps} from './item';
@@ -56,18 +55,20 @@ export function DropdownSubmenu({
     {...overlayState, focusStrategy: 'first'},
     triggerRef
   );
-  const wasOpen = usePrevious(isOpen);
   const isFocused = state.selectionManager.focusedKey === node.key;
-  useLayoutEffect(() => {
-    if (wasOpen && !isOpen && isFocused && rootOverlayState?.isOpen) {
-      triggerRef.current?.focus();
-    }
-  }, [isOpen, wasOpen, isFocused, rootOverlayState?.isOpen, triggerRef]);
 
   return (
     <Container as="li" display="contents" role="presentation">
       <DropdownMenuItem
-        menuItemRef={setTriggerElement}
+        menuItemRef={useCallback(
+          element => {
+            setTriggerElement(element);
+            if (element && !isOpen && isFocused && rootOverlayState?.isOpen) {
+              element.focus();
+            }
+          },
+          [isOpen, isFocused, rootOverlayState, setTriggerElement]
+        )}
         id={menuTriggerProps.id}
         aria-haspopup={menuTriggerProps['aria-haspopup']}
         aria-expanded={isOpen}
