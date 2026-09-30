@@ -253,7 +253,9 @@ class TestWorkflowEvaluationArtifact(TestCase):
         payload = redact_pii_from_artifact(
             {"trigger_evaluation": {"condition_evaluations": [artifact]}}
         )
-        logged_condition = payload["trigger_evaluation"]["condition_evaluations"][0]
+        trigger_evaluation = payload["trigger_evaluation"]
+        assert isinstance(trigger_evaluation, dict)
+        logged_condition = trigger_evaluation["condition_evaluations"][0]
         assert logged_condition["input"] is None
         assert logged_condition["comparison"] == '{"interval":"1h","value":10}'
         assert "private@example.com" not in str(payload)
@@ -601,7 +603,12 @@ class TestWorkflowEvaluationArtifact(TestCase):
         event_data = WorkflowEventData(
             event=self.event.for_group(self.group),
             group=self.group,
-            group_state={"id": self.group.id, "is_new": False},
+            group_state={
+                "id": self.group.id,
+                "is_new": False,
+                "is_regression": False,
+                "is_new_group_environment": False,
+            },
             has_escalated=False,
             workflow_env=environment,
         )
@@ -624,7 +631,11 @@ class TestWorkflowEvaluationArtifact(TestCase):
         ][0]
         assert stored["comparison"] == "false"
         assert stored["input"] == {
-            "group_state": {"is_new": False},
+            "group_state": {
+                "is_new": False,
+                "is_regression": False,
+                "is_new_group_environment": False,
+            },
             "has_escalated": False,
             "workflow_env": environment.id,
         }
