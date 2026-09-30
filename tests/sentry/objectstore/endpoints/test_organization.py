@@ -358,6 +358,24 @@ class ObjectstoreProxyRequestForwardingTest(TransactionTestCase):
 
         assert mock_request.call_args.kwargs["params"] == query
 
+    def test_cookie_not_forwarded_to_objectstore(self) -> None:
+        request = APIRequestFactory().get(
+            "/v1/objects/test/org=1/key", HTTP_COOKIE="sentrysid=secret"
+        )
+
+        fake_response = MagicMock()
+        fake_response.status_code = 200
+        fake_response.headers = requests.structures.CaseInsensitiveDict()
+
+        with patch(
+            "sentry.objectstore.endpoints.organization.requests.request",
+            return_value=fake_response,
+        ) as mock_request:
+            ObjectstoreEndpoint()._proxy(Request(request), "v1/objects/test/org=1/key")
+
+        forwarded_headers = mock_request.call_args.kwargs["headers"]
+        assert not any(h.lower() == "cookie" for h in forwarded_headers)
+
     def test_range_request_serves_full_object_when_encoding_not_accepted(self) -> None:
         full_object = b"full object"
         head_response = requests.Response()
@@ -451,6 +469,51 @@ class ObjectstoreProxyRequestForwardingTest(TransactionTestCase):
         assert response["Content-Range"] == "bytes 0-12/100"
         assert close_streaming_response(response) == encoded_range
         assert upstream_response.raw.decode_content is False
+
+
+class ObjectstoreProxyResponseHeaderTest(TransactionTestCase):
+    def make_upstream_response(self, headers: dict[str, str]) -> requests.Response:
+        response = requests.Response()
+        response.status_code = 200
+        response.headers = requests.structures.CaseInsensitiveDict(headers)
+        response.raw = MagicMock()
+        response.raw.read.side_effect = [b"<h1>hi</h1>", b""]
+        return response
+
+    def test_forces_attachment_disposition_for_renderable_object(self) -> None:
+        upstream = self.make_upstream_response({"Content-Type": "text/html"})
+
+        response = stream_response(upstream)
+
+        assert response["Content-Disposition"] == "attachment"
+        assert response["X-Content-Type-Options"] == "nosniff"
+
+    def test_preserves_upstream_attachment_filename(self) -> None:
+        upstream = self.make_upstream_response(
+            {"Content-Type": "text/html", "Content-Disposition": 'attachment; filename="page.html"'}
+        )
+
+        response = stream_response(upstream)
+
+        assert response["Content-Disposition"] == 'attachment; filename="page.html"'
+
+    def test_overrides_inline_disposition(self) -> None:
+        upstream = self.make_upstream_response(
+            {"Content-Type": "text/html", "Content-Disposition": "inline"}
+        )
+
+        response = stream_response(upstream)
+
+        assert response["Content-Disposition"] == "attachment"
+
+    def test_does_not_forward_set_cookie(self) -> None:
+        upstream = self.make_upstream_response(
+            {"Content-Type": "text/html", "Set-Cookie": "sessionid=secret"}
+        )
+
+        response = stream_response(upstream)
+
+        assert not response.has_header("Set-Cookie")
 
 
 class ObjectstoreProxyStreamCloseTest(TransactionTestCase):

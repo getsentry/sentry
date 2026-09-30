@@ -82,6 +82,9 @@ class ObjectstoreEndpoint(Endpoint):
         headers.pop("Host", None)
         headers.pop("Content-Length", None)
         headers.pop("Transfer-Encoding", None)
+        # Access is authorized by the signed URL, so the caller's cookies are not
+        # needed upstream.
+        headers.pop("Cookie", None)
 
         query_string = request.META.get("QUERY_STRING") or None
         accepted_encodings = parse_accept_encoding(request.headers.get("Accept-Encoding", ""))
@@ -231,13 +234,28 @@ def stream_response(
         status=external_response.status_code,
     )
 
+    upstream_disposition_is_attachment = False
     for header, value in external_response.headers.items():
-        if header.lower() == "server":
+        lowered = header.lower()
+        if lowered == "server":
             continue
-        if decode_content and header.lower() in ("content-encoding", "content-length"):
+        if lowered == "set-cookie":
+            # Don't relay upstream cookies through the proxy.
+            continue
+        if decode_content and lowered in ("content-encoding", "content-length"):
             continue  # Body was decompressed; length and encoding no longer match
-        if not is_hop_by_hop(header):
-            response[header] = value
+        if is_hop_by_hop(header):
+            continue
+        if lowered == "content-disposition" and value.strip().lower().startswith("attachment"):
+            upstream_disposition_is_attachment = True
+        response[header] = value
+
+    # Objects keep whatever Content-Type they were stored with, so serve them as
+    # downloads by default. Preserve an upstream ``attachment`` disposition so its
+    # filename survives; anything else gets the bare fallback.
+    if not upstream_disposition_is_attachment:
+        response["Content-Disposition"] = "attachment"
+    response["X-Content-Type-Options"] = "nosniff"
 
     return response
 
