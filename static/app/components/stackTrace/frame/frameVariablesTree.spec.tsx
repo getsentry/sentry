@@ -196,7 +196,6 @@ it('displays and copies native scalars exactly without expanding collections', a
   );
 
   for (const [name, value] of [
-    ['unavailable', 'Unavailable'],
     ['null_pointer', 'nullptr'],
     ['zero', '0'],
     ['counter', '18446744073709551615'],
@@ -209,6 +208,10 @@ it('displays and copies native scalars exactly without expanding collections', a
     await userEvent.click(screen.getByRole('button', {name: `Copy ${name} value`}));
     expect(writeText).toHaveBeenLastCalledWith(value);
   }
+  expect(screen.getByText('Unavailable')).toBeInTheDocument();
+  expect(
+    screen.queryByRole('button', {name: 'Copy unavailable value'})
+  ).not.toBeInTheDocument();
   await userEvent.click(screen.getByRole('button', {name: 'Copy items value'}));
   expect(writeText).toHaveBeenLastCalledWith(
     JSON.stringify(['18446744073709551615', '7'], null, 2)
@@ -217,9 +220,7 @@ it('displays and copies native scalars exactly without expanding collections', a
   expect(screen.getByText('[ 2 items ]')).toBeInTheDocument();
 });
 
-it('uses annotated values for display, tooltips, and copying collapsed subtrees', async () => {
-  const writeText = jest.fn().mockResolvedValue(undefined);
-  Object.assign(navigator, {clipboard: {writeText}});
+it('shows annotated values and tooltips without copying affected subtrees', async () => {
   render(
     <FrameVariablesTree
       defaultExpanded={[]}
@@ -271,22 +272,9 @@ it('uses annotated values for display, tooltips, and copying collapsed subtrees'
     />
   );
 
-  await userEvent.click(screen.getByRole('button', {name: 'Copy request value'}));
-  expect(writeText).toHaveBeenLastCalledWith(
-    JSON.stringify(
-      {
-        authorization: 'Bearer ********',
-        empty: null,
-        enabled: false,
-        filtered: '[Filtered]',
-        items: [0, 42],
-        message: 'Captured prefix...',
-        token: '<redacted>',
-      },
-      null,
-      2
-    )
-  );
+  expect(
+    screen.queryByRole('button', {name: 'Copy request value'})
+  ).not.toBeInTheDocument();
   expect(screen.queryByText('authorization')).not.toBeInTheDocument();
   await userEvent.click(
     screen.getByRole('button', {name: 'Expand request', expanded: false})
@@ -296,22 +284,19 @@ it('uses annotated values for display, tooltips, and copying collapsed subtrees'
   expect(screen.getByText('[Filtered]')).toBeInTheDocument();
   expect(screen.queryByText(/original-secret/)).not.toBeInTheDocument();
 
-  for (const {name, value, trigger, tooltip} of [
+  for (const {name, trigger, tooltip} of [
     {
       name: 'authorization',
-      value: 'Bearer ********',
       trigger: '********',
       tooltip: "Masked because of a data scrubbing rule in your project's settings",
     },
     {
       name: 'token',
-      value: '<redacted>',
       trigger: '<redacted>',
       tooltip: 'Removed because of SDK configuration',
     },
     {
       name: 'message',
-      value: 'Captured prefix...',
       trigger: '...',
       tooltip: 'Removed because of size limits',
     },
@@ -319,7 +304,15 @@ it('uses annotated values for display, tooltips, and copying collapsed subtrees'
     await userEvent.hover(screen.getByText(trigger));
     expect(await screen.findByText(tooltip)).toBeInTheDocument();
     await userEvent.unhover(screen.getByText(trigger));
-    await userEvent.click(screen.getByRole('button', {name: `Copy ${name} value`}));
-    expect(writeText).toHaveBeenLastCalledWith(value);
+    expect(
+      screen.queryByRole('button', {name: `Copy ${name} value`})
+    ).not.toBeInTheDocument();
   }
+  expect(
+    screen.queryByRole('button', {name: 'Copy filtered value'})
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole('button', {name: 'Copy items value'})
+  ).not.toBeInTheDocument();
+  expect(screen.getByRole('button', {name: 'Copy enabled value'})).toBeInTheDocument();
 });

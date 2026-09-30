@@ -78,6 +78,25 @@ export function FrameVariablesTree({
   );
 }
 
+function canCopyVariable(variable: FrameVariable): boolean {
+  const {meta} = variable;
+  if (
+    variable.kind === 'unavailable' ||
+    meta?.rem?.length ||
+    meta?.chunks?.length ||
+    meta?.err?.length
+  ) {
+    return false;
+  }
+  if (variable.kind === 'object' || variable.kind === 'array') {
+    return (
+      (meta?.len ?? 0) <= variable.children.length &&
+      variable.children.every(canCopyVariable)
+    );
+  }
+  return true;
+}
+
 function Variable({
   variable,
   platform,
@@ -92,7 +111,8 @@ function Variable({
   defaultExpanded?: boolean;
 }) {
   const copyText = useMemo(
-    () => getFrameVariableCopyText(variable, platform),
+    () =>
+      canCopyVariable(variable) ? getFrameVariableCopyText(variable, platform) : null,
     [variable, platform]
   );
   const isCollection = variable.kind === 'object' || variable.kind === 'array';
@@ -223,7 +243,7 @@ function Variable({
             <ScalarValue variable={variable} platform={platform} />
           )}
         </Stack>
-        {(!isCollection || hasChildren || totalCount === 0) && (
+        {copyText !== null && (
           <VariableCopyButton
             text={copyText}
             size="zero"

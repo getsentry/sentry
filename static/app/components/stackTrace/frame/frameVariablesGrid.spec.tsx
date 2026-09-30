@@ -76,9 +76,7 @@ describe('FrameVariablesGrid', () => {
     expect(writeText).toHaveBeenLastCalledWith('18446744073709551615');
   });
 
-  it('keeps a redacted Node sentinel redacted when displayed and copied', async () => {
-    const writeText = jest.fn().mockResolvedValue(undefined);
-    Object.assign(navigator, {clipboard: {writeText}});
+  it('shows a redacted Node sentinel without a copy button', () => {
     render(
       <FrameVariablesGrid
         platform="node"
@@ -90,7 +88,8 @@ describe('FrameVariablesGrid', () => {
 
     expect(screen.getByText('<redacted>')).toBeInTheDocument();
     expect(screen.queryByText(/^(null|undefined)$/)).not.toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', {name: 'Copy token value'}));
-    expect(writeText).toHaveBeenLastCalledWith('<redacted>');
+    expect(
+      screen.queryByRole('button', {name: 'Copy token value'})
+    ).not.toBeInTheDocument();
   });
 });

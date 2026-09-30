@@ -1,10 +1,9 @@
-import {t} from 'sentry/locale';
 import type {FrameVariable} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/platform';
 
 import {getStructuredDataConfig} from './getStructuredDataConfig';
 
-/** Copy scalar values as text or captured collections as JSON, using annotated display text. */
+/** Copy scalar values as text or complete collections as JSON. */
 export function getFrameVariableCopyText(
   variable: FrameVariable,
   platform: PlatformKey
@@ -30,20 +29,6 @@ function getCopyValue(variable: FrameVariable, platform: PlatformKey): unknown {
     );
   }
 
-  const {meta} = variable;
-  if (meta?.chunks && meta.chunks.length > 1) {
-    return meta.chunks.map(chunk => chunk.text).join('');
-  }
-
-  const hasValue =
-    variable.kind !== 'null' && 'value' in variable && Boolean(variable.value);
-  if (!hasValue && meta?.err?.length) {
-    return `<${t('invalid')}>`;
-  }
-  if (!hasValue && meta?.rem?.length) {
-    return `<${t('redacted')}>`;
-  }
-
   switch (variable.kind) {
     case 'null':
       if (platform === 'node' && variable.value === '<undefined>') {
@@ -51,7 +36,7 @@ function getCopyValue(variable: FrameVariable, platform: PlatformKey): unknown {
       }
       return platform === 'native' ? 'nullptr' : null;
     case 'unavailable':
-      return t('Unavailable');
+      return null;
     case 'boolean':
       return variable.value === 'true' || variable.value === 'True';
     case 'number':

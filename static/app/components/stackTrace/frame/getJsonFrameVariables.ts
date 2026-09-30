@@ -38,16 +38,10 @@ function toVariable(
       ? {...base, kind: 'null', value}
       : {...base, kind: 'null'};
   }
-  if (
-    typeof value === 'boolean' ||
-    (typeof value === 'string' && config.isBoolean?.(value))
-  ) {
+  if (typeof value === 'boolean' || config.isBoolean?.(value)) {
     return {...base, kind: 'boolean', value: String(value)};
   }
-  if (
-    typeof value === 'number' ||
-    (typeof value === 'string' && config.isNumber?.(value))
-  ) {
+  if (typeof value === 'number' || config.isNumber?.(value)) {
     return {...base, kind: 'number', value: String(value)};
   }
   if (Array.isArray(value)) {
@@ -67,13 +61,11 @@ function toVariable(
     };
   }
 
-  switch (typeof value) {
-    case 'string':
-      if (platform === 'native' || (platform === 'python' && !config.isString?.(value))) {
-        return {...base, kind: 'unformatted', value};
-      }
-      return {...base, kind: 'string', value: config.renderString?.(value) ?? value};
-    default:
-      return {...base, kind: 'unavailable'};
+  if (typeof value !== 'string') {
+    return {...base, kind: 'unavailable'};
   }
+  if (platform === 'native' || (platform === 'python' && !config.isString?.(value))) {
+    return {...base, kind: 'unformatted', value};
+  }
+  return {...base, kind: 'string', value: config.renderString?.(value) ?? value};
 }
