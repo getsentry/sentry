@@ -418,6 +418,14 @@ When `organizations:workflow-engine-evaluation-artifacts-eap` is enabled,
 `SNUBA_ITEMS` as `TRACE_ITEM_TYPE_WORKFLOW_ENGINE_EVALUATION` trace items. These are not
 log trace items and do not include log body or severity attributes.
 
+Delivery is best-effort: the producer does not track futures for task completion or apply
+backpressure. Serialization and delivery failures are logged without retrying workflow
+tasks. Artifacts can be dropped when Kafka is unavailable or its producer queue is full.
+
+The sanitized `trigger_evaluation`, `filter_evaluations`, and `delayed` attributes are
+JSON strings because EAP ingestion discards nested protobuf key/value lists. Scalar
+attributes and primitive arrays, such as `triggered_action_ids`, retain their native types.
+
 When tracing a missing action, check the boundaries in order:
 
 1. Was the source mapped to an enabled detector?

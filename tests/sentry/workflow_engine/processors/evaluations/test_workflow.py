@@ -8,13 +8,14 @@ from arroyo.backends.local.storages.memory import MemoryMessageStorage
 from arroyo.types import Partition
 from arroyo.types import Topic as ArroyoTopic
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
-from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, TraceItem
+from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
 from sentry.conf.types.kafka_definition import Topic
 from sentry.models.group import GroupStatus
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import Feature
 from sentry.testutils.helpers.options import override_options
+from sentry.utils import json
 from sentry.utils.kafka_config import get_topic_definition
 from sentry.workflow_engine.models import DataConditionGroup
 from sentry.workflow_engine.processors.evaluations import (
@@ -534,14 +535,51 @@ class TestWorkflowEvaluationArtifact(TestCase):
         assert trace_item.attributes["is_resolved"].bool_value is True
         assert trace_item.attributes["has_escalated"].bool_value is True
 
-        def values_by_key(value: AnyValue) -> dict[str, AnyValue]:
-            return {item.key: item.value for item in value.kvlist_value.values}
-
-        trigger_evaluation = values_by_key(trace_item.attributes["trigger_evaluation"])
-        conditions = trigger_evaluation["condition_evaluations"].array_value.values
-        stored_condition = values_by_key(conditions[0])
+        trigger_evaluation = json.loads(trace_item.attributes["trigger_evaluation"].string_value)
+        stored_condition = trigger_evaluation["condition_evaluations"][0]
+        assert stored_condition["condition_id"] == condition.id
+        assert stored_condition["result"] is True
         assert "comparison" not in stored_condition
         assert "input" not in stored_condition
+        assert json.loads(trace_item.attributes["filter_evaluations"].string_value) == []
+
+    def test_eap_emitter_preserves_filter_and_deferred_evaluations(self) -> None:
+        condition = self.create_data_condition()
+        condition_evaluation = DataConditionEvaluation(
+            condition=condition,
+            result=True,
+            triggered=True,
+            data="synthetic@example.com",
+        )
+        filter_evaluation = DataConditionGroupEvaluation(
+            result=True,
+            triggered=True,
+            data={
+                "condition_evaluations": [condition_evaluation],
+                "logic_type": DataConditionGroup.Type.ALL,
+            },
+        )
+        evaluation = self._build_evaluation(
+            deferred=True,
+            filter_group_evaluations=[filter_evaluation],
+        )
+
+        trace_item = self._emit_evaluation_to_eap(
+            self._build_batch_result({evaluation.workflow_id: evaluation})
+        )
+
+        filters = json.loads(trace_item.attributes["filter_evaluations"].string_value)
+        assert filters[0]["result"] is True
+        stored_condition = filters[0]["condition_evaluations"][0]
+        assert stored_condition["condition_id"] == condition.id
+        assert stored_condition["result"] is True
+        assert "comparison" not in stored_condition
+        assert "input" not in stored_condition
+        assert json.loads(trace_item.attributes["delayed"].string_value) == {
+            "trigger_group_id": 20,
+            "filter_group_ids": [30],
+            "passing_filter_group_ids": [40],
+        }
 
     def test_eap_emitter_continues_after_producer_failure(self) -> None:
         producer = mock.Mock()

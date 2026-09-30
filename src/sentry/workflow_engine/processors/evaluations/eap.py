@@ -10,7 +10,7 @@ from functools import partial
 from typing import TYPE_CHECKING, overload
 
 from arroyo import Topic as ArroyoTopic
-from arroyo.backends.kafka import KafkaPayload, KafkaProducer
+from arroyo.backends.kafka import FutureTrackingProducer, KafkaPayload, KafkaProducer
 from arroyo.types import BrokerValue
 from django.utils import timezone
 from google.protobuf.timestamp_pb2 import Timestamp
@@ -24,7 +24,8 @@ from sentry.models.group import GroupStatus
 from sentry.search.eap.rpc_utils import anyvalue
 from sentry.services.eventstore.models import GroupEvent
 from sentry.types.activity import ActivityType
-from sentry.utils.arroyo_producer import get_arroyo_producer, get_future_tracking_producer
+from sentry.utils import json
+from sentry.utils.arroyo_producer import get_arroyo_producer
 from sentry.utils.eap import hex_to_item_id
 from sentry.utils.kafka_config import get_topic_definition
 from sentry.workflow_engine.processors.evaluations.base import (
@@ -62,9 +63,12 @@ def _get_eap_items_producer() -> KafkaProducer:
     )
 
 
-_eap_producer = get_future_tracking_producer(
-    producer_name=EAP_PRODUCER_NAME,
+# Artifact delivery must not gate task completion or block workflow action dispatch.
+_eap_producer = FutureTrackingProducer(
+    name=EAP_PRODUCER_NAME,
     producer_factory=_get_eap_items_producer,
+    should_track_futures=False,
+    should_backpressure=False,
 )
 
 
@@ -178,7 +182,15 @@ def _build_trace_item(
         received=timestamp,
         trace_id=trace_id,
         retention_days=EAP_RETENTION_DAYS,
-        attributes={key: anyvalue(value) for key, value in attributes.items()},
+        # EAP persists scalars and primitive arrays, not nested protobuf key/value lists.
+        attributes={
+            key: anyvalue(
+                json.dumps(value, separators=(",", ":"))
+                if key in {"trigger_evaluation", "filter_evaluations", "delayed"}
+                else value
+            )
+            for key, value in attributes.items()
+        },
         client_sample_rate=1.0,
         server_sample_rate=1.0,
     )
