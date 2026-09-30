@@ -535,16 +535,24 @@ class GroupSerializerDerivedDataTest(TestCase):
 
     def _assert_corrupt_derived_data_is_omitted(self, **values: Any) -> None:
         malformed_group = self.create_group()
-        self.create_group_derived_data(group=malformed_group, **values)
+        self.create_group_derived_data(
+            group=malformed_group, pipeline_hash=PIPELINE.pipeline_hash, **values
+        )
         valid_group = self.create_group(project=malformed_group.project)
         self.create_group_derived_data(
             group=valid_group,
+            pipeline_hash=PIPELINE.pipeline_hash,
             progress=IssueProgressState.DIAGNOSED.value,
         )
 
-        malformed_result, valid_result = serialize(
-            [malformed_group, valid_group], self.user, GroupSerializer(expand=["derivedData"])
-        )
+        with patch("sentry.issues.derived.serialization.metrics.incr") as incr:
+            malformed_result, valid_result = serialize(
+                [malformed_group, valid_group], self.user, GroupSerializer(expand=["derivedData"])
+            )
+        served = [call for call in incr.call_args_list if call.args[0] == "issues.derived.served"]
+        assert served == [
+            call("issues.derived.served", amount=1, sample_rate=1.0, tags={"status": "fresh"})
+        ]
 
         assert "derivedData" not in malformed_result
         assert valid_result["derivedData"]["progress"] == "diagnosed"

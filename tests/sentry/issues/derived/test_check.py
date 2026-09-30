@@ -89,7 +89,12 @@ class CheckStatusConsistencyTest(TestCase):
             call(
                 "issues.derived.feature_error",
                 sample_rate=1.0,
-                tags={"operation": "status_check", "stage": "decode"},
+                tags={
+                    "operation": "status_check",
+                    "stage": "decode",
+                    "feature": "status",
+                    "aggregator": "none",
+                },
             ),
             call(
                 "issues.status_reconciliation.error", sample_rate=1.0, tags={"source": "read_path"}
