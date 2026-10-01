@@ -1,7 +1,6 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {ClippedBox} from 'sentry/components/clippedBox';
 import {parseAssembly} from 'sentry/components/events/interfaces/utils';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {FrameVariablesGrid} from 'sentry/components/stackTrace/frame/frameVariablesGrid';
@@ -22,7 +21,6 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {Assembly} from './assembly';
 import {ContextLineNumber} from './contextLineNumber';
 import {FrameRegisters} from './frameRegisters';
-import {FrameVariables} from './frameVariables';
 import {usePrismTokensSourceContext} from './usePrismTokensSourceContext';
 import {useSourceContext} from './useSourceContext';
 import {hasPotentialSourceContext} from './utils';
@@ -176,22 +174,14 @@ export function Context({
         </CodeWrapper>
       ) : null}
 
-      {hasContextVars &&
-        (organization.features.includes('native-variable-extraction') ? (
-          <FrameVariablesGrid
-            platform={platform}
-            data={frame.vars}
-            meta={frameMeta?.vars}
-          />
-        ) : (
-          <StyledClippedBox clipHeight={100}>
-            <FrameVariables
-              platform={platform}
-              data={frame.vars}
-              meta={frameMeta?.vars}
-            />
-          </StyledClippedBox>
-        ))}
+      {hasContextVars && (
+        <FrameVariablesGrid
+          clipHeight={100}
+          platform={platform}
+          data={frame.vars}
+          meta={frameMeta?.vars}
+        />
+      )}
 
       {hasContextRegisters && (
         <FrameRegisters
@@ -205,10 +195,6 @@ export function Context({
     </Wrapper>
   );
 }
-
-const StyledClippedBox = styled(ClippedBox)`
-  padding: 0;
-`;
 
 const StyledIconFlag = styled(IconFlag)`
   margin-right: ${p => p.theme.space.md};

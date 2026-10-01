@@ -24,11 +24,17 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 interface FrameVariablesGridProps {
   data: Record<string, unknown> | null;
+  clipHeight?: number;
   meta?: Record<string, unknown>;
   platform?: PlatformKey;
 }
 
-export function FrameVariablesGrid({data, meta, platform}: FrameVariablesGridProps) {
+export function FrameVariablesGrid({
+  clipHeight = 350,
+  data,
+  meta,
+  platform,
+}: FrameVariablesGridProps) {
   const organization = useOrganization({allowNull: true});
   const useVariableTree = organization?.features.includes('native-variable-extraction');
   const config = useMemo(() => getStructuredDataConfig({platform}), [platform]);
@@ -43,7 +49,7 @@ export function FrameVariablesGrid({data, meta, platform}: FrameVariablesGridPro
   }
 
   return (
-    <StyledClippedBox clipHeight={350} data-test-id="core-stacktrace-frame-vars">
+    <StyledClippedBox clipHeight={clipHeight} data-test-id="core-stacktrace-frame-vars">
       {variables ? (
         <FrameVariablesTree variables={variables} platform={platform ?? 'other'} />
       ) : (

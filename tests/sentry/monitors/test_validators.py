@@ -184,7 +184,8 @@ class MonitorValidatorCreateTest(MonitorTestCase):
             )
         ]
 
-    def test_simple_with_alert_rule(self) -> None:
+    @patch("sentry.monitors.validators.metrics.incr")
+    def test_simple_with_alert_rule(self, mock_incr: MagicMock) -> None:
         data = {
             "project": self.project.slug,
             "name": "My Monitor",
@@ -206,6 +207,9 @@ class MonitorValidatorCreateTest(MonitorTestCase):
         )
         assert rule is not None
         assert rule.environment_id == self.environment.id
+        mock_incr.assert_any_call(
+            "monitors.validator.alert_rule", tags={"operation": "create"}, sample_rate=1.0
+        )
 
     def test_checkin_margin_zero(self) -> None:
         # Invalid checkin margin

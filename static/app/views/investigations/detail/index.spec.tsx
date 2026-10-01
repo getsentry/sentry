@@ -124,6 +124,11 @@ describe('Investigation detail', () => {
     jest.spyOn(indicators, 'addErrorMessage').mockImplementation();
     createFeedbackForm.mockClear();
     ConfigStore.set('customerDomain', null);
+    MockApiClient.addMockResponse({
+      url: `${detailUrl}presence/`,
+      method: 'PUT',
+      body: {viewers: [], total: 0, heartbeatIntervalMs: 5000},
+    });
   });
 
   it('loads and renders the complete investigation response', async () => {
@@ -2046,6 +2051,11 @@ describe('Investigation detail', () => {
       url: `${detailUrl}duplicate/`,
       method: 'POST',
       body: InvestigationDetailFixture({id: 'investigation-2'}),
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/investigation-2/presence/',
+      method: 'PUT',
+      body: {viewers: [], total: 0, heartbeatIntervalMs: 5000},
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/investigations/investigation-2/',

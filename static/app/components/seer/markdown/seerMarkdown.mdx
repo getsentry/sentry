@@ -58,57 +58,85 @@ Tag syntax: `{% name %}{"key":"value"}{% /name %}`. The JSON body is validated a
 
 Every embed also renders at a third level, **`markdown`**, used when a reply is copied to the clipboard. A link embed emits that same link as markdown, a text embed keeps its formatting, and a widget — a chart, an issue table, a trace waterfall — keeps only its name, since its contents are live data. Each example below shows the result under **Copied as markdown**.
 
-### timestamp
+### alert
 
-<EmbedStory name="timestamp" />
-
-### docs
-
-<EmbedStory name="docs" />
-
-### dashboard
-
-<DashboardEmbedStory />
-
-### dsn
-
-<EmbedStory name="dsn" />
-
-### user
-
-<EmbedStory name="user" />
-
-### issue
-
-<EmbedStory name="issue" />
-
-### event
-
-<EventEmbedStory />
-
-### replay
-
-<ReplayEmbedStory />
-
-### release
-
-<ReleaseEmbedStory />
-
-### chart
-
-<EmbedStory name="chart" />
+<AlertEmbedStory />
 
 ### autofix
 
 <EmbedStory name="autofix" />
 
-### alert
+### chart
 
-<AlertEmbedStory />
+<EmbedStory name="chart" />
+
+### conversation
+
+<ConversationEmbedStory />
+
+### conversationsQuery
+
+<EmbedStory name="conversationsQuery" />
+
+### dashboard
+
+<DashboardEmbedStory />
+
+### docs
+
+<EmbedStory name="docs" />
+
+### dsn
+
+<EmbedStory name="dsn" />
+
+### errorsQuery
+
+<EmbedStory name="errorsQuery" />
+
+### event
+
+<EventEmbedStory />
+
+### issue
+
+<EmbedStory name="issue" />
+
+### issuesQuery
+
+<EmbedStory name="issuesQuery" />
+
+### log
+
+<LogEmbedStory />
+
+### logsQuery
+
+<EmbedStory name="logsQuery" />
+
+### metricsQuery
+
+<EmbedStory name="metricsQuery" />
 
 ### monitor
 
 <MonitorEmbedStory />
+
+### profile
+
+<ProfileEmbedStory />
+
+### release
+
+<ReleaseEmbedStory />
+
+### replay
+
+<ReplayEmbedStory />
+
+### replaysQuery
+
+<EmbedStory name="replaysQuery" />
 
 ### savedIssueView
 
@@ -118,6 +146,14 @@ Every embed also renders at a third level, **`markdown`**, used when a reply is 
 
 <SavedQueryEmbedStory />
 
+### spansQuery
+
+<EmbedStory name="spansQuery" />
+
+### timestamp
+
+<EmbedStory name="timestamp" />
+
 ### trace
 
 <TraceEmbedStory />
@@ -126,45 +162,9 @@ Every embed also renders at a third level, **`markdown`**, used when a reply is 
 
 <TraceEmbedStory name="traceWaterfall" />
 
-### profile
+### user
 
-<ProfileEmbedStory />
-
-### issuesQuery
-
-<EmbedStory name="issuesQuery" />
-
-### errorsQuery
-
-<EmbedStory name="errorsQuery" />
-
-### spansQuery
-
-<EmbedStory name="spansQuery" />
-
-### logsQuery
-
-<EmbedStory name="logsQuery" />
-
-### log
-
-<LogEmbedStory />
-
-### replaysQuery
-
-<EmbedStory name="replaysQuery" />
-
-### metricsQuery
-
-<EmbedStory name="metricsQuery" />
-
-### conversation
-
-<ConversationEmbedStory />
-
-### conversationsQuery
-
-<EmbedStory name="conversationsQuery" />
+<EmbedStory name="user" />
 
 ## Placement: what decides inline vs block
 
