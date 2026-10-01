@@ -301,6 +301,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
         }
         onComplete?.();
       })
+      .catch(() => {})
       .finally(() => {
         queryClient.invalidateQueries({
           queryKey: groupQueryKey({
