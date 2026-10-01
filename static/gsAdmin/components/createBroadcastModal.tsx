@@ -15,7 +15,6 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
-import {safeURL} from 'sentry/utils/url/safeURL';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 import {
@@ -31,12 +30,9 @@ import {
 const schema = z.object({
   title: z.string().min(1, 'Title is required').max(64),
   message: z.string().min(1, 'Message is required').max(256),
-  link: z
-    .string()
-    .min(1, 'Link is required')
-    .refine(value => !!safeURL(value), 'Invalid URL'),
+  link: z.string().min(1, 'Link is required').pipe(z.url('Invalid URL')),
   organizations: z.string(),
-  mediaUrl: z.string().refine(value => !value || !!safeURL(value), 'Invalid image URL'),
+  mediaUrl: z.union([z.literal(''), z.url('Invalid image URL')]),
   category: z.string(),
   region: z.string(),
   platform: z.array(z.string()),
