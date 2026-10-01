@@ -218,6 +218,9 @@ export function IssueListActions({
         },
         {
           complete: () => {
+            if (itemIds?.length === 0) {
+              return;
+            }
             onDelete();
           },
         }
