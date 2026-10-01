@@ -31,9 +31,9 @@ from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay, sigm
 GCS_RETRIES = 5
 REPLAY_GCS_RETRIES = 125
 
-# Backoff between try_repeated retries: exponential from 0.1s, capped at 2s.
-_gcs_retry_delay = exponential_delay(0.1)
-GCS_RETRY_MAX_DELAY = 2.0
+# Backoff between try_repeated retries: exponential from 1s, capped at 16s.
+_gcs_retry_delay = exponential_delay(1.0)
+GCS_RETRY_MAX_DELAY = 16.0
 
 
 # Which errors are eligible for retry.

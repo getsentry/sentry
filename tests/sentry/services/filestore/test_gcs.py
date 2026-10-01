@@ -3,7 +3,7 @@ from unittest import mock
 import pytest
 from google.api_core.exceptions import ServiceUnavailable
 
-from sentry.services.filestore.gcs import GCS_RETRIES, try_repeated
+from sentry.services.filestore.gcs import GCS_RETRIES, GCS_RETRY_MAX_DELAY, try_repeated
 
 
 def test_try_repeated_succeeds_without_sleeping() -> None:
@@ -38,3 +38,6 @@ def test_try_repeated_backs_off_on_every_retry_before_raising() -> None:
     # Initial attempt + GCS_RETRIES retries, with a backoff before each retry.
     assert func.call_count == GCS_RETRIES + 1
     assert sleep.call_count == GCS_RETRIES
+    # Full jitter keeps every backoff within [0, GCS_RETRY_MAX_DELAY].
+    for call in sleep.call_args_list:
+        assert 0 <= call.args[0] <= GCS_RETRY_MAX_DELAY
