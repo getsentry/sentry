@@ -198,10 +198,14 @@ class MSTeamsMessageBuilderTest(TestCase):
         assert "already installed" in mentioned_card["body"][0]["text"]
         assert "Example Team" in mentioned_card["body"][1]["text"]
         assert "To unlink your Microsoft Teams identity" in mentioned_card["body"][1]["text"]
-        assert mentioned_card["actions"][0]["title"] == "Installation"
-        assert mentioned_card["actions"][0]["url"].endswith("/settings/integrations/msteams/")
-        assert mentioned_card["actions"][1]["title"] == "Alerts"
-        assert mentioned_card["actions"][1]["url"].endswith("/alerts/")
+        installation_action = mentioned_card["actions"][0]
+        assert _is_open_url_action(installation_action)
+        assert installation_action["title"] == "Installation"
+        assert installation_action["url"].endswith("/settings/integrations/msteams/")
+        alerts_action = mentioned_card["actions"][1]
+        assert _is_open_url_action(alerts_action)
+        assert alerts_action["title"] == "Alerts"
+        assert alerts_action["url"].endswith("/alerts/")
 
     def test_missing_installation_message(self) -> None:
         missing_installation_card = build_missing_installation_card()
@@ -213,9 +217,11 @@ class MSTeamsMessageBuilderTest(TestCase):
             missing_installation_card["body"][0]["text"]
             == "Sentry installation is incomplete for this team."
         )
-        assert missing_installation_card["actions"][0]["title"] == "View Guide"
+        guide_action = missing_installation_card["actions"][0]
+        assert _is_open_url_action(guide_action)
+        assert guide_action["title"] == "View Guide"
         assert (
-            missing_installation_card["actions"][0]["url"]
+            guide_action["url"]
             == "https://docs.sentry.io/integrations/notification-incidents/msteams/"
         )
 
