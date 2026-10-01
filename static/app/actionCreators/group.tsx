@@ -162,10 +162,7 @@ export async function bulkUpdate(
 
 type MergeGroupsParams = UpdateParams;
 
-export async function mergeGroups(
-  api: Client,
-  params: MergeGroupsParams
-): Promise<any> {
+export async function mergeGroups(api: Client, params: MergeGroupsParams): Promise<any> {
   const {itemIds} = params;
   const path = getUpdateUrl(params);
 
