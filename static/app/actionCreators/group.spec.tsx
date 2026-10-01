@@ -84,17 +84,13 @@ describe('group', () => {
         method: 'PUT',
       });
 
-      bulkUpdate(
-        new MockApiClient(),
-        {
-          orgId: '1337',
-          projectId: '1337',
-          itemIds: ['1', '2', '3'],
-          data: {status: 'unresolved'},
-          query: 'is:resolved',
-        },
-        {}
-      );
+      bulkUpdate(new MockApiClient(), {
+        orgId: '1337',
+        projectId: '1337',
+        itemIds: ['1', '2', '3'],
+        data: {status: 'unresolved'},
+        query: 'is:resolved',
+      });
 
       expect(request).toHaveBeenCalledTimes(1);
       expect(request).toHaveBeenCalledWith(
@@ -109,17 +105,13 @@ describe('group', () => {
         method: 'PUT',
       });
 
-      bulkUpdate(
-        new MockApiClient(),
-        {
-          orgId: '1337',
-          projectId: '1337',
-          itemIds: undefined,
-          data: {status: 'unresolved'},
-          query: 'is:resolved',
-        },
-        {}
-      );
+      bulkUpdate(new MockApiClient(), {
+        orgId: '1337',
+        projectId: '1337',
+        itemIds: undefined,
+        data: {status: 'unresolved'},
+        query: 'is:resolved',
+      });
 
       expect(request).toHaveBeenCalledTimes(1);
       expect(request).toHaveBeenCalledWith(
@@ -134,16 +126,12 @@ describe('group', () => {
         method: 'PUT',
       });
 
-      bulkUpdate(
-        new MockApiClient(),
-        {
-          orgId: '1337',
-          project: [99],
-          itemIds: ['1', '2', '3'],
-          data: {status: 'unresolved'},
-        },
-        {}
-      );
+      bulkUpdate(new MockApiClient(), {
+        orgId: '1337',
+        project: [99],
+        itemIds: ['1', '2', '3'],
+        data: {status: 'unresolved'},
+      });
 
       expect(request).toHaveBeenCalledTimes(1);
       expect(request).toHaveBeenCalledWith(
@@ -158,16 +146,12 @@ describe('group', () => {
         method: 'PUT',
       });
 
-      bulkUpdate(
-        new MockApiClient(),
-        {
-          orgId: '1337',
-          projectId: '1337',
-          itemIds: ['1'],
-          data: {assignedTo: 'user:123'},
-        },
-        {}
-      );
+      bulkUpdate(new MockApiClient(), {
+        orgId: '1337',
+        projectId: '1337',
+        itemIds: ['1'],
+        data: {assignedTo: 'user:123'},
+      });
 
       expect(GroupStore.onUpdate).toHaveBeenCalledWith(expect.any(String), ['1'], {
         assignedTo: {type: 'user', id: '123', name: ''},
@@ -180,16 +164,12 @@ describe('group', () => {
         method: 'PUT',
       });
 
-      bulkUpdate(
-        new MockApiClient(),
-        {
-          orgId: '1337',
-          projectId: '1337',
-          itemIds: ['1'],
-          data: {assignedTo: ''},
-        },
-        {}
-      );
+      bulkUpdate(new MockApiClient(), {
+        orgId: '1337',
+        projectId: '1337',
+        itemIds: ['1'],
+        data: {assignedTo: ''},
+      });
 
       expect(GroupStore.onUpdate).toHaveBeenCalledWith(expect.any(String), ['1'], {
         assignedTo: null,
@@ -202,16 +182,12 @@ describe('group', () => {
         method: 'PUT',
       });
 
-      bulkUpdate(
-        new MockApiClient(),
-        {
-          orgId: '1337',
-          projectId: '1337',
-          itemIds: ['1'],
-          data: {assignedTo: 'team:456'},
-        },
-        {}
-      );
+      bulkUpdate(new MockApiClient(), {
+        orgId: '1337',
+        projectId: '1337',
+        itemIds: ['1'],
+        data: {assignedTo: 'team:456'},
+      });
 
       expect(GroupStore.onUpdate).toHaveBeenCalledWith(expect.any(String), ['1'], {
         assignedTo: {type: 'team', id: '456', name: ''},
@@ -224,16 +200,12 @@ describe('group', () => {
         method: 'PUT',
       });
 
-      bulkUpdate(
-        new MockApiClient(),
-        {
-          orgId: '1337',
-          projectId: '1337',
-          itemIds: ['1'],
-          data: {assignedTo: 'user:123'},
-        },
-        {}
-      );
+      bulkUpdate(new MockApiClient(), {
+        orgId: '1337',
+        projectId: '1337',
+        itemIds: ['1'],
+        data: {assignedTo: 'user:123'},
+      });
 
       expect(request).toHaveBeenCalledWith(
         '/projects/1337/1337/issues/',
@@ -255,16 +227,12 @@ describe('group', () => {
         method: 'PUT',
       });
 
-      mergeGroups(
-        new MockApiClient(),
-        {
-          orgId: '1337',
-          projectId: '1337',
-          itemIds: ['1', '2', '3'],
-          query: 'is:resolved',
-        },
-        {}
-      );
+      mergeGroups(new MockApiClient(), {
+        orgId: '1337',
+        projectId: '1337',
+        itemIds: ['1', '2', '3'],
+        query: 'is:resolved',
+      });
 
       expect(request).toHaveBeenCalledTimes(1);
       expect(request).toHaveBeenCalledWith(
@@ -279,16 +247,12 @@ describe('group', () => {
         method: 'PUT',
       });
 
-      mergeGroups(
-        new MockApiClient(),
-        {
-          orgId: '1337',
-          projectId: '1337',
-          itemIds: undefined,
-          query: 'is:resolved',
-        },
-        {}
-      );
+      mergeGroups(new MockApiClient(), {
+        orgId: '1337',
+        projectId: '1337',
+        itemIds: undefined,
+        query: 'is:resolved',
+      });
 
       expect(request).toHaveBeenCalledTimes(1);
       expect(request).toHaveBeenCalledWith(
