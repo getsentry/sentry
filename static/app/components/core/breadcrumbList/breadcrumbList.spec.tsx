@@ -169,6 +169,27 @@ describe('BreadcrumbList container-query collapse', () => {
 });
 
 describe('BreadcrumbList rich page-title items', () => {
+  it('renders the leading graphic as a link when given a destination', () => {
+    render(
+      <BreadcrumbList.Title
+        item={{
+          type: 'page-title',
+          label: 'JAVASCRIPT-2X9',
+          leadingGraphic: <span>graphic</span>,
+          leadingGraphicLink: {
+            label: 'View Project Details',
+            to: '/projects/javascript/',
+          },
+        }}
+      />
+    );
+
+    expect(screen.getByRole('link', {name: 'View Project Details'})).toHaveAttribute(
+      'href',
+      '/projects/javascript/'
+    );
+  });
+
   it('renders a pagination chevron disabled when it has no destination', () => {
     render(
       <BreadcrumbList.Title
