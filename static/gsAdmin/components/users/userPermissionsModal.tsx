@@ -1,4 +1,3 @@
-import {useEffect} from 'react';
 import {useMutation} from '@tanstack/react-query';
 
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
@@ -115,16 +114,6 @@ export function UserPermissionsModal({
     defaultValues,
     onSubmit: ({value}) => mutation.mutateAsync(value).catch(() => {}),
   });
-
-  useEffect(() => {
-    if (availablePermissions && permissionList) {
-      form.reset({
-        isSuperuser: user.isSuperuser,
-        isStaff: user.isStaff,
-        permissions: permissionList,
-      });
-    }
-  }, [availablePermissions, permissionList, form, user.isStaff, user.isSuperuser]);
 
   if (permissionListError || availablePermissionsError) {
     return <LoadingError />;
