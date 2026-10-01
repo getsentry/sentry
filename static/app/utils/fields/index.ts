@@ -3441,7 +3441,7 @@ export const getFieldDefinition = (
     });
   }
 
-  if (type === 'span' || type === 'log' || type === 'tracemetric' || type === 'preprod') {
+  if (type === 'span' || type === 'log' || type === 'tracemetric') {
     return Object.hasOwn(ATTRIBUTE_SEARCH_FIELD_DEFINITIONS, key)
       ? (ATTRIBUTE_SEARCH_FIELD_DEFINITIONS[key] ?? null)
       : null;
