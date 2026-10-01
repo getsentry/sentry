@@ -1144,6 +1144,14 @@ register(
     default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Do not add `ArtifactBundleIndex` rows for files stored under a name built from their own
+# debug ID (`~/<debug-id>-<n>.js`), which lookups find by debug ID rather than by URL.
+register(
+    "sourcemaps.artifact-bundles.index-skip-debug-id-names",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Seconds to cache the bundle count per release used by the upload task to decide whether
 # to index and backfill. 0 disables the cache.
 register(
