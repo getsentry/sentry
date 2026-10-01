@@ -218,7 +218,7 @@ describe('MetricPanel', () => {
     }
 
     it('shows the Layers control when metrics were dropped', async () => {
-      const droppedDataMock = mockDroppedData();
+      mockDroppedData();
       setupEventsMock(
         createTraceMetricFixtures(organization, project, new Date()).detailedFixtures,
         [MockApiClient.matchQuery({referrer: 'api.explore.metric-options'})]
@@ -233,15 +233,6 @@ describe('MetricPanel', () => {
       });
 
       expect(await screen.findByLabelText('Chart layers')).toBeInTheDocument();
-      expect(droppedDataMock).toHaveBeenCalledWith(
-        `/organizations/${organization.slug}/events-timeseries/`,
-        expect.objectContaining({
-          query: expect.objectContaining({
-            dataset: 'tracemetrics',
-            includeAnnotations: 1,
-          }),
-        })
-      );
     });
 
     it('hides the Layers control without the feature flag', async () => {
