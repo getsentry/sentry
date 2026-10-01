@@ -75,13 +75,11 @@ class RulesAndWorkflows:
 
 
 def split_rules_by_rule_workflow_id(
-    rules: Sequence[Rule | NotificationRule],
+    rules: Sequence[NotificationRule],
 ) -> RulesAndWorkflows:
     parsed_rules = []
     workflow_rules = []
     for rule in rules:
-        if isinstance(rule, Rule):
-            rule = NotificationRule.from_deprecated_legacy_rule(rule)
         key, _ = get_rule_or_workflow_id(rule)
         match key:
             case "workflow_id":

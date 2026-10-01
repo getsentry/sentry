@@ -24,7 +24,12 @@ from sentry.monitors.grouptype import MonitorIncidentType
 from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
 from sentry.notifications.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.notifications.notifications.rules import AlertRuleNotification
-from sentry.notifications.types import ActionTargetType, FallthroughChoiceType, FineTuningAPIKey
+from sentry.notifications.types import (
+    ActionTargetType,
+    FallthroughChoiceType,
+    FineTuningAPIKey,
+    NotificationRule,
+)
 from sentry.plugins.base import Notification
 from sentry.silo.base import SiloMode
 from sentry.tasks.digests import deliver_digest
@@ -649,9 +654,12 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             name="ja rule",
             action_data=[action_data],
         )
+        notification_rule = NotificationRule.from_deprecated_legacy_rule(rule)
 
         key = f"mail:p:{self.project.id}"
-        backend.add(key, event_to_record(event, [rule]), increment_delay=0, maximum_delay=0)
+        backend.add(
+            key, event_to_record(event, [notification_rule]), increment_delay=0, maximum_delay=0
+        )
 
         with self.tasks():
             deliver_digest(key)
@@ -951,13 +959,16 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         digests.enabled.return_value = True
 
         rule = self.create_project_rule(project=self.project)
+        notification_rule = NotificationRule.from_deprecated_legacy_rule(rule)
         ProjectOwnership.objects.create(project_id=self.project.id)
         event = self.store_event(
             data={"message": "Hello world", "level": "error"}, project_id=self.project.id
         )
 
         key = f"mail:p:{self.project.id}:IssueOwners::AllMembers"
-        backend.add(key, event_to_record(event, [rule]), increment_delay=0, maximum_delay=0)
+        backend.add(
+            key, event_to_record(event, [notification_rule]), increment_delay=0, maximum_delay=0
+        )
 
         with self.tasks():
             deliver_digest(key)

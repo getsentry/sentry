@@ -39,7 +39,7 @@ class BindRecordsTestCase(TestCase):
 
     @cached_property
     def record(self) -> Record:
-        return event_to_record(self.event, (self.rule,), self.notification_uuid)
+        return event_to_record(self.event, (self.notification_rule,), self.notification_uuid)
 
     @cached_property
     def notification_rule(self) -> NotificationRule:

@@ -14,6 +14,7 @@ from sentry.digests.backends.redis import RedisBackend
 from sentry.digests.notifications import event_to_record
 from sentry.mail.analytics import EmailNotificationSent
 from sentry.models.projectownership import ProjectOwnership
+from sentry.notifications.types import NotificationRule
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.tasks.digests import deliver_digest
 from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotificationTest, TestCase
@@ -61,7 +62,10 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
 
         assert event is not None
         backend.add(
-            self.key, event_to_record(event, [self.rule]), increment_delay=0, maximum_delay=0
+            self.key,
+            event_to_record(event, [self.notification_rule]),
+            increment_delay=0,
+            maximum_delay=0,
         )
 
     def run_test(
@@ -91,6 +95,7 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
     def setUp(self) -> None:
         super().setUp()
         self.rule = self.create_project_rule(project=self.project)
+        self.notification_rule = NotificationRule.from_deprecated_legacy_rule(self.rule)
         self.key = f"mail:p:{self.project.id}:IssueOwners::AllMembers"
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
         for i in range(USER_COUNT - 1):
@@ -269,6 +274,7 @@ class DigestSlackNotification(SlackActivityNotificationTest):
         timestamp = timestamp_raw.isoformat()
         key = f"slack:p:{self.project.id}:IssueOwners::AllMembers"
         rule = self.create_project_rule(project=self.project)
+        notification_rule = NotificationRule.from_deprecated_legacy_rule(rule)
         event1 = self.store_event(
             data={
                 "timestamp": timestamp,
@@ -291,13 +297,13 @@ class DigestSlackNotification(SlackActivityNotificationTest):
         notification_uuid = str(uuid.uuid4())
         backend.add(
             key,
-            event_to_record(event1, [rule], notification_uuid),
+            event_to_record(event1, [notification_rule], notification_uuid),
             increment_delay=0,
             maximum_delay=0,
         )
         backend.add(
             key,
-            event_to_record(event2, [rule], notification_uuid),
+            event_to_record(event2, [notification_rule], notification_uuid),
             increment_delay=0,
             maximum_delay=0,
         )
@@ -350,6 +356,7 @@ class DigestSlackNotification(SlackActivityNotificationTest):
         timestamp = before_now(days=1).isoformat()
         key = f"slack:p:{self.project.id}:IssueOwners::AllMembers"
         rule = self.create_project_rule(project=self.project)
+        notification_rule = NotificationRule.from_deprecated_legacy_rule(rule)
         notification_uuid = str(uuid.uuid4())
 
         # Create 17 events to exceed 48 blocks (each event generates ~3 blocks)
@@ -365,7 +372,7 @@ class DigestSlackNotification(SlackActivityNotificationTest):
             )
             backend.add(
                 key,
-                event_to_record(event, [rule], notification_uuid),
+                event_to_record(event, [notification_rule], notification_uuid),
                 increment_delay=0,
                 maximum_delay=0,
             )
