@@ -469,10 +469,10 @@ function HighLightsOpsBreakdown({event}: {event: EventTransaction}) {
   const dispatch = useTraceStateDispatch();
 
   return (
-    <Stack align="start" gap="2xs" marginTop="lg">
-      <Container marginBottom="2xs">
+    <Stack align="start" gap="xs" marginTop="lg">
+      <Text as="div" size="md">
         {t('Most frequent span ops for this transaction are')}
-      </Container>
+      </Text>
       <Flex wrap="wrap" gap="md">
         {breakdown.slice(0, 3).map(currOp => {
           const {name, percentage} = currOp;
@@ -537,8 +537,10 @@ function HighLightEAPOpsBreakdown({node}: {node: EapSpanNode}) {
   }
 
   return (
-    <Stack align="start" gap="2xs" marginTop="lg">
-      <Container marginBottom="2xs">{t('Most frequent child span ops are:')}</Container>
+    <Stack align="start" gap="xs" marginTop="lg">
+      <Text as="div" size="md">
+        {t('Most frequent child span ops are:')}
+      </Text>
       <Flex wrap="wrap" gap="md">
         {displayOps.map(currOp => {
           const operationName = currOp.op;
