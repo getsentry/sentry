@@ -93,6 +93,7 @@ class AIConversationExamples:
                     "inputTokens": 320,
                     "outputTokens": 165,
                     "totalCost": 0.0042,
+                    "duration": 2500.0,
                     "generationDuration": 1250.5,
                     "startTimestamp": 1743465600000,
                     "endTimestamp": 1743465602500,

@@ -120,6 +120,37 @@ def division(args: ResolvedArguments, settings: ResolverSettings) -> Column.Bina
     )
 
 
+def time_range_if(args: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
+    timestamp = cast(AttributeKey, args[0])
+    required_attribute = cast(AttributeKey, args[1])
+    extrapolation_mode = settings["extrapolation_mode"]
+    exists_filter = TraceItemFilter(exists_filter=ExistsFilter(key=required_attribute))
+    elapsed_seconds = Column.BinaryFormula(
+        left=Column(
+            conditional_aggregation=AttributeConditionalAggregation(
+                aggregate=Function.FUNCTION_MAX,
+                key=timestamp,
+                filter=exists_filter,
+                extrapolation_mode=extrapolation_mode,
+            )
+        ),
+        op=Column.BinaryFormula.OP_SUBTRACT,
+        right=Column(
+            conditional_aggregation=AttributeConditionalAggregation(
+                aggregate=Function.FUNCTION_MIN,
+                key=timestamp,
+                filter=exists_filter,
+                extrapolation_mode=extrapolation_mode,
+            )
+        ),
+    )
+    return Column.BinaryFormula(
+        left=Column(formula=elapsed_seconds),
+        op=Column.BinaryFormula.OP_MULTIPLY,
+        right=Column(literal=LiteralValue(val_double=1000)),
+    )
+
+
 def avg_compare(args: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
     extrapolation_mode = settings["extrapolation_mode"]
     attribute = cast(AttributeKey, args[0])
@@ -1210,6 +1241,20 @@ SPAN_FORMULA_DEFINITIONS = {
         ],
         formula_resolver=division,
         is_aggregate=True,
+    ),
+    "time_range_if": FormulaDefinition(
+        default_search_type="millisecond",
+        infer_search_type_from_arguments=False,
+        arguments=[
+            AttributeArgumentDefinition(
+                attribute_types={"string"},
+                validator=literal_validator(["timestamp"]),
+            ),
+            AttributeArgumentDefinition(attribute_types={"string"}),
+        ],
+        formula_resolver=time_range_if,
+        is_aggregate=True,
+        private=True,
     ),
     "time_spent_percentage": FormulaDefinition(
         default_search_type="percentage",

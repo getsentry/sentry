@@ -7,7 +7,10 @@ from uuid import uuid4
 import pytest
 from django.urls import reverse
 
-from sentry.ai_monitoring.constants import AI_CONVERSATIONS_FIELDS
+from sentry.ai_monitoring.constants import (
+    AI_CONVERSATION_DURATION_EXPRESSION,
+    AI_CONVERSATIONS_FIELDS,
+)
 from sentry.ai_monitoring.conversation_query import compile_conversation_query
 from sentry.ai_monitoring.endpoints.organization_ai_conversations import (
     OrganizationAIConversationsEndpoint,
@@ -19,7 +22,7 @@ from sentry.ai_monitoring.utils import (
 from sentry.ai_monitoring.utils import (
     get_last_output as _get_last_output,
 )
-from sentry.search.eap.types import SearchResolverConfig
+from sentry.search.eap.types import FieldsACL, SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.spans_rpc import Spans
 from sentry.testutils.helpers import parse_link_header
@@ -201,6 +204,7 @@ def test_hydration_uses_one_aggregate_query(run_table_query: MagicMock) -> None:
     assert query["config"].disable_aggregate_extrapolation is True
     assert "min(timestamp) as start_timestamp" in query["selected_columns"]
     assert "max(timestamp) as end_timestamp" in query["selected_columns"]
+    assert f"{AI_CONVERSATION_DURATION_EXPRESSION} as duration" in query["selected_columns"]
     assert query["orderby"] is None
     assert query["limit"] == 1
 
@@ -279,10 +283,23 @@ def test_alias_filter_preserves_eap_null_semantics(operator: str) -> None:
     ],
 )
 def test_alias_filter(alias: str) -> None:
-    resolver = Spans.get_resolver(SnubaParams(), SearchResolverConfig())
+    resolver = Spans.get_resolver(
+        SnubaParams(), SearchResolverConfig(fields_acl=FieldsACL(functions={"time_range_if"}))
+    )
     compiled = compile_conversation_query(f"{alias}:>0", resolver)
     _, having, _ = resolver.resolve_query(compiled)
     assert having is not None
+
+
+def test_duration_alias_uses_elapsed_milliseconds() -> None:
+    resolver = Spans.get_resolver(
+        SnubaParams(), SearchResolverConfig(fields_acl=FieldsACL(functions={"time_range_if"}))
+    )
+    assert compile_conversation_query("conversation.duration:>5s", resolver) == (
+        "has:gen_ai.conversation.id has:gen_ai.operation.type "
+        "AND (time_range_if(timestamp, gen_ai.operation.type):>5000.0)"
+    )
+    assert resolver.get_field_type("time_range_if(timestamp,span.description)") == "millisecond"
 
 
 def test_messages_alias_matches_llm_calls() -> None:
@@ -430,6 +447,22 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         "sentry.ai_monitoring.endpoints.organization_ai_conversations.Spans.run_table_query",
         return_value={"data": []},
     )
+    def test_sorting_duration_candidate_query(self, run_table_query: MagicMock) -> None:
+        response = self.do_request({"project": [self.project.id], "sort": "-conversation.duration"})
+
+        assert response.status_code == 200, response.data
+        query = run_table_query.call_args.kwargs
+        assert query["selected_columns"] == [
+            "gen_ai.conversation.id",
+            "max(timestamp)",
+            f"{AI_CONVERSATION_DURATION_EXPRESSION} as duration",
+        ]
+        assert query["orderby"] == ["-duration", "gen_ai.conversation.id"]
+
+    @patch(
+        "sentry.ai_monitoring.endpoints.organization_ai_conversations.Spans.run_table_query",
+        return_value={"data": []},
+    )
     def test_sorting_conversation_id_candidate_query(self, run_table_query: MagicMock) -> None:
         response = self.do_request(
             {"project": [self.project.id], "sort": "-conversation.conversationId"}
@@ -474,6 +507,44 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
 
             assert response.status_code == 200, (sort, response.data)
             assert [row["conversationId"] for row in response.data] == ["conversation-a"], sort
+
+    def test_sorting_duration_uses_elapsed_time(self) -> None:
+        now = before_now(days=10).replace(microsecond=0)
+        for conversation_id, elapsed_seconds in [
+            ("conversation-a", 10),
+            ("conversation-b", 5),
+        ]:
+            self.store_ai_span(
+                conversation_id=conversation_id,
+                timestamp=now,
+                operation_type="ai_client",
+            )
+            self.store_ai_span(
+                conversation_id=conversation_id,
+                timestamp=now + timedelta(seconds=elapsed_seconds),
+                operation_type="ai_client",
+            )
+        self.store_ai_span(
+            conversation_id="conversation-b",
+            timestamp=now + timedelta(seconds=2),
+            operation_type="ai_client",
+        )
+
+        response = self.do_request(
+            {
+                "project": [self.project.id],
+                "start": (now - timedelta(hours=1)).isoformat(),
+                "end": (now + timedelta(hours=1)).isoformat(),
+                "sort": "-conversation.duration",
+            }
+        )
+
+        assert response.status_code == 200, response.data
+        assert [row["conversationId"] for row in response.data] == [
+            "conversation-a",
+            "conversation-b",
+        ]
+        assert [row["duration"] for row in response.data] == [10000, 5000]
 
     def test_sorting_cost_pagination(self) -> None:
         now = before_now(days=10).replace(microsecond=0)
@@ -604,7 +675,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         )
         self.store_ai_span(
             conversation_id="a",
-            timestamp=now,
+            timestamp=now + timedelta(seconds=6),
             operation_type="ai_client",
             cost=6,
             tokens=20,
@@ -790,6 +861,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
             f"/organizations/{self.organization.slug}/explore/agents/conversations/"
             f"{conversation_id}/?project={self.project.id}"
         )
+        assert conversation["duration"] == 4000
         assert conversation["generationDuration"] > 0
         assert conversation["traceCount"] == 1
         assert conversation["startTimestamp"] > 0
