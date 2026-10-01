@@ -26,6 +26,7 @@ const RetryableAutofixSectionContext =
 export function RetryableAutofixSection({
   autofix,
   children,
+  readOnly = false,
   section,
   step,
 }: {
@@ -33,6 +34,7 @@ export function RetryableAutofixSection({
   children: React.ReactNode;
   section: AutofixSection;
   step: AutofixExplorerStep;
+  readOnly?: boolean;
 }) {
   const {canReset, shouldShowReset, setShouldShowReset, handleReset} =
     useResetAutofixStep({
@@ -44,10 +46,10 @@ export function RetryableAutofixSection({
   return (
     <RetryableAutofixSectionContext
       value={{
-        canReset,
+        canReset: canReset && !readOnly,
         handleReset,
         setShouldShowReset,
-        shouldShowReset,
+        shouldShowReset: shouldShowReset && !readOnly,
       }}
     >
       {children}

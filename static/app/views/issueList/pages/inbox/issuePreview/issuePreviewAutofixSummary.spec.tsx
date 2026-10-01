@@ -448,6 +448,71 @@ describe('IssuePreviewAutofixSummary', () => {
     });
   });
 
+  it('keeps every section readable and copyable in read-only mode', () => {
+    const runState = ExplorerAutofixStateFixture({
+      blocks: [
+        ExplorerAutofixBlockFixture({artifacts: [rootCauseArtifact]}),
+        ExplorerAutofixBlockFixture({
+          id: 'solution',
+          artifacts: [solutionArtifact],
+          message: {
+            content: 'Step complete',
+            metadata: {step: 'solution'},
+            role: 'assistant',
+          },
+        }),
+        ExplorerAutofixBlockFixture({
+          id: 'code_changes',
+          artifacts: undefined,
+          merged_file_patches: [makePatch('org/frontend', 'src/user.ts')],
+          message: {
+            content: 'Step complete',
+            metadata: {step: 'code_changes'},
+            role: 'assistant',
+          },
+        }),
+      ],
+    });
+
+    render(
+      <IssuePreviewAutofixSummary
+        autofix={ExplorerAutofixFixture({runState})}
+        groupId="preview-group"
+        readOnly
+      />
+    );
+
+    const rootCause = screen.getByRole('region', {name: 'Root Cause'});
+    const plan = screen.getByRole('region', {name: 'Implementation Plan'});
+    const proposal = screen.getByRole('region', {name: 'Code Changes'});
+    expect(
+      within(rootCause).getByText('An unexpected null value reached the user handler.')
+    ).toBeVisible();
+    expect(
+      within(plan).getByText('Guard the user lookup before reading its properties.')
+    ).toBeVisible();
+    expect(within(proposal).getByText('1 file changed in 1 repo')).toBeVisible();
+    expect(within(rootCause).getByRole('button', {name: 'Re-run step'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    expect(within(plan).getByRole('button', {name: 'Re-run step'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    expect(within(proposal).getByRole('button', {name: 'Re-run step'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    expect(
+      within(rootCause).getByRole('button', {name: 'Copy as Markdown'})
+    ).toBeEnabled();
+    expect(within(plan).getByRole('button', {name: 'Copy as Markdown'})).toBeEnabled();
+    expect(
+      within(proposal).getByRole('button', {name: 'Copy as Markdown'})
+    ).toBeEnabled();
+  });
+
   it('copies a completed section as markdown', async () => {
     render(
       <IssuePreviewAutofixSummary
