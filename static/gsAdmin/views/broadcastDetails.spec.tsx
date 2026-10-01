@@ -1,5 +1,10 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {ConfigFixture} from 'sentry-fixture/config';
+import {UserFixture} from 'sentry-fixture/user';
+
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
+
+import {ConfigStore} from 'sentry/stores/configStore';
 
 import {BroadcastDetails} from 'admin/views/broadcastDetails';
 
@@ -67,5 +72,53 @@ describe('Broadcast Details', () => {
     expect(
       screen.getByText(textWithMarkupMatcher('Early Adopter:Yes'))
     ).toBeInTheDocument();
+  });
+
+  it('updates a broadcast through the Scraps form', async () => {
+    ConfigStore.loadInitialData(
+      ConfigFixture({
+        user: UserFixture({permissions: new Set(['broadcasts.admin'])}),
+      })
+    );
+    MockApiClient.addMockResponse({
+      url: '/broadcasts/1359/',
+      body: {
+        id: '1359',
+        title: 'Original title',
+        message: 'Original message',
+        link: 'https://example.com',
+        isActive: true,
+        plans: [],
+        roles: [],
+        platform: [],
+        product: [],
+        dateExpires: null,
+      },
+    });
+    const update = MockApiClient.addMockResponse({
+      url: '/broadcasts/1359/',
+      method: 'PUT',
+      body: {id: '1359'},
+    });
+    render(<BroadcastDetails />, {
+      initialRouterConfig: {
+        location: {pathname: '/_admin/broadcasts/1359/'},
+        route: '/_admin/broadcasts/:broadcastId/',
+      },
+    });
+
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Broadcasts Actions'})
+    );
+    await userEvent.click(screen.getByText('Edit Broadcast'));
+    await userEvent.clear(screen.getByRole('textbox', {name: 'Title'}));
+    await userEvent.type(screen.getByRole('textbox', {name: 'Title'}), 'Updated title');
+    await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
+
+    await waitFor(() => expect(update).toHaveBeenCalled());
+    expect(update).toHaveBeenCalledWith(
+      '/broadcasts/1359/',
+      expect.objectContaining({data: expect.objectContaining({title: 'Updated title'})})
+    );
   });
 });
