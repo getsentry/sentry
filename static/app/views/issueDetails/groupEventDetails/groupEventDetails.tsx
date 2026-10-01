@@ -9,6 +9,7 @@ import type {GroupActivityReprocess, GroupReprocessing} from 'sentry/types/group
 import {IssueType} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
+import {isRetryableRequestError} from 'sentry/utils/queryClient';
 import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
 import {isNotFoundError} from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -118,6 +119,11 @@ function GroupEventDetails() {
     return <LoadingError onRetry={refetchGroup} />;
   }
 
+  const showEventError =
+    isEventError &&
+    !isNotFoundError(eventError) &&
+    (!event || !isRetryableRequestError(eventError));
+
   const isSourceMapIssue = group.issueType === IssueType.SOURCEMAP_CONFIGURATION;
 
   const content = isSourceMapIssue ? (
@@ -131,7 +137,7 @@ function GroupEventDetails() {
     />
   ) : isLoadingEvent ? (
     <GroupEventDetailsLoading />
-  ) : isEventError && !isNotFoundError(eventError) ? (
+  ) : showEventError ? (
     <LoadingError
       message={getRequestErrorUserMessage(eventError)}
       onRetry={refetchEvent}
@@ -147,7 +153,8 @@ function GroupEventDetails() {
       <VisuallyCompleteWithData
         id="IssueDetails-EventBody"
         hasData={
-          isSourceMapIssue || (!isLoadingEvent && !isEventError && defined(eventWithMeta))
+          isSourceMapIssue ||
+          (!isLoadingEvent && !showEventError && defined(eventWithMeta))
         }
         isLoading={!isSourceMapIssue && isLoadingEvent}
       >

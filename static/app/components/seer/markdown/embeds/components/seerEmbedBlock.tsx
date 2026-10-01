@@ -45,7 +45,7 @@ interface SeerEmbedBlockOwnProps {
    * describing the resource.
    */
   actions?: ReactNode;
-  /** Sits between the title and the link, for tags describing the contents. */
+  /** Sits between the title and the link, e.g. a copy button or view toggle. */
   badge?: ReactNode;
   /**
    * Whether the panel starts open. An embed whose preview is tall or slow to
@@ -59,6 +59,11 @@ interface SeerEmbedBlockOwnProps {
    * dividers, like an issue row, passes `"0"` so it sits flush in the card.
    */
   padding?: StackProps['padding'];
+  /**
+   * A compact status marker right after the title, e.g. a `StatusIndicator`
+   * for whether the resource is enabled.
+   */
+  status?: ReactNode;
 }
 
 type SeerEmbedBlockProps = SeerEmbedBlockOwnProps & SeerEmbedBlockLinkProps;
@@ -92,6 +97,7 @@ export function SeerEmbedBlock({
   icon,
   linkLabel,
   padding = 'lg',
+  status,
   testId,
   title,
 }: SeerEmbedBlockProps) {
@@ -134,6 +140,7 @@ export function SeerEmbedBlock({
             <Heading as="h3" ellipsis size="md">
               {title}
             </Heading>
+            {status}
             <IconChevron direction={state.isExpanded ? 'up' : 'down'} size="xs" />
           </Flex>
         </ToggleButton>
