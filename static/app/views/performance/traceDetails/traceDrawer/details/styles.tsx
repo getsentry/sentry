@@ -373,8 +373,8 @@ function Highlights({
   );
 
   return (
-    <Fragment>
-      <Flex align="stretch" gap="md" width="100%" margin="md 0">
+    <Stack gap="xl" padding="md 0">
+      <Flex align="stretch" gap="md" width="100%">
         <Stack justify="center" align="center" gap="xs">
           <Tooltip title={node.projectSlug}>
             <ProjectBadge
@@ -387,75 +387,72 @@ function Highlights({
             <Separator orientation="vertical" />
           </Flex>
         </Stack>
-        <Stack justify="left" flex="1" height="100%" overflow="hidden">
-          <Text as="div" size="md" bold>
-            {node.op}
-          </Text>
-          <Flex align="center" gap="md" marginBottom="md">
-            <Text as="div" size="xl">
-              {getDuration(durationInSeconds, 2, true)}
+        <Stack justify="left" flex="1" height="100%" overflow="hidden" gap="md">
+          <Stack>
+            <Text as="div" size="md" bold>
+              {node.op}
             </Text>
-            {comparison && comparison.deltaPct >= MIN_PCT_DURATION_DIFFERENCE ? (
-              <HiglightsDurationComparison status={comparison.status}>
-                {comparison.deltaText}
-              </HiglightsDurationComparison>
+            <Flex align="center" gap="md">
+              <Text as="div" size="xl">
+                {getDuration(durationInSeconds, 2, true)}
+              </Text>
+              {comparison && comparison.deltaPct >= MIN_PCT_DURATION_DIFFERENCE ? (
+                <HiglightsDurationComparison status={comparison.status}>
+                  {comparison.deltaText}
+                </HiglightsDurationComparison>
+              ) : null}
+            </Flex>
+          </Stack>
+          <Stack gap="lg">
+            {highlightedAttributes && highlightedAttributes.length > 0 ? (
+              <Grid columns="max-content minmax(0, 1fr)" gap="xs lg">
+                {highlightedAttributes.map(({name, value}) => (
+                  <Fragment key={name}>
+                    <Text as="div" variant="secondary">
+                      {name}
+                    </Text>
+                    <Text as="div" size="md">
+                      {value}
+                    </Text>
+                  </Fragment>
+                ))}
+              </Grid>
             ) : null}
-          </Flex>
-          {highlightedAttributes && highlightedAttributes.length > 0 ? (
-            <Grid
-              columns="max-content minmax(0, 1fr)"
-              gap="xs lg"
-              marginBottom={
-                !hidePanelAndBreakdown || (isAiNode && !hideNodeActions)
-                  ? 'lg'
-                  : undefined
-              }
-            >
-              {highlightedAttributes.map(({name, value}) => (
-                <Fragment key={name}>
-                  <Text as="div" variant="secondary">
-                    {name}
-                  </Text>
-                  <Text as="div" size="md">
-                    {value}
-                  </Text>
-                </Fragment>
-              ))}
-            </Grid>
-          ) : null}
-          {isAiNode && !hideNodeActions && (
-            <OpenInAIFocusButton
-              size="xs"
-              onClick={() => {
-                trackAnalytics('agent-monitoring.view-ai-trace-click', {
-                  organization,
-                });
-              }}
-              to={{
-                ...location,
-                query: {
-                  ...location.query,
-                  tab: TraceLayoutTabKeys.AI_SPANS,
-                },
-              }}
-            >
-              {t('Open Agent Activity')}
-            </OpenInAIFocusButton>
-          )}
-          {!hidePanelAndBreakdown && (
-            <Fragment>
-              <StyledPanel>
-                <StyledPanelHeader>{headerContent}</StyledPanelHeader>
-                <PanelBody>{bodyContent}</PanelBody>
-              </StyledPanel>
-              {footerContent}
-            </Fragment>
-          )}
+            {isAiNode && !hideNodeActions && (
+              <Container alignSelf="start">
+                <LinkButton
+                  size="xs"
+                  onClick={() => {
+                    trackAnalytics('agent-monitoring.view-ai-trace-click', {
+                      organization,
+                    });
+                  }}
+                  to={{
+                    ...location,
+                    query: {
+                      ...location.query,
+                      tab: TraceLayoutTabKeys.AI_SPANS,
+                    },
+                  }}
+                >
+                  {t('Open Agent Activity')}
+                </LinkButton>
+              </Container>
+            )}
+            {!hidePanelAndBreakdown && (
+              <Container>
+                <StyledPanel>
+                  <StyledPanelHeader>{headerContent}</StyledPanelHeader>
+                  <PanelBody>{bodyContent}</PanelBody>
+                </StyledPanel>
+                {footerContent}
+              </Container>
+            )}
+          </Stack>
         </Stack>
       </Flex>
-      {/* margin (deprecated) kept for parity with surrounding margin-based sections in BodyContainer */}
-      <Separator orientation="horizontal" margin="md 0" border="muted" />
-    </Fragment>
+      <Separator orientation="horizontal" border="muted" />
+    </Stack>
   );
 }
 
@@ -592,10 +589,6 @@ const HiglightsDurationComparison = styled('div')<
   padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.md};
   display: inline-block;
   height: 21px;
-`;
-
-const OpenInAIFocusButton = styled(LinkButton)`
-  width: max-content;
 `;
 
 const StyledPanelHeader = styled(PanelHeader)`
