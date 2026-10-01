@@ -23,6 +23,8 @@ from sentry.constants import ObjectStatus
 from sentry.db.models import BoundedPositiveIntegerField
 from sentry.db.models.fields.slug import DEFAULT_SLUG_MAX_LENGTH
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
+from sentry.models.environment import Environment
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.monitors.constants import MAX_MARGIN, MAX_THRESHOLD, MAX_TIMEOUT
 from sentry.monitors.logic.monitor_environment import update_monitor_environment
@@ -48,6 +50,7 @@ from sentry.monitors.utils import (
     signal_monitor_created,
     update_issue_alert_rule,
 )
+from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.dates import AVAILABLE_TIMEZONES
@@ -127,7 +130,9 @@ class ScheduleField(ObjectField):
 
 class MonitorAlertRuleTargetValidator(serializers.Serializer):
     target_identifier = serializers.IntegerField(help_text="ID of target object")
-    target_type = serializers.CharField(help_text="One of [Member, Team]")
+    target_type = serializers.ChoiceField(
+        choices=("Member", "Team"), help_text="One of [Member, Team]"
+    )
 
 
 class MonitorAlertRuleValidator(serializers.Serializer):
@@ -138,6 +143,56 @@ class MonitorAlertRuleValidator(serializers.Serializer):
         many=True,
         help_text="Array of dictionaries with information of the user or team to be notified",
     )
+
+    def validate(self, attrs):
+        environment_name = attrs.get("environment")
+        if environment_name is None:
+            attrs["environment_id"] = None
+            return attrs
+
+        try:
+            environment = Environment.get_for_organization_id(
+                self.context["organization"].id, environment_name
+            )
+        except Environment.DoesNotExist:
+            raise serializers.ValidationError(
+                {"environment": "This environment has not been created."}
+            )
+
+        attrs["environment_id"] = environment.id
+        return attrs
+
+    @staticmethod
+    def validate_targets_for_project(attrs, project: Project) -> None:
+        for index, target in enumerate(attrs.get("targets", [])):
+            target_identifier = target["target_identifier"]
+            target_type = target["target_type"]
+
+            if (
+                target_type == "Team"
+                and not Project.objects.filter(teams__id=target_identifier, id=project.id).exists()
+            ):
+                errors: list[dict[str, str]] = [{} for _ in attrs["targets"]]
+                errors[index] = {"target_identifier": "This team is not part of the project."}
+                raise serializers.ValidationError({"targets": errors})
+
+            if target_type == "Member":
+                is_active_team_member = OrganizationMemberTeam.objects.filter(
+                    is_active=True,
+                    organizationmember__user_id=target_identifier,
+                    organizationmember__teams__projectteam__project_id=project.id,
+                ).exists()
+                if is_active_team_member:
+                    is_active_team_member = bool(
+                        user_service.get_many(
+                            filter={"user_ids": [target_identifier], "is_active": True}
+                        )
+                    )
+
+                if not is_active_team_member:
+                    errors = [{} for _ in attrs["targets"]]
+                    errors[index] = {"target_identifier": "This user is not part of the project."}
+                    raise serializers.ValidationError({"targets": errors})
 
 
 class MissedMarginField(EmptyIntegerField):
@@ -358,6 +413,20 @@ class MonitorValidator(CamelSnakeSerializer):
                 check_organization_monitor_limit(organization.id)
             except MonitorLimitsExceeded as e:
                 raise serializers.ValidationError(str(e))
+
+        alert_rule = attrs.get("alert_rule")
+        if alert_rule is not None:
+            project = attrs.get("project")
+            if project is None:
+                project_id = (
+                    self.instance.project_id if self.instance else self.context["project"].id
+                )
+                project = Project.objects.get(id=project_id)
+            try:
+                MonitorAlertRuleValidator.validate_targets_for_project(alert_rule, project)
+            except serializers.ValidationError as error:
+                raise serializers.ValidationError({"alert_rule": error.detail})
+
         return attrs
 
     def validate_status(self, value):
