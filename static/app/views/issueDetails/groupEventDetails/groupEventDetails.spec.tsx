@@ -365,7 +365,9 @@ describe('groupEventDetails', () => {
     'renders native $entryType with the new renderer only when enabled=$enabled',
     async ({entryType, enabled}) => {
       const props = makeDefaultMockData(
-        OrganizationFixture({features: enabled ? ['issue-details-new-stack-trace'] : []})
+        OrganizationFixture({
+          features: enabled ? ['issue-details-native-stack-trace'] : [],
+        })
       );
       const stacktrace = {
         frames: [

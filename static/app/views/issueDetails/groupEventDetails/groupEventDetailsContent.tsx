@@ -106,9 +106,9 @@ export function EventDetailsContent({
   const organization = useOrganization();
   const shouldUseNewStackTrace =
     !isNativePlatform(event.platform) ||
-    organization.features.includes('issue-details-new-stack-trace');
+    organization.features.includes('issue-details-native-stack-trace');
   const shouldUseNewNativeThreadStackTrace =
-    organization.features.includes('issue-details-new-stack-trace') &&
+    organization.features.includes('issue-details-native-stack-trace') &&
     isNativePlatform(event.platform);
   const tagsRef = useRef<HTMLDivElement>(null);
   const eventEntries = useMemo(() => {

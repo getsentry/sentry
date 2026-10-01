@@ -269,6 +269,22 @@ describe('NativeFrameRow', () => {
     expect(screen.getByText('libSystem.B')).toBeInTheDocument();
   });
 
+  it.each([null, 'CrashyAppDelegate.m'])(
+    'shows the filename tooltip when absPath is %s',
+    async absPath => {
+      const stacktrace: StacktraceType = {
+        framesOmitted: null,
+        hasSystemFrames: false,
+        registers: null,
+        frames: [makeFrame({absPath})],
+      };
+      renderFrames(stacktrace, makeEvent(stacktrace));
+
+      await userEvent.hover(screen.getByText('(CrashyAppDelegate.m)'));
+      expect(await screen.findByText('CrashyAppDelegate.m')).toBeInTheDocument();
+    }
+  );
+
   it('renders redaction metadata on native frame function names', () => {
     const stacktrace: StacktraceType = {
       framesOmitted: null,

@@ -109,6 +109,69 @@ describe('NativeStackTraceProvider', () => {
     });
   });
 
+  it('selects view and order independently without clearing frame detail preferences', async () => {
+    render(
+      <PersistedNativeStackTrace stacktrace={stacktraceWithAddress}>
+        <NativeDisplayOptionsMenu
+          hasAbsoluteAddresses
+          hasAbsoluteFilePaths={false}
+          hasVerboseFunctionNames={false}
+        />
+      </PersistedNativeStackTrace>
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Display options'}));
+    expect(screen.getByRole('listbox', {name: 'View'})).not.toHaveAttribute(
+      'aria-multiselectable',
+      'true'
+    );
+    expect(screen.getByRole('listbox', {name: 'Order'})).not.toHaveAttribute(
+      'aria-multiselectable',
+      'true'
+    );
+    expect(screen.getByRole('listbox', {name: 'Frame Details'})).toHaveAttribute(
+      'aria-multiselectable',
+      'true'
+    );
+
+    await userEvent.click(screen.getByRole('option', {name: 'Absolute Addresses'}));
+    await userEvent.click(screen.getByRole('option', {name: 'Oldest First'}));
+    await userEvent.click(screen.getByRole('option', {name: 'Raw Stack Trace'}));
+
+    expect(screen.getByRole('option', {name: 'Oldest First'})).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
+    expect(screen.getByRole('option', {name: 'Newest First'})).toHaveAttribute(
+      'aria-selected',
+      'false'
+    );
+    expect(screen.getByRole('option', {name: 'Absolute Addresses'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    await waitFor(() => {
+      expect(JSON.parse(localStorageWrapper.getItem(storageKey)!)).toEqual([
+        'absolute-addresses',
+        'raw-stack-trace',
+      ]);
+    });
+
+    await userEvent.click(screen.getByRole('option', {name: 'Full Stack Trace'}));
+    expect(screen.getByRole('option', {name: 'Raw Stack Trace'})).toHaveAttribute(
+      'aria-selected',
+      'false'
+    );
+    expect(screen.getByRole('option', {name: 'Absolute Addresses'})).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
+    expect(screen.getByRole('option', {name: 'Oldest First'})).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
+  });
+
   it('preserves the minified preference when the current stack has no minified data', async () => {
     localStorageWrapper.setItem(storageKey, JSON.stringify(['minified']));
 

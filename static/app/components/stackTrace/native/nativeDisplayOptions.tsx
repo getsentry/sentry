@@ -1,4 +1,4 @@
-import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {CompositeSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {useStackTraceViewState} from 'sentry/components/stackTrace/stackTraceContext';
@@ -7,13 +7,6 @@ import {t} from 'sentry/locale';
 
 import {useNativeDisplayOptionsContext} from './nativeDisplayOptionsContext';
 import {NATIVE_DISPLAY_OPTION} from './nativeDisplayOptionsPersistence';
-
-const VIEW_OPTION_VALUES = [
-  'most-relevant',
-  'full-stack-trace',
-  'raw-stack-trace',
-] as const;
-const SORT_OPTION_VALUES = ['newest', 'oldest'] as const;
 
 /**
  * Native flavor of the Display dropdown. Drop-in replacement for the generic
@@ -32,8 +25,15 @@ export function NativeDisplayOptionsMenu({
   hasAbsoluteFilePaths: boolean;
   hasVerboseFunctionNames: boolean;
 }) {
-  const {view, hasMinifiedStacktrace, isMinified, isNewestFirst, platform} =
-    useStackTraceViewState();
+  const {
+    view,
+    setView,
+    hasMinifiedStacktrace,
+    isMinified,
+    isNewestFirst,
+    setIsNewestFirst,
+    platform,
+  } = useStackTraceViewState();
   const {
     absoluteAddresses,
     absoluteFilePaths,
@@ -58,9 +58,7 @@ export function NativeDisplayOptionsMenu({
   const currentSortVal = isNewestFirst ? 'newest' : 'oldest';
   const isRawView = view === 'raw';
 
-  const value = [
-    currentViewVal,
-    currentSortVal,
+  const frameDetails = [
     ...(isMinified ? [NATIVE_DISPLAY_OPTION.MINIFIED] : []),
     ...(absoluteAddresses && hasAbsoluteAddresses && !isRawView
       ? [NATIVE_DISPLAY_OPTION.ABSOLUTE_ADDRESSES]
@@ -73,28 +71,8 @@ export function NativeDisplayOptionsMenu({
       : []),
   ];
 
-  function handleChange(opts: Array<{value: string}>) {
+  function handleFrameDetailsChange(opts: Array<{value: string}>) {
     const vals = opts.map(o => o.value);
-
-    // Mutually exclusive view selection: pick the newly added view option.
-    const newViewVals = vals.filter(v =>
-      VIEW_OPTION_VALUES.includes(v as (typeof VIEW_OPTION_VALUES)[number])
-    );
-    const newViewVal =
-      newViewVals.find(v => v !== currentViewVal) ?? newViewVals[0] ?? currentViewVal;
-    const nextView =
-      newViewVal === 'raw-stack-trace'
-        ? ('raw' as const)
-        : newViewVal === 'full-stack-trace'
-          ? ('full' as const)
-          : ('app' as const);
-
-    // Mutually exclusive sort selection.
-    const newSortVals = vals.filter(v =>
-      SORT_OPTION_VALUES.includes(v as (typeof SORT_OPTION_VALUES)[number])
-    );
-    const newSortVal =
-      newSortVals.find(v => v !== currentSortVal) ?? newSortVals[0] ?? currentSortVal;
     const nextPrefersMinified = hasMinifiedStacktrace
       ? vals.includes(NATIVE_DISPLAY_OPTION.MINIFIED)
       : prefersMinified;
@@ -102,7 +80,7 @@ export function NativeDisplayOptionsMenu({
     let nextAbsoluteFilePaths = absoluteFilePaths;
     let nextVerboseFunctionNames = verboseFunctionNames;
 
-    if (!isRawView && nextView !== 'raw') {
+    if (!isRawView) {
       nextAbsoluteAddresses = hasAbsoluteAddresses
         ? vals.includes(NATIVE_DISPLAY_OPTION.ABSOLUTE_ADDRESSES)
         : absoluteAddresses;
@@ -117,15 +95,15 @@ export function NativeDisplayOptionsMenu({
     updateDisplayOptions({
       absoluteAddresses: nextAbsoluteAddresses,
       absoluteFilePaths: nextAbsoluteFilePaths,
-      isNewestFirst: newSortVal === 'newest',
+      isNewestFirst,
       prefersMinified: nextPrefersMinified,
       verboseFunctionNames: nextVerboseFunctionNames,
-      view: nextView,
+      view,
     });
   }
 
   return (
-    <CompactSelect
+    <CompositeSelect
       trigger={triggerProps => (
         <OverlayTrigger.Button
           {...triggerProps}
@@ -136,70 +114,83 @@ export function NativeDisplayOptionsMenu({
           {t('Display')}
         </OverlayTrigger.Button>
       )}
-      multiple
       position="bottom-end"
-      value={value}
-      onChange={handleChange}
-      options={[
-        {
-          label: t('View'),
-          options: [
-            {label: t('Most Relevant'), value: 'most-relevant'},
-            {label: t('Full Stack Trace'), value: 'full-stack-trace'},
-            {label: t('Raw Stack Trace'), value: 'raw-stack-trace'},
-          ],
-        },
-        {
-          label: t('Order'),
-          options: [
-            {label: t('Newest First'), value: 'newest'},
-            {label: t('Oldest First'), value: 'oldest'},
-          ],
-        },
-        {
-          label: t('Frame Details'),
-          options: [
-            {
-              label: minifiedLabel,
-              value: NATIVE_DISPLAY_OPTION.MINIFIED,
-              disabled: !hasMinifiedStacktrace,
-              tooltip: hasMinifiedStacktrace ? undefined : minifiedUnavailableTooltip,
-            },
-            {
-              label: t('Absolute Addresses'),
-              value: NATIVE_DISPLAY_OPTION.ABSOLUTE_ADDRESSES,
-              disabled: isRawView || !hasAbsoluteAddresses,
-              tooltip: isRawView
-                ? t('Not available on raw stack trace')
-                : hasAbsoluteAddresses
-                  ? undefined
-                  : t('No frames have an instruction address'),
-            },
-            {
-              label: t('Absolute File Paths'),
-              value: NATIVE_DISPLAY_OPTION.ABSOLUTE_FILE_PATHS,
-              disabled: isRawView || !hasAbsoluteFilePaths,
-              tooltip: isRawView
-                ? t('Not available on raw stack trace')
-                : hasAbsoluteFilePaths
-                  ? undefined
-                  : t('No frames have an absolute path that differs from the filename'),
-            },
-            {
-              label: t('Verbose Function Names'),
-              value: NATIVE_DISPLAY_OPTION.VERBOSE_FUNCTION_NAMES,
-              disabled: isRawView || !hasVerboseFunctionNames,
-              tooltip: isRawView
-                ? t('Not available on raw stack trace')
-                : hasVerboseFunctionNames
-                  ? undefined
-                  : t(
-                      'No frames have a mangled symbol that differs from the demangled name'
-                    ),
-            },
-          ],
-        },
-      ]}
-    />
+    >
+      <CompositeSelect.Region
+        label={t('View')}
+        closeOnSelect={false}
+        value={currentViewVal}
+        onChange={opt => {
+          if (opt.value === 'raw-stack-trace') {
+            setView('raw');
+          } else if (opt.value === 'full-stack-trace') {
+            setView('full');
+          } else {
+            setView('app');
+          }
+        }}
+        options={[
+          {label: t('Most Relevant'), value: 'most-relevant'},
+          {label: t('Full Stack Trace'), value: 'full-stack-trace'},
+          {label: t('Raw Stack Trace'), value: 'raw-stack-trace'},
+        ]}
+      />
+      <CompositeSelect.Region
+        label={t('Order')}
+        closeOnSelect={false}
+        value={currentSortVal}
+        onChange={opt => setIsNewestFirst(opt.value === 'newest')}
+        options={[
+          {label: t('Newest First'), value: 'newest'},
+          {label: t('Oldest First'), value: 'oldest'},
+        ]}
+      />
+      <CompositeSelect.Region
+        label={t('Frame Details')}
+        multiple
+        value={frameDetails}
+        onChange={handleFrameDetailsChange}
+        options={[
+          {
+            label: minifiedLabel,
+            value: NATIVE_DISPLAY_OPTION.MINIFIED,
+            disabled: !hasMinifiedStacktrace,
+            tooltip: hasMinifiedStacktrace ? undefined : minifiedUnavailableTooltip,
+          },
+          {
+            label: t('Absolute Addresses'),
+            value: NATIVE_DISPLAY_OPTION.ABSOLUTE_ADDRESSES,
+            disabled: isRawView || !hasAbsoluteAddresses,
+            tooltip: isRawView
+              ? t('Not available on raw stack trace')
+              : hasAbsoluteAddresses
+                ? undefined
+                : t('No frames have an instruction address'),
+          },
+          {
+            label: t('Absolute File Paths'),
+            value: NATIVE_DISPLAY_OPTION.ABSOLUTE_FILE_PATHS,
+            disabled: isRawView || !hasAbsoluteFilePaths,
+            tooltip: isRawView
+              ? t('Not available on raw stack trace')
+              : hasAbsoluteFilePaths
+                ? undefined
+                : t('No frames have an absolute path that differs from the filename'),
+          },
+          {
+            label: t('Verbose Function Names'),
+            value: NATIVE_DISPLAY_OPTION.VERBOSE_FUNCTION_NAMES,
+            disabled: isRawView || !hasVerboseFunctionNames,
+            tooltip: isRawView
+              ? t('Not available on raw stack trace')
+              : hasVerboseFunctionNames
+                ? undefined
+                : t(
+                    'No frames have a mangled symbol that differs from the demangled name'
+                  ),
+          },
+        ]}
+      />
+    </CompositeSelect>
   );
 }

@@ -1,6 +1,7 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
+import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -29,8 +30,6 @@ interface NativeFrameHeaderProps {
   /** Custom trailing actions; falls back to NativeDefaultActions. */
   actions?: React.ReactNode | ((props: {isHovering: boolean}) => React.ReactNode);
 }
-
-const NATIVE_FRAME_COMPACT_BREAKPOINT = '650px';
 
 function getFunctionLabel({
   frame,
@@ -93,16 +92,24 @@ export function NativeFrameHeader({actions}: NativeFrameHeaderProps) {
       : (actions ?? <NativeDefaultActions />);
 
   return (
-    <HeaderContainer>
+    <Container containerType="inline-size">
       <HeaderGrid
         align="center"
-        gap="sm md"
+        columns={{
+          zero: hasAnyStatusIcons
+            ? '16px minmax(0, 120px) minmax(0, 1fr)'
+            : 'minmax(0, 120px) minmax(0, 1fr)',
+          '2xl': hasAnyStatusIcons
+            ? '16px 150px 120px minmax(0, 1fr) minmax(168px, auto)'
+            : '150px 120px minmax(0, 1fr) minmax(168px, auto)',
+        }}
+        gap={{zero: '2xs sm', '2xl': '0 md'}}
+        padding="xs md"
         data-test-id="native-stack-trace-frame-title"
         data-sub-frame={isSubFrame ? true : undefined}
         isExpandable={isExpandable}
         isInAppFrame={frame.inApp}
         isSubFrame={isSubFrame}
-        hasStatusColumn={hasAnyStatusIcons}
         onClick={() => {
           const selectedText = window.getSelection()?.toString();
           if (isExpandable && !selectedText) {
@@ -113,37 +120,49 @@ export function NativeFrameHeader({actions}: NativeFrameHeaderProps) {
         onMouseLeave={() => setIsHovering(false)}
       >
         {hasAnyStatusIcons ? (
-          <StatusCell
+          <Flex
             align="center"
             justify="center"
+            column="1"
+            row={{zero: '1 / 3', '2xl': '1'}}
             data-test-id="native-stack-trace-status-cell"
           >
             <SymbolicatorStatusIcon />
-          </StatusCell>
+          </Flex>
         ) : null}
 
-        <PackageCell
-          direction="column"
-          align="start"
+        <Flex
+          direction={{zero: 'row', '2xl': 'column'}}
+          align={{zero: 'baseline', '2xl': 'start'}}
+          column={{
+            zero: hasAnyStatusIcons ? '3' : '2',
+            '2xl': hasAnyStatusIcons ? '2' : '1',
+          }}
+          row="1"
+          gap={{zero: 'xs', '2xl': '0'}}
           justify="center"
           minWidth={0}
           overflow="hidden"
         >
           {showLeadHint ? (
-            <LeadHint size="xs" variant="muted" ellipsis>
-              {getLeadHint({event, hasNextFrame: defined(nextFrame)})}
-            </LeadHint>
+            <Container flexShrink={0}>
+              <Text size="xs" variant="muted" ellipsis>
+                {getLeadHint({event, hasNextFrame: defined(nextFrame)})}
+              </Text>
+            </Container>
           ) : null}
-          <Tooltip
+          <InfoText
             title={
               frame.package ??
               (isDartAsync ? t('Dart async operation') : t('Go to images loaded'))
             }
             maxWidth={400}
             delay={1000}
-            skipWrapper
+            position="auto-start"
+            variant="inherit"
+            ellipsis
           >
-            <PackageLabel variant="inherit" ellipsis>
+            <Container as="span" paddingRight="2xs">
               {packageLabel ??
                 (isDartAsync ? (
                   t('Dart async')
@@ -152,15 +171,34 @@ export function NativeFrameHeader({actions}: NativeFrameHeaderProps) {
                     {t('<unknown>')}
                   </Text>
                 ))}
-            </PackageLabel>
-          </Tooltip>
-        </PackageCell>
+            </Container>
+          </InfoText>
+        </Flex>
 
-        <AddressCell align="center" minWidth={0}>
+        <Flex
+          align="center"
+          minWidth={0}
+          overflow="hidden"
+          column={{
+            zero: hasAnyStatusIcons ? '2' : '1',
+            '2xl': hasAnyStatusIcons ? '3' : '2',
+          }}
+          row="1"
+        >
           <NativeFrameAddress />
-        </AddressCell>
+        </Flex>
 
-        <FunctionCell wrap="wrap" align="baseline" gap="2xs xs" minWidth={0}>
+        <Flex
+          wrap="wrap"
+          align="baseline"
+          gap="2xs xs"
+          minWidth={0}
+          column={{
+            zero: hasAnyStatusIcons ? '2 / -1' : '1 / -1',
+            '2xl': hasAnyStatusIcons ? '4' : '3',
+          }}
+          row={{zero: '2', '2xl': '1'}}
+        >
           {functionLabel ? (
             <Tooltip
               title={frame.rawFunction ?? frame.symbol}
@@ -174,48 +212,46 @@ export function NativeFrameHeader({actions}: NativeFrameHeaderProps) {
             <Text variant="muted">{`<${t('unknown')}>`}</Text>
           )}
           {frame.filename ? (
-            <Tooltip
-              title={frame.absPath}
-              disabled={!frame.absPath || frame.absPath === frame.filename}
+            <InfoText
+              title={frame.absPath || frame.filename}
+              maxWidth={400}
+              position="auto-start"
+              size="sm"
+              variant="muted"
+              wordBreak="break-all"
             >
-              <FileName size="sm" variant="muted">
-                {'('}
-                {absoluteFilePaths ? (frame.absPath ?? frame.filename) : frame.filename}
-                {frame.lineNo ? `:${frame.lineNo}` : ''}
-                {')'}
-              </FileName>
-            </Tooltip>
+              {'('}
+              {absoluteFilePaths ? (frame.absPath ?? frame.filename) : frame.filename}
+              {frame.lineNo ? `:${frame.lineNo}` : ''}
+              {')'}
+            </InfoText>
           ) : null}
-        </FunctionCell>
+        </Flex>
 
-        <ActionsCell align="center" justify="end" gap="xs" justifySelf="end">
+        <Flex
+          align="center"
+          justify="end"
+          gap="xs"
+          minWidth={0}
+          column={{
+            zero: hasAnyStatusIcons ? '2 / -1' : '1 / -1',
+            '2xl': hasAnyStatusIcons ? '5' : '4',
+          }}
+          row={{zero: '3', '2xl': '1'}}
+          data-test-id="native-stack-trace-frame-actions"
+        >
           {resolvedActions}
-        </ActionsCell>
+        </Flex>
       </HeaderGrid>
-    </HeaderContainer>
+    </Container>
   );
 }
 
-const HeaderContainer = styled(Container)`
-  container: native-frame-header / inline-size;
-`;
-
 const HeaderGrid = styled(Grid)<{
-  hasStatusColumn: boolean;
   isExpandable: boolean;
   isInAppFrame: boolean;
   isSubFrame: boolean;
 }>`
-  grid-template-columns: ${p =>
-    p.hasStatusColumn
-      ? '16px 150px 120px minmax(0, 1fr) minmax(168px, auto)'
-      : '150px 120px minmax(0, 1fr) minmax(168px, auto)'};
-  padding: ${p =>
-    `${p.theme.space.xs} ${p.theme.space.md} ${p.theme.space.xs} ${
-      p.hasStatusColumn
-        ? p.theme.space.md
-        : `calc(${p.theme.space.md} + 16px + ${p.theme.space.md})`
-    }`};
   min-height: 32px;
   cursor: ${p => (p.isExpandable ? 'pointer' : 'default')};
   background: ${p =>
@@ -231,97 +267,10 @@ const HeaderGrid = styled(Grid)<{
   &:hover {
     background: ${p => p.theme.tokens.background.tertiary};
   }
-
-  @container native-frame-header (max-width: ${NATIVE_FRAME_COMPACT_BREAKPOINT}) {
-    grid-template-columns: ${p =>
-      p.hasStatusColumn
-        ? '16px minmax(0, 72px) minmax(0, 1fr) auto'
-        : 'minmax(0, 72px) minmax(0, 1fr) auto'};
-    /* stylelint-disable-next-line named-grid-areas-no-invalid */
-    grid-template-areas: ${p =>
-      p.hasStatusColumn
-        ? "'status address package actions' 'status function function function'"
-        : "'address package actions' 'function function function'"};
-    row-gap: ${p => p.theme.space['2xs']};
-  }
-`;
-
-const StatusCell = styled(Flex)`
-  @container native-frame-header (max-width: ${NATIVE_FRAME_COMPACT_BREAKPOINT}) {
-    grid-area: status;
-  }
-`;
-
-const PackageCell = styled(Flex)`
-  line-height: 1.4;
-
-  @container native-frame-header (max-width: ${NATIVE_FRAME_COMPACT_BREAKPOINT}) {
-    grid-area: package;
-    flex-direction: row;
-    align-items: baseline;
-    gap: ${p => p.theme.space.xs};
-  }
-`;
-
-const LeadHint = styled(Text)`
-  display: block;
-  max-width: 100%;
-  line-height: 1.2;
-  padding-right: 2px;
-
-  @container native-frame-header (max-width: ${NATIVE_FRAME_COMPACT_BREAKPOINT}) {
-    display: inline;
-    flex: 0 0 auto;
-    max-width: none;
-  }
-`;
-
-const PackageLabel = styled(Text)`
-  display: block;
-  flex: 0 1 auto;
-  min-width: 0;
-  max-width: 100%;
-
-  @container native-frame-header (max-width: ${NATIVE_FRAME_COMPACT_BREAKPOINT}) {
-    display: inline-block;
-    flex: 1 1 auto;
-  }
-`;
-
-const AddressCell = styled(Flex)`
-  line-height: 1.4;
-
-  @container native-frame-header (max-width: ${NATIVE_FRAME_COMPACT_BREAKPOINT}) {
-    grid-area: address;
-    justify-self: start;
-    max-width: 72px;
-    overflow: hidden;
-  }
-`;
-
-const FunctionCell = styled(Flex)`
-  word-break: break-all;
-
-  @container native-frame-header (max-width: ${NATIVE_FRAME_COMPACT_BREAKPOINT}) {
-    grid-area: function;
-  }
 `;
 
 const FunctionName = styled(AnnotatedText)`
   min-width: 0;
   flex: 0 1 auto;
   word-break: break-all;
-`;
-
-const FileName = styled(Text)`
-  border-bottom: 1px dashed ${p => p.theme.tokens.border.primary};
-`;
-
-const ActionsCell = styled(Flex)`
-  min-width: 168px;
-
-  @container native-frame-header (max-width: ${NATIVE_FRAME_COMPACT_BREAKPOINT}) {
-    grid-area: actions;
-    min-width: 0;
-  }
 `;

@@ -2,7 +2,7 @@ import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -227,6 +227,24 @@ export default Storybook.story('Native StackTrace', story => {
       <StoryProvider event={event} stacktrace={stacktrace}>
         <NativeStackTraceFrames />
       </StoryProvider>
+    );
+  });
+
+  story('Narrow Containers', () => {
+    const {event, stacktrace} = makeBasicData();
+    return (
+      <Stack gap="xl">
+        {[320, 700].map(width => (
+          <Stack key={width} gap="sm" width={`${width}px`} maxWidth="100%">
+            <Text>{width}px container</Text>
+            <Container>
+              <StoryProvider event={event} stacktrace={stacktrace}>
+                <NativeStackTraceFrames />
+              </StoryProvider>
+            </Container>
+          </Stack>
+        ))}
+      </Stack>
     );
   });
 

@@ -83,7 +83,7 @@ export function StackTracePreviewContent({
     | Partial<React.ComponentProps<typeof StackTraceContent>>;
 
   if (isNativePlatform(platform)) {
-    if (organization.features.includes('issue-details-new-stack-trace')) {
+    if (organization.features.includes('issue-details-native-stack-trace')) {
       return (
         <NativeStackTracePreview
           event={event}

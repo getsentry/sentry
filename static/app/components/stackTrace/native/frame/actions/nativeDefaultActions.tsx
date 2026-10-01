@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 
 import {Tag} from '@sentry/scraps/badge';
+import {Flex} from '@sentry/scraps/layout';
 
 import {ChevronAction} from 'sentry/components/stackTrace/frame/actions/chevron';
 import {HiddenFramesToggleAction} from 'sentry/components/stackTrace/frame/actions/hiddenFramesToggle';
@@ -23,9 +24,11 @@ export function NativeDefaultActions() {
 
   return (
     <Fragment>
-      {hiddenFrameCount ? <HiddenFramesToggleAction /> : null}
-      {isUsedForGrouping ? <GroupingFrameMarker /> : null}
-      {frame.inApp ? <Tag variant="info">{t('In App')}</Tag> : null}
+      <Flex align="center" justify="end" wrap="wrap" gap="xs" minWidth={0}>
+        {hiddenFrameCount ? <HiddenFramesToggleAction /> : null}
+        {isUsedForGrouping ? <GroupingFrameMarker /> : null}
+        {frame.inApp ? <Tag variant="info">{t('In App')}</Tag> : null}
+      </Flex>
       {hasAnyExpandableFrames ? <ChevronAction /> : null}
     </Fragment>
   );

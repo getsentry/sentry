@@ -149,7 +149,7 @@ describe('StackTracePreview', () => {
 
     render(<StackTracePreviewContent event={event} stacktrace={stacktrace} />, {
       organization: OrganizationFixture({
-        features: ['issue-details-new-stack-trace'],
+        features: ['issue-details-native-stack-trace'],
       }),
     });
 
@@ -168,7 +168,7 @@ describe('StackTracePreview', () => {
     );
 
     render(<StackTracePreviewContent event={event} stacktrace={stacktrace} />, {
-      organization: OrganizationFixture({features: ['issue-details-new-stack-trace']}),
+      organization: OrganizationFixture({features: ['issue-details-native-stack-trace']}),
     });
 
     expect(screen.getByText('system_start')).toBeInTheDocument();
