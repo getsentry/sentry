@@ -1360,7 +1360,7 @@ export interface GroupOpenPeriodActivity {
 export interface GroupOpenPeriod {
   activities: GroupOpenPeriodActivity[];
   duration: string;
-  end: string;
+  end: string | null;
   id: string;
   isOpen: boolean;
   lastChecked: string;
@@ -1479,7 +1479,6 @@ export type KeyValueListDataItem = {
   isContextData?: boolean;
   isMultiValue?: boolean;
   meta?: Meta;
-  subjectDataTestId?: string;
   subjectIcon?: React.ReactNode;
   subjectNode?: React.ReactNode;
   value?: React.ReactNode | Record<string, string | number>;

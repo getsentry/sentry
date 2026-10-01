@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "jsx": "react-jsx",
+    "jsxImportSource": "@emotion/react",
+    "strict": true,
+    "rootDir": "src",
+    "skipLibCheck": true,
+    "types": [],
+    "paths": {
+      "@sentry/scraps/*": ["./src/*"]
+    },
+    "noEmit": true
+  },
+  "include": ["src"],
+  "exclude": ["src/**/*.spec.tsx"]
+}

@@ -249,7 +249,7 @@ class IncidentActivity(Model):
 
     __relocation_scope__ = RelocationScope.Global
 
-    incident = FlexibleForeignKey("sentry.Incident")
+    incident = FlexibleForeignKey("sentry.Incident", db_constraint=False)
     user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, on_delete="CASCADE", null=True)
     type: models.Field[int, int] = models.IntegerField()
     value = models.TextField(null=True)

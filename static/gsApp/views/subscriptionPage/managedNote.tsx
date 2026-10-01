@@ -23,11 +23,6 @@ const SALES_MESSAGE = tct(
  * NOTE: this is for legacy partners only; use partnership_support_note instead for any new channel partnerships
  */
 const PARTNER_MESSAGES = {
-  // GitHub Marketplace message
-  GH: tct(
-    'Visit the [marketplace:GitHub Marketplace] to make changes to your subscription.',
-    {marketplace: <a href="https://github.com/marketplace/sentry" />}
-  ),
   // Heroku Dashboard message
   HK: tct(
     'Visit the [dashboard:Heroku Dashboard] to make changes to your subscription.',
@@ -57,7 +52,7 @@ type Props = {
  * 1. For self-serve subscriptions: No message is displayed
  * 2. For VC marketplace subscriptions: No message is displayed (they can self-serve through billing checkout)
  * 3. For sales-managed accounts (invoiced or custom-priced): Directs to sales team
- * 4. For partner integrations (GitHub, Heroku): Directs to respective partner platforms
+ * 4. For partner integrations (Heroku): Directs to respective partner platforms
  * 5. For all other cases: Directs to support team
  *
  * @param {Props} props - Component props containing the subscription object

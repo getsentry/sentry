@@ -884,6 +884,20 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
                 raise serializers.ValidationError(
                     {"thresholds": {"preferred_polarity": "Must be '+', '-', or empty string."}}
                 )
+            time_window = thresholds.get("time_window")
+            parsed_time_window = (
+                parse_stats_period(time_window) if isinstance(time_window, str) else None
+            )
+            if time_window is not None and (
+                parsed_time_window is None or parsed_time_window <= timedelta(0)
+            ):
+                raise serializers.ValidationError(
+                    {
+                        "thresholds": {
+                            "time_window": "Time window must be a positive stats period, such as '5m', '1h', or '1d'."
+                        }
+                    }
+                )
         if len(all_columns) > 0:
             field_cardinality = check_field_cardinality(
                 list(all_columns), self.context["organization"], max_cardinality_allowed

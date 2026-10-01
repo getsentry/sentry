@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import os
-import sys
 import threading
 from collections.abc import MutableSequence, Sequence
 from pathlib import Path
@@ -20,16 +19,10 @@ from sentry.utils.tracing import start_span
 #
 # If you are looking to add a kafka consumer, please do not create a new click
 # subcommand. Instead, use sentry.consumers.
-
-
-def _sentry_command(*args: str) -> list[str]:
-    return [sys.executable, "-m", "sentry", *args]
-
-
 _DEFAULT_DAEMONS = {
-    "server": _sentry_command("run", "web"),
-    "taskworker": _sentry_command("run", "taskworker"),
-    "taskworker-scheduler": _sentry_command("run", "taskworker-scheduler"),
+    "server": ["sentry", "run", "web"],
+    "taskworker": ["sentry", "run", "taskworker"],
+    "taskworker-scheduler": ["sentry", "run", "taskworker-scheduler"],
 }
 
 
@@ -170,6 +163,7 @@ def devserver(
     sentry_sdk.init(
         dsn=os.environ.get("SENTRY_DEVSERVICES_DSN", ""),
         traces_sample_rate=1.0,
+        trace_lifecycle="stream",
     )
     with start_span(op="command", name="sentry.devserver", transaction=True):
         passed_options = {
@@ -389,7 +383,7 @@ def devserver(
                 daemons.append(
                     (
                         "dev-consumer",
-                        _sentry_command("run", "dev-consumer", *kafka_consumers),
+                        ["sentry", "run", "dev-consumer"] + list(kafka_consumers),
                     )
                 )
             else:
@@ -397,14 +391,15 @@ def devserver(
                     daemons.append(
                         (
                             name,
-                            _sentry_command(
+                            [
+                                "sentry",
                                 "run",
                                 "consumer",
                                 name,
                                 "--consumer-group=sentry-consumer",
                                 "--auto-offset-reset=latest",
                                 "--no-strict-offset-reset",
-                            ),
+                            ],
                         )
                     )
 
@@ -439,6 +434,7 @@ def devserver(
         if not daemons and not silo:
             server.run()
 
+        import sys
         from subprocess import list2cmdline
 
         from honcho.manager import Manager

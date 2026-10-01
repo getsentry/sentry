@@ -34,7 +34,7 @@ import {
 } from 'sentry/views/explore/logs/tables/logsInfiniteTable';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {createErrorLogRow} from 'sentry/views/explore/logs/utils';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 
 jest.mock('@tanstack/react-virtual', () => {
   return {

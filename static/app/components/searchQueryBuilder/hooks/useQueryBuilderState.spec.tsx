@@ -426,6 +426,111 @@ describe('array membership filters', () => {
   });
 });
 
+describe('regex filters', () => {
+  const getRegexFilterToken = (query: string) =>
+    getFirstFilterToken(query, () => null, {filterKeys: {}, allowRegexOperators: true});
+
+  it('wraps the value in slashes when switching to matches regex', () => {
+    const query = 'message:"GET /api"';
+
+    expect(
+      modifyFilterOperatorQuery(query, getRegexFilterToken(query), TermOperator.MATCHES)
+    ).toBe('message://GET /api//');
+  });
+
+  it('unescapes quotes when switching a quoted value to matches regex', () => {
+    const query = 'message:"say \\"hi\\""';
+
+    expect(
+      modifyFilterOperatorQuery(query, getRegexFilterToken(query), TermOperator.MATCHES)
+    ).toBe('message://say "hi"//');
+  });
+
+  it('escapes an inner slash pair when switching to matches regex', () => {
+    const query = 'message:"a// b"';
+
+    expect(
+      modifyFilterOperatorQuery(query, getRegexFilterToken(query), TermOperator.MATCHES)
+    ).toBe('message://a\\/\\/ b//');
+  });
+
+  it('restores an escaped slash pair when switching away from matches regex', () => {
+    const query = 'message://a\\/\\/ b//';
+
+    expect(
+      modifyFilterOperatorQuery(query, getRegexFilterToken(query), TermOperator.DEFAULT)
+    ).toBe('message:"a// b"');
+  });
+
+  it('quotes a character class pattern when switching away from matches regex', () => {
+    const query = 'message://[0-9]//';
+
+    expect(
+      modifyFilterOperatorQuery(query, getRegexFilterToken(query), TermOperator.DEFAULT)
+    ).toBe('message:"[0-9]"');
+  });
+
+  it('leaves a pattern ending in a backslash unquoted when switching away from matches regex', () => {
+    const query = 'message://a\\//';
+
+    expect(
+      modifyFilterOperatorQuery(query, getRegexFilterToken(query), TermOperator.DEFAULT)
+    ).toBe('message:a\\');
+  });
+
+  it('negates the filter when switching to does not match regex', () => {
+    const query = 'message:foo';
+
+    expect(
+      modifyFilterOperatorQuery(
+        query,
+        getRegexFilterToken(query),
+        TermOperator.DOES_NOT_MATCH
+      )
+    ).toBe('!message://foo//');
+  });
+
+  it('quotes a pattern with spaces when switching away from matches regex', () => {
+    const query = 'message://GET /api "v2"//';
+
+    expect(
+      modifyFilterOperatorQuery(query, getRegexFilterToken(query), TermOperator.DEFAULT)
+    ).toBe('message:"GET /api \\"v2\\""');
+  });
+
+  it('replaces only the pattern when updating a regex value', () => {
+    const query = 'message://^foo$// level:error';
+
+    expect(modifyFilterValue(query, getRegexFilterToken(query), '^a[**] b$')).toBe(
+      'message://^a[**] b$// level:error'
+    );
+  });
+
+  it('wraps the value in slashes when the value update switches to matches regex', () => {
+    const query = 'message:foo';
+
+    expect(
+      modifyFilterValue(query, getRegexFilterToken(query), 'a.*b', TermOperator.MATCHES)
+    ).toBe('message://a.*b//');
+  });
+
+  it('escapes an inner slash pair when the value update switches to matches regex', () => {
+    const query = 'message:foo';
+
+    expect(
+      modifyFilterValue(query, getRegexFilterToken(query), 'a// b', TermOperator.MATCHES)
+    ).toBe('message://a\\/\\/ b//');
+  });
+
+  it('wraps the value in slashes when an array membership filter switches to matches regex', () => {
+    const query = 'csv_headers[*]:foo';
+
+    expect(
+      modifyFilterOperatorQuery(query, getRegexFilterToken(query), TermOperator.MATCHES)
+    ).toBe('csv_headers[*]://foo//');
+  });
+});
+
 describe('syntax-bearing filter keys', () => {
   it('preserves an aggregate key when updating its value', () => {
     const query = 'count():>100';

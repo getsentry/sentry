@@ -8,6 +8,7 @@ import {
   COL_WIDTH_MINIMUM,
   COL_WIDTH_UNDEFINED,
 } from 'sentry/components/tables/gridEditable';
+import {useConversations} from 'sentry/views/explore/conversations/hooks/useConversations';
 
 import {
   collapseToolsColumnWhenUnused,
@@ -54,8 +55,13 @@ function mockConversations(body: Array<Record<string, unknown>>) {
   });
 }
 
+function TestConversationsTable() {
+  const conversations = useConversations();
+  return <ConversationsTable conversations={conversations} />;
+}
+
 function renderTable() {
-  return render(<ConversationsTable />, {organization});
+  return render(<TestConversationsTable />, {organization});
 }
 
 describe('ConversationsTable', () => {

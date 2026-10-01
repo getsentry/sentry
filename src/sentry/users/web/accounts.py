@@ -29,9 +29,11 @@ from sentry.users.web.accounts_form import (
     RelocationForm,
 )
 from sentry.utils import auth
+from sentry.utils.auth import is_react_auth_enabled
 from sentry.utils.signing import unsign
 from sentry.web.decorators import login_required, set_referrer_policy
 from sentry.web.frontend.base import control_silo_view
+from sentry.web.frontend.react_page import ReactMixin
 from sentry.web.helpers import render_to_response
 
 logger = logging.getLogger("sentry.accounts")
@@ -195,6 +197,9 @@ def recover_confirm(
     request: HttpRequest, user_id: int, hash: str, mode: str = "recover"
 ) -> HttpResponse:
     from sentry import ratelimits as ratelimiter
+
+    if request.method == "GET" and mode == "recover" and is_react_auth_enabled(request):
+        return ReactMixin().handle_react(request)
 
     try:
         password_hash = LostPasswordHash.objects.get(user=user_id, hash=hash)
