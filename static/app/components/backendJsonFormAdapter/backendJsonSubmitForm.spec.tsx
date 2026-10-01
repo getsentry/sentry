@@ -72,30 +72,6 @@ describe('BackendJsonSubmitForm', () => {
       );
     });
 
-    it('renders datetime fields and passes maxLength to text fields', () => {
-      render(
-        <BackendJsonSubmitForm
-          fields={[
-            {name: 'title', type: 'string', label: 'Title', maxLength: 64},
-            {
-              name: 'expires_at',
-              type: 'datetime-local',
-              label: 'Expires At',
-            },
-          ]}
-          onSubmit={onSubmit}
-          submitLabel="Save"
-        />,
-        {organization: org}
-      );
-
-      expect(screen.getByLabelText('Expires At')).toHaveAttribute(
-        'type',
-        'datetime-local'
-      );
-      expect(screen.getByLabelText('Title')).toHaveAttribute('maxlength', '64');
-    });
-
     it('renders textarea field', () => {
       render(
         <BackendJsonSubmitForm
@@ -271,46 +247,6 @@ describe('BackendJsonSubmitForm', () => {
   });
 
   describe('submission', () => {
-    it('shows URL errors on their fields and blocks submission', async () => {
-      render(
-        <BackendJsonSubmitForm
-          fields={[
-            {name: 'link', type: 'url', label: 'Link', required: true},
-            {name: 'mediaUrl', type: 'url', label: 'Image URL'},
-          ]}
-          onSubmit={onSubmit}
-          submitLabel="Create"
-        />,
-        {organization: org}
-      );
-
-      await userEvent.type(screen.getByRole('textbox', {name: 'Link'}), 'invalid');
-      await userEvent.type(screen.getByRole('textbox', {name: 'Image URL'}), 'invalid');
-      await userEvent.click(screen.getByRole('button', {name: 'Create'}));
-
-      expect(await screen.findAllByText('Enter a valid URL.')).toHaveLength(2);
-      expect(onSubmit).not.toHaveBeenCalled();
-    });
-
-    it('blocks submission when text exceeds maxLength', async () => {
-      render(
-        <BackendJsonSubmitForm
-          fields={[{name: 'title', type: 'string', label: 'Title', maxLength: 3}]}
-          initialValues={{title: 'long'}}
-          onSubmit={onSubmit}
-          submitLabel="Create"
-        />,
-        {organization: org}
-      );
-
-      await userEvent.click(screen.getByRole('button', {name: 'Create'}));
-
-      expect(
-        await screen.findByText('Must be 3 characters or fewer.')
-      ).toBeInTheDocument();
-      expect(onSubmit).not.toHaveBeenCalled();
-    });
-
     it('submit button calls onSubmit with all field values', async () => {
       render(
         <BackendJsonSubmitForm

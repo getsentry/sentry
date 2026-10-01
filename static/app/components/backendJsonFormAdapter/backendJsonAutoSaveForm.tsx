@@ -233,7 +233,6 @@ export function BackendJsonAutoSaveForm<
             );
           case 'string':
           case 'text':
-          case 'datetime-local':
           case 'url':
           case 'email':
             return (

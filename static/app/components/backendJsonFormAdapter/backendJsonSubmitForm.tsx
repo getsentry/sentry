@@ -123,7 +123,7 @@ interface BackendJsonSubmitFormProps {
 }
 
 /**
- * Build a Zod schema from the field configuration.
+ * Build a Zod schema that validates required fields are non-empty.
  */
 function buildValidationSchema(fields: JsonFormAdapterFieldConfig[]) {
   const shape: Record<string, z.ZodTypeAny> = {};
@@ -131,36 +131,26 @@ function buildValidationSchema(fields: JsonFormAdapterFieldConfig[]) {
     if (field.type === 'blank') {
       continue;
     }
-    const maxLength = 'maxLength' in field ? field.maxLength : undefined;
-    if (field.required || field.type === 'url' || maxLength !== undefined) {
-      shape[field.name] = z.any().superRefine((value, context) => {
-        const isEmpty =
-          value === null ||
-          value === undefined ||
-          (typeof value === 'string' && value.trim() === '') ||
-          ((field.type === 'select' || field.type === 'choice') &&
+    if (field.required) {
+      shape[field.name] = z.any().refine(
+        val => {
+          if (val === null || val === undefined) {
+            return false;
+          }
+          if (
+            (field.type === 'select' || field.type === 'choice') &&
             field.multiple &&
-            Array.isArray(value) &&
-            value.length === 0);
-
-        if (field.required && isEmpty) {
-          context.addIssue({code: 'custom', message: t('This field is required')});
-          return;
-        }
-        if (field.type === 'url' && !isEmpty && !z.url().safeParse(value).success) {
-          context.addIssue({code: 'custom', message: t('Enter a valid URL.')});
-        }
-        if (
-          maxLength !== undefined &&
-          typeof value === 'string' &&
-          value.length > maxLength
-        ) {
-          context.addIssue({
-            code: 'custom',
-            message: t('Must be %s characters or fewer.', maxLength),
-          });
-        }
-      });
+            Array.isArray(val)
+          ) {
+            return val.length > 0;
+          }
+          if (typeof val === 'string') {
+            return val.trim() !== '';
+          }
+          return true;
+        },
+        {message: t('This field is required')}
+      );
     }
   }
   return z.object(shape).passthrough();
@@ -578,7 +568,6 @@ export function BackendJsonSubmitForm({
                       );
                     case 'string':
                     case 'text':
-                    case 'datetime-local':
                     case 'url':
                     case 'email':
                       return (
@@ -592,7 +581,6 @@ export function BackendJsonSubmitForm({
                             onChange={handleChange}
                             placeholder={field.placeholder}
                             disabled={disabledProp}
-                            maxLength={field.maxLength}
                             type={
                               field.type === 'string' || field.type === 'text'
                                 ? 'text'
