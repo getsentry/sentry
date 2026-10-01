@@ -1,4 +1,4 @@
-import {Fragment, useEffect} from 'react';
+import {useEffect} from 'react';
 import {useMutation} from '@tanstack/react-query';
 
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
@@ -22,7 +22,14 @@ type Props = ModalRenderProps & {
   user: User;
 };
 
-export function UserPermissionsModal({Body, Header, user, onSubmit, closeModal}: Props) {
+export function UserPermissionsModal({
+  Body,
+  Header,
+  Footer,
+  user,
+  onSubmit,
+  closeModal,
+}: Props) {
   const {
     data: availablePermissions,
     isPending: availablePermissionsLoading,
@@ -130,14 +137,31 @@ export function UserPermissionsModal({Body, Header, user, onSubmit, closeModal}:
   }
 
   return (
-    <Fragment>
-      <Header closeButton>Edit Permissions</Header>
+    <form.AppForm form={form}>
+      <Header closeButton>
+        <Heading as="h4">Edit Permissions</Heading>
+      </Header>
       <Body>
-        <form.AppForm form={form}>
-          <Stack gap="lg">
-            <form.AppField name="isSuperuser">
+        <Stack gap="lg">
+          <form.AppField name="isSuperuser">
+            {field => (
+              <field.Layout.Stack label="Grant superuser permission (required for admin access).">
+                <field.Switch checked={field.state.value} onChange={field.handleChange} />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+          <form.AppField name="isStaff">
+            {field => (
+              <field.Layout.Stack label="Grant staff permission (WIP, will be required for admin access in the future).">
+                <field.Switch checked={field.state.value} onChange={field.handleChange} />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+          <Heading as="h4">Additional Permissions</Heading>
+          {available.map(perm => (
+            <form.AppField key={perm} name={perm}>
               {field => (
-                <field.Layout.Stack label="Grant superuser permission (required for admin access).">
+                <field.Layout.Stack label={perm}>
                   <field.Switch
                     checked={field.state.value}
                     onChange={field.handleChange}
@@ -145,33 +169,12 @@ export function UserPermissionsModal({Body, Header, user, onSubmit, closeModal}:
                 </field.Layout.Stack>
               )}
             </form.AppField>
-            <form.AppField name="isStaff">
-              {field => (
-                <field.Layout.Stack label="Grant staff permission (WIP, will be required for admin access in the future).">
-                  <field.Switch
-                    checked={field.state.value}
-                    onChange={field.handleChange}
-                  />
-                </field.Layout.Stack>
-              )}
-            </form.AppField>
-            <Heading as="h4">Additional Permissions</Heading>
-            {available.map(perm => (
-              <form.AppField key={perm} name={perm}>
-                {field => (
-                  <field.Layout.Stack label={perm}>
-                    <field.Switch
-                      checked={field.state.value}
-                      onChange={field.handleChange}
-                    />
-                  </field.Layout.Stack>
-                )}
-              </form.AppField>
-            ))}
-            <form.SubmitButton>Save Changes</form.SubmitButton>
-          </Stack>
-        </form.AppForm>
+          ))}
+        </Stack>
       </Body>
-    </Fragment>
+      <Footer>
+        <form.SubmitButton>Save Changes</form.SubmitButton>
+      </Footer>
+    </form.AppForm>
   );
 }
