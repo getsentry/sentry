@@ -45,6 +45,11 @@ QUOTA_WINDOW = 60
 # upserted without hitting the project rate-limit.
 ALLOWED_MINIMUM = 50
 
+# Maximum number of distinct (slug, environment) pairs per project that relay
+# tracks for the per-monitor quota in one window. The largest projects have
+# ~1.5k monitor environments.
+PER_MONITOR_MAX_CARDINALITY = 2000
+
 
 def get_project_monitor_quota(
     project: Project,

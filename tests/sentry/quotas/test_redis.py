@@ -6,10 +6,17 @@ from unittest import mock
 import pytest
 
 from sentry.constants import DataCategory
-from sentry.quotas.base import QuotaConfig, QuotaScope, build_metric_abuse_quotas
+from sentry.quotas.base import (
+    QuotaConfig,
+    QuotaDimension,
+    QuotaGroupBy,
+    QuotaScope,
+    build_metric_abuse_quotas,
+)
 from sentry.quotas.redis import RedisQuota, is_rate_limited
 from sentry.sentry_metrics.use_case_id_registry import CARDINALITY_LIMIT_USE_CASES, UseCaseID
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.redis import use_redis_cluster
 from sentry.utils.redis import clusters, redis_clusters
 
@@ -252,6 +259,32 @@ class RedisQuotaTest(TestCase):
         assert quotas[0].scope_id == str(self.project.id)
         assert quotas[0].limit == 15
         assert quotas[0].window == 60
+
+    def test_per_monitor_quota_disabled(self) -> None:
+        self.get_monitor_quota.return_value = (15, 60)
+        quotas = self.quota.get_quotas(self.project)
+        assert not any(q.id == "mrlm" for q in quotas)
+
+    @override_options(
+        {"crons.per_monitor_relay_quota.enabled": True, "crons.per_monitor_rate_limit": 6}
+    )
+    def test_per_monitor_quota(self) -> None:
+        self.get_monitor_quota.return_value = (15, 60)
+        quotas = self.quota.get_quotas(self.project)
+
+        quota = next(q for q in quotas if q.id == "mrlm")
+        assert quota.scope == QuotaScope.PROJECT
+        assert quota.scope_id == str(self.project.id)
+        assert quota.categories == {DataCategory.MONITOR}
+        assert quota.limit == 6
+        assert quota.window == 60
+        assert quota.reason_code == "monitor_rate_limit"
+        assert quota.group_by == QuotaGroupBy(
+            max_cardinality=2000,
+            dimensions=(QuotaDimension.CHECK_IN_SLUG, QuotaDimension.CHECK_IN_ENVIRONMENT),
+        )
+        # The project-wide monitor quota is still sent.
+        assert any(q.id == "mrl" for q in quotas)
 
     @mock.patch("sentry.quotas.redis.is_rate_limited")
     @mock.patch.object(RedisQuota, "get_quotas", return_value=[])
