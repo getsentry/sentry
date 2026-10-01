@@ -33,14 +33,7 @@ import {
 import {useIssuePreviewSeer} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewSeer';
 import {IssuePreviewSeerActions} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewSeerActions';
 
-function shouldShowFixAppliedActions(group: Group, project: Project) {
-  return (
-    group.derivedData?.progress === ProgressState.FIX_APPLIED &&
-    getConfigForIssueType(group, project).actions.resolve.enabled
-  );
-}
-
-interface IssuePreviewActionsProps {
+interface IssuePreviewHeaderActionsProps {
   group: Group;
   onContinueInSeer: () => void;
   onRetryCodeChanges: () => void;
@@ -74,7 +67,7 @@ export function OpenIssueButton({
   );
 }
 
-function IssueResolutionActions({
+function IssuePreviewResolutionActions({
   disabled,
   group,
   project,
@@ -173,18 +166,27 @@ function IssueResolutionActions({
   );
 }
 
-export function IssuePreviewActions({
+export function IssuePreviewHeaderActions({
   disabled = false,
   group,
   onContinueInSeer,
   onRetryCodeChanges,
   project,
-}: IssuePreviewActionsProps) {
+}: IssuePreviewHeaderActionsProps) {
   const {state} = useIssuePreviewSeer();
   const shouldShowSeerActions = state === 'start' || state === 'summary';
 
-  if (shouldShowFixAppliedActions(group, project)) {
-    return <IssueResolutionActions disabled={disabled} group={group} project={project} />;
+  if (
+    group.derivedData?.progress === ProgressState.FIX_APPLIED &&
+    getConfigForIssueType(group, project).actions.resolve.enabled
+  ) {
+    return (
+      <IssuePreviewResolutionActions
+        disabled={disabled}
+        group={group}
+        project={project}
+      />
+    );
   }
 
   if (state === 'loading') {
@@ -205,7 +207,7 @@ export function IssuePreviewActions({
         onContinueInSeer={onContinueInSeer}
         onRetryCodeChanges={onRetryCodeChanges}
       />
-      <IssueResolutionActions
+      <IssuePreviewResolutionActions
         disabled={disabled}
         group={group}
         project={project}
