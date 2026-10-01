@@ -827,16 +827,6 @@ function evaluationToMarkdown(evaluation: Evaluation | undefined): string[] {
   return lines;
 }
 
-/**
- * One-line result for the transcript row, e.g. `authIssue: Yes, urgency: high`,
- * in the style of a tool call's arguments.
- */
-export function getEvaluationPreview(evaluation: Evaluation | undefined): string {
-  return getAnswerLabels(evaluation?.answers ?? [], evaluation?.input?.questions)
-    .map(([key, label]) => `${key}: ${label}`)
-    .join(', ');
-}
-
 export function messagesToMarkdown(messages: ConversationMessage[]): string {
   const blocks: string[] = [];
 
