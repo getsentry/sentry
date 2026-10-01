@@ -42,6 +42,12 @@ from sentry.auth.services.auth.model import RpcAuthState, RpcMemberSsoState
 from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
 from sentry.data_secrecy.models.data_access_grant import DataAccessGrant
 from sentry.event_manager import EventManager
+from sentry.explore.models import (
+    ExploreSavedFormula,
+    ExploreSavedVariable,
+    KindItemTypes,
+    ParamItemTypes,
+)
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.hybridcloud.models.outbox import CellOutbox, outbox_context
 from sentry.hybridcloud.models.webhookpayload import WebhookPayload
@@ -65,7 +71,6 @@ from sentry.incidents.models.alert_rule import (
 )
 from sentry.incidents.models.incident import (
     Incident,
-    IncidentActivity,
     IncidentProject,
     IncidentType,
 )
@@ -2097,13 +2102,6 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
-    def create_incident_activity(incident, type, comment=None, user_id=None, **kwargs):
-        return IncidentActivity.objects.create(
-            incident=incident, type=type, comment=comment, user_id=user_id, **kwargs
-        )
-
-    @staticmethod
-    @assume_test_silo_mode(SiloMode.CELL)
     def create_alert_rule(
         organization,
         projects,
@@ -2616,6 +2614,79 @@ class Factories:
         return Dashboard.objects.create(
             organization=organization, title=title, created_by_id=created_by.id, **kwargs
         )
+
+    @staticmethod
+    def explore_apdex_formula_data() -> dict[str, Any]:
+        """Payload used by Explore saved-formula API and resolver tests."""
+        return copy.deepcopy(
+            {
+                "name": "formula.apdex",
+                "formula": "({count_satisfied} + {count_tolerating} / 2) / count()",
+                "unit": None,
+                "references": [
+                    {
+                        "name": "count_satisfied",
+                        "value": "count_if(`{duration}:<{threshold}`)",
+                    },
+                    {
+                        "name": "count_tolerating",
+                        "value": "count_if(`{duration}:>={threshold} and {duration}:<={4threshold}`)",
+                    },
+                ],
+                "params": [
+                    {
+                        "name": "duration",
+                        "type": "column",
+                        "order": 0,
+                        "value": "",
+                    },
+                    {
+                        "name": "threshold",
+                        "type": "number",
+                        "order": 1,
+                        "value": "",
+                    },
+                    {
+                        "name": "4threshold",
+                        "type": "calculation",
+                        "order": 2,
+                        "value": "{threshold} * 4",
+                    },
+                ],
+            }
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_explore_saved_formula(
+        organization: Organization,
+        data: Mapping[str, Any] | None = None,
+        **kwargs: Any,
+    ) -> ExploreSavedFormula:
+        payload = Factories.explore_apdex_formula_data() if data is None else dict(data)
+        payload.update(kwargs)
+        references = list(payload.pop("references", []))
+        params = list(payload.pop("params", []))
+        formula = ExploreSavedFormula.objects.create(organization=organization, **payload)
+        for reference in references:
+            ExploreSavedVariable.objects.create(
+                organization=organization,
+                name=reference["name"],
+                value=reference["value"],
+                kind=KindItemTypes.REFERENCE,
+                explore_saved_formula=formula,
+            )
+        for param in params:
+            ExploreSavedVariable.objects.create(
+                organization=organization,
+                name=param["name"],
+                value=param["value"],
+                param_type=ParamItemTypes.get_id_for_type_name(param["type"]),
+                kind=KindItemTypes.PARAM,
+                explore_saved_formula=formula,
+                order=param["order"],
+            )
+        return formula
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)

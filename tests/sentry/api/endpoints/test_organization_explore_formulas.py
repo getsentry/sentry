@@ -4,12 +4,12 @@ from django.urls import reverse
 
 from sentry.explore.models import (
     ExploreSavedFormula,
-    ExploreSavedVariable,
     KindItemTypes,
     ParamItemTypes,
 )
 from sentry.models.organization import Organization
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.factories import Factories
 
 
 class BaseFormulaTest(APITestCase):
@@ -22,75 +22,20 @@ class BaseFormulaTest(APITestCase):
         self.login_as(user=self.user)
         self.org = self.create_organization(owner=self.user)
         self.project = self.create_project(organization=self.org)
-        self.formula_object: dict[Any, Any] = {
-            "name": "formula.apdex",
-            "formula": "({count_satisfied} + {count_tolerating} / 2) / count()",
-            "unit": None,
-            "references": [
-                {"name": "count_satisfied", "value": "count_if(`{duration}:<{threshold}`)"},
-                {
-                    "name": "count_tolerating",
-                    "value": "count_if(`{duration}:>={threshold} and {duration}:<={4threshold}`)",
-                },
-            ],
-            "params": [
-                {
-                    "name": "duration",
-                    "type": "column",
-                    "order": 0,
-                    "value": "",
-                },
-                {
-                    "name": "threshold",
-                    "type": "number",
-                    "order": 1,
-                    "value": "",
-                },
-                {
-                    "name": "4threshold",
-                    "type": "calculation",
-                    "order": 2,
-                    "value": "{threshold} * 4",
-                },
-            ],
-        }
+        self.formula_object = Factories.explore_apdex_formula_data()
 
     def create_formula(
-        self, data: dict[Any, Any], organization: None | Organization = None
+        self, data: dict[Any, Any] | None = None, organization: None | Organization = None
     ) -> ExploreSavedFormula:
-        org = self.org if organization is None else organization
-        formula = ExploreSavedFormula.objects.create(
-            organization=org,
-            formula=data["formula"],
-            name=data["name"],
-            unit=data["unit"],
+        return self.create_explore_saved_formula(
+            organization=self.org if organization is None else organization,
+            data=self.formula_object if data is None else data,
         )
-        for reference in data["references"]:
-            (
-                ExploreSavedVariable.objects.create(
-                    organization=org,
-                    name=reference["name"],
-                    value=reference["value"],
-                    kind=KindItemTypes.REFERENCE,
-                    explore_saved_formula=formula,
-                ),
-            )
-        for param in data["params"]:
-            ExploreSavedVariable.objects.create(
-                organization=self.org,
-                name=param["name"],
-                value=param["value"],
-                param_type=ParamItemTypes.get_id_for_type_name(param["type"]),
-                kind=KindItemTypes.PARAM,
-                explore_saved_formula=formula,
-                order=param["order"],
-            )
-        return formula
 
 
 class TestFormulaDetails(BaseFormulaTest):
     def test_get_explore_formula(self) -> None:
-        formula = self.create_formula(self.formula_object)
+        formula = self.create_formula()
         with self.feature(self.feature_flags):
             response = self.client.get(
                 reverse("sentry-api-0-explore-formulas-detail", args=[self.org.slug, formula.id])
@@ -127,7 +72,7 @@ class TestFormulaDetails(BaseFormulaTest):
         ]
 
     def test_delete_explore_formula(self) -> None:
-        formula = self.create_formula(self.formula_object)
+        formula = self.create_formula()
         with self.feature(self.feature_flags):
             response = self.client.delete(
                 reverse("sentry-api-0-explore-formulas-detail", args=[self.org.slug, formula.id])
@@ -136,7 +81,7 @@ class TestFormulaDetails(BaseFormulaTest):
         assert ExploreSavedFormula.objects.filter(id=formula.id).first() is None
 
     def test_update_explore_formula(self) -> None:
-        formula = self.create_formula(self.formula_object)
+        formula = self.create_formula()
         self.formula_object["name"] = "formula.hello"
         self.formula_object["formula"] = "count() + count()"
         with self.feature(self.feature_flags):
@@ -149,7 +94,7 @@ class TestFormulaDetails(BaseFormulaTest):
         assert response.data["formula"] == "count() + count()"
 
     def test_update_explore_formula_with_name_already_in_db(self) -> None:
-        formula = self.create_formula(self.formula_object)
+        formula = self.create_formula()
         formula_object2 = self.formula_object.copy()
         formula_object2["name"] = "formula.hello"
         # Create a formula with the name we'll put with
