@@ -24,7 +24,7 @@ from sentry.models.activity import Activity
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.rule import Rule, RuleSource
-from sentry.notifications.platform.shadow.runner import shadow_read
+from sentry.notifications.platform.shadow.capture import shadow_read
 from sentry.notifications.platform.types import NotificationSource
 from sentry.notifications.types import TEST_NOTIFICATION_ID, RuleFuture
 from sentry.notifications.utils.issue_notification_context import IssueNotificationContext

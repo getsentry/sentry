@@ -1,59 +1,30 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable, Generator, Mapping
-from contextlib import contextmanager
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from enum import StrEnum
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import orjson
 import sentry_sdk
 from slack_sdk.models.blocks import Block
 
-from sentry import options
-from sentry.incidents.models.incident import INCIDENT_STATUS
-from sentry.incidents.typings.metric_detector import MetricIssueContext
-from sentry.models.activity import Activity
-from sentry.models.group import GroupStatus
 from sentry.notifications.platform.registry import (
     provider_registry,
     renderer_registry,
     template_registry,
 )
 from sentry.notifications.platform.service import NotificationService
-from sentry.notifications.platform.shadow.capture import (
-    LegacyRender,
-    ShadowCollector,
-    collecting,
-)
-from sentry.notifications.platform.types import (
-    NotificationData,
-    NotificationProviderKey,
-    NotificationSource,
-)
-from sentry.notifications.types import TEST_NOTIFICATION_ID
-from sentry.notifications.utils.issue_notification_context import IssueNotificationContext
-from sentry.ratelimits import backend as ratelimiter
-from sentry.services.eventstore.models import GroupEvent
-from sentry.types.group import GroupSubStatus
+from sentry.notifications.platform.types import NotificationProviderKey, NotificationSource
 from sentry.utils import metrics
 from sentry.utils.payload_comparison import ParityChecker, describe_value
-from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.types import ActionInvocation
 
+if TYPE_CHECKING:
+    from sentry.notifications.platform.shadow.capture import BuildPlatformData, LegacyRender
+
 logger = logging.getLogger(__name__)
-
-SHADOW_PROVIDERS: dict[str, NotificationProviderKey] = {
-    Action.Type.SLACK: NotificationProviderKey.SLACK,
-    Action.Type.SLACK_STAGING: NotificationProviderKey.SLACK_STAGING,
-    Action.Type.DISCORD: NotificationProviderKey.DISCORD,
-    Action.Type.MSTEAMS: NotificationProviderKey.MSTEAMS,
-}
-
-SHADOW_SOURCES = frozenset({NotificationSource.ISSUE, NotificationSource.METRIC_ALERT})
-
-type BuildPlatformData = Callable[[LegacyRender], NotificationData]
 
 
 class ShadowOutcome(StrEnum):
@@ -69,69 +40,6 @@ class ShadowOutcome(StrEnum):
 class ShadowResult:
     outcome: ShadowOutcome
     diff: list[str] = field(default_factory=list)
-
-
-def _variant(
-    invocation: ActionInvocation, source: NotificationSource, provider_key: NotificationProviderKey
-) -> str:
-    """
-    Names the combination of source, provider, and the invocation attributes the legacy renderers
-    branch on, e.g. `issue:slack:error:event:tags:no_notes:unresolved:new:no_env`.
-    """
-    group = invocation.event_data.group
-    event = invocation.event_data.event
-    notes = "notes" if invocation.action.data.get("notes") else "no_notes"
-    if source == NotificationSource.ISSUE:
-        has_occurrence = isinstance(event, GroupEvent) and event.occurrence_id is not None
-        parts = [
-            group.issue_type.slug,
-            "occurrence" if has_occurrence else "event",
-            "tags" if invocation.action.data.get("tags") else "no_tags",
-            notes,
-            {GroupStatus.RESOLVED: "resolved", GroupStatus.IGNORED: "ignored"}.get(
-                group.status, "unresolved"
-            ),
-            "new" if group.substatus == GroupSubStatus.NEW else "not_new",
-            "env" if invocation.event_data.workflow_env is not None else "no_env",
-        ]
-    else:
-        _, priority = IssueNotificationContext(invocation).evidence_data_and_priority
-        parts = [
-            INCIDENT_STATUS[MetricIssueContext._get_new_status(group, priority)].lower(),
-            "activity" if isinstance(event, Activity) else "occurrence",
-            notes,
-            str(invocation.detector.config.get("detection_type")),
-        ]
-    return ":".join([source.value, provider_key.value, *parts])
-
-
-def _sampled_variant(
-    invocation: ActionInvocation, source: NotificationSource, provider_key: NotificationProviderKey
-) -> str | None:
-    """
-    Returns the invocation's variant if it is among the first
-    `notifications.platform.shadow-render.variant-daily-limit` invocations of that variant today,
-    otherwise None.
-    """
-    try:
-        if (
-            source not in SHADOW_SOURCES
-            or invocation.workflow_id == TEST_NOTIFICATION_ID
-            or invocation.action.id == TEST_NOTIFICATION_ID
-        ):
-            return None
-        limit = options.get("notifications.platform.shadow-render.variant-daily-limit")
-        if limit <= 0:
-            return None
-        variant = _variant(invocation, source, provider_key)
-        if ratelimiter.is_limited(
-            f"notifications.platform.shadow:{variant}", limit, window=24 * 60 * 60
-        ):
-            return None
-        return variant
-    except Exception:
-        logger.exception("notifications.platform.shadow.sample_failed", extra={"source": source})
-        return None
 
 
 def _capture_shadow_error(
@@ -195,18 +103,17 @@ def _diff(legacy: Mapping[str, Any], platform: Mapping[str, Any]) -> list[str]:
 def _compare_with_platform(
     source: NotificationSource,
     provider_key: NotificationProviderKey,
-    collector: ShadowCollector,
+    legacy_render: LegacyRender | None,
     build_data: BuildPlatformData,
 ) -> ShadowResult:
     """
     Renders the invocation through the notification platform and diffs it against the legacy
-    payload in the collector.
+    render.
     """
     provider = provider_registry.get(provider_key)
     renderer_key = provider.renderer_key or provider.key
     if renderer_registry.get(provider_key=renderer_key, source=source) is None:
         return ShadowResult(outcome=ShadowOutcome.NO_RENDERER)
-    legacy_render = collector.legacy_render
     if legacy_render is None:
         return ShadowResult(outcome=ShadowOutcome.LEGACY_NOT_CAPTURED)
 
@@ -231,14 +138,18 @@ def _compare_with_platform(
     return ShadowResult(outcome=ShadowOutcome.MISMATCH, diff=entries)
 
 
-def _report(
+def report(
     invocation: ActionInvocation,
     source: NotificationSource,
     provider_key: NotificationProviderKey,
     variant: str,
-    collector: ShadowCollector,
+    legacy_render: LegacyRender | None,
     build_data: BuildPlatformData,
 ) -> None:
+    """
+    Compares the legacy render with the platform's and records the outcome as metrics, logging
+    the diff on a mismatch. Never raises.
+    """
     log_extra: dict[str, Any] = {
         "source": source.value,
         "provider": provider_key.value,
@@ -251,7 +162,7 @@ def _report(
         with metrics.timer(
             "notifications.platform.shadow.duration", tags=tags, sample_rate=1.0
         ) as timer_tags:
-            result = _compare_with_platform(source, provider_key, collector, build_data)
+            result = _compare_with_platform(source, provider_key, legacy_render, build_data)
             timer_tags["outcome"] = result.outcome.value
         metrics.incr(
             "notifications.platform.shadow.result",
@@ -273,32 +184,3 @@ def _report(
             )
     except Exception:
         logger.exception("notifications.platform.shadow.report_failed", extra=log_extra)
-
-
-@contextmanager
-def shadow_read(
-    invocation: ActionInvocation, source: NotificationSource, build_data: BuildPlatformData
-) -> Generator[None]:
-    """
-    Wraps a legacy alert send. When the invocation is sampled, the payload the legacy path sends is
-    captured, and once the send returns or raises an `Exception`, `build_data` turns that capture
-    into the data the notification platform renders, and the two payloads are compared.
-    `build_data` is only called when a legacy payload was captured.
-
-    The shadow never raises into the send, and an exception from the send propagates unchanged.
-    """
-    provider_key = SHADOW_PROVIDERS.get(invocation.action.type)
-    if (
-        provider_key is None
-        or (variant := _sampled_variant(invocation, source, provider_key)) is None
-    ):
-        yield
-        return
-
-    try:
-        with collecting() as collector:
-            yield
-    except Exception:
-        _report(invocation, source, provider_key, variant, collector, build_data)
-        raise
-    _report(invocation, source, provider_key, variant, collector, build_data)

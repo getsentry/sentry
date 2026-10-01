@@ -19,7 +19,8 @@ from sentry.notifications.notification_action.utils import (
     execute_via_metric_alert_handler,
     metric_alert_notification_data_factory,
 )
-from sentry.notifications.platform.shadow.runner import SHADOW_PROVIDERS, ShadowOutcome, _variant
+from sentry.notifications.platform.shadow.capture import SHADOW_PROVIDERS, _variant
+from sentry.notifications.platform.shadow.compare import ShadowOutcome
 from sentry.notifications.platform.types import NotificationProviderKey, NotificationSource
 from sentry.services.eventstore.models import GroupEvent
 from sentry.shared_integrations.exceptions import ApiError
@@ -32,10 +33,9 @@ from sentry.workflow_engine.types import ActionInvocation, DetectorPriorityLevel
 from tests.sentry.notifications.notification_action.test_metric_alert_registry_handlers import (
     MetricAlertHandlerBase,
 )
-from tests.sentry.notifications.platform.shadow.test_runner import (
-    RUNNER_PATH,
-    SAMPLE_ALL,
-    VARIANT_DAILY_LIMIT,
+from tests.sentry.notifications.platform.shadow.test_capture import SAMPLE_ALL, VARIANT_DAILY_LIMIT
+from tests.sentry.notifications.platform.shadow.test_compare import (
+    COMPARE_PATH,
     ShadowObservation,
     observe_shadow,
     resolve,
@@ -279,9 +279,9 @@ class ShadowReadIssueAlertTest(ShadowReadTestBase):
         assert excinfo.value.__cause__ is error
         self.assert_event_link_mismatch(observation, "blocks[0].text.text")
 
-    @mock.patch(f"{RUNNER_PATH}.sentry_sdk.capture_exception")
+    @mock.patch(f"{COMPARE_PATH}.sentry_sdk.capture_exception")
     @mock.patch(
-        f"{RUNNER_PATH}.NotificationService.render_template", side_effect=RuntimeError("platform")
+        f"{COMPARE_PATH}.NotificationService.render_template", side_effect=RuntimeError("platform")
     )
     def test_platform_error_does_not_affect_the_send(
         self, mock_render: mock.MagicMock, mock_capture: mock.MagicMock
@@ -295,7 +295,7 @@ class ShadowReadIssueAlertTest(ShadowReadTestBase):
         mock_capture.assert_called_once_with(mock_render.side_effect)
 
     @override_options({VARIANT_DAILY_LIMIT: 0})
-    @mock.patch(f"{RUNNER_PATH}.NotificationService.render_template")
+    @mock.patch(f"{COMPARE_PATH}.NotificationService.render_template")
     def test_not_sampled(self, mock_render: mock.MagicMock) -> None:
         action = self.create_shadow_action("msteams")
 
@@ -424,7 +424,7 @@ class ShadowReadMetricAlertTest(ShadowReadTestBase, MetricAlertHandlerBase):
 
     @mock.patch(f"{SLACK_METRIC_HANDLER}._send_via_notification_platform")
     @mock.patch(f"{SLACK_METRIC_HANDLER}.NotificationService.has_access", return_value=True)
-    @mock.patch(f"{RUNNER_PATH}.NotificationService.render_template")
+    @mock.patch(f"{COMPARE_PATH}.NotificationService.render_template")
     def test_slack_sent_by_platform_is_not_compared(
         self,
         mock_render: mock.MagicMock,
