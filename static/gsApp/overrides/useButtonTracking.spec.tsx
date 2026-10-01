@@ -1,4 +1,5 @@
-import {createMemoryRouter, RouterProvider} from 'react-router-dom';
+import {createMemoryRouter} from 'react-router';
+import {RouterProvider} from 'react-router/dom';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {ProjectFixture} from 'getsentry-test/fixtures/project';
@@ -49,7 +50,7 @@ describe('buttonTracking', () => {
           ],
           {initialEntries: [`/settings/${organization.slug}/${project.slug}/`]}
         )}
-        future={{v7_startTransition: true}}
+        useTransitions={false}
       />
     </OrganizationContext>
   );
@@ -67,7 +68,7 @@ describe('buttonTracking', () => {
           ],
           {initialEntries: ['/auth/login/']}
         )}
-        future={{v7_startTransition: true}}
+        useTransitions={false}
       />
     </OrganizationContext>
   );

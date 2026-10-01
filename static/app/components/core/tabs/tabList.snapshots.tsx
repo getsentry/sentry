@@ -1,4 +1,4 @@
-import {MemoryRouter} from 'react-router-dom';
+import {MemoryRouter} from 'react-router';
 
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
@@ -17,7 +17,7 @@ describe('TabList', () => {
     return (
       // TabList renders tab links and calls useNavigate(), which needs a
       // router in context even under SSR.
-      <MemoryRouter>
+      <MemoryRouter useTransitions={false}>
         {/* Padding so selection indicators / focus rings aren't clipped by
           rootElement.screenshot()'s border-box crop. */}
         <div style={{padding: 8}}>{children}</div>

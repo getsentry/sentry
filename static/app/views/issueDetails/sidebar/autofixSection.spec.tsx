@@ -1,4 +1,4 @@
-import {useMatches} from 'react-router-dom';
+import {useMatches} from 'react-router';
 import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -19,8 +19,8 @@ import type {LLMContextSnapshot} from 'sentry/views/seerExplorer/contexts/llmCon
 import {AutofixSection} from './autofixSection';
 
 jest.mock('sentry/utils/cells');
-jest.mock('react-router-dom', () => ({
-  ...jest.requireActual('react-router-dom'),
+jest.mock('react-router', () => ({
+  ...jest.requireActual('react-router'),
   useMatches: jest.fn(),
 }));
 
@@ -33,7 +33,7 @@ function matchesForTab(tab: Tab) {
       id: '0',
       pathname: '/organizations/org-slug/issues/1/',
       params: {orgId: 'org-slug', groupId: '1'},
-      data: null,
+      loaderData: null,
       handle: {path: TabPaths[tab]},
     },
   ];

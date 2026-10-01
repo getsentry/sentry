@@ -19,6 +19,10 @@ const swcConfig: SwcOptions = {
       dynamicImport: true,
     },
     transform: {
+      optimizer: {
+        // React Router's ESM build checks Vite HMR; Jest runs without it.
+        globals: {vars: {'import.meta.hot': 'undefined'}},
+      },
       react: {
         runtime: 'automatic',
         importSource: '@emotion/react',
@@ -248,6 +252,9 @@ const ESM_NODE_MODULES = [
   'screenfull',
   'cbor2',
   'nuqs',
+  'react-router',
+  '@remix-run\\+route-pattern',
+  'cookie-es',
   'color',
   'marked',
   '@sentry\\+sqlish',

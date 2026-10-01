@@ -1,4 +1,4 @@
-import {useMatches} from 'react-router-dom';
+import {useMatches} from 'react-router';
 import {duration} from 'moment-timezone';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -27,11 +27,13 @@ const mockReplayUrl = '/organizations/org-slug/replays/';
 const REPLAY_ID_1 = '346789a703f6454384f1de473b8b9fcc';
 const REPLAY_ID_2 = 'b05dae9b6be54d21a4d5ad9f8f02b780';
 
-jest.mock('sentry/utils/replays/hooks/useLoadReplayReader');
+jest.mock('sentry/utils/replays/hooks/useLoadReplayReader', () => ({
+  useLoadReplayReader: jest.fn(),
+}));
 const mockUseLoadReplayReader = jest.mocked(useLoadReplayReader);
 
-jest.mock('react-router-dom', () => ({
-  ...jest.requireActual('react-router-dom'),
+jest.mock('react-router', () => ({
+  ...jest.requireActual('react-router'),
   useMatches: jest.fn(),
 }));
 const mockUseMatches = jest.mocked(useMatches);
@@ -127,7 +129,7 @@ describe('GroupReplays', () => {
         id: '0',
         pathname: `/organizations/org-slug/issues/${mockGroup.id}/replays/`,
         params: {orgId: 'org-slug', groupId: mockGroup.id},
-        data: null,
+        loaderData: null,
         handle: {path: '/organizations/:orgId/issues/:groupId/replays/'},
       },
     ]);

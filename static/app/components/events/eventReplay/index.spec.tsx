@@ -21,7 +21,9 @@ import type {RawReplayError} from 'sentry/utils/replays/types';
 import {GroupIdProvider} from 'sentry/views/issueDetails/groupIdContext';
 
 jest.mock('sentry/utils/replays/hooks/useReplayOnboarding');
-jest.mock('sentry/utils/replays/hooks/useLoadReplayReader');
+jest.mock('sentry/utils/replays/hooks/useLoadReplayReader', () => ({
+  useLoadReplayReader: jest.fn(),
+}));
 // Replay clip preview is very heavy, mock it out
 jest.mock(
   'sentry/components/events/eventReplay/replayClipPreview',

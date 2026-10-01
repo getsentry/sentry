@@ -17,8 +17,8 @@ import {RequestError} from 'sentry/utils/requestError/requestError';
 
 import ReplayClipPreview from './replayClipPreview';
 
-jest.mock('react-router-dom', () => ({
-  ...jest.requireActual('react-router-dom'),
+jest.mock('react-router', () => ({
+  ...jest.requireActual('react-router'),
   useMatches: jest.fn(() => [
     {
       id: '0',
@@ -29,7 +29,9 @@ jest.mock('react-router-dom', () => ({
     },
   ]),
 }));
-jest.mock('sentry/utils/replays/hooks/useLoadReplayReader');
+jest.mock('sentry/utils/replays/hooks/useLoadReplayReader', () => ({
+  useLoadReplayReader: jest.fn(),
+}));
 
 const mockUseLoadReplayReader = jest.mocked(useLoadReplayReader);
 

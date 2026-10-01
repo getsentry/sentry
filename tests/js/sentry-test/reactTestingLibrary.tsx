@@ -2,21 +2,18 @@ import {Fragment} from 'react';
 import {createPortal} from 'react-dom';
 import {
   Outlet,
-  RouterProvider,
+  UNSAFE_createMemoryHistory as createMemoryHistory,
+  UNSAFE_createRouter as createRouter,
+  type DataRouter as Router,
+  type InitialEntry,
+  type RouterNavigateOptions,
   useRouteError,
   type RouteObject,
   type To,
-} from 'react-router-dom';
+} from 'react-router';
+import {RouterProvider} from 'react-router/dom';
 import {cache} from '@emotion/css'; // eslint-disable-line @sentry/no-vanilla-emotion
 import {CacheProvider, ThemeProvider} from '@emotion/react';
-import {
-  createMemoryHistory,
-  createRouter,
-  type InitialEntry,
-  type MemoryHistory,
-  type Router,
-  type RouterNavigateOptions,
-} from '@remix-run/router';
 import {QueryClientProvider} from '@tanstack/react-query';
 import * as rtl from '@testing-library/react'; // eslint-disable-line no-restricted-imports
 import {userEvent} from '@testing-library/user-event'; // eslint-disable-line no-restricted-imports
@@ -236,7 +233,7 @@ function makeRouter({
 }: {
   children: React.ReactNode;
   config: RouterConfig | undefined;
-  history: MemoryHistory;
+  history: ReturnType<typeof createMemoryHistory>;
   outletContext: Record<string, unknown> | undefined;
 }) {
   const childRoutes = createRoutesFromConfig(children, config);
@@ -251,10 +248,6 @@ function makeRouter({
     : childRoutes;
 
   const router = createRouter({
-    future: {
-      v7_prependBasename: true,
-      v7_relativeSplatPath: true,
-    },
     history,
     routes,
   }).initialize();
@@ -376,7 +369,7 @@ function render(ui: React.ReactElement, options: RenderOptions = {}): RenderRetu
   });
 
   const renderResult = rtl.render(
-    <RouterProvider router={memoryRouter} future={{v7_startTransition: true}} />,
+    <RouterProvider router={memoryRouter} useTransitions={false} />,
     options
   );
 
@@ -388,11 +381,11 @@ function render(ui: React.ReactElement, options: RenderOptions = {}): RenderRetu
       outletContext,
     });
 
-    renderResult.rerender(
-      <RouterProvider router={newRouter} future={{v7_startTransition: true}} />
-    );
+    renderResult.rerender(<RouterProvider router={newRouter} useTransitions={false} />);
     // Force the router to update children
-    rtl.act(() => newRouter.revalidate());
+    rtl.act(() => {
+      newRouter.revalidate();
+    });
   };
 
   const testRouter = new TestRouter(memoryRouter);
@@ -431,7 +424,7 @@ function renderHookWithProviders<Result = unknown, Props = unknown>(
       outletContext,
     });
 
-    return <RouterProvider router={memoryRouter} future={{v7_startTransition: true}} />;
+    return <RouterProvider router={memoryRouter} useTransitions={false} />;
   }
 
   const {initialProps, ...rest} = options;
