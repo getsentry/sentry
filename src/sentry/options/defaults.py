@@ -3581,13 +3581,13 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Sample rate (0.0 - 1.0) per NotificationSource value for comparing the payload of an alert sent
-# through the legacy path with the notification platform's render of it. Independent of the
-# platform-rollout options above.
+# Number of alerts per variant per day whose legacy payload is compared with the notification
+# platform's render of it. A variant is the source, provider, and the alert attributes the legacy
+# renderers branch on. 0 disables the comparison. Independent of the platform-rollout options above.
 register(
-    "notifications.platform.shadow-render.sample-rates",
-    type=Dict,
-    default={},
+    "notifications.platform.shadow-render.variant-daily-limit",
+    type=Int,
+    default=0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Notification Options - End

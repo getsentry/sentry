@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from collections.abc import Generator
 from contextlib import AbstractContextManager, contextmanager
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any
 from unittest import mock
 
@@ -13,6 +13,8 @@ from slack_sdk.models.blocks import MarkdownTextObject, SectionBlock
 from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
 from sentry.grouping.grouptype import ErrorGroupType
+from sentry.issues.grouptype import FeedbackGroup
+from sentry.models.group import GroupStatus
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.notification_action.utils import issue_notification_data_factory
 from sentry.notifications.platform.shadow.capture import (
@@ -20,23 +22,28 @@ from sentry.notifications.platform.shadow.capture import (
     record_legacy_render,
 )
 from sentry.notifications.platform.shadow.runner import (
+    SHADOW_PROVIDERS,
     ShadowOutcome,
     _diff,
     _normalize,
+    _variant,
     shadow_read,
 )
 from sentry.notifications.platform.slack.provider import SlackRenderable
 from sentry.notifications.platform.types import NotificationProviderKey, NotificationSource
 from sentry.notifications.types import TEST_NOTIFICATION_ID
+from sentry.services.eventstore.models import GroupEvent
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
+from sentry.types.group import GroupSubStatus
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.types import ActionInvocation, WorkflowEventData
+from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 RUNNER_PATH = "sentry.notifications.platform.shadow.runner"
-SAMPLE_RATES = "notifications.platform.shadow-render.sample-rates"
+VARIANT_DAILY_LIMIT = "notifications.platform.shadow-render.variant-daily-limit"
 KILLSWITCH = "notifications.platform.killswitch.sources"
-SAMPLE_ALL = {SAMPLE_RATES: {"issue": 1.0, "metric-alert": 1.0}}
+SAMPLE_ALL = {VARIANT_DAILY_LIMIT: 100}
 
 _PATH_STEP = re.compile(r"(?:^|\.)(\w+)|\[(\d+)\]")
 
@@ -116,10 +123,12 @@ class ShadowInvocationTestCase(TestCase):
         action_type: str = Action.Type.SLACK,
         workflow_id: int | None = None,
         action: Action | None = None,
+        data: dict[str, Any] | None = None,
     ) -> ActionInvocation:
         action = action or self.create_action(
             type=action_type,
             integration_id=1234,
+            data=data or {},
             config={
                 "target_identifier": "C1",
                 "target_display": "#alerts",
@@ -272,32 +281,35 @@ class ShadowReadSamplingTest(ShadowInvocationTestCase):
             _send_legacy()
         mock_compare.assert_not_called()
 
-    def test_no_collector_without_a_sample_rate(self, mock_compare: mock.MagicMock) -> None:
+    def test_not_shadowed_without_a_limit(self, mock_compare: mock.MagicMock) -> None:
         self.assert_not_shadowed(mock_compare, self.create_invocation())
 
-    @override_options({SAMPLE_RATES: {"issue": 0.0, "metric-alert": 1.0}})
-    def test_samples_per_source(self, mock_compare: mock.MagicMock) -> None:
-        invocation = self.create_invocation(action_type=Action.Type.DISCORD)
-        self.assert_not_shadowed(mock_compare, invocation, NotificationSource.ISSUE)
+    @override_options({VARIANT_DAILY_LIMIT: 2})
+    def test_limit_is_per_variant(self, mock_compare: mock.MagicMock) -> None:
+        slack = self.create_invocation()
+        slack_with_tags = self.create_invocation(data={"tags": "level"})
+        discord = self.create_invocation(Action.Type.DISCORD)
 
-        with shadow(invocation, NotificationSource.METRIC_ALERT):
-            _send_legacy()
-
-        mock_compare.assert_called_once()
-        args = mock_compare.call_args.args
-        assert args[:2] == (NotificationSource.METRIC_ALERT, NotificationProviderKey.DISCORD)
-
-    @override_options({SAMPLE_RATES: {"issue": 0.25}})
-    def test_sample_rate_is_applied(self, mock_compare: mock.MagicMock) -> None:
-        invocation = self.create_invocation()
-
-        with mock.patch(f"{RUNNER_PATH}.random.random", return_value=0.3):
-            self.assert_not_shadowed(mock_compare, invocation)
-
-        with mock.patch(f"{RUNNER_PATH}.random.random", return_value=0.2):
+        for invocation in (slack, slack, slack, slack_with_tags, discord):
             with shadow(invocation, NotificationSource.ISSUE):
                 _send_legacy()
-        mock_compare.assert_called_once()
+
+        assert [call.args[1] for call in mock_compare.call_args_list] == [
+            NotificationProviderKey.SLACK,
+            NotificationProviderKey.SLACK,
+            NotificationProviderKey.SLACK,
+            NotificationProviderKey.DISCORD,
+        ]
+
+    @override_options(SAMPLE_ALL)
+    def test_metric_alert_without_metric_evidence_is_not_shadowed(
+        self, mock_compare: mock.MagicMock
+    ) -> None:
+        with mock.patch(f"{RUNNER_PATH}.logger") as mock_logger:
+            self.assert_not_shadowed(
+                mock_compare, self.create_invocation(), NotificationSource.METRIC_ALERT
+            )
+        mock_logger.exception.assert_called_once()
 
     @override_options({**SAMPLE_ALL, KILLSWITCH: ["issue"]})
     def test_killswitch(self, mock_compare: mock.MagicMock) -> None:
@@ -320,7 +332,7 @@ class ShadowReadSamplingTest(ShadowInvocationTestCase):
             self.assert_not_shadowed(mock_compare, invocation, NotificationSource.ISSUE)
             self.assert_not_shadowed(mock_compare, invocation, NotificationSource.METRIC_ALERT)
 
-    @override_options({SAMPLE_RATES: {"activity-set-resolved": 1.0}})
+    @override_options(SAMPLE_ALL)
     def test_skips_unsupported_sources(self, mock_compare: mock.MagicMock) -> None:
         self.assert_not_shadowed(
             mock_compare, self.create_invocation(), NotificationSource.ACTIVITY_SET_RESOLVED
@@ -340,6 +352,16 @@ class ShadowReadSamplingTest(ShadowInvocationTestCase):
 
         assert [call.args[1] for call in mock_compare.call_args_list] == list(expected.values())
 
+    def test_variant_failure_does_not_propagate(self, mock_compare: mock.MagicMock) -> None:
+        with (
+            override_options(SAMPLE_ALL),
+            mock.patch(f"{RUNNER_PATH}._variant", side_effect=RuntimeError("bad group")),
+            mock.patch(f"{RUNNER_PATH}.logger") as mock_logger,
+        ):
+            self.assert_not_shadowed(mock_compare, self.create_invocation())
+
+        mock_logger.exception.assert_called_once()
+
     def test_sampling_failure_does_not_propagate(self, mock_compare: mock.MagicMock) -> None:
         with (
             mock.patch(f"{RUNNER_PATH}.options.get", side_effect=RuntimeError("no options")),
@@ -348,6 +370,61 @@ class ShadowReadSamplingTest(ShadowInvocationTestCase):
             self.assert_not_shadowed(mock_compare, self.create_invocation())
 
         mock_logger.exception.assert_called_once()
+
+
+class IssueVariantTest(ShadowInvocationTestCase, OccurrenceTestMixin):
+    def variant(self, invocation: ActionInvocation) -> str:
+        provider_key = SHADOW_PROVIDERS[invocation.action.type]
+        return _variant(invocation, NotificationSource.ISSUE, provider_key)
+
+    def test_error_issue(self) -> None:
+        assert (
+            self.variant(self.create_invocation())
+            == "issue:slack:error:event:no_tags:no_notes:unresolved:new:no_env"
+        )
+
+    def test_action_config(self) -> None:
+        invocation = self.create_invocation(data={"tags": "level,foo", "notes": "@on-call"})
+        assert (
+            self.variant(invocation) == "issue:slack:error:event:tags:notes:unresolved:new:no_env"
+        )
+
+    def test_blank_action_config(self) -> None:
+        invocation = self.create_invocation(data={"tags": "", "notes": ""})
+        assert (
+            self.variant(invocation)
+            == "issue:slack:error:event:no_tags:no_notes:unresolved:new:no_env"
+        )
+
+    def test_group_status(self) -> None:
+        for status, name in (
+            (GroupStatus.RESOLVED, "resolved"),
+            (GroupStatus.IGNORED, "ignored"),
+            (GroupStatus.PENDING_DELETION, "unresolved"),
+        ):
+            self.issue_group.status = status
+            assert f":{name}:" in self.variant(self.create_invocation())
+
+    def test_substatus_and_environment(self) -> None:
+        self.issue_group.substatus = GroupSubStatus.ONGOING
+        invocation = self.create_invocation()
+        invocation = replace(
+            invocation,
+            event_data=replace(invocation.event_data, workflow_env=self.environment),
+        )
+        assert self.variant(invocation).endswith(":unresolved:not_new:env")
+
+    def test_occurrence_issue(self) -> None:
+        self.issue_group.type = FeedbackGroup.type_id
+        invocation = self.create_invocation(Action.Type.MSTEAMS)
+        event = invocation.event_data.event
+        assert isinstance(event, GroupEvent)
+        event.occurrence = self.build_occurrence(type=FeedbackGroup.type_id)
+
+        assert (
+            self.variant(invocation)
+            == "issue:msteams:feedback:occurrence:no_tags:no_notes:unresolved:new:no_env"
+        )
 
 
 class ShadowReadOutcomeTest(ShadowInvocationTestCase):
@@ -465,6 +542,7 @@ class ShadowReadOutcomeTest(ShadowInvocationTestCase):
         assert observation.mismatch == {
             "source": "issue",
             "provider": "msteams",
+            "variant": "issue:msteams:error:event:no_tags:no_notes:unresolved:new:no_env",
             "action_id": invocation.action.id,
             "workflow_id": self.workflow.id,
             "organization_id": self.organization.id,

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from typing import Any
 from unittest import mock
 
@@ -19,20 +19,23 @@ from sentry.notifications.notification_action.utils import (
     execute_via_metric_alert_handler,
     metric_alert_notification_data_factory,
 )
-from sentry.notifications.platform.shadow.runner import ShadowOutcome
+from sentry.notifications.platform.shadow.runner import SHADOW_PROVIDERS, ShadowOutcome, _variant
+from sentry.notifications.platform.types import NotificationProviderKey, NotificationSource
+from sentry.services.eventstore.models import GroupEvent
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.workflow_engine.models import Action, Detector
-from sentry.workflow_engine.types import ActionInvocation, WorkflowEventData
+from sentry.workflow_engine.types import ActionInvocation, DetectorPriorityLevel, WorkflowEventData
 from tests.sentry.notifications.notification_action.test_metric_alert_registry_handlers import (
     MetricAlertHandlerBase,
 )
 from tests.sentry.notifications.platform.shadow.test_runner import (
     RUNNER_PATH,
     SAMPLE_ALL,
+    VARIANT_DAILY_LIMIT,
     ShadowObservation,
     observe_shadow,
     resolve,
@@ -291,7 +294,7 @@ class ShadowReadIssueAlertTest(ShadowReadTestBase):
         assert observation.outcome == ShadowOutcome.PLATFORM_ERROR
         mock_capture.assert_called_once_with(mock_render.side_effect)
 
-    @override_options({"notifications.platform.shadow-render.sample-rates": {}})
+    @override_options({VARIANT_DAILY_LIMIT: 0})
     @mock.patch(f"{RUNNER_PATH}.NotificationService.render_template")
     def test_not_sampled(self, mock_render: mock.MagicMock) -> None:
         action = self.create_shadow_action("msteams")
@@ -345,6 +348,37 @@ class ShadowReadMetricAlertTest(ShadowReadTestBase, MetricAlertHandlerBase):
         observation, client = self.send(invocation, entry)
         assert observation.outcome == ShadowOutcome.MATCH, observation.mismatch
         return client
+
+    def test_variant(self) -> None:
+        with_notes = self.create_shadow_action("slack", {"notes": "Check the runbook"})
+        without_notes = self.create_shadow_action("discord")
+
+        cases = [
+            (self.invocation(with_notes), "metric-alert:slack:critical:occurrence:notes:static"),
+            (
+                self.resolution_invocation(with_notes),
+                "metric-alert:slack:resolved:activity:notes:static",
+            ),
+            (
+                self.invocation(without_notes),
+                "metric-alert:discord:critical:occurrence:no_notes:static",
+            ),
+        ]
+        for invocation, expected in cases:
+            provider_key = SHADOW_PROVIDERS[invocation.action.type]
+            assert _variant(invocation, NotificationSource.METRIC_ALERT, provider_key) == expected
+
+    def test_warning_percent_variant(self) -> None:
+        action = self.create_shadow_action("slack")
+        event = self.event_data.event
+        assert isinstance(event, GroupEvent) and event.occurrence is not None
+        event.occurrence = replace(event.occurrence, priority=DetectorPriorityLevel.MEDIUM)
+        self.detector.config = {**self.detector.config, "detection_type": "percent"}
+
+        variant = _variant(
+            self.invocation(action), NotificationSource.METRIC_ALERT, NotificationProviderKey.SLACK
+        )
+        assert variant == "metric-alert:slack:warning:occurrence:no_notes:percent"
 
     def test_slack_matches(self) -> None:
         action = self.create_shadow_action("slack", {"notes": "Check the runbook"})
