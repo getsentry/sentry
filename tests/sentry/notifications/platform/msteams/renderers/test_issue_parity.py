@@ -70,15 +70,7 @@ class IssueCardLegacyParityTest(TestCase):
             event_id=self.event.event_id,
             notification_uuid="",
             rule=SerializableRuleProxy.from_rule(
-                NotificationRule(
-                    id=self.rule.id,
-                    label=self.rule.label,
-                    data=self.rule.data,
-                    project=self.project,
-                    environment_id=self.rule.environment_id,
-                    workflow_id=123,
-                    legacy_rule_id=self.rule.id,
-                )
+                NotificationRule.from_deprecated_legacy_rule(self.rule)
             ),
         )
         return IssueMSTeamsRenderer.render(
