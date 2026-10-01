@@ -56,11 +56,7 @@ import {GenericWidgetEmptyStateWarning} from 'sentry/views/performance/landing/w
 
 // TODO: add back filter actions or just revert this commit
 // once the metrics search bar supports filters on aggregates
-const METRICS_AGGREGATES_CELL_ACTIONS: Actions[] = [
-  Actions.COPY_TO_CLIPBOARD,
-  Actions.OPEN_EXTERNAL_LINK,
-  Actions.OPEN_INTERNAL_LINK,
-];
+const METRICS_AGGREGATES_CELL_ACTIONS: Actions[] = [Actions.COPY_TO_CLIPBOARD];
 
 const RESULT_LIMIT = 50;
 

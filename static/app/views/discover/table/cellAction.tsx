@@ -1,4 +1,4 @@
-import {useRef, useState} from 'react';
+import {useState} from 'react';
 
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
@@ -18,34 +18,9 @@ import {
   isRelativeSpanOperationBreakdownField,
 } from 'sentry/utils/discover/fields';
 import {getDuration} from 'sentry/utils/duration/getDuration';
-import {FieldKey} from 'sentry/utils/fields';
-import {isUrl} from 'sentry/utils/string/isUrl';
-import {isValidUrl} from 'sentry/utils/string/isValidUrl';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {stripURLOrigin} from 'sentry/utils/url/stripURLOrigin';
 
 import type {TableColumn} from './types';
-
-/**
- * Returns true when href should surface the in-app "Open link" cell action.
- * External http(s) URLs must not be treated as in-app routes after stripping the origin.
- */
-function isInternalNavigationTarget(target: string): boolean {
-  if (target.startsWith('/') && !target.startsWith('//')) {
-    return true;
-  }
-
-  if (!isUrl(target)) {
-    return false;
-  }
-
-  try {
-    const url = new URL(target);
-    return url.origin === window.location.origin;
-  } catch {
-    return false;
-  }
-}
 
 export enum Actions {
   ADD = 'add',
@@ -56,8 +31,6 @@ export enum Actions {
   DRILLDOWN = 'drilldown',
   EDIT_THRESHOLD = 'edit_threshold',
   COPY_TO_CLIPBOARD = 'copy_to_clipboard',
-  OPEN_EXTERNAL_LINK = 'open_external_link',
-  OPEN_INTERNAL_LINK = 'open_internal_link',
   OPEN_ROW_IN_EXPLORE = 'open_row_in_explore',
   COPY_LINK = 'copy_link',
 }
@@ -120,10 +93,8 @@ export function updateQuery(
     case Actions.COPY_TO_CLIPBOARD:
       copyToClipboard(value);
       break;
-    case Actions.OPEN_EXTERNAL_LINK:
     case Actions.RELEASE:
     case Actions.DRILLDOWN:
-    case Actions.OPEN_INTERNAL_LINK:
       break;
     default:
       throw new Error(`Unknown action type. ${action}`);
@@ -207,10 +178,6 @@ type CellActionsOpts = {
    * default items filtered by allowActions.
    */
   extraMenuItems?: MenuItemProps[];
-  /**
-   * Any parsed out internal links that should be added to the menu as an option
-   */
-  to?: string;
 };
 
 function makeCellActions({
@@ -219,7 +186,6 @@ function makeCellActions({
   handleCellAction,
   allowActions,
   extraMenuItems,
-  to,
 }: CellActionsOpts) {
   // Do not render context menu buttons for the span op breakdown field.
   if (isRelativeSpanOperationBreakdownField(column.name)) {
@@ -238,8 +204,6 @@ function makeCellActions({
   }
 
   let value = dataRow[column.key];
-  const externalLinkTarget =
-    to && !isInternalNavigationTarget(to) && isValidUrl(to) ? to : undefined;
 
   // error.handled is a strange field where null = true.
   if (
@@ -263,18 +227,8 @@ function makeCellActions({
         label: itemLabel,
         textValue: itemTextValue,
         onAction: () => handleCellAction(action, value!),
-        to: action === Actions.OPEN_INTERNAL_LINK && to ? stripURLOrigin(to) : undefined,
-        externalHref:
-          action === Actions.OPEN_EXTERNAL_LINK
-            ? (externalLinkTarget ?? (value as string))
-            : undefined,
       });
     }
-  }
-
-  if (to && to !== value && isInternalNavigationTarget(to)) {
-    const field = String(column.key);
-    addMenuItem(Actions.OPEN_INTERNAL_LINK, getInternalLinkActionLabel(field));
   }
 
   if (allowActions) {
@@ -337,10 +291,6 @@ function makeCellActions({
     );
   }
 
-  if (externalLinkTarget || isValidUrl(value)) {
-    addMenuItem(Actions.OPEN_EXTERNAL_LINK, t('Open external link'));
-  }
-
   if (extraMenuItems) {
     actions.push(...extraMenuItems);
   }
@@ -352,49 +302,23 @@ function makeCellActions({
   return actions;
 }
 
-/**
- * Provides the correct text for the dropdown menu based on the field.
- * @param field column field name
- */
-function getInternalLinkActionLabel(field: string): string {
-  switch (field) {
-    case FieldKey.TRACE:
-      return t('Open trace');
-    case FieldKey.PROJECT:
-    case 'project_id':
-    case 'project.id':
-      return t('Open project');
-    case FieldKey.RELEASE:
-      return t('View details');
-    case FieldKey.ISSUE:
-      return t('Open issue');
-    case FieldKey.REPLAY_ID:
-      return t('Open replay');
-  }
-  return t('Open link');
-}
-
-type Props = React.PropsWithoutRef<Omit<CellActionsOpts, 'to'>> & {
+type Props = React.PropsWithoutRef<CellActionsOpts> & {
   pin?: React.ReactNode;
   usePortalOnDropdown?: boolean;
 };
 
 export function CellAction({pin, allowActions, usePortalOnDropdown, ...props}: Props) {
   const {children, column} = props;
-  const [target, setTarget] = useState<string>();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
 
   const cellActions = makeCellActions({
     ...props,
     allowActions,
-    to: target,
   });
   const align = fieldAlignment(column.key as string, column.type);
 
   return (
     <RevealOnHover
-      ref={containerRef}
       position="relative"
       width="100%"
       height="100%"
@@ -430,18 +354,7 @@ export function CellAction({pin, allowActions, usePortalOnDropdown, ...props}: P
                 ],
               }}
               isOpen={isMenuOpen}
-              onOpenChange={isOpen => {
-                if (isOpen) {
-                  // Read the rendered link when opening by mouse or keyboard.
-                  const href = containerRef.current?.getElementsByTagName('a')[0]?.href;
-                  setTarget(
-                    href && (isInternalNavigationTarget(href) || isValidUrl(href))
-                      ? href
-                      : undefined
-                  );
-                }
-                setIsMenuOpen(isOpen);
-              }}
+              onOpenChange={setIsMenuOpen}
               trigger={triggerProps => (
                 <OverlayTrigger.IconButton
                   {...triggerProps}

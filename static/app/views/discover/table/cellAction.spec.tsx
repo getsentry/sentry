@@ -1,6 +1,6 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {Link} from '@sentry/scraps/link';
 
@@ -141,7 +141,9 @@ describe('Discover -> CellAction', () => {
 
       await userEvent.keyboard('{Escape}');
       expect(screen.queryByRole('menu')).not.toBeInTheDocument();
-      expect(screen.getByRole('button', {name: 'Actions'})).toHaveFocus();
+      await waitFor(() =>
+        expect(screen.getByRole('button', {name: 'Actions'})).toHaveFocus()
+      );
     });
 
     it('allows normal link navigation without opening the menu', async () => {
@@ -181,7 +183,7 @@ describe('Discover -> CellAction', () => {
       expect(screen.queryByRole('menu')).not.toBeInTheDocument();
     });
 
-    it('reads link actions when opening the menu with the keyboard', async () => {
+    it('keeps internal navigation in the cell when opening the menu with the keyboard', async () => {
       render(
         <CellAction
           dataRow={defaultData}
@@ -198,10 +200,13 @@ describe('Discover -> CellAction', () => {
       expect(screen.getByRole('button', {name: 'Actions'})).toHaveFocus();
       await userEvent.keyboard('{Enter}');
 
-      expect(screen.getByRole('menuitemradio', {name: 'Open link'})).toHaveAttribute(
+      expect(screen.getByRole('link', {name: 'Open transaction'})).toHaveAttribute(
         'href',
         '/cell-destination/'
       );
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Open link'})
+      ).not.toBeInTheDocument();
     });
 
     it('toggles the menu on click', async () => {
@@ -371,7 +376,7 @@ describe('Discover -> CellAction', () => {
       ).not.toBeInTheDocument();
     });
 
-    it('uses the full anchor href for external link actions', async () => {
+    it('keeps external links in the cell without duplicate menu actions', async () => {
       const urlView = EventView.fromLocation(
         LocationFixture({
           query: {
@@ -392,11 +397,19 @@ describe('Discover -> CellAction', () => {
         </CellAction>
       );
 
+      expect(screen.getByRole('link', {name: '/v1/api/auth/register'})).toHaveAttribute(
+        'href',
+        fullUrl
+      );
+
       await openMenu();
 
       expect(
-        screen.getByRole('menuitemradio', {name: 'Open external link'})
-      ).toHaveAttribute('href', fullUrl);
+        screen.queryByRole('menuitemradio', {name: 'Open external link'})
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Open link'})
+      ).not.toBeInTheDocument();
     });
 
     it('error.handled with null adds condition', async () => {
