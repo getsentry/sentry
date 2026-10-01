@@ -3,6 +3,9 @@ from functools import cached_property
 
 from arroyo.utils import metrics
 
+# Importing for the `@register_subscriber` side effect, which populates
+# `subscriber_registry` with the "incidents" handler this test relies on.
+import sentry.incidents.tasks  # noqa: F401
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.snuba.dataset import Dataset
