@@ -17,6 +17,7 @@ from urllib3.exceptions import TimeoutError as Urllib3TimeoutError
 from sentry.seer.models import SeerApiError
 from sentry.seer.signed_seer_api import LlmGenerateRequest, make_llm_generate_request
 from sentry.utils import json
+from sentry.viewer_context import get_viewer_context
 
 logger = logging.getLogger(__name__)
 
@@ -350,7 +351,7 @@ def generate_assertion_suggestions(
     )
 
     try:
-        response = make_llm_generate_request(seer_request, timeout=30)
+        response = make_llm_generate_request(seer_request, timeout=30, context=get_viewer_context())
         if response.status >= 400:
             raise SeerApiError("Seer request failed", response.status)
     except (SeerApiError, MaxRetryError, Urllib3TimeoutError) as e:

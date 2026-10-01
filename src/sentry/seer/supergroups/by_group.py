@@ -11,6 +11,7 @@ from sentry.seer.signed_seer_api import (
     SupergroupsByGroupIdsResponse,
     make_supergroups_get_by_group_ids_request,
 )
+from sentry.viewer_context import get_viewer_context
 
 
 def get_supergroups_by_group_ids(
@@ -26,6 +27,7 @@ def get_supergroups_by_group_ids(
         },
         SeerViewerContext(organization_id=organization.id, user_id=user_id),
         timeout=10,
+        context=get_viewer_context(),
     )
     if response.status >= 400:
         raise SeerApiError("Seer request failed", response.status)

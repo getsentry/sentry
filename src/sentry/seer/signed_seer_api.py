@@ -1,6 +1,7 @@
 import hashlib
 import hmac
 import logging
+from contextlib import nullcontext
 from dataclasses import replace
 from typing import Any, Literal, NotRequired, TypedDict
 from urllib.parse import urlparse
@@ -17,6 +18,7 @@ from sentry.viewer_context import (
     encode_viewer_context,
     get_viewer_context,
     observe_viewer_context_propagation,
+    viewer_context_scope,
 )
 
 
@@ -148,8 +150,41 @@ def make_signed_seer_api_request(
     method: str = "POST",
     viewer_context: SeerViewerContext | None = None,
     metrics_endpoint: str | None = None,
+    context: ViewerContext | None = None,
+) -> BaseHTTPResponse:
+    """Send a signed request while making an explicitly supplied context ambient.
+
+    ``context`` remains optional at runtime so a missed migration cannot break a
+    production request. S029 requires production call sites to pass it explicitly.
+    """
+    scope = viewer_context_scope(context) if context is not None else nullcontext()
+    with scope:
+        return _make_signed_seer_api_request(
+            connection_pool=connection_pool,
+            path=path,
+            body=body,
+            timeout=timeout,
+            retries=retries,
+            metric_tags=metric_tags,
+            method=method,
+            viewer_context=viewer_context,
+            metrics_endpoint=metrics_endpoint,
+        )
+
+
+def _make_signed_seer_api_request(
+    connection_pool: HTTPConnectionPool,
+    path: str,
+    body: bytes,
+    timeout: int | float | None = None,
+    retries: int | None | Retry = None,
+    metric_tags: dict[str, Any] | None = None,
+    method: str = "POST",
+    viewer_context: SeerViewerContext | None = None,
+    metrics_endpoint: str | None = None,
 ) -> BaseHTTPResponse:
     """Use metrics_endpoint as a low-cardinality endpoint tag when the request path varies."""
+
     host = connection_pool.host
     if connection_pool.port:
         host += ":" + str(connection_pool.port)
@@ -304,6 +339,7 @@ def make_org_repo_knowledge_index_request(
     body: AgentIndexOrgRepoRequest,
     timeout: int | float | None = None,
     viewer_context: SeerViewerContext | None = None,
+    context: ViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         seer_autofix_default_connection_pool,
@@ -311,6 +347,7 @@ def make_org_repo_knowledge_index_request(
         body=orjson.dumps(body),
         timeout=timeout,
         viewer_context=viewer_context,
+        context=context,
     )
 
 
@@ -318,6 +355,7 @@ def make_org_project_knowledge_index_request(
     body: OrgProjectKnowledgeIndexRequest,
     timeout: int | float | None = None,
     viewer_context: SeerViewerContext | None = None,
+    context: ViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         seer_autofix_default_connection_pool,
@@ -325,6 +363,7 @@ def make_org_project_knowledge_index_request(
         body=orjson.dumps(body),
         timeout=timeout,
         viewer_context=viewer_context,
+        context=context,
     )
 
 
@@ -332,6 +371,7 @@ def make_index_sentry_knowledge_request(
     body: AgentIndexSentryKnowledgeRequest,
     timeout: int | float | None = None,
     viewer_context: SeerViewerContext | None = None,
+    context: ViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         seer_autofix_default_connection_pool,
@@ -339,6 +379,7 @@ def make_index_sentry_knowledge_request(
         body=orjson.dumps(body),
         timeout=timeout,
         viewer_context=viewer_context,
+        context=context,
     )
 
 
@@ -346,6 +387,7 @@ def make_remove_repository_request(
     body: RemoveRepositoryRequest,
     timeout: int | float | None = None,
     viewer_context: SeerViewerContext | None = None,
+    context: ViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         seer_autofix_default_connection_pool,
@@ -353,6 +395,7 @@ def make_remove_repository_request(
         body=orjson.dumps(body),
         timeout=timeout,
         viewer_context=viewer_context,
+        context=context,
     )
 
 
@@ -360,6 +403,7 @@ def make_bulk_remove_repositories_request(
     body: BulkRemoveRepositoriesRequest,
     timeout: int | float | None = None,
     viewer_context: SeerViewerContext | None = None,
+    context: ViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         seer_autofix_default_connection_pool,
@@ -367,6 +411,7 @@ def make_bulk_remove_repositories_request(
         body=orjson.dumps(body),
         timeout=timeout,
         viewer_context=viewer_context,
+        context=context,
     )
 
 
@@ -374,6 +419,7 @@ def make_remove_handoffs_for_integration_request(
     body: RemoveHandoffsForIntegrationRequest,
     timeout: int | float | None = None,
     viewer_context: SeerViewerContext | None = None,
+    context: ViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         seer_autofix_default_connection_pool,
@@ -381,6 +427,7 @@ def make_remove_handoffs_for_integration_request(
         body=orjson.dumps(body),
         timeout=timeout,
         viewer_context=viewer_context,
+        context=context,
     )
 
 
@@ -388,6 +435,7 @@ def make_agent_export_indexes_request(
     body: AgentExportIndexesRequest,
     viewer_context: SeerViewerContext,
     timeout: int | float | None = None,
+    context: ViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         seer_autofix_default_connection_pool,
@@ -395,6 +443,7 @@ def make_agent_export_indexes_request(
         body=orjson.dumps(body),
         timeout=timeout,
         viewer_context=viewer_context,
+        context=context,
     )
 
 
@@ -402,6 +451,7 @@ def make_agent_index_request(
     body: AgentIndexRequest,
     timeout: int | float | None = None,
     viewer_context: SeerViewerContext | None = None,
+    context: ViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         seer_autofix_default_connection_pool,
@@ -409,12 +459,14 @@ def make_agent_index_request(
         body=orjson.dumps(body),
         timeout=timeout,
         viewer_context=viewer_context,
+        context=context,
     )
 
 
 def make_seer_models_request(
     timeout: int | float | None = None,
     viewer_context: SeerViewerContext | None = None,
+    context: ViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         seer_autofix_default_connection_pool,
@@ -423,6 +475,7 @@ def make_seer_models_request(
         timeout=timeout,
         method="GET",
         viewer_context=viewer_context,
+        context=context,
     )
 
 
@@ -430,6 +483,7 @@ def make_llm_generate_request(
     body: LlmGenerateRequest,
     timeout: int | float | None = None,
     viewer_context: SeerViewerContext | None = None,
+    context: ViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         seer_autofix_default_connection_pool,
@@ -438,6 +492,7 @@ def make_llm_generate_request(
         timeout=timeout,
         metric_tags={"referrer": body["referrer"]},
         viewer_context=viewer_context,
+        context=context,
     )
 
 
@@ -445,6 +500,7 @@ def make_oneshot_request(
     body: OneShotRunRequest,
     timeout: int | float | None = None,
     viewer_context: SeerViewerContext | None = None,
+    context: ViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         seer_autofix_default_connection_pool,
@@ -452,6 +508,7 @@ def make_oneshot_request(
         body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
         timeout=timeout,
         viewer_context=viewer_context,
+        context=context,
     )
 
 
@@ -569,6 +626,7 @@ def make_summarize_trace_request(
     body: SummarizeTraceRequest,
     timeout: int | float | None = None,
     viewer_context: SeerViewerContext | None = None,
+    context: ViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         seer_summarization_default_connection_pool,
@@ -576,6 +634,7 @@ def make_summarize_trace_request(
         body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
         timeout=timeout,
         viewer_context=viewer_context,
+        context=context,
     )
 
 
@@ -583,6 +642,7 @@ def make_summarize_issue_request(
     body: SummarizeIssueRequest,
     timeout: int | float | None = None,
     viewer_context: SeerViewerContext | None = None,
+    context: ViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         seer_summarization_default_connection_pool,
@@ -590,6 +650,7 @@ def make_summarize_issue_request(
         body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
         timeout=timeout,
         viewer_context=viewer_context,
+        context=context,
     )
 
 
@@ -597,6 +658,7 @@ def make_lightweight_rca_cluster_request(
     body: LightweightRCAClusterRequest,
     timeout: int | float | None = None,
     viewer_context: SeerViewerContext | None = None,
+    context: ViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         seer_autofix_default_connection_pool,
@@ -604,6 +666,7 @@ def make_lightweight_rca_cluster_request(
         body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
         timeout=timeout,
         viewer_context=viewer_context,
+        context=context,
     )
 
 
@@ -611,6 +674,7 @@ def make_supergroups_get_request(
     body: SupergroupsGetRequest,
     viewer_context: SeerViewerContext,
     timeout: int | float | None = None,
+    context: ViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         seer_autofix_default_connection_pool,
@@ -618,6 +682,7 @@ def make_supergroups_get_request(
         body=orjson.dumps(body),
         timeout=timeout,
         viewer_context=viewer_context,
+        context=context,
     )
 
 
@@ -625,6 +690,7 @@ def make_supergroups_get_by_group_ids_request(
     body: SupergroupsGetByGroupIdsRequest,
     viewer_context: SeerViewerContext,
     timeout: int | float | None = None,
+    context: ViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         seer_autofix_default_connection_pool,
@@ -632,6 +698,7 @@ def make_supergroups_get_by_group_ids_request(
         body=orjson.dumps(body),
         timeout=timeout,
         viewer_context=viewer_context,
+        context=context,
     )
 
 
@@ -639,6 +706,7 @@ def make_service_map_update_request(
     body: ServiceMapUpdateRequest,
     timeout: int | float | None = None,
     viewer_context: SeerViewerContext | None = None,
+    context: ViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         seer_autofix_default_connection_pool,
@@ -646,6 +714,7 @@ def make_service_map_update_request(
         body=orjson.dumps(body),
         timeout=timeout,
         viewer_context=viewer_context,
+        context=context,
     )
 
 
@@ -653,6 +722,7 @@ def make_unit_test_generation_request(
     body: UnitTestGenerationRequest,
     timeout: int | float | None = None,
     viewer_context: SeerViewerContext | None = None,
+    context: ViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         seer_autofix_default_connection_pool,
@@ -660,6 +730,7 @@ def make_unit_test_generation_request(
         body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
         timeout=timeout,
         viewer_context=viewer_context,
+        context=context,
     )
 
 
@@ -667,6 +738,7 @@ def make_search_agent_state_request(
     body: SearchAgentStateRequest,
     timeout: int | float | None = None,
     viewer_context: SeerViewerContext | None = None,
+    context: ViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         seer_autofix_default_connection_pool,
@@ -674,6 +746,7 @@ def make_search_agent_state_request(
         body=orjson.dumps(body),
         timeout=timeout,
         viewer_context=viewer_context,
+        context=context,
     )
 
 
@@ -681,6 +754,7 @@ def make_translate_query_request(
     body: TranslateQueryRequest,
     timeout: int | float | None = None,
     viewer_context: SeerViewerContext | None = None,
+    context: ViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         seer_autofix_default_connection_pool,
@@ -688,6 +762,7 @@ def make_translate_query_request(
         body=orjson.dumps(body),
         timeout=timeout,
         viewer_context=viewer_context,
+        context=context,
     )
 
 
@@ -695,6 +770,7 @@ def make_search_agent_start_request(
     body: SearchAgentStartRequest,
     timeout: int | float | None = None,
     viewer_context: SeerViewerContext | None = None,
+    context: ViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         seer_autofix_default_connection_pool,
@@ -702,6 +778,7 @@ def make_search_agent_start_request(
         body=orjson.dumps(body),
         timeout=timeout,
         viewer_context=viewer_context,
+        context=context,
     )
 
 
@@ -709,6 +786,7 @@ def make_translate_agentic_request(
     body: TranslateAgenticRequest,
     timeout: int | float | None = None,
     viewer_context: SeerViewerContext | None = None,
+    context: ViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         seer_autofix_default_connection_pool,
@@ -716,6 +794,7 @@ def make_translate_agentic_request(
         body=orjson.dumps(body),
         timeout=timeout,
         viewer_context=viewer_context,
+        context=context,
     )
 
 
@@ -723,6 +802,7 @@ def make_create_cache_request(
     body: CreateCacheRequest,
     timeout: int | float | None = None,
     viewer_context: SeerViewerContext | None = None,
+    context: ViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         seer_autofix_default_connection_pool,
@@ -730,6 +810,7 @@ def make_create_cache_request(
         body=orjson.dumps(body),
         timeout=timeout,
         viewer_context=viewer_context,
+        context=context,
     )
 
 
@@ -737,6 +818,7 @@ def make_compare_distributions_request(
     body: CompareDistributionsRequest,
     timeout: int | float | None = None,
     viewer_context: SeerViewerContext | None = None,
+    context: ViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         seer_anomaly_detection_default_connection_pool,
@@ -744,6 +826,7 @@ def make_compare_distributions_request(
         body=orjson.dumps(body),
         timeout=timeout,
         viewer_context=viewer_context,
+        context=context,
     )
 
 
@@ -755,6 +838,7 @@ def make_delete_grouping_records_by_project_request(
     body: DeleteGroupingRecordsByProjectRequest,
     timeout: int | float | None = None,
     viewer_context: SeerViewerContext | None = None,
+    context: ViewerContext | None = None,
 ) -> BaseHTTPResponse:
     project_id = body["project_id"]
     return make_signed_seer_api_request(
@@ -765,6 +849,7 @@ def make_delete_grouping_records_by_project_request(
         method="GET",
         timeout=timeout,
         viewer_context=viewer_context,
+        context=context,
     )
 
 

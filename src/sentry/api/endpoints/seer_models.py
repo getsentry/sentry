@@ -17,6 +17,7 @@ from sentry.seer.models import SeerApiError
 from sentry.seer.signed_seer_api import make_seer_models_request
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.cache import cache
+from sentry.viewer_context import get_viewer_context
 
 logger = logging.getLogger(__name__)
 
@@ -83,7 +84,7 @@ class SeerModelsEndpoint(Endpoint):
             return Response(cached_data, status=200)
 
         try:
-            response = make_seer_models_request(timeout=5)
+            response = make_seer_models_request(timeout=5, context=get_viewer_context())
             if response.status >= 400:
                 raise SeerApiError("Seer request failed", response.status)
 

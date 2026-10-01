@@ -10,7 +10,12 @@ from sentry.seer.signed_seer_api import (
     make_delete_grouping_records_by_project_request,
     make_signed_seer_api_request,
 )
-from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
+from sentry.viewer_context import (
+    ActorType,
+    ViewerContext,
+    get_viewer_context,
+    viewer_context_scope,
+)
 
 REQUEST_BODY = b'{"b": 12, "thing": "thing"}'
 PATH = "/v0/some/url"
@@ -31,7 +36,11 @@ def run_test_case(
     mock.host = "localhost"
     mock.port = None
     mock.scheme = "http"
-    with override_settings(SEER_API_SHARED_SECRET=shared_secret):
+    with (
+        override_settings(SEER_API_SHARED_SECRET=shared_secret),
+        viewer_context_scope(ViewerContext(actor_type=ActorType.SYSTEM)),
+        patch("sentry.seer.signed_seer_api.encode_viewer_context", return_value="viewer-context"),
+    ):
         make_signed_seer_api_request(
             mock,
             path=path,
@@ -52,6 +61,7 @@ def test_simple() -> None:
         headers={
             "content-type": "application/json;charset=utf-8",
             "Authorization": "Rpcsignature rpc0:d2e6070dfab955db6fc9f3bc0518f75f27ca93ae2e393072929e5f6cba26ff07",
+            "X-Viewer-Context": "viewer-context",
         },
     )
 
@@ -72,6 +82,7 @@ def test_uses_given_timeout() -> None:
         headers={
             "content-type": "application/json;charset=utf-8",
             "Authorization": "Rpcsignature rpc0:d2e6070dfab955db6fc9f3bc0518f75f27ca93ae2e393072929e5f6cba26ff07",
+            "X-Viewer-Context": "viewer-context",
         },
         timeout=5,
     )
@@ -87,6 +98,7 @@ def test_uses_given_retries() -> None:
         headers={
             "content-type": "application/json;charset=utf-8",
             "Authorization": "Rpcsignature rpc0:d2e6070dfab955db6fc9f3bc0518f75f27ca93ae2e393072929e5f6cba26ff07",
+            "X-Viewer-Context": "viewer-context",
         },
         retries=5,
     )
@@ -100,7 +112,10 @@ def test_uses_shared_secret_missing_secret() -> None:
         "POST",
         PATH,
         body=REQUEST_BODY,
-        headers={"content-type": "application/json;charset=utf-8"},
+        headers={
+            "content-type": "application/json;charset=utf-8",
+            "X-Viewer-Context": "viewer-context",
+        },
     )
 
 
@@ -178,6 +193,37 @@ def test_delete_grouping_records_uses_generic_metrics_endpoint(
         mock_seer_request.call_args.kwargs["metrics_endpoint"]
         == "/v0/issues/similar-issues/grouping-record/delete/:project_id"
     )
+
+
+@override_settings(SEER_API_SHARED_SECRET="secret-one")
+@patch("sentry.seer.signed_seer_api.encode_viewer_context", return_value="viewer-context")
+def test_seer_api_request_without_context_remains_non_fatal(mock_encode: MagicMock) -> None:
+    connection_pool = Mock()
+    connection_pool.host = "localhost"
+    connection_pool.port = None
+    connection_pool.scheme = "http"
+
+    make_signed_seer_api_request(
+        connection_pool,
+        path=PATH,
+        body=REQUEST_BODY,
+        viewer_context=SeerViewerContext(organization_id=42),
+    )
+
+    connection_pool.urlopen.assert_called_once()
+    mock_encode.assert_called_once()
+
+
+@patch("sentry.seer.signed_seer_api._make_signed_seer_api_request")
+def test_seer_api_request_scopes_explicit_context(mock_request: MagicMock) -> None:
+    context = ViewerContext(organization_id=42, actor_type=ActorType.SYSTEM)
+    seen_contexts: list[ViewerContext | None] = []
+    mock_request.side_effect = lambda **kwargs: seen_contexts.append(get_viewer_context())
+
+    make_signed_seer_api_request(Mock(), path=PATH, body=REQUEST_BODY, context=context)
+
+    assert seen_contexts == [context]
+    assert get_viewer_context() is None
 
 
 class TestResolveViewerContext:

@@ -2,6 +2,7 @@ from sentry.integrations.types import IntegrationProviderSlug
 from sentry.seer.services.test_generation.model import CreateUnitTestResponse
 from sentry.seer.services.test_generation.service import TestGenerationService
 from sentry.seer.signed_seer_api import UnitTestGenerationRequest, make_unit_test_generation_request
+from sentry.viewer_context import get_viewer_context
 
 
 class RegionBackedTestGenerationService(TestGenerationService):
@@ -23,7 +24,7 @@ class RegionBackedTestGenerationService(TestGenerationService):
             },
             pr_id=pr_id,
         )
-        response = make_unit_test_generation_request(body)
+        response = make_unit_test_generation_request(body, context=get_viewer_context())
 
         if response.status == 200:
             return CreateUnitTestResponse()

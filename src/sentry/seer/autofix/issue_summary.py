@@ -64,6 +64,7 @@ from sentry.utils.cache import cache
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.settings import is_self_hosted
 from sentry.utils.tracing import start_span
+from sentry.viewer_context import get_viewer_context
 
 logger = logging.getLogger(__name__)
 
@@ -264,7 +265,9 @@ def _call_seer(
         experiment_variant=experiment_variant,
     )
     viewer_context = SeerViewerContext(organization_id=group.organization.id)
-    response = make_summarize_issue_request(body, timeout=30, viewer_context=viewer_context)
+    response = make_summarize_issue_request(
+        body, timeout=30, viewer_context=viewer_context, context=get_viewer_context()
+    )
 
     if response.status >= 400:
         raise Exception(f"Seer request failed with status {response.status}")
@@ -298,6 +301,7 @@ def make_fixability_score_request(
         body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
         timeout=timeout,
         viewer_context=viewer_context,
+        context=get_viewer_context(),
     )
 
 

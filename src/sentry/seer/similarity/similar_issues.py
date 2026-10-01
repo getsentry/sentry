@@ -27,6 +27,7 @@ from sentry.utils import json, metrics
 from sentry.utils.circuit_breaker2 import CircuitBreaker, CountBasedTripStrategy
 from sentry.utils.json import JSONDecodeError
 from sentry.utils.tracing import trace
+from sentry.viewer_context import get_viewer_context
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +54,7 @@ def make_similar_issues_request(
         timeout=timeout,
         metric_tags=metric_tags,
         viewer_context=viewer_context,
+        context=get_viewer_context(),
     )
 
 

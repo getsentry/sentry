@@ -9,6 +9,7 @@ from urllib3 import BaseHTTPResponse, HTTPConnectionPool, Retry
 from sentry.net.http import connection_from_url
 from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
 from sentry.utils import json
+from sentry.viewer_context import get_viewer_context
 
 logger = logging.getLogger(__name__)
 
@@ -81,6 +82,7 @@ def make_breakpoint_detection_request(
         "/trends/breakpoint-detector",
         body=json.dumps(body).encode("utf-8"),
         viewer_context=viewer_context,
+        context=get_viewer_context(),
     )
 
 

@@ -155,6 +155,7 @@ def index_org_project_knowledge(org_id: int) -> None:
                 payload,
                 timeout=30,
                 viewer_context=viewer_context,
+                context=get_viewer_context(),
             )
         if response.status >= 400:
             raise SeerApiError("Seer request failed", response.status)
@@ -326,6 +327,7 @@ def index_repos(organization_id: int, *args, **kwargs) -> None:
             ),
             timeout=30,
             viewer_context=viewer_context,
+            context=get_viewer_context(),
         )
 
     if response.status >= 400:
@@ -448,7 +450,8 @@ def schedule_context_engine_indexing_tasks() -> None:
 )
 def index_sentry_knowledge() -> None:
     response = make_index_sentry_knowledge_request(
-        body=AgentIndexSentryKnowledgeRequest(replace_existing=True)
+        body=AgentIndexSentryKnowledgeRequest(replace_existing=True),
+        context=get_viewer_context(),
     )
 
     if response.status >= 400:

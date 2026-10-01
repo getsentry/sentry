@@ -159,6 +159,17 @@ S024_safelist = frozenset(("tools/migrations/squash.py",))
 
 _S024_discovery_methods = frozenset(("rglob", "glob", "iglob"))
 
+S029_msg = (
+    "S029 Pass a non-None context= explicitly to Seer request helpers so viewer-context "
+    "propagation is considered at every call site"
+)
+_SIGNED_SEER_REQUEST = "make_signed_seer_api_request"
+_SIGNED_SEER_API_MODULE = "sentry.seer.signed_seer_api"
+
+
+def _is_seer_request_helper(name: str) -> bool:
+    return name.startswith("make_") and name.endswith("_request")
+
 
 # Rules whose diagnostics are fatal. Empty ships every rule off; adding one
 # gates every endpoint of that shape at once, with no baseline to maintain.
@@ -700,8 +711,21 @@ class SentryVisitor(ast.NodeVisitor):
         self._class_decorators: list[ast.expr] = []
         self._class_stack: list[str] = []
         self._function_stack: list[str] = []
+        self._signed_seer_api_file = (
+            _repo_relative(filename) == "src/sentry/seer/signed_seer_api.py"
+        )
+        self._seer_request_names = {_SIGNED_SEER_REQUEST}
+        self._seer_request_modules: set[str] = set()
 
     def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
+        if node.module == _SIGNED_SEER_API_MODULE:
+            for alias in node.names:
+                if _is_seer_request_helper(alias.name):
+                    self._seer_request_names.add(alias.asname or alias.name)
+        elif node.module == "sentry.seer":
+            for alias in node.names:
+                if alias.name == "signed_seer_api":
+                    self._seer_request_modules.add(alias.asname or alias.name)
         if node.module and not node.level:
             if node.module.split(".")[0] in S003_modules:
                 self.errors.append((node.lineno, node.col_offset, S003_msg))
@@ -751,6 +775,8 @@ class SentryVisitor(ast.NodeVisitor):
 
     def visit_Import(self, node: ast.Import) -> None:
         for alias in node.names:
+            if alias.name == _SIGNED_SEER_API_MODULE:
+                self._seer_request_modules.add(alias.asname or alias.name)
             if alias.name.split(".")[0] in S003_modules:
                 self.errors.append((node.lineno, node.col_offset, S003_msg))
             elif (
@@ -1091,6 +1117,26 @@ class SentryVisitor(ast.NodeVisitor):
 
     def visit_Call(self, node: ast.Call) -> None:
         self._s024_visit_call(node)
+        callee = node.func.id if isinstance(node.func, ast.Name) else None
+        module_call = (
+            isinstance(node.func, ast.Attribute)
+            and _name_of(node.func.value) in self._seer_request_modules
+            and _is_seer_request_helper(node.func.attr)
+        )
+        if (
+            _repo_relative(self.filename).startswith("src/sentry/")
+            and (
+                callee in self._seer_request_names
+                or (self._signed_seer_api_file and callee and _is_seer_request_helper(callee))
+                or module_call
+            )
+            and not any(
+                keyword.arg == "context"
+                and not (isinstance(keyword.value, ast.Constant) and keyword.value.value is None)
+                for keyword in node.keywords
+            )
+        ):
+            self.errors.append((node.lineno, node.col_offset, S029_msg))
         if self._input_stack:
             self._record_validator(node)
             self._record_input_call(node)

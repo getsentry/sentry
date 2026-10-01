@@ -17,6 +17,7 @@ from sentry.seer.signed_seer_api import (
     seer_autofix_default_connection_pool,
 )
 from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.viewer_context import get_viewer_context
 
 logger = logging.getLogger(__name__)
 
@@ -152,6 +153,7 @@ def verify_gcp_connection(
             "/v1/monitoring-providers/gcp/verify-connection",
             body=body,
             timeout=_VERIFY_CONNECTION_TIMEOUT,
+            context=get_viewer_context(),
         )
     except HTTPError:
         logger.exception("gcp.verify_connection_request_error")

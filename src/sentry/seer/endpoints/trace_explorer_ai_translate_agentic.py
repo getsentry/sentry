@@ -23,6 +23,7 @@ from sentry.seer.signed_seer_api import (
     TranslateAgenticRequest,
     make_translate_agentic_request,
 )
+from sentry.viewer_context import get_viewer_context
 
 logger = logging.getLogger(__name__)
 
@@ -93,7 +94,9 @@ def send_translate_agentic_request(
         merged_options["metric_context"] = metric_context
     body["options"] = merged_options
 
-    response = make_translate_agentic_request(body, timeout=10, viewer_context=viewer_context)
+    response = make_translate_agentic_request(
+        body, timeout=10, viewer_context=viewer_context, context=get_viewer_context()
+    )
     if response.status >= 400:
         raise SeerApiError("Seer request failed", response.status)
     return response.json()

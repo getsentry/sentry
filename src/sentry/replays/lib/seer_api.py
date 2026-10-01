@@ -6,6 +6,7 @@ from urllib3 import BaseHTTPResponse, Retry
 
 from sentry.net.http import connection_from_url
 from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
+from sentry.viewer_context import get_viewer_context
 
 # Shared connection pool for replay AI usecases. Requests can override the default timeout and retries.
 seer_summarization_connection_pool = connection_from_url(
@@ -51,6 +52,7 @@ def make_replay_summary_start_request(
         timeout=timeout,
         retries=retries,
         viewer_context=viewer_context,
+        context=get_viewer_context(),
     )
 
 
@@ -67,6 +69,7 @@ def make_replay_summary_state_request(
         timeout=timeout,
         retries=retries,
         viewer_context=viewer_context,
+        context=get_viewer_context(),
     )
 
 
@@ -83,4 +86,5 @@ def make_replay_delete_request(
         timeout=timeout,
         retries=retries,
         viewer_context=viewer_context,
+        context=get_viewer_context(),
     )

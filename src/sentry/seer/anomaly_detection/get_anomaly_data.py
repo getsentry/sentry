@@ -136,6 +136,7 @@ def make_detect_anomalies_request(
         body=json.dumps(body).encode("utf-8"),
         retries=SEER_RETRIES,
         viewer_context=viewer_context,
+        context=get_viewer_context(),
     )
 
 
@@ -150,6 +151,7 @@ def make_get_anomaly_threshold_data_request(
         body=json.dumps(body).encode("utf-8"),
         retries=SEER_RETRIES,
         viewer_context=viewer_context,
+        context=get_viewer_context(),
     )
 
 

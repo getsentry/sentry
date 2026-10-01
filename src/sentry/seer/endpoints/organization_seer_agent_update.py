@@ -26,6 +26,7 @@ from sentry.seer.autofix.constants import CODING_PAYLOAD_TYPES
 from sentry.seer.endpoints.utils import resolve_seer_run
 from sentry.seer.models import SeerApiError
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
+from sentry.viewer_context import get_viewer_context
 
 logger = logging.getLogger(__name__)
 
@@ -122,6 +123,7 @@ class OrganizationSeerAgentUpdateEndpoint(OrganizationEndpoint):
             agent_connection_pool,
             path,
             body,
+            context=get_viewer_context(),
         )
 
         if response.status >= 400:

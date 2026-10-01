@@ -18,6 +18,7 @@ from sentry.seer.anomaly_detection.types import (
 from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
 from sentry.utils import json
 from sentry.utils.json import JSONDecodeError
+from sentry.viewer_context import get_viewer_context
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +46,7 @@ def make_detect_historical_anomalies_request(
         body=json.dumps(body).encode("utf-8"),
         retries=SEER_RETRIES,
         viewer_context=viewer_context,
+        context=get_viewer_context(),
     )
 
 

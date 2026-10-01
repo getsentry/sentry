@@ -10,6 +10,7 @@ from sentry.seer.signed_seer_api import (
     make_agent_export_indexes_request,
 )
 from sentry.utils.json import JSONDecodeError
+from sentry.viewer_context import get_viewer_context
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +23,9 @@ def export_agent_indexes(*, org_id: int) -> AgentExportIndexesResponse:
     """
     viewer_context = SeerViewerContext(organization_id=org_id)
     body = AgentExportIndexesRequest(org_id=org_id)
-    response = make_agent_export_indexes_request(body, viewer_context=viewer_context)
+    response = make_agent_export_indexes_request(
+        body, viewer_context=viewer_context, context=get_viewer_context()
+    )
     if response.status >= 400:
         raise SeerApiError("Seer export-indexes request failed", response.status)
 

@@ -25,6 +25,8 @@ logger = logging.getLogger(__name__)
 
 from rest_framework.request import Request
 
+from sentry.viewer_context import get_viewer_context
+
 
 class OrganizationTraceExplorerAIPermission(OrganizationPermission):
     scope_map = {
@@ -40,7 +42,9 @@ def fire_setup_request(
     Sends a request to seer to create the initial cached prompt / setup the AI models
     """
     body = CreateCacheRequest(org_id=org_id, project_ids=project_ids)
-    response = make_create_cache_request(body, viewer_context=viewer_context)
+    response = make_create_cache_request(
+        body, viewer_context=viewer_context, context=get_viewer_context()
+    )
     if response.status >= 400:
         raise SeerApiError("Seer request failed", response.status)
 

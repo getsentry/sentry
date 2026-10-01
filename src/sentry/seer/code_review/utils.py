@@ -21,6 +21,7 @@ from sentry.models.repository import Repository
 from sentry.net.http import connection_from_url
 from sentry.seer.code_review.models import SeerCodeReviewTrigger
 from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
+from sentry.viewer_context import get_viewer_context
 
 from .metrics import CodeReviewErrorType, record_webhook_handler_error
 
@@ -118,6 +119,7 @@ def make_seer_request(
         path=path,
         body=orjson.dumps(payload),
         viewer_context=viewer_context,
+        context=get_viewer_context(),
     )
     # Retry on server errors (5xx) and rate limits (429), but not client errors (4xx)
     if response.status >= 500 or response.status == 429:

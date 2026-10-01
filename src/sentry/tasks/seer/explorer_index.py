@@ -23,7 +23,7 @@ from sentry.taskworker.namespaces import seer_tasks
 from sentry.utils.query import RangeQuerySetWrapper
 from sentry.utils.settings import is_self_hosted
 from sentry.utils.tracing import start_span
-from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
+from sentry.viewer_context import ActorType, ViewerContext, get_viewer_context, viewer_context_scope
 
 logger = logging.getLogger("sentry.tasks.seer_explorer_indexer")
 
@@ -223,6 +223,7 @@ def run_explorer_index_for_projects(
                 payload,
                 timeout=30,
                 viewer_context=viewer_context,
+                context=get_viewer_context(),
             )
             if response.status >= 400:
                 raise SeerApiError("Seer request failed", response.status)

@@ -307,7 +307,9 @@ def handle_seer_run_create(object_identifier: int, payload: Any, **kwds: Any) ->
                 return
             case SeerRunType.ASSISTED_QUERY:
                 response = make_search_agent_start_request(
-                    cast(SearchAgentStartRequest, body), viewer_context=viewer_context
+                    cast(SearchAgentStartRequest, body),
+                    viewer_context=viewer_context,
+                    context=get_viewer_context(),
                 )
             case SeerRunType.FEATURE_RUN:
                 wire_body = {**body, "ref": str(run.uuid)}

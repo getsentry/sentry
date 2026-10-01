@@ -18,6 +18,7 @@ from sentry.seer.agent.monitoring_providers import get_monitoring_provider_conne
 from sentry.seer.models import SeerApiError
 from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
 from sentry.users.services.user.service import user_service
+from sentry.viewer_context import get_viewer_context
 
 _CREATE_REQUEST_NAMESPACE = UUID("3bed27f2-9ab9-49ce-8d64-7d78d5c3fd76")
 investigation_connection_pool = connection_from_url(
@@ -121,6 +122,7 @@ def _post(
         path,
         body=orjson.dumps(body),
         viewer_context=viewer_context,
+        context=get_viewer_context(),
     )
     return _decode_response(response)
 
@@ -136,6 +138,7 @@ def _get(
         body=b"",
         method="GET",
         viewer_context=viewer_context,
+        context=get_viewer_context(),
     )
     return _decode_response(response)
 

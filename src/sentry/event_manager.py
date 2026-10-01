@@ -158,6 +158,7 @@ from sentry.utils.safe import get_path, safe_execute, setdefault_path, trim
 from sentry.utils.sdk import set_span_attribute
 from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
 from sentry.utils.tracing import set_span_tag, start_span, trace
+from sentry.viewer_context import get_viewer_context
 from sentry.workflow_engine.processors.detector import (
     associate_new_group_with_detector,
     ensure_association_with_detector,
@@ -1999,6 +2000,7 @@ def make_severity_score_request(
         body=orjson.dumps(payload),
         timeout=timeout,
         viewer_context=viewer_context,
+        context=get_viewer_context(),
     )
 
 

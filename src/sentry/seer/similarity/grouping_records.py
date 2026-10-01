@@ -16,6 +16,7 @@ from sentry.seer.signed_seer_api import (
     make_signed_seer_api_request,
 )
 from sentry.utils import json, metrics
+from sentry.viewer_context import get_viewer_context
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +45,7 @@ def call_seer_to_delete_project_grouping_records(
         response = make_delete_grouping_records_by_project_request(
             body,
             timeout=POST_BULK_GROUPING_RECORDS_TIMEOUT,
+            context=get_viewer_context(),
         )
     except ReadTimeoutError:
         logger.exception(
@@ -84,6 +86,7 @@ def call_seer_to_delete_these_hashes(project_id: int, hashes: Sequence[str]) -> 
             SEER_HASH_GROUPING_RECORDS_DELETE_URL,
             body=body,
             timeout=POST_BULK_GROUPING_RECORDS_TIMEOUT,
+            context=get_viewer_context(),
         )
     except (TimeoutError, MaxRetryError) as e:
         extra.update({"reason": type(e).__name__, "timeout": POST_BULK_GROUPING_RECORDS_TIMEOUT})

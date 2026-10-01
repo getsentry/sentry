@@ -16,6 +16,7 @@ from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.utils import json
 from sentry.utils.safe import safe_execute
+from sentry.viewer_context import get_viewer_context
 
 logger = logging.getLogger(__name__)
 
@@ -86,7 +87,9 @@ def _make_generate_external_issue_details_request(
             "required": ["title", "description"],
         },
     )
-    response = make_llm_generate_request(body, timeout=10, viewer_context=viewer_context)
+    response = make_llm_generate_request(
+        body, timeout=10, viewer_context=viewer_context, context=get_viewer_context()
+    )
     logging_ctx["status_code"] = response.status
     if response.status >= 400:
         logger.warning("external_issues.seer_request_failed", extra=logging_ctx)

@@ -54,6 +54,7 @@ from sentry.seer.seer_setup import get_supported_scm_providers
 from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
 from sentry.utils.cache import cache
 from sentry.utils.outcomes import Outcome, track_outcome
+from sentry.viewer_context import get_viewer_context
 
 logger = logging.getLogger(__name__)
 
@@ -218,6 +219,7 @@ def make_update_coding_agent_state_request(
         body=orjson.dumps(body.dict(exclude_none=True)),
         timeout=timeout,
         viewer_context=viewer_context,
+        context=get_viewer_context(),
     )
 
 
@@ -243,6 +245,7 @@ def make_match_coding_agent_pr_request(
         body=orjson.dumps(body.dict(exclude_none=True)),
         timeout=timeout,
         viewer_context=viewer_context,
+        context=get_viewer_context(),
     )
 
 
@@ -272,6 +275,7 @@ def make_store_coding_agent_states_request(
         body=orjson.dumps(body),
         timeout=timeout,
         viewer_context=viewer_context,
+        context=get_viewer_context(),
     )
 
 

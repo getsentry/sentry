@@ -34,7 +34,7 @@ from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import issues_tasks
 from sentry.utils import json
-from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
+from sentry.viewer_context import ActorType, ViewerContext, get_viewer_context, viewer_context_scope
 
 logger = logging.getLogger("sentry.tasks.llm_issue_detection")
 
@@ -100,6 +100,7 @@ def make_issue_detection_request(
         body=orjson.dumps(request.dict()),
         viewer_context=viewer_context,
         **extra_kwargs,
+        context=get_viewer_context(),
     )
 
 
@@ -310,6 +311,7 @@ def detect_llm_issues_for_org(org_id: int, plan_tier: str = "business") -> None:
         metrics_endpoint=f"{SEER_CHECK_BUDGET_ENDPOINT_PATH}/:organization_id",
         method="GET",
         timeout=SEER_TIMEOUT_S,
+        context=get_viewer_context(),
     )
     if budget_response.status == 200:
         # fail-open since there is an additional budget check on the seer side

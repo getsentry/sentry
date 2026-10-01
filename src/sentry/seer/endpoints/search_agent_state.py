@@ -23,6 +23,7 @@ from sentry.seer.signed_seer_api import (
     SeerViewerContext,
     make_search_agent_state_request,
 )
+from sentry.viewer_context import get_viewer_context
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +37,9 @@ def fetch_search_agent_state(
     Calls POST /v1/assisted-query/state with the run_id and organization_id.
     """
     body = SearchAgentStateRequest(run_id=run_id, organization_id=organization_id)
-    response = make_search_agent_state_request(body, timeout=10, viewer_context=viewer_context)
+    response = make_search_agent_state_request(
+        body, timeout=10, viewer_context=viewer_context, context=get_viewer_context()
+    )
     if response.status >= 400:
         raise SeerApiError("Seer request failed", response.status)
     return response.json()

@@ -21,6 +21,7 @@ from sentry.seer.signed_seer_api import (
     make_translate_query_request,
 )
 from sentry.utils.settings import is_self_hosted
+from sentry.viewer_context import get_viewer_context
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +42,9 @@ def send_translate_request(
         project_ids=project_ids,
         natural_language_query=natural_language_query,
     )
-    response = make_translate_query_request(body, timeout=30, viewer_context=viewer_context)
+    response = make_translate_query_request(
+        body, timeout=30, viewer_context=viewer_context, context=get_viewer_context()
+    )
     if response.status >= 400:
         raise SeerApiError("Seer request failed", response.status)
     return response.json()

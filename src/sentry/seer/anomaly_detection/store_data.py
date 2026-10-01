@@ -9,6 +9,7 @@ from sentry.net.http import connection_from_url
 from sentry.seer.anomaly_detection.types import StoreDataRequest, TimeSeriesPoint
 from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
 from sentry.utils import json
+from sentry.viewer_context import get_viewer_context
 
 seer_anomaly_detection_connection_pool = connection_from_url(
     settings.SEER_ANOMALY_DETECTION_URL,
@@ -27,6 +28,7 @@ def make_store_data_request(
         SEER_ANOMALY_DETECTION_STORE_DATA_URL,
         body=json.dumps(body).encode("utf-8"),
         viewer_context=viewer_context,
+        context=get_viewer_context(),
     )
 
 

@@ -499,6 +499,72 @@ def decode(value):
     assert _run(src) == []
 
 
+def test_S029_requires_explicit_non_none_seer_context_in_production() -> None:
+    from tools.flake8_plugin import S029_msg
+
+    assert _run(
+        "make_signed_seer_api_request(pool, path, body=b'')\n",
+        filename="src/sentry/seer/caller.py",
+    ) == [f"t.py:1:0: {S029_msg}"]
+    assert _run(
+        "make_signed_seer_api_request(pool, path, body=b'', context=None)\n",
+        filename="src/sentry/seer/caller.py",
+    ) == [f"t.py:1:0: {S029_msg}"]
+    assert (
+        _run(
+            "make_signed_seer_api_request(pool, path, body=b'', context=context)\n",
+            filename="src/sentry/seer/caller.py",
+        )
+        == []
+    )
+
+
+def test_S029_follows_an_aliased_import() -> None:
+    from tools.flake8_plugin import S029_msg
+
+    src = """\
+from sentry.seer.signed_seer_api import make_signed_seer_api_request as send_to_seer
+
+send_to_seer(pool, path, body=b'')
+"""
+    assert _run(src, filename="src/sentry/seer/caller.py") == [f"t.py:3:0: {S029_msg}"]
+
+
+def test_S029_covers_public_seer_request_helpers() -> None:
+    from tools.flake8_plugin import S029_msg
+
+    src = """\
+from sentry.seer.signed_seer_api import make_llm_generate_request
+
+make_llm_generate_request(body, viewer_context=viewer_context)
+"""
+    assert _run(
+        src,
+        filename="src/sentry/seer/caller.py",
+    ) == [f"t.py:3:0: {S029_msg}"]
+
+
+def test_S029_covers_future_helpers_imported_from_the_seer_client() -> None:
+    from tools.flake8_plugin import S029_msg
+
+    src = """\
+from sentry.seer.signed_seer_api import make_future_feature_request
+
+make_future_feature_request(body)
+"""
+    assert _run(src, filename="src/sentry/seer/caller.py") == [f"t.py:3:0: {S029_msg}"]
+
+
+def test_S029_does_not_lint_test_call_sites() -> None:
+    assert (
+        _run(
+            "make_signed_seer_api_request(pool, path, body=b'')\n",
+            filename="tests/sentry/seer/test_caller.py",
+        )
+        == []
+    )
+
+
 def test_S024_parsing_a_supplied_string_is_not_reported() -> None:
     src = """\
 import ast

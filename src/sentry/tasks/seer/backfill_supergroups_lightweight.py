@@ -29,6 +29,7 @@ from sentry.types.group import UNRESOLVED_SUBSTATUS_CHOICES
 from sentry.utils import metrics
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.utils.snuba import SnubaError, bulk_snuba_queries
+from sentry.viewer_context import get_viewer_context
 
 logger = logging.getLogger(__name__)
 
@@ -181,7 +182,10 @@ def _backfill_org(
                 project_id=group.project_id,
             )
             response = make_lightweight_rca_cluster_request(
-                body, timeout=30, viewer_context=viewer_context
+                body,
+                timeout=30,
+                viewer_context=viewer_context,
+                context=get_viewer_context(),
             )
             if response.status >= 400:
                 logger.warning(

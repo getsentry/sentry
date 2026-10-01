@@ -10,6 +10,7 @@ from sentry.seer.signed_seer_api import (
     make_compare_distributions_request,
 )
 from sentry.utils.json import JSONDecodeError
+from sentry.viewer_context import get_viewer_context
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +36,9 @@ def compare_distributions(
         config=config,
         meta=meta,
     )
-    response = make_compare_distributions_request(body, viewer_context=viewer_context)
+    response = make_compare_distributions_request(
+        body, viewer_context=viewer_context, context=get_viewer_context()
+    )
     if response.status >= 400:
         raise SeerApiError("Seer request failed", response.status)
     try:

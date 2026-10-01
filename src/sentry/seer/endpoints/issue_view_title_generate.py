@@ -17,6 +17,7 @@ from sentry.seer.signed_seer_api import (
     SeerViewerContext,
     make_llm_generate_request,
 )
+from sentry.viewer_context import get_viewer_context
 
 logger = logging.getLogger(__name__)
 
@@ -68,7 +69,9 @@ def generate_title_from_query(
         temperature=0.2,
         max_tokens=100,
     )
-    response = make_llm_generate_request(body, timeout=10, viewer_context=viewer_context)
+    response = make_llm_generate_request(
+        body, timeout=10, viewer_context=viewer_context, context=get_viewer_context()
+    )
     if response.status >= 400:
         raise SeerApiError("Seer request failed", response.status)
     data = response.json()

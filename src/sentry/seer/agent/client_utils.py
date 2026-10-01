@@ -47,6 +47,7 @@ from sentry.users.services.user_option import user_option_service
 from sentry.users.services.user_option.service import get_option_from_list
 from sentry.utils import metrics
 from sentry.utils.strings import strip_lone_surrogates
+from sentry.viewer_context import get_viewer_context
 
 logger = logging.getLogger(__name__)
 
@@ -174,6 +175,7 @@ def make_agent_state_request(
         "/v1/automation/explorer/state",
         body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
         viewer_context=viewer_context,
+        context=get_viewer_context(),
     )
 
 
@@ -187,6 +189,7 @@ def make_runs_by_ids_request(
         "/v1/automation/explorer/runs/by-ids",
         body=orjson.dumps(body),
         viewer_context=viewer_context,
+        context=get_viewer_context(),
     )
 
 
@@ -200,6 +203,7 @@ def make_agent_repos_request(
         "/v1/automation/explorer/repos",
         body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
         viewer_context=viewer_context,
+        context=get_viewer_context(),
     )
 
 
@@ -213,6 +217,7 @@ def make_agent_chat_request(
         "/v1/automation/explorer/chat",
         body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
         viewer_context=viewer_context,
+        context=get_viewer_context(),
     )
 
 
@@ -226,6 +231,7 @@ def make_agent_update_request(
         "/v1/automation/explorer/update",
         body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
         viewer_context=viewer_context,
+        context=get_viewer_context(),
     )
 
 
@@ -239,6 +245,7 @@ def make_agent_state_pr_request(
         "/v1/automation/explorer/state/pr",
         body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
         viewer_context=viewer_context,
+        context=get_viewer_context(),
     )
 
 
@@ -252,6 +259,7 @@ def make_feature_run_request(
         "/v1/automation/agent/feature/run",
         body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
         viewer_context=viewer_context,
+        context=get_viewer_context(),
     )
 
 
