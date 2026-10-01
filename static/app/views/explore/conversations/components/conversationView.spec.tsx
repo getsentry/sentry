@@ -129,7 +129,13 @@ describe('ConversationViewContent', () => {
     );
 
     await userEvent.click(await screen.findByRole('tab', {name: 'Output'}));
-    expect(await screen.findByText(expected)).toBeVisible();
+    await waitFor(() => {
+      expect(screen.getByRole('tab', {name: 'Output'})).toHaveAttribute(
+        'aria-selected',
+        'true'
+      );
+      expect(screen.getByText(expected)).toBeVisible();
+    });
     if (expected === 'Standard tool result') {
       expect(screen.queryByText('Anthropic tool result')).not.toBeInTheDocument();
     }
