@@ -1,4 +1,4 @@
-import type {UIMatch} from 'react-router-dom';
+import type {UIMatch} from 'react-router';
 import type {Location} from 'history';
 
 import type {TrackingProps} from '@sentry/scraps/trackingContext';

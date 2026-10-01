@@ -4,7 +4,7 @@ import {
   matchRoutes,
   useLocation,
   useNavigationType,
-} from 'react-router-dom';
+} from 'react-router';
 import {type Event, type Log} from '@sentry/core';
 import * as Sentry from '@sentry/react';
 
@@ -59,7 +59,7 @@ function getSentryIntegrations() {
       // 6 is arbitrary, seems like a nice number
       depth: 6,
     }),
-    Sentry.reactRouterV6BrowserTracingIntegration({
+    Sentry.reactRouterBrowserTracingIntegration({
       useEffect,
       useLocation,
       useNavigationType,

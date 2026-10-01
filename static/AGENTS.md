@@ -29,8 +29,9 @@
 
 ### Routing
 
-- Routes defined in `static/app/routes.tsx`
-- Use React Router v6 patterns
+- Routes defined in `static/app/router/routes.tsx`
+- Use React Router v8 imports from `react-router` and `react-router/dom`
+- Set `useTransitions={false}` on router providers; the app's external stores are not compatible with React transitions
 - Lazy load route components when possible
 
 ### Frontend API Calls

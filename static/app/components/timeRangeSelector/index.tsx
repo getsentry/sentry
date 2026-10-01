@@ -1,6 +1,6 @@
 import {Fragment, useCallback, useState} from 'react';
 import * as React from 'react';
-import {useMatches} from 'react-router-dom';
+import {useMatches} from 'react-router';
 import styled from '@emotion/styled';
 import {mergeProps} from '@react-aria/utils';
 
