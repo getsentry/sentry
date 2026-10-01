@@ -10,6 +10,7 @@ from django.db.models import Q
 from sentry import features, options
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
+from sentry.models.groupenvironment import GroupEnvironment
 from sentry.services.eventstore.models import GroupEvent
 from sentry.utils.tracing import trace
 from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient, DelayedWorkflowItem
@@ -408,9 +409,35 @@ def get_environment_by_event(event_data: WorkflowEventData) -> Environment | Non
 
         return environment
     elif isinstance(event_data.event, Activity):
-        return None
+        return _get_environment_by_group(event_data.group.id)
 
     raise TypeError(f"Cannot access the environment from, {type(event_data.event)}.")
+
+
+def _get_environment_by_group(group_id: int) -> Environment | None:
+    """
+    Activity events carry no environment of their own, so recover the one recorded on the group
+    when it was created from the originating occurrence.
+
+    A group seen in more than one environment has no single environment that resolved it, so it
+    stays unscoped until that behavior is defined. Unscoped means only environment-less workflows
+    are considered, which is the behavior every Activity had before this lookup existed.
+    """
+    environment_ids = list(
+        GroupEnvironment.objects.filter(group_id=group_id).values_list("environment_id", flat=True)[
+            :2
+        ]
+    )
+
+    if len(environment_ids) != 1:
+        metrics_incr(
+            "process_workflows.activity_environment",
+            tags={"outcome": "ambiguous" if environment_ids else "missing"},
+        )
+        return None
+
+    metrics_incr("process_workflows.activity_environment", tags={"outcome": "resolved"})
+    return Environment.objects.get_from_cache(id=environment_ids[0])
 
 
 def _get_associated_workflows(
