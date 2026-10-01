@@ -143,13 +143,13 @@ describe('Frame - Line', () => {
       );
 
       for (const [key, value] of Object.entries(vars)) {
-        const row = screen.getByRole('row', {name: new RegExp(`^${key}\\b`)});
+        const row = screen.getByRole('row', {name: name => name.startsWith(`${key} `)});
 
         const utils = within(row);
         expect(utils.getByText(key)).toBeInTheDocument();
 
         if (typeof value !== 'string') {
-          return;
+          continue;
         }
 
         expect(utils.getByText(value)).toBeInTheDocument();

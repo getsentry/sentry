@@ -9,6 +9,8 @@ from sentry.models.projectrepository import ProjectRepository
 
 class ProjectRepositorySerializerResponse(TypedDict):
     id: str
+    integrationId: str | None
+    externalId: str | None
     projectId: str
     repositoryId: str
     repoName: str
@@ -42,6 +44,10 @@ class ProjectRepositorySerializer(Serializer[ProjectRepositorySerializerResponse
 
         result: ProjectRepositorySerializerResponse = {
             "id": str(obj.id),
+            "integrationId": (
+                str(repository.integration_id) if repository.integration_id is not None else None
+            ),
+            "externalId": repository.external_id,
             "projectId": str(obj.project_id),
             "repositoryId": str(repository.id),
             "repoName": repository.name,

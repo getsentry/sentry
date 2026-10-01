@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Sequence
+from collections.abc import Callable
 from typing import Any
 
 from django import forms
@@ -9,11 +9,7 @@ from sentry.constants import LOG_LEVELS, parse_log_level
 from sentry.rules import LEVEL_MATCH_CHOICES as MATCH_CHOICES
 from sentry.rules import EventState, MatchType
 from sentry.rules.conditions.base import EventCondition
-from sentry.rules.history.preview_strategy import get_dataset_columns
 from sentry.services.eventstore.models import GroupEvent
-from sentry.snuba.dataset import Dataset
-from sentry.snuba.events import Columns
-from sentry.types.condition_activity import ConditionActivity
 
 key: Callable[[tuple[int, str]], int] = lambda x: x[0]
 LEVEL_CHOICES = {f"{k}": v for k, v in sorted(LOG_LEVELS.items(), key=key, reverse=True)}
@@ -64,21 +60,6 @@ class LevelCondition(EventCondition):
             "match": MATCH_CHOICES[self.data["match"]],
         }
         return self.label.format(**data)
-
-    def get_event_columns(self) -> dict[Dataset, Sequence[str]]:
-        columns: dict[Dataset, Sequence[str]] = get_dataset_columns(
-            [Columns.TAGS_KEY, Columns.TAGS_VALUE]
-        )
-        return columns
-
-    def passes_activity(
-        self, condition_activity: ConditionActivity, event_map: dict[str, Any]
-    ) -> bool:
-        try:
-            level = event_map[condition_activity.data["event_id"]]["tags"]["level"]
-            return self._passes(level)
-        except (TypeError, KeyError):
-            return False
 
     def get_form_instance(self) -> LevelEventForm:
         return LevelEventForm(self.data)

@@ -4,6 +4,7 @@ import * as qs from 'query-string';
 
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {ExternalLink, Link} from '@sentry/scraps/link';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {RevealOnHover} from '@sentry/scraps/revealOnHover';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -317,17 +318,22 @@ function EventTagsTreeRowDropdown({
   return (
     <RevealOnHover.Action visible={isMenuOpen}>
       <TreeValueDropdown
+        // Inline, the menu is trapped in the focused row's stacking context and
+        // renders under positioned content further down the page.
+        usePortal
         preventOverflowOptions={{padding: 4}}
         position="bottom-end"
         size="xs"
         isOpen={isMenuOpen}
         onOpenChange={setIsMenuOpen}
-        triggerProps={{
-          'aria-label': t('Tag Actions Menu'),
-          icon: <IconEllipsis />,
-          showChevron: false,
-          className: 'tag-button',
-        }}
+        trigger={triggerProps => (
+          <OverlayTrigger.IconButton
+            {...triggerProps}
+            aria-label={t('Tag Actions Menu')}
+            icon={<IconEllipsis />}
+            className="tag-button"
+          />
+        )}
         items={items}
       />
     </RevealOnHover.Action>
