@@ -402,7 +402,10 @@ describe('groupEventDetails', () => {
         await screen.findByText('No impacted events found in the last 30 days.')
       ).toBeInTheDocument();
 
-      await act(() => sampleResponse.resolve());
+      await act(() => {
+        sampleResponse.resolve();
+        return sampleResponse.promise;
+      });
 
       expect(
         await screen.findByRole('button', {name: 'Upload Instructions'})
