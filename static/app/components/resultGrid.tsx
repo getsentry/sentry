@@ -835,7 +835,7 @@ export function ResultGrid({
     const names = pages.map(page => page.cell.name);
     const sortBy = request.sortBy;
 
-    pages.forEach(({cell: pageCell, cursor}) => {
+    pages.forEach(async ({cell: pageCell, cursor}) => {
       const markFailed = () => {
         if (token !== fetchTokenRef.current) {
           return;
@@ -858,53 +858,46 @@ export function ResultGrid({
         });
       };
 
-      const pageRequest = api.request(cellEndpoint(pageCell), {
-        method,
-        host: pageCell.locality_url,
-        data: {...queryParams, cursor},
-        success: (data, _, resp) => {
-          if (token !== fetchTokenRef.current) {
-            return;
+      try {
+        const [data, _, resp] = await api.requestPromise(cellEndpoint(pageCell), {
+          method,
+          host: pageCell.locality_url,
+          data: {...queryParams, cursor},
+          includeAllArgs: true,
+        });
+        if (token !== fetchTokenRef.current) {
+          return;
+        }
+        const rows = rowsFromData?.(data, pageCell) ?? data;
+        const tagged = (Array.isArray(rows) ? rows : []).map(row => ({
+          ...row,
+          __region: pageCell,
+        }));
+        const next = parseLinkHeader(resp?.getResponseHeader('Link') ?? '').next;
+        const nextCursor = next?.results === true ? (next.cursor ?? '') : '';
+
+        setResults(prev => {
+          if (!prev.pendingRegions.includes(pageCell.name)) {
+            return prev;
           }
-          const rows = rowsFromData?.(data, pageCell) ?? data;
-          const tagged = (Array.isArray(rows) ? rows : []).map(row => ({
-            ...row,
-            __region: pageCell,
-          }));
-          const next = parseLinkHeader(resp?.getResponseHeader('Link') ?? '').next;
-          const nextCursor = next?.results === true ? (next.cursor ?? '') : '';
-
-          setResults(prev => {
-            if (!prev.pendingRegions.includes(pageCell.name)) {
-              return prev;
-            }
-            const regionCursors = {...prev.regionCursors};
-            if (nextCursor) {
-              regionCursors[pageCell.name] = nextCursor;
-            } else {
-              delete regionCursors[pageCell.name];
-            }
-            return {
-              ...prev,
-              rows: sortRows([...prev.rows, ...tagged], sortBy),
-              pendingRegions: prev.pendingRegions.filter(name => name !== pageCell.name),
-              regionCursors,
-            };
-          });
-          onLoad?.();
-        },
-        error: res => {
-          markFailed();
-          onError?.(res);
-        },
-      });
-
-      // The API client swallows a rejection of the fetch itself (a blocked
-      // request, a network failure) without running either callback, which
-      // would leave the region pending forever. Catch it here so the region
-      // resolves to failed. An abort from api.clear() also lands here, but
-      // the fetch token was already bumped by then, so markFailed ignores it.
-      pageRequest?.requestPromise?.catch(markFailed);
+          const regionCursors = {...prev.regionCursors};
+          if (nextCursor) {
+            regionCursors[pageCell.name] = nextCursor;
+          } else {
+            delete regionCursors[pageCell.name];
+          }
+          return {
+            ...prev,
+            rows: sortRows([...prev.rows, ...tagged], sortBy),
+            pendingRegions: prev.pendingRegions.filter(name => name !== pageCell.name),
+            regionCursors,
+          };
+        });
+        onLoad?.();
+      } catch (err) {
+        markFailed();
+        onError?.(err);
+      }
     });
   };
 
