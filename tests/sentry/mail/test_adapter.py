@@ -1399,9 +1399,14 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
         )
 
         rule = self.create_project_rule(project=project)
+        notification_rule = NotificationRule.from_deprecated_legacy_rule(rule)
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
         digest = build_digest(
-            project, (event_to_record(event, (rule,)), event_to_record(event2, (rule,)))
+            project,
+            (
+                event_to_record(event, (notification_rule,)),
+                event_to_record(event2, (notification_rule,)),
+            ),
         )
 
         with self.tasks():
@@ -1455,9 +1460,14 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
         )
 
         rule = self.create_project_rule(project=project)
+        notification_rule = NotificationRule.from_deprecated_legacy_rule(rule)
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
         digest = build_digest(
-            project, (event_to_record(event, (rule,)), event_to_record(event2, (rule,)))
+            project,
+            (
+                event_to_record(event, (notification_rule,)),
+                event_to_record(event2, (notification_rule,)),
+            ),
         )
 
         features = ["organizations:session-replay"]
@@ -1483,8 +1493,9 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
     def test_notify_digest_single_record(self, send_async: MagicMock, notify: MagicMock) -> None:
         event = self.store_event(data={}, project_id=self.project.id)
         rule = self.create_project_rule(project=self.project)
+        notification_rule = NotificationRule.from_deprecated_legacy_rule(rule)
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
-        digest = build_digest(self.project, (event_to_record(event, (rule,)),))
+        digest = build_digest(self.project, (event_to_record(event, (notification_rule,)),))
         self.adapter.notify_digest(
             self.project,
             digest,
@@ -1510,9 +1521,14 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
         )
 
         rule = self.create_project_rule(project=self.project)
+        notification_rule = NotificationRule.from_deprecated_legacy_rule(rule)
 
         digest = build_digest(
-            self.project, (event_to_record(event, (rule,)), event_to_record(event2, (rule,)))
+            self.project,
+            (
+                event_to_record(event, (notification_rule,)),
+                event_to_record(event2, (notification_rule,)),
+            ),
         )
 
         with self.tasks():
@@ -1551,9 +1567,14 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
             "targetIdentifier": str(444),
         }
         rule = self.create_project_rule(name="a rule", action_data=[action_data])
+        notification_rule = NotificationRule.from_deprecated_legacy_rule(rule)
 
         digest = build_digest(
-            project, (event_to_record(event, (rule,)), event_to_record(event2, (rule,)))
+            project,
+            (
+                event_to_record(event, (notification_rule,)),
+                event_to_record(event2, (notification_rule,)),
+            ),
         )
 
         with self.tasks():

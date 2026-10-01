@@ -10,6 +10,7 @@ import sentry
 from sentry.digests.backends.redis import RedisBackend
 from sentry.digests.notifications import event_to_record
 from sentry.models.projectownership import ProjectOwnership
+from sentry.notifications.types import NotificationRule
 from sentry.tasks.digests import deliver_digest
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -27,6 +28,7 @@ class DeliverDigestTest(TestCase):
             digests.backend.digest = backend.digest
 
             rule = self.create_project_rule(project=self.project)
+            notification_rule = NotificationRule.from_deprecated_legacy_rule(rule)
             ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
             event = self.store_event(
                 data={"timestamp": before_now(days=1).isoformat(), "fingerprint": ["group-1"]},
@@ -39,13 +41,13 @@ class DeliverDigestTest(TestCase):
             notification_uuid = str(uuid.uuid4())
             backend.add(
                 key,
-                event_to_record(event, [rule], notification_uuid),
+                event_to_record(event, [notification_rule], notification_uuid),
                 increment_delay=0,
                 maximum_delay=0,
             )
             backend.add(
                 key,
-                event_to_record(event_2, [rule], notification_uuid),
+                event_to_record(event_2, [notification_rule], notification_uuid),
                 increment_delay=0,
                 maximum_delay=0,
             )
