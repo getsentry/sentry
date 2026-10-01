@@ -124,6 +124,11 @@ describe('Investigation detail', () => {
     jest.spyOn(indicators, 'addErrorMessage').mockImplementation();
     createFeedbackForm.mockClear();
     ConfigStore.set('customerDomain', null);
+    MockApiClient.addMockResponse({
+      url: `${detailUrl}presence/`,
+      method: 'PUT',
+      body: {viewers: [], total: 0, heartbeatIntervalMs: 5000},
+    });
   });
 
   it('loads and renders the complete investigation response', async () => {
@@ -142,7 +147,6 @@ describe('Investigation detail', () => {
       screen.queryByRole('button', {name: /Ask Seer about/})
     ).not.toBeInTheDocument();
     expect(screen.queryByRole('button', {name: /Rerun/})).not.toBeInTheDocument();
-    expect(screen.queryByText('Ask Seer')).not.toBeInTheDocument();
     expect(screen.queryByText(/"blocks":/)).not.toBeInTheDocument();
     expect(request).toHaveBeenCalledTimes(1);
     expect(screen.queryByTestId('investigation-summary')).not.toBeInTheDocument();
@@ -207,7 +211,6 @@ describe('Investigation detail', () => {
     expect(
       await screen.findByRole('link', {name: 'Checkout error rate'})
     ).toHaveAttribute('href', '/organizations/org-slug/issues/123/');
-    expect(screen.queryByText('Breached metric')).not.toBeInTheDocument();
   });
 
   it('links the issue of a breached metric investigation without a snapshot', async () => {
@@ -228,7 +231,6 @@ describe('Investigation detail', () => {
       'href',
       '/organizations/org-slug/issues/123/'
     );
-    expect(screen.queryByText('Breached metric')).not.toBeInTheDocument();
   });
 
   it('labels a manual investigation without a source link', async () => {
@@ -256,7 +258,6 @@ describe('Investigation detail', () => {
     renderView();
 
     const summary = await screen.findByTestId('investigation-summary');
-    expect(within(summary).queryByText('Current understanding')).not.toBeInTheDocument();
     expect(within(summary).getByText('Errors rose across releases')).toBeInTheDocument();
     expect(
       within(summary).getByText(/All active releases increased together/)
@@ -379,9 +380,6 @@ describe('Investigation detail', () => {
     // The real title is shown, so only the body is a placeholder.
     expect(
       within(cell).queryByTestId('investigation-cell-placeholder-title')
-    ).not.toBeInTheDocument();
-    expect(
-      within(cell).queryByText('Seer is working on this cell…')
     ).not.toBeInTheDocument();
   });
 
@@ -864,8 +862,6 @@ describe('Investigation detail', () => {
     expect(
       screen.queryByLabelText('Cell actions for Latency query')
     ).not.toBeInTheDocument();
-    expect(screen.queryByText('Waiting for previous cells…')).not.toBeInTheDocument();
-    expect(screen.queryByText('This cell has no output yet.')).not.toBeInTheDocument();
     expect(
       screen.queryByRole('button', {name: 'Close Seer panel'})
     ).not.toBeInTheDocument();
@@ -946,7 +942,6 @@ describe('Investigation detail', () => {
       expect(
         screen.queryByLabelText('Cell actions for Latency query')
       ).not.toBeInTheDocument();
-      expect(screen.queryByText('This cell has no output yet.')).not.toBeInTheDocument();
     }
   );
 
@@ -1062,7 +1057,6 @@ describe('Investigation detail', () => {
     ).toBeInTheDocument();
     expect(screen.queryByTestId('investigation-cell-block-2')).not.toBeInTheDocument();
     expect(screen.queryByTestId('investigation-cell-block-4')).not.toBeInTheDocument();
-    expect(screen.queryByText('Waiting for previous cells…')).not.toBeInTheDocument();
     expect(
       screen.queryByTestId('investigation-execution-failed')
     ).not.toBeInTheDocument();
@@ -1078,10 +1072,8 @@ describe('Investigation detail', () => {
     await chooseCellAction('Latency query', 'Refine');
 
     const prompt = screen.getByLabelText('Instructions for Seer');
-    expect(screen.getByText('Ask Seer to refine')).toBeInTheDocument();
     expect(prompt).toHaveValue('');
     expect(prompt).toBeVisible();
-    expect(screen.queryByRole('button', {name: 'Ask Seer'})).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', {name: 'Cancel Seer request'}));
     expect(screen.queryByLabelText('Instructions for Seer')).not.toBeInTheDocument();
@@ -1141,7 +1133,6 @@ describe('Investigation detail', () => {
     renderView();
 
     expect(await screen.findByText('Rendered')).toBeInTheDocument();
-    expect(screen.queryByText('Investigation step 1')).not.toBeInTheDocument();
     expect(screen.getByTestId('text-cell-result')).toHaveAttribute(
       'data-cell-variant',
       'unbordered'
@@ -1159,7 +1150,6 @@ describe('Investigation detail', () => {
     );
 
     const toggle = screen.getByRole('button', {name: 'Database latency'});
-    expect(screen.queryByText('Evidence/Database latency')).not.toBeInTheDocument();
 
     await userEvent.click(toggle);
     expect(screen.getByText('820ms')).not.toBeVisible();
@@ -2063,6 +2053,11 @@ describe('Investigation detail', () => {
       body: InvestigationDetailFixture({id: 'investigation-2'}),
     });
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/investigation-2/presence/',
+      method: 'PUT',
+      body: {viewers: [], total: 0, heartbeatIntervalMs: 5000},
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/investigations/investigation-2/',
       body: InvestigationDetailFixture({id: 'investigation-2'}),
     });
@@ -2230,12 +2225,6 @@ describe('Investigation detail', () => {
     const {queryClient} = renderView();
 
     expect(await screen.findAllByTestId('investigation-hypothesis')).toHaveLength(3);
-    await userEvent.click(await screen.findByRole('button', {name: /Hypotheses/}));
-    expect(
-      screen.getByRole('heading', {
-        name: 'Database or cache degradation delayed the response',
-      })
-    ).toBeInTheDocument();
     expect(orchestrationRequest).toHaveBeenCalledTimes(1);
     const header = screen.getByRole('banner');
     expect(

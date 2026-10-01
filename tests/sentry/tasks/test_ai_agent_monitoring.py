@@ -394,6 +394,42 @@ class FetchAIModelMetadataTest(TestCase):
         assert cached_data is None
 
     @responses.activate
+    def test_fetch_ai_model_metadata_models_dev_specialized_types(self) -> None:
+        """Test that token-priced specialized models.dev types are included"""
+        self._mock_openrouter_api_response({"data": []})
+        self._mock_models_dev_api_response(
+            {
+                "vercel": {
+                    "models": {
+                        "example-lab/decision-model": {
+                            "type": "decision",
+                            "cost": {"input": 0.042, "output": 0},
+                            "limit": {"context": 32000, "output": 0},
+                        },
+                        "example-lab/unknown-type-model": {
+                            "type": "unknown-type",
+                            "cost": {"input": 1, "output": 1},
+                        },
+                    }
+                }
+            }
+        )
+
+        fetch_ai_model_metadata()
+
+        cached_data = _get_metadata_from_cache()
+        assert cached_data is not None
+        models = cached_data["models"]
+
+        decision_model = models["decision-model"]
+        assert decision_model["costs"]["inputPerToken"] == 0.042 / 1000000
+        assert decision_model["costs"]["outputPerToken"] == 0.0
+        assert decision_model.get("contextSize") == 32000
+        assert models["*decision-model"] == decision_model
+
+        assert "unknown-type-model" not in models
+
+    @responses.activate
     def test_fetch_ai_model_metadata_models_dev_invalid_response(self) -> None:
         """Test handling of invalid models.dev API response format"""
         # Valid OpenRouter response

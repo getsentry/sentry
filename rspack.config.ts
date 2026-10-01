@@ -54,11 +54,6 @@ const CONTROL_SILO_PORT = env.SENTRY_CONTROL_SILO_PORT;
 // features in the Sentry UI.
 // TanStack devtools are disabled by default, but can be enabled by setting the USE_TANSTACK_DEVTOOL env var to 'true'
 const USE_TANSTACK_DEVTOOL = !!env.USE_TANSTACK_DEVTOOL;
-// Sentry toolbar is enabled by default, but can be disabled by setting the DISABLE_SENTRY_TOOLBAR env var to 'true'
-const ENABLE_SENTRY_TOOLBAR =
-  env.ENABLE_SENTRY_TOOLBAR === undefined
-    ? true
-    : Boolean(JSON.parse(env.ENABLE_SENTRY_TOOLBAR));
 
 // Environment variables that are used by other tooling and should
 // not be user configurable.
@@ -195,7 +190,6 @@ const DEFINED_ENV_VARS = {
   'process.env.SPA_DSN': JSON.stringify(SENTRY_SPA_DSN),
   'process.env.SENTRY_RELEASE_VERSION': JSON.stringify(SENTRY_RELEASE_VERSION),
   'process.env.USE_TANSTACK_DEVTOOL': JSON.stringify(USE_TANSTACK_DEVTOOL),
-  'process.env.ENABLE_SENTRY_TOOLBAR': JSON.stringify(ENABLE_SENTRY_TOOLBAR),
 };
 
 const swcReactLoaderConfig = (options: {reactCompiler: boolean}): SwcLoaderOptions => ({
@@ -501,7 +495,18 @@ const appConfig: Configuration = {
       'sentry-logos': path.join(sentryDjangoAppPath, 'images', 'logos'),
       'sentry-fonts': path.join(staticPrefix, 'fonts'),
 
-      '@sentry/scraps': path.join(staticPrefix, 'app', 'components', 'core'),
+      // Keep Prose available until the text barrel is fully isolated.
+      '@sentry/scraps/text$': path.join(
+        staticPrefix,
+        'app',
+        'components',
+        'core',
+        'text'
+      ),
+      '@sentry/scraps': [
+        path.join(staticPrefix, 'packages', 'scraps', 'src'),
+        path.join(staticPrefix, 'app', 'components', 'core'),
+      ],
 
       getsentry: path.join(staticPrefix, 'gsApp'),
       'getsentry-images': path.join(staticPrefix, 'images'),

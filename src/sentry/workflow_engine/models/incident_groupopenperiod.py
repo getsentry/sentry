@@ -196,7 +196,7 @@ class IncidentGroupOpenPeriod(DefaultFieldsModel):
             subscription=subscription,
         )
         # XXX: if this is the very first open period, or if the priority didn't change from the last priority on the last open period,
-        # manually add the first incident status change activity because the group never changed priority
+        # explicitly set the incident status because the group never changed priority
         # if the priority changed, then the call to update_incident_status in update_priority will be a no-op
         priority = (
             occurrence.priority if occurrence.priority is not None else DetectorPriorityLevel.HIGH
@@ -290,7 +290,7 @@ def update_incident_activity_based_on_group_activity(
         # Finally, this can also happen if the incident was not created because a detector was single
         # written in workflow engine. Just return in this case.
         logger.info(
-            "No IncidentGroupOpenPeriod relationship found when updating IncidentActivity table",
+            "No IncidentGroupOpenPeriod relationship found when updating Incident status",
             extra={
                 "open_period_id": open_period.id,
             },

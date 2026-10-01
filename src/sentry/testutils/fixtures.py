@@ -197,6 +197,12 @@ class Fixtures:
     def create_investigation_favorite(self, *args, **kwargs):
         return Factories.create_investigation_favorite(*args, **kwargs)
 
+    def create_investigation_seen(self, *args, **kwargs):
+        return Factories.create_investigation_seen(*args, **kwargs)
+
+    def create_investigation_comment(self, *args, **kwargs):
+        return Factories.create_investigation_comment(*args, **kwargs)
+
     def create_investigation_orchestration_run(self, *args, **kwargs):
         return Factories.create_investigation_orchestration_run(*args, **kwargs)
 
@@ -563,9 +569,6 @@ class Fixtures:
             projects = [self.project]
 
         return Factories.create_incident(organization, projects, *args, **kwargs)
-
-    def create_incident_activity(self, *args, **kwargs):
-        return Factories.create_incident_activity(*args, **kwargs)
 
     def create_alert_rule(self, organization=None, projects=None, *args, **kwargs) -> AlertRule:
         if not organization:

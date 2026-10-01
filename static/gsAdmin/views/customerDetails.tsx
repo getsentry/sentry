@@ -193,6 +193,24 @@ export function CustomerDetails() {
     refetchBillingConfig();
   };
 
+  const onSetTestFlagMutation = useMutation({
+    mutationFn: (params: {isTest: boolean; notes?: string}) =>
+      fetchMutation<{isTest: boolean}>({
+        url: getApiUrl('/_admin/customers/$organizationIdOrSlug/test-flag/', {
+          path: {organizationIdOrSlug: orgId},
+        }),
+        method: 'PUT',
+        data: params,
+      }),
+    onSuccess: async () => {
+      await refetchSubscription();
+      addSuccessMessage('Test organization flag updated.');
+    },
+    onError: () => {
+      addErrorMessage('Could not update the test organization flag. Try again.');
+    },
+  });
+
   const onToggleBillingPlatformMigrationMutation = useMutation({
     mutationFn: (params: Record<string, any>) =>
       fetchMutation({
@@ -354,6 +372,12 @@ export function CustomerDetails() {
 
   const badges: BadgeItem[] = [
     {
+      name: 'Test Organization',
+      level: 'warning',
+      help: 'This organization is marked for internal testing. Billing is unchanged.',
+      visible: subscription.isTest === true,
+    },
+    {
       name: 'Suspended',
       level: 'danger',
       help: subscription.suspensionReason,
@@ -485,6 +509,22 @@ export function CustomerDetails() {
                 onSuccess: reloadData,
               }),
             ...actionRequiresBillingAdmin,
+          },
+          {
+            key: 'setTestFlag',
+            name: subscription.isTest
+              ? 'Remove test organization flag'
+              : 'Mark as test organization',
+            help: 'Change the internal test marker',
+            disabled:
+              subscription.isTest === undefined || onSetTestFlagMutation.isPending,
+            disabledReason: 'The test flag is unavailable or an update is in progress.',
+            confirmModalOpts: {
+              confirmText: subscription.isTest ? 'Remove test flag' : 'Mark as test',
+              showTicketURL: false,
+            },
+            onAction: ({notes}) =>
+              onSetTestFlagMutation.mutate({notes, isTest: !subscription.isTest}),
           },
           {
             key: 'toggleBillingPlatformMigration',

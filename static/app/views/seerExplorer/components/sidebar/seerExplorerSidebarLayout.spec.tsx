@@ -21,7 +21,7 @@ import {
 
 const POSITION_KEY = 'seer-explorer-sidebar-position';
 
-const seerFeatures = ['seer-explorer', 'gen-ai-features'];
+const seerFeatures = ['seer-explorer'];
 
 const defaultHookReturn: ReturnType<typeof useSeerExplorerModule.useSeerExplorer> = {
   sessionData: null,
@@ -47,11 +47,17 @@ const defaultHookReturn: ReturnType<typeof useSeerExplorerModule.useSeerExplorer
   setOverrideCodeModeEnable: jest.fn(),
 };
 
-// Non-zero size so the SplitPanel isn't gated out (jsdom reports 0×0).
+// Non-zero size so the SplitPanel isn't gated out (jsdom reports 0×0). Wide
+// enough to fit the app and Seer side by side, so `auto` docks right.
 const CONTAINER_SIZE = {width: 1200, height: 800};
+// Too narrow for the app and Seer minimums side by side, so `auto` docks bottom.
+const NARROW_CONTAINER_SIZE = {width: 700, height: 800};
 
-// Drive matchMedia per-query so the wide-screen and short-landscape checks can
-// resolve independently.
+function mockContainerSize(size: {height: number; width: number}) {
+  return jest.spyOn(useDimensionsModule, 'useDimensions').mockReturnValue(size);
+}
+
+// Drive matchMedia per-query so the short-landscape check can be toggled.
 function mockMatchMedia(matches: (query: string) => boolean) {
   window.matchMedia = jest.fn().mockImplementation((query: string) => ({
     matches: matches(query),
@@ -65,10 +71,10 @@ function mockMatchMedia(matches: (query: string) => boolean) {
   }));
 }
 
-// Orientation is driven by media queries (the `xl` width breakpoint and a
-// short-landscape check); match every query uniformly.
-function mockWideScreen(matches: boolean) {
-  mockMatchMedia(() => matches);
+// Orientation is driven by the measured split container width, so a "wide
+// screen" is a container that fits both panes.
+function mockWideScreen(wide: boolean) {
+  mockContainerSize(wide ? CONTAINER_SIZE : NARROW_CONTAINER_SIZE);
 }
 
 function OpenSeerControl({options}: {options?: OpenSeerExplorerDrawerOptions}) {
@@ -134,10 +140,9 @@ describe('SeerExplorerSidebarLayout', () => {
     sessionStorage.clear();
     localStorage.clear();
     jest.clearAllMocks();
-    // jsdom reports 0×0, which would gate out the SplitPanel — provide a real size.
-    jest.spyOn(useDimensionsModule, 'useDimensions').mockReturnValue(CONTAINER_SIZE);
-    // Narrow viewport by default → auto docks to the bottom.
+    // Narrow container by default → auto docks to the bottom.
     mockWideScreen(false);
+    mockMatchMedia(() => false);
     jest
       .spyOn(useSeerExplorerModule, 'useSeerExplorer')
       .mockReturnValue(defaultHookReturn);
@@ -232,9 +237,30 @@ describe('SeerExplorerSidebarLayout', () => {
     expect(splitOrientation()).toBe('horizontal');
   });
 
+  it('docks Seer to the right once both panes fit side by side (auto)', async () => {
+    // 480px app minimum + 320px Seer minimum.
+    mockContainerSize({width: 800, height: 800});
+    renderSidebar(orgWithSidebar);
+
+    await userEvent.click(screen.getByText('open-seer'));
+
+    expect(await screen.findByTestId('seer-explorer-input')).toBeInTheDocument();
+    expect(splitOrientation()).toBe('horizontal');
+  });
+
+  it('docks Seer to the bottom when the panes would not fit side by side (auto)', async () => {
+    mockContainerSize({width: 799, height: 800});
+    renderSidebar(orgWithSidebar);
+
+    await userEvent.click(screen.getByText('open-seer'));
+
+    expect(await screen.findByTestId('seer-explorer-input')).toBeInTheDocument();
+    expect(splitOrientation()).toBe('vertical');
+  });
+
   it('docks Seer to the right on a short landscape viewport (auto)', async () => {
-    // Not wide (min-width: xl is false), but landscape and short — e.g. a phone
-    // held sideways, where a bottom dock has no room. Auto docks right instead.
+    // Too narrow for side by side, but landscape and short — e.g. a phone held
+    // sideways, where a bottom dock has no room. Auto docks right instead.
     mockMatchMedia(query => query.includes('orientation: landscape'));
     renderSidebar(orgWithSidebar);
 
@@ -336,10 +362,7 @@ describe('SeerExplorerSidebarLayout', () => {
     // Bottom dock, viewport too short to fit the saved Seer size (700) alongside
     // the content minimum. Opening must not write anything (no committed resize),
     // so the saved preference survives and is restored once the viewport has room.
-    mockWideScreen(false); // auto → bottom
-    jest
-      .spyOn(useDimensionsModule, 'useDimensions')
-      .mockReturnValue({width: 1200, height: 360});
+    mockContainerSize({width: NARROW_CONTAINER_SIZE.width, height: 360}); // auto → bottom
     localStorage.setItem('seer-explorer-sidebar-seer-size:bottom', '700');
 
     renderSidebar(orgWithSidebar);
