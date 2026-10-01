@@ -59,6 +59,12 @@ export type InvestigationBlock = {
 
 export type InvestigationBlockKind = 'query' | 'text';
 
+export type InvestigationViewer = {
+  active: boolean;
+  lastSeen: string;
+  userId: string;
+};
+
 export type InvestigationBlockExecutionStart = {
   id: string;
   status: InvestigationExecutionStatus;

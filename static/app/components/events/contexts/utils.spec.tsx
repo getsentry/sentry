@@ -1,4 +1,7 @@
-import {getKnownData} from 'sentry/components/events/contexts/utils';
+import {
+  getContextAttributeKey,
+  getKnownData,
+} from 'sentry/components/events/contexts/utils';
 
 describe('contexts utils', () => {
   describe('getKnownData', () => {
@@ -88,6 +91,58 @@ describe('contexts utils', () => {
           meta: undefined,
         },
       ]);
+    });
+  });
+
+  describe('getContextAttributeKey', () => {
+    it('builds the key from the type when the alias differs from it', () => {
+      const attributeKey = getContextAttributeKey({
+        alias: 'client_os',
+        contextKey: 'name',
+        type: 'os',
+      });
+
+      expect(attributeKey).toBe('os.name');
+    });
+
+    it('builds the key from the alias when no type is given', () => {
+      const attributeKey = getContextAttributeKey({alias: 'browser', contextKey: 'name'});
+
+      expect(attributeKey).toBe('browser.name');
+    });
+
+    it('builds the key from the alias when the type is default', () => {
+      const attributeKey = getContextAttributeKey({
+        alias: 'checkout',
+        contextKey: 'cart_id',
+        type: 'default',
+      });
+
+      expect(attributeKey).toBe('checkout.cart_id');
+    });
+
+    it('returns the registry name when the context spells the key differently', () => {
+      const attributeKeys = [
+        getContextAttributeKey({alias: 'user', contextKey: 'ip_address', type: 'user'}),
+        getContextAttributeKey({alias: 'trace', contextKey: 'trace_id', type: 'trace'}),
+        getContextAttributeKey({
+          alias: 'trace',
+          contextKey: 'parent_span_id',
+          type: 'trace',
+        }),
+      ];
+
+      expect(attributeKeys).toEqual(['user.ip', 'trace', 'trace.parent_span']);
+    });
+
+    it('leaves span_id alone because trace.span describes the root span', () => {
+      const attributeKey = getContextAttributeKey({
+        alias: 'trace',
+        contextKey: 'span_id',
+        type: 'trace',
+      });
+
+      expect(attributeKey).toBe('trace.span_id');
     });
   });
 });

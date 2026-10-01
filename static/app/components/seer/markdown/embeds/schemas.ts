@@ -149,7 +149,7 @@ export const SEER_EMBED_SCHEMAS = {
       'Never use a markdown link for dashboard references.',
     level: ['inline', 'block'],
     schema: z.object({
-      id: z.string().min(1),
+      id: idString,
       title: z.string().min(1).optional(),
     }),
     examples: [
@@ -290,8 +290,8 @@ export const SEER_EMBED_SCHEMAS = {
   chart: {
     description:
       'Display numeric data as a compact Sentry-style chart. For line, area, and bar charts, ' +
-      'prefer at least three points. Use x_axis "time" only with offset-bearing ISO 8601 ' +
-      'timestamps. Category axes are supported for bar charts only. ' +
+      'prefer at least three points. Use x_axis "time" with ISO 8601 timestamps; ' +
+      'timestamps without an offset are read as UTC. Category axes always render as bars. ' +
       'Duration values are milliseconds, percentage values are 0-100, and byte values are raw bytes.',
     level: ['block'],
     schema: z
@@ -306,20 +306,12 @@ export const SEER_EMBED_SCHEMAS = {
         series: z.array(chartSeriesSchema).min(1).max(5),
       })
       .superRefine((chart, context) => {
-        if (chart.x_axis === 'category' && chart.visualization !== 'bar') {
-          context.addIssue({
-            code: 'custom',
-            message: 'Category axes are only supported for bar charts',
-            path: ['x_axis'],
-          });
-        }
-
         if (chart.x_axis === 'time') {
           chart.series.forEach((series, seriesIndex) => {
             series.data.forEach((point, pointIndex) => {
               if (
                 typeof point.x !== 'string' ||
-                !isoTimestampSchema.safeParse(point.x).success
+                !pageFilterTimestampSchema.safeParse(point.x).success
               ) {
                 context.addIssue({
                   code: 'custom',
@@ -394,7 +386,9 @@ export const SEER_EMBED_SCHEMAS = {
       steps: z
         .array(z.object({title: z.string(), description: z.string()}))
         .optional()
-        .describe('solution only: the ordered steps needed to resolve the issue.'),
+        .describe(
+          'solution only: ordered steps to resolve the issue. Each element MUST be an object with "title" (string) and "description" (string) — never a plain string.'
+        ),
     }),
     examples: [
       {
@@ -1158,11 +1152,42 @@ export function seerEmbedsToJsonSchemas(): Array<{
 }> {
   return Object.entries(SEER_EMBED_SCHEMAS).map(([name, entry]) => {
     const def: SeerEmbedSchema = entry;
+    const body = z.toJSONSchema(def.schema, {io: 'input'});
+    if (name === 'chart') {
+      // superRefine is not exported. Apply its rules to new generation without
+      // changing the reader used by historical conversations.
+      body.allOf = [
+        {
+          if: {properties: {x_axis: {const: 'category'}}, required: ['x_axis']},
+          then: {
+            properties: {visualization: {const: 'bar'}},
+            required: ['visualization'],
+          },
+          else: {
+            properties: {
+              series: {
+                items: {
+                  properties: {
+                    data: {
+                      items: {
+                        properties: {
+                          x: z.toJSONSchema(isoTimestampSchema, {io: 'input'}),
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      ];
+    }
     return {
       name,
       description: def.description,
       level: [...def.level],
-      body: z.toJSONSchema(def.schema),
+      body,
       ...(def.examples && {
         examples: def.examples.map(e => ({label: e.label, data: e.data})),
       }),

@@ -15,6 +15,7 @@ from sentry.testutils.silo import control_silo_test
 from sentry.users.models.authenticator import Authenticator
 from sentry.users.models.user import User
 from sentry.utils.auth import SSO_EXPIRY_TIME, SsoSession
+from sudo.settings import COOKIE_NAME as SUDO_COOKIE_NAME
 
 
 def create_authenticator(user: User) -> None:
@@ -143,7 +144,30 @@ class AuthVerifyEndpointTest(APITestCase):
         assert validate_response.call_count == 1
         assert {"challenge": "challenge"} in validate_response.call_args[0]
         assert {"response": "response"} in validate_response.call_args[0]
+        assert SUDO_COOKIE_NAME in response.cookies
         mock_metrics.incr.assert_any_call("auth.2fa.success", sample_rate=1.0, skip_internal=False)
+
+    @mock.patch("sentry.auth.authenticators.U2fInterface.is_available", return_value=True)
+    def test_valid_password_with_2fa(self, is_available: mock.MagicMock) -> None:
+        user = self.create_user("foo@example.com")
+        self.login_as(user)
+        create_authenticator(user)
+
+        response = self.client.put(self.path, data={"password": "admin"})
+
+        assert response.status_code == 200
+        assert SUDO_COOKIE_NAME in response.cookies
+
+    def test_expired_password_does_not_grant_sudo(self) -> None:
+        user = self.create_user("foo@example.com")
+        self.login_as(user)
+        user.update(is_password_expired=True)
+
+        response = self.client.put(self.path, data={"password": "admin"})
+
+        assert response.status_code == 403
+        assert response.data["code"] == "password-expired"
+        assert SUDO_COOKIE_NAME not in response.cookies
 
     @mock.patch("sentry.api.endpoints.auth_index.metrics")
     @mock.patch("sentry.auth.authenticators.U2fInterface.is_available", return_value=True)

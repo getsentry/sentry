@@ -367,6 +367,36 @@ class UpdateGroupsTest(TestCase):
         # Resolving "now" has no commit associated with it.
         assert send_robust.call_args.kwargs["commit_id"] is None
 
+    def test_resolving_multiple_groups_marks_activities_bulk(self) -> None:
+        g1 = self.create_group(status=GroupStatus.UNRESOLVED)
+        g2 = self.create_group(status=GroupStatus.UNRESOLVED)
+
+        http_request = self.make_request(user=self.user, method="GET")
+        http_request.GET = QueryDict(query_string=f"id={g1.id}&id={g2.id}")
+        request = _wrap_request(http_request, data={"status": "resolved", "substatus": None})
+
+        group_list = get_group_list(self.organization.id, [self.project], request.GET.getlist("id"))
+        update_groups(request, group_list)
+
+        activities = Activity.objects.filter(
+            group__in=[g1, g2], type=ActivityType.SET_RESOLVED.value
+        )
+        assert len(activities) == 2
+        assert all(activity.data.get("bulk") is True for activity in activities)
+
+    def test_resolving_single_group_is_not_bulk(self) -> None:
+        group = self.create_group(status=GroupStatus.UNRESOLVED)
+
+        http_request = self.make_request(user=self.user, method="GET")
+        http_request.GET = QueryDict(query_string=f"id={group.id}")
+        request = _wrap_request(http_request, data={"status": "resolved", "substatus": None})
+
+        group_list = get_group_list(self.organization.id, [self.project], request.GET.getlist("id"))
+        update_groups(request, group_list)
+
+        activity = Activity.objects.get(group=group, type=ActivityType.SET_RESOLVED.value)
+        assert "bulk" not in activity.data
+
     @patch("sentry.signals.issue_resolved.send_robust")
     def test_resolving_group_in_commit(self, send_robust: Mock) -> None:
         unresolved_group = self.create_group(status=GroupStatus.UNRESOLVED)
