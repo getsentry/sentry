@@ -632,6 +632,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
             conversation_id=conversation_id,
             timestamp=now,
             op="gen_ai.chat",
+            operation_name="chat",
             operation_type="ai_client",
             trace_id=trace_id,
             messages=[{"role": "user", "content": "Hello"}],
@@ -665,6 +666,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         assert span["project.id"] == self.project.id
         assert "transaction" in span
         assert "is_transaction" in span
+        assert span["gen_ai.operation.name"] == "chat"
         assert span["gen_ai.operation.type"] == "ai_client"
         assert span["gen_ai.request.messages"] is not None
         assert span["gen_ai.response.text"] == "Hi there!"

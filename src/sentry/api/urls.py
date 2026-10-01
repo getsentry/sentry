@@ -303,6 +303,12 @@ from sentry.investigations.endpoints.organization_investigation_block_order impo
 from sentry.investigations.endpoints.organization_investigation_candidates import (
     OrganizationInvestigationCandidatesEndpoint,
 )
+from sentry.investigations.endpoints.organization_investigation_comment_details import (
+    OrganizationInvestigationCommentDetailsEndpoint,
+)
+from sentry.investigations.endpoints.organization_investigation_comments_index import (
+    OrganizationInvestigationCommentsEndpoint,
+)
 from sentry.investigations.endpoints.organization_investigation_details import (
     OrganizationInvestigationsDetailsEndpoint,
 )
@@ -321,6 +327,9 @@ from sentry.investigations.endpoints.organization_investigation_orchestration im
 )
 from sentry.investigations.endpoints.organization_investigation_parameters import (
     OrganizationInvestigationParametersEndpoint,
+)
+from sentry.investigations.endpoints.organization_investigation_presence import (
+    OrganizationInvestigationPresenceEndpoint,
 )
 from sentry.investigations.endpoints.organization_investigation_title_generation import (
     OrganizationInvestigationTitleGenerationEndpoint,
@@ -2475,9 +2484,24 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-investigation-favorite",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/comments/$",
+        OrganizationInvestigationCommentsEndpoint.as_view(),
+        name="sentry-api-0-organization-investigation-comments",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/comments/(?P<comment_id>[^/]+)/$",
+        OrganizationInvestigationCommentDetailsEndpoint.as_view(),
+        name="sentry-api-0-organization-investigation-comment-details",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/duplicate/$",
         OrganizationInvestigationsDuplicateEndpoint.as_view(),
         name="sentry-api-0-organization-investigation-duplicate",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/presence/$",
+        OrganizationInvestigationPresenceEndpoint.as_view(),
+        name="sentry-api-0-organization-investigation-presence",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/title-generation/$",

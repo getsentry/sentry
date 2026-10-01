@@ -210,7 +210,11 @@ export function AssertionOpGroup({
           <div>
             <AddOpButton
               trigger={triggerProps => (
-                <OverlayTrigger.Button {...triggerProps} icon={<IconAdd />}>
+                <OverlayTrigger.Button
+                  {...triggerProps}
+                  icon={<IconAdd />}
+                  showChevron={false}
+                >
                   {t('Add Assertion')}
                 </OverlayTrigger.Button>
               )}
@@ -293,6 +297,7 @@ export function AssertionOpGroup({
                 variant="transparent"
                 size="zero"
                 icon={<IconAdd size="xs" />}
+                showChevron={false}
                 tooltipProps={{title: t('Add assertion to group')}}
               >
                 {t('Add Assertion')}

@@ -19,7 +19,7 @@ hybridcloud: 0042_cacheversion_key_drop
 
 insights: 0001_squashed_0002_backfill_team_starred
 
-investigations: 0009_drop_producing_seer_run_index
+investigations: 0010_add_investigation_seen_and_comment
 
 monitors: 0001_squashed_0013_delete_monitor_is_muted_field
 
@@ -35,7 +35,7 @@ replays: 0001_squashed_0007_organizationmember_replay_access
 
 seer: 0037_rename_agentic_triage_result
 
-sentry: 1197_backfill_custominboundfilter_legacy_lists
+sentry: 1199_backfill_custominboundfilter_legacy_lists
 
 social_auth: 0001_squashed_0003_social_auth_json_field
 

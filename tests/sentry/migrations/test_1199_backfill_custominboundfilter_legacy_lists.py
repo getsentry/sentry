@@ -3,8 +3,8 @@ from sentry.testutils.cases import TestMigrations
 
 class BackfillCustomInboundFilterLegacyListsTest(TestMigrations):
     app = "sentry"
-    migrate_from = "1196_release_new_id_organization_id_index"
-    migrate_to = "1197_backfill_custominboundfilter_legacy_lists"
+    migrate_from = "1198_prepare_incidentactivity_retirement"
+    migrate_to = "1199_backfill_custominboundfilter_legacy_lists"
 
     def setup_initial_state(self):
         self.other_project = self.create_project(organization=self.organization)

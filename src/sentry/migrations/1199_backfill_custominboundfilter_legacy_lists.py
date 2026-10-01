@@ -89,7 +89,7 @@ class Migration(CheckedMigration):
     is_post_deployment = True
 
     dependencies = [
-        ("sentry", "1196_release_new_id_organization_id_index"),
+        ("sentry", "1198_prepare_incidentactivity_retirement"),
     ]
 
     operations = [
