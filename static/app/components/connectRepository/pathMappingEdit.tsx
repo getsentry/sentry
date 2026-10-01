@@ -70,40 +70,37 @@ export function PathMappingEdit({
     <form.AppForm form={form}>
       <Container containerType="inline-size" padding="xl">
         <Stack gap="xl">
-          <Container position="relative" paddingBottom="md">
-            {onDelete && (
-              <Container position="absolute" style={{top: 0, right: 0}}>
-                <PathMappingDeleteButton
-                  hasCodeOwner={hasCodeOwner}
-                  onDelete={onDelete}
-                />
-              </Container>
+          <form.AppField name="branch">
+            {field => (
+              <Stack gap="md">
+                <Flex align="center" justify="between">
+                  <Text>{t('Branch')}</Text>
+                  {onDelete ? (
+                    <PathMappingDeleteButton
+                      hasCodeOwner={hasCodeOwner}
+                      onDelete={onDelete}
+                    />
+                  ) : null}
+                </Flex>
+                <field.Base<HTMLInputElement>>
+                  {(baseProps, {indicator}) => (
+                    <InputGroup style={{flex: 1}}>
+                      <InputGroup.LeadingItems disablePointerEvents>
+                        <IconBranch />
+                      </InputGroup.LeadingItems>
+                      <InputGroup.Input
+                        {...baseProps}
+                        value={field.state.value}
+                        placeholder={branchFallback}
+                        onChange={e => field.handleChange(sanitizeBranch(e.target.value))}
+                      />
+                      <InputGroup.TrailingItems>{indicator}</InputGroup.TrailingItems>
+                    </InputGroup>
+                  )}
+                </field.Base>
+              </Stack>
             )}
-            <form.AppField name="branch">
-              {field => (
-                <field.Layout.Stack label={t('Branch')}>
-                  <field.Base<HTMLInputElement>>
-                    {(baseProps, {indicator}) => (
-                      <InputGroup style={{flex: 1}}>
-                        <InputGroup.LeadingItems disablePointerEvents>
-                          <IconBranch />
-                        </InputGroup.LeadingItems>
-                        <InputGroup.Input
-                          {...baseProps}
-                          value={field.state.value}
-                          placeholder={branchFallback}
-                          onChange={e =>
-                            field.handleChange(sanitizeBranch(e.target.value))
-                          }
-                        />
-                        <InputGroup.TrailingItems>{indicator}</InputGroup.TrailingItems>
-                      </InputGroup>
-                    )}
-                  </field.Base>
-                </field.Layout.Stack>
-              )}
-            </form.AppField>
-          </Container>
+          </form.AppField>
 
           <Grid columns={{zero: '1fr', '2xs': '1fr auto 1fr'}} gap="xl">
             <form.AppField

@@ -41,9 +41,10 @@ export function PathMapping({
 }: PathMappingProps) {
   const showSummary = !(editing && isNew);
   const editorOnDelete = editing && enableDelete ? onDelete : undefined;
+  const hasWarning = warning?.type === 'exact';
 
   return (
-    <Stack border="muted" radius="md">
+    <Stack border={hasWarning ? 'warning' : 'muted'} radius="md" overflow="hidden">
       {showSummary && (
         <PathMappingSummary
           {...value}

@@ -62,7 +62,7 @@ export function PathMappingSummary({
   const Wrapper = hasWarning ? WarningContainer : Container;
 
   return (
-    <Wrapper padding="md xl" border={hasWarning ? 'warning' : undefined}>
+    <Wrapper padding="md xl">
       <Flex align="center" gap="md" minWidth={0}>
         {hasWarning && (
           <Container flexShrink={0}>
