@@ -191,7 +191,7 @@ function ContentsTable(props: React.ComponentProps<typeof DataTable>) {
 export const LogTable = styled(ContentsTable)<{minWidth: string}>`
   --logsPinEdgeGap: ${p => p.theme.space.sm};
   --logsPinButtonArea: calc(2rem + var(--logsPinEdgeGap));
-  flex: 1;
+  flex: 0 1 auto;
   min-height: 0;
   display: flex;
   flex-direction: column;
