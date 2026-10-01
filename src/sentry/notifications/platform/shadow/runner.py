@@ -21,7 +21,7 @@ from sentry.notifications.platform.registry import (
     renderer_registry,
     template_registry,
 )
-from sentry.notifications.platform.service import KILLSWITCH_OPTION_KEY, NotificationService
+from sentry.notifications.platform.service import NotificationService
 from sentry.notifications.platform.shadow.capture import (
     LegacyRender,
     ShadowCollector,
@@ -118,7 +118,6 @@ def _sampled_variant(
             source not in SHADOW_SOURCES
             or invocation.workflow_id == TEST_NOTIFICATION_ID
             or invocation.action.id == TEST_NOTIFICATION_ID
-            or source.value in options.get(KILLSWITCH_OPTION_KEY)
         ):
             return None
         limit = options.get("notifications.platform.shadow-render.variant-daily-limit")

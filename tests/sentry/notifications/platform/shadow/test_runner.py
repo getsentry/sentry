@@ -42,7 +42,6 @@ from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 RUNNER_PATH = "sentry.notifications.platform.shadow.runner"
 VARIANT_DAILY_LIMIT = "notifications.platform.shadow-render.variant-daily-limit"
-KILLSWITCH = "notifications.platform.killswitch.sources"
 SAMPLE_ALL = {VARIANT_DAILY_LIMIT: 100}
 
 _PATH_STEP = re.compile(r"(?:^|\.)(\w+)|\[(\d+)\]")
@@ -310,10 +309,6 @@ class ShadowReadSamplingTest(ShadowInvocationTestCase):
                 mock_compare, self.create_invocation(), NotificationSource.METRIC_ALERT
             )
         mock_logger.exception.assert_called_once()
-
-    @override_options({**SAMPLE_ALL, KILLSWITCH: ["issue"]})
-    def test_killswitch(self, mock_compare: mock.MagicMock) -> None:
-        self.assert_not_shadowed(mock_compare, self.create_invocation())
 
     @override_options(SAMPLE_ALL)
     def test_skips_test_notification_workflow(self, mock_compare: mock.MagicMock) -> None:
