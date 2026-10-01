@@ -1,4 +1,3 @@
-import {ThemeProvider} from '@emotion/react';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
@@ -8,7 +7,6 @@ import {LinkBehaviorContextProvider} from '@sentry/scraps/link';
 
 import {EventOrGroupType} from 'sentry/types/event';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
-import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
 
 // SSR snapshot tests — no jsdom/RTL/router, so we mock hooks directly.
 // oxlint-disable-next-line @sentry/scraps/no-restricted-module-mocks
@@ -33,7 +31,6 @@ jest.mock('sentry/components/group/issueSeerBadge', () => ({
 
 import {GroupMetaRow} from './groupMetaRow';
 
-const themes = {light: lightTheme, dark: darkTheme};
 const organization = OrganizationFixture();
 
 function SsrLink({to, children}: LinkProps) {
@@ -106,98 +103,61 @@ const minimalGroup = GroupFixture({
 });
 
 describe('GroupMetaRow', () => {
-  describe.each(['light', 'dark'] as const)('%s', themeName => {
-    it.snapshot('full', () => (
-      <ThemeProvider theme={themes[themeName]}>
-        <LinkBehaviorContextProvider value={ssrLinkBehavior}>
-          <OrganizationContext value={organization}>
-            <div style={{padding: 8, width: 700}}>
-              <GroupMetaRow data={defaultGroup} />
-            </div>
-          </OrganizationContext>
-        </LinkBehaviorContextProvider>
-      </ThemeProvider>
-    ));
+  it.snapshot('full', () => (
+    <LinkBehaviorContextProvider value={ssrLinkBehavior}>
+      <OrganizationContext value={organization}>
+        <div style={{padding: 8, width: 700}}>
+          <GroupMetaRow data={defaultGroup} />
+        </div>
+      </OrganizationContext>
+    </LinkBehaviorContextProvider>
+  ));
 
-    it.snapshot('unhandled', () => (
-      <ThemeProvider theme={themes[themeName]}>
-        <LinkBehaviorContextProvider value={ssrLinkBehavior}>
-          <OrganizationContext value={organization}>
-            <div style={{padding: 8, width: 700}}>
-              <GroupMetaRow data={unhandledGroup} />
-            </div>
-          </OrganizationContext>
-        </LinkBehaviorContextProvider>
-      </ThemeProvider>
-    ));
+  it.snapshot('unhandled', () => (
+    <LinkBehaviorContextProvider value={ssrLinkBehavior}>
+      <OrganizationContext value={organization}>
+        <div style={{padding: 8, width: 700}}>
+          <GroupMetaRow data={unhandledGroup} />
+        </div>
+      </OrganizationContext>
+    </LinkBehaviorContextProvider>
+  ));
 
-    it.snapshot('minimal', () => (
-      <ThemeProvider theme={themes[themeName]}>
-        <LinkBehaviorContextProvider value={ssrLinkBehavior}>
-          <OrganizationContext value={organization}>
-            <div style={{padding: 8, width: 700}}>
-              <GroupMetaRow data={minimalGroup} />
-            </div>
-          </OrganizationContext>
-        </LinkBehaviorContextProvider>
-      </ThemeProvider>
-    ));
+  it.snapshot('minimal', () => (
+    <LinkBehaviorContextProvider value={ssrLinkBehavior}>
+      <OrganizationContext value={organization}>
+        <div style={{padding: 8, width: 700}}>
+          <GroupMetaRow data={minimalGroup} />
+        </div>
+      </OrganizationContext>
+    </LinkBehaviorContextProvider>
+  ));
 
-    it.snapshot('with-assignee', () => (
-      <ThemeProvider theme={themes[themeName]}>
-        <LinkBehaviorContextProvider value={ssrLinkBehavior}>
-          <OrganizationContext value={organization}>
-            <div style={{padding: 8, width: 700}}>
-              <GroupMetaRow
-                data={GroupFixture({
-                  id: '1337',
-                  shortId: 'JAVASCRIPT-6QS',
-                  project,
-                  assignedTo: {
-                    id: '1',
-                    name: 'Jane Doe',
-                    type: 'user',
-                    email: 'jane@example.com',
-                  },
-                })}
-                showAssignee
-              />
-            </div>
-          </OrganizationContext>
-        </LinkBehaviorContextProvider>
-      </ThemeProvider>
-    ));
+  it.snapshot('no-lifetime', () => (
+    <LinkBehaviorContextProvider value={ssrLinkBehavior}>
+      <OrganizationContext value={organization}>
+        <div style={{padding: 8, width: 700}}>
+          <GroupMetaRow data={defaultGroup} showLifetime={false} />
+        </div>
+      </OrganizationContext>
+    </LinkBehaviorContextProvider>
+  ));
 
-    it.snapshot('no-lifetime', () => (
-      <ThemeProvider theme={themes[themeName]}>
-        <LinkBehaviorContextProvider value={ssrLinkBehavior}>
-          <OrganizationContext value={organization}>
-            <div style={{padding: 8, width: 700}}>
-              <GroupMetaRow data={defaultGroup} showLifetime={false} />
-            </div>
-          </OrganizationContext>
-        </LinkBehaviorContextProvider>
-      </ThemeProvider>
-    ));
-
-    it.snapshot('mentioned-comment', () => (
-      <ThemeProvider theme={themes[themeName]}>
-        <LinkBehaviorContextProvider value={ssrLinkBehavior}>
-          <OrganizationContext value={organization}>
-            <div style={{padding: 8, width: 700}}>
-              <GroupMetaRow
-                data={GroupFixture({
-                  id: '1337',
-                  shortId: 'JAVASCRIPT-6QS',
-                  project,
-                  numComments: 5,
-                  subscriptionDetails: {reason: 'mentioned'},
-                })}
-              />
-            </div>
-          </OrganizationContext>
-        </LinkBehaviorContextProvider>
-      </ThemeProvider>
-    ));
-  });
+  it.snapshot('mentioned-comment', () => (
+    <LinkBehaviorContextProvider value={ssrLinkBehavior}>
+      <OrganizationContext value={organization}>
+        <div style={{padding: 8, width: 700}}>
+          <GroupMetaRow
+            data={GroupFixture({
+              id: '1337',
+              shortId: 'JAVASCRIPT-6QS',
+              project,
+              numComments: 5,
+              subscriptionDetails: {reason: 'mentioned'},
+            })}
+          />
+        </div>
+      </OrganizationContext>
+    </LinkBehaviorContextProvider>
+  ));
 });

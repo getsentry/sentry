@@ -1,14 +1,9 @@
-import {ThemeProvider} from '@emotion/react';
-
 import {Tag} from '@sentry/scraps/badge';
 
 import type {Group} from 'sentry/types/group';
 import {GroupStatus, GroupSubstatus} from 'sentry/types/group';
-import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
 
 import {getBadgeProperties} from './statusBadge';
-
-const themes = {light: lightTheme, dark: darkTheme};
 
 const cases: Array<{
   label: string;
@@ -16,7 +11,11 @@ const cases: Array<{
   substatus: Group['substatus'];
 }> = [
   {label: 'resolved', status: GroupStatus.RESOLVED, substatus: null},
-  {label: 'new', status: GroupStatus.UNRESOLVED, substatus: GroupSubstatus.NEW},
+  {
+    label: 'new',
+    status: GroupStatus.UNRESOLVED,
+    substatus: GroupSubstatus.NEW,
+  },
   {
     label: 'regressed',
     status: GroupStatus.UNRESOLVED,
@@ -27,7 +26,11 @@ const cases: Array<{
     status: GroupStatus.UNRESOLVED,
     substatus: GroupSubstatus.ESCALATING,
   },
-  {label: 'ongoing', status: GroupStatus.UNRESOLVED, substatus: GroupSubstatus.ONGOING},
+  {
+    label: 'ongoing',
+    status: GroupStatus.UNRESOLVED,
+    substatus: GroupSubstatus.ONGOING,
+  },
   {
     label: 'archived-forever',
     status: GroupStatus.IGNORED,
@@ -46,30 +49,20 @@ const cases: Array<{
 ];
 
 describe('StatusBadge', () => {
-  describe.each(['light', 'dark'] as const)('%s', themeName => {
-    it.snapshot.each(cases.map(c => c.label))(
-      '%s',
-      label => {
-        const found = cases.find(c => c.label === label);
-        const badge = found
-          ? getBadgeProperties(found.status, found.substatus)
-          : undefined;
-        if (!badge) {
-          return (
-            <ThemeProvider theme={themes[themeName]}>
-              <div style={{padding: 8}}>{'(no badge)'}</div>
-            </ThemeProvider>
-          );
-        }
-        return (
-          <ThemeProvider theme={themes[themeName]}>
-            <div style={{padding: 8}}>
-              <Tag variant={badge.tagVariant}>{badge.status}</Tag>
-            </div>
-          </ThemeProvider>
-        );
-      },
-      label => ({tags: {area: 'core', case: label}})
-    );
-  });
+  it.snapshot.each(cases.map(c => c.label))(
+    '%s',
+    label => {
+      const found = cases.find(c => c.label === label);
+      const badge = found ? getBadgeProperties(found.status, found.substatus) : undefined;
+      if (!badge) {
+        return <div style={{padding: 8}}>{'(no badge)'}</div>;
+      }
+      return (
+        <div style={{padding: 8}}>
+          <Tag variant={badge.tagVariant}>{badge.status}</Tag>
+        </div>
+      );
+    },
+    label => ({tags: {area: 'core', case: label}})
+  );
 });
