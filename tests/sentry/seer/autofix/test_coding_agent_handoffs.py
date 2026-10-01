@@ -44,15 +44,24 @@ class CreateSeerRunCodingAgentHandoffTest(TestCase):
             self.organization, type=SeerRunType.FEATURE_RUN, seer_run_state_id=RUN_STATE_ID
         )
 
-    def test_creates_row_for_state(self) -> None:
+    @patch("sentry.seer.autofix.coding_agent_handoffs.record_handoff_event")
+    def test_creates_row_for_state(self, mock_record_event: Mock) -> None:
         create_seer_run_coding_agent_handoff(
-            self.organization, RUN_STATE_ID, _state(), repo_external_id="28"
+            self.organization,
+            RUN_STATE_ID,
+            _state(),
+            repo_external_id="28",
+            repository=REPO_NAME,
+            auto_create_pr=True,
         )
 
         handoff = SeerRunCodingAgentHandoff.objects.get(seer_run=self.seer_run)
         assert handoff.agent_id == "agent-1"
         assert handoff.provider == "github_copilot_agent"
         assert handoff.status == "running"
+        assert handoff.extras["repository"] == REPO_NAME
+        assert handoff.extras["auto_create_pr"] is True
+        mock_record_event.assert_called_once_with(event="launched", handoff=handoff)
 
     def test_records_launch_repo_the_agent_will_not_report_back(self) -> None:
         """The agent names its repo, and a name can't resolve one. The id it was launched
@@ -114,8 +123,11 @@ class SyncCodingAgentStatusTest(TestCase):
             self.seer_run, agent_id="agent-1", provider="github_copilot_agent"
         )
 
+    @patch("sentry.seer.autofix.coding_agent_handoffs.record_handoff_event")
     @patch(MOCK_UPDATE_STATE_PATH)
-    def test_updates_seer_and_returns_known_to_seer(self, mock_update_state: Mock) -> None:
+    def test_updates_seer_and_returns_known_to_seer(
+        self, mock_update_state: Mock, mock_record_event: Mock
+    ) -> None:
         mock_update_state.return_value = True
 
         result = sync_coding_agent_status(
@@ -138,6 +150,45 @@ class SyncCodingAgentStatusTest(TestCase):
         self.handoff.refresh_from_db()
         assert self.handoff.status == "completed"
         assert self.handoff.extras["agent_url"] == "https://github.com/copilot/agents/agent-1"
+        mock_record_event.assert_called_once_with(
+            event="completed", handoff=self.handoff, result=None
+        )
+
+    @patch("sentry.seer.autofix.coding_agent_handoffs.record_handoff_event")
+    @patch(MOCK_UPDATE_STATE_PATH)
+    def test_does_not_emit_terminal_event_twice(
+        self, mock_update_state: Mock, mock_record_event: Mock
+    ) -> None:
+        sync_coding_agent_status(
+            agent_id="agent-1",
+            organization_id=self.organization.id,
+            status=CodingAgentStatus.COMPLETED,
+        )
+        sync_coding_agent_status(
+            agent_id="agent-1",
+            organization_id=self.organization.id,
+            status=CodingAgentStatus.COMPLETED,
+        )
+
+        mock_record_event.assert_called_once()
+
+    @patch("sentry.seer.autofix.coding_agent_handoffs.record_handoff_event")
+    @patch(MOCK_UPDATE_STATE_PATH)
+    def test_emits_rescheduled_transition(
+        self, mock_update_state: Mock, mock_record_event: Mock
+    ) -> None:
+        self.handoff.status = CodingAgentStatus.RUNNING
+        self.handoff.save(update_fields=["status"])
+
+        sync_coding_agent_status(
+            agent_id="agent-1",
+            organization_id=self.organization.id,
+            status=CodingAgentStatus.PENDING,
+        )
+
+        mock_record_event.assert_called_once_with(
+            event="rescheduled", handoff=self.handoff, result=None
+        )
 
     @patch(MOCK_UPDATE_STATE_PATH)
     def test_resolves_group_id_from_seer_agent_run(self, mock_update_state: Mock) -> None:
@@ -172,8 +223,11 @@ class SyncCodingAgentStatusTest(TestCase):
         self.handoff.refresh_from_db()
         assert self.handoff.status == "completed"
 
+    @patch("sentry.seer.pull_requests.record_handoff_event")
     @patch(MOCK_UPDATE_STATE_PATH)
-    def test_links_pull_request_on_completion(self, mock_update_state: Mock) -> None:
+    def test_links_pull_request_on_completion(
+        self, mock_update_state: Mock, mock_record_pr_event: Mock
+    ) -> None:
         mock_update_state.return_value = True
         result = CodingAgentResult(
             description="Fixed the bug",
@@ -200,6 +254,11 @@ class SyncCodingAgentStatusTest(TestCase):
         assert SeerRunMilestone.objects.filter(
             seer_run=self.seer_run, milestone=SeerRunMilestoneType.HAS_PULL_REQUEST
         ).exists()
+        mock_record_pr_event.assert_called_once_with(
+            event="pr_created",
+            handoff=self.handoff,
+            pull_request=pull_request,
+        )
 
     @patch(MOCK_UPDATE_STATE_PATH)
     def test_links_gitlab_pull_request_the_reported_name_cannot_resolve(

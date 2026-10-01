@@ -238,6 +238,12 @@ class SeerRunCodingAgentHandoffExtras(TypedDict, total=False):
     # launch -- the agent reports its PR back under a repo *name*, which resolves the row
     # ambiguously at best, and for GitLab never at all.
     repo_external_id: str | None
+    # Launch-time dimensions used by the handoff lifecycle telemetry stream.
+    repository: str
+    auto_create_pr: bool
+    agent_name: str
+    # Idempotency keys for PR lifecycle events received through retryable webhooks.
+    telemetry_events: list[str]
 
 
 @cell_silo_model
