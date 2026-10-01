@@ -172,12 +172,16 @@ describe('ConversationsOverviewPage', () => {
 
     await userEvent.click(screen.getByRole('tab', {name: 'Traces'}));
     expect(
-      await screen.findByPlaceholderText('Search by trace ID, operation, service, or user')
+      await screen.findByPlaceholderText(
+        'Search by trace ID, operation, service, or user'
+      )
     ).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('tab', {name: 'LLM Calls'}));
     expect(
-      await screen.findByPlaceholderText('Search by model, provider, tokens, or operation')
+      await screen.findByPlaceholderText(
+        'Search by model, provider, tokens, or operation'
+      )
     ).toBeInTheDocument();
   });
 
