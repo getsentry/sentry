@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from unittest.mock import patch
+
 import pytest
 
 from sentry.dynamic_sampling.per_org.telemetry import (
@@ -8,7 +10,11 @@ from sentry.dynamic_sampling.per_org.telemetry import (
     track_dynamic_sampling,
 )
 from sentry.testutils.helpers.options import override_options
-from sentry.utils.snuba_rpc import SnubaRPCError, SnubaRPCTimeout
+from sentry.utils.snuba_rpc import (
+    SnubaRPCError,
+    SnubaRPCTimeout,
+    SnubaRPCTooManySimultaneous,
+)
 
 # The metrics sample rate is overridden only so emitting a metric does not read the
 # option from the database; none of these tests assert on the emitted metrics.
@@ -30,23 +36,27 @@ def test_reraises_exception() -> None:
 
 
 @override_options(_GATE_OPTIONS)
-def test_reraises_snuba_timeout() -> None:
+@pytest.mark.parametrize(
+    ("error", "status"),
+    [
+        (SnubaRPCTimeout("timed out"), DynamicSamplingStatus.SNUBA_TIMEOUT),
+        (
+            SnubaRPCTooManySimultaneous("too many"),
+            DynamicSamplingStatus.SNUBA_TOO_MANY_SIMULTANEOUS,
+        ),
+        (SnubaRPCError("snuba failed"), DynamicSamplingStatus.SNUBA_ERROR),
+    ],
+)
+def test_snuba_error_becomes_status_without_capture(
+    error: SnubaRPCError, status: DynamicSamplingStatus
+) -> None:
     @track_dynamic_sampling
-    def boom() -> None:
-        raise SnubaRPCTimeout("timed out")
+    def boom() -> DynamicSamplingStatus | None:
+        raise error
 
-    with pytest.raises(SnubaRPCTimeout):
-        boom()
-
-
-@override_options(_GATE_OPTIONS)
-def test_reraises_snuba_error() -> None:
-    @track_dynamic_sampling
-    def boom() -> None:
-        raise SnubaRPCError("snuba failed")
-
-    with pytest.raises(SnubaRPCError):
-        boom()
+    with patch("sentry.dynamic_sampling.per_org.telemetry.sentry_sdk.capture_exception") as capture:
+        assert boom() == status
+    capture.assert_not_called()
 
 
 @override_options(_GATE_OPTIONS)

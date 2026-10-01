@@ -14,7 +14,11 @@ from sentry.dynamic_sampling.per_org.gate import (
     metrics_sample_rate,
 )
 from sentry.utils import metrics
-from sentry.utils.snuba_rpc import SnubaRPCError, SnubaRPCTimeout
+from sentry.utils.snuba_rpc import (
+    SnubaRPCError,
+    SnubaRPCTimeout,
+    SnubaRPCTooManySimultaneous,
+)
 
 F = TypeVar("F", bound=Callable[..., object])
 
@@ -75,6 +79,7 @@ class DynamicSamplingStatus(StrEnum):
     ROLLOUT_DISABLED = "rollout_disabled"
     ROLLOUT_EXCLUDED = "rollout_excluded"
     SNUBA_TIMEOUT = "snuba_timeout"
+    SNUBA_TOO_MANY_SIMULTANEOUS = "snuba_too_many_simultaneous"
     SNUBA_ERROR = "snuba_error"
 
 
@@ -141,12 +146,14 @@ def track_dynamic_sampling(func: F) -> F:
                     result = func(*args, **kwargs)
             except DynamicSamplingException as exc:
                 result = exc.status
+            # Snuba outages are expected and transient; the status metric is the only
+            # record, and the next cycle retries the organization anyway.
             except SnubaRPCTimeout:
-                emit_status(status_metric, DynamicSamplingStatus.SNUBA_TIMEOUT)
-                raise
+                result = DynamicSamplingStatus.SNUBA_TIMEOUT
+            except SnubaRPCTooManySimultaneous:
+                result = DynamicSamplingStatus.SNUBA_TOO_MANY_SIMULTANEOUS
             except SnubaRPCError:
-                emit_status(status_metric, DynamicSamplingStatus.SNUBA_ERROR)
-                raise
+                result = DynamicSamplingStatus.SNUBA_ERROR
             except Exception as exc:
                 emit_status(status_metric, DynamicSamplingStatus.FAILED)
                 sentry_sdk.capture_exception(exc)
