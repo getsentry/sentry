@@ -11,7 +11,6 @@ import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {DataTable} from 'sentry/components/tables/dataTable';
 import {getNextDirection} from 'sentry/components/tables/getNextSort';
-import {IconStack} from 'sentry/icons/iconStack';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
@@ -236,11 +235,7 @@ export function AggregatesTable({
                       handleCellAction={() => null}
                       allowActions={[]}
                       extraMenuItems={menuItems}
-                    >
-                      <IconTriggerContent>
-                        <IconStack />
-                      </IconTriggerContent>
-                    </CellAction>
+                    />
                   </DataTable.Cell>
                   {visibleAggregateFields.map((aggregateField, j) => {
                     const field = isGroupBy(aggregateField)
@@ -307,14 +302,6 @@ const TopResultsIndicator = styled('div')<{color: string}>`
   border-radius: 0 3px 3px 0;
 
   background-color: ${p => p.color};
-`;
-
-const IconTriggerContent = styled('span')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  line-height: 0;
 `;
 
 const VIEW_SAMPLES_COLUMN: TableColumn<keyof TableDataRow> = {

@@ -2,15 +2,12 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {Link} from '@sentry/scraps/link';
+
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {
-  Actions,
-  ActionTriggerType,
-  CellAction,
-  updateQuery,
-} from 'sentry/views/discover/table/cellAction';
+import {Actions, CellAction, updateQuery} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 
 const defaultData: TableDataRow = {
@@ -39,7 +36,6 @@ function ExampleCellAction({
   column,
   data = defaultData,
   pin,
-  triggerType,
 }: {
   eventView: EventView;
   column?: TableColumn<string>;
@@ -50,7 +46,6 @@ function ExampleCellAction({
     value: string | number | null[] | string[] | null
   ) => void;
   pin?: React.ReactNode;
-  triggerType?: ActionTriggerType;
 }) {
   return (
     <CellAction
@@ -58,7 +53,6 @@ function ExampleCellAction({
       column={column ?? eventView.getColumns()[columnIndex]!}
       handleCellAction={handleCellAction}
       pin={pin}
-      triggerType={triggerType}
     >
       <strong>some content</strong>
     </CellAction>
@@ -103,10 +97,113 @@ describe('Discover -> CellAction', () => {
     it('shows no menu by default', () => {
       render(<ExampleCellAction eventView={view} />);
       expect(screen.getByRole('button', {name: 'Actions'})).toBeInTheDocument();
+      expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+    });
+
+    it('keeps the trigger revealed while the menu is open', async () => {
+      render(<ExampleCellAction eventView={view} />);
+      const trigger = screen.getByRole('button', {name: 'Actions'});
+      const action = trigger.closest('[data-reveal-on-hover]');
+
+      expect(action).not.toHaveAttribute('data-reveal-on-hover-visible');
+
+      await userEvent.hover(screen.getByText('some content'));
+      await userEvent.click(trigger);
+      await userEvent.unhover(screen.getByText('some content'));
+
+      expect(screen.getByRole('menu')).toBeInTheDocument();
+      expect(action).toHaveAttribute('data-reveal-on-hover-visible');
+
+      await userEvent.keyboard('{Escape}');
+      expect(action).not.toHaveAttribute('data-reveal-on-hover-visible');
     });
   });
 
   describe('opening the menu', () => {
+    it('does not open the menu when clicking cell content', async () => {
+      render(<ExampleCellAction eventView={view} />);
+
+      await userEvent.click(screen.getByText('some content'));
+
+      expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Actions'})).not.toHaveTextContent(
+        'some content'
+      );
+    });
+
+    it('opens the menu with the keyboard and returns focus on close', async () => {
+      render(<ExampleCellAction eventView={view} />);
+
+      await userEvent.tab();
+      expect(screen.getByRole('button', {name: 'Actions'})).toHaveFocus();
+      await userEvent.keyboard('{Enter}');
+      expect(screen.getByRole('menu')).toBeInTheDocument();
+
+      await userEvent.keyboard('{Escape}');
+      expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Actions'})).toHaveFocus();
+    });
+
+    it('allows normal link navigation without opening the menu', async () => {
+      const {router} = render(
+        <CellAction
+          dataRow={defaultData}
+          column={view.getColumns()[0]!}
+          handleCellAction={jest.fn()}
+        >
+          <Link to="/cell-destination/">Open transaction</Link>
+        </CellAction>
+      );
+
+      await userEvent.click(screen.getByRole('link', {name: 'Open transaction'}));
+
+      expect(router.location.pathname).toBe('/cell-destination/');
+      expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+    });
+
+    it('keeps buttons inside the cell separate from the actions trigger', async () => {
+      const onClick = jest.fn();
+      render(
+        <CellAction
+          dataRow={defaultData}
+          column={view.getColumns()[0]!}
+          handleCellAction={jest.fn()}
+        >
+          <button type="button" onClick={onClick}>
+            Cell button
+          </button>
+        </CellAction>
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Cell button'}));
+
+      expect(onClick).toHaveBeenCalledTimes(1);
+      expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+    });
+
+    it('reads link actions when opening the menu with the keyboard', async () => {
+      render(
+        <CellAction
+          dataRow={defaultData}
+          column={view.getColumns()[0]!}
+          handleCellAction={jest.fn()}
+        >
+          <Link to="/cell-destination/">Open transaction</Link>
+        </CellAction>
+      );
+
+      await userEvent.tab();
+      expect(screen.getByRole('link', {name: 'Open transaction'})).toHaveFocus();
+      await userEvent.tab();
+      expect(screen.getByRole('button', {name: 'Actions'})).toHaveFocus();
+      await userEvent.keyboard('{Enter}');
+
+      expect(screen.getByRole('menuitemradio', {name: 'Open link'})).toHaveAttribute(
+        'href',
+        '/cell-destination/'
+      );
+    });
+
     it('toggles the menu on click', async () => {
       render(<ExampleCellAction eventView={view} />);
       await openMenu();
@@ -631,28 +728,30 @@ describe('Discover -> CellAction', () => {
   });
 
   describe('pin prop', () => {
-    it('renders the pin element with the bold hover trigger', () => {
+    it('renders the pin element', () => {
       render(
-        <ExampleCellAction
-          eventView={view}
-          triggerType={ActionTriggerType.BOLD_HOVER}
-          pin={<button type="button">pin me</button>}
-        />
+        <ExampleCellAction eventView={view} pin={<button type="button">pin me</button>} />
       );
 
       expect(screen.getByRole('button', {name: 'pin me'})).toBeInTheDocument();
     });
 
-    it('renders the pin element with the ellipsis trigger', () => {
+    it('does not open the menu when clicking the pin', async () => {
+      const onClick = jest.fn();
       render(
         <ExampleCellAction
           eventView={view}
-          triggerType={ActionTriggerType.ELLIPSIS}
-          pin={<button type="button">pin me</button>}
+          pin={
+            <button type="button" onClick={onClick}>
+              pin me
+            </button>
+          }
         />
       );
 
-      expect(screen.getByRole('button', {name: 'pin me'})).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', {name: 'pin me'}));
+      expect(onClick).toHaveBeenCalledTimes(1);
+      expect(screen.queryByRole('menu')).not.toBeInTheDocument();
     });
   });
 });

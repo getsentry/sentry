@@ -1,9 +1,10 @@
 import {useRef, useState} from 'react';
-import styled from '@emotion/styled';
 
-import {Button} from '@sentry/scraps/button';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {Stack} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {RevealOnHover} from '@sentry/scraps/revealOnHover';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {IconEllipsis} from 'sentry/icons';
@@ -373,28 +374,15 @@ function getInternalLinkActionLabel(field: string): string {
   return t('Open link');
 }
 
-export enum ActionTriggerType {
-  ELLIPSIS = 'ellipsis',
-  BOLD_HOVER = 'bold_hover',
-}
-
 type Props = React.PropsWithoutRef<Omit<CellActionsOpts, 'to'>> & {
   pin?: React.ReactNode;
-  triggerType?: ActionTriggerType;
   usePortalOnDropdown?: boolean;
 };
 
-export function CellAction({
-  pin,
-  triggerType = ActionTriggerType.BOLD_HOVER,
-  allowActions,
-  usePortalOnDropdown,
-  ...props
-}: Props) {
+export function CellAction({pin, allowActions, usePortalOnDropdown, ...props}: Props) {
   const {children, column} = props;
-  // Extract the rendered link when opening the menu so navigation is also
-  // available as a cell action.
   const [target, setTarget] = useState<string>();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const cellActions = makeCellActions({
@@ -404,16 +392,25 @@ export function CellAction({
   });
   const align = fieldAlignment(column.key as string, column.type);
 
-  if (triggerType === ActionTriggerType.BOLD_HOVER) {
-    return (
-      <Container
-        data-test-id={cellActions === null ? undefined : 'cell-action-container'}
-      >
-        {cellActions?.length ? (
+  return (
+    <RevealOnHover
+      ref={containerRef}
+      position="relative"
+      width="100%"
+      height="100%"
+      minWidth="0"
+      data-test-id={cellActions === null ? undefined : 'cell-action-container'}
+    >
+      <Stack flex="1" minWidth="0" justify="center">
+        {children}
+        {pin}
+      </Stack>
+      {!!cellActions?.length && (
+        <RevealOnHover.Action visible={isMenuOpen}>
           <DropdownMenu
-            usePortal={usePortalOnDropdown}
-            disableTextSelection
             items={cellActions}
+            usePortal={usePortalOnDropdown ?? true}
+            disableTextSelection
             strategy="fixed"
             size="sm"
             offset={4}
@@ -430,146 +427,31 @@ export function CellAction({
                 'left-end',
               ],
             }}
-            trigger={triggerProps => (
-              <ActionMenuTriggerV2
-                {...triggerProps}
-                role="button"
-                aria-label={t('Actions')}
-                onClickCapture={e => {
-                  // Allow for users to hold shift, ctrl or cmd to open links instead of the menu
-                  if (e.metaKey || e.shiftKey || e.ctrlKey) {
-                    e.stopPropagation();
-                  } else {
-                    const aTags = e.currentTarget.getElementsByTagName('a');
-                    if (aTags?.[0]) {
-                      const href = aTags[0].href;
-                      if (isInternalNavigationTarget(href) || isValidUrl(href)) {
-                        setTarget(href);
-                      } else {
-                        setTarget(undefined);
-                      }
-                    } else {
-                      setTarget(undefined);
-                    }
-                    e.preventDefault();
-                  }
-                }}
-                hasLinks={
-                  // TODO - hack, ideally we don't directly access the DOM and use a ref instead, ideally we can determin if the cell type has a link
-                  !!document
-                    .getElementById(triggerProps.id ?? '')
-                    ?.getElementsByTagName('a')?.[0]
-                }
-              >
-                {children}
-              </ActionMenuTriggerV2>
-            )}
-            minMenuWidth={0}
-          />
-        ) : (
-          children
-        )}
-        {pin}
-      </Container>
-    );
-  }
-
-  return (
-    <Container
-      ref={containerRef}
-      data-test-id={cellActions === null ? undefined : 'cell-action-container'}
-    >
-      {children}
-      {cellActions?.length && (
-        <DropdownMenu
-          items={cellActions}
-          usePortal={usePortalOnDropdown ?? true}
-          disableTextSelection
-          size="sm"
-          offset={4}
-          position="bottom"
-          preventOverflowOptions={{padding: 4}}
-          flipOptions={{
-            fallbackPlacements: [
-              'top',
-              'right-start',
-              'right-end',
-              'left-start',
-              'left-end',
-            ],
-          }}
-          trigger={triggerProps => (
-            <ActionMenuTrigger
-              {...triggerProps}
-              onClickCapture={() => {
+            isOpen={isMenuOpen}
+            onOpenChange={isOpen => {
+              if (isOpen) {
+                // Read the rendered link when opening by mouse or keyboard.
                 const href = containerRef.current?.getElementsByTagName('a')[0]?.href;
                 setTarget(
                   href && (isInternalNavigationTarget(href) || isValidUrl(href))
                     ? href
                     : undefined
                 );
-              }}
-              aria-label={t('Actions')}
-              icon={<IconEllipsis size="xs" />}
-              size="zero"
-            />
-          )}
-        />
+              }
+              setIsMenuOpen(isOpen);
+            }}
+            trigger={triggerProps => (
+              <OverlayTrigger.IconButton
+                {...triggerProps}
+                aria-label={t('Actions')}
+                icon={<IconEllipsis size="xs" />}
+                size="zero"
+              />
+            )}
+            minMenuWidth={0}
+          />
+        </RevealOnHover.Action>
       )}
-      {pin}
-    </Container>
+    </RevealOnHover>
   );
 }
-
-const Container = styled('div')`
-  position: relative;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-`;
-
-const ActionMenuTrigger = styled(Button)`
-  &,
-  * {
-    -webkit-user-select: none;
-    user-select: none;
-  }
-  position: absolute;
-  top: 50%;
-  right: -1px;
-  transform: translateY(-50%);
-  padding: ${p => p.theme.space.xs};
-
-  display: flex;
-  align-items: center;
-
-  opacity: 0;
-  transition: opacity 0.1s;
-  &:focus-visible,
-  &[aria-expanded='true'],
-  ${Container}:hover & {
-    opacity: 1;
-  }
-`;
-
-const ActionMenuTriggerV2 = styled('div')<{hasLinks?: boolean}>`
-  &,
-  * {
-    -webkit-user-select: none;
-    user-select: none;
-  }
-
-  a,
-  span {
-    color: ${p =>
-      p.hasLinks
-        ? p.theme.tokens.interactive.link.accent.rest
-        : p.theme.tokens.content.primary};
-  }
-  :hover {
-    cursor: pointer;
-    text-shadow: 0.5px 0px;
-  }
-`;
