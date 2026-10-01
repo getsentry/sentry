@@ -3,23 +3,15 @@ import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
-import {Composer, type ComposerValue, type Mention} from '@sentry/scraps/composer';
+import {Composer, type ComposerValue} from '@sentry/scraps/composer';
 import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {Actor} from 'sentry/components/seer/markdown/embeds/components/user';
 import {IconArrow, IconPause} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {useOrgMentionPlugins} from 'sentry/utils/mentions/useOrgMentionPlugins';
 import {PRWidget} from 'sentry/views/seerExplorer/components/prWidget';
 import type {Block, RepoPRState} from 'sentry/views/seerExplorer/types';
-import {getMentionActor} from 'sentry/views/seerExplorer/utils/serializeComposerValue';
-
-function renderMention(mention: Mention) {
-  const actor = getMentionActor(mention);
-  return actor ? <Actor {...actor} /> : mention.text;
-}
 
 interface FileApprovalActions {
   currentIndex: number;
@@ -80,8 +72,6 @@ export function InputSection({
   fileApprovalActions,
   questionActions,
 }: InputSectionProps) {
-  const mentionPlugins = useOrgMentionPlugins();
-
   // Check if there are any file patches for showing the PR widget
   const hasCodeChanges = useMemo(() => {
     return blocks.some(b => b.merged_file_patches && b.merged_file_patches.length > 0);
@@ -274,8 +264,7 @@ export function InputSection({
           isWarningPlaceholder={interruptState === 'completed'}
           ref={composerRef}
           aria-label={t('Ask Seer a question')}
-          plugins={mentionPlugins}
-          renderMention={renderMention}
+          plugins={[]}
           value={inputValue}
           onChange={onInputChange}
           onKeyDown={onKeyDown}

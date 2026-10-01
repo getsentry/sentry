@@ -1,5 +1,4 @@
 import {useCallback, useLayoutEffect, useMemo, useReducer, useRef, useState} from 'react';
-import {createPortal} from 'react-dom';
 import {useTheme} from '@emotion/react';
 import {ariaHideOutside} from '@react-aria/overlays';
 import {mergeProps} from '@react-aria/utils';
@@ -44,15 +43,11 @@ function getSuggestionStatusMessage(
 /**
  * Keeps the browser-managed contenteditable in sync with the controlled value.
  */
-function useEditorValueSync(
-  {mentions, text}: ComposerValue,
-  renderMention: ComposerProps['renderMention']
-) {
+function useEditorValueSync({mentions, text}: ComposerValue) {
   const inputRef = useRef<HTMLDivElement>(null);
   const isComposingRef = useRef(false);
   const selectionToRestoreRef = useRef<EditorSelection | null>(null);
   const [nativeEditVersion, requestValueSync] = useReducer(version => version + 1, 0);
-  const [mentionPortals, setMentionPortals] = useState<React.ReactPortal[]>([]);
 
   useLayoutEffect(() => {
     const input = inputRef.current;
@@ -61,20 +56,7 @@ function useEditorValueSync(
     }
 
     if (!isComposingRef.current) {
-      const portals: React.ReactPortal[] = [];
-      writeEditorValue(
-        input,
-        text,
-        mentions,
-        renderMention
-          ? (mention, element) => {
-              portals.push(createPortal(renderMention(mention) ?? mention.text, element));
-            }
-          : undefined
-      );
-      setMentionPortals(previous =>
-        portals.length || previous.length ? portals : previous
-      );
+      writeEditorValue(input, text, mentions);
     }
 
     const selectionToRestore = selectionToRestoreRef.current;
@@ -84,15 +66,9 @@ function useEditorValueSync(
       selectionToRestoreRef.current = null;
     }
     // oxlint-disable-next-line react/exhaustive-effect-dependencies
-  }, [mentions, nativeEditVersion, renderMention, text]);
+  }, [mentions, nativeEditVersion, text]);
 
-  return {
-    inputRef,
-    isComposingRef,
-    mentionPortals,
-    requestValueSync,
-    selectionToRestoreRef,
-  };
+  return {inputRef, isComposingRef, requestValueSync, selectionToRestoreRef};
 }
 
 /**
@@ -170,20 +146,14 @@ export function Composer({
   onKeyDown,
   minHeight,
   placeholder,
-  renderMention,
   style,
   ...editorProps
 }: ComposerProps) {
   const {mentions, text: value} = inputValue;
   const theme = useTheme();
   const {t} = useTranslation();
-  const {
-    inputRef,
-    isComposingRef,
-    mentionPortals,
-    requestValueSync,
-    selectionToRestoreRef,
-  } = useEditorValueSync(inputValue, renderMention);
+  const {inputRef, isComposingRef, requestValueSync, selectionToRestoreRef} =
+    useEditorValueSync(inputValue);
   const dismissedRequestKeyRef = useRef<string | null>(null);
   const [activeTrigger, setActiveTrigger] = useState<ActiveTrigger | null>(null);
 
@@ -339,32 +309,6 @@ export function Composer({
     );
   };
 
-  const deleteSelection = ({start, end}: EditorSelection) => {
-    const nextValue = value.slice(0, start) + value.slice(end);
-    selectionToRestoreRef.current = {start, end: start};
-    requestValueSync();
-    setActiveTrigger(null);
-    onChange({text: nextValue, mentions: reconcileMentions(value, nextValue, mentions)});
-  };
-
-  const copySelection = (event: React.ClipboardEvent<HTMLDivElement>) => {
-    if (!renderMention || event.defaultPrevented) {
-      return;
-    }
-    const selection = getEditorSelection(event.currentTarget);
-    if (!selection || selection.start === selection.end) {
-      return;
-    }
-    event.preventDefault();
-    event.clipboardData.setData(
-      'text/plain',
-      value.slice(selection.start, selection.end)
-    );
-    if (event.type === 'cut') {
-      deleteSelection(selection);
-    }
-  };
-
   // oxlint-disable-next-line react/refs
   const inputProps = mergeProps(editorProps, {
     style: {minHeight, ...style},
@@ -379,8 +323,6 @@ export function Composer({
     'data-placeholder': placeholder,
     suppressContentEditableWarning: true,
     tabIndex: editorProps.tabIndex ?? 0,
-    onCopy: copySelection,
-    onCut: copySelection,
     onBlur: (event: React.FocusEvent<HTMLDivElement>) => {
       if (
         !overlayRef.current?.contains(event.relatedTarget) &&
@@ -416,27 +358,6 @@ export function Composer({
         isComposingRef.current
       ) {
         return;
-      }
-
-      if (renderMention && (event.key === 'Backspace' || event.key === 'Delete')) {
-        const selection = getEditorSelection(event.currentTarget);
-        if (selection) {
-          const affected = mentions.filter(mention =>
-            selection.start === selection.end
-              ? event.key === 'Backspace'
-                ? mention.end === selection.start
-                : mention.start === selection.start
-              : mention.start < selection.end && mention.end > selection.start
-          );
-          if (affected.length) {
-            event.preventDefault();
-            deleteSelection({
-              start: Math.min(selection.start, ...affected.map(mention => mention.start)),
-              end: Math.max(selection.end, ...affected.map(mention => mention.end)),
-            });
-            return;
-          }
-        }
       }
 
       if (isOpen) {
@@ -491,7 +412,6 @@ export function Composer({
   return (
     <Container position="relative" width="100%" minWidth="0">
       <ComposerEditor {...inputProps} ref={mergeInputRef(ref)} />
-      {mentionPortals}
       <CaretAnchor aria-hidden ref={mergeCaretAnchorRef(triggerProps.ref)} />
       {isOpen ? (
         <PositionWrapper

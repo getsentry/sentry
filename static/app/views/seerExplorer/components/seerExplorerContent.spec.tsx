@@ -1,4 +1,3 @@
-import {MemberFixture} from 'sentry-fixture/member';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
 import {UserFixture} from 'sentry-fixture/user';
@@ -718,45 +717,19 @@ describe('SeerExplorerContent', () => {
       expect(textarea).toBeEmptyDOMElement();
     });
 
-    it('selects a mention before Enter sends the message', async () => {
+    it('sends literal user and team references without fetching suggestions', async () => {
       const sendMessage = jest.fn();
       jest
         .spyOn(useSeerExplorerModule, 'useSeerExplorer')
         .mockReturnValue({...defaultHookReturn, sendMessage});
-      render(
-        <PictureInPictureProvider>
-          <SeerExplorerSessionsProvider>
-            <SeerExplorerContent
-              getPageReferrer={mockGetPageReferrer}
-              onClose={() => {}}
-            />
-          </SeerExplorerSessionsProvider>
-        </PictureInPictureProvider>,
-        {
-          organization,
-        }
-      );
-
-      MockApiClient.addMockResponse({
+      const membersRequest = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/members/',
-        body: [MemberFixture({user: UserFixture({id: '1', name: 'Alice Example'})})],
+        body: [],
       });
-      await userEvent.type(await getSeerExplorerInput(), '@ali');
-      await screen.findByRole('option', {name: /Alice Example/});
-      await userEvent.keyboard('{Enter}');
-      expect(sendMessage).not.toHaveBeenCalled();
-      await userEvent.keyboard('{Enter}');
-      expect(sendMessage).toHaveBeenCalledWith(
-        '{% user %}{"id":"1","type":"user","name":"Alice Example"}{% /user %}',
-        0
-      );
-    });
-
-    it('sends on Enter when mention suggestions are empty', async () => {
-      const sendMessage = jest.fn();
-      jest
-        .spyOn(useSeerExplorerModule, 'useSeerExplorer')
-        .mockReturnValue({...defaultHookReturn, sendMessage});
+      const teamsRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/teams/',
+        body: [],
+      });
       render(
         <PictureInPictureProvider>
           <SeerExplorerSessionsProvider>
@@ -766,16 +739,17 @@ describe('SeerExplorerContent', () => {
             />
           </SeerExplorerSessionsProvider>
         </PictureInPictureProvider>,
-        {
-          organization,
-        }
+        {organization}
       );
 
-      MockApiClient.addMockResponse({url: '/organizations/org-slug/members/', body: []});
-      await userEvent.type(await getSeerExplorerInput(), '@missing');
-      await screen.findByText('No suggestions found');
+      const input = await getSeerExplorerInput();
+      await userEvent.type(input, 'Ask @Alice #team');
+      expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+      expect(membersRequest).not.toHaveBeenCalled();
+      expect(teamsRequest).not.toHaveBeenCalled();
       await userEvent.keyboard('{Enter}');
-      expect(sendMessage).toHaveBeenCalledWith('@missing', 0);
+      expect(sendMessage).toHaveBeenCalledWith('Ask @Alice #team', 0);
+      expect(input).toBeEmptyDOMElement();
     });
 
     it('preserves Shift+Enter newlines', async () => {
@@ -874,12 +848,7 @@ describe('SeerExplorerContent', () => {
       // Restore the spy so the real useSeerExplorer hook runs against mock API responses
       jest.restoreAllMocks();
 
-      const query =
-        'What is this error? {% user %}{"id":"1","type":"user","name":"Alice Example"}{% /user %}';
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/members/',
-        body: [MemberFixture({user: UserFixture({id: '1', name: 'Alice Example'})})],
-      });
+      const query = 'What is this error? @Alice #team';
 
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/seer/explorer-chat/`,
@@ -946,9 +915,7 @@ describe('SeerExplorerContent', () => {
       );
 
       const textarea = await getSeerExplorerInput();
-      await userEvent.type(textarea, 'What is this error? @ali');
-      await screen.findByRole('option', {name: /Alice Example/});
-      await userEvent.keyboard('{Enter}');
+      await userEvent.type(textarea, query);
       await userEvent.keyboard('{Enter}');
 
       expect(postMock).toHaveBeenCalledWith(
@@ -958,16 +925,11 @@ describe('SeerExplorerContent', () => {
           data: expect.objectContaining({query}),
         })
       );
-      expect(await screen.findByText('Alice Example')).toBeInTheDocument();
-      expect(screen.queryByText(/\{% user %\}/)).not.toBeInTheDocument();
+      expect(await screen.findByText(query)).toBeInTheDocument();
     });
 
-    it('restores selected mentions after a failed send and preserves them on retry', async () => {
+    it('restores plain text after a failed send and sends it again on retry', async () => {
       jest.restoreAllMocks();
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/members/',
-        body: [MemberFixture({user: UserFixture({id: '1', name: 'Alice Example'})})],
-      });
       const postMock = MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/seer/explorer-chat/`,
         method: 'POST',
@@ -988,9 +950,7 @@ describe('SeerExplorerContent', () => {
       );
 
       const input = await getSeerExplorerInput();
-      await userEvent.type(input, '@ali');
-      await screen.findByRole('option', {name: /Alice Example/});
-      await userEvent.keyboard('{Enter}');
+      await userEvent.type(input, 'Ask @Alice #team');
       await userEvent.keyboard('{Enter}');
 
       expect(
@@ -998,15 +958,12 @@ describe('SeerExplorerContent', () => {
           'There was an error sending your message, wait and try again.'
         )
       ).toBeInTheDocument();
-      expect(input).toHaveTextContent('Alice Example');
-      expect(input).not.toHaveTextContent('{% user %}');
+      expect(input).toHaveTextContent('Ask @Alice #team');
 
       await userEvent.click(screen.getByRole('button', {name: 'Send message'}));
       await waitFor(() => expect(postMock).toHaveBeenCalledTimes(2));
       for (const call of postMock.mock.calls) {
-        expect(call[1].data.query).toBe(
-          '{% user %}{"id":"1","type":"user","name":"Alice Example"}{% /user %}'
-        );
+        expect(call[1].data.query).toBe('Ask @Alice #team');
       }
     });
 
@@ -1232,8 +1189,20 @@ describe('SeerExplorerContent', () => {
   });
 
   describe('Input Persistence', () => {
-    it('restores and sends a legacy string draft', async () => {
-      sessionStorage.setItem('seer-explorer-draft:7', JSON.stringify('Legacy draft'));
+    it.each([
+      ['legacy string', 'Ask @Alice #team'],
+      [
+        'structured',
+        {
+          text: 'Ask @Alice #team',
+          mentions: [
+            {id: 'user:1', sourceId: 'members', start: 4, end: 10, text: '@Alice'},
+            {id: 'team:2', sourceId: 'teams', start: 11, end: 16, text: '#team'},
+          ],
+        },
+      ],
+    ])('restores and sends a %s draft as plain text', async (_, draft) => {
+      sessionStorage.setItem('seer-explorer-draft:7', JSON.stringify(draft));
       const sendMessage = jest.fn();
       jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
         ...defaultHookReturn,
@@ -1253,11 +1222,12 @@ describe('SeerExplorerContent', () => {
       );
 
       const editor = await getSeerExplorerInput();
-      expect(editor).toHaveTextContent('Legacy draft');
+      expect(editor).toHaveTextContent('Ask @Alice #team');
+      expect(editor.querySelector('[data-mention]')).not.toBeInTheDocument();
       await userEvent.click(editor);
       await userEvent.keyboard('{End} updated{Enter}');
 
-      expect(sendMessage).toHaveBeenCalledWith('Legacy draft updated', 0);
+      expect(sendMessage).toHaveBeenCalledWith('Ask @Alice #team updated', 0);
       expect(sessionStorage.getItem('seer-explorer-draft:7')).toBeNull();
     });
 
