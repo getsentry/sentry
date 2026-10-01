@@ -3,6 +3,7 @@ import * as Sentry from '@sentry/react';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
+import {parseFunction} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
@@ -34,7 +35,6 @@ interface UseMetricTimeseriesOptions {
 
 export function useMetricTimeseries({traceMetric, enabled}: UseMetricTimeseriesOptions) {
   const visualizes = useMetricVisualizes();
-  const organization = useOrganization();
   const {selection} = usePageFilters();
   const search = useQueryParamsSearch();
   const groupBys = useQueryParamsGroupBys();
@@ -50,12 +50,11 @@ export function useMetricTimeseries({traceMetric, enabled}: UseMetricTimeseriesO
 
   const highAccuracyAttributes = useMemo(
     () => ({
-      organization_slug: organization.slug,
       referrer: METRIC_TIMESERIES_REFERRER,
       project_count: selection.projects.length,
       stats_period: selection.datetime.period ?? 'absolute',
     }),
-    [organization.slug, selection.projects.length, selection.datetime.period]
+    [selection.projects.length, selection.datetime.period]
   );
 
   const onHighAccuracyRequest = useCallback(() => {
@@ -79,11 +78,12 @@ export function useMetricTimeseries({traceMetric, enabled}: UseMetricTimeseriesO
             result.error instanceof RequestError
               ? (result.error.status ?? 'unknown')
               : 'unknown',
-          error_message: result.error?.message ?? 'unknown',
           query: JSON.stringify({
             metric: traceMetric,
-            yAxis: visualizes.map(visualize => visualize.yAxis),
-            query: search.formatString(),
+            aggregates: visualizes.map(
+              visualize => parseFunction(visualize.yAxis)?.name ?? 'equation'
+            ),
+            hasFilter: !search.isEmpty(),
             groupBy: groupBys,
             topEvents,
             interval,
