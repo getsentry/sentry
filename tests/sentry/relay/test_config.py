@@ -282,6 +282,21 @@ def test_project_config_custom_inbound_filters_v2(
 
 @django_db_all
 @cell_silo_test
+@pytest.mark.parametrize("option_enabled", [True, False])
+def test_project_config_json_expansion(default_project: MagicMock, option_enabled: bool) -> None:
+    default_project.update_option("sentry:relay_automatic_json_expansion", option_enabled)
+
+    project_cfg = get_project_config(default_project)
+
+    cfg = project_cfg.to_dict()
+    _validate_project_config(cfg["config"])
+    json_expansion = get_path(cfg, "config", "jsonExpansion")
+
+    assert json_expansion == ({"enabled": True} if option_enabled else None)
+
+
+@django_db_all
+@cell_silo_test
 @mock.patch("sentry.relay.config.EXPOSABLE_FEATURES", ["organizations:profiling"])
 def test_project_config_exposed_features(default_project: MagicMock) -> None:
     with Feature({"organizations:profiling": True}):

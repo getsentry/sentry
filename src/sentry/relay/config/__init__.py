@@ -865,6 +865,11 @@ def _get_project_config(
 
     config["breakdownsV2"] = project.get_option("sentry:breakdowns")
 
+    # Absent means disabled, so the key is only emitted for projects that opted in via
+    # project settings.
+    if project.get_option("sentry:relay_automatic_json_expansion"):
+        config["jsonExpansion"] = {"enabled": True}
+
     config["sessionMetrics"] = {
         "version": (
             EXTRACT_ABNORMAL_MECHANISM_VERSION
