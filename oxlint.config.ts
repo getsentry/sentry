@@ -1,5 +1,7 @@
 import {defineConfig} from 'oxlint';
 
+// incubator rules disallow new violations from being introduced
+// but suppress pre-existing violations on `master`
 export const incubator = defineConfig({
   rules: {},
   overrides: [],
