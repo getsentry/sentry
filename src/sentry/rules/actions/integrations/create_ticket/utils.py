@@ -1,100 +1,14 @@
 from __future__ import annotations
 
-import logging
 from collections.abc import Callable, Sequence
 
-from rest_framework.response import Response
-
 from sentry.constants import ObjectStatus
-from sentry.exceptions import InvalidIdentity
-from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.mixins.issues import IssueBasicIntegration
-from sentry.integrations.models.external_issue import ExternalIssue
-from sentry.integrations.project_management.metrics import (
-    ProjectManagementActionType,
-    ProjectManagementEvent,
-)
-from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.integrations.project_management.ticket_creation import create_ticket
 from sentry.integrations.services.integration.service import integration_service
-from sentry.issues.action_log.publish import publish_action_from_context
-from sentry.issues.action_log.types import CreateExternalIssueAction
-from sentry.models.activity import Activity
-from sentry.models.grouplink import GroupLink
 from sentry.notifications.utils.links import create_link_to_workflow
 from sentry.services.eventstore.models import GroupEvent
-from sentry.shared_integrations.exceptions import (
-    ApiUnauthorized,
-    IntegrationConfigurationError,
-    IntegrationFormError,
-    IntegrationProviderError,
-    IntegrationResourceNotFoundError,
-)
-from sentry.silo.base import cell_silo_function
-from sentry.types.activity import ActivityType
 from sentry.types.rules import RuleFuture
-
-logger = logging.getLogger("sentry.rules")
-
-
-@cell_silo_function
-def create_link(
-    integration: RpcIntegration,
-    installation: IntegrationInstallation,
-    event: GroupEvent,
-    response: Response,
-) -> None:
-    """
-    After creating the event on a third-party service, create a link to the
-    external resource in the DB. TODO make this a transaction.
-    :param integration: Integration object.
-    :param installation: Installation object.
-    :param event: The event object that was recorded on an external service.
-    :param response: The API response from creating the new resource.
-        - key: String. The unique ID of the external resource
-        - metadata: Optional Object. Can contain `display_name`.
-    """
-
-    assert isinstance(installation, IssueBasicIntegration), (
-        "Installation must be an IssueBasicIntegration to create a link"
-    )
-    external_issue_key = installation.make_external_key(response)
-
-    external_issue = ExternalIssue.objects.create(
-        organization_id=event.group.project.organization_id,
-        integration_id=integration.id,
-        key=external_issue_key,
-        title=event.title,
-        description=installation.get_group_description(event.group, event),
-        metadata=response.get("metadata"),
-    )
-    GroupLink.objects.create(
-        group_id=event.group.id,
-        project_id=event.group.project_id,
-        linked_type=GroupLink.LinkedType.issue,
-        linked_id=external_issue.id,
-        relationship=GroupLink.Relationship.references,
-        data={"provider": integration.provider},
-    )
-    issue_url = response.get("url") or installation.get_issue_url(external_issue.key)
-    Activity.objects.create_group_activity(
-        group=event.group,
-        type=ActivityType.CREATE_ISSUE,
-        data={
-            "title": external_issue.title,
-            "provider": installation.model.get_provider().name,
-            "location": issue_url,
-            "label": installation.get_issue_display_name(external_issue) or external_issue.key,
-            "new": True,
-        },
-    )
-    publish_action_from_context(
-        CreateExternalIssueAction(
-            provider=integration.provider,
-            external_issue_key=external_issue.key,
-        ),
-        group_id=event.group.id,
-        project=event.group.project,
-    )
 
 
 def build_description_workflow_engine_ui(
@@ -176,43 +90,15 @@ def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
         if data.get("dynamic_form_fields"):
             del data["dynamic_form_fields"]
 
-        if ExternalIssue.objects.has_linked_issue(event, integration):
-            logger.info(
-                "%s.rule_trigger.link_already_exists",
-                provider,
-                extra={
-                    "rule_id": rule_id,
-                    "project_id": event.group.project.id,
-                    "group_id": event.group.id,
-                },
-            )
-            return
-
-        with ProjectManagementEvent(
-            action_type=ProjectManagementActionType.CREATE_EXTERNAL_ISSUE,
+        create_ticket(
             integration=integration,
-        ).capture() as lifecycle:
-            lifecycle.add_extra("provider", provider)
-            lifecycle.add_extra("integration_id", integration.id)
-            lifecycle.add_extra("rule_id", rule_id)
-
-            if action_id:
-                lifecycle.add_extra("action_id", action_id)
-
-            try:
-                response = installation.create_issue(data)
-            except (
-                IntegrationConfigurationError,
-                IntegrationFormError,
-                InvalidIdentity,
-                ApiUnauthorized,
-                IntegrationResourceNotFoundError,
-                IntegrationProviderError,
-            ) as e:
-                # Most of the time, these aren't explicit failures, they're
-                # some misconfiguration of an issue field - typically Jira.
-                lifecycle.record_halt(e)
-                raise
-            # If we successfully created the issue, we want to create the link
-            else:
-                create_link(integration, installation, event, response)
+            installation=installation,
+            group=event.group,
+            data=data,
+            external_issue_title=event.title,
+            external_issue_description=installation.get_group_description(event.group, event),
+            metric_extras={
+                "rule_id": rule_id,
+                **({"action_id": action_id} if action_id else {}),
+            },
+        )
