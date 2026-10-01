@@ -751,7 +751,16 @@ function SeerInvestigationSection({
       ) : (
         <Stack gap="xl">
           {statusBlock ? (
-            <SeerStatusBlock {...statusBlock} />
+            <SeerStatusBlock
+              {...statusBlock}
+              trailing={
+                investigationPath ? (
+                  <LinkButton size="sm" variant="primary" to={investigationPath}>
+                    {t('View Investigation')}
+                  </LinkButton>
+                ) : undefined
+              }
+            />
           ) : investigationPath ? null : (
             <Text size="md" variant="muted">
               {t(
@@ -759,22 +768,24 @@ function SeerInvestigationSection({
               )}
             </Text>
           )}
-          <Flex>
-            {investigationPath ? (
-              <LinkButton size="md" variant="primary" to={investigationPath}>
-                {t('View Investigation')}
-              </LinkButton>
-            ) : (
-              <Button
-                size="md"
-                variant="primary"
-                busy={launchMutation.isPending}
-                onClick={() => launchMutation.mutate(source)}
-              >
-                {t('Launch Investigation')}
-              </Button>
-            )}
-          </Flex>
+          {statusBlock && investigationPath ? null : (
+            <Flex>
+              {investigationPath ? (
+                <LinkButton size="md" variant="primary" to={investigationPath}>
+                  {t('View Investigation')}
+                </LinkButton>
+              ) : (
+                <Button
+                  size="md"
+                  variant="primary"
+                  busy={launchMutation.isPending}
+                  onClick={() => launchMutation.mutate(source)}
+                >
+                  {t('Launch Investigation')}
+                </Button>
+              )}
+            </Flex>
+          )}
         </Stack>
       )}
     </FoldSection>

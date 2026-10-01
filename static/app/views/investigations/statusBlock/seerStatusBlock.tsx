@@ -99,6 +99,11 @@ type SeerStatusBlockProps = {
    * something to count.
    */
   meta?: string;
+  /**
+   * A control on the right edge of the block, such as a link to open the
+   * investigation. Unlike `action`, it is not a request for input.
+   */
+  trailing?: ReactNode;
 };
 
 /**
@@ -121,6 +126,7 @@ export function SeerStatusBlock({
   elapsed,
   meta,
   title,
+  trailing,
   variant,
 }: SeerStatusBlockProps) {
   return (
@@ -133,55 +139,63 @@ export function SeerStatusBlock({
       data-test-id="seer-status-block"
       data-variant={variant}
     >
-      <Flex gap="md" align="start">
-        {/*
-         * A fixed column so the title, the description and the action all line
-         * up on the same left edge regardless of which icon is showing. `16px`
-         * is the title's line height, which centres the icon against the first
-         * line rather than the block.
-         */}
-        <Flex height="16px" align="center" justify="center" flex="0 0 auto">
-          <StatusIcon variant={variant} />
-        </Flex>
-
-        <Stack gap="xs" flex="1 1 auto" minWidth="0">
-          <Flex justify="between" align="center" gap="md">
-            <Text size="md" bold variant={TITLE_VARIANT[variant]}>
-              {title}
-            </Text>
-            {elapsed ? (
-              <Text size="sm" variant="muted" monospace tabular wrap="nowrap">
-                {elapsed}
-              </Text>
-            ) : null}
+      {/*
+       * The content and the trailing control centre against each other, so a
+       * one-line status sits level with a button taller than it.
+       */}
+      <Flex gap="md" align="center">
+        <Flex gap="md" align="start" flex="1 1 auto" minWidth="0">
+          {/*
+           * A fixed column so the title, the description and the action all line
+           * up on the same left edge regardless of which icon is showing. `16px`
+           * is the title's line height, which centres the icon against the first
+           * line rather than the block.
+           */}
+          <Flex height="16px" align="center" justify="center" flex="0 0 auto">
+            <StatusIcon variant={variant} />
           </Flex>
 
-          {meta ? (
-            <Text size="sm" variant="muted">
-              {meta}
-            </Text>
-          ) : null}
+          <Stack gap="xs" flex="1 1 auto" minWidth="0">
+            <Flex justify="between" align="center" gap="md">
+              <Text size="md" bold variant={TITLE_VARIANT[variant]}>
+                {title}
+              </Text>
+              {elapsed ? (
+                <Text size="sm" variant="muted" monospace tabular wrap="nowrap">
+                  {elapsed}
+                </Text>
+              ) : null}
+            </Flex>
 
-          {description ? (
-            <Text size="sm" density="comfortable">
-              {description}
-            </Text>
-          ) : null}
+            {meta ? (
+              <Text size="sm" variant="muted">
+                {meta}
+              </Text>
+            ) : null}
 
-          {children}
+            {description ? (
+              <Text size="sm" density="comfortable">
+                {description}
+              </Text>
+            ) : null}
 
-          {action ? (
-            <Container
-              background="secondary"
-              radius="md"
-              padding="lg"
+            {children}
 
-              data-test-id="seer-status-block-action"
-            >
-              {action}
-            </Container>
-          ) : null}
-        </Stack>
+            {action ? (
+              <Container
+                background="secondary"
+                radius="md"
+                padding="lg"
+
+                data-test-id="seer-status-block-action"
+              >
+                {action}
+              </Container>
+            ) : null}
+          </Stack>
+        </Flex>
+
+        {trailing ? <Flex flex="0 0 auto">{trailing}</Flex> : null}
       </Flex>
     </Container>
   );
