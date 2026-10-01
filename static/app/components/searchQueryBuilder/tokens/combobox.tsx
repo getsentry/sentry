@@ -11,7 +11,6 @@ import {
 } from 'react';
 import {createPortal} from 'react-dom';
 import {usePopper} from 'react-popper';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {type AriaComboBoxProps} from '@react-aria/combobox';
 import {type AriaListBoxOptions} from '@react-aria/listbox';
@@ -436,7 +435,6 @@ export function SearchQueryBuilderCombobox<
   const listBoxRef = useRef<HTMLUListElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
-  const overlayContentRef = useRef<HTMLSpanElement>(null);
   const descriptionRef = useRef<HTMLDivElement>(null);
   const askSeerButtonRef = useRef<HTMLButtonElement>(null);
   const preventOverflowOptions = useMemo(() => ({boundary: document.body}), []);
@@ -674,81 +672,67 @@ export function SearchQueryBuilderCombobox<
 
   const autosizeInput = useAutosizeInput({value: inputValue});
 
-  const highlightedValue = inputValue ? renderInputValue?.(inputValue) : null;
+  const InputComponent = renderInputValue ? HighlightedInput : UnstyledInput;
+  const input = (
+    <InputComponent
+      {...inputProps}
+      size="md"
+      ref={mergeRefs(
+        ref,
+        inputRef,
+        autosizeInput,
+        triggerProps.ref as React.Ref<HTMLInputElement>
+      )}
+      type="text"
+      placeholder={placeholder}
+      onClick={handleInputClick}
+      value={inputValue}
+      onChange={handleInputChange}
+      tabIndex={tabIndex}
+      onPaste={onPaste}
+      disabled={disabled}
+      onKeyDownCapture={e => {
+        if (isCtrlKeyPressed(e) && (e.key === 'Backspace' || e.key === 'Delete')) {
+          if (token.type === Token.FREE_TEXT) {
+            e.preventDefault();
+            e.stopPropagation();
+            state.close();
+            dispatch({
+              type: 'DELETE_TO_CURSOR',
+              token,
+              cursorPosition: e.currentTarget.selectionStart ?? 0,
+              inputValue,
+              direction: e.key === 'Backspace' ? 'before' : 'after',
+            });
+            return;
+          }
 
-  // Flex can shrink the input below the width useAutosizeInput gives it, and the input
-  // then scrolls to keep the caret visible. The overlay has to follow or it shows a
-  // different slice of the value than the one being edited. It's translated rather than
-  // scrolled because WebKit lets the input scroll ~2px past the text for the caret, and
-  // the overlay's own scrollLeft would clamp short of that.
-  const syncOverlayScroll = useCallback(() => {
-    if (overlayContentRef.current && inputRef.current) {
-      overlayContentRef.current.style.transform = `translateX(${-inputRef.current.scrollLeft}px)`;
-    }
-  }, []);
+          if (!inputValue) {
+            e.preventDefault();
+            e.stopPropagation();
+            onSearchQueryClear?.();
+            state.close();
+            clearSearchQuery({reopenDropdown: true});
+            return;
+          }
+        }
 
-  useLayoutEffect(() => {
-    if (inputValue) {
-      syncOverlayScroll();
-    }
-  }, [inputValue, syncOverlayScroll]);
+        onKeyDownCapture?.(e, {state});
+      }}
+      data-test-id={dataTestId}
+    />
+  );
 
   return (
     <Flex align="stretch" width="100%" height="100%" position="relative">
-      <UnstyledInput
-        {...inputProps}
-        hideValue={Boolean(highlightedValue)}
-        size="md"
-        ref={mergeRefs(
-          ref,
-          inputRef,
-          autosizeInput,
-          triggerProps.ref as React.Ref<HTMLInputElement>
-        )}
-        type="text"
-        placeholder={placeholder}
-        onScroll={syncOverlayScroll}
-        onClick={handleInputClick}
-        value={inputValue}
-        onChange={handleInputChange}
-        tabIndex={tabIndex}
-        onPaste={onPaste}
-        disabled={disabled}
-        onKeyDownCapture={e => {
-          if (isCtrlKeyPressed(e) && (e.key === 'Backspace' || e.key === 'Delete')) {
-            if (token.type === Token.FREE_TEXT) {
-              e.preventDefault();
-              e.stopPropagation();
-              state.close();
-              dispatch({
-                type: 'DELETE_TO_CURSOR',
-                token,
-                cursorPosition: e.currentTarget.selectionStart ?? 0,
-                inputValue,
-                direction: e.key === 'Backspace' ? 'before' : 'after',
-              });
-              return;
-            }
-
-            if (!inputValue) {
-              e.preventDefault();
-              e.stopPropagation();
-              onSearchQueryClear?.();
-              state.close();
-              clearSearchQuery({reopenDropdown: true});
-              return;
-            }
-          }
-
-          onKeyDownCapture?.(e, {state});
-        }}
-        data-test-id={dataTestId}
-      />
-      {highlightedValue ? (
-        <InputValueOverlay aria-hidden>
-          <span ref={overlayContentRef}>{highlightedValue}</span>
-        </InputValueOverlay>
-      ) : null}
+      {renderInputValue ? (
+        <HighlightStack>
+          {input}
+          <HighlightedValue aria-hidden>{renderInputValue(inputValue)}</HighlightedValue>
+        </HighlightStack>
+      ) : (
+        input
+      )}
       {description ? (
         <StyledPositionWrapper
           {...descriptionPopper.attributes.popper}
@@ -784,14 +768,7 @@ export function SearchQueryBuilderCombobox<
   );
 }
 
-// WebKit doesn't kern across element boundaries, so the overlay's per-token spans would
-// otherwise render wider than the input's single run of text.
-const overlayTextMetrics = css`
-  font-kerning: none;
-  font-variant-ligatures: none;
-`;
-
-const UnstyledInput = styled(Input)<{hideValue?: boolean}>`
+const UnstyledInput = styled(Input)`
   background: transparent;
   border: none;
   box-shadow: none;
@@ -808,28 +785,37 @@ const UnstyledInput = styled(Input)<{hideValue?: boolean}>`
     border: none;
     box-shadow: none;
   }
-
-  ${p =>
-    p.hideValue &&
-    css`
-      color: transparent;
-      caret-color: ${p.theme.tokens.content.primary};
-      ${overlayTextMetrics};
-    `}
 `;
 
-const InputValueOverlay = styled('div')`
-  ${overlayTextMetrics};
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
+// The input and its highlighted value share one grid cell at least as wide as the value's
+// text, so the input never scrolls its own text out from under the highlighting.
+const HighlightStack = styled('div')`
+  display: grid;
+  grid-template-columns: minmax(max-content, 1fr);
+  flex-grow: 1;
+`;
+
+// WebKit doesn't kern across the highlighted value's token spans, so neither side kerns.
+const HighlightedInput = styled(UnstyledInput)`
+  grid-area: 1 / 1;
+  min-width: 100%;
+  color: transparent;
+  caret-color: ${p => p.theme.tokens.content.primary};
+  font-kerning: none;
+  font-variant-ligatures: none;
+`;
+
+const HighlightedValue = styled('div')`
+  grid-area: 1 / 1;
+  align-self: center;
+  padding-right: ${p => p.theme.space['2xs']};
   white-space: pre;
-  overflow: hidden;
   pointer-events: none;
   font-family: ${p => p.theme.font.family.sans};
   font-weight: ${p => p.theme.font.weight.sans.regular};
   font-size: ${p => p.theme.form.md.fontSize};
+  font-kerning: none;
+  font-variant-ligatures: none;
 `;
 
 const StyledPositionWrapper = styled('div')<{visible?: boolean}>`

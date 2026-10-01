@@ -872,7 +872,10 @@ export function SearchQueryBuilderValueCombobox({
     const inputRect = input.getBoundingClientRect();
     if (inputRect.right > containerRect.right) {
       container.scrollLeft += inputRect.right - containerRect.right;
-    } else if (inputRect.left < containerRect.left) {
+    } else if (
+      inputRect.left < containerRect.left &&
+      inputRect.width <= containerRect.width
+    ) {
       container.scrollLeft -= containerRect.left - inputRect.left;
     }
   }, []);
@@ -1466,6 +1469,7 @@ export function SearchQueryBuilderValueCombobox({
     ? committedValues.filter(v => v.index < editingChip.index).length
     : chips.length;
   const chipRow = [...chips.slice(0, inputSlot), valueInput, ...chips.slice(inputSlot)];
+  const rowScrolls = canSelectMultipleValues || isRegexValue;
 
   return (
     <ValueComboboxContext.Provider value={valueComboboxContextValue}>
@@ -1475,8 +1479,8 @@ export function SearchQueryBuilderValueCombobox({
           gap="2xs"
           minWidth="0"
           height="100%"
-          overflowX={canSelectMultipleValues ? 'auto' : undefined}
-          overflowY={canSelectMultipleValues ? 'hidden' : undefined}
+          overflowX={rowScrolls ? 'auto' : undefined}
+          overflowY={rowScrolls ? 'hidden' : undefined}
           ref={ref}
           data-test-id="filter-value-editing"
         >
