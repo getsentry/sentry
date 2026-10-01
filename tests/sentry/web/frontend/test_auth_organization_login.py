@@ -4,7 +4,6 @@ from urllib.parse import quote as urlquote
 from urllib.parse import urlencode
 
 from django.contrib.auth import get_user
-from django.contrib.messages import get_messages
 from django.test import override_settings
 from django.urls import reverse
 
@@ -13,10 +12,8 @@ from sentry.auth.authenticators.totp import TotpInterface
 from sentry.auth.providers.dummy import PLACEHOLDER_TEMPLATE
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
-from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmember import OrganizationMember
-from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import AuthProviderTestCase
 from sentry.testutils.helpers import override_options, with_feature
@@ -37,28 +34,13 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
     def path(self) -> str:
         return reverse("sentry-auth-organization", args=[self.organization.slug])
 
-    def test_renders_basic(self) -> None:
-        self.login_as(self.user)
-        resp = self.client.get(self.path)
-
-        assert resp.status_code == 200
-        self.assertTemplateUsed(resp, "sentry/organization-login.html")
-
-        assert resp.context["login_form"]
-        with assume_test_silo_mode(SiloMode.CELL):
-            assert resp.context["organization"] == serialize_rpc_organization(self.organization)
-        assert "provider_key" not in resp.context
-        assert resp.context["join_request_link"]
-
-    @override_options({"auth.v2.enabled": True})
-    def test_renders_react_template_with_setting(self) -> None:
+    def test_renders_react_template(self) -> None:
         response = self.client.get(self.path)
 
         assert response.status_code == 200
         self.assertTemplateUsed(response, "sentry/base-react.html")
         self.assertTemplateNotUsed(response, "sentry/organization-login.html")
 
-    @override_options({"auth.v2.enabled": True})
     @with_feature("system:multi-region")
     def test_customer_domain_login_redirects_to_primary_domain(self) -> None:
         response = self.client.get(
@@ -71,28 +53,6 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
             f"http://testserver/auth/login/{self.organization.slug}/?next=%2Fsettings%2Faccount%2F"
         )
 
-    def test_cannot_get_request_join_link_with_setting_disabled(self) -> None:
-        with assume_test_silo_mode(SiloMode.CELL):
-            OrganizationOption.objects.create(
-                organization_id=self.organization.id, key="sentry:join_requests", value=False
-            )
-
-        self.login_as(self.user)
-        resp = self.client.get(self.path)
-
-        assert resp.status_code == 200
-        assert resp.context["join_request_link"] is None
-
-    def test_renders_non_member_warning(self) -> None:
-        non_member = self.create_user("nonmember@example.com")
-        self.login_as(non_member)
-        resp = self.client.get(self.path)
-
-        assert resp.status_code == 200
-        messages = list(resp.context["messages"])
-        assert len(messages) == 1
-        assert "is not a member of the" in str(messages[0])
-
     def test_no_non_member_warning_on_post(self) -> None:
         non_member = self.create_user("nonmember@example.com")
         self.login_as(non_member)
@@ -101,14 +61,6 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
 
         assert resp.status_code == 200
         assert "is not a member of the" not in resp.content.decode("utf-8")
-
-    def test_renders_session_expire_message(self) -> None:
-        self.client.cookies["session_expired"] = "1"
-        resp = self.client.get(self.path)
-
-        assert resp.status_code == 200
-        self.assertTemplateUsed(resp, "sentry/organization-login.html")
-        assert len(resp.context["messages"]) == 1
 
     def test_flow_as_anonymous(self) -> None:
         auth_provider = AuthProvider.objects.create(
@@ -133,10 +85,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
             TERMS_URL="https://example.com/terms", PRIVACY_URL="https://example.com/privacy"
         ):
             resp = self.client.post(path, {"op": "newuser"}, follow=True)
-            assert resp.redirect_chain == [
-                (reverse("sentry-login") + f"?{marketing_query}", 302),
-                ("/organizations/foo/issues/", 302),
-            ]
+            assert resp.redirect_chain == [(reverse("sentry-login") + f"?{marketing_query}", 302)]
 
         auth_identity = AuthIdentity.objects.get(auth_provider=auth_provider)
 
@@ -173,10 +122,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert resp.status_code == 200
 
         resp = self.client.post(path, {"op": "confirm"}, follow=True)
-        assert resp.redirect_chain == [
-            (reverse("sentry-login"), 302),
-            ("/organizations/foo/issues/", 302),
-        ]
+        assert resp.redirect_chain == [(reverse("sentry-login"), 302)]
 
         auth_identity = AuthIdentity.objects.get(auth_provider=auth_provider)
         assert user == auth_identity.user
@@ -208,11 +154,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
             assert resp.status_code == 200
 
             resp = self.client.post(path, {"op": "confirm"}, follow=True)
-            assert resp.redirect_chain == [
-                (reverse("sentry-login"), 302),
-                ("/organizations/foo/issues/", 302),
-                ("/organizations/foo/disabled-member/", 302),
-            ]
+            assert resp.redirect_chain == [(reverse("sentry-login"), 302)]
 
             auth_identity = AuthIdentity.objects.get(auth_provider=auth_provider)
             assert user == auth_identity.user
@@ -327,10 +269,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         marketing_query = urlencode({"frontend_events": json.dumps(frontend_events)})
 
         resp = self.client.post(path, {"op": "newuser"}, follow=True)
-        assert resp.redirect_chain == [
-            (reverse("sentry-login") + f"?{marketing_query}", 302),
-            ("/organizations/foo/issues/", 302),
-        ]
+        assert resp.redirect_chain == [(reverse("sentry-login") + f"?{marketing_query}", 302)]
 
         auth_identity = AuthIdentity.objects.get(auth_provider=auth_provider)
         new_user = auth_identity.user
@@ -387,10 +326,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert resp.status_code == 200
 
         resp = self.client.post(path, {"op": "confirm"}, follow=True)
-        assert resp.redirect_chain == [
-            (reverse("sentry-login"), 302),
-            (f"/organizations/{org1.slug}/issues/", 302),
-        ]
+        assert resp.redirect_chain == [(reverse("sentry-login"), 302)]
         auth_identity = AuthIdentity.objects.get(auth_provider=auth_provider)
 
         new_user = auth_identity.user
@@ -430,10 +366,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert resp.status_code == 200
 
         resp = self.client.post(path, {"op": "confirm"}, follow=True)
-        assert resp.redirect_chain == [
-            (reverse("sentry-login"), 302),
-            ("/organizations/foo/issues/", 302),
-        ]
+        assert resp.redirect_chain == [(reverse("sentry-login"), 302)]
         auth_identity = AuthIdentity.objects.get(auth_provider=auth_provider)
 
         new_user = auth_identity.user
@@ -499,10 +432,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert resp.status_code == 200
 
         resp = self.client.post(path, {"op": "confirm"}, follow=True)
-        assert resp.redirect_chain == [
-            (reverse("sentry-login"), 302),
-            ("/organizations/foo/issues/", 302),
-        ]
+        assert resp.redirect_chain == [(reverse("sentry-login"), 302)]
 
         auth_identity = AuthIdentity.objects.get(auth_provider=auth_provider)
 
@@ -550,10 +480,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert resp.status_code == 200
 
         resp = self.client.post(path, {"op": "confirm"}, follow=True)
-        assert resp.redirect_chain == [
-            (reverse("sentry-login"), 302),
-            ("/organizations/foo/issues/", 302),
-        ]
+        assert resp.redirect_chain == [(reverse("sentry-login"), 302)]
 
         auth_identity = AuthIdentity.objects.get(id=auth_identity.id)
 
@@ -604,10 +531,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         marketing_query = urlencode({"frontend_events": json.dumps(frontend_events)})
 
         resp = self.client.post(path, {"op": "newuser"}, follow=True)
-        assert resp.redirect_chain == [
-            (reverse("sentry-login") + f"?{marketing_query}", 302),
-            ("/organizations/foo/issues/", 302),
-        ]
+        assert resp.redirect_chain == [(reverse("sentry-login") + f"?{marketing_query}", 302)]
 
         auth_identity = AuthIdentity.objects.get(id=auth_identity.id)
 
@@ -663,9 +587,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         resp = self.client.post(
             path, {"email": "bar@example.com", "id": "123", "email_verified": "1"}, follow=True
         )
-        assert resp.redirect_chain == [(reverse("sentry-login"), 302), ("/auth/reactivate/", 302)]
-        # identity still auto-merges; the inactive user is now routed to
-        # reactivate instead of being forwarded into the app and bounced back.
+        assert resp.redirect_chain == [(reverse("sentry-login"), 302)]
 
         auth_identity = AuthIdentity.objects.get(id=auth_identity.id)
 
@@ -830,10 +752,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert resp.status_code == 200
 
         resp = self.client.post(path, {"op": "confirm"}, follow=True)
-        assert resp.redirect_chain == [
-            (reverse("sentry-login"), 302),
-            ("/organizations/foo/issues/", 302),
-        ]
+        assert resp.redirect_chain == [(reverse("sentry-login"), 302)]
 
         auth_identity = AuthIdentity.objects.get(auth_provider=auth_provider)
         assert user == auth_identity.user
@@ -880,10 +799,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         marketing_query = urlencode({"frontend_events": json.dumps(frontend_events)})
 
         resp = self.client.post(path, {"op": "newuser"}, follow=True)
-        assert resp.redirect_chain == [
-            (reverse("sentry-login") + f"?{marketing_query}", 302),
-            ("/organizations/foo/issues/", 302),
-        ]
+        assert resp.redirect_chain == [(reverse("sentry-login") + f"?{marketing_query}", 302)]
 
         auth_identity = AuthIdentity.objects.get(auth_provider=auth_provider)
         user = auth_identity.user
@@ -896,29 +812,12 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert getattr(member.flags, "sso:linked")
         assert not getattr(member.flags, "sso:invalid")
 
-    @override_settings(SENTRY_SINGLE_ORGANIZATION=True)
-    @with_feature({"organizations:create": False})
-    def test_basic_auth_flow_as_not_invited_user(self) -> None:
-        user = self.create_user("foor@example.com")
-
-        self.session["_next"] = reverse(
-            "sentry-organization-settings", args=[self.organization.slug]
-        )
-        self.save_session()
-
-        resp = self.client.post(
-            self.path, {"username": user, "password": "admin", "op": "login"}, follow=True
-        )
-        assert resp.redirect_chain == [("/auth/login/", 302)]
-        assert resp.status_code == 403
-        self.assertTemplateUsed(resp, "sentry/no-organization-access.html")
-
     def test_basic_auth_flow_as_not_invited_user_not_single_org_mode(self) -> None:
         user = self.create_user("u2@example.com")
         resp = self.client.post(
             self.path, {"username": user, "password": "admin", "op": "login"}, follow=True
         )
-        assert resp.redirect_chain == [("/auth/login/", 302), ("/organizations/new/", 302)]
+        assert resp.redirect_chain == [("/auth/login/", 302)]
 
     @override_settings(SENTRY_SINGLE_ORGANIZATION=True)
     @with_feature({"organizations:create": False})
@@ -937,18 +836,6 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
             (reverse("sentry-organization-settings", args=[self.organization.slug]), 302),
         ]
 
-    @override_settings(SENTRY_SINGLE_ORGANIZATION=True)
-    @with_feature({"organizations:create": False})
-    def test_flow_as_user_without_any_membership(self) -> None:
-        # not sure how this could happen on Single Org Mode
-        user = self.create_user("foor@example.com")
-        resp = self.client.post(
-            self.path, {"username": user, "password": "admin", "op": "login"}, follow=True
-        )
-        assert resp.redirect_chain == [("/auth/login/", 302)]
-        assert resp.status_code == 403
-        self.assertTemplateUsed(resp, "sentry/no-organization-access.html")
-
     def test_multiorg_login_correct_redirect_basic_auth(self) -> None:
         user = self.create_user("bar@example.com")
         user.update(is_superuser=False)
@@ -964,10 +851,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
             {"username": user.username, "password": "admin", "op": "login"},
             follow=True,
         )
-        assert resp.redirect_chain == [
-            (reverse("sentry-login"), 302),
-            (f"/organizations/{org1.slug}/issues/", 302),
-        ]
+        assert resp.redirect_chain == [(reverse("sentry-login"), 302)]
 
     def test_multiorg_login_correct_redirect_sso(self) -> None:
         user = self.create_user("bar@example.com")
@@ -1007,7 +891,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         )
 
         # Users with 2FA should be redirected to 2FA dialog first, even with pending invites
-        assert resp.redirect_chain == [("/auth/2fa/", 302)]
+        assert resp.redirect_chain == [("/auth/login/", 302)]
 
     def test_correct_redirect_as_2fa_user_invited(self) -> None:
         user = self.create_user("foor@example.com")
@@ -1027,7 +911,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         )
 
         # Users with 2FA should be redirected to 2FA dialog first, even with pending invites
-        assert resp.redirect_chain == [("/auth/2fa/", 302)]
+        assert resp.redirect_chain == [("/auth/login/", 302)]
 
     @override_settings(SENTRY_SINGLE_ORGANIZATION=True)
     @with_feature({"organizations:create": False})
@@ -1041,7 +925,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
             self.path, {"username": user, "password": "admin", "op": "login"}, follow=True
         )
 
-        assert resp.redirect_chain == [("/auth/2fa/", 302)]
+        assert resp.redirect_chain == [("/auth/login/", 302)]
 
     def test_correct_redirect_as_2fa_user_no_membership(self) -> None:
         user = self.create_user("foor@example.com")
@@ -1053,7 +937,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
             self.path, {"username": user, "password": "admin", "op": "login"}, follow=True
         )
 
-        assert resp.redirect_chain == [("/auth/2fa/", 302)]
+        assert resp.redirect_chain == [("/auth/login/", 302)]
 
     @override_settings(SENTRY_SINGLE_ORGANIZATION=True)
     @with_feature({"organizations:create": False})
@@ -1069,7 +953,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
             self.path, {"username": user, "password": "admin", "op": "login"}, follow=True
         )
 
-        assert resp.redirect_chain == [("/auth/2fa/", 302)]
+        assert resp.redirect_chain == [("/auth/login/", 302)]
 
     def test_correct_redirect_as_2fa_user_invited_member(self) -> None:
         user = self.create_user("foor@example.com")
@@ -1083,7 +967,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
             self.path, {"username": user, "password": "admin", "op": "login"}, follow=True
         )
 
-        assert resp.redirect_chain == [("/auth/2fa/", 302)]
+        assert resp.redirect_chain == [("/auth/login/", 302)]
 
     def test_anonymous_user_with_automatic_migration(self) -> None:
         AuthProvider.objects.create(organization_id=self.organization.id, provider="dummy")
@@ -1102,8 +986,8 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
 
         resp = self.client.get(self.path, follow=True)
         assert resp.status_code == 200
-        assert resp.redirect_chain == [("/auth/login/", 302)]
-        self.assertTemplateUsed(resp, "sentry/login.html")
+        assert resp.redirect_chain == []
+        self.assertTemplateUsed(resp, "sentry/base-react.html")
 
     def test_sso_pipeline_rejects_different_org(self) -> None:
         AuthProvider.objects.create(organization_id=self.organization.id, provider="dummy")
@@ -1204,10 +1088,7 @@ class OrganizationAuthLoginNoPasswordTest(AuthProviderTestCase):
 
         path = reverse("sentry-auth-organization", args=[self.organization.slug])
         resp = self.client.post(path, follow=True)
-        assert resp.redirect_chain == [
-            (reverse("sentry-login"), 302),
-            ("/organizations/foo/issues/", 302),
-        ]
+        assert resp.redirect_chain == [(reverse("sentry-login"), 302)]
 
         auth_identity = AuthIdentity.objects.get(auth_provider=self.auth_provider_inst)
         assert self.user == auth_identity.user
@@ -1241,10 +1122,7 @@ class OrganizationAuthLoginNoPasswordTest(AuthProviderTestCase):
 
         path = reverse("sentry-auth-organization", args=[self.organization.slug])
         resp = self.client.post(path, follow=True)
-        assert resp.redirect_chain == [
-            (reverse("sentry-login"), 302),
-            ("/organizations/foo/issues/", 302),
-        ]
+        assert resp.redirect_chain == [(reverse("sentry-login"), 302)]
 
         auth_identity = AuthIdentity.objects.get(auth_provider=self.auth_provider_inst)
         assert self.user == auth_identity.user
@@ -1286,10 +1164,7 @@ class OrganizationAuthLoginNoPasswordTest(AuthProviderTestCase):
 
         resp = self.client.post(path, follow=True)
 
-        assert resp.redirect_chain == [
-            (reverse("sentry-login"), 302),
-            ("/organizations/foo/issues/", 302),
-        ]
+        assert resp.redirect_chain == [(reverse("sentry-login"), 302)]
 
         auth_identity = AuthIdentity.objects.get(auth_provider=self.auth_provider_inst)
         assert self.user == auth_identity.user
@@ -1332,7 +1207,7 @@ class OrganizationAuthLoginNoPasswordTest(AuthProviderTestCase):
         resp = self.client.post(path, follow=True)
 
         assert resp.redirect_chain == [
-            (reverse("sentry-2fa-dialog"), 302),
+            (reverse("sentry-login"), 302),
         ]
 
 
@@ -1344,102 +1219,6 @@ class OrganizationAuthLoginDemoModeTest(AuthProviderTestCase):
 
         self.normal_user = self.create_user()
         self.normal_org = self.create_organization(owner=self.normal_user)
-
-    def is_logged_in_to_org(self, response, org):
-        return response.status_code == 200 and response.redirect_chain == [
-            (reverse("sentry-login"), 302),
-            (f"/organizations/{org.slug}/issues/", 302),
-        ]
-
-    def fetch_org_login_page(self, org):
-        return self.client.get(
-            reverse("sentry-auth-organization", args=[org.slug]),
-            follow=True,
-        )
-
-    def test_auto_login_demo_mode_disabled(self) -> None:
-        with override_options(
-            {
-                "demo-mode.enabled": False,
-                "demo-mode.users": [self.demo_user.id],
-                "demo-mode.orgs": [self.demo_org.id],
-            }
-        ):
-            resp = self.fetch_org_login_page(self.demo_org)
-            assert not self.is_logged_in_to_org(resp, self.demo_org)
-
-            resp = self.fetch_org_login_page(self.normal_org)
-            assert not self.is_logged_in_to_org(resp, self.normal_org)
-
-    def test_auto_login_demo_mode(self) -> None:
-        with override_options(
-            {
-                "demo-mode.enabled": True,
-                "demo-mode.users": [self.demo_user.id],
-                "demo-mode.orgs": [self.demo_org.id],
-            }
-        ):
-            resp = self.fetch_org_login_page(self.demo_org)
-            assert self.is_logged_in_to_org(resp, self.demo_org)
-
-            resp = self.fetch_org_login_page(self.normal_org)
-            assert not self.is_logged_in_to_org(resp, self.normal_org)
-
-    def test_auto_login_not_demo_org(self) -> None:
-        with override_options(
-            {"demo-mode.enabled": True, "demo-mode.users": [], "demo-mode.orgs": []}
-        ):
-            resp = self.fetch_org_login_page(self.demo_org)
-            assert not self.is_logged_in_to_org(resp, self.demo_org)
-
-            resp = self.fetch_org_login_page(self.normal_org)
-            assert not self.is_logged_in_to_org(resp, self.normal_org)
-
-    def test_no_non_member_warning_for_demo_org(self) -> None:
-        """
-        When demo mode is enabled and a Google OAuth user navigates to the demo org,
-        the "not a member" warning should not be shown.
-        """
-        external_user = self.create_user("external@example.com")
-        self.login_as(external_user)
-
-        with override_options(
-            {
-                "demo-mode.enabled": True,
-                "demo-mode.users": [self.demo_user.id],
-                "demo-mode.orgs": [self.demo_org.id],
-            }
-        ):
-            path = reverse("sentry-auth-organization", args=[self.demo_org.slug])
-            resp = self.client.get(path, follow=True)
-
-            # Demo mode auto-logs in and redirects, but no warning should be
-            # added to the messages framework for the demo org.
-            stored_messages = list(get_messages(resp.wsgi_request))
-            assert not any("is not a member of the" in str(m) for m in stored_messages)
-
-    def test_non_member_warning_still_shown_for_non_demo_org(self) -> None:
-        """
-        The "not a member" warning should still appear for non-demo orgs
-        even when demo mode is enabled.
-        """
-        external_user = self.create_user("external@example.com")
-        self.login_as(external_user)
-
-        with override_options(
-            {
-                "demo-mode.enabled": True,
-                "demo-mode.users": [self.demo_user.id],
-                "demo-mode.orgs": [self.demo_org.id],
-            }
-        ):
-            path = reverse("sentry-auth-organization", args=[self.normal_org.slug])
-            resp = self.client.get(path)
-
-            assert resp.status_code == 200
-            messages_list = list(resp.context["messages"])
-            assert len(messages_list) == 1
-            assert "is not a member of the" in str(messages_list[0])
 
     def test_demo_user_joins_existing_sso_organization(self) -> None:
         """
