@@ -307,6 +307,7 @@ def _handle_step_started_events(
 
     metrics.incr(
         "autofix.explorer.trigger",
+        sample_rate=1.0,
         tags={
             "step": step.value,
             "referrer": referrer.value,
@@ -957,6 +958,7 @@ def trigger_coding_agent_handoff(
 
     metrics.incr(
         "autofix.explorer.trigger",
+        sample_rate=1.0,
         tags={
             "step": "coding_agent_handoff",
             "referrer": referrer.value,
@@ -1020,6 +1022,7 @@ def trigger_push_changes(
 
     metrics.incr(
         "autofix.explorer.trigger",
+        sample_rate=1.0,
         tags={"step": "open_pr", "referrer": referrer.value},
     )
 
