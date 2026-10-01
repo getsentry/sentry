@@ -161,6 +161,30 @@ describe('ConversationsOverviewPage', () => {
     ).toBeTruthy();
   });
 
+  it('tailors the search placeholder to the selected table', async () => {
+    render(<ConversationsOverviewPage />, {organization});
+
+    expect(
+      await screen.findByPlaceholderText(
+        'Search by conversation ID, user, model, or message'
+      )
+    ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('tab', {name: 'Traces'}));
+    expect(
+      await screen.findByPlaceholderText(
+        'Search by trace ID, operation, service, or user'
+      )
+    ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('tab', {name: 'LLM Calls'}));
+    expect(
+      await screen.findByPlaceholderText(
+        'Search by model, provider, tokens, or operation'
+      )
+    ).toBeInTheDocument();
+  });
+
   it('only shows the cost chart and setup banner without agent or tool spans', async () => {
     let finishAgentOrToolRequest!: () => void;
     const agentOrToolRequestGate = new Promise<void>(resolve => {
