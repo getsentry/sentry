@@ -8,6 +8,7 @@ import {getAttachmentUrl} from 'sentry/components/events/attachmentViewers/utils
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
+import {applyCarriageReturns} from 'sentry/utils/ansiEscapeCodes';
 import {resolveHostname} from 'sentry/utils/api/resolveHostname';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 
@@ -38,7 +39,7 @@ export function LogFileViewer(props: ViewerProps) {
         );
       }
 
-      return decodeTextAttachment(await response.arrayBuffer());
+      return applyCarriageReturns(decodeTextAttachment(await response.arrayBuffer()));
     },
     retry: false,
     staleTime: Infinity,

@@ -72,6 +72,17 @@ describe('LogFileViewer', () => {
     expect(screen.getByText('to connect')).toBeInTheDocument();
   });
 
+  it('renders only the final write when given carriage-return progress updates', async () => {
+    fetchMock.route(
+      attachmentUrl,
+      fetchMock.Response(new TextEncoder().encode('progress 10%\rprogress 100%'))
+    );
+
+    render(<ExampleLogFileViewer />);
+
+    expect(await screen.findByText('progress 100%')).toBeInTheDocument();
+  });
+
   it('renders an error when the attachment cannot be downloaded', async () => {
     fetchMock.route(attachmentUrl, '', {status: 404});
 
