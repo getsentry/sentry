@@ -5,6 +5,7 @@ import {
   ExplorerAutofixStateFixture,
 } from 'sentry-fixture/autofix';
 import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
+import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
 import {MemberFixture} from 'sentry-fixture/member';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -231,6 +232,10 @@ describe('InboxPage', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/${group.id}/`,
       body: () => ({...group, hasSeen: previewHasSeen}),
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${group.id}/events/recommended/`,
+      body: EventFixture({groupID: group.id}),
     });
     const markSeenRequest = MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/${group.id}/`,

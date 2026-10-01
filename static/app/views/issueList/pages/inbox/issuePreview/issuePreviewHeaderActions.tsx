@@ -142,7 +142,7 @@ export function IssuePreviewHeaderActions({
   onRetryCodeChanges,
   project,
 }: IssuePreviewHeaderActionsProps) {
-  const {state} = useIssuePreviewSeer();
+  const {autofix, state} = useIssuePreviewSeer();
   const shouldShowSeerActions = state === 'start' || state === 'summary';
 
   if (
@@ -163,7 +163,15 @@ export function IssuePreviewHeaderActions({
   }
 
   if (!shouldShowSeerActions) {
-    return <IssuePreviewActions group={group} project={project} disabled={disabled} />;
+    return (
+      <IssuePreviewActions
+        group={group}
+        project={project}
+        disabled={disabled}
+        autofixData={autofix.runState}
+        autofixFormatted={autofix.autofixFormatted}
+      />
+    );
   }
 
   return (

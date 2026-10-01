@@ -5,15 +5,24 @@ import {
   ExplorerAutofixStateFixture,
 } from 'sentry-fixture/autofix';
 import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
+import {EventFixture} from 'sentry-fixture/event';
+import {FrameFixture} from 'sentry-fixture/frame';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {PullRequestFixture} from 'sentry-fixture/pullRequest';
 
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {clearIndicators} from 'sentry/actionCreators/indicator';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {EntryType} from 'sentry/types/event';
 import {GroupStatus, ProgressState, type Group} from 'sentry/types/group';
 import type {LinkedPullRequest} from 'sentry/types/integrations';
 
@@ -91,6 +100,10 @@ describe('IssuePreview', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/pull-requests/`,
       body: {pullRequests: []},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/events/recommended/`,
+      body: EventFixture(),
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/autofix/setup/`,
@@ -381,6 +394,201 @@ describe('IssuePreview', () => {
     expect(screen.queryByRole('button', {name: 'View PR'})).not.toBeInTheDocument();
   });
 
+  describe('issue actions', () => {
+    const organizationWithoutAi = OrganizationFixture({hideAiFeatures: true});
+
+    describe('Copy as Markdown', () => {
+      beforeEach(() => {
+        Object.assign(navigator, {
+          clipboard: {writeText: jest.fn().mockResolvedValue(undefined)},
+        });
+      });
+
+      it('copies the issue and recommended crashed thread stacktrace', async () => {
+        MockApiClient.addMockResponse({
+          url: `/organizations/${organization.slug}/issues/${group.id}/events/recommended/`,
+          body: EventFixture({
+            entries: [
+              {
+                type: EntryType.THREADS,
+                data: {
+                  values: [
+                    {id: 1, name: 'worker', crashed: false, stacktrace: null},
+                    {
+                      id: 2,
+                      name: 'main',
+                      crashed: true,
+                      stacktrace: {
+                        frames: [
+                          FrameFixture({
+                            function: 'handleRequest',
+                            filename: 'src/handler.ts',
+                            lineNo: 42,
+                            inApp: true,
+                          }),
+                        ],
+                      },
+                    },
+                  ],
+                },
+              },
+            ],
+          }),
+        });
+
+        render(<IssuePreview groupId={group.id} />, {
+          organization: organizationWithoutAi,
+        });
+
+        const copyButton = await screen.findByRole('button', {
+          name: 'Copy as Markdown',
+        });
+        await waitFor(() => expect(copyButton).toBeEnabled());
+        await userEvent.click(copyButton);
+
+        expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+          expect.stringContaining(`**Short ID:** ${group.shortId}`)
+        );
+        expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+          expect.stringContaining('## Thread: main (crashed)')
+        );
+        expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+          expect.stringContaining('handleRequest in src/handler.ts [Line 42]')
+        );
+        expect(
+          await screen.findByText('Copied issue to clipboard as Markdown')
+        ).toBeInTheDocument();
+      });
+
+      it('copies existing Seer analysis without quota using the client formatter', async () => {
+        MockApiClient.addMockResponse({
+          url: `/organizations/${organization.slug}/issues/${group.id}/autofix/setup/`,
+          body: AutofixSetupFixture({billing: {hasAutofixQuota: false}}),
+        });
+        MockApiClient.addMockResponse({
+          url: `/organizations/${organization.slug}/issues/${group.id}/`,
+          body: GroupFixture({
+            ...group,
+            derivedData: {
+              ...fixAppliedGroup.derivedData!,
+              progress: ProgressState.DIAGNOSED,
+            },
+          }),
+        });
+        MockApiClient.addMockResponse({
+          url: `/organizations/${organization.slug}/issues/${group.id}/autofix/`,
+          body: ExplorerAutofixResponseFixture({
+            formatted: {content: '# Existing Seer analysis', format: 'markdown'},
+          }),
+        });
+
+        render(<IssuePreview groupId={group.id} />, {organization});
+
+        const actions = await screen.findByRole('group', {name: 'Issue actions'});
+        const copyButton = within(actions).getByRole('button', {
+          name: 'Copy as Markdown',
+        });
+        await waitFor(() => expect(copyButton).toBeEnabled());
+        await userEvent.click(copyButton);
+
+        expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+          expect.stringContaining('The issue was caused by an unexpected value.')
+        );
+      });
+
+      it('copies existing Seer analysis without quota using the server formatter', async () => {
+        MockApiClient.addMockResponse({
+          url: `/organizations/${organization.slug}/issues/${group.id}/autofix/setup/`,
+          body: AutofixSetupFixture({billing: {hasAutofixQuota: false}}),
+        });
+        MockApiClient.addMockResponse({
+          url: `/organizations/${organization.slug}/issues/${group.id}/`,
+          body: GroupFixture({
+            ...group,
+            derivedData: {
+              ...fixAppliedGroup.derivedData!,
+              progress: ProgressState.DIAGNOSED,
+            },
+          }),
+        });
+        MockApiClient.addMockResponse({
+          url: `/organizations/${organization.slug}/issues/${group.id}/autofix/`,
+          body: ExplorerAutofixResponseFixture({
+            formatted: {content: '# Existing Seer analysis', format: 'markdown'},
+          }),
+        });
+        MockApiClient.addMockResponse({
+          url: `/organizations/${organization.slug}/issues/${group.id}/events/recommended/`,
+          body: EventFixture({
+            formatted: {content: '# Recommended event', format: 'markdown'},
+          }),
+        });
+
+        render(<IssuePreview groupId={group.id} />, {organization});
+
+        const actions = await screen.findByRole('group', {name: 'Issue actions'});
+        const copyButton = within(actions).getByRole('button', {
+          name: 'Copy as Markdown',
+        });
+        await waitFor(() => expect(copyButton).toBeEnabled());
+        await userEvent.click(copyButton);
+
+        expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+          expect.stringContaining('# Recommended event')
+        );
+        expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+          expect.stringContaining('# Existing Seer analysis')
+        );
+      });
+
+      it('copies issue information when the recommended event cannot be loaded', async () => {
+        MockApiClient.addMockResponse({
+          url: `/organizations/${organization.slug}/issues/${group.id}/events/recommended/`,
+          statusCode: 404,
+        });
+
+        render(<IssuePreview groupId={group.id} />, {
+          organization: organizationWithoutAi,
+        });
+
+        const copyButton = await screen.findByRole('button', {name: 'Copy as Markdown'});
+        await waitFor(() => expect(copyButton).toBeEnabled());
+        await userEvent.click(copyButton);
+
+        expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+          expect.stringContaining(`# ${group.title}`)
+        );
+        expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+          expect.stringContaining(`**Short ID:** ${group.shortId}`)
+        );
+      });
+
+      it('disables Copy without loading an event while reprocessing', async () => {
+        MockApiClient.addMockResponse({
+          url: `/organizations/${organization.slug}/issues/${group.id}/`,
+          body: GroupFixture({
+            ...group,
+            status: GroupStatus.REPROCESSING,
+            statusDetails: {info: null, pendingEvents: 1},
+          }),
+        });
+        const eventRequest = MockApiClient.addMockResponse({
+          url: `/organizations/${organization.slug}/issues/${group.id}/events/recommended/`,
+          body: EventFixture(),
+        });
+
+        render(<IssuePreview groupId={group.id} />, {
+          organization: organizationWithoutAi,
+        });
+
+        expect(
+          await screen.findByRole('button', {name: 'Copy as Markdown'})
+        ).toBeDisabled();
+        expect(eventRequest).not.toHaveBeenCalled();
+      });
+    });
+  });
+
   it('keeps Resolve and Archive available while PRs load', async () => {
     const pullRequests = Promise.withResolvers<void>();
     MockApiClient.addMockResponse({
@@ -436,6 +644,9 @@ describe('IssuePreview', () => {
     expect(screen.getByRole('button', {name: 'Archive'})).toBeEnabled();
     expect(
       screen.queryByRole('button', {name: 'Find Root Cause'})
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Copy as Markdown'})
     ).not.toBeInTheDocument();
   });
 
