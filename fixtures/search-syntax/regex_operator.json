@@ -337,5 +337,75 @@
         "value": ""
       }
     ]
+  },
+  {
+    "desc": "A pattern within the length limit when each escape sequence counts as one character is accepted",
+    "query": "message://^(https?:\\/\\/)?(www\\.)?([a-zA-Z0-9-]+)(\\.[a-zA-Z]{2,})(\\/[^\\s]*)?$//",
+    "additionalConfig": {
+      "allowRegex": true
+    },
+    "result": [
+      {
+        "type": "spaces",
+        "value": ""
+      },
+      {
+        "type": "filter",
+        "filter": "text",
+        "key": {
+          "type": "keySimple",
+          "value": "message",
+          "quoted": false
+        },
+        "value": {
+          "type": "valueText",
+          "value": "^(https?:\\/\\/)?(www\\.)?([a-zA-Z0-9-]+)(\\.[a-zA-Z]{2,})(\\/[^\\s]*)?$",
+          "quoted": false
+        },
+        "negated": false,
+        "operator": "//"
+      },
+      {
+        "type": "spaces",
+        "value": ""
+      }
+    ]
+  },
+  {
+    "desc": "A pattern over the length limit when each escape sequence counts as one character is rejected",
+    "query": "message://\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.//",
+    "additionalConfig": {
+      "allowRegex": true
+    },
+    "result": [
+      {
+        "type": "spaces",
+        "value": ""
+      },
+      {
+        "type": "filter",
+        "filter": "text",
+        "key": {
+          "type": "keySimple",
+          "value": "message",
+          "quoted": false
+        },
+        "value": {
+          "type": "valueText",
+          "value": "\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.",
+          "quoted": false
+        },
+        "negated": false,
+        "operator": "//",
+        "invalid": {
+          "type": "regex-pattern-too-long",
+          "reason": "Regex patterns are limited to 64 characters. To search for a literal value that starts with //, quote it: \"//...\""
+        }
+      },
+      {
+        "type": "spaces",
+        "value": ""
+      }
+    ]
   }
 ]

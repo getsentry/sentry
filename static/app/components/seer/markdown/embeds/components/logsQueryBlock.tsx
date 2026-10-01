@@ -10,15 +10,19 @@ import {
   eventColumns,
   eventRowKey,
   QueryEmbedTable,
+  type QueryEmbedColumn,
 } from 'sentry/components/seer/markdown/embeds/components/queryEmbed/queryEmbedTable';
 import {toPageFilters} from 'sentry/components/seer/markdown/embeds/components/queryEmbedParams';
 import {IconList} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useFetchEventsTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 
+import {LogSeverityDot, LogTimestamp} from './log/logRowParts';
 import {getLogsQueryTitle} from './logsQueryLink';
 import {
   buildLogsEventView,
@@ -29,6 +33,52 @@ import {
   resolveLogsYAxes,
   type LogsQueryData,
 } from './logsQueryUtils';
+
+type LogRow = Record<string, unknown>;
+
+/**
+ * Samples read like the logs table: a severity dot, then the timestamp, then
+ * whatever else Seer asked for. Aggregates are grouped counts with no one log
+ * behind a row, so they keep the plain columns.
+ */
+function logsQueryColumns(
+  data: LogsQueryData,
+  meta: EventsMetaType | undefined
+): Array<QueryEmbedColumn<LogRow>> {
+  const fields = getLogsQueryFields(data);
+  if (data.mode !== 'samples') {
+    return eventColumns(fields, meta);
+  }
+
+  return [
+    {
+      key: 'severity-dot',
+      label: '',
+      resizable: false,
+      width: 'max-content',
+      render: row => (
+        <LogSeverityDot
+          severity={row[OurLogKnownFieldKey.SEVERITY]}
+          severityNumber={row[OurLogKnownFieldKey.SEVERITY_NUMBER]}
+        />
+      ),
+    },
+    {
+      key: OurLogKnownFieldKey.TIMESTAMP,
+      width: 'max-content',
+      render: row => (
+        <LogTimestamp
+          timestamp={row[OurLogKnownFieldKey.TIMESTAMP]}
+          timestampPrecise={row[OurLogKnownFieldKey.TIMESTAMP_PRECISE]}
+        />
+      ),
+    },
+    ...eventColumns<LogRow>(
+      fields.filter(field => field !== OurLogKnownFieldKey.TIMESTAMP),
+      meta
+    ),
+  ];
+}
 
 function LogsQueryChart({
   data,
@@ -94,7 +144,7 @@ export default function LogsQueryBlock({data}: {data: LogsQueryData}) {
       table={
         isChartOnly ? null : (
           <QueryEmbedTable
-            columns={eventColumns(getLogsQueryFields(data), tableQuery.data?.meta)}
+            columns={logsQueryColumns(data, tableQuery.data?.meta)}
             emptyMessage={t('No matching logs')}
             errorMessage={t('Unable to load logs')}
             isError={tableQuery.isError}

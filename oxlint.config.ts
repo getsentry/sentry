@@ -545,12 +545,13 @@ const config = defineConfig({
     '@sentry/no-dynamic-translations': 'error',
     '@sentry/no-flag-comments': 'error',
     '@sentry/no-query-data-type-parameters': 'error',
+    '@sentry/no-raw-css-in-styled': 'error',
     '@sentry/no-redundant-default-argument': 'error',
     '@sentry/no-static-translations': 'error',
-    '@sentry/no-raw-css-in-styled': 'error',
     '@sentry/no-styled-shortcut': 'error',
-    '@sentry/no-useless-css-interpolation-semicolon': 'error',
     '@sentry/no-unnecessary-use-callback': 'error',
+    '@sentry/no-useless-css-interpolation-semicolon': 'error',
+    '@sentry/prefer-react-component': 'error',
     '@sentry/scraps/no-core-import': 'error',
     '@sentry/scraps/no-double-dollar-interpolation': 'error',
     '@sentry/scraps/no-restricted-module-mocks': 'error',
@@ -1782,6 +1783,7 @@ const config = defineConfig({
       rules: {
         // Tests sometimes contain intentionally unusual hard-coded numbers.
         'no-loss-of-precision': 'off',
+        '@sentry/prefer-react-component': 'off',
         'no-restricted-imports': [
           'error',
           {
