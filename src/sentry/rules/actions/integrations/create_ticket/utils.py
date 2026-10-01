@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable, Sequence
+from typing import Any
 
 from rest_framework.response import Response
 
@@ -138,15 +139,15 @@ def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
 
     for future in futures:
         rule_id = future.rule.id
-        data = future.kwargs.get("data")
+        data: dict[str, Any] = future.kwargs["data"]
         provider = future.kwargs.get("provider")
         integration_id = future.kwargs.get("integration_id")
-        generate_footer = future.kwargs.get("generate_footer")
+        generate_footer: Callable[[str], str] = future.kwargs["generate_footer"]
 
         # If we invoked this handler from the notification action, we need to replace the rule_id with the legacy_rule_id, so we link notifications correctly
         # In the Notification Action, we store the rule_id in the action_id field
         action_id = rule_id
-        rule_id = data.get("legacy_rule_id")
+        rule_id = data.get("legacy_rule_id", rule_id)
 
         integration = integration_service.get_integration(
             integration_id=integration_id,
