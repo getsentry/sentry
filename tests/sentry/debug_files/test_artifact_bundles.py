@@ -20,6 +20,7 @@ from sentry.models.artifactbundle import (
 from sentry.models.files.fileblob import FileBlob
 from sentry.tasks.assemble import assemble_artifacts
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.utils import json
 
 
@@ -455,3 +456,102 @@ class GetArtifactBundlesContainingUrlTest(TestCase):
             ),
             {bundle3.id},
         )
+
+    def index_url(self, bundle: ArtifactBundle, url: str) -> None:
+        ArtifactBundleIndex.objects.create(
+            organization_id=self.organization.id,
+            artifact_bundle=bundle,
+            url=url,
+            date_added=bundle.date_added,
+        )
+
+    def lookup(self, url: str) -> set[int]:
+        return {
+            bundle_id
+            for bundle_id, _ in get_artifact_bundles_containing_url(
+                self.project, self.release_name, self.dist_name, url
+            )
+        }
+
+    @override_options({"sourcemaps.artifact-bundles.url-lookup.max-index-rows": 1000})
+    def test_url_lookup_budget_scans_small_release_completely(self) -> None:
+        old = self.create_bundle(date_added=timezone.now() - timedelta(days=90))
+        new = self.create_bundle()
+        self.index_url(old, "~/path/to/old.js")
+        self.index_url(new, "~/path/to/new.js")
+
+        assert self.lookup("/path/to/old") == {old.id}
+        assert self.lookup("/path/to/new") == {new.id}
+
+    @override_options(
+        {
+            # Each bundle has 5 files, so the budget covers two bundles.
+            "sourcemaps.artifact-bundles.url-lookup.max-index-rows": 10,
+            "system.debug-files-renewal-age-threshold-days": 7,
+            "sourcemaps.artifact-bundles.url-lookup.active-margin-days": 7,
+        }
+    )
+    def test_url_lookup_budget_prefers_active_bundles(self) -> None:
+        now = timezone.now()
+        renewed = self.create_bundle(
+            date_added=now - timedelta(days=3), date_last_modified=now - timedelta(days=60)
+        )
+        idle = self.create_bundle(date_added=now - timedelta(days=50))
+        newest = self.create_bundle()
+        self.index_url(renewed, "~/path/to/renewed.js")
+        self.index_url(idle, "~/path/to/idle.js")
+        self.index_url(newest, "~/path/to/newest.js")
+
+        # `idle` was uploaded after `renewed`, but only the active bundles fit in the budget.
+        assert self.lookup("/path/to/renewed") == {renewed.id}
+        assert self.lookup("/path/to/newest") == {newest.id}
+        assert self.lookup("/path/to/idle") == set()
+
+    @override_options(
+        {
+            "sourcemaps.artifact-bundles.url-lookup.max-index-rows": 10,
+            "system.debug-files-renewal-age-threshold-days": 7,
+            "sourcemaps.artifact-bundles.url-lookup.active-margin-days": 7,
+        }
+    )
+    def test_url_lookup_budget_uses_newest_idle_bundles(self) -> None:
+        now = timezone.now()
+        oldest = self.create_bundle(date_added=now - timedelta(days=90))
+        older = self.create_bundle(date_added=now - timedelta(days=80))
+        newer = self.create_bundle(date_added=now - timedelta(days=70))
+        for bundle, name in ((oldest, "oldest"), (older, "older"), (newer, "newer")):
+            self.index_url(bundle, f"~/path/to/{name}.js")
+
+        # Without active bundles, the budget goes to the most recently uploaded bundles.
+        assert self.lookup("/path/to/newer") == {newer.id}
+        assert self.lookup("/path/to/older") == {older.id}
+        assert self.lookup("/path/to/oldest") == set()
+
+    @override_options({"sourcemaps.artifact-bundles.url-lookup.max-index-rows": 1})
+    def test_url_lookup_budget_scans_at_least_one_bundle(self) -> None:
+        older = self.create_bundle()
+        newer = self.create_bundle()
+        self.index_url(older, "~/path/to/app.js")
+        self.index_url(newer, "~/path/to/app.js")
+
+        assert self.lookup("/path/to/app") == {newer.id}
+
+    @override_options({"sourcemaps.artifact-bundles.url-lookup.max-index-rows": 1000})
+    def test_url_lookup_budget_respects_project_and_release(self) -> None:
+        bundle = self.create_bundle()
+        self.index_url(bundle, "~/path/to/app.js")
+
+        other_project = self.create_project(organization=self.organization)
+        assert (
+            get_artifact_bundles_containing_url(
+                other_project, self.release_name, self.dist_name, "/path/to/app"
+            )
+            == set()
+        )
+        assert (
+            get_artifact_bundles_containing_url(
+                self.project, "2.0.0", self.dist_name, "/path/to/app"
+            )
+            == set()
+        )
+        assert self.lookup("/path/to/app") == {bundle.id}
