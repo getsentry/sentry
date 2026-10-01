@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {SavedQueriesLandingContent} from 'sentry/views/explore/savedQueries/savedQueriesLandingContent';
 
@@ -107,6 +107,8 @@ describe('SavedQueriesTable', () => {
       },
     });
     await screen.findByText('Created by Others');
-    expect(screen.queryByText('Created by Me')).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByText('Created by Me')).not.toBeInTheDocument();
+    });
   });
 });

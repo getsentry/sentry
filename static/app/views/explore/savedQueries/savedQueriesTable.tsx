@@ -1,6 +1,5 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
-import debounce from 'lodash/debounce';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
 import {Container} from '@sentry/scraps/layout';
@@ -87,47 +86,49 @@ export function SavedQueriesTable({
     }
   }, [isFetched, data]);
 
-  const starQueryHandler = useCallback(
-    (query: CombinedSavedQuery, starred: boolean) => {
-      const key = getSavedQueryKey(query);
-      if (starred) {
-        setStarredKeys(prev => [...prev, key]);
-      } else {
-        setStarredKeys(prev => prev.filter(starredKey => starredKey !== key));
-      }
+  const starQueryHandler = (query: CombinedSavedQuery, starred: boolean) => {
+    const key = getSavedQueryKey(query);
+    if (starred) {
+      setStarredKeys(prev => [...prev, key]);
+    } else {
+      setStarredKeys(prev => prev.filter(starredKey => starredKey !== key));
+    }
 
-      // Discover has no equivalent star analytics event, so only Explore rows report.
-      if (isExploreSavedQuery(query)) {
-        const dataset = getSavedQueryTraceItemDataset(query.dataset);
-        if (dataset === TraceItemDataset.SPANS) {
-          trackAnalytics('trace_explorer.star_query', {
-            save_type: starred ? 'star_query' : 'unstar_query',
-            ui_source: 'table',
-            organization,
-          });
-        } else if (dataset === TraceItemDataset.LOGS) {
-          trackAnalytics('logs.star_query', {
-            save_type: starred ? 'star_query' : 'unstar_query',
-            ui_source: 'table',
-            organization,
-          });
+    // Discover has no equivalent star analytics event, so only Explore rows report.
+    if (isExploreSavedQuery(query)) {
+      const dataset = getSavedQueryTraceItemDataset(query.dataset);
+      if (dataset === TraceItemDataset.SPANS) {
+        trackAnalytics('trace_explorer.star_query', {
+          save_type: starred ? 'star_query' : 'unstar_query',
+          ui_source: 'table',
+          organization,
+        });
+      } else if (dataset === TraceItemDataset.LOGS) {
+        trackAnalytics('logs.star_query', {
+          save_type: starred ? 'star_query' : 'unstar_query',
+          ui_source: 'table',
+          organization,
+        });
+      }
+    }
+
+    starQuery(query, starred).then(
+      () => {
+        addSuccessMessage(starred ? t('Query starred') : t('Query unstarred'));
+      },
+      () => {
+        // If the starQuery call fails, we need to revert the state
+        addErrorMessage(
+          starred ? t('Unable to star query') : t('Unable to unstar query')
+        );
+        if (starred) {
+          setStarredKeys(prev => prev.filter(starredKey => starredKey !== key));
+        } else {
+          setStarredKeys(prev => [...prev, key]);
         }
       }
-
-      starQuery({queryId: Number(query.id), queryType: query.queryType}, starred).catch(
-        () => {
-          // If the starQuery call fails, we need to revert the starredKeys state
-          addErrorMessage(t('Unable to star query'));
-          if (starred) {
-            setStarredKeys(prev => prev.filter(starredKey => starredKey !== key));
-          } else {
-            setStarredKeys(prev => [...prev, key]);
-          }
-        }
-      );
-    },
-    [starQuery, organization]
-  );
+    );
+  };
 
   const getHandleUpdateFromSavedQuery = useCallback(
     (savedQuery: CombinedSavedQuery) => {
@@ -155,27 +156,7 @@ export function SavedQueriesTable({
     });
   };
 
-  const debouncedOnClick = useMemo(
-    () =>
-      debounce(
-        (query: CombinedSavedQuery, starred: boolean) => {
-          if (starred) {
-            addLoadingMessage(t('Unstarring query...'));
-            starQueryHandler(query, false);
-            addSuccessMessage(t('Query unstarred'));
-          } else {
-            addLoadingMessage(t('Starring query...'));
-            starQueryHandler(query, true);
-            addSuccessMessage(t('Query starred'));
-          }
-        },
-        1000,
-        {leading: true}
-      ),
-    [starQueryHandler]
-  );
-
-  if (hideIfEmpty && filteredData.length === 0) {
+  if (!isLoading && hideIfEmpty && filteredData.length === 0) {
     return null;
   }
 
@@ -218,7 +199,12 @@ export function SavedQueriesTable({
               <SavedEntityTable.Cell hasButton>
                 <SavedEntityTable.CellStar
                   isStarred={starredKeys.includes(getSavedQueryKey(query))}
-                  onClick={() => debouncedOnClick(query, Boolean(query.starred))}
+                  onClick={() =>
+                    starQueryHandler(
+                      query,
+                      !starredKeys.includes(getSavedQueryKey(query))
+                    )
+                  }
                 />
               </SavedEntityTable.Cell>
               <SavedEntityTable.Cell>

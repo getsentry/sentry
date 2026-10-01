@@ -2,7 +2,6 @@ import {useCallback, useMemo} from 'react';
 import {skipToken, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
-import type {DateString} from 'sentry/types/core';
 import type {
   Organization,
   SavedQuery as DiscoverSavedQueryBase,
@@ -165,11 +164,11 @@ export class SavedQuery {
   changedReason?: ExploreQueryChangedReason | null;
   crossEvents?: CrossEvent[];
   createdBy?: User;
-  end?: string | DateString;
+  end?: string;
   environment?: string[];
   isPrebuilt?: boolean;
   range?: string;
-  start?: string | DateString;
+  start?: string;
 
   constructor(savedQuery: ReadableSavedQuery) {
     this.agent = savedQuery.agent;
@@ -218,7 +217,9 @@ export function isExploreSavedQuery(
   return savedQuery.queryType === SavedQueryType.EXPLORE;
 }
 
-export function getSavedQueryKey(savedQuery: CombinedSavedQuery): string {
+export function getSavedQueryKey(
+  savedQuery: Pick<CombinedSavedQuery, 'id' | 'queryType'>
+): string {
   return `${savedQuery.queryType}:${savedQuery.id}`;
 }
 
@@ -239,7 +240,7 @@ function savedQueriesApiOptions<TData = ReadableSavedQuery[]>(
   });
 }
 type CombinedSavedQueryResponse =
-  | (ReadableSavedQuery & {queryType?: SavedQueryType.EXPLORE})
+  | (ReadableSavedQuery & {queryType: SavedQueryType.EXPLORE})
   | DiscoverSavedQuery;
 
 /**
@@ -258,6 +259,11 @@ function combinedSavedQueriesApiOptions(
       staleTime: 0,
     }
   );
+}
+
+export function starredSavedQueriesApiOptions(organization: Organization) {
+  const query = {per_page: MAX_STARRED_SAVED_QUERIES_IN_NAV, starred: 1};
+  return combinedSavedQueriesApiOptions(organization, query);
 }
 
 type Props = {
