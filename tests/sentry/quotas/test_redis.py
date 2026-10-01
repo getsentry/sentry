@@ -263,7 +263,7 @@ class RedisQuotaTest(TestCase):
     def test_per_monitor_quota_disabled(self) -> None:
         self.get_monitor_quota.return_value = (15, 60)
         quotas = self.quota.get_quotas(self.project)
-        assert not any(q.id == "mrlm" for q in quotas)
+        assert not any(q.id == "mrl_env" for q in quotas)
 
     @override_options(
         {"crons.per_monitor_relay_quota.enabled": True, "crons.per_monitor_rate_limit": 6}
@@ -272,7 +272,7 @@ class RedisQuotaTest(TestCase):
         self.get_monitor_quota.return_value = (15, 60)
         quotas = self.quota.get_quotas(self.project)
 
-        quota = next(q for q in quotas if q.id == "mrlm")
+        quota = next(q for q in quotas if q.id == "mrl_env")
         assert quota.scope == QuotaScope.PROJECT
         assert quota.scope_id == str(self.project.id)
         assert quota.categories == {DataCategory.MONITOR}

@@ -106,7 +106,7 @@ class RedisQuota(Quota):
 
             results.append(
                 QuotaConfig(
-                    id="mrlm",
+                    id="mrl_env",
                     limit=options.get("crons.per_monitor_rate_limit"),
                     window=QUOTA_WINDOW,
                     scope=QuotaScope.PROJECT,

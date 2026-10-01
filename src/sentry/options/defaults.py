@@ -2832,8 +2832,7 @@ register(
 )
 
 # Sends relay a quota that limits each monitor environment to
-# `crons.per_monitor_rate_limit` check-ins per minute. Requires relay with
-# dimension-based rate limiting (getsentry/relay#6387).
+# `crons.per_monitor_rate_limit` check-ins per minute.
 register(
     "crons.per_monitor_relay_quota.enabled",
     default=False,

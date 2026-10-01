@@ -46,8 +46,7 @@ QUOTA_WINDOW = 60
 ALLOWED_MINIMUM = 50
 
 # Maximum number of distinct (slug, environment) pairs per project that relay
-# tracks for the per-monitor quota in one window. The largest projects have
-# ~1.5k monitor environments.
+# tracks for the per-monitor quota in one window.
 PER_MONITOR_MAX_CARDINALITY = 2000
 
 
