@@ -1321,7 +1321,7 @@ class SlackNotificationConfigTest(TestCase, PerformanceIssueTestCase, Occurrence
         assert group
         group.update(type=1, substatus=GroupSubStatus.ONGOING, times_seen=3)
 
-        context = get_context(group, [rule])
+        context = get_context(group, [NotificationRule.from_deprecated_legacy_rule(rule)])
         assert (
             context
             == f"Events: *3*   Users Affected: *7*   State: *Ongoing*   First Seen: *{time_since(group.first_seen)}*"
@@ -1329,7 +1329,7 @@ class SlackNotificationConfigTest(TestCase, PerformanceIssueTestCase, Occurrence
 
         # filter users affected by env
         rule.update(environment_id=env.id)
-        context = get_context(group, [rule])
+        context = get_context(group, [NotificationRule.from_deprecated_legacy_rule(rule)])
         assert (
             context
             == f"Events: *3*   Users Affected: *5*   State: *Ongoing*   First Seen: *{time_since(group.first_seen)}*"

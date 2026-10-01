@@ -48,12 +48,23 @@ class NotificationRule:
         first_action = actions[0]
         embedded_workflow_id = first_action.get("workflow_id")
         embedded_legacy_rule_id = first_action.get("legacy_rule_id")
-        effective_workflow_id = workflow_id or embedded_workflow_id
-        legacy_rule_id = (
-            None
-            if effective_workflow_id is not None and embedded_legacy_rule_id is None
-            else rule.id
-        )
+        if embedded_legacy_rule_id == TEST_NOTIFICATION_ID:
+            effective_workflow_id = None
+            legacy_rule_id = TEST_NOTIFICATION_ID
+        elif workflow_id is not None:
+            effective_workflow_id = workflow_id
+            legacy_rule_id = (
+                embedded_legacy_rule_id if embedded_legacy_rule_id is not None else rule.id
+            )
+        elif embedded_legacy_rule_id is not None:
+            effective_workflow_id = embedded_workflow_id
+            legacy_rule_id = embedded_legacy_rule_id
+        elif embedded_workflow_id is not None:
+            effective_workflow_id = embedded_workflow_id
+            legacy_rule_id = None
+        else:
+            effective_workflow_id = None
+            legacy_rule_id = rule.id
 
         return cls(
             id=rule.id,
