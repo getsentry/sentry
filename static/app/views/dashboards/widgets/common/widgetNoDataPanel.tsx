@@ -7,7 +7,7 @@ export function WidgetNoDataPanel() {
   return (
     <Flex width="100%" flexGrow={1} align="center" justify="center">
       <Stack gap="sm" align="center">
-        <Heading as="h3" size="lg" align="center">
+        <Heading as="h3" size="lg" align="center" style={{margin: 0}}>
           {t('No data to plot.')}
         </Heading>
         <Text as="p" size="md" variant="muted" align="center">
