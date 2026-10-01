@@ -1,5 +1,3 @@
-import contextlib
-
 import orjson
 import pytest
 from django.test.utils import override_settings
@@ -135,8 +133,10 @@ class TestViewerContextHook:
 
     def test_on_execute_no_headers(self) -> None:
         hook = ViewerContextHook()
-        cm = hook.on_execute({})
-        assert isinstance(cm, contextlib.nullcontext)
+        with hook.on_execute({}):
+            assert get_viewer_context() == ViewerContext(actor_type=ActorType.SYSTEM)
+
+        assert get_viewer_context() is None
 
     def test_on_execute_partial_headers(self) -> None:
         hook = ViewerContextHook()
@@ -171,11 +171,11 @@ class TestViewerContextHook:
     def test_on_execute_malformed_json(self) -> None:
         hook = ViewerContextHook()
         headers = {"sentry-viewer-context": "not-valid-json{"}
-        cm = hook.on_execute(headers)
-        assert isinstance(cm, contextlib.nullcontext)
+        with hook.on_execute(headers):
+            assert get_viewer_context() == ViewerContext(actor_type=ActorType.SYSTEM)
 
     def test_on_execute_non_dict_json(self) -> None:
         hook = ViewerContextHook()
         headers = {"sentry-viewer-context": "[1, 2, 3]"}
-        cm = hook.on_execute(headers)
-        assert isinstance(cm, contextlib.nullcontext)
+        with hook.on_execute(headers):
+            assert get_viewer_context() == ViewerContext(actor_type=ActorType.SYSTEM)

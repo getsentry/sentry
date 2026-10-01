@@ -181,8 +181,14 @@ def test_delete_grouping_records_uses_generic_metrics_endpoint(
 
 
 class TestResolveViewerContext:
-    def test_both_none(self) -> None:
-        assert _resolve_viewer_context(None) is None
+    @patch("sentry.seer.signed_seer_api.metrics")
+    def test_both_none_records_contextvar_missing(self, mock_metrics: MagicMock) -> None:
+        assert _resolve_viewer_context(None, endpoint="/v1/llm/generate") is None
+
+        mock_metrics.incr.assert_called_once_with(
+            "seer.viewer_context_resolution",
+            tags={"outcome": "contextvar_missing", "endpoint": "/v1/llm/generate"},
+        )
 
     def test_contextvar_only(self) -> None:
         ctx = ViewerContext(organization_id=42, user_id=7, actor_type=ActorType.USER)
