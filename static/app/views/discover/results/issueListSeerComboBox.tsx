@@ -126,7 +126,7 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
 
       // Seer's group bys and y-axes replace the table's columns outright. When
       // extraFields is returned instead, merge with the existing columns.
-      const columnsOverride =
+      const newColumns =
         aggregateColumns.length > 0
           ? aggregateColumns
           : mergeSeerExtraFields(decodeList(location.query.field), extraFields);
@@ -136,7 +136,7 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
         sort,
         ...timeParams,
         yAxis,
-        columns: columnsOverride,
+        columns: newColumns,
       });
 
       trackAnalytics('ai_query.applied', {
@@ -169,8 +169,8 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
         newQueryParams.yAxis = yAxis;
       }
 
-      if (columnsOverride.length > 0) {
-        newQueryParams.field = columnsOverride;
+      if (newColumns.length > 0) {
+        newQueryParams.field = newColumns;
       }
 
       if (runId !== undefined) {
