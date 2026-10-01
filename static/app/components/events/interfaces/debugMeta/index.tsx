@@ -221,40 +221,41 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
           filterSelections={filterSelections}
         />
         <Container border="primary" radius="md" overflow="hidden" marginTop="sm">
-          <Text bold size="sm" uppercase variant="muted">
-            {textProps => (
-              <Grid
-                {...textProps}
-                columns={{
-                  zero: '0.6fr 1.5fr 0.6fr',
-                  sm: '0.6fr 2fr 0.6fr',
-                  lg: '0.6fr 2fr 1fr 0.4fr',
-                }}
-                background="secondary"
-                borderBottom="primary"
-              >
-                <Flex align="center" minWidth="0" padding="md lg">
-                  {t('Status')}
-                </Flex>
-                <Flex align="center" minWidth="0" paddingTop="md" paddingBottom="md">
-                  {t('Image')}
-                </Flex>
-                <Flex
-                  align="center"
-                  display={{
-                    zero: 'none',
-                    lg: 'flex',
-                  }}
-                  minWidth="0"
-                  paddingTop="md"
-                  paddingBottom="md"
-                >
-                  {t('Processing')}
-                </Flex>
-                <div />
-              </Grid>
-            )}
-          </Text>
+          <Grid
+            columns={{
+              zero: '0.6fr 1.5fr 0.6fr',
+              sm: '0.6fr 2fr 0.6fr',
+              lg: '0.6fr 2fr 1fr 0.4fr',
+            }}
+            background="secondary"
+            borderBottom="primary"
+          >
+            <Flex align="center" minWidth="0" padding="md lg">
+              <Text bold size="sm" uppercase variant="muted">
+                {t('Status')}
+              </Text>
+            </Flex>
+            <Flex align="center" minWidth="0" paddingTop="md" paddingBottom="md">
+              <Text bold size="sm" uppercase variant="muted">
+                {t('Image')}
+              </Text>
+            </Flex>
+            <Flex
+              align="center"
+              display={{
+                zero: 'none',
+                lg: 'flex',
+              }}
+              minWidth="0"
+              paddingTop="md"
+              paddingBottom="md"
+            >
+              <Text bold size="sm" uppercase variant="muted">
+                {t('Processing')}
+              </Text>
+            </Flex>
+            <div />
+          </Grid>
           {filteredImages.length ? (
             <Container
               ref={setScrollContainer}
