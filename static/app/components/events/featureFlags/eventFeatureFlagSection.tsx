@@ -1,11 +1,12 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import {useTheme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {useDrawer} from '@sentry/scraps/drawer';
-import {Grid} from '@sentry/scraps/layout';
+import {Container, Grid, useResponsivePropValue} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
@@ -34,7 +35,6 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
@@ -57,23 +57,7 @@ type EventFeatureFlagSectionProps = {
 
 function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSectionProps) {
   const organization = useOrganization();
-  const theme = useTheme();
-  const isXsScreen = useMedia(`(max-width: ${theme.breakpoints.xs})`);
-
-  const feedbackButton = isXsScreen ? null : (
-    <FeedbackButton
-      variant="secondary"
-      aria-label={t('Give feedback on the feature flag section')}
-      size="xs"
-      feedbackOptions={{
-        messagePlaceholder: t('How can we make feature flags work better for you?'),
-        tags: {
-          'feedback.source': 'issue_details_feature_flags',
-          'feedback.owner': 'replay',
-        },
-      }}
-    />
-  );
+  const isContainerSmall = useResponsivePropValue({zero: true, sm: false});
 
   const [orderBy, setOrderBy] = useState(OrderBy.NEWEST);
   const {closeDrawer, isDrawerOpen, openDrawer} = useDrawer();
@@ -154,17 +138,42 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
           key: f.flag,
           subject: f.flag,
           value: (
-            <ValueWrapper>
+            <Grid
+              columns={{zero: '1fr 0.5fr', sm: '1fr 1fr 0.5fr'}}
+              rows={{zero: 'auto auto', sm: 'auto'}}
+              justifyItems="start"
+              css={theme => css`
+                @container (width < ${theme.container.sm}) {
+                  /* Move suspect label to second row, spanning full width */
+                  .suspect-label {
+                    grid-column: 1 / -1;
+                    grid-row: 2;
+                  }
+                }
+
+                .invisible {
+                  visibility: hidden;
+                }
+                &:hover,
+                &:active {
+                  .invisible .flag-button {
+                    visibility: visible;
+                  }
+                }
+              `}
+            >
               {f.result.toString()}
               {suspectFlagNames.has(f.flag) && (
-                <SuspectLabel>{t('Suspect')}</SuspectLabel>
+                <Text as="div" variant="secondary" className="suspect-label">
+                  {t('Suspect')}
+                </Text>
               )}
               <FlagActionDropdown
                 flag={f.flag}
                 result={f.result.toString()}
                 generateAction={generateAction}
               />
-            </ValueWrapper>
+            </Grid>
           ),
         },
         isSuspectFlag: suspectFlagNames.has(f.flag),
@@ -227,7 +236,20 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
 
   const actions = (
     <Grid flow="column" align="center" gap="md">
-      {feedbackButton}
+      <Container display={{zero: 'none', sm: 'block'}}>
+        <FeedbackButton
+          variant="secondary"
+          aria-label={t('Give feedback on the feature flag section')}
+          size="xs"
+          feedbackOptions={{
+            messagePlaceholder: t('How can we make feature flags work better for you?'),
+            tags: {
+              'feedback.source': 'issue_details_feature_flags',
+              'feedback.owner': 'replay',
+            },
+          }}
+        />
+      </Container>
       <FeatureFlagSettingsButton orgSlug={organization.slug} />
       {hasFlags && (
         <Fragment>
@@ -263,7 +285,7 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
   );
 
   const shouldUseTwoColumns =
-    !isXsScreen && truncatedItems.length > NUM_PREVIEW_FLAGS / 2;
+    !isContainerSmall && truncatedItems.length > NUM_PREVIEW_FLAGS / 2;
   const columnOne = shouldUseTwoColumns
     ? truncatedItems.slice(0, NUM_PREVIEW_FLAGS / 2)
     : truncatedItems;
@@ -312,35 +334,4 @@ const StyledEmptyStateWarning = styled(EmptyStateWarning)`
   display: flex;
   flex-direction: column;
   align-items: center;
-`;
-
-const SuspectLabel = styled('div')`
-  color: ${p => p.theme.tokens.content.secondary};
-`;
-
-const ValueWrapper = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr 1fr 0.5fr;
-  justify-items: start;
-
-  @media (max-width: ${p => p.theme.breakpoints.xs}) {
-    grid-template-columns: 1fr 0.5fr;
-    grid-template-rows: auto auto;
-
-    /* Move suspect label to second row, spanning full width */
-    ${SuspectLabel} {
-      grid-column: 1 / -1;
-      grid-row: 2;
-    }
-  }
-
-  .invisible {
-    visibility: hidden;
-  }
-  &:hover,
-  &:active {
-    .invisible .flag-button {
-      visibility: visible;
-    }
-  }
 `;
