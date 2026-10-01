@@ -314,6 +314,9 @@ importers:
       '@types/trusted-types':
         specifier: ^2.0.7
         version: 2.0.7
+      anser:
+        specifier: ^1.4.10
+        version: 1.4.10
       ansi-to-react:
         specifier: ^6.1.6
         version: 6.1.6(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
