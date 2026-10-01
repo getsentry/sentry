@@ -67,16 +67,16 @@ examples:
     - "const data = await api.requestPromise('/endpoint/');"
     - "await this.api.requestPromise('/endpoint/', { method: 'POST', data });"
     - |
-        // OnSubmitCallback form — onSubmitSuccess/onSubmitError are form parameters,
-        // not API callback options. This is correctly using await with try/catch.
-        const handleSubmit: OnSubmitCallback = async (data, onSubmitSuccess, onSubmitError) => {
-          try {
-            await api.requestPromise('/endpoint/', { method: 'PUT', data });
-            onSubmitSuccess(data);
-          } catch (error) {
-            onSubmitError(error);
-          }
-        };
+      // OnSubmitCallback form — onSubmitSuccess/onSubmitError are form parameters,
+      // not API callback options. This is correctly using await with try/catch.
+      const handleSubmit: OnSubmitCallback = async (data, onSubmitSuccess, onSubmitError) => {
+        try {
+          await api.requestPromise('/endpoint/', { method: 'PUT', data });
+          onSubmitSuccess(data);
+        } catch (error) {
+          onSubmitError(error);
+        }
+      };
 
 include:
   - 'static/app/**/*.tsx'
