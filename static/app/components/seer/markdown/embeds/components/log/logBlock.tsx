@@ -4,7 +4,6 @@ import {useQuery} from '@tanstack/react-query';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
-import type {TagVariant} from '@sentry/scraps/theme';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
