@@ -331,9 +331,6 @@ from sentry.investigations.endpoints.organization_investigation_parameters impor
 from sentry.investigations.endpoints.organization_investigation_presence import (
     OrganizationInvestigationPresenceEndpoint,
 )
-from sentry.investigations.endpoints.organization_investigation_seen_by import (
-    OrganizationInvestigationSeenByEndpoint,
-)
 from sentry.investigations.endpoints.organization_investigation_title_generation import (
     OrganizationInvestigationTitleGenerationEndpoint,
 )
@@ -867,6 +864,9 @@ from .endpoints.project_artifact_bundle_file_details import ProjectArtifactBundl
 from .endpoints.project_artifact_bundle_files import ProjectArtifactBundleFilesEndpoint
 from .endpoints.project_commits import ProjectCommitsEndpoint
 from .endpoints.project_create_sample import ProjectCreateSampleEndpoint
+from .endpoints.project_custom_inbound_filter_validate import (
+    CustomInboundFilterValidateEndpoint,
+)
 from .endpoints.project_custom_inbound_filters import (
     CustomInboundFilterDetailsEndpoint,
     CustomInboundFiltersEndpoint,
@@ -2507,11 +2507,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-investigation-presence",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/seen-by/$",
-        OrganizationInvestigationSeenByEndpoint.as_view(),
-        name="sentry-api-0-organization-investigation-seen-by",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/title-generation/$",
         OrganizationInvestigationTitleGenerationEndpoint.as_view(),
         name="sentry-api-0-organization-investigation-title-generation",
@@ -3051,6 +3046,11 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/custom-inbound-filters/$",
         CustomInboundFiltersEndpoint.as_view(),
         name="sentry-api-0-project-custom-inbound-filters",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/custom-inbound-filters/validate/$",
+        CustomInboundFilterValidateEndpoint.as_view(),
+        name="sentry-api-0-project-custom-inbound-filter-validate",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/custom-inbound-filters/(?P<filter_id>[^/]+)/$",

@@ -310,6 +310,23 @@ const reportingInvestigation = InvestigationDetailFixture({
   ],
 });
 
+// A run waiting on a person makes no hypotheses until they answer, so the
+// hypotheses row stays hidden instead of holding placeholders open.
+const awaitingInputRunInvestigation = InvestigationDetailFixture({
+  id: 'awaiting-input-run-investigation',
+  title: 'Checkout latency after the payments-api deploy',
+  status: 'active',
+  sourceType: 'metric_open_period',
+  template: {key: 'breached_metric', version: 1},
+  orchestration: {
+    phase: 'intake',
+    status: 'awaiting_input',
+    heartbeatAt: '2026-08-27T15:31:22Z',
+    notebookRevision: 1,
+  },
+  blocks: [],
+});
+
 const awaitingInputExecutionId = 'awaiting-input-execution';
 const awaitingInputInvestigation = InvestigationDetailFixture({
   id: 'awaiting-input-investigation',
@@ -518,6 +535,25 @@ export default Storybook.story('Investigations — Detail', story => {
     >
       <Container minHeight="720px" border="primary" radius="md" overflow="hidden">
         <InvestigationBootstrapPage investigationId={reportingInvestigation.id} />
+      </Container>
+    </InvestigationFixtureApi>
+  ));
+
+  story('Agentic run awaiting input before any hypotheses', () => (
+    <InvestigationFixtureApi
+      organizationSlug="storybook-investigation-awaiting-input-run"
+      details={[awaitingInputRunInvestigation]}
+      orchestration={{
+        [awaitingInputRunInvestigation.id]: InvestigationOrchestrationFixture({
+          investigationId: awaitingInputRunInvestigation.id,
+          phase: 'intake',
+          status: 'awaiting_input',
+          hypotheses: [],
+        }),
+      }}
+    >
+      <Container minHeight="720px" border="primary" radius="md" overflow="hidden">
+        <InvestigationBootstrapPage investigationId={awaitingInputRunInvestigation.id} />
       </Container>
     </InvestigationFixtureApi>
   ));

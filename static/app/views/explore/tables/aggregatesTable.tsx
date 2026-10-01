@@ -5,14 +5,11 @@ import styled from '@emotion/styled';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Pagination, type CursorHandler} from '@sentry/scraps/pagination';
 
-import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {DataTable} from 'sentry/components/tables/dataTable';
 import {getNextDirection} from 'sentry/components/tables/getNextSort';
 import {IconStack} from 'sentry/icons/iconStack';
-import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {parseCursor} from 'sentry/utils/cursor';
@@ -177,13 +174,9 @@ export function AggregatesTable({
         </DataTable.Head>
         <DataTable.Body>
           {result.isPending ? (
-            <DataTable.Status>
-              <LoadingIndicator />
-            </DataTable.Status>
+            <DataTable.Loading />
           ) : result.isError ? (
-            <DataTable.Status>
-              <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
-            </DataTable.Status>
+            <DataTable.Error />
           ) : result.isFetched && result.data?.length ? (
             result.data?.map((row, i) => {
               const menuItems: MenuItemProps[] = [
@@ -263,11 +256,7 @@ export function AggregatesTable({
               );
             })
           ) : (
-            <DataTable.Status>
-              <EmptyStateWarning>
-                <p>{t('No spans found')}</p>
-              </EmptyStateWarning>
-            </DataTable.Status>
+            <DataTable.Empty>{t('No spans found')}</DataTable.Empty>
           )}
         </DataTable.Body>
       </DataTable>

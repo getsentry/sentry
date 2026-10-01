@@ -34,7 +34,7 @@ export function Candidate({
 
   return (
     <SimpleTable.Row>
-      <SimpleTable.RowCell>
+      <SimpleTable.RowCell align="center">
         <StatusTooltip candidate={candidate} hasReprocessWarning={hasReprocessWarning} />
       </SimpleTable.RowCell>
 
@@ -48,7 +48,12 @@ export function Candidate({
       </SimpleTable.RowCell>
 
       {haveCandidatesAtLeastOneAction && (
-        <SimpleTable.RowCell justify="end">
+        <SimpleTable.RowCell
+          justify="end"
+          column={{zero: '2', lg: '3'}}
+          row={{zero: '2', lg: '1'}}
+          padding={{zero: '0 xl lg xl', lg: 'lg xl'}}
+        >
           <Actions
             onDelete={onDelete}
             baseUrl={baseUrl}

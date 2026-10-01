@@ -3,8 +3,6 @@ from django.core.cache import cache
 
 from sentry.incidents.models.alert_rule import (
     AlertRule,
-    AlertRuleActivity,
-    AlertRuleActivityType,
     AlertRuleStatus,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
@@ -229,15 +227,6 @@ class AlertRuleTriggerActionTargetTest(TestCase):
             target_type=AlertRuleTriggerAction.TargetType.SPECIFIC.value, target_identifier=email
         )
         assert trigger.target == email
-
-
-class AlertRuleActivityTest(TestCase):
-    def test_simple(self) -> None:
-        assert AlertRuleActivity.objects.all().count() == 0
-        self.alert_rule = self.create_alert_rule()
-        assert AlertRuleActivity.objects.filter(
-            alert_rule=self.alert_rule, type=AlertRuleActivityType.CREATED.value
-        ).exists()
 
 
 class AlertRuleFetchForProjectTest(TestCase):

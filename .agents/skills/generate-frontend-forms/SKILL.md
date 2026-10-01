@@ -993,6 +993,11 @@ Make sure the zod schema's types are compatible with the API type. For example, 
 
 ### Form Reset After Save
 
+`defaultValues` are reactive in TanStack Form. When query data arrives after the form
+mounts, passing that data through `defaultValues` updates an untouched form. Do not
+add an effect that calls `form.reset()` just to populate async query results. A reset
+is still useful after a successful save when the form remains mounted and is dirty.
+
 ```tsx
 // ❌ Don't forget to reset forms that stay on the page after save
 onSubmit: ({value}) => {

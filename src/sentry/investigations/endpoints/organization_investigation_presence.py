@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from django.utils import timezone
 from drf_spectacular.utils import extend_schema
+from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -11,8 +11,9 @@ from sentry.investigations.endpoints.base import (
     OrganizationInvestigationEndpoint,
     require_authenticated_user,
 )
-from sentry.investigations.models import Investigation, InvestigationSeen
-from sentry.investigations.presence import HEARTBEAT_INTERVAL, record_heartbeat
+from sentry.investigations.endpoints.validators.presence import PresenceValidator
+from sentry.investigations.models import Investigation
+from sentry.investigations.presence import HEARTBEAT_INTERVAL, record_visit
 from sentry.models.organization import Organization
 
 
@@ -25,20 +26,22 @@ class OrganizationInvestigationPresenceEndpoint(OrganizationInvestigationEndpoin
         self, request: Request, organization: Organization, investigation: Investigation
     ) -> Response:
         """
-        Record that the caller is viewing the investigation, and list who is viewing it.
-        Returns user ids only: this is polled, and the frontend caches the users.
+        Record that the caller is viewing the investigation, and list its other viewers:
+        active ones first, then earlier ones, up to `limit`. User ids only, since this is polled.
         """
-        viewer_id = require_authenticated_user(request)
-        heartbeat = record_heartbeat(investigation.id, viewer_id)
-        if not heartbeat.was_present:
-            InvestigationSeen.objects.update_or_create(
-                investigation=investigation,
-                user_id=viewer_id,
-                defaults={"last_seen": timezone.now()},
-            )
+        validator = PresenceValidator(data=request.GET)
+        if not validator.is_valid():
+            return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
+        result = record_visit(
+            investigation, require_authenticated_user(request), validator.validated_data["limit"]
+        )
         return Response(
             {
-                "viewerIds": [str(uid) for uid in heartbeat.viewer_ids],
+                "viewers": [
+                    {"userId": str(v.user_id), "lastSeen": v.last_seen, "active": v.active}
+                    for v in result.viewers
+                ],
+                "total": result.total,
                 "heartbeatIntervalMs": int(HEARTBEAT_INTERVAL.total_seconds() * 1000),
             }
         )
