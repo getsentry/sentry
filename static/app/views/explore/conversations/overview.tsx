@@ -279,10 +279,7 @@ function ConversationsOverviewPage() {
   const tableSearchBar = showSearch ? (
     <Flex gap="md" width="100%">
       <Flex flex={1} minWidth="0">
-        <TraceItemSearchQueryBuilder
-          {...spanSearchQueryBuilderProps}
-          placeholder={searchPlaceholder}
-        />
+        <TraceItemSearchQueryBuilder {...spanSearchQueryBuilderProps} />
       </Flex>
       {isConversationsTab && <SaveConversationQueryButton />}
     </Flex>
@@ -324,7 +321,10 @@ function ConversationsOverviewPage() {
   }
 
   return (
-    <SearchQueryBuilderProvider {...searchQueryBuilderProviderProps}>
+    <SearchQueryBuilderProvider
+      {...searchQueryBuilderProviderProps}
+      placeholder={searchPlaceholder}
+    >
       <ExploreBodySearch>
         <Layout.Main width="full">
           <Stack gap="md">
@@ -354,10 +354,7 @@ function ConversationsOverviewPage() {
               )}
               {!agentsOverviewEnabled && showSearch && (
                 <Flex flex={1} minWidth="300px">
-                  <TraceItemSearchQueryBuilder
-                    {...spanSearchQueryBuilderProps}
-                    placeholder={searchPlaceholder}
-                  />
+                  <TraceItemSearchQueryBuilder {...spanSearchQueryBuilderProps} />
                 </Flex>
               )}
               {!agentsOverviewEnabled && showSearch && isConversationsTab && (
