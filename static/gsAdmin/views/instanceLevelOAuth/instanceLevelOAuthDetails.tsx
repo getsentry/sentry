@@ -50,15 +50,16 @@ const optionalUrlValidation = z.url('Enter a valid URL').or(z.literal(''));
 
 const clientSchema = z.object({
   clientID: z.string(),
-  name: z.string().min(1),
+  name: z.string().trim().min(1, 'Client name is required'),
   redirectUris: z
     .string()
     .trim()
-    .min(1)
+    .min(1, 'Redirect URIs are required')
     .refine(
       value =>
-        !value.includes(',') &&
-        value.split(/\s+/).every(url => z.url().safeParse(url).success),
+        value === '' ||
+        (!value.includes(',') &&
+          value.split(/\s+/).every(url => z.url().safeParse(url).success)),
       'Enter valid redirect URLs separated by spaces'
     ),
   allowedOrigins: z

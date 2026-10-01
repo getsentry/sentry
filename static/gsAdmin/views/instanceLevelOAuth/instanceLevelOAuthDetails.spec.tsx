@@ -188,6 +188,34 @@ describe('instance level OAuth client details', () => {
     expect(mockPutCall).not.toHaveBeenCalled();
   });
 
+  it('shows a required error for empty redirect URIs', async () => {
+    render(<InstanceLevelOAuthDetails />, {initialRouterConfig});
+    await screen.findByRole('button', {name: 'Save Client Settings'});
+
+    await userEvent.clear(
+      screen.getByRole('textbox', {name: 'Redirect URIs (space separated)'})
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Save Client Settings'}));
+
+    expect(await screen.findByText('Redirect URIs are required')).toBeInTheDocument();
+    expect(mockPutCall).not.toHaveBeenCalled();
+  });
+
+  it.each(['', '   '])('rejects an empty client name (%j)', async nameValue => {
+    render(<InstanceLevelOAuthDetails />, {initialRouterConfig});
+    await screen.findByRole('button', {name: 'Save Client Settings'});
+
+    const name = screen.getByRole('textbox', {name: 'Client Name'});
+    await userEvent.clear(name);
+    if (nameValue) {
+      await userEvent.type(name, nameValue);
+    }
+    await userEvent.click(screen.getByRole('button', {name: 'Save Client Settings'}));
+
+    expect(await screen.findByText('Client name is required')).toBeInTheDocument();
+    expect(mockPutCall).not.toHaveBeenCalled();
+  });
+
   it('shows server validation errors on the affected fields', async () => {
     MockApiClient.addMockResponse({
       url: `/_admin/instance-level-oauth/${mockClientDetails.clientID}/`,
