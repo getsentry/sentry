@@ -441,6 +441,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                 <InvestigationHypotheses
                   investigationId={investigation.id}
                   phase={investigation.orchestration.phase}
+                  status={investigation.orchestration.status}
                 />
               ) : null}
 
