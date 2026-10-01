@@ -26,7 +26,6 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {type LazyRenderProps} from 'sentry/components/lazyRender';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
-import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {StructuredData} from 'sentry/components/structuredEventData';
@@ -442,7 +441,17 @@ function Highlights({
             {!hidePanelAndBreakdown && (
               <Container>
                 <StyledPanel>
-                  <StyledPanelHeader>{headerContent}</StyledPanelHeader>
+                  <Flex
+                    align="center"
+                    justify="between"
+                    borderBottom="primary"
+                    radius="md md 0 0"
+                    background="secondary"
+                    position="relative"
+                    overflow="hidden"
+                  >
+                    {headerContent}
+                  </Flex>
                   <PanelBody>{bodyContent}</PanelBody>
                 </StyledPanel>
                 {footerContent}
@@ -589,14 +598,6 @@ const HiglightsDurationComparison = styled('div')<
   padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.md};
   display: inline-block;
   height: 21px;
-`;
-
-const StyledPanelHeader = styled(PanelHeader)`
-  font-weight: normal;
-  padding: 0;
-  line-height: normal;
-  text-transform: none;
-  overflow: hidden;
 `;
 
 function IssuesLink({
