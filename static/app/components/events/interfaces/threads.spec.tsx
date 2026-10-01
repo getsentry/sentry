@@ -26,7 +26,11 @@ describe('Threads', () => {
   const project = ProjectFixture();
   const integration = GitHubIntegrationFixture();
   const repo = RepositoryFixture({integrationId: integration.id});
-  const config = RepositoryProjectPathConfigFixture({project, repo, integration});
+  const config = RepositoryProjectPathConfigFixture({
+    project,
+    repo,
+    integration,
+  });
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -40,7 +44,11 @@ describe('Threads', () => {
     });
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/stacktrace-link/`,
-      body: {config, sourceUrl: 'https://something.io', integrations: [integration]},
+      body: {
+        config,
+        sourceUrl: 'https://something.io',
+        integrations: [integration],
+      },
     });
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/`,
@@ -55,7 +63,7 @@ describe('Threads', () => {
     );
   });
 
-  describe('copying', () => {
+  describe('copying selected threads', () => {
     const stacktrace: StacktraceType = {
       frames: [
         FrameFixture({
@@ -79,17 +87,112 @@ describe('Threads', () => {
     };
 
     beforeEach(() => {
-      Object.assign(navigator, {clipboard: {writeText: jest.fn().mockResolvedValue('')}});
+      Object.assign(navigator, {
+        clipboard: {writeText: jest.fn().mockResolvedValue('')},
+      });
     });
 
-    it.each([false, true])(
-      'copies only the selected thread with exception-owned frames: %s',
-      async hasOwnStacktrace => {
+    it('copies a thread without an exception entry', async () => {
+      const data = {values: [thread]};
+      const event = EventFixture({
+        projectID: project.id,
+        platform: 'python',
+        entries: [{type: EntryType.THREADS, data}],
+      });
+      render(
+        <Threads
+          event={event}
+          data={data}
+          projectSlug={project.slug}
+          group={undefined}
+          groupingCurrentLevel={0}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Copy as'}));
+      await userEvent.click(screen.getByRole('menuitemradio', {name: 'Text'}));
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+        'Thread: worker\nTraceback (most recent call last):\n  File "example.py", line 42, in run'
+      );
+    });
+
+    it('copies the selected thread with matching exceptions or just its frames', async () => {
+      const data = {
+        values: [
+          thread,
+          {...thread, id: 2, crashed: false, current: false},
+          {...thread, id: 3, crashed: false, current: false},
+        ],
+      };
+      const event = EventFixture({
+        projectID: project.id,
+        platform: 'python',
+        entries: [
+          {
+            type: EntryType.EXCEPTION,
+            data: {
+              values: [
+                ExceptionValueFixture({
+                  type: 'CauseError',
+                  value: 'Original failure',
+                  threadId: null,
+                }),
+                ExceptionValueFixture({
+                  type: 'ExampleError',
+                  value: 'Example failure',
+                  threadId: 1,
+                  stacktrace: null,
+                }),
+                ExceptionValueFixture({
+                  type: 'SecondError',
+                  value: 'Second failure',
+                  threadId: 2,
+                  stacktrace,
+                }),
+              ],
+            },
+          },
+          {type: EntryType.THREADS, data},
+        ],
+      });
+      render(
+        <Threads
+          event={event}
+          data={data}
+          projectSlug={project.slug}
+          group={undefined}
+          groupingCurrentLevel={0}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Copy as'}));
+      await userEvent.click(screen.getByRole('menuitemradio', {name: 'Text'}));
+      expect(navigator.clipboard.writeText).toHaveBeenLastCalledWith(
+        'Traceback (most recent call last):\nCauseError: Original failure\n\nTraceback (most recent call last):\n  File "example.py", line 42, in run\nExampleError: Example failure'
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Next Thread'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Copy as'}));
+      await userEvent.click(screen.getByRole('menuitemradio', {name: 'Text'}));
+      expect(navigator.clipboard.writeText).toHaveBeenLastCalledWith(
+        'Traceback (most recent call last):\nCauseError: Original failure\n\nTraceback (most recent call last):\n  File "example.py", line 42, in run\nSecondError: Second failure'
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Next Thread'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Copy as'}));
+      await userEvent.click(screen.getByRole('menuitemradio', {name: 'Text'}));
+      expect(navigator.clipboard.writeText).toHaveBeenLastCalledWith(
+        'Thread: worker\nTraceback (most recent call last):\n  File "example.py", line 42, in run'
+      );
+    });
+
+    it.each([1, null])(
+      'copies chains with thread-owned frames and thread ID %s',
+      async threadId => {
         const data = {
           values: [
-            thread,
-            {...thread, id: 2, crashed: false, current: false},
-            {...thread, id: 3, crashed: false, current: false},
+            {...thread, name: null},
+            {...thread, id: 2, crashed: false},
           ],
         };
         const event = EventFixture({
@@ -103,19 +206,13 @@ describe('Threads', () => {
                   ExceptionValueFixture({
                     type: 'CauseError',
                     value: 'Original failure',
-                    threadId: null,
+                    threadId,
                   }),
                   ExceptionValueFixture({
                     type: 'ExampleError',
                     value: 'Example failure',
-                    threadId: 1,
-                    stacktrace: hasOwnStacktrace ? stacktrace : null,
-                  }),
-                  ExceptionValueFixture({
-                    type: 'SecondError',
-                    value: 'Second failure',
-                    threadId: 2,
-                    stacktrace,
+                    threadId,
+                    stacktrace: null,
                   }),
                 ],
               },
@@ -133,79 +230,103 @@ describe('Threads', () => {
           />
         );
 
+        expect(screen.getByRole('button', {name: 'Thread #1: run'})).toBeInTheDocument();
+
         await userEvent.click(screen.getByRole('button', {name: 'Copy as'}));
         await userEvent.click(screen.getByRole('menuitemradio', {name: 'Text'}));
         expect(navigator.clipboard.writeText).toHaveBeenLastCalledWith(
           'Traceback (most recent call last):\nCauseError: Original failure\n\nTraceback (most recent call last):\n  File "example.py", line 42, in run\nExampleError: Example failure'
         );
-
-        await userEvent.click(screen.getByRole('button', {name: 'Next Thread'}));
-        await userEvent.click(screen.getByRole('button', {name: 'Copy as'}));
-        await userEvent.click(screen.getByRole('menuitemradio', {name: 'Text'}));
-        expect(navigator.clipboard.writeText).toHaveBeenLastCalledWith(
-          'Traceback (most recent call last):\nCauseError: Original failure\n\nTraceback (most recent call last):\n  File "example.py", line 42, in run\nSecondError: Second failure'
-        );
-
-        await userEvent.click(screen.getByRole('button', {name: 'Next Thread'}));
-        await userEvent.click(screen.getByRole('button', {name: 'Copy as'}));
-        await userEvent.click(screen.getByRole('menuitemradio', {name: 'Text'}));
-        expect(navigator.clipboard.writeText).toHaveBeenLastCalledWith(
-          'Thread: worker\nTraceback (most recent call last):\n  File "example.py", line 42, in run'
-        );
       }
     );
 
-    it.each([
-      {threadId: 1, hasOwnStacktrace: true},
-      {threadId: null, hasOwnStacktrace: true},
-      {threadId: 1, hasOwnStacktrace: false},
-      {threadId: null, hasOwnStacktrace: false},
-    ])(
-      'preserves exception chains with thread ID $threadId and exception-owned frames: $hasOwnStacktrace',
-      async ({threadId, hasOwnStacktrace}) => {
-        const data = {values: [thread]};
-        const event = EventFixture({
-          projectID: project.id,
-          platform: 'python',
-          entries: [
-            {
-              type: EntryType.EXCEPTION,
+    it('keeps another crashed thread searchable by its exception frame', async () => {
+      const data = {
+        values: [
+          {...thread, name: 'first', stacktrace: null},
+          {
+            ...thread,
+            id: 2,
+            name: 'second',
+            stacktrace: null,
+            crashed: false,
+            current: false,
+          },
+        ],
+      };
+      const event = EventFixture({
+        projectID: project.id,
+        platform: 'python',
+        entries: [
+          {
+            type: EntryType.EXCEPTION,
+            data: {
+              values: [
+                ExceptionValueFixture({threadId: 1, stacktrace}),
+                ExceptionValueFixture({threadId: 2, stacktrace}),
+              ],
+            },
+          },
+          {type: EntryType.THREADS, data},
+        ],
+      });
+      render(
+        <Threads
+          event={event}
+          data={data}
+          projectSlug={project.slug}
+          group={undefined}
+          groupingCurrentLevel={0}
+        />
+      );
+      await userEvent.click(screen.getByRole('button', {name: 'Next Thread'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Thread #2: second'}));
+      await userEvent.type(screen.getByPlaceholderText('Filter threads'), 'run');
+      expect(screen.getByRole('option', {name: /first.*run/})).toBeInTheDocument();
+    });
+
+    it('preserves redaction indicators on a later exception', () => {
+      const data = {values: [{...thread, id: 2}]};
+      const event = EventFixture({
+        projectID: project.id,
+        platform: 'python',
+        _meta: {
+          entries: {
+            0: {
               data: {
-                values: [
-                  ExceptionValueFixture({
-                    type: 'CauseError',
-                    value: 'Original failure',
-                    threadId,
-                  }),
-                  ExceptionValueFixture({
-                    type: 'ExampleError',
-                    value: 'Example failure',
-                    threadId,
-                    stacktrace: hasOwnStacktrace ? stacktrace : null,
-                  }),
-                ],
+                values: {
+                  1: {
+                    value: {'': {rem: [['project:0', 's', 0, 0]], len: 43}},
+                  },
+                },
               },
             },
-            {type: EntryType.THREADS, data},
-          ],
-        });
-        render(
-          <Threads
-            event={event}
-            data={data}
-            projectSlug={project.slug}
-            group={undefined}
-            groupingCurrentLevel={0}
-          />
-        );
-
-        await userEvent.click(screen.getByRole('button', {name: 'Copy as'}));
-        await userEvent.click(screen.getByRole('menuitemradio', {name: 'Text'}));
-        expect(navigator.clipboard.writeText).toHaveBeenLastCalledWith(
-          'Traceback (most recent call last):\nCauseError: Original failure\n\nTraceback (most recent call last):\n  File "example.py", line 42, in run\nExampleError: Example failure'
-        );
-      }
-    );
+          },
+        },
+        entries: [
+          {
+            type: EntryType.EXCEPTION,
+            data: {
+              values: [
+                ExceptionValueFixture({threadId: 1, stacktrace}),
+                ExceptionValueFixture({value: null, threadId: 2, stacktrace}),
+              ],
+            },
+          },
+          {type: EntryType.THREADS, data},
+        ],
+      });
+      render(
+        <Threads
+          event={event}
+          data={data}
+          projectSlug={project.slug}
+          group={undefined}
+          groupingCurrentLevel={0}
+        />
+      );
+      expect(screen.getByText(/redacted/)).toBeInTheDocument();
+    });
 
     it('copies unsymbolicated frames with the matching exception', async () => {
       const data = {

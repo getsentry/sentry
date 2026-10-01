@@ -10,7 +10,6 @@ import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {CopyAsDropdown} from 'sentry/components/copyAsDropdown';
 import {displayRawContent} from 'sentry/components/events/interfaces/crashContent/stackTrace/rawContent';
 import {useStacktraceContext} from 'sentry/components/events/interfaces/stackTraceContext';
-import {getThreadException} from 'sentry/components/events/interfaces/threads/threadSelector/getThreadException';
 import {IconEllipsis, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Entry, Event} from 'sentry/types/event';
@@ -18,6 +17,7 @@ import {EntryType} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/platform';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {defined} from 'sentry/utils/defined';
 import {isMobilePlatform, isNativePlatform} from 'sentry/utils/platform';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -242,11 +242,35 @@ export function TraceEventDataSection({
       thread => thread.id === activeThreadId
     );
     if (selectedThread && threadEntry) {
-      // Match the raw view's exception/thread pairing before formatting the trace.
-      const exception = getThreadException(event, selectedThread);
-      entries = exception
-        ? [{type: EntryType.EXCEPTION, data: exception}]
-        : [threadEntry];
+      const exceptionEntry = entries.find(entry => entry.type === EntryType.EXCEPTION);
+      const exceptions = exceptionEntry?.data.values ?? [];
+      const threadException = exceptions.findLast(
+        exception => exception.threadId === selectedThread.id
+      );
+      const useCrashedThread =
+        selectedThread.crashed &&
+        exceptions.every(exception => !defined(exception.threadId));
+
+      entries = [threadEntry];
+      if (exceptionEntry && exceptions.length && (threadException || useCrashedThread)) {
+        // Pair only the copied values; the rendered exceptions retain their metadata indexes.
+        const exceptionWithThreadFrames = threadException ?? exceptions.at(-1);
+        const values = exceptions
+          .filter(
+            exception =>
+              !defined(exception.threadId) || exception.threadId === selectedThread.id
+          )
+          .map(exception =>
+            exception === exceptionWithThreadFrames && !exception.stacktrace
+              ? {
+                  ...exception,
+                  stacktrace: selectedThread.stacktrace,
+                  rawStacktrace: exception.rawStacktrace ?? selectedThread.rawStacktrace,
+                }
+              : exception
+          );
+        entries = [{...exceptionEntry, data: {...exceptionEntry.data, values}}];
+      }
     }
 
     const stacktraceEntries = entries.filter(
