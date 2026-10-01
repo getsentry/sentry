@@ -330,29 +330,48 @@ class Superuser(ElevatedMode):
             )
             return None
 
+        return self.validate_session_data(
+            data,
+            cookie_token=cookie_token,
+            user_id=request.user.id,
+            ip_address=request.META["REMOTE_ADDR"],
+            current_datetime=current_datetime,
+        )
+
+    @staticmethod
+    def validate_session_data(
+        data: dict[str, Any],
+        *,
+        cookie_token: str,
+        user_id: int | None,
+        ip_address: str,
+        current_datetime: datetime | None = None,
+    ) -> dict[str, Any] | None:
+        """Validate present, signature-verified session and cookie data.
+
+        This does not check superuser status, SSO, IP restrictions, or org access.
+        Expiration timestamps are coerced in place, as in get_session_data.
+        """
+        log_context = {"ip_address": ip_address, "user_id": user_id}
         session_token = data.get("tok")
         if not session_token:
             logger.warning(
                 "superuser.missing-session-token",
-                extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": request.user.id},
+                extra=log_context,
             )
             return None
 
         if not constant_time_compare(cookie_token, session_token):
             logger.warning(
                 "superuser.invalid-token",
-                extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": request.user.id},
+                extra=log_context,
             )
             return None
 
-        if data["uid"] != str(request.user.id):
+        if data["uid"] != str(user_id):
             logger.warning(
                 "superuser.invalid-uid",
-                extra={
-                    "ip_address": request.META["REMOTE_ADDR"],
-                    "user_id": request.user.id,
-                    "expected_user_id": data["uid"],
-                },
+                extra={**log_context, "expected_user_id": data["uid"]},
             )
             return None
 
@@ -364,7 +383,7 @@ class Superuser(ElevatedMode):
         except (TypeError, ValueError):
             logger.warning(
                 "superuser.invalid-idle-expiration",
-                extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": request.user.id},
+                extra=log_context,
                 exc_info=True,
             )
             return None
@@ -372,7 +391,7 @@ class Superuser(ElevatedMode):
         if data["idl"] < current_datetime:
             logger.info(
                 "superuser.session-expired",
-                extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": request.user.id},
+                extra=log_context,
             )
             return None
 
@@ -381,7 +400,7 @@ class Superuser(ElevatedMode):
         except (TypeError, ValueError):
             logger.warning(
                 "superuser.invalid-expiration",
-                extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": request.user.id},
+                extra=log_context,
                 exc_info=True,
             )
             return None
@@ -389,7 +408,7 @@ class Superuser(ElevatedMode):
         if data["exp"] < current_datetime:
             logger.info(
                 "superuser.session-expired",
-                extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": request.user.id},
+                extra=log_context,
             )
             return None
 
