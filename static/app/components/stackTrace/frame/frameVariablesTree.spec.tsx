@@ -122,6 +122,7 @@ it('keeps empty objects and arrays static', () => {
   expect(screen.getByText('[ 0 items ]')).toBeInTheDocument();
   expect(screen.getByText('{ 0 items }')).toBeInTheDocument();
   expect(screen.queryByRole('button', {name: /Expand/})).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', {name: /Copy/})).not.toBeInTheDocument();
 });
 
 it('counts truncated children and hides the truncation note when collapsed', async () => {
@@ -141,7 +142,7 @@ it('counts truncated children and hides the truncation note when collapsed', asy
   expect(screen.queryByRole('note')).not.toBeInTheDocument();
 });
 
-it('explains fully omitted objects and arrays without expand or copy controls', async () => {
+it('explains fully omitted objects and arrays without expand controls', async () => {
   const meta = {'': {len: 4, rem: [['!limit', 'x']]}};
   render(
     <FrameVariablesTree
@@ -154,7 +155,8 @@ it('explains fully omitted objects and arrays without expand or copy controls', 
 
   expect(screen.getByText('[ Omitted (4 items) ]')).toBeInTheDocument();
   expect(screen.getByText('{ Omitted (4 items) }')).toBeInTheDocument();
-  expect(screen.queryByRole('button')).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', {name: /Expand/})).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', {name: /Copy/})).not.toBeInTheDocument();
   await userEvent.hover(screen.getByText('[ Omitted (4 items) ]'));
   expect(await screen.findByText('Removed because of size limits')).toBeInTheDocument();
 });
@@ -225,7 +227,9 @@ it('displays and copies native scalars exactly without expanding collections', a
   expect(screen.getByText('[ 2 items ]')).toBeInTheDocument();
 });
 
-it('shows annotated values and tooltips without copying affected subtrees', async () => {
+it('copies available collection values while preserving displayed annotations', async () => {
+  const writeText = jest.fn().mockResolvedValue(undefined);
+  Object.assign(navigator, {clipboard: {writeText}});
   render(
     <FrameVariablesTree
       defaultExpanded={[]}
@@ -277,47 +281,104 @@ it('shows annotated values and tooltips without copying affected subtrees', asyn
     />
   );
 
-  expect(
-    screen.queryByRole('button', {name: 'Copy request value'})
-  ).not.toBeInTheDocument();
+  const copyRequest = screen.getByRole('button', {name: 'Copy request value'});
+  await userEvent.click(copyRequest);
+  expect(writeText).toHaveBeenLastCalledWith(
+    JSON.stringify(
+      {
+        authorization: 'Bearer ********',
+        empty: null,
+        enabled: false,
+        items: [0, 42],
+        message: 'Captured prefix...',
+      },
+      null,
+      2
+    )
+  );
   expect(screen.queryByText('authorization')).not.toBeInTheDocument();
   await userEvent.click(
     screen.getByRole('button', {name: 'Expand request', expanded: false})
   );
+  expect(copyRequest).toBeInTheDocument();
   expect(screen.getByText(/Bearer/)).toHaveTextContent('Bearer ********');
   expect(screen.getByText(/Captured prefix/)).toHaveTextContent('Captured prefix...');
   expect(screen.getByText('[Filtered]')).toBeInTheDocument();
   expect(screen.queryByText(/original-secret/)).not.toBeInTheDocument();
 
-  for (const {name, trigger, tooltip} of [
+  for (const {name, trigger, tooltip, copied} of [
     {
       name: 'authorization',
       trigger: '********',
       tooltip: "Masked because of a data scrubbing rule in your project's settings",
+      copied: 'Bearer ********',
     },
     {
       name: 'token',
       trigger: '<redacted>',
       tooltip: 'Removed because of SDK configuration',
+      copied: undefined,
     },
     {
       name: 'message',
       trigger: '...',
       tooltip: 'Removed because of size limits',
+      copied: 'Captured prefix...',
     },
   ]) {
     await userEvent.hover(screen.getByText(trigger));
     expect(await screen.findByText(tooltip)).toBeInTheDocument();
     await userEvent.unhover(screen.getByText(trigger));
-    expect(
-      screen.queryByRole('button', {name: `Copy ${name} value`})
-    ).not.toBeInTheDocument();
+    if (copied === undefined) {
+      expect(
+        screen.queryByRole('button', {name: `Copy ${name} value`})
+      ).not.toBeInTheDocument();
+    } else {
+      await userEvent.click(screen.getByRole('button', {name: `Copy ${name} value`}));
+      expect(writeText).toHaveBeenLastCalledWith(copied);
+    }
   }
   expect(
     screen.queryByRole('button', {name: 'Copy filtered value'})
   ).not.toBeInTheDocument();
-  expect(
-    screen.queryByRole('button', {name: 'Copy items value'})
-  ).not.toBeInTheDocument();
+  const copyItems = screen.getByRole('button', {name: 'Copy items value'});
+  await userEvent.click(copyItems);
+  expect(writeText).toHaveBeenLastCalledWith(JSON.stringify([0, 42], null, 2));
   expect(screen.getByRole('button', {name: 'Copy enabled value'})).toBeInTheDocument();
+});
+
+it('copies available text from truncated native wire values', async () => {
+  const writeText = jest.fn().mockResolvedValue(undefined);
+  Object.assign(navigator, {clipboard: {writeText}});
+  render(
+    <FrameVariablesTree
+      variables={getJsonFrameVariables(
+        {truncated_message: 'The request was interrupted while processing...'},
+        {
+          truncated_message: {
+            '': {
+              len: 128,
+              rem: [['!limit', 'x']],
+              chunks: [
+                {
+                  type: 'text',
+                  text: 'The request was interrupted while processing',
+                  rule_id: '',
+                },
+                {type: 'redaction', text: '...', rule_id: '!limit', remark: 'x'},
+              ],
+            },
+          },
+        },
+        'native'
+      )}
+    />
+  );
+
+  await userEvent.click(
+    screen.getByRole('button', {name: 'Copy truncated_message value'})
+  );
+  expect(writeText).toHaveBeenLastCalledWith(
+    'The request was interrupted while processing...'
+  );
 });
