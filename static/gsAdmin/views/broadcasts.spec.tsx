@@ -6,6 +6,7 @@ import {
   renderGlobalModal,
   screen,
   userEvent,
+  waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
 import {ConfigStore} from 'sentry/stores/configStore';
@@ -45,5 +46,34 @@ describe('Broadcasts', () => {
     expect(screen.getByRole('textbox', {name: 'Category'})).toBeInTheDocument();
     expect(screen.getByRole('textbox', {name: 'Product'})).toBeInTheDocument();
     expect(screen.queryByRole('textbox', {name: 'CTA'})).not.toBeInTheDocument();
+  });
+
+  it('creates a broadcast from the modal footer', async () => {
+    ConfigStore.loadInitialData(ConfigFixture({user: mockUser}));
+    renderMockRequests();
+    const create = MockApiClient.addMockResponse({
+      url: '/broadcasts/',
+      method: 'POST',
+      body: {id: '123'},
+    });
+    render(<Broadcasts />);
+    renderGlobalModal();
+
+    await userEvent.click(screen.getByRole('button', {name: 'New Broadcast'}));
+    await userEvent.type(screen.getByRole('textbox', {name: 'Title'}), 'A new feature');
+    await userEvent.type(screen.getByRole('textbox', {name: 'Message'}), 'Try it now');
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Link'}),
+      'https://example.com'
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+
+    await waitFor(() => expect(create).toHaveBeenCalled());
+    expect(create).toHaveBeenCalledWith(
+      '/broadcasts/',
+      expect.objectContaining({
+        data: expect.objectContaining({title: 'A new feature', message: 'Try it now'}),
+      })
+    );
   });
 });
