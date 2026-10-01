@@ -113,6 +113,7 @@ AI_CONVERSATION_ATTRIBUTES = [
     "is_transaction",
     "gen_ai.conversation.id",
     "gen_ai.cost.total_tokens",
+    "gen_ai.operation.name",
     "gen_ai.operation.type",
     "gen_ai.input.messages",
     "gen_ai.output.messages",

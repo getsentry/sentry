@@ -5,7 +5,7 @@ import {MonitorFixture} from 'sentry-fixture/monitor';
 import type {Monitor} from 'sentry/views/insights/crons/types';
 import {MonitorStatus} from 'sentry/views/insights/crons/types';
 
-import {getMonitorRefetchInterval, getNextCheckInEnv} from './utils';
+import {getMonitorRefetchInterval, getNextCheckInEnv} from './cron';
 
 describe('getNextCheckInEnv', () => {
   it('prioritizes by status (OK > ERROR > DISABLED > ACTIVE) then by earliest nextCheckIn', () => {

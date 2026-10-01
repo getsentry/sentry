@@ -1,4 +1,4 @@
-from sentry_relay.processing import is_glob_match
+from sentry_ophio.glob import is_glob_match
 
 
 def glob_match(
