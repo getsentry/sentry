@@ -11,13 +11,11 @@ from sentry.notifications.platform.types import NotificationProviderKey
 
 logger = logging.getLogger(__name__)
 
-type ShadowPayload = Mapping[str, Any] | tuple[str, str]
-
 
 @dataclass(frozen=True)
 class LegacyRender:
     provider: NotificationProviderKey
-    payload: ShadowPayload
+    payload: Mapping[str, Any]
     chart_url: str | None
 
 
@@ -47,7 +45,7 @@ def collecting() -> Generator[ShadowCollector]:
 
 def record_legacy_render(
     provider: NotificationProviderKey,
-    payload: ShadowPayload,
+    payload: Mapping[str, Any],
     *,
     chart_url: str | None = None,
 ) -> None:

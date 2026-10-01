@@ -8,7 +8,9 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Any
 
+import orjson
 import sentry_sdk
+from slack_sdk.models.blocks import Block
 
 from sentry import options
 from sentry.notifications.platform.registry import (
@@ -22,7 +24,6 @@ from sentry.notifications.platform.shadow.capture import (
     ShadowCollector,
     collecting,
 )
-from sentry.notifications.platform.shadow.normalize import normalize
 from sentry.notifications.platform.types import (
     NotificationData,
     NotificationProviderKey,
@@ -93,6 +94,39 @@ def _capture_shadow_error(
     return ShadowResult(outcome=outcome)
 
 
+def _as_list(value: Any) -> list[Any]:
+    if not value:
+        return []
+    if isinstance(value, (str, bytes)):
+        return orjson.loads(value)
+    return [item.to_dict() if isinstance(item, Block) else item for item in value]
+
+
+def _without_integration_id(value: Any) -> Any:
+    if isinstance(value, Mapping):
+        return {k: _without_integration_id(v) for k, v in value.items() if k != "integrationId"}
+    if isinstance(value, (list, tuple)):
+        return [_without_integration_id(v) for v in value]
+    return value
+
+
+def _normalize(provider: NotificationProviderKey, payload: Mapping[str, Any]) -> Mapping[str, Any]:
+    """
+    Puts a legacy or platform payload into the shape the provider receives. Slack keeps only the
+    keys `chat.postMessage` is sent, with JSON strings parsed. MS Teams drops `integrationId` from
+    action payloads: only legacy cards include it, and the webhook doesn't rely on it.
+    """
+    if provider in (NotificationProviderKey.SLACK, NotificationProviderKey.SLACK_STAGING):
+        return {
+            "blocks": _as_list(payload.get("blocks")),
+            "attachments": _as_list(payload.get("attachments")),
+            "text": payload.get("text") or "",
+        }
+    if provider == NotificationProviderKey.MSTEAMS:
+        return _without_integration_id(payload)
+    return payload
+
+
 def _diff(legacy: Mapping[str, Any], platform: Mapping[str, Any]) -> list[str]:
     """
     Describes each difference between two normalized payloads, with legacy as "old" and platform
@@ -132,8 +166,8 @@ def _compare_with_platform(
 
     try:
         entries = _diff(
-            normalize(legacy_render.provider, legacy_render.payload),
-            normalize(provider_key, platform_payload),
+            _normalize(legacy_render.provider, legacy_render.payload),
+            _normalize(provider_key, platform_payload),
         )
     except Exception as e:
         return _capture_shadow_error(e, ShadowOutcome.COMPARE_ERROR, source, provider_key)

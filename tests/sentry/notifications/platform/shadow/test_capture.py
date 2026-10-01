@@ -23,11 +23,13 @@ def test_records_nothing_outside_a_collector() -> None:
 
 def test_records_the_first_legacy_render() -> None:
     with collecting() as collector:
-        record_legacy_render(NotificationProviderKey.SLACK, ("[]", "text"), chart_url="https://c")
+        record_legacy_render(
+            NotificationProviderKey.SLACK, {"text": "first"}, chart_url="https://c"
+        )
         record_legacy_render(NotificationProviderKey.DISCORD, {"content": "second"})
 
     assert collector.legacy_render == LegacyRender(
-        provider=NotificationProviderKey.SLACK, payload=("[]", "text"), chart_url="https://c"
+        provider=NotificationProviderKey.SLACK, payload={"text": "first"}, chart_url="https://c"
     )
 
 

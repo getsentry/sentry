@@ -7,7 +7,9 @@ from dataclasses import dataclass, field
 from typing import Any
 from unittest import mock
 
+import orjson
 import pytest
+from slack_sdk.models.blocks import MarkdownTextObject, SectionBlock
 from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
 from sentry.grouping.grouptype import ErrorGroupType
@@ -17,7 +19,13 @@ from sentry.notifications.platform.shadow.capture import (
     LegacyRender,
     record_legacy_render,
 )
-from sentry.notifications.platform.shadow.runner import ShadowOutcome, _diff, shadow_read
+from sentry.notifications.platform.shadow.runner import (
+    ShadowOutcome,
+    _diff,
+    _normalize,
+    shadow_read,
+)
+from sentry.notifications.platform.slack.provider import SlackRenderable
 from sentry.notifications.platform.types import NotificationProviderKey, NotificationSource
 from sentry.notifications.types import TEST_NOTIFICATION_ID
 from sentry.testutils.cases import TestCase
@@ -151,6 +159,105 @@ def test_diff_excludes_values() -> None:
     ]
     for value in ("example.com", "10.0.0.1", "fatal", "warning"):
         assert all(value not in entry for entry in entries)
+
+
+def test_normalize_slack_metric_json_string_attachments() -> None:
+    attachment_blocks = [
+        {"type": "section", "text": {"type": "mrkdwn", "text": "124 events\nStarted"}},
+        {"type": "image", "image_url": "https://chart.example/1.png", "alt_text": "Chart"},
+    ]
+    legacy_attachments = orjson.dumps([{"blocks": attachment_blocks, "color": "#FF0000"}]).decode()
+    legacy = _normalize(
+        NotificationProviderKey.SLACK,
+        {"attachments": legacy_attachments, "text": "<https://sentry.io|*Critical: Alert*>"},
+    )
+    platform = _normalize(
+        NotificationProviderKey.SLACK,
+        SlackRenderable(
+            blocks=[],
+            attachments=[{"blocks": attachment_blocks, "color": "#FF0000"}],
+            text="<https://sentry.io|*Critical: Alert*>",
+        ),
+    )
+
+    assert legacy == {
+        "blocks": [],
+        "attachments": [{"blocks": attachment_blocks, "color": "#FF0000"}],
+        "text": "<https://sentry.io|*Critical: Alert*>",
+    }
+    assert legacy == platform
+
+
+def test_normalize_slack_metric_surfaces_attachment_differences() -> None:
+    legacy = _normalize(
+        NotificationProviderKey.SLACK,
+        {"attachments": orjson.dumps([{"blocks": [], "color": "#FF0000"}]).decode(), "text": "a"},
+    )
+    platform = _normalize(
+        NotificationProviderKey.SLACK,
+        SlackRenderable(blocks=[], attachments=[{"blocks": []}], text="a"),
+    )
+    assert legacy["attachments"] == [{"blocks": [], "color": "#FF0000"}]
+    assert platform["attachments"] == [{"blocks": []}]
+
+
+def test_normalize_slack_issue_blocks() -> None:
+    blocks = [{"type": "section", "text": {"type": "mrkdwn", "text": "hello"}}]
+    legacy = _normalize(
+        NotificationProviderKey.SLACK,
+        {"blocks": orjson.dumps(blocks).decode(), "text": "hello"},
+    )
+    platform = _normalize(
+        NotificationProviderKey.SLACK_STAGING,
+        SlackRenderable(
+            blocks=[SectionBlock(text=MarkdownTextObject(text="hello"))],
+            text="hello",
+        ),
+    )
+
+    assert legacy == {"blocks": blocks, "attachments": [], "text": "hello"}
+    assert legacy == platform
+
+
+def test_normalize_slack_defaults_missing_keys() -> None:
+    assert _normalize(NotificationProviderKey.SLACK, {}) == {
+        "blocks": [],
+        "attachments": [],
+        "text": "",
+    }
+
+
+def test_normalize_msteams_strips_integration_id() -> None:
+    card: dict[str, Any] = {
+        "type": "AdaptiveCard",
+        "body": [{"type": "TextBlock", "text": "Issue"}],
+        "actions": [
+            {
+                "type": "Action.Submit",
+                "data": {"actionType": "resolve", "integrationId": 1, "groupId": 2},
+            },
+            {
+                "type": "Action.ShowCard",
+                "card": {
+                    "actions": [
+                        {"type": "Action.Submit", "data": {"integrationId": 1, "groupId": 2}}
+                    ]
+                },
+            },
+        ],
+    }
+    normalized = _normalize(NotificationProviderKey.MSTEAMS, card)
+
+    assert "integrationId" not in orjson.dumps(normalized).decode()
+    assert normalized["actions"][0]["data"] == {"actionType": "resolve", "groupId": 2}
+    assert normalized["actions"][1]["card"]["actions"][0]["data"] == {"groupId": 2}
+    assert normalized["body"] == card["body"]
+    assert card["actions"][0]["data"]["integrationId"] == 1
+
+
+def test_normalize_leaves_discord_unchanged() -> None:
+    message = {"content": "", "embeds": [{"title": "Error", "timestamp": "2026-09-24"}]}
+    assert _normalize(NotificationProviderKey.DISCORD, message) is message
 
 
 @mock.patch(f"{RUNNER_PATH}._compare_with_platform")

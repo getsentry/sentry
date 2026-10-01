@@ -159,7 +159,11 @@ def _build_notification_payload(
     text = str(attachment["text"])
     blocks = {"blocks": attachment["blocks"], "color": attachment["color"]}
     attachments = orjson.dumps([blocks]).decode()
-    record_legacy_render(NotificationProviderKey.SLACK, (attachments, text), chart_url=chart_url)
+    record_legacy_render(
+        NotificationProviderKey.SLACK,
+        {"attachments": attachments, "text": text},
+        chart_url=chart_url,
+    )
 
     return attachments, text
 
