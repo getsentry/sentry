@@ -216,6 +216,7 @@ export const LogTableBody = styled(DataTable.Body)<{
   align-content: start;
   overflow-x: hidden;
   overflow-anchor: none;
+  overscroll-behavior-y: contain;
   scrollbar-gutter: stable;
   scrollbar-width: thin;
 
