@@ -1,22 +1,12 @@
 from unittest.mock import MagicMock, patch
 
-from sentry.api.endpoints.project_custom_inbound_filter_validate import (
-    MAX_VALUES_PER_CONDITION,
-    describe_filter,
-)
 from sentry.api.endpoints.project_custom_inbound_filters import (
     MAX_CONDITION_VALUE_CHARS_PER_FILTER,
 )
-from sentry.models.custominboundfilter import DataType
+from sentry.seer.models import SeerApiError
 from sentry.testutils.cases import APITestCase
 
-SEER_PATH = "sentry.api.endpoints.project_custom_inbound_filter_validate.make_llm_generate_request"
-
-
-def seer_answer(content: str | None) -> MagicMock:
-    response = MagicMock(status=200)
-    response.json.return_value = {"content": content}
-    return response
+SEER_PATH = "sentry.api.endpoints.project_custom_inbound_filter_validate.run_oneshot"
 
 
 class CustomInboundFilterValidateTest(APITestCase):
@@ -35,7 +25,7 @@ class CustomInboundFilterValidateTest(APITestCase):
         self.project = self.create_project(organization=self.organization, teams=[self.team])
         self.login_as(user=self.user)
 
-    @patch(SEER_PATH, return_value=seer_answer("Flaky connection errors"))
+    @patch(SEER_PATH, return_value={"name": "Flaky connection errors"})
     def test_valid_definition_gets_a_name(self, mock_request: MagicMock) -> None:
         with self.feature(self.features):
             response = self.get_success_response(
@@ -49,16 +39,21 @@ class CustomInboundFilterValidateTest(APITestCase):
             )
 
         assert response.data == {"errors": {}, "suggestedName": "Flaky connection errors"}
-        body = mock_request.call_args.args[0]
-        assert body["prompt"].endswith(
-            "Errors where error message matches *ConnectionReset*, *ETIMEDOUT*; release matches 3.*"
+        mock_request.assert_called_once_with(
+            "inbound_filter_name",
+            {
+                "data_type": "error",
+                "conditions": [
+                    {"type": "error_message", "value": ["*ConnectionReset*", "*ETIMEDOUT*"]},
+                    {"type": "release", "value": ["3.*"]},
+                ],
+            },
+            self.organization,
+            user_id=self.user.id,
+            timeout=10,
         )
-        assert mock_request.call_args.kwargs["viewer_context"] == {
-            "organization_id": self.organization.id,
-            "user_id": self.user.id,
-        }
 
-    @patch(SEER_PATH, return_value=seer_answer('"Quoted name"  '))
+    @patch(SEER_PATH, return_value={"name": "  Padded name  "})
     def test_name_is_stripped(self, mock_request: MagicMock) -> None:
         with self.feature(self.features):
             response = self.get_success_response(
@@ -68,7 +63,7 @@ class CustomInboundFilterValidateTest(APITestCase):
                 conditions=[{"type": "error_message", "value": ["*"]}],
             )
 
-        assert response.data["suggestedName"] == "Quoted name"
+        assert response.data["suggestedName"] == "Padded name"
 
     @patch(SEER_PATH)
     def test_invalid_definition_reports_errors_and_skips_seer(
@@ -137,7 +132,7 @@ class CustomInboundFilterValidateTest(APITestCase):
         assert response.data == {"errors": {}, "suggestedName": None}
         mock_request.assert_not_called()
 
-    @patch(SEER_PATH, return_value=MagicMock(status=500))
+    @patch(SEER_PATH, side_effect=SeerApiError("Seer request failed", 500))
     def test_seer_failure_leaves_the_name_empty(self, mock_request: MagicMock) -> None:
         with self.feature(self.features):
             response = self.get_success_response(
@@ -149,8 +144,8 @@ class CustomInboundFilterValidateTest(APITestCase):
 
         assert response.data == {"errors": {}, "suggestedName": None}
 
-    @patch(SEER_PATH, return_value=seer_answer("   "))
-    def test_blank_answer_leaves_the_name_empty(self, mock_request: MagicMock) -> None:
+    @patch(SEER_PATH, return_value={})
+    def test_missing_answer_leaves_the_name_empty(self, mock_request: MagicMock) -> None:
         with self.feature(self.features):
             response = self.get_success_response(
                 self.organization.slug,
@@ -161,7 +156,7 @@ class CustomInboundFilterValidateTest(APITestCase):
 
         assert response.data == {"errors": {}, "suggestedName": None}
 
-    @patch(SEER_PATH, return_value=seer_answer("Legacy release errors"))
+    @patch(SEER_PATH, return_value={"name": "Legacy release errors"})
     def test_edit_of_an_oversized_filter_is_checked_against_the_stored_one(
         self, mock_request: MagicMock
     ) -> None:
@@ -238,26 +233,3 @@ class CustomInboundFilterValidateTest(APITestCase):
                 conditions=[{"type": "error_message", "value": ["*"]}],
                 status_code=403,
             )
-
-
-def test_describe_filter_trims_long_value_lists() -> None:
-    values = [f"pattern-{index}" for index in range(MAX_VALUES_PER_CONDITION + 3)]
-    description = describe_filter(
-        DataType.ALL,
-        [
-            {"type": "ip_address", "value": ["10.0.0.0/8"]},
-            {"type": "release", "value": values},
-        ],
-    )
-
-    assert description == (
-        "All data types where IP address matches 10.0.0.0/8; release matches "
-        + ", ".join(values[:MAX_VALUES_PER_CONDITION])
-        + ", and 3 more"
-    )
-
-
-def test_describe_filter_trims_long_values() -> None:
-    description = describe_filter(DataType.ERROR, [{"type": "error_message", "value": ["x" * 200]}])
-
-    assert description == f"Errors where error message matches {'x' * 80}"
