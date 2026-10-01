@@ -25,7 +25,7 @@ class HandleSnubaQueryUpdateTest(TestCase):
         # Imported for the `@register_subscriber` side effect, which populates
         # `subscriber_registry` with the "incidents" handler this test reads.
         # Must happen before the snapshot below so `tearDown` restores it.
-        from sentry.incidents import tasks  # noqa: F401
+        from sentry.incidents.tasks import handle_snuba_query_update  # noqa: F401
 
         self.orig_registry = deepcopy(subscriber_registry)
 
