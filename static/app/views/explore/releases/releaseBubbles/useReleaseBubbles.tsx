@@ -1,5 +1,6 @@
 import {useCallback, useMemo, useRef, useState} from 'react';
 import {useTheme, type Theme} from '@emotion/react';
+import {debounce} from '@tanstack/react-pacer';
 import type {
   CustomSeriesOption,
   CustomSeriesRenderItem,
@@ -7,7 +8,6 @@ import type {
   CustomSeriesRenderItemParams,
   CustomSeriesRenderItemReturn,
 } from 'echarts';
-import debounce from 'lodash/debounce';
 import moment from 'moment-timezone';
 
 import {closeModal} from 'sentry/actionCreators/modal';
@@ -16,7 +16,10 @@ import type {RawFlag} from 'sentry/components/featureFlags/utils';
 import type {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t, tn} from 'sentry/locale';
-import type {ReactEchartsRef} from 'sentry/types/echarts';
+import type {
+  EChartLegendSelectChangeHandler,
+  ReactEchartsRef,
+} from 'sentry/types/echarts';
 import type {ReleaseMetaBasic} from 'sentry/types/release';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getFormat} from 'sentry/utils/dates';
@@ -32,6 +35,7 @@ import type {Bucket} from 'sentry/views/explore/releases/releaseBubbles/types';
 import {createReleaseBuckets} from 'sentry/views/explore/releases/releaseBubbles/utils/createReleaseBuckets';
 
 const BUBBLE_SERIES_ID = '__release_bubble__';
+export const RELEASE_BUBBLE_SERIES_NAME = 'Releases';
 
 interface LegendSelectChangedParams {
   name: string;
@@ -61,12 +65,16 @@ const RELEASE_BUBBLE_Y_AXIS = {
 // This needs to be debounced because some charts (e.g. in TimeseriesWidgets)
 // are in a group and share events. Thus on a page with 4 widgets, clicking on
 // a legend item would result in 4 events.
-const trackLegend = debounce((params: LegendSelectChangedParams) => {
-  trackAnalytics('releases.bubbles_legend', {
-    organization: null,
-    selected: Boolean(params.selected.Releases),
-  });
-});
+// Keep this shared across charts; a zero delay coalesces synchronous events.
+const trackLegend = debounce(
+  (params: LegendSelectChangedParams) => {
+    trackAnalytics('releases.bubbles_legend', {
+      organization: null,
+      selected: Boolean(params.selected[params.name]),
+    });
+  },
+  {wait: 0}
+);
 
 interface ReleaseBubbleSeriesProps {
   alignInMiddle: boolean;
@@ -251,7 +259,7 @@ function createReleaseBubbleSeries({
     type: 'custom',
     yAxisIndex,
     renderItem: renderReleaseBubble,
-    name: t('Releases'),
+    name: RELEASE_BUBBLE_SERIES_NAME,
     data,
     color: theme.tokens.graphics.accent.vibrant,
     animation: false,
@@ -317,6 +325,12 @@ ${t('Click to expand')}
 
 interface UseReleaseBubblesParams {
   /**
+   * The selected state is "controlled" by the calling component (e.g. it
+   * implements its own event handler and keeps its own legend-selected
+   * state). The hook will return the updated chart options accordingly.
+   */
+  legendSelected: boolean;
+  /**
    * Align the starting timestamp to the middle of the release bubble (e.g. if
    * we want to match ECharts' bar charts), otherwise we draw starting at
    * starting timestamp
@@ -346,7 +360,6 @@ interface UseReleaseBubblesParams {
    * List of feature flag events to include in the bubbles
    */
   flags?: RawFlag[];
-  legendSelected?: boolean;
   /**
    * The maximum/latest timestamp of the chart's timeseries
    */
@@ -468,64 +481,30 @@ export function useReleaseBubbles({
     ]
   );
 
-  const handleChartRef = useCallback(
-    (e: ReactEchartsRef | null) => {
-      chartRef.current = e;
+  const handleChartRef = useCallback((e: ReactEchartsRef | null) => {
+    chartRef.current = e;
+  }, []);
 
-      const echartsInstance = e?.getEchartsInstance?.();
-
-      const handleLegendSelectChanged = (params: LegendSelectChangedParams) => {
-        if (
-          params.name !== 'Releases' ||
-          !('Releases' in params.selected) ||
-          !echartsInstance
-        ) {
-          return;
-        }
-        const selected = params.selected.Releases;
-
-        // If `legendSelected` is defined, this hook will assume that the
-        // selected state is "controlled" by the calling component (e.g. it
-        // implements its own event handler and keeps its own legend-selected
-        // state). The hook will return the updated chart options accordingly.
-        if (legendSelected !== undefined) {
-          return;
-        }
-        // Callback for when Releases legend status changes -- we want to
-        // adjust the xAxis/grid accordingly when Releases are visible or
-        // not
-        echartsInstance.setOption({
-          xAxis: selected ? releaseBubbleXAxis : DEFAULT_BUBBLE_X_AXIS,
-          grid: selected ? releaseBubbleGrid : DEFAULT_BUBBLE_GRID,
-        });
-
-        trackLegend(params);
-      };
-
-      // @ts-expect-error `getModel` is private, but we access it to avoid binding
-      // events to an ECharts instance that has not been fully initialized.
-      if (echartsInstance?.getModel()) {
-        /**
-         * Attach directly to the instance to avoid collisions with `onEvents`.
-         */
-        // @ts-expect-error ECharts types `params` as unknown
-        echartsInstance.on('legendselectchanged', handleLegendSelectChanged);
+  // Compose analytics tracking with the chart's existing legend callback so
+  // the chart wrapper owns the subscription. Layout follows `legendSelected`.
+  const onReleaseBubbleLegendSelectChanged = useCallback<EChartLegendSelectChangeHandler>(
+    params => {
+      if (
+        !buckets.length ||
+        params.name !== RELEASE_BUBBLE_SERIES_NAME ||
+        !(params.name in params.selected)
+      ) {
+        return;
       }
 
-      return () => {
-        if (!echartsInstance) {
-          return;
-        }
-
-        echartsInstance.off('legendselectchanged', handleLegendSelectChanged);
-      };
+      trackLegend(params);
     },
-    [legendSelected, releaseBubbleGrid, releaseBubbleXAxis]
+    [buckets.length]
   );
 
   const releaseBubbleSeries = useMemo(
     () =>
-      releases && buckets.length
+      buckets.length
         ? // oxlint-disable-next-line react/refs
           createReleaseBubbleSeries({
             yAxisIndex,
@@ -546,15 +525,15 @@ export function useReleaseBubbles({
       buckets,
       handleBucketClick,
       options.timezone,
-      releases,
       theme,
       yAxisIndex,
     ]
   );
 
-  if (!releases || !buckets.length) {
+  if (!buckets.length) {
     return {
-      connectReleaseBubbleChartRef: () => {},
+      connectReleaseBubbleChartRef: handleChartRef,
+      onReleaseBubbleLegendSelectChanged,
       releaseBubbleSeries: null,
       releaseBubbleXAxis: {},
       releaseBubbleGrid: {},
@@ -564,6 +543,7 @@ export function useReleaseBubbles({
 
   return {
     connectReleaseBubbleChartRef: handleChartRef,
+    onReleaseBubbleLegendSelectChanged,
 
     /**
      * Series to append to a chart's existing `series`
@@ -577,22 +557,17 @@ export function useReleaseBubbles({
      *
      * Only show the default value if `legendSelected` is explicitly false
      * because that means the user explicitly turned off the legend and the
-     * axis should "hide" the space for the bubble. `legendSelected` should be
-     * undefined if the calling component does not keep its own "legend
-     * selected" state.
+     * axis should "hide" the space for the bubble.
      */
-    releaseBubbleXAxis:
-      legendSelected === false ? DEFAULT_BUBBLE_X_AXIS : releaseBubbleXAxis,
+    releaseBubbleXAxis: legendSelected ? releaseBubbleXAxis : DEFAULT_BUBBLE_X_AXIS,
 
     /**
      * ECharts grid configuration. Spread/override charts `grid` prop.
      *
      * Only show the default value if `legendSelected` is explicitly false
      * because that means the user explicitly turned off the legend and the
-     * axis should "hide" the space for the bubble. `legendSelected` should be
-     * undefined if the calling component does not keep its own "legend
-     * selected" state.
+     * axis should "hide" the space for the bubble.
      */
-    releaseBubbleGrid: legendSelected === false ? DEFAULT_BUBBLE_GRID : releaseBubbleGrid,
+    releaseBubbleGrid: legendSelected ? releaseBubbleGrid : DEFAULT_BUBBLE_GRID,
   };
 }
