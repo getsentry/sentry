@@ -1086,6 +1086,7 @@ class Factories:
         fixture_path="artifact_bundle_debug_ids",
         date_uploaded=None,
         date_last_modified=None,
+        indexing_state=None,
     ):
         if date_uploaded is None:
             date_uploaded = timezone.now()
@@ -1102,6 +1103,7 @@ class Factories:
             artifact_count=artifact_count,
             date_uploaded=date_uploaded,
             date_last_modified=date_last_modified,
+            indexing_state=indexing_state,
         )
         return artifact_bundle
 
