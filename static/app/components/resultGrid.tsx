@@ -760,7 +760,7 @@ export function ResultGrid({
    * which ones have matches for the current query. Runs only after the active
    * region returns no results, so there is no cost on the common path.
    */
-  const probeOtherRegions = (
+  const probeOtherRegions = async (
     baseParams: Record<string, any>,
     currentCell: Cell | undefined
   ) => {
@@ -778,34 +778,30 @@ export function ResultGrid({
     // how many. The admin customers endpoint doesn't return an X-Hits total, so
     // we deliberately surface presence only rather than an unreliable count.
     const probeParams = {...baseParams, cursor: '', per_page: 1};
-    const matches: Cell[] = [];
-    let remaining = otherCells.length;
 
-    const finalize = () => {
-      remaining -= 1;
-      // Ignore results from a probe that has since been superseded.
-      if (remaining > 0 || token !== probeTokenRef.current) {
-        return;
-      }
-      matches.sort((a, b) => a.name.localeCompare(b.name));
-      setProbe(prev => ({...prev, probingRegions: false, regionMatches: matches}));
-    };
+    // A failed probe is treated as "no match" for that region.
+    const results = await Promise.allSettled(
+      otherCells.map(async probedCell => {
+        const data = await api.requestPromise(cellEndpoint(probedCell), {
+          method,
+          host: probedCell.locality_url,
+          data: probeParams,
+        });
+        const rows = rowsFromData?.(data, probedCell) ?? data;
+        return Array.isArray(rows) && rows.length > 0 ? probedCell : null;
+      })
+    );
 
-    otherCells.forEach(probedCell => {
-      api.request(cellEndpoint(probedCell), {
-        method,
-        host: probedCell.locality_url,
-        data: probeParams,
-        success: data => {
-          const rows = rowsFromData?.(data, probedCell) ?? data;
-          if (Array.isArray(rows) && rows.length > 0) {
-            matches.push(probedCell);
-          }
-          finalize();
-        },
-        error: () => finalize(),
-      });
-    });
+    // Ignore results from a probe that has since been superseded.
+    if (token !== probeTokenRef.current) {
+      return;
+    }
+
+    const matches = results
+      .map(result => (result.status === 'fulfilled' ? result.value : null))
+      .filter((cell): cell is Cell => cell !== null)
+      .sort((a, b) => a.name.localeCompare(b.name));
+    setProbe(prev => ({...prev, probingRegions: false, regionMatches: matches}));
   };
 
   // TODO(dcramer): this should whitelist filters/sortBy/cursor/perPage
@@ -1055,7 +1051,7 @@ export function ResultGrid({
         // when the active region has results or no search is active. This flags
         // that the same subject (e.g. a user) also has records elsewhere.
         if (missingExactMatch || probeAllRegions) {
-          probeOtherRegions({...queryParams, query}, activeCell);
+          void probeOtherRegions({...queryParams, query}, activeCell);
         }
       },
       error: res => {
