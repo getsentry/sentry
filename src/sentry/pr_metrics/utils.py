@@ -250,10 +250,13 @@ def resolved_group_ids(pull_request: PullRequest) -> list[int]:
     else:
         shas = _commit_shas_from_activity(pull_request)
     if shas:
-        commit_ids = Commit.objects.filter(
-            repository_id=pull_request.repository_id,
-            key__in=shas,
-        ).values("id")
+        # Materialize IDs so the OR can use selective GroupLink index lookups.
+        commit_ids = list(
+            Commit.objects.filter(
+                repository_id=pull_request.repository_id,
+                key__in=shas,
+            ).values_list("id", flat=True)
+        )
         combined = pr_filter | Q(
             linked_type=GroupLink.LinkedType.commit,
             relationship=GroupLink.Relationship.resolves,
