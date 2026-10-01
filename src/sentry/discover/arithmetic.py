@@ -370,16 +370,17 @@ def resolve_arithmetic(parsed: Operation | float | str):
     elif isinstance(parsed, float):
         return parsed
     elif parsed.lhs is not None and parsed.rhs is not None:
-        if parsed.operator == "plus":
-            return resolve_arithmetic(parsed.lhs) + resolve_arithmetic(parsed.rhs)
-        elif parsed.operator == "minus":
-            return resolve_arithmetic(parsed.lhs) - resolve_arithmetic(parsed.rhs)
-        elif parsed.operator == "multiply":
-            return resolve_arithmetic(parsed.lhs) * resolve_arithmetic(parsed.rhs)
-        elif parsed.operator == "divide":
-            return resolve_arithmetic(parsed.lhs) / resolve_arithmetic(parsed.rhs)
-        else:
-            raise InvalidSearchQuery("Unknown operator")
+        match parsed.operator:
+            case "plus":
+                return resolve_arithmetic(parsed.lhs) + resolve_arithmetic(parsed.rhs)
+            case "minus":
+                return resolve_arithmetic(parsed.lhs) - resolve_arithmetic(parsed.rhs)
+            case "multiply":
+                return resolve_arithmetic(parsed.lhs) * resolve_arithmetic(parsed.rhs)
+            case "divide":
+                return resolve_arithmetic(parsed.lhs) / resolve_arithmetic(parsed.rhs)
+            case _:
+                raise InvalidSearchQuery("Unknown operator")
     elif parsed.lhs is not None:
         return parsed.lhs
     elif parsed.rhs is not None:
