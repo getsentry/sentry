@@ -3,9 +3,6 @@ from functools import cached_property
 
 from arroyo.utils import metrics
 
-# Importing for the `@register_subscriber` side effect, which populates
-# `subscriber_registry` with the "incidents" handler this test relies on.
-import sentry.incidents.tasks  # noqa: F401
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.snuba.dataset import Dataset
@@ -25,6 +22,11 @@ from sentry.workflow_engine.types import DetectorPriorityLevel
 class HandleSnubaQueryUpdateTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
+        # Imported for the `@register_subscriber` side effect, which populates
+        # `subscriber_registry` with the "incidents" handler this test reads.
+        # Must happen before the snapshot below so `tearDown` restores it.
+        from sentry.incidents import tasks  # noqa: F401
+
         self.orig_registry = deepcopy(subscriber_registry)
 
     def tearDown(self) -> None:
