@@ -110,6 +110,8 @@ from sentry.issues.grouptype import get_group_type_by_type_id
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.issues.models.groupderiveddata import GroupDerivedData
 from sentry.models.activity import Activity
+from sentry.models.apiapplication import ApiApplication
+from sentry.models.apidevicecode import ApiDeviceCode
 from sentry.models.apikey import ApiKey
 from sentry.models.apitoken import ApiToken
 from sentry.models.artifactbundle import ArtifactBundle
@@ -662,6 +664,18 @@ class Factories:
     @assume_test_silo_mode(SiloMode.CONTROL)
     def create_api_key(organization, **kwargs) -> ApiKey:
         return ApiKey.objects.create(organization_id=organization.id, **kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_api_application(owner: User, **kwargs) -> ApiApplication:
+        kwargs.setdefault("name", "Example App")
+        kwargs.setdefault("redirect_uris", "https://example.com/callback")
+        return ApiApplication.objects.create(owner=owner, **kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_api_device_code(application: ApiApplication, **kwargs) -> ApiDeviceCode:
+        return ApiDeviceCode.objects.create(application=application, **kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
