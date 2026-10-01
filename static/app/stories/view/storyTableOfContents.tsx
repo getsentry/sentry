@@ -45,15 +45,18 @@ function useStoryIndex(): Entry[] {
   // automatically scroll to hash
   useEffect(() => {
     if (hash) {
+      // Key on the pathname too: different stories share fragments like
+      // `#usage`, so the hash alone can't tell us we already scrolled here.
+      const scrollKey = `${location.pathname}#${hash}`;
       const entry = entries.find(e => encodeURIComponent(e.ref.id) === hash);
-      if (entry && hash !== scrolled.current) {
+      if (entry && scrollKey !== scrolled.current) {
         entry.ref.scrollIntoView();
-        scrolled.current = hash;
+        scrolled.current = scrollKey;
       }
     } else {
       scrolled.current = '';
     }
-  }, [hash, entries]);
+  }, [hash, entries, location.pathname]);
 
   // populate entries
   useLayoutEffect(() => {

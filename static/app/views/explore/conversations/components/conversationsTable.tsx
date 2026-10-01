@@ -35,7 +35,6 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {WidgetNoDataPanel} from 'sentry/views/dashboards/widgets/common/widgetNoDataPanel';
-import {useConversationDirectHitRedirect} from 'sentry/views/explore/conversations/hooks/useConversationDirectHitRedirect';
 import {
   CONVERSATION_FIELDS,
   type Conversation,
@@ -214,18 +213,8 @@ export function ConversationsTable({conversations}: ConversationsTableProps) {
   const organization = useOrganization();
   const navigate = useNavigate();
   const {selection} = usePageFilters();
-  const {
-    data,
-    isFetching,
-    error,
-    pageLinks,
-    setCursor,
-    unsetCursor,
-    isDirectHit,
-    sort,
-    setSort,
-  } = conversations;
-  useConversationDirectHitRedirect({isDirectHit, conversations: data});
+  const {data, isFetching, error, pageLinks, setCursor, unsetCursor, sort, setSort} =
+    conversations;
 
   const [highlightedRowKey, setHighlightedRowKey] = useState<number | undefined>();
 
