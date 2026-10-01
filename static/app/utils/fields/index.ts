@@ -2325,7 +2325,15 @@ const EVENT_FIELD_DEFINITIONS = applyAttributeSearchFieldOverrides(
     ...PROFILE_FIELD_DEFINITIONS,
     ...OTA_FIELD_DEFINITIONS,
   },
-  FIELD_DEFINITION_OVERRIDES
+  {
+    ...FIELD_DEFINITION_OVERRIDES,
+    [FieldKey.ID]: {
+      ...FIELD_DEFINITION_OVERRIDES[FieldKey.ID],
+      desc: t('The event identification number'),
+    },
+    [FieldKey.TRANSACTION]: {desc: t('Error or transaction name identifier')},
+    [FieldKey.HTTP_URL]: {desc: t('Full URL of the request without parameters')},
+  }
 );
 
 const SPAN_FIELD_DEFINITIONS = applyAttributeSearchFieldOverrides(
@@ -3429,10 +3437,7 @@ export const getFieldDefinition = (
   const definition = _getFieldFromMappings(type, key, kind);
   if (definition) {
     return mergeAttributeSearchMetadata(key, definition, {
-      keepLocalDescription:
-        type === 'replay' ||
-        type === 'feedback' ||
-        (type === 'event' && key === FieldKey.TYPE),
+      keepLocalDescription: type === 'event' || type === 'replay' || type === 'feedback',
     });
   }
 

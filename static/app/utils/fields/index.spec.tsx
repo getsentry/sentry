@@ -45,6 +45,17 @@ describe('getFieldDefinition attribute search metadata', () => {
     expect(getFieldDefinition(FieldKey.TYPE, 'span')).toBe(spanDefinition);
   });
 
+  it.each([
+    [FieldKey.ID, 'The event identification number'],
+    [FieldKey.TRANSACTION, 'Error or transaction name identifier'],
+    [FieldKey.HTTP_URL, 'Full URL of the request without parameters'],
+  ])('keeps the event-specific description for %s', (key, description) => {
+    expect(getFieldDefinition(key)?.desc).toBe(description);
+    expect(getFieldDefinition(key, 'span')?.desc).toBe(
+      ATTRIBUTE_SEARCH_METADATA[key]?.brief
+    );
+  });
+
   it('keeps custom field kinds independent across repeated lookups', () => {
     expect(getFieldDefinition('checkout.cart_size', 'span')).toBeNull();
     expect(
