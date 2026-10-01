@@ -5,11 +5,9 @@ import moment from 'moment-timezone';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
+import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {RadioField as RadioGroupField} from 'sentry/components/forms/fields/radioField';
-import {TextareaField} from 'sentry/components/forms/fields/textareaField';
-import {Form} from 'sentry/components/forms/form';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
@@ -113,6 +111,11 @@ function CancelSubscriptionForm() {
     val: null,
     checkboxes: {},
   });
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {reason: '', followup: ''},
+    onSubmit: ({value}) => handleSubmit(value),
+  });
 
   const handleSubmitSuccess = (resp: any) => {
     SubscriptionStore.loadData(organization.slug);
@@ -124,7 +127,7 @@ function CancelSubscriptionForm() {
     });
   };
 
-  const handleSubmit = async (data: any) => {
+  const handleSubmit = async (data: {followup: string; reason: string}) => {
     try {
       const submitData = {
         ...data,
@@ -209,63 +212,77 @@ function CancelSubscriptionForm() {
         <PanelHeader>{t('Cancellation Reason')}</PanelHeader>
 
         <PanelBody withPadding>
-          <Form onSubmit={handleSubmit} onSubmitSuccess={handleSubmitSuccess} hideFooter>
+          <form.AppForm form={form}>
             <TextBlock>
               {t('Please help us understand why you are cancelling:')}
             </TextBlock>
 
-            <RadioGroupContainer
-              stacked
-              name="reason"
-              label=""
-              inline={false}
-              choices={CANCEL_STEPS.map<CancelReason>(cancel => [
-                cancel.reason[0],
-                <RadioContainer key={cancel.reason[0]}>
-                  {cancel.reason[1]}
-                  {cancel.checkboxes && state.val === cancel.reason[0] && (
-                    <Fragment>
-                      {cancel.checkboxes.map(([name, label]) => (
-                        <ExtraContainer key={name}>
-                          <Checkbox
-                            data-test-id={`checkbox-${name}`}
-                            checked={state.checkboxes[name]}
-                            name={name}
-                            onChange={(value: any) => {
-                              setState(currentState => ({
-                                ...currentState,
-                                checkboxes: {
-                                  ...currentState.checkboxes,
-                                  [name]: value.target.checked,
-                                },
-                              }));
-                            }}
-                          />
-                          {label}
-                        </ExtraContainer>
-                      ))}
-                    </Fragment>
-                  )}
-                </RadioContainer>,
-              ])}
-              onChange={(val: any) =>
-                setState(currentState => ({
-                  ...currentState,
-                  canSubmit: true,
-                  showFollowup: true,
-                  checkboxes: {},
-                  val,
-                }))
-              }
-            />
+            <form.AppField name="reason">
+              {field => (
+                <field.Layout.Stack label={t('Reason')}>
+                  <field.Radio.Group
+                    value={field.state.value}
+                    onChange={val => {
+                      field.handleChange(val);
+                      form.setFieldValue('followup', '');
+                      setState(currentState => ({
+                        ...currentState,
+                        canSubmit: true,
+                        showFollowup: true,
+                        checkboxes: {},
+                        val,
+                      }));
+                    }}
+                  >
+                    {CANCEL_STEPS.map(cancel => (
+                      <field.Radio.Item key={cancel.reason[0]} value={cancel.reason[0]}>
+                        <RadioContainer>
+                          {cancel.reason[1]}
+                          {cancel.checkboxes &&
+                            state.val === cancel.reason[0] &&
+                            cancel.checkboxes.map(([name, label]) => (
+                              <ExtraContainer key={name}>
+                                <Checkbox
+                                  data-test-id={`checkbox-${name}`}
+                                  checked={state.checkboxes[name]}
+                                  name={name}
+                                  onChange={event => {
+                                    setState(currentState => ({
+                                      ...currentState,
+                                      checkboxes: {
+                                        ...currentState.checkboxes,
+                                        [name]: event.target.checked,
+                                      },
+                                    }));
+                                  }}
+                                />
+                                {label}
+                              </ExtraContainer>
+                            ))}
+                        </RadioContainer>
+                      </field.Radio.Item>
+                    ))}
+                  </field.Radio.Group>
+                </field.Layout.Stack>
+              )}
+            </form.AppField>
             {state.showFollowup && (
-              <TextareaField stacked label={followup} name="followup" inline={false} />
+              <form.AppField name="followup">
+                {field => (
+                  <field.Layout.Stack label={followup}>
+                    <field.TextArea
+                      value={field.state.value}
+                      onChange={field.handleChange}
+                    />
+                  </field.Layout.Stack>
+                )}
+              </form.AppField>
             )}
 
             <ButtonList>
-              <Button type="submit" variant="danger" disabled={!state.canSubmit}>
+              <form.SubmitButton variant="danger" disabled={!state.canSubmit}>
                 {t('Cancel Subscription')}
-              </Button>
+              </form.SubmitButton>
               <Button
                 onClick={() => {
                   navigate(normalizeUrl(`/settings/${organization.slug}/billing/`));
@@ -274,7 +291,7 @@ function CancelSubscriptionForm() {
                 {t('Never Mind')}
               </Button>
             </ButtonList>
-          </Form>
+          </form.AppForm>
         </PanelBody>
       </Panel>
     </Fragment>
@@ -310,12 +327,6 @@ const RadioContainer = styled('div')`
     > div:last-child {
       grid-column: 2;
     }
-  }
-`;
-
-const RadioGroupContainer = styled(RadioGroupField)`
-  label {
-    align-items: flex-start;
   }
 `;
 
