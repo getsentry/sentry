@@ -28,4 +28,33 @@ describe('LogsAnsiHighlight', () => {
 
     expect(screen.getByText('connect').tagName).toBe('SPAN');
   });
+
+  it('resolves 256-color and truecolor codes to their RGB values', () => {
+    render(
+      <LogsAnsiHighlight>
+        {'\x1B[38;5;208mpalette\x1B[0m \x1B[38;2;1;2;3mtruecolor'}
+      </LogsAnsiHighlight>
+    );
+
+    expect(screen.getByText('palette').style.color).toContain('rgb(255, 135, 0)');
+    expect(screen.getByText('truecolor').style.color).toContain('rgb(1, 2, 3)');
+  });
+
+  it('applies every decoration when given combined decoration codes', () => {
+    render(<LogsAnsiHighlight>{'\x1B[1;3;4;9mdecorated'}</LogsAnsiHighlight>);
+
+    expect(screen.getByText('decorated')).toHaveStyle({
+      fontWeight: 'bold',
+      fontStyle: 'italic',
+      textDecorationLine: 'underline line-through',
+    });
+  });
+
+  it('removes non-color escape codes when given cursor control sequences', () => {
+    const {container} = render(
+      <LogsAnsiHighlight>{'\x1B[2Kdone\x1B[?25h'}</LogsAnsiHighlight>
+    );
+
+    expect(container).toHaveTextContent(/^done$/);
+  });
 });

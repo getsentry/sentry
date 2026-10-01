@@ -1,24 +1,18 @@
 import {Fragment, useMemo, type CSSProperties} from 'react';
 import {useTheme, type Theme} from '@emotion/react';
-
 import {
-  hasAnsi,
-  parseAnsi,
-  type AnsiColor,
-  type AnsiDecoration,
-  type AnsiSegment,
-} from 'sentry/utils/ansiEscapeCodes';
+  createColorPalette,
+  parseAnsiSequences,
+  type ColorName,
+  type ParseToken,
+} from 'ansi-sequence-parser';
+
+import {hasAnsi, stripAnsi} from 'sentry/utils/ansiEscapeCodes';
 import {LogsHighlight} from 'sentry/views/explore/logs/styles';
 
 const ANSI_COLOR_STRENGTH = '15%';
 
-const DECORATION_STYLES: Record<AnsiDecoration, CSSProperties> = {
-  bold: {fontWeight: 'bold'},
-  dim: {opacity: 0.7},
-  italic: {fontStyle: 'italic'},
-  strikethrough: {textDecorationLine: 'line-through'},
-  underline: {textDecorationLine: 'underline'},
-};
+type ColorPalette = ReturnType<typeof createColorPalette>;
 
 interface LogsAnsiHighlightProps {
   children: string;
@@ -32,12 +26,18 @@ export function LogsAnsiHighlight({
   terms = [],
 }: LogsAnsiHighlightProps) {
   const theme = useTheme();
-  const segments = useMemo(
-    () => (hasAnsi(children) ? parseAnsi(children) : undefined),
+  const palette = useMemo(() => createColorPalette(getNamedColors(theme)), [theme]);
+  const tokens = useMemo(
+    () =>
+      hasAnsi(children)
+        ? parseAnsiSequences(children)
+            .map(token => ({...token, value: stripAnsi(token.value)}))
+            .filter(token => token.value)
+        : undefined,
     [children]
   );
 
-  if (!segments) {
+  if (!tokens) {
     return (
       <LogsHighlight caseSensitive={caseSensitive} terms={terms}>
         {children}
@@ -47,10 +47,10 @@ export function LogsAnsiHighlight({
 
   return (
     <Fragment>
-      {segments.map((segment, index) => (
-        <span key={index} style={getSegmentStyle(segment, theme)}>
+      {tokens.map((token, index) => (
+        <span key={index} style={getTokenStyle(token, palette)}>
           <LogsHighlight caseSensitive={caseSensitive} terms={terms}>
-            {segment.content}
+            {token.value}
           </LogsHighlight>
         </span>
       ))}
@@ -58,47 +58,61 @@ export function LogsAnsiHighlight({
   );
 }
 
-function getSegmentStyle({bg, decoration, fg}: AnsiSegment, theme: Theme): CSSProperties {
+function getTokenStyle(
+  {background, decorations, foreground}: ParseToken,
+  palette: ColorPalette
+): CSSProperties {
   const style: CSSProperties = {};
 
-  if (fg) {
-    style.color = `color-mix(in srgb, ${getAnsiColor(fg, theme)} ${ANSI_COLOR_STRENGTH}, currentColor)`;
+  if (foreground) {
+    style.color = `color-mix(in srgb, ${palette.value(foreground)} ${ANSI_COLOR_STRENGTH}, currentColor)`;
   }
 
-  if (bg) {
-    style.backgroundColor = `color-mix(in srgb, ${getAnsiColor(bg, theme)} ${ANSI_COLOR_STRENGTH}, transparent)`;
+  if (background) {
+    style.backgroundColor = `color-mix(in srgb, ${palette.value(background)} ${ANSI_COLOR_STRENGTH}, transparent)`;
   }
 
-  if (decoration) {
-    Object.assign(style, DECORATION_STYLES[decoration]);
+  if (decorations.has('bold')) {
+    style.fontWeight = 'bold';
+  }
+
+  if (decorations.has('dim')) {
+    style.opacity = 0.7;
+  }
+
+  if (decorations.has('italic')) {
+    style.fontStyle = 'italic';
+  }
+
+  const lines = [
+    decorations.has('underline') && 'underline',
+    decorations.has('strikethrough') && 'line-through',
+    decorations.has('overline') && 'overline',
+  ].filter(Boolean);
+  if (lines.length) {
+    style.textDecorationLine = lines.join(' ');
   }
 
   return style;
 }
 
-function getAnsiColor(color: AnsiColor, theme: Theme): string {
-  if (color.type === 'rgb') {
-    return `rgb(${color.rgb})`;
-  }
-
-  const shade = color.bright ? '600' : '500';
-
-  switch (color.name) {
-    case 'black':
-      return color.bright ? theme.colors.gray500 : theme.colors.gray800;
-    case 'white':
-      return theme.colors.gray800;
-    case 'red':
-      return theme.colors[`red${shade}`];
-    case 'green':
-      return theme.colors[`green${shade}`];
-    case 'yellow':
-      return theme.colors[`yellow${shade}`];
-    case 'blue':
-      return theme.colors[`blue${shade}`];
-    case 'magenta':
-      return theme.colors[`pink${shade}`];
-    case 'cyan':
-      return theme.colors.blue400;
-  }
+function getNamedColors(theme: Theme): Record<ColorName, string> {
+  return {
+    black: theme.colors.gray800,
+    red: theme.colors.red500,
+    green: theme.colors.green500,
+    yellow: theme.colors.yellow500,
+    blue: theme.colors.blue500,
+    magenta: theme.colors.pink500,
+    cyan: theme.colors.blue400,
+    white: theme.colors.gray800,
+    brightBlack: theme.colors.gray500,
+    brightRed: theme.colors.red600,
+    brightGreen: theme.colors.green600,
+    brightYellow: theme.colors.yellow600,
+    brightBlue: theme.colors.blue600,
+    brightMagenta: theme.colors.pink600,
+    brightCyan: theme.colors.blue400,
+    brightWhite: theme.colors.gray800,
+  };
 }
