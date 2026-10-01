@@ -14,11 +14,9 @@ from sentry.issues.ingest import save_issue_occurrence
 from sentry.models.group import Group
 from sentry.rules.match import MatchType
 from sentry.services.eventstore.models import Event
-from sentry.services.eventstore.processing import event_processing_store
 from sentry.tasks.post_process import post_process_group
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
-from sentry.utils.cache import cache_key_for_event
 from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient
 from sentry.workflow_engine.models import Detector, DetectorWorkflow
 from sentry.workflow_engine.models.data_condition import Condition
@@ -77,22 +75,22 @@ class BaseWorkflowIntegrationTest(BaseWorkflowTest):
         is_new: bool = False,
         is_regression: bool = False,
         is_new_group_environment: bool = True,
-        cache_key: str | None = None,
         eventstream_type: str = EventStreamEventType.Generic.value,
         include_occurrence: bool = True,
-    ) -> str | None:
+        event: Event | None = None,
+    ) -> None:
+        if event is None:
+            event = self.event
         post_process_group(
             is_new=is_new,
             is_regression=is_regression,
             is_new_group_environment=is_new_group_environment,
-            cache_key=cache_key,
             group_id=group_id,
             occurrence_id=self.occurrence.id if include_occurrence else None,
-            project_id=self.project.id,
+            event_id=event.event_id,
+            project_id=event.project_id,
             eventstream_type=eventstream_type,
         )
-
-        return cache_key
 
 
 class TestWorkflowEngineIntegrationToIssuePlatform(BaseWorkflowIntegrationTest):
@@ -188,30 +186,29 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
             detector = self.detector
         if fingerprint is None:
             fingerprint = str(detector.id)
-        event = self.create_event(
-            project_id=project.id,
-            timestamp=timezone.now(),
-            fingerprint=fingerprint,
-            environment=environment,
-            level=level,
-            tags=tags,
-        )
+        # These tests invoke post-processing explicitly after preparing the event.
+        with mock.patch.object(post_process_group, "apply_async"):
+            event = self.create_event(
+                project_id=project.id,
+                timestamp=timezone.now(),
+                fingerprint=fingerprint,
+                environment=environment,
+                level=level,
+                tags=tags,
+            )
         if group:
             event.group = group
             event.group_id = group.id
-        event_processing_store.store({**event.data, "project": project.id})
+        event.data.save()
         return event
-
-    def get_cache_key(self, event: Event) -> str:
-        return cache_key_for_event({"project": event.project_id, "event_id": event.event_id})
 
     def post_process_error(self, event: Event, **kwargs: Any) -> None:
         assert event.group_id is not None
         self.call_post_process_group(
             event.group_id,
-            cache_key=self.get_cache_key(event),
             eventstream_type=EventStreamEventType.Error.value,
             include_occurrence=False,
+            event=event,
             **kwargs,
         )
 
