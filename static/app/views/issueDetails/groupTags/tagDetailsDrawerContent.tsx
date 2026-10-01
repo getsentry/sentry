@@ -299,12 +299,12 @@ function TagValueActionsMenu({
   return (
     <DropdownMenu
       size="xs"
-      className={isVisible ? '' : 'invisible'}
       onOpenChange={isOpen => setIsVisible(isOpen)}
       trigger={triggerProps => (
         <OverlayTrigger.IconButton
           {...triggerProps}
           aria-label={t('Tag Value Actions Menu')}
+          className={isVisible ? '' : 'invisible'}
           icon={<IconEllipsis />}
         />
       )}
@@ -404,12 +404,22 @@ const Row = styled(Body)`
   padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.md};
 
   .invisible {
-    visibility: hidden;
+    /* Keep the trigger focusable when closing the menu restores focus. */
+    opacity: 0;
+    pointer-events: none;
   }
   &:hover,
-  &:active {
+  &:active,
+  &:focus-within {
     .invisible {
-      visibility: visible;
+      opacity: 1;
+      pointer-events: auto;
+    }
+  }
+  @media (hover: none) {
+    .invisible {
+      opacity: 1;
+      pointer-events: auto;
     }
   }
 `;

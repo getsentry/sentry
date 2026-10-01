@@ -17,10 +17,9 @@ import {
 } from 'sentry/components/workflowEngine/ui/formSection';
 import {timezoneOptions} from 'sentry/data/timezones';
 import {t, tct, tn} from 'sentry/locale';
+import {DEFAULT_CHECKIN_MARGIN, DEFAULT_MAX_RUNTIME} from 'sentry/utils/monitor/cron';
 import {
-  CRON_DEFAULT_CHECKIN_MARGIN,
   CRON_DEFAULT_FAILURE_ISSUE_THRESHOLD,
-  CRON_DEFAULT_MAX_RUNTIME,
   CRON_DEFAULT_SCHEDULE_INTERVAL_UNIT,
   CRON_DEFAULT_SCHEDULE_INTERVAL_VALUE,
   CRON_DEFAULT_SCHEDULE_TYPE,
@@ -151,11 +150,11 @@ function Margins() {
           placeholder={tn(
             'Defaults to %s minute',
             'Defaults to %s minutes',
-            CRON_DEFAULT_CHECKIN_MARGIN
+            DEFAULT_CHECKIN_MARGIN
           )}
           help={t('Number of minutes before a check-in is considered missed.')}
           label={t('Grace Period')}
-          defaultValue={CRON_DEFAULT_CHECKIN_MARGIN}
+          defaultValue={DEFAULT_CHECKIN_MARGIN}
         />
         <NumberField
           name="maxRuntime"
@@ -163,13 +162,13 @@ function Margins() {
           placeholder={tn(
             'Defaults to %s minute',
             'Defaults to %s minutes',
-            CRON_DEFAULT_MAX_RUNTIME
+            DEFAULT_MAX_RUNTIME
           )}
           help={t(
             'Number of minutes before an in-progress check-in is marked timed out.'
           )}
           label={t('Max Runtime')}
-          defaultValue={CRON_DEFAULT_MAX_RUNTIME}
+          defaultValue={DEFAULT_MAX_RUNTIME}
         />
       </InputGroup>
     </Fragment>
