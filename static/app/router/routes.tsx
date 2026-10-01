@@ -124,10 +124,6 @@ function buildRoutes(): RouteObject[] {
 
   const publicRootChildren: SentryRouteObject[] = [
     {
-      path: '/accept/:orgId/:memberId/:token/',
-      component: make(() => import('sentry/views/acceptOrganizationInvite')),
-    },
-    {
       path: '/share/group/:shareId/',
       redirectTo: '/share/issue/:shareId/',
     },
@@ -646,6 +642,11 @@ function buildRoutes(): RouteObject[] {
       path: 'replays/',
       name: t('Replays'),
       component: make(() => import('sentry/views/settings/project/projectReplays')),
+    },
+    {
+      path: 'logs/',
+      name: t('Logs'),
+      component: make(() => import('sentry/views/settings/project/projectLogs')),
     },
     {
       path: 'playstation/',

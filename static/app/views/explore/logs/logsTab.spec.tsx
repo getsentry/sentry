@@ -84,6 +84,63 @@ describe('LogsTabContent', () => {
 
   setupPageFilters();
 
+  const eventTableResponseBody = {
+    data: [
+      {
+        [OurLogKnownFieldKey.ID]: '019621262d117e03bce898cb8f4f6ff7',
+        [OurLogKnownFieldKey.PROJECT_ID]: 1,
+        [OurLogKnownFieldKey.TRACE_ID]: '17cc0bae407042eaa4bf6d798c37d026',
+        [OurLogKnownFieldKey.SEVERITY_NUMBER]: 9,
+        [OurLogKnownFieldKey.SEVERITY]: 'info',
+        [OurLogKnownFieldKey.TIMESTAMP]: '2025-04-10T19:21:12+00:00',
+        [OurLogKnownFieldKey.MESSAGE]: 'some log message1',
+        [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: 1.7443128722090732e18,
+      },
+      {
+        [OurLogKnownFieldKey.ID]: '0196212624a17144aa392d01420256a2',
+        [OurLogKnownFieldKey.PROJECT_ID]: 1,
+        [OurLogKnownFieldKey.TRACE_ID]: 'c331c2df93d846f5a2134203416d40bb',
+        [OurLogKnownFieldKey.SEVERITY_NUMBER]: 9,
+        [OurLogKnownFieldKey.SEVERITY]: 'info',
+        [OurLogKnownFieldKey.TIMESTAMP]: '2025-04-10T19:21:10+00:00',
+        [OurLogKnownFieldKey.MESSAGE]: 'some log message2',
+        [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: 1.744312870049196e18,
+      },
+    ],
+    meta: {
+      fields: {
+        [OurLogKnownFieldKey.ID]: 'string',
+        [OurLogKnownFieldKey.PROJECT_ID]: 'string',
+        [OurLogKnownFieldKey.TRACE_ID]: 'string',
+        [OurLogKnownFieldKey.SEVERITY_NUMBER]: 'integer',
+        [OurLogKnownFieldKey.SEVERITY]: 'string',
+        [OurLogKnownFieldKey.TIMESTAMP]: 'string',
+        [OurLogKnownFieldKey.MESSAGE]: 'string',
+        [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: 'number',
+      },
+      units: {
+        [OurLogKnownFieldKey.ID]: null,
+        [OurLogKnownFieldKey.PROJECT_ID]: null,
+        [OurLogKnownFieldKey.TRACE_ID]: null,
+        [OurLogKnownFieldKey.SEVERITY_NUMBER]: null,
+        [OurLogKnownFieldKey.SEVERITY]: null,
+        [OurLogKnownFieldKey.TIMESTAMP]: null,
+        [OurLogKnownFieldKey.MESSAGE]: null,
+        [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: null,
+      },
+      isMetricsData: false,
+      isMetricsExtractedData: false,
+      tips: {},
+      datasetReason: 'unchanged',
+      dataset: 'ourlogs',
+      dataScanned: 'full',
+      accuracy: {
+        confidence: [{}, {}],
+      },
+    },
+    confidence: [{}, {}],
+  };
+
   beforeEach(() => {
     MockApiClient.clearMockResponses();
 
@@ -91,62 +148,7 @@ describe('LogsTabContent', () => {
     eventTableMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
-      body: {
-        data: [
-          {
-            [OurLogKnownFieldKey.ID]: '019621262d117e03bce898cb8f4f6ff7',
-            [OurLogKnownFieldKey.PROJECT_ID]: 1,
-            [OurLogKnownFieldKey.TRACE_ID]: '17cc0bae407042eaa4bf6d798c37d026',
-            [OurLogKnownFieldKey.SEVERITY_NUMBER]: 9,
-            [OurLogKnownFieldKey.SEVERITY]: 'info',
-            [OurLogKnownFieldKey.TIMESTAMP]: '2025-04-10T19:21:12+00:00',
-            [OurLogKnownFieldKey.MESSAGE]: 'some log message1',
-            [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: 1.7443128722090732e18,
-          },
-          {
-            [OurLogKnownFieldKey.ID]: '0196212624a17144aa392d01420256a2',
-            [OurLogKnownFieldKey.PROJECT_ID]: 1,
-            [OurLogKnownFieldKey.TRACE_ID]: 'c331c2df93d846f5a2134203416d40bb',
-            [OurLogKnownFieldKey.SEVERITY_NUMBER]: 9,
-            [OurLogKnownFieldKey.SEVERITY]: 'info',
-            [OurLogKnownFieldKey.TIMESTAMP]: '2025-04-10T19:21:10+00:00',
-            [OurLogKnownFieldKey.MESSAGE]: 'some log message2',
-            [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: 1.744312870049196e18,
-          },
-        ],
-        meta: {
-          fields: {
-            [OurLogKnownFieldKey.ID]: 'string',
-            [OurLogKnownFieldKey.PROJECT_ID]: 'string',
-            [OurLogKnownFieldKey.TRACE_ID]: 'string',
-            [OurLogKnownFieldKey.SEVERITY_NUMBER]: 'integer',
-            [OurLogKnownFieldKey.SEVERITY]: 'string',
-            [OurLogKnownFieldKey.TIMESTAMP]: 'string',
-            [OurLogKnownFieldKey.MESSAGE]: 'string',
-            [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: 'number',
-          },
-          units: {
-            [OurLogKnownFieldKey.ID]: null,
-            [OurLogKnownFieldKey.PROJECT_ID]: null,
-            [OurLogKnownFieldKey.TRACE_ID]: null,
-            [OurLogKnownFieldKey.SEVERITY_NUMBER]: null,
-            [OurLogKnownFieldKey.SEVERITY]: null,
-            [OurLogKnownFieldKey.TIMESTAMP]: null,
-            [OurLogKnownFieldKey.MESSAGE]: null,
-            [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: null,
-          },
-          isMetricsData: false,
-          isMetricsExtractedData: false,
-          tips: {},
-          datasetReason: 'unchanged',
-          dataset: 'ourlogs',
-          dataScanned: 'full',
-          accuracy: {
-            confidence: [{}, {}],
-          },
-        },
-        confidence: [{}, {}],
-      },
+      body: eventTableResponseBody,
     });
 
     eventsTimeSeriesMock = MockApiClient.addMockResponse({
@@ -255,8 +257,18 @@ describe('LogsTabContent', () => {
       dataset: [],
       environment: [],
       field: [
-        {attrType: 'number', error: null, name: 'custom.duration', valid: true},
-        {attrType: 'boolean', error: null, name: 'custom.enabled', valid: true},
+        {
+          attrType: 'number',
+          error: null,
+          name: 'custom.duration',
+          valid: true,
+        },
+        {
+          attrType: 'boolean',
+          error: null,
+          name: 'custom.enabled',
+          valid: true,
+        },
         {
           attrType: null,
           error: 'unknown attribute',
@@ -333,7 +345,12 @@ describe('LogsTabContent', () => {
       dataset: [],
       environment: [],
       field: [
-        {attrType: 'number', error: null, name: 'custom.duration', valid: true},
+        {
+          attrType: 'number',
+          error: null,
+          name: 'custom.duration',
+          valid: true,
+        },
         {
           attrType: null,
           error: 'unknown attribute',
@@ -406,7 +423,12 @@ describe('LogsTabContent', () => {
       dataset: [],
       environment: [],
       field: [
-        {attrType: 'number', error: null, name: 'custom.duration', valid: true},
+        {
+          attrType: 'number',
+          error: null,
+          name: 'custom.duration',
+          valid: true,
+        },
         {
           attrType: null,
           error: 'unknown attribute',
@@ -656,7 +678,82 @@ describe('LogsTabContent', () => {
       organization,
       additionalWrapper: ProviderWrapper,
     });
-    const refreshButton = await screen.findByRole('button', {name: 'Refresh'});
+    const refreshButton = await screen.findByRole('button', {
+      name: 'Refresh',
+    });
     expect(refreshButton).toBeDisabled();
+  });
+
+  it('warns that results may be incomplete when no logs are found and the sort is not timestamp descending', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      body: {
+        data: [],
+        meta: {fields: {}, units: {}, dataScanned: 'partial'},
+      },
+    });
+
+    render(<LogsTabContentHarness datePageFilterProps={datePageFilterProps} />, {
+      initialRouterConfig,
+      organization,
+      additionalWrapper: ProviderWrapper,
+    });
+
+    expect(
+      await screen.findByText(
+        /we only scan your full log volume when sorting by timestamp in descending order/
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('does not warn that results may be incomplete when sorting by timestamp descending', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      body: {
+        data: [],
+        meta: {fields: {}, units: {}, dataScanned: 'partial'},
+      },
+    });
+    const timestampSortRouterConfig = structuredClone(initialRouterConfig);
+    timestampSortRouterConfig.location.query[LOGS_FIELDS_KEY] = ['timestamp', 'message'];
+    timestampSortRouterConfig.location.query[LOGS_SORT_BYS_KEY] = ['-timestamp'];
+
+    render(<LogsTabContentHarness datePageFilterProps={datePageFilterProps} />, {
+      initialRouterConfig: timestampSortRouterConfig,
+      organization,
+      additionalWrapper: ProviderWrapper,
+    });
+    await screen.findByText('No logs found');
+
+    expect(
+      screen.queryByText(
+        /we only scan your full log volume when sorting by timestamp in descending order/
+      )
+    ).not.toBeInTheDocument();
+  });
+
+  it('warns that results may be incomplete when the scan is partial and the sort is not timestamp descending', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      body: {
+        ...eventTableResponseBody,
+        meta: {...eventTableResponseBody.meta, dataScanned: 'partial'},
+      },
+    });
+
+    render(<LogsTabContentHarness datePageFilterProps={datePageFilterProps} />, {
+      initialRouterConfig,
+      organization,
+      additionalWrapper: ProviderWrapper,
+    });
+
+    expect(
+      await screen.findByText(
+        /we only scan your full log volume when sorting by timestamp in descending order/
+      )
+    ).toBeInTheDocument();
   });
 });

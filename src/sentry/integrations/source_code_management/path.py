@@ -30,6 +30,10 @@ def normalize_scm_path(path: str) -> str | None:
         encoded_candidate = decoded_candidate
 
     normalized_path = posixpath.normpath(normalized_separators)
+    if is_windows_absolute_scm_path(normalized_separators) and not is_windows_absolute_scm_path(
+        normalized_path
+    ):
+        return None
     return "" if normalized_path == "." else normalized_path
 
 

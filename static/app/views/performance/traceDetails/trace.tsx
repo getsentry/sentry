@@ -36,8 +36,6 @@ import {
 import {TraceTree} from './traceModels/traceTree';
 import type {BaseNode} from './traceModels/traceTreeNode/baseNode';
 import type {TraceEvents, TraceScheduler} from './traceRenderers/traceScheduler';
-import {TraceTimeCompression} from './traceRenderers/traceTimeCompression';
-import type {TraceTimeCompressionGap} from './traceRenderers/traceTimeCompression';
 import {
   useVirtualizedList,
   type VirtualizedRow,
@@ -60,6 +58,7 @@ import {
   type RovingTabIndexUserActions,
 } from './traceState/traceRovingTabIndex';
 import {useTraceState, useTraceStateDispatch} from './traceState/traceStateProvider';
+import {CollapsedGapMarkers} from './collapsedGapMarkers';
 import {
   TracePinnedAttributeCell,
   TracePinnedAttributeHeader,
@@ -199,18 +198,6 @@ export function Trace({
     visibleTraceItems,
   ]);
 
-  const [physicalWidth, setPhysicalWidth] = useState(
-    () => manager.view.trace_physical_space.width
-  );
-
-  const timeCompression = useMemo(
-    () =>
-      TraceTimeCompression.FromVisibleItems({
-        ...timeCompressionOptions,
-        physicalWidth,
-      }),
-    [physicalWidth, timeCompressionOptions]
-  );
   const timeCompressionOptionsRef = useRef(timeCompressionOptions);
   timeCompressionOptionsRef.current = timeCompressionOptions;
 
@@ -220,7 +207,7 @@ export function Trace({
     manager.recomputeTimelineIntervals();
     manager.recomputeSpanToPXMatrix();
     manager.draw();
-  }, [manager, physicalWidth, timeCompressionOptions]);
+  }, [manager, timeCompressionOptions]);
 
   useLayoutEffect(() => {
     const onTraceViewChange: TraceEvents['set trace view'] = () => {
@@ -230,8 +217,6 @@ export function Trace({
       manager.draw();
     };
     const onPhysicalSpaceChange: TraceEvents['set container physical space'] = () => {
-      const nextPhysicalWidth = manager.view.trace_physical_space.width;
-      setPhysicalWidth(nextPhysicalWidth);
       manager.recomputeTimeCompression(timeCompressionOptionsRef.current);
       manager.recomputeTimelineIntervals();
       manager.recomputeSpanToPXMatrix();
@@ -248,17 +233,12 @@ export function Trace({
       manager.recomputeSpanToPXMatrix();
       manager.draw(view);
     };
-    const onDividerResizeEnd: TraceEvents['divider resize end'] = () => {
-      const nextPhysicalWidth = manager.view.trace_physical_space.width;
-      setPhysicalWidth(nextPhysicalWidth);
-    };
 
     scheduler.on('set trace view', onTraceViewChange);
     scheduler.on('set trace space', onTraceSpaceChange);
     scheduler.on('set container physical space', onPhysicalSpaceChange);
     scheduler.on('initialize trace space', onTraceSpaceChange);
     scheduler.on('divider resize', onDividerResize);
-    scheduler.on('divider resize end', onDividerResizeEnd);
 
     return () => {
       scheduler.off('set trace view', onTraceViewChange);
@@ -266,7 +246,6 @@ export function Trace({
       scheduler.off('set container physical space', onPhysicalSpaceChange);
       scheduler.off('initialize trace space', onTraceSpaceChange);
       scheduler.off('divider resize', onDividerResize);
-      scheduler.off('divider resize end', onDividerResizeEnd);
     };
   }, [manager, scheduler]);
 
@@ -510,17 +489,9 @@ export function Trace({
               </div>
             );
           })}
-          {trace.type === 'trace' &&
-            !isLoading &&
-            timeCompression.gaps.map((gap, i) => (
-              <CollapsedGapMarker
-                key={`${gap.start}-${gap.end}`}
-                gap={gap}
-                index={i}
-                manager={manager}
-                scrollContainer={scrollContainer}
-              />
-            ))}
+          {trace.type === 'trace' && !isLoading && (
+            <CollapsedGapMarkers manager={manager} scrollContainer={scrollContainer} />
+          )}
           {traceNode && traceStartTimestamp ? (
             <VerticalTimestampIndicators
               viewmanager={manager}
@@ -682,56 +653,6 @@ function RenderTraceRow(props: {
   };
 
   return node.renderWaterfallRow(rowProps);
-}
-
-function CollapsedGapMarker({
-  gap,
-  index,
-  manager,
-  scrollContainer,
-}: {
-  gap: TraceTimeCompressionGap;
-  index: number;
-  manager: VirtualizedViewManager;
-  scrollContainer: HTMLElement | null;
-}) {
-  const registerCollapsedGapMarkerRef = useCallback(
-    (ref: HTMLDivElement | null) => {
-      manager.registerCollapsedGapMarkerRef(ref, index, gap);
-    },
-    [gap, index, manager]
-  );
-
-  const durationLabel = formatTraceDuration(gap.duration);
-  const onPillWheel = (event: React.WheelEvent<HTMLDivElement>) => {
-    if (!scrollContainer) {
-      return;
-    }
-
-    event.preventDefault();
-    // oxlint-disable-next-line react/immutability
-    scrollContainer.scrollTop += event.deltaY;
-    scrollContainer.scrollLeft += event.deltaX;
-  };
-
-  return (
-    <div
-      ref={registerCollapsedGapMarkerRef}
-      className="TraceCollapsedGapMarker"
-      style={{pointerEvents: 'none'}}
-    >
-      <div className="TraceCollapsedGapMarkerBreak" />
-      <Tooltip title={`Skipped ${durationLabel} inactive period`}>
-        <div
-          className="TraceCollapsedGapMarkerPill"
-          style={{pointerEvents: 'auto'}}
-          onWheel={onPillWheel}
-        >
-          {durationLabel}
-        </div>
-      </Tooltip>
-    </div>
-  );
 }
 
 function VerticalTimestampIndicators({
