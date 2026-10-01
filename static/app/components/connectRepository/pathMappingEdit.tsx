@@ -70,7 +70,7 @@ export function PathMappingEdit({
     <form.AppForm form={form}>
       <Container containerType="inline-size" padding="xl">
         <Stack gap="xl">
-          <Container position="relative">
+          <Container position="relative" paddingBottom="md">
             {onDelete && (
               <Container position="absolute" style={{top: 0, right: 0}}>
                 <PathMappingDeleteButton
