@@ -89,7 +89,7 @@ def event_to_record(
     rule_ids = []
     for rule in rules:
         if isinstance(rule, Rule):
-            rule = NotificationRule.from_deprecated_legacy_rule(rule)
+            rule = NotificationRule.from_deprecated_legacy_rule(rule, project=event.group.project)
         rule_id = rule.legacy_rule_id if identifier_key == IdentifierKey.RULE else rule.workflow_id
         assert rule_id is not None
         rule_ids.append(rule_id)
@@ -204,7 +204,7 @@ def get_rules_from_workflows(
                 assert rule.project_id == project.id, "Rule must belong to Project"
                 rules[workflow_id] = replace(
                     NotificationRule.from_deprecated_legacy_rule(
-                        rule, workflow_id=workflow_id
+                        rule, project=project, workflow_id=workflow_id
                     ),
                     environment_id=workflow.environment_id,
                 )
@@ -266,7 +266,7 @@ def build_digest(project: Project, records: Sequence[Record]) -> DigestInfo:
                 extra={"rule_id": rule.id, "project_id": project.id},
             )
         rules[rule_id] = NotificationRule.from_deprecated_legacy_rule(
-            rule, workflow_id=workflow_id
+            rule, project=project, workflow_id=workflow_id
         )
 
     rules.update(get_rules_from_workflows(project, workflow_ids))

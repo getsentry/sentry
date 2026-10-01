@@ -11,7 +11,7 @@ from sentry.notifications.platform.types import (
     NotificationSource,
     NotificationTemplate,
 )
-from sentry.notifications.types import NotificationRule, NotificationRuleData
+from sentry.notifications.types import TEST_NOTIFICATION_ID, NotificationRule, NotificationRuleData
 
 
 class SerializableRuleProxy(BaseModel):
@@ -26,8 +26,8 @@ class SerializableRuleProxy(BaseModel):
     data: NotificationRuleData
     environment_id: int | None = None
     project_id: int
-    workflow_id: int | None
-    legacy_rule_id: int | None
+    workflow_id: int | None = None
+    legacy_rule_id: int | None = None
 
     @classmethod
     def from_rule(cls, rule: NotificationRule) -> SerializableRuleProxy:
@@ -43,14 +43,28 @@ class SerializableRuleProxy(BaseModel):
         )
 
     def to_notification_rule(self, project: Project) -> NotificationRule:
+        workflow_id = self.workflow_id
+        legacy_rule_id = self.legacy_rule_id
+        if workflow_id is None and legacy_rule_id is None:
+            # Compatibility for payloads serialized before identities became top-level fields.
+            actions = self.data["actions"]
+            action = actions[0] if actions else {}
+            workflow_id = action.get("workflow_id")
+            legacy_rule_id = action.get("legacy_rule_id")
+            if workflow_id == TEST_NOTIFICATION_ID or legacy_rule_id == TEST_NOTIFICATION_ID:
+                workflow_id = None
+                legacy_rule_id = TEST_NOTIFICATION_ID
+            elif workflow_id is None and legacy_rule_id is None:
+                legacy_rule_id = self.id
+
         return NotificationRule(
             id=self.id,
             label=self.label,
             data=self.data,
             environment_id=self.environment_id,
             project=project,
-            workflow_id=self.workflow_id,
-            legacy_rule_id=self.legacy_rule_id,
+            workflow_id=workflow_id,
+            legacy_rule_id=legacy_rule_id,
         )
 
 

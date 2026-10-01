@@ -44,7 +44,7 @@ def get_notification_rules(
             linked_rule_ids.add(legacy_rule.id)
             notification_rules.append(
                 NotificationRule.from_deprecated_legacy_rule(
-                    legacy_rule, workflow_id=workflow_id
+                    legacy_rule, project=project, workflow_id=workflow_id
                 )
             )
         else:
@@ -61,7 +61,7 @@ def get_notification_rules(
             )
 
     notification_rules.extend(
-        NotificationRule.from_deprecated_legacy_rule(rule)
+        NotificationRule.from_deprecated_legacy_rule(rule, project=project)
         for rule_id in legacy_rule_ids
         if rule_id not in linked_rule_ids and (rule := rules.get(rule_id)) is not None
     )
