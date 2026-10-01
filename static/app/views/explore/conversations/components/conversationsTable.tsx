@@ -22,6 +22,7 @@ import {
   type GridColumnOrder,
   type GridColumnSort,
 } from 'sentry/components/tables/gridEditable';
+import {TableNoDataPanel} from 'sentry/components/tables/tableNoDataPanel';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconUser} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -34,7 +35,6 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
-import {WidgetNoDataPanel} from 'sentry/views/dashboards/widgets/common/widgetNoDataPanel';
 import {
   CONVERSATION_FIELDS,
   type Conversation,
@@ -345,7 +345,7 @@ export function ConversationsTable({conversations}: ConversationsTableProps) {
           isLoading={isFetching}
           error={error}
           data={data}
-          emptyMessage={<WidgetNoDataPanel />}
+          emptyMessage={<TableNoDataPanel />}
           columnOrder={displayedColumns}
           stickyHeader
           // GridEditable's Panel body has a default bottom margin; drop it so

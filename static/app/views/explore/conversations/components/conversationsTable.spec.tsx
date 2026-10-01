@@ -80,7 +80,7 @@ describe('ConversationsTable', () => {
     renderTable();
 
     expect(
-      await screen.findByRole('heading', {name: 'No data to plot.'})
+      await screen.findByRole('heading', {name: 'No results found'})
     ).toBeInTheDocument();
   });
 

@@ -84,7 +84,7 @@ describe('AgentsTable', () => {
 
     expect(await screen.findByTestId('spans-table')).toBeInTheDocument();
     expect(
-      await screen.findByRole('heading', {name: 'No data to plot.'})
+      await screen.findByRole('heading', {name: 'No results found'})
     ).toBeInTheDocument();
     expect(screen.getByRole('tab', {name: 'LLM Calls'})).toHaveAttribute(
       'aria-selected',
