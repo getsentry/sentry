@@ -18,7 +18,6 @@ from sentry.notifications.types import (
     ActionTargetType,
     FallthroughChoiceType,
     NotificationSettingEnum,
-    RuleFuture,
 )
 from sentry.notifications.types import (
     RuleFuture as RuleFuture,
