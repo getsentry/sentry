@@ -38,14 +38,12 @@ import {ConversationMissingMessagesAlert} from 'sentry/views/explore/conversatio
 import {ConversationsChart} from 'sentry/views/explore/conversations/components/conversationsChart';
 import {ConversationsTable} from 'sentry/views/explore/conversations/components/conversationsTable';
 import {SaveConversationQueryButton} from 'sentry/views/explore/conversations/components/saveConversationQueryButton';
+import {useConversationDirectHitRedirect} from 'sentry/views/explore/conversations/hooks/useConversationDirectHitRedirect';
 import {
   CONVERSATION_FIELDS,
   useConversations,
   type Conversation,
 } from 'sentry/views/explore/conversations/hooks/useConversations';
-import {
-  useConversationDirectHitRedirect,
-} from 'sentry/views/explore/conversations/hooks/useConversationDirectHitRedirect';
 import {useShowConversationOnboarding} from 'sentry/views/explore/conversations/hooks/useShowConversationOnboarding';
 import {ConversationOnboarding} from 'sentry/views/explore/conversations/onboarding';
 import {MAX_PICKABLE_DAYS} from 'sentry/views/explore/conversations/settings';

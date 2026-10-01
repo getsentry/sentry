@@ -212,16 +212,8 @@ export function ConversationsTable({conversations}: ConversationsTableProps) {
   const organization = useOrganization();
   const navigate = useNavigate();
   const {selection} = usePageFilters();
-  const {
-    data,
-    isFetching,
-    error,
-    pageLinks,
-    setCursor,
-    unsetCursor,
-    sort,
-    setSort,
-  } = conversations;
+  const {data, isFetching, error, pageLinks, setCursor, unsetCursor, sort, setSort} =
+    conversations;
 
   const [highlightedRowKey, setHighlightedRowKey] = useState<number | undefined>();
 
