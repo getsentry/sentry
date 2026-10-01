@@ -765,13 +765,14 @@ export function IssuePreviewActions({
   onRetryCodeChanges,
   project,
 }: IssuePreviewActionsProps) {
-  const {autofix, isLoading, shouldShowSeerActions} = useIssuePreviewSeer();
+  const {autofix, state} = useIssuePreviewSeer();
+  const shouldShowSeerActions = state === 'start' || state === 'summary';
 
   if (shouldShowFixAppliedActions(group, project)) {
     return <IssueResolutionActions disabled={disabled} group={group} project={project} />;
   }
 
-  if (isLoading) {
+  if (state === 'loading') {
     return <Placeholder width="120px" height="32px" />;
   }
 
