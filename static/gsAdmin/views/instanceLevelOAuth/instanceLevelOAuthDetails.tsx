@@ -124,7 +124,8 @@ function ClientDetailsForm({clientDetails}: {clientDetails: ClientDetails}) {
       termsUrl: clientDetails.termsUrl ?? '',
     },
     validators: {onDynamic: clientSchema},
-    onSubmit: ({value}) => mutation.mutateAsync(value).catch(() => {}),
+    onSubmit: ({value}) =>
+      mutation.mutateAsync(clientSchema.parse(value)).catch(() => {}),
   });
   return (
     <form.AppForm form={form}>

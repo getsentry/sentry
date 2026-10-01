@@ -176,6 +176,40 @@ describe('instance level OAuth client details', () => {
     expect(refreshedGetCall).toHaveBeenCalledTimes(1);
   });
 
+  it('trims client details before updating', async () => {
+    render(<InstanceLevelOAuthDetails />, {initialRouterConfig});
+    await screen.findByRole('button', {name: 'Save Client Settings'});
+
+    const name = screen.getByRole('textbox', {name: 'Client Name'});
+    await userEvent.clear(name);
+    await userEvent.type(name, '  New Name  ');
+
+    const redirectUris = screen.getByRole('textbox', {
+      name: 'Redirect URIs (space separated)',
+    });
+    await userEvent.clear(redirectUris);
+    await userEvent.type(redirectUris, '  https://new-redirect.com  ');
+
+    const allowedOrigins = screen.getByRole('textbox', {
+      name: 'Allowed Origins (space separated)',
+    });
+    await userEvent.clear(allowedOrigins);
+    await userEvent.type(allowedOrigins, '  https://new-origin.com  ');
+
+    await userEvent.click(screen.getByRole('button', {name: 'Save Client Settings'}));
+
+    expect(mockPutCall).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        data: expect.objectContaining({
+          name: 'New Name',
+          redirectUris: 'https://new-redirect.com',
+          allowedOrigins: 'https://new-origin.com',
+        }),
+      })
+    );
+  });
+
   it('rejects invalid URLs', async () => {
     render(<InstanceLevelOAuthDetails />, {initialRouterConfig});
     await screen.findByText('Details For Instance Level OAuth Client: CodeCov');
