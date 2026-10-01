@@ -1,4 +1,10 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import type {PromoCode as PromoCodeType} from 'admin/types';
 import {PromoCodes} from 'admin/views/promoCodes';
@@ -53,5 +59,30 @@ describe('PromoCodes', () => {
     });
     render(<PromoCodes />);
     expect(await screen.findByRole('link', {name: 'Created By'})).toBeEmptyDOMElement();
+  });
+
+  it('creates a promo code from the modal footer', async () => {
+    MockApiClient.addMockResponse({url: '/promocodes/', method: 'GET', body: []});
+    const create = MockApiClient.addMockResponse({
+      url: '/promocodes/',
+      method: 'POST',
+      body: PromoCodeFixture({code: 'test-code'}),
+    });
+    render(<PromoCodes />);
+
+    await userEvent.click(screen.getByRole('button', {name: 'Create Promo Code'}));
+    renderGlobalModal();
+    expect(screen.getByRole('heading', {name: 'Add New Promo Code'})).toBeInTheDocument();
+    await userEvent.type(screen.getByRole('textbox', {name: /Code \(ID\)/}), 'test-code');
+    await userEvent.type(screen.getByRole('textbox', {name: 'Max claims'}), '10');
+    await userEvent.click(screen.getByRole('button', {name: 'Create'}));
+
+    await waitFor(() => expect(create).toHaveBeenCalled());
+    expect(create).toHaveBeenCalledWith(
+      '/promocodes/',
+      expect.objectContaining({
+        data: expect.objectContaining({code: 'test-code', maxClaims: '10'}),
+      })
+    );
   });
 });
