@@ -654,7 +654,6 @@ module = [
     "sentry.api.serializers.rest_framework.project",
     "sentry.api.serializers.rest_framework.project_key",
     "sentry.api.serializers.rest_framework.release",
-    "sentry.api.serializers.rest_framework.rule",
     "sentry.api.serializers.snuba",
     "sentry.api.serializers.types",
     "sentry.api.urls",
