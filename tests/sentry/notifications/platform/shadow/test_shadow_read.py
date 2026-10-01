@@ -453,13 +453,14 @@ class ShadowReadMetricAlertTest(ShadowReadTestBase, MetricAlertHandlerBase):
         action = self.create_shadow_action("discord")
         self.assert_match(self.resolution_invocation(action), execute_via_metric_alert_handler)
 
-    def test_msteams_has_no_renderer(self) -> None:
+    def test_msteams_matches(self) -> None:
         action = self.create_shadow_action("msteams")
-
-        observation, send = self.send(self.invocation(action))
-
+        send = self.assert_match(self.invocation(action))
         send.assert_called_once()
-        assert observation.outcome == ShadowOutcome.NO_RENDERER
+
+    def test_msteams_resolution_matches(self) -> None:
+        action = self.create_shadow_action("msteams")
+        self.assert_match(self.resolution_invocation(action), execute_via_metric_alert_handler)
 
     def test_compares_when_the_send_raises(self) -> None:
         action = self.create_shadow_action("slack")
