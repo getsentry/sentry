@@ -1,5 +1,6 @@
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {Client} from 'sentry/api';
 import {ResultGrid} from 'sentry/components/resultGrid';
 import {ConfigStore} from 'sentry/stores/configStore';
 
@@ -117,6 +118,32 @@ describe('ResultGrid', () => {
     await userEvent.click(await screen.findByRole('option', {name: 'Any'}));
 
     await waitFor(() => expect(router.location.query).not.toHaveProperty('status'));
+  });
+
+  it('shows the error state and reports the error when the request fails', async () => {
+    MockApiClient.addMockResponse({
+      url: endpoint,
+      method: 'GET',
+      statusCode: 500,
+      body: {detail: 'boom'},
+    });
+    const onError = jest.fn();
+
+    render(<ExampleBasicResultGrid onError={onError} />);
+
+    expect(await screen.findByText('Something bad happened :/')).toBeInTheDocument();
+    expect(onError).toHaveBeenCalledTimes(1);
+    expect(onError).toHaveBeenCalledWith(expect.objectContaining({status: 500}));
+  });
+
+  it('shows the error state when the fetch itself rejects', async () => {
+    jest
+      .spyOn(Client.prototype, 'requestPromise')
+      .mockRejectedValue(new Error('Failed to fetch'));
+
+    render(<ExampleBasicResultGrid />);
+
+    expect(await screen.findByText('Something bad happened :/')).toBeInTheDocument();
   });
 });
 
@@ -453,6 +480,10 @@ describe('ResultGrid allowAllRegions', () => {
     setupCells();
   });
 
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   const allRegionsProps = {
     allowAllRegions: true,
     sortValueForRow: (row: any) => row.members ?? 0,
@@ -681,6 +712,29 @@ describe('ResultGrid allowAllRegions', () => {
     expect(await screen.findByText('Beta')).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'View in de'})).not.toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'View in us'})).not.toBeInTheDocument();
+  });
+
+  it('marks a region as failed when the fetch itself rejects (e.g. blocked request)', async () => {
+    jest
+      .spyOn(Client.prototype, 'requestPromise')
+      .mockImplementation((url: string) =>
+        url.startsWith('/_admin/cells/us/')
+          ? Promise.resolve([
+              [{id: '1', name: 'Acme', members: 5}],
+              'success',
+              {getResponseHeader: () => null},
+            ])
+          : Promise.reject(new Error('Failed to fetch'))
+      );
+
+    renderGrid(undefined, {}, allRegionsProps);
+
+    expect(await screen.findByText('Acme')).toBeInTheDocument();
+    expect(await screen.findByText('1 region failed')).toBeInTheDocument();
+    await userEvent.hover(screen.getByLabelText('Some regions failed to load'));
+    expect(
+      await screen.findByText('Could not load results from: de')
+    ).toBeInTheDocument();
   });
 
   it('loads the next page of every region that has one', async () => {
