@@ -11,6 +11,7 @@ import {useTheme} from '@emotion/react';
 import * as Sentry from '@sentry/react';
 import {Replayer, ReplayerEvents} from '@sentry/rrweb';
 import type {Mirror} from '@sentry/rrweb-snapshot';
+import isEqual from 'lodash/isEqual';
 
 import {useReplayHighlighting} from 'sentry/components/replays/useReplayHighlighting';
 import {VideoReplayerWithInteractions} from 'sentry/components/replays/videoReplayerWithInteractions';
@@ -21,7 +22,7 @@ import {useTouchEventsCheck} from 'sentry/utils/replays/playback/hooks/useTouchE
 import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
 import {ReplayCurrentTimeContextProvider} from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 import type {ReplayReader} from 'sentry/utils/replays/replayReader';
-import type {Dimensions} from 'sentry/utils/replays/types';
+import type {Dimensions, RecordingFrame} from 'sentry/utils/replays/types';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {usePrevious} from 'sentry/utils/usePrevious';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
@@ -177,6 +178,32 @@ type Props = {
   initialTimeOffsetMs?: ReturnType<typeof useInitialTimeOffsetMs>;
 };
 
+/**
+ * Rebuilding the `ReplayReader` re-collects the rrweb frames into a new array,
+ * so a reference check reports new events whenever unrelated replay data
+ * changes — errors and feedback events keep paging in after the player has
+ * mounted. Acting on that tears down the `Replayer` and restarts playback at
+ * 0:00 while the user is watching.
+ *
+ * Recorded frames carry over by reference; only the few frames the reader
+ * synthesizes around them are rebuilt, and those compare cheaply because they
+ * share their payloads with the frames they were derived from.
+ */
+function hasSameFrames(
+  events: undefined | RecordingFrame[],
+  oldEvents: undefined | RecordingFrame[]
+) {
+  if (events === oldEvents) {
+    return true;
+  }
+  if (!events || !oldEvents || events.length !== oldEvents.length) {
+    return false;
+  }
+  return events.every(
+    (frame, i) => frame === oldEvents[i] || isEqual(frame, oldEvents[i])
+  );
+}
+
 function useCurrentTime(callback: () => number) {
   const [currentTime, setCurrentTime] = useState(0);
   useRAF(() => setCurrentTime(callback));
@@ -204,7 +231,7 @@ export function Provider({
   const theme = useTheme();
   const oldEvents = usePrevious(events);
   // Note we have to check this outside of hooks, see `usePrevious` comments
-  const hasNewEvents = events !== oldEvents;
+  const hasNewEvents = !hasSameFrames(events, oldEvents);
   const replayerRef = useRef<Replayer | null>(null);
   const [dimensions, setDimensions] = useState({height: 0, width: 0});
   const [isPlaying, setIsPlaying] = useState(false);

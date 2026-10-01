@@ -254,7 +254,7 @@ function LegacyBrowserFilterRow({
         {indicator}
       </Flex>
       {hintText}
-      <FilterGrid>
+      <Grid columns={{zero: '1fr', md: '1fr 1fr'}} gap="lg" paddingTop="xl">
         {(Object.keys(LEGACY_BROWSER_SUBFILTERS) as LegacyBrowserSubfilterKeys)
           .filter(key => {
             if (!LEGACY_BROWSER_SUBFILTERS[key].legacy) {
@@ -281,7 +281,7 @@ function LegacyBrowserFilterRow({
               </FilterGridItem>
             );
           })}
-      </FilterGrid>
+      </Grid>
     </Stack>
   );
 }
@@ -900,13 +900,6 @@ export function ProjectFiltersSettings({project, params}: Props) {
   );
 }
 
-const FilterGrid = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: ${p => p.theme.space.lg};
-  margin-top: ${p => p.theme.space.xl};
-`;
-
 const FilterGridItem = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr max-content;
@@ -925,11 +918,9 @@ const FilterGridIcon = styled('img')`
 const FilterTitle = styled('div')`
   font-size: ${p => p.theme.font.size.md};
   font-weight: ${p => p.theme.font.weight.sans.medium};
-  white-space: nowrap;
 `;
 
 const FilterDescription = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.font.size.sm};
-  white-space: nowrap;
 `;

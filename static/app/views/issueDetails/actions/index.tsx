@@ -7,6 +7,7 @@ import {Button} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {bulkDelete, bulkUpdate} from 'sentry/actionCreators/group';
 import {
@@ -105,6 +106,7 @@ interface GroupActionsProps {
 
 interface GroupResolutionActionsProps extends GroupActionsProps {
   onUpdate: (data: GroupStatusResolution) => void;
+  variant?: 'primary' | 'secondary';
 }
 
 export function GroupResolutionActions({
@@ -113,6 +115,7 @@ export function GroupResolutionActions({
   group,
   onUpdate,
   project,
+  variant = 'primary',
 }: GroupResolutionActionsProps) {
   const hasRelease = !!project.features?.includes('releases');
   const eventReleaseVersion = event?.release?.versionInfo?.version;
@@ -177,7 +180,7 @@ export function GroupResolutionActions({
       onUpdate={onUpdate}
       project={project}
       size="sm"
-      priority="primary"
+      variant={variant}
     />
   );
 }
@@ -591,12 +594,14 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
           analyticsEventName="Issue Details: Share Action Clicked"
         />
         <DropdownMenu
-          triggerProps={{
-            'aria-label': t('More Actions'),
-            icon: <IconEllipsis />,
-            showChevron: false,
-            size: 'sm',
-          }}
+          trigger={triggerProps => (
+            <OverlayTrigger.IconButton
+              {...triggerProps}
+              aria-label={t('More Actions')}
+              icon={<IconEllipsis />}
+              size="sm"
+            />
+          )}
           items={[
             {
               key: 'mark-review',

@@ -8,7 +8,7 @@ from sentry.projectoptions import register
 
 # This controls what sentry:option-epoch value is given to a project when it is created
 # The epoch of a project will determine what options are valid options for that specific project
-LATEST_EPOCH = 16
+LATEST_EPOCH = 17
 
 register(key="sentry:grouping_config", default=DEFAULT_GROUPING_CONFIG)
 register(key="sentry:grouping_enhancements", default="")
@@ -39,7 +39,16 @@ register(
 # version is set on a project's DSN.
 register(
     key="sentry:default_loader_version",
-    epoch_defaults={1: "4.x", 2: "5.x", 7: "6.x", 8: "7.x", 13: "8.x", 14: "9.x", 15: "10.x"},
+    epoch_defaults={
+        1: "4.x",
+        2: "5.x",
+        7: "6.x",
+        8: "7.x",
+        13: "8.x",
+        14: "9.x",
+        15: "10.x",
+        17: "11.x",
+    },
 )
 
 # Default symbol sources. The ios source does not exist by default and
