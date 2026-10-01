@@ -1,4 +1,7 @@
-import {ATTRIBUTE_SEARCH_METADATA} from '@sentry/conventions/attributes/search';
+import {
+  ATTRIBUTE_SEARCH_METADATA,
+  type AttributeSearchMetadata,
+} from '@sentry/conventions/attributes/search';
 
 import {td} from 'sentry/locale';
 
@@ -10,20 +13,16 @@ import {
 import {FieldKind, FieldValueType, type FieldDefinition} from './types';
 
 function getFieldDefinitionFromAttributeSearchMetadata(
-  key: string
-): FieldDefinition | null {
-  const metadata = ATTRIBUTE_SEARCH_METADATA[key];
-  if (!Object.hasOwn(ATTRIBUTE_SEARCH_METADATA, key) || !metadata) {
-    return null;
-  }
-
+  key: string,
+  metadata: AttributeSearchMetadata
+): FieldDefinition {
   const keywords = getAttributeSearchDeprecationAliases(key);
   const preferredKey = getPreferredAttributeSearchKey(key);
   const valueType = attributeSearchTypeToFieldValueType(metadata.type);
 
   return {
     kind: valueType === FieldValueType.ARRAY ? FieldKind.ARRAY : FieldKind.FIELD,
-    desc: td(ATTRIBUTE_SEARCH_METADATA[key]!.brief),
+    desc: td(metadata.brief),
     valueType,
     ...(keywords.length ? {keywords} : {}),
     ...(preferredKey && preferredKey !== key ? {deprecated: true} : {}),
@@ -36,8 +35,8 @@ function getFieldDefinitionFromAttributeSearchMetadata(
  */
 export const ATTRIBUTE_SEARCH_FIELD_DEFINITIONS: Record<string, FieldDefinition> =
   Object.fromEntries(
-    Object.keys(ATTRIBUTE_SEARCH_METADATA).map(key => [
+    Object.entries(ATTRIBUTE_SEARCH_METADATA).map(([key, metadata]) => [
       key,
-      getFieldDefinitionFromAttributeSearchMetadata(key)!,
+      getFieldDefinitionFromAttributeSearchMetadata(key, metadata),
     ])
   );
