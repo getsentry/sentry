@@ -38,6 +38,6 @@ const PatternTokens = styled('span')`
   .token.char-set,
   .token.escape,
   .token.special-escape {
-    color: ${p => p.theme.colors.green600};
+    color: ${p => p.theme.tokens.content.success};
   }
 `;
