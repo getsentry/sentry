@@ -2,7 +2,7 @@ import {useEffect} from 'react';
 import {useMutation} from '@tanstack/react-query';
 
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
-import {Stack} from '@sentry/scraps/layout';
+import {Grid, Stack} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
 import {
@@ -145,28 +145,41 @@ export function UserPermissionsModal({
         <Stack gap="lg">
           <form.AppField name="isSuperuser">
             {field => (
-              <field.Layout.Stack label="Grant superuser permission (required for admin access).">
+              <Grid columns="minmax(0, 1fr) auto" align="center" gap="md">
+                <field.Meta.Label>
+                  Grant superuser permission (required for admin access).
+                </field.Meta.Label>
                 <field.Switch checked={field.state.value} onChange={field.handleChange} />
-              </field.Layout.Stack>
+              </Grid>
             )}
           </form.AppField>
           <form.AppField name="isStaff">
             {field => (
-              <field.Layout.Stack label="Grant staff permission (WIP, will be required for admin access in the future).">
+              <Grid columns="minmax(0, 1fr) auto" align="center" gap="md">
+                <field.Meta.Label>
+                  Grant staff permission (WIP, will be required for admin access in the
+                  future).
+                </field.Meta.Label>
                 <field.Switch checked={field.state.value} onChange={field.handleChange} />
-              </field.Layout.Stack>
+              </Grid>
             )}
           </form.AppField>
           <Heading as="h4">Additional Permissions</Heading>
           {available.map(perm => (
             <form.AppField key={perm} name={perm}>
               {field => (
-                <field.Layout.Stack label={perm}>
+                <Grid
+                  columns="12rem max-content"
+                  align="center"
+                  gap="md"
+                  width="fit-content"
+                >
+                  <field.Meta.Label>{perm}</field.Meta.Label>
                   <field.Switch
                     checked={field.state.value}
                     onChange={field.handleChange}
                   />
-                </field.Layout.Stack>
+                </Grid>
               )}
             </form.AppField>
           ))}
