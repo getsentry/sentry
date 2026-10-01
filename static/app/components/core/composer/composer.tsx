@@ -273,6 +273,7 @@ export function Composer({
       setActiveTrigger(null);
       source.onSelect(suggestion, {
         clear: () => {
+          dismissedRequestKeyRef.current = null;
           selectionToRestoreRef.current = {start: 0, end: 0};
           onChange({text: '', mentions: []});
         },
@@ -280,6 +281,7 @@ export function Composer({
           const nextValue = value.slice(0, start) + text + value.slice(end);
           const retainedMentions = reconcileMentions(value, nextValue, mentions);
           const nextCaret = start + text.length;
+          dismissedRequestKeyRef.current = null;
           selectionToRestoreRef.current = {start: nextCaret, end: nextCaret};
           onChange({text: nextValue, mentions: retainedMentions});
         },
