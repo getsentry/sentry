@@ -103,6 +103,11 @@ describe('ConversationsOverviewPage', () => {
       url: `/organizations/${organization.slug}/recent-searches/`,
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/recent-searches/`,
+      method: 'POST',
+      body: {},
+    });
   });
 
   afterEach(() => {
