@@ -76,6 +76,17 @@ it('does not copy generated placeholders when no captured values are available',
   }
 });
 
+it('preserves empty collections in parent copies without including omitted collections', () => {
+  const [variable] = getJsonFrameVariables(
+    {payload: {empty_array: [], empty_object: {}, items: [[], {}, 1], omitted: []}},
+    {payload: {omitted: {'': {len: 4, rem: [['!limit', 'x']]}}}}
+  );
+
+  expect(getFrameVariableCopyText(variable!, 'node')).toBe(
+    JSON.stringify({empty_array: [], empty_object: {}, items: [[], {}, 1]}, null, 2)
+  );
+});
+
 it('hides copying for entirely redacted values and collections', () => {
   const variables = getJsonFrameVariables(
     {filtered: '[Filtered]', masked: '********', object: {token: '[Filtered]'}},
