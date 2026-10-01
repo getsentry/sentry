@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
+from typing import Any
 
 import sentry_sdk
 from django.conf import settings
@@ -114,20 +115,43 @@ def backfill_artifact_bundle_db_indexing(organization_id: int, release: str, dis
     index_artifact_bundles_for_release(organization_id, [(ab, None) for ab in artifact_bundles])
 
 
+def is_named_after_own_debug_id(url: str, info: dict[str, Any]) -> bool:
+    """
+    Returns whether a bundle file is stored under a name built from its own debug ID, like
+    `~/<debug-id>-<n>.js` or `~/<debug-id>-<n>.js.map`.
+
+    The bundler plugins upload files under such names when they are only meant to be matched
+    by debug ID. No frame has these URLs, and Symbolicator sends the debug ID along with the
+    URL of every frame that has one, which the lookup resolves before it uses the URL index.
+    """
+    headers = ArtifactBundleArchive.normalize_headers(info.get("headers", {}))
+    debug_id = ArtifactBundleArchive.normalize_debug_id(headers.get("debug-id"))
+    if debug_id is None:
+        return False
+    file_name = url.rsplit("/", 1)[-1].lower()
+    return file_name.startswith(f"{debug_id}-")
+
+
 @trace
 def index_urls_in_bundle(
     organization_id: int,
     artifact_bundle: ArtifactBundle,
     existing_archive: ArtifactBundleArchive | None,
 ):
+    skip_debug_id_names = options.get("sourcemaps.artifact-bundles.index-skip-debug-id-names")
+
     # We first open up the bundle and extract all the things we want to index from it.
     archive = existing_archive or ArtifactBundleArchive(
         artifact_bundle.file.getfile(), build_memory_map=False
     )
     urls_to_index = []
+    skipped_urls = 0
     try:
         for info in archive.get_files().values():
             if url := info.get("url"):
+                if skip_debug_id_names and is_named_after_own_debug_id(url, info):
+                    skipped_urls += 1
+                    continue
                 urls_to_index.append(
                     ArtifactBundleIndex(
                         # key/value:
@@ -174,6 +198,8 @@ def index_urls_in_bundle(
 
         metrics.incr("artifact_bundle_indexing.bundles_indexed")
         metrics.incr("artifact_bundle_indexing.urls_indexed", len(urls_to_index))
+        if skipped_urls:
+            metrics.incr("artifact_bundle_indexing.urls_skipped", skipped_urls)
 
 
 # ===== Renewal of Artifact Bundles =====
