@@ -409,7 +409,12 @@ def get_environment_by_event(event_data: WorkflowEventData) -> Environment | Non
 
         return environment
     elif isinstance(event_data.event, Activity):
-        return _get_environment_by_group(event_data.group.id)
+        # This is looked up again further down to build a log line, so keep it to one query.
+        if "activity_environment" not in event_data._cache:
+            event_data._cache["activity_environment"] = _get_environment_by_group(
+                event_data.group.id
+            )
+        return event_data._cache["activity_environment"]
 
     raise TypeError(f"Cannot access the environment from, {type(event_data.event)}.")
 
@@ -429,15 +434,22 @@ def _get_environment_by_group(group_id: int) -> Environment | None:
         ]
     )
 
-    if len(environment_ids) != 1:
-        metrics_incr(
-            "process_workflows.activity_environment",
-            tags={"outcome": "ambiguous" if environment_ids else "missing"},
-        )
-        return None
+    environment: Environment | None = None
+    if not environment_ids:
+        outcome = "missing"
+    elif len(environment_ids) > 1:
+        outcome = "ambiguous"
+    else:
+        try:
+            environment = Environment.objects.get_from_cache(id=environment_ids[0])
+            outcome = "resolved"
+        except Environment.DoesNotExist:
+            # GroupEnvironment's foreign key sets db_constraint=False, so its rows can outlive
+            # the Environment. Stay unscoped rather than letting this abort the whole evaluation.
+            outcome = "deleted"
 
-    metrics_incr("process_workflows.activity_environment", tags={"outcome": "resolved"})
-    return Environment.objects.get_from_cache(id=environment_ids[0])
+    metrics_incr("process_workflows.activity_environment", tags={"outcome": outcome})
+    return environment
 
 
 def _get_associated_workflows(

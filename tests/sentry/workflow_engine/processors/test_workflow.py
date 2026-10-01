@@ -373,14 +373,13 @@ class TestProcessWorkflows(BaseWorkflowTest):
         }
 
     def _activity_event_data(self) -> WorkflowEventData:
-        return WorkflowEventData(
-            event=Activity.objects.create(
-                project=self.project,
-                group=self.group,
-                type=ActivityType.SET_RESOLVED.value,
-            ),
+        activity = Activity(
+            project=self.project,
             group=self.group,
+            type=ActivityType.SET_RESOLVED.value,
         )
+        activity.save()
+        return WorkflowEventData(event=activity, group=self.group)
 
     def test_activity_environment_from_group(self) -> None:
         # An Activity carries no environment of its own, so it comes from the group.
@@ -399,6 +398,15 @@ class TestProcessWorkflows(BaseWorkflowTest):
                 group_id=self.group.id,
                 environment_id=self.create_environment(project=self.project).id,
             )
+
+        assert get_environment_by_event(self._activity_event_data()) is None
+
+    def test_activity_environment_when_environment_was_deleted(self) -> None:
+        # The foreign key sets db_constraint=False, so the row can outlive its Environment.
+        env = self.create_environment(project=self.project)
+        GroupEnvironment.objects.create(group_id=self.group.id, environment_id=env.id)
+        Environment.objects.filter(id=env.id).delete()
+        cache.clear()
 
         assert get_environment_by_event(self._activity_event_data()) is None
 

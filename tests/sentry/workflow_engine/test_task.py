@@ -1,3 +1,4 @@
+from typing import Any
 from unittest import mock
 
 import sentry_sdk
@@ -162,7 +163,7 @@ class TestProcessWorkflowActivity(TestCase):
 
         mock_filter_actions.assert_called_once_with({self.action_group}, expected_event_data)
 
-    def _create_workflow_with_action(self, **workflow_kwargs: object) -> DataConditionGroup:
+    def _create_workflow_with_action(self, **workflow_kwargs: Any) -> DataConditionGroup:
         workflow = self.create_workflow(organization=self.organization, **workflow_kwargs)
         action_group = self.create_data_condition_group(logic_type="any-short")
         self.create_data_condition_group_action(
