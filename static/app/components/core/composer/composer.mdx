@@ -7,12 +7,7 @@ source: '@sentry/scraps/composer'
 
 import * as Storybook from 'sentry/stories';
 
-import {
-  AsyncComposerDemo,
-  ComposerDemo,
-  RestoredComposerDemo,
-  RenderedMentionComposerDemo,
-} from './__stories__/demos';
+import {AsyncComposerDemo, ComposerDemo, RestoredComposerDemo} from './__stories__/demos';
 
 export const documentation = import('!!type-loader!@sentry/scraps/composer/composer');
 
@@ -126,14 +121,6 @@ const [value, setValue] = useState({
   onChange={setValue}
 />;
 ```
-
-## Render mention tokens
-
-Use `renderMention` to display a reference as an atomic token. Its canonical `mention.text` stays in the controlled value and clipboard, even when the rendered label differs. Backspace and Delete remove the entire token.
-
-<Storybook.Demo overflow="visible">
-  <RenderedMentionComposerDemo />
-</Storybook.Demo>
 
 ## Load queried suggestions
 

@@ -81,7 +81,6 @@ import {
   useSeerExplorerDeepLink,
   useSeerExplorerResumeDeepLink,
 } from 'sentry/views/seerExplorer/utils';
-import {serializeComposerValue} from 'sentry/views/seerExplorer/utils/serializeComposerValue';
 
 export const INPUT_STORAGE_KEY_PREFIX = 'seer-explorer-draft';
 
@@ -256,27 +255,23 @@ export function SeerExplorerContent({
   );
 
   const inputValue = useMemo<ComposerValue>(
-    () =>
-      typeof storedInputValue === 'string'
-        ? {text: storedInputValue, mentions: []}
-        : storedInputValue,
+    () => ({
+      text:
+        typeof storedInputValue === 'string' ? storedInputValue : storedInputValue.text,
+      mentions: [],
+    }),
     [storedInputValue]
   );
-  const submittedInputRef = useRef<{query: string; value: ComposerValue} | null>(null);
 
   // Put a message that failed to send back in the composer, unless the user has
   // already started typing something else.
   useEffect(() => {
     const failedQuery = requestError?.query;
     if (failedQuery) {
-      const failedInput =
-        submittedInputRef.current?.query === failedQuery
-          ? submittedInputRef.current.value
-          : {text: failedQuery, mentions: []};
       setInputValue(current =>
         (typeof current === 'string' ? current : current.text).trim()
           ? current
-          : failedInput
+          : {text: failedQuery, mentions: []}
       );
     }
   }, [requestError, setInputValue]);
@@ -571,9 +566,7 @@ export function SeerExplorerContent({
     if (!canSendMessage) {
       return;
     }
-    const query = serializeComposerValue(inputValue).trim();
-    submittedInputRef.current = {query, value: inputValue};
-    sendMessage(query, blocks.length);
+    sendMessage(inputValue.text.trim(), blocks.length);
     clearInput();
     userScrolledUpRef.current = false;
   }, [canSendMessage, inputValue, sendMessage, blocks.length, clearInput]);
@@ -659,7 +652,7 @@ export function SeerExplorerContent({
       if (scrollContainerRef.current) {
         scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
       }
-      textareaRef.current?.focus();
+      composerRef.current?.focus();
     },
   });
   useEffect(() => {
