@@ -8,7 +8,7 @@ from slack_sdk.web import SlackResponse
 from sentry.integrations.slack import SlackNotifyServiceAction
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.notifications.models.notificationmessage import NotificationMessage
-from sentry.notifications.types import RuleFuture
+from sentry.notifications.types import NotificationRule, RuleFuture
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_failure_metric
@@ -78,7 +78,12 @@ class TestInit(RuleTestCase):
         results = list(rule_cls_instance.after(event=self.event))
         assert len(results) == 1
 
-        results[0].callback(self.event, futures=[RuleFuture(rule=rule, kwargs={})])
+        results[0].callback(
+            self.event,
+            futures=[
+                RuleFuture(rule=NotificationRule.from_deprecated_legacy_rule(rule), kwargs={})
+            ],
+        )
         blocks = mock_post.call_args.kwargs["blocks"]
         blocks = orjson.loads(blocks)
 
@@ -123,7 +128,12 @@ class TestInit(RuleTestCase):
         results = list(rule_cls_instance.after(event=self.event))
         assert len(results) == 1
 
-        results[0].callback(self.event, futures=[RuleFuture(rule=rule, kwargs={})])
+        results[0].callback(
+            self.event,
+            futures=[
+                RuleFuture(rule=NotificationRule.from_deprecated_legacy_rule(rule), kwargs={})
+            ],
+        )
         blocks = mock_post.call_args.kwargs["blocks"]
         blocks = orjson.loads(blocks)
 
@@ -174,7 +184,12 @@ class TestInit(RuleTestCase):
         results = list(rule_cls_instance.after(event=self.event))
         assert len(results) == 1
 
-        results[0].callback(self.event, futures=[RuleFuture(rule=rule, kwargs={})])
+        results[0].callback(
+            self.event,
+            futures=[
+                RuleFuture(rule=NotificationRule.from_deprecated_legacy_rule(rule), kwargs={})
+            ],
+        )
 
         assert NotificationMessage.objects.all().count() == 1
 
@@ -210,7 +225,12 @@ class TestInit(RuleTestCase):
         results = list(rule_cls_instance.after(event=self.event))
         assert len(results) == 1
 
-        results[0].callback(self.event, futures=[RuleFuture(rule=rule, kwargs={})])
+        results[0].callback(
+            self.event,
+            futures=[
+                RuleFuture(rule=NotificationRule.from_deprecated_legacy_rule(rule), kwargs={})
+            ],
+        )
         blocks = mock_post.call_args.kwargs["blocks"]
         blocks = orjson.loads(blocks)
 
@@ -251,7 +271,12 @@ class TestInit(RuleTestCase):
         results = list(rule_cls_instance.after(event=self.event))
         assert len(results) == 1
 
-        results[0].callback(self.event, futures=[RuleFuture(rule=rule, kwargs={})])
+        results[0].callback(
+            self.event,
+            futures=[
+                RuleFuture(rule=NotificationRule.from_deprecated_legacy_rule(rule), kwargs={})
+            ],
+        )
         blocks = mock_post.call_args.kwargs["blocks"]
         blocks = orjson.loads(blocks)
 
@@ -292,7 +317,12 @@ class TestInit(RuleTestCase):
         rule.id = self.action.id
         rule.environment_id = None
 
-        results[0].callback(self.event, futures=[RuleFuture(rule=rule, kwargs={})])
+        results[0].callback(
+            self.event,
+            futures=[
+                RuleFuture(rule=NotificationRule.from_deprecated_legacy_rule(rule), kwargs={})
+            ],
+        )
         blocks = mock_post.call_args.kwargs["blocks"]
         blocks = orjson.loads(blocks)
 
@@ -349,7 +379,12 @@ class TestInit(RuleTestCase):
         rule.id = self.action.id
         rule.environment_id = None
 
-        results[0].callback(self.event, futures=[RuleFuture(rule=rule, kwargs={})])
+        results[0].callback(
+            self.event,
+            futures=[
+                RuleFuture(rule=NotificationRule.from_deprecated_legacy_rule(rule), kwargs={})
+            ],
+        )
         blocks = mock_post.call_args.kwargs["blocks"]
         blocks = orjson.loads(blocks)
 

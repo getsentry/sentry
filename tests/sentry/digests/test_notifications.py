@@ -16,7 +16,7 @@ from sentry.digests.types import NotificationWithRuleObjects, Record, RecordWith
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.models.rule import Rule
-from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
+from sentry.notifications.types import ActionTargetType, FallthroughChoiceType, NotificationRule
 from sentry.testutils.cases import TestCase
 from sentry.testutils.skips import requires_snuba
 
@@ -40,17 +40,21 @@ class BindRecordsTestCase(TestCase):
     def record(self) -> Record:
         return event_to_record(self.event, (self.rule,), self.notification_uuid)
 
+    @cached_property
+    def notification_rule(self) -> NotificationRule:
+        return NotificationRule.from_deprecated_legacy_rule(self.rule)
+
     @property
     def group_mapping(self) -> dict[int, Group]:
         return {self.event.group.id: self.event.group}
 
     @property
-    def rule_mapping(self) -> dict[int, Rule]:
-        return {self.rule.id: self.rule}
+    def rule_mapping(self) -> dict[int, NotificationRule]:
+        return {self.rule.id: self.notification_rule}
 
     def test_success(self) -> None:
         (record,) = _bind_records([self.record], self.group_mapping, self.rule_mapping)
-        assert record == self.record.with_rules([self.rule])
+        assert record == self.record.with_rules([self.notification_rule])
 
     def test_without_group(self) -> None:
         # If the record can't be associated with a group, it should be dropped
@@ -70,8 +74,10 @@ class GroupRecordsTestCase(TestCase):
         return self.create_project(fire_project_created=True)
 
     @cached_property
-    def rule(self) -> Rule:
-        return self.create_project_rule(project=self.project)
+    def rule(self) -> NotificationRule:
+        return NotificationRule.from_deprecated_legacy_rule(
+            self.create_project_rule(project=self.project)
+        )
 
     def test_success(self) -> None:
         events = [
@@ -98,21 +104,25 @@ class SortDigestTestCase(TestCase):
         return self.create_project(fire_project_created=True)
 
     def test_success(self) -> None:
-        first_rule = self.create_project_rule(
-            project=self.project,
-            name="Send a notification for new issues",
-            condition_data=[
-                {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
-            ],
-            action_data=[{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}],
+        first_rule = NotificationRule.from_deprecated_legacy_rule(
+            self.create_project_rule(
+                project=self.project,
+                name="Send a notification for new issues",
+                condition_data=[
+                    {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
+                ],
+                action_data=[{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}],
+            )
         )
-        second_rule = self.create_project_rule(
-            project=self.project,
-            name="Send a notification for regressions",
-            condition_data=[
-                {"id": "sentry.rules.conditions.regression_event.RegressionEventCondition"}
-            ],
-            action_data=[{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}],
+        second_rule = NotificationRule.from_deprecated_legacy_rule(
+            self.create_project_rule(
+                project=self.project,
+                name="Send a notification for regressions",
+                condition_data=[
+                    {"id": "sentry.rules.conditions.regression_event.RegressionEventCondition"}
+                ],
+                action_data=[{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}],
+            )
         )
 
         rules = [first_rule, second_rule]

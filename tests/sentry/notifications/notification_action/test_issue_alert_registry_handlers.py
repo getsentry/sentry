@@ -28,6 +28,7 @@ from sentry.notifications.types import (
     ActionTargetType,
     FallthroughChoiceType,
     NotificationRule,
+    NotificationRuleData,
 )
 from sentry.testutils.helpers.data_blobs import (
     AZURE_DEVOPS_ACTION_DATA_BLOBS,
@@ -242,7 +243,7 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
         }
 
     def test_notification_rule_rejects_invalid_identity(self) -> None:
-        data = {"actions": [{"id": "test-action"}]}
+        data: NotificationRuleData = {"actions": [{"id": "test-action"}]}
 
         with pytest.raises(ValueError, match="requires at least one action"):
             NotificationRule(
@@ -278,13 +279,14 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
             )
 
     def test_from_deprecated_legacy_rule(self) -> None:
-        notification_rule = NotificationRule.from_deprecated_legacy_rule(self.rule)
+        legacy_rule = self.create_project_rule(project=self.project, include_workflow_id=False)
+        notification_rule = NotificationRule.from_deprecated_legacy_rule(legacy_rule)
 
-        assert notification_rule.id == self.rule.id
-        assert notification_rule.legacy_rule_id == self.rule.id
+        assert notification_rule.id == legacy_rule.id
+        assert notification_rule.legacy_rule_id == legacy_rule.id
         assert notification_rule.workflow_id is None
         assert notification_rule.is_legacy_rule_only
-        assert notification_rule.data == {"actions": self.rule.data["actions"]}
+        assert notification_rule.data == {"actions": legacy_rule.data["actions"]}
 
     def test_create_rule_instance_from_action_no_environment(self) -> None:
         """Test that create_rule_instance_from_action creates a notification rule."""
