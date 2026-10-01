@@ -68,11 +68,21 @@ try {
       stdio: 'inherit',
     });
     const runtime = await import(join(installed, packageJson.exports[subpath].import));
-    if (!Object.keys(runtime).length && subpath !== './cssTypes') {
+    if (!Object.keys(runtime).length) {
       throw new Error(`Empty runtime entry: ${specifier}`);
     }
     console.log(`Verified ${specifier}`);
   }
+
+  await writeFile(
+    join(consumer, 'private.mjs'),
+    `import {rejects} from 'node:assert/strict';
+for (const subpath of ['layout/stack', 'theme/light', 'tokens/color', 'cssTypes', 'code/inlineCode', 'hotkey/kbd']) {
+  await rejects(import('@sentry/scraps/' + subpath), {code: 'ERR_PACKAGE_PATH_NOT_EXPORTED'});
+}
+`
+  );
+  execFileSync(process.execPath, [join(consumer, 'private.mjs')], {stdio: 'inherit'});
 
   const {createElement} = await import('react');
   const {renderToStaticMarkup} = await import('react-dom/server');
@@ -93,7 +103,7 @@ try {
     lightTheme,
     darkTheme,
   } = await import(join(installed, 'dist/index.js'));
-  const {Stack: stackSubpath} = await import(join(installed, 'dist/layout/stack.js'));
+  const {Stack: stackSubpath} = await import(join(installed, 'dist/layout/index.js'));
   if (Stack !== stackSubpath) {
     throw new Error('Public subpaths created separate component instances');
   }
