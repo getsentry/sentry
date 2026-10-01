@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.utils.crypto import constant_time_compare
 from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 
@@ -14,7 +15,9 @@ class AuthV2Permission(BasePermission):
         if not settings.AUTH_V2_SECRET:
             return False
 
-        return request.META.get("HTTP_X_SENTRY_AUTH_V2") == settings.AUTH_V2_SECRET
+        return constant_time_compare(
+            request.META.get("HTTP_X_SENTRY_AUTH_V2", ""), settings.AUTH_V2_SECRET
+        )
 
 
 class AuthV2Endpoint(Endpoint):

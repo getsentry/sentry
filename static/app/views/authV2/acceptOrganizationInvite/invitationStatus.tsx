@@ -12,27 +12,28 @@ interface InvitationStatusProps {
   onAccept: () => void;
   onSwitchAccount: () => void;
   step: Exclude<InvitationStep, 'authentication'>;
+  isCheckingInvite?: boolean;
+  isSwitchingAccount?: boolean;
 }
 
 export function InvitationStatus({
   isAccepting,
+  isCheckingInvite = false,
+  isSwitchingAccount = false,
   onAccept,
   onSwitchAccount,
   step,
 }: InvitationStatusProps) {
-  if (step === 'refreshing') {
-    return (
-      <Text align="center" variant="muted">
-        {t('Checking your invitation…')}
-      </Text>
-    );
-  }
-
   if (step === 'existing-member') {
     return (
       <Stack gap="md" align="start">
         <Text>{t('This account is already a member of the organization.')}</Text>
-        <Button size="xs" onClick={onSwitchAccount}>
+        <Button
+          size="xs"
+          busy={isSwitchingAccount}
+          disabled={isSwitchingAccount || isCheckingInvite}
+          onClick={onSwitchAccount}
+        >
           {t('Switch account')}
         </Button>
       </Stack>
@@ -42,20 +43,14 @@ export function InvitationStatus({
   if (step === 'required-2fa') {
     return (
       <Stack gap="lg" align="start">
-        <Stack gap="xs">
-          <Text>
-            {t(
-              'This organization requires all members to configure two-factor authentication.'
-            )}
-          </Text>
-          <Text size="xs" variant="muted">
-            {t(
-              'Return to this tab after setting up two-factor authentication to accept your invitation.'
-            )}
-          </Text>
-        </Stack>
+        <Text>
+          {t(
+            'This organization requires all members to configure two-factor authentication. Return to this tab after setting up two-factor to accept your invitation.'
+          )}
+        </Text>
         <LinkButton
           external
+          disabled={isCheckingInvite || isSwitchingAccount}
           variant="primary"
           href={`${ConfigStore.get('links').sentryUrl}/settings/account/security/`}
         >
@@ -84,8 +79,8 @@ export function InvitationStatus({
   return (
     <Button
       variant="primary"
-      busy={isAccepting}
-      disabled={isAccepting}
+      busy={isAccepting || isSwitchingAccount}
+      disabled={isAccepting || isSwitchingAccount || isCheckingInvite}
       onClick={onAccept}
     >
       {t('Accept invitation')}

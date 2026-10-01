@@ -268,32 +268,6 @@ function useInvestigationMutation<TData, TVariables>(
   });
 }
 
-/**
- * Start an empty investigation.
- *
- * A `source` with no `templateKey` is what makes the server build an agentic
- * run rather than a bare notebook, so this is the field that decides whether
- * the investigation ever has hypotheses. A manual source carries no prompt yet,
- * so the run opens `awaiting_input` and waits for one.
- */
-export function useCreateInvestigationMutation(
-  organizationSlug: string,
-  options?: MutationOptions<InvestigationListItem, void>
-) {
-  return useInvestigationMutation(
-    organizationSlug,
-    () =>
-      fetchMutation<InvestigationListItem>({
-        url: getApiUrl('/organizations/$organizationIdOrSlug/investigations/', {
-          path: {organizationIdOrSlug: organizationSlug},
-        }),
-        method: 'POST',
-        data: {title: 'Untitled investigation', source: {type: 'manual'}},
-      }),
-    options
-  );
-}
-
 export function useLaunchInvestigationMutation(
   organizationSlug: string,
   options?: MutationOptions<InvestigationDetail, MetricOpenPeriodInvestigationSource>

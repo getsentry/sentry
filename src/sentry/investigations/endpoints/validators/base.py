@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, TypeVar
 
 from rest_framework import serializers
 from rest_framework.fields import empty
@@ -12,8 +12,11 @@ from sentry.api.serializers.rest_framework.base import (
     snake_to_camel_case,
 )
 
+# The type that `save()` returns. Validators that do not save keep the default.
+InstanceT = TypeVar("InstanceT", default=None)
 
-class StrictCamelSnakeValidator(serializers.Serializer[None]):
+
+class StrictCamelSnakeValidator(serializers.Serializer[InstanceT]):
     """
     Camel-case API fields while preserving keys inside JSON objects.
 

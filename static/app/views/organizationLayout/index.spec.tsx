@@ -215,7 +215,10 @@ describe('OrganizationLayout', () => {
         </OrganizationContext.Provider>
       );
 
-      await screen.findByTestId('no-organization-sidebar');
+      expect(await screen.findByRole('link', {name: 'Account Details'})).toHaveAttribute(
+        'href',
+        '/settings/account/details/'
+      );
     });
   });
 });

@@ -14,7 +14,6 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.decorators import primary_email_verification_required, sudo_required
-from sentry.api.invite_helper import ApiInviteHelper, remove_invite_details_from_session
 from sentry.api.serializers import serialize
 from sentry.auth.authenticators.base import EnrollmentStatus, NewEnrollmentDisallowed
 from sentry.auth.authenticators.sms import SmsInterface, SMSRateLimitExceeded
@@ -311,23 +310,4 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
 
         request.session[MFA_SESSION_KEY] = str(user.id)
 
-        response = Response(status=status.HTTP_204_NO_CONTENT)
-
-        # TODO(auth-v2): Once legacy invitation acceptance is retired, remove this
-        # session check and the automatic-acceptance block below. Enrollment
-        # should always leave invitations pending for explicit acceptance.
-        if request.session.get("invite_explicit_acceptance"):
-            return response
-
-        # If there is a pending organization invite accept after the
-        # authenticator has been configured.
-        request.user = (
-            user  # Load in the canonical user object so the invite helper references it correctly.
-        )
-        invite_helper = ApiInviteHelper.from_session(request=request, logger=logger)
-
-        if invite_helper and (invite_helper.member_already_exists or invite_helper.valid_request):
-            invite_helper.accept_invite(user)
-            remove_invite_details_from_session(request)
-
-        return response
+        return Response(status=status.HTTP_204_NO_CONTENT)

@@ -1,3 +1,5 @@
+import {useEffect} from 'react';
+
 import {act, renderHook} from 'sentry-test/reactTestingLibrary';
 
 import {FormContext} from 'sentry/components/forms/formContext';
@@ -16,24 +18,83 @@ describe('useFormField', () => {
     model = new FormModel();
   });
 
-  it('returns field values and handles updates correctly', () => {
+  it('only updates for the subscribed field', () => {
     model.setInitialData({targetField: 'initial', otherField: 'other'});
+    const onRender = jest.fn();
+    const getValue = jest.spyOn(model, 'getValue');
 
-    const {result} = renderHook(() => useFormField('targetField'), {
-      wrapper: withFormContext,
-    });
+    const {result} = renderHook(
+      () => {
+        const value = useFormField('targetField');
+        useEffect(onRender);
+        return value;
+      },
+      {wrapper: withFormContext}
+    );
 
     expect(result.current).toBe('initial');
+    onRender.mockClear();
+    getValue.mockClear();
 
     act(() => {
       model.setValue('otherField', 'changed');
     });
     expect(result.current).toBe('initial');
+    expect(getValue).not.toHaveBeenCalledWith('targetField');
+    expect(onRender).not.toHaveBeenCalled();
 
     act(() => {
       model.setValue('targetField', 'changed');
     });
     expect(result.current).toBe('changed');
+    expect(onRender).toHaveBeenCalled();
+    onRender.mockClear();
+    getValue.mockClear();
+
+    act(() => {
+      model.setValue('otherField', 'changed again');
+    });
+    expect(getValue).not.toHaveBeenCalledWith('targetField');
+    expect(onRender).not.toHaveBeenCalled();
+  });
+
+  it('ignores unrelated updates before and after the subscribed field is added', () => {
+    model.setInitialData({otherField: 'other'});
+    const onRender = jest.fn();
+    const getValue = jest.spyOn(model, 'getValue');
+
+    const {result} = renderHook(
+      () => {
+        const value = useFormField('targetField');
+        useEffect(onRender);
+        return value;
+      },
+      {wrapper: withFormContext}
+    );
+
+    expect(result.current).toBe('');
+    onRender.mockClear();
+    getValue.mockClear();
+
+    act(() => {
+      model.setValue('otherField', 'changed');
+    });
+    expect(getValue).not.toHaveBeenCalledWith('targetField');
+    expect(onRender).not.toHaveBeenCalled();
+
+    act(() => {
+      model.setValue('targetField', 'newly added');
+    });
+    expect(result.current).toBe('newly added');
+    expect(onRender).toHaveBeenCalled();
+    onRender.mockClear();
+    getValue.mockClear();
+
+    act(() => {
+      model.setValue('otherField', 'changed again');
+    });
+    expect(getValue).not.toHaveBeenCalledWith('targetField');
+    expect(onRender).not.toHaveBeenCalled();
   });
 
   it('handles undefined values and type parameters', () => {
@@ -75,7 +136,7 @@ describe('useFormField', () => {
     expect(result.current).toBe('updated value');
   });
 
-  it('handles fields that are removed after subscription', () => {
+  it('handles fields that are removed and added again after subscription', () => {
     model.setInitialData({targetField: 'initial'});
 
     const {result} = renderHook(() => useFormField('targetField'), {
@@ -88,5 +149,9 @@ describe('useFormField', () => {
       model.removeField('targetField');
     });
     expect(result.current).toBe('');
+    act(() => {
+      model.setValue('targetField', 'restored');
+    });
+    expect(result.current).toBe('restored');
   });
 });

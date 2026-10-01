@@ -18,10 +18,12 @@ import {AutofixEvidence} from 'sentry/components/events/autofix/v3/autofixEviden
 import {AutofixResetPrompt} from 'sentry/components/events/autofix/v3/autofixResetPrompt';
 import {useAutofixSectionEvidence} from 'sentry/components/events/autofix/v3/useAutofixSectionEvidence';
 import {useResetAutofixStep} from 'sentry/components/events/autofix/v3/useResetAutofixStep';
+import {useRethinkInChat} from 'sentry/components/events/autofix/v3/useRethinkInChat';
 import {artifactToMarkdown} from 'sentry/components/events/autofix/v3/utils';
 import {IconBug} from 'sentry/icons/iconBug';
 import {IconRefresh} from 'sentry/icons/iconRefresh';
 import {t} from 'sentry/locale';
+import {defined} from 'sentry/utils/defined';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 
 interface RootCauseCardProps {
@@ -49,6 +51,12 @@ export function RootCauseCard({autofix, groupId, section}: RootCauseCardProps) {
       step: 'root_cause',
     });
 
+  const rethinkPrompt = t('How can this root cause be improved?');
+  const rethinkInChat = useRethinkInChat({
+    prompt: rethinkPrompt,
+    step: 'root_cause',
+  });
+
   const evidence = useAutofixSectionEvidence({section});
 
   return (
@@ -61,7 +69,8 @@ export function RootCauseCard({autofix, groupId, section}: RootCauseCardProps) {
           : undefined
       }
       allowReset
-      onReset={canReset ? () => setShouldShowReset(true) : undefined}
+      onReset={canReset ? (rethinkInChat ?? (() => setShouldShowReset(true))) : undefined}
+      resetInChat={defined(rethinkInChat)}
     >
       {section.status === 'processing' ? (
         <ArtifactLoadingDetails
@@ -75,7 +84,7 @@ export function RootCauseCard({autofix, groupId, section}: RootCauseCardProps) {
               onClosePrompt={() => setShouldShowReset(false)}
               onReset={handleReset}
               placeholder={t('Give seer additional context to improve this root cause.')}
-              prompt={t('How can this root cause be improved?')}
+              prompt={rethinkPrompt}
             />
           )}
           <ArtifactDetails>

@@ -2,10 +2,15 @@ import sortBy from 'lodash/sortBy';
 import moment from 'moment-timezone';
 
 import {
-  MonitorStatus,
   type Monitor,
   type MonitorEnvironment,
+  MonitorStatus,
 } from 'sentry/views/insights/crons/types';
+
+export const DEFAULT_CHECKIN_MARGIN = 1;
+
+// In minutes
+export const DEFAULT_MAX_RUNTIME = 30;
 
 /**
  * Priority order for selecting which environment to display/use.

@@ -236,7 +236,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
           value={selectedContentTab}
           onChange={key => trackContentSelected(key as Tab)}
         >
-          <TabList>
+          <TabList variant="floating">
             {contentTabs.map(tab => (
               <TabList.Item
                 key={tab.key}

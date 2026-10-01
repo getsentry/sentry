@@ -248,19 +248,24 @@ Disable all tabs with the `disabled` prop on `<Tabs>`, or disable individual tab
 
 Tabs come in two visual variants: `flat` (default) and `floating`. The variant is set on the `<TabList>`:
 
-<Storybook.Demo>
-  <Tabs>
-    <TabList variant="floating">
-      <TabList.Item key="one">Tab 1</TabList.Item>
-      <TabList.Item key="two">Tab 2</TabList.Item>
-      <TabList.Item key="three">Tab 3</TabList.Item>
-    </TabList>
-    <TabPanels>
-      <TabPanels.Item key="one">Floating variant content 1</TabPanels.Item>
-      <TabPanels.Item key="two">Floating variant content 2</TabPanels.Item>
-      <TabPanels.Item key="three">Floating variant content 3</TabPanels.Item>
-    </TabPanels>
-  </Tabs>
+<Storybook.Demo direction="column" align="stretch" gap="3xl">
+  {['flat', 'floating'].map(variant => (
+    <Stack key={variant} gap="md">
+      <Text>{variant === 'flat' ? 'flat (default)' : variant}</Text>
+      <Tabs>
+        <TabList variant={variant} aria-label={`${variant} tabs`}>
+          <TabList.Item key="one">Tab 1</TabList.Item>
+          <TabList.Item key="two">Tab 2</TabList.Item>
+          <TabList.Item key="three">Tab 3</TabList.Item>
+        </TabList>
+        <TabPanels>
+          <TabPanels.Item key="one">{variant} variant content 1</TabPanels.Item>
+          <TabPanels.Item key="two">{variant} variant content 2</TabPanels.Item>
+          <TabPanels.Item key="three">{variant} variant content 3</TabPanels.Item>
+        </TabPanels>
+      </Tabs>
+    </Stack>
+  ))}
 </Storybook.Demo>
 
 ```jsx

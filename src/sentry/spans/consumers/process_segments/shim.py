@@ -11,6 +11,7 @@ from sentry_conventions.attributes import ATTRIBUTE_NAMES
 from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 
 from sentry.spans.consumers.process_segments.types import (
+    Attribute,
     CompatibleSpan,
     attribute_value,
     get_span_op,
@@ -61,6 +62,13 @@ SPAN_SENTRY_TAGS_FIELDS_BY_ATTRIBUTE_NAME = {
     "sentry.system": "system",
 }
 
+KNOWN_NON_TAG_ATTRIBUTE_PREFIXES = frozenset({"sentry.", "user.", "browser.web_vital."})
+KNOWN_NON_TAG_ATTRIBUTES = frozenset().union(
+    TOP_LEVEL_FIELDS_BY_ATTRIBUTE_NAME.keys(),
+    SPAN_SENTRY_TAGS_FIELDS_BY_ATTRIBUTE_NAME.keys(),
+    *(inner_dict.keys() for inner_dict in CONTEXT_FIELDS_BY_ATTRIBUTE_NAME.values()),
+)
+
 
 def make_compatible(span: SpanEvent) -> CompatibleSpan:
     # Creates attributes for EAP spans that are required by logic shared with the
@@ -100,8 +108,39 @@ def _extract_attribute_values(
     return values_by_field_name
 
 
+def _is_tag_like_attribute(key: str, attribute: Attribute) -> bool:
+    """
+    Decide whether a segment span attribute should be included in the event's `tags` value.
+    """
+    # Insurance - in practice attributes should never be malformed in this way
+    if "value" not in attribute:
+        return False  # type: ignore[unreachable]
+
+    # Tags are always strings, so anything that's not doesn't belong in `tags`. This is also an easy
+    # way to exclude measurement attributes, since they always come through as floats.
+    if attribute.get("type") != "string":
+        return False
+
+    # Attributes we recognize as ones whose data will end up elsewhere in the event
+    if key in KNOWN_NON_TAG_ATTRIBUTES or any(
+        key.startswith(prefix) for prefix in KNOWN_NON_TAG_ATTRIBUTE_PREFIXES
+    ):
+        return False
+
+    # Everything else is kept as a tag
+    return True
+
+
 def _get_event_tags(segment_span: CompatibleSpan) -> list[list[str]]:
-    tags = {"environment": attribute_value(segment_span, ATTRIBUTE_NAMES.SENTRY_ENVIRONMENT)}
+    """
+    Build the transaction event's `tags` value from data in the segment span.
+    """
+    attributes = segment_span.get("attributes") or {}
+    tags = {
+        key: attribute.get("value")
+        for key, attribute in attributes.items()
+        if attribute and _is_tag_like_attribute(key, attribute)
+    }
 
     # Our processing pipeline expects tags to be a list of key-value pairs, each one itself
     # formatted as a list (`[[<key1>, <value1>], [<key2>, <value2>], ...]`) rather than a dict.

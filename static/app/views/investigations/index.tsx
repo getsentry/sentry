@@ -28,18 +28,16 @@ import {
   type GridColumnOrder,
 } from 'sentry/components/tables/gridEditable';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconAdd, IconStar} from 'sentry/icons';
+import {IconStar} from 'sentry/icons';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t} from 'sentry/locale';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   getInvestigationDetailQueryOptions,
   investigationListQueryOptions,
-  useCreateInvestigationMutation,
   useDeleteInvestigationMutation,
   useDuplicateInvestigationMutation,
   useSetInvestigationFavoriteMutation,
@@ -50,7 +48,6 @@ import {RouteError} from 'sentry/views/routeError';
 
 enum ColumnKey {
   NAME = 'title',
-  BLOCKS = 'blockCount',
   CREATED = 'dateCreated',
   STATUS = 'status',
   ACTIONS = 'actions',
@@ -58,7 +55,6 @@ enum ColumnKey {
 
 const COLUMNS: Array<GridColumnOrder<ColumnKey>> = [
   {key: ColumnKey.NAME, name: t('Name'), width: COL_WIDTH_UNDEFINED},
-  {key: ColumnKey.BLOCKS, name: t('Blocks'), width: 116},
   {key: ColumnKey.CREATED, name: t('Created'), width: 160},
   {key: ColumnKey.STATUS, name: t('Status'), width: 160},
   {key: ColumnKey.ACTIONS, name: '', width: 40},
@@ -66,7 +62,7 @@ const COLUMNS: Array<GridColumnOrder<ColumnKey>> = [
 
 const TableWrapper = styled('div')`
   table {
-    grid-template-columns: max-content minmax(240px, 1fr) 116px 160px 160px max-content !important;
+    grid-template-columns: max-content minmax(240px, 1fr) 160px 160px max-content !important;
   }
 `;
 
@@ -153,7 +149,6 @@ function ClosedMembershipPage() {
 
 export function InvestigationsPage() {
   const organization = useOrganization();
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const {copy} = useCopyToClipboard();
   const [{query, cursor}, setQueryParams] = useQueryStates({
@@ -175,14 +170,6 @@ export function InvestigationsPage() {
       )
         ? 2000
         : false,
-  });
-
-  const createMutation = useCreateInvestigationMutation(organization.slug, {
-    onSuccess: investigation => {
-      addSuccessMessage(t('Investigation created.'));
-      navigate(getInvestigationPath(organization.slug, investigation.id));
-    },
-    onError: () => addErrorMessage(t('Unable to create investigation.')),
   });
 
   const favoriteMutation = useSetInvestigationFavoriteMutation(organization.slug, {
@@ -242,8 +229,6 @@ export function InvestigationsPage() {
             </Link>
           </Text>
         );
-      case ColumnKey.BLOCKS:
-        return investigation.blockCount;
       case ColumnKey.CREATED:
         return <TimeSince date={investigation.dateCreated} />;
       case ColumnKey.STATUS:
@@ -285,7 +270,7 @@ export function InvestigationsPage() {
             <Layout.Body>
               <Layout.Main width="full">
                 <Grid
-                  columns={{zero: 'auto', xl: 'auto max-content max-content'}}
+                  columns={{zero: 'auto', xl: 'auto max-content'}}
                   gap="md"
                   marginBottom="xl"
                 >
@@ -304,14 +289,6 @@ export function InvestigationsPage() {
                     position="bottom-end"
                     data-test-id="investigations-sort"
                   />
-                  <Button
-                    variant="primary"
-                    icon={<IconAdd />}
-                    onClick={() => createMutation.mutate()}
-                    busy={createMutation.isPending}
-                  >
-                    {t('Launch investigation')}
-                  </Button>
                 </Grid>
                 <TableWrapper>
                   <GridEditable

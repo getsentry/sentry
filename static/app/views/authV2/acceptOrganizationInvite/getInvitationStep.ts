@@ -1,10 +1,6 @@
 import type {InviteDetails} from './types';
 
-export function getInvitationStep(details: InviteDetails, isRefreshing: boolean) {
-  if (isRefreshing) {
-    return 'refreshing';
-  }
-
+export function getInvitationStep(details: InviteDetails) {
   if (details.existingMember) {
     return 'existing-member';
   }

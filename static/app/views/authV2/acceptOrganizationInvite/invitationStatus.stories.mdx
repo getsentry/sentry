@@ -110,11 +110,14 @@ import * as Storybook from 'sentry/stories';
 />
 ```
 
-## Checking the Invitation
+## Background Checks
+
+The current action stays visible while the invitation status refreshes. Actions are disabled until the check completes.
 
 <Storybook.Demo>
   <InvitationStatus
-    step="refreshing"
+    step="required-2fa"
+    isCheckingInvite
     isAccepting={false}
     onAccept={() => {}}
     onSwitchAccount={() => {}}
@@ -123,7 +126,8 @@ import * as Storybook from 'sentry/stories';
 
 ```tsx
 <InvitationStatus
-  step="refreshing"
+  step="required-2fa"
+  isCheckingInvite
   isAccepting={false}
   onAccept={acceptInvitation}
   onSwitchAccount={switchAccount}
@@ -132,12 +136,14 @@ import * as Storybook from 'sentry/stories';
 
 ## Props
 
-| Prop              | Type                                                              | Description                             |
-| ----------------- | ----------------------------------------------------------------- | --------------------------------------- |
-| `step`            | `Exclude<ReturnType<typeof getInvitationStep>, 'authentication'>` | The current invitation status.          |
-| `isAccepting`     | `boolean`                                                         | Disables acceptance while submitting.   |
-| `onAccept`        | `() => void`                                                      | Submits invitation acceptance.          |
-| `onSwitchAccount` | `() => void`                                                      | Starts the parent-owned account switch. |
+| Prop                 | Type                                                              | Description                                     |
+| -------------------- | ----------------------------------------------------------------- | ----------------------------------------------- |
+| `step`               | `Exclude<ReturnType<typeof getInvitationStep>, 'authentication'>` | The current invitation status.                  |
+| `isAccepting`        | `boolean`                                                         | Disables acceptance while submitting.           |
+| `isCheckingInvite`   | `boolean`                                                         | Disables actions while checking the invitation. |
+| `isSwitchingAccount` | `boolean`                                                         | Keeps actions busy while switching accounts.    |
+| `onAccept`           | `() => void`                                                      | Submits invitation acceptance.                  |
+| `onSwitchAccount`    | `() => void`                                                      | Starts the parent-owned account switch.         |
 
 ## Accessibility
 

@@ -48,6 +48,7 @@ interface ConversationApiSpan {
   'gen_ai.cost.total_tokens'?: number;
   'gen_ai.embeddings.input'?: string;
   'gen_ai.input.messages'?: string;
+  'gen_ai.operation.name'?: string;
   'gen_ai.operation.type'?: string;
   'gen_ai.output.messages'?: string;
   'gen_ai.request.messages'?: string;
@@ -147,6 +148,8 @@ function createNodeFromApiSpan(
       [SpanFields.SENTRY_ORIGIN]: apiSpan.origin ?? '',
       [SpanFields.GEN_AI_EMBEDDINGS_INPUT]: apiSpan['gen_ai.embeddings.input'] ?? '',
       [SpanFields.GEN_AI_INPUT_MESSAGES]: apiSpan['gen_ai.input.messages'] ?? '',
+      // Recognizes evaluation spans, which report the ai_client operation type.
+      [SpanFields.GEN_AI_OPERATION_NAME]: apiSpan['gen_ai.operation.name'] ?? '',
       [SpanFields.GEN_AI_OPERATION_TYPE]: operationType ?? '',
       [SpanFields.GEN_AI_OUTPUT_MESSAGES]: apiSpan['gen_ai.output.messages'] ?? '',
       [SpanFields.GEN_AI_REQUEST_MESSAGES]: apiSpan['gen_ai.request.messages'] ?? '',

@@ -106,6 +106,7 @@ interface GroupActionsProps {
 
 interface GroupResolutionActionsProps extends GroupActionsProps {
   onUpdate: (data: GroupStatusResolution) => void;
+  variant?: 'primary' | 'secondary';
 }
 
 export function GroupResolutionActions({
@@ -114,6 +115,7 @@ export function GroupResolutionActions({
   group,
   onUpdate,
   project,
+  variant = 'primary',
 }: GroupResolutionActionsProps) {
   const hasRelease = !!project.features?.includes('releases');
   const eventReleaseVersion = event?.release?.versionInfo?.version;
@@ -178,7 +180,7 @@ export function GroupResolutionActions({
       onUpdate={onUpdate}
       project={project}
       size="sm"
-      priority="primary"
+      variant={variant}
     />
   );
 }

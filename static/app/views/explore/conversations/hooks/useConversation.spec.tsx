@@ -281,6 +281,44 @@ describe('useConversation', () => {
     expect(attrs?.[SpanFields.GEN_AI_EMBEDDINGS_INPUT]).toBe('search query text');
   });
 
+  it('maps gen_ai.operation.name to node attributes', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/agents/conversations/conv-evaluation/`,
+      body: envelope([
+        {
+          'gen_ai.conversation.id': 'conv-evaluation',
+          parent_span: 'parent-1',
+          'precise.finish_ts': 1000.5,
+          'precise.start_ts': 1000,
+          project: 'test-project',
+          'project.id': 1,
+          'span.name': 'evaluate typesafe/jev-1.13',
+          'span.op': 'gen_ai.evaluate',
+          'span.status': 'ok',
+          span_id: 'span-evaluation',
+          trace: 'trace-evaluation',
+          'gen_ai.operation.name': 'evaluate',
+          'gen_ai.operation.type': 'ai_client',
+        },
+      ]),
+    });
+
+    const {result} = renderHookWithProviders(
+      () => useConversation({conversationId: 'conv-evaluation'}),
+      {organization}
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.nodes).toHaveLength(1);
+    const node = result.current.nodes[0];
+    const attrs = (node?.value as {additional_attributes?: Record<string, unknown>})
+      .additional_attributes;
+    expect(attrs?.[SpanFields.GEN_AI_OPERATION_NAME]).toBe('evaluate');
+  });
+
   it('maps gen_ai.request.messages to node attributes', async () => {
     const requestMessages = JSON.stringify([
       {role: 'user', content: 'Hello from request'},

@@ -78,7 +78,7 @@ export function TourContextProvider<T extends TourEnumType>({
   onStepChange,
   requireAllStepsRegistered,
 }: TourContextProviderProps<T>) {
-  const organization = useOrganization();
+  const organization = useOrganization({allowNull: true});
   const {mutate} = useMutateAssistant();
   const options = useMemo(
     () => ({
@@ -243,7 +243,7 @@ export function TourElementContent<T extends TourEnumType>({
   actions,
   margin,
 }: TourElementContentProps<T>) {
-  const organization = useOrganization();
+  const organization = useOrganization({allowNull: true});
   const {
     currentStepId,
     orderedStepIds,

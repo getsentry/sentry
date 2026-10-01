@@ -1,7 +1,7 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import {useSearchParams} from 'react-router-dom';
 import styled from '@emotion/styled';
-import {useQuery} from '@tanstack/react-query';
+import {useInfiniteQuery, useQuery} from '@tanstack/react-query';
 import startCase from 'lodash/startCase';
 
 import {DocIntegrationAvatar, SentryAppAvatar} from '@sentry/scraps/avatar';
@@ -10,10 +10,8 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Select} from '@sentry/scraps/select';
 
-import {
-  sentryAppApiOptions,
-  sentryAppsApiOptions,
-} from 'sentry/actionCreators/sentryApps';
+import {sentryAppApiOptions} from 'sentry/actionCreators/sentryApps';
+import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {Panel} from 'sentry/components/panels/panel';
@@ -30,7 +28,8 @@ import type {
   SentryApp,
   SentryAppInstallation,
 } from 'sentry/types/integrations';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {uniq} from 'sentry/utils/array/uniq';
 import {
   getCategoriesForIntegration,
@@ -43,7 +42,6 @@ import {
   sortIntegrations,
   trackIntegrationAnalytics,
 } from 'sentry/utils/integrationUtil';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -90,6 +88,22 @@ function getDisplayedResults(
   };
 }
 
+function useIntegrationPages<T>(
+  options: ReturnType<ReturnType<typeof apiOptions.asInfinite<T[]>>>
+) {
+  const result = useInfiniteQuery(options);
+  useFetchAllPages({result});
+  const {data, hasNextPage, isError, isPending} = result;
+
+  const integrations = useMemo(() => data?.pages.flatMap(page => page.json), [data]);
+
+  return {
+    data: integrations,
+    isError,
+    isPending: isPending || (!isError && hasNextPage),
+  };
+}
+
 function useIntegrationList() {
   const queryOptions = {staleTime: 0};
   const organization = useOrganization();
@@ -101,59 +115,63 @@ function useIntegrationList() {
     data: config = {providers: []},
     isPending: isConfigPending,
     isError: isConfigError,
-  } = useApiQuery<{
-    providers: IntegrationProvider[];
-  }>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/config/integrations/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-    ],
-    queryOptions
+  } = useQuery(
+    apiOptions.as<{providers: IntegrationProvider[]}>()(
+      '/organizations/$organizationIdOrSlug/config/integrations/',
+      {path: {organizationIdOrSlug: organization.slug}, ...queryOptions}
+    )
   );
   const {
     data: integrations = [],
     isPending: isIntegrationsPending,
     isError: isIntegrationsError,
-  } = useApiQuery<Integration[]>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/integrations/', {
+  } = useIntegrationPages(
+    apiOptions.asInfinite<Integration[]>()(
+      '/organizations/$organizationIdOrSlug/integrations/',
+      {
         path: {organizationIdOrSlug: organization.slug},
-      }),
-      {query: {includeConfig: 0}},
-    ],
-    queryOptions
+        query: {includeConfig: 0},
+        ...queryOptions,
+      }
+    )
   );
   const {
     data: orgOwnedApps = [],
     isPending: isOrgOwnedAppsPending,
     isError: isOrgOwnedAppsError,
-  } = useQuery(sentryAppsApiOptions({orgSlug: organization.slug}));
+  } = useIntegrationPages(
+    apiOptions.asInfinite<SentryApp[]>()(
+      '/organizations/$organizationIdOrSlug/sentry-apps/',
+      {path: {organizationIdOrSlug: organization.slug}, ...queryOptions}
+    )
+  );
   const {
     data: publishedApps = [],
     isPending: isPublishedAppsPending,
     isError: isPublishedAppsError,
-  } = useApiQuery<SentryApp[]>(
-    [getApiUrl('/sentry-apps/'), {query: {status: 'published'}}],
-    queryOptions
+  } = useIntegrationPages(
+    apiOptions.asInfinite<SentryApp[]>()('/sentry-apps/', {
+      query: {status: 'published'},
+      ...queryOptions,
+    })
   );
   const {
     data: appInstalls = [],
     isPending: isAppInstallsPending,
     isError: isAppInstallsError,
-  } = useApiQuery<SentryAppInstallation[]>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/sentry-app-installations/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-    ],
-    queryOptions
+  } = useIntegrationPages(
+    apiOptions.asInfinite<SentryAppInstallation[]>()(
+      '/organizations/$organizationIdOrSlug/sentry-app-installations/',
+      {path: {organizationIdOrSlug: organization.slug}, ...queryOptions}
+    )
   );
   const {
     data: docIntegrations = [],
     isPending: isDocIntegrationsPending,
     isError: isDocIntegrationsError,
-  } = useApiQuery<DocIntegration[]>([getApiUrl('/doc-integrations/')], queryOptions);
+  } = useIntegrationPages(
+    apiOptions.asInfinite<DocIntegration[]>()('/doc-integrations/', queryOptions)
+  );
 
   const {
     data: legacyWebhooks,
@@ -188,7 +206,7 @@ function useIntegrationList() {
     isLegacyWebhooksError;
 
   const sentryAppList = useMemo(() => {
-    const list = orgOwnedApps ?? [];
+    const list = [...orgOwnedApps];
     // Add the extra app if it exists
     if (extraApp) {
       list.push(extraApp);
@@ -423,6 +441,10 @@ export default function IntegrationListDirectory() {
     },
     [renderSentryApp, renderDocIntegration, renderProvider]
   );
+
+  if (anyError) {
+    return <LoadingError />;
+  }
 
   if (anyPending) {
     return <LoadingIndicator />;

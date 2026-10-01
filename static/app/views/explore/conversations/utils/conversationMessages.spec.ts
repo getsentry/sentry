@@ -4,6 +4,7 @@ import {
   buildConversationTurns,
   embeddingSpansToMessages,
   enrichAnthropicAgentMessages,
+  evaluationSpansToMessages,
   extractMessagesFromNodes,
   getInputMessageStats,
   getNodeTimestamp,
@@ -107,6 +108,37 @@ function createMockEmbeddingNode(overrides: {
       [SpanFields.GEN_AI_EMBEDDINGS_INPUT]: input,
       [SpanFields.GEN_AI_RESPONSE_MODEL]: model,
       ...(tokens === undefined ? {} : {[SpanFields.GEN_AI_USAGE_TOTAL_TOKENS]: tokens}),
+    },
+    errors: new Set(),
+  };
+}
+
+// Mirrors the node `useConversation` produces for an evaluation span: it reports
+// gen_ai.operation.type "ai_client" like an LLM call and is recognized by
+// gen_ai.operation.name.
+function createMockEvaluationNode(overrides: {id: string; startTimestamp?: number}) {
+  const {id, startTimestamp = 1000} = overrides;
+  const end = startTimestamp + 500;
+  return {
+    id,
+    type: 'span' as const,
+    op: 'gen_ai.evaluate',
+    startTimestamp,
+    endTimestamp: end,
+    value: {start_timestamp: startTimestamp, end_timestamp: end},
+    attributes: {
+      [SpanFields.GEN_AI_OPERATION_TYPE]: 'ai_client',
+      [SpanFields.GEN_AI_OPERATION_NAME]: 'evaluate',
+      [SpanFields.GEN_AI_INPUT_MESSAGES]: JSON.stringify([
+        {
+          type: 'evaluation',
+          state: 'I cannot log in.',
+          questions: {urgency: {type: 'score', criteria: ['low', 'medium', 'high']}},
+        },
+      ]),
+      [SpanFields.GEN_AI_OUTPUT_MESSAGES]: JSON.stringify([
+        {type: 'evaluation', answers: {urgency: {type: 'score', score: 1.6}}},
+      ]),
     },
     errors: new Set(),
   };
@@ -596,6 +628,36 @@ describe('conversationMessages utilities', () => {
       const result = partitionSpansByType([embeddingNode] as any);
 
       expect(result.embeddingSpans.map(s => s.id)).toEqual(['embed-1']);
+    });
+
+    it('separates evaluation spans from generations even though operation.type reports ai_client', () => {
+      const result = partitionSpansByType([
+        createMockNode({id: 'gen-1'}),
+        createMockEvaluationNode({id: 'eval-1'}),
+      ] as any);
+
+      expect(result.evaluationSpans.map(s => s.id)).toEqual(['eval-1']);
+      expect(result.generationSpans.map(s => s.id)).toEqual(['gen-1']);
+    });
+  });
+
+  describe('evaluationSpansToMessages', () => {
+    it('maps an evaluation span to a standalone message', () => {
+      const [message] = evaluationSpansToMessages([
+        createMockEvaluationNode({id: 'eval-1'}) as any,
+      ]);
+
+      expect(message).toMatchObject({
+        id: 'evaluation-eval-1',
+        role: 'evaluation',
+        content: '',
+        nodeId: 'eval-1',
+        duration: 500,
+      });
+      expect(message?.evaluation?.input?.state).toBe('I cannot log in.');
+      expect(message?.evaluation?.answers).toEqual([
+        {kind: 'score', key: 'urgency', score: 1.6},
+      ]);
     });
   });
 
@@ -1600,6 +1662,16 @@ describe('conversationMessages utilities', () => {
   });
 
   describe('messagesToMarkdown', () => {
+    it('formats evaluations with the evaluated text and answers', () => {
+      const messages = evaluationSpansToMessages([
+        createMockEvaluationNode({id: 'eval-1'}) as any,
+      ]);
+
+      expect(messagesToMarkdown(messages)).toBe(
+        '### Evaluation\n\n> I cannot log in.\n\n- urgency: high (1.6)'
+      );
+    });
+
     it('formats user messages with email', () => {
       const result = messagesToMarkdown([
         {

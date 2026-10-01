@@ -51,6 +51,9 @@ interface Props<AggregatableQueryKey, Data, ResponseData = Data> {
    * Optional callback, should an error happen while fetching or reducing the data
    */
   onError?: (error: Error) => void;
+
+  /** Restrict which query keys can contribute cached responses. */
+  queryFilter?: (queryKey: readonly unknown[]) => boolean;
 }
 
 function isQueryKeyInList(queryList: unknown[]) {
@@ -86,6 +89,7 @@ export function useAggregatedQueryKeys<AggregatableQueryKey, Data, ResponseData 
   cacheKey,
   getQueryOptions,
   onError,
+  queryFilter,
   responseReducer,
   bufferLimit = 50,
 }: Props<AggregatableQueryKey, Data, ResponseData>) {
@@ -96,9 +100,11 @@ export function useAggregatedQueryKeys<AggregatableQueryKey, Data, ResponseData 
 
   const isApiQueryKeyForUrl = useCallback(
     (queryKey: readonly unknown[]): boolean => {
-      return safeParseQueryKey(queryKey)?.url === url;
+      return (
+        safeParseQueryKey(queryKey)?.url === url && (queryFilter?.(queryKey) ?? true)
+      );
     },
-    [url]
+    [queryFilter, url]
   );
 
   // The query keys that this instance cares about

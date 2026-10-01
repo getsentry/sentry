@@ -289,7 +289,7 @@ function SetupCodeMappingButton({
 
   return (
     <Fragment>
-      <Container display={{'2xs': 'none', md: 'contents'}}>
+      <Container display={{zero: 'none', '2xl': 'contents'}}>
         <Button
           size={DEFAULT_BUTTON_SIZE}
           variant="transparent"
@@ -299,7 +299,7 @@ function SetupCodeMappingButton({
           {label}
         </Button>
       </Container>
-      <Container display={{'2xs': 'contents', md: 'none'}}>
+      <Container display={{zero: 'contents', '2xl': 'none'}}>
         <Button
           size={DEFAULT_BUTTON_SIZE}
           variant="transparent"

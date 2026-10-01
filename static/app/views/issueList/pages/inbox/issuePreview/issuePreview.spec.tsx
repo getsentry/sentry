@@ -148,6 +148,7 @@ describe('IssuePreview', () => {
       'https://github.com/example/repo-name/pull/10'
     );
     expect(screen.getByRole('button', {name: 'Find Root Cause'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Resolve'})).toBeInTheDocument();
   });
 
   it('labels and links each current PR CTA when multiple pull requests exist', async () => {
@@ -341,17 +342,36 @@ describe('IssuePreview', () => {
     expect(screen.queryByRole('button', {name: 'View PR'})).not.toBeInTheDocument();
   });
 
-  it('resolves a fix applied issue and offers to undo it', async () => {
-    let currentGroup = fixAppliedGroup;
+  it.each([
+    ProgressState.ASSIGNED,
+    ProgressState.DIAGNOSED,
+    ProgressState.FIX_PROPOSED,
+    ProgressState.FIX_APPLIED,
+  ])('resolves a %s issue and offers to undo it', async progress => {
+    const unresolvedGroup = GroupFixture({
+      ...fixAppliedGroup,
+      derivedData: {...fixAppliedGroup.derivedData!, progress},
+    });
+    const resolvedGroup = GroupFixture({
+      ...resolvedFixAppliedGroup,
+      derivedData: unresolvedGroup.derivedData,
+    });
+    let currentGroup = unresolvedGroup;
     mockFixAppliedPreview(() => currentGroup);
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/autofix/setup/`,
+      body: {
+        integration: {ok: true, reason: null},
+        billing: {hasAutofixQuota: true},
+        seerReposLinked: true,
+      },
+    });
     const resolveRequest = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/issues/`,
       method: 'PUT',
       body: (_url: string, options: {data: Pick<Group, 'status'>}) => {
         currentGroup =
-          options.data.status === GroupStatus.RESOLVED
-            ? resolvedFixAppliedGroup
-            : fixAppliedGroup;
+          options.data.status === GroupStatus.RESOLVED ? resolvedGroup : unresolvedGroup;
         return currentGroup;
       },
     });
@@ -365,6 +385,9 @@ describe('IssuePreview', () => {
       `/organizations/${organization.slug}/issues/${group.id}/?referrer=inbox`
     );
     expect(screen.queryByRole('button', {name: 'View PR'})).not.toBeInTheDocument();
+    if (progress !== ProgressState.FIX_APPLIED) {
+      expect(screen.getByRole('button', {name: 'Find Root Cause'})).toBeInTheDocument();
+    }
 
     await userEvent.click(resolveButton);
 
@@ -385,21 +408,87 @@ describe('IssuePreview', () => {
     );
   });
 
-  it('does not report success when resolving fails', async () => {
-    mockFixAppliedPreview();
+  it('keeps Resolve available while Seer is processing', async () => {
     MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/autofix/`,
+      body: ExplorerAutofixResponseFixture({
+        autofix: ExplorerAutofixStateFixture({status: 'processing'}),
+      }),
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/pull-requests/`,
+      body: {pullRequests: []},
+    });
+    const resolveRequest = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/issues/`,
       method: 'PUT',
-      statusCode: 500,
+      body: GroupFixture({...group, status: GroupStatus.RESOLVED, statusDetails: {}}),
     });
 
     render(<IssuePreview groupId={group.id} />, {organization});
 
-    await userEvent.click(await screen.findByRole('button', {name: 'Resolve'}));
-
-    expect(
-      await screen.findByText('Unable to update events. Please try again.')
-    ).toBeInTheDocument();
-    expect(screen.queryByText('Issue resolved')).not.toBeInTheDocument();
+    expect(await screen.findByRole('button', {name: 'Make a Plan'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Resolve'})).toBeEnabled();
+    expect(screen.getByRole('button', {name: 'More resolve options'})).toBeEnabled();
+    await userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
+    expect(resolveRequest).toHaveBeenCalledWith(
+      `/projects/${organization.slug}/${project.slug}/issues/`,
+      expect.objectContaining({
+        data: {status: 'resolved', statusDetails: {}, substatus: null},
+      })
+    );
   });
+
+  it('disables Resolve while the issue is reprocessing', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/`,
+      body: GroupFixture({
+        ...group,
+        status: GroupStatus.REPROCESSING,
+        statusDetails: {info: null, pendingEvents: 1},
+      }),
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/autofix/`,
+      body: ExplorerAutofixResponseFixture({autofix: null}),
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/pull-requests/`,
+      body: {pullRequests: []},
+    });
+
+    render(<IssuePreview groupId={group.id} />, {organization});
+
+    expect(await screen.findByRole('button', {name: 'Resolve'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    expect(screen.getByRole('button', {name: 'More resolve options'})).toBeDisabled();
+  });
+
+  it.each([ProgressState.DIAGNOSED, ProgressState.FIX_APPLIED])(
+    'does not report success when resolving a %s issue fails',
+    async progress => {
+      mockFixAppliedPreview(() =>
+        GroupFixture({
+          ...fixAppliedGroup,
+          derivedData: {...fixAppliedGroup.derivedData!, progress},
+        })
+      );
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/issues/`,
+        method: 'PUT',
+        statusCode: 500,
+      });
+
+      render(<IssuePreview groupId={group.id} />, {organization});
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Resolve'}));
+
+      expect(
+        await screen.findByText('Unable to update events. Please try again.')
+      ).toBeInTheDocument();
+      expect(screen.queryByText('Issue resolved')).not.toBeInTheDocument();
+    }
+  );
 });

@@ -14,14 +14,17 @@ from sentry.grouping.component import FrameGroupingComponent, StacktraceGrouping
 from sentry.grouping.enhancer import (
     DEFAULT_ENHANCEMENTS_BASE,
     ENHANCEMENT_BASES,
+    LEGACY_ENHANCEMENT_BASE_HASHES,
     EnhancementsConfig,
     _is_valid_profiling_action,
     _is_valid_profiling_matcher,
+    _load_enhancement_bases,
     _split_rules,
     keep_profiling_rules,
 )
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
 from sentry.grouping.enhancer.parser import parse_enhancements
+from sentry.grouping.utils import hash_from_values
 from sentry.testutils.cases import TestCase
 from sentry.testutils.pytest.fixtures import InstaSnapshotter
 
@@ -220,6 +223,38 @@ family:javascript,native -group
 )
 def test_keep_profiling_rules(test_input: str, expected: str) -> None:
     assert keep_profiling_rules(test_input) == expected
+
+
+def test_legacy_rules_are_not_updated() -> None:
+    # We never want to modify older grouping config enhancement rules, as the whole point of keeping
+    # them around is to ensure continuity with previously-calculated grouping hashes. This test
+    # checks that the file contents of older enhancements files hasn't changed.
+    legacy_ruleset_hashes = {
+        base_id: hash_from_values([rule.text for rule in enhancements_base.rules])
+        for base_id, enhancements_base in (
+            # Load a new copy of the bases to avoid having to deal with any aliasing the canonical
+            # set might contain
+            _load_enhancement_bases().items()
+        )
+        if base_id != DEFAULT_ENHANCEMENTS_BASE
+    }
+
+    for base_id, hash_value in legacy_ruleset_hashes.items():
+        if base_id not in LEGACY_ENHANCEMENT_BASE_HASHES:
+            raise Exception(
+                "Unexpected legacy (non-default) enhancements base found. If this is on purpose (if"
+                + f" we've updated the default base), please add the new legacy base ('{base_id}')"
+                + f" to `LEGACY_ENHANCEMENT_BASE_HASHES`, with the hash value '{hash_value}'."
+            )
+
+        expected_hash = LEGACY_ENHANCEMENT_BASE_HASHES[base_id]
+        if hash_value != expected_hash:
+            raise Exception(
+                f"Hash mismatch for enhancements base '{base_id}'.\nTo preserve grouping continuity"
+                + " during config transitions, legacy (non-default) bases shouldn't be updated. If"
+                + " you're sure you are doing the right thing, update the hash value for"
+                + f" '{base_id}' in `LEGACY_ENHANCEMENT_BASE_HASHES` to '{hash_value}'."
+            )
 
 
 class EnhancementsTest(TestCase):

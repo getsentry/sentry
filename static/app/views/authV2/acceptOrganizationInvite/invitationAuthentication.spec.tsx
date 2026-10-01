@@ -30,6 +30,12 @@ describe('InvitationAuthentication', () => {
     expect(screen.getByRole('textbox', {name: 'Email'})).toHaveValue(
       'invitee@example.com'
     );
+    expect(
+      screen.getByText('Create a new account to accept this invite.')
+    ).toAppearBefore(screen.getByRole('textbox', {name: 'Name'}));
+    expect(
+      screen.queryByText('Sign in to your account to accept this invite.')
+    ).not.toBeInTheDocument();
     const signIn = screen.getByRole('button', {name: 'Sign in'});
     expect(signIn.parentElement).toHaveTextContent('Have an account? Sign in');
     await userEvent.click(signIn);
@@ -39,11 +45,18 @@ describe('InvitationAuthentication', () => {
     expect(createAccount.parentElement).toHaveTextContent(
       "Don't have an account? Create one"
     );
+    expect(
+      screen.getByText('Sign in to your account to accept this invite.')
+    ).toAppearBefore(screen.getByRole('textbox', {name: 'Email'}));
+    expect(
+      screen.queryByText('Create a new account to accept this invite.')
+    ).not.toBeInTheDocument();
     await userEvent.click(createAccount);
 
     await waitFor(() =>
       expect(screen.getByRole('button', {name: 'Create account'})).toBeVisible()
     );
+    expect(screen.getByText('Create a new account to accept this invite.')).toBeVisible();
     expect(screen.getByRole('textbox', {name: 'Email'})).toHaveValue(
       'invitee@example.com'
     );
@@ -148,6 +161,9 @@ describe('InvitationAuthentication', () => {
     await screen.findByText('Enter the code from your Authenticator');
 
     expect(onAuthenticated).not.toHaveBeenCalled();
+    expect(
+      screen.queryByText('Sign in to your account to accept this invite.')
+    ).not.toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Create one'})).not.toBeInTheDocument();
     await userEvent.type(
       screen.getByRole('textbox', {name: 'One-time password'}),

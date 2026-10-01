@@ -30,6 +30,10 @@ import {
   getTimelineColorByOpType,
   hasError,
 } from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
+import {
+  getEvaluationPreview,
+  getNodeEvaluation,
+} from 'sentry/views/insights/pages/agents/utils/evaluation';
 import {getToolOutputBytes} from 'sentry/views/insights/pages/agents/utils/getToolOutputBytes';
 import {GenAiOperationType} from 'sentry/views/insights/pages/agents/utils/query';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
@@ -316,6 +320,19 @@ function getSpanPresentation(
   const description = rawDesc.startsWith('gen_ai.') ? rawDesc.slice(7) : rawDesc;
 
   const color = getSpanColor(node, colorByOpType);
+
+  const evaluation = getNodeEvaluation(node);
+  if (evaluation) {
+    return {
+      color,
+      isTool: false,
+      title:
+        getStringAttr(node, SpanFields.GEN_AI_REQUEST_MODEL) ||
+        getStringAttr(node, SpanFields.GEN_AI_RESPONSE_MODEL) ||
+        op,
+      secondary: getEvaluationPreview(evaluation),
+    };
+  }
 
   switch (genAiOpType) {
     case GenAiOperationType.AGENT: {

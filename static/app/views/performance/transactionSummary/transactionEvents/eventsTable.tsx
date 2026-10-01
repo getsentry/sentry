@@ -29,6 +29,7 @@ import {
   isSpanOperationBreakdownField,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'sentry/utils/discover/fields';
+import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {getEventViewColumnSort} from 'sentry/utils/discover/getEventViewColumnSort';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {ViewReplayLink} from 'sentry/utils/discover/viewReplayLink';
@@ -87,7 +88,6 @@ type Props = {
   eventView: EventView;
   location: Location;
   organization: Organization;
-  setError: (msg: string | undefined) => void;
   theme: Theme;
   transactionName: string;
   applyEnvironmentFilter?: boolean;
@@ -98,12 +98,14 @@ type Props = {
   issueId?: string;
   projectSlug?: string;
   referrer?: string;
+  renderError?: (error: QueryError) => ReactNode;
   renderTableHeader?: (props: {
     isPending: boolean;
     pageEventsCount: number;
     pageLinks: string | null;
     totalEventsCount: string | number;
   }) => ReactNode;
+  setError?: (msg: string | undefined) => void;
 };
 
 const UNSORTABLE_FIELDS = new Set([
@@ -128,6 +130,7 @@ export function EventsTable({
   issueId,
   projectSlug,
   referrer,
+  renderError,
   renderTableHeader,
 }: Props) {
   const matches = useMatches();
@@ -524,11 +527,11 @@ export function EventsTable({
         eventView={totalEventsView}
         orgSlug={organization.slug}
         location={location}
-        setError={error => setError(error?.message)}
+        setError={error => setError?.(error?.message)}
         referrer="api.insights.transaction-summary"
         cursor="0:0:0"
       >
-        {({isLoading: isTotalEventsLoading, tableData: table}) => {
+        {({isLoading: isTotalEventsLoading, tableData: table, error: countError}) => {
           const totalEventsCount = table?.data[0]?.['count()'] ?? 0;
 
           return (
@@ -536,10 +539,15 @@ export function EventsTable({
               eventView={eventView}
               orgSlug={organization.slug}
               location={location}
-              setError={error => setError(error?.message)}
+              setError={error => setError?.(error?.message)}
               referrer={referrer || 'api.insights.transaction-events'}
             >
-              {({pageLinks, isLoading: isDiscoverQueryLoading, tableData}) => {
+              {({pageLinks, isLoading: isDiscoverQueryLoading, tableData, error}) => {
+                const queryError = error ?? countError;
+                if (queryError && renderError) {
+                  return renderError(queryError);
+                }
+
                 tableData ??= {data: []};
                 const pageEventsCount = tableData?.data?.length ?? 0;
                 const parsedPageLinks = parseLinkHeader(pageLinks);

@@ -87,8 +87,6 @@ type SpanEvidenceKeyValueListProps = {
   projectSlug?: string;
 };
 
-const TEST_ID_NAMESPACE = 'span-evidence-key-value-list';
-
 function ConsecutiveDBQueriesSpanEvidence({
   event,
   causeSpans,
@@ -714,7 +712,6 @@ const makeRow = (
     key: itemKey,
     subject,
     value,
-    subjectDataTestId: `${TEST_ID_NAMESPACE}.${itemKey}`,
     isMultiValue: Array.isArray(value),
     actionButton,
   };

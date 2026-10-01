@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -58,15 +58,19 @@ function getTimeSinceData({
     if (hasReprocessWarning) {
       return {
         tooltipDesc: (
-          <Fragment>
-            {tct(
-              'This debug file was uploaded [when] before this event. It takes up to 1 hour for new files to propagate. To apply new debug information, reprocess this issue.',
-              {
-                when: moment(eventDateReceived).from(dateCreated, true),
-              }
-            )}
-            <DateTimeWrapper>{dateTime}</DateTimeWrapper>
-          </Fragment>
+          <Stack gap="md">
+            <Container>
+              {tct(
+                'This debug file was uploaded [when] before this event. It takes up to 1 hour for new files to propagate. To apply new debug information, reprocess this issue.',
+                {
+                  when: moment(eventDateReceived).from(dateCreated, true),
+                }
+              )}
+            </Container>
+            <Text as="div" tabular>
+              {dateTime}
+            </Text>
+          </Stack>
         ),
         displayIcon: true,
       };
@@ -83,15 +87,19 @@ function getTimeSinceData({
 
     return {
       tooltipDesc: (
-        <Fragment>
-          {tct(
-            'This debug file was uploaded [when] before this event. It takes up to 1 hour for new files to propagate.',
-            {
-              when: moment(eventDateReceived).from(dateCreated, true),
-            }
-          )}
-          <DateTimeWrapper>{dateTime}</DateTimeWrapper>
-        </Fragment>
+        <Stack gap="md">
+          <Container>
+            {tct(
+              'This debug file was uploaded [when] before this event. It takes up to 1 hour for new files to propagate.',
+              {
+                when: moment(eventDateReceived).from(dateCreated, true),
+              }
+            )}
+          </Container>
+          <Text as="div" tabular>
+            {dateTime}
+          </Text>
+        </Stack>
       ),
       displayIcon: true,
     };
@@ -100,15 +108,19 @@ function getTimeSinceData({
   if (hasReprocessWarning) {
     return {
       tooltipDesc: (
-        <Fragment>
-          {tct(
-            'This debug file was uploaded [when] after this event. To apply new debug information, reprocess this issue.',
-            {
-              when: moment(dateCreated).from(eventDateReceived, true),
-            }
-          )}
-          <DateTimeWrapper>{dateTime}</DateTimeWrapper>
-        </Fragment>
+        <Stack gap="md">
+          <Container>
+            {tct(
+              'This debug file was uploaded [when] after this event. To apply new debug information, reprocess this issue.',
+              {
+                when: moment(dateCreated).from(eventDateReceived, true),
+              }
+            )}
+          </Container>
+          <Text as="div" tabular>
+            {dateTime}
+          </Text>
+        </Stack>
       ),
       displayIcon: true,
     };
@@ -116,12 +128,16 @@ function getTimeSinceData({
 
   return {
     tooltipDesc: (
-      <Fragment>
-        {tct('This debug file was uploaded [when] after this event.', {
-          when: moment(eventDateReceived).from(dateCreated, true),
-        })}
-        <DateTimeWrapper>{dateTime}</DateTimeWrapper>
-      </Fragment>
+      <Stack gap="md">
+        <Container>
+          {tct('This debug file was uploaded [when] after this event.', {
+            when: moment(eventDateReceived).from(dateCreated, true),
+          })}
+        </Container>
+        <Text as="div" tabular>
+          {dateTime}
+        </Text>
+      </Stack>
     ),
     displayIcon: true,
   };
@@ -148,7 +164,9 @@ function ProcessingInfo({candidate}: {candidate: ImageCandidate}) {
           <Tooltip title={getProcessingInfoTooltip(debug)} skipWrapper>
             <Flex align="center" gap="sm">
               <ProcessingIcon processingInfo={debug} />
-              <Text size="sm">{t('Symbolication')}</Text>
+              <Text size="sm" variant="muted">
+                {t('Symbolication')}
+              </Text>
             </Flex>
           </Tooltip>
         )}
@@ -156,7 +174,9 @@ function ProcessingInfo({candidate}: {candidate: ImageCandidate}) {
           <Tooltip title={getProcessingInfoTooltip(unwind)} skipWrapper>
             <Flex align="center" gap="sm">
               <ProcessingIcon processingInfo={unwind} />
-              <Text size="sm">{t('Stack Unwinding')}</Text>
+              <Text size="sm" variant="muted">
+                {t('Stack Unwinding')}
+              </Text>
             </Flex>
           </Tooltip>
         )}
@@ -199,17 +219,23 @@ function ExtraDetails({
   return (
     <Fragment>
       <Tooltip title={tooltipDesc}>
-        <TimeSinceWrapper>
+        <Grid columns="max-content 1fr" align="center" gap="xs">
           {displayIcon && <IconWarning variant="danger" size="xs" />}
-          {tct('Uploaded [timesince]', {
-            timesince: <TimeSince disabledAbsoluteTooltip date={dateCreated} />,
-          })}
-        </TimeSinceWrapper>
+          <Text size="sm" tabular variant="muted">
+            {tct('Uploaded [timesince]', {
+              timesince: <TimeSince disabledAbsoluteTooltip date={dateCreated} />,
+            })}
+          </Text>
+        </Grid>
       </Tooltip>
       <Divider />
-      <FileSize bytes={size} />
+      <Text size="sm" tabular variant="muted">
+        <FileSize bytes={size} />
+      </Text>
       <Divider />
-      <span>{prettyFileType}</span>
+      <Text size="sm" variant="muted">
+        {prettyFileType}
+      </Text>
       <Divider />
     </Fragment>
   );
@@ -258,7 +284,7 @@ export function Information({
           </FilenameOrLocation>
         )}
       </div>
-      <Details>
+      <Flex align="center" gap="md" wrap="wrap">
         <ExtraDetails
           candidate={candidate}
           eventDateReceived={eventDateReceived}
@@ -267,7 +293,7 @@ export function Information({
         />
         <ProcessingInfo candidate={candidate} />
         <Features download={download} />
-      </Details>
+      </Flex>
     </Wrapper>
   );
 }
@@ -281,26 +307,4 @@ const Wrapper = styled('div')`
 const FilenameOrLocation = styled('span')`
   padding-left: ${p => p.theme.space.md};
   font-size: ${p => p.theme.font.size.sm};
-`;
-
-const Details = styled('div')`
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: max-content;
-  gap: ${p => p.theme.space.md};
-  color: ${p => p.theme.colors.gray500};
-  font-size: ${p => p.theme.font.size.sm};
-`;
-
-const TimeSinceWrapper = styled('div')`
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
-  font-variant-numeric: tabular-nums;
-`;
-
-const DateTimeWrapper = styled('div')`
-  padding-top: ${p => p.theme.space.md};
-  font-variant-numeric: tabular-nums;
 `;

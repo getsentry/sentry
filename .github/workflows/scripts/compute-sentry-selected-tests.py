@@ -22,6 +22,7 @@ import sqlite3
 import sys
 from pathlib import Path
 
+from count_test_items import count_tests_in_file
 from find_test_imports import find_test_imports
 
 # -- Path conventions --
@@ -237,6 +238,22 @@ def _query_coverage(coverage_db_path: str, db_file_paths: list[str]) -> set[str]
     return test_files
 
 
+def _query_test_counts(coverage_db_path: str, test_files: list[str]) -> dict[str, int]:
+    """Count distinct test ids per test file, including generated and parametrized tests."""
+    wanted = {DB_PREFIX + f: f for f in test_files}
+    tests: dict[str, set[str]] = {f: set() for f in test_files}
+    conn = sqlite3.connect(coverage_db_path)
+    try:
+        for (context,) in conn.execute("SELECT context FROM context WHERE context LIKE '%::%'"):
+            f = wanted.get(context.split("::", 1)[0])
+            if f is not None:
+                # Contexts are '<nodeid>|run', '<nodeid>|setup' and '<nodeid>|teardown'.
+                tests[f].add(context.rsplit("|", 1)[0])
+    finally:
+        conn.close()
+    return {f: len(ids) for f, ids in tests.items() if ids}
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Compute selected sentry tests from coverage data")
     parser.add_argument("--coverage-db", required=True, help="Path to coverage SQLite database")
@@ -361,12 +378,33 @@ def main() -> int:
                 f.write(f"{test_file}\n")
         print(f"Wrote selected tests to {output_path}")
 
+    test_item_count = None
+    if output_tests or selective_applied:
+        coverage_counts: dict[str, int] = {}
+        if output_tests:
+            try:
+                coverage_counts = _query_test_counts(str(coverage_db), output_tests)
+            except sqlite3.Error as e:
+                print(
+                    f"Warning: could not count tests from coverage database: {e}", file=sys.stderr
+                )
+        test_item_count = 0
+        for test_file in output_tests:
+            ast_count = count_tests_in_file(Path(test_file))
+            coverage_count = coverage_counts.get(test_file, 0)
+            if coverage_count > ast_count:
+                print(f"  {test_file}: {coverage_count} tests in coverage DB, {ast_count} via AST")
+            test_item_count += max(ast_count, coverage_count)
+        print(f"Estimated {test_item_count} test items")
+
     if args.github_output:
         github_output = os.environ.get("GITHUB_OUTPUT")
         if github_output:
             has_selected = bool(output_tests) or selective_applied
             with open(github_output, "a") as f:
                 f.write(f"test-count={len(output_tests)}\n")
+                if test_item_count is not None:
+                    f.write(f"test-item-count={test_item_count}\n")
                 f.write(f"has-selected-tests={'true' if has_selected else 'false'}\n")
             if has_selected:
                 print(f"Wrote to GITHUB_OUTPUT: test-count={len(output_tests)}")

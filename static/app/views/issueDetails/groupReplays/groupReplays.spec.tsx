@@ -253,6 +253,7 @@ describe('GroupReplays', () => {
         );
       });
       // Expect api path to have the correct query params
+      await waitFor(() => expect(mockReplayApi).toHaveBeenCalled());
       expect(mockReplayApi).toHaveBeenCalledWith(
         mockReplayUrl,
         expect.objectContaining({
@@ -425,7 +426,7 @@ describe('GroupReplays', () => {
       await waitFor(() => {
         expect(mockReplayCountApi).toHaveBeenCalled();
       });
-      expect(mockReplayApi).toHaveBeenCalledTimes(1);
+      await waitFor(() => expect(mockReplayApi).toHaveBeenCalledTimes(1));
     });
 
     it('should show a list of replays and have the correct values', async () => {

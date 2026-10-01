@@ -6,9 +6,9 @@ import {Pagination} from '@sentry/scraps/pagination';
 import {LoadingError} from 'sentry/components/loadingError';
 import type {Project} from 'sentry/types/project';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {getNextCheckInEnv} from 'sentry/utils/monitor/cron';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {getNextCheckInEnv} from 'sentry/views/alerts/rules/crons/utils';
 import type {MonitorEnvironment} from 'sentry/views/insights/crons/types';
 import {monitorCheckInsApiOptions} from 'sentry/views/insights/crons/utils/monitorCheckInsApiOptions';
 

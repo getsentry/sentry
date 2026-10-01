@@ -1,18 +1,18 @@
-import {Fragment, useEffect, useMemo, useState} from 'react';
-import styled from '@emotion/styled';
+import {useMutation} from '@tanstack/react-query';
+import {z} from 'zod';
 
-import {Flex, Container} from '@sentry/scraps/layout';
+import {Button} from '@sentry/scraps/button';
+import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
-import {InputField} from 'sentry/components/forms/fields/inputField';
-import {NumberField} from 'sentry/components/forms/fields/numberField';
-import {TextField} from 'sentry/components/forms/fields/textField';
-import {Form} from 'sentry/components/forms/form';
 import type {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {useApi} from 'sentry/utils/useApi';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {fetchMutation} from 'sentry/utils/queryClient';
 
 import type {Subscription} from 'getsentry/types';
 import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
@@ -25,6 +25,13 @@ type Props = {
 
 type ModalProps = Props & ModalRenderProps;
 
+const schema = z.object({
+  selectedBudgetId: z.string().min(1, 'Select a reserved budget'),
+  giftAmount: z.number().positive().max(10000),
+  ticketUrl: z.union([z.literal(''), z.url()]),
+  notes: z.string().min(1).max(500),
+});
+
 function AddGiftBudgetModal({
   onSuccess,
   organization,
@@ -32,161 +39,163 @@ function AddGiftBudgetModal({
   closeModal,
   Header,
   Body,
+  Footer,
 }: ModalProps) {
-  const api = useApi();
-  const [selectedBudgetId, setSelectedBudgetId] = useState<string | null>(null);
-  const [giftAmount, setGiftAmount] = useState(0);
-  const [ticketUrl, setTicketUrl] = useState<string | null>(null);
-  const [notes, setNotes] = useState<string | null>(null);
+  const reservedBudgetOptions =
+    subscription.reservedBudgets?.filter(b => b.reservedBudget > 0) ?? [];
 
-  const reservedBudgetOptions = useMemo(
-    () => subscription.reservedBudgets?.filter(b => b.reservedBudget > 0) ?? [],
-    [subscription.reservedBudgets]
-  );
+  const mutation = useMutation({
+    mutationFn: (value: z.infer<typeof schema>) => {
+      const selectedBudget = reservedBudgetOptions.find(
+        budget => budget.id === value.selectedBudgetId
+      );
 
-  useEffect(() => {
-    if (reservedBudgetOptions.length > 0 && !selectedBudgetId) {
-      // oxlint-disable-next-line react/set-state-in-effect
-      setSelectedBudgetId(reservedBudgetOptions[0]?.id ?? null);
-    }
-  }, [reservedBudgetOptions, selectedBudgetId]);
-
-  const onSubmit = async () => {
-    if (!selectedBudgetId || giftAmount <= 0) {
-      return;
-    }
-
-    const selectedBudget = reservedBudgetOptions.find(
-      budget => budget.id === selectedBudgetId
-    );
-
-    const data = {
-      freeReservedBudget: {
-        id: selectedBudgetId,
-        freeBudget: giftAmount * 100, // convert to cents
-        categories: Object.keys(selectedBudget?.categories ?? []),
-      },
-      ticketUrl,
-      notes,
-    };
-
-    try {
-      await api.requestPromise(`/customers/${organization.slug}/`, {
+      return fetchMutation({
+        url: getApiUrl('/customers/$organizationIdOrSlug/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         method: 'PUT',
-        data,
-        includeAllArgs: true,
+        data: {
+          freeReservedBudget: {
+            id: value.selectedBudgetId,
+            freeBudget: value.giftAmount * 100,
+            categories: Object.keys(selectedBudget?.categories ?? []),
+          },
+          ticketUrl: value.ticketUrl || null,
+          notes: value.notes,
+        },
       });
+    },
+    onSuccess: () => {
       addSuccessMessage('Added gifted budget amount.');
       closeModal();
       onSuccess();
-    } catch {
-      addErrorMessage('Unable to add gifted budget amount for org.');
-    }
-  };
-
-  function getHelp() {
-    return `Total Gift: $${giftAmount.toLocaleString()}`;
-  }
+    },
+    onError: () => addErrorMessage('Unable to add gifted budget amount for org.'),
+  });
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {
+      selectedBudgetId: reservedBudgetOptions[0]?.id ?? '',
+      giftAmount: 0,
+      ticketUrl: '',
+      notes: '',
+    },
+    validators: {onDynamic: schema},
+    onSubmit: ({value}) => mutation.mutateAsync(value).catch(() => {}),
+  });
 
   return (
-    <Fragment>
-      <Header closeButton>Add Gift Budget</Header>
+    <form.AppForm form={form}>
+      <Header closeButton>
+        <Heading as="h2">Add Gift Budget</Heading>
+      </Header>
       <Body>
-        {reservedBudgetOptions.length > 1 ? (
-          <Fragment>
-            <div>Select a reserved budget to add gift amount.</div>
-            <br />
-          </Fragment>
-        ) : reservedBudgetOptions.length === 0 ? (
-          <div>No reserved budgets available.</div>
-        ) : (
-          <div />
-        )}
-        <Form onSubmit={onSubmit} submitLabel="Confirm" onCancel={closeModal}>
-          {reservedBudgetOptions.map(budget => (
-            <BudgetCard
-              key={budget.id}
-              isSelected={selectedBudgetId === budget.id}
-              onClick={() => setSelectedBudgetId(budget.id)}
-            >
-              <Flex justify="between" marginBottom="md">
-                <div>
-                  <strong>Reserved Budget:</strong> $
-                  {(budget.reservedBudget / 100).toLocaleString()}
-                </div>
-                <div>
-                  <strong>Existing Free Budget:</strong> $
-                  {(budget.freeBudget / 100).toLocaleString()}
-                </div>
-              </Flex>
-              <Container marginBottom="md">
-                <strong>Categories:</strong>{' '}
-                {Object.keys(budget.categories)
-                  .map(category =>
-                    getPlanCategoryName({
-                      plan: subscription.planDetails,
-                      category: category as DataCategory,
-                      capitalize: false,
-                      hadCustomDynamicSampling: true,
-                    })
-                  )
-                  .join(', ') || 'None'}
-              </Container>
-              {selectedBudgetId === budget.id && (
-                <NumberField
-                  inline={false}
-                  stacked
-                  flexibleControlStateSize
-                  label="Gift Amount ($)"
-                  help={
-                    <Fragment>
-                      <Fragment>Enter gift amount in dollars (max $10,000).</Fragment>
-                      <br />
-                      <Fragment>{getHelp()}</Fragment>
-                    </Fragment>
-                  }
-                  name="giftAmount"
-                  value={giftAmount}
-                  defaultValue={0}
-                  onChange={(value: number) => {
-                    const clampedValue = Math.min(10000, Math.max(0, value));
-                    setGiftAmount(clampedValue);
-                  }}
-                  required
-                  onClick={(e: React.MouseEvent) => e.stopPropagation()}
-                />
+        <form.AppField name="selectedBudgetId">
+          {budgetField => (
+            <Stack gap="md">
+              {reservedBudgetOptions.length > 1 && (
+                <Text as="p">Select a reserved budget to add gift amount.</Text>
               )}
-            </BudgetCard>
-          ))}
-          {reservedBudgetOptions.length === 0 && (
-            <div>No reserved budgets available.</div>
+              {reservedBudgetOptions.length === 0 && (
+                <Text as="p">No reserved budgets available.</Text>
+              )}
+              {reservedBudgetOptions.map(budget => (
+                <Container
+                  key={budget.id}
+                  padding="xl"
+                  border="primary"
+                  radius="md"
+                  background={
+                    budgetField.state.value === budget.id ? 'secondary' : undefined
+                  }
+                  cursor="pointer"
+                  onClick={() => budgetField.handleChange(budget.id)}
+                >
+                  <Stack gap="md">
+                    <Flex justify="between">
+                      <Text>
+                        <Text bold>Reserved Budget:</Text> $
+                        {(budget.reservedBudget / 100).toLocaleString()}
+                      </Text>
+                      <Text>
+                        <Text bold>Existing Free Budget:</Text> $
+                        {(budget.freeBudget / 100).toLocaleString()}
+                      </Text>
+                    </Flex>
+                    <Text>
+                      <Text bold>Categories:</Text>{' '}
+                      {Object.keys(budget.categories)
+                        .map(category =>
+                          getPlanCategoryName({
+                            plan: subscription.planDetails,
+                            category: category as DataCategory,
+                            capitalize: false,
+                            hadCustomDynamicSampling: true,
+                          })
+                        )
+                        .join(', ') || 'None'}
+                    </Text>
+                    {budgetField.state.value === budget.id && (
+                      <form.AppField name="giftAmount">
+                        {field => (
+                          <field.Layout.Stack
+                            label="Gift Amount ($)"
+                            hintText="Enter gift amount in dollars (max $10,000)."
+                            required
+                          >
+                            <field.Number
+                              min={0}
+                              max={10000}
+                              value={field.state.value}
+                              onChange={value => field.handleChange(value ?? 0)}
+                              onClick={(event: React.MouseEvent) =>
+                                event.stopPropagation()
+                              }
+                            />
+                            <Text>Total Gift: ${field.state.value.toLocaleString()}</Text>
+                          </field.Layout.Stack>
+                        )}
+                      </form.AppField>
+                    )}
+                  </Stack>
+                </Container>
+              ))}
+            </Stack>
           )}
-          <Container marginTop="xl">
-            <InputField
-              data-test-id="url-field"
-              name="ticket-url"
-              type="url"
-              label="TicketUrl"
-              inline={false}
-              stacked
-              flexibleControlStateSize
-              onChange={(ticketUrlInput: any) => setTicketUrl(ticketUrlInput)}
-            />
-            <TextField
-              data-test-id="notes-field"
-              name="notes"
-              label="Notes"
-              inline={false}
-              stacked
-              flexibleControlStateSize
-              maxLength={500}
-              required // serializer requires this to be present
-              onChange={(notesInput: any) => setNotes(notesInput)}
-            />
-          </Container>
-        </Form>
+        </form.AppField>
+        <Stack gap="lg" marginTop="xl">
+          <form.AppField name="ticketUrl">
+            {field => (
+              <field.Layout.Stack label="Ticket URL">
+                <field.Input
+                  type="url"
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+          <form.AppField name="notes">
+            {field => (
+              <field.Layout.Stack label="Notes" required>
+                <field.Input
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  maxLength={500}
+                />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+        </Stack>
       </Body>
-    </Fragment>
+      <Footer>
+        <Flex gap="md" justify="end">
+          <Button onClick={closeModal}>Cancel</Button>
+          <form.SubmitButton>Confirm</form.SubmitButton>
+        </Flex>
+      </Footer>
+    </form.AppForm>
   );
 }
 
@@ -197,12 +206,3 @@ export const addGiftBudgetAction = (opts: Options) => {
     closeEvents: 'escape-key',
   });
 };
-
-const BudgetCard = styled('div')<{isSelected: boolean}>`
-  padding: ${p => p.theme.space.xl};
-  margin: ${p => p.theme.space.md} 0;
-  border: 1px solid ${p => p.theme.tokens.border.primary};
-  border-radius: ${p => p.theme.radius.md};
-  background-color: ${p => (p.isSelected ? p.theme.colors.surface200 : 'transparent')};
-  cursor: pointer;
-`;

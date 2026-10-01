@@ -665,7 +665,7 @@ class EnhancementsConfig:
             )
 
 
-def _load_configs() -> dict[str, EnhancementsConfig]:
+def _load_enhancement_bases() -> dict[str, EnhancementsConfig]:
     enhancement_bases = {}
     configs_dir = os.path.join(os.path.abspath(os.path.dirname(__file__)), "enhancement-configs")
     for filename in os.listdir(configs_dir):
@@ -683,8 +683,7 @@ def _load_configs() -> dict[str, EnhancementsConfig]:
     return enhancement_bases
 
 
-ENHANCEMENT_BASES = _load_configs()
-del _load_configs
+ENHANCEMENT_BASES = _load_enhancement_bases()
 
 # TODO: Shim to cover the time period before events which have the old default enhancements name
 # encoded in their base64 grouping config expire. Should be able to be deleted after Nov 2025. (Note
@@ -692,3 +691,10 @@ del _load_configs
 # if we make a new default in the meantime, the old name should still point to
 # `all-platforms:2023-01-11`.)
 ENHANCEMENT_BASES["newstyle:2023-01-11"] = ENHANCEMENT_BASES["all-platforms:2023-01-11"]
+
+
+# Enhancements bases which have gone from default to legacy status shouldn't have their rules
+# changed, or it'll undo the point of having a stable secondary config to transition from. We test
+# against these hashes as a hacky but quick way to enforce that. (This should be kept even if empty,
+# because presumably in the future there will be more config transitions.)
+LEGACY_ENHANCEMENT_BASE_HASHES = {"all-platforms:2023-01-11": "56d320de4f8a41213db210fa3d73e130"}

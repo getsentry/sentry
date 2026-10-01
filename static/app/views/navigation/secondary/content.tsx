@@ -14,12 +14,13 @@ import {SettingsSecondaryNavigation} from 'sentry/views/navigation/secondary/sec
 
 export function SecondaryNavigationContent(): ReactNode {
   const {activeGroup} = usePrimaryNavigation();
-  const organization = useOrganization();
+  const organization = useOrganization({allowNull: true});
+
   switch (activeGroup) {
     case 'issues':
       return <IssuesSecondaryNavigation />;
     case 'insights':
-      if (organization.features.includes('insights-to-dashboards-ui-rollout')) {
+      if (organization?.features.includes('insights-to-dashboards-ui-rollout')) {
         return <DashboardsSecondaryNavigation />;
       }
       return <InsightsSecondaryNavigation />;

@@ -22,6 +22,8 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {ConversationMissingMessagesAlert} from 'sentry/views/explore/conversations/components/conversationMissingMessagesAlert';
 import {MessageToolCalls} from 'sentry/views/explore/conversations/components/messageToolCalls';
+import {ToolTag} from 'sentry/views/explore/conversations/components/toolTag';
+import {TranscriptSpanRow} from 'sentry/views/explore/conversations/components/transcriptSpanRow';
 import {
   type ConversationMessage,
   extractMessagesFromNodes,
@@ -29,8 +31,13 @@ import {
 } from 'sentry/views/explore/conversations/utils/conversationMessages';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {EMPTY_TEXT_CONTENT} from 'sentry/views/insights/pages/agents/utils/aiMessageNormalizer';
-import {getNumberAttr} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
+import {
+  getNumberAttr,
+  getStringAttr,
+  hasError,
+} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {getAiInstrumentationDocsLink} from 'sentry/views/insights/pages/agents/utils/docsLinks';
+import {getEvaluationPreview} from 'sentry/views/insights/pages/agents/utils/evaluation';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
 import {detectAIContentType} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiContentDetection';
@@ -121,6 +128,18 @@ export function MessagesPanel({
                 key={message.id}
                 message={message}
                 isSelected={message.nodeId === selectedNodeId}
+              />
+            );
+          }
+
+          if (message.role === 'evaluation') {
+            return (
+              <EvaluationTurn
+                key={message.id}
+                message={message}
+                node={nodeMap.get(message.nodeId)}
+                isSelected={message.nodeId === selectedNodeId}
+                onSelectNode={onSelectNode}
               />
             );
           }
@@ -365,6 +384,55 @@ const EmbeddingTurn = memo(function EmbeddingTurnImpl({
           <Container width={TURN_META_WIDTH} flexShrink={0} />
         </Flex>
       </CollapsibleChatRow>
+    </MessageRow>
+  );
+});
+
+// Standalone row for an evaluation span, positioned by its own timestamp like
+// embeddings and styled like a tool call: the evaluator, a one-line result and
+// its cost and duration. Selecting it opens the span detail with the questions,
+// answers and raw messages.
+const EvaluationTurn = memo(function EvaluationTurnImpl({
+  message,
+  node,
+  isSelected,
+  onSelectNode,
+}: {
+  isSelected: boolean;
+  message: ConversationMessage;
+  node: AITraceSpanNode | undefined;
+  onSelectNode: (node: AITraceSpanNode) => void;
+}) {
+  const organization = useOrganization();
+  // Spans often report `gen_ai.cost.total_tokens` as 0 when the API omits cost;
+  // treat that as absent, like assistant turns.
+  const cost = node
+    ? getNumberAttr(node, SpanFields.GEN_AI_COST_TOTAL_TOKENS) || undefined
+    : undefined;
+  const evaluator =
+    (node &&
+      (getStringAttr(node, SpanFields.GEN_AI_REQUEST_MODEL) ||
+        getStringAttr(node, SpanFields.GEN_AI_RESPONSE_MODEL))) ||
+    t('evaluate');
+
+  const selectEvaluation = () => {
+    trackAnalytics('conversations.message.click-evaluation', {organization});
+    if (node) {
+      onSelectNode(node);
+    }
+  };
+
+  return (
+    <MessageRow from="assistant" density="compact">
+      <TranscriptSpanRow
+        node={node}
+        isSelected={isSelected}
+        ariaLabel={t('Select evaluation %s', evaluator)}
+        onSelect={selectEvaluation}
+        tag={<ToolTag name={evaluator} hasError={node ? hasError(node) : false} />}
+        preview={getEvaluationPreview(message.evaluation)}
+        meta={<AssistantMeta cost={cost} duration={message.duration} />}
+      />
     </MessageRow>
   );
 });

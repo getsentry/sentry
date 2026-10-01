@@ -25,6 +25,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDateFromTimestampAssumeUtc} from 'sentry/utils/dates';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {serializeChatPromptContext} from 'sentry/views/seerExplorer/chatPrompt';
 import {ExplorerDrawerContent} from 'sentry/views/seerExplorer/components/drawer/explorerDrawerContent';
 import {
   type OpenSeerExplorerDrawerOptions,
@@ -55,6 +56,11 @@ type SeerExplorerSessionState = 'inactive' | 'thinking' | 'done-thinking';
 type SeerExplorerContextValue = {
   closeSeerExplorer: () => void;
   isOpen: boolean;
+  /**
+   * Opens Explorer on an "Ask Seer" question from Seer and sends nothing until the user
+   * replies. `context` is any JSON-serializable value describing what the question is about.
+   */
+  openChatPrompt: (options: {prompt: string; context?: unknown}) => void;
   openSeerExplorer: (options?: OpenSeerExplorerDrawerOptions) => void;
   sessionState: SeerExplorerSessionState;
   /**
@@ -87,6 +93,7 @@ type SeerExplorerContextValue = {
 const SeerExplorerContext = createContext<SeerExplorerContextValue>({
   closeSeerExplorer: () => {},
   isOpen: false,
+  openChatPrompt: () => {},
   openSeerExplorer: () => {},
   sessionState: 'inactive',
   sidebarContainerRef: {current: null},
@@ -228,11 +235,21 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
 
     if (wasVisible && !isVisible && !isRedocking) {
       removeRunIdParam();
+      // An unanswered "Ask Seer" question doesn't outlive the panel it was shown in.
+      dispatch({type: 'set chat prompt', payload: null});
     }
-  }, [isOpen, isPoppedOut, removeRunIdParam]);
+  }, [isOpen, isPoppedOut, removeRunIdParam, dispatch]);
 
   const openSeerExplorer = useCallback(
     (drawerOptions?: OpenSeerExplorerDrawerOptions) => {
+      // Join the conversation on screen; with Explorer closed, the last run may be
+      // unrelated, so start a new chat. Shared chat state reaches the popped-out window.
+      if (drawerOptions?.chatPrompt) {
+        if (!isOpen && !isPoppedOut) {
+          dispatch({type: 'set run id', payload: null});
+        }
+        dispatch({type: 'set chat prompt', payload: drawerOptions.chatPrompt});
+      }
       if (pipWindow) {
         pipWindow.focus();
         return;
@@ -262,7 +279,24 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
       }
       openSeerExplorerDrawer(drawerOptions);
     },
-    [pipWindow, isSidebarMode, dispatch, openSidebar, openSeerExplorerDrawer]
+    [
+      pipWindow,
+      isSidebarMode,
+      isOpen,
+      isPoppedOut,
+      dispatch,
+      openSidebar,
+      openSeerExplorerDrawer,
+    ]
+  );
+
+  const openChatPrompt = useCallback(
+    ({prompt, context}: {prompt: string; context?: unknown}) => {
+      openSeerExplorer({
+        chatPrompt: {text: prompt, context: serializeChatPromptContext(context)},
+      });
+    },
+    [openSeerExplorer]
   );
 
   // Outside the chat, "post a message" means opening the Explorer on it;
@@ -418,6 +452,7 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
   const contextValue = useMemo<SeerExplorerContextValue>(
     () => ({
       isOpen,
+      openChatPrompt,
       openSeerExplorer,
       closeSeerExplorer,
       toggleSeerExplorer,
@@ -432,6 +467,7 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
     }),
     [
       isOpen,
+      openChatPrompt,
       openSeerExplorer,
       closeSeerExplorer,
       toggleSeerExplorer,
