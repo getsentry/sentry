@@ -94,6 +94,7 @@ class SiloRouter:
         "sentry_datasecrecywaiver": SiloMode.CELL,
         "sentry_email": SiloMode.CONTROL,
         "sentry_grouprulestatus": SiloMode.CELL,
+        "sentry_incidentactivity": SiloMode.CELL,
         "sentry_incidentseen": SiloMode.CELL,
         "sentry_incidentsubscription": SiloMode.CELL,
         "sentry_incidenttrigger": SiloMode.CELL,
