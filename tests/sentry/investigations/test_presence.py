@@ -11,7 +11,7 @@ class RecordHeartbeatTest(TestCase):
         heartbeat = record_heartbeat(investigation_id=1, user_id=10)
 
         assert heartbeat.was_present is False
-        assert heartbeat.viewer_ids == [10]
+        assert [uid for uid, _ in heartbeat.active] == [10]
 
     def test_second_heartbeat_is_present(self) -> None:
         now = timezone.now()
@@ -20,7 +20,7 @@ class RecordHeartbeatTest(TestCase):
         heartbeat = record_heartbeat(investigation_id=1, user_id=10, now=now + timedelta(seconds=5))
 
         assert heartbeat.was_present is True
-        assert heartbeat.viewer_ids == [10]
+        assert [uid for uid, _ in heartbeat.active] == [10]
 
     def test_viewers_most_recent_first(self) -> None:
         now = timezone.now()
@@ -29,7 +29,7 @@ class RecordHeartbeatTest(TestCase):
 
         heartbeat = record_heartbeat(investigation_id=1, user_id=30, now=now + timedelta(seconds=2))
 
-        assert heartbeat.viewer_ids == [30, 20, 10]
+        assert [uid for uid, _ in heartbeat.active] == [30, 20, 10]
 
     def test_expired_viewers_are_dropped(self) -> None:
         now = timezone.now()
@@ -37,7 +37,7 @@ class RecordHeartbeatTest(TestCase):
         later = now + PRESENCE_WINDOW + timedelta(seconds=1)
 
         heartbeat = record_heartbeat(investigation_id=1, user_id=20, now=later)
-        assert heartbeat.viewer_ids == [20]
+        assert [uid for uid, _ in heartbeat.active] == [20]
 
         heartbeat = record_heartbeat(investigation_id=1, user_id=10, now=later)
         assert heartbeat.was_present is False
@@ -47,4 +47,12 @@ class RecordHeartbeatTest(TestCase):
 
         heartbeat = record_heartbeat(investigation_id=2, user_id=20)
 
-        assert heartbeat.viewer_ids == [20]
+        assert [uid for uid, _ in heartbeat.active] == [20]
+
+    def test_active_viewers_carry_their_last_heartbeat(self) -> None:
+        now = timezone.now().replace(microsecond=0)
+        record_heartbeat(investigation_id=1, user_id=10, now=now)
+
+        heartbeat = record_heartbeat(investigation_id=1, user_id=20, now=now + timedelta(seconds=2))
+
+        assert heartbeat.active == [(20, now + timedelta(seconds=2)), (10, now)]

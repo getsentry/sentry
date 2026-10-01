@@ -6,7 +6,6 @@ import {Outcome} from 'sentry/types/core';
 import {defined} from 'sentry/utils/defined';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import type {Annotation} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
-
 const CONFIGURED_CLIENT_DISCARD_REASONS = new Set(['before_send', 'sample_rate']);
 
 const OUTCOME_LABELS: Partial<Record<Outcome, string>> = {
@@ -159,8 +158,6 @@ function isConfiguredDrop({outcome, reason}: Annotation): boolean {
   return outcome === 'client_discard' && CONFIGURED_CLIENT_DISCARD_REASONS.has(reason);
 }
 
-const MIN_HIGHLIGHTED_RATIO = 0.05;
-
 export function withAlpha(color: string, alpha: number): string {
   const channel = Math.round(alpha * 255)
     .toString(16)
@@ -168,24 +165,34 @@ export function withAlpha(color: string, alpha: number): string {
   return `${color.slice(0, 7)}${channel}`.toUpperCase();
 }
 
-export function severityColor(ratio: number, theme: Theme): string {
-  const warning = theme.tokens.background.warning.vibrant;
-  // TODO: Replace with a theme token once the design settles on one.
-  const orange = '#FF9500';
+// TODO: Replace with theme tokens, including a dark mode ramp, once the design
+// settles on a palette. Scraps color tokens can't be imported outside the theme,
+// so these mirror the named values.
+const SEVERITY_COLORS = {
+  lowest: '#F6E5B4', // yellow.light.opaque300
+  low: '#FFCE00', // yellow.light.opaque600
+  medium: '#FF615D', // red.light.opaque800
+  high: '#B5006F', // pink.light.opaque1200
+  highest: '#3A1873', // categorical.light.indigo
+} as const;
 
+export function severityColor(ratio: number, theme: Theme): string {
   if (ratio >= 0.5) {
-    return withAlpha(theme.tokens.dataviz.semantic.bad, 1);
+    return withAlpha(SEVERITY_COLORS.highest, 1);
   }
   if (ratio >= 0.25) {
-    return withAlpha(orange, 1);
+    return withAlpha(SEVERITY_COLORS.high, 1);
   }
   if (ratio >= 0.1) {
-    return withAlpha(orange, 0.55);
+    return withAlpha(SEVERITY_COLORS.medium, 1);
   }
-  if (ratio >= MIN_HIGHLIGHTED_RATIO) {
-    return withAlpha(warning, 0.25);
+  if (ratio >= 0.05) {
+    return withAlpha(SEVERITY_COLORS.low, 1);
   }
-  return withAlpha(warning, 0);
+  if (ratio > 0) {
+    return withAlpha(SEVERITY_COLORS.lowest, 1);
+  }
+  return withAlpha(theme.tokens.background.secondary, 1);
 }
 
 interface AnnotationVolume {
@@ -330,6 +337,6 @@ export function highlightedBuckets(
   acceptedAnnotations?: Annotation[]
 ): AnnotationBucket[] {
   return groupIntoBuckets(droppedAnnotations, acceptedAnnotations).filter(
-    bucket => bucket.ratio >= MIN_HIGHLIGHTED_RATIO
+    bucket => bucket.ratio > 0
   );
 }

@@ -284,6 +284,15 @@ export function getAnswerLabels(
 }
 
 /**
+ * One-line result, e.g. `authIssue: Yes, urgency: high (1.6)`.
+ */
+export function getEvaluationPreview(evaluation: Evaluation | undefined): string {
+  return getAnswerLabels(evaluation?.answers ?? [], evaluation?.input?.questions)
+    .map(([key, label]) => `${key}: ${label}`)
+    .join(', ');
+}
+
+/**
  * A short text form of an answer, e.g. "Yes", "billing" or "high (1.6)". Null
  * for invalid answers.
  */

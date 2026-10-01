@@ -65,7 +65,6 @@ from sentry.incidents.models.alert_rule import (
 )
 from sentry.incidents.models.incident import (
     Incident,
-    IncidentActivity,
     IncidentProject,
     IncidentType,
 )
@@ -2094,13 +2093,6 @@ class Factories:
             IncidentProject.objects.create(incident=incident, project=project)
 
         return incident
-
-    @staticmethod
-    @assume_test_silo_mode(SiloMode.CELL)
-    def create_incident_activity(incident, type, comment=None, user_id=None, **kwargs):
-        return IncidentActivity.objects.create(
-            incident=incident, type=type, comment=comment, user_id=user_id, **kwargs
-        )
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
