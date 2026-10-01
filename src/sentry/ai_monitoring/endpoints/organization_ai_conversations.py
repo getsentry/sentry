@@ -9,6 +9,11 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.ai_monitoring.constants import AI_CONVERSATIONS_FIELDS
+from sentry.ai_monitoring.conversation_aggregates import (
+    CONVERSATION_AGGREGATE_COLUMNS,
+    AIConversationAggregates,
+    parse_conversation_aggregates,
+)
 from sentry.ai_monitoring.conversation_query import compile_conversation_query
 from sentry.ai_monitoring.conversation_titles import fetch_conversation_titles
 from sentry.ai_monitoring.serializers import OrganizationAIConversationsSerializer
@@ -18,7 +23,6 @@ from sentry.ai_monitoring.utils import (
     get_aggregated_last_output,
     get_conversation_url,
     serialize_conversation_project,
-    timestamp_to_float,
 )
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -57,28 +61,17 @@ class UserResponse(TypedDict):
     ip_address: str | None
 
 
-class AIConversationData(TypedDict):
+class AIConversationData(AIConversationAggregates):
     conversationId: str
+    errors: int
     title: str | None
     projectId: int | None
     flow: list[str]
-    errors: int
-    llmCalls: int
-    toolCalls: int
-    totalTokens: int
-    inputTokens: int
-    outputTokens: int
-    totalCost: float
-    generationDuration: float
-    startTimestamp: int
-    endTimestamp: int
     traceCount: int
     traceIds: list[str]
     firstInput: str | None
     lastOutput: str | None
     user: UserResponse | None
-    toolNames: list[str]
-    toolErrors: int
 
 
 class AIConversationResponse(AIConversationData):
@@ -115,20 +108,10 @@ def _is_conversation_id_lookup(user_query: str) -> bool:
     return bool(_CONVERSATION_ID_LOOKUP_RE.match(user_query.strip()))
 
 
-def _build_conversation_query(base_query: str, user_query: str) -> str:
-    if user_query and user_query.strip():
-        return f"{base_query} {user_query.strip()}"
-    return base_query
-
-
 def _extract_conversation_ids(results: EAPResponse) -> list[str]:
     return [
         conv_id for row in results.get("data", []) if (conv_id := row.get("gen_ai.conversation.id"))
     ]
-
-
-def _compute_timestamp_ms(finish_ts: float) -> int:
-    return int(finish_ts * 1000) if finish_ts else 0
 
 
 def _build_user_response(
@@ -145,53 +128,6 @@ def _build_user_response(
         "email": user_email,
         "username": user_username,
         "ip_address": user_ip,
-    }
-
-
-def _build_conversation_response(
-    conv_id: str,
-    start_timestamp: int,
-    end_timestamp: int,
-    errors: int,
-    llm_calls: int,
-    tool_calls: int,
-    total_tokens: int,
-    input_tokens: int,
-    output_tokens: int,
-    total_cost: float,
-    trace_ids: list[str],
-    flow: list[str],
-    first_input: str | None,
-    last_output: str | None,
-    user: UserResponse | None = None,
-    tool_names: list[str] | None = None,
-    tool_errors: int = 0,
-    title: str | None = None,
-    generation_duration: float = 0,
-    project_id: int | None = None,
-) -> AIConversationData:
-    return {
-        "conversationId": conv_id,
-        "title": title,
-        "projectId": project_id,
-        "flow": flow,
-        "errors": errors,
-        "llmCalls": llm_calls,
-        "toolCalls": tool_calls,
-        "totalTokens": total_tokens,
-        "inputTokens": input_tokens,
-        "outputTokens": output_tokens,
-        "totalCost": total_cost,
-        "generationDuration": generation_duration,
-        "startTimestamp": start_timestamp,
-        "endTimestamp": end_timestamp,
-        "traceCount": len(trace_ids),
-        "traceIds": trace_ids,
-        "firstInput": first_input,
-        "lastOutput": last_output,
-        "user": user,
-        "toolNames": tool_names or [],
-        "toolErrors": tool_errors,
     }
 
 
@@ -250,19 +186,6 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
 
         validated_data = serializer.validated_data
         user_query = validated_data.get("query", "")
-        query_string = _build_conversation_query(
-            "has:gen_ai.conversation.id has:gen_ai.operation.type", user_query
-        )
-
-        def data_fn(offset: int, limit: int) -> list[AIConversationResponse]:
-            return self._get_conversations(
-                snuba_params=snuba_params,
-                offset=offset,
-                limit=limit,
-                query_string=query_string,
-                sampling_mode=validated_data["samplingMode"],
-                sorts=validated_data["sort"],
-            )
 
         with handle_query_errors():
             resolver = Spans.get_resolver(
@@ -270,6 +193,17 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                 SearchResolverConfig(auto_fields=True, disable_aggregate_extrapolation=True),
             )
             query_string = compile_conversation_query(user_query, resolver)
+
+            def data_fn(offset: int, limit: int) -> list[AIConversationResponse]:
+                return self._get_conversations(
+                    snuba_params=snuba_params,
+                    offset=offset,
+                    limit=limit,
+                    query_string=query_string,
+                    sampling_mode=validated_data["samplingMode"],
+                    sorts=validated_data["sort"],
+                )
+
             response = self.paginate(
                 request=request,
                 paginator=GenericOffsetPaginator(data_fn=data_fn),
@@ -375,26 +309,18 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
     ) -> list[AIConversationData]:
         operation_filter = "has:gen_ai.operation.type"
         ai_client_filter = "gen_ai.operation.type:ai_client"
+        # Some SDKs put messages on the agent span instead of its generation spans.
+        agent_filter = "gen_ai.operation.type:agent"
         results = Spans.run_table_query(
             params=snuba_params,
             query_string=build_escaped_term_filter("gen_ai.conversation.id", conversation_ids),
             selected_columns=[
                 "gen_ai.conversation.id",
                 "failure_count() as errors",
-                "count_if(gen_ai.operation.type,equals,ai_client) as llm_calls",
-                "count_if(gen_ai.operation.type,equals,tool) as tool_calls",
-                "sum_if(gen_ai.usage.total_tokens,gen_ai.operation.type,equals,ai_client) as total_tokens",
-                "sum_if(gen_ai.usage.input_tokens,gen_ai.operation.type,equals,ai_client) as input_tokens",
-                "sum_if(gen_ai.usage.output_tokens,gen_ai.operation.type,equals,ai_client) as output_tokens",
-                "sum_if(gen_ai.cost.total_tokens,gen_ai.operation.type,equals,ai_client) as total_cost",
-                "sum_if(span.duration,gen_ai.operation.type,equals,ai_client) as generation_duration",
-                "min(timestamp) as start_timestamp",
-                "max(timestamp) as end_timestamp",
+                *CONVERSATION_AGGREGATE_COLUMNS,
                 f"collect_unique_if(`{operation_filter}`, trace) as trace_ids",
                 f"collect_unique_if(`{operation_filter}`, project.id) as project_ids",
                 "collect_unique_if(`gen_ai.operation.type:agent`, gen_ai.agent.name) as flow",
-                "collect_unique_if(`gen_ai.operation.type:tool`, gen_ai.tool.name) as tool_names",
-                "failure_count_if(gen_ai.operation.type,equals,tool) as tool_errors",
                 f"first_if(`{operation_filter}`, user.id, timestamp) as user_id",
                 f"first_if(`{operation_filter}`, user.email, timestamp) as user_email",
                 f"first_if(`{operation_filter}`, user.username, timestamp) as user_username",
@@ -407,6 +333,8 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                 f"max_if(`{ai_client_filter} has:gen_ai.output.messages`, timestamp) as output_messages_timestamp",
                 f"last_if(`{ai_client_filter}`, gen_ai.response.text, timestamp) as response_text",
                 f"max_if(`{ai_client_filter} has:gen_ai.response.text`, timestamp) as response_text_timestamp",
+                f"first_if(`{agent_filter} has:gen_ai.input.messages`, gen_ai.input.messages, timestamp) as agent_input_messages",
+                f"last_if(`{agent_filter} has:gen_ai.output.messages`, gen_ai.output.messages, timestamp) as agent_output_messages",
             ],
             orderby=None,
             offset=0,
@@ -430,34 +358,24 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                 if isinstance(project_id, int)
             }
             trace_ids = sorted(row.get("trace_ids") or [])
-            conversations_map[conversation_id] = _build_conversation_response(
-                conv_id=conversation_id,
-                start_timestamp=_compute_timestamp_ms(
-                    timestamp_to_float(row.get("start_timestamp"))
-                ),
-                end_timestamp=_compute_timestamp_ms(timestamp_to_float(row.get("end_timestamp"))),
-                errors=int(row.get("errors") or 0),
-                llm_calls=int(row.get("llm_calls") or 0),
-                tool_calls=int(row.get("tool_calls") or 0),
-                total_tokens=int(row.get("total_tokens") or 0),
-                input_tokens=int(row.get("input_tokens") or 0),
-                output_tokens=int(row.get("output_tokens") or 0),
-                total_cost=float(row.get("total_cost") or 0),
-                generation_duration=float(row.get("generation_duration") or 0),
-                trace_ids=trace_ids,
-                flow=row.get("flow") or [],
-                first_input=get_aggregated_first_input(row),
-                last_output=get_aggregated_last_output(row),
-                user=_build_user_response(
+            conversations_map[conversation_id] = {
+                "conversationId": conversation_id,
+                "errors": int(row.get("errors") or 0),
+                "title": None,
+                "projectId": min(project_ids, default=None),
+                "flow": row.get("flow") or [],
+                "traceCount": len(trace_ids),
+                "traceIds": trace_ids,
+                "firstInput": get_aggregated_first_input(row),
+                "lastOutput": get_aggregated_last_output(row),
+                "user": _build_user_response(
                     user_id=row.get("user_id"),
                     user_email=row.get("user_email"),
                     user_username=row.get("user_username"),
                     user_ip=row.get("user_ip"),
                 ),
-                tool_names=sorted(row.get("tool_names") or []),
-                tool_errors=int(row.get("tool_errors") or 0),
-                project_id=min(project_ids, default=None),
-            )
+                **parse_conversation_aggregates(row),
+            }
             project_ids_by_conversation[conversation_id] = project_ids
 
         self._apply_titles(conversations_map, project_ids_by_conversation)

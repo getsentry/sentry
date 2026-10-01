@@ -4,6 +4,7 @@ import * as qs from 'query-string';
 
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {ExternalLink, Link} from '@sentry/scraps/link';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {RevealOnHover} from '@sentry/scraps/revealOnHover';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -28,11 +29,11 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathnames';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
-import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
+import {traceAnalytics} from 'sentry/views/performance/traceDetails/traceAnalytics';
 import {
   getSearchInExploreTarget,
   TraceDrawerActionKind,
-} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
+} from 'sentry/views/performance/traceDetails/traceDrawer/details/utils';
 import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 import {getSizeBuildPath} from 'sentry/views/preprod/utils/buildLinkUtils';
 
@@ -317,17 +318,22 @@ function EventTagsTreeRowDropdown({
   return (
     <RevealOnHover.Action visible={isMenuOpen}>
       <TreeValueDropdown
+        // Inline, the menu is trapped in the focused row's stacking context and
+        // renders under positioned content further down the page.
+        usePortal
         preventOverflowOptions={{padding: 4}}
         position="bottom-end"
         size="xs"
         isOpen={isMenuOpen}
         onOpenChange={setIsMenuOpen}
-        triggerProps={{
-          'aria-label': t('Tag Actions Menu'),
-          icon: <IconEllipsis />,
-          showChevron: false,
-          className: 'tag-button',
-        }}
+        trigger={triggerProps => (
+          <OverlayTrigger.IconButton
+            {...triggerProps}
+            aria-label={t('Tag Actions Menu')}
+            icon={<IconEllipsis />}
+            className="tag-button"
+          />
+        )}
         items={items}
       />
     </RevealOnHover.Action>

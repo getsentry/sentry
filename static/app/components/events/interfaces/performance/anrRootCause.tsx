@@ -28,9 +28,9 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useProjects} from 'sentry/utils/useProjects';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
-import {useIssuesTraceTree} from 'sentry/views/performance/newTraceDetails/traceApi/useIssuesTraceTree';
-import {useTrace} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
-import {useTraceStateAnalytics} from 'sentry/views/performance/newTraceDetails/useTraceStateAnalytics';
+import {useIssuesTraceTree} from 'sentry/views/performance/traceDetails/traceApi/useIssuesTraceTree';
+import {useTrace} from 'sentry/views/performance/traceDetails/traceApi/useTrace';
+import {useTraceStateAnalytics} from 'sentry/views/performance/traceDetails/useTraceStateAnalytics';
 
 enum AnrRootCauseAllowlist {
   PERFORMANCE_FILE_IO_MAIN_THREAD_GROUP_TYPE = 1008,

@@ -19,8 +19,8 @@ describe('LogFileViewer', () => {
   });
   const attachmentUrl = `/api/0/projects/${organization.id}/${project.slug}/events/${event.id}/attachments/${attachment.id}/?download`;
 
-  function renderViewer() {
-    render(
+  function ExampleLogFileViewer() {
+    return (
       <LogFileViewer
         attachment={attachment}
         eventId={event.id}
@@ -45,7 +45,7 @@ describe('LogFileViewer', () => {
     ]);
     fetchMock.route(attachmentUrl, fetchMock.Response(bytes));
 
-    renderViewer();
+    render(<ExampleLogFileViewer />);
 
     expect(await screen.findByText('A中')).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledWith(
@@ -61,7 +61,7 @@ describe('LogFileViewer', () => {
   it('renders an error when the attachment cannot be downloaded', async () => {
     fetchMock.route(attachmentUrl, '', {status: 404});
 
-    renderViewer();
+    render(<ExampleLogFileViewer />);
 
     expect(await screen.findByText('Failed to download attachment.')).toBeInTheDocument();
   });

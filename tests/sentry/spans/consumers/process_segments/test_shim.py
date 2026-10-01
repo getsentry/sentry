@@ -64,9 +64,35 @@ class TestBuildShimEventData:
         assert event["timestamp"] == segment_span["end_timestamp"]
         assert event["transaction"] == attribute_value(segment_span, "sentry.segment.name")
 
+    def test_defaults_platform_to_other(self) -> None:
+        segment_span_empty_platform = build_segment_span(
+            attributes={"sentry.platform": {"value": "", "type": "string"}}
+        )
+        segment_span_no_platform = build_segment_span()
+        no_platform_attributes = segment_span_no_platform["attributes"]
+        assert no_platform_attributes is not None
+        del no_platform_attributes["sentry.platform"]
+
+        event_empty_platform = build_shim_event_data(
+            segment_span_empty_platform, [segment_span_empty_platform]
+        )
+        event_no_platform = build_shim_event_data(
+            segment_span_no_platform, [segment_span_no_platform]
+        )
+
+        assert event_empty_platform["platform"] == "other"
+        assert event_no_platform["platform"] == "other"
+
     def test_reconstructs_contexts(self) -> None:
         segment_span = build_segment_span(
             attributes={
+                "browser.name": {"value": "Chrome", "type": "string"},
+                "browser.version": {"value": "120", "type": "string"},
+                "device.family": {"value": "Mac", "type": "string"},
+                "os.name": {"value": "Mac OS X", "type": "string"},
+                "os.version": {"value": "14.5", "type": "string"},
+                "process.runtime.name": {"value": "CPython", "type": "string"},
+                "process.runtime.version": {"value": "3.13.1", "type": "string"},
                 "sentry.profile_id": {"value": "11211231415908", "type": "string"},
                 "sentry.transaction.op": {"value": "fetch", "type": "string"},
             }
@@ -75,9 +101,28 @@ class TestBuildShimEventData:
         event = build_shim_event_data(segment_span, [segment_span])
         contexts = event["contexts"]
 
+        assert contexts["browser"] == {
+            "name": "Chrome",
+            "version": "120",
+            "type": "browser",
+        }
+        assert contexts["device"] == {
+            "family": "Mac",
+            "type": "device",
+        }
+        assert contexts["os"] == {
+            "name": "Mac OS X",
+            "version": "14.5",
+            "type": "os",
+        }
         assert contexts["profile"] == {
             "profile_id": "11211231415908",
             "type": "profile",
+        }
+        assert contexts["runtime"] == {
+            "name": "CPython",
+            "version": "3.13.1",
+            "type": "runtime",
         }
         assert contexts["trace"] == {
             "trace_id": segment_span["trace_id"],
@@ -86,6 +131,49 @@ class TestBuildShimEventData:
             "hash": "dogs_are_great",
             "type": "trace",
         }
+
+    def test_reconstructs_tags(self) -> None:
+        segment_span = build_segment_span(
+            attributes={
+                "dog.name": {"value": "charlie", "type": "string"},
+                "dog.type": {"value": "goofy", "type": "string"},
+            }
+        )
+
+        event = build_shim_event_data(segment_span, [segment_span])
+
+        assert sorted(event["tags"]) == [["dog.name", "charlie"], ["dog.type", "goofy"]]
+
+    def test_excludes_attributes_used_elsewhere_in_the_event_from_tags(self) -> None:
+        segment_span = build_segment_span(
+            attributes={
+                "dog.name": {"value": "maisey", "type": "string"},
+                # These end up at the top level of the event
+                "sentry.segment.name": {"value": "/dogpark", "type": "string"},
+                "sentry.platform": {"value": "python", "type": "string"},
+                # These end up in `event["contexts"]`
+                "sentry.profile_id": {"value": "11211231415908", "type": "string"},
+                "browser.name": {"value": "chrome", "type": "string"},
+            }
+        )
+
+        event = build_shim_event_data(segment_span, [segment_span])
+
+        assert event["tags"] == [["dog.name", "maisey"]]
+
+    def test_excludes_non_string_attributes_from_tags(self) -> None:
+        segment_span = build_segment_span(
+            attributes={
+                "dog.name": {"value": "charlie", "type": "string"},
+                "dog.weight": {"value": 58.4, "type": "double"},
+                "dogs.age": {"value": 13, "type": "integer"},
+                "is_good": {"value": True, "type": "boolean"},
+            }
+        )
+
+        event = build_shim_event_data(segment_span, [segment_span])
+
+        assert event["tags"] == [["dog.name", "charlie"]]
 
     def test_lifts_span_description_to_the_top_level(self) -> None:
         segment_span = build_segment_span(description="SELECT * FROM dogs")

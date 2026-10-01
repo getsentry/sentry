@@ -38,8 +38,13 @@ describe('PrimaryNavigationHelpMenu', () => {
     Cookies.remove('sentry_react_auth', {path: '/'});
   });
 
-  it('toggles the new login cookie when the feature is enabled', async () => {
-    const organization = OrganizationFixture({features: ['authv2-enable-toggle']});
+  afterEach(() => {
+    Cookies.remove('sentry_react_auth', {path: '/'});
+  });
+
+  it('re-enables new login after an explicit opt-out and hides the item', async () => {
+    const organization = OrganizationFixture();
+    Cookies.set('sentry_react_auth', '0', {path: '/'});
 
     render(<PrimaryNavigationHelpMenu />, {organization});
 
@@ -54,17 +59,14 @@ describe('PrimaryNavigationHelpMenu', () => {
     });
 
     await userEvent.click(screen.getByRole('button', {name: 'Help'}));
-    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Disable new login'}));
 
-    expect(Cookies.get('sentry_react_auth')).toBe('0');
-    expect(trackAnalytics).toHaveBeenCalledWith('auth_v2.rollout.changed', {
-      organization,
-      source: 'help_menu',
-      state: 'disabled',
-    });
+    expect(
+      screen.queryByRole('menuitemradio', {name: /(?:Enable|Disable) new login/})
+    ).not.toBeInTheDocument();
+    expect(Cookies.get('sentry_react_auth')).toBe('1');
   });
 
-  it('hides the new login toggle when the feature is disabled', async () => {
+  it('hides the new login item when the cookie is unset', async () => {
     render(<PrimaryNavigationHelpMenu />, {organization: OrganizationFixture()});
 
     await userEvent.click(screen.getByRole('button', {name: 'Help'}));
@@ -73,6 +75,21 @@ describe('PrimaryNavigationHelpMenu', () => {
       screen.queryByRole('menuitemradio', {name: 'Enable new login'})
     ).not.toBeInTheDocument();
   });
+
+  it.each(['1', 'invalid', ''])(
+    'hides the new login item for cookie %j',
+    async cookie => {
+      Cookies.set('sentry_react_auth', cookie, {path: '/'});
+      render(<PrimaryNavigationHelpMenu />, {organization: OrganizationFixture()});
+
+      await userEvent.click(screen.getByRole('button', {name: 'Help'}));
+
+      expect(
+        screen.queryByRole('menuitemradio', {name: /(?:Enable|Disable) new login/})
+      ).not.toBeInTheDocument();
+      expect(Cookies.get('sentry_react_auth')).toBe(cookie);
+    }
+  );
 
   it('opens Intercom when contacting support', async () => {
     const organization = OrganizationFixture();

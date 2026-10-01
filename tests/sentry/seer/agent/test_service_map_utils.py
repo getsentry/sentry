@@ -24,6 +24,7 @@ from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_snuba
+from sentry.viewer_context import ActorType, ViewerContext, get_viewer_context
 
 
 def _make_snuba_params(organization, projects):
@@ -141,6 +142,12 @@ class TestBuildServiceMap(TestCase):
         org = self.create_organization()
         project1 = self.create_project(organization=org)
         project2 = self.create_project(organization=org)
+        observed_contexts: list[ViewerContext | None] = []
+
+        def send_to_seer(*args: object, **kwargs: object) -> None:
+            observed_contexts.append(get_viewer_context())
+
+        mock_send.side_effect = send_to_seer
 
         mock_dependencies.return_value = [
             {
@@ -159,6 +166,10 @@ class TestBuildServiceMap(TestCase):
         snuba_params = mock_dependencies.call_args[0][0]
         assert isinstance(snuba_params, SnubaParams)
         mock_send.assert_called_once()
+        assert observed_contexts == [
+            ViewerContext(organization_id=org.id, actor_type=ActorType.SYSTEM)
+        ]
+        assert get_viewer_context() is None
 
     @mock.patch("sentry.tasks.seer.context_engine_index._build_nodes")
     @mock.patch("sentry.tasks.seer.context_engine_index._query_service_dependencies")

@@ -54,6 +54,7 @@ describe('ActivitySection', () => {
       {
         type: GroupActivityType.NOTE,
         id: 'note-1',
+        commentId: 'note-1',
         data: {text: 'Test Note'},
         dateCreated: '2020-01-01T00:00:00',
         user,
@@ -82,6 +83,7 @@ describe('ActivitySection', () => {
       method: 'POST',
       body: {
         id: 'note-2',
+        commentId: 'note-2',
         user: UserFixture({id: '2'}),
         type: 'note',
         data: {text: comment},
@@ -122,6 +124,7 @@ describe('ActivitySection', () => {
       method: 'POST',
       body: {
         id: 'note-3',
+        commentId: 'note-3',
         user: UserFixture({id: '2'}),
         type: 'note',
         data: {text: comment},
@@ -152,6 +155,7 @@ describe('ActivitySection', () => {
       method: 'POST',
       body: {
         id: 'note-4',
+        commentId: 'note-4',
         user: UserFixture({id: '2'}),
         type: 'note',
         data: {text: '@Jane Doe'},
@@ -181,12 +185,14 @@ describe('ActivitySection', () => {
     );
   });
 
-  it.each([
-    {id: '123', commentId: undefined},
-    {id: '987', commentId: '123'},
-  ])('deletes only the comment with identity %j', async identity => {
+  it('deletes only the referenced comment', async () => {
     jest.spyOn(indicators, 'addSuccessMessage');
-    const note = ActivityFeedFixture({...identity, user, data: {text: 'Test Note'}});
+    const note = ActivityFeedFixture({
+      id: '987',
+      commentId: '123',
+      user,
+      data: {text: 'Test Note'},
+    });
     const resolution = ActivityFeedFixture({
       id: '123',
       type: GroupActivityType.SET_RESOLVED,
@@ -234,6 +240,7 @@ describe('ActivitySection', () => {
         {
           type: GroupActivityType.NOTE,
           id: 'note-1',
+          commentId: 'note-1',
           data: {text: 'Undeletable Note'},
           dateCreated: '2020-01-01T00:00:00',
           user,
@@ -274,6 +281,7 @@ describe('ActivitySection', () => {
         {
           type: GroupActivityType.NOTE,
           id: 'note-1',
+          commentId: 'note-1',
           data: {text: '**Bold Note** and [docs](https://docs.sentry.io/)'},
           dateCreated: tenMinutesAgo(),
           user,
@@ -305,6 +313,7 @@ describe('ActivitySection', () => {
         {
           type: GroupActivityType.NOTE,
           id: 'note-1',
+          commentId: 'note-1',
           data: {text: 'User note'},
           dateCreated: '2020-01-01T00:00:00',
           user,
@@ -875,6 +884,7 @@ describe('ActivitySection', () => {
         {
           type: GroupActivityType.NOTE,
           id: 'note-1',
+          commentId: 'note-1',
           data: {text: 'This note came from my sentry app'},
           dateCreated: '2020-01-01T00:00:00',
           sentry_app: sentryApp,
@@ -932,6 +942,7 @@ describe('ActivitySection', () => {
         {
           type: GroupActivityType.NOTE,
           id: 'note-1',
+          commentId: 'note-1',
           data: {text: 'Test Note'},
           dateCreated: '2020-01-01T00:00:00',
           user: UserFixture({id: '2'}),
@@ -959,6 +970,7 @@ describe('ActivitySection', () => {
     const activities: GroupActivity[] = Array.from({length: 7}, (_, index) => ({
       type: GroupActivityType.NOTE,
       id: `note-${index + 1}`,
+      commentId: `note-${index + 1}`,
       data: {text: `Test Note ${index + 1}`},
       dateCreated: '2020-01-01T00:00:00',
       user: UserFixture({id: '2'}),
@@ -989,6 +1001,7 @@ describe('ActivitySection', () => {
     const activities: GroupActivity[] = Array.from({length: 3}, (_, index) => ({
       type: GroupActivityType.NOTE,
       id: `note-${index + 1}`,
+      commentId: `note-${index + 1}`,
       data: {text: `Test Note ${index + 1}`},
       dateCreated: '2020-01-01T00:00:00',
       user: UserFixture({id: '2'}),
@@ -1026,6 +1039,7 @@ describe('ActivitySection', () => {
     const activities: GroupActivity[] = Array.from({length: 7}, (_, index) => ({
       type: GroupActivityType.NOTE,
       id: `note-${index + 1}`,
+      commentId: `note-${index + 1}`,
       data: {text: `Test Note ${index + 1}`},
       dateCreated: tenMinutesAgo(),
       user: UserFixture({id: '2'}),
@@ -1114,6 +1128,7 @@ describe('ActivitySection', () => {
     const activities: GroupActivity[] = Array.from({length: 3}, (_, index) => ({
       type: GroupActivityType.NOTE,
       id: `note-${index + 1}`,
+      commentId: `note-${index + 1}`,
       data: {text: `Test Note ${index + 1}`},
       dateCreated: '2020-01-01T00:00:00',
       user: UserFixture({id: '2'}),
@@ -1788,6 +1803,7 @@ describe('ActivitySection', () => {
         {
           type: GroupActivityType.NOTE,
           id: 'note-between-pull-request-activities',
+          commentId: 'note-between-pull-request-activities',
           dateCreated: '2020-01-01T00:01:00',
           data: {text: 'An activity between the pull request activities'},
           user,
@@ -2065,6 +2081,7 @@ describe('ActivitySection', () => {
         {
           type: GroupActivityType.NOTE,
           id: 'activity-during-rca',
+          commentId: 'activity-during-rca',
           dateCreated: '2020-01-01T00:02:00Z',
           data: {text: 'Checked during analysis'},
           user,

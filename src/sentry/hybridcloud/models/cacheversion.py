@@ -28,10 +28,6 @@ class CacheVersionBase(Model):
             return obj.version
 
     @classmethod
-    def get_versions(cls, keys: list[str]) -> list[int]:
-        return list(cls.objects.filter(keyname__in=keys).values_list("version", flat=True))
-
-    @classmethod
     def get_version_map(cls, keys: list[str]) -> Mapping[str, int]:
         return {
             row[0]: row[1]

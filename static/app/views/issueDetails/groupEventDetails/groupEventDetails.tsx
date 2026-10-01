@@ -9,6 +9,8 @@ import type {GroupActivityReprocess, GroupReprocessing} from 'sentry/types/group
 import {IssueType} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
+import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
+import {isNotFoundError} from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -129,6 +131,11 @@ function GroupEventDetails() {
     />
   ) : isLoadingEvent ? (
     <GroupEventDetailsLoading />
+  ) : isEventError && !isNotFoundError(eventError) ? (
+    <LoadingError
+      message={getRequestErrorUserMessage(eventError)}
+      onRetry={refetchEvent}
+    />
   ) : (
     <GroupEventDetailsContent group={group} event={eventWithMeta} project={project} />
   );

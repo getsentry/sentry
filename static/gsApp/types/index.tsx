@@ -176,7 +176,14 @@ export type Plan = {
   trialPlan: string | null;
   userSelectable: boolean;
   categoryDisplayNames?: Partial<
-    Record<DataCategory, {plural: string; singular: string}>
+    Record<
+      DataCategory | string,
+      {
+        plural: string;
+        singular: string;
+        unitType?: 'microCents';
+      }
+    >
   >;
 };
 
@@ -378,6 +385,8 @@ export type Subscription = {
   // Refetch usage data if Subscription is updated
   isDeleted?: boolean;
 
+  /** Admin-only marker; unavailable until the backend supports it. */
+  isTest?: boolean;
   isTrialStarted?: boolean;
   msaUpdatedForDataConsent?: boolean;
   onDemandBudgets?: SubscriptionOnDemandBudgets;
@@ -720,6 +729,7 @@ export type BillingMetricHistory = {
   softCapType: 'ON_DEMAND' | 'TRUE_FORWARD' | null;
   usage: number;
   usageExceeded: boolean;
+  isDisabled?: boolean;
   retention?: {downsampled: number | null; standard: number | null};
 };
 
