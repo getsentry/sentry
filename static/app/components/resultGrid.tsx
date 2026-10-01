@@ -252,9 +252,9 @@ interface ResultGridProps {
    */
   method?: 'GET' | 'POST';
   /**
-   * Forwards the error message received when trying to load the data.
+   * Forwards the error of each failed request.
    */
-  onError?: (res: any) => void;
+  onError?: (error: Error) => void;
   /**
    * Fires each time the API successfully updates the data. Does not forward the data itself.
    */
@@ -965,19 +965,24 @@ export function ResultGrid({
   }
 
   // Queries take no callbacks. Every settled fetch moves a query's update
-  // timestamp forward instead, so `onLoad` and `onError` follow those.
+  // timestamp forward instead, so `onLoad` and `onError` follow those. A cached
+  // result shown while its refetch runs has not settled, so it fires neither.
   const observedQueries = allRegions ? pageQueries : [activeQuery];
   const loadedAt = Math.max(
     0,
     ...observedQueries.map(query => (query.isFetching ? 0 : query.dataUpdatedAt))
   );
   const lastFailure = observedQueries
-    .filter(query => query.isError)
+    .filter(query => query.isError && !query.isFetching)
     .toSorted((a, b) => b.errorUpdatedAt - a.errorUpdatedAt)[0];
   const failedAt = lastFailure?.errorUpdatedAt ?? 0;
 
   const notifyLoad = useEffectEvent(() => onLoad?.());
-  const notifyError = useEffectEvent(() => onError?.(lastFailure?.error));
+  const notifyError = useEffectEvent(() => {
+    if (lastFailure?.error) {
+      onError?.(lastFailure.error);
+    }
+  });
 
   useEffect(() => {
     if (loadedAt > 0) {
@@ -1140,7 +1145,15 @@ export function ResultGrid({
   ];
 
   const {pendingRegions, regionErrors} = results;
-  const moreRegions = cells.map(c => c.name).filter(name => results.regionCursors[name]);
+  // A region keeps its place in the label while its next page loads, so the
+  // control stays put in its busy state instead of unmounting.
+  const moreRegions = cells
+    .map(c => c.name)
+    .filter(
+      name =>
+        results.regionCursors[name] ||
+        (pendingRegions.includes(name) && (extraCursors[name] ?? []).length > 0)
+    );
   // The status note shares the row of the selectors, so nothing moves while
   // requests run. While regions load it lists the outstanding ones; when a
   // region failed, a warning icon with a tooltip names the failed regions.

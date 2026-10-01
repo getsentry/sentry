@@ -19,7 +19,9 @@ import {Truncate} from 'sentry/components/truncate';
 import type {Organization} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getLocalities} from 'sentry/utils/cells';
+import {parseApiError} from 'sentry/utils/parseApiError';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
 
@@ -517,15 +519,17 @@ export function RelocationDetails() {
             setArtifactsState(ArtifactsState.FETCHED);
             addSuccessMessage('Artifacts list loaded.');
           }}
-          onError={res => {
+          onError={error => {
             setArtifactsState(ArtifactsState.ERROR);
-            if (res.status === 401 || res.status === 403) {
-              addErrorMessage(res.responseJSON.detail);
-            } else if (res.status === 404) {
+            if (!(error instanceof RequestError)) {
+              addErrorMessage(`Unexpected error condition: ${error.message}.`);
+            } else if (error.status === 401 || error.status === 403) {
+              addErrorMessage(parseApiError(error));
+            } else if (error.status === 404) {
               addErrorMessage('Artifacts not found!');
             } else {
               addErrorMessage(
-                `Unexpected error condition: ${res.status}(${res.responseText}).`
+                `Unexpected error condition: ${error.status}(${error.responseText}).`
               );
             }
           }}

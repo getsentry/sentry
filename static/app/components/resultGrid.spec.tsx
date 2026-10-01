@@ -773,6 +773,45 @@ describe('ResultGrid allowAllRegions', () => {
     expect(screen.getByText('Ceta')).toBeInTheDocument();
   });
 
+  it('keeps the load more control while the next page loads', async () => {
+    let finishSecondPage!: () => void;
+    const secondPageGate = new Promise<void>(resolve => {
+      finishSecondPage = resolve;
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/_admin/cells/us/customers/',
+      match: [MockApiClient.matchData({cursor: ''})],
+      body: [{id: '1', name: 'Acme', members: 5}],
+      headers: {
+        Link:
+          '<https://us.example.com/api/0/_admin/cells/us/customers/?cursor=0:1:0>; ' +
+          'rel="next"; results="true"; cursor="0:1:0"',
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: '/_admin/cells/us/customers/',
+      match: [MockApiClient.matchData({cursor: '0:1:0'})],
+      body: [{id: '2', name: 'Beta', members: 4}],
+      asyncDelay: secondPageGate,
+    });
+    MockApiClient.addMockResponse({
+      url: '/_admin/cells/de/customers/',
+      body: [],
+    });
+
+    renderGrid(undefined, {}, allRegionsProps);
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Load more (us)'}));
+
+    expect(await screen.findByText('Still loading')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Load more (us)'})).toBeInTheDocument();
+
+    finishSecondPage();
+
+    expect(await screen.findByText('Beta')).toBeInTheDocument();
+  });
+
   it('drops the load more control once every region is exhausted', async () => {
     MockApiClient.addMockResponse({
       url: '/_admin/cells/us/customers/',
