@@ -25,6 +25,8 @@ export function AdminSecondaryNavigation() {
           ],
         },
       ]}
+      hookConfigs={[]}
+      hooks={[]}
     />
   );
 }

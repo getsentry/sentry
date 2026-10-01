@@ -6,7 +6,7 @@ import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components'
 import {SettingsNavigationGroup} from 'sentry/views/settings/components/settingsNavigationGroup';
 import type {NavigationProps, NavigationSection} from 'sentry/views/settings/types';
 
-type DefaultProps = {
+type Props = NavigationProps & {
   /**
    * Additional navigation configuration driven by hooks
    */
@@ -15,17 +15,13 @@ type DefaultProps = {
    * Additional navigation elements driven from hooks
    */
   hooks: React.ReactElement[];
+  /**
+   * The configuration for this navigation panel
+   */
+  navigationObjects: NavigationSection[];
 };
 
-type Props = DefaultProps &
-  NavigationProps & {
-    /**
-     * The configuration for this navigation panel
-     */
-    navigationObjects: NavigationSection[];
-  };
-
-function SettingsSecondaryNavigation({
+export function SettingsNavigation({
   navigationObjects,
   hookConfigs,
   hooks,
@@ -34,7 +30,7 @@ function SettingsSecondaryNavigation({
   const navWithHooks = navigationObjects.concat(hookConfigs);
 
   return (
-    <Fragment>
+    <ErrorBoundary customComponent={null}>
       <SecondaryNavigation.Header>{t('Settings')}</SecondaryNavigation.Header>
       <SecondaryNavigation.Body>
         {navWithHooks.map((config, index) => (
@@ -45,14 +41,6 @@ function SettingsSecondaryNavigation({
         ))}
         {hooks.map((Hook, i) => cloneElement(Hook, {key: `hook-${i}`}))}
       </SecondaryNavigation.Body>
-    </Fragment>
-  );
-}
-
-export function SettingsNavigation({hooks = [], hookConfigs = [], ...props}: Props) {
-  return (
-    <ErrorBoundary customComponent={null}>
-      <SettingsSecondaryNavigation hooks={hooks} hookConfigs={hookConfigs} {...props} />
     </ErrorBoundary>
   );
 }
