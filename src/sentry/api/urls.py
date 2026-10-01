@@ -759,6 +759,7 @@ from .endpoints.internal import (
     InternalRpcServiceEndpoint,
     InternalWarningsEndpoint,
 )
+from .endpoints.oauth_authorize import OAuthAuthorizeEndpoint
 from .endpoints.organization_access_request_details import OrganizationAccessRequestDetailsEndpoint
 from .endpoints.organization_agentic_onboarding import (
     OrganizationAgenticOnboardingRunIndexEndpoint,
@@ -1070,6 +1071,11 @@ def create_group_urls(
 
 
 AUTH_URLS = [
+    re_path(
+        r"^oauth/authorize/$",
+        OAuthAuthorizeEndpoint.as_view(),
+        name="sentry-api-0-oauth-authorize",
+    ),
     re_path(
         r"^$",
         AuthIndexEndpoint.as_view(),
