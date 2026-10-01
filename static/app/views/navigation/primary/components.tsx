@@ -6,10 +6,9 @@ import {FocusScope} from '@react-aria/focus';
 import {mergeProps} from '@react-aria/utils';
 import {motion} from 'framer-motion';
 import type {LocationDescriptor} from 'history';
-import type {DistributedOmit} from 'type-fest';
 
 import type {ButtonBarProps, ButtonProps} from '@sentry/scraps/button';
-import {Button, ButtonBar} from '@sentry/scraps/button';
+import {ButtonBar} from '@sentry/scraps/button';
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {
   Container,
@@ -19,6 +18,10 @@ import {
   Stack,
 } from '@sentry/scraps/layout';
 import {Link, type LinkProps} from '@sentry/scraps/link';
+import {
+  OverlayTrigger,
+  type OverlayTriggerIconButtonProps,
+} from '@sentry/scraps/overlayTrigger';
 import {SizeProvider, useSizeContext} from '@sentry/scraps/sizeContext';
 import {StatusIndicator} from '@sentry/scraps/statusIndicator';
 import {Text} from '@sentry/scraps/text';
@@ -199,22 +202,15 @@ function PrimaryNavigationLink(props: PrimaryNavigationLinkProps) {
 }
 
 interface PrimaryNavigationButtonProps extends PrimaryNavigationItemBaseProps {
-  label: React.ReactNode;
-  buttonProps?: Omit<ButtonProps, 'aria-label' | 'size'>;
-  children?: React.ReactNode;
+  buttonProps: Omit<ButtonProps, 'aria-label' | 'size' | 'icon'> &
+    Pick<OverlayTriggerIconButtonProps, 'icon'>;
+  label: string;
   indicator?: 'accent' | 'danger' | 'warning';
 }
 
 function PrimaryNavigationButton(props: PrimaryNavigationButtonProps) {
   const {layout} = usePrimaryNavigation();
   const organization = useOrganization({allowNull: true});
-
-  const ariaLabel =
-    layout === 'mobile'
-      ? undefined
-      : typeof props.label === 'string'
-        ? props.label
-        : undefined;
 
   return (
     <Tooltip
@@ -226,7 +222,7 @@ function PrimaryNavigationButton(props: PrimaryNavigationButtonProps) {
       <NavigationButton
         {...props.buttonProps}
         analyticsParams={props.analyticsParams}
-        aria-label={ariaLabel}
+        aria-label={props.label}
         onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
           trackAnalytics('navigation.primary_item_clicked', {
             item: props.analyticsKey,
@@ -248,9 +244,7 @@ function PrimaryNavigationButton(props: PrimaryNavigationButtonProps) {
             props.buttonProps?.icon
           )
         }
-      >
-        {props.children}
-      </NavigationButton>
+      />
     </Tooltip>
   );
 }
@@ -282,10 +276,9 @@ function PrimaryNavigationUnreadIndicator({
 }
 
 interface PrimaryNavigationMenuProps extends PrimaryNavigationItemBaseProps {
+  icon: OverlayTriggerIconButtonProps['icon'];
   items: MenuItemProps[];
   label: string;
-  children?: React.ReactNode;
-  icon?: React.ReactNode;
   indicator?: 'accent' | 'danger' | 'warning';
 }
 
@@ -343,9 +336,7 @@ function PrimaryNavigationMenu(props: PrimaryNavigationMenuProps) {
                   props.icon
                 )
               }
-            >
-              {layout === 'mobile' ? null : props.children}
-            </NavigationButton>
+            />
           </Tooltip>
         );
       }}
@@ -354,7 +345,13 @@ function PrimaryNavigationMenu(props: PrimaryNavigationMenuProps) {
   );
 }
 
-function NavigationButton(props: DistributedOmit<ButtonProps, 'size'>) {
+type NavigationButtonProps = Omit<
+  OverlayTriggerIconButtonProps,
+  'size' | 'children' | 'showChevron'
+> &
+  Pick<ButtonProps, 'onClick'>;
+
+function NavigationButton(props: NavigationButtonProps) {
   const {layout} = usePrimaryNavigation();
 
   return (
@@ -380,7 +377,9 @@ function PrimaryNavigationButtonContainer(props: React.ComponentProps<typeof Fle
  * otherwise clip the indicator and StatusIndicator animation. We need to unwind this and remove the overflow
  * from buttons from ever being set.
  */
-const ButtonWithOverflowVisible = styled(Button)`
+const ButtonWithOverflowVisible = styled(OverlayTrigger.IconButton)<
+  Pick<ButtonProps, 'onClick'>
+>`
   > span:last-child {
     overflow: initial;
   }

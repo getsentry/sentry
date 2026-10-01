@@ -5,7 +5,11 @@ import {expectTypeOf} from 'expect-type';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {Button} from '@sentry/scraps/button';
-import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {
+  OverlayTrigger,
+  type OverlayTriggerButtonProps,
+  type OverlayTriggerIconButtonProps,
+} from '@sentry/scraps/overlayTrigger';
 
 import {IconEllipsis} from 'sentry/icons';
 
@@ -142,9 +146,7 @@ describe('CompactSelect', () => {
           value="opt_one"
           onChange={() => {}}
           trigger={props => {
-            expectTypeOf(props).toExtend<
-              React.ComponentProps<typeof OverlayTrigger.Button>
-            >();
+            expectTypeOf(props).toExtend<OverlayTriggerButtonProps>();
             return <OverlayTrigger.Button {...props} />;
           }}
           options={[{value: 'opt_one', label: 'Option One'}]}
@@ -161,9 +163,7 @@ describe('CompactSelect', () => {
               icon: <IconEllipsis />,
               'aria-label': 'Select option',
             };
-            expectTypeOf(iconButtonProps).toExtend<
-              React.ComponentProps<typeof OverlayTrigger.IconButton>
-            >();
+            expectTypeOf(iconButtonProps).toExtend<OverlayTriggerIconButtonProps>();
             return <OverlayTrigger.IconButton {...iconButtonProps} />;
           }}
           options={[{value: 'opt_one', label: 'Option One'}]}
