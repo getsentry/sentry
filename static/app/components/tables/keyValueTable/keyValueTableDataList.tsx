@@ -36,7 +36,7 @@ export function KeyValueTableDataList({
   return (
     <Grid
       className={className}
-      columns="fit-content(175px) minmax(0, 1fr)"
+      columns="175px minmax(0, 1fr)"
       gap="md"
       marginBottom={margin ? '2xl' : undefined}
       role="table"
@@ -92,7 +92,7 @@ function Row({
     );
 
   return (
-    <Grid align="start" column="1 / -1" columns="subgrid" gap="md lg" role="row">
+    <Grid align="center" column="1 / -1" columns="subgrid" gap="md lg" role="row">
       <Container role="cell">
         <Text as="div" bold density="comfortable" wordBreak="break-word">
           {subjectNode ?? subject}
