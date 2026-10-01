@@ -211,7 +211,10 @@ describe('OrganizationRepositories', () => {
       organization: OrganizationFixture({access: []}),
     });
 
-    expect(await screen.findByRole('button', {name: 'Uninstall'})).toBeDisabled();
+    expect(await screen.findByRole('button', {name: 'Uninstall'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
   });
 
   it('shows the settings button as disabled while the integration config is loading', async () => {

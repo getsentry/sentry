@@ -85,7 +85,7 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
         self.evidence_data = MetricIssueEvidenceData(
             value=123.45,
             detector_id=self.detector.id,
-            data_packet_source_id=int(self.data_source.source_id),
+            data_packet_source_id=self.data_source.source_id,
             conditions=[
                 {
                     "id": 1,
@@ -120,7 +120,7 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
         self.anomaly_detection_evidence_data = MetricIssueEvidenceData(
             value=anomaly_detection_result,
             detector_id=self.detector.id,
-            data_packet_source_id=int(self.data_source.source_id),
+            data_packet_source_id=self.data_source.source_id,
             conditions=[
                 {
                     "id": 1,

@@ -36,6 +36,13 @@ class CompatibleSpan(SpanEvent, total=True):
     # Added by `SpanGroupingResults.write_to_spans` in `_enrich_spans`
     hash: NotRequired[str]
 
+    # Added by `_get_detector_compatible_spans` when the fake transaction event is built, and read
+    # only by the legacy issue detectors and the occurrence evidence derived from what they find.
+    # Everything else in the segment pipeline reads the corresponding span attributes instead.
+    timestamp: NotRequired[int | float]
+    description: NotRequired[str]
+    data: NotRequired[dict[str, Any]]
+
 
 def attribute_value(span: Mapping[str, Any], key: str, *, default: Any | None = None) -> Any:
     attributes = span.get("attributes") or {}

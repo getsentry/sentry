@@ -85,6 +85,10 @@ class StatusActionTest(APITestCase):
         resolve_input: str | None = None,
         archive_input: str | None = None,
         assign_input: str | None = None,
+        include_integration_id: bool = True,
+        include_event_id: bool = True,
+        rule_ids: list[int] | None = None,
+        workflow_ids: list[int] | None = None,
     ) -> Response:
         replyToId = "12345"
 
@@ -103,19 +107,23 @@ class StatusActionTest(APITestCase):
             json={},
         )
 
+        action_payload: dict[str, Any] = {
+            "groupId": group_id or self.group1.id,
+            "eventId": self.event1.event_id if include_event_id else None,
+            "actionType": action_type,
+            "rules": rule_ids or [],
+            "workflows": workflow_ids or [],
+        }
+        if include_integration_id:
+            action_payload["integrationId"] = self.integration.id
+
         payload = {
             "type": "message",
             "from": {"id": user_id},
             "channelData": channel_data,
             "conversation": {"conversationType": conversation_type, "id": conversation_id},
             "value": {
-                "payload": {
-                    "groupId": group_id or self.group1.id,
-                    "eventId": self.event1.event_id,
-                    "actionType": action_type,
-                    "rules": [],
-                    "integrationId": self.integration.id,
-                },
+                "payload": action_payload,
                 "resolveInput": resolve_input,
                 "archiveInput": archive_input,
                 "assignInput": assign_input,
@@ -187,6 +195,73 @@ class StatusActionTest(APITestCase):
         assert self.group1.get_status() == GroupStatus.IGNORED
 
     @responses.activate
+    @patch("sentry.integrations.msteams.webhook.metrics.incr")
+    @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)
+    def test_rule_lookup_metric_without_rule(
+        self, verify: MagicMock, metrics_incr: MagicMock
+    ) -> None:
+        self.post_webhook(action_type=ACTION_TYPE.ARCHIVE, archive_input="-1")
+
+        metrics_incr.assert_any_call(
+            "integrations.msteams.action.rule_lookup",
+            tags={
+                "has_rule": False,
+                "has_workflow_ids": False,
+                "lookup_succeeded": False,
+            },
+            sample_rate=1.0,
+        )
+
+    @responses.activate
+    @patch("sentry.integrations.msteams.webhook.metrics.incr")
+    @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)
+    def test_rule_lookup_metric_with_rule(self, verify: MagicMock, metrics_incr: MagicMock) -> None:
+        rule = self.create_project_rule(project=self.project1)
+        rule.data["actions"][0]["legacy_rule_id"] = rule.id
+        rule.save(update_fields=["data"])
+
+        response = self.post_webhook(
+            action_type=ACTION_TYPE.ARCHIVE,
+            archive_input="-1",
+            rule_ids=[rule.id],
+        )
+
+        assert response.status_code == 200
+        metrics_incr.assert_any_call(
+            "integrations.msteams.action.rule_lookup",
+            tags={
+                "has_rule": True,
+                "has_workflow_ids": False,
+                "lookup_succeeded": True,
+            },
+            sample_rate=1.0,
+        )
+
+    @responses.activate
+    @patch("sentry.integrations.msteams.webhook.metrics.incr")
+    @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)
+    def test_rule_lookup_metric_when_rule_is_missing(
+        self, verify: MagicMock, metrics_incr: MagicMock
+    ) -> None:
+        response = self.post_webhook(
+            action_type=ACTION_TYPE.ARCHIVE,
+            archive_input="-1",
+            rule_ids=[999_999_999],
+            workflow_ids=[123],
+        )
+
+        assert response.status_code == 200
+        metrics_incr.assert_any_call(
+            "integrations.msteams.action.rule_lookup",
+            tags={
+                "has_rule": True,
+                "has_workflow_ids": True,
+                "lookup_succeeded": False,
+            },
+            sample_rate=1.0,
+        )
+
+    @responses.activate
     @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)
     def test_no_archive_input(self, verify: MagicMock) -> None:
         resp = self.post_webhook(action_type=ACTION_TYPE.ARCHIVE, archive_input="")
@@ -218,6 +293,32 @@ class StatusActionTest(APITestCase):
         expected_data = {"status": "ignored", "statusDetails": {"ignoreCount": 100}}
 
         assert_mock_called_once_with_partial(client_put, data=expected_data)
+
+    @responses.activate
+    @patch.object(ApiClient, "put")
+    @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)
+    def test_rejected_action_answers_with_the_api_status(
+        self, verify: MagicMock, client_put: MagicMock
+    ) -> None:
+        client_put.side_effect = ApiClient.ApiError(403, {"detail": "You do not have permission"})
+
+        resp = self.post_webhook(action_type=ACTION_TYPE.RESOLVE, resolve_input="resolved")
+
+        # A 5xx here would send the webhook drain into ten retries of a record that can only
+        # fail again, holding everything behind it in the tenant's mailbox.
+        assert resp.status_code == 403, resp.content
+
+    @responses.activate
+    @patch.object(ApiClient, "put")
+    @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)
+    def test_rejected_action_with_a_non_mapping_body(
+        self, verify: MagicMock, client_put: MagicMock
+    ) -> None:
+        client_put.side_effect = ApiClient.ApiError(400, ["invalid limit"])
+
+        resp = self.post_webhook(action_type=ACTION_TYPE.RESOLVE, resolve_input="resolved")
+
+        assert resp.status_code == 400, resp.content
 
     @responses.activate
     @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)
@@ -400,6 +501,51 @@ class StatusActionTest(APITestCase):
     @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)
     def test_resolve_issue(self, verify: MagicMock) -> None:
         resp = self.post_webhook(action_type=ACTION_TYPE.RESOLVE, resolve_input="resolved")
+        self.group1 = Group.objects.get(id=self.group1.id)
+
+        assert resp.status_code == 200, resp.content
+        assert self.group1.get_status() == GroupStatus.RESOLVED
+        assert b"Unresolve" in responses.calls[0].request.body
+
+    @responses.activate
+    @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)
+    def test_resolve_issue_without_integration_id(self, verify: MagicMock) -> None:
+        resp = self.post_webhook(
+            action_type=ACTION_TYPE.RESOLVE,
+            resolve_input="resolved",
+            include_integration_id=False,
+        )
+        self.group1 = Group.objects.get(id=self.group1.id)
+
+        assert resp.status_code == 200, resp.content
+        assert self.group1.get_status() == GroupStatus.RESOLVED
+
+    @responses.activate
+    @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)
+    def test_resolve_issue_without_integration_id_in_personal_chat(self, verify: MagicMock) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.integration.update(external_id="m17hr4nd1r")
+            self.idp.update(external_id="m17hr4nd1r")
+
+        resp = self.post_webhook(
+            action_type=ACTION_TYPE.RESOLVE,
+            resolve_input="resolved",
+            conversation_type="personal",
+            include_integration_id=False,
+        )
+        self.group1 = Group.objects.get(id=self.group1.id)
+
+        assert resp.status_code == 200, resp.content
+        assert self.group1.get_status() == GroupStatus.RESOLVED
+
+    @responses.activate
+    @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)
+    def test_resolve_issue_without_event_id(self, verify: MagicMock) -> None:
+        resp = self.post_webhook(
+            action_type=ACTION_TYPE.RESOLVE,
+            resolve_input="resolved",
+            include_event_id=False,
+        )
         self.group1 = Group.objects.get(id=self.group1.id)
 
         assert resp.status_code == 200, resp.content

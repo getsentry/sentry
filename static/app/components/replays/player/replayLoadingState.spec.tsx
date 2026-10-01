@@ -37,8 +37,8 @@ function requestError(status: number) {
   });
 }
 
-function renderState(readerResult: ReaderResult) {
-  return render(
+function ExampleReplayLoadingState({readerResult}: {readerResult: ReaderResult}) {
+  return (
     <ReplayLoadingState
       readerResult={readerResult}
       renderArchived={() => <div>Archived state</div>}
@@ -54,36 +54,50 @@ function renderState(readerResult: ReaderResult) {
 
 describe('ReplayLoadingState', () => {
   it('renders the player when there are no errors', () => {
-    renderState(makeReaderResult());
+    render(<ExampleReplayLoadingState readerResult={makeReaderResult()} />);
 
     expect(screen.getByText('Player')).toBeInTheDocument();
   });
 
   it('renders the error state when the recording-segment fetch fails with a 5xx', () => {
-    renderState(makeReaderResult({attachmentError: [requestError(500)]}));
+    render(
+      <ExampleReplayLoadingState
+        readerResult={makeReaderResult({attachmentError: [requestError(500)]})}
+      />
+    );
 
     expect(screen.getByText('Error state')).toBeInTheDocument();
   });
 
   it('renders the throttled state when the recording-segment fetch is rate-limited', () => {
-    renderState(makeReaderResult({attachmentError: [requestError(429)]}));
+    render(
+      <ExampleReplayLoadingState
+        readerResult={makeReaderResult({attachmentError: [requestError(429)]})}
+      />
+    );
 
     expect(screen.getByText('Throttled state')).toBeInTheDocument();
   });
 
   it('renders the archived state when the replay is archived even if a segment fetch failed', () => {
-    renderState(
-      makeReaderResult({
-        attachmentError: [requestError(500)],
-        replayRecord: {is_archived: true} as ReplayRecord,
-      })
+    render(
+      <ExampleReplayLoadingState
+        readerResult={makeReaderResult({
+          attachmentError: [requestError(500)],
+          replayRecord: {is_archived: true} as ReplayRecord,
+        })}
+      />
     );
 
     expect(screen.getByText('Archived state')).toBeInTheDocument();
   });
 
   it('renders the error state when the replay record fetch fails', () => {
-    renderState(makeReaderResult({fetchError: requestError(500)}));
+    render(
+      <ExampleReplayLoadingState
+        readerResult={makeReaderResult({fetchError: requestError(500)})}
+      />
+    );
 
     expect(screen.getByText('Error state')).toBeInTheDocument();
   });

@@ -86,11 +86,9 @@ export function useMutateActivity({organization, group}: Props) {
           case 'PUT':
             return updateGroup(
               prev.json.activity.map(item =>
-                item.type === GroupActivityType.NOTE &&
-                (item.commentId ?? item.id) === mutation.noteId
+                item.type === GroupActivityType.NOTE && item.commentId === mutation.noteId
                   ? {
                       ...item,
-                      commentId: mutation.noteId,
                       data: {...item.data, ...result.data},
                     }
                   : item
@@ -102,7 +100,7 @@ export function useMutateActivity({organization, group}: Props) {
               prev.json.activity.filter(
                 item =>
                   item.type !== GroupActivityType.NOTE ||
-                  (item.commentId ?? item.id) !== mutation.noteId
+                  item.commentId !== mutation.noteId
               ),
               prev.json.numComments - 1
             );

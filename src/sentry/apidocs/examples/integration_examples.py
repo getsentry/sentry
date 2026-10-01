@@ -13,6 +13,7 @@ class IntegrationExamples:
                     "domainName": "alphabet-soup.slack.com",
                     "accountType": None,
                     "scopes": [
+                        "app_mentions:read",
                         "channels:read",
                         "chat:write",
                         "chat:write.customize",
@@ -27,6 +28,7 @@ class IntegrationExamples:
                         "users:read",
                     ],
                     "outOfDate": False,
+                    "missingFeatures": [],
                     "status": "active",
                     "provider": {
                         "key": "slack",
@@ -60,6 +62,7 @@ class IntegrationExamples:
                 "domainName": "alphabet-soup.slack.com",
                 "accountType": None,
                 "scopes": [
+                    "app_mentions:read",
                     "channels:read",
                     "chat:write",
                     "chat:write.customize",
@@ -74,6 +77,7 @@ class IntegrationExamples:
                     "users:read",
                 ],
                 "outOfDate": False,
+                "missingFeatures": [],
                 "status": "active",
                 "provider": {
                     "key": "slack",
@@ -779,6 +783,7 @@ class IntegrationExamples:
                 "accountType": None,
                 "scopes": None,
                 "outOfDate": None,
+                "missingFeatures": None,
                 "status": "active",
                 "provider": {
                     "key": "jira",
@@ -820,6 +825,7 @@ class IntegrationExamples:
                 "accountType": None,
                 "scopes": None,
                 "outOfDate": None,
+                "missingFeatures": None,
                 "status": "active",
                 "provider": {
                     "key": "jira",

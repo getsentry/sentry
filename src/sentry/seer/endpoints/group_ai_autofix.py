@@ -71,8 +71,8 @@ from sentry.seer.autofix.pr_iteration.pause import (
     pause_reason_from_marker,
 )
 from sentry.seer.autofix.pr_iteration.queue import (
+    enqueue_autofix_feedback,
     peek_queued_autofix_feedback,
-    try_enqueue_autofix_feedback,
 )
 from sentry.seer.autofix.pr_iteration.run_markers import get_run_extra
 from sentry.seer.autofix.steps import AutofixStep
@@ -115,6 +115,7 @@ PAUSED_PR_ITERATION_DETAIL = {
     PauseReason.USER_STOP: "Iteration was stopped for this pull request",
     PauseReason.RUN_ERRORED: "Seer can no longer iterate on this pull request",
     PauseReason.PR_CLOSED: "This pull request is closed, so Seer stopped iterating on it",
+    PauseReason.DRAIN_FAILED: "Seer hit an error starting its next iteration, so it stopped iterating on this pull request",
 }
 
 AUTOFIX_SETUP_REQUIRED_DETAIL = {
@@ -244,7 +245,7 @@ class ExplorerAutofixRequestSerializer(CamelSnakeSerializer):
         required=False,
         help_text="Referrer identifying where the issue fix was triggered from.",
     )
-    enable_bash_tools = serializers.BooleanField(
+    enable_bash_mode = serializers.BooleanField(
         required=False,
         default=False,
         help_text="Override bash mode tools.",
@@ -489,7 +490,7 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                     group_id=group.id,
                 )
 
-                try_enqueue_autofix_feedback(
+                enqueue_autofix_feedback(
                     log_ctx=log_ctx,
                     run_id=resolved_run_id,
                     organization_id=group.organization.id,
@@ -594,7 +595,7 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                         user_context=user_context,
                         insert_index=data.get("insert_index"),
                         user=request.user,
-                        enable_bash_tools=data.get("enable_bash_tools", False),
+                        enable_bash_mode=data.get("enable_bash_mode", False),
                         actor_user_id=(
                             request.user.id if step == AutofixStep.CODE_CHANGES.value else None
                         ),

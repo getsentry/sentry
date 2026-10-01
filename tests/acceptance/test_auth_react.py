@@ -1,20 +1,175 @@
+import re
+from datetime import timedelta
+from urllib.parse import urlsplit
+
 from django.conf import settings
 from django.contrib.auth import BACKEND_SESSION_KEY, HASH_SESSION_KEY, SESSION_KEY
 from django.contrib.sessions.backends.signed_cookies import SessionStore
+from django.core import mail
+from django.test import override_settings
+from django.urls import reverse
+from django.utils import timezone
+from selenium.webdriver.common.keys import Keys
 
 from sentry.auth.authenticators.recovery_code import RecoveryCodeInterface
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.helpers import override_options
-from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.task_runner import BurstTaskRunner
 from sentry.testutils.silo import no_silo_test
+from sentry.users.models.lostpasswordhash import LostPasswordHash
 from sentry.users.models.user import User
+from sentry.users.models.useremail import UserEmail
 
 PASSWORD = "correct-password"
 
 
 @no_silo_test
 class ReactAuthTest(AcceptanceTestCase):
+    def open_password_reset(self, user: User) -> str:
+        password_hash = LostPasswordHash.for_user(user)
+        path = reverse("sentry-account-recover-confirm", args=[user.id, password_hash.hash])
+        self.browser.get(path)
+        self.browser.wait_until(xpath="//h1[normalize-space(.)='Reset Password']")
+        return path
+
+    def submit_new_password(self, password: str) -> None:
+        self.browser.wait_until('input[autocomplete="new-password"]')
+        password_input = self.browser.element('input[autocomplete="new-password"]')
+        password_input.send_keys(
+            Keys.END,
+            Keys.BACKSPACE * len(password_input.get_attribute("value") or ""),
+            password,
+        )
+        self.browser.click_when_visible(xpath="//button[normalize-space(.)='Reset password']")
+
+    @override_options({"auth.v2.enabled": True})
+    def test_password_reset_from_email(self) -> None:
+        user = self.create_login_user()
+        user_email = UserEmail.objects.get(user=user, email=user.email)
+        user_email.update(is_verified=False)
+        previous_nonce = user.session_nonce
+        self.open_login()
+        self.browser.element('[aria-label="Email"]').send_keys(user.email)
+        self.browser.click_when_visible(xpath="//button[normalize-space(.)='Forgot password?']")
+
+        with BurstTaskRunner() as burst:
+            self.browser.click_when_visible(xpath="//button[normalize-space(.)='Reset Password']")
+            self.browser.wait_until(xpath="//*[contains(text(), 'A recovery link has been sent')]")
+            burst()
+
+        email_link = re.search(
+            r"https?://[^\s]+/account/recover/confirm/[^\s]+", str(mail.outbox[-1].body)
+        )
+        assert email_link is not None
+        reset_path = urlsplit(email_link.group()).path
+        self.browser.get(reset_path)
+        self.submit_new_password("new-secure-password")
+        self.browser.wait_until(xpath="//*[normalize-space(.)='Your password has been reset.']")
+
+        user.refresh_from_db()
+        user_email.refresh_from_db()
+        assert user.check_password("new-secure-password")
+        assert not user.check_password(PASSWORD)
+        assert user.session_nonce != previous_nonce
+        assert user_email.is_verified
+        assert not LostPasswordHash.objects.filter(user=user).exists()
+
+        # Completing recovery leaves authentication to the sign-in flow.
+        self.browser.wait_until('[aria-label="Email"]')
+        self.submit_visible_credentials(user.email, "new-secure-password")
+        self.wait_for_authenticated_organization(self.organization.slug)
+
+    @override_options({"auth.v2.enabled": True})
+    def test_password_reset_requires_two_factor_sign_in(self) -> None:
+        user = self.create_login_user()
+        totp = TotpInterface()
+        totp.enroll(user)
+        self.open_password_reset(user)
+
+        self.submit_new_password("new-secure-password")
+        self.browser.wait_until(xpath="//*[normalize-space(.)='Your password has been reset.']")
+        self.browser.wait_until('[aria-label="Email"]')
+        self.submit_visible_credentials(user.email, "new-secure-password")
+        self.submit_second_factor(totp.make_otp().generate_otp())
+        self.wait_for_authenticated_organization(self.organization.slug)
+
+    @override_options({"auth.v2.enabled": True})
+    def test_password_reset_expired_link(self) -> None:
+        user = self.create_login_user()
+        password_hash = LostPasswordHash.for_user(user)
+        LostPasswordHash.objects.filter(user=user).update(
+            date_added=timezone.now() - timedelta(hours=2)
+        )
+        previous_password = user.password
+
+        self.browser.get(
+            reverse("sentry-account-recover-confirm", args=[user.id, password_hash.hash])
+        )
+        self.browser.wait_until(
+            xpath="//*[contains(text(), 'This password reset link is invalid or expired.')]"
+        )
+
+        assert not self.browser.element_exists('input[autocomplete="new-password"]')
+        user.refresh_from_db()
+        assert user.password == previous_password
+        self.browser.click_when_visible(xpath="//a[normalize-space(.)='Back to sign in']")
+        self.browser.wait_until('[aria-label="Email"]')
+
+    @override_options({"auth.v2.enabled": True})
+    def test_password_reset_invalid_link(self) -> None:
+        user = self.create_login_user()
+        previous_password = user.password
+
+        self.browser.get(reverse("sentry-account-recover-confirm", args=[user.id, "invalidtoken"]))
+        self.browser.wait_until(
+            xpath="//*[contains(text(), 'This password reset link is invalid or expired.')]"
+        )
+
+        assert not self.browser.element_exists('input[autocomplete="new-password"]')
+        user.refresh_from_db()
+        assert user.password == previous_password
+
+    @override_options({"auth.v2.enabled": True})
+    def test_password_reset_link_cannot_be_reused(self) -> None:
+        user = self.create_login_user()
+        reset_path = self.open_password_reset(user)
+
+        self.submit_new_password("new-secure-password")
+        self.browser.wait_until(xpath="//*[normalize-space(.)='Your password has been reset.']")
+        self.browser.get(reset_path)
+        self.browser.wait_until(
+            xpath="//*[contains(text(), 'This password reset link is invalid or expired.')]"
+        )
+
+        assert not self.browser.element_exists('input[autocomplete="new-password"]')
+        user.refresh_from_db()
+        assert user.check_password("new-secure-password")
+
+    @override_options({"auth.v2.enabled": True})
+    @override_settings(
+        AUTH_PASSWORD_VALIDATORS=[
+            {
+                "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+                "OPTIONS": {"min_length": 8},
+            }
+        ]
+    )
+    def test_password_reset_validation(self) -> None:
+        user = self.create_login_user()
+        self.open_password_reset(user)
+
+        self.submit_new_password("short")
+        self.browser.wait_until(xpath="//*[contains(text(), 'This password is too short.')]")
+        user.refresh_from_db()
+        assert user.check_password(PASSWORD)
+        assert LostPasswordHash.objects.filter(user=user).exists()
+
+        self.submit_new_password("new-secure-password")
+        self.browser.wait_until(xpath="//*[normalize-space(.)='Your password has been reset.']")
+        user.refresh_from_db()
+        assert user.check_password("new-secure-password")
+
     def create_login_user(self, organization_slug: str | None = None) -> User:
         email = f"{self._testMethodName}@example.com"
         user = self.create_user(email=email)
@@ -390,7 +545,6 @@ class ReactAuthTest(AcceptanceTestCase):
         self.wait_for_authenticated_organization(sso_organization.slug)
 
     @override_options({"auth.v2.enabled": True})
-    @with_feature("organizations:authv2-rollout")
     def test_switch_to_sso_required_organization(self) -> None:
         user = self.create_login_user("org-a")
         password_organization = self.organization

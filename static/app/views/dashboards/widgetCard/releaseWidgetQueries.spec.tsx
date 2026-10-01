@@ -138,7 +138,7 @@ describe('Dashboards > ReleaseWidgetQueries', () => {
     ];
 
     render(
-      <ReleaseWidgetQueries widget={{...singleQueryWidget, queries}}>
+      <ReleaseWidgetQueries widget={{...singleQueryWidget, queries}} widgetInterval="3h">
         {children}
       </ReleaseWidgetQueries>
     );
@@ -172,6 +172,11 @@ describe('Dashboards > ReleaseWidgetQueries', () => {
           statsPeriod: '14d',
         },
       })
+    );
+    await waitFor(() =>
+      expect(children).toHaveBeenLastCalledWith(
+        expect.objectContaining({timeseriesInterval: '1h'})
+      )
     );
   });
 

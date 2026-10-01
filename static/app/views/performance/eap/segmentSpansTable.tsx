@@ -39,7 +39,7 @@ import {
   getEAPSegmentSpansListSort,
   SEGMENT_SPANS_CURSOR,
 } from 'sentry/views/performance/eap/utils';
-import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
+import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/breadcrumbs';
 import {TransactionFilterOptions} from 'sentry/views/performance/transactionSummary/utils';
 
 const LIMIT = 5;

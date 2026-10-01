@@ -27,6 +27,7 @@ import {useNewIssuePriorityAndAssigneeUI} from 'sentry/utils/useNewIssuePriority
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {ActivitySection} from 'sentry/views/issueDetails/activitySection';
+import {makeSeerLocation} from 'sentry/views/issueDetails/autofix/utils';
 import {IssueDetailsContextProvider, SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 import {
@@ -168,15 +169,15 @@ function IssuePreviewContent() {
     pathname: issueDetailsUrl,
     query: {referrer: 'inbox'},
   };
-  function openSeerDrawer(seerDrawerAction?: string) {
-    navigate({
-      pathname: issueDetailsUrl,
-      query: {
-        ...issueDetailsLocation.query,
-        seerDrawer: 'true',
-        seerDrawerAction,
-      },
-    });
+  function openSeer(action?: string) {
+    navigate(
+      makeSeerLocation({
+        organization,
+        groupId: group.id,
+        action,
+        query: issueDetailsLocation.query,
+      })
+    );
   }
 
   return (
@@ -239,8 +240,8 @@ function IssuePreviewContent() {
           group={group}
           project={project}
           disabled={disableActions}
-          onContinueInSeer={() => openSeerDrawer()}
-          onRetryCodeChanges={() => openSeerDrawer('retry_code_changes')}
+          onContinueInSeer={() => openSeer()}
+          onRetryCodeChanges={() => openSeer('retry_code_changes')}
         />
         <Flex align="center" wrap="wrap" gap={shouldUseNewUI ? 'md' : 'lg'}>
           <GroupPriority group={group} />
