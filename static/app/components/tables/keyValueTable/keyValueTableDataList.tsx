@@ -75,15 +75,12 @@ function Row({
     isMultiValue,
   } = item;
 
-  const renderedValue = (
-    <RowValue
-      value={value}
-      isContextData={item.isContextData || isContextData}
-      meta={meta}
-      raw={raw}
-      subjectIcon={subjectIcon}
-    />
-  );
+  const renderedValue =
+    item.isContextData || isContextData ? (
+      <ContextDataValue value={value} meta={meta} raw={raw} subjectIcon={subjectIcon} />
+    ) : (
+      <PreformattedValue value={value} meta={meta} subjectIcon={subjectIcon} />
+    );
 
   const rendered =
     isMultiValue && Array.isArray(value) ? (
@@ -116,23 +113,6 @@ function Row({
         </ValueWrapper>
       </Container>
     </Grid>
-  );
-}
-
-function RowValue({
-  value,
-  isContextData,
-  meta,
-  raw,
-  subjectIcon,
-}: Pick<KeyValueListDataItem, 'value' | 'meta' | 'subjectIcon'> & {
-  isContextData: boolean;
-  raw: boolean;
-}) {
-  return isContextData ? (
-    <ContextDataValue value={value} meta={meta} raw={raw} subjectIcon={subjectIcon} />
-  ) : (
-    <PreformattedValue value={value} meta={meta} subjectIcon={subjectIcon} />
   );
 }
 
