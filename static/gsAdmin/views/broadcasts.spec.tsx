@@ -2,6 +2,7 @@ import {ConfigFixture} from 'sentry-fixture/config';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {
+  fireEvent,
   render,
   renderGlobalModal,
   screen,
@@ -48,7 +49,7 @@ describe('Broadcasts', () => {
     expect(screen.queryByRole('textbox', {name: 'CTA'})).not.toBeInTheDocument();
   });
 
-  it('omits organizations when creating a broadcast without organization IDs', async () => {
+  it('omits organizations and clears expiration when creating a broadcast', async () => {
     ConfigStore.loadInitialData(ConfigFixture({user: mockUser}));
     renderMockRequests();
     const createRequest = MockApiClient.addMockResponse({
@@ -67,10 +68,12 @@ describe('Broadcasts', () => {
       screen.getByRole('textbox', {name: 'Link'}),
       'https://example.com'
     );
+    fireEvent.change(screen.getByLabelText('Expires At'), {target: {value: ''}});
     await userEvent.click(screen.getByRole('button', {name: 'Save'}));
 
     await waitFor(() => expect(createRequest).toHaveBeenCalled());
     const requestData = createRequest.mock.calls[0]?.[1]?.data;
     expect(JSON.parse(JSON.stringify(requestData))).not.toHaveProperty('organizations');
+    expect(requestData.dateExpires).toBeNull();
   });
 });

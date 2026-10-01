@@ -41,14 +41,15 @@ const schema = z.object({
   plans: z.array(z.string()),
   trialStatus: z.array(z.string()),
   earlyAdopter: z.boolean(),
-  dateExpires: z.string(),
+  dateExpires: z.union([z.literal(''), z.iso.datetime({local: true})]),
   isActive: z.boolean(),
 });
 
 type CreateBroadcastPayload = Omit<
   z.infer<typeof schema>,
-  'organizations' | 'category' | 'mediaUrl' | 'region'
+  'organizations' | 'category' | 'dateExpires' | 'mediaUrl' | 'region'
 > & {
+  dateExpires: string | null;
   category?: string;
   mediaUrl?: string;
   organizations?: number[];
@@ -109,6 +110,7 @@ export function CreateBroadcastModal({
       const payload = {
         ...rest,
         category: value.category || undefined,
+        dateExpires: value.dateExpires || null,
         mediaUrl: value.mediaUrl || undefined,
         region: value.region || undefined,
         organizations: organizations.trim()
