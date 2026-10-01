@@ -39,6 +39,12 @@ const expandedViewKeys = [
 
 const releaseKeys = ['release', 'releases'];
 
+// mapResponseToReplayRecord renames these replay fields when it marshals them into tags.
+const tagAttributeKeys = new Map([
+  ['releases', 'release'],
+  ['replayType', 'replay_type'],
+]);
+
 function renderValueList(values: ReactNode[]) {
   if (typeof values[0] === 'string') {
     return values[0];
@@ -112,7 +118,11 @@ export function ReplayTagsTableRow({name, values, generateUrl}: Props) {
     <KeyValueTableRow
       keyName={
         <TruncatedKeyName>
-          <AttributeDetailsTooltip attributeKey={name} fieldDefinitionType="replay">
+          <AttributeDetailsTooltip
+            attributeKey={tagAttributeKeys.get(name) ?? name}
+            fieldDefinitionType="replay"
+            name={name}
+          >
             {name}
           </AttributeDetailsTooltip>
         </TruncatedKeyName>

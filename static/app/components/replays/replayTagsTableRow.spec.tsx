@@ -1,4 +1,4 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {ReplayTagsTableRow} from './replayTagsTableRow';
 
@@ -17,6 +17,28 @@ describe('ReplayTagsTableRow', () => {
     expect(screen.getByText('release')).toBeInTheDocument();
     expect(screen.getByText('1.0.0')).toBeInTheDocument();
     expect(screen.getByText('2.0.0')).toBeInTheDocument();
+  });
+
+  it('Should describe the replayType tag using the replay_type field definition', async () => {
+    render(<ReplayTagsTableRow name="replayType" values={['session']} />);
+
+    await userEvent.hover(screen.getByText('replayType'));
+
+    expect(
+      await screen.findByText('The replay recording mode - "session" or "buffer"')
+    ).toBeInTheDocument();
+    expect(screen.getByText('Added by Sentry')).toBeInTheDocument();
+  });
+
+  it('Should describe the releases tag using the release field definition', async () => {
+    render(<ReplayTagsTableRow name="releases" values={['1.0.0']} />);
+
+    await userEvent.hover(screen.getByText('releases'));
+
+    expect(
+      await screen.findByText('The version of your code deployed to an environment')
+    ).toBeInTheDocument();
+    expect(screen.getByText('Added by Sentry')).toBeInTheDocument();
   });
 
   it('Should render the tag value as a link if we get a link result from generateUrl', () => {
