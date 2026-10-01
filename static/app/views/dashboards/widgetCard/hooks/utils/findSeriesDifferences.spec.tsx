@@ -22,6 +22,22 @@ describe('findSeriesDifferences', () => {
     ).toEqual([]);
   });
 
+  it('allows value differences up to 3%', () => {
+    expect(
+      findSeriesDifferences(
+        [makeSeries('count()', [100, 200, 300])],
+        [makeSeries('count()', [100, 206, 300])]
+      )
+    ).toEqual([]);
+
+    expect(
+      findSeriesDifferences(
+        [makeSeries('count()', [100, 200, 300])],
+        [makeSeries('count()', [100, 207, 300])]
+      )
+    ).toEqual([{reason: 'value'}]);
+  });
+
   it('reports value, length and naming differences', () => {
     expect(
       findSeriesDifferences(
