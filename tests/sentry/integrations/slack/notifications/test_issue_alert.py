@@ -81,13 +81,13 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         fallback_text = self.mock_post.call_args.kwargs["text"]
         assert (
             fallback_text
-            == f"Alert triggered <http://testserver/organizations/{event.organization.slug}/issues/alerts/rules/{event.project.slug}/{self.rule.id}/details/|ja rule>"
+            == f"Alert triggered <http://testserver/organizations/{event.organization.slug}/monitors/alerts/{self.rule.data['actions'][0]['workflow_id']}/|ja rule>"
         )
         assert blocks[0]["text"]["text"] == fallback_text
         assert event.group
         assert (
             blocks[1]["text"]["text"]
-            == f":red_circle: <http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&alert_rule_id={self.rule.id}&alert_type=issue|*Hello world*>"
+            == f":red_circle: <http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&workflow_id={self.rule.data['actions'][0]['workflow_id']}&alert_type=issue|*Hello world*>"
         )
         assert (
             blocks[4]["elements"][0]["text"]
@@ -119,7 +119,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         fallback_text = self.mock_post.call_args.kwargs["text"]
         assert (
             fallback_text
-            == f"Alert triggered <http://testserver/organizations/{event.organization.slug}/issues/alerts/rules/{event.project.slug}/{self.rule.id}/details/|ja rule>"
+            == f"Alert triggered <http://testserver/organizations/{event.organization.slug}/monitors/alerts/{self.rule.data['actions'][0]['workflow_id']}/|ja rule>"
         )
         assert blocks[0]["text"]["text"] == fallback_text
         self.assert_performance_issue_blocks_with_culprit_blocks(
@@ -129,7 +129,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             event.group,
             "issue_alert-slack",
             alert_type=FineTuningAPIKey.ALERTS,
-            issue_link_extra_params=f"&alert_rule_id={self.rule.id}&alert_type=issue",
+            issue_link_extra_params=f"&workflow_id={self.rule.data['actions'][0]['workflow_id']}&alert_type=issue",
         )
 
     @mock.patch("sentry.integrations.slack.message_builder.issues.get_tags", new=fake_get_tags)
@@ -172,7 +172,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         fallback_text = self.mock_post.call_args.kwargs["text"]
         assert (
             fallback_text
-            == f"Alert triggered <http://testserver/organizations/{event.organization.slug}/issues/alerts/rules/{event.project.slug}/{self.rule.id}/details/|ja rule>"
+            == f"Alert triggered <http://testserver/organizations/{event.organization.slug}/monitors/alerts/{self.rule.data['actions'][0]['workflow_id']}/|ja rule>"
         )
         assert len(blocks) == 4
 
@@ -201,7 +201,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         fallback_text = self.mock_post.call_args.kwargs["text"]
         assert (
             fallback_text
-            == f"Alert triggered <http://testserver/organizations/{event.organization.slug}/issues/alerts/rules/{event.project.slug}/{self.rule.id}/details/|ja rule>"
+            == f"Alert triggered <http://testserver/organizations/{event.organization.slug}/monitors/alerts/{self.rule.data['actions'][0]['workflow_id']}/|ja rule>"
         )
         assert blocks[0]["text"]["text"] == fallback_text
 
@@ -212,7 +212,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             event.group,
             "issue_alert-slack",
             alert_type="alerts",
-            issue_link_extra_params=f"&alert_rule_id={self.rule.id}&alert_type=issue",
+            issue_link_extra_params=f"&workflow_id={self.rule.data['actions'][0]['workflow_id']}&alert_type=issue",
         )
 
     @patch(
@@ -315,13 +315,13 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         notification_uuid = notification.notification_uuid
         assert (
             fallback_text
-            == f"Alert triggered <http://testserver/organizations/{event.organization.slug}/issues/alerts/rules/{event.project.slug}/{rule.id}/details/|ja rule>"
+            == f"Alert triggered <http://testserver/organizations/{event.organization.slug}/monitors/alerts/{rule.data['actions'][0]['workflow_id']}/|ja rule>"
         )
         assert blocks[0]["text"]["text"] == fallback_text
         assert event.group
         assert (
             blocks[1]["text"]["text"]
-            == f":red_circle: <http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&alert_rule_id={rule.id}&alert_type=issue|*Hello world*>"
+            == f":red_circle: <http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&workflow_id={rule.data['actions'][0]['workflow_id']}&alert_type=issue|*Hello world*>"
         )
         assert (
             blocks[4]["elements"][0]["text"]
@@ -349,13 +349,13 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         notification_uuid = notification.notification_uuid
         assert (
             fallback_text
-            == f"Alert triggered <http://testserver/organizations/{event.organization.slug}/issues/alerts/rules/{event.project.slug}/{rule.id}/details/|ja rule>"
+            == f"Alert triggered <http://testserver/organizations/{event.organization.slug}/monitors/alerts/{rule.data['actions'][0]['workflow_id']}/|ja rule>"
         )
         assert blocks[0]["text"]["text"] == fallback_text
         assert event.group
         assert (
             blocks[1]["text"]["text"]
-            == f":red_circle: <http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&environment=production&alert_rule_id={rule.id}&alert_type=issue|*Hello world*>"
+            == f":red_circle: <http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&environment=production&workflow_id={rule.data['actions'][0]['workflow_id']}&alert_type=issue|*Hello world*>"
         )
         assert (
             blocks[4]["elements"][0]["text"]
@@ -485,13 +485,13 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
 
         assert (
             fallback_text
-            == f"Alert triggered <http://testserver/organizations/{event.organization.slug}/issues/alerts/rules/{event.project.slug}/{rule.id}/details/|ja rule>"
+            == f"Alert triggered <http://testserver/organizations/{event.organization.slug}/monitors/alerts/{rule.data['actions'][0]['workflow_id']}/|ja rule>"
         )
         assert blocks[0]["text"]["text"] == fallback_text
         assert event.group
         assert (
             blocks[1]["text"]["text"]
-            == f":red_circle: <http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&alert_rule_id={rule.id}&alert_type=issue|*Hello world*>"
+            == f":red_circle: <http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&workflow_id={rule.data['actions'][0]['workflow_id']}&alert_type=issue|*Hello world*>"
         )
         # Verify suggested assignees are in the context block and footer is last
         context_blocks = [b for b in blocks if b.get("type") == "context"]
@@ -721,13 +721,13 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
 
         assert (
             fallback_text
-            == f"Alert triggered <http://example.com/organizations/{event.organization.slug}/issues/alerts/rules/{event.project.slug}/{rule.id}/details/|ja rule>"
+            == f"Alert triggered <http://example.com/organizations/{event.organization.slug}/monitors/alerts/{rule.data['actions'][0]['workflow_id']}/|ja rule>"
         )
         assert blocks[0]["text"]["text"] == fallback_text
         assert event.group
         assert (
             blocks[1]["text"]["text"]
-            == f":red_circle: <http://example.com/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&alert_rule_id={rule.id}&alert_type=issue|*Hello world*>"
+            == f":red_circle: <http://example.com/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&workflow_id={rule.data['actions'][0]['workflow_id']}&alert_type=issue|*Hello world*>"
         )
         assert (
             blocks[5]["elements"][0]["text"]

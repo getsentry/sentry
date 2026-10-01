@@ -32,13 +32,21 @@ def split_rules_by_rule_workflow_id(rules: Sequence[Rule]) -> RulesAndWorkflows:
     return RulesAndWorkflows(rules=parsed_rules, workflow_rules=workflow_rules)
 
 
-def get_rule_or_workflow_id(rule: Rule) -> tuple[RuleIdType, str]:
-    try:
-        return ("legacy_rule_id", get_key_from_rule_data(rule, "legacy_rule_id"))
-    except AssertionError:
-        pass
-
-    try:
-        return ("workflow_id", get_key_from_rule_data(rule, "workflow_id"))
-    except AssertionError:
-        return ("legacy_rule_id", str(rule.id))
+def get_rule_or_workflow_id(
+    rule: Rule, *, prefer: RuleIdType = "legacy_rule_id"
+) -> tuple[RuleIdType, str]:
+    """
+    Returns which id the rule data carries, and its value. When both a legacy
+    rule id and a workflow id are present, `prefer` decides which one wins.
+    """
+    keys: tuple[RuleIdType, RuleIdType] = (
+        ("workflow_id", "legacy_rule_id")
+        if prefer == "workflow_id"
+        else ("legacy_rule_id", "workflow_id")
+    )
+    for key in keys:
+        try:
+            return (key, get_key_from_rule_data(rule, key))
+        except AssertionError:
+            pass
+    return ("legacy_rule_id", str(rule.id))
