@@ -16,7 +16,7 @@ from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.hybridcloud.models.outbox import ControlOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.hybridcloud.rpc import OptionValue, logger
-from sentry.incidents.models.alert_rule import AlertRule, AlertRuleActivity
+from sentry.incidents.models.alert_rule import AlertRule
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.models.activity import Activity
 from sentry.models.dashboard import (
@@ -586,7 +586,6 @@ class DatabaseBackedOrganizationService(OrganizationService):
             model_list = [
                 Activity,
                 AlertRule,
-                AlertRuleActivity,
                 Dashboard,
                 DashboardFavoriteUser,
                 DashboardLastVisited,
