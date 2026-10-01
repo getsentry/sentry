@@ -19,7 +19,7 @@ from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
 from sentry.debug_files.artifact_bundles import (
     INDEXING_THRESHOLD,
-    get_bundles_indexing_state,
+    get_cached_bundles_indexing_state,
     index_artifact_bundles_for_release,
 )
 from sentry.debug_files.tasks import backfill_artifact_bundle_db_indexing
@@ -673,7 +673,7 @@ class ArtifactBundlePostAssembler:
         # We collect how many times we tried to perform indexing.
         metrics.incr("tasks.assemble.artifact_bundle.try_indexing")
 
-        (total_bundles, indexed_bundles) = get_bundles_indexing_state(
+        (total_bundles, indexed_bundles) = get_cached_bundles_indexing_state(
             self.organization, release, dist
         )
 

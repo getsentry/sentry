@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 
+import orjson
 import sentry_sdk
 from django.conf import settings
 from django.db import router
@@ -23,6 +24,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.utils import metrics, redis
 from sentry.utils.db import atomic_transaction
+from sentry.utils.hashlib import md5_text
 from sentry.utils.tracing import trace
 
 # The number of Artifact Bundles that we return in case of incomplete indexes.
@@ -274,7 +276,21 @@ def query_artifact_bundles_containing_file(
                 {id: (date_added, "debug-id") for id, date_added in bundles}
             )
 
-    total_bundles, indexed_bundles = get_bundles_indexing_state(project, release, dist)
+    newest_bundles: set[tuple[int, datetime]] | None = None
+    if options.get("sourcemaps.artifact-bundles.bounded-indexing-state"):
+        # Instead of counting every bundle in the release, only look at the newest ones.
+        # If those are all indexed, any bundle missing from the index is older than them,
+        # so the newest bundles that we would add below would not include it either.
+        newest = get_newest_artifact_bundles_by_release(project, release, dist)
+        total_bundles = len(newest)
+        indexed_bundles = sum(
+            1
+            for _id, _date_added, indexing_state in newest
+            if indexing_state == ArtifactBundleIndexingState.WAS_INDEXED.value
+        )
+        newest_bundles = {(bundle_id, date_added) for bundle_id, date_added, _state in newest}
+    else:
+        total_bundles, indexed_bundles = get_bundles_indexing_state(project, release, dist)
 
     if not total_bundles:
         return []
@@ -306,7 +322,10 @@ def query_artifact_bundles_containing_file(
     # First, get the N most recently uploaded bundles for the release,
     # but only if the index is only partial:
     if not is_fully_indexed:
-        bundles = get_artifact_bundles_by_release(project, release, dist)
+        if newest_bundles is not None:
+            bundles = newest_bundles
+        else:
+            bundles = get_artifact_bundles_by_release(project, release, dist)
         update_bundles(bundles, "release")
 
     # Then, we are matching by `url`:
@@ -367,6 +386,76 @@ def get_bundles_indexing_state(
         total_bundles += count
 
     return (total_bundles, indexed_bundles)
+
+
+def get_cached_bundles_indexing_state(
+    organization: Organization, release_name: str, dist_name: str
+) -> tuple[int, int]:
+    """
+    `get_bundles_indexing_state` for the upload task, cached for
+    `sourcemaps.artifact-bundles.indexing-state-cache-ttl` seconds once the release has
+    reached `INDEXING_THRESHOLD` bundles.
+
+    Nothing is cached below the threshold, so a stale value never prevents a release from
+    being indexed. Above it, every new bundle is indexed whatever the counts say, and a stale
+    value can only delay or repeat a backfill of older bundles until the cache expires.
+    """
+    ttl = options.get("sourcemaps.artifact-bundles.indexing-state-cache-ttl")
+    if ttl <= 0:
+        return get_bundles_indexing_state(organization, release_name, dist_name)
+
+    redis_client = get_redis_cluster_for_artifact_bundles()
+    release_hash = md5_text(release_name, "\x00", dist_name).hexdigest()
+    cache_key = f"ab::o:{organization.id}:r:{release_hash}:indexing_state"
+
+    # The cache is an optimization, so any failure falls back to counting.
+    try:
+        cached = redis_client.get(cache_key)
+        if cached is not None:
+            total_bundles, indexed_bundles = orjson.loads(cached)
+            metrics.incr("artifact_bundle_indexing.indexing_state_cache", tags={"result": "hit"})
+            return (total_bundles, indexed_bundles)
+    except Exception:
+        sentry_sdk.capture_exception()
+
+    metrics.incr("artifact_bundle_indexing.indexing_state_cache", tags={"result": "miss"})
+    total_bundles, indexed_bundles = get_bundles_indexing_state(
+        organization, release_name, dist_name
+    )
+    if total_bundles >= INDEXING_THRESHOLD:
+        try:
+            redis_client.set(cache_key, orjson.dumps([total_bundles, indexed_bundles]), ex=ttl)
+        except Exception:
+            sentry_sdk.capture_exception()
+
+    return (total_bundles, indexed_bundles)
+
+
+def get_newest_artifact_bundles_by_release(
+    project: Project, release_name: str, dist_name: str
+) -> list[tuple[int, datetime, int | None]]:
+    """
+    Returns `(id, date_added, indexing_state)` of up to `MAX_BUNDLES_QUERY` bundles most
+    recently uploaded for the given `release` / `dist`, newest first.
+
+    Bundle ids follow upload order, so ordering by id lets the database walk the
+    `(organization_id, release_name, dist_name, artifact_bundle_id)` index backwards and stop
+    after `MAX_BUNDLES_QUERY` rows, instead of visiting every bundle in the release like
+    `get_bundles_indexing_state` and `get_artifact_bundles_by_release` do.
+    """
+    bundles = (
+        ArtifactBundle.objects.filter(
+            organization_id=project.organization_id,
+            releaseartifactbundle__organization_id=project.organization_id,
+            releaseartifactbundle__release_name=release_name,
+            releaseartifactbundle__dist_name=dist_name,
+            projectartifactbundle__project_id=project.id,
+        )
+        .values_list("id", "date_added", "indexing_state")
+        .order_by("-id")[:MAX_BUNDLES_QUERY]
+    )
+    # Duplicate link rows would repeat a bundle, so we only keep its first row.
+    return list({bundle[0]: bundle for bundle in bundles}.values())
 
 
 def get_artifact_bundles_containing_debug_id(

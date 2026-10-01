@@ -1117,6 +1117,23 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Decide whether a release is fully indexed from its newest bundles only, instead of
+# counting every bundle in the release on each artifact-lookup request.
+register(
+    "sourcemaps.artifact-bundles.bounded-indexing-state",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Seconds to cache the bundle count per release used by the upload task to decide whether
+# to index and backfill. 0 disables the cache.
+register(
+    "sourcemaps.artifact-bundles.indexing-state-cache-ttl",
+    type=Int,
+    default=0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 # Killswitch to stop storing any reprocessing payloads.
 register("store.reprocessing-force-disable", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
