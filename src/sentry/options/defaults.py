@@ -1477,6 +1477,31 @@ register(
     default=0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Instant global stop for default-sourced auto-resolve only; projects with an
+# explicit sentry:resolve_age are unaffected.
+register(
+    "issues.auto_resolve.default.killswitch",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Effective resolve age (hours) for projects without an explicit sentry:resolve_age
+# in orgs enrolled via organizations:issue-auto-resolve-default.
+register(
+    "issues.auto_resolve.default.age-hours",
+    type=Int,
+    default=336,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Per-project per-cycle group budget for default-sourced auto-resolve runs; caps
+# chunk chaining so a large backlog drains over multiple daily cycles.
+register(
+    "issues.auto_resolve.default.max-groups-per-run",
+    type=Int,
+    default=1000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 register(
     "issues.derived_data.read_path_checks.killswitch",
     type=Bool,
