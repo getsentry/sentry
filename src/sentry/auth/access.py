@@ -31,10 +31,11 @@ from sentry.organizations.services.organization import RpcTeamMember, RpcUserOrg
 from sentry.organizations.services.organization.serial import summarize_member
 from sentry.roles import organization_roles
 from sentry.roles.manager import OrganizationRole, TeamRole
-from sentry.seer.agent_token import is_agent_auth
+from sentry.seer.agent_token import is_agent_auth, superuser_session_access
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
+from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 from sentry.utils.tracing import set_span_data, set_span_tag, start_span
 
@@ -1308,6 +1309,22 @@ def from_agent_auth(
         return DEFAULT
     if auth.user_id != rpc_user_org_context.user_id:
         return DEFAULT
+    if auth.superuser_session is not None:
+        users = user_service.get_many(filter={"user_ids": [auth.user_id]})
+        user = users[0] if users else None
+        if user is None:
+            return DEFAULT
+        delegated = superuser_session_access(auth.superuser_session, user, rpc_user_org_context)
+        if delegated is None:
+            return DEFAULT
+        scopes, _ = delegated
+        return ApiBackedOrganizationGlobalAccess(
+            rpc_user_organization_context=rpc_user_org_context,
+            auth_state=RpcAuthState(
+                sso_state=RpcMemberSsoState(is_valid=True, is_required=False), permissions=[]
+            ),
+            scopes=scopes & set(auth.get_scopes()),
+        )
     # No membership (never a member, or revoked since mint) -> no access. Required
     # explicitly because RpcBackedAccess would otherwise hand back the full token
     # scopes uncapped when member is None.
