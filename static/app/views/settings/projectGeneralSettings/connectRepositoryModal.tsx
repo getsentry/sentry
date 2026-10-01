@@ -1,11 +1,11 @@
-import {Fragment, useMemo, useState} from 'react';
-import {useQueries, useQuery} from '@tanstack/react-query';
+import {Fragment, useState} from 'react';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
 
+import {Alert} from '@sentry/scraps/alert';
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Select, components} from '@sentry/scraps/select';
-import type {SelectValue} from '@sentry/scraps/select';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -15,86 +15,50 @@ import {ScmVirtualizedMenuList} from 'sentry/components/onboarding/scm/scmVirtua
 import {IconLock} from 'sentry/icons';
 import {IconArrow} from 'sentry/icons/iconArrow';
 import {t, tct} from 'sentry/locale';
-import type {Integration, IntegrationRepository} from 'sentry/types/integrations';
 import type {Project} from 'sentry/types/project';
-import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {
+  saveProjectRepoConnection,
+  projectRepoInfiniteOptions,
+  type RepoSelectOption,
+  useGroupedRepoOptions,
+} from 'sentry/views/settings/projectGeneralSettings/queries';
 
-const REPOS_STALE_TIME_MS = 60_000;
+function getApiErrorMessage(error: unknown): string {
+  if (!(error instanceof RequestError)) {
+    return t('Failed to connect repository');
+  }
 
-type RepoSelectOption = SelectValue<string> & {
-  defaultBranch?: string | null;
-  providerKey?: string;
-};
+  const json = error.responseJSON;
 
-type RepoGroup = {
-  label: string;
-  options: RepoSelectOption[];
-};
+  // Plain-string response body (e.g. "Missing param: integrationId").
+  if (typeof (json as unknown) === 'string') {
+    return json as unknown as string;
+  }
 
-interface Props extends ModalRenderProps {
-  project: Project;
-}
+  const {detail} = json ?? {};
+  if (typeof detail === 'string' && detail) {
+    return detail;
+  }
+  if (detail && typeof detail === 'object' && typeof detail.message === 'string') {
+    return detail.message;
+  }
 
-function scmIntegrationsOptions(orgSlug: string) {
-  return apiOptions.as<Integration[]>()(
-    '/organizations/$organizationIdOrSlug/integrations/',
-    {
-      path: {organizationIdOrSlug: orgSlug},
-      query: {integrationType: 'source_code_management'},
-      staleTime: REPOS_STALE_TIME_MS,
+  // Non-field errors (e.g. duplicate code mapping: {nonFieldErrors: [...]}).
+  const nonFieldErrors = json?.nonFieldErrors ?? json?.non_field_errors;
+  if (Array.isArray(nonFieldErrors) && typeof nonFieldErrors[0] === 'string') {
+    return nonFieldErrors[0];
+  }
+
+  // First field-level error (e.g. {repositoryId: ["Repository does not exist"]}).
+  for (const value of Object.values(json ?? {})) {
+    if (Array.isArray(value) && typeof value[0] === 'string') {
+      return value[0];
     }
-  );
-}
+  }
 
-function integrationReposOptions(orgSlug: string, integrationId: string) {
-  return apiOptions.as<{repos: IntegrationRepository[]}>()(
-    '/organizations/$organizationIdOrSlug/integrations/$integrationId/repos/',
-    {
-      path: {organizationIdOrSlug: orgSlug, integrationId},
-      staleTime: REPOS_STALE_TIME_MS,
-    }
-  );
-}
-
-function useGroupedRepoOptions(orgSlug: string): {
-  groupedOptions: RepoGroup[];
-  isPending: boolean;
-} {
-  const {data: integrations = [], isPending: isIntegrationsPending} = useQuery(
-    scmIntegrationsOptions(orgSlug)
-  );
-
-  const activeIntegrations = useMemo(
-    () =>
-      integrations.filter(
-        i => i.organizationIntegrationStatus === 'active' && i.status === 'active'
-      ),
-    [integrations]
-  );
-
-  const {groupedOptions, isReposPending} = useQueries({
-    queries: activeIntegrations.map(i => integrationReposOptions(orgSlug, i.id)),
-    combine: results => ({
-      groupedOptions: activeIntegrations.map((integration, idx) => ({
-        label: integration.name,
-        options: (results[idx]?.data?.repos ?? []).map(repo => ({
-          value: `${integration.id}:${repo.identifier}`,
-          label: repo.name,
-          leadingItems: getIntegrationIcon(integration.provider.key, 'sm'),
-          defaultBranch: repo.defaultBranch,
-          providerKey: integration.provider.key,
-        })),
-      })),
-      isReposPending: results.some(r => r.isPending),
-    }),
-  });
-
-  return {
-    groupedOptions,
-    isPending: isIntegrationsPending || isReposPending,
-  };
+  return t('Failed to connect repository');
 }
 
 function LockedProjectField({project}: {project: Project}) {
@@ -133,6 +97,10 @@ function PathsPlaceholder() {
   );
 }
 
+interface Props extends ModalRenderProps {
+  project: Project;
+}
+
 export function ConnectRepositoryModal({
   Header,
   Body,
@@ -141,11 +109,26 @@ export function ConnectRepositoryModal({
   project,
 }: Props) {
   const organization = useOrganization();
+  const queryClient = useQueryClient();
   const [selectedOption, setSelectedOption] = useState<RepoSelectOption | null>(null);
   const [pathMappings, setPathMappings] = useState<PathMappingValue[]>([]);
   const {groupedOptions, isPending} = useGroupedRepoOptions(organization.slug);
 
+  const saveMutation = useMutation({
+    mutationFn: saveProjectRepoConnection,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries(
+        projectRepoInfiniteOptions({
+          orgSlug: organization.slug,
+          projectSlug: project.slug,
+        })
+      );
+      closeModal();
+    },
+  });
+
   const canSave = selectedOption !== null && pathMappings.length > 0;
+  const saveError = saveMutation.isError ? getApiErrorMessage(saveMutation.error) : null;
 
   return (
     <Fragment>
@@ -156,6 +139,11 @@ export function ConnectRepositoryModal({
       </Header>
       <Body>
         <Stack gap="xl">
+          {saveError && (
+            <Alert.Container>
+              <Alert variant="danger">{saveError}</Alert>
+            </Alert.Container>
+          )}
           <Text as="p">
             {tct(
               'Link a repo to [project] so an error can take you straight to the line of code that caused it.',
@@ -189,6 +177,7 @@ export function ConnectRepositoryModal({
                 onChange={option => {
                   setSelectedOption(option as RepoSelectOption | null);
                   setPathMappings([]);
+                  saveMutation.reset();
                 }}
                 placeholder={t('Search repositories')}
                 isLoading={isPending}
@@ -220,7 +209,23 @@ export function ConnectRepositoryModal({
       <Footer>
         <Flex justify="end" gap="md">
           <Button onClick={closeModal}>{t('Cancel')}</Button>
-          <Button variant="primary" disabled={!canSave}>
+          <Button
+            variant="primary"
+            disabled={!canSave || saveMutation.isPending}
+            busy={saveMutation.isPending}
+            onClick={() => {
+              if (!selectedOption) {
+                return;
+              }
+              saveMutation.mutate({
+                orgSlug: organization.slug,
+                project,
+                repositoryId: selectedOption.repositoryId,
+                integrationId: selectedOption.integrationId,
+                pathMappings,
+              });
+            }}
+          >
             {t('Save')}
           </Button>
         </Flex>
