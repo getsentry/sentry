@@ -583,9 +583,9 @@ def test_save_cached_attachments_with_optional_event_cache_key(
         with attachment.getfile() as file:
             assert file.read() == expected
     assert "_attachments" not in payload
-    for attachment in cached_attachments:
+    for cached_attachment in cached_attachments:
         with pytest.raises(MissingAttachmentChunks):
-            attachment.load_data()
+            cached_attachment.load_data()
 
 
 @debug_files_test_both_backends
