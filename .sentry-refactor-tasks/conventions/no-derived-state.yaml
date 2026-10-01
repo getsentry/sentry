@@ -12,8 +12,8 @@ why: |
   See also: https://react.dev/reference/eslint-plugin-react-hooks/lints/set-state-in-effect
 
 detect: |
-  Detected by the eslint rule react-you-might-not-need-an-effect/no-derived-state,
-  which the detect_command runs directly — no LLM needed.
+  Detected by the rule react-you-might-not-need-an-effect/no-derived-state, which
+  the detect_command runs directly as an oxlint JS plugin — no LLM needed.
 
 fix: |
   Replace useState + useEffect derived state with one of:
@@ -37,8 +37,9 @@ fix: |
        useEffect(() => { setComment(''); }, [userId]);
        // After: <Profile userId={userId} key={userId} />
 
-  To verify the fix, run eslint against the changed file:
-    pnpm eslint --rule '{"react-you-might-not-need-an-effect/no-derived-state": "error"}' <file>
+  To verify the fix, run oxlint against the changed file (the repo config
+  already enables this rule):
+    pnpm oxlint <file>
 
 examples:
   bad:
