@@ -1389,7 +1389,6 @@ module = [
     "sentry.testutils.helpers.redis",
     "sentry.testutils.helpers.response",
     "sentry.testutils.helpers.sdk",
-    "sentry.testutils.helpers.serializer_parity",
     "sentry.testutils.helpers.slack",
     "sentry.testutils.helpers.socket",
     "sentry.testutils.helpers.uptime",
