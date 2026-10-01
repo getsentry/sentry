@@ -116,6 +116,14 @@ def get_rule_environment_param_from_rule(rule_environment_id: int | None) -> dic
     return params
 
 
+def get_environment_param(
+    event: Event | GroupEvent | None, rule_environment_id: int | None
+) -> dict[str, str]:
+    if event is not None and (environment := event.get_tag("environment")):
+        return {"environment": environment}
+    return get_rule_environment_param_from_rule(rule_environment_id)
+
+
 def get_title_link(
     group: Group,
     event: Event | GroupEvent | None,
@@ -130,7 +138,7 @@ def get_title_link(
     other_params = {}
     # add in rule id if we have it
     if rule_id:
-        other_params.update(get_rule_environment_param_from_rule(rule_environment_id))
+        other_params.update(get_environment_param(event, rule_environment_id))
         # hard code for issue alerts
         other_params["alert_rule_id"] = str(rule_id)
         other_params["alert_type"] = "issue"
@@ -179,11 +187,7 @@ def get_title_link_workflow_engine_ui(
     other_params = {}
     # add in rule id if we have it
     if workflow_id:
-        if (
-            environment_id is not None
-            and (environment_name := fetch_environment_name(environment_id)) is not None
-        ):
-            other_params["environment"] = environment_name
+        other_params.update(get_environment_param(event, environment_id))
         # hard code for issue alerts
         other_params["workflow_id"] = str(workflow_id)
         other_params["alert_type"] = "issue"
