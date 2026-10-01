@@ -45,20 +45,20 @@ function RelocationForm() {
       // Verify that the promo code exists, has remaining claims, etc.
       const promoCode = formData.get('promo_code');
       if (typeof promoCode === 'string' && promoCode) {
-        await promoCodeApi
-          .requestPromise(`/promocodes-external/${promoCode}`, {
+        try {
+          await promoCodeApi.requestPromise(`/promocodes-external/${promoCode}`, {
             method: 'GET',
             host: cell.locality_url,
-          })
-          .catch(error => {
-            if (error instanceof RequestError && error.status === 403) {
-              addErrorMessage(PROMO_CODE_ERROR_MSG);
-
-              // Ensure that the wrapping `catch` block doesn't try to re-print this error message.
-              // eslint-disable-next-line unicorn/error-message
-              throw new Error();
-            }
           });
+        } catch (error) {
+          if (error instanceof RequestError && error.status === 403) {
+            addErrorMessage(PROMO_CODE_ERROR_MSG);
+
+            // Ensure that the wrapping `catch` block doesn't try to re-print this error message.
+            // eslint-disable-next-line unicorn/error-message
+            throw new Error();
+          }
+        }
       }
 
       // Start the relocation.
