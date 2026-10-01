@@ -101,6 +101,7 @@ from objectstore_client import TimeToLive
 from sentry import models, nodestore, options, quotas
 from sentry.attachments import CachedAttachment, attachment_cache, store_attachments_for_event
 from sentry.deletions.defaults.group import DIRECT_GROUP_RELATED_MODELS
+from sentry.ingest.event_payload import get_event_payload_transport
 from sentry.models.eventattachment import V1_PREFIX, V2_PREFIX, EventAttachment
 from sentry.models.files.utils import get_storage
 from sentry.models.project import Project
@@ -257,10 +258,13 @@ def reprocess_event(project_id: int, event_id: str, start_time: float) -> None:
     set_path(
         data, "contexts", "reprocessing", "original_primary_hash", value=event.get_primary_hash()
     )
-    event_processing_store.store(data)
+    transport = get_event_payload_transport(data["event_id"])
+    working_cache_key = (
+        event_processing_store.store(data) if transport.write_processing_store else None
+    )
 
     preprocess_event_from_reprocessing(
-        cache_key=cache_key,
+        cache_key=working_cache_key,
         start_time=start_time,
         event_id=event_id,
         data=data,

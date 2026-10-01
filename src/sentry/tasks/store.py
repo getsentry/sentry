@@ -16,6 +16,7 @@ from sentry.event_preprocessors import get_event_preprocessors
 from sentry.feedback.usecases.ingest.save_event_feedback import (
     save_event_feedback as save_event_feedback_impl,
 )
+from sentry.ingest.event_payload import load_event_payload, prepare_event_payload
 from sentry.ingest.types import ConsumerType
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.symbolicator import SymbolicatorTaskKind
@@ -33,6 +34,7 @@ from sentry.taskworker.namespaces import (
     issues_tasks,
 )
 from sentry.utils import metrics
+from sentry.utils.cache import cache_key_for_event
 from sentry.utils.event import track_event_since_received
 from sentry.utils.event_tracker import TransactionStageStatus, track_sampled_event
 from sentry.utils.safe import safe_execute
@@ -61,17 +63,30 @@ def should_process(data: Mapping[str, Any]) -> bool:
 
 def submit_process(
     from_reprocessing: bool,
-    cache_key: str,
+    cache_key: str | None,
     event_id: str | None,
     start_time: float | None,
     data_has_changed: bool = False,
     from_symbolicate: bool = False,
     has_attachments: bool = False,
+    data: MutableMapping[str, Any] | None = None,
+    input_was_inline: bool = False,
 ) -> None:
+    if data is not None:
+        data, cache_key = prepare_event_payload(
+            data,
+            cache_key,
+            event_id=event_id or data["event_id"],
+            input_was_inline=input_was_inline,
+            data_has_changed=data_has_changed,
+        )
     if from_reprocessing:
         task = process_event_from_reprocessing
     else:
         task = process_event
+    task_kwargs: dict[str, Any] = {}
+    if data is not None:
+        task_kwargs["data"] = data
     task.delay(
         cache_key=cache_key,
         start_time=start_time,
@@ -79,6 +94,7 @@ def submit_process(
         data_has_changed=data_has_changed,
         from_symbolicate=from_symbolicate,
         has_attachments=has_attachments,
+        **task_kwargs,
     )
 
 
@@ -96,9 +112,17 @@ def submit_save_event(
     start_time: float | None,
     data: MutableMapping[str, Any] | None,
     inline: bool = False,
+    input_was_inline: bool = False,
+    data_has_changed: bool = False,
 ) -> None:
-    if cache_key:
-        data = None
+    if data is not None:
+        data, cache_key = prepare_event_payload(
+            data,
+            cache_key,
+            event_id=event_id or data["event_id"],
+            input_was_inline=input_was_inline,
+            data_has_changed=data_has_changed,
+        )
 
     # XXX: honor from_reprocessing
     if task_kind.has_attachments:
@@ -121,7 +145,7 @@ def submit_save_event(
 
 
 def _do_preprocess_event(
-    cache_key: str,
+    cache_key: str | None,
     data: MutableMapping[str, Any] | None,
     start_time: float | None,
     event_id: str | None,
@@ -129,6 +153,7 @@ def _do_preprocess_event(
     project: Project | None,
     has_attachments: bool = False,
     inline_save_event: bool = False,
+    input_was_inline: bool = False,
 ) -> None:
     # Imported here, not at module top, to avoid circular imports back into
     # sentry.tasks (e.g. sentry.tasks.gpu_crash imports this module).
@@ -139,8 +164,7 @@ def _do_preprocess_event(
         submit_symbolicate,
     )
 
-    if cache_key and data is None:
-        data = processing.event_processing_store.get(cache_key)
+    data = load_event_payload(data, cache_key, processing.event_processing_store)
 
     if data is None:
         metrics.incr("events.failed", tags={"reason": "cache", "stage": "pre"}, skip_internal=False)
@@ -153,6 +177,7 @@ def _do_preprocess_event(
     )
 
     original_data = data
+    event_id = data["event_id"]
     project_id = data["project"]
     set_current_event_project(project_id)
 
@@ -193,12 +218,16 @@ def _do_preprocess_event(
         )
         and is_gpu_crash_event(data)
     ):
+        task_data, cache_key = prepare_event_payload(
+            data, cache_key, event_id=event_id, input_was_inline=input_was_inline
+        )
         symbolicate_gpu_crash_event.delay(
             cache_key=cache_key,
             event_id=event_id,
             start_time=start_time,
             has_attachments=has_attachments,
             from_reprocessing=from_reprocessing,
+            data=task_data,
         )
         return
 
@@ -240,6 +269,8 @@ def _do_preprocess_event(
                 start_time=start_time,
                 has_attachments=has_attachments,
                 symbolicate_functions=symbolicate_functions,
+                data=data,
+                input_was_inline=input_was_inline,
             )
             return
         # else: go directly to process, do not go through the symbolicate queue, do not collect 200
@@ -253,6 +284,8 @@ def _do_preprocess_event(
             start_time=start_time,
             data_has_changed=False,
             has_attachments=has_attachments,
+            data=data,
+            input_was_inline=input_was_inline,
         )
         return
 
@@ -267,17 +300,19 @@ def _do_preprocess_event(
         start_time=start_time,
         data=original_data,
         inline=inline_save_event,
+        input_was_inline=input_was_inline,
     )
 
 
 def preprocess_event(
-    cache_key: str,
+    cache_key: str | None = None,
     data: MutableMapping[str, Any] | None = None,
     start_time: float | None = None,
     event_id: str | None = None,
     project: Project | None = None,
     has_attachments: bool = False,
     inline_save_event: bool = False,
+    input_was_inline: bool = False,
     **kwargs: Any,
 ) -> None:
     return _do_preprocess_event(
@@ -289,15 +324,17 @@ def preprocess_event(
         project=project,
         has_attachments=has_attachments,
         inline_save_event=inline_save_event,
+        input_was_inline=input_was_inline,
     )
 
 
 def preprocess_event_from_reprocessing(
-    cache_key: str,
+    cache_key: str | None = None,
     data: MutableMapping[str, Any] | None = None,
     start_time: float | None = None,
     event_id: str | None = None,
     project: Project | None = None,
+    input_was_inline: bool = False,
     **kwargs: Any,
 ) -> None:
     return _do_preprocess_event(
@@ -307,6 +344,7 @@ def preprocess_event_from_reprocessing(
         event_id=event_id,
         from_reprocessing=True,
         project=project,
+        input_was_inline=input_was_inline,
     )
 
 
@@ -341,7 +379,7 @@ def normalize_event(data: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
 
 
 def do_process_event(
-    cache_key: str,
+    cache_key: str | None,
     start_time: float | None,
     event_id: str | None,
     from_reprocessing: bool,
@@ -350,8 +388,8 @@ def do_process_event(
     from_symbolicate: bool = False,
     has_attachments: bool = False,
 ) -> None:
-    if data is None:
-        data = processing.event_processing_store.get(cache_key)
+    input_was_inline = data is not None
+    data = load_event_payload(data, cache_key, processing.event_processing_store)
 
     if data is None:
         metrics.incr(
@@ -370,7 +408,7 @@ def do_process_event(
 
     data_event_id = data["event_id"]
 
-    def _continue_to_save_event() -> None:
+    def _continue_to_save_event(has_changed: bool = False) -> None:
         task_kind = SaveEventTaskKind(
             from_reprocessing=from_reprocessing,
             has_attachments=has_attachments,
@@ -382,6 +420,8 @@ def do_process_event(
             event_id=data_event_id,
             start_time=start_time,
             data=data,
+            input_was_inline=input_was_inline,
+            data_has_changed=has_changed,
         )
 
     if is_process_disabled(project_id, data_event_id, data.get("platform") or "null"):
@@ -451,9 +491,8 @@ def do_process_event(
         data = normalize_event(data)
         if attachments:
             data["_attachments"] = attachments
-        cache_key = processing.event_processing_store.store(data)
 
-    return _continue_to_save_event()
+    return _continue_to_save_event(has_changed)
 
 
 @instrumented_task(
@@ -463,12 +502,13 @@ def do_process_event(
     silo_mode=SiloMode.CELL,
 )
 def process_event(
-    cache_key: str,
+    cache_key: str | None = None,
     start_time: float | None = None,
     event_id: str | None = None,
     data_has_changed: bool = False,
     from_symbolicate: bool = False,
     has_attachments: bool = False,
+    data: MutableMapping[str, Any] | None = None,
     **kwargs: Any,
 ) -> None:
     """
@@ -489,6 +529,7 @@ def process_event(
         data_has_changed=data_has_changed,
         from_symbolicate=from_symbolicate,
         has_attachments=has_attachments,
+        data=data,
     )
 
 
@@ -499,12 +540,13 @@ def process_event(
     silo_mode=SiloMode.CELL,
 )
 def process_event_from_reprocessing(
-    cache_key: str,
+    cache_key: str | None = None,
     start_time: float | None = None,
     event_id: str | None = None,
     data_has_changed: bool = False,
     from_symbolicate: bool = False,
     has_attachments: bool = False,
+    data: MutableMapping[str, Any] | None = None,
     **kwargs: Any,
 ) -> None:
     return do_process_event(
@@ -515,6 +557,7 @@ def process_event_from_reprocessing(
         data_has_changed=data_has_changed,
         from_symbolicate=from_symbolicate,
         has_attachments=has_attachments,
+        data=data,
     )
 
 
@@ -543,10 +586,9 @@ def _do_save_event(
     else:
         processing_store = processing.event_processing_store
 
-    if cache_key and data is None:
-        data = processing_store.get(cache_key)
-        if data is not None:
-            event_type = data.get("type") or "none"
+    data = load_event_payload(data, cache_key, processing_store)
+    if data is not None:
+        event_type = data.get("type") or "none"
 
     track_event_since_received(
         step="start_save_event",
@@ -576,6 +618,8 @@ def _do_save_event(
                 "events.failed", tags={"reason": "cache", "stage": "post"}, skip_internal=False
             )
             return
+
+        cleanup_event_id = data["event_id"]
 
         all_attachments = []
         attachments = []
@@ -624,17 +668,20 @@ def _do_save_event(
             raise
 
         finally:
-            if cache_key:
-                # NB: Delete even on errors (above). There is no retry policy on
-                # save_event tasks.
-                processing_store.delete_by_key(cache_key)
+            # Keep the combined deletion until unprocessed payloads migrate.
+            # Inline-only events incur an unnecessary working-payload delete,
+            # but still need their :u backup cleaned up, including on save failure.
+            cleanup_key = cache_key or cache_key_for_event(
+                {"project": project_id, "event_id": cleanup_event_id}
+            )
+            processing_store.delete_by_key(cleanup_key)
 
-                if consumer_type == ConsumerType.Transactions:
-                    track_sampled_event(
-                        data["event_id"],
-                        ConsumerType.Transactions,
-                        TransactionStageStatus.REDIS_DELETED,
-                    )
+            if consumer_type == ConsumerType.Transactions:
+                track_sampled_event(
+                    cleanup_event_id,
+                    ConsumerType.Transactions,
+                    TransactionStageStatus.REDIS_DELETED,
+                )
 
             reprocessing2.mark_event_reprocessed(data)
             if all_attachments and project:

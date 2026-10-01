@@ -217,6 +217,29 @@ def test_task_always_continues_to_save() -> None:
     assert submit_process.call_args.kwargs["data_has_changed"] is False
 
 
+@pytest.mark.parametrize("has_changed", (False, True))
+def test_inline_gpu_task_forwards_payload_without_redis(has_changed) -> None:
+    data = {"event_id": "e" * 32, "project": 1, "message": "gpu crash"}
+    with (
+        override_options(
+            {"store.enable-inline-payloads": 0.0, "store.disable-processing-store": True}
+        ),
+        mock.patch("sentry.tasks.gpu_crash._try_symbolicate", return_value=has_changed),
+        mock.patch(
+            "sentry.services.eventstore.processing.event_processing_store"
+        ) as processing_store,
+        mock.patch("sentry.tasks.store.process_event.delay") as process,
+    ):
+        symbolicate_gpu_crash_event(data=data, has_attachments=True)
+
+    assert process.call_args.kwargs["data"] == data
+    assert process.call_args.kwargs["cache_key"] is None
+    assert process.call_args.kwargs["data_has_changed"] is has_changed
+    assert process.call_args.kwargs["has_attachments"] is True
+    processing_store.get.assert_not_called()
+    processing_store.store.assert_not_called()
+
+
 IS_GPU_EVENT = "sentry.lang.native.utils.is_gpu_crash_event"
 SUBMIT_GPU = "sentry.tasks.gpu_crash.symbolicate_gpu_crash_event.delay"
 KILLSWITCH = "sentry.tasks.store.killswitch_matches_context"

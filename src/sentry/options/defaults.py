@@ -1685,6 +1685,20 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "store.enable-inline-payloads",
+    type=Float,
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Suppresses working-payload writes only for the inline cohort. Backups and
+# cleanup remain in Redis; re-enable writes before lowering the inline rate.
+register(
+    "store.disable-processing-store",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "post_process.get-autoassign-owners",
     type=Sequence,
     default=[],

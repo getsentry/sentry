@@ -1,4 +1,5 @@
 from time import time
+from typing import Any
 from unittest import mock
 
 import pytest
@@ -6,6 +7,12 @@ import pytest
 from sentry import options, quotas
 from sentry.event_manager import EventManager
 from sentry.exceptions import HashDiscarded
+from sentry.ingest.event_payload import (
+    get_event_payload_transport,
+    load_event_payload,
+    prepare_event_payload,
+)
+from sentry.services.eventstore.processing import event_processing_store
 from sentry.tasks.store import (
     is_process_disabled,
     preprocess_event,
@@ -15,10 +22,245 @@ from sentry.tasks.store import (
     save_event_transaction,
     should_process,
 )
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.utils.cache import cache_key_for_event
 from sentry.viewer_context import ActorType, get_viewer_context
 
 EVENT_ID = "cc3e6c2bb6b6498097f336d1e6979f4b"
+
+
+@pytest.mark.parametrize(
+    "rate,disable_store,input_was_inline,send_inline,write_store",
+    [
+        (0.0, False, False, False, True),
+        (0.0, True, False, False, True),
+        (1.0, False, False, True, True),
+        (1.0, True, False, True, False),
+        (0.0, False, True, True, True),
+        (0.0, True, True, True, False),
+    ],
+)
+def test_payload_transport_policy(rate, disable_store, input_was_inline, send_inline, write_store):
+    with override_options(
+        {"store.enable-inline-payloads": rate, "store.disable-processing-store": disable_store}
+    ):
+        transport = get_event_payload_transport(EVENT_ID, input_was_inline=input_was_inline)
+
+    assert transport.send_inline is send_inline
+    assert transport.write_processing_store is write_store
+
+
+@pytest.mark.parametrize(
+    "event_id,send_inline,expected_writes", [("a" * 32, True, 0), ("b" * 32, False, 1)]
+)
+def test_partial_inline_rollout_keeps_unsampled_events_in_redis(
+    event_id,
+    send_inline,
+    expected_writes,
+):
+    data = {"event_id": event_id, "project": 1}
+    processing_store = mock.Mock()
+    processing_store.store.return_value = "e:working"
+    with override_options(
+        {"store.enable-inline-payloads": 0.7, "store.disable-processing-store": True}
+    ):
+        payload, key = prepare_event_payload(
+            data,
+            None,
+            event_id=event_id,
+            input_was_inline=False,
+            processing_store=processing_store,
+        )
+
+    assert payload == {True: data, False: None}[send_inline]
+    assert key == {True: None, False: "e:working"}[send_inline]
+    assert processing_store.store.call_count == expected_writes
+
+
+@pytest.mark.parametrize("cache_key", (None, "e:existing"))
+def test_inline_payload_refreshes_redis_when_writes_resume(cache_key):
+    data = {"event_id": EVENT_ID, "project": 1, "message": "unchanged"}
+    processing_store = mock.Mock()
+    processing_store.store.return_value = "e:restored"
+    with override_options(
+        {"store.enable-inline-payloads": 0.0, "store.disable-processing-store": True}
+    ):
+        payload, key = prepare_event_payload(
+            data,
+            cache_key,
+            event_id=EVENT_ID,
+            input_was_inline=True,
+            processing_store=processing_store,
+        )
+    assert payload is data
+    assert key == cache_key
+    processing_store.store.assert_not_called()
+
+    with override_options(
+        {"store.enable-inline-payloads": 0.0, "store.disable-processing-store": False}
+    ):
+        payload, key = prepare_event_payload(
+            data,
+            key,
+            event_id=EVENT_ID,
+            input_was_inline=True,
+            processing_store=processing_store,
+        )
+    assert payload is data
+    assert key == "e:restored"
+    processing_store.store.assert_called_once_with(data)
+
+
+@pytest.mark.parametrize("data", ({}, [], {"event_id": 123}, {"event_id": ""}))
+def test_invalid_inline_payload_does_not_read_redis(data: Any):
+    processing_store = mock.Mock()
+    with pytest.raises(ValueError):
+        load_event_payload(data, "e:stale", processing_store)
+    processing_store.get.assert_not_called()
+
+
+def test_payload_reader_requires_data_or_key():
+    processing_store = mock.Mock()
+    with pytest.raises(ValueError, match="payload or cache key"):
+        load_event_payload(None, None, processing_store)
+    processing_store.get.assert_not_called()
+
+
+@django_db_all
+@pytest.mark.parametrize("cache_key", (None, "e:cleanup"))
+@pytest.mark.parametrize("load_shed", (False, True))
+def test_process_inline_payload_survives_rate_rollback(
+    default_project,
+    mock_event_processing_store,
+    mock_save_event,
+    mock_get_preprocessors,
+    cache_key,
+    load_shed,
+):
+    data = {"project": default_project.id, "event_id": EVENT_ID, "platform": "python"}
+    mock_get_preprocessors.return_value = [_noop]
+    with (
+        override_options(
+            {"store.enable-inline-payloads": 0.0, "store.disable-processing-store": True}
+        ),
+        mock.patch("sentry.tasks.store.is_process_disabled", return_value=load_shed),
+    ):
+        process_event(cache_key=cache_key, data=data)
+
+    mock_event_processing_store.get.assert_not_called()
+    mock_event_processing_store.store.assert_not_called()
+    assert mock_save_event.delay.call_args.kwargs["data"] == data
+    assert mock_save_event.delay.call_args.kwargs["cache_key"] == cache_key
+
+
+@django_db_all
+def test_legacy_process_payload_keeps_redis_transport_when_writes_disabled(
+    default_project,
+    mock_event_processing_store,
+    mock_save_event,
+    mock_get_preprocessors,
+):
+    data = {"project": default_project.id, "event_id": EVENT_ID, "platform": "python"}
+    mock_get_preprocessors.return_value = [_noop]
+    mock_event_processing_store.get.return_value = data
+    with override_options(
+        {"store.enable-inline-payloads": 0.0, "store.disable-processing-store": True}
+    ):
+        process_event(cache_key="e:legacy")
+
+    mock_event_processing_store.get.assert_called_once_with("e:legacy")
+    mock_event_processing_store.store.assert_not_called()
+    assert mock_save_event.delay.call_args.kwargs["data"] is None
+    assert mock_save_event.delay.call_args.kwargs["cache_key"] == "e:legacy"
+
+
+@django_db_all
+def test_inline_processing_forwards_normalized_changes_and_attachments(
+    default_project,
+    mock_event_processing_store,
+    mock_save_event,
+    mock_get_preprocessors,
+):
+    attachments = [{"id": 0, "key": "attachment-key", "name": "dump.dmp"}]
+    data = {
+        "project": default_project.id,
+        "event_id": EVENT_ID,
+        "platform": "python",
+        "extra": {"foo": "bar"},
+        "_attachments": attachments,
+    }
+    mock_get_preprocessors.return_value = [_remove_extra]
+    with override_options(
+        {"store.enable-inline-payloads": 1.0, "store.disable-processing-store": True}
+    ):
+        process_event(data=data)
+
+    payload = mock_save_event.delay.call_args.kwargs["data"]
+    assert "extra" not in payload
+    assert payload["_attachments"] == attachments
+    assert mock_save_event.delay.call_args.kwargs["cache_key"] is None
+    mock_event_processing_store.get.assert_not_called()
+    mock_event_processing_store.store.assert_not_called()
+
+
+@django_db_all
+def test_inline_save_persists_then_cleans_up_backup_without_working_key(default_project):
+    data = {"project": default_project.id, "event_id": EVENT_ID, "platform": "python"}
+    key = event_processing_store.store(dict(data), unprocessed=True)
+    working_key = cache_key_for_event(data)
+    assert key == working_key + ":u"
+    assert event_processing_store.get(working_key) is None
+
+    def check_backup(**kwargs):
+        assert kwargs["cache_key"] is None
+        assert event_processing_store.get(working_key, unprocessed=True)["event_id"] == EVENT_ID
+
+    with mock.patch.object(EventManager, "save", side_effect=check_backup):
+        save_event(data=data, project_id=default_project.id)
+
+    assert event_processing_store.get(working_key, unprocessed=True) is None
+
+
+@django_db_all
+def test_inline_save_cleans_up_backup_on_failure(default_project):
+    data = {"project": default_project.id, "event_id": EVENT_ID, "platform": "python"}
+    event_processing_store.store(dict(data), unprocessed=True)
+    working_key = cache_key_for_event(data)
+    with (
+        mock.patch.object(EventManager, "save", side_effect=RuntimeError("save failed")),
+        pytest.raises(RuntimeError, match="save failed"),
+    ):
+        save_event(data=data, project_id=default_project.id)
+    assert event_processing_store.get(working_key, unprocessed=True) is None
+
+
+@django_db_all
+@pytest.mark.parametrize("cache_key", (None, "e:working"))
+def test_inline_discard_cleans_up_attachments_and_backup(default_project, cache_key):
+    data = {
+        "project": default_project.id,
+        "platform": "python",
+        "event_id": EVENT_ID,
+        "_attachments": [
+            {
+                "key": "e:attachment",
+                "id": 0,
+                "name": "attachment.txt",
+                "stored_id": "stored-attachment",
+            }
+        ],
+    }
+    with (
+        mock.patch.object(EventManager, "save", side_effect=HashDiscarded("discarded")),
+        mock.patch("sentry.attachments.get_session") as get_session,
+        mock.patch.object(event_processing_store, "delete_by_key") as delete,
+    ):
+        save_event_attachments(data=data, cache_key=cache_key, project_id=default_project.id)
+
+    get_session.return_value.delete.assert_called_once_with("stored-attachment")
+    delete.assert_called_once_with(cache_key or cache_key_for_event(data))
+    assert "_attachments" not in data
 
 
 def _remove_extra(data):

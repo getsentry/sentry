@@ -6,6 +6,7 @@ from typing import Any
 import sentry_sdk
 from django.conf import settings
 
+from sentry.ingest.event_payload import load_event_payload, prepare_event_payload
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.processing import (
     get_native_symbolication_functions,
@@ -60,15 +61,15 @@ class SymbolicationTimeout(Exception):
 def _do_symbolicate_event(
     *,
     task_kind: SymbolicatorTaskKind,
-    cache_key: str,
+    cache_key: str | None,
     start_time: float | None,
     event_id: str | None,
     data: Event | None = None,
     has_attachments: bool = False,
     symbolicate_functions: list[SymbolicatorFunction] | None = None,
 ) -> None:
-    if data is None:
-        data = processing.event_processing_store.get(cache_key)
+    input_was_inline = data is not None
+    data = load_event_payload(data, cache_key, processing.event_processing_store)
 
     if data is None:
         metrics.incr(
@@ -98,6 +99,9 @@ def _do_symbolicate_event(
                 start_time=start_time,
                 has_attachments=has_attachments,
                 symbolicate_functions=symbolicate_functions,
+                data=data,
+                input_was_inline=input_was_inline,
+                data_has_changed=has_changed,
             )
             return
         # else:
@@ -109,6 +113,8 @@ def _do_symbolicate_event(
             data_has_changed=has_changed,
             from_symbolicate=True,
             has_attachments=has_attachments,
+            data=data,
+            input_was_inline=input_was_inline,
         )
 
     symbolication_function = task_kind.function
@@ -209,9 +215,6 @@ def _do_symbolicate_event(
     if not isinstance(data, dict):
         data = dict(data.items())
 
-    if has_changed:
-        cache_key = processing.event_processing_store.store(data)
-
     return _continue_to_process_event()
 
 
@@ -223,12 +226,23 @@ def _do_symbolicate_event(
 
 def submit_symbolicate(
     task_kind: SymbolicatorTaskKind,
-    cache_key: str,
+    cache_key: str | None,
     event_id: str | None,
     start_time: float | None,
     has_attachments: bool = False,
     symbolicate_functions: list[SymbolicatorFunction] | None = None,
+    data: Event | None = None,
+    input_was_inline: bool = False,
+    data_has_changed: bool = False,
 ) -> None:
+    if data is not None:
+        data, cache_key = prepare_event_payload(
+            data,
+            cache_key,
+            event_id=event_id or data["event_id"],
+            input_was_inline=input_was_inline,
+            data_has_changed=data_has_changed,
+        )
     # Because of `mock` usage, we cannot just save a reference to the actual function
     # into the `TASK_FNS` dict. We actually have to access it at runtime from the global scope
     # on every invocation. Great stuff!
@@ -241,12 +255,16 @@ def submit_symbolicate(
         None if symbolicate_functions is None else [p.name for p in symbolicate_functions]
     )
 
+    task_kwargs: dict[str, Any] = {}
+    if data is not None:
+        task_kwargs["data"] = data
     task_fn.delay(
         cache_key=cache_key,
         start_time=start_time,
         event_id=event_id,
         has_attachments=has_attachments,
         symbolicate_functions=symbolicate_function_names,
+        **task_kwargs,
     )
 
 
@@ -268,7 +286,7 @@ def make_task_fn(name: str, queue: str, task_kind: SymbolicatorTaskKind) -> Symb
         silo_mode=SiloMode.CELL,
     )
     def symbolication_fn(
-        cache_key: str,
+        cache_key: str | None = None,
         start_time: float | None = None,
         event_id: str | None = None,
         data: Event | None = None,
