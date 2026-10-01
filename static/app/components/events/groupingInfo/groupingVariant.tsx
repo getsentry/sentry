@@ -1,7 +1,8 @@
-import styled from '@emotion/styled';
+import {css} from '@emotion/react';
 
 import {InfoTip} from '@sentry/scraps/info';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import {getSpanHash} from 'sentry/components/events/interfaces/performance/utils';
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
@@ -35,22 +36,22 @@ function addFingerprintInfo(
   if ('matched_rule' in variant) {
     data.push([
       t('Fingerprint rule'),
-      <TextWithQuestionTooltip key="type">
+      <Grid key="type" align="center" columns="auto 1fr" gap="xs">
         {variant.matched_rule}
         <InfoTip
           size="xs"
           position="top"
           title={t('The server-side fingerprinting rule that produced the fingerprint.')}
         />
-      </TextWithQuestionTooltip>,
+      </Grid>,
     ]);
   }
   if ('values' in variant) {
     data.push([
       t('Fingerprint values'),
-      <TextWithQuestionTooltip key="fingerprint-values">
+      <Grid key="fingerprint-values" align="center" columns="auto 1fr" gap="xs">
         {variant.values?.join(', ') || ''}
-      </TextWithQuestionTooltip>,
+      </Grid>,
     ]);
   }
   if (
@@ -59,14 +60,14 @@ function addFingerprintInfo(
   ) {
     data.push([
       t('Client fingerprint values'),
-      <TextWithQuestionTooltip key="type">
+      <Grid key="type" align="center" columns="auto 1fr" gap="xs">
         {variant.client_values?.join(', ') || ''}
         {'matched_rule' in variant && (
           <GroupingHint>
             {`(${t('overridden by server-side fingerprint rule')})`}
           </GroupingHint>
         )}
-      </TextWithQuestionTooltip>,
+      </Grid>,
     ]);
   }
 }
@@ -85,7 +86,24 @@ export function GroupingVariant({
     }
 
     if (variant.hash !== null) {
-      data.push([t('Hash'), <Hash key="hash">{variant.hash}</Hash>]);
+      data.push([
+        t('Hash'),
+        <Text
+          as="span"
+          key="hash"
+          css={theme => css`
+            @container (max-width: ${theme.container.xl}) {
+              display: block;
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
+              width: 210px;
+            }
+          `}
+        >
+          {variant.hash}
+        </Text>,
+      ]);
     }
 
     if (variant.hashMismatch) {
@@ -138,12 +156,12 @@ export function GroupingVariant({
     if (component) {
       data.push([
         t('Grouping'),
-        <GroupingTree key={component.id}>
+        <Text as="div" key={component.id} variant="primary">
           <GroupingComponent
             component={component}
             showNonContributing={showNonContributing}
           />
-        </GroupingTree>,
+        </Text>,
       ]);
     }
 
@@ -151,20 +169,38 @@ export function GroupingVariant({
   };
 
   const title = (
-    <VariantTitle>
-      <ContributionIcon isContributing={variant.contributes} />
-      {variant.description
-        ?.split(' ')
-        .map(i => capitalize(i))
-        .join(' ') ?? t('Nothing')}
-      <VariantHint>{variant.hint && t('(%s)', variant.hint)}</VariantHint>
-    </VariantTitle>
+    <Heading as="h5" size="md">
+      <Flex align="center" gap="md">
+        {variant.contributes ? (
+          <IconCheckmark size="sm" variant="success" />
+        ) : (
+          <IconClose size="sm" variant="danger" />
+        )}
+        <Flex align="center" gap="xs">
+          {variant.description
+            ?.split(' ')
+            .map(i => capitalize(i))
+            .join(' ') ?? t('Nothing')}
+          {variant.hint && (
+            <Text as="span" size="sm" variant="secondary">
+              {t('(%s)', variant.hint)}
+            </Text>
+          )}
+        </Flex>
+      </Flex>
+    </Heading>
   );
 
   const data = getVariantData();
   return (
-    <VariantWrapper>
-      <Header>{title}</Header>
+    <Stack gap="xl" marginBottom="3xl">
+      <Flex
+        align={{zero: 'stretch', xl: 'center'}}
+        justify="between"
+        direction={{zero: 'column', xl: 'row'}}
+      >
+        {title}
+      </Flex>
 
       <KeyValueTableDataList
         margin
@@ -187,66 +223,6 @@ export function GroupingVariant({
         isContextData
         shouldSort={false}
       />
-    </VariantWrapper>
+    </Stack>
   );
 }
-
-const VariantWrapper = styled('div')`
-  margin-bottom: ${p => p.theme.space['3xl']};
-`;
-
-const Header = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: ${p => p.theme.space.xl};
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    display: block;
-  }
-`;
-
-const VariantTitle = styled('h5')`
-  font-size: ${p => p.theme.font.size.md};
-  margin: 0;
-  display: flex;
-  align-items: center;
-`;
-
-const VariantHint = styled('span')`
-  font-size: ${p => p.theme.font.size.sm};
-  margin-left: ${p => p.theme.space.xs};
-  font-weight: ${p => p.theme.font.weight.sans.regular};
-  color: ${p => p.theme.tokens.content.secondary};
-`;
-
-const ContributionIcon = styled(
-  ({isContributing, ...p}: {isContributing: boolean; className?: string}) =>
-    isContributing ? (
-      <IconCheckmark size="sm" variant="success" {...p} />
-    ) : (
-      <IconClose size="sm" variant="danger" {...p} />
-    )
-)`
-  margin-right: ${p => p.theme.space.md};
-`;
-
-const GroupingTree = styled('div')`
-  color: ${p => p.theme.tokens.content.primary};
-`;
-
-const TextWithQuestionTooltip = styled('div')`
-  display: grid;
-  align-items: center;
-  grid-template-columns: auto 1fr;
-  gap: ${p => p.theme.space.xs};
-`;
-
-const Hash = styled('span')`
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    display: block;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    width: 210px;
-  }
-`;
