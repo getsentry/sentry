@@ -53,14 +53,16 @@ IDLE_EXPIRE_TIME = OUTSIDE_PRIVILEGE_ACCESS_EXPIRE_TIME = timedelta(hours=2)
 @pytest.mark.parametrize("remaining_seconds", [0, 60])
 def test_validate_superuser_session_data(remaining_seconds: int) -> None:
     expires = BASETIME + timedelta(seconds=remaining_seconds)
+    raw = {"uid": "1", "tok": "test-token", "idl": expires.timestamp(), "exp": expires.timestamp()}
     data = Superuser.validate_session_data(
-        {"uid": "1", "tok": "test-token", "idl": expires.timestamp(), "exp": expires.timestamp()},
+        raw,
         cookie_token="test-token",
         user_id=1,
         ip_address="127.0.0.1",
         current_datetime=BASETIME,
     )
     assert data == {"uid": "1", "tok": "test-token", "idl": expires, "exp": expires}
+    assert raw["idl"] == raw["exp"] == expires.timestamp()
 
 
 @pytest.mark.parametrize(

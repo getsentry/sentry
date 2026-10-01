@@ -8,17 +8,32 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from enum import StrEnum
-from typing import TypedDict, TypeGuard
+from typing import NotRequired, TypedDict, TypeGuard
 
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
+from django.core import signing
 from django.db import router, transaction
+from django.http import HttpRequest
 from django.utils import timezone
 from jwt import PyJWTError
+from rest_framework.request import Request
 
+from sentry import features
+from sentry.api.exceptions import DataSecrecyError
 from sentry.auth.services.auth import AuthenticatedToken
+from sentry.auth.services.auth.model import RpcAuthState, RpcMemberSsoState
+from sentry.auth.superuser import (
+    MAX_AGE,
+    MAX_AGE_PRIVILEGED_ORG_ACCESS,
+    SESSION_KEY,
+    Superuser,
+    get_superuser_scopes,
+)
+from sentry.models.organization import Organization
+from sentry.organizations.services.organization import RpcUserOrganizationContext
 from sentry.seer.models.agent_write_grant import (
     AGENT_SESSION_ID_MAX_LENGTH,
     DEFAULT_EXPIRATION,
@@ -39,6 +54,9 @@ AGENT_TOKEN_TYPE = "sentry-agent+jwt"
 DEFAULT_TOKEN_TTL = timedelta(minutes=5)
 
 AGENT_TOKEN_KIND = "agent_token"
+AGENT_SESSION_KIND = "agent_session"
+AGENT_AUTHORIZATION_HEADER = "X-Sentry-Agent-Authorization"
+SUPERUSER_SESSION_SALT = "sentry.seer.agent-superuser-session"
 AGENT_TOKEN_VERSION = 1
 AGENT_PRINCIPAL_SUBJECT_SEPARATOR = ":"
 
@@ -76,6 +94,73 @@ class AgentTokenClaims(TypedDict):
     sid: str
     iat: int
     exp: int
+    superuser_session: NotRequired[str]
+
+
+def create_agent_authorization(
+    request: HttpRequest | Request | None, organization: Organization
+) -> str | None:
+    """Delegate an existing elevated session to one org for at most one token lifetime."""
+    if (
+        request is None
+        or request.auth is not None
+        or not request.user.is_superuser
+        or not features.has(FEATURE_FLAG, organization, actor=request.user)
+    ):
+        return None
+    su = getattr(request, "superuser", None) or Superuser(request)
+    if not su.is_active or su.requires_org_auth(organization):
+        return None
+    data = su.get_session_data()
+    if data is None:
+        return None
+    # Reuse the browser's existing SSO, IP, org approval and customer-policy checks.
+    get_superuser_scopes(
+        RpcAuthState(sso_state=RpcMemberSsoState(), permissions=[]), request.user, organization
+    )
+    expires_at = min(data["exp"], data["idl"], timezone.now() + DEFAULT_TOKEN_TTL)
+    if organization.id != su.org_id:
+        expires_at = min(expires_at, data["exp"] - MAX_AGE + MAX_AGE_PRIVILEGED_ORG_ACCESS)
+    if expires_at <= timezone.now():
+        return None
+    raw = request.session[SESSION_KEY]
+    return signing.dumps(
+        {
+            "org": organization.id,
+            "session": {key: raw[key] for key in ("uid", "tok", "idl", "exp")},
+            "cookie_token": su.token,
+            "ip_address": request.META["REMOTE_ADDR"],
+            "exp": int(expires_at.timestamp()),
+        },
+        salt=SUPERUSER_SESSION_SALT,
+    )
+
+
+def superuser_session_access(
+    proof: str, user: RpcUser, org_context: RpcUserOrganizationContext
+) -> tuple[set[str], datetime] | None:
+    """Recheck Sentry-signed session evidence and current policy; never renew elevation."""
+    if not user.is_active or not user.is_superuser or user.is_suspended:
+        return None
+    try:
+        payload = signing.loads(proof, salt=SUPERUSER_SESSION_SALT, max_age=DEFAULT_TOKEN_TTL)
+        if payload["org"] != org_context.organization.id:
+            return None
+        data = Superuser.validate_session_data(
+            payload["session"],
+            cookie_token=payload["cookie_token"],
+            user_id=user.id,
+            ip_address=payload["ip_address"],
+        )
+        expires_at = datetime.fromtimestamp(payload["exp"], UTC)
+        if data is None or expires_at <= timezone.now():
+            return None
+        scopes = get_superuser_scopes(
+            RpcAuthState(sso_state=RpcMemberSsoState(), permissions=[]), user, org_context
+        ) & set(readonly_scopes())
+    except (signing.BadSignature, KeyError, TypeError, ValueError, DataSecrecyError):
+        return None
+    return scopes, expires_at
 
 
 def _signing_key() -> str:
@@ -93,7 +178,7 @@ def readonly_scopes() -> frozenset[str]:
 def resolve_minting_principal(
     user: MintingUser, auth: AuthenticatedToken | None
 ) -> MintingPrincipal:
-    if is_agent_auth(auth):
+    if is_agent_auth(auth) and auth.kind != AGENT_SESSION_KIND:
         return MintingPrincipalRejection.AGENT
     if isinstance(user, AnonymousUser):
         return MintingPrincipalRejection.UNSUPPORTED
@@ -170,6 +255,7 @@ def encode_agent_token(
     scopes: Iterable[str],
     session_id: str,
     ttl: timedelta = DEFAULT_TOKEN_TTL,
+    superuser_session: str | None = None,
 ) -> tuple[str, datetime]:
     """Mint a signed agent token. Returns the JWT and its expiry. No DB write."""
     now = timezone.now()
@@ -186,6 +272,8 @@ def encode_agent_token(
         "iat": int(now.timestamp()),
         "exp": int(expires_at.timestamp()),
     }
+    if superuser_session is not None:
+        payload["superuser_session"] = superuser_session
     token = jwt.encode(
         payload,
         _signing_key(),
@@ -274,7 +362,7 @@ def _validate_claims(claims: Mapping[str, object]) -> AgentTokenClaims:
     if expires_at <= issued_at:
         raise jwt.DecodeError("invalid agent token lifetime")
 
-    return AgentTokenClaims(
+    result = AgentTokenClaims(
         ver=version,
         aud=audience,
         sub=subject,
@@ -284,6 +372,12 @@ def _validate_claims(claims: Mapping[str, object]) -> AgentTokenClaims:
         iat=issued_at,
         exp=expires_at,
     )
+    if "superuser_session" in claims:
+        proof = claims["superuser_session"]
+        if not isinstance(proof, str) or not proof:
+            raise jwt.DecodeError("invalid agent superuser session")
+        result["superuser_session"] = proof
+    return result
 
 
 def decode_agent_token(token_str: str) -> AgentTokenClaims:
@@ -302,7 +396,10 @@ def decode_agent_token(token_str: str) -> AgentTokenClaims:
 
 def is_agent_auth(auth: object) -> TypeGuard[AuthenticatedToken]:
     """Whether an authenticated credential is a Seer agent capability token."""
-    return isinstance(auth, AuthenticatedToken) and auth.kind == AGENT_TOKEN_KIND
+    return isinstance(auth, AuthenticatedToken) and auth.kind in {
+        AGENT_TOKEN_KIND,
+        AGENT_SESSION_KIND,
+    }
 
 
 def build_authenticated_token(claims: AgentTokenClaims) -> AuthenticatedToken:
@@ -313,6 +410,7 @@ def build_authenticated_token(claims: AgentTokenClaims) -> AuthenticatedToken:
         scopes=claims["scopes"],
         user_id=principal.id,
         organization_id=claims["org"],
+        superuser_session=claims.get("superuser_session"),
     )
 
 

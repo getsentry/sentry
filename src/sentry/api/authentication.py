@@ -626,6 +626,9 @@ class AgentTokenAuthentication(StandardAuthentication):
             return False
         return agent_token.is_agent_token_string(force_str(auth[1]))
 
+    def build_auth_token(self, request: Request, token_str: str) -> AuthenticatedToken:
+        return agent_token.build_authenticated_token(agent_token.decode_agent_token(token_str))
+
     def authenticate_token(self, request: Request, token_str: str) -> tuple[Any, Any]:
         def fail(reason: str, **extra: Any) -> NoReturn:
             # TODO(jstanley): Temporary logging to disambiguate agent-token 401s. Every
@@ -648,10 +651,9 @@ class AgentTokenAuthentication(StandardAuthentication):
             raise AuthenticationFailed("Invalid agent token")
 
         try:
-            claims = agent_token.decode_agent_token(token_str)
             # Building the token casts org and scopes too, so any missing/mis-typed claim
             # in a signed token is a clean 401 here, not a 500 downstream.
-            auth_token = agent_token.build_authenticated_token(claims)
+            auth_token = self.build_auth_token(request, token_str)
             user_id = auth_token.user_id
         except (PyJWTError, KeyError, ValueError, TypeError) as exc:
             fail("decode_failed", error_type=type(exc).__name__)
@@ -660,7 +662,12 @@ class AgentTokenAuthentication(StandardAuthentication):
             fail("no_user_principal", org_id=auth_token.organization_id)
 
         # The delegating user must still be valid even though they are not the request user.
-        user = user_service.get_user(user_id=user_id)
+        if auth_token.superuser_session is not None:
+            # Non-members do not necessarily receive this cell's user-cache invalidations.
+            users = user_service.get_many(filter={"user_ids": [user_id]})
+            user = users[0] if users else None
+        else:
+            user = user_service.get_user(user_id=user_id)
         if user is None:
             fail("user_not_found", user_id=user_id)
         if not user.is_active:
@@ -676,7 +683,15 @@ class AgentTokenAuthentication(StandardAuthentication):
         )
         if org_context is None:
             fail("org_context_missing", user_id=user_id, org_id=auth_token.organization_id)
-        if org_context.member is None:
+        if auth_token.superuser_session is not None:
+            if (
+                agent_token.superuser_session_access(
+                    auth_token.superuser_session, user, org_context
+                )
+                is None
+            ):
+                fail("superuser_session_invalid", user_id=user_id)
+        elif org_context.member is None:
             fail("org_membership_missing", user_id=user_id, org_id=auth_token.organization_id)
         if not features.has(
             agent_token.FEATURE_FLAG,

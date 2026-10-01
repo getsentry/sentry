@@ -37,6 +37,7 @@ from sentry.models.organization import Organization
 from sentry.organizations.services.organization import RpcUserOrganizationContext
 from sentry.types.request import _HttpRequestWithUser, _RequestWithUser
 from sentry.users.models.user import User
+from sentry.users.services.user import RpcUser
 from sentry.utils import metrics
 from sentry.utils.auth import has_completed_sso
 from sentry.utils.settings import is_self_hosted
@@ -89,7 +90,7 @@ SUPERUSER_READONLY_SCOPES = settings.SENTRY_READONLY_SCOPES.union({"org:superuse
 
 def get_superuser_scopes(
     auth_state: RpcAuthState,
-    user: User,
+    user: User | RpcUser,
     organization_context: Organization | RpcUserOrganizationContext,
 ) -> set[str]:
     if not should_allow_superuser_access(organization_context):
@@ -350,8 +351,9 @@ class Superuser(ElevatedMode):
         """Validate present, signature-verified session and cookie data.
 
         This does not check superuser status, SSO, IP restrictions, or org access.
-        Expiration timestamps are coerced in place, as in get_session_data.
+        Returns a copy with native expiration timestamps.
         """
+        data = data.copy()
         log_context = {"ip_address": ip_address, "user_id": user_id}
         session_token = data.get("tok")
         if not session_token:
