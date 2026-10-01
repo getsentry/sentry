@@ -1,3 +1,5 @@
+import {useEffect, useEffectEvent} from 'react';
+
 import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import type {CrossEventQueryExtras} from 'sentry/views/explore/queryParams/crossEvent';
 
@@ -37,6 +39,7 @@ interface ProgressiveQueryOptions<TQueryFn extends (...args: any[]) => any> {
       data: any;
       isFetched: boolean;
       isFetching: boolean;
+      isError?: boolean;
     };
   };
   queryOptions?: QueryOptions<TQueryFn>;
@@ -45,6 +48,9 @@ interface ProgressiveQueryOptions<TQueryFn extends (...args: any[]) => any> {
 interface QueryOptions<TQueryFn extends (...args: any[]) => any> {
   canTriggerHighAccuracy?: (data: ReturnType<TQueryFn>['result']) => boolean;
   disableExtrapolation?: boolean;
+  onHighAccuracyError?: (result: ReturnType<TQueryFn>['result']) => void;
+  onHighAccuracyRequest?: () => void;
+  onHighAccuracySuccess?: (result: ReturnType<TQueryFn>['result']) => void;
 }
 
 /**
@@ -106,6 +112,43 @@ export function useProgressiveQuery<
     },
     enabled: highAccuracyMode,
   });
+
+  const highAccuracyIsFetching =
+    highAccuracyMode && highAccuracyRequest.result.isFetching;
+  const highAccuracyIsError = highAccuracyMode && !!highAccuracyRequest.result.isError;
+  const highAccuracyIsSuccess =
+    highAccuracyMode &&
+    highAccuracyRequest.result.isFetched &&
+    !highAccuracyIsFetching &&
+    !highAccuracyIsError;
+
+  const onHighAccuracyRequest = useEffectEvent(() => {
+    queryOptions?.onHighAccuracyRequest?.();
+  });
+  const onHighAccuracySuccess = useEffectEvent(() => {
+    queryOptions?.onHighAccuracySuccess?.(highAccuracyRequest.result);
+  });
+  const onHighAccuracyError = useEffectEvent(() => {
+    queryOptions?.onHighAccuracyError?.(highAccuracyRequest.result);
+  });
+
+  useEffect(() => {
+    if (highAccuracyIsFetching) {
+      onHighAccuracyRequest();
+    }
+  }, [highAccuracyIsFetching]);
+
+  useEffect(() => {
+    if (highAccuracyIsSuccess) {
+      onHighAccuracySuccess();
+    }
+  }, [highAccuracyIsSuccess]);
+
+  useEffect(() => {
+    if (highAccuracyIsError) {
+      onHighAccuracyError();
+    }
+  }, [highAccuracyIsError]);
 
   if (nonExtrapolatedMode) {
     return {
