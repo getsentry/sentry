@@ -238,6 +238,11 @@ describe('AutofixOverview', () => {
       url: `/organizations/${organization.slug}/users/`,
       body: [],
     });
+    // The project page filter fetches user teams to decide whether to show Create Project.
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/user-teams/`,
+      body: [],
+    });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/coding-agents/`,
       body: {integrations: []},
