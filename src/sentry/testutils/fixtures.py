@@ -570,9 +570,6 @@ class Fixtures:
 
         return Factories.create_incident(organization, projects, *args, **kwargs)
 
-    def create_incident_activity(self, *args, **kwargs):
-        return Factories.create_incident_activity(*args, **kwargs)
-
     def create_alert_rule(self, organization=None, projects=None, *args, **kwargs) -> AlertRule:
         if not organization:
             organization = self.organization
