@@ -59,6 +59,24 @@ describe('Admin confirmation modal', () => {
     expect(screen.queryByRole('textbox', {name: 'Notes'})).not.toBeInTheDocument();
   });
 
+  it('obeys showTicketURL prop', async () => {
+    render(
+      <AdminConfirmationModal
+        onConfirm={mockOnConfirm}
+        onCancel={mockOnCancel}
+        showTicketURL={false}
+      >
+        <button>Open Modal</button>
+      </AdminConfirmationModal>
+    );
+
+    await userEvent.click(screen.getByRole('button'));
+    renderGlobalModal();
+
+    expect(screen.queryByRole('textbox', {name: 'TicketURL'})).not.toBeInTheDocument();
+    expect(screen.getByRole('textbox', {name: 'Notes'})).toBeInTheDocument();
+  });
+
   it('renders text content', async () => {
     render(
       <AdminConfirmationModal

@@ -115,13 +115,14 @@ export function DefaultTitle({
 
     const pathNameOrModule = getPathNameOrModule(shouldPrioritizeModuleName);
     const enablePathTooltip =
-      defined(frame.absPath) && frame.absPath !== pathNameOrModule?.value;
+      (defined(frame.absPath) && frame.absPath !== pathNameOrModule?.value) ||
+      (pathNameOrModule?.value.length ?? 0) > 100;
 
     if (pathNameOrModule) {
       title.push(
         <Tooltip
           key={pathNameOrModule.key}
-          title={frame.absPath}
+          title={frame.absPath || pathNameOrModule.value}
           disabled={!enablePathTooltip}
           delay={tooltipDelay}
           maxWidth={FRAME_TOOLTIP_MAX_WIDTH}
@@ -129,14 +130,24 @@ export function DefaultTitle({
         >
           <code key="filename" className="filename" data-test-id="filename">
             {isPotentiallyThirdParty && frame.absPath ? (
-              <Truncate value={frame.absPath} maxLength={100} leftTrim />
+              <Truncate
+                value={frame.absPath}
+                maxLength={100}
+                leftTrim
+                expandable={false}
+              />
             ) : !!pathNameOrModule.meta && !pathNameOrModule.value ? (
               <AnnotatedText
                 value={pathNameOrModule.value}
                 meta={pathNameOrModule.meta}
               />
             ) : (
-              <Truncate value={pathNameOrModule.value} maxLength={100} leftTrim />
+              <Truncate
+                value={pathNameOrModule.value}
+                maxLength={100}
+                leftTrim
+                expandable={false}
+              />
             )}
           </code>
         </Tooltip>

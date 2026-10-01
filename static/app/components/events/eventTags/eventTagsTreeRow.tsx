@@ -4,14 +4,17 @@ import * as qs from 'query-string';
 
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {ExternalLink, Link} from '@sentry/scraps/link';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {RevealOnHover} from '@sentry/scraps/revealOnHover';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {hasEveryAccess} from 'sentry/components/acl/access';
+import {AttributeDetailsTooltip} from 'sentry/components/attributes/attributeDetailsTooltip';
 import type {TagTreeContent} from 'sentry/components/events/eventTags/eventTagsTree';
 import {EventTagsValue} from 'sentry/components/events/eventTags/eventTagsValue';
 import {AnnotatedTextErrors} from 'sentry/components/events/meta/annotatedText/annotatedTextErrors';
+import {hasScrubbedData} from 'sentry/components/events/meta/annotatedText/utils';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {Version} from 'sentry/components/version';
 import {VersionHoverCard} from 'sentry/components/versionHoverCard';
@@ -68,6 +71,7 @@ export function EventTagsTreeRow({
   const originalTag = content.originalTag;
   const tagErrors = content.meta?.value?.['']?.err ?? [];
   const hasTagErrors = tagErrors.length > 0 && !config?.disableErrors;
+  const isScrubbed = hasScrubbedData(content.meta?.value?.['']?.rem);
   const hasStem = !isLast && content.subtree.size === 0;
 
   if (!originalTag) {
@@ -107,8 +111,14 @@ export function EventTagsTreeRow({
               </Fragment>
             )}
             <TreeSearchKey aria-hidden>{originalTag.key}</TreeSearchKey>
-            <TreeKey hasErrors={hasTagErrors} title={originalTag.key}>
-              {tagKey}
+            <TreeKey hasErrors={hasTagErrors}>
+              <AttributeDetailsTooltip
+                attributeKey={originalTag.key}
+                fieldDefinitionType="event"
+                isScrubbed={isScrubbed}
+              >
+                {tagKey}
+              </AttributeDetailsTooltip>
             </TreeKey>
           </TreeKeyTrunk>
           <TreeValueTrunk>
@@ -317,17 +327,22 @@ function EventTagsTreeRowDropdown({
   return (
     <RevealOnHover.Action visible={isMenuOpen}>
       <TreeValueDropdown
+        // Inline, the menu is trapped in the focused row's stacking context and
+        // renders under positioned content further down the page.
+        usePortal
         preventOverflowOptions={{padding: 4}}
         position="bottom-end"
         size="xs"
         isOpen={isMenuOpen}
         onOpenChange={setIsMenuOpen}
-        triggerProps={{
-          'aria-label': t('Tag Actions Menu'),
-          icon: <IconEllipsis />,
-          showChevron: false,
-          className: 'tag-button',
-        }}
+        trigger={triggerProps => (
+          <OverlayTrigger.IconButton
+            {...triggerProps}
+            aria-label={t('Tag Actions Menu')}
+            icon={<IconEllipsis />}
+            className="tag-button"
+          />
+        )}
         items={items}
       />
     </RevealOnHover.Action>

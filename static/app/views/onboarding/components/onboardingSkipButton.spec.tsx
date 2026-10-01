@@ -81,11 +81,4 @@ describe('OnboardingSkipButton', () => {
       }
     }
   );
-
-  it('renders nothing for unmapped steps', () => {
-    const {container} = render(
-      <OnboardingSkipButton stepId={OnboardingStepId.SELECT_PLATFORM} />
-    );
-    expect(container).toBeEmptyDOMElement();
-  });
 });
