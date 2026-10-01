@@ -25,14 +25,14 @@ from requests.exceptions import RequestException
 
 from sentry.net.http import TimeoutAdapter
 from sentry.utils import metrics
-from sentry.utils.retries import ConditionalRetryPolicy, sigmoid_delay
+from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay, sigmoid_delay
 
 # how many times do we want to try if stuff goes wrong
 GCS_RETRIES = 5
 REPLAY_GCS_RETRIES = 125
 
-# Exponential backoff bounds (seconds) for try_repeated retries.
-GCS_RETRY_BASE_DELAY = 0.1
+# Backoff between try_repeated retries: exponential from 0.1s, capped at 2s.
+_gcs_retry_delay = exponential_delay(0.1)
 GCS_RETRY_MAX_DELAY = 2.0
 
 
@@ -84,8 +84,8 @@ def try_repeated(func):
                 metrics_tags.update({"success": "0", "exception_class": e.__class__.__name__})
                 metrics.distribution(metrics_key, idx, tags=metrics_tags)
                 raise
-            # Backoff with full jitter before retrying.
-            backoff = min(GCS_RETRY_BASE_DELAY * (2**idx), GCS_RETRY_MAX_DELAY)
+            # Exponential backoff with full jitter before retrying.
+            backoff = min(_gcs_retry_delay(idx + 1), GCS_RETRY_MAX_DELAY)
             time.sleep(random.uniform(0, backoff))
         idx += 1
 
