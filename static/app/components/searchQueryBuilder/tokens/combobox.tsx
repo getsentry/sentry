@@ -436,7 +436,7 @@ export function SearchQueryBuilderCombobox<
   const listBoxRef = useRef<HTMLUListElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
-  const overlayRef = useRef<HTMLDivElement>(null);
+  const overlayContentRef = useRef<HTMLSpanElement>(null);
   const descriptionRef = useRef<HTMLDivElement>(null);
   const askSeerButtonRef = useRef<HTMLButtonElement>(null);
   const preventOverflowOptions = useMemo(() => ({boundary: document.body}), []);
@@ -678,10 +678,12 @@ export function SearchQueryBuilderCombobox<
 
   // Flex can shrink the input below the width useAutosizeInput gives it, and the input
   // then scrolls to keep the caret visible. The overlay has to follow or it shows a
-  // different slice of the value than the one being edited.
+  // different slice of the value than the one being edited. It's translated rather than
+  // scrolled because WebKit lets the input scroll ~2px past the text for the caret, and
+  // the overlay's own scrollLeft would clamp short of that.
   const syncOverlayScroll = useCallback(() => {
-    if (overlayRef.current && inputRef.current) {
-      overlayRef.current.scrollLeft = inputRef.current.scrollLeft;
+    if (overlayContentRef.current && inputRef.current) {
+      overlayContentRef.current.style.transform = `translateX(${-inputRef.current.scrollLeft}px)`;
     }
   }, []);
 
@@ -743,8 +745,8 @@ export function SearchQueryBuilderCombobox<
         data-test-id={dataTestId}
       />
       {highlightedValue ? (
-        <InputValueOverlay ref={overlayRef} aria-hidden>
-          {highlightedValue}
+        <InputValueOverlay aria-hidden>
+          <span ref={overlayContentRef}>{highlightedValue}</span>
         </InputValueOverlay>
       ) : null}
       {description ? (
@@ -782,6 +784,13 @@ export function SearchQueryBuilderCombobox<
   );
 }
 
+// WebKit doesn't kern across element boundaries, so the overlay's per-token spans would
+// otherwise render wider than the input's single run of text.
+const overlayTextMetrics = css`
+  font-kerning: none;
+  font-variant-ligatures: none;
+`;
+
 const UnstyledInput = styled(Input)<{hideValue?: boolean}>`
   background: transparent;
   border: none;
@@ -805,10 +814,12 @@ const UnstyledInput = styled(Input)<{hideValue?: boolean}>`
     css`
       color: transparent;
       caret-color: ${p.theme.tokens.content.primary};
+      ${overlayTextMetrics};
     `}
 `;
 
 const InputValueOverlay = styled('div')`
+  ${overlayTextMetrics};
   position: absolute;
   inset: 0;
   display: flex;
