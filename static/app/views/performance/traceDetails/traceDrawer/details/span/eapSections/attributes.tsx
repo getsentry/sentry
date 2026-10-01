@@ -250,6 +250,7 @@ export function AttributesContent({
           <AttributesTree
             columnCount={columnCount}
             attributes={sortedAndFilteredAttributes}
+            config={{attributeDetailsType: isEAPSpanNode(node) ? 'span' : 'uptime'}}
             pinnedAttribute={pin?.enabled && isEAPSpanNode(node) ? pin.attribute : null}
             renderers={customRenderers}
             rendererExtra={{
