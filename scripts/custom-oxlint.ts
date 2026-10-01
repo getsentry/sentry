@@ -432,13 +432,14 @@ async function main() {
 
 Ordinary lint forwards native options below and uses the committed policy.
 Configuration, rule, and suppression overrides are rejected.
+Successful --fix runs reduce suppression budgets for checked files.
 Put a maintenance flag first. Maintenance always scans all files.
 
   --check [--base REF]     Compare debt with trusted source at REF.
                           Defaults to the merge base of HEAD and origin/master.
   --ci [--base REF]        Verify committed budgets match live debt and fit REF.
   --enroll --base REF      Enroll rules using trusted source at REF.
-  --prune                 Reduce committed budgets after cleanup.
+  --prune                 Reduce remaining budgets with a full type-aware scan.
   --backlog [--rule RULE] [--file PATH] [--json]
                           Show unsuppressed findings with optional filters.
   --snapshot              Print live counts in the native suppression format.
@@ -505,10 +506,35 @@ Native oxlint options:
         original !== null,
         'Missing oxlint-suppressions.json. Run pnpm run lint:js --enroll --base REF with trusted source.'
       );
-      parseSuppressions(Buffer.from(original, 'base64').toString('utf8'), allowed);
+      const committed = parseSuppressions(
+        Buffer.from(original, 'base64').toString('utf8'),
+        allowed
+      );
       // The pinned CLI uses this process, so a killed transaction has no orphan writer.
       process.argv = [process.execPath, nativeCLI, '--prune-suppressions', ...args];
       await import(pathToFileURL(nativeCLI).href);
+      const options = args.slice(0, args.includes('--') ? args.indexOf('--') : undefined);
+      if ((process.exitCode ?? 0) !== 0 || !options.includes('--fix')) {
+        return;
+      }
+      const candidate = parseSuppressions(readFileSync(asset, 'utf8'), allowed);
+      fits(candidate, committed);
+      // Oxlint 1.85 puts every type-aware rule in this namespace, so fast fixes retain it.
+      if (config.options?.typeAware !== true) {
+        for (const [file, rules] of Object.entries(committed)) {
+          for (const [rule, budget] of Object.entries(rules)) {
+            if (rule.startsWith('typescript/')) {
+              (candidate[file] ??= Object.create(null))[rule] = budget;
+            }
+          }
+        }
+      }
+      const bytes = serialize(candidate);
+      if (bytes !== serialize(committed)) {
+        const lease = readLease(lock);
+        lease.original = Buffer.from(bytes).toString('base64');
+        atomicWrite(lock, JSON.stringify(lease));
+      }
     });
     return;
   }
@@ -614,7 +640,7 @@ Native oxlint options:
           if (serialize(committed) !== serialize(current.counts)) {
             process.exitCode = 1;
             throw new Error(
-              'Suppression budgets do not match live debt. Run pnpm run lint:js --prune after cleanup, or pnpm run lint:js --enroll --base REF for changed policy using trusted source.'
+              'Suppression budgets do not match live debt. Run pnpm run fix:oxlint after cleanup, or pnpm run lint:js --prune for remaining budgets. Use pnpm run lint:js --enroll --base REF for changed policy using trusted source.'
             );
           }
         }
