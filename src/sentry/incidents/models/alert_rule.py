@@ -479,38 +479,6 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
         return list(cls._factory_registrations.by_slug)
 
 
-class AlertRuleActivityType(Enum):
-    CREATED = 1
-    DELETED = 2
-    UPDATED = 3
-    ENABLED = 4
-    DISABLED = 5
-    SNAPSHOT = 6
-    ACTIVATED = 7
-    DEACTIVATED = 8
-
-
-@cell_silo_model
-class AlertRuleActivity(Model):
-    """
-    Provides an audit log of activity for the alert rule
-    """
-
-    __relocation_scope__ = RelocationScope.Organization
-
-    alert_rule = FlexibleForeignKey("sentry.AlertRule", db_constraint=False)
-    previous_alert_rule = FlexibleForeignKey(
-        "sentry.AlertRule", null=True, related_name="previous_alert_rule", db_constraint=False
-    )
-    user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
-    type = models.IntegerField()
-    date_added = models.DateTimeField(default=timezone.now)
-
-    class Meta:
-        app_label = "sentry"
-        db_table = "sentry_alertruleactivity"
-
-
 post_delete.connect(AlertRuleManager.clear_subscription_cache, sender=QuerySubscription)
 post_save.connect(AlertRuleManager.clear_subscription_cache, sender=QuerySubscription)
 post_save.connect(AlertRuleManager.clear_alert_rule_subscription_caches, sender=AlertRule)

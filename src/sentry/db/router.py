@@ -82,6 +82,7 @@ class SiloRouter:
         "sentry_actor": SiloMode.CELL,
         "sentry_alertruleactivations": SiloMode.CELL,
         "sentry_alertruleactivationcondition": SiloMode.CELL,
+        "sentry_alertruleactivity": SiloMode.CELL,
         "sentry_celloutboxbackfillwatermark": SiloMode.CELL,
         "sentry_code_review_event": SiloMode.CELL,
         "sentry_controloutboxbackfillwatermark": SiloMode.CONTROL,
