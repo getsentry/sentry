@@ -780,7 +780,7 @@ export function ResultGrid({
     const probeParams = {...baseParams, cursor: '', per_page: 1};
 
     // A failed probe is treated as "no match" for that region.
-    const results = await Promise.allSettled(
+    const probeResults = await Promise.allSettled(
       otherCells.map(async probedCell => {
         const data = await api.requestPromise(cellEndpoint(probedCell), {
           method,
@@ -797,9 +797,9 @@ export function ResultGrid({
       return;
     }
 
-    const matches = results
+    const matches = probeResults
       .map(result => (result.status === 'fulfilled' ? result.value : null))
-      .filter((cell): cell is Cell => cell !== null)
+      .filter((matchedCell): matchedCell is Cell => matchedCell !== null)
       .sort((a, b) => a.name.localeCompare(b.name));
     setProbe(prev => ({...prev, probingRegions: false, regionMatches: matches}));
   };
