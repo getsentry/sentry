@@ -36,9 +36,6 @@ from sentry.workflow_engine.types import ActionInvocation
 
 logger = logging.getLogger(__name__)
 
-SAMPLE_RATES_OPTION_KEY = "notifications.platform.shadow-render.sample-rates"
-MAX_DIFF_ENTRIES_OPTION_KEY = "notifications.platform.shadow-render.max-diff-entries"
-
 SHADOW_PROVIDERS: dict[str, NotificationProviderKey] = {
     Action.Type.SLACK: NotificationProviderKey.SLACK,
     Action.Type.SLACK_STAGING: NotificationProviderKey.SLACK_STAGING,
@@ -68,13 +65,15 @@ class ShadowResult:
 
 def _should_shadow(invocation: ActionInvocation, source: NotificationSource) -> bool:
     try:
-        return (
-            source in SHADOW_SOURCES
-            and invocation.workflow_id != TEST_NOTIFICATION_ID
-            and invocation.action.id != TEST_NOTIFICATION_ID
-            and source.value not in options.get(KILLSWITCH_OPTION_KEY)
-            and random.random() < float(options.get(SAMPLE_RATES_OPTION_KEY).get(source.value, 0.0))
-        )
+        if (
+            source not in SHADOW_SOURCES
+            or invocation.workflow_id == TEST_NOTIFICATION_ID
+            or invocation.action.id == TEST_NOTIFICATION_ID
+            or source.value in options.get(KILLSWITCH_OPTION_KEY)
+        ):
+            return False
+        sample_rates = options.get("notifications.platform.shadow-render.sample-rates")
+        return random.random() < float(sample_rates.get(source.value, 0.0))
     except Exception:
         logger.exception("notifications.platform.shadow.sample_failed", extra={"source": source})
         return False
@@ -171,7 +170,6 @@ def _report(
         )
 
         if result.outcome == ShadowOutcome.MISMATCH:
-            max_entries = options.get(MAX_DIFF_ENTRIES_OPTION_KEY)
             logger.info(
                 "notifications.platform.shadow.mismatch",
                 extra={
@@ -180,7 +178,7 @@ def _report(
                     "group_id": invocation.event_data.group.id,
                     "detector_id": invocation.detector.id,
                     "diff_count": len(result.diff),
-                    "diff": result.diff[:max_entries],
+                    "diff": result.diff,
                 },
             )
     except Exception:

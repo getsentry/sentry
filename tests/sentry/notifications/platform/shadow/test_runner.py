@@ -367,20 +367,6 @@ class ShadowReadOutcomeTest(ShadowInvocationTestCase):
             "diff": ["Extra in new: extra", "type: old=str(len=12), new=str(len=4)"],
         }
 
-    @override_options({"notifications.platform.shadow-render.max-diff-entries": 1})
-    @mock.patch(
-        f"{RUNNER_PATH}.NotificationService.render_template",
-        return_value={"type": "Card", "extra": 1},
-    )
-    def test_mismatch_log_is_limited_to_max_diff_entries(self, mock_render: mock.MagicMock) -> None:
-        with observe_shadow() as observation:
-            with shadow(self.create_invocation(Action.Type.MSTEAMS), NotificationSource.ISSUE):
-                _send_legacy()
-
-        assert observation.mismatch is not None
-        assert observation.mismatch["diff_count"] == 2
-        assert observation.mismatch["diff"] == ["Extra in new: extra"]
-
     @mock.patch(
         f"{RUNNER_PATH}.NotificationService.render_template", return_value={"type": "AdaptiveCard"}
     )

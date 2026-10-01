@@ -3590,14 +3590,6 @@ register(
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-
-# Maximum number of diff entries included in a shadow-render mismatch log
-register(
-    "notifications.platform.shadow-render.max-diff-entries",
-    type=Int,
-    default=20,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 # Notification Options - End
 
 
