@@ -1,4 +1,12 @@
-import {Fragment, useEffect, useEffectEvent, useMemo, useRef, useState} from 'react';
+import {
+  type ComponentProps,
+  Fragment,
+  useEffect,
+  useEffectEvent,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import styled from '@emotion/styled';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 import type {LocationDescriptor} from 'history';
@@ -61,10 +69,13 @@ import {
 } from 'sentry/views/investigations/api';
 import {shouldPollInvestigationBlocks} from 'sentry/views/investigations/detail/cell';
 import {shouldPollInvestigationRun} from 'sentry/views/investigations/hypotheses/investigationHypotheses';
-import {InvestigationSummaryCard} from 'sentry/views/investigations/investigationSummaryCard';
 import {getSeerStatusBlock} from 'sentry/views/investigations/statusBlock/getSeerStatusBlock';
 import {SeerStatusBlock} from 'sentry/views/investigations/statusBlock/seerStatusBlock';
-import type {MetricOpenPeriodInvestigationSource} from 'sentry/views/investigations/types';
+import type {
+  InvestigationDetail,
+  InvestigationOrchestration,
+  MetricOpenPeriodInvestigationSource,
+} from 'sentry/views/investigations/types';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
 import {AttributeComparisonSection} from './attributeComparisonSection';
@@ -626,7 +637,13 @@ function SeerInvestigationSection({
         return false;
       }
       const blocks = investigation.blocks ?? [];
+      // Matches the investigation page: an agentic run keeps the detail polling
+      // until it settles, so the summary lands without a refresh.
+      const orchestrationActive =
+        investigation.orchestration &&
+        shouldPollInvestigationRun(investigation.orchestration.status);
       if (
+        orchestrationActive ||
         shouldPollInvestigationBlocks(blocks) ||
         isTitleGenerationActive(investigation.titleGeneration?.status)
       ) {
@@ -669,30 +686,16 @@ function SeerInvestigationSection({
       Boolean(existingInvestigation?.orchestration) &&
       !hasSummary,
     select: response => response.json,
-    refetchInterval: query =>
-      shouldPollInvestigationRun(query.state.data?.json.status)
+    // Polls like the investigation page's hypotheses, and stops once the run
+    // reaches a terminal state.
+    refetchInterval: query => {
+      const run = query.state.data?.json;
+      return shouldPollInvestigationRun(run?.status, run?.runId !== null)
         ? INVESTIGATION_POLL_INTERVAL
-        : false,
+        : false;
+    },
   });
-  const orchestrationStatus = orchestration?.status;
-  useEffect(() => {
-    // The detail query may have stopped polling long before a run finishes, so
-    // refetch it once the run settles to pick up the summary.
-    if (
-      existingInvestigationId !== null &&
-      orchestrationStatus !== undefined &&
-      !shouldPollInvestigationRun(orchestrationStatus)
-    ) {
-      void queryClient.invalidateQueries({
-        queryKey: getInvestigationDetailQueryOptions(
-          organization.slug,
-          existingInvestigationId
-        ).queryKey,
-      });
-    }
-  }, [existingInvestigationId, orchestrationStatus, organization.slug, queryClient]);
-  const runStatus =
-    orchestration && !hasSummary ? getSeerStatusBlock(orchestration) : null;
+  const statusBlock = getInvestigationStatusBlock(existingInvestigation, orchestration);
 
   const launchMutation = useLaunchInvestigationMutation(organization.slug, {
     onSuccess: launchedInvestigation => {
@@ -746,24 +749,9 @@ function SeerInvestigationSection({
       {existingInvestigationId !== null && isExistingInvestigationPending ? (
         <Placeholder height="40px" width="160px" />
       ) : (
-        <Stack gap="md">
-          {existingInvestigation?.summary && existingInvestigation.summaryDescription ? (
-            <InvestigationSummaryCard
-              summary={existingInvestigation.summary}
-              summaryDescription={existingInvestigation.summaryDescription}
-            />
-          ) : runStatus ? (
-            <SeerStatusBlock
-              variant={runStatus.variant}
-              title={runStatus.title}
-              meta={runStatus.meta}
-              // The running copy is written for the investigation page itself
-              // ("will open automatically"), so only the stopped states, whose
-              // descriptions explain what happened, carry it here.
-              description={
-                runStatus.variant === 'running' ? undefined : runStatus.description
-              }
-            />
+        <Stack gap="xl">
+          {statusBlock ? (
+            <SeerStatusBlock {...statusBlock} />
           ) : investigationPath ? null : (
             <Text size="md" variant="muted">
               {t(
@@ -791,6 +779,36 @@ function SeerInvestigationSection({
       )}
     </FoldSection>
   );
+}
+
+/**
+ * What the section says about an existing investigation: its summary once
+ * there is one, otherwise where the run has got to.
+ */
+function getInvestigationStatusBlock(
+  investigation: InvestigationDetail | undefined,
+  orchestration: InvestigationOrchestration | undefined
+): ComponentProps<typeof SeerStatusBlock> | null {
+  if (investigation?.summary && investigation.summaryDescription) {
+    return {
+      variant: 'complete',
+      title: investigation.summary,
+      description: investigation.summaryDescription,
+    };
+  }
+  const runStatus = orchestration ? getSeerStatusBlock(orchestration) : null;
+  if (!runStatus) {
+    return null;
+  }
+  return {
+    variant: runStatus.variant,
+    title: runStatus.title,
+    meta: runStatus.meta,
+    // The running copy is written for the investigation page itself ("will open
+    // automatically"), so only the stopped states, whose descriptions explain
+    // what happened, carry it here.
+    description: runStatus.variant === 'running' ? undefined : runStatus.description,
+  };
 }
 
 function isTitleGenerationActive(status: string | null | undefined) {

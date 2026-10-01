@@ -136,21 +136,44 @@ export default Storybook.story('Metric issue — Seer investigation section', st
   ));
 
   story('When the run stopped', () => (
-    <Storybook.Demo direction="column" align="stretch" maxHeight="none">
-      <SectionWithFixtures
-        {...runningInvestigation({
-          phase: 'failed',
-          status: 'failed',
-          errors: [
-            {
-              code: 'query_timeout',
-              message: 'The metric query timed out.',
-              retryable: false,
+    <Fragment>
+      <p>
+        Only a run that needs more information asks anything of the viewer, so it is the
+        one state shown in the warning colour, with Seer's own question underneath.
+      </p>
+      <Storybook.Demo direction="column" align="stretch" maxHeight="none">
+        <SectionWithFixtures
+          {...runningInvestigation({
+            phase: 'planning',
+            status: 'awaiting_input',
+            pendingInput: {
+              prompt: 'Which service owns the checkout endpoint?',
+              missingFields: ['prompt'],
             },
-          ],
-        })}
-      />
-    </Storybook.Demo>
+          })}
+        />
+      </Storybook.Demo>
+      <Storybook.Demo direction="column" align="stretch" maxHeight="none">
+        <SectionWithFixtures
+          {...runningInvestigation({
+            phase: 'failed',
+            status: 'failed',
+            errors: [
+              {
+                code: 'query_timeout',
+                message: 'The metric query timed out.',
+                retryable: false,
+              },
+            ],
+          })}
+        />
+      </Storybook.Demo>
+      <Storybook.Demo direction="column" align="stretch" maxHeight="none">
+        <SectionWithFixtures
+          {...runningInvestigation({phase: 'cancelled', status: 'cancelled'})}
+        />
+      </Storybook.Demo>
+    </Fragment>
   ));
 
   story('Once the summary is ready', () => (
