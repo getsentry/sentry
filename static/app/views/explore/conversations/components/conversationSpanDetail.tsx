@@ -46,6 +46,7 @@ import {
   getAIToolInput,
 } from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiInput';
 import {
+  formatAIToolOutput,
   getAIOutputData,
   getAIToolOutput,
 } from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiOutput';
@@ -452,11 +453,12 @@ function OutputTab({
         </Fragment>
       ) : null}
       {toolOutput ? (
-        <TraceDrawerComponents.MultilineJSON
+        <AIContentRenderer
           key={`${node.id}:tool-output`}
-          value={toolOutput}
-          maxDefaultDepth={AI_SPAN_OUTPUT_JSON_MAX_DEFAULT_DEPTH}
+          text={formatAIToolOutput(toolOutput)}
+          maxJsonDepth={AI_SPAN_OUTPUT_JSON_MAX_DEFAULT_DEPTH}
           autoCollapseLimit={AI_SPAN_JSON_AUTO_COLLAPSE_LIMIT}
+          clip={false}
         />
       ) : null}
     </Fragment>
