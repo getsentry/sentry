@@ -1,4 +1,4 @@
-import {Fragment, useMemo, type CSSProperties} from 'react';
+import {useMemo, type CSSProperties} from 'react';
 import {useTheme, type Theme} from '@emotion/react';
 import {
   createColorPalette,
@@ -12,6 +12,8 @@ import {LogsHighlight} from 'sentry/views/explore/logs/styles';
 
 const ANSI_BACKGROUND_STRENGTH = '15%';
 const ANSI_TEXT_STRENGTH = '50%';
+
+const PRESERVE_WHITESPACE_STYLE: CSSProperties = {whiteSpaceCollapse: 'preserve'};
 
 type ColorPalette = ReturnType<typeof createColorPalette>;
 
@@ -47,7 +49,7 @@ export function LogsAnsiHighlight({
   }
 
   return (
-    <Fragment>
+    <span style={PRESERVE_WHITESPACE_STYLE}>
       {tokens.map((token, index) => (
         <span key={index} style={getTokenStyle(token, palette)}>
           <LogsHighlight caseSensitive={caseSensitive} terms={terms}>
@@ -55,7 +57,7 @@ export function LogsAnsiHighlight({
           </LogsHighlight>
         </span>
       ))}
-    </Fragment>
+    </span>
   );
 }
 

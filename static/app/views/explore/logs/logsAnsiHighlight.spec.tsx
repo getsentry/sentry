@@ -2,6 +2,20 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {LogsAnsiHighlight} from 'sentry/views/explore/logs/logsAnsiHighlight';
 
+function renderSegments(text: string) {
+  render(<LogsAnsiHighlight>{text}</LogsAnsiHighlight>);
+
+  const wrapper = screen.getByText('FATAL').parentElement;
+
+  return {
+    segments: Array.from(wrapper?.querySelectorAll('span') ?? [], span => ({
+      text: span.textContent,
+      colored: span.style.color !== '',
+    })),
+    wrapper,
+  };
+}
+
 describe('LogsAnsiHighlight', () => {
   it('renders text without escape codes when given ANSI colors', () => {
     const {container} = render(
@@ -56,5 +70,61 @@ describe('LogsAnsiHighlight', () => {
     );
 
     expect(container).toHaveTextContent(/^done$/);
+  });
+
+  it('colors only the escaped text when given uncolored spaces around a colored word', () => {
+    const {segments} = renderSegments(' \x1B[31mFATAL\x1B[0m ');
+
+    expect(segments).toEqual([
+      {text: ' ', colored: false},
+      {text: 'FATAL', colored: true},
+      {text: ' ', colored: false},
+    ]);
+  });
+
+  it('colors a trailing space when given the space inside the escape codes', () => {
+    const {segments} = renderSegments(' \x1B[31mFATAL \x1B[0m ');
+
+    expect(segments).toEqual([
+      {text: ' ', colored: false},
+      {text: 'FATAL ', colored: true},
+      {text: ' ', colored: false},
+    ]);
+  });
+
+  it('colors a leading space when given the space inside the escape codes', () => {
+    const {segments} = renderSegments(' \x1B[31m FATAL\x1B[0m ');
+
+    expect(segments).toEqual([
+      {text: ' ', colored: false},
+      {text: ' FATAL', colored: true},
+      {text: ' ', colored: false},
+    ]);
+  });
+
+  it('colors only the escaped word when given uncolored text before it and a space after it', () => {
+    const {segments} = renderSegments('ABC\x1B[31mFATAL\x1B[0m ');
+
+    expect(segments).toEqual([
+      {text: 'ABC', colored: false},
+      {text: 'FATAL', colored: true},
+      {text: ' ', colored: false},
+    ]);
+  });
+
+  it('colors only the escaped word when given a space before it and uncolored text after it', () => {
+    const {segments} = renderSegments(' \x1B[31mFATAL\x1B[0mABC');
+
+    expect(segments).toEqual([
+      {text: ' ', colored: false},
+      {text: 'FATAL', colored: true},
+      {text: 'ABC', colored: false},
+    ]);
+  });
+
+  it('preserves whitespace when given escape codes', () => {
+    const {wrapper} = renderSegments(' \x1B[41m FATAL \x1B[0m  ');
+
+    expect(wrapper).toHaveStyle({whiteSpaceCollapse: 'preserve'});
   });
 });
