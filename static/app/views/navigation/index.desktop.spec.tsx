@@ -159,7 +159,7 @@ function setupMocks() {
 describe('desktop navigation', () => {
   beforeEach(setupMocks);
 
-  it('renders user-only navigation when there is no organization', () => {
+  it('shows account settings as the active group without an organization', () => {
     render(
       <PrimaryNavigationContextProvider>
         <Navigation />
@@ -170,14 +170,78 @@ describe('desktop navigation', () => {
       }
     );
 
-    // Primary nav sidebar renders but contains no nav links
-    const primaryNav = screen.getByRole('navigation', {name: 'Primary Navigation'});
-    expect(within(primaryNav).queryByRole('link')).not.toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'Settings'})).toHaveAttribute(
+      'data-active-group',
+      'true'
+    );
+    expect(screen.getByRole('link', {name: 'Security'})).toBeInTheDocument();
+  });
 
-    // No secondary navigation
-    expect(
-      screen.queryByRole('navigation', {name: 'Secondary Navigation'})
-    ).not.toBeInTheDocument();
+  it('navigates account settings when there is no organization', async () => {
+    const {router} = render(
+      <PrimaryNavigationContextProvider>
+        <Navigation />
+      </PrimaryNavigationContextProvider>,
+      {
+        organization: null,
+        initialRouterConfig: {location: {pathname: '/settings/account/details/'}},
+      }
+    );
+
+    const primaryNav = screen.getByRole('navigation', {name: 'Primary Navigation'});
+    expect(within(primaryNav).getByRole('link', {name: 'Settings'})).toHaveAttribute(
+      'href',
+      '/settings/account/'
+    );
+
+    const secondaryNav = screen.getByRole('navigation', {name: 'Secondary Navigation'});
+    const links = within(secondaryNav).getAllByRole('link');
+    expect(links).toHaveLength(10);
+    links.forEach(link => {
+      expect(link).toHaveAttribute(
+        'href',
+        expect.stringMatching(/^\/settings\/account\//)
+      );
+    });
+    assertActiveSecondaryNavLink(
+      within(secondaryNav).getByRole('link', {name: 'Account Details'})
+    );
+
+    await userEvent.click(within(secondaryNav).getByRole('link', {name: 'Security'}));
+    expect(router.location.pathname).toBe('/settings/account/security/');
+    assertActiveSecondaryNavLink(
+      within(secondaryNav).getByRole('link', {name: 'Security'})
+    );
+
+    await userEvent.click(
+      within(secondaryNav).getByRole('link', {name: 'Email Addresses'})
+    );
+    expect(router.location.pathname).toBe('/settings/account/emails/');
+    assertActiveSecondaryNavLink(
+      within(secondaryNav).getByRole('link', {name: 'Email Addresses'})
+    );
+  });
+
+  it('reopens collapsed account navigation without an organization', async () => {
+    localStorage.setItem(NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY, 'true');
+
+    render(
+      <PrimaryNavigationContextProvider>
+        <Navigation />
+      </PrimaryNavigationContextProvider>,
+      {
+        organization: null,
+        initialRouterConfig: {location: {pathname: '/settings/account/details/'}},
+      }
+    );
+
+    await userEvent.hover(screen.getByRole('link', {name: 'Settings'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Expand'}));
+
+    expect(localStorage.getItem(NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY)).toBe(
+      'false'
+    );
+    expect(screen.getByRole('link', {name: 'Security'})).toBeInTheDocument();
   });
 
   describe('accessibility', () => {

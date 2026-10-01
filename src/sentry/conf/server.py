@@ -887,7 +887,6 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.hybridcloud.tasks.deliver_from_outbox",
     "sentry.hybridcloud.tasks.deliver_webhooks",
     "sentry.hybridcloud.tasks.webhook_backlog_metrics",
-    "sentry.incidents.tasks",
     "sentry.ingest.consumer.simple_event",
     "sentry.ingest.transaction_clusterer.tasks",
     "sentry.integrations.data_forwarding.tasks",
@@ -3081,7 +3080,7 @@ SENTRY_PROJECT_COUNTER_STATEMENT_TIMEOUT = 1000
 # Implemented in getsentry to run additional devserver workers.
 SENTRY_EXTRA_WORKERS: MutableSequence[str] = []
 
-SAMPLED_DEFAULT_RATE = 0.0015
+SAMPLED_DEFAULT_RATE = 0.00075
 
 # A set of extra URLs to sample
 ADDITIONAL_SAMPLED_URLS: dict[str, float] = {}

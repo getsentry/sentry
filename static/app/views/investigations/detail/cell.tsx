@@ -8,6 +8,7 @@ import {Disclosure} from '@sentry/scraps/disclosure';
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {type MarkdownTableColumn} from '@sentry/scraps/markdown';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Heading, Text} from '@sentry/scraps/text';
 import {TextArea} from '@sentry/scraps/textarea';
 
@@ -192,15 +193,17 @@ export function InvestigationCell({
       <DropdownMenu
         position="bottom-end"
         usePortal
-        triggerProps={{
-          // A query cell's header is SeerEmbedBlock's band, which is sized to its
-          // `zero` toggle; an `xs` trigger would make it taller than an embed's.
-          size: block.kind === 'query' ? 'zero' : 'xs',
-          variant: 'transparent',
-          showChevron: false,
-          icon: <IconEllipsis size="xs" />,
-          'aria-label': t('Cell actions for %s', displayTitle),
-        }}
+        trigger={triggerProps => (
+          <OverlayTrigger.IconButton
+            {...triggerProps}
+            // A query cell's header is SeerEmbedBlock's band, which is sized to its
+            // `zero` toggle; an `xs` trigger would make it taller than an embed's.
+            size={block.kind === 'query' ? 'zero' : 'xs'}
+            variant="transparent"
+            icon={<IconEllipsis size="xs" />}
+            aria-label={t('Cell actions for %s', displayTitle)}
+          />
+        )}
         items={actionItems}
       />
     </CellActions>
