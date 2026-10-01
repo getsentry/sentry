@@ -9,11 +9,16 @@ jest.mock('sentry/stories/storyManifest.generated', () => ({
   storyFiles: [
     'app/components/core/badge/badge.mdx',
     'app/components/core/badge/tag.mdx',
+    'app/components/core/principles/tokens/tokens.mdx',
     'app/components/example.stories.tsx',
   ],
   storyFrontmatterIndex: {
     'app/components/core/badge/badge.mdx': {category: 'status', title: 'Badge'},
     'app/components/core/badge/tag.mdx': {category: 'status', title: 'Tag'},
+    'app/components/core/principles/tokens/tokens.mdx': {
+      keywords: ['colors', 'palette'],
+      title: 'Tokens',
+    },
   },
   storyHeadingIndex: {
     'app/components/core/badge/badge.mdx': [
@@ -28,6 +33,7 @@ jest.mock('sentry/stories/storyManifest.generated', () => ({
       {id: 'tag-accessibility', title: 'Accessibility', parents: ['Tag']},
     ],
     'app/components/core/badge/tag.mdx': [],
+    'app/components/core/principles/tokens/tokens.mdx': [],
   },
 }));
 
@@ -110,6 +116,22 @@ describe('StorySearch', () => {
     await waitFor(() =>
       expect(router.location.pathname).toContain('/scraps/product/components/example/')
     );
+  });
+
+  it('matches page keywords', async () => {
+    const {router} = render(<StorySearch />);
+    await userEvent.type(
+      screen.getByRole('combobox', {name: 'Search stories'}),
+      'colors'
+    );
+
+    const options = await screen.findAllByRole('option');
+    expect(options[0]).toHaveTextContent(/^Tokens$/);
+    await userEvent.click(options[0]!);
+    await waitFor(() =>
+      expect(router.location.pathname).toContain('/scraps/principles/tokens/')
+    );
+    expect(router.location.hash).toBe('');
   });
 
   it('shows no results for unmatched queries', async () => {

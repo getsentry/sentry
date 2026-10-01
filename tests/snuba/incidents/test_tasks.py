@@ -3,6 +3,7 @@ from functools import cached_property
 
 from arroyo.utils import metrics
 
+from sentry.incidents.tasks import handle_snuba_query_update
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.snuba.dataset import Dataset
@@ -128,6 +129,7 @@ class HandleSnubaQueryUpdateTest(TestCase):
         }
 
         original_callback = subscriber_registry[INCIDENTS_SNUBA_SUBSCRIPTION_TYPE]
+        assert original_callback is handle_snuba_query_update
         callback_invoked = []
 
         def shutdown_callback(*args, **kwargs):

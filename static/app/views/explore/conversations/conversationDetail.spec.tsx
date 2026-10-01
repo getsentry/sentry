@@ -388,4 +388,34 @@ describe('ConversationDetailPage time window', () => {
       expect(options.query).not.toHaveProperty('statsPeriod');
     }
   });
+
+  it('reads URL times without an offset as UTC', async () => {
+    // The page filters write start/end without an offset. Read in a timezone
+    // behind UTC, they must not shift the queried window.
+    const originalTimezone = process.env.TZ;
+    process.env.TZ = 'America/Los_Angeles';
+    try {
+      const conversationRequest = MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/agents/conversations/${CONVERSATION_ID}/`,
+        body: {conversationId: CONVERSATION_ID, title: null, spans: CONVERSATION_BODY},
+      });
+
+      renderPage([], {
+        start: '2026-09-24T08:06:04',
+        end: '2026-09-25T10:29:16',
+      });
+
+      await waitFor(() => expect(conversationRequest).toHaveBeenCalled());
+      for (const [, options] of conversationRequest.mock.calls) {
+        expect(options.query).toEqual(
+          expect.objectContaining({
+            start: '2026-09-24T07:06:04.000Z',
+            end: '2026-09-25T11:29:16.000Z',
+          })
+        );
+      }
+    } finally {
+      process.env.TZ = originalTimezone;
+    }
+  });
 });

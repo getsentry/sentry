@@ -6,6 +6,7 @@ import styled from '@emotion/styled';
 import {Button} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex, Grid} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {useRole} from 'sentry/components/acl/useRole';
 import {openConfirmModal} from 'sentry/components/confirm';
@@ -133,11 +134,13 @@ export function Screenshot({
           <DropdownMenu
             position="bottom"
             offset={4}
-            triggerProps={{
-              showChevron: false,
-              icon: <IconEllipsis />,
-              'aria-label': t('More screenshot actions'),
-            }}
+            trigger={triggerProps => (
+              <OverlayTrigger.IconButton
+                {...triggerProps}
+                icon={<IconEllipsis />}
+                aria-label={t('More screenshot actions')}
+              />
+            )}
             size="xs"
             items={[
               {
