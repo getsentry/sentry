@@ -86,8 +86,8 @@ describe('PathMapping', () => {
     expect(screen.getByText('Example preview')).toBeInTheDocument();
     expect(screen.getByText('In your stack trace')).toBeInTheDocument();
     expect(screen.getByText('Sentry opens in your repo')).toBeInTheDocument();
-    // No accent highlights — just the bare file name on each side
-    expect(screen.getAllByText('source.tsx')).toHaveLength(2);
+    // No accent highlights — just the bare suffix on each side
+    expect(screen.getAllByText('views/index.tsx')).toHaveLength(2);
   });
 
   it('accents only the filled prefix once a value is typed', async () => {

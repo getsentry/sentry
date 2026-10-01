@@ -7,7 +7,6 @@ import {t} from 'sentry/locale';
 import {AccentPathSegment} from './accentPathSegment';
 
 const PREVIEW_SUFFIX = 'views/index.tsx';
-const PREVIEW_FILE = 'source.tsx';
 
 interface PathMappingPreviewProps {
   sourceRoot: string;
@@ -17,9 +16,9 @@ interface PathMappingPreviewProps {
 /**
  * Renders the path segment for one side of the preview.
  * An accent highlight is shown only when the prefix has a value.
- * An empty prefix shows the bare file name with no highlight.
+ * An empty prefix shows the bare suffix with no highlight.
  */
-function PreviewSegment({root, file}: {file: string; root: string}) {
+function PreviewSegment({root}: {root: string}) {
   if (root) {
     return (
       <Text monospace variant="muted" ellipsis>
@@ -30,7 +29,7 @@ function PreviewSegment({root, file}: {file: string; root: string}) {
   }
   return (
     <Text monospace variant="muted" ellipsis>
-      {file}
+      {PREVIEW_SUFFIX}
     </Text>
   );
 }
@@ -52,7 +51,7 @@ export function PathMappingPreview({stackRoot, sourceRoot}: PathMappingPreviewPr
           <Text bold variant="muted">
             {t('In your stack trace')}
           </Text>
-          <PreviewSegment root={stackRoot} file={PREVIEW_FILE} />
+          <PreviewSegment root={stackRoot} />
         </Stack>
         <Flex align="center" display={{zero: 'none', '2xs': 'flex'}}>
           <IconArrow direction="right" />
@@ -61,7 +60,7 @@ export function PathMappingPreview({stackRoot, sourceRoot}: PathMappingPreviewPr
           <Text bold variant="muted">
             {t('Sentry opens in your repo')}
           </Text>
-          <PreviewSegment root={sourceRoot} file={PREVIEW_FILE} />
+          <PreviewSegment root={sourceRoot} />
         </Stack>
       </Flex>
     </Container>
