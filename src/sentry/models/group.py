@@ -146,7 +146,11 @@ def get_group_with_redirect(
         # Validate that the numeric ID doesn't exceed the max value for the
         # bounded field, otherwise the ORM will raise an AssertionError.
         max_id = Group._meta.get_field("id").MAX_VALUE
-        if int(id_or_qualified_short_id) > max_id:
+        try:
+            numeric_id = int(id_or_qualified_short_id)
+        except ValueError:
+            raise Group.DoesNotExist() from None
+        if numeric_id > max_id:
             raise Group.DoesNotExist()
         params = {"id": id_or_qualified_short_id}
 

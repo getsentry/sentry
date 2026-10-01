@@ -23,6 +23,8 @@ export interface KeyValueTreeRowProps {
   fullKey?: string;
   hasErrors?: boolean;
   hasStem?: boolean;
+  /** Disable when the label renders its own tooltip describing the key. */
+  showFullKeyTitle?: boolean;
   spacerCount?: number;
   /** Omitted by trunk rows, which only label the branches nested underneath them. */
   value?: React.ReactNode;
@@ -34,6 +36,7 @@ export function KeyValueTreeRow({
   hasErrors = false,
   hasStem = false,
   label,
+  showFullKeyTitle = true,
   spacerCount = 0,
   value,
   ...props
@@ -50,7 +53,7 @@ export function KeyValueTreeRow({
               </Fragment>
             )}
             {fullKey && <TreeSearchKey aria-hidden>{fullKey}</TreeSearchKey>}
-            <TreeKey hasErrors={hasErrors} title={fullKey}>
+            <TreeKey hasErrors={hasErrors} title={showFullKeyTitle ? fullKey : undefined}>
               {label}
             </TreeKey>
           </TreeKeyTrunk>

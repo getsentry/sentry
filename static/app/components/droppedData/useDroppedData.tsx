@@ -1,9 +1,14 @@
 import {useDroppedDataAnnotationsEnabled} from 'sentry/components/droppedData/useDroppedDataAnnotationsEnabled';
-import type {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useFetchEventsTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 
 const REFERRER = 'api.explore.dropped-data-annotations';
+
+// Trace metrics needs `count(value)`.
+function getYAxis(dataset: DiscoverDatasets): string {
+  return dataset === DiscoverDatasets.TRACEMETRICS ? 'count(value)' : 'count()';
+}
 
 interface UseDroppedDataOptions {
   dataset: DiscoverDatasets;
@@ -21,7 +26,7 @@ export function useDroppedData({dataset}: UseDroppedDataOptions) {
   const {data, isPending} = useFetchEventsTimeSeries(
     dataset,
     {
-      yAxis: 'count()',
+      yAxis: getYAxis(dataset),
       interval,
       includeAnnotations: true,
       enabled: annotationsEnabled,

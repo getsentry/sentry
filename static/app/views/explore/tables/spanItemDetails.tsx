@@ -144,6 +144,7 @@ export function SpanItemDetails({
     <SpanItemDetailsContainer>
       <AttributesTree<SpanAttributesRendererExtra>
         attributes={visibleAttributes}
+        config={{attributeDetailsType: 'span'}}
         getCustomActions={getActions}
         renderers={renderers}
         rendererExtra={{

@@ -33,7 +33,7 @@ function renderTopBar(width?: number) {
 
   render(<Flex containerType="inline-size">{topBar}</Flex>, {
     organization: OrganizationFixture({
-      features: ['gen-ai-features', 'seer-explorer'],
+      features: ['seer-explorer'],
     }),
   });
 }

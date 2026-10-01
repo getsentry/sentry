@@ -8,7 +8,7 @@ from sentry.projectoptions import register
 
 # This controls what sentry:option-epoch value is given to a project when it is created
 # The epoch of a project will determine what options are valid options for that specific project
-LATEST_EPOCH = 16
+LATEST_EPOCH = 17
 
 register(key="sentry:grouping_config", default=DEFAULT_GROUPING_CONFIG)
 register(key="sentry:grouping_enhancements", default="")
@@ -39,7 +39,16 @@ register(
 # version is set on a project's DSN.
 register(
     key="sentry:default_loader_version",
-    epoch_defaults={1: "4.x", 2: "5.x", 7: "6.x", 8: "7.x", 13: "8.x", 14: "9.x", 15: "10.x"},
+    epoch_defaults={
+        1: "4.x",
+        2: "5.x",
+        7: "6.x",
+        8: "7.x",
+        13: "8.x",
+        14: "9.x",
+        15: "10.x",
+        17: "11.x",
+    },
 )
 
 # Default symbol sources. The ios source does not exist by default and
@@ -148,6 +157,13 @@ register(
     default=[],
 )
 
+# Opt-in to Relay expanding JSON-like string attributes on EAP items into KVList
+# attributes, so the nested keys become searchable.
+register(
+    key="sentry:relay_automatic_json_expansion",
+    default=False,
+)
+
 register(
     key="sentry:feedback_user_report_notifications",
     epoch_defaults={12: True},
@@ -203,7 +219,7 @@ register(key="sentry:autofix_automation_tuning", default=AUTOFIX_AUTOMATION_TUNI
 # Should seer scanner run automatically on new issues
 register(key="sentry:seer_scanner_automation", default=True)
 
-# Per-project JSON blob of Seer Night Shift tweaks. Prototyping only — not a
+# Per-project JSON blob of Seer Agentic triage tweaks. Prototyping only — not a
 # stable API; the shape of the blob is expected to change.
 register(key="sentry:seer_nightshift_tweaks", default=None)
 

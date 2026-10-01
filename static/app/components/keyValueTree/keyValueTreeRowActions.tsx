@@ -2,6 +2,7 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {type MenuItemProps} from '@sentry/scraps/dropdownMenu';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {RevealOnHover} from '@sentry/scraps/revealOnHover';
 
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
@@ -26,26 +27,31 @@ export function visitExternalLinkAction(value: KeyValueTreeValue): MenuItemProps
 export function KeyValueTreeRowActions({
   ariaLabel,
   items,
+  usePortal,
 }: {
   ariaLabel: string;
   items: MenuItemProps[];
+  usePortal?: boolean;
 }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   return (
     <RevealOnHover.Action visible={isMenuOpen}>
       <TreeValueDropdown
+        usePortal={usePortal}
         preventOverflowOptions={{padding: 4}}
         position="bottom-end"
         size="xs"
         isOpen={isMenuOpen}
         onOpenChange={setIsMenuOpen}
-        triggerProps={{
-          'aria-label': ariaLabel,
-          icon: <IconEllipsis />,
-          showChevron: false,
-          className: TREE_VALUE_DROPDOWN_BUTTON_CLASS,
-        }}
+        trigger={triggerProps => (
+          <OverlayTrigger.IconButton
+            {...triggerProps}
+            aria-label={ariaLabel}
+            icon={<IconEllipsis />}
+            className={TREE_VALUE_DROPDOWN_BUTTON_CLASS}
+          />
+        )}
         items={items}
       />
     </RevealOnHover.Action>

@@ -7,9 +7,11 @@ import {ExternalLink, Link} from '@sentry/scraps/link';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {hasEveryAccess} from 'sentry/components/acl/access';
+import {AttributeDetailsTooltip} from 'sentry/components/attributes/attributeDetailsTooltip';
 import type {TagTreeContent} from 'sentry/components/events/eventTags/eventTagsTree';
 import {EventTagsValue} from 'sentry/components/events/eventTags/eventTagsValue';
 import {AnnotatedTextErrors} from 'sentry/components/events/meta/annotatedText/annotatedTextErrors';
+import {hasScrubbedData} from 'sentry/components/events/meta/annotatedText/utils';
 import {KeyValueTreeRow} from 'sentry/components/keyValueTree/keyValueTreeRow';
 import {
   KeyValueTreeRowActions,
@@ -62,6 +64,7 @@ export function EventTagsTreeRow({
   const originalTag = content.original;
   const tagErrors = content.meta?.value?.['']?.err ?? [];
   const hasTagErrors = tagErrors.length > 0 && !config?.disableErrors;
+  const isScrubbed = hasScrubbedData(content.meta?.value?.['']?.rem);
 
   if (!originalTag) {
     return (
@@ -90,7 +93,16 @@ export function EventTagsTreeRow({
       hasErrors={hasTagErrors}
       hasStem={hasStem}
       fullKey={originalTag.key}
-      label={tagKey}
+      showFullKeyTitle={false}
+      label={
+        <AttributeDetailsTooltip
+          attributeKey={originalTag.key}
+          fieldDefinitionType="event"
+          isScrubbed={isScrubbed}
+        >
+          {tagKey}
+        </AttributeDetailsTooltip>
+      }
       spacerCount={spacerCount}
       value={
         <EventTagsTreeValue
@@ -282,7 +294,15 @@ function EventTagsTreeRowDropdown({
     visitExternalLinkAction(content.value),
   ];
 
-  return <KeyValueTreeRowActions ariaLabel={t('Tag Actions Menu')} items={items} />;
+  return (
+    <KeyValueTreeRowActions
+      ariaLabel={t('Tag Actions Menu')}
+      items={items}
+      // Inline, the menu is trapped in the focused row's stacking context and
+      // renders under positioned content further down the page.
+      usePortal
+    />
+  );
 }
 
 function EventTagsTreeValue({

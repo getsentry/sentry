@@ -5,6 +5,7 @@ import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {AttributeDetailsTooltip} from 'sentry/components/attributes/attributeDetailsTooltip';
 import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
 import {KeyValueTreeRow} from 'sentry/components/keyValueTree/keyValueTreeRow';
 import {
@@ -26,9 +27,11 @@ import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {type RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
+import type {GetFieldDefinitionType} from 'sentry/utils/fields';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import {ATTRIBUTE_VALUE_TYPES, hasScrubbedValue} from 'sentry/views/explore/utils';
 
 import {AttributesTreeValue} from './attributesTreeValue';
 
@@ -76,7 +79,7 @@ interface AttributesTreeProps<
   attributes: TraceItemResponseAttribute[];
   // If provided, locks the number of columns to this number. If not provided, the number of columns will be dynamic based on width.
   columnCount?: number;
-  config?: KeyValueTreeRowConfig;
+  config?: AttributesTreeRowConfig;
   getAdjustedAttributeKey?: (attribute: TraceItemResponseAttribute) => string;
   getCustomActions?: (content: AttributesTreeContent) => MenuItemProps[];
   pinnedAttribute?: string | null;
@@ -88,12 +91,21 @@ interface AttributesTreeColumnsProps<
   columnCount: number;
 }
 
+export interface AttributesTreeRowConfig extends KeyValueTreeRowConfig {
+  /**
+   * When provided, hovering an attribute key describes the attribute, reading
+   * its description from this registry. Otherwise keys show their full name in
+   * a plain browser tooltip.
+   */
+  attributeDetailsType?: GetFieldDefinitionType;
+}
+
 interface AttributesTreeRowProps<
   RendererExtra extends RenderFunctionBaggage,
 > extends AttributesFieldRender<RendererExtra> {
   attributeKey: string;
   content: AttributesTreeContent;
-  config?: KeyValueTreeRowConfig;
+  config?: AttributesTreeRowConfig;
   getCustomActions?: (content: AttributesTreeContent) => MenuItemProps[];
   hasStem?: boolean;
   pinnedAttribute?: string | null;
@@ -203,6 +215,8 @@ function AttributesTreeRow<RendererExtra extends RenderFunctionBaggage>({
     );
   }
 
+  const attributeDetailsType = config?.attributeDetailsType;
+
   return (
     <KeyValueTreeRow
       {...props}
@@ -216,13 +230,29 @@ function AttributesTreeRow<RendererExtra extends RenderFunctionBaggage>({
       }
       hasStem={hasStem}
       fullKey={originalAttribute.attribute_key}
+      showFullKeyTitle={!attributeDetailsType}
       label={
         <Flex
           align="center"
           gap="xs"
           data-test-id={`tree-key-${originalAttribute.original_attribute_key}`}
         >
-          <Text>{attributeKey}</Text>
+          {attributeDetailsType ? (
+            <AttributeDetailsTooltip
+              attributeKey={originalAttribute.original_attribute_key}
+              name={originalAttribute.attribute_key}
+              fieldDefinitionType={attributeDetailsType}
+              defaultValueType={ATTRIBUTE_VALUE_TYPES[originalAttribute.type]}
+              isScrubbed={hasScrubbedValue(
+                rendererExtra.traceItemMeta,
+                originalAttribute.original_attribute_key
+              )}
+            >
+              {attributeKey}
+            </AttributeDetailsTooltip>
+          ) : (
+            <Text>{attributeKey}</Text>
+          )}
           {pinnedAttribute === originalAttribute.original_attribute_key && (
             <IconPin size="xs" isSolid aria-label={t('Pinned attribute')} />
           )}

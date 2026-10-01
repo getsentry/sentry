@@ -182,7 +182,7 @@ function HighlightsData({highlightsProject, event, project}: HighlightsDataProps
   }
 
   const highlightContextRows = highlightContextDataItems.reduce<React.ReactNode[]>(
-    (rowList, {alias, data}, i) => {
+    (rowList, {alias, data, type}, i) => {
       const meta = getContextMeta(event, alias);
       const newRows = data.map((item, j) => (
         <HighlightContextContent
@@ -190,7 +190,8 @@ function HighlightsData({highlightsProject, event, project}: HighlightsDataProps
           meta={meta}
           item={item}
           alias={alias}
-          config={{includeAliasInSubject: true}}
+          type={type}
+          config={{attributeDetailsType: 'event', includeAliasInSubject: true}}
           data-test-id="highlight-context-row"
         />
       ));
