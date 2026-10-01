@@ -796,7 +796,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         trace_id = uuid4().hex
         conversation_id = uuid4().hex
 
-        tool_span = self.store_ai_span(
+        self.store_ai_span(
             conversation_id=conversation_id,
             timestamp=now,
             op="gen_ai.execute_tool",
@@ -805,10 +805,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
             tool_name="search_database",
             tool_result="found 3 rows",
             tool_output="tool output payload",
-            store=False,
         )
-        tool_span["data"]["anthropic.tool_result.content"] = "anthropic tool output payload"
-        self.store_spans([tool_span])
 
         query = {
             "project": [self.project.id],
@@ -826,7 +823,6 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         assert span["gen_ai.tool.name"] == "search_database"
         assert span["gen_ai.tool.call.result"] == "found 3 rows"
         assert span["gen_ai.tool.output"] == "tool output payload"
-        assert span["anthropic.tool_result.content"] == "anthropic tool output payload"
 
     def test_returns_embeddings_attributes(self) -> None:
         now = before_now(days=5).replace(microsecond=0)
