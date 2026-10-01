@@ -243,32 +243,32 @@ export function TraceEventDataSection({
     );
     if (selectedThread && threadEntry) {
       const exceptionEntry = entries.find(entry => entry.type === EntryType.EXCEPTION);
-      const exceptions = exceptionEntry?.data.values ?? [];
+      const exceptions =
+        exceptionEntry?.data.values?.filter(
+          exception =>
+            !defined(exception.threadId) || exception.threadId === selectedThread.id
+        ) ?? [];
       const threadException = exceptions.findLast(
         exception => exception.threadId === selectedThread.id
       );
-      const useCrashedThread =
-        selectedThread.crashed &&
-        exceptions.every(exception => !defined(exception.threadId));
 
       entries = [threadEntry];
-      if (exceptionEntry && exceptions.length && (threadException || useCrashedThread)) {
+      if (
+        exceptionEntry &&
+        exceptions.length &&
+        (threadException || selectedThread.crashed)
+      ) {
         // Pair only the copied values; the rendered exceptions retain their metadata indexes.
         const exceptionWithThreadFrames = threadException ?? exceptions.at(-1);
-        const values = exceptions
-          .filter(
-            exception =>
-              !defined(exception.threadId) || exception.threadId === selectedThread.id
-          )
-          .map(exception =>
-            exception === exceptionWithThreadFrames && !exception.stacktrace
-              ? {
-                  ...exception,
-                  stacktrace: selectedThread.stacktrace,
-                  rawStacktrace: exception.rawStacktrace ?? selectedThread.rawStacktrace,
-                }
-              : exception
-          );
+        const values = exceptions.map(exception =>
+          exception === exceptionWithThreadFrames && !exception.stacktrace
+            ? {
+                ...exception,
+                stacktrace: selectedThread.stacktrace,
+                rawStacktrace: exception.rawStacktrace ?? selectedThread.rawStacktrace,
+              }
+            : exception
+        );
         entries = [{...exceptionEntry, data: {...exceptionEntry.data, values}}];
       }
     }
