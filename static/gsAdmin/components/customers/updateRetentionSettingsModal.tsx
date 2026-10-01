@@ -1,14 +1,20 @@
-import {Fragment, useState} from 'react';
+import {Fragment} from 'react';
+import {useMutation} from '@tanstack/react-query';
+import {z} from 'zod';
+
+import {Button} from '@sentry/scraps/button';
+import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {Stack} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
-import {SelectField} from 'sentry/components/forms/fields/selectField';
-import {Form} from 'sentry/components/forms/form';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
-import {useApi} from 'sentry/utils/useApi';
 
 import type {Subscription} from 'getsentry/types';
 
@@ -42,34 +48,24 @@ function getRetentionOptions(currentValue: number | null): RetentionOption[] {
   }));
 
   if (currentValue !== null && !options.some(option => option.value === currentValue)) {
-    options.unshift({value: currentValue, label: `${currentValue} days (current)`});
+    options.unshift({
+      value: currentValue,
+      label: `${currentValue} days (current)`,
+    });
   }
 
   return options;
 }
 
-type RetentionFieldProps = {
-  label: string;
-  name: string;
-  onChange: (value: number | null) => void;
-  value: number | null;
-};
-
-function RetentionField({name, label, value, onChange}: RetentionFieldProps) {
-  const [options] = useState(() => getRetentionOptions(value));
-
-  return (
-    <SelectField
-      name={name}
-      label={label}
-      defaultValue={value}
-      options={options}
-      onChange={(newValue: number | null | undefined) => onChange(newValue ?? null)}
-      placeholder="Plan default"
-      allowClear
-    />
-  );
-}
+const retentionSchema = z.object({
+  orgStandard: z.number().nullable(),
+  logBytesStandard: z.number().nullable(),
+  logBytesDownsampled: z.number().nullable(),
+  transactionsStandard: z.number().nullable(),
+  transactionsDownsampled: z.number().nullable(),
+  spansStandard: z.number().nullable(),
+  spansDownsampled: z.number().nullable(),
+});
 
 function UpdateRetentionSettingsModal({
   onSuccess,
@@ -78,80 +74,54 @@ function UpdateRetentionSettingsModal({
   closeModal,
   Header,
   Body,
+  Footer,
 }: ModalProps) {
-  const api = useApi();
+  const mutation = useMutation({
+    mutationFn: (values: z.infer<typeof retentionSchema>) => {
+      const retentions: Partial<
+        Record<DataCategory, {downsampled: number | null; standard: number | null}>
+      > = {};
 
-  const [orgStandard, setOrgStandard] = useState<number | null>(
-    subscription.orgRetention?.standard ?? null
-  );
+      if (subscription.planDetails.categories.includes(DataCategory.LOG_BYTE)) {
+        retentions.logBytes = {
+          standard: values.logBytesStandard,
+          downsampled: values.logBytesDownsampled,
+        };
+      }
 
-  const [logBytesStandard, setLogBytesStandard] = useState<number | null>(
-    subscription.categories.logBytes?.retention?.standard ?? null
-  );
-  const [logBytesDownsampled, setLogBytesDownsampled] = useState<number | null>(
-    subscription.categories.logBytes?.retention?.downsampled ?? null
-  );
+      if (subscription.planDetails.categories.includes(DataCategory.TRANSACTIONS)) {
+        retentions.transactions = {
+          standard: values.transactionsStandard,
+          downsampled: values.transactionsDownsampled,
+        };
+      }
 
-  const [transactionsStandard, setTransactionsStandard] = useState<number | null>(
-    subscription.categories.transactions?.retention?.standard ?? null
-  );
-  const [transactionsDownsampled, setTransactionsDownsampled] = useState<number | null>(
-    subscription.categories.transactions?.retention?.downsampled ?? null
-  );
+      if (subscription.planDetails.categories.includes(DataCategory.SPANS)) {
+        retentions.spans = {
+          standard: values.spansStandard,
+          downsampled: values.spansDownsampled,
+        };
+      }
 
-  const [spansStandard, setSpansStandard] = useState<number | null>(
-    subscription.categories.spans?.retention?.standard ?? null
-  );
-  const [spansDownsampled, setSpansDownsampled] = useState<number | null>(
-    subscription.categories.spans?.retention?.downsampled ?? null
-  );
-
-  const onSubmit = async () => {
-    const retentions: Partial<
-      Record<DataCategory, {downsampled: number | null; standard: number | null}>
-    > = {};
-
-    if (subscription.planDetails.categories.includes(DataCategory.LOG_BYTE)) {
-      retentions.logBytes = {
-        standard: logBytesStandard,
-        downsampled: logBytesDownsampled,
+      const orgRetention = {
+        standard: values.orgStandard,
+        downsampled: null,
       };
-    }
 
-    if (subscription.planDetails.categories.includes(DataCategory.TRANSACTIONS)) {
-      retentions.transactions = {
-        standard: transactionsStandard,
-        downsampled: transactionsDownsampled,
-      };
-    }
-
-    if (subscription.planDetails.categories.includes(DataCategory.SPANS)) {
-      retentions.spans = {
-        standard: spansStandard,
-        downsampled: spansDownsampled,
-      };
-    }
-
-    const orgRetention = {
-      standard: orgStandard,
-      downsampled: null,
-    };
-
-    const data = {retentions, orgRetention};
-
-    try {
-      await api.requestPromise(
-        `/_admin/customers/${organization.slug}/retention-settings/`,
-        {
-          method: 'POST',
-          data,
-          includeAllArgs: true,
-        }
-      );
+      return fetchMutation({
+        url: getApiUrl('/_admin/customers/$organizationIdOrSlug/retention-settings/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
+        method: 'POST',
+        data: {retentions, orgRetention},
+      });
+    },
+    onSuccess: () => {
       addSuccessMessage('Retention settings updated successfully.');
       closeModal();
       onSuccess();
-    } catch (e) {
+    },
+    onError: e => {
       const err = e instanceof RequestError ? e : undefined;
       const detail = err?.responseJSON?.detail;
       const message =
@@ -161,81 +131,166 @@ function UpdateRetentionSettingsModal({
             ? detail.message
             : 'Failed to update retention settings.';
       addErrorMessage(message);
-    }
-  };
+    },
+  });
+
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {
+      orgStandard: subscription.orgRetention?.standard ?? null,
+      logBytesStandard: subscription.categories.logBytes?.retention?.standard ?? null,
+      logBytesDownsampled:
+        subscription.categories.logBytes?.retention?.downsampled ?? null,
+      transactionsStandard:
+        subscription.categories.transactions?.retention?.standard ?? null,
+      transactionsDownsampled:
+        subscription.categories.transactions?.retention?.downsampled ?? null,
+      spansStandard: subscription.categories.spans?.retention?.standard ?? null,
+      spansDownsampled: subscription.categories.spans?.retention?.downsampled ?? null,
+    },
+    validators: {onDynamic: retentionSchema},
+    onSubmit: ({value}) => mutation.mutateAsync(value).catch(() => {}),
+  });
 
   return (
-    <Fragment>
-      <Header closeButton>Update Retention Settings</Header>
+    <form.AppForm form={form}>
+      <Header closeButton>
+        <Heading as="h4">Update Retention Settings</Heading>
+      </Header>
       <Body>
-        <div>
-          <p>
+        <Stack gap="lg">
+          <Text>
             Update the retention settings for each data category. Retention must be a
             multiple of 30 days. Clearing a field defaults to the plan's retention value
             for the category.
-          </p>
-        </div>
-        <br />
-        <Form onSubmit={onSubmit} submitLabel="Update Settings" onCancel={closeModal}>
-          <RetentionField
-            name="orgStandard"
-            label="Org Retention"
-            value={orgStandard}
-            onChange={setOrgStandard}
-          />
+          </Text>
+          <form.AppField name="orgStandard">
+            {field => (
+              <field.Layout.Stack label="Org Retention">
+                <field.Select
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  options={getRetentionOptions(
+                    subscription.orgRetention?.standard ?? null
+                  )}
+                  placeholder="Plan default"
+                  clearable
+                />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
           {subscription.planDetails.categories.includes(DataCategory.LOG_BYTE) && (
             <Fragment>
-              <RetentionField
-                name="logBytesStandard"
-                label="Logs Standard"
-                value={logBytesStandard}
-                onChange={setLogBytesStandard}
-              />
-              <RetentionField
-                name="logBytesDownsampled"
-                label="Logs Downsampled"
-                value={logBytesDownsampled}
-                onChange={setLogBytesDownsampled}
-              />
+              <form.AppField name="logBytesStandard">
+                {field => (
+                  <field.Layout.Stack label="Logs Standard">
+                    <field.Select
+                      value={field.state.value}
+                      onChange={field.handleChange}
+                      options={getRetentionOptions(
+                        subscription.categories.logBytes?.retention?.standard ?? null
+                      )}
+                      placeholder="Plan default"
+                      clearable
+                    />
+                  </field.Layout.Stack>
+                )}
+              </form.AppField>
+              <form.AppField name="logBytesDownsampled">
+                {field => (
+                  <field.Layout.Stack label="Logs Downsampled">
+                    <field.Select
+                      value={field.state.value}
+                      onChange={field.handleChange}
+                      options={getRetentionOptions(
+                        subscription.categories.logBytes?.retention?.downsampled ?? null
+                      )}
+                      placeholder="Plan default"
+                      clearable
+                    />
+                  </field.Layout.Stack>
+                )}
+              </form.AppField>
             </Fragment>
           )}
 
           {subscription.planDetails.categories.includes(DataCategory.TRANSACTIONS) && (
             <Fragment>
-              <RetentionField
-                name="transactionsStandard"
-                label="Transactions Standard"
-                value={transactionsStandard}
-                onChange={setTransactionsStandard}
-              />
-              <RetentionField
-                name="transactionsDownsampled"
-                label="Transactions Downsampled"
-                value={transactionsDownsampled}
-                onChange={setTransactionsDownsampled}
-              />
+              <form.AppField name="transactionsStandard">
+                {field => (
+                  <field.Layout.Stack label="Transactions Standard">
+                    <field.Select
+                      value={field.state.value}
+                      onChange={field.handleChange}
+                      options={getRetentionOptions(
+                        subscription.categories.transactions?.retention?.standard ?? null
+                      )}
+                      placeholder="Plan default"
+                      clearable
+                    />
+                  </field.Layout.Stack>
+                )}
+              </form.AppField>
+              <form.AppField name="transactionsDownsampled">
+                {field => (
+                  <field.Layout.Stack label="Transactions Downsampled">
+                    <field.Select
+                      value={field.state.value}
+                      onChange={field.handleChange}
+                      options={getRetentionOptions(
+                        subscription.categories.transactions?.retention?.downsampled ??
+                          null
+                      )}
+                      placeholder="Plan default"
+                      clearable
+                    />
+                  </field.Layout.Stack>
+                )}
+              </form.AppField>
             </Fragment>
           )}
 
           {subscription.planDetails.categories.includes(DataCategory.SPANS) && (
             <Fragment>
-              <RetentionField
-                name="spansStandard"
-                label="Spans Standard"
-                value={spansStandard}
-                onChange={setSpansStandard}
-              />
-              <RetentionField
-                name="spansDownsampled"
-                label="Spans Downsampled"
-                value={spansDownsampled}
-                onChange={setSpansDownsampled}
-              />
+              <form.AppField name="spansStandard">
+                {field => (
+                  <field.Layout.Stack label="Spans Standard">
+                    <field.Select
+                      value={field.state.value}
+                      onChange={field.handleChange}
+                      options={getRetentionOptions(
+                        subscription.categories.spans?.retention?.standard ?? null
+                      )}
+                      placeholder="Plan default"
+                      clearable
+                    />
+                  </field.Layout.Stack>
+                )}
+              </form.AppField>
+              <form.AppField name="spansDownsampled">
+                {field => (
+                  <field.Layout.Stack label="Spans Downsampled">
+                    <field.Select
+                      value={field.state.value}
+                      onChange={field.handleChange}
+                      options={getRetentionOptions(
+                        subscription.categories.spans?.retention?.downsampled ?? null
+                      )}
+                      placeholder="Plan default"
+                      clearable
+                    />
+                  </field.Layout.Stack>
+                )}
+              </form.AppField>
             </Fragment>
           )}
-        </Form>
+        </Stack>
       </Body>
-    </Fragment>
+      <Footer>
+        <Button onClick={closeModal}>Cancel</Button>
+        <form.SubmitButton>Update Settings</form.SubmitButton>
+      </Footer>
+    </form.AppForm>
   );
 }
 
