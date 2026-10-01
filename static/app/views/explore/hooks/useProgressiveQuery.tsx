@@ -1,4 +1,4 @@
-import {useEffect, useEffectEvent} from 'react';
+import {useEffect, useEffectEvent, useRef} from 'react';
 
 import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import type {CrossEventQueryExtras} from 'sentry/views/explore/queryParams/crossEvent';
@@ -132,20 +132,27 @@ export function useProgressiveQuery<
     queryOptions?.onHighAccuracyError?.(highAccuracyRequest.result);
   });
 
+  // Outcomes are only reported for fetches observed here, so cached results
+  // read on remount don't count as successes or failures without a request.
+  const hasPendingHighAccuracyFetch = useRef(false);
+
   useEffect(() => {
     if (highAccuracyIsFetching) {
+      hasPendingHighAccuracyFetch.current = true;
       onHighAccuracyRequest();
     }
   }, [highAccuracyIsFetching]);
 
   useEffect(() => {
-    if (highAccuracyIsSuccess) {
+    if (highAccuracyIsSuccess && hasPendingHighAccuracyFetch.current) {
+      hasPendingHighAccuracyFetch.current = false;
       onHighAccuracySuccess();
     }
   }, [highAccuracyIsSuccess]);
 
   useEffect(() => {
-    if (highAccuracyIsError) {
+    if (highAccuracyIsError && hasPendingHighAccuracyFetch.current) {
+      hasPendingHighAccuracyFetch.current = false;
       onHighAccuracyError();
     }
   }, [highAccuracyIsError]);
