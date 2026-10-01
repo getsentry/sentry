@@ -18,6 +18,7 @@ describe('InvoiceDetails', () => {
   const {organization} = initializeOrg();
   const basicInvoice = InvoiceFixture(
     {
+      amountBilled: 8900,
       dateCreated: '2021-09-20T22:33:38.042Z',
       items: [
         {
@@ -92,8 +93,10 @@ describe('InvoiceDetails', () => {
     });
     await waitFor(() => expect(mockapi).toHaveBeenCalled());
 
-    expect(await screen.findByText('Sentry')).toBeInTheDocument();
-    expect(screen.getByText(/Subscription to Business/)).toBeInTheDocument();
+    expect(await screen.findByRole('cell', {name: 'Business Plan'})).toBeInTheDocument();
+    expect(screen.getByText('Receipt ID')).toBeInTheDocument();
+    expect(screen.getByText(basicInvoice.id)).toBeInTheDocument();
+    expect(screen.getByText('Paid in full')).toBeInTheDocument();
     expect(screen.getByText('Sep 21, 2021')).toBeInTheDocument();
     expect(screen.getByText('Oct 21, 2021')).toBeInTheDocument();
     expect(screen.getByText('Sep 20, 2021')).toBeInTheDocument();
@@ -155,9 +158,144 @@ describe('InvoiceDetails', () => {
     });
     await waitFor(() => expect(mockapi).toHaveBeenCalled());
 
-    expect(await screen.findByText('Sentry')).toBeInTheDocument();
-    expect(screen.getByText(/Subscription to Business/)).toBeInTheDocument();
-    expect(screen.getByText('$89.00 USD')).toBeInTheDocument();
+    expect(await screen.findByRole('cell', {name: 'Business Plan'})).toBeInTheDocument();
+    expect(screen.getByText('Credit applied')).toBeInTheDocument();
+    expect(screen.getByText('$84.00 USD')).toBeInTheDocument();
+  });
+
+  it('formats reserved quantities in the units customers buy', async () => {
+    const period = {periodStart: '2021-09-21', periodEnd: '2022-09-20'};
+    const reservedInvoice = InvoiceFixture(
+      {
+        items: [
+          {
+            type: 'reserved_errors',
+            description: '50,000 reserved errors',
+            amount: 0,
+            data: {quantity: 50_000},
+            ...period,
+          },
+          {
+            type: 'reserved_attachments',
+            description: '25 GB reserved attachments',
+            amount: 6500,
+            data: {quantity: 25_000_000_000},
+            ...period,
+          },
+          {
+            type: 'reserved_profile_duration_ui',
+            description: 'Reserved UI profile hours',
+            amount: 0,
+            data: {quantity: 360_000_000},
+            ...period,
+          },
+          {
+            type: 'reserved_profile_duration',
+            description: 'Reserved continuous profile hours',
+            amount: 0,
+            data: {quantity: 0},
+            ...period,
+          },
+        ],
+      },
+      organization
+    );
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/invoices/${reservedInvoice.id}/`,
+      method: 'GET',
+      body: reservedInvoice,
+    });
+    render(<InvoiceDetails />, {
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/invoices/${reservedInvoice.id}/`,
+        },
+        route: '/organizations/:orgId/invoices/:invoiceGuid/',
+      },
+    });
+
+    expect(
+      await screen.findByRole('row', {name: 'Reserved errors 50,000 $0.00'})
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('row', {name: 'Reserved attachments 25 GB $65.00'})
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('row', {name: 'Reserved UI profile hours 100 $0.00'})
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText('Reserved continuous profile hours')
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('columnheader', {name: 'Rate'})).not.toBeInTheDocument();
+  });
+
+  it('renders refunds and the net amount paid', async () => {
+    const refundedInvoice = InvoiceFixture(
+      {amountBilled: 6500, amountRefunded: 6500, isRefunded: true},
+      organization
+    );
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/invoices/${refundedInvoice.id}/`,
+      method: 'GET',
+      body: refundedInvoice,
+    });
+    render(<InvoiceDetails />, {
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/invoices/${refundedInvoice.id}/`,
+        },
+        route: '/organizations/:orgId/invoices/:invoiceGuid/',
+      },
+    });
+
+    expect(await screen.findByText('Refunded')).toBeInTheDocument();
+    expect(screen.queryByText('Paid in full')).not.toBeInTheDocument();
+    expect(screen.getByRole('row', {name: 'Refunds -$65.00'})).toBeInTheDocument();
+    expect(screen.getByRole('row', {name: 'Net paid $0.00'})).toBeInTheDocument();
+  });
+
+  it('renders partially refunded invoices', async () => {
+    const refundedInvoice = InvoiceFixture(
+      {amountBilled: 6500, amountRefunded: 1500, isRefunded: true},
+      organization
+    );
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/invoices/${refundedInvoice.id}/`,
+      method: 'GET',
+      body: refundedInvoice,
+    });
+    render(<InvoiceDetails />, {
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/invoices/${refundedInvoice.id}/`,
+        },
+        route: '/organizations/:orgId/invoices/:invoiceGuid/',
+      },
+    });
+
+    expect(await screen.findByText('Partially refunded')).toBeInTheDocument();
+    expect(screen.getByRole('row', {name: 'Net paid $50.00'})).toBeInTheDocument();
+  });
+
+  it('renders closed unpaid invoices as closed', async () => {
+    const closedInvoice = InvoiceFixture({isPaid: false, isClosed: true}, organization);
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/invoices/${closedInvoice.id}/`,
+      method: 'GET',
+      body: closedInvoice,
+    });
+    render(<InvoiceDetails />, {
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/invoices/${closedInvoice.id}/`,
+        },
+        route: '/organizations/:orgId/invoices/:invoiceGuid/',
+      },
+    });
+
+    expect(await screen.findByText('Closed')).toBeInTheDocument();
+    expect(screen.queryByText('Waiting for payment')).not.toBeInTheDocument();
+    expect(screen.queryByText('Pay Now')).not.toBeInTheDocument();
   });
 
   it('renders an error', async () => {
@@ -227,7 +365,7 @@ describe('InvoiceDetails', () => {
     await waitFor(() => expect(mockapiInvoice).toHaveBeenCalled());
 
     expect(await screen.findByText(/Receipt Details/)).toBeInTheDocument();
-    expect(await screen.findByText(/AWAITING PAYMENT/)).toBeInTheDocument();
+    expect(await screen.findByText('Waiting for payment')).toBeInTheDocument();
     expect(screen.queryByText(/Pay Now/)).not.toBeInTheDocument();
   });
 
@@ -252,7 +390,7 @@ describe('InvoiceDetails', () => {
     });
     await waitFor(() => expect(mockget).toHaveBeenCalled());
 
-    const input = await screen.findByPlaceholderText('you@example.com');
+    const input = await screen.findByRole('textbox', {name: 'Email address'});
     await userEvent.type(input, 'user@example.com');
     const button = screen.getByText('Email Receipt');
     await userEvent.click(button);
@@ -361,13 +499,38 @@ describe('InvoiceDetails', () => {
       expect(
         await screen.findByText(`${billingDetails.companyName}`)
       ).toBeInTheDocument();
-      expect(screen.getByText('Details:')).toBeInTheDocument();
-      expect(screen.getByText(`${billingDetails.displayAddress}`)).toBeInTheDocument();
+      expect(screen.getByText('Billed to')).toBeInTheDocument();
+      expect(screen.getByText('123 Street')).toBeInTheDocument();
+      expect(screen.getByText('San Francisco, CA 12345')).toBeInTheDocument();
+      expect(screen.getByText('United States')).toBeInTheDocument();
+      expect(
+        screen.queryByText(`${billingDetails.displayAddress}`)
+      ).not.toBeInTheDocument();
       expect(screen.getByText(`${billingDetails.billingEmail}`)).toBeInTheDocument();
       expect(screen.queryByText('Tax Number:')).not.toBeInTheDocument();
       expect(screen.queryByText(`${billingDetails.taxNumber}`)).not.toBeInTheDocument();
       expect(screen.queryByText('Country Id: 1234')).not.toBeInTheDocument();
       expect(screen.queryByText('Regional Tax Id: 5678')).not.toBeInTheDocument();
+    });
+
+    it('renders the customer tax number', async () => {
+      const taxInvoice = InvoiceFixture({taxNumber: '123456789'}, organization);
+      MockApiClient.addMockResponse({
+        url: `/customers/${organization.slug}/invoices/${taxInvoice.id}/`,
+        method: 'GET',
+        body: taxInvoice,
+      });
+      render(<InvoiceDetails />, {
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/invoices/${taxInvoice.id}/`,
+          },
+          route: '/organizations/:orgId/invoices/:invoiceGuid/',
+        },
+      });
+
+      // billingDetails is in the US, which has no special tax label
+      expect(await screen.findByText('Tax Number: 123456789')).toBeInTheDocument();
     });
 
     it('renders sentry tax ids', async () => {

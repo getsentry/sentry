@@ -4,14 +4,12 @@ import styled from '@emotion/styled';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
 import {Flex} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
 
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {DateTime} from 'sentry/components/dateTime';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -97,11 +95,19 @@ export function InvoiceDetailsActions({organization, invoice, reloadInvoice}: Pr
       align="center"
       justify="between"
       className="no-print"
+      gap="lg"
+      direction={{xs: 'column', sm: 'row'}}
     >
       <EmailForm method="post" action="" onSubmit={handleSend}>
         {invoice.isPaid && (
           <Fragment>
-            <Input type="email" name="email" placeholder="you@example.com" size="sm" />
+            <Input
+              type="email"
+              name="email"
+              aria-label={t('Email address')}
+              placeholder="you@example.com"
+              size="sm"
+            />
             <Button type="submit" size="sm" variant="secondary">
               {t('Email Receipt')}
             </Button>
@@ -121,9 +127,6 @@ export function InvoiceDetailsActions({organization, invoice, reloadInvoice}: Pr
           {t('Save PDF')}
         </LinkButton>
       </EmailForm>
-      <Text size="sm" variant="secondary">
-        {t('Generated')} <DateTime date={invoice.dateCreated} />.
-      </Text>
     </Flex>
   );
 }

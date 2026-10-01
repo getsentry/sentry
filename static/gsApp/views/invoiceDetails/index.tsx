@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {keepPreviousData, useQuery} from '@tanstack/react-query';
+import snakeCase from 'lodash/snakeCase';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Flex, Stack, Grid} from '@sentry/scraps/layout';
@@ -13,8 +14,10 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {LogoSentry} from 'sentry/components/logoSentry';
 import {PanelBody} from 'sentry/components/panels/panelBody';
+import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {IconCheckmark, IconTimer} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import type {DataCategory} from 'sentry/types/core';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -30,6 +33,8 @@ import type {
   InvoiceItem,
   InvoiceItemType,
 } from 'getsentry/types';
+import {formatUsageWithUnits} from 'getsentry/utils/billing';
+import {getCountryByCode} from 'getsentry/utils/ISO3166codes';
 import {getTaxFieldInfo} from 'getsentry/utils/salesTax';
 import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
 import {SubscriptionPageContainer} from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
@@ -137,13 +142,13 @@ function InvoiceDetails() {
           />
         }
       />
-      <Flex justify="center" padding="3xl">
+      <Flex justify="center" padding="xl 0">
         {isInvoiceLoading || isBillingDetailsLoading ? (
           <PanelBody withPadding>
             <LoadingIndicator />
           </PanelBody>
         ) : (
-          <Stack maxWidth="720px" border="primary" radius="xl">
+          <Stack maxWidth="720px" border="primary" radius="xl" background="primary">
             <Stack padding="2xl" gap="2xl">
               <Flex justify="between">
                 <Stack gap="lg" align="start">
@@ -166,18 +171,15 @@ function InvoiceDetails() {
                   </Stack>
                 </Stack>
                 <Stack align="end" gap="sm">
-                  <Text size="sm" variant="muted" monospace>
-                    {invoice.id}
-                  </Text>
-                  {invoice.isPaid ? (
-                    <Tag variant="success" icon={<IconCheckmark />}>
-                      {t('Paid in full')}
-                    </Tag>
-                  ) : (
-                    <Tag variant="warning" icon={<IconTimer />}>
-                      {t('Waiting for payment')}
-                    </Tag>
-                  )}
+                  <Flex gap="xs" align="baseline">
+                    <Text size="sm" variant="muted">
+                      {t('Receipt ID')}
+                    </Text>
+                    <Text size="sm" variant="muted" monospace>
+                      {invoice.id}
+                    </Text>
+                  </Flex>
+                  <InvoiceStatusTag invoice={invoice} />
                 </Stack>
               </Flex>
               <Stack>
@@ -185,7 +187,7 @@ function InvoiceDetails() {
                   {displayPriceWithCents({cents: invoice.amountBilled ?? 0})} USD
                 </Heading>
                 <Text size="md" variant="secondary">
-                  {t('Charged')} <DateTime date={invoice.dateCreated} dateOnly year />.
+                  {t('Issued')} <DateTime date={invoice.dateCreated} dateOnly year />
                 </Text>
               </Stack>
             </Stack>
@@ -229,30 +231,100 @@ function InvoiceDetails() {
   );
 }
 
+function InvoiceStatusTag({invoice}: {invoice: Invoice}) {
+  if (invoice.isRefunded) {
+    return (
+      <Tag variant="muted">
+        {invoice.amountRefunded >= (invoice.amountBilled ?? 0)
+          ? t('Refunded')
+          : t('Partially refunded')}
+      </Tag>
+    );
+  }
+  if (invoice.isPaid) {
+    return (
+      <Tag variant="success" icon={<IconCheckmark />}>
+        {t('Paid in full')}
+      </Tag>
+    );
+  }
+  if (invoice.isClosed) {
+    return <Tag variant="muted">{t('Closed')}</Tag>;
+  }
+  return (
+    <Tag variant="warning" icon={<IconTimer />}>
+      {t('Waiting for payment')}
+    </Tag>
+  );
+}
+
 type AttributeProps = {
   invoice: Invoice;
   billingDetails?: BillingDetails;
 };
 
+type AddressSource = Pick<
+  BillingDetails,
+  | 'addressLine1'
+  | 'addressLine2'
+  | 'city'
+  | 'region'
+  | 'postalCode'
+  | 'countryCode'
+  | 'displayAddress'
+>;
+
+// Older records only carry the flattened displayAddress, so fall back to it
+// when the structured fields are missing.
+function addressLines(address: AddressSource): string[] {
+  if (!address.addressLine1 && !address.city) {
+    return address.displayAddress ? [address.displayAddress] : [];
+  }
+  const cityLine = [
+    [address.city, address.region].filter(Boolean).join(', '),
+    address.postalCode,
+  ]
+    .filter(Boolean)
+    .join(' ');
+  return [
+    address.addressLine1,
+    address.addressLine2,
+    cityLine,
+    getCountryByCode(address.countryCode)?.name,
+  ].filter((line): line is string => !!line);
+}
+
 function InvoiceAttributes({invoice, billingDetails}: AttributeProps) {
-  const contactInfo = invoice?.displayAddress || billingDetails?.displayAddress;
+  // The invoice keeps the address it was issued to; billing details may have
+  // changed since, so only use them when the invoice has none.
+  const invoiceAddress = addressLines(invoice);
+  const contactLines =
+    invoiceAddress.length > 0
+      ? invoiceAddress
+      : billingDetails
+        ? addressLines(billingDetails)
+        : [];
   const companyName = billingDetails?.companyName;
   const billingEmail = billingDetails?.billingEmail;
   const taxNumber = invoice?.taxNumber;
   const countryCode = invoice?.countryCode || billingDetails?.countryCode;
-  const taxNumberName = `${getTaxFieldInfo(countryCode).label}:`;
+  const taxNumberName = getTaxFieldInfo(countryCode).label;
 
   return (
     <Grid columns="1fr 1fr" gap="3xl" padding="2xl" borderTop="primary">
-      {(companyName || contactInfo || taxNumber) && (
+      {(companyName || contactLines.length > 0 || taxNumber) && (
         <Stack gap="lg">
           <Text bold>{t('Billed to')}</Text>
           <Stack gap="sm">
             {!!companyName && <Text>{companyName}</Text>}
-            {!!contactInfo && (
-              <Text size="sm" variant="secondary">
-                {contactInfo}
-              </Text>
+            {contactLines.length > 0 && (
+              <Stack>
+                {contactLines.map(line => (
+                  <Text key={line} size="sm" variant="secondary">
+                    {line}
+                  </Text>
+                ))}
+              </Stack>
             )}
             {!!taxNumber && (
               <Text size="sm" variant="secondary">
@@ -300,6 +372,11 @@ function groupItems(items: InvoiceItem[]): Record<ItemBucket, InvoiceItem[]> {
     adjustment: [],
   };
   for (const item of items) {
+    // Categories the plan doesn't include still come through as $0 lines with
+    // a zero quantity; they add rows without adding information.
+    if (item.amount === 0 && parseQuantity(item.data?.quantity) === 0) {
+      continue;
+    }
     groups[bucketFor(item.type)].push(item);
   }
   return groups;
@@ -335,7 +412,7 @@ function InvoiceDetailsContents({billingDetails, invoice}: ContentsProps) {
           description={t('Recurring charges for your plan and reserved volume.')}
           period={sectionPeriod(groups.subscription)}
           items={groups.subscription}
-          showQuantityAndRate
+          showQuantity
         />
       )}
 
@@ -350,7 +427,7 @@ function InvoiceDetailsContents({billingDetails, invoice}: ContentsProps) {
         />
       )}
 
-      <Stack borderTop="primary" background="secondary" padding="2xl 2xl 0 2xl">
+      <Stack borderTop="primary" padding="2xl 2xl 0 2xl">
         <SubtotalItems>
           <tbody>
             <tr>
@@ -377,7 +454,7 @@ function InvoiceDetailsContents({billingDetails, invoice}: ContentsProps) {
           </tbody>
         </SubtotalItems>
       </Stack>
-      <Stack background="secondary" padding="0 2xl">
+      <Stack padding="0 2xl">
         <InvoiceTotals invoice={invoice} />
       </Stack>
     </Fragment>
@@ -389,13 +466,35 @@ type SectionProps = {
   items: InvoiceItem[];
   period: {end: string; start: string} | null;
   title: string;
-  showQuantityAndRate?: boolean;
+  showQuantity?: boolean;
 };
 
 function parseQuantity(raw: unknown): number | null {
   if (raw === null || raw === undefined) return null;
   const n = Number(raw);
   return Number.isFinite(n) ? n : null;
+}
+
+// Item types are `reserved_` or `ondemand_` followed by the category's plural
+// in snake_case, e.g. `reserved_profile_duration_ui` -> `profileDurationUI`.
+function itemCategory(type: InvoiceItemType): DataCategory | null {
+  const key = type.replace(/^(reserved|ondemand)_/, '');
+  if (key === type) {
+    return null;
+  }
+  const info = Object.values(DATA_CATEGORY_INFO).find(c => snakeCase(c.plural) === key);
+  return info ? info.plural : null;
+}
+
+// Quantities arrive in the category's base unit (bytes, milliseconds), so
+// convert them to the unit customers buy (GB, hours).
+function formatQuantity(item: InvoiceItem): string {
+  const quantity = parseQuantity(item.data?.quantity);
+  if (quantity === null) {
+    return '—';
+  }
+  const category = itemCategory(item.type);
+  return category ? formatUsageWithUnits(quantity, category) : quantity.toLocaleString();
 }
 
 // Strip a leading number (and optional unit like "GB") from descriptions like
@@ -411,7 +510,7 @@ function InvoiceItemSection({
   description,
   period,
   items,
-  showQuantityAndRate,
+  showQuantity,
 }: SectionProps) {
   return (
     <Stack borderTop="primary">
@@ -438,17 +537,10 @@ function InvoiceItemSection({
                   {t('Item')}
                 </Text>
               </th>
-              {showQuantityAndRate && (
+              {showQuantity && (
                 <th>
                   <Text size="sm" variant="secondary" uppercase bold>
                     {t('Qty')}
-                  </Text>
-                </th>
-              )}
-              {showQuantityAndRate && (
-                <th>
-                  <Text size="sm" variant="secondary" uppercase bold>
-                    {t('Rate')}
                   </Text>
                 </th>
               )}
@@ -460,43 +552,21 @@ function InvoiceItemSection({
             </tr>
           </thead>
           <tbody>
-            {items.map((item, i) => {
-              const quantity = parseQuantity(item.data?.quantity);
-              return (
-                <tr key={i}>
-                  <td>
-                    {item.type === 'subscription'
-                      ? tct('[description] Plan', {
-                          description: item.description.replace(
-                            /^Subscription to\s+/i,
-                            ''
-                          ),
-                        })
-                      : showQuantityAndRate
-                        ? stripLeadingQuantity(item.description)
-                        : item.description}
-                  </td>
-                  {showQuantityAndRate && (
-                    <td>{quantity === null ? '—' : quantity.toLocaleString()}</td>
-                  )}
-                  {showQuantityAndRate && (
-                    <td>
-                      <Text variant="secondary">
-                        {item.amount === 0 && quantity !== null && quantity > 0
-                          ? t('Included')
-                          : quantity !== null && quantity > 0
-                            ? displayPriceWithCents({
-                                cents: item.amount / quantity,
-                                maximumFractionDigits: 5,
-                              })
-                            : '—'}
-                      </Text>
-                    </td>
-                  )}
-                  <td>{displayPriceWithCents({cents: item.amount})}</td>
-                </tr>
-              );
-            })}
+            {items.map((item, i) => (
+              <tr key={i}>
+                <td>
+                  {item.type === 'subscription'
+                    ? tct('[description] Plan', {
+                        description: item.description.replace(/^Subscription to\s+/i, ''),
+                      })
+                    : showQuantity
+                      ? stripLeadingQuantity(item.description)
+                      : item.description}
+                </td>
+                {showQuantity && <td>{formatQuantity(item)}</td>}
+                <td>{displayPriceWithCents({cents: item.amount})}</td>
+              </tr>
+            ))}
           </tbody>
         </InvoiceItems>
       </Stack>
@@ -510,7 +580,7 @@ function InvoiceTotals({invoice}: {invoice: Invoice}) {
   // on the right underneath the totals and (if included) refunds
   return (
     <Stack borderTop="primary">
-      <InvoiceItems data-test-id="invoice-items">
+      <TotalItems data-test-id="invoice-items">
         <tbody>
           <tr>
             <th>
@@ -525,16 +595,30 @@ function InvoiceTotals({invoice}: {invoice: Invoice}) {
             </td>
           </tr>
           {invoice.isRefunded && (
-            <tr>
-              <td>
-                <Text bold>{t('Refunds')}</Text>
-              </td>
-              <td>
-                <Text variant="success">
-                  -{displayPriceWithCents({cents: invoice.amountRefunded})}
-                </Text>
-              </td>
-            </tr>
+            <Fragment>
+              <tr>
+                <td>
+                  <Text bold>{t('Refunds')}</Text>
+                </td>
+                <td>
+                  <Text variant="success">
+                    -{displayPriceWithCents({cents: invoice.amountRefunded})}
+                  </Text>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <Text bold>{t('Net paid')}</Text>
+                </td>
+                <td>
+                  <Text bold>
+                    {displayPriceWithCents({
+                      cents: (invoice.amountBilled ?? 0) - invoice.amountRefunded,
+                    })}
+                  </Text>
+                </td>
+              </tr>
+            </Fragment>
           )}
           {invoice.isReverseCharge && (
             <tr>
@@ -543,7 +627,7 @@ function InvoiceTotals({invoice}: {invoice: Invoice}) {
             </tr>
           )}
         </tbody>
-      </InvoiceItems>
+      </TotalItems>
     </Stack>
   );
 }
@@ -583,6 +667,13 @@ const SubtotalItems = styled(InvoiceItems)`
   td,
   th {
     padding: ${p => p.theme.space.sm} 0;
+    border-top: none;
+  }
+`;
+
+// The wrapping Stack already draws the divider above the total row.
+const TotalItems = styled(InvoiceItems)`
+  tbody tr:first-child td {
     border-top: none;
   }
 `;
