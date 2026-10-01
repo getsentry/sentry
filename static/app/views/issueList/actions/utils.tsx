@@ -214,7 +214,7 @@ export function invalidateIssueQueries({
   organizationSlug: string;
   queryClient: QueryClient;
 }) {
-  if (itemIds?.length) {
+  if (itemIds !== undefined) {
     for (const itemId of itemIds) {
       queryClient.invalidateQueries({
         queryKey: [`/organizations/${organizationSlug}/issues/${itemId}/`],
