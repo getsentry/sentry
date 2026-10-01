@@ -8,6 +8,7 @@ import {useSentryAppComponentsData} from 'sentry/stores/useSentryAppComponentsDa
 import type {GroupActivityReprocess, GroupReprocessing} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
+import {isRetryableRequestError} from 'sentry/utils/queryClient';
 import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
 import {isNotFoundError} from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -116,9 +117,14 @@ function GroupEventDetails() {
     return <LoadingError onRetry={refetchGroup} />;
   }
 
+  const showEventError =
+    isEventError &&
+    !isNotFoundError(eventError) &&
+    (!event || !isRetryableRequestError(eventError));
+
   const content = isLoadingEvent ? (
     <GroupEventDetailsLoading />
-  ) : isEventError && !isNotFoundError(eventError) ? (
+  ) : showEventError ? (
     <LoadingError
       message={getRequestErrorUserMessage(eventError)}
       onRetry={refetchEvent}
@@ -133,7 +139,7 @@ function GroupEventDetails() {
     <AnalyticsArea name="issue_details">
       <VisuallyCompleteWithData
         id="IssueDetails-EventBody"
-        hasData={!isLoadingEvent && !isEventError && defined(eventWithMeta)}
+        hasData={!isLoadingEvent && !showEventError && defined(eventWithMeta)}
         isLoading={isLoadingEvent}
       >
         <div data-test-id="group-event-details">

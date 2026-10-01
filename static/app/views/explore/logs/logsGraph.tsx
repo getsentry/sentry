@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
@@ -7,6 +7,10 @@ import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import Feature from 'sentry/components/acl/feature';
+import {DroppedDataLayerControl} from 'sentry/components/droppedData/droppedDataLayerControl';
+import {useDroppedData} from 'sentry/components/droppedData/useDroppedData';
+import {useDroppedDataDrawer} from 'sentry/components/droppedData/useDroppedDataDrawer';
+import {hasDroppedData} from 'sentry/components/droppedData/utils';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {IconClock, IconContract, IconEllipsis, IconExpand, IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -139,6 +143,14 @@ function Graph({
   const groupBys = useQueryParamsGroupBys();
 
   const [interval, setInterval, intervalOptions] = useChartInterval();
+  const {droppedAnnotations, acceptedAnnotations} = useDroppedData({
+    dataset: DiscoverDatasets.OURLOGS,
+  });
+  const [isDroppedDataLayerOn, setIsDroppedDataLayerOn] = useState(true);
+  const openDroppedDataDrawer = useDroppedDataDrawer(DiscoverDatasets.OURLOGS);
+  const canShowDroppedData = hasDroppedData(droppedAnnotations, acceptedAnnotations);
+  const showDroppedDataBand =
+    canShowDroppedData && isDroppedDataLayerOn && !tableIsEmpty && !tableIsPending;
 
   const chartInfo: ChartInfo = useMemo(() => {
     // If the table is empty or pending, we want to withhold the chart data.
@@ -210,6 +222,12 @@ function Graph({
 
   const Actions = visualize.visible ? (
     <Fragment>
+      {canShowDroppedData ? (
+        <DroppedDataLayerControl
+          showDroppedData={isDroppedDataLayerOn}
+          onChange={setIsDroppedDataLayerOn}
+        />
+      ) : null}
       <CompactSelect
         trigger={triggerProps => (
           <OverlayTrigger.Button
@@ -273,7 +291,19 @@ function Graph({
       Actions={Actions}
       Visualization={
         visualize.visible && (
-          <ChartVisualization key={chartRemountKey} chartInfo={chartInfo} />
+          <ChartVisualization
+            key={chartRemountKey}
+            chartInfo={chartInfo}
+            droppedData={
+              showDroppedDataBand
+                ? {
+                    droppedAnnotations,
+                    acceptedAnnotations,
+                    onClick: openDroppedDataDrawer,
+                  }
+                : undefined
+            }
+          />
         )
       }
       Footer={
