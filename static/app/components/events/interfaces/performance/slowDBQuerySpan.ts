@@ -1,3 +1,4 @@
+import {getSpanDuration} from 'sentry/components/events/interfaces/performance/spanMetrics';
 import {
   getSpanCategory,
   getSpanInfoFromTransactionEvent,
@@ -24,7 +25,7 @@ function getCodeLocation(attributes: Parameters<typeof getAttributeValue>[0]) {
   return {
     codeFilepath: getAttributeValue(attributes, 'code.file.path', 'string'),
     codeFunction: getAttributeValue(attributes, 'code.function', 'string'),
-    codeLineNumber: typeof codeLineNumber === 'number' ? codeLineNumber : undefined,
+    codeLineNumber: codeLineNumber === undefined ? undefined : Number(codeLineNumber),
   };
 }
 
@@ -84,17 +85,12 @@ export function slowDBQuerySpanFromEvent(
     return undefined;
   }
 
-  const durationMs =
-    span.start_timestamp !== undefined && span.timestamp !== undefined
-      ? (span.timestamp - span.start_timestamp) * 1000
-      : undefined;
-
   return {
     ...getCodeLocation(span.data ?? {}),
     description: span.description,
     op: span.op,
     group: getSpanSentryGroupValue(span),
     category: getSpanCategory(span),
-    durationMs: durationMs !== undefined && durationMs >= 0 ? durationMs : undefined,
+    durationMs: getSpanDuration(span),
   };
 }

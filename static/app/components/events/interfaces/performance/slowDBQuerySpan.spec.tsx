@@ -301,6 +301,26 @@ describe('Slow-query evidence from the spans dataset', () => {
     expect(request).not.toHaveBeenCalled();
   });
 
+  it('preserves recorded duration impact for a trace-context span with the flag off', () => {
+    renderEvidence(
+      occurrenceEvent({
+        contexts: {
+          trace: {
+            trace_id: traceId,
+            span_id: spanId,
+            op: 'db',
+            description: 'SELECT id FROM recorded_books',
+          },
+        },
+      }),
+      []
+    );
+
+    expect(
+      screen.getByTestId('span-evidence-key-value-list.duration-impact')
+    ).toHaveTextContent('0% (0ms/1s)');
+  });
+
   it('uses recorded evidence if trace references are missing', () => {
     const request = MockApiClient.addMockResponse({
       url: detailsUrl,
