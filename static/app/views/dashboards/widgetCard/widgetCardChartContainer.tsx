@@ -28,7 +28,6 @@ import type {
   HeatMapSeries,
   TabularColumn,
 } from 'sentry/views/dashboards/widgets/common/types';
-import {WidgetNoDataPanel} from 'sentry/views/dashboards/widgets/common/widgetNoDataPanel';
 import {HEATMAP_RESIZE_DEBOUNCE_MS} from 'sentry/views/dashboards/widgets/heatMapWidget/settings';
 import {calculateHeatMapBucketDimensions} from 'sentry/views/dashboards/widgets/heatMapWidget/utils/calculateHeatMapBucketDimensions';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
@@ -179,12 +178,6 @@ function WidgetCardDataLoaderView({
               heatmapResults,
               widget.displayType
             );
-        const isEmpty =
-          !loading && !errorMessage && errorOrEmptyMessage === t('No data found');
-
-        if (isEmpty && widget.showNoDataPanel) {
-          return <WidgetNoDataPanel />;
-        }
 
         if (errorOrEmptyMessage) {
           if (

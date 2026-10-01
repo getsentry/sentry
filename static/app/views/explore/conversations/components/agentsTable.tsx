@@ -2,6 +2,7 @@ import {Stack} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
 import {t} from 'sentry/locale';
+import {WidgetNoDataPanel} from 'sentry/views/dashboards/widgets/common/widgetNoDataPanel';
 import {ConversationsTable} from 'sentry/views/explore/conversations/components/conversationsTable';
 import type {useConversations} from 'sentry/views/explore/conversations/hooks/useConversations';
 import {ConversationOnboarding} from 'sentry/views/explore/conversations/onboarding';
@@ -101,6 +102,7 @@ function AgentsSpansTableContent() {
   return (
     <SpansTable
       booleanTags={booleanTags}
+      emptyMessage={<WidgetNoDataPanel />}
       numberTags={numberTags}
       spansTableResult={spansTableResult}
       stringTags={stringTags}

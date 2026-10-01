@@ -34,6 +34,7 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
+import {WidgetNoDataPanel} from 'sentry/views/dashboards/widgets/common/widgetNoDataPanel';
 import {useConversationDirectHitRedirect} from 'sentry/views/explore/conversations/hooks/useConversationDirectHitRedirect';
 import {
   CONVERSATION_FIELDS,
@@ -355,6 +356,7 @@ export function ConversationsTable({conversations}: ConversationsTableProps) {
           isLoading={isFetching}
           error={error}
           data={data}
+          emptyMessage={<WidgetNoDataPanel />}
           columnOrder={displayedColumns}
           stickyHeader
           // GridEditable's Panel body has a default bottom margin; drop it so

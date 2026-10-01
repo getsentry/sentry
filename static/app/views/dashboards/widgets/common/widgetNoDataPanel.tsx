@@ -7,7 +7,6 @@ export function WidgetNoDataPanel() {
     <EmptyState
       title={t('No data to plot.')}
       description={t('Try adjusting the filters.')}
-      textAlign="center"
     />
   );
 }

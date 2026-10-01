@@ -9,7 +9,6 @@ interface EmptyStateProps extends Omit<
   action?: React.ReactNode;
   description?: React.ReactNode;
   illustration?: React.ReactNode;
-  textAlign?: TextProps<'p'>['align'];
 }
 
 export function EmptyState({
@@ -17,14 +16,10 @@ export function EmptyState({
   description,
   illustration,
   action,
-  textAlign: textAlignProp,
   ...props
 }: EmptyStateProps) {
   const switchOn = 'md';
-  const textAlign: TextProps<'p'>['align'] = textAlignProp ?? {
-    zero: 'center',
-    [switchOn]: 'left',
-  };
+  const textAlign: TextProps<'p'>['align'] = {zero: 'center', [switchOn]: 'left'};
 
   return (
     <Flex containerType="inline-size" width="100%" flexGrow={1} minWidth={0}>
