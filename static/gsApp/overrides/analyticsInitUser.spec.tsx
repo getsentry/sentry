@@ -37,11 +37,34 @@ describe('analyticsInitUser', () => {
     expect(_identifyInstance.set).toHaveBeenCalledWith('user_id', user.id);
     expect(_identifyInstance.set).toHaveBeenCalledWith('isInternalUser', false);
   });
-  it('initializes Amplitude without identifying an anonymous user', () => {
+  it('does not initialize Amplitude for an anonymous user', () => {
     analyticsInitUser(null);
 
-    expect(Amplitude.init).toHaveBeenCalledTimes(1);
+    expect(Amplitude.init).not.toHaveBeenCalled();
     expect(Amplitude.identify).not.toHaveBeenCalled();
+  });
+  it('does not send marketing events for an anonymous user', () => {
+    const events = {event_name: 'Sign Up', event_label: 'Google'};
+    setWindowLocation(
+      `http://localhost/?${qs.stringify({frontend_events: JSON.stringify(events)})}`
+    );
+    analyticsInitUser(null);
+
+    expect(Amplitude.init).not.toHaveBeenCalled();
+    expect(trackMarketingEvent).not.toHaveBeenCalled();
+  });
+  it('still stores previous_referrer for an anonymous user', () => {
+    setWindowLocation('http:/localhost/?referrer=something');
+    analyticsInitUser(null);
+
+    expect(sessionStorageWrapper.getItem('previous_referrer')).toBe('something');
+    expect(Amplitude.init).not.toHaveBeenCalled();
+  });
+  it('initializes Amplitude for an authenticated user', () => {
+    analyticsInitUser(user);
+
+    expect(Amplitude.init).toHaveBeenCalledTimes(1);
+    expect(Amplitude.init).toHaveBeenCalledWith('foo', undefined, expect.any(Object));
   });
   it('calls user properties and sets isInternalUser with organization', () => {
     const internalUser = UserFixture({});

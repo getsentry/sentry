@@ -38,7 +38,7 @@ function identifyAmplitudeUser(user: User) {
 }
 
 /**
- * Initializes browser analytics and identifies the authenticated user when available.
+ * Initializes browser analytics and identifies the authenticated user.
  * It also sends marketing events and stores the previous referrer.
  */
 export function analyticsInitUser(user: User | null) {
@@ -50,6 +50,12 @@ export function analyticsInitUser(user: User | null) {
   }
   // quit early if analytics is disabled
   if (!ConfigStore.get('enableAnalytics')) {
+    return;
+  }
+
+  // The Amplitude SDK writes persistent tracking cookies on init. These
+  // are not essential cookies, so they must never be set on pre-auth pages.
+  if (!user) {
     return;
   }
 
@@ -71,9 +77,7 @@ export function analyticsInitUser(user: User | null) {
     },
   });
 
-  if (user) {
-    identifyAmplitudeUser(user);
-  }
+  identifyAmplitudeUser(user);
 
   // the backend can send any arbitrary marketing events
   if (frontend_events && typeof frontend_events === 'string') {
