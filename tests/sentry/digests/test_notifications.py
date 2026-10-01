@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import uuid
+from dataclasses import replace
 from functools import cached_property
 
 from sentry.digests.notifications import (
@@ -86,13 +87,19 @@ class GroupRecordsTestCase(TestCase):
         ]
         group = events[0].group
         assert group is not None
+        equivalent_rule = replace(self.rule)
+        assert equivalent_rule is not self.rule
         records = [
             RecordWithRuleObjects(
                 event.event_id,
-                NotificationWithRuleObjects(event, [self.rule], self.notification_uuid),
+                NotificationWithRuleObjects(
+                    event,
+                    [equivalent_rule if index == 1 else self.rule],
+                    self.notification_uuid,
+                ),
                 event.datetime.timestamp(),
             )
-            for event in events
+            for index, event in enumerate(events)
         ]
         ret = _group_records(records, {group.id: group}, {self.rule.id: self.rule})
         assert ret == {self.rule: {group: records}}

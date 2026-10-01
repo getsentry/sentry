@@ -150,7 +150,22 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
         other_rule = self.handler.create_rule_instance_from_action(
             self.action, self.detector, self.event_data, workflow_id=self.workflow.id
         )
-        assert len({rule: "first", other_rule: "second"}) == 2
+        assert rule.identifier == f"workflow:{self.workflow.id}"
+        assert rule == other_rule
+        assert hash(rule) == hash(other_rule)
+        assert {rule: "first", other_rule: "second"} == {rule: "second"}
+
+        same_numeric_legacy_rule = NotificationRule(
+            id=self.workflow.id,
+            label="Legacy rule",
+            data={"actions": [{"id": "test-action"}]},
+            project=self.project,
+            environment_id=None,
+            workflow_id=None,
+            legacy_rule_id=self.workflow.id,
+        )
+        assert same_numeric_legacy_rule.identifier == f"legacy:{self.workflow.id}"
+        assert same_numeric_legacy_rule != rule
 
     def test_create_rule_instance_from_action_with_workflow_only(self) -> None:
         """Test that create_rule_instance_from_action creates a notification rule."""

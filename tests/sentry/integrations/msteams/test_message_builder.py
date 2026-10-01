@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from dataclasses import replace
 from typing import TypeGuard
 
 import orjson
@@ -426,13 +427,14 @@ class MSTeamsMessageBuilderTest(TestCase):
         assert card_json[0] == "{" and card_json[-1] == "}"
 
     def test_issue_action_payload_includes_rule_and_workflow_ids(self) -> None:
-        self.rules[0].legacy_rule_id = self.rules[0].id
-        self.rules[0].workflow_id = 123
+        rule = replace(
+            self.rules[0], legacy_rule_id=self.rules[0].id, workflow_id=123
+        )
 
         payload = MSTeamsIssueMessageBuilder(
             group=self.group1,
             event=self.event1,
-            rules=[self.rules[0]],
+            rules=[rule],
             integration=self.integration,
         ).generate_action_payload(ACTION_TYPE.RESOLVE)["payload"]
 
@@ -446,7 +448,7 @@ class MSTeamsMessageBuilderTest(TestCase):
 
         assert 3 == len(issue_card["body"])
 
-    def test_action_payload_uses_only_legacy_rule_ids(self) -> None:
+    def test_action_payload_uses_explicit_rule_and_workflow_ids(self) -> None:
         legacy_rule = self.rules[0]
         rules = [
             NotificationRule(
@@ -478,6 +480,7 @@ class MSTeamsMessageBuilderTest(TestCase):
         payload = builder.generate_action_payload(ACTION_TYPE.RESOLVE)
 
         assert payload["payload"]["rules"] == [legacy_rule.id]
+        assert payload["payload"]["workflows"] == [123]
 
     def test_issue_with_only_one_rule(self) -> None:
         one_rule = self.rules[:1]

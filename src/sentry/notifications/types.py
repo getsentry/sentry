@@ -16,7 +16,7 @@ class NotificationRuleData(TypedDict):
     actions: list[dict[str, Any]]
 
 
-@dataclass(eq=False)
+@dataclass(eq=False, frozen=True)
 class NotificationRule:
     """Rule-like notification context for the legacy action registry.
 
@@ -87,6 +87,21 @@ class NotificationRule:
             raise ValueError("Workflow ID cannot be the test notification ID")
         elif self.workflow_id is None and self.legacy_rule_id is None:
             raise ValueError("NotificationRule requires a workflow or legacy rule ID")
+
+    @property
+    def identifier(self) -> str:
+        if self.workflow_id is not None:
+            return f"workflow:{self.workflow_id}"
+        assert self.legacy_rule_id is not None
+        return f"legacy:{self.legacy_rule_id}"
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, NotificationRule):
+            return NotImplemented
+        return self.identifier == other.identifier
+
+    def __hash__(self) -> int:
+        return hash(self.identifier)
 
     @property
     def is_test_notification(self) -> bool:
