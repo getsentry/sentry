@@ -14,7 +14,6 @@ from sentry.tasks.store import (
     save_event_transaction,
     should_process,
 )
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.viewer_context import ActorType, get_viewer_context
 
@@ -311,7 +310,6 @@ def test_save_event_sets_viewer_context(default_project) -> None:
 
 
 @django_db_all
-@override_options({"post_process.delete-processing-store-in-save-event": True})
 def test_save_event_deletes_processing_store_at_end(
     default_project, mock_event_processing_store
 ) -> None:
@@ -351,7 +349,6 @@ def test_save_event_deletes_processing_store_at_end(
 
 
 @django_db_all
-@override_options({"post_process.delete-processing-store-in-save-event": True})
 def test_save_event_deletes_processing_store_on_failure(
     default_project, mock_event_processing_store
 ) -> None:
