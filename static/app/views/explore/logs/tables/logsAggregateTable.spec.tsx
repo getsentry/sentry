@@ -373,7 +373,11 @@ describe('LogsAggregateTable', () => {
       }
     );
 
-    await userEvent.click(screen.getByText('123'));
+    await userEvent.click(
+      within(screen.getByRole('cell', {name: '123'})).getByRole('button', {
+        name: 'Actions',
+      })
+    );
 
     expect(
       await screen.findByRole('menuitemradio', {name: 'Show values greater than'})
