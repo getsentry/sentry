@@ -40,7 +40,7 @@ export default function SavedIssueViewBlock({id, name}: EmbedOutput<'savedIssueV
       linkLabel={t('View Issues')}
       query={view?.query}
       table={
-        view && queryParams ? (
+        !isError && view && queryParams ? (
           <QueryEmbedIssueList
             query={view.query}
             queryParams={queryParams}
