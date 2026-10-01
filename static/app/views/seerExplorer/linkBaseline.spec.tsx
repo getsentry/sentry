@@ -262,7 +262,8 @@ const BUS_CASES: BusCase[] = [
       query: {
         project: null,
         logsQuery: 'foo',
-        logsSortBys: '-timestamp',
+        // Aggregate mode reads its own sort key; the sample sort was previously ignored.
+        logsAggregateSortBys: '-timestamp',
         logsGroupBy: ['severity'],
         mode: 'aggregate',
       },

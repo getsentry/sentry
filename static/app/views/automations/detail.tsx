@@ -37,18 +37,28 @@ import {ConnectedMonitorsList} from 'sentry/views/automations/components/connect
 import {ConnectedProjectsList} from 'sentry/views/automations/components/connectedProjectsList';
 import {DisabledAlert} from 'sentry/views/automations/components/disabledAlert';
 import {useAutomationQuery, useUpdateAutomation} from 'sentry/views/automations/hooks';
-import {
-  getNoAlertWritePermissionTooltip,
-  useCanEditAutomation,
-} from 'sentry/views/automations/hooks/useCanEditAutomation';
+import {useAutomationEditPermission} from 'sentry/views/automations/hooks/useCanEditAutomation';
 import {getAutomationActionsWarning} from 'sentry/views/automations/hooks/utils';
 import {
   makeAutomationBasePathname,
   makeAutomationEditPathname,
 } from 'sentry/views/automations/pathnames';
+import {dataConditionGroupToLLMContext} from 'sentry/views/automations/utils/automationLLMContext';
 import {TopBar} from 'sentry/views/navigation/topBar';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
-function AutomationDetailContent({automation}: {automation: Automation}) {
+const CONTEXT_HINT =
+  'Sentry alert detail page. This alert runs its actions when an issue matches its conditions. ' +
+  'triggers is the condition group that starts the alert; actionFilters are the groups that gate ' +
+  'each set of actions. Every action reports where it lands — targetDisplay is the resolved ' +
+  'channel, team, or user name, and targetIdentifier the raw id behind it. ' +
+  'throttleMinutes is how long the alert waits before firing again for the same issue; null means ' +
+  'it notifies on every trigger. statusWarning is non-null when the alert cannot run as configured. ' +
+  'The page also shows a fire-history table and a stats chart. Neither is in this node, so use a ' +
+  'tool call for how often this alert has actually fired.';
+
+function AutomationDetailContentInner({automation}: {automation: Automation}) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const {start, end, period, utc} = selection.datetime;
@@ -58,6 +68,24 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
     undefined
   );
   const hasConnections = !!automation.detectorIds.length;
+
+  useLLMContext({
+    contextHint: CONTEXT_HINT,
+    id: automation.id,
+    name: automation.name,
+    enabled: automation.enabled,
+    environment: automation.environment,
+    lastTriggered: automation.lastTriggered,
+    // `?? null` so the key survives serialization when the alert notifies on
+    // every trigger, where there is no throttle at all.
+    throttleMinutes: automation.config.frequency ?? null,
+    connectedMonitorIds: automation.detectorIds,
+    triggers: automation.triggers
+      ? dataConditionGroupToLLMContext(automation.triggers)
+      : null,
+    actionFilters: automation.actionFilters.map(dataConditionGroupToLLMContext),
+    statusWarning: warning?.message ?? null,
+  });
 
   return (
     <SentryDocumentTitle title={automation.name}>
@@ -210,6 +238,11 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
   );
 }
 
+const AutomationDetailContent = registerLLMContext(
+  'alert-detail',
+  AutomationDetailContentInner
+);
+
 function AutomationDetailLoadingStates({automationId}: {automationId: string}) {
   const {
     data: automation,
@@ -254,8 +287,11 @@ export default function AutomationDetail() {
 function Actions({automation, size}: {automation: Automation; size?: 'sm'}) {
   const organization = useOrganization();
   const {mutate: updateAutomation, isPending: isUpdating} = useUpdateAutomation();
-  const canEdit = useCanEditAutomation(automation.id);
-  const permissionTooltipText = canEdit ? undefined : getNoAlertWritePermissionTooltip();
+  const {
+    canEdit,
+    disabledReason,
+    isPending: isPermissionPending,
+  } = useAutomationEditPermission(automation.id);
 
   const toggleDisabled = () => {
     const newEnabled = !automation.enabled;
@@ -279,16 +315,16 @@ function Actions({automation, size}: {automation: Automation; size?: 'sm'}) {
         variant="secondary"
         size={size}
         onClick={toggleDisabled}
-        busy={isUpdating}
+        busy={isUpdating || isPermissionPending}
         disabled={!canEdit}
-        tooltipProps={{title: permissionTooltipText}}
+        tooltipProps={{title: disabledReason}}
       >
         {automation.enabled ? t('Disable') : t('Enable')}
       </Button>
       <LinkButton
         to={makeAutomationEditPathname(organization.slug, automation.id)}
         disabled={!canEdit}
-        tooltipProps={{title: permissionTooltipText}}
+        tooltipProps={{title: disabledReason}}
         variant="primary"
         icon={<IconEdit />}
         size={size}

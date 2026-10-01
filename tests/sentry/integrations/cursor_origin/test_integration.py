@@ -3,16 +3,15 @@ from __future__ import annotations
 from base64 import b64encode
 from datetime import UTC, datetime, timedelta
 from unittest import mock
+from urllib.parse import parse_qs, urlparse
 
 import pytest
+import responses
 
 from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidIdentity
 from sentry.integrations.base import IntegrationFeatures
-from sentry.integrations.cursor_origin.client import (
-    CursorOriginApiClient,
-    CursorOriginSetupApiClient,
-)
+from sentry.integrations.cursor_origin.constants import CURSOR_ORIGIN_API_BASE_URL
 from sentry.integrations.cursor_origin.integration import (
     CursorOriginIntegration,
     CursorOriginIntegrationProvider,
@@ -29,6 +28,10 @@ from sentry.testutils.silo import control_silo_test
 INSTALLATION_ID = "i_01example"
 REPO = "acme/rocket"
 WEB = "https://cursor.com/codebase"
+REPOS_URL = f"{CURSOR_ORIGIN_API_BASE_URL}/installation/repos"
+JWT = "sentry.integrations.cursor_origin.client.get_jwt"
+CONTENTS_URL = f"{CURSOR_ORIGIN_API_BASE_URL}/repos/{REPO}/contents"
+INSTALL_URL = f"{CURSOR_ORIGIN_API_BASE_URL}/app/installations/{INSTALLATION_ID}"
 
 
 def _iso(offset: timedelta) -> str:
@@ -63,11 +66,18 @@ class CursorOriginIntegrationTest(TestCase):
             config={"default_branch": default_branch},
         )
 
+    def _stub_repos(self, *repos: dict[str, object], page_token: str = "") -> None:
+        responses.add(
+            responses.GET,
+            REPOS_URL,
+            json={"repositories": list(repos), "nextPageToken": page_token},
+        )
+
+    @responses.activate
     def test_get_repositories_maps_to_the_shared_shape(self) -> None:
-        with mock.patch.object(
-            CursorOriginApiClient, "get_repositories", return_value=[_origin_repo()]
-        ):
-            repos = self.install.get_repositories()
+        self._stub_repos(_origin_repo())
+
+        repos = self.install.get_repositories()
 
         assert repos == [
             {
@@ -78,49 +88,40 @@ class CursorOriginIntegrationTest(TestCase):
             }
         ]
 
-    def test_query_filters_locally(self) -> None:
-        """Origin has no search endpoint, so repo_search is off and query filters here."""
-        repos = [_origin_repo("acme/rocket"), _origin_repo("acme/widget", "repo_2")]
-        with mock.patch.object(CursorOriginApiClient, "get_repositories", return_value=repos):
-            assert [r["name"] for r in self.install.get_repositories(query="WIDG")] == [
-                "acme/widget"
-            ]
+    @responses.activate
+    def test_a_query_is_left_to_origin(self) -> None:
+        """Origin filters on names and owner namespaces, so searching is server-side."""
+        self._stub_repos(_origin_repo("acme/widget"))
 
-        assert self.install.repo_search is False
+        assert [r["name"] for r in self.install.get_repositories(query="WIDG")] == ["acme/widget"]
 
+        assert parse_qs(urlparse(responses.calls[0].request.url).query)["filter"] == ["WIDG"]
+        assert self.install.repo_search is True
+
+    @responses.activate
     def test_a_failed_listing_raises_rather_than_looking_empty(self) -> None:
         """The sync reads a missing repository as one the provider dropped."""
-        with (
-            mock.patch.object(
-                CursorOriginApiClient,
-                "get_repositories",
-                side_effect=ApiError("boom", code=500),
-            ),
-            mock.patch.object(CursorOriginIntegration, "message_from_error", return_value="boom"),
-            pytest.raises(IntegrationError),
-        ):
+        responses.add(responses.GET, REPOS_URL, json={"code": 13, "message": "boom"}, status=500)
+
+        with pytest.raises(IntegrationError):
             self.install.get_repositories()
 
+    @responses.activate
     def test_truncation_raises_only_when_the_caller_opts_in(self) -> None:
-        partial = [_origin_repo()]
-        with mock.patch.object(
-            CursorOriginApiClient,
-            "get_repositories",
-            side_effect=ApiPaginationTruncated(partial),
-        ):
-            assert len(self.install.get_repositories()) == 1
-            with pytest.raises(ApiPaginationTruncated) as excinfo:
-                self.install.get_repositories(raise_on_page_limit=True)
+        """Every page names a next one, so the client stops at its page limit."""
+        self._stub_repos(_origin_repo(), page_token="more")
+
+        assert len(self.install.get_repositories()) == 100
+        with pytest.raises(ApiPaginationTruncated) as excinfo:
+            self.install.get_repositories(raise_on_page_limit=True)
 
         # Callers read partial_data as RepositoryInfo, not as raw Origin dicts.
-        assert excinfo.value.partial_data == [
-            {
-                "name": REPO,
-                "identifier": REPO,
-                "external_id": "repo_1",
-                "default_branch": "main",
-            }
-        ]
+        assert excinfo.value.partial_data[0] == {
+            "name": REPO,
+            "identifier": REPO,
+            "external_id": "repo_1",
+            "default_branch": "main",
+        }
 
     def test_rate_limit_is_recognised(self) -> None:
         assert self.install.is_rate_limited_error(ApiError("slow down", code=429)) is True
@@ -249,6 +250,7 @@ class CursorOriginIntegrationTest(TestCase):
             feature.featureGate for feature in provider.metadata.features
         }
 
+    @responses.activate
     def test_get_codeowner_file_walks_past_the_root_location(self) -> None:
         """Origin has no HEAD route, so check_file and get_file are both contents reads."""
         repo = self._repo()
@@ -259,72 +261,74 @@ class CursorOriginIntegrationTest(TestCase):
             "content": b64encode(raw.encode()).decode(),
         }
 
-        with mock.patch.object(
-            CursorOriginApiClient,
-            "get_contents",
-            side_effect=[ApiError("resource not found", code=404), contents, contents],
-        ) as mock_contents:
-            result = self.install.get_codeowner_file(repo, ref="main")
+        responses.add(responses.GET, CONTENTS_URL, json={"message": "not found"}, status=404)
+        responses.add(responses.GET, CONTENTS_URL, json=contents)
+        responses.add(responses.GET, CONTENTS_URL, json=contents)
+
+        result = self.install.get_codeowner_file(repo, ref="main")
 
         assert result == {
             "filepath": ".github/CODEOWNERS",
             "html_url": f"{WEB}/{REPO}/blob/main/.github/CODEOWNERS",
             "raw": raw,
         }
-        assert [call.args[1] for call in mock_contents.call_args_list] == [
+        assert [
+            parse_qs(urlparse(call.request.url).query)["path"][0] for call in responses.calls
+        ] == [
             "CODEOWNERS",
             ".github/CODEOWNERS",
             ".github/CODEOWNERS",
         ]
 
+    @responses.activate
     def test_get_codeowner_file_returns_nothing_when_no_location_has_one(self) -> None:
-        with mock.patch.object(
-            CursorOriginApiClient,
-            "get_contents",
-            side_effect=ApiError("resource not found", code=404),
-        ):
-            assert self.install.get_codeowner_file(self._repo(), ref="main") is None
+        responses.add(responses.GET, CONTENTS_URL, json={"message": "not found"}, status=404)
 
-    def test_uninstall_removes_the_origin_installation(self) -> None:
-        with mock.patch.object(CursorOriginSetupApiClient, "delete_installation") as mock_delete:
-            self.install.uninstall()
+        assert self.install.get_codeowner_file(self._repo(), ref="main") is None
 
-        mock_delete.assert_called_once_with(INSTALLATION_ID)
+    @responses.activate
+    @mock.patch(JWT, return_value="jwt")
+    def test_uninstall_removes_the_origin_installation(self, _jwt: mock.MagicMock) -> None:
+        responses.add(responses.DELETE, INSTALL_URL, status=204)
 
-    def test_uninstall_leaves_an_installation_another_organization_still_uses(self) -> None:
+        self.install.uninstall()
+
+        assert [call.request.url for call in responses.calls] == [INSTALL_URL]
+
+    @responses.activate
+    @mock.patch(JWT, return_value="jwt")
+    def test_uninstall_leaves_an_installation_another_organization_still_uses(
+        self, _jwt: mock.MagicMock
+    ) -> None:
         """One Origin installation can serve several Sentry organizations."""
         other_org = self.create_organization()
         self.create_organization_integration(
             organization_id=other_org.id, integration_id=self.integration.id
         )
 
-        with mock.patch.object(CursorOriginSetupApiClient, "delete_installation") as mock_delete:
-            self.install.uninstall()
+        self.install.uninstall()
 
-        assert not mock_delete.called
+        assert len(responses.calls) == 0
 
-    def test_uninstall_accepts_an_installation_origin_has_already_dropped(self) -> None:
-        with mock.patch.object(
-            CursorOriginSetupApiClient,
-            "delete_installation",
-            side_effect=ApiError("gone", code=404),
-        ):
-            self.install.uninstall()
+    @responses.activate
+    @mock.patch(JWT, return_value="jwt")
+    def test_uninstall_accepts_an_installation_origin_has_already_dropped(
+        self, _jwt: mock.MagicMock
+    ) -> None:
+        responses.add(responses.DELETE, INSTALL_URL, json={"message": "gone"}, status=404)
 
-    def test_uninstall_is_not_blocked_by_an_unconfigured_app(self) -> None:
+        self.install.uninstall()
+
+    @responses.activate
+    @mock.patch(JWT, side_effect=ValueError("cursor-origin-app.id is not configured"))
+    def test_uninstall_is_not_blocked_by_an_unconfigured_app(self, _jwt: mock.MagicMock) -> None:
         """get_jwt raises before the request when the signing key is gone."""
-        with mock.patch.object(
-            CursorOriginSetupApiClient,
-            "delete_installation",
-            side_effect=ValueError("cursor-origin-app.id is not configured"),
-        ):
-            self.install.uninstall()
+        self.install.uninstall()
 
-    def test_uninstall_is_not_blocked_by_an_origin_failure(self) -> None:
+    @responses.activate
+    @mock.patch(JWT, return_value="jwt")
+    def test_uninstall_is_not_blocked_by_an_origin_failure(self, _jwt: mock.MagicMock) -> None:
         """Disconnecting from Sentry must not depend on Origin answering."""
-        with mock.patch.object(
-            CursorOriginSetupApiClient,
-            "delete_installation",
-            side_effect=ApiError("boom", code=500),
-        ):
-            self.install.uninstall()
+        responses.add(responses.DELETE, INSTALL_URL, json={"message": "boom"}, status=500)
+
+        self.install.uninstall()

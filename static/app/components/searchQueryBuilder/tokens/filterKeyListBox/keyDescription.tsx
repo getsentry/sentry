@@ -1,10 +1,16 @@
 import styled from '@emotion/styled';
 
+import {AttributeDetails} from 'sentry/components/attributes/attributeDetails';
 import {useSearchQueryBuilderConfig} from 'sentry/components/searchQueryBuilder/context';
 import {getKeyLabel} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/utils';
 import {t} from 'sentry/locale';
 import type {Tag} from 'sentry/types/group';
-import {FieldKind, FieldValueType, type FieldDefinition} from 'sentry/utils/fields';
+import {
+  DEFAULT_TAG_DESCRIPTION,
+  FieldKind,
+  FieldValueType,
+  type FieldDefinition,
+} from 'sentry/utils/fields';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 type KeyDescriptionProps = {
@@ -42,68 +48,33 @@ export function KeyDescription({size = 'sm', tag}: KeyDescriptionProps) {
 
   const fieldDefinition = getFieldDefinition(tag.key);
 
+  const sentryDescription = fieldDefinition?.desc;
+
   const description =
-    fieldDefinition?.desc ??
+    sentryDescription ??
     (tag.kind === FieldKind.TAG
-      ? t('A tag sent with one or more events')
+      ? DEFAULT_TAG_DESCRIPTION
       : tag.kind === FieldKind.FEATURE_FLAG
         ? t('A feature flag evaluated before an error event')
         : null);
 
+  const defaultValueType =
+    tag.kind === FieldKind.FEATURE_FLAG ? FieldValueType.BOOLEAN : FieldValueType.STRING;
+
   return (
     <DescriptionWrapper size={size}>
-      <DescriptionKeyLabel>
-        {getKeyLabel(tag, fieldDefinition, {includeAggregateArgs: true})}
-      </DescriptionKeyLabel>
-      {description ? <p>{description}</p> : null}
-      <Separator />
-      <DescriptionList>
-        <Term>{t('Type')}</Term>
-        <Details>
-          <ValueType fieldDefinition={fieldDefinition} fieldKind={tag.kind} />
-        </Details>
-      </DescriptionList>
+      <AttributeDetails
+        description={description}
+        isAddedBySentry={Boolean(sentryDescription)}
+        kind={fieldDefinition?.kind ?? tag.kind}
+        name={getKeyLabel(tag, fieldDefinition, {includeAggregateArgs: true})}
+        valueType={fieldDefinition?.valueType ?? defaultValueType}
+      />
     </DescriptionWrapper>
   );
 }
 
 const DescriptionWrapper = styled('div')<Pick<KeyDescriptionProps, 'size'>>`
-  padding: ${p =>
-    p.size === 'sm'
-      ? `${p.theme.space.sm} ${p.theme.space.md}`
-      : `${p.theme.space.lg} ${p.theme.space.xl}`};
   max-width: ${p => (p.size === 'sm' ? '220px' : 'none')};
   font-size: ${p => (p.size === 'sm' ? p.theme.font.size.sm : p.theme.font.size.md)};
-
-  p {
-    margin: 0;
-  }
-
-  p + p {
-    margin-top: ${p => p.theme.space.xs};
-  }
 `;
-
-const DescriptionKeyLabel = styled('p')`
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  word-break: break-all;
-`;
-
-const Separator = styled('hr')`
-  border-top: 1px solid ${p => p.theme.tokens.border.primary};
-  margin: ${p => p.theme.space.md} 0;
-`;
-
-const DescriptionList = styled('dl')`
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  gap: ${p => p.theme.space.xs};
-  margin: 0;
-`;
-
-const Term = styled('dt')`
-  color: ${p => p.theme.tokens.content.secondary};
-  font-weight: ${p => p.theme.font.weight.sans.regular};
-`;
-
-const Details = styled('dd')``;

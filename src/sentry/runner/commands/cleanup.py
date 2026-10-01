@@ -4,7 +4,7 @@ import functools
 import logging
 import os
 import time
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from datetime import timedelta
 from multiprocessing import JoinableQueue as Queue
 from multiprocessing import Process
@@ -23,9 +23,12 @@ from sentry.silo.base import SiloLimit, SiloMode
 from sentry.utils.tracing import set_span_tag, start_span
 
 logger = logging.getLogger(__name__)
+progress_logger = logging.getLogger("sentry.cleanup.progress")
+progress_logger.setLevel(logging.INFO)
 
 TRANSACTION_PREFIX = "cleanup"
 DELETES_BY_PROJECT_CHUNK_SIZE = 100
+_last_progress_log: dict[str, float] = {}
 
 if TYPE_CHECKING:
     from sentry.db.deletion import BulkDeleteQuery
@@ -70,9 +73,12 @@ def get_organization(value: str) -> int | None:
 # an identity on an object() isn't guaranteed to work between parent
 # and child proc
 _STOP_WORKER: Final = "91650ec271ae4b3e8a67cdc909d80f8c"
-_WorkQueue: TypeAlias = (
-    "Queue[Literal['91650ec271ae4b3e8a67cdc909d80f8c'] | tuple[str, tuple[int, ...], int | None]]"
+_WorkItem: TypeAlias = (
+    "tuple[str, tuple[int, ...]]"
+    " | tuple[str, tuple[int, ...], int | None]"
+    " | tuple[str, tuple[int, ...], int | None, dict[str, Any]]"
 )
+_WorkQueue: TypeAlias = "Queue[Literal['91650ec271ae4b3e8a67cdc909d80f8c'] | _WorkItem]"
 
 
 API_TOKEN_TTL_IN_DAYS = 30
@@ -113,12 +119,16 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
             task_queue.task_done()
             return
 
-        # Handle both old format (model_name, chunk) and new format (model_name, chunk, project_id)
+        # Handle all formats: (model_name, chunk), (model_name, chunk, project_id) and (model_name, chunk, project_id, deferred_filter)
         if len(j) == 2:
-            model_name, chunk = j  # type: ignore[unreachable]
+            model_name, chunk = j
             project_id = None
-        else:
+            deferred_filter: dict[str, Any] = {}
+        elif len(j) == 3:
             model_name, chunk, project_id = j
+            deferred_filter = {}
+        else:
+            model_name, chunk, project_id, deferred_filter = j
 
         if options.get("cleanup.abort_execution"):
             logger.warning("Cleanup worker aborting due to cleanup.abort_execution flag")
@@ -130,9 +140,11 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
                 op="cleanup",
                 name=f"{TRANSACTION_PREFIX}.multiprocess_worker",
                 transaction=True,
-                custom_sampling_context={"sample_rate": 0.5 * settings.SENTRY_BACKEND_APM_SAMPLING},
+                custom_sampling_context={
+                    "sample_rate": 0.01 * settings.SENTRY_BACKEND_APM_SAMPLING
+                },
             ):
-                task_execution(model_name, chunk, project_id)
+                task_execution(model_name, chunk, project_id, deferred_filter)
         except Exception:
             metrics.incr(
                 "cleanup.error",
@@ -161,7 +173,12 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
             task_queue.task_done()
 
 
-def task_execution(model_name: str, chunk: tuple[int, ...], project_id: int | None) -> None:
+def task_execution(
+    model_name: str,
+    chunk: tuple[int, ...],
+    project_id: int | None,
+    deferred_filter: Mapping[str, Any] | None = None,
+) -> None:
     """
     Execute deletion for a chunk of objects.
 
@@ -180,7 +197,6 @@ def task_execution(model_name: str, chunk: tuple[int, ...], project_id: int | No
         models.UserReport,
         models.Group,
         models.GroupEmailThread,
-        models.GroupRuleStatus,
         # Handled by TTL
         similarity,
     ]
@@ -194,9 +210,13 @@ def task_execution(model_name: str, chunk: tuple[int, ...], project_id: int | No
     )
 
     model = import_string(model_name)
+    query: dict[str, Any] = {"id__in": chunk}
+    if deferred_filter:
+        query.update(deferred_filter)
+
     task = deletions.get(
         model=model,
-        query={"id__in": chunk},
+        query=query,
         skip_models=skip_child_relations_models,
         transaction_id=uuid4().hex,
     )
@@ -682,7 +702,6 @@ def models_which_use_deletions_code_path() -> list[tuple[type[BaseModel], str, s
     from sentry.models.artifactbundle import ArtifactBundle
     from sentry.models.commit import Commit
     from sentry.models.files.file import File
-    from sentry.models.grouprulestatus import GroupRuleStatus
     from sentry.models.pullrequest import (
         PullRequest,
         PullRequestActivity,
@@ -702,7 +721,6 @@ def models_which_use_deletions_code_path() -> list[tuple[type[BaseModel], str, s
         (ReplayRecordingSegment, "date_added", "date_added"),
         (ArtifactBundle, "date_added", "date_added"),
         (MonitorCheckIn, "date_added", "date_added"),
-        (GroupRuleStatus, "date_added", "date_added"),
         (PreprodArtifact, "date_added", "date_added"),
         (PullRequest, "date_added", "date_added"),
         (PullRequestActivity, "date_added", "date_added"),
@@ -883,7 +901,27 @@ def _schedule_bulk_delete_chunks(
     total_objects = 0
 
     for chunk in q.iterator(chunk_size=DELETES_BY_PROJECT_CHUNK_SIZE):
-        task_queue.put((imp, chunk, project_id))
+        now = time.monotonic()
+        if imp not in _last_progress_log or now - _last_progress_log[imp] >= 300:  # 5 min
+            last_timestamp = None
+            if q.dtfield is not None:
+                last_timestamp = (
+                    q.model.objects.using(q.using)
+                    .filter(pk=chunk[-1])
+                    .values_list(q.dtfield, flat=True)
+                    .first()
+                )
+            progress_logger.info(
+                "cleanup.scan_progress",
+                extra={
+                    "model": imp,
+                    "last_id": chunk[-1],
+                    "date_field": q.dtfield,
+                    "last_timestamp": last_timestamp.timestamp() if last_timestamp else None,
+                },
+            )
+            _last_progress_log[imp] = time.monotonic()
+        task_queue.put((imp, chunk, project_id, q.deferred_filter))
         chunk_count += 1
         total_objects += len(chunk)
 
@@ -910,6 +948,7 @@ def run_bulk_deletes_in_deletes(
 ) -> None:
     from sentry import options
     from sentry.db.deletion import BulkDeleteQuery
+    from sentry.models.files.file import File
     from sentry.utils import metrics
 
     if options.get("cleanup.abort_execution"):
@@ -923,12 +962,14 @@ def run_bulk_deletes_in_deletes(
             debug_output(f"Removing {model_tp.__name__} for days={days} project={project or '*'}")
             models_attempted.add(model_tp.__name__.lower())
             try:
+                defer_dt_filter = model_tp is File
                 q = BulkDeleteQuery(
                     model=model_tp,
                     dtfield=dtfield,
                     days=days,
                     project_id=project_id,
                     order_by=order_by,
+                    defer_dt_filter=defer_dt_filter,
                 )
                 _schedule_bulk_delete_chunks(task_queue, q, model_tp, project_id)
 

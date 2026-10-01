@@ -84,7 +84,7 @@ describe('ProjectTags', () => {
     });
 
     (await screen.findAllByRole('button', {name: 'Remove tag'})).forEach(button =>
-      expect(button).toBeDisabled()
+      expect(button).toHaveAttribute('aria-disabled', 'true')
     );
   });
 

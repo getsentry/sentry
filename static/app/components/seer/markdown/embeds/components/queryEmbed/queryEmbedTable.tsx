@@ -1,4 +1,5 @@
 import type {ReactNode} from 'react';
+import styled from '@emotion/styled';
 
 import {Text} from '@sentry/scraps/text';
 
@@ -74,6 +75,11 @@ export interface QueryEmbedColumn<Row> {
   /** Header text. Defaults to `key`, which is what a field-named column wants. */
   label?: ReactNode;
   /**
+   * Whether the reader can drag the column wider. Defaults to `true`; a column
+   * whose content never varies in size, like an icon, has nothing to reveal.
+   */
+  resizable?: boolean;
+  /**
    * Grid track for the column. Defaults to an equal share of the leftover
    * space; a column of fixed-size content — an icon, say — should ask for
    * `max-content` instead of being stretched to match a column of text.
@@ -138,22 +144,26 @@ export function QueryEmbedTable<Row>({
 }: QueryEmbedTableProps<Row>) {
   // The widths here are only a default; the split a query actually needs is
   // something only the reader knows. `SimpleTable` makes its columns
-  // unresizable by default, so opt each one back in and name it from its head
-  // cell, which is what carries the handle.
+  // unresizable by default, so opt each one back in and point its head cell,
+  // which is what carries the handle, at it by index.
   const columnConfig = columns.map((column, index) => ({
     key: column.key,
-    resizable: true,
+    resizable: column.resizable ?? true,
     width: column.width ?? (index === 0 ? 'minmax(0, 2fr)' : 'minmax(0, 1fr)'),
   }));
 
   return (
-    <SimpleTable
+    <FlushTable
       columns={columnConfig}
       header={
         <SimpleTable.HeaderRow>
-          {columns.map(column => (
-            <SimpleTable.HeaderCell columnKey={column.key} key={column.key}>
-              <Text ellipsis>{column.label ?? column.key}</Text>
+          {columns.map((column, index) => (
+            <SimpleTable.HeaderCell columnIndex={index} key={column.key}>
+              {/* `inherit` keeps the header cell's own secondary color rather
+                  than resetting the label to Text's primary default. */}
+              <Text ellipsis variant="inherit">
+                {column.label ?? column.key}
+              </Text>
             </SimpleTable.HeaderCell>
           ))}
         </SimpleTable.HeaderRow>
@@ -176,6 +186,21 @@ export function QueryEmbedTable<Row>({
           </SimpleTable.Row>
         ))
       )}
-    </SimpleTable>
+    </FlushTable>
   );
 }
+
+/**
+ * The table runs edge to edge in `QueryEmbedCard`, whose own border already
+ * frames it, so `SimpleTable`'s border and rounding would draw a second box
+ * inside the first. Only the top rule stays, dividing the header from the
+ * card's header band or the query above it.
+ */
+const FlushTable = styled(SimpleTable)`
+  border-width: 1px 0 0;
+  border-radius: 0;
+
+  > thead > tr {
+    border-radius: 0;
+  }
+`;

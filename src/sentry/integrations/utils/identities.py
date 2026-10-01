@@ -65,6 +65,9 @@ def get_identity_or_404(
     selected_organization_id = (
         organization_id if organization_id is not None else valid_organization_ids[0]
     )
+    if selected_organization_id not in valid_organization_ids:
+        raise Http404
+
     context = organization_service.get_organization_by_id(
         id=selected_organization_id,
         user_id=user.id,

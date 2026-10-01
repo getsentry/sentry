@@ -6,6 +6,7 @@ from sentry.discover.arithmetic import (
     MaxOperatorError,
     Operation,
     parse_arithmetic,
+    resolve_arithmetic,
 )
 
 
@@ -64,6 +65,22 @@ def test_parse_arithmetic_returns_float() -> None:
 def test_parse_arithmetic_returns_column() -> None:
     result, _, _ = parse_arithmetic("spans.db")
     assert result == "spans.db"
+
+
+@pytest.mark.parametrize(
+    "inp,output",
+    [
+        ("1+1", 2),
+        ("1-1", 0),
+        ("1/1", 1),
+        ("1*2", 2),
+        ("1+2-3*4/6", 1),
+        ("2", 2),
+    ],
+)
+def test_resolve_arithmetic(inp, output) -> None:
+    parsed, _, _ = parse_arithmetic(inp)
+    assert resolve_arithmetic(parsed) == output
 
 
 @pytest.mark.parametrize(

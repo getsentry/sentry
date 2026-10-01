@@ -221,17 +221,6 @@ class AlertRule(Model):
     __repr__ = sane_repr("id", "name", "date_added")
 
     @property
-    def created_by_id(self) -> int | None:
-        try:
-            created_activity = AlertRuleActivity.objects.get(
-                alert_rule=self, type=AlertRuleActivityType.CREATED.value
-            )
-            return created_activity.user_id
-        except AlertRuleActivity.DoesNotExist:
-            pass
-        return None
-
-    @property
     def owner(self) -> Actor | None:
         """Part of ActorOwned Protocol"""
         return Actor.from_id(user_id=self.user_id, team_id=self.team_id)
@@ -488,38 +477,6 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
     @classmethod
     def get_all_slugs(cls) -> list[str]:
         return list(cls._factory_registrations.by_slug)
-
-
-class AlertRuleActivityType(Enum):
-    CREATED = 1
-    DELETED = 2
-    UPDATED = 3
-    ENABLED = 4
-    DISABLED = 5
-    SNAPSHOT = 6
-    ACTIVATED = 7
-    DEACTIVATED = 8
-
-
-@cell_silo_model
-class AlertRuleActivity(Model):
-    """
-    Provides an audit log of activity for the alert rule
-    """
-
-    __relocation_scope__ = RelocationScope.Organization
-
-    alert_rule = FlexibleForeignKey("sentry.AlertRule")
-    previous_alert_rule = FlexibleForeignKey(
-        "sentry.AlertRule", null=True, related_name="previous_alert_rule"
-    )
-    user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
-    type = models.IntegerField()
-    date_added = models.DateTimeField(default=timezone.now)
-
-    class Meta:
-        app_label = "sentry"
-        db_table = "sentry_alertruleactivity"
 
 
 post_delete.connect(AlertRuleManager.clear_subscription_cache, sender=QuerySubscription)

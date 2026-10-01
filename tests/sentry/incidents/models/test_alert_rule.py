@@ -1,11 +1,8 @@
 import pytest
 from django.core.cache import cache
 
-from sentry.incidents.logic import delete_alert_rule, update_alert_rule
 from sentry.incidents.models.alert_rule import (
     AlertRule,
-    AlertRuleActivity,
-    AlertRuleActivityType,
     AlertRuleStatus,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
@@ -52,17 +49,6 @@ class IncidentClearSubscriptionCacheTest(TestCase):
 
         # Add the subscription id back in so we don't use `None` in the lookup check.
         self.subscription.id = subscription_id
-        with pytest.raises(AlertRule.DoesNotExist):
-            AlertRule.objects.get_for_subscription(self.subscription)
-
-    def test_deleted_alert_rule(self) -> None:
-        AlertRule.objects.get_for_subscription(self.subscription)
-        assert (
-            cache.get(AlertRule.objects.CACHE_SUBSCRIPTION_KEY % self.subscription.id)
-            == self.alert_rule
-        )
-        delete_alert_rule(self.alert_rule)
-        assert cache.get(AlertRule.objects.CACHE_SUBSCRIPTION_KEY % self.subscription.id) is None
         with pytest.raises(AlertRule.DoesNotExist):
             AlertRule.objects.get_for_subscription(self.subscription)
 
@@ -241,36 +227,6 @@ class AlertRuleTriggerActionTargetTest(TestCase):
             target_type=AlertRuleTriggerAction.TargetType.SPECIFIC.value, target_identifier=email
         )
         assert trigger.target == email
-
-
-class AlertRuleActivityTest(TestCase):
-    def test_simple(self) -> None:
-        assert AlertRuleActivity.objects.all().count() == 0
-        self.alert_rule = self.create_alert_rule()
-        assert AlertRuleActivity.objects.filter(
-            alert_rule=self.alert_rule, type=AlertRuleActivityType.CREATED.value
-        ).exists()
-
-    def test_delete(self) -> None:
-        assert AlertRuleActivity.objects.all().count() == 0
-        self.alert_rule = self.create_alert_rule()
-        self.create_incident(alert_rule=self.alert_rule, projects=[self.project])
-        delete_alert_rule(self.alert_rule)
-        assert AlertRuleActivity.objects.filter(
-            alert_rule=self.alert_rule, type=AlertRuleActivityType.DELETED.value
-        ).exists()
-
-    def test_update(self) -> None:
-        assert AlertRuleActivity.objects.all().count() == 0
-        self.alert_rule = self.create_alert_rule()
-        self.create_incident(alert_rule=self.alert_rule, projects=[self.project])
-        update_alert_rule(self.alert_rule, name="updated_name")
-        assert AlertRuleActivity.objects.filter(
-            previous_alert_rule=self.alert_rule, type=AlertRuleActivityType.SNAPSHOT.value
-        ).exists()
-        assert AlertRuleActivity.objects.filter(
-            alert_rule=self.alert_rule, type=AlertRuleActivityType.UPDATED.value
-        ).exists()
 
 
 class AlertRuleFetchForProjectTest(TestCase):

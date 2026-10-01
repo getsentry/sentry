@@ -52,7 +52,7 @@ function Skeletons({numberOfRows}: {numberOfRows: number}) {
           <SimpleTable.RowCell>
             <Placeholder height="20px" />
           </SimpleTable.RowCell>
-          <SimpleTable.RowCell columnKey="action-filters">
+          <SimpleTable.RowCell>
             <Placeholder height="20px" />
           </SimpleTable.RowCell>
         </SimpleTable.Row>
@@ -106,9 +106,7 @@ function AutomationsTable({detectorId, emptyMessage}: AutomationsTableProps) {
       header={
         <SimpleTable.HeaderRow>
           <SimpleTable.HeaderCell>{t('Name')}</SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell columnKey="action-filters">
-            {t('Actions')}
-          </SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell>{t('Actions')}</SimpleTable.HeaderCell>
         </SimpleTable.HeaderRow>
       }
     >
@@ -128,7 +126,7 @@ function AutomationsTable({detectorId, emptyMessage}: AutomationsTableProps) {
             <SimpleTable.RowCell>
               <AutomationTitleCell automation={automation} />
             </SimpleTable.RowCell>
-            <SimpleTable.RowCell columnKey="action-filters">
+            <SimpleTable.RowCell>
               <ActionCell actions={getAutomationActions(automation)} />
             </SimpleTable.RowCell>
           </SimpleTable.Row>
