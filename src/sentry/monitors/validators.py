@@ -48,6 +48,7 @@ from sentry.monitors.utils import (
     signal_monitor_created,
     update_issue_alert_rule,
 )
+from sentry.utils import metrics
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.dates import AVAILABLE_TIMEZONES
 from sentry.utils.outcomes import Outcome
@@ -428,6 +429,7 @@ class MonitorValidator(CamelSnakeSerializer):
         signal_monitor_created(project, request.user, False, monitor, request)
         validated_issue_alert_rule = validated_data.get("alert_rule")
         if validated_issue_alert_rule:
+            metrics.incr("monitors.validator.alert_rule", tags={"operation": "create"})
             issue_alert_rule_id = create_issue_alert_rule(
                 request, project, monitor, validated_issue_alert_rule
             )
@@ -548,6 +550,7 @@ class MonitorValidator(CamelSnakeSerializer):
 
         # Update alert rule after in case slug or name changed
         if "alert_rule" in validated_data:
+            metrics.incr("monitors.validator.alert_rule", tags={"operation": "update"})
             alert_rule_data = validated_data["alert_rule"]
             request = self.context.get("request")
             if not request:
