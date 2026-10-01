@@ -5,6 +5,7 @@ import type {LegendComponentOption} from 'echarts';
 import {Container} from '@sentry/scraps/layout';
 
 import type {Client} from 'sentry/api';
+import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {
   EChartDataZoomHandler,
@@ -76,39 +77,34 @@ type Props = {
   windowWidth?: number;
 };
 
-type WidgetDataState = {type: 'empty'} | {message: string; type: 'error'} | undefined;
-
-export function getWidgetDataState(
+function getErrorOrEmptyMessage(
   errorMessage: string | undefined,
   timeseriesResults: Series[] | undefined,
   tableResults: TableDataWithTitle[] | undefined,
   heatmapResults: HeatMapSeries | undefined,
-  widgetType: DisplayType,
-  loading: boolean
-): WidgetDataState {
+  widgetType: DisplayType
+) {
   if (widgetFetchesOwnData(widgetType)) {
-    return;
-  }
-
-  if (errorMessage) {
-    return {type: 'error', message: errorMessage};
-  }
-
-  if (loading) {
     return;
   }
 
   // Heat maps return a single series object rather than table/timeseries rows.
   if (widgetType === DisplayType.HEATMAP) {
-    return heatmapResults === undefined || heatmapResults.values.length === 0
-      ? {type: 'empty'}
-      : undefined;
+    return errorMessage
+      ? errorMessage
+      : heatmapResults === undefined || heatmapResults.values.length === 0
+        ? t('No data found')
+        : undefined;
   }
 
   // non-chart widgets need to look at tableResults
   const results = usesTimeSeriesData(widgetType) ? timeseriesResults : tableResults;
 
-  return results === undefined || results.length === 0 ? {type: 'empty'} : undefined;
+  return errorMessage
+    ? errorMessage
+    : results === undefined || results?.length === 0
+      ? t('No data found')
+      : undefined;
 }
 
 function WidgetCardDataLoaderView({
@@ -174,22 +170,32 @@ function WidgetCardDataLoaderView({
         const modifiedTimeseriesResults =
           WidgetLegendNameEncoderDecoder.modifyTimeseriesNames(widget, timeseriesResults);
 
-        const dataState = getWidgetDataState(
-          errorMessage,
-          modifiedTimeseriesResults,
-          tableResults,
-          heatmapResults,
-          widget.displayType,
-          loading
-        );
+        const errorOrEmptyMessage = loading
+          ? errorMessage
+          : getErrorOrEmptyMessage(
+              errorMessage,
+              modifiedTimeseriesResults,
+              tableResults,
+              heatmapResults,
+              widget.displayType
+            );
+        const isEmpty =
+          !loading && !errorMessage && errorOrEmptyMessage === t('No data found');
 
-        if (dataState?.type === 'error') {
-          onWidgetError?.(widget, dataState.message);
-          return <Widget.WidgetError error={dataState.message} />;
+        if (isEmpty && widget.showNoDataPanel) {
+          return <WidgetNoDataPanel />;
         }
 
-        if (dataState?.type === 'empty') {
-          return <WidgetNoDataPanel />;
+        if (errorOrEmptyMessage) {
+          if (
+            typeof errorOrEmptyMessage === 'string' &&
+            errorOrEmptyMessage !== t('No data found') &&
+            onWidgetError
+          ) {
+            onWidgetError(widget, errorOrEmptyMessage);
+          }
+
+          return <Widget.WidgetError error={errorOrEmptyMessage} />;
         }
 
         return (
@@ -199,7 +205,7 @@ function WidgetCardDataLoaderView({
               timeseriesResults={modifiedTimeseriesResults}
               tableResults={tableResults}
               heatmapResults={heatmapResults}
-              errorMessage={errorMessage}
+              errorMessage={errorOrEmptyMessage}
               loading={loading}
               widget={widget}
               selection={selection}

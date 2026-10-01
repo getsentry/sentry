@@ -68,6 +68,7 @@ const TOOLS_TABLE: PrebuiltWidget = {
   displayType: DisplayType.TABLE,
   widgetType: WidgetType.SPANS,
   interval: '1h',
+  showNoDataPanel: true,
   queries: [
     {
       name: '',
