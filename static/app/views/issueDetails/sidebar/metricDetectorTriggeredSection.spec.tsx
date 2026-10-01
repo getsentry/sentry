@@ -14,6 +14,7 @@ import {
 } from 'sentry/types/workflowEngine/dataConditions';
 import type {MetricCondition} from 'sentry/types/workflowEngine/detectors';
 import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
+import {InvestigationOrchestrationFixture} from 'sentry/views/investigations/fixtures';
 import {
   MetricDetectorTriggeredSection,
   MetricIssueSeerInvestigationSection,
@@ -131,6 +132,106 @@ describe('MetricDetectorTriggeredSection', () => {
     expect(
       await screen.findByRole('button', {name: 'View Investigation'})
     ).toHaveAttribute('href', '/explore/investigations/4567/');
+  });
+
+  it('shows the run status while an investigation is in progress', async () => {
+    const organization = OrganizationFixture({
+      slug: 'org-slug',
+      features: ['investigations'],
+      openMembership: true,
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/candidates/',
+      method: 'POST',
+      body: {items: [{status: 'view', investigationId: '4567'}]},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/4567/',
+      body: {
+        id: '4567',
+        summary: null,
+        summaryDescription: null,
+        titleGeneration: {status: 'completed'},
+        orchestration: {
+          phase: 'broad_scan',
+          status: 'processing',
+          heartbeatAt: '2026-08-27T11:06:30Z',
+          notebookRevision: 1,
+        },
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/4567/orchestration/',
+      body: InvestigationOrchestrationFixture({
+        investigationId: '4567',
+        phase: 'broad_scan',
+        status: 'processing',
+        hypotheses: [],
+      }),
+    });
+
+    render(<MetricIssueSeerInvestigationSection {...defaultProps} />, {
+      organization,
+    });
+
+    expect(await screen.findByText('Seer is gathering context')).toBeInTheDocument();
+    expect(screen.getByTestId('seer-status-block')).toHaveAttribute(
+      'data-variant',
+      'running'
+    );
+    expect(screen.getByRole('button', {name: 'View Investigation'})).toBeInTheDocument();
+  });
+
+  it('shows why an investigation run failed', async () => {
+    const organization = OrganizationFixture({
+      slug: 'org-slug',
+      features: ['investigations'],
+      openMembership: true,
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/candidates/',
+      method: 'POST',
+      body: {items: [{status: 'view', investigationId: '4567'}]},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/4567/',
+      body: {
+        id: '4567',
+        summary: null,
+        summaryDescription: null,
+        titleGeneration: {status: 'completed'},
+        orchestration: {
+          phase: 'failed',
+          status: 'failed',
+          heartbeatAt: '2026-08-27T11:06:30Z',
+          notebookRevision: 1,
+        },
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/4567/orchestration/',
+      body: InvestigationOrchestrationFixture({
+        investigationId: '4567',
+        phase: 'failed',
+        status: 'failed',
+        errors: [
+          {
+            code: 'query_timeout',
+            message: 'The metric query timed out.',
+            retryable: false,
+          },
+        ],
+      }),
+    });
+
+    render(<MetricIssueSeerInvestigationSection {...defaultProps} />, {
+      organization,
+    });
+
+    expect(
+      await screen.findByText("Seer couldn't finish this investigation")
+    ).toBeInTheDocument();
+    expect(screen.getByText('The metric query timed out.')).toBeInTheDocument();
   });
 
   it('hides an existing investigation summary until all summary fields are ready', async () => {

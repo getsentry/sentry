@@ -56,10 +56,14 @@ import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
 import {
   investigationCandidatesQueryOptions,
   getInvestigationDetailQueryOptions,
+  investigationOrchestrationQueryOptions,
   useLaunchInvestigationMutation,
 } from 'sentry/views/investigations/api';
 import {shouldPollInvestigationBlocks} from 'sentry/views/investigations/detail/cell';
+import {shouldPollInvestigationRun} from 'sentry/views/investigations/hypotheses/investigationHypotheses';
 import {InvestigationSummaryCard} from 'sentry/views/investigations/investigationSummaryCard';
+import {getSeerStatusBlock} from 'sentry/views/investigations/statusBlock/getSeerStatusBlock';
+import {SeerStatusBlock} from 'sentry/views/investigations/statusBlock/seerStatusBlock';
 import type {MetricOpenPeriodInvestigationSource} from 'sentry/views/investigations/types';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
@@ -650,6 +654,46 @@ function SeerInvestigationSection({
         : false;
     },
   });
+  const hasSummary = Boolean(
+    existingInvestigation?.summary && existingInvestigation.summaryDescription
+  );
+  const {data: orchestration} = useQuery({
+    ...investigationOrchestrationQueryOptions(
+      organization.slug,
+      existingInvestigationId ?? 'disabled'
+    ),
+    // Only agentic runs have a projection to read, and once the summary is in
+    // there is nothing left for the status line to say.
+    enabled:
+      existingInvestigationId !== null &&
+      Boolean(existingInvestigation?.orchestration) &&
+      !hasSummary,
+    select: response => response.json,
+    refetchInterval: query =>
+      shouldPollInvestigationRun(query.state.data?.json.status)
+        ? INVESTIGATION_POLL_INTERVAL
+        : false,
+  });
+  const orchestrationStatus = orchestration?.status;
+  useEffect(() => {
+    // The detail query may have stopped polling long before a run finishes, so
+    // refetch it once the run settles to pick up the summary.
+    if (
+      existingInvestigationId !== null &&
+      orchestrationStatus !== undefined &&
+      !shouldPollInvestigationRun(orchestrationStatus)
+    ) {
+      void queryClient.invalidateQueries({
+        queryKey: getInvestigationDetailQueryOptions(
+          organization.slug,
+          existingInvestigationId
+        ).queryKey,
+      });
+    }
+  }, [existingInvestigationId, orchestrationStatus, organization.slug, queryClient]);
+  const runStatus =
+    orchestration && !hasSummary ? getSeerStatusBlock(orchestration) : null;
+
   const launchMutation = useLaunchInvestigationMutation(organization.slug, {
     onSuccess: launchedInvestigation => {
       queryClient.setQueryData(candidateOptions.queryKey, {
@@ -707,6 +751,18 @@ function SeerInvestigationSection({
             <InvestigationSummaryCard
               summary={existingInvestigation.summary}
               summaryDescription={existingInvestigation.summaryDescription}
+            />
+          ) : runStatus ? (
+            <SeerStatusBlock
+              variant={runStatus.variant}
+              title={runStatus.title}
+              meta={runStatus.meta}
+              // The running copy is written for the investigation page itself
+              // ("will open automatically"), so only the stopped states, whose
+              // descriptions explain what happened, carry it here.
+              description={
+                runStatus.variant === 'running' ? undefined : runStatus.description
+              }
             />
           ) : investigationPath ? null : (
             <Text size="md" variant="muted">
