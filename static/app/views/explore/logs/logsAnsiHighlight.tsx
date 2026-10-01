@@ -1,9 +1,8 @@
 import {useMemo, type CSSProperties} from 'react';
-import {useTheme, type Theme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import {
   createColorPalette,
   parseAnsiSequences,
-  type ColorName,
   type ParseToken,
 } from 'ansi-sequence-parser';
 
@@ -29,7 +28,7 @@ export function LogsAnsiHighlight({
   terms = [],
 }: LogsAnsiHighlightProps) {
   const theme = useTheme();
-  const palette = useMemo(() => createColorPalette(getNamedColors(theme)), [theme]);
+  const palette = useMemo(() => createColorPalette(theme.tokens.syntax.ansi), [theme]);
   const tokens = useMemo(
     () =>
       hasAnsi(children)
@@ -97,25 +96,4 @@ function getTokenStyle(
   }
 
   return style;
-}
-
-function getNamedColors(theme: Theme): Record<ColorName, string> {
-  return {
-    black: theme.colors.gray800,
-    red: theme.colors.red500,
-    green: theme.colors.green500,
-    yellow: theme.colors.yellow500,
-    blue: theme.colors.blue500,
-    magenta: theme.colors.pink500,
-    cyan: theme.colors.blue400,
-    white: theme.colors.gray800,
-    brightBlack: theme.colors.gray500,
-    brightRed: theme.colors.red600,
-    brightGreen: theme.colors.green600,
-    brightYellow: theme.colors.yellow600,
-    brightBlue: theme.colors.blue600,
-    brightMagenta: theme.colors.pink600,
-    brightCyan: theme.colors.blue400,
-    brightWhite: theme.colors.gray800,
-  };
 }

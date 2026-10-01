@@ -1869,6 +1869,24 @@ const syntax = {
    * Used specifically for <code/> that evaluates to a variable by PrismJS.
    */
   variable: content.primary,
+  ansi: {
+    black: color.neutral.light.opaque1400,
+    red: color.red.light.opaque1100,
+    green: color.green.light.opaque1100,
+    yellow: color.yellow.light.opaque1100,
+    blue: color.blue.light.opaque1100,
+    magenta: color.pink.light.opaque1100,
+    cyan: color.blue.light.opaque1000,
+    white: color.neutral.light.opaque1400,
+    brightBlack: color.neutral.light.opaque1100,
+    brightRed: color.red.light.opaque1200,
+    brightGreen: color.green.light.opaque1200,
+    brightYellow: color.yellow.light.opaque1200,
+    brightBlue: color.blue.light.opaque1200,
+    brightMagenta: color.pink.light.opaque1200,
+    brightCyan: color.blue.light.opaque1000,
+    brightWhite: color.neutral.light.opaque1400,
+  },
 };
 
 const shadow = {
