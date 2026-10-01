@@ -137,7 +137,11 @@ dependencies = [
 ]
 
 [tool.uv]
-environments = ["sys_platform == 'darwin' or sys_platform == 'linux'"]
+# only lock for the python we run (.python-version); our internal pypi lacks
+# wheels for some packages on newer pythons, so resolving for them fails
+environments = [
+  "(sys_platform == 'darwin' or sys_platform == 'linux') and python_version < '3.14'",
+]
 
 [[tool.uv.index]]
 # We don't allow using public pypi - submit a PR to
