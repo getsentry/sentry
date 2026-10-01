@@ -198,7 +198,7 @@ export function InvestigationHypotheses({
     const worthHoldingSpaceFor = enabled && isPending && !SETTLED_PHASES.has(phase ?? '');
 
     return worthHoldingSpaceFor ? (
-      <Stack gap="2xl">
+      <Stack gap="3xl">
         <HypothesesPanel expanded={panelState.expanded} onExpandedChange={setExpanded}>
           <HypothesisListPlaceholder />
         </HypothesesPanel>
@@ -275,7 +275,7 @@ export function InvestigationHypotheses({
   const awaitingFirstHypothesis = !hasHypotheses && !SETTLED_PHASES.has(projection.phase);
 
   return (
-    <Stack gap="2xl">
+    <Stack gap="3xl">
       {statusBlock ? <SeerStatusBlock {...statusBlock} /> : null}
       {hasHypotheses || awaitingFirstHypothesis ? (
         <HypothesesPanel expanded={panelState.expanded} onExpandedChange={setExpanded}>

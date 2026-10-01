@@ -59,6 +59,7 @@ interface AutofixSectionProps {
 
 export function AutofixSection({group, project}: AutofixSectionProps) {
   const aiConfig = useAiConfig(group, project);
+  const isOnAutofixTab = useCurrentTab() === Tab.AUTOFIX;
 
   const issueTypeConfig = getConfigForIssueType(group, project);
 
@@ -91,6 +92,11 @@ export function AutofixSection({group, project}: AutofixSectionProps) {
 
   return (
     <SidebarFoldSection
+      // The autofix tab already shows the full analysis, so start collapsed
+      // there. Opening it on that tab shouldn't change the saved preference
+      // for every other tab, and the key remounts it so each tab starts from
+      // its own state.
+      key={isOnAutofixTab ? 'autofix-tab' : 'default'}
       title={
         <Flex align="center" gap="xs">
           <Text size="md">{t('Seer Autofix')}</Text>
@@ -99,6 +105,8 @@ export function AutofixSection({group, project}: AutofixSectionProps) {
       }
       sectionKey={SectionKey.SEER}
       preventCollapse={false}
+      initialCollapse={isOnAutofixTab}
+      disableCollapsePersistence={isOnAutofixTab}
     >
       <AutofixQuotaContent aiConfig={aiConfig} group={group} project={project} />
     </SidebarFoldSection>

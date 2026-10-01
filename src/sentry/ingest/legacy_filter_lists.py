@@ -11,6 +11,10 @@ line list, in order and comment lines included, so the text round-trips.
 At the ``double_write`` stage every write updates the option and the row together. Reads stay
 on the option, and readers of the custom filter table skip rows with ``legacy_filter``
 set, so a list is never served or shown twice. The ``rows`` and ``v2`` stages come later.
+
+The option applies to every organization. The feature flag
+``organizations:inbound-filters-legacy-double-write`` lifts one organization from ``off`` to
+``double_write`` for every list, so a few organizations can go first.
 """
 
 from __future__ import annotations
@@ -21,7 +25,7 @@ from enum import StrEnum
 
 from django.db import router, transaction
 
-from sentry import options
+from sentry import features, options
 from sentry.ingest.inbound_filters import FilterTypes
 from sentry.models.custominboundfilter import (
     ConditionType,
@@ -29,9 +33,11 @@ from sentry.models.custominboundfilter import (
     DataType,
     LegacyFilter,
 )
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 
 STAGE_OPTION = "custom-inbound-filters.legacy-filter-stage"
+DOUBLE_WRITE_FLAG = "organizations:inbound-filters-legacy-double-write"
 
 
 class Stage(StrEnum):
@@ -39,12 +45,15 @@ class Stage(StrEnum):
     DOUBLE_WRITE = "double_write"
 
 
-def stage(filter_type: str) -> Stage:
+def stage(filter_type: str, organization: Organization) -> Stage:
     """A value the option does not know, a typo for example, counts as ``off``."""
     try:
-        return Stage(options.get(STAGE_OPTION).get(filter_type))
+        configured = Stage(options.get(STAGE_OPTION).get(filter_type))
     except ValueError:
-        return Stage.OFF
+        configured = Stage.OFF
+    if configured is Stage.OFF and features.has(DOUBLE_WRITE_FLAG, organization):
+        return Stage.DOUBLE_WRITE
+    return configured
 
 
 @dataclass(frozen=True)
@@ -83,7 +92,7 @@ def set_list(project: Project, filter_type: str, lines: Sequence[str]) -> None:
     """
     lines = list(lines)
     option_key = f"sentry:{filter_type}"
-    if stage(filter_type) != Stage.DOUBLE_WRITE:
+    if stage(filter_type, project.organization) != Stage.DOUBLE_WRITE:
         project.update_option(option_key, lines)
         return
 
