@@ -307,14 +307,14 @@ wheels = [
 
 [[package]]
 name = "django"
-version = "5.2.16"
+version = "5.2.17"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "asgiref" },
     { name = "sqlparse" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/django-5.2.16-py3-none-any.whl", hash = "sha256:04f354bf9d807a86ad1a8392fe3808d362358a8eafc322848e0e43e59b24371d" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/django-5.2.17-py3-none-any.whl", hash = "sha256:f04fb3b36ee119e1af4fa1d397d5fd6cf12700f49321e84d4f4c642c5b1973db" },
 ]
 
 [[package]]
