@@ -90,6 +90,7 @@ export function PathMappingEdit({
                       </InputGroup.LeadingItems>
                       <InputGroup.Input
                         {...baseProps}
+                        aria-label={t('Branch')}
                         value={field.state.value}
                         placeholder={branchFallback}
                         onChange={e => field.handleChange(sanitizeBranch(e.target.value))}

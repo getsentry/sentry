@@ -494,7 +494,7 @@ describe('ConnectRepositoryModal', () => {
       const branchInput = screen.getByRole('textbox', {name: /branch/i});
       expect(stackInput).toBeDisabled();
       expect(sourceInput).toBeDisabled();
-      expect(branchInput).not.toBeDisabled();
+      expect(branchInput).toBeEnabled();
     });
 
     it('seeds new mappings with the repository default branch', async () => {
@@ -760,7 +760,13 @@ describe('ConnectRepositoryModal', () => {
         const postRepo = MockApiClient.addMockResponse({
           url: `/projects/${organization.slug}/${project.slug}/repo/`,
           method: 'POST',
-          body: {id: '99', projectId: project.id, repositoryId: repo.id, source: 'scm_onboarding', created: true},
+          body: {
+            id: '99',
+            projectId: project.id,
+            repositoryId: repo.id,
+            source: 'scm_onboarding',
+            created: true,
+          },
         });
         const postMapping = MockApiClient.addMockResponse({
           url: `/organizations/${organization.slug}/code-mappings/`,
