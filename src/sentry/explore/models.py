@@ -506,6 +506,10 @@ class ExploreSavedFormula(DefaultFieldsModel):
     # which means 11 terms, assuming we eventually allow attributes, 200 characters each
     # for a total of 2230, rounding to 2500 for now
     formula = models.CharField(max_length=2500)
+    # Formulas need to have a dataset since functions differ dataset to dataset
+    dataset = BoundedPositiveIntegerField(
+        choices=ExploreSavedQueryDataset.as_choices(), default=ExploreSavedQueryDataset.SPANS
+    )
 
     class Meta:
         app_label = "explore"

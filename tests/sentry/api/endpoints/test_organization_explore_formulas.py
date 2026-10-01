@@ -155,6 +155,18 @@ class TestFormulas(BaseFormulaTest):
         formula = ExploreSavedFormula.objects.get(id=response.data["id"])
         assert formula.unit is None
 
+    def test_create_explore_formula_with_invalid_dataset(self) -> None:
+        data = self.formula_object.copy()
+        data["dataset"] = "flooded strand"
+        with self.feature(self.feature_flags):
+            response = self.client.post(
+                self.url,
+                data=data,
+            )
+            assert response.status_code == 400, response.content
+        assert "dataset" in response.data
+        assert "is not a valid choice" in str(response.data["dataset"][0])
+
     def test_create_explore_formula_without_formula_prefix(self) -> None:
         data = self.formula_object
         data["name"] = "hello"

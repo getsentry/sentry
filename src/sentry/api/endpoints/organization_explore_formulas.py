@@ -28,6 +28,7 @@ from sentry.api.serializers import Serializer, serialize
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.explore.models import (
     ExploreSavedFormula,
+    ExploreSavedQueryDataset,
     ExploreSavedVariable,
     KindItemTypes,
     ParamItemTypes,
@@ -150,6 +151,10 @@ class FormulaSerializer(RequestSerializer):
     )
     references = ListField(
         child=ReferenceSerializer(),
+    )
+    dataset = ChoiceField(
+        choices=ExploreSavedQueryDataset.as_text_choices(),
+        default=ExploreSavedQueryDataset.get_type_name(ExploreSavedQueryDataset.SPANS),
     )
 
     # TODO: still need to validate that the formula & params resolve to a parseable equation
