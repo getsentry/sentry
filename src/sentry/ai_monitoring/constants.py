@@ -1,7 +1,7 @@
 from sentry.ai_monitoring.conversation_aggregates import CONVERSATION_AGGREGATE_DEFINITIONS
 from sentry.search.events.fields import get_function_alias
 
-AI_CONVERSATION_DURATION_EXPRESSION = "time_range_if(timestamp,gen_ai.operation.type)"
+AI_CONVERSATION_DURATION_EXPRESSION = "elapsed_if(`has:gen_ai.operation.type`,timestamp)"
 
 AI_CONVERSATIONS_FIELDS = {
     "conversation.conversationId": ("gen_ai.conversation.id", "gen_ai.conversation.id"),

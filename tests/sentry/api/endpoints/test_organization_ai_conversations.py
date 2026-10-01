@@ -284,7 +284,7 @@ def test_alias_filter_preserves_eap_null_semantics(operator: str) -> None:
 )
 def test_alias_filter(alias: str) -> None:
     resolver = Spans.get_resolver(
-        SnubaParams(), SearchResolverConfig(fields_acl=FieldsACL(functions={"time_range_if"}))
+        SnubaParams(), SearchResolverConfig(fields_acl=FieldsACL(functions={"elapsed_if"}))
     )
     compiled = compile_conversation_query(f"{alias}:>0", resolver)
     _, having, _ = resolver.resolve_query(compiled)
@@ -293,13 +293,13 @@ def test_alias_filter(alias: str) -> None:
 
 def test_duration_alias_uses_elapsed_milliseconds() -> None:
     resolver = Spans.get_resolver(
-        SnubaParams(), SearchResolverConfig(fields_acl=FieldsACL(functions={"time_range_if"}))
+        SnubaParams(), SearchResolverConfig(fields_acl=FieldsACL(functions={"elapsed_if"}))
     )
     assert compile_conversation_query("conversation.duration:>5s", resolver) == (
         "has:gen_ai.conversation.id has:gen_ai.operation.type "
-        "AND (time_range_if(timestamp, gen_ai.operation.type):>5000.0)"
+        "AND (elapsed_if(`has:gen_ai.operation.type`, timestamp):>5000.0)"
     )
-    assert resolver.get_field_type("time_range_if(timestamp,span.description)") == "millisecond"
+    assert resolver.get_field_type("elapsed_if(`span.description:foo`,timestamp)") == "millisecond"
 
 
 def test_messages_alias_matches_llm_calls() -> None:

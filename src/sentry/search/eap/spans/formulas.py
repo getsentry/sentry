@@ -20,7 +20,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
 )
 
 from sentry.search.eap import constants
-from sentry.search.eap.aggregate_utils import resolve_key_eq_value_filter
+from sentry.search.eap.aggregate_utils import if_query_validator, resolve_key_eq_value_filter
 from sentry.search.eap.columns import (
     AttributeArgumentDefinition,
     FormulaDefinition,
@@ -120,17 +120,16 @@ def division(args: ResolvedArguments, settings: ResolverSettings) -> Column.Bina
     )
 
 
-def time_range_if(args: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
-    timestamp = cast(AttributeKey, args[0])
-    required_attribute = cast(AttributeKey, args[1])
+def elapsed_if(args: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
+    trace_filter = cast(TraceItemFilter, args[0])
+    timestamp = cast(AttributeKey, args[1])
     extrapolation_mode = settings["extrapolation_mode"]
-    exists_filter = TraceItemFilter(exists_filter=ExistsFilter(key=required_attribute))
     elapsed_seconds = Column.BinaryFormula(
         left=Column(
             conditional_aggregation=AttributeConditionalAggregation(
                 aggregate=Function.FUNCTION_MAX,
                 key=timestamp,
-                filter=exists_filter,
+                filter=trace_filter,
                 extrapolation_mode=extrapolation_mode,
             )
         ),
@@ -139,7 +138,7 @@ def time_range_if(args: ResolvedArguments, settings: ResolverSettings) -> Column
             conditional_aggregation=AttributeConditionalAggregation(
                 aggregate=Function.FUNCTION_MIN,
                 key=timestamp,
-                filter=exists_filter,
+                filter=trace_filter,
                 extrapolation_mode=extrapolation_mode,
             )
         ),
@@ -1242,17 +1241,17 @@ SPAN_FORMULA_DEFINITIONS = {
         formula_resolver=division,
         is_aggregate=True,
     ),
-    "time_range_if": FormulaDefinition(
+    "elapsed_if": FormulaDefinition(
         default_search_type="millisecond",
         infer_search_type_from_arguments=False,
         arguments=[
+            ValueArgumentDefinition(argument_types={"query"}, validator=if_query_validator),
             AttributeArgumentDefinition(
                 attribute_types={"string"},
                 validator=literal_validator(["timestamp"]),
             ),
-            AttributeArgumentDefinition(attribute_types={"string"}),
         ],
-        formula_resolver=time_range_if,
+        formula_resolver=elapsed_if,
         is_aggregate=True,
         private=True,
     ),

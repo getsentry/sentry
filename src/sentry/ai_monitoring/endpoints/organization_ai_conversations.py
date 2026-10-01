@@ -218,7 +218,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                 SearchResolverConfig(
                     auto_fields=True,
                     disable_aggregate_extrapolation=True,
-                    fields_acl=FieldsACL(functions={"time_range_if"}),
+                    fields_acl=FieldsACL(functions={"elapsed_if"}),
                 ),
             )
             query_string = compile_conversation_query(user_query, resolver)
@@ -331,7 +331,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
             config=SearchResolverConfig(
                 auto_fields=True,
                 disable_aggregate_extrapolation=True,
-                fields_acl=FieldsACL(functions={"time_range_if"}),
+                fields_acl=FieldsACL(functions={"elapsed_if"}),
             ),
             sampling_mode=sampling_mode,
         )
@@ -378,7 +378,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                         "collect_unique_if",
                         "first_if",
                         "last_if",
-                        "time_range_if",
+                        "elapsed_if",
                     }
                 ),
             ),
