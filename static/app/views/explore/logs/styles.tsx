@@ -325,8 +325,7 @@ export const LogDate = styled('span')<{align?: 'left' | 'center' | 'right'}>`
   text-align: ${p => p.align || 'left'};
 `;
 
-// The widest 12h timestamp ("Dec 28, 10:58:58.888 PM"), so a column width locked
-// while scrolling (see useLogsTableColumnWidths) still fits rows rendered later.
+// The widest 12h timestamp: "Dec 28, 10:58:58.888 PM"
 export const LogTimestamp = styled(LogDate)`
   min-width: 23ch;
 `;
