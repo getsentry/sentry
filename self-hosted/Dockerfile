@@ -13,7 +13,7 @@ ADD --chmod=755 \
 ARG TARGETARCH
 FROM odiff-${TARGETARCH} AS odiff
 
-FROM python:3.13.15-slim-bookworm
+FROM python:3.13.15-slim-trixie AS application
 
 LABEL maintainer="oss@sentry.io"
 LABEL org.opencontainers.image.title="Sentry"
@@ -97,3 +97,52 @@ ENV SENTRY_BUILD=${SOURCE_COMMIT:-unknown}
 LABEL org.opencontainers.image.revision=$SOURCE_COMMIT
 LABEL org.opencontainers.image.source="https://github.com/getsentry/sentry/tree/${SOURCE_COMMIT:-master}/"
 LABEL org.opencontainers.image.licenses="https://github.com/getsentry/sentry/blob/${SOURCE_COMMIT:-master}/LICENSE"
+
+FROM application AS distroless-prep
+USER 0
+# The distroless base has Python at /usr/bin, not /usr/local/bin.
+RUN ln -sf /usr/bin/python3.13 /.venv/bin/python3
+
+FROM us-docker.pkg.dev/sentryio/dhi-mirror/python:3.13.15-debian13 AS distroless
+
+LABEL maintainer="oss@sentry.io"
+LABEL org.opencontainers.image.title="Sentry"
+LABEL org.opencontainers.image.description="Sentry runtime image (distroless)"
+LABEL org.opencontainers.image.url="https://sentry.io/"
+LABEL org.opencontainers.image.documentation="https://develop.sentry.dev/self-hosted/"
+LABEL org.opencontainers.image.vendor="Functional Software, Inc."
+LABEL org.opencontainers.image.authors="oss@sentry.io"
+
+COPY --from=distroless-prep /etc/passwd /etc/group /etc/
+COPY --from=distroless-prep /.venv /.venv
+COPY --from=distroless-prep /usr/src/sentry /usr/src/sentry
+COPY --from=distroless-prep /etc/sentry /etc/sentry
+COPY --from=distroless-prep /usr/bin/tini-static /usr/bin/tini
+COPY --from=distroless-prep /usr/local/bin/odiff /usr/local/bin/odiff
+COPY --from=distroless-prep /docker_entrypoint.py /sentry-commands.txt /
+COPY --from=distroless-prep --chown=999:999 /data /data
+
+WORKDIR /usr/src/sentry
+
+ENV PATH="/.venv/bin:$PATH" \
+    SENTRY_CONF=/etc/sentry \
+    GRPC_POLL_STRATEGY=epoll1
+
+USER sentry
+
+RUN ["sentry", "help"]
+
+EXPOSE 9000
+VOLUME /data
+
+ENTRYPOINT ["python3", "/docker_entrypoint.py"]
+CMD ["run", "web"]
+
+ARG SOURCE_COMMIT
+ENV SENTRY_BUILD=${SOURCE_COMMIT:-unknown}
+LABEL org.opencontainers.image.revision=$SOURCE_COMMIT
+LABEL org.opencontainers.image.source="https://github.com/getsentry/sentry/tree/${SOURCE_COMMIT:-master}/"
+LABEL org.opencontainers.image.licenses="https://github.com/getsentry/sentry/blob/${SOURCE_COMMIT:-master}/LICENSE"
+
+# Keep the regular image as the default build target.
+FROM application

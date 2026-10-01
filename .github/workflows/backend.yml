@@ -93,6 +93,7 @@ jobs:
     outputs:
       has-selected-tests: ${{ steps.compute-tests.outputs.has-selected-tests }}
       test-count: ${{ steps.compute-tests.outputs.test-count }}
+      test-item-count: ${{ steps.compute-tests.outputs.test-item-count }}
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
@@ -183,19 +184,11 @@ jobs:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         if: needs.select-tests.outputs.has-selected-tests == 'true'
 
-      - name: Download selected tests artifact
-        if: needs.select-tests.outputs.has-selected-tests == 'true'
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
-        with:
-          name: selected-tests-${{ github.run_id }}
-          path: .artifacts/
-
       - name: Calculate test shards
         id: calculate-shards
         if: needs.select-tests.outputs.has-selected-tests == 'true'
         env:
-          SELECTED_TESTS_FILE: '.artifacts/selected-tests.txt'
-          SELECTED_TEST_COUNT: ${{ needs.select-tests.outputs.test-count || '' }}
+          SELECTED_TEST_ITEM_COUNT: ${{ needs.select-tests.outputs.test-item-count }}
         run: |
           python3 .github/workflows/scripts/calculate-backend-test-shards.py
 
