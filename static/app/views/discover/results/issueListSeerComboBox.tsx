@@ -21,12 +21,14 @@ import {
   useSelectedProjectIds,
   useSelectedProjectIdsForMutation,
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/useSeerComboBoxSetup';
+import {mergeSeerExtraFields} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {useSearchQueryBuilderAI} from 'sentry/components/searchQueryBuilder/context';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
 import {fetchMutation} from 'sentry/utils/queryClient';
+import {decodeList} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -96,6 +98,7 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
         end: resultEnd,
         visualizations,
         expandedProjectIds,
+        extraFields,
       } = result;
 
       const dt = buildSeerDateTimeSelection(
@@ -109,17 +112,25 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
       const yAxis =
         visualizations?.length > 0 ? visualizations[0]?.yAxes?.[0] : undefined;
 
-      const columns: string[] = [];
+      const seerColumns: string[] = [];
       if (groupBys && groupBys.length > 0) {
-        columns.push(...groupBys);
+        seerColumns.push(...groupBys);
       }
       if (visualizations && visualizations.length > 0) {
         for (const viz of visualizations) {
           if (viz.yAxes && viz.yAxes.length > 0) {
-            columns.push(...viz.yAxes);
+            seerColumns.push(...viz.yAxes);
           }
         }
       }
+
+      // Seer's group bys and y-axes replace the table's columns outright. When
+      // it returned neither, the page keeps the columns it already has, and
+      // either way any extra fields are appended on the end.
+      const columns = mergeSeerExtraFields(
+        seerColumns.length > 0 ? seerColumns : decodeList(location.query.field),
+        extraFields
+      );
 
       askSeerSuggestedQueryRef.current = JSON.stringify({
         query: queryToUse,

@@ -18,7 +18,10 @@ import {
   useSelectedProjectIds,
   useSelectedProjectIdsForMutation,
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/useSeerComboBoxSetup';
-import {resolveSeerProjectSelection} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
+import {
+  mergeSeerExtraFields,
+  resolveSeerProjectSelection,
+} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {useSearchQueryBuilderAI} from 'sentry/components/searchQueryBuilder/context';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -27,6 +30,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useTraceExploreAiQuerySetup} from 'sentry/views/explore/hooks/useTraceExploreAiQuerySetup';
+import {useQueryParamsFields} from 'sentry/views/explore/queryParams/context';
 import {getSeerExploreQuery} from 'sentry/views/explore/seerQuery';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 
@@ -54,6 +58,8 @@ export function SpansTabSeerComboBox() {
   const analyticsArea = useAnalyticsArea();
   const {setRunId} = useAiQueryContext();
   const {askSeerSuggestedQueryRef, enableAISearch} = useSearchQueryBuilderAI();
+
+  const fields = useQueryParamsFields();
 
   const initialSeerQuery = useInitialSeerQuery();
   const selectedProjectIds = useSelectedProjectIds();
@@ -140,6 +146,11 @@ export function SpansTabSeerComboBox() {
         datetime: seerQuery.datetime,
       };
 
+      // Keep the table's current columns and append any extras Seer asked for.
+      // Passing them explicitly also stops getExploreUrl from dropping the
+      // user's columns back to the defaults.
+      const field = mergeSeerExtraFields(fields, result.extraFields);
+
       // TODO: Include traces mode once we can switch the table in getExploreUrl
       const url = getExploreUrl({
         organization,
@@ -150,6 +161,7 @@ export function SpansTabSeerComboBox() {
         sort: seerQuery.sort,
         mode: seerQuery.mode,
         interval: seerQuery.interval,
+        field,
         ...(result.crossEvents?.length ? {crossEvents: result.crossEvents} : {}),
       });
 
@@ -161,6 +173,7 @@ export function SpansTabSeerComboBox() {
         sort: seerQuery.sort,
         mode: seerQuery.mode,
         interval: seerQuery.interval,
+        field,
         ...(result.crossEvents?.length ? {crossEvents: result.crossEvents} : {}),
       });
       trackAnalytics('ai_query.applied', {
@@ -178,6 +191,7 @@ export function SpansTabSeerComboBox() {
     [
       analyticsArea,
       askSeerSuggestedQueryRef,
+      fields,
       navigate,
       organization,
       pageFilters.selection,
