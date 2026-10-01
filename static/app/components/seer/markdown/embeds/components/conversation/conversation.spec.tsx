@@ -139,7 +139,7 @@ describe('conversation embed', () => {
     // Conversation-level values come from API stats, not loaded span page.
     expect(screen.getByText('2.50s')).toBeInTheDocument();
     expect(screen.getByText('3')).toBeInTheDocument();
-    expect(screen.getByTitle('$0.42')).toBeInTheDocument();
+    expect(screen.getByText('$0.42')).toBeInTheDocument();
 
     // The embed renders inside an agent conversation, so it deliberately shows
     // the totals only -- a nested transcript reads as part of the answer.
