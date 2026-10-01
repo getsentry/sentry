@@ -139,12 +139,15 @@ export function useStreamingTimeseriesResult(
       timeseriesIntervalDuration,
       timeseriesIngestDelay,
       groupBys,
+      // oxlint-disable-next-line react/refs
       groupBuffersRef.current,
+      // oxlint-disable-next-line react/refs
       lastProcessedBucketRef,
       autoRefresh,
       aggregate,
       timeseriesResult.data ? Object.values(timeseriesResult.data)[0] : undefined
     );
+    // oxlint-disable-next-line react/refs
     groupBuffersRef.current = buffers;
     return {...buffers};
   }, [

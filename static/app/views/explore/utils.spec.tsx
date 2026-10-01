@@ -1,16 +1,24 @@
+import {DiscoverSavedQueryFixture} from 'sentry-fixture/discover';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
-import type {TagCollection} from 'sentry/types/group';
+import type {Meta, TagCollection} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
+import type {DiscoverSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
+import {SavedQueryType} from 'sentry/views/explore/hooks/useGetSavedQueries';
+import type {TraceItemDetailsMeta} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {
   findSuggestedColumns,
   getSamplingWarningReason,
+  hasRemarkedValue,
+  hasScrubbedValue,
+  getYAxisDiscoverSavedQuery,
   isSamplingSensitiveAggregate,
+  prettifyAggregation,
   removeHiddenKeys,
   shouldWarnSamplingSensitive,
   viewSamplesTarget,
@@ -684,5 +692,93 @@ describe('getSamplingWarningReason', () => {
     expect(
       getSamplingWarningReason('count_unique(user)', seriesWithSampleRates([]), 'partial')
     ).toBeNull();
+  });
+});
+
+describe('prettifyAggregation', () => {
+  it('prettifies typed tag keys inside conditional filters', () => {
+    expect(prettifyAggregation('avg_if(`tags[Limit,number]:>5`,span.duration)')).toBe(
+      'avg_if(`Limit:>5`,span.duration)'
+    );
+  });
+
+  it('prettifies typed tag keys in equation conditionals used as chart titles', () => {
+    expect(
+      prettifyAggregation(
+        'equation|avg_if(`tags[Limit,number]:>5`,span.duration) / p95(span.duration)'
+      )
+    ).toBe(' avg_if(`Limit:>5`,span.duration)  /  p95(span.duration) ');
+  });
+});
+
+describe('getYAxisDiscoverSavedQuery', () => {
+  it('falls back to the default y-axis when the query has none saved', () => {
+    const savedQuery: DiscoverSavedQuery = {
+      ...DiscoverSavedQueryFixture({fields: ['title', 'project']}),
+      queryType: SavedQueryType.DISCOVER,
+    };
+
+    expect(getYAxisDiscoverSavedQuery(savedQuery)).toEqual([{yAxes: ['count()']}]);
+  });
+
+  it('falls back to the first graphable aggregate in fields over count()', () => {
+    const savedQuery: DiscoverSavedQuery = {
+      ...DiscoverSavedQueryFixture({
+        fields: ['release', 'count_unique(release)'],
+      }),
+      queryType: SavedQueryType.DISCOVER,
+    };
+
+    expect(getYAxisDiscoverSavedQuery(savedQuery)).toEqual([
+      {yAxes: ['count_unique(release)']},
+    ]);
+  });
+});
+
+function traceItemMetaFixture(rem: Meta['rem']): TraceItemDetailsMeta {
+  return {'user.email': {meta: {value: {'': {len: 0, rem}}}}};
+}
+
+describe('hasScrubbedValue', () => {
+  const metaFor = traceItemMetaFixture;
+
+  it('returns true when a privacy rule redacted the value', () => {
+    const isScrubbed = hasScrubbedValue(
+      metaFor([['organization:0', 's', 0, 5]]),
+      'user.email'
+    );
+
+    expect(isScrubbed).toBe(true);
+  });
+
+  it('returns false when the value was only trimmed for size', () => {
+    const isScrubbed = hasScrubbedValue(metaFor([['!limit', 'x', 0, 100]]), 'user.email');
+
+    expect(isScrubbed).toBe(false);
+  });
+
+  it('returns false when the attribute has no meta', () => {
+    const isScrubbed = [
+      hasScrubbedValue(undefined, 'user.email'),
+      hasScrubbedValue(metaFor([]), 'other.attribute'),
+    ];
+
+    expect(isScrubbed).toEqual([false, false]);
+  });
+});
+
+describe('hasRemarkedValue', () => {
+  const metaFor = traceItemMetaFixture;
+
+  it('returns true when the value was trimmed for size', () => {
+    const isRemarked = hasRemarkedValue(metaFor([['!limit', 'x', 0, 100]]), 'user.email');
+
+    expect(isRemarked).toBe(true);
+  });
+
+  it('returns false when there are no remarks', () => {
+    const isRemarked = hasRemarkedValue(metaFor([]), 'user.email');
+
+    expect(isRemarked).toBe(false);
   });
 });

@@ -41,10 +41,14 @@ from sentry.backup.scopes import ExportScope
 from sentry.backup.validate import validate
 from sentry.db.models.paranoia import ParanoidModel
 from sentry.explore.models import (
+    ExploreSavedFormula,
     ExploreSavedQuery,
     ExploreSavedQueryLastVisited,
     ExploreSavedQueryProject,
     ExploreSavedQueryStarred,
+    ExploreSavedVariable,
+    KindItemTypes,
+    ParamItemTypes,
     TraceItemAttributeContext,
     TraceItemAttributeTypes,
     TraceItemAttributeValueContext,
@@ -52,7 +56,6 @@ from sentry.explore.models import (
     TraceMetricTypes,
 )
 from sentry.incidents.grouptype import MetricIssue
-from sentry.incidents.models.incident import IncidentActivity
 from sentry.insights.models import InsightsStarredSegment
 from sentry.integrations.models.data_forwarder import DataForwarder
 from sentry.integrations.models.data_forwarder_project import DataForwarderProject
@@ -68,7 +71,11 @@ from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.code_review_event import CodeReviewEvent, CodeReviewEventStatus
 from sentry.models.counter import Counter
-from sentry.models.custominboundfilter import CustomInboundFilter
+from sentry.models.custominboundfilter import (
+    CustomInboundFilter,
+    DataType,
+    LegacyFilter,
+)
 from sentry.models.dashboard import (
     Dashboard,
     DashboardFavoriteUser,
@@ -508,7 +515,15 @@ class ExhaustiveFixtures(Fixtures):
         CustomInboundFilter.objects.create(
             project=project,
             name=f"custom-inbound-filter-{slug}",
-            conditions=[{"op": "eq", "name": "event.release", "value": ["1.0.0"]}],
+            data_type=DataType.ALL,
+            conditions=[{"type": "release", "value": ["1.0.0"]}],
+        )
+        CustomInboundFilter.objects.create(
+            project=project,
+            name=f"legacy-releases-{slug}",
+            data_type=DataType.ALL,
+            conditions=[{"type": "release", "value": ["2.0.0"]}],
+            legacy_filter=LegacyFilter.RELEASE_VERSION,
         )
 
         # Auth*
@@ -547,13 +562,7 @@ class ExhaustiveFixtures(Fixtures):
         self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
 
         # Incident*
-        incident = self.create_incident(org, [project])
-        IncidentActivity.objects.create(
-            incident=incident,
-            type=1,
-            comment=f"hello {slug}",
-            user_id=owner_id,
-        )
+        self.create_incident(org, [project])
 
         # Dashboard
         dashboard = Dashboard.objects.create(
@@ -794,6 +803,23 @@ class ExhaustiveFixtures(Fixtures):
             user_id=owner_id,
             explore_saved_query=explore_saved_query,
             last_visited=timezone.now(),
+        )
+
+        explore_saved_formula = ExploreSavedFormula.objects.create(
+            organization=org,
+            created_by_id=owner_id,
+            updated_by_id=owner_id,
+            name="formula.apdex",
+            formula="count()",
+        )
+        ExploreSavedVariable.objects.create(
+            organization=org,
+            explore_saved_formula=explore_saved_formula,
+            name="duration",
+            value="",
+            kind=KindItemTypes.PARAM,
+            param_type=ParamItemTypes.COLUMN,
+            order=0,
         )
 
         TraceItemAttributeContext.objects.create(

@@ -1,4 +1,4 @@
-from typing import Never, NotRequired, TypedDict
+from typing import Never
 
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import serializers
@@ -14,6 +14,10 @@ from sentry.api.endpoints.organization_trace_item_attributes import (
     OrganizationTraceItemAttributesEndpointBase,
     adjust_start_end_window,
 )
+from sentry.api.endpoints.organization_trace_item_metrics_types import (
+    TraceMetricContext,
+    TraceMetricItem,
+)
 from sentry.api.paginator import ChainPaginator, GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors
 from sentry.apidocs.constants import (
@@ -22,6 +26,7 @@ from sentry.apidocs.constants import (
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
+from sentry.apidocs.examples.trace_item_metric_examples import TraceItemMetricExamples
 from sentry.apidocs.parameters import GlobalParams, OrganizationParams
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.apidocs.utils import inline_sentry_response_serializer
@@ -37,7 +42,6 @@ from sentry.search.eap.constants import (
     METRIC_UNIT_ALIAS,
 )
 from sentry.search.eap.occurrences.query_utils import build_escaped_term_filter
-from sentry.search.eap.trace_metrics.types import TraceMetricType
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.snuba.referrer import Referrer, is_valid_referrer
 from sentry.snuba.trace_metrics import TraceMetrics
@@ -61,26 +65,6 @@ _GROUPING_ORDER = [METRIC_NAME_ALIAS, METRIC_TYPE_ALIAS, METRIC_UNIT_ALIAS]
 
 # Metrics count is small; a generous cap avoids paginating in practice.
 MAX_METRICS_PER_PAGE = 1000
-
-
-class TraceMetricContext(TypedDict):
-    brief: NotRequired[str]
-    # Longer-form notes, normalized to a list to match the attributes context
-    # shape (see TraceItemAttributeContext.details).
-    details: NotRequired[list[str]]
-
-
-class TraceMetricItem(TypedDict):
-    name: str
-    type: TraceMetricType
-    unit: str | None
-    # The EAP aggregate declares an integer search type but the value arrives as
-    # a float, so declare what is actually emitted.
-    count: float
-    lastSeen: float | None
-    # Only present when `expand=context` is requested and the
-    # data-browsing-attribute-context feature is enabled.
-    context: NotRequired[TraceMetricContext]
 
 
 class OrganizationTraceItemMetricsSerializer(serializers.Serializer[Never]):
@@ -159,7 +143,7 @@ CONTEXT_ONLY_QUERY_PARAM = OpenApiParameter(
 @cell_silo_endpoint
 class OrganizationTraceItemMetricsEndpoint(OrganizationTraceItemAttributesEndpointBase):
     publish_status = {
-        "GET": ApiPublishStatus.EXPERIMENTAL,
+        "GET": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
     }
     owner = ApiOwner.DATA_BROWSING
 
@@ -187,6 +171,7 @@ class OrganizationTraceItemMetricsEndpoint(OrganizationTraceItemAttributesEndpoi
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
+        examples=TraceItemMetricExamples.LIST_TRACE_METRICS,
     )
     def get(
         self, request: Request, organization: Organization

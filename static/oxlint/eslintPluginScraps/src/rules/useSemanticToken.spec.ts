@@ -1,6 +1,6 @@
-import {RuleTester, type InvalidTestCase} from '@typescript-eslint/rule-tester';
+import {RuleTester} from 'oxlint/plugins-dev';
 
-import {useSemanticToken, type Options} from './useSemanticToken';
+import {useSemanticToken} from './useSemanticToken';
 
 const ruleTester = new RuleTester();
 
@@ -55,7 +55,7 @@ const makeInvalidCase = (
   suggestedCategory: string,
   property: string,
   tokenPath: string
-): InvalidTestCase<'invalidProperty' | 'invalidPropertyWithSuggestion', [Options]> => ({
+): RuleTester.InvalidTestCase => ({
   code: `const Component = styled('div')\`
   ${property}: \${p => p.theme.tokens.${tokenPath}};
 \`;`,

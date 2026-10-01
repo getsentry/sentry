@@ -4,6 +4,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 from django.db.models import F
+from django.test import override_settings
 
 from sentry.issues.grouptype import AIDetectedDBGroupType
 from sentry.models.project import Project
@@ -13,6 +14,7 @@ from sentry.tasks.llm_issue_detection import (
     detect_llm_issues_for_org,
 )
 from sentry.tasks.llm_issue_detection.detection import (
+    SEER_CHECK_BUDGET_ENDPOINT_PATH,
     START_TIME_DELTA_MINUTES,
     TRANSACTION_BATCH_SIZE,
     TraceMetadataWithSpanCount,
@@ -23,7 +25,6 @@ from sentry.tasks.llm_issue_detection.trace_data import (
 )
 from sentry.testutils.cases import APITransactionTestCase, SnubaTestCase, SpanTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.helpers.features import with_feature
 
 
 class LLMIssueDetectionTest(TestCase):
@@ -41,7 +42,7 @@ class LLMIssueDetectionTest(TestCase):
         response.data = b'{"has_budget": true}'
         return response
 
-    @with_feature("organizations:gen-ai-features")
+    @override_settings(SENTRY_SELF_HOSTED=False)
     @patch("sentry.tasks.llm_issue_detection.detection.make_signed_seer_api_request")
     @patch("sentry.tasks.llm_issue_detection.detection.make_issue_detection_request")
     @patch(
@@ -64,7 +65,7 @@ class LLMIssueDetectionTest(TestCase):
         )
         mock_seer_request.assert_not_called()
 
-    @with_feature("organizations:gen-ai-features")
+    @override_settings(SENTRY_SELF_HOSTED=False)
     @patch("sentry.tasks.llm_issue_detection.detection.make_signed_seer_api_request")
     @patch("sentry.tasks.llm_issue_detection.trace_data.Spans.run_table_query")
     @patch("sentry.tasks.llm_issue_detection.detection.make_issue_detection_request")
@@ -189,7 +190,7 @@ class LLMIssueDetectionTest(TestCase):
         )
         assert not mock_produce_occurrence.called
 
-    @with_feature("organizations:gen-ai-features")
+    @override_settings(SENTRY_SELF_HOSTED=False)
     @patch("sentry.tasks.llm_issue_detection.detection.make_signed_seer_api_request")
     @patch("sentry.tasks.llm_issue_detection.detection.make_issue_detection_request")
     @patch("sentry.tasks.llm_issue_detection.trace_data.Spans.run_table_query")
@@ -236,7 +237,7 @@ class LLMIssueDetectionTest(TestCase):
         assert seer_request.organization_id == self.organization.id
         assert len(seer_request.traces) == 1
 
-    @with_feature("organizations:gen-ai-features")
+    @override_settings(SENTRY_SELF_HOSTED=False)
     @patch("sentry.tasks.llm_issue_detection.detection.make_signed_seer_api_request")
     @patch("sentry.tasks.llm_issue_detection.detection.make_issue_detection_request")
     @patch("sentry.tasks.llm_issue_detection.trace_data.Spans.run_table_query")
@@ -271,7 +272,7 @@ class LLMIssueDetectionTest(TestCase):
         assert mock_seer_request.call_count == 1
         assert mock_logger_error.call_count == 1
 
-    @with_feature("organizations:gen-ai-features")
+    @override_settings(SENTRY_SELF_HOSTED=False)
     @patch("sentry.tasks.llm_issue_detection.detection.make_issue_detection_request")
     @patch(
         "sentry.tasks.llm_issue_detection.trace_data.get_project_top_transaction_traces_for_llm_detection"
@@ -289,7 +290,7 @@ class LLMIssueDetectionTest(TestCase):
 
         mock_get_transactions.assert_called_once()
 
-    @with_feature("organizations:gen-ai-features")
+    @override_settings(SENTRY_SELF_HOSTED=False)
     @patch("sentry.tasks.llm_issue_detection.detection.make_issue_detection_request")
     @patch(
         "sentry.tasks.llm_issue_detection.trace_data.get_project_top_transaction_traces_for_llm_detection"
@@ -308,7 +309,7 @@ class LLMIssueDetectionTest(TestCase):
         mock_get_transactions.assert_not_called()
         mock_seer_request.assert_not_called()
 
-    @with_feature("organizations:gen-ai-features")
+    @override_settings(SENTRY_SELF_HOSTED=False)
     @patch("sentry.tasks.llm_issue_detection.detection.make_issue_detection_request")
     @patch(
         "sentry.tasks.llm_issue_detection.trace_data.get_project_top_transaction_traces_for_llm_detection"
@@ -324,8 +325,12 @@ class LLMIssueDetectionTest(TestCase):
 
         budget_url = mock_budget_request.call_args[0][1]
         assert "plan_tier=team" in budget_url
+        assert (
+            mock_budget_request.call_args.kwargs["metrics_endpoint"]
+            == f"{SEER_CHECK_BUDGET_ENDPOINT_PATH}/:organization_id"
+        )
 
-    @with_feature("organizations:gen-ai-features")
+    @override_settings(SENTRY_SELF_HOSTED=False)
     @patch("sentry.tasks.llm_issue_detection.detection.make_issue_detection_request")
     @patch(
         "sentry.tasks.llm_issue_detection.trace_data.get_project_top_transaction_traces_for_llm_detection"
@@ -342,7 +347,7 @@ class LLMIssueDetectionTest(TestCase):
         budget_url = mock_budget_request.call_args[0][1]
         assert "plan_tier=business" in budget_url
 
-    @with_feature("organizations:gen-ai-features")
+    @override_settings(SENTRY_SELF_HOSTED=False)
     @patch("sentry.tasks.llm_issue_detection.detection.make_signed_seer_api_request")
     @patch("sentry.tasks.llm_issue_detection.detection.make_issue_detection_request")
     @patch(
@@ -363,7 +368,7 @@ class LLMIssueDetectionTest(TestCase):
             assert len(seer_request.traces) == expected
             assert seer_request.plan_tier == plan_tier
 
-    @with_feature("organizations:gen-ai-features")
+    @override_settings(SENTRY_SELF_HOSTED=False)
     @patch("sentry.tasks.llm_issue_detection.detection.make_signed_seer_api_request")
     @patch("sentry.tasks.llm_issue_detection.detection.make_issue_detection_request")
     @patch(
@@ -388,7 +393,7 @@ class LLMIssueDetectionTest(TestCase):
 
 
 class LLMIssueDetectionProjectFilterTest(TestCase):
-    @with_feature("organizations:gen-ai-features")
+    @override_settings(SENTRY_SELF_HOSTED=False)
     @patch("sentry.tasks.llm_issue_detection.detection.make_signed_seer_api_request")
     @patch(
         "sentry.tasks.llm_issue_detection.trace_data.get_project_top_transaction_traces_for_llm_detection"

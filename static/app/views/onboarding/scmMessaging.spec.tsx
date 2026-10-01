@@ -1,5 +1,6 @@
 import {act, Fragment, useState} from 'react';
 import {QueryClientProvider} from '@tanstack/react-query';
+import {motion} from 'framer-motion';
 import {AutomationFixture} from 'sentry-fixture/automations';
 import {IssueStreamDetectorFixture} from 'sentry-fixture/detectors';
 import {IntegrationProviderFixture} from 'sentry-fixture/integrationProvider';
@@ -28,8 +29,10 @@ import * as pipelineModal from 'sentry/components/pipeline/modal';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
+import * as analytics from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 
+import {ONBOARDING_STAGGER} from './animations';
 import {ScmMessaging} from './scmMessaging';
 
 const selectedPlatform = {
@@ -160,7 +163,10 @@ function renderMessaging({
 }
 
 describe('ScmMessaging', () => {
+  let trackAnalyticsSpy: jest.SpyInstance;
+
   beforeEach(() => {
+    trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
     TeamStore.loadInitialData([adminTeam]);
     ProjectsStore.loadInitialData([]);
     mockProviderQueries();
@@ -179,6 +185,7 @@ describe('ScmMessaging', () => {
   });
 
   afterEach(() => {
+    trackAnalyticsSpy.mockRestore();
     cleanup();
     TeamStore.reset();
     ProjectsStore.reset();
@@ -218,7 +225,7 @@ describe('ScmMessaging', () => {
       )
     ).toBeInTheDocument();
     expect(onMessagingSetupChange).toHaveBeenCalledWith({mode: 'unconfigured'});
-    expect(screen.queryByText('Destination added')).not.toBeInTheDocument();
+    expect(screen.queryByText('Connected')).not.toBeInTheDocument();
   });
 
   it('clears an inactive integration with an explanation', async () => {
@@ -233,7 +240,7 @@ describe('ScmMessaging', () => {
       )
     ).toBeInTheDocument();
     expect(onMessagingSetupChange).toHaveBeenCalledWith({mode: 'unconfigured'});
-    expect(screen.queryByText('Destination added')).not.toBeInTheDocument();
+    expect(screen.queryByText('Connected')).not.toBeInTheDocument();
   });
 
   it('clears the stale channel warning once a refetch resolves the channel', async () => {
@@ -391,7 +398,7 @@ describe('ScmMessaging', () => {
       )
     ).toBeInTheDocument();
     expect(onMessagingSetupChange).not.toHaveBeenCalled();
-    expect(screen.queryByText('Destination added')).not.toBeInTheDocument();
+    expect(screen.queryByText('Connected')).not.toBeInTheDocument();
   });
 
   it('uses channel ID as the channel-validate param for Discord', async () => {
@@ -472,7 +479,7 @@ describe('ScmMessaging', () => {
       </QueryClientProvider>
     );
 
-    expect(screen.queryByText('Destination added')).not.toBeInTheDocument();
+    expect(screen.queryByText('Connected')).not.toBeInTheDocument();
     expect(onMessagingSetupChange).not.toHaveBeenCalled();
     expect(
       await screen.findByText(
@@ -575,6 +582,31 @@ describe('ScmMessaging', () => {
     expect(await screen.findByText('slack')).toBeInTheDocument();
     expect(screen.getByText('discord')).toBeInTheDocument();
     expect(screen.getByText('msteams')).toBeInTheDocument();
+  });
+
+  it('shows provider rows that arrive after the step has entered', async () => {
+    // The onboarding shell renders every step inside a variant root like this
+    // one. The providers load after it has entered, so the rows mount late and
+    // must still animate in rather than waiting on a signal that has passed.
+    const StepRoot = motion.create('div');
+    render(
+      <StepRoot {...ONBOARDING_STAGGER}>
+        <ScmMessaging
+          createdProject={undefined}
+          messagingSetup={{mode: 'unconfigured'}}
+          onCreatedProjectChange={jest.fn()}
+          onMessagingSetupChange={jest.fn()}
+          selectedFeatures={selectedFeatures}
+          selectedPlatform={selectedPlatform}
+          selectedRepository={undefined}
+          onComplete={jest.fn()}
+        />
+      </StepRoot>,
+      {organization}
+    );
+
+    const slack = await screen.findByText('slack');
+    await waitFor(() => expect(slack).toBeVisible());
   });
 
   it('Continue is not rendered when no destination is configured', () => {
@@ -699,6 +731,10 @@ describe('ScmMessaging', () => {
     expect(onCreatedProjectChange.mock.invocationCallOrder[0]).toBeLessThan(
       onComplete.mock.invocationCallOrder[0]!
     );
+    expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+      'onboarding.scm_messaging_completed',
+      expect.objectContaining({notification: 'integration'})
+    );
   });
 
   it('Continue targets an MS Teams channel by its name', async () => {
@@ -804,6 +840,10 @@ describe('ScmMessaging', () => {
       slug: createdProject.slug,
       messagingSelection: undefined,
     });
+    expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+      'onboarding.scm_messaging_completed',
+      expect.objectContaining({notification: 'email_only'})
+    );
   });
 
   it('stays on the step with the destination staged when project creation fails', async () => {
@@ -945,6 +985,10 @@ describe('ScmMessaging', () => {
       expect(createProjectRequest).not.toHaveBeenCalled();
       expect(createWorkflowRequest).not.toHaveBeenCalled();
       expect(onCreatedProjectChange).not.toHaveBeenCalled();
+      expect(trackAnalyticsSpy).not.toHaveBeenCalledWith(
+        'onboarding.scm_messaging_completed',
+        expect.anything()
+      );
     });
 
     it('Set up later completes without any requests whatever the project was created for', async () => {
@@ -1005,7 +1049,7 @@ describe('ScmMessaging', () => {
       )
     ).toBeInTheDocument();
     expect(onMessagingSetupChange).toHaveBeenCalledWith({mode: 'unconfigured'});
-    expect(screen.queryByText('Destination added')).not.toBeInTheDocument();
+    expect(screen.queryByText('Connected')).not.toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Continue'})).toBeDisabled();
   });
 
@@ -1068,9 +1112,7 @@ describe('ScmMessaging', () => {
       expect(screen.getByText('msteams')).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Set up later'})).toBeInTheDocument();
 
-      await userEvent.click(
-        screen.getByRole('button', {name: /Choose destination for slack/})
-      );
+      await userEvent.click(screen.getByRole('button', {name: /Set up slack/}));
 
       // Only slack row visible; footer gone.
       expect(screen.queryByText('discord')).not.toBeInTheDocument();
@@ -1100,7 +1142,7 @@ describe('ScmMessaging', () => {
       );
     });
 
-    it('Confirm and continue keeps siblings hidden and restores the footer when creation fails', async () => {
+    it('Confirm and continue keeps siblings and the footer hidden when creation fails', async () => {
       mockExclusiveSlackProviders();
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/integrations/slack-1/channels/',
@@ -1121,9 +1163,7 @@ describe('ScmMessaging', () => {
       );
 
       expect(await screen.findByText('discord')).toBeInTheDocument();
-      await userEvent.click(
-        screen.getByRole('button', {name: /Choose destination for slack/})
-      );
+      await userEvent.click(screen.getByRole('button', {name: /Set up slack/}));
       expect(screen.queryByText('discord')).not.toBeInTheDocument();
       expect(
         screen.queryByRole('button', {name: 'Set up later'})
@@ -1132,16 +1172,15 @@ describe('ScmMessaging', () => {
       await selectEvent.select(screen.getByLabelText('channel'), '#alerts');
       await userEvent.click(screen.getByRole('button', {name: 'Confirm and continue'}));
 
-      // activeRow clears after save; selected setup keeps siblings hidden and
-      // brings the footer back. The requested continue fails, so the step
-      // stays with the destination staged and Continue enabled for a retry.
+      // Picker stays open (activeRow is not cleared), so siblings remain hidden
+      // and the footer stays hidden. The requested continue fails, so the step
+      // stays with the destination staged for a retry from the picker.
       expect(screen.queryByText('discord')).not.toBeInTheDocument();
       expect(screen.queryByText('msteams')).not.toBeInTheDocument();
-      expect(screen.getByRole('button', {name: 'Set up later'})).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Set up later'})
+      ).not.toBeInTheDocument();
       await waitFor(() => expect(createProjectRequest).toHaveBeenCalledTimes(1));
-      await waitFor(() =>
-        expect(screen.getByRole('button', {name: 'Continue'})).toBeEnabled()
-      );
       expect(onComplete).not.toHaveBeenCalled();
     });
 
@@ -1176,9 +1215,7 @@ describe('ScmMessaging', () => {
       // Wait for provider rows to load before interacting.
       expect(await screen.findByText('discord')).toBeInTheDocument();
 
-      await userEvent.click(
-        screen.getByRole('button', {name: /Choose destination for slack/})
-      );
+      await userEvent.click(screen.getByRole('button', {name: /Set up slack/}));
       await selectEvent.select(screen.getByLabelText('channel'), '#alerts');
       await userEvent.click(screen.getByRole('button', {name: 'Confirm and continue'}));
 
@@ -1350,9 +1387,9 @@ describe('ScmMessaging', () => {
 
       act(() => releaseRefetch());
 
-      // Refetch settled: picker auto-opened (its "Workspace" label), Connect
+      // Refetch settled: picker auto-opened (its "Channel" label), Connect
       // gone, footer still hidden.
-      expect(await screen.findByText('Workspace')).toBeInTheDocument();
+      expect(await screen.findByText('Channel')).toBeInTheDocument();
       expect(
         screen.queryByRole('button', {name: /Connect slack/i})
       ).not.toBeInTheDocument();

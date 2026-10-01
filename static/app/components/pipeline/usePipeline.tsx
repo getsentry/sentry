@@ -69,7 +69,7 @@ interface UsePipelineOptions<
   /**
    * Copy override forwarded to step components that render descriptive intro text.
    */
-  description?: string;
+  description?: React.ReactNode;
   /**
    * Data that will be passed through to the initialization call.
    */
@@ -135,6 +135,7 @@ export function usePipeline<
   const [state, setState] = useState<PipelineState<T, P>>({status: 'idle'});
   const initializedRef = useRef(false);
   const onCompleteRef = useRef(options.onComplete);
+  // oxlint-disable-next-line react/refs
   onCompleteRef.current = options.onComplete;
   const generationRef = useRef(0);
 

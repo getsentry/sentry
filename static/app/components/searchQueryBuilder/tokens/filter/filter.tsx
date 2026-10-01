@@ -39,6 +39,7 @@ import {
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {getKeyName} from 'sentry/components/searchSyntax/utils';
+import {isQueryBuilderPanelChrome} from 'sentry/components/tokenizedInput/token/comboBoxLayout';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
@@ -195,6 +196,7 @@ function TruncatedFilterDisplayValue({
     const observer = new ResizeObserver(update);
     observer.observe(observed);
     return () => observer.disconnect();
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [value, fallbackMaxLength, multi]);
 
   const Truncated = multi ? FilterMultiValueTruncated : FilterValueSingleTruncatedValue;
@@ -277,46 +279,61 @@ function FilterValue({token, state, item, filterRef, onActiveChange}: FilterValu
   const ref = useRef<HTMLDivElement>(null);
   const {dispatch, focusOverride} = useSearchQueryBuilderState();
   const {disabled} = useSearchQueryBuilderConfig();
+  const {menuPresentation, panelRef, portalTarget} = useSearchQueryBuilderLayout();
 
-  const [isEditing, setIsEditing] = useState(false);
+  const [editSource, setEditSource] = useState<'click' | 'focusOverride' | false>(false);
 
   useLayoutEffect(() => {
     if (
-      !isEditing &&
+      !editSource &&
       focusOverride?.itemKey === item.key &&
       focusOverride.part === 'value'
     ) {
-      setIsEditing(true);
+      // oxlint-disable-next-line react/set-state-in-effect
+      setEditSource('focusOverride');
       onActiveChange(true);
       dispatch({type: 'RESET_FOCUS_OVERRIDE'});
     }
-  }, [dispatch, focusOverride, isEditing, item.key, onActiveChange]);
+  }, [dispatch, editSource, focusOverride, item.key, onActiveChange]);
 
   const {focusWithinProps} = useFocusWithin({
-    onBlurWithin: () => {
-      setIsEditing(false);
+    onBlurWithin: event => {
+      if (
+        menuPresentation === 'panel' &&
+        event.relatedTarget instanceof Node &&
+        isQueryBuilderPanelChrome(event.relatedTarget, panelRef.current, portalTarget)
+      ) {
+        return;
+      }
+      setEditSource(false);
     },
   });
 
   const filterButtonProps = useFilterButtonProps({state, item});
 
-  if (isEditing) {
+  if (editSource) {
     return (
       <ValueEditing ref={ref} {...mergeProps(focusWithinProps, filterButtonProps)}>
         <SearchQueryBuilderValueCombobox
           token={token}
           wrapperRef={ref}
+          editingCommittedValue={editSource === 'click'}
           onDelete={() => {
             filterRef.current?.focus();
             state.selectionManager.setFocusedKey(item.key);
-            setIsEditing(false);
+            setEditSource(false);
             onActiveChange(false);
           }}
           onCommit={() => {
-            setIsEditing(false);
+            setEditSource(false);
             onActiveChange(false);
             dispatch({type: 'COMMIT_QUERY'});
-            if (state.collection.getKeyAfter(item.key)) {
+            // Committing on blur must not move focus back into a dismissed panel.
+            if (
+              state.collection.getKeyAfter(item.key) &&
+              (menuPresentation !== 'panel' ||
+                panelRef.current?.contains(document.activeElement))
+            ) {
               state.selectionManager.setFocusedKey(
                 state.collection.getKeyAfter(item.key)
               );
@@ -331,7 +348,7 @@ function FilterValue({token, state, item, filterRef, onActiveChange}: FilterValu
     <ValueButton
       aria-label={t('Edit value for filter: %s', getKeyName(token.key))}
       onClick={() => {
-        setIsEditing(true);
+        setEditSource('click');
         onActiveChange(true);
       }}
       disabled={disabled}
@@ -387,6 +404,7 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
     }
   };
 
+  // oxlint-disable-next-line react/refs
   const modifiedRowProps = mergeProps(rowProps, {
     tabIndex: isFocused ? 0 : -1,
     onKeyDown,

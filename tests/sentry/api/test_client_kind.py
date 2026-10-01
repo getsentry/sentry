@@ -19,6 +19,7 @@ from sentry.api.client_kind import (
     get_user_agent,
     set_client_kind_attributes,
 )
+from sentry.auth.access import NoAccess
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.auth.system import SystemToken
 from sentry.seer.agent_token import AGENT_TOKEN_KIND
@@ -48,6 +49,8 @@ def make_request(
     # otherwise run, so the request arrives pre-authenticated.
     request.user = user if user is not None else AnonymousUser()
     request.auth = auth
+    # Set by `Endpoint.dispatch` before the attribution span reads it.
+    request.access = NoAccess()
     return request
 
 
@@ -304,6 +307,38 @@ class SetClientKindAttributesTest(TestCase):
         assert sdk.set_tag.call_args_list == [mock.call("client_kind_test", "script")]
 
 
+class AccessLogAttributesTest(TestCase):
+    """Asserted on the underlying Django request, which is all `access_log` sees."""
+
+    def stored(self, request: Request) -> tuple[Any, Any]:
+        django_request: Any = request._request
+        return (
+            getattr(django_request, "client_kind", None),
+            getattr(django_request, "client_host", None),
+        )
+
+    def test_stores_the_derived_kind(self) -> None:
+        request = make_request(auth=api_token(), user_agent="curl/8.7.1")
+        set_client_kind_attributes(request)
+        assert self.stored(request) == (ClientKind.SCRIPT, None)
+
+    def test_stores_the_client_host_for_mcp(self) -> None:
+        request = make_request(
+            auth=api_token(),
+            user_agent="sentry-mcp/1.0",
+            headers={
+                "X-Sentry-MCP-Version": "1.0",
+                "X-Sentry-MCP-Client-Family": "Claude-Code",
+            },
+        )
+        set_client_kind_attributes(request)
+        assert self.stored(request) == (ClientKind.MCP, "claude-code")
+
+    def test_absent_until_dispatch_runs(self) -> None:
+        # An un-attributed request leaves the attributes absent, not empty.
+        assert self.stored(make_request(auth=api_token())) == (None, None)
+
+
 class AttributionSpanTest(TestCase):
     def record(self, request: Request) -> tuple[Any, list[tuple[str, Any]]]:
         with (
@@ -353,6 +388,33 @@ class AttributionSpanTest(TestCase):
             ATTRIBUTE_NAMES.HTTP_ROUTE,
             "client_kind_test",
         ]
+
+
+class CallerScopesMetricTest(TestCase):
+    def metrics_for(self, request: Request) -> list[str]:
+        # Keep DRF from re-running authentication, which would clear `request.auth`.
+        mark_authenticated_by(request, None)
+        with mock.patch("sentry.api.client_kind.metrics.incr") as incr:
+            set_client_kind_attributes(request)
+        return [call.args[0] for call in incr.call_args_list]
+
+    def test_token_scopes(self) -> None:
+        token = SimpleNamespace(get_scopes=lambda: ["org:read", "dashboard:read"])
+        assert self.metrics_for(make_request(auth=token)) == [
+            "api.has_deprecated_scopes",
+            "api.has_granular_scopes",
+        ]
+
+    def test_session_falls_back_to_access_scopes(self) -> None:
+        request = make_request(user=session_user())
+        request.access = SimpleNamespace(scopes=frozenset({"org:write"}))
+        assert self.metrics_for(request) == []
+
+    def test_signature_auth_falls_back_to_access_scopes(self) -> None:
+        # HMAC signature authentication sets `request.auth` to the signature string.
+        request = make_request(auth="rpc0:signature")
+        request.access = SimpleNamespace(scopes=frozenset({"project:read"}))
+        assert self.metrics_for(request) == ["api.has_deprecated_scopes"]
 
 
 class SpanRouteTest(TestCase):

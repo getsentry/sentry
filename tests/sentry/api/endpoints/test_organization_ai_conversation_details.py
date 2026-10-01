@@ -22,6 +22,64 @@ from sentry.utils.snuba_rpc import SnubaRPCTimeout
 from .test_organization_ai_conversations_base import BaseAIConversationsTestCase
 
 
+def test_parent_fetch_groups_span_ids_by_trace() -> None:
+    endpoint = OrganizationAIConversationDetailsEndpoint()
+    snuba_params = MagicMock()
+    parent_keys = {
+        ("trace-a", "parent-2"),
+        ("trace-b", "parent-3"),
+        ("trace-a", "parent-1"),
+    }
+    parent = {"trace": "trace-a", "span_id": "parent-1"}
+
+    with patch.object(Spans, "run_table_query", return_value={"data": [parent]}) as run_query:
+        result = endpoint._fetch_parent_spans(snuba_params, parent_keys)
+
+    assert result == {("trace-a", "parent-1"): parent}
+    assert run_query.call_args.kwargs["query_string"] == (
+        '(trace:"trace-a" span_id:["parent-1", "parent-2"]) OR (trace:"trace-b" span_id:"parent-3")'
+    )
+    assert run_query.call_args.kwargs["limit"] == 3
+    assert run_query.call_args.kwargs["config"].auto_fields is False
+
+
+def test_parent_repair_uses_spans_from_page() -> None:
+    endpoint = OrganizationAIConversationDetailsEndpoint()
+    conversation_id = uuid4().hex
+    trace_id = uuid4().hex
+    root = {
+        "trace": trace_id,
+        "span_id": "root",
+        "gen_ai.conversation.id": conversation_id,
+        "gen_ai.operation.type": "invoke_agent",
+    }
+    bridge = {
+        "trace": trace_id,
+        "span_id": "bridge",
+        "parent_span": "root",
+        "gen_ai.conversation.id": conversation_id,
+        "span.op": "http.client",
+    }
+    child = {
+        "trace": trace_id,
+        "span_id": "child",
+        "parent_span": "bridge",
+        "gen_ai.conversation.id": conversation_id,
+        "gen_ai.operation.type": "ai_client",
+    }
+
+    with (
+        patch.object(Spans, "run_table_query") as run_query,
+        patch(
+            "sentry.ai_monitoring.endpoints.organization_ai_conversation_details.metrics.distribution"
+        ),
+    ):
+        endpoint._repair_parent_links([root, bridge, child], MagicMock(), conversation_id)
+
+    assert child["parent_span"] == "root"
+    run_query.assert_not_called()
+
+
 def test_parent_repair_stops_after_five_hops() -> None:
     endpoint = OrganizationAIConversationDetailsEndpoint()
     conversation_id = uuid4().hex
@@ -350,6 +408,11 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         assert response.status_code == 200
         assert response.data["conversationId"] == conversation_id
         assert response.data["title"] is None
+        assert response.data["projects"] == []
+        assert response.data["webUrl"].endswith(
+            f"/organizations/{self.organization.slug}/explore/agents/conversations/"
+            f"{conversation_id}/"
+        )
         assert response.data["spans"] == []
 
     def test_single_trace_conversation(self) -> None:
@@ -370,7 +433,12 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
             timestamp=now - timedelta(seconds=2),
             op="gen_ai.chat",
             operation_type="ai_client",
-            tokens=100,
+            tokens=150,
+            input_tokens=100,
+            output_tokens=50,
+            cache_read_tokens=20,
+            cache_write_tokens=30,
+            reasoning_tokens=10,
             trace_id=trace_id,
         )
         self.store_ai_span(
@@ -397,6 +465,16 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         trace_ids = {span["trace"] for span in response.data["spans"]}
         assert len(trace_ids) == 1
         assert trace_id in trace_ids
+
+        generation_span = next(
+            span for span in response.data["spans"] if span["gen_ai.operation.type"] == "ai_client"
+        )
+        assert generation_span["gen_ai.usage.input_tokens"] == 100
+        assert generation_span["gen_ai.usage.output_tokens"] == 50
+        assert generation_span["gen_ai.usage.cache_read.input_tokens"] == 20
+        assert generation_span["gen_ai.usage.cache_creation.input_tokens"] == 30
+        assert generation_span["gen_ai.usage.reasoning.output_tokens"] == 10
+        assert generation_span["gen_ai.usage.total_tokens"] == 150
 
     def test_repairs_parent_links_with_bulk_fetch(self) -> None:
         now = before_now(days=5).replace(microsecond=0)
@@ -554,6 +632,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
             conversation_id=conversation_id,
             timestamp=now,
             op="gen_ai.chat",
+            operation_name="chat",
             operation_type="ai_client",
             trace_id=trace_id,
             messages=[{"role": "user", "content": "Hello"}],
@@ -562,6 +641,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
             cost=0.0025,
             user_id="user-123",
             user_email="test@example.com",
+            origin="auto.otlp.spans",
         )
 
         query = {
@@ -586,6 +666,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         assert span["project.id"] == self.project.id
         assert "transaction" in span
         assert "is_transaction" in span
+        assert span["gen_ai.operation.name"] == "chat"
         assert span["gen_ai.operation.type"] == "ai_client"
         assert span["gen_ai.request.messages"] is not None
         assert span["gen_ai.response.text"] == "Hi there!"
@@ -593,6 +674,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         assert span["gen_ai.cost.total_tokens"] == 0.0025
         assert span["user.id"] == "user-123"
         assert span["user.email"] == "test@example.com"
+        assert span["origin"] == "auto.otlp.spans"
 
     def test_pagination(self) -> None:
         now = before_now(days=5).replace(microsecond=0)
@@ -881,6 +963,118 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         assert ai_client_span["gen_ai.usage.total_tokens"] == 100
         assert ai_client_span["gen_ai.cost.total_tokens"] == 0.01
 
+    def test_returns_full_conversation_stats_on_each_page(self) -> None:
+        now = before_now(days=5).replace(microsecond=0)
+        conversation_id = uuid4().hex
+        trace_id = uuid4().hex
+
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now - timedelta(seconds=2),
+            operation_type="ai_client",
+            tokens=100,
+            input_tokens=70,
+            output_tokens=30,
+            cache_read_tokens=10,
+            cache_write_tokens=5,
+            reasoning_tokens=4,
+            cost=0.01,
+            input_cost=0.006,
+            output_cost=0.004,
+            request_model="requested-model-a",
+            response_model="model-a",
+            trace_id=trace_id,
+        )
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now - timedelta(seconds=1),
+            operation_type="ai_client",
+            tokens=200,
+            input_tokens=120,
+            output_tokens=80,
+            cache_read_tokens=20,
+            cache_write_tokens=10,
+            reasoning_tokens=8,
+            cost=0.02,
+            input_cost=0.012,
+            output_cost=0.008,
+            request_model="model-b",
+            trace_id=trace_id,
+        )
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now,
+            op="gen_ai.execute_tool",
+            operation_type="tool",
+            tool_name="database",
+            status="internal_error",
+            trace_id=trace_id,
+        )
+
+        query: dict[str, Any] = {
+            "project": [self.project.id],
+            "per_page": "1",
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+        response = self.do_request(conversation_id, query)
+
+        assert response.status_code == 200
+        assert len(response.data["spans"]) == 1
+        expected_stats = {
+            "endTimestamp": int(now.timestamp() * 1000),
+            "inputTokens": 190,
+            "llmCalls": 2,
+            "outputTokens": 110,
+            "startTimestamp": int((now - timedelta(seconds=2)).timestamp() * 1000),
+            "toolCalls": 1,
+            "toolErrors": 1,
+            "toolNames": ["database"],
+            "totalCost": 0.03,
+            "totalTokens": 300,
+        }
+        stats = response.data["stats"]
+        assert {field: stats[field] for field in expected_stats} == expected_stats
+        assert stats["generationDuration"] > 0
+        expected_usage_by_model = [
+            {
+                "model": "model-b",
+                "llmCalls": 1,
+                "inputTokens": 120,
+                "outputTokens": 80,
+                "totalTokens": 200,
+                "cacheReadTokens": 20,
+                "cacheWriteTokens": 10,
+                "reasoningTokens": 8,
+                "inputCost": 0.012,
+                "outputCost": 0.008,
+                "totalCost": 0.02,
+            },
+            {
+                "model": "model-a",
+                "llmCalls": 1,
+                "inputTokens": 70,
+                "outputTokens": 30,
+                "totalTokens": 100,
+                "cacheReadTokens": 10,
+                "cacheWriteTokens": 5,
+                "reasoningTokens": 4,
+                "inputCost": 0.006,
+                "outputCost": 0.004,
+                "totalCost": 0.01,
+            },
+        ]
+        assert stats["usageByModel"] == expected_usage_by_model
+
+        links = parse_link_header(response.headers["Link"])
+        query["cursor"] = next(link for link in links.values() if link["rel"] == "next")["cursor"]
+        next_response = self.do_request(conversation_id, query)
+
+        assert next_response.status_code == 200
+        next_stats = next_response.data["stats"]
+        assert {field: next_stats[field] for field in expected_stats} == expected_stats
+        assert next_stats["usageByModel"] == expected_usage_by_model
+
     def test_timeout_returns_504(self) -> None:
         conversation_id = uuid4().hex
 
@@ -1115,8 +1309,18 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         response = self.do_request(conversation_id, query)
 
         assert response.status_code == 200
-        assert set(response.data) == {"conversationId", "title", "spans"}
+        assert set(response.data) == {
+            "conversationId",
+            "projects",
+            "spans",
+            "stats",
+            "title",
+            "webUrl",
+        }
         assert response.data["conversationId"] == conversation_id
+        assert response.data["projects"] == [
+            {"id": self.project.id, "name": self.project.name, "slug": self.project.slug}
+        ]
         assert len(response.data["spans"]) == 1
 
     def test_returns_stored_title(self) -> None:
@@ -1237,24 +1441,10 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         assert response.status_code == 200
         assert len(response.data["spans"]) == 2
         assert response.data["title"] == "Started here"
-
-    def test_empty_conversation_returns_envelope(self) -> None:
-        now = before_now(days=5).replace(microsecond=0)
-        conversation_id = uuid4().hex
-
-        self._store_conversation_span(uuid4().hex, now)
-
-        query = {
-            "project": [self.project.id],
-            "start": (now - timedelta(hours=1)).isoformat(),
-            "end": (now + timedelta(hours=1)).isoformat(),
-        }
-
-        response = self.do_request(conversation_id, query)
-        assert response.status_code == 200
-        assert response.data["conversationId"] == conversation_id
-        assert response.data["title"] is None
-        assert response.data["spans"] == []
+        assert response.data["projects"] == [
+            {"id": self.project.id, "name": self.project.name, "slug": self.project.slug}
+        ]
+        assert response.data["webUrl"].endswith(f"/{conversation_id}/?project={self.project.id}")
 
     def test_paginates_with_title(self) -> None:
         now = before_now(days=5).replace(microsecond=0)

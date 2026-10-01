@@ -13,6 +13,7 @@ describe('getTokenBreakdown', () => {
     expect(result).toEqual({
       netNewInput: 100,
       cached: 0,
+      cacheWrite: 0,
       output: 50,
       total: 150,
     });
@@ -31,6 +32,7 @@ describe('getTokenBreakdown', () => {
     expect(result).toEqual({
       netNewInput: 20,
       cached: 80,
+      cacheWrite: 0,
       output: 50,
       total: 150,
     });
@@ -50,8 +52,28 @@ describe('getTokenBreakdown', () => {
     expect(result).toEqual({
       netNewInput: 30,
       cached: 80,
+      cacheWrite: 0,
       output: 90,
       total: 200,
+    });
+  });
+
+  it('separates cache writes from input tokens', () => {
+    const result = getTokenBreakdown({
+      inputTokens: 100,
+      cachedTokens: 20,
+      cacheWriteTokens: 30,
+      outputTokens: 50,
+      reasoningTokens: 0,
+      totalTokens: 150,
+    });
+
+    expect(result).toEqual({
+      netNewInput: 50,
+      cached: 20,
+      cacheWrite: 30,
+      output: 50,
+      total: 150,
     });
   });
 
@@ -82,6 +104,7 @@ describe('getTokenBreakdown', () => {
     expect(result).toEqual({
       netNewInput: 100,
       cached: 0,
+      cacheWrite: 0,
       output: 100,
       total: 200,
     });
@@ -101,6 +124,7 @@ describe('getTokenBreakdown', () => {
     expect(result).toEqual({
       netNewInput: 100,
       cached: 0,
+      cacheWrite: 0,
       output: 100,
       total: 200,
     });
@@ -119,6 +143,7 @@ describe('getTokenBreakdown', () => {
     expect(result).toEqual({
       netNewInput: 20,
       cached: 80,
+      cacheWrite: 0,
       output: 80,
       total: 180,
     });
@@ -136,6 +161,7 @@ describe('getTokenBreakdown', () => {
     expect(result).toEqual({
       netNewInput: 100,
       cached: 0,
+      cacheWrite: 0,
       output: 50,
       total: 150,
     });
@@ -153,6 +179,7 @@ describe('getTokenBreakdown', () => {
     expect(result).toEqual({
       netNewInput: 100,
       cached: 0,
+      cacheWrite: 0,
       output: 50,
       total: 150,
     });

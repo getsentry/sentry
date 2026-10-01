@@ -1,6 +1,7 @@
 from typing import Any
 from unittest.mock import ANY, MagicMock, patch
 
+import pytest
 from scm.errors import ResourceNotFound
 
 from sentry.models.pullrequest import PullRequest
@@ -15,6 +16,7 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
 from sentry.seer.autofix.pr_iteration.listeners.review import (
     handle_pull_request_review_for_autofix_iteration,
 )
+from sentry.seer.models import SeerUnavailableError
 from sentry.tasks.seer.pr_iteration import _REVIEW_PAGE_SIZE, trigger_pr_iteration_from_review
 from sentry.testutils.cases import TestCase
 
@@ -211,6 +213,7 @@ class TriggerPrIterationFromReviewTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.group = self.create_group(project=self.project)
+        self.create_seer_run(organization=self.organization, seer_run_state_id=67890)
         self.repo = self.create_repo(
             project=self.project,
             provider="integrations:github",
@@ -223,7 +226,7 @@ class TriggerPrIterationFromReviewTest(TestCase):
         # exercises. The mocks are exposed as ``self.mock_*``.
         for attr, target in (
             ("mock_get_state", "get_agent_state_from_pr_id"),
-            ("mock_enqueue", "try_enqueue_autofix_feedback"),
+            ("mock_enqueue", "enqueue_autofix_feedback"),
             ("mock_consume", "consume_queued_autofix_feedback.apply_async"),
             ("mock_make_scm", "make_scm"),
             ("mock_actions", "scm_actions"),
@@ -326,7 +329,7 @@ class TriggerPrIterationFromReviewTest(TestCase):
     def _review_result(self, review: dict[str, Any]) -> dict[str, Any]:
         return {"data": review, "type": "github", "raw": {}}
 
-    def _stored_pr(self, *, external_id: int | None = None) -> PullRequest:
+    def _stored_pr(self, *, external_id: str | None = None) -> PullRequest:
         pr = self.create_pull_request(
             repository_id=self.repo.id,
             organization_id=self.organization.id,
@@ -358,13 +361,13 @@ class TriggerPrIterationFromReviewTest(TestCase):
     def test_resolves_pr_id_from_row_without_calling_github(self) -> None:
         # The pull_request_review payload carries only the PR number; a stored
         # ``external_id`` is what keeps that from costing a REST round-trip.
-        self._stored_pr(external_id=555)
+        self._stored_pr(external_id="555")
 
         self._run()
 
         self.mock_actions.get_pull_request.assert_not_called()
         self.mock_get_state.assert_called_once_with(
-            self.organization.id, "integrations:github", 555
+            self.organization.id, "integrations:github", "555"
         )
 
     def test_writes_external_id_back_on_a_miss(self) -> None:
@@ -376,7 +379,7 @@ class TriggerPrIterationFromReviewTest(TestCase):
             self.mock_make_scm.return_value, "7"
         )
         pr.refresh_from_db()
-        assert pr.external_id == 555
+        assert pr.external_id == "555"
 
     def test_stops_on_a_repo_whose_provider_is_not_pinned(self) -> None:
         # Everything downstream reads github.com off `PR_ITERATION_PROVIDER`
@@ -419,7 +422,7 @@ class TriggerPrIterationFromReviewTest(TestCase):
             self.mock_make_scm.return_value, "7"
         )
         self.mock_get_state.assert_called_once_with(
-            self.organization.id, "integrations:github", 555
+            self.organization.id, "integrations:github", "555"
         )
 
         # Two inline comments + one review body item.
@@ -676,11 +679,20 @@ class TriggerPrIterationFromReviewTest(TestCase):
         self.mock_enqueue.assert_not_called()
         self.mock_consume.assert_not_called()
 
-    def test_skips_bot_review_when_automated_streak_capped(self) -> None:
-        # A bot review past the automated-iteration streak cap is dropped before
-        # enqueueing or :eyes:-acking any inline comment — otherwise reviewers see
-        # an ack for feedback that never produces an iteration. (Iterations with no
-        # human feedback count as automated, so two bare iterations trip a cap of 2.)
+    def test_seer_unavailable_fails_the_task_so_it_is_retried(self) -> None:
+        self.mock_get_state.side_effect = SeerUnavailableError("Seer request failed", 503)
+
+        with pytest.raises(SeerUnavailableError):
+            self._run()
+
+        self.mock_enqueue.assert_not_called()
+
+    def test_bot_review_past_the_automated_streak_cap_is_queued_but_not_consumed(self) -> None:
+        # Feedback is always queued. Past the cap the trigger refuses to schedule
+        # a consume for a bot review, so none of its inline comments get an
+        # :eyes: ack for an iteration that isn't coming. (Iterations with no
+        # human feedback count as automated, so two bare iterations trip a cap
+        # of 2.)
         self.mock_get_state.return_value = self._agent_state(
             blocks=[self._iteration_block(1), self._iteration_block(2)]
         )
@@ -691,12 +703,9 @@ class TriggerPrIterationFromReviewTest(TestCase):
         with self.options({"autofix.pr-iteration.max-iterations": 2}):
             self._run(author_is_bot=True)
 
-        self.mock_actions.get_review_comments.assert_not_called()
-        self.mock_enqueue.assert_not_called()
+        self.mock_enqueue.assert_called()
         self.mock_consume.assert_not_called()
         self.mock_actions.create_review_comment_reaction.assert_not_called()
-        # The cap drops the bot, not the write-access gate.
-        self.mock_actions.get_repository_user_permission.assert_not_called()
 
     def test_bot_review_capped_when_prior_iterations_recorded_bot_feedback(self) -> None:
         # Bot reviews recorded as automated feedback trip the cap, so bot-vs-agent
@@ -714,7 +723,6 @@ class TriggerPrIterationFromReviewTest(TestCase):
         with self.options({"autofix.pr-iteration.max-iterations": 2}):
             self._run(author_is_bot=True)
 
-        self.mock_enqueue.assert_not_called()
         self.mock_consume.assert_not_called()
         self.mock_actions.create_review_comment_reaction.assert_not_called()
 

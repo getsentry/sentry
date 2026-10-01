@@ -6,9 +6,10 @@ from typing import Any
 from unittest.mock import Mock, call, patch
 
 import pytest
-from django.db import OperationalError, connections, router, transaction
+from django.db import InterfaceError, OperationalError, connections, router, transaction
 from pytest import raises
 
+from sentry.hybridcloud.models import ApiTokenReplica
 from sentry.hybridcloud.models.outbox import (
     CellOutbox,
     ControlOutbox,
@@ -18,6 +19,9 @@ from sentry.hybridcloud.models.outbox import (
 )
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.hybridcloud.tasks.deliver_from_outbox import enqueue_outbox_jobs, schedule_outbox_model
+from sentry.models.apiapplication import ApiApplication
+from sentry.models.apigrant import ApiGrant
+from sentry.models.apitoken import ApiToken
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.projectkey import ProjectKey
@@ -137,6 +141,160 @@ class ControlOutboxTest(TestCase):
                 t = threading.Thread(target=test_with_other_connection)
                 t.start()
                 t.join()
+
+
+@control_silo_test
+class ControlOutboxDrainTest(TransactionTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.outbox = ControlOutbox(
+            cell_name="eu",
+            shard_scope=OutboxScope.API_TOKEN_SCOPE,
+            shard_identifier=1,
+            category=OutboxCategory.API_TOKEN_UPDATE,
+            object_identifier=1,
+        )
+        with outbox_context(flush=False):
+            self.outbox.save()
+        self.connection = connections[router.db_for_write(ControlOutbox)]
+
+    def terminate_connection(self, **kwargs: Any) -> None:
+        assert self.connection.in_atomic_block
+        assert self.connection.connection is not None
+        backend_pid = self.connection.connection.get_backend_pid()
+        terminator = self.connection.copy()
+        try:
+            with terminator.cursor() as cursor:
+                # Wait for termination to complete before the next database operation.
+                termination_timeout_ms = 5_000
+                cursor.execute(
+                    "SELECT pg_terminate_backend(%s, %s)", [backend_pid, termination_timeout_ms]
+                )
+                assert cursor.fetchone()[0]
+        finally:
+            terminator.close()
+
+    def test_reconnects_after_successful_token_replication(self) -> None:
+        self.outbox.delete()
+        with outbox_runner():
+            user = self.create_user()
+            application = ApiApplication(owner=user, redirect_uris="https://example.com")
+            application.save()
+        grant = ApiGrant(user=user, application=application, redirect_uri="https://example.com")
+        grant.save()
+        following_callback = Mock()
+        original_replication = ApiToken.handle_async_replication
+
+        with patch.object(ApiToken, "handle_async_replication", autospec=True) as mock_replication:
+
+            def disconnect_once(token: ApiToken, cell_name: str, shard_identifier: int) -> None:
+                mock_replication.side_effect = original_replication
+                original_replication(token, cell_name, shard_identifier)
+                self.terminate_connection()
+
+            mock_replication.side_effect = disconnect_once
+            with transaction.atomic(using=self.connection.alias):
+                token = ApiToken.from_grant(grant)
+                transaction.on_commit(following_callback, using=self.connection.alias)
+
+        assert mock_replication.call_count == 2
+        assert mock_replication.call_args_list[0] == mock_replication.call_args_list[1]
+        following_callback.assert_called_once_with()
+        assert not ApiGrant.objects.filter(id=grant.id).exists()
+        assert ApiToken.objects.filter(application=application).count() == 1
+        assert token.plaintext_token == token.token
+        assert not ControlOutbox.objects.filter(
+            category=OutboxCategory.API_TOKEN_UPDATE, object_identifier=token.id
+        ).exists()
+        with assume_test_silo_mode(SiloMode.CELL):
+            replica = ApiTokenReplica.objects.get(apitoken_id=token.id)
+            assert replica.token == token.token
+
+    @patch("sentry.hybridcloud.models.outbox.process_control_outbox.send")
+    def test_reconnects_after_interface_error(self, mock_send: Mock) -> None:
+        original_process = ControlOutbox.process
+        with patch.object(ControlOutbox, "process", autospec=True) as mock_process:
+
+            def fail_once(outbox: ControlOutbox, is_synchronous_flush: bool) -> bool:
+                mock_process.side_effect = original_process
+                raise InterfaceError("connection already closed")
+
+            mock_process.side_effect = fail_once
+            self.outbox.drain_shard()
+
+        assert mock_process.call_count == 2
+        mock_send.assert_called_once()
+        assert not ControlOutbox.objects.filter(id=self.outbox.id).exists()
+
+    def test_wraps_interface_error_after_retry(self) -> None:
+        retry_error = InterfaceError("connection already closed")
+        with (
+            patch.object(
+                ControlOutbox,
+                "process",
+                side_effect=[
+                    OperationalError("server closed the connection unexpectedly"),
+                    retry_error,
+                ],
+            ) as mock_process,
+            pytest.raises(OutboxDatabaseError) as exc_info,
+        ):
+            self.outbox.drain_shard()
+
+        assert exc_info.value.__cause__ is retry_error
+        assert mock_process.call_count == 2
+        assert not self.connection.in_atomic_block
+        assert ControlOutbox.objects.filter(id=self.outbox.id).exists()
+
+    @patch("sentry.hybridcloud.models.outbox.process_control_outbox.send")
+    def test_retries_disconnection_only_once(self, mock_send: Mock) -> None:
+        mock_send.side_effect = self.terminate_connection
+
+        with pytest.raises(OutboxDatabaseError):
+            self.outbox.drain_shard()
+
+        assert mock_send.call_count == 2
+        assert not self.connection.in_atomic_block
+        assert ControlOutbox.objects.filter(id=self.outbox.id).exists()
+
+    @patch("sentry.hybridcloud.models.outbox.process_control_outbox.send")
+    def test_does_not_retry_async_drain(self, mock_send: Mock) -> None:
+        mock_send.side_effect = self.terminate_connection
+
+        with pytest.raises(OutboxDatabaseError):
+            self.outbox.drain_shard(flush_all=True)
+
+        mock_send.assert_called_once()
+        assert ControlOutbox.objects.filter(id=self.outbox.id).exists()
+
+    def test_does_not_retry_other_shards(self) -> None:
+        self.outbox.shard_scope = OutboxScope.USER_SCOPE
+        self.outbox.category = OutboxCategory.USER_UPDATE
+        with outbox_context(flush=False):
+            self.outbox.save()
+        disconnect_error = OperationalError("server closed the connection unexpectedly")
+
+        # Inject at the drain boundary so database-level auto-reconnect cannot hide the error.
+        with (
+            patch.object(ControlOutbox, "process", side_effect=disconnect_error) as mock_process,
+            pytest.raises(OutboxDatabaseError) as exc_info,
+        ):
+            self.outbox.drain_shard()
+
+        assert exc_info.value.__cause__ is disconnect_error
+        mock_process.assert_called_once_with(is_synchronous_flush=True)
+        assert not self.connection.in_atomic_block
+        assert ControlOutbox.objects.filter(id=self.outbox.id).exists()
+
+    @patch.object(
+        ControlOutbox, "process", side_effect=OperationalError("unrelated database error")
+    )
+    def test_does_not_retry_other_database_errors(self, mock_process: Mock) -> None:
+        with pytest.raises(OutboxDatabaseError):
+            self.outbox.drain_shard()
+
+        mock_process.assert_called_once()
+        assert ControlOutbox.objects.filter(id=self.outbox.id).exists()
 
 
 class OutboxDrainTest(TransactionTestCase):
@@ -888,3 +1046,148 @@ class OutboxAggregationTest(TestCase):
             warning_call.args and warning_call.args[0] == "deliver_from_outbox.deep_shard"
             for warning_call in mock_logger.warning.mock_calls
         )
+
+    @patch("sentry.hybridcloud.tasks.deliver_from_outbox.metrics")
+    def test_total_outbox_count_derived_from_category_depths(self, mock_metrics: Mock) -> None:
+        with patch.object(
+            ControlOutbox, "get_total_outbox_count", wraps=ControlOutbox.get_total_outbox_count
+        ) as mock_count:
+            schedule_outbox_model(
+                silo_mode=SiloMode.CONTROL,
+                outbox_model=ControlOutbox,
+                drain_task=Mock(),
+            )
+
+        mock_count.assert_not_called()
+        total_calls = [
+            gauge_call
+            for gauge_call in mock_metrics.gauge.mock_calls
+            if gauge_call.args and gauge_call.args[0] == "deliver_from_outbox.total_outbox_count"
+        ]
+        assert len(total_calls) == 1
+        assert total_calls[0].kwargs["value"] == 7 + 4 + 1
+
+    @override_options({"hybridcloud.outbox.category_depth_metric.enabled": False})
+    @patch("sentry.hybridcloud.tasks.deliver_from_outbox.metrics")
+    def test_total_outbox_count_falls_back_when_category_metric_disabled(
+        self, mock_metrics: Mock
+    ) -> None:
+        with patch.object(
+            ControlOutbox, "get_total_outbox_count", wraps=ControlOutbox.get_total_outbox_count
+        ) as mock_count:
+            schedule_outbox_model(
+                silo_mode=SiloMode.CONTROL,
+                outbox_model=ControlOutbox,
+                drain_task=Mock(),
+            )
+
+        mock_count.assert_called_once()
+        total_calls = [
+            gauge_call
+            for gauge_call in mock_metrics.gauge.mock_calls
+            if gauge_call.args and gauge_call.args[0] == "deliver_from_outbox.total_outbox_count"
+        ]
+        assert len(total_calls) == 1
+        assert total_calls[0].kwargs["value"] == 7 + 4 + 1
+
+
+class NonCoalescingCategoryTest(TestCase):
+    """Non-coalescing OutboxCategory error log."""
+
+    def test_group_action_log_event_is_non_coalescing(self) -> None:
+        assert OutboxCategory.GROUP_ACTION_LOG_EVENT.is_non_coalescing()
+        assert not OutboxCategory.ORGANIZATION_MEMBER_UPDATE.is_non_coalescing()
+        assert not OutboxCategory.ORGANIZATION_UPDATE.is_non_coalescing()
+
+    @patch("sentry.hybridcloud.models.outbox.logger")
+    def test_non_coalescing_category_logs_error_when_coalesced(self, mock_logger: Mock) -> None:
+        non_coalescing_category = OutboxCategory.ORGANIZATION_MEMBER_UPDATE
+        outbox = OrganizationMember(id=1, organization_id=1).outbox_for_update()
+        with (
+            patch.object(
+                OutboxCategory,
+                "is_non_coalescing",
+                lambda self: self is non_coalescing_category,
+            ),
+            outbox_context(flush=False),
+        ):
+            outbox.save()
+            OrganizationMember(id=1, organization_id=1).outbox_for_update().save()
+            latest_outbox = OrganizationMember(id=1, organization_id=1).outbox_for_update()
+            latest_outbox.save()
+            latest_outbox_id = latest_outbox.id
+
+            with outbox.process_coalesced(is_synchronous_flush=True):
+                pass
+
+        error_calls = [
+            c
+            for c in mock_logger.error.mock_calls
+            if c.args and c.args[0] == "outbox.unexpected_coalescing"
+        ]
+        assert len(error_calls) == 1
+        extra = error_calls[0].kwargs["extra"]
+        assert extra["category"] == non_coalescing_category.name
+        assert extra["category_value"] == int(non_coalescing_category)
+        assert extra["shard_identifier"] == 1
+        assert extra["object_identifier"] == 1
+        assert extra["coalesced_count"] == 2
+        assert extra["coalesced_id"] == latest_outbox_id
+        assert extra["outbox_type"] == "CellOutbox"
+
+    @patch("sentry.hybridcloud.models.outbox.logger")
+    def test_non_coalescing_category_no_log_when_not_coalesced(self, mock_logger: Mock) -> None:
+        non_coalescing_category = OutboxCategory.ORGANIZATION_MEMBER_UPDATE
+        outbox = OrganizationMember(id=1, organization_id=1).outbox_for_update()
+        with (
+            patch.object(
+                OutboxCategory,
+                "is_non_coalescing",
+                lambda self: self is non_coalescing_category,
+            ),
+            outbox_context(flush=False),
+        ):
+            outbox.save()
+
+            with outbox.process_coalesced(is_synchronous_flush=True):
+                pass
+
+        error_calls = [
+            c
+            for c in mock_logger.error.mock_calls
+            if c.args and c.args[0] == "outbox.unexpected_coalescing"
+        ]
+        assert error_calls == []
+
+    @patch("sentry.hybridcloud.models.outbox.logger")
+    def test_coalescing_category_does_not_log_when_coalesced(self, mock_logger: Mock) -> None:
+        outbox = OrganizationMember(id=1, organization_id=1).outbox_for_update()
+        with (
+            patch.object(OutboxCategory, "is_non_coalescing", lambda self: False),
+            outbox_context(flush=False),
+        ):
+            outbox.save()
+            OrganizationMember(id=1, organization_id=1).outbox_for_update().save()
+
+            with outbox.process_coalesced(is_synchronous_flush=True):
+                pass
+
+        error_calls = [
+            c
+            for c in mock_logger.error.mock_calls
+            if c.args and c.args[0] == "outbox.unexpected_coalescing"
+        ]
+        assert error_calls == []
+
+    @patch("sentry.hybridcloud.models.outbox.logger")
+    def test_unknown_category_logs_warning(self, mock_logger: Mock) -> None:
+        outbox = OrganizationMember(id=1, organization_id=1).outbox_for_update()
+        outbox.category = 99999
+        outbox._maybe_log_unexpected_coalescing(coalesced_id=1, coalesced_count=2)
+        warn_calls = [
+            c
+            for c in mock_logger.warning.mock_calls
+            if c.args and c.args[0] == "outbox.unknown_category"
+        ]
+        assert len(warn_calls) == 1
+        assert warn_calls[0].kwargs["extra"]["category_value"] == 99999

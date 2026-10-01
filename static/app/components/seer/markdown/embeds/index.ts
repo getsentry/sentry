@@ -9,7 +9,7 @@ import {Docs} from './components/docs';
 import {Dsn} from './components/dsn';
 import {ErrorsQuery} from './components/errorsQuery';
 import {SeerEvent} from './components/event/event';
-import {Issue, Issues} from './components/issue';
+import {Issue} from './components/issue';
 import {IssuesQuery} from './components/issuesQuery';
 import {Log} from './components/log/log';
 import {LogsQuery} from './components/logsQuery';
@@ -24,6 +24,7 @@ import {SavedQuery} from './components/savedQuery';
 import {SpansQuery} from './components/spansQuery';
 import {Timestamp} from './components/timestamp';
 import {Trace} from './components/trace';
+import {TraceWaterfall} from './components/traceWaterfall';
 import {User} from './components/user';
 import {SeerEmbedRegistry} from './registry';
 
@@ -40,7 +41,6 @@ const embeds = [
   Dsn,
   ErrorsQuery,
   Issue,
-  Issues,
   IssuesQuery,
   Log,
   LogsQuery,
@@ -56,6 +56,7 @@ const embeds = [
   SpansQuery,
   Timestamp,
   Trace,
+  TraceWaterfall,
   User,
 ];
 for (const embed of embeds) {

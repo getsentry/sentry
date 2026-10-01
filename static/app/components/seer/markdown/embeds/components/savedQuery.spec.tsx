@@ -60,7 +60,11 @@ describe('saved query embed', () => {
 
     renderEmbed({name: 'savedQuery', data: {id: '312', dataset: 'spans'}});
 
-    const link = await screen.findByRole('link', {name: /Slow checkout spans/});
+    // The block's name is the collapse toggle; the link out is a separate target.
+    expect(
+      await screen.findByRole('button', {name: /Slow checkout spans/})
+    ).toBeInTheDocument();
+    const link = screen.getByRole('link', {name: 'View Query'});
     const href = decodeURIComponent(link.getAttribute('href') ?? '');
 
     // The inline `?id=` link carries nothing but the id, which Explore reads
@@ -91,7 +95,10 @@ describe('saved query embed', () => {
     // The model said spans; the saved query is actually a logs query.
     renderEmbed({name: 'savedQuery', data: {id: '312', dataset: 'spans'}});
 
-    expect(await screen.findByText('Logs')).toBeInTheDocument();
+    expect(await screen.findByRole('link', {name: 'View Query'})).toHaveAttribute(
+      'href',
+      expect.stringContaining('/organizations/org-slug/explore/logs/')
+    );
   });
 
   // The saved query API reports `segment_spans` and `ai_conversations` for a

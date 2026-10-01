@@ -130,12 +130,14 @@ describe('profile embed', () => {
     expect(screen.getByText('Duration')).toBeInTheDocument();
     expect(screen.getByText('Threads')).toBeInTheDocument();
 
-    // The inline affordance is preserved in the card header
-    expect(screen.getByRole('link', {name: 'Profile 7f3c2b1a'})).toHaveAttribute(
+    // The block's name is the collapse toggle; the link out is a separate target.
+    expect(screen.getByRole('button', {name: 'Profile 7f3c2b1a'})).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'View Profile'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/explore/profiles/profile/javascript/7f3c2b1a9d8e4f60/flamegraph/'
+      expect.stringContaining(
+        '/organizations/org-slug/explore/profiles/profile/javascript/7f3c2b1a9d8e4f60/flamegraph/'
+      )
     );
-    expect(screen.getByRole('button', {name: 'Open in Profiling'})).toBeInTheDocument();
   });
 
   it('pairs each view with an import type its sort accepts', () => {
@@ -173,7 +175,7 @@ describe('profile embed', () => {
     // `fov` rect: "x,y,width,height", so y === 0 means it starts at the root.
     const viewportY = () =>
       decodeURIComponent(
-        screen.getByRole('button', {name: 'Open in Profiling'}).getAttribute('href') ?? ''
+        screen.getByRole('link', {name: 'View Profile'}).getAttribute('href') ?? ''
       ).replace(/^.*fov=[^,]*,([^,]*).*$/, '$1');
 
     expect(viewportY()).toBe('0');
@@ -190,7 +192,7 @@ describe('profile embed', () => {
     renderProfileBlock();
     await screen.findByTestId('seer-profile-flamechart');
 
-    const openInProfiling = () => screen.getByRole('button', {name: 'Open in Profiling'});
+    const openInProfiling = () => screen.getByRole('link', {name: 'View Profile'});
 
     // `fov` is a rect in the sorted tree's coordinate space, and the flamegraph
     // page defaults to 'call order', so the link has to name the preview's sort
@@ -233,7 +235,8 @@ describe('profile embed', () => {
     renderProfileBlock({detail: 'Not found'}, 404);
 
     expect(await screen.findByText('Unable to load profile details')).toBeInTheDocument();
-    expect(screen.getByRole('link', {name: 'Profile 7f3c2b1a'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Profile 7f3c2b1a'})).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'View Profile'})).toBeInTheDocument();
     expect(screen.queryByTestId('seer-profile-flamechart')).not.toBeInTheDocument();
   });
 
@@ -248,7 +251,7 @@ describe('profile embed', () => {
     });
 
     expect(
-      await screen.findByRole('link', {name: 'Profile 7f3c2b1a'})
+      await screen.findByRole('button', {name: 'Profile 7f3c2b1a'})
     ).toBeInTheDocument();
     expect(screen.queryByTestId('seer-profile-flamechart')).not.toBeInTheDocument();
     expect(screen.queryByText('Transaction')).not.toBeInTheDocument();

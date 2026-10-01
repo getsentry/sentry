@@ -1,12 +1,13 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {ExternalLink} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconEllipsis, IconOpen} from 'sentry/icons';
@@ -192,13 +193,15 @@ export function CodeOwnerFileTable({
                 },
               ]}
               position="bottom-end"
-              triggerProps={{
-                'aria-label': t('Actions'),
-                size: 'xs',
-                icon: <IconEllipsis />,
-                showChevron: false,
-                disabled,
-              }}
+              trigger={triggerProps => (
+                <OverlayTrigger.IconButton
+                  {...triggerProps}
+                  aria-label={t('Actions')}
+                  size="xs"
+                  icon={<IconEllipsis />}
+                  disabled={disabled}
+                />
+              )}
               disabledKeys={disabled ? ['sync', 'delete'] : []}
             />
           </SimpleTable.RowCell>

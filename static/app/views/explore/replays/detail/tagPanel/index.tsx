@@ -5,9 +5,9 @@ import type {LocationDescriptor} from 'history';
 import {Container, Stack} from '@sentry/scraps/layout';
 
 import {EmptyMessage} from 'sentry/components/emptyMessage';
-import {KeyValueTable} from 'sentry/components/keyValueTable';
 import {Placeholder} from 'sentry/components/placeholder';
 import {ReplayTagsTableRow} from 'sentry/components/replays/replayTagsTableRow';
+import {KeyValueTable} from 'sentry/components/tables/keyValueTable';
 import {t} from 'sentry/locale';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -77,7 +77,7 @@ export function TagPanel() {
       <TabItemContainer>
         <Container as="section" flex="1 1 auto" overflow="auto">
           {filteredTags.length ? (
-            <KeyValueTable noMargin>
+            <KeyValueTable>
               {filteredTags.map(([key, values]) => (
                 <ReplayTagsTableRow
                   key={key}

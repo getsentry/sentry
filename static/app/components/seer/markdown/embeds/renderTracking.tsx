@@ -1,6 +1,8 @@
 import {createContext, useContext, useEffect} from 'react';
-import {GEN_AI_CONVERSATION_ID} from '@sentry/conventions/attributes';
+import {SEARCH_GEN_AI__CONVERSATION__ID} from '@sentry/conventions/attributes/search';
 import * as Sentry from '@sentry/react';
+
+import type {SeerEmbedRenderLevel} from './registry';
 
 /**
  * Identifies where a Seer embed was rendered, so a render can be attributed to
@@ -43,11 +45,11 @@ interface TrackEmbedRenderedOptions {
    * the markdown was not rendered through `Markdown` (which assigns it).
    */
   index: number | undefined;
-  level: 'block' | 'inline';
+  level: SeerEmbedRenderLevel;
   name: string;
   /**
-   * False when the embed's props failed validation. Such an embed renders
-   * nothing, so counting it would overstate what users actually saw.
+   * False when nothing reached the screen -- invalid props, or a clipboard
+   * pass. Counting either would overstate what users saw.
    */
   rendered: boolean;
 }
@@ -94,7 +96,7 @@ export function useTrackEmbedRendered({
       // The message has no such pair: `gen_ai.response.id` means the
       // provider's completion id, not a Seer block id, so writing a block id
       // there would put two meanings behind one key.
-      [GEN_AI_CONVERSATION_ID]: scope.conversationId,
+      [SEARCH_GEN_AI__CONVERSATION__ID]: scope.conversationId,
       'seer_embed.conversation_id': scope.conversationId,
       'seer_embed.message_id': scope.messageId,
       // Pre-composed because the query layer cannot concatenate attributes:

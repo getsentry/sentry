@@ -1,5 +1,4 @@
 import {Fragment, useState} from 'react';
-import styled from '@emotion/styled';
 
 import {CodeBlock} from '@sentry/scraps/code';
 import {Flex} from '@sentry/scraps/layout';
@@ -9,15 +8,16 @@ import {Text} from '@sentry/scraps/text';
 
 import {CopyAsDropdown} from 'sentry/components/copyAsDropdown';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
 import {GraphQlRequestBody} from 'sentry/components/events/interfaces/request/graphQlRequestBody';
 import {getCurlCommand, getFullUrl} from 'sentry/components/events/interfaces/utils';
-import {
-  KeyValueData,
-  type KeyValueDataContentProps,
-} from 'sentry/components/keyValueData';
 import {StructuredEventData} from 'sentry/components/structuredEventData';
 import {JsonEventData} from 'sentry/components/structuredEventData/jsonEventData';
+import {
+  KeyValueTableCard,
+  KeyValueTableCardPanel,
+  KeyValueTableCardTitle,
+  type KeyValueTableDataRowProps,
+} from 'sentry/components/tables/keyValueTable';
 import {Truncate} from 'sentry/components/truncate';
 import {IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -60,31 +60,6 @@ function getBodyContent({
           showCopyButton
         />
       );
-    case 'application/x-www-form-urlencoded':
-    case 'multipart/form-data': {
-      const transformedData = getTransformedData(data, meta).map(d => {
-        const [key, value] = d.data;
-        return {
-          key,
-          subject: key,
-          value,
-          meta: d.meta,
-        };
-      });
-
-      if (!transformedData.length) {
-        return null;
-      }
-
-      return (
-        <KeyValueList
-          data-test-id="rich-http-content-body-key-value-list"
-          data={transformedData}
-          isContextData
-        />
-      );
-    }
-
     default:
       return (
         <pre data-test-id="rich-http-content-body-section-pre">
@@ -101,10 +76,26 @@ function RequestBodySection({data, event, meta}: RequestBodyProps) {
 
   if (data.apiTarget === 'graphql' && typeof data.data.query === 'string') {
     return (
-      <RequestCardPanel>
-        <KeyValueData.Title>{t('Body')}</KeyValueData.Title>
+      <KeyValueTableCardPanel block>
+        <KeyValueTableCardTitle>{t('Body')}</KeyValueTableCardTitle>
         <GraphQlRequestBody data={data.data} {...{event, meta}} />
-      </RequestCardPanel>
+      </KeyValueTableCardPanel>
+    );
+  }
+
+  if (
+    data.inferredContentType === 'application/x-www-form-urlencoded' ||
+    data.inferredContentType === 'multipart/form-data'
+  ) {
+    return (
+      <KeyValueTableCard
+        title={t('Body')}
+        contentItems={getTransformedData(data.data, meta?.data).map(d => {
+          const [key, value] = d.data;
+          return {item: {key, subject: key, value}, meta: d.meta};
+        })}
+        sortAlphabetically
+      />
     );
   }
 
@@ -114,10 +105,10 @@ function RequestBodySection({data, event, meta}: RequestBodyProps) {
     inferredContentType: data.inferredContentType,
   });
   return (
-    <RequestCardPanel>
-      <KeyValueData.Title>{t('Body')}</KeyValueData.Title>
+    <KeyValueTableCardPanel block>
+      <KeyValueTableCardTitle>{t('Body')}</KeyValueTableCardTitle>
       {contentBody}
-    </RequestCardPanel>
+    </KeyValueTableCardPanel>
   );
 }
 
@@ -251,7 +242,7 @@ function RequestDataCard({
     return null;
   }
 
-  const contentItems: KeyValueDataContentProps[] = [];
+  const contentItems: KeyValueTableDataRowProps[] = [];
 
   if (Array.isArray(data) && data.length > 0) {
     data
@@ -276,7 +267,7 @@ function RequestDataCard({
       mini
       message={tct('There was an error loading data: [title]', {title})}
     >
-      <KeyValueData.Card title={title} contentItems={contentItems} truncateLength={5} />
+      <KeyValueTableCard title={title} contentItems={contentItems} truncateLength={5} />
     </ErrorBoundary>
   );
 }
@@ -306,10 +297,3 @@ function TruncatedPathLink(props: TruncatedPathLinkProps) {
     </Flex>
   );
 }
-
-const RequestCardPanel = styled(KeyValueData.CardPanel)`
-  display: block;
-  pre {
-    margin: 0;
-  }
-`;

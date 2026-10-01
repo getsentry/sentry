@@ -2,7 +2,7 @@ import type {ReactNode} from 'react';
 
 import type {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import type {StackTraceRowPolicy} from 'sentry/components/stackTrace/rowPolicy';
-import type {Event, Frame} from 'sentry/types/event';
+import type {Event, Frame, Thread} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/platform';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 
@@ -74,6 +74,7 @@ export interface StackTraceProviderProps {
   hasScmSourceContext?: boolean;
   /** Hide the source maps debugger button entirely. */
   hideSourceMapDebugger?: boolean;
+  lockAddress?: string;
   /** Cap the number of frames rendered. Frames beyond this depth are omitted. */
   maxDepth?: number;
   /** Relay PII/scrubbing metadata used to render redaction annotations on frame variables. */
@@ -87,4 +88,5 @@ export interface StackTraceProviderProps {
   platform?: PlatformKey;
   /** Row visibility and annotation policy for stacktrace-specific frame behavior. */
   rowPolicy?: StackTraceRowPolicy;
+  thread?: Thread;
 }

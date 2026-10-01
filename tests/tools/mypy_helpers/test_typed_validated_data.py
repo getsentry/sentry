@@ -1,9 +1,8 @@
 """The serializer stub gives `validated_data` a declared shape.
 
-Exercised through mypy under the repo's own config, because the mechanism is a
-stub with nothing to import and CI resolves it the same way. If the stub ever
-stops being found, `validated_data` falls back to `Any` and these cases would
-pass without checking anything, so `test_stub_is_in_effect` guards that.
+Exercised through mypy with an isolated config and the vendored stub on `MYPYPATH`.
+If the stub stops being found, `validated_data` falls back to `Any` and these cases
+would pass without checking anything, so `test_stub_is_in_effect` guards that.
 """
 
 from __future__ import annotations
@@ -46,16 +45,27 @@ def create_monitor(*, name: str = "", threshold: int = 0) -> None: ...
 def _check(body: str) -> str:
     """Type-check the prelude plus `body`, returning mypy's diagnostics."""
     with tempfile.TemporaryDirectory() as tmpdir:
+        config = os.path.join(tmpdir, "mypy.toml")
+        with open(config, "w") as fh:
+            fh.write('[tool.mypy]\npython_version = "3.13"\n')
+
         source = os.path.join(tmpdir, "case.py")
         with open(source, "w") as fh:
             fh.write(PRELUDE + body)
+
         proc = subprocess.run(
-            (sys.executable, "-m", "mypy", "--no-incremental", source),
+            (sys.executable, "-m", "mypy", "--config", config, "--no-incremental", source),
             capture_output=True,
             cwd=os.path.abspath(REPO),
+            encoding="UTF-8",
+            env={
+                **os.environ,
+                "MYPYPATH": os.path.abspath(os.path.join(REPO, "fixtures/stubs-for-mypy")),
+            },
         )
-        out = proc.stdout.decode()
-        return "\n".join(line for line in out.splitlines() if "case.py" in line)
+        assert not proc.stderr, proc.stderr
+        assert proc.returncode in (0, 1), proc.stdout
+        return "\n".join(line for line in proc.stdout.splitlines() if "case.py" in line)
 
 
 def test_stub_is_in_effect() -> None:

@@ -9,9 +9,11 @@ from sentry.db.models.fields.slug import SentrySlugField
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs_control
 from sentry.grouping.grouptype import ErrorGroupType
+from sentry.ingest.legacy_filter_lists import STAGE_OPTION
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.types import ExternalProviders
+from sentry.models.custominboundfilter import CustomInboundFilter
 from sentry.models.environment import Environment, EnvironmentProject
 from sentry.models.grouplink import GroupLink
 from sentry.models.organizationmember import OrganizationMember
@@ -26,7 +28,7 @@ from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.repository import Repository
 from sentry.models.rule import Rule
-from sentry.monitors.models import Monitor, MonitorEnvironment, ScheduleType
+from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorStatus, ScheduleType
 from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
 from sentry.notifications.types import NotificationSettingEnum
 from sentry.notifications.utils.participants import get_notification_recipients
@@ -34,6 +36,7 @@ from sentry.silo.base import SiloMode
 from sentry.snuba.models import SnubaQuery
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.types.actor import Actor
@@ -266,6 +269,45 @@ class TestProjectTransfer(TestCase):
         assert existing_monitor.id == monitor_to.id
         assert existing_monitor.organization_id == self.to_org.id
         assert existing_monitor.project_id == monitor_to.project_id
+
+    def assert_transfer_remaps_monitor_environment(self, status: int) -> None:
+        monitor = self.create_monitor(
+            project=self.project,
+            organization=self.from_org,
+            name="test-monitor",
+            slug="test-monitor",
+        )
+        environment = self.create_environment(project=self.project, name="production")
+        monitor_environment = self.create_monitor_environment(
+            monitor=monitor,
+            environment_id=environment.id,
+            status=status,
+        )
+
+        self.project.transfer_to(organization=self.to_org)
+
+        monitor_environment.refresh_from_db()
+        transferred_environment = Environment.objects.get(id=monitor_environment.environment_id)
+        ensured_monitor_environment = MonitorEnvironment.objects.ensure_environment(
+            self.project, monitor, "production"
+        )
+
+        assert transferred_environment.organization_id == self.to_org.id
+        assert transferred_environment.name == "production"
+        assert ensured_monitor_environment.id == monitor_environment.id
+        assert MonitorEnvironment.objects.filter(monitor=monitor).count() == 1
+
+    def test_transfer_to_organization_remaps_active_monitor_environment(self) -> None:
+        self.assert_transfer_remaps_monitor_environment(MonitorStatus.ACTIVE)
+
+    def test_transfer_to_organization_remaps_ok_monitor_environment(self) -> None:
+        self.assert_transfer_remaps_monitor_environment(MonitorStatus.OK)
+
+    def test_transfer_to_organization_remaps_error_monitor_environment(self) -> None:
+        self.assert_transfer_remaps_monitor_environment(MonitorStatus.ERROR)
+
+    def test_transfer_to_organization_remaps_disabled_monitor_environment(self) -> None:
+        self.assert_transfer_remaps_monitor_environment(MonitorStatus.DISABLED)
 
     def test_transfer_to_organization_slug_collision(self) -> None:
         # give the project being transferred a slug that collides with an
@@ -1037,6 +1079,19 @@ class CopyProjectSettingsTest(TestCase):
         assert project.copy_settings_from(self.other_project.id)
         self.assert_settings_copied(project)
         self.assert_other_project_settings_not_changed()
+
+    @override_options({STAGE_OPTION: {"releases": "double_write"}})
+    def test_copy_writes_the_row_of_a_double_written_list(self) -> None:
+        self.other_project.update_option("sentry:releases", ["1.*"])
+        project = self.create_project(fire_project_created=True)
+
+        assert project.copy_settings_from(self.other_project.id)
+
+        assert project.get_option("sentry:releases") == ["1.*"]
+        row = CustomInboundFilter.objects.get(project_id=project.id)
+        assert row.legacy_filter == "release-version"
+        assert row.conditions == [{"type": "release", "value": ["1.*"]}]
+        self.assert_settings_copied(project)
 
 
 @control_silo_test

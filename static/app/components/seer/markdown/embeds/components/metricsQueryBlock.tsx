@@ -1,5 +1,3 @@
-import {Tag} from '@sentry/scraps/badge';
-
 import {QueryEmbedCard} from 'sentry/components/seer/markdown/embeds/components/queryEmbed/queryEmbedCard';
 import {
   chartUnitFromTimeSeries,
@@ -14,14 +12,17 @@ import {
   QueryEmbedTable,
 } from 'sentry/components/seer/markdown/embeds/components/queryEmbed/queryEmbedTable';
 import {toPageFilters} from 'sentry/components/seer/markdown/embeds/components/queryEmbedParams';
+import {IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useFetchEventsTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
-import {MetricsQueryLink} from './metricsQueryLink';
+import {getMetricsQueryTitle} from './metricsQueryLink';
 import {
   buildMetricsEventView,
   getMetricsQueryFields,
+  getMetricsQueryHref,
   resolveMetricYAxes,
   type MetricsQueryData,
 } from './metricsQueryUtils';
@@ -71,6 +72,7 @@ function MetricsQueryChart({
 }
 
 export default function MetricsQueryBlock({data}: {data: MetricsQueryData}) {
+  const organization = useOrganization();
   const eventView = buildMetricsEventView(data);
   const isChartOnly = hasNoGroupBy(data);
 
@@ -82,27 +84,27 @@ export default function MetricsQueryBlock({data}: {data: MetricsQueryData}) {
 
   return (
     <QueryEmbedCard
-      badge={
-        <Tag variant="muted">
-          {data.mode === 'aggregate' ? t('Aggregate') : t('Samples')}
-        </Tag>
-      }
-      link={<MetricsQueryLink data={data} />}
+      href={getMetricsQueryHref(data, organization)}
+      icon={IconGraph}
+      linkLabel={t('View Metrics')}
       query={data.query}
+      table={
+        isChartOnly ? null : (
+          <QueryEmbedTable
+            columns={eventColumns(getMetricsQueryFields(data), tableQuery.data?.meta)}
+            emptyMessage={t('No matching metric values')}
+            errorMessage={t('Unable to load metric values')}
+            isError={tableQuery.isError}
+            isPending={tableQuery.isPending}
+            rowKey={eventRowKey}
+            rows={tableQuery.data?.data ?? []}
+          />
+        )
+      }
       testId={`seer-metrics-query-${data.mode}-embed`}
+      title={getMetricsQueryTitle(data)}
     >
       <MetricsQueryChart data={data} hasTable={!isChartOnly} />
-      {isChartOnly ? null : (
-        <QueryEmbedTable
-          columns={eventColumns(getMetricsQueryFields(data))}
-          emptyMessage={t('No matching metric values')}
-          errorMessage={t('Unable to load metric values')}
-          isError={tableQuery.isError}
-          isPending={tableQuery.isPending}
-          rowKey={eventRowKey}
-          rows={tableQuery.data?.data ?? []}
-        />
-      )}
     </QueryEmbedCard>
   );
 }

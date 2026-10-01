@@ -1,6 +1,7 @@
 from collections.abc import Mapping
 from datetime import datetime
-from typing import Any
+from typing import Any, TypedDict
+from urllib.parse import quote, urlencode
 
 from sentry.ai_monitoring.message_normalizer import (
     FILTERED,
@@ -8,6 +9,31 @@ from sentry.ai_monitoring.message_normalizer import (
     normalize_to_messages,
     stringify_message_content,
 )
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+
+
+class ConversationProject(TypedDict):
+    id: int
+    name: str
+    slug: str
+
+
+def serialize_conversation_project(project: Project) -> ConversationProject:
+    return {"id": project.id, "name": project.name, "slug": project.slug}
+
+
+def get_conversation_url(
+    organization: Organization,
+    conversation_id: str,
+    project_id: int | None = None,
+) -> str:
+    query = urlencode({"project": project_id}) if project_id is not None else None
+    return organization.absolute_url(
+        f"/organizations/{organization.slug}/explore/agents/conversations/"
+        f"{quote(conversation_id, safe='')}/",
+        query=query,
+    )
 
 
 def timestamp_to_float(value: Any) -> float:
@@ -29,6 +55,20 @@ def _extract_first_user_message(messages: Any) -> str | None:
 
     for message in normalize_to_messages(messages, "user") or []:
         if message.get("role") == "user":
+            content = stringify_message_content(message.get("content"))
+            if content:
+                return content
+    return None
+
+
+def _extract_last_assistant_message(messages: Any) -> str | None:
+    if messages == FILTERED:
+        return FILTERED
+
+    # Agent spans record every assistant step of a turn, so only the final one
+    # is the turn's output.
+    for message in reversed(normalize_to_messages(messages, "assistant") or []):
+        if message.get("role") == "assistant":
             content = stringify_message_content(message.get("content"))
             if content:
                 return content
@@ -65,7 +105,11 @@ def get_aggregated_first_input(row: Mapping[str, Any]) -> str | None:
 
     if input_message and request_message:
         return input_message if input_timestamp <= request_timestamp else request_message
-    return input_message or request_message
+    return (
+        input_message
+        or request_message
+        or _extract_first_user_message(row.get("agent_input_messages"))
+    )
 
 
 def get_aggregated_last_output(row: Mapping[str, Any]) -> str | None:
@@ -87,4 +131,4 @@ def get_aggregated_last_output(row: Mapping[str, Any]) -> str | None:
 
     if output and response:
         return output if output_timestamp >= response_timestamp else response
-    return output or response
+    return output or response or _extract_last_assistant_message(row.get("agent_output_messages"))

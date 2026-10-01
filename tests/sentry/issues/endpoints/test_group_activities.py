@@ -52,7 +52,7 @@ class GroupActivitiesEndpointTest(APITestCase):
             GroupActionLogEntry.objects.create(
                 group_id=group.id,
                 project_id=group.project_id,
-                type=GroupActionType.COMMENT_EDIT.value,
+                type=GroupActionType.RESOLVE.value,
                 actor_type=GroupActorType.SYSTEM,
                 actor_id=0,
                 source=ActionSource.API,

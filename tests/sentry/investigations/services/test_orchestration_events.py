@@ -11,7 +11,6 @@ from rest_framework import serializers
 
 from sentry.api.serializers import serialize
 from sentry.db.models.fields.bounded import I64_MAX
-from sentry.investigations.endpoints.base import investigation_ids_with_project_access
 from sentry.investigations.endpoints.serializers import InvestigationBlockSerializer
 from sentry.investigations.endpoints.validators.block import BlockUpdateValidator
 from sentry.investigations.models import (
@@ -24,14 +23,19 @@ from sentry.investigations.models import (
     InvestigationOrchestrationPhase,
     InvestigationOrchestrationRun,
     InvestigationOrchestrationStatus,
+    InvestigationStatus,
 )
 from sentry.investigations.services.investigations import (
+    InvestigationConflictError,
     archive_investigation,
     update_investigation,
 )
 from sentry.investigations.services.orchestration import (
     accept_orchestration_command,
+    archive_investigation_with_orchestration,
     create_agentic_manual_investigation,
+    get_orchestration_projection,
+    update_investigation_with_orchestration,
 )
 from sentry.investigations.services.orchestration_events import (
     MAX_ORCHESTRATION_EVENT_BYTES,
@@ -58,6 +62,49 @@ class SeerRunMirrorMixin:
 
 
 class InvestigationOrchestrationEventTransportTest(SeerRunMirrorMixin, TestCase):
+    def test_event_persists_timing_for_the_api(self) -> None:
+        investigation, run = create_agentic_manual_investigation(
+            organization=self.organization,
+            user_id=self.user.id,
+            title=None,
+            source={"type": "manual", "prompt": "Investigate latency"},
+            project_ids=[],
+            filters={},
+        )
+        run.update(seer_run=self.seer_run_mirror(8128))
+        timing = {
+            "startedAt": "2025-01-01T00:00:00Z",
+            "finishedAt": None,
+            "activeSince": "2025-01-01T00:05:00Z",
+            "activeTimeElapsedSeconds": 34.5,
+        }
+        receipt = deliver_orchestration_event(
+            organization_id=self.organization.id,
+            event={
+                "schema_version": 1,
+                "event_id": uuid4(),
+                "run_id": 8128,
+                "investigation_id": investigation.id,
+                "sequence": 1,
+                "generation": 1,
+                "type": "workflow_updated",
+                "payload": {
+                    "projection": {
+                        **run.projection,
+                        **timing,
+                        "runId": 8128,
+                        "status": "processing",
+                        "heartbeatAt": "2025-01-01T00:05:00Z",
+                    }
+                },
+            },
+        )
+        assert receipt.application_status == InvestigationOrchestrationEventStatus.APPLIED
+        run.refresh_from_db()
+        assert {key: run.projection[key] for key in timing} == timing
+        projection = get_orchestration_projection(investigation)
+        assert {key: projection[key] for key in timing} == timing
+
     def test_replays_the_stored_application_status(self) -> None:
         investigation, run = create_agentic_manual_investigation(
             organization=self.organization,
@@ -251,6 +298,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         execution_id = block.current_execution_id
         assert block.current_execution.started_at == started_at
         assert block.current_execution.completed_at == completed_at
+        assert block.current_execution.input_snapshot["source"] == self.orchestration_run.source
 
         self.deliver(
             self.event(
@@ -467,24 +515,11 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
             assert set(
                 block.content_execution.data_project_links.values_list("project_id", flat=True)
             ) == {self.project.id, other_project.id}
-            assert self.investigation.id not in investigation_ids_with_project_access(
-                [self.investigation], {other_project.id}
-            )
             assert (
                 serialize(
                     block,
                     self.user,
-                    InvestigationBlockSerializer(accessible_project_ids={other_project.id}),
-                )["content"]
-                == ""
-            )
-            assert (
-                serialize(
-                    block,
-                    self.user,
-                    InvestigationBlockSerializer(
-                        accessible_project_ids={self.project.id, other_project.id}
-                    ),
+                    InvestigationBlockSerializer(),
                 )["content"]
                 == "Original report"
             )
@@ -531,9 +566,9 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
             serialize(
                 block,
                 self.user,
-                InvestigationBlockSerializer(accessible_project_ids={self.project.id}),
+                InvestigationBlockSerializer(),
             )["content"]
-            == ""
+            == payload["content"]
         )
 
     def test_started_report_block_accepts_null_display(self) -> None:
@@ -778,16 +813,13 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         replacement_execution.refresh_from_db()
         assert replacement_execution.status == InvestigationBlockExecutionStatus.FAILED
         assert replacement_execution.block_id == block.id
-        assert self.investigation.id not in investigation_ids_with_project_access(
-            [self.investigation], {replacement_project.id}
-        )
         assert (
             serialize(
                 block,
                 self.user,
-                InvestigationBlockSerializer(accessible_project_ids={replacement_project.id}),
+                InvestigationBlockSerializer(),
             )["content"]
-            == ""
+            == "Original report"
         )
 
     def test_out_of_order_events_deduplicate_and_ignore_delayed_responses(self) -> None:
@@ -877,6 +909,12 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
             generation=3,
             phase="investigating",
         )
+        block = self.create_investigation_block(
+            investigation=self.investigation,
+            kind="text",
+            report_revision=1,
+            stable_agent_key="stale-summary",
+        )
 
         reconcile_orchestration_projection(
             orchestration_run_id=self.orchestration_run.id,
@@ -887,14 +925,155 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
                 workflow_version=2,
                 generation=2,
                 phase="planning",
+                report_revision=2,
+                clear_intent={
+                    "id": "clear-report-2",
+                    "revision": 2,
+                    "reason": "workflow_changed",
+                    "requestedAt": "2025-01-01T00:00:00+00:00",
+                    "completed": True,
+                },
             ),
         )
 
         self.orchestration_run.refresh_from_db()
+        block.refresh_from_db()
         assert self.orchestration_run.workflow_version == 2
         assert self.orchestration_run.generation == 2
         assert self.orchestration_run.phase == "planning"
         assert self.orchestration_run.last_event_sequence == 0
+        assert self.orchestration_run.notebook_revision == 1
+        assert block.deleted_at is not None
+
+    def test_manual_title_override_survives_generated_title_events(self) -> None:
+        self.investigation.title = "My incident title"
+        self.investigation.save(update_fields=["title", "date_updated"])
+        projection = self.orchestration_run.projection
+        projection["_sentryControl"] = {
+            "manualTitleOverride": True,
+            "titleBuffer": "My incident title",
+            "titleStarted": True,
+        }
+        self.orchestration_run.projection = projection
+        self.orchestration_run.save(update_fields=["projection", "date_updated"])
+
+        self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
+        self.deliver(
+            self.event(
+                2,
+                "title_delta",
+                {"reportRevision": 1, "delta": "Generated title", "reset": True},
+            )
+        )
+        self.deliver(
+            self.event(
+                3,
+                "metadata_completed",
+                {
+                    "reportRevision": 1,
+                    "title": "Final generated title",
+                    "summary": "Root cause found",
+                    "summaryDescription": "A release changed routing.",
+                },
+            )
+        )
+
+        self.investigation.refresh_from_db()
+        self.orchestration_run.refresh_from_db()
+        assert self.investigation.title == "My incident title"
+        assert self.investigation.summary == "Root cause found"
+        assert self.orchestration_run.projection["report"]["metadata"]["title"] == (
+            "My incident title"
+        )
+
+    def test_first_title_edit_cannot_race_with_archiving(self) -> None:
+        original_title = self.investigation.title
+        original_version = self.investigation.version
+        archive_investigation_with_orchestration(
+            investigation=self.investigation,
+            expected_version=original_version,
+            actor_id=self.user.id,
+        )
+
+        with pytest.raises(InvestigationConflictError):
+            update_investigation_with_orchestration(
+                investigation=self.investigation,
+                expected_version=original_version,
+                fields={"title": "A late title edit"},
+                project_ids=None,
+            )
+
+        self.investigation.refresh_from_db()
+        self.orchestration_run.refresh_from_db()
+        assert self.investigation.status == InvestigationStatus.ARCHIVED
+        assert self.investigation.title == original_title
+        assert not self.orchestration_run.projection["_sentryControl"].get("manualTitleOverride")
+
+    def test_archive_generation_fence_survives_restore_until_a_new_generation(self) -> None:
+        block = self.create_investigation_block(
+            investigation=self.investigation,
+            kind="text",
+            report_revision=1,
+            stable_agent_key="preserved-summary",
+        )
+        archived = archive_investigation_with_orchestration(
+            investigation=self.investigation,
+            expected_version=self.investigation.version,
+            actor_id=self.user.id,
+        )
+        assert archived.status == InvestigationStatus.ARCHIVED
+        delayed_projection = self.projection(
+            workflow_version=2,
+            generation=1,
+            report_revision=2,
+        )
+        synchronize_orchestration_projection(
+            orchestration_run_id=self.orchestration_run.id,
+            seer_run_id=self.seer_run_id,
+            projection=delayed_projection,
+        )
+        block.refresh_from_db()
+        assert block.deleted_at is None
+        assert block.report_revision == 1
+        restored = update_investigation_with_orchestration(
+            investigation=archived,
+            expected_version=archived.version,
+            fields={"status": InvestigationStatus.ACTIVE},
+            project_ids=None,
+        )
+        assert restored.status == InvestigationStatus.ACTIVE
+        synchronize_orchestration_projection(
+            orchestration_run_id=self.orchestration_run.id,
+            seer_run_id=self.seer_run_id,
+            projection=delayed_projection,
+        )
+        block.refresh_from_db()
+        assert block.deleted_at is None
+        assert block.report_revision == 1
+
+        fenced = self.deliver(self.event(1, "report_clear", {"reportRevision": 1}, generation=1))
+        assert fenced.application_status == InvestigationOrchestrationEventStatus.IGNORED
+        self.orchestration_run.refresh_from_db()
+        assert self.orchestration_run.notebook_revision == 0
+
+        self.deliver(
+            self.event(
+                2,
+                "workflow_updated",
+                {
+                    "projection": self.projection(
+                        workflow_version=2,
+                        generation=2,
+                    )
+                },
+                generation=2,
+            )
+        )
+        accepted = self.deliver(self.event(3, "report_clear", {"reportRevision": 1}, generation=2))
+
+        assert accepted.application_status == InvestigationOrchestrationEventStatus.APPLIED
+        self.orchestration_run.refresh_from_db()
+        assert self.orchestration_run.notebook_revision == 1
 
     def test_text_and_title_stream_resets_replace_stale_content(self) -> None:
         manual = self.create_investigation_block(
@@ -980,16 +1159,16 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         assert list(
             block.content_execution.data_project_links.values_list("project_id", flat=True)
         ) == [self.project.id]
-        restricted_user = self.create_user()
-        self.create_member(organization=self.organization, user=restricted_user)
-        restricted = serialize(
+        viewer = self.create_user()
+        self.create_member(organization=self.organization, user=viewer)
+        shared = serialize(
             block,
-            restricted_user,
-            InvestigationBlockSerializer(accessible_project_ids=set()),
+            viewer,
+            InvestigationBlockSerializer(),
         )
-        assert restricted["content"] == ""
-        assert restricted["generatedContent"] == ""
-        assert restricted["outputStatus"] == "restricted"
+        assert shared["content"] == "fresh"
+        assert shared["generatedContent"] == "fresh"
+        assert shared["outputStatus"] == InvestigationBlockExecutionStatus.RUNNING
         self.investigation.refresh_from_db()
         assert self.investigation.title == "Final title"
         assert self.investigation.summary == "Root cause found"
@@ -1024,7 +1203,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
             serialize(
                 in_flight,
                 self.user,
-                InvestigationBlockSerializer(accessible_project_ids={self.project.id}),
+                InvestigationBlockSerializer(),
             )["outputStatus"]
             == InvestigationBlockExecutionStatus.RUNNING
         )

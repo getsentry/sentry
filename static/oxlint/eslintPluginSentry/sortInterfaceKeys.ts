@@ -1,4 +1,4 @@
-import {AST_NODE_TYPES, ESLintUtils, type TSESTree} from '@typescript-eslint/utils';
+import {defineRule, type ESTree} from '@oxlint/plugins';
 
 type Options = {
   caseSensitive?: boolean;
@@ -6,25 +6,20 @@ type Options = {
   requiredFirst?: boolean;
 };
 
-type SortableMember = TSESTree.TypeElement;
+type SortableMember = ESTree.TSSignature;
 
 function getName(member: SortableMember): string | undefined {
-  if (member.type === AST_NODE_TYPES.TSIndexSignature) {
+  if (member.type === 'TSIndexSignature') {
     const parameter = member.parameters[0];
-    return parameter?.type === AST_NODE_TYPES.Identifier
-      ? `[index: ${parameter.name}]`
-      : '[index]';
+    return parameter?.type === 'Identifier' ? `[index: ${parameter.name}]` : '[index]';
   }
-  if (
-    member.type !== AST_NODE_TYPES.TSMethodSignature &&
-    member.type !== AST_NODE_TYPES.TSPropertySignature
-  ) {
+  if (member.type !== 'TSMethodSignature' && member.type !== 'TSPropertySignature') {
     return undefined;
   }
-  if (member.key.type === AST_NODE_TYPES.Identifier && !member.computed) {
+  if (member.key.type === 'Identifier' && !member.computed) {
     return member.key.name;
   }
-  if (member.key.type === AST_NODE_TYPES.Literal) {
+  if (member.key.type === 'Literal') {
     return String(member.key.value);
   }
   return undefined;
@@ -32,13 +27,12 @@ function getName(member: SortableMember): string | undefined {
 
 function isOptional(member: SortableMember): boolean {
   return (
-    (member.type === AST_NODE_TYPES.TSMethodSignature ||
-      member.type === AST_NODE_TYPES.TSPropertySignature) &&
+    (member.type === 'TSMethodSignature' || member.type === 'TSPropertySignature') &&
     member.optional
   );
 }
 
-export const sortInterfaceKeys = ESLintUtils.RuleCreator.withoutDocs({
+export const sortInterfaceKeys = defineRule({
   meta: {
     type: 'suggestion',
     docs: {description: 'Require interface and type-literal keys to be sorted'},
@@ -97,7 +91,7 @@ export const sortInterfaceKeys = ESLintUtils.RuleCreator.withoutDocs({
 
     function checkMembers(
       members: SortableMember[],
-      container: TSESTree.TSInterfaceBody | TSESTree.TSTypeLiteral
+      container: ESTree.TSInterfaceBody | ESTree.TSTypeLiteral
     ): void {
       const sorted = members.toSorted(compare);
       const violations = members

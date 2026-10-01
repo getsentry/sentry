@@ -416,7 +416,7 @@ function SecondaryNavigationLink({
   onClick,
   ...linkProps
 }: SecondaryNavigationItemProps) {
-  const organization = useOrganization();
+  const organization = useOrganization({allowNull: true});
   const location = useLocation();
   const activeToList = Array.isArray(activeTo) ? activeTo : [activeTo];
   const isActive =
@@ -682,7 +682,7 @@ function SecondaryNavigationReorderableList<T extends {id: string | number}>(
   // See: https://github.com/clauderic/dnd-kit/issues/921
   const [items, setItems] = useState(props.items);
   useEffect(() => {
-    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
+    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state, react/set-state-in-effect
     setItems(props.items);
   }, [props.items]);
 

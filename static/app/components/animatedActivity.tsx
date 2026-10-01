@@ -40,6 +40,7 @@ export function AnimatedActivity({
     if (mode === 'visible') {
       if (activityMode === 'hidden') {
         controls.set(initial);
+        // oxlint-disable-next-line react/set-state-in-effect
         setActivityMode('visible');
         return;
       }

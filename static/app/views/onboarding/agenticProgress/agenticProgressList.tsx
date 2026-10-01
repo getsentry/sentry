@@ -17,9 +17,10 @@ import {
   IconCircleDashed,
   IconFatal,
   IconNot,
-  IconPieHalf,
+  IconWarning,
 } from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
+import type {TagVariant} from 'sentry/utils/theme';
 import {useProjects} from 'sentry/utils/useProjects';
 
 import {FirstIssueCard} from './firstIssueCard';
@@ -50,17 +51,14 @@ const STATUS_LABELS: Record<AgenticProgressStageStatus, string> = {
   failed: t('Failed'),
 };
 
-const STATUS_VARIANTS: Record<
-  AgenticProgressStageStatus,
-  'promotion' | 'warning' | 'success' | 'muted' | 'danger'
-> = {
-  active: 'promotion',
+const STATUS_VARIANTS = {
+  active: 'info',
   waiting: 'warning',
   completed: 'success',
   skipped: 'muted',
   bypassed: 'muted',
   failed: 'danger',
-};
+} as const satisfies Record<AgenticProgressStageStatus, TagVariant>;
 
 function StageSymbol({status}: {status: AgenticProgressStageStatus | null}) {
   if (status === 'completed') {
@@ -80,7 +78,7 @@ function StageSymbol({status}: {status: AgenticProgressStageStatus | null}) {
   }
 
   if (status === 'waiting') {
-    return <IconPieHalf size="md" variant="warning" />;
+    return <IconWarning size="md" variant="warning" />;
   }
 
   if (status === 'active') {
@@ -286,22 +284,25 @@ export function AgenticProgressList({
 }) {
   const [hasEntered, setHasEntered] = useState(false);
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     setHasEntered(true);
   }, []);
 
   return (
     <MotionStack
       width="100%"
+      background="primary"
       border="primary"
-      radius="lg"
+      radius="xl"
       overflow="hidden"
       gap="0"
+      style={{borderBottomWidth: 2}}
       initial="initial"
       animate={hasEntered ? 'animate' : 'initial'}
       transition={STAGE_LIST_STAGGER_TRANSITION}
     >
       {header ? (
-        <Container padding="xl" borderBottom="muted">
+        <Container padding="xl" borderBottom="primary">
           {header}
         </Container>
       ) : null}
@@ -373,9 +374,10 @@ function AgenticProgressSummary({projectSlugs}: {projectSlugs: string[]}) {
   return (
     <Flex
       width="100%"
+      background="primary"
       border="primary"
-      radius="lg"
-      padding="lg"
+      radius="xl"
+      padding="xl"
       gap="md"
       align="center"
       justify="between"

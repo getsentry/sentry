@@ -1,12 +1,12 @@
 from unittest.mock import patch
 
+from django.test import override_settings
 from rest_framework import status
 
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.features import with_feature
 
 
-@with_feature("organizations:gen-ai-features")
+@override_settings(SENTRY_SELF_HOSTED=False)
 class TraceExplorerAIQueryTest(APITestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -57,6 +57,20 @@ class TraceExplorerAIQueryTest(APITestCase):
                 "user_id": self.user.id,
             },
         )
+
+    @override_settings(SENTRY_SELF_HOSTED=True)
+    def test_denied_on_self_hosted(self) -> None:
+        response = self.client.post(
+            self.url,
+            data={
+                "project_ids": [self.project.id],
+                "natural_language_query": "Find slow transactions",
+            },
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.data == {"detail": "Organization does not have access to this feature"}
 
     def test_query_missing_parameters(self) -> None:
         response = self.client.post(

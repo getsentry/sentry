@@ -138,10 +138,12 @@ export function AllocationForm({
       !initializedData &&
       allocatedTargetIds[AllocationTargetTypes.PROJECT]?.includes(targetId)
     ) {
+      // oxlint-disable-next-line react/set-state-in-effect, react-you-might-not-need-an-effect/no-derived-state
       setTargetId(undefined);
       setAllocationVolume(0);
     } else if (initializedData) {
       setAllocationVolume(Number(initializedData.reservedQuantity) / incrementSize);
+      // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
       setTargetId(String(initializedData.targetId));
     }
   }, [allocatedTargetIds, targetId, initializedData, incrementSize]);

@@ -142,6 +142,30 @@ describe('create instance level OAuth client', () => {
     expect(mockPostRequest).not.toHaveBeenCalled();
   });
 
+  it('rejects comma-separated URLs', async () => {
+    render(<InstanceLevelOAuth />);
+    await userEvent.click(screen.getByText('New Instance Level OAuth Client'));
+    renderGlobalModal();
+    await userEvent.type(screen.getByRole('textbox', {name: 'Client Name'}), 'Santry');
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Redirect URIs'}),
+      'https://example.com/one,https://example.com/two'
+    );
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Allowed Origins'}),
+      'https://example.com/one, https://example.com/two'
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Create Client'}));
+
+    expect(
+      await screen.findByText('Enter valid redirect URLs separated by spaces')
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('Enter valid allowed origins separated by spaces')
+    ).toBeInTheDocument();
+    expect(mockPostRequest).not.toHaveBeenCalled();
+  });
+
   it('shows an error message when the API error does not match a form field', async () => {
     jest.spyOn(indicators, 'addErrorMessage');
     MockApiClient.addMockResponse({

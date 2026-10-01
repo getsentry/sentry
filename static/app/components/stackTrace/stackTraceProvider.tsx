@@ -31,6 +31,8 @@ export function StackTraceProvider({
   collapseAll = false,
   defaultExpandedFrameIndex,
   emptySourceNotation = false,
+  thread,
+  lockAddress,
   exceptionIndex,
   event,
   frameSourceMapDebuggerData,
@@ -149,6 +151,8 @@ export function StackTraceProvider({
   const value = useMemo<StackTraceContextValue>(
     () => ({
       allRows,
+      thread,
+      lockAddress,
       collapseAll,
       defaultExpandedFrameIndex,
       emptySourceNotation,
@@ -170,6 +174,8 @@ export function StackTraceProvider({
     }),
     [
       allRows,
+      lockAddress,
+      thread,
       collapseAll,
       defaultExpandedFrameIndex,
       emptySourceNotation,

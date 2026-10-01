@@ -2,23 +2,22 @@ import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import {useQuery} from '@tanstack/react-query';
 
-import {Tag} from '@sentry/scraps/badge';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {DateTime} from 'sentry/components/dateTime';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {LogAttributesView} from 'sentry/components/seer/markdown/embeds/components/log/logAttributesView';
 import {LogAttributeView} from 'sentry/components/seer/markdown/embeds/components/log/logAttributeView';
-import {LogLink} from 'sentry/components/seer/markdown/embeds/components/log/logLink';
+import {SeerEmbedBlock} from 'sentry/components/seer/markdown/embeds/components/seerEmbedBlock';
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
+import {IconList} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {PageFilterDatetime} from 'sentry/types/core';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {toSplicedSorted} from 'sentry/utils/array/toSplicedSorted';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import type {TagVariant} from 'sentry/utils/theme/types';
+import {getShortEventId} from 'sentry/utils/events';
 import {unreachable} from 'sentry/utils/unreachable';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
@@ -40,13 +39,13 @@ import {
 import {
   getLogRowTimestampMillis,
   getLogSeverityLevel,
-  SeverityLevel,
-  severityLevelToText,
 } from 'sentry/views/explore/logs/utils';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
+import {LogSeverityDot, LogTimestamp} from './logRowParts';
 import {
   getLogPageFilters,
+  getLogRowUrl,
   getLogTimestampMs,
   LOG_DETAILS_REFERRER,
   LOG_EMBED_REFERRER,
@@ -124,34 +123,13 @@ function toLogAttributes(
 
   return toSplicedSorted(
     details.attributes,
-    {name: OurLogKnownFieldKey.TIMESTAMP, type: 'str', value: details.timestamp},
+    {
+      name: OurLogKnownFieldKey.TIMESTAMP,
+      type: 'str',
+      value: details.timestamp,
+    },
     (a, b) => a.name.localeCompare(b.name)
   );
-}
-
-/**
- * `Tag` offers the semantic variants rather than the logs table's per-level
- * colors. That is the right trade here: those finer shades exist to be scanned
- * down a column of rows, and a single embedded row has no column.
- */
-function severityTagVariant(level: SeverityLevel): TagVariant {
-  switch (level) {
-    case SeverityLevel.FATAL:
-    case SeverityLevel.ERROR:
-      return 'danger';
-    case SeverityLevel.WARN:
-      return 'warning';
-    case SeverityLevel.INFO:
-      return 'info';
-    case SeverityLevel.TRACE:
-    case SeverityLevel.DEBUG:
-    case SeverityLevel.DEFAULT:
-    case SeverityLevel.UNKNOWN:
-      return 'muted';
-    default:
-      unreachable(level);
-      return 'muted';
-  }
 }
 
 function rowTimestampMillis(row: OurLogsResponseItem | undefined): number | null {
@@ -196,7 +174,7 @@ function LogBlockContent({
 }: LogBlockContentProps) {
   switch (view) {
     case 'summary':
-      // The severity, message and timestamp above are the whole summary.
+      // The message, severity and timestamp above are the whole summary.
       return null;
     case 'attributes':
       return (
@@ -222,6 +200,7 @@ function LogBlockContent({
 
 export default function LogBlock(props: LogData) {
   const {id, traceId, timestamp, attribute} = props;
+  const organization = useOrganization();
   const projectId = toProjectId(props.projectId);
   const theme = useTheme();
 
@@ -273,6 +252,7 @@ export default function LogBlock(props: LogData) {
     traceId: resolvedTraceId ?? '',
     traceItemType: TraceItemDataset.LOGS,
     referrer: LOG_DETAILS_REFERRER,
+    routingHint: row ? rowQuery.data?.meta?.routingHint : undefined,
     // The details endpoint takes unix seconds, not an ISO string.
     timestamp: lookupTimestampMs === null ? undefined : lookupTimestampMs / 1000,
     enabled: canFetchDetails,
@@ -318,55 +298,60 @@ export default function LogBlock(props: LogData) {
   );
 
   return (
-    <Container
-      background="primary"
-      border="primary"
-      data-test-id="seer-log-embed"
-      padding="lg"
-      radius="md"
-      width="100%"
+    <SeerEmbedBlock
+      // The resolved identity, not the raw props: when Seer gave only an id,
+      // the link would otherwise scope Explore to My Projects and miss the very
+      // row this card just loaded.
+      href={getLogRowUrl({organization, ...identity})}
+      icon={IconList}
+      linkLabel={t('View Log')}
+      testId="seer-log-embed"
+      title={getShortEventId(id)}
     >
-      <Stack gap="md">
-        <Flex align="center" gap="md" justify="between" wrap="wrap">
-          {/* The resolved identity, not the raw props: when Seer gave only an
-              id, the link would otherwise scope Explore to My Projects and miss
-              the very row this card just loaded. */}
-          <LogLink {...props} {...identity} />
-          {displayTimestampMs === null ? null : (
-            <Text size="sm" variant="muted">
-              <DateTime date={displayTimestampMs} />
-            </Text>
-          )}
+      {isPending ? (
+        <Flex justify="center" padding="md">
+          <LoadingIndicator mini />
         </Flex>
-
-        {isPending ? (
-          <Flex justify="center" padding="md">
-            <LoadingIndicator mini />
-          </Flex>
-        ) : isError ? (
-          <Text variant="danger">{t('Unable to load log details')}</Text>
-        ) : (
-          <Stack gap="lg">
-            <Flex align="baseline" gap="sm">
-              <Tag variant={severityTagVariant(level)}>{severityLevelToText(level)}</Tag>
-              <Text monospace size="sm">
-                {String(message ?? '')}
+      ) : isError ? (
+        <Text variant="danger">{t('Unable to load log details')}</Text>
+      ) : (
+        <Stack gap="lg">
+          {/* The logs table's row, left to right: severity, time, message. */}
+          <Flex align="baseline" gap="md">
+            <Flex align="center" flexShrink="0" alignSelf="center">
+              <LogSeverityDot
+                severity={attributeValues[OurLogKnownFieldKey.SEVERITY]}
+                severityNumber={attributeValues[OurLogKnownFieldKey.SEVERITY_NUMBER]}
+              />
+            </Flex>
+            <Flex flexShrink="0">
+              <Text size="sm">
+                <LogTimestamp
+                  timestamp={displayTimestampMs ?? undefined}
+                  timestampPrecise={
+                    attributeValues[OurLogKnownFieldKey.TIMESTAMP_PRECISE] ??
+                    row?.[OurLogKnownFieldKey.TIMESTAMP_PRECISE]
+                  }
+                />
               </Text>
             </Flex>
-            <LogBlockContent
-              attribute={attribute}
-              attributes={attributes}
-              attributeTypes={attributeTypes}
-              attributeValues={attributeValues}
-              datetime={datetime}
-              identity={identity}
-              logColors={logColors}
-              projectSlug={project?.slug}
-              view={view}
-            />
-          </Stack>
-        )}
-      </Stack>
-    </Container>
+            <Text monospace size="sm">
+              {String(message ?? '')}
+            </Text>
+          </Flex>
+          <LogBlockContent
+            attribute={attribute}
+            attributes={attributes}
+            attributeTypes={attributeTypes}
+            attributeValues={attributeValues}
+            datetime={datetime}
+            identity={identity}
+            logColors={logColors}
+            projectSlug={project?.slug}
+            view={view}
+          />
+        </Stack>
+      )}
+    </SeerEmbedBlock>
   );
 }

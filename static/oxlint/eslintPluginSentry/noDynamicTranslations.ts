@@ -1,8 +1,8 @@
-import {AST_NODE_TYPES, ESLintUtils, type TSESTree} from '@typescript-eslint/utils';
+import {defineRule, type ESTree} from '@oxlint/plugins';
 
 const TRANSLATION_FNS = ['t', 'tn', 'tct'];
 
-export const noDynamicTranslations = ESLintUtils.RuleCreator.withoutDocs({
+export const noDynamicTranslations = defineRule({
   meta: {
     type: 'problem',
     docs: {
@@ -20,7 +20,7 @@ export const noDynamicTranslations = ESLintUtils.RuleCreator.withoutDocs({
     return {
       CallExpression(node) {
         if (
-          node.callee.type !== AST_NODE_TYPES.Identifier ||
+          node.callee.type !== 'Identifier' ||
           !TRANSLATION_FNS.includes(node.callee.name)
         ) {
           return;
@@ -32,8 +32,8 @@ export const noDynamicTranslations = ESLintUtils.RuleCreator.withoutDocs({
 
         const fnName = node.callee.name;
 
-        function checkTranslationArg(arg: TSESTree.CallExpressionArgument) {
-          if (arg.type === AST_NODE_TYPES.TemplateLiteral) {
+        function checkTranslationArg(arg: ESTree.Argument) {
+          if (arg.type === 'TemplateLiteral') {
             if (arg.expressions.length === 0) {
               return;
             }
@@ -41,7 +41,7 @@ export const noDynamicTranslations = ESLintUtils.RuleCreator.withoutDocs({
             return;
           }
 
-          if (arg.type !== AST_NODE_TYPES.Literal) {
+          if (arg.type !== 'Literal') {
             context.report({node: arg, messageId: 'dynamic', data: {fnName}});
           }
         }

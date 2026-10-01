@@ -6,7 +6,7 @@ import {Tag} from '@sentry/scraps/badge';
 import {useTimezone} from '@sentry/scraps/datetime';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
-import {useTranslation} from '@sentry/scraps/translationContext';
+import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 import {DateTime} from 'sentry/components/dateTime';
 import {defined} from 'sentry/utils/defined';
@@ -180,12 +180,15 @@ function TimestampRow({
 /**
  * The design's timezone pill is smaller than the default `Tag` — 4px of
  * horizontal padding rather than 8px, which is what keeps the three columns
- * inside the card's width. Only the geometry is overridden; the colors still
- * come from the `variant` tokens.
+ * inside the card's width. The pill stretches to the column, which is as wide
+ * as the widest abbreviation, so its text is centred to keep a shorter one like
+ * `UTC` off the left edge. Only the geometry is overridden; the colors still come
+ * from the `variant` tokens.
  */
 const TimezoneTag = styled(Tag)`
   height: 17px;
   min-width: 20px;
+  justify-content: center;
   padding: 0 ${p => p.theme.space.xs};
   border-radius: ${p => p.theme.radius['2xs']};
 `;

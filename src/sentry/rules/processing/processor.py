@@ -5,10 +5,10 @@ from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from typing import Any
 
 from sentry.models.rule import Rule
+from sentry.notifications.types import RuleFuture
 from sentry.rules import rules
 from sentry.rules.actions.base import instantiate_action
 from sentry.services.eventstore.models import GroupEvent
-from sentry.types.rules import RuleFuture
 from sentry.utils.safe import safe_execute
 
 logger = logging.getLogger(__name__)

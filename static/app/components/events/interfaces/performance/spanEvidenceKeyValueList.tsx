@@ -1,5 +1,5 @@
 import type {ReactNode} from 'react';
-import {Fragment, useMemo} from 'react';
+import {Fragment, isValidElement, useMemo} from 'react';
 import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
@@ -7,13 +7,13 @@ import kebabCase from 'lodash/kebabCase';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {CodeBlock} from '@sentry/scraps/code';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ClippedBox} from 'sentry/components/clippedBox';
 import {getKeyValueListData as getRegressionIssueKeyValueList} from 'sentry/components/events/eventStatisticalDetector/eventRegressionSummary';
-import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
 import {
   extractSpanURLString,
   formatChangingQueryParameters,
@@ -36,6 +36,7 @@ import {
   SpanSubTimingName,
 } from 'sentry/components/events/interfaces/spans/utils';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
+import {KeyValueTableCard} from 'sentry/components/tables/keyValueTable';
 import {IconGraph} from 'sentry/icons/iconGraph';
 import {t} from 'sentry/locale';
 import type {Entry, EntryRequest, Event, EventTransaction} from 'sentry/types/event';
@@ -59,11 +60,11 @@ import {
   StackTraceMiniFrame,
 } from 'sentry/views/insights/database/components/stackTraceMiniFrame';
 import {SpanFields} from 'sentry/views/insights/types';
-import {SpanSummaryLink} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/components/spanSummaryLink';
+import {SpanSummaryLink} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/components/spanSummaryLink';
 import {
   getSearchInExploreTarget,
   TraceDrawerActionKind,
-} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
+} from 'sentry/views/performance/traceDetails/traceDrawer/details/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
 
@@ -246,21 +247,19 @@ function NPlusOneAPICallsSpanEvidence({
           commonPathPrefix
             ? makeRow(
                 t('Repeating Spans (%s)', offendingSpans.length),
-                <pre className="val-string">
-                  <AnnotatedText
-                    value={
-                      <Fragment>
-                        {commonPathPrefix.split('').map((char, i) => {
-                          return char === '*' ? (
-                            <HighlightedEvidence key={i}>{char}</HighlightedEvidence>
-                          ) : (
-                            char
-                          );
-                        })}
-                      </Fragment>
-                    }
-                  />
-                </pre>
+                <AnnotatedText
+                  value={
+                    <Fragment>
+                      {commonPathPrefix.split('').map((char, i) => {
+                        return char === '*' ? (
+                          <HighlightedEvidence key={i}>{char}</HighlightedEvidence>
+                        ) : (
+                          char
+                        );
+                      })}
+                    </Fragment>
+                  }
+                />
               )
             : null,
           queryParameters.length > 0
@@ -295,9 +294,7 @@ function MainThreadFunctionEvidence({
       dataRows.push(
         makeRow(
           t('Transaction'),
-          <pre>
-            <Link to={transactionSummaryLocation}>{evidenceData.transactionName}</Link>
-          </pre>
+          <Link to={transactionSummaryLocation}>{evidenceData.transactionName}</Link>
         )
       );
     }
@@ -397,11 +394,9 @@ function AIDetectedSpanEvidence({
 
   const transactionRow = makeRow(
     t('Transaction'),
-    <pre>
-      <Tooltip title={t('View Transaction Summary')} skipWrapper>
-        <Link to={transactionSummaryLocation}>{transactionName}</Link>
-      </Tooltip>
-    </pre>,
+    <Tooltip title={t('View Transaction Summary')} skipWrapper>
+      <Link to={transactionSummaryLocation}>{transactionName}</Link>
+    </Tooltip>,
     actionButton
   );
 
@@ -460,8 +455,7 @@ export function SpanEvidenceKeyValueList({
   const spanInfo = getSpanInfoFromTransactionEvent(event);
 
   const typeId = event.occurrence?.type;
-  const issueType =
-    event.perfProblem?.issueType ?? getIssueTypeFromOccurrenceType(typeId);
+  const issueType = getIssueTypeFromOccurrenceType(typeId);
   const requiresSpanInfo = isTransactionBased(typeId) && isOccurrenceBased(typeId);
 
   if (!issueType || (requiresSpanInfo && !spanInfo)) {
@@ -568,8 +562,7 @@ function SlowDBQueryEvidence({
   );
 
   return (
-    <KeyValueList
-      shouldSort={false}
+    <PresortedKeyValueList
       data={[
         makeTransactionNameRow(event, organization, location, projectSlug),
         makeRow(t('Duration Impact'), getSingleSpanDurationImpact(event, span)),
@@ -632,7 +625,7 @@ function UncompressedAssetSpanEvidence({
 function WebVitalsEvidence({event}: SpanEvidenceKeyValueListProps) {
   const transactionRow = makeRow(
     t('Transaction'),
-    <pre>{event.tags.find(tag => tag.key === 'transaction')?.value}</pre>
+    event.tags.find(tag => tag.key === 'transaction')?.value
   );
 
   return <PresortedKeyValueList data={[transactionRow].filter(Boolean)} />;
@@ -660,7 +653,7 @@ function DefaultSpanEvidence({
 }
 
 function PresortedKeyValueList({data}: {data: KeyValueListData}) {
-  return <KeyValueList shouldSort={false} data={data} />;
+  return <KeyValueTableCard contentItems={data.map(item => ({item}))} variant="label" />;
 }
 
 const makeTransactionNameRow = (
@@ -694,11 +687,9 @@ const makeTransactionNameRow = (
 
   return makeRow(
     t('Transaction'),
-    <pre>
-      <Tooltip title={t('View Transaction Summary')} skipWrapper>
-        <Link to={transactionSummaryLocation}>{event.title}</Link>
-      </Tooltip>
-    </pre>,
+    <Tooltip title={t('View Transaction Summary')} skipWrapper>
+      <Link to={transactionSummaryLocation}>{event.title}</Link>
+    </Tooltip>,
     actionButton
   );
 };
@@ -713,10 +704,24 @@ const makeRow = (
   return {
     key: itemKey,
     subject,
-    value,
+    value: Array.isArray(value) ? (
+      <Stack gap="xs">
+        {value.map((entry, index) =>
+          isValidElement(entry) ? (
+            <Fragment key={index}>{entry}</Fragment>
+          ) : (
+            <Text key={index} monospace size="sm">
+              {entry}
+            </Text>
+          )
+        )}
+      </Stack>
+    ) : (
+      value
+    ),
     subjectDataTestId: `${TEST_ID_NAMESPACE}.${itemKey}`,
-    isMultiValue: Array.isArray(value),
     actionButton,
+    actionButtonAlwaysVisible: true,
   };
 };
 
@@ -735,11 +740,13 @@ function getSpanEvidenceValue(span: Span | null) {
 
   if (span.op && span.op.startsWith('db') && span.description) {
     return (
-      <NoPaddingClippedBox clipHeight={200}>
-        <StyledCodeSnippet language="sql">
-          {formatter.toString(span.description)}
-        </StyledCodeSnippet>
-      </NoPaddingClippedBox>
+      <Container padding="2xs 0">
+        <NoPaddingClippedBox clipHeight={200}>
+          <StyledCodeSnippet language="sql">
+            {formatter.toString(span.description)}
+          </StyledCodeSnippet>
+        </NoPaddingClippedBox>
+      </Container>
     );
   }
 
@@ -747,9 +754,11 @@ function getSpanEvidenceValue(span: Span | null) {
 }
 
 const StyledCodeSnippet = styled(CodeBlock)`
-  pre {
+  pre[class*='language-'] {
     /* overflow is set to visible in global styles so need to enforce auto here */
     overflow: auto !important;
+    /* Keeps the code flush with the plain values in the card's value column */
+    padding-inline: 0;
   }
 
   z-index: 0;

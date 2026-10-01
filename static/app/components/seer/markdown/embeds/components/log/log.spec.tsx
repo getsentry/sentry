@@ -41,7 +41,7 @@ function mockLogDetails(attributes = ATTRIBUTES) {
 }
 
 /** The row the id-only path has to find before it can ask for details. */
-function mockLogRowLookup() {
+function mockLogRowLookup(routingHint?: string) {
   return MockApiClient.addMockResponse({
     url: '/organizations/org-slug/events/',
     body: {
@@ -58,7 +58,7 @@ function mockLogRowLookup() {
           ),
         },
       ],
-      meta: {fields: {}, units: {}},
+      meta: {fields: {}, units: {}, routingHint},
     },
   });
 }
@@ -188,7 +188,7 @@ describe('Seer log embed', () => {
 
   it('measures the breakdown against every value, not just the drawn ones', async () => {
     mockLogDetails();
-    // Six values for five slots: the sixth is what the drawn shares are missing.
+    // Four values for three slots: the fourth is what the drawn shares are missing.
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
       body: {
@@ -196,9 +196,7 @@ describe('Seer log embed', () => {
           {region: 'a', 'count()': 10},
           {region: 'b', 'count()': 10},
           {region: 'c', 'count()': 10},
-          {region: 'd', 'count()': 10},
-          {region: 'e', 'count()': 10},
-          {region: 'f', 'count()': 50},
+          {region: 'd', 'count()': 70},
         ],
       },
     });
@@ -206,11 +204,11 @@ describe('Seer log embed', () => {
     renderLog({view: 'attribute', attribute: 'region'});
 
     expect(await screen.findByTestId('seer-log-attribute-breakdown')).toBeInTheDocument();
-    // 10 of 100, not 10 of the 50 that fit.
-    expect(await screen.findAllByText('10%')).toHaveLength(5);
-    expect(screen.queryByText('f')).not.toBeInTheDocument();
+    // 10 of 100, not 10 of the 30 that fit.
+    expect(await screen.findAllByText('10%')).toHaveLength(3);
+    expect(screen.queryByText('d')).not.toBeInTheDocument();
     expect(screen.getByText('Other')).toBeInTheDocument();
-    expect(screen.getByText('50%')).toBeInTheDocument();
+    expect(screen.getByText('70%')).toBeInTheDocument();
   });
 
   it('falls back to the summary when view "attribute" has no key', async () => {
@@ -228,7 +226,7 @@ describe('Seer log embed', () => {
   });
 
   it('resolves the trace and project from the id alone before fetching details', async () => {
-    const lookup = mockLogRowLookup();
+    const lookup = mockLogRowLookup('seer-log-hint');
     const details = mockLogDetails();
 
     renderEmbed({name: 'log', data: {id: LOG_ID, timestamp: TIMESTAMP}});
@@ -247,6 +245,7 @@ describe('Seer log embed', () => {
       );
     });
     expect(details).toHaveBeenCalled();
+    expect(details.mock.calls[0]![1].query.routing_hint).toBe('seer-log-hint');
   });
 
   it('asks for details at the row timestamp, not the one minted into the id', async () => {
@@ -282,9 +281,7 @@ describe('Seer log embed', () => {
     expect(await screen.findByText('Payment provider timed out')).toBeInTheDocument();
     // Without the resolved project the link scopes Explore to My Projects and
     // can miss the row the card just loaded.
-    const href = screen
-      .getByRole('link', {name: `Log ${LOG_ID.slice(0, 8)}`})
-      .getAttribute('href');
+    const href = screen.getByRole('link', {name: 'View Log'}).getAttribute('href');
     expect(href).toContain(`project=${PROJECT_ID}`);
   });
 

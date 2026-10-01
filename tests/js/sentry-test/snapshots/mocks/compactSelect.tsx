@@ -1,6 +1,6 @@
 import type {ComponentProps, ReactNode} from 'react';
 
-import {DropdownButton} from 'sentry/components/dropdownButton';
+import {DropdownButton} from '@sentry/scraps/dropdownMenu';
 
 export function CompactSelect({
   options,

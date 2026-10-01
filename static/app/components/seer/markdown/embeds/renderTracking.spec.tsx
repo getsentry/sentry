@@ -1,4 +1,4 @@
-import {GEN_AI_CONVERSATION_ID} from '@sentry/conventions/attributes';
+import {SEARCH_GEN_AI__CONVERSATION__ID} from '@sentry/conventions/attributes/search';
 import * as Sentry from '@sentry/react';
 
 import {render} from 'sentry-test/reactTestingLibrary';
@@ -51,7 +51,7 @@ describe('seer embed render tracking', () => {
         'seer_embed.level': 'inline',
         'seer_embed.index': 0,
         'seer_embed.surface': 'seer_explorer',
-        [GEN_AI_CONVERSATION_ID]: current.conversationId,
+        [SEARCH_GEN_AI__CONVERSATION__ID]: current.conversationId,
         'seer_embed.conversation_id': current.conversationId,
         'seer_embed.message_id': 'block-1',
         'seer_embed.message_key': `${current.conversationId}:block-1`,

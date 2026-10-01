@@ -139,6 +139,7 @@ function renderFramesWithDebugMeta(stacktrace: StacktraceType, event: Event) {
         detectorDetails: {},
         dispatch: jest.fn(),
         eventCount: 0,
+        eventNavigationHeight: 0,
         isSidebarOpen: true,
         navScrollMargin: 0,
         sectionData: {

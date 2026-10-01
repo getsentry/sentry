@@ -13,7 +13,7 @@ import {AgenticProgress} from 'sentry/views/onboarding/agenticProgress/agenticPr
 import type {AgenticProgressRun} from 'sentry/views/onboarding/agenticProgress/types';
 import {useAgenticProgress} from 'sentry/views/onboarding/agenticProgress/useAgenticProgress';
 import {
-  useAgenticProgressInit,
+  useOnboardingAgenticProgressInit,
   useRestartAgenticRun,
 } from 'sentry/views/onboarding/agenticProgress/useAgenticProgressInit';
 import {
@@ -27,7 +27,7 @@ const MotionContainer = motion.create(Container);
 const CARD_MORPH_TRANSITION = {duration: 0.25, ease: 'easeOut'} as const;
 
 export function useWelcomeAgentRun({enabled}: {enabled: boolean}) {
-  const initialization = useAgenticProgressInit({enabled});
+  const initialization = useOnboardingAgenticProgressInit({enabled});
   const restartRun = useRestartAgenticRun();
   const {agenticProgressOnboardingCode} = useOnboardingContext();
   const progress = useAgenticProgress({
@@ -63,6 +63,10 @@ interface WelcomeAgentSetupProps {
   onCopyCommand: (source: AgentSetupCopySource) => void;
   onRetry: () => void;
   /**
+   * Fired when one of the code blocks is clicked and selected.
+   */
+  onSelectSnippet: (source: AgentSetupCopySource) => void;
+  /**
    * Leaves the agent path and continues into the step-by-step browser flow.
    */
   onSetupInBrowser: () => void;
@@ -76,6 +80,7 @@ export function WelcomeAgentSetup({
   onboardingCode,
   onCopyCommand,
   onRetry,
+  onSelectSnippet,
   onSetupInBrowser,
   run,
 }: WelcomeAgentSetupProps) {
@@ -140,6 +145,7 @@ export function WelcomeAgentSetup({
                 hasSetupFailed={hasInitFailed}
                 onboardingCode={onboardingCode}
                 onCopyCommand={onCopyCommand}
+                onSelectSnippet={onSelectSnippet}
                 prompt={prompt}
               />
             </MotionContainer>
@@ -155,7 +161,7 @@ export function WelcomeAgentSetup({
 
       <ScmCollapsibleReveal open={!showsProgress || hasRunFailed}>
         <Stack gap="2xl" align="center" width="100%">
-          <Text variant="muted" size="md" bold uppercase>
+          <Text variant="muted" size="md" bold>
             {t('or')}
           </Text>
 

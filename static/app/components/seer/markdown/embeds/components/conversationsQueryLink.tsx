@@ -1,6 +1,9 @@
 import queryString from 'query-string';
 
-import {ResourceLink} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
+import {
+  ResourceLink,
+  type ResourceLinkFormatProps,
+} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
 import {IconChat} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -29,7 +32,7 @@ export function combineAgentQuery(query: string, agents?: string[]): string {
   return `(${agentQuery}) and (${query})`;
 }
 
-function getConversationsQueryHref(
+export function getConversationsQueryHref(
   data: ConversationsQueryData,
   organization: Organization
 ): string {
@@ -54,14 +57,26 @@ function getConversationsQueryHref(
   });
 }
 
-export function ConversationsQueryLink({data}: {data: ConversationsQueryData}) {
+/**
+ * The name the model gave the query, or a description of what it searches. The
+ * block renders this as its heading, so both levels name the query the same way.
+ */
+export function getConversationsQueryTitle(data: ConversationsQueryData): string {
+  return data.title ?? t('Conversation search');
+}
+
+export function ConversationsQueryLink({
+  data,
+  format,
+}: {data: ConversationsQueryData} & ResourceLinkFormatProps) {
   const organization = useOrganization();
 
   return (
     <ResourceLink
+      format={format}
       icon={IconChat}
       href={getConversationsQueryHref(data, organization)}
-      title={data.title ?? t('Conversation search')}
+      title={getConversationsQueryTitle(data)}
     />
   );
 }

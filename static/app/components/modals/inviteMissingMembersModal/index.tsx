@@ -33,6 +33,52 @@ const INVITE_COLUMNS: TableColumnConfig[] = [
   {key: 'team', width: '1fr'},
 ];
 
+interface InviteStatusMessageProps {
+  complete: boolean;
+  inviteStatus: InviteStatus;
+  sendingInvites: boolean;
+}
+
+function InviteStatusMessage({
+  complete,
+  inviteStatus,
+  sendingInvites,
+}: InviteStatusMessageProps) {
+  if (sendingInvites) {
+    return (
+      <Flex gap="md" align="center">
+        <LoadingIndicator mini relative size={16} />
+        {t('Sending organization invitations\u2026')}
+      </Flex>
+    );
+  }
+
+  if (complete) {
+    const statuses = Object.values(inviteStatus);
+    const sentCount = statuses.filter(i => i.sent).length;
+    const errorCount = statuses.filter(i => i.error).length;
+
+    const invites = <strong>{tn('%s invite', '%s invites', sentCount)}</strong>;
+    const tctComponents = {
+      invites,
+      failed: errorCount,
+    };
+
+    return (
+      <Flex gap="md" align="center">
+        <IconCheckmark size="sm" />
+        <span>
+          {errorCount > 0
+            ? tct('Sent [invites], [failed] failed to send.', tctComponents)
+            : tct('Sent [invites]', tctComponents)}
+        </span>
+      </Flex>
+    );
+  }
+
+  return null;
+}
+
 export interface InviteMissingMembersModalProps extends ModalRenderProps {
   allowedRoles: OrgRole[];
   // the API response returns {integration: "github", users: []}
@@ -90,7 +136,10 @@ export function InviteMissingMembersModal({
   };
 
   const selectAll = (checked: boolean) => {
-    const selectedMembers = memberInvites.map(m => ({...m, selected: checked}));
+    const selectedMembers = memberInvites.map(m => ({
+      ...m,
+      selected: checked,
+    }));
     setMemberInvites(selectedMembers);
   };
 
@@ -103,42 +152,6 @@ export function InviteMissingMembersModal({
   if (memberInvites.length === 0 || !organization.access.includes('org:write')) {
     return null;
   }
-
-  const renderStatusMessage = () => {
-    if (sendingInvites) {
-      return (
-        <Flex gap="md" align="center">
-          <LoadingIndicator mini relative size={16} />
-          {t('Sending organization invitations\u2026')}
-        </Flex>
-      );
-    }
-
-    if (complete) {
-      const statuses = Object.values(inviteStatus);
-      const sentCount = statuses.filter(i => i.sent).length;
-      const errorCount = statuses.filter(i => i.error).length;
-
-      const invites = <strong>{tn('%s invite', '%s invites', sentCount)}</strong>;
-      const tctComponents = {
-        invites,
-        failed: errorCount,
-      };
-
-      return (
-        <Flex gap="md" align="center">
-          <IconCheckmark size="sm" />
-          <span>
-            {errorCount > 0
-              ? tct('Sent [invites], [failed] failed to send.', tctComponents)
-              : tct('Sent [invites]', tctComponents)}
-          </span>
-        </Flex>
-      );
-    }
-
-    return null;
-  };
 
   const sendMemberInvite = async (invite: MissingMemberInvite) => {
     const data = {
@@ -255,7 +268,7 @@ export function InviteMissingMembersModal({
                   onChange={() => toggleCheckbox(!checked, i)}
                 />
               </SimpleTable.RowCell>
-              <StyledPanelItem>
+              <SimpleTable.RowCell align="start" direction="column" justify="center">
                 <InlineContentRow>
                   <IconGithub size="sm" />
                   <StyledExternalLink href={`https://github.com/${username}`}>
@@ -263,7 +276,7 @@ export function InviteMissingMembersModal({
                   </StyledExternalLink>
                 </InlineContentRow>
                 <MemberEmail>{member.email}</MemberEmail>
-              </StyledPanelItem>
+              </SimpleTable.RowCell>
               <ContentRow>
                 <IconCommit size="sm" />
                 {member.commitCount}
@@ -303,7 +316,13 @@ export function InviteMissingMembersModal({
         })}
       </StyledSimpleTable>
       <Flex justify="between">
-        <div>{renderStatusMessage()}</div>
+        <div>
+          <InviteStatusMessage
+            complete={complete}
+            inviteStatus={inviteStatus}
+            sendingInvites={sendingInvites}
+          />
+        </div>
         <Grid flow="column" align="center" gap="md">
           <Button
             size="sm"
@@ -347,12 +366,6 @@ export function InviteMissingMembersModal({
 const StyledSimpleTable = styled(SimpleTable)`
   overflow: scroll;
   max-height: 475px;
-`;
-
-const StyledPanelItem = styled(SimpleTable.RowCell)`
-  flex-direction: column;
-  align-items: start;
-  justify-content: center;
 `;
 
 const contentRowStyle = (p: {theme: Theme}) => css`

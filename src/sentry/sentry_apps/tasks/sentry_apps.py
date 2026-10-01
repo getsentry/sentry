@@ -38,12 +38,14 @@ from sentry.db.models.base import Model
 from sentry.exceptions import RestrictedIPAddress
 from sentry.hybridcloud.rpc.caching import cell_caching_service
 from sentry.incidents.models.incident import INCIDENT_STATUS, IncidentStatus
+from sentry.issues.grouptype import FeedbackGroup
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.project import Project
+from sentry.notifications.types import RuleFuture
 from sentry.notifications.utils.rules import get_rule_or_workflow_id
 from sentry.sentry_apps.api.serializers.app_platform_event import AppPlatformEvent
 from sentry.sentry_apps.event_types import SentryAppEventType
@@ -79,7 +81,6 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import sentryapp_control_tasks, sentryapp_tasks
 from sentry.taskworker.timeout import InnerTimeoutError
-from sentry.types.rules import RuleFuture
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils import json, metrics
@@ -148,6 +149,15 @@ def _webhook_event_data(
         event_context["occurrence"] = convert_dict_key_case(
             event.occurrence.to_dict(), snake_to_camel_case
         )
+        # Include the feedback message in metadata.value for alert integrations.
+        # Copy the dict: as_dict() shares it with event.data.
+        metadata = event_context.get("metadata") or {}
+        if (
+            event.occurrence.type == FeedbackGroup
+            and not metadata.get("value")
+            and event.occurrence.subtitle
+        ):
+            event_context["metadata"] = {**metadata, "value": event.occurrence.subtitle}
 
     # The URL has a regex OR in it ("|") which means `reverse` cannot generate
     # a valid URL (it can't know which option to pick). We have to manually
@@ -407,6 +417,7 @@ def _load_service_hook(organization_id: int | None, installation_id: int) -> Ser
         service_hook = ServiceHook.objects.get(
             organization_id=organization_id,
             actor_id=installation_id,
+            project_id__isnull=True,
         )
         if service_hook.installation_id != service_hook.actor_id:
             logger.info(

@@ -25,6 +25,7 @@ export function AiQueryProvider({children}: {children: ReactNode}) {
   const lastTrackedRunId = useRef<number | string | null>(null);
 
   const getRunIdForAnalyticsBox = useRef<() => number | string | null>(() => null);
+  // oxlint-disable-next-line react/refs
   getRunIdForAnalyticsBox.current = () => {
     if (runId === lastTrackedRunId.current) {
       return null;

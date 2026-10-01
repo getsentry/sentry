@@ -7,7 +7,7 @@ central place which handles JWT in a uniform way.
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import jwt as pyjwt
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey, RSAPublicKey
@@ -19,6 +19,9 @@ from cryptography.hazmat.primitives.serialization import (
 )
 from jwt import DecodeError
 from jwt.types import Options
+
+if TYPE_CHECKING:
+    from jwt.api_jwt import AllowedPrivateKeyTypes
 
 __all__ = ["peek_claims", "decode", "encode", "authorization_header", "DecodeError"]
 
@@ -81,7 +84,7 @@ def decode(
 
 def encode(
     payload: Any,
-    key: str,
+    key: AllowedPrivateKeyTypes,
     *,  # Force passing optional arguments by keyword
     algorithm: str = "HS256",
     headers: Any | None = None,

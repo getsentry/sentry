@@ -1,6 +1,6 @@
-import {AST_NODE_TYPES, ESLintUtils} from '@typescript-eslint/utils';
+import {defineRule} from '@oxlint/plugins';
 
-export const noQueryDataTypeParameters = ESLintUtils.RuleCreator.withoutDocs({
+export const noQueryDataTypeParameters = defineRule({
   meta: {
     type: 'problem',
     docs: {
@@ -20,10 +20,7 @@ export const noQueryDataTypeParameters = ESLintUtils.RuleCreator.withoutDocs({
           return;
         }
         const {callee} = node;
-        if (
-          callee.type !== AST_NODE_TYPES.MemberExpression ||
-          callee.property.type !== AST_NODE_TYPES.Identifier
-        ) {
+        if (callee.type !== 'MemberExpression' || callee.property.type !== 'Identifier') {
           return;
         }
         const method = callee.property.name;

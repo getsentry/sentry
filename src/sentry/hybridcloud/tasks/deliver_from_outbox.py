@@ -153,16 +153,21 @@ def schedule_outbox_model(
     if options.get("hybridcloud.outbox.deep_shard_logging.enabled"):
         _log_deep_shards(outbox_model, deepest_shards, metrics_tags)
 
-    outbox_count = outbox_model.get_total_outbox_count()
+    # The per-category depths cover every row, so their sum is the total count
+    # and saves a second full scan of the table.
+    if options.get("hybridcloud.outbox.category_depth_metric.enabled"):
+        category_depths = outbox_model.get_category_depths()
+        _record_category_depths(silo_mode, outbox_model, category_depths)
+        outbox_count = sum(category_depths.values())
+    else:
+        outbox_count = outbox_model.get_total_outbox_count()
+
     metrics.gauge(
         "deliver_from_outbox.total_outbox_count",
         value=outbox_count,
         tags=metrics_tags,
         sample_rate=1.0,
     )
-
-    if options.get("hybridcloud.outbox.category_depth_metric.enabled"):
-        _record_category_depths(silo_mode, outbox_model)
     return scheduled_count
 
 
@@ -190,8 +195,9 @@ def _log_deep_shards(
         )
 
 
-def _record_category_depths(silo_mode: SiloMode, outbox_model: type[OutboxBase]) -> None:
-    category_depths = outbox_model.get_category_depths()
+def _record_category_depths(
+    silo_mode: SiloMode, outbox_model: type[OutboxBase], category_depths: Mapping[int, int]
+) -> None:
     for category, depth in category_depths.items():
         metrics.gauge(
             "deliver_from_outbox.category_shard_depth",

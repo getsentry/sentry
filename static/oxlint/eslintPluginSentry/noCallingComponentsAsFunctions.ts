@@ -10,9 +10,7 @@
 /* eslint-disable import/no-nodejs-modules */
 import path from 'node:path';
 
-import {AST_NODE_TYPES, ESLintUtils} from '@typescript-eslint/utils';
-import type {TSESTree} from '@typescript-eslint/utils';
-import type {RuleFix, RuleFixer} from '@typescript-eslint/utils/ts-eslint';
+import {defineRule, type ESTree, type Fix, type Fixer} from '@oxlint/plugins';
 
 const IGNORED_NAMES = new Set(['OverrideOrDefault']);
 
@@ -63,7 +61,7 @@ function isIgnoredImportSource(source: string, filename: string): boolean {
   return false;
 }
 
-export const noCallingComponentsAsFunctions = ESLintUtils.RuleCreator.withoutDocs({
+export const noCallingComponentsAsFunctions = defineRule({
   meta: {
     type: 'problem',
     docs: {
@@ -106,18 +104,18 @@ export const noCallingComponentsAsFunctions = ESLintUtils.RuleCreator.withoutDoc
       // Track variable declarations: const Foo = () => {}, const Foo = function() {}
       VariableDeclarator(node) {
         if (
-          node.id.type === AST_NODE_TYPES.Identifier &&
+          node.id.type === 'Identifier' &&
           /^[A-Z]/.test(node.id.name) &&
           node.init &&
-          (node.init.type === AST_NODE_TYPES.ArrowFunctionExpression ||
-            node.init.type === AST_NODE_TYPES.FunctionExpression)
+          (node.init.type === 'ArrowFunctionExpression' ||
+            node.init.type === 'FunctionExpression')
         ) {
           knownComponents.add(node.id.name);
         }
       },
 
       CallExpression(node) {
-        if (node.callee.type !== AST_NODE_TYPES.Identifier) {
+        if (node.callee.type !== 'Identifier') {
           return;
         }
 
@@ -137,11 +135,7 @@ export const noCallingComponentsAsFunctions = ESLintUtils.RuleCreator.withoutDoc
 
         const arg = node.arguments[0];
 
-        if (
-          arg &&
-          arg.type !== AST_NODE_TYPES.ObjectExpression &&
-          arg.type !== AST_NODE_TYPES.Identifier
-        ) {
+        if (arg && arg.type !== 'ObjectExpression' && arg.type !== 'Identifier') {
           return;
         }
 
@@ -157,22 +151,22 @@ export const noCallingComponentsAsFunctions = ESLintUtils.RuleCreator.withoutDoc
     };
 
     function buildFix(
-      fixer: RuleFixer,
-      node: TSESTree.CallExpression,
+      fixer: Fixer,
+      node: ESTree.CallExpression,
       name: string,
-      arg: TSESTree.CallExpressionArgument | undefined
-    ): RuleFix | null {
+      arg: ESTree.Argument | undefined
+    ): Fix | null {
       const sourceCode = context.sourceCode;
 
       if (!arg) {
         return fixer.replaceText(node, `<${name} />`);
       }
 
-      if (arg.type === AST_NODE_TYPES.Identifier) {
+      if (arg.type === 'Identifier') {
         return fixer.replaceText(node, `<${name} {...${arg.name}} />`);
       }
 
-      if (arg.type !== AST_NODE_TYPES.ObjectExpression) {
+      if (arg.type !== 'ObjectExpression') {
         return null;
       }
 
@@ -182,17 +176,17 @@ export const noCallingComponentsAsFunctions = ESLintUtils.RuleCreator.withoutDoc
 
       const attrs: string[] = [];
       for (const prop of arg.properties) {
-        if (prop.type === AST_NODE_TYPES.SpreadElement) {
+        if (prop.type === 'SpreadElement') {
           attrs.push(`{...${sourceCode.getText(prop.argument)}}`);
-        } else if (prop.type === AST_NODE_TYPES.Property) {
+        } else if (prop.type === 'Property') {
           if (prop.computed) {
             return null;
           }
 
           const keyName =
-            prop.key.type === AST_NODE_TYPES.Identifier
+            prop.key.type === 'Identifier'
               ? prop.key.name
-              : prop.key.type === AST_NODE_TYPES.Literal
+              : prop.key.type === 'Literal'
                 ? String(prop.key.value)
                 : null;
 

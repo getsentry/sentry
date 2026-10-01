@@ -186,3 +186,42 @@ class ProjectUserIssueEndpointTest(APITestCase):
         assert fingerprint1[0].startswith("insights-web-vitals-lcp-/test-transaction-")
         assert fingerprint2[0].startswith("insights-web-vitals-lcp-/test-transaction-")
         assert fingerprint1 != fingerprint2
+
+    @with_feature("organizations:performance-web-vitals-seer-suggestions")
+    def test_post_rejects_readonly_token_scope(self) -> None:
+        token = self.create_user_auth_token(user=self.user, scope_list=["event:read"])
+
+        response = self.client.post(
+            self.url,
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {token.token}",
+            data={
+                "transaction": "/test-transaction",
+                "issueType": WebVitalsGroup.slug,
+                "score": 75,
+                "vital": "lcp",
+                "value": 1000,
+            },
+        )
+
+        assert response.status_code == 403
+
+    @with_feature("organizations:performance-web-vitals-seer-suggestions")
+    def test_post_allows_write_token_scope(self) -> None:
+        token = self.create_user_auth_token(user=self.user, scope_list=["event:write"])
+
+        with patch("sentry.issues.endpoints.project_user_issue.produce_occurrence_to_kafka"):
+            response = self.client.post(
+                self.url,
+                format="json",
+                HTTP_AUTHORIZATION=f"Bearer {token.token}",
+                data={
+                    "transaction": "/test-transaction",
+                    "issueType": WebVitalsGroup.slug,
+                    "score": 75,
+                    "vital": "lcp",
+                    "value": 1000,
+                },
+            )
+
+        assert response.status_code == 200

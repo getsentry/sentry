@@ -170,7 +170,7 @@ export function usePrompts({
       }, {});
     }
     return {};
-  }, [prompts.isSuccess, prompts.data?.features, features, daysToSnooze, isDismissed]);
+  }, [prompts.isSuccess, prompts.data, features, daysToSnooze, isDismissed]);
 
   const dismissPrompt = useCallback(
     (feature: string) => {
