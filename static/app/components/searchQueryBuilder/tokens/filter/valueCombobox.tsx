@@ -870,12 +870,14 @@ export function SearchQueryBuilderValueCombobox({
     // a long neighbouring chip can't keep it off-screen.
     const containerRect = container.getBoundingClientRect();
     const inputRect = input.getBoundingClientRect();
+    // An input wider than the row can't be brought fully into view.
+    const isWiderThanRow = inputRect.width > containerRect.width;
+    if (isWiderThanRow && input.selectionStart !== input.value.length) {
+      return;
+    }
     if (inputRect.right > containerRect.right) {
       container.scrollLeft += inputRect.right - containerRect.right;
-    } else if (
-      inputRect.left < containerRect.left &&
-      inputRect.width <= containerRect.width
-    ) {
+    } else if (inputRect.left < containerRect.left && !isWiderThanRow) {
       container.scrollLeft -= containerRect.left - inputRect.left;
     }
   }, []);
