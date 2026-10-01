@@ -157,6 +157,7 @@ export function MetricDetails({
               {visibleAttributes.length > 0 ? (
                 <AttributesTree
                   attributes={visibleAttributes}
+                  config={{attributeDetailsType: 'tracemetric'}}
                   getCustomActions={getActions}
                   renderers={MetricAttributesRendererMap}
                   rendererExtra={{
