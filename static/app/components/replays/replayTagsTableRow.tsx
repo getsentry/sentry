@@ -39,7 +39,6 @@ const expandedViewKeys = [
 
 const releaseKeys = ['release', 'releases'];
 
-// mapResponseToReplayRecord renames these replay fields when it marshals them into tags.
 const tagAttributeKeys = new Map([
   ['releases', 'release'],
   ['replayType', 'replay_type'],
