@@ -6,7 +6,7 @@ from google.api_core.exceptions import ServiceUnavailable
 from sentry.services.filestore.gcs import GCS_RETRIES, try_repeated
 
 
-def test_try_repeated_succeeds_without_sleeping():
+def test_try_repeated_succeeds_without_sleeping() -> None:
     func = mock.Mock(return_value="ok")
 
     with mock.patch("sentry.services.filestore.gcs.time.sleep") as sleep:
@@ -16,7 +16,7 @@ def test_try_repeated_succeeds_without_sleeping():
     assert sleep.call_count == 0
 
 
-def test_try_repeated_sleeps_between_retries_then_succeeds():
+def test_try_repeated_sleeps_between_retries_then_succeeds() -> None:
     func = mock.Mock(side_effect=[ServiceUnavailable("503"), "ok"])
 
     with mock.patch("sentry.services.filestore.gcs.time.sleep") as sleep:
@@ -28,7 +28,7 @@ def test_try_repeated_sleeps_between_retries_then_succeeds():
     assert sleep.call_args[0][0] >= 0
 
 
-def test_try_repeated_backs_off_on_every_retry_before_raising():
+def test_try_repeated_backs_off_on_every_retry_before_raising() -> None:
     func = mock.Mock(side_effect=ServiceUnavailable("503"))
 
     with mock.patch("sentry.services.filestore.gcs.time.sleep") as sleep:
