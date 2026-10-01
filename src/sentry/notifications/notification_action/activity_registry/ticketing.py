@@ -9,7 +9,7 @@ from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.notifications.notification_action.activity_registry.base import require_integration_id
 from sentry.notifications.notification_action.registry import activity_handler_registry
-from sentry.notifications.notification_action.types import ActivityHandler
+from sentry.notifications.notification_action.types import EXCEPTION_IGNORE_LIST, ActivityHandler
 from sentry.notifications.utils.links import create_link_to_workflow
 from sentry.types.activity import ActivityType
 from sentry.utils.http import absolute_uri
@@ -105,12 +105,15 @@ class TicketingActivityHandler(ActivityHandler):
             ),
         }
 
-        create_ticket(
-            integration=integration,
-            installation=installation,
-            group=group,
-            data=data,
-            external_issue_title=title,
-            external_issue_description=data["description"],
-            metric_extras={"action_id": action.id, "activity_id": activity.id},
-        )
+        try:
+            create_ticket(
+                integration=integration,
+                installation=installation,
+                group=group,
+                data=data,
+                external_issue_title=title,
+                external_issue_description=data["description"],
+                metric_extras={"action_id": action.id, "activity_id": activity.id},
+            )
+        except EXCEPTION_IGNORE_LIST:
+            return
