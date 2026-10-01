@@ -164,23 +164,21 @@ describe('ConversationsOverviewPage', () => {
   it('tailors the search placeholder to the selected table', async () => {
     render(<ConversationsOverviewPage />, {organization});
 
-    const search = await screen.findByRole('combobox', {name: 'Add a search term'});
-    expect(search).toHaveAttribute(
-      'placeholder',
-      'Search by conversation ID, user, model, or message'
-    );
+    expect(
+      await screen.findByPlaceholderText(
+        'Search by conversation ID, user, model, or message'
+      )
+    ).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('tab', {name: 'Traces'}));
-    expect(search).toHaveAttribute(
-      'placeholder',
-      'Search by trace ID, operation, service, or user'
-    );
+    expect(
+      await screen.findByPlaceholderText('Search by trace ID, operation, service, or user')
+    ).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('tab', {name: 'LLM Calls'}));
-    expect(search).toHaveAttribute(
-      'placeholder',
-      'Search by model, provider, tokens, or operation'
-    );
+    expect(
+      await screen.findByPlaceholderText('Search by model, provider, tokens, or operation')
+    ).toBeInTheDocument();
   });
 
   it('only shows the cost chart and setup banner without agent or tool spans', async () => {
