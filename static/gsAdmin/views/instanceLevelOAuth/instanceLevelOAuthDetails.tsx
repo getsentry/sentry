@@ -77,53 +77,6 @@ const clientSchema = z.object({
   termsUrl: optionalUrlValidation,
 });
 
-const fields = [
-  {
-    name: 'clientID' as const,
-    label: 'Client ID',
-    hintText: 'ID of the selected client (not modifiable)',
-    disabled: true,
-  },
-  {
-    name: 'name' as const,
-    label: 'Client Name',
-    hintText: 'Human readable name for the client',
-    placeholder: 'e.g. CodeCov',
-    required: true,
-  },
-  {
-    name: 'redirectUris' as const,
-    label: 'Redirect URIs (space separated)',
-    hintText: 'The URL that users will redirect to after login/signup',
-    placeholder: 'e.g. https://notsentry.io/redirect',
-    required: true,
-  },
-  {
-    name: 'allowedOrigins' as const,
-    label: 'Allowed Origins (space separated)',
-    hintText: 'Allowed origins for the client',
-    placeholder: 'e.g. https://notsentry.io/origin',
-  },
-  {
-    name: 'homepageUrl' as const,
-    label: 'Homepage URL',
-    hintText: "Client's homepage",
-    placeholder: 'e.g. https://notsentry.io/home',
-  },
-  {
-    name: 'privacyUrl' as const,
-    label: 'Privacy Policy URL',
-    hintText: "URL to client's privacy policy",
-    placeholder: 'e.g. https://notsentry.io/privacy',
-  },
-  {
-    name: 'termsUrl' as const,
-    label: 'Terms and Conditions URL',
-    hintText: "URL to client's terms and conditions",
-    placeholder: 'e.g. https://notsentry.io/terms',
-  },
-];
-
 function clientDetailsQueryOptions(clientID: string) {
   return apiOptions.as<ClientDetailsResponse>()(
     '/_admin/instance-level-oauth/$clientId/',
@@ -176,24 +129,109 @@ function ClientDetailsForm({clientDetails}: {clientDetails: ClientDetails}) {
   return (
     <form.AppForm form={form}>
       <Stack gap="lg">
-        {fields.map(fieldConfig => (
-          <form.AppField key={fieldConfig.name} name={fieldConfig.name}>
-            {field => (
-              <field.Layout.Stack
-                label={fieldConfig.label}
-                hintText={fieldConfig.hintText}
-                required={fieldConfig.required}
-              >
-                <field.Input
-                  value={field.state.value}
-                  onChange={field.handleChange}
-                  placeholder={fieldConfig.placeholder}
-                  disabled={fieldConfig.disabled || mutation.isPending}
-                />
-              </field.Layout.Stack>
-            )}
-          </form.AppField>
-        ))}
+        <form.AppField name="clientID">
+          {field => (
+            <field.Layout.Stack
+              label="Client ID"
+              hintText="ID of the selected client (not modifiable)"
+            >
+              <field.Input
+                value={field.state.value}
+                onChange={field.handleChange}
+                disabled
+              />
+            </field.Layout.Stack>
+          )}
+        </form.AppField>
+        <form.AppField name="name">
+          {field => (
+            <field.Layout.Stack
+              label="Client Name"
+              hintText="Human readable name for the client"
+              required
+            >
+              <field.Input
+                value={field.state.value}
+                onChange={field.handleChange}
+                placeholder="e.g. CodeCov"
+                disabled={mutation.isPending}
+              />
+            </field.Layout.Stack>
+          )}
+        </form.AppField>
+        <form.AppField name="redirectUris">
+          {field => (
+            <field.Layout.Stack
+              label="Redirect URIs (space separated)"
+              hintText="The URL that users will redirect to after login/signup"
+              required
+            >
+              <field.Input
+                value={field.state.value}
+                onChange={field.handleChange}
+                placeholder="e.g. https://notsentry.io/redirect"
+                disabled={mutation.isPending}
+              />
+            </field.Layout.Stack>
+          )}
+        </form.AppField>
+        <form.AppField name="allowedOrigins">
+          {field => (
+            <field.Layout.Stack
+              label="Allowed Origins (space separated)"
+              hintText="Allowed origins for the client"
+            >
+              <field.Input
+                value={field.state.value}
+                onChange={field.handleChange}
+                placeholder="e.g. https://notsentry.io/origin"
+                disabled={mutation.isPending}
+              />
+            </field.Layout.Stack>
+          )}
+        </form.AppField>
+        <form.AppField name="homepageUrl">
+          {field => (
+            <field.Layout.Stack label="Homepage URL" hintText="Client's homepage">
+              <field.Input
+                value={field.state.value}
+                onChange={field.handleChange}
+                placeholder="e.g. https://notsentry.io/home"
+                disabled={mutation.isPending}
+              />
+            </field.Layout.Stack>
+          )}
+        </form.AppField>
+        <form.AppField name="privacyUrl">
+          {field => (
+            <field.Layout.Stack
+              label="Privacy Policy URL"
+              hintText="URL to client's privacy policy"
+            >
+              <field.Input
+                value={field.state.value}
+                onChange={field.handleChange}
+                placeholder="e.g. https://notsentry.io/privacy"
+                disabled={mutation.isPending}
+              />
+            </field.Layout.Stack>
+          )}
+        </form.AppField>
+        <form.AppField name="termsUrl">
+          {field => (
+            <field.Layout.Stack
+              label="Terms and Conditions URL"
+              hintText="URL to client's terms and conditions"
+            >
+              <field.Input
+                value={field.state.value}
+                onChange={field.handleChange}
+                placeholder="e.g. https://notsentry.io/terms"
+                disabled={mutation.isPending}
+              />
+            </field.Layout.Stack>
+          )}
+        </form.AppField>
         <Text as="p">
           <Text bold>Date added:</Text> {clientDetails.createdAt}
         </Text>
