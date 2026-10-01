@@ -24,64 +24,6 @@ class IncidentAlertRuleRelationTest(TestCase):
         assert self.incident.alert_rule.id == self.alert_rule.id
 
 
-class AlertRuleFetchForOrganizationTest(TestCase):
-    def test_empty(self) -> None:
-        alert_rule = AlertRule.objects.fetch_for_organization(self.organization)
-        assert [] == list(alert_rule)
-
-    def test_simple(self) -> None:
-        alert_rule = self.create_alert_rule()
-
-        assert [alert_rule] == list(AlertRule.objects.fetch_for_organization(self.organization))
-
-    def test_with_projects(self) -> None:
-        project = self.create_project()
-        alert_rule = self.create_alert_rule(projects=[project])
-
-        assert [] == list(
-            AlertRule.objects.fetch_for_organization(self.organization, [self.project])
-        )
-        assert [alert_rule] == list(
-            AlertRule.objects.fetch_for_organization(self.organization, [project])
-        )
-
-    def test_multi_project(self) -> None:
-        project = self.create_project()
-        alert_rule1 = self.create_alert_rule(projects=[project, self.project])
-        alert_rule2 = self.create_alert_rule(projects=[project])
-
-        assert [alert_rule1] == list(
-            AlertRule.objects.fetch_for_organization(self.organization, [self.project])
-        )
-        assert {alert_rule1, alert_rule2} == set(
-            AlertRule.objects.fetch_for_organization(self.organization, [project])
-        )
-
-    def test_project_on_alert(self) -> None:
-        project = self.create_project()
-        alert_rule = self.create_alert_rule()
-        alert_rule.projects.add(project)
-
-        assert [alert_rule] == list(AlertRule.objects.fetch_for_organization(self.organization))
-
-    def test_project_on_alert_and_snuba(self) -> None:
-        project1 = self.create_project()
-        alert_rule1 = self.create_alert_rule(projects=[project1])
-        alert_rule1.projects.add(project1)
-
-        # will fetch if there's 1 project in snuba
-        assert [alert_rule1] == list(AlertRule.objects.fetch_for_organization(self.organization))
-
-        project2 = self.create_project()
-        alert_rule2 = self.create_alert_rule(projects=[project2, self.project])
-        alert_rule2.projects.add(project1)
-
-        # Will fetch if there's 1 project in snuba and 1 in alert rule
-        assert {alert_rule1, alert_rule2} == set(
-            AlertRule.objects.fetch_for_organization(self.organization, [project1])
-        )
-
-
 class AlertRuleTriggerActionTargetTest(TestCase):
     def setUp(self) -> None:
         self.metric_alert = self.create_alert_rule()

@@ -23,7 +23,6 @@ from sentry.db.models import (
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.manager.base_query_set import BaseQuerySet
-from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
 from sentry.models.team import Team
@@ -82,15 +81,6 @@ class AlertRuleManager(BaseManager["AlertRule"]):
 
     def get_queryset(self) -> BaseQuerySet[AlertRule]:
         return super().get_queryset().exclude(status=AlertRuleStatus.SNAPSHOT.value)
-
-    def fetch_for_organization(
-        self, organization: Organization, projects: Collection[Project] | None = None
-    ) -> BaseQuerySet[AlertRule]:
-        queryset = self.filter(organization=organization)
-        if projects is not None:
-            queryset = queryset.filter(projects__in=projects).distinct()
-
-        return queryset
 
     def fetch_for_project(self, project: Project) -> BaseQuerySet[AlertRule]:
         return self.filter(projects=project).distinct()
@@ -221,8 +211,6 @@ class AlertRuleTrigger(Model):
     alert_threshold = models.FloatField()
     resolve_threshold = models.FloatField(null=True)
     date_added = models.DateTimeField(default=timezone.now)
-
-    objects: ClassVar[BaseManager[Self]] = BaseManager()
 
     class Meta:
         app_label = "sentry"
