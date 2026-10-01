@@ -207,7 +207,9 @@ class MonitorValidatorCreateTest(MonitorTestCase):
         )
         assert rule is not None
         assert rule.environment_id == self.environment.id
-        mock_incr.assert_any_call("monitors.validator.alert_rule", tags={"operation": "create"})
+        mock_incr.assert_any_call(
+            "monitors.validator.alert_rule", tags={"operation": "create"}, sample_rate=1.0
+        )
 
     def test_checkin_margin_zero(self) -> None:
         # Invalid checkin margin
