@@ -63,7 +63,7 @@ try {
       join(consumer, 'entry.mts'),
       `import * as entry from '${specifier}';\nvoid entry;\n`
     );
-    execFileSync(resolve(root, 'node_modules/.bin/tsc'), ['--project', 'tsconfig.json'], {
+    execFileSync('tsc', ['--project', 'tsconfig.json'], {
       cwd: consumer,
       stdio: 'inherit',
     });
