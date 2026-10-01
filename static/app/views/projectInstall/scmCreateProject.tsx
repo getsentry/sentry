@@ -46,6 +46,8 @@ import {
 } from 'sentry/views/projectInstall/scmCreateProjectSession';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
+import {AgenticCreateProject} from './agenticCreateProject';
+
 const CREATE_PROJECT_MAX_WIDTH = '700px';
 
 const INITIAL_STATE: WizardState = {
@@ -59,6 +61,7 @@ const INITIAL_STATE: WizardState = {
 };
 
 export function ScmCreateProject() {
+  const organization = useOrganization();
   const location = useLocation();
   const referrer = decodeScalar(location.query.referrer);
   const projectId = decodeScalar(location.query.project);
@@ -101,14 +104,23 @@ export function ScmCreateProject() {
     projectId === savedSession.createdProjectId;
   const restoredSession = isReturnFromGettingStarted ? savedSession : null;
 
-  // Keyed so a restore arriving after mount remounts the wizard and
-  // mount-seeded form state re-reads the restored session.
-  return (
+  const wizard = (
     <ScmCreateProjectWizard
       key={restoredSession ? 'restored' : 'fresh'}
       initialState={restoredSession ?? INITIAL_STATE}
     />
   );
+
+  if (
+    organization.features.includes('onboarding-agentic-setup') &&
+    !isReturnFromGettingStarted
+  ) {
+    return <AgenticCreateProject key={organization.slug}>{wizard}</AgenticCreateProject>;
+  }
+
+  // Keyed so a restore arriving after mount remounts the wizard and
+  // mount-seeded form state re-reads the restored session.
+  return wizard;
 }
 
 function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {

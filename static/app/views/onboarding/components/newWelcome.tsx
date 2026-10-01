@@ -142,6 +142,8 @@ export function NewWelcomeUI(props: StepProps) {
     isSetupComplete,
     hasRunFailed,
     hasInitFailed,
+    hasProgressFailed,
+    refreshRun,
     restartRun,
   } = useWelcomeAgentRun({enabled: showAgentSetup});
   const showAgentHeading = showAgentSetup && isAgentConnected;
@@ -214,6 +216,8 @@ export function NewWelcomeUI(props: StepProps) {
               >
                 <WelcomeAgentSetup
                   hasInitFailed={hasInitFailed}
+                  hasProgressFailed={hasProgressFailed}
+                  onRefresh={() => void refreshRun()}
                   isAgentConnected={isAgentConnected}
                   onboardingCode={onboardingCode}
                   onCopyCommand={handleCopyCommand}

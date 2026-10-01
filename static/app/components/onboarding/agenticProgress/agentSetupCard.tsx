@@ -13,8 +13,9 @@ import {IconBot} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {selectText} from 'sentry/utils/selectText';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {AgentInfo} from 'sentry/views/onboarding/components/agentInfo';
-import {SETUP_CARD_ICON_SIZE, SETUP_CARD_MARKER_PX} from 'sentry/views/onboarding/consts';
+
+import {AgentInfo} from './agentInfo';
+import {SETUP_CARD_ICON_SIZE, SETUP_CARD_MARKER_PX} from './consts';
 
 export type AgentSetupCopySource = 'install_command' | 'prompt';
 
@@ -30,11 +31,13 @@ interface AgentSetupCardProps {
   onCopyCommand: (source: AgentSetupCopySource) => void;
   onSelectSnippet: (source: AgentSetupCopySource) => void;
   prompt: string;
+  feedbackSource?: string;
   hasSetupFailed?: boolean;
   onboardingCode?: string;
 }
 
 export function AgentSetupCard({
+  feedbackSource = 'onboarding-agent-setup',
   hasSetupFailed,
   onboardingCode,
   onCopyCommand,
@@ -173,7 +176,7 @@ export function AgentSetupCard({
         <FeedbackButton
           size="xs"
           feedbackOptions={{
-            tags: {'feedback.source': 'onboarding-agent-setup'},
+            tags: {'feedback.source': feedbackSource},
           }}
         />
       </Flex>

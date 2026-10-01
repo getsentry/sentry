@@ -7,7 +7,7 @@ import {
 } from 'sentry/components/onboarding/agenticProgress/useAgenticProgressInit';
 import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 
-function useOnboardingAgentSession() {
+export function useOnboardingAgentSession() {
   const {
     agenticProgressClientRunId,
     agenticProgressOnboardingCode,
