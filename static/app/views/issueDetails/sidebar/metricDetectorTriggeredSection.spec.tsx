@@ -242,6 +242,64 @@ describe('MetricDetectorTriggeredSection', () => {
     );
   });
 
+  it("shows the run's summary when the investigation has not caught up", async () => {
+    const organization = OrganizationFixture({
+      slug: 'org-slug',
+      features: ['investigations'],
+      openMembership: true,
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/candidates/',
+      method: 'POST',
+      body: {items: [{status: 'view', investigationId: '4567'}]},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/4567/',
+      body: {
+        id: '4567',
+        summary: null,
+        summaryDescription: null,
+        titleGeneration: {status: 'completed'},
+        orchestration: {
+          phase: 'completed',
+          status: 'completed',
+          heartbeatAt: '2026-08-27T11:06:30Z',
+          notebookRevision: 1,
+        },
+      },
+    });
+    const projection = InvestigationOrchestrationFixture({
+      investigationId: '4567',
+      phase: 'completed',
+      status: 'completed',
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/4567/orchestration/',
+      body: {
+        ...projection,
+        report: {
+          ...projection.report,
+          metadata: {
+            ...projection.report.metadata,
+            status: 'completed',
+            summary: 'Errors rose across releases',
+            summaryDescription: 'All active releases increased together.',
+          },
+        },
+      },
+    });
+
+    render(<MetricIssueSeerInvestigationSection {...defaultProps} />, {
+      organization,
+    });
+
+    expect(await screen.findByText('Errors rose across releases')).toBeInTheDocument();
+    expect(screen.getByText('Seer investigation completed')).toBeInTheDocument();
+    expect(
+      screen.getByText('All active releases increased together.')
+    ).toBeInTheDocument();
+  });
+
   it('shows why an investigation run failed', async () => {
     const organization = OrganizationFixture({
       slug: 'org-slug',

@@ -685,12 +685,12 @@ function SeerInvestigationSection({
       existingInvestigationId !== null &&
       Boolean(existingInvestigation?.orchestration) &&
       !hasSummary,
-    select: response => response.json,
     // Polls like the investigation page's hypotheses, and stops once the run
-    // reaches a terminal state.
+    // reaches a terminal state, unless its summary is still being written.
     refetchInterval: query => {
       const run = query.state.data?.json;
-      return shouldPollInvestigationRun(run?.status, run?.runId !== null)
+      return shouldPollInvestigationRun(run?.status, run?.runId !== null) ||
+        (run?.status === 'completed' && run.report.metadata.status === 'generating')
         ? INVESTIGATION_POLL_INTERVAL
         : false;
     },
@@ -800,17 +800,24 @@ function getInvestigationStatusBlock(
   investigation: InvestigationDetail | undefined,
   orchestration: InvestigationOrchestration | undefined
 ): ComponentProps<typeof SeerStatusBlock> | null {
-  if (investigation?.summary && investigation.summaryDescription) {
+  // The run's projection carries the summary too, so it shows even when the
+  // detail query stopped polling before the summary was written.
+  const metadata =
+    orchestration?.status === 'completed' ? orchestration.report.metadata : undefined;
+  const summary = investigation?.summary ?? metadata?.summary;
+  const summaryDescription =
+    investigation?.summaryDescription ?? metadata?.summaryDescription;
+  if (summary && summaryDescription) {
     return {
       variant: 'complete',
       title: t('Seer investigation completed'),
       children: (
         <Stack gap="xs">
           <Text size="sm" bold>
-            {investigation.summary}
+            {summary}
           </Text>
           <Text size="sm" density="comfortable">
-            {investigation.summaryDescription}
+            {summaryDescription}
           </Text>
         </Stack>
       ),
