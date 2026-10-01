@@ -18,6 +18,7 @@ import {
   resolveBranch,
   sanitizeBranch,
 } from './normalization';
+import {PathMappingDeleteButton} from './pathMappingDeleteButton';
 import {PathMappingPreview} from './pathMappingPreview';
 import {PathMappingWarningAlert} from './pathMappingWarningAlert';
 import type {PathMappingValue} from './type';
@@ -33,6 +34,7 @@ const schema = z.object({
 interface PathMappingEditProps extends PathMappingValue {
   onChange: (value: PathMappingValue) => void;
   defaultBranch?: string;
+  onDelete?: () => void;
   projectSlug?: string;
   providerKey?: string;
   warning?: PathMappingWarning | null;
@@ -44,6 +46,7 @@ export function PathMappingEdit({
   stackRoot,
   hasCodeOwner,
   onChange,
+  onDelete,
   defaultBranch,
   projectSlug,
   providerKey,
@@ -69,7 +72,21 @@ export function PathMappingEdit({
         <Stack gap="xl">
           <form.AppField name="branch">
             {field => (
-              <field.Layout.Stack label={t('Branch')}>
+              <field.Layout.Stack
+                label={
+                  onDelete ? (
+                    <Flex align="center" justify="between" style={{width: '100%'}}>
+                      {t('Branch')}
+                      <PathMappingDeleteButton
+                        hasCodeOwner={hasCodeOwner}
+                        onDelete={onDelete}
+                      />
+                    </Flex>
+                  ) : (
+                    t('Branch')
+                  )
+                }
+              >
                 <field.Base<HTMLInputElement>>
                   {(baseProps, {indicator}) => (
                     <InputGroup style={{flex: 1}}>
@@ -158,7 +175,7 @@ export function PathMappingEdit({
           </Grid>
 
           <Stack gap="md" paddingTop="xl">
-            <Text bold>{t('Preview')}</Text>
+            <Text bold>{t('Example preview')}</Text>
             <form.Subscribe
               selector={state => ({
                 stackRoot: state.values.stackRoot,

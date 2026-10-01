@@ -1,4 +1,4 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {PathMappingList} from 'sentry/components/connectRepository/pathMappingList';
 import type {PathMappingValue} from 'sentry/components/connectRepository/type';
@@ -21,6 +21,9 @@ describe('PathMappingList', () => {
       expect(
         screen.getByRole('textbox', {name: /stack trace prefix/i})
       ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Delete path mapping'})
+      ).not.toBeInTheDocument();
     });
 
     it('reports filled values through onChange', async () => {
@@ -93,6 +96,40 @@ describe('PathMappingList', () => {
 
       expect(screen.getByText(/Paths \(3\)/)).toBeInTheDocument();
       expect(screen.getByRole('textbox', {name: /stack trace prefix/i})).toHaveValue('');
+    });
+
+    it('keeps delete on the summary when the only mapping is open', async () => {
+      renderList({pathMappings: [MAPPINGS[0]!]});
+
+      await userEvent.click(screen.getByRole('button', {name: 'Expand path mapping'}));
+
+      const form = screen.getByRole('textbox', {name: /branch/i}).closest('form');
+      expect(
+        within(form as HTMLElement).queryByRole('button', {name: 'Delete path mapping'})
+      ).not.toBeInTheDocument();
+      expect(
+        screen.getByRole('button', {name: 'Delete path mapping'})
+      ).toBeInTheDocument();
+    });
+
+    it('deletes an open mapping from the editor when another mapping exists', async () => {
+      const onChange = jest.fn();
+      renderList({pathMappings: MAPPINGS, onChange});
+
+      const [firstExpand] = screen.getAllByRole('button', {name: 'Expand path mapping'});
+      await userEvent.click(firstExpand!);
+
+      const form = screen
+        .getByRole('textbox', {name: /stack trace prefix/i})
+        .closest('form');
+      await userEvent.click(
+        within(form as HTMLElement).getByRole('button', {name: 'Delete path mapping'})
+      );
+
+      expect(screen.getByText(/Paths \(1\)/)).toBeInTheDocument();
+      expect(onChange).toHaveBeenLastCalledWith([
+        expect.objectContaining({stackRoot: 'src/'}),
+      ]);
     });
 
     it('removes a mapping and reports the change', async () => {
@@ -205,19 +242,34 @@ describe('PathMappingList', () => {
     });
   });
 
-  describe('catch-all and exact-duplicate warnings', () => {
-    it('shows the catch-all alert when the expanded row has an empty stack root', async () => {
+  describe('empty-prefix and exact-duplicate warnings', () => {
+    it('shows both-empty banner when both prefixes are blank', async () => {
       renderList();
 
-      // The initial row is empty (catch-all state).
       expect(
         await screen.findByText(
-          'This mapping matches every path because the stack trace prefix is empty. Add a specific path if you only want it to apply to some files.'
+          'Both prefixes are empty, so Sentry will look for each file at the same path in your repo.'
         )
       ).toBeInTheDocument();
     });
 
-    it('hides the catch-all alert once a stack root is entered', async () => {
+    it('switches to stack-empty banner when only the repository prefix is filled', async () => {
+      renderList();
+
+      await userEvent.type(
+        screen.getByRole('textbox', {name: /repository prefix/i}),
+        'app/'
+      );
+
+      expect(
+        screen.getByText(
+          /The stack trace prefix is empty, so this mapping matches every file/
+        )
+      ).toBeInTheDocument();
+      expect(screen.queryByText(/Both prefixes are empty/)).not.toBeInTheDocument();
+    });
+
+    it('switches to source-empty banner when only the stack prefix is filled', async () => {
       renderList();
 
       await userEvent.type(
@@ -225,11 +277,25 @@ describe('PathMappingList', () => {
         'src/'
       );
 
-      expect(
-        screen.queryByText(
-          'This mapping matches every path because the stack trace prefix is empty. Add a specific path if you only want it to apply to some files.'
-        )
-      ).not.toBeInTheDocument();
+      expect(screen.getByText(/The repository prefix is empty/)).toBeInTheDocument();
+      expect(screen.queryByText(/Both prefixes are empty/)).not.toBeInTheDocument();
+    });
+
+    it('hides all empty-prefix banners once both prefixes are filled', async () => {
+      renderList();
+
+      await userEvent.type(
+        screen.getByRole('textbox', {name: /stack trace prefix/i}),
+        'src/'
+      );
+      await userEvent.type(
+        screen.getByRole('textbox', {name: /repository prefix/i}),
+        'app/'
+      );
+
+      expect(screen.queryByText(/Both prefixes are empty/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/stack trace prefix is empty/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/repository prefix is empty/)).not.toBeInTheDocument();
     });
 
     it('does not warn when roots are unrelated', () => {
@@ -308,7 +374,7 @@ describe('PathMappingList', () => {
 
       await userEvent.click(screen.getByRole('button', {name: 'Expand path mapping'}));
 
-      expect(screen.getByText(/Code Owners/)).toBeInTheDocument();
+      expect(screen.getByRole('link', {name: 'Code Owners'})).toBeInTheDocument();
       expect(
         screen.queryByText(/Only one can be used for matching/)
       ).not.toBeInTheDocument();

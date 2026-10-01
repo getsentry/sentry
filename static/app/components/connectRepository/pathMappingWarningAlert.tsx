@@ -43,16 +43,6 @@ export function PathMappingWarningAlert({
     );
   }
 
-  if (warning?.type === 'catchAll') {
-    return (
-      <Alert variant="info" showIcon>
-        {t(
-          'This mapping matches every path because the stack trace prefix is empty. Add a specific path if you only want it to apply to some files.'
-        )}
-      </Alert>
-    );
-  }
-
   if (warning?.type === 'exact') {
     return (
       <Alert variant="warning" showIcon>
@@ -62,6 +52,43 @@ export function PathMappingWarningAlert({
             stackRoot: displayRoot(warning.stackRoot, t('stack trace prefix')),
             sourceRoot: displayRoot(warning.sourceRoot, t('repository prefix')),
           }
+        )}
+      </Alert>
+    );
+  }
+
+  if (warning?.type === 'catchAll') {
+    const {stackRoot, sourceRoot} = warning;
+    const bothEmpty = stackRoot === '' && sourceRoot === '';
+    const stackEmpty = stackRoot === '' && sourceRoot !== '';
+
+    if (bothEmpty) {
+      return (
+        <Alert variant="muted" showIcon>
+          {t(
+            'Both prefixes are empty, so Sentry will look for each file at the same path in your repo.'
+          )}
+        </Alert>
+      );
+    }
+
+    if (stackEmpty) {
+      return (
+        <Alert variant="muted" showIcon>
+          {tct(
+            'The stack trace prefix is empty, so this mapping matches every file. Sentry will look for each file under [sourceRoot] in your repo.',
+            {sourceRoot: <strong>{sourceRoot}</strong>}
+          )}
+        </Alert>
+      );
+    }
+
+    // sourceRoot is empty, stackRoot is set
+    return (
+      <Alert variant="muted" showIcon>
+        {tct(
+          'The repository prefix is empty, so Sentry removes [stackRoot] from the path and looks for the rest at the root of your repo.',
+          {stackRoot: <strong>{stackRoot}</strong>}
         )}
       </Alert>
     );

@@ -17,6 +17,10 @@ interface PathMappingProps extends PathMappingValue {
   onDelete: () => void;
   onExpandToggle: () => void;
   defaultBranch?: string;
+  /**
+   * When set on an open row, the editor owns delete and the summary hides its button.
+   */
+  enableDelete?: boolean;
   projectSlug?: string;
   providerKey?: string;
   warning?: PathMappingWarning | null;
@@ -25,6 +29,7 @@ interface PathMappingProps extends PathMappingValue {
 export function PathMapping({
   editing,
   isNew,
+  enableDelete = false,
   onChange,
   onDelete,
   onExpandToggle,
@@ -35,6 +40,7 @@ export function PathMapping({
   ...value
 }: PathMappingProps) {
   const showSummary = !(editing && isNew);
+  const editorOnDelete = editing && enableDelete ? onDelete : undefined;
 
   return (
     <Stack border="muted" radius="md">
@@ -43,7 +49,7 @@ export function PathMapping({
           {...value}
           expanded={editing}
           warning={warning ?? null}
-          onDelete={onDelete}
+          onDelete={editorOnDelete ? undefined : onDelete}
           onExpandToggle={onExpandToggle}
         />
       )}
@@ -56,6 +62,7 @@ export function PathMapping({
           projectSlug={projectSlug}
           warning={warning ?? null}
           onChange={onChange}
+          onDelete={editorOnDelete}
         />
       )}
     </Stack>
