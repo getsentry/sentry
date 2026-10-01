@@ -38,6 +38,7 @@ import {ConversationMissingMessagesAlert} from 'sentry/views/explore/conversatio
 import {ConversationsChart} from 'sentry/views/explore/conversations/components/conversationsChart';
 import {ConversationsTable} from 'sentry/views/explore/conversations/components/conversationsTable';
 import {SaveConversationQueryButton} from 'sentry/views/explore/conversations/components/saveConversationQueryButton';
+import {useConversationDirectHitRedirect} from 'sentry/views/explore/conversations/hooks/useConversationDirectHitRedirect';
 import {
   CONVERSATION_FIELDS,
   useConversations,
@@ -130,6 +131,10 @@ function ConversationsOverviewPage() {
     isFetching: isConversationsFetching,
     error: conversationsError,
   } = conversationsResult;
+  useConversationDirectHitRedirect({
+    isDirectHit: conversationsResult.isDirectHit,
+    conversations,
+  });
   const showMissingMessagesAlert =
     !isConversationsFetching &&
     !conversationsError &&
