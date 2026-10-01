@@ -10,7 +10,8 @@ import {
 import {hasAnsi, stripAnsi} from 'sentry/utils/ansiEscapeCodes';
 import {LogsHighlight} from 'sentry/views/explore/logs/styles';
 
-const ANSI_COLOR_STRENGTH = '15%';
+const ANSI_BACKGROUND_STRENGTH = '15%';
+const ANSI_TEXT_STRENGTH = '50%';
 
 type ColorPalette = ReturnType<typeof createColorPalette>;
 
@@ -65,11 +66,11 @@ function getTokenStyle(
   const style: CSSProperties = {};
 
   if (foreground) {
-    style.color = `color-mix(in srgb, ${palette.value(foreground)} ${ANSI_COLOR_STRENGTH}, currentColor)`;
+    style.color = `color-mix(in srgb, ${palette.value(foreground)} ${ANSI_TEXT_STRENGTH}, currentColor)`;
   }
 
   if (background) {
-    style.backgroundColor = `color-mix(in srgb, ${palette.value(background)} ${ANSI_COLOR_STRENGTH}, transparent)`;
+    style.backgroundColor = `color-mix(in srgb, ${palette.value(background)} ${ANSI_BACKGROUND_STRENGTH}, transparent)`;
   }
 
   if (decorations.has('bold')) {
