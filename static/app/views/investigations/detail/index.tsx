@@ -9,6 +9,7 @@ import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Input} from '@sentry/scraps/input';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -345,19 +346,21 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                     }),
                 },
               ]}
-              triggerProps={{
-                size: 'sm',
-                showChevron: false,
-                variant: 'transparent',
-                icon: <IconEllipsis />,
-                'aria-label': t('Investigation actions'),
-              }}
+              trigger={triggerProps => (
+                <OverlayTrigger.IconButton
+                  {...triggerProps}
+                  size="sm"
+                  variant="transparent"
+                  icon={<IconEllipsis />}
+                  aria-label={t('Investigation actions')}
+                />
+              )}
               position="bottom-end"
               usePortal
             />
           </HeaderBreadcrumbs>
         </Layout.Title>
-        <Container as="header" width="100%" padding="xl">
+        <Container as="header" width="100%" padding="xl xl 3xl">
           <Stack gap="xs" width="100%" maxWidth="960px" margin="0 auto">
             <Grid
               columns={runStatus ? 'minmax(0, 1fr) auto' : 'minmax(0, 1fr)'}
@@ -427,7 +430,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
         </Container>
         <Layout.Body padding={{'screen:sm': '0 lg lg', 'screen:md': '0 xl lg'}}>
           <Layout.Main width="full">
-            <Stack width="100%" maxWidth="960px" minWidth={0} margin="0 auto">
+            <Stack width="100%" maxWidth="960px" minWidth={0} margin="0 auto" gap="3xl">
               {/*
                * Only an agentic investigation has hypotheses, and `orchestration`
                * being present is the only thing that says one is: it is null for
@@ -435,43 +438,37 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                * 404s.
                */}
               {investigation.orchestration ? (
-                <Stack width="100%" minWidth={0} paddingBottom="xl">
-                  <InvestigationHypotheses
-                    investigationId={investigation.id}
-                    phase={investigation.orchestration.phase}
-                  />
-                </Stack>
+                <InvestigationHypotheses
+                  investigationId={investigation.id}
+                  phase={investigation.orchestration.phase}
+                />
               ) : null}
 
-              <NotebookSummaryCard
+              <InvestigationSummaryCard
                 summary={investigation.summary}
                 summaryDescription={investigation.summaryDescription}
               />
 
-              <Stack width="100%" minWidth={0}>
-                {visibleSummaryBlock ? (
-                  <InvestigationCell
-                    block={visibleSummaryBlock}
-                    canRun={investigation.status === 'active'}
-                    investigation={investigation}
-                  />
-                ) : null}
+              {visibleSummaryBlock ? (
+                <InvestigationCell
+                  block={visibleSummaryBlock}
+                  canRun={investigation.status === 'active'}
+                  investigation={investigation}
+                />
+              ) : null}
 
-                <Stack gap="xl">
-                  {visibleNotebookCells.map(block => (
-                    <InvestigationCell
-                      key={block.id}
-                      block={block}
-                      canRun={investigation.status === 'active'}
-                      investigation={investigation}
-                    />
-                  ))}
-                  {isAwaitingReportCell(investigation) ? (
-                    <InvestigationCellPlaceholder />
-                  ) : null}
-                </Stack>
-              </Stack>
-              <Container height="160px" flexShrink={0} aria-hidden />
+              {visibleNotebookCells.map(block => (
+                <InvestigationCell
+                  key={block.id}
+                  block={block}
+                  canRun={investigation.status === 'active'}
+                  investigation={investigation}
+                />
+              ))}
+              {isAwaitingReportCell(investigation) ? (
+                <InvestigationCellPlaceholder />
+              ) : null}
+              <Container height="128px" flexShrink={0} aria-hidden />
             </Stack>
           </Layout.Main>
         </Layout.Body>
@@ -537,11 +534,6 @@ function formatSourceType(sourceType: string) {
   }
   return sourceType.replaceAll('_', ' ');
 }
-
-const NotebookSummaryCard = styled(InvestigationSummaryCard)`
-  width: 100%;
-  margin-bottom: ${p => p.theme.space.xl};
-`;
 
 const HeaderBreadcrumbs = styled(Flex)`
   height: 32px;
