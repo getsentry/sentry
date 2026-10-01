@@ -404,6 +404,7 @@ export function LogsInfiniteTable({
     isPending,
     isScrolling,
     dataLength: data?.length ?? 0,
+    tableWidth,
   });
 
   useEffect(() => {
