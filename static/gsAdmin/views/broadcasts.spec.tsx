@@ -2,7 +2,6 @@ import {ConfigFixture} from 'sentry-fixture/config';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {
-  fireEvent,
   render,
   renderGlobalModal,
   screen,
@@ -68,7 +67,7 @@ describe('Broadcasts', () => {
       screen.getByRole('textbox', {name: 'Link'}),
       'https://example.com'
     );
-    fireEvent.change(screen.getByLabelText('Expires At'), {target: {value: ''}});
+    await userEvent.clear(screen.getByLabelText('Expires At'));
     await userEvent.click(screen.getByRole('button', {name: 'Save'}));
 
     await waitFor(() => expect(createRequest).toHaveBeenCalled());
