@@ -2,27 +2,28 @@ import {defineRule, type ESTree, type Variable} from '@oxlint/plugins';
 
 type FunctionNode = ESTree.ArrowFunctionExpression | ESTree.Function;
 
-function isFunctionNode(node: ESTree.Node): node is FunctionNode {
-  return (
-    node.type === 'ArrowFunctionExpression' ||
-    node.type === 'FunctionDeclaration' ||
-    node.type === 'FunctionExpression'
-  );
+interface FunctionFrame {
+  hasJsx: boolean;
+  node: FunctionNode;
+  parent: FunctionFrame | undefined;
+  returns: ESTree.ReturnStatement[];
 }
 
-export function isJsxOrNullExpression(node: ESTree.Node | null | undefined): boolean {
+function isJsxOrNullExpression(node: ESTree.Node | null | undefined): boolean {
   if (!node) {
     return false;
   }
 
   switch (node.type) {
-    case 'ParenthesizedExpression':
-      return isJsxOrNullExpression(node.expression);
     case 'JSXElement':
     case 'JSXFragment':
       return true;
     case 'Literal':
       return node.value === null;
+    case 'LogicalExpression':
+      return node.operator === '&&' && isJsxOrNullExpression(node.right);
+    case 'ArrayExpression':
+      return node.elements.length > 0 && node.elements.every(isJsxOrNullExpression);
     case 'ConditionalExpression':
       return (
         isJsxOrNullExpression(node.consequent) && isJsxOrNullExpression(node.alternate)
@@ -52,6 +53,9 @@ export const preferReactComponent = defineRule({
   },
 
   create(context) {
+    const stack: FunctionFrame[] = [];
+    const candidates: Array<{frame: FunctionFrame; name: string}> = [];
+
     function resolveVariable(
       node: ESTree.IdentifierReference | ESTree.BindingIdentifier
     ): Variable | undefined {
@@ -80,44 +84,7 @@ export const preferReactComponent = defineRule({
       );
     }
 
-    function getReturnStatements(node: ESTree.Node): ESTree.ReturnStatement[] {
-      const returnStatements: ESTree.ReturnStatement[] = [];
-
-      function visit(current: ESTree.Node) {
-        if (current !== node && isFunctionNode(current)) {
-          return;
-        }
-
-        if (current.type === 'ReturnStatement') {
-          returnStatements.push(current);
-          return;
-        }
-
-        const visitorKeys = context.sourceCode.visitorKeys[current.type] ?? [];
-        for (const key of visitorKeys) {
-          const child = current[key as keyof typeof current] as
-            | ESTree.Node
-            | ESTree.Node[]
-            | null
-            | undefined;
-
-          if (Array.isArray(child)) {
-            for (const item of child) {
-              if (item) {
-                visit(item);
-              }
-            }
-          } else if (child) {
-            visit(child);
-          }
-        }
-      }
-
-      visit(node);
-      return returnStatements;
-    }
-
-    function returnsOnlyJsxOrNull(node: FunctionNode): boolean {
+    function returnsOnlyJsxOrNull({node, returns}: FunctionFrame): boolean {
       if (!node.body) {
         return false;
       }
@@ -126,15 +93,14 @@ export const preferReactComponent = defineRule({
         return isJsxOrNullExpression(node.body);
       }
 
-      const returnStatements = getReturnStatements(node.body);
       return (
-        returnStatements.length > 0 &&
-        returnStatements.every(statement => isJsxOrNullExpression(statement.argument))
+        returns.length > 0 &&
+        returns.every(statement => isJsxOrNullExpression(statement.argument))
       );
     }
 
     function getFunctionName(node: FunctionNode): string | null {
-      if ('id' in node && node.id?.type === 'Identifier') {
+      if (node.id?.type === 'Identifier') {
         return node.id.name;
       }
 
@@ -150,46 +116,14 @@ export const preferReactComponent = defineRule({
       return null;
     }
 
-    function containsJsx(node: ESTree.Node): boolean {
-      function visit(current: ESTree.Node): boolean {
-        if (current !== node && isFunctionNode(current)) {
-          return false;
-        }
-
-        if (current.type === 'JSXElement' || current.type === 'JSXFragment') {
-          return true;
-        }
-
-        const visitorKeys = context.sourceCode.visitorKeys[current.type] ?? [];
-        return visitorKeys.some(key => {
-          const child = current[key as keyof typeof current] as
-            | ESTree.Node
-            | ESTree.Node[]
-            | null
-            | undefined;
-
-          if (Array.isArray(child)) {
-            return child.some(item => item !== null && visit(item));
-          }
-          return child ? visit(child) : false;
-        });
-      }
-
-      return visit(node);
-    }
-
-    function isReactScope(node: FunctionNode): boolean {
+    function isReactScope({node, hasJsx}: FunctionFrame): boolean {
       const name = getFunctionName(node);
-      return (
-        (name !== null && (/^[A-Z]/.test(name) || /^use[A-Z]/.test(name))) ||
-        (node.body ? containsJsx(node.body) : false)
-      );
+      return (name !== null && (/^[A-Z]/.test(name) || /^use[A-Z]/.test(name))) || hasJsx;
     }
 
-    function isNestedInReactScope(node: FunctionNode): boolean {
-      let parent: ESTree.Node | null = node.parent;
+    function isNestedInReactScope({parent}: FunctionFrame): boolean {
       while (parent) {
-        if (isFunctionNode(parent) && isReactScope(parent)) {
+        if (isReactScope(parent)) {
           return true;
         }
         parent = parent.parent;
@@ -197,39 +131,55 @@ export const preferReactComponent = defineRule({
       return false;
     }
 
-    function reportIfNestedJsxFunction(
-      node: FunctionNode,
-      binding: ESTree.IdentifierReference | ESTree.BindingIdentifier,
-      name: string
-    ) {
-      if (
-        !isNestedInReactScope(node) ||
-        !returnsOnlyJsxOrNull(node) ||
-        !isDirectlyInvoked(binding)
-      ) {
-        return;
-      }
-
-      context.report({
-        node,
-        messageId: 'useComponent',
-        data: {name},
-      });
-    }
-
     return {
-      FunctionDeclaration(node) {
-        if (node.id) {
-          reportIfNestedJsxFunction(node, node.id, node.id.name);
+      ':function'(node: FunctionNode) {
+        stack.push({node, parent: stack.at(-1), hasJsx: false, returns: []});
+      },
+
+      ReturnStatement(node) {
+        stack.at(-1)?.returns.push(node);
+      },
+
+      'JSXElement, JSXFragment'() {
+        const frame = stack.at(-1);
+        if (frame) {
+          frame.hasJsx = true;
         }
       },
 
-      VariableDeclarator(node) {
-        if (node.id.type !== 'Identifier' || !node.init || !isFunctionNode(node.init)) {
+      ':function:exit'(node: FunctionNode) {
+        const frame = stack.pop();
+        const binding =
+          node.type === 'FunctionDeclaration'
+            ? node.id
+            : node.parent.type === 'VariableDeclarator' &&
+                node.parent.id.type === 'Identifier'
+              ? node.parent.id
+              : null;
+
+        if (
+          !frame?.parent ||
+          !binding ||
+          !returnsOnlyJsxOrNull(frame) ||
+          !isDirectlyInvoked(binding)
+        ) {
           return;
         }
 
-        reportIfNestedJsxFunction(node.init, node.id, node.id.name);
+        candidates.push({frame, name: binding.name});
+      },
+
+      'Program:exit'() {
+        // Parent JSX may appear after the candidate, so wait until traversal is complete.
+        for (const {frame, name} of candidates) {
+          if (isNestedInReactScope(frame)) {
+            context.report({
+              node: frame.node,
+              messageId: 'useComponent',
+              data: {name},
+            });
+          }
+        }
       },
     };
   },

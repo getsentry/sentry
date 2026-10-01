@@ -31,16 +31,16 @@ export const rules = {
   'no-digits-in-tn': noDigitsInTn,
   'no-dynamic-translations': noDynamicTranslations,
   'no-flag-comments': noFlagComments,
-  'prefer-react-component': preferReactComponent,
   'no-query-data-type-parameters': noQueryDataTypeParameters,
   'no-raw-css-in-styled': noRawCssInStyled,
   'no-redundant-default-argument': noRedundantDefaultArgument,
   'no-relative-import-paths': noRelativeImportPaths,
   'no-static-translations': noStaticTranslations,
   'no-styled-shortcut': noStyledShortcut,
-  'no-useless-css-interpolation-semicolon': noUselessCssInterpolationSemicolon,
   'no-unnecessary-use-callback': noUnnecessaryUseCallback,
+  'no-useless-css-interpolation-semicolon': noUselessCssInterpolationSemicolon,
   'no-vanilla-emotion': noVanillaEmotion,
+  'prefer-react-component': preferReactComponent,
   'sort-interface-keys': sortInterfaceKeys,
 };
 

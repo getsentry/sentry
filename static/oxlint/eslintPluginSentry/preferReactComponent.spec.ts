@@ -1,7 +1,6 @@
-import type {ESTree} from '@oxlint/plugins';
 import {RuleTester} from 'oxlint/plugins-dev';
 
-import {isJsxOrNullExpression, preferReactComponent} from './preferReactComponent';
+import {preferReactComponent} from './preferReactComponent';
 
 const ruleTester = new RuleTester({
   languageOptions: {
@@ -13,6 +12,38 @@ const ruleTester = new RuleTester({
 
 ruleTester.run('prefer-react-component', preferReactComponent, {
   valid: [
+    {
+      name: 'logical AND returning data',
+      code: 'function Component() { const getValue = () => condition && value; return <div>{getValue()}</div>; }',
+    },
+    {
+      name: 'logical OR with an unknown left operand',
+      code: 'function Component() { const getValue = () => value || <Heading />; return <div>{getValue()}</div>; }',
+    },
+    {
+      name: 'array containing a non-JSX value',
+      code: 'function Component() { const getValues = () => [<Heading />, value]; return <div>{getValues()}</div>; }',
+    },
+    {
+      name: 'array with an unknown spread',
+      code: 'function Component() { const getValues = () => [<Heading />, ...values]; return <div>{getValues()}</div>; }',
+    },
+    {
+      name: 'empty array',
+      code: 'function Component() { const getValues = () => []; return <div>{getValues()}</div>; }',
+    },
+    {
+      name: 'JSX in a nested function does not make its parent a React scope',
+      code: 'function buildValue() { function makeHeader() { return <Heading />; } return makeHeader(); }',
+    },
+    {
+      name: 'JSX in a sibling function does not make the parent a React scope',
+      code: 'function buildValue() { const Header = () => <Heading />; const getValue = () => null; return getValue(); }',
+    },
+    {
+      name: 'nested JSX returns do not count as returns from their parent',
+      code: 'function Component() { function getValue() { const Header = () => <Heading />; return value; } return <div>{getValue()}</div>; }',
+    },
     {
       name: 'top-level function returning JSX',
       code: 'function Header() { return <Heading />; }',
@@ -49,6 +80,51 @@ ruleTester.run('prefer-react-component', preferReactComponent, {
   ],
 
   invalid: [
+    {
+      name: 'parent JSX appears after the helper in a lowercase function',
+      code: 'function component() { const makeHeader = () => <Heading />; return <div>{makeHeader()}</div>; }',
+      errors: [{messageId: 'useComponent', data: {name: 'makeHeader'}}],
+    },
+    {
+      name: 'parent JSX appears before the helper in a lowercase function',
+      code: 'function component() { const body = <div />; const makeHeader = () => <Heading />; return [body, makeHeader()]; }',
+      errors: [{messageId: 'useComponent', data: {name: 'makeHeader'}}],
+    },
+    {
+      name: 'React scope is an ancestor beyond the immediate parent',
+      code: 'function component() { function getValue() { const makeHeader = () => <Heading />; return {header: makeHeader()}; } return <div>{getValue().header}</div>; }',
+      errors: [{messageId: 'useComponent', data: {name: 'makeHeader'}}],
+    },
+    {
+      name: 'nested data returns do not exclude a JSX-returning helper',
+      code: 'function Component() { function makeHeader() { function getValue() { return value; } return <Heading>{getValue()}</Heading>; } return <div>{makeHeader()}</div>; }',
+      errors: [{messageId: 'useComponent', data: {name: 'makeHeader'}}],
+    },
+    {
+      name: 'null-returning helper inside a wrapped component',
+      code: 'const Component = memo(() => { const makeHeader = () => null; return makeHeader(); });',
+      errors: [{messageId: 'useComponent', data: {name: 'makeHeader'}}],
+    },
+    {
+      name: 'concise arrow parent with JSX',
+      code: 'const component = () => <div>{(() => { const makeHeader = () => <Heading />; return makeHeader(); })()}</div>;',
+      errors: [{messageId: 'useComponent', data: {name: 'makeHeader'}}],
+    },
+    {
+      name: 'logical AND returning JSX',
+      code: 'function Component() { const makeHeader = () => condition && <Heading />; return <div>{makeHeader()}</div>; }',
+      errors: [{messageId: 'useComponent', data: {name: 'makeHeader'}}],
+    },
+    {
+      name: 'array of JSX elements',
+      code: 'function Component() { const makeHeaders = () => [<Heading key="first" />, <Heading key="second" />]; return <div>{makeHeaders()}</div>; }',
+      errors: [{messageId: 'useComponent', data: {name: 'makeHeaders'}}],
+    },
+    {
+      name: 'block body returning an array with conditional JSX and null',
+      code: 'function Component() { function makeHeaders() { return [condition && <Heading />, null]; } return <div>{makeHeaders()}</div>; }',
+      errors: [{messageId: 'useComponent', data: {name: 'makeHeaders'}}],
+    },
     {
       name: 'function declaration returning JSX inside a component',
       code: "function Component() { function getModalHeader(title) { return <Heading>{title}</Heading>; } return <div>{getModalHeader('Title')}</div>; }",
@@ -105,38 +181,4 @@ ruleTester.run('prefer-react-component', preferReactComponent, {
       errors: [{messageId: 'useComponent', data: {name: 'makeHeader'}}],
     },
   ],
-});
-
-describe('isJsxOrNullExpression', () => {
-  function parenthesize(expression: ESTree.Node): ESTree.Node {
-    return {
-      type: 'ParenthesizedExpression',
-      expression,
-    } as unknown as ESTree.Node;
-  }
-
-  it('unwraps a parenthesized JSX expression', () => {
-    const jsxElement = {type: 'JSXElement'} as unknown as ESTree.Node;
-
-    expect(isJsxOrNullExpression(parenthesize(jsxElement))).toBe(true);
-  });
-
-  it('unwraps a parenthesized null expression', () => {
-    const nullLiteral = {type: 'Literal', value: null} as unknown as ESTree.Node;
-
-    expect(isJsxOrNullExpression(parenthesize(nullLiteral))).toBe(true);
-  });
-
-  it('recognizes parenthesized branches of a conditional expression', () => {
-    const jsxElement = {type: 'JSXElement'} as unknown as ESTree.Node;
-    const nullLiteral = {type: 'Literal', value: null} as unknown as ESTree.Node;
-    const conditional = {
-      type: 'ConditionalExpression',
-      test: {type: 'Identifier', name: 'condition'},
-      consequent: parenthesize(jsxElement),
-      alternate: parenthesize(nullLiteral),
-    } as unknown as ESTree.Node;
-
-    expect(isJsxOrNullExpression(conditional)).toBe(true);
-  });
 });
