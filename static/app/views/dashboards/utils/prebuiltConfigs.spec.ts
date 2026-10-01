@@ -1,4 +1,5 @@
 import {NUM_DESKTOP_COLS} from 'sentry/views/dashboards/constants';
+import {WidgetType} from 'sentry/views/dashboards/types';
 import {
   PREBUILT_DASHBOARDS,
   PrebuiltDashboardId,
@@ -15,6 +16,28 @@ const entries = Object.entries(PREBUILT_DASHBOARDS) as Array<
 >;
 
 describe('PREBUILT_DASHBOARDS', () => {
+  it('queries the default and optional Go gauges with their units and preserves reported p99 peaks', () => {
+    const {widgets} = PREBUILT_DASHBOARDS[PrebuiltDashboardId.GO_RUNTIME_METRICS];
+
+    expect(widgets).toHaveLength(9);
+    expect(widgets.every(widget => widget.widgetType === WidgetType.TRACEMETRICS)).toBe(
+      true
+    );
+    expect(
+      widgets.flatMap(widget => widget.queries.flatMap(query => query.aggregates))
+    ).toEqual([
+      'avg(value,go.runtime.cpu.utilization,gauge,none)',
+      'avg(value,go.runtime.gc.cpu_fraction,gauge,none)',
+      'avg(value,go.runtime.mem.total,gauge,byte)',
+      'avg(value,go.runtime.mem.heap_live,gauge,byte)',
+      'avg(value,go.runtime.goroutines,gauge,none)',
+      'max(value,go.runtime.sched.latency.p99,gauge,second)',
+      'avg(value,go.runtime.mem.limit,gauge,byte)',
+      'avg(value,go.runtime.mem.heap_goal,gauge,byte)',
+      'max(value,go.runtime.gc.pause.p99,gauge,second)',
+    ]);
+  });
+
   it.each(entries)('dashboard %s has a title within the backend limit', (_id, config) => {
     expect(config.title.length).toBeLessThanOrEqual(MAX_DASHBOARD_TITLE_LENGTH);
   });

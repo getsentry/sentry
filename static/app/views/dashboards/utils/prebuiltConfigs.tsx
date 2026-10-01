@@ -16,6 +16,7 @@ import {CACHES_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConf
 import {FRONTEND_ASSETS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/frontendAssets/frontendAssets';
 import {FRONTEND_ASSETS_DETAILS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/frontendAssets/frontendAssetsDetails';
 import {FRONTEND_OVERVIEW_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/frontendOverview/frontendOverview';
+import {GO_RUNTIME_METRICS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/goRuntimeMetrics/goRuntimeMetrics';
 import {HTTP_DOMAIN_SUMMARY_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/http/domainSummary';
 import {HTTP_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/http/http';
 import {LARAVEL_OVERVIEW_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/laravelOverview/laravelOverview';
@@ -65,6 +66,7 @@ export enum PrebuiltDashboardId {
   BACKEND_QUEUE_SUMMARY = 27,
   BACKEND_CACHES = 28,
   NODE_RUNTIME_METRICS = 29,
+  GO_RUNTIME_METRICS = 30,
 }
 
 /** Boolean flags on Project that indicate whether telemetry data has been received. */
@@ -81,9 +83,13 @@ type OnboardingConfig =
       requiredProjectFlags?: ProjectTelemetryFlag[];
     }
   | {
-      componentId: 'agent-monitoring' | 'mcp' | 'node-runtime-metrics';
+      componentId:
+        | 'agent-monitoring'
+        | 'mcp'
+        | 'node-runtime-metrics'
+        | 'go-runtime-metrics';
       requiredProjectFlags: ProjectTelemetryFlag[];
-      // Custom onboarding component (AI Agents, MCP, Node.js Runtime Metrics)
+      // Custom onboarding component (AI Agents, MCP, runtime metrics)
       type: 'custom';
     }
   | {
@@ -150,4 +156,5 @@ export const PREBUILT_DASHBOARDS: Record<PrebuiltDashboardId, PrebuiltDashboard>
   [PrebuiltDashboardId.BACKEND_QUEUE_SUMMARY]: QUEUE_DETAILS_PREBUILT_CONFIG,
   [PrebuiltDashboardId.BACKEND_CACHES]: CACHES_PREBUILT_CONFIG,
   [PrebuiltDashboardId.NODE_RUNTIME_METRICS]: NODE_RUNTIME_METRICS_PREBUILT_CONFIG,
+  [PrebuiltDashboardId.GO_RUNTIME_METRICS]: GO_RUNTIME_METRICS_PREBUILT_CONFIG,
 };

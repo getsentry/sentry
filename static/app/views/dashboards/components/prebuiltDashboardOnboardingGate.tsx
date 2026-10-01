@@ -9,6 +9,7 @@ import {ModulesOnboardingPanel} from 'sentry/views/insights/common/components/mo
 import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {Onboarding as AgentOnboarding} from 'sentry/views/insights/pages/agents/onboarding';
+import {GoRuntimeMetricsOnboarding} from 'sentry/views/insights/pages/goRuntime/onboarding';
 import {Onboarding as MCPOnboarding} from 'sentry/views/insights/pages/mcp/onboarding';
 import {NodeRuntimeMetricsOnboarding} from 'sentry/views/insights/pages/nodeRuntime/onboarding';
 import {ModuleName} from 'sentry/views/insights/types';
@@ -87,6 +88,10 @@ export function PrebuiltDashboardOnboardingGate({
 
     if (onboarding.componentId === 'node-runtime-metrics') {
       return <NodeRuntimeMetricsOnboarding />;
+    }
+
+    if (onboarding.componentId === 'go-runtime-metrics') {
+      return <GoRuntimeMetricsOnboarding />;
     }
 
     return <MCPOnboarding />;

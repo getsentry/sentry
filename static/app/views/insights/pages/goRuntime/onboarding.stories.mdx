@@ -1,0 +1,68 @@
+---
+title: Go Runtime Metrics Onboarding
+description: Opt-in collection guidance for the Go runtime metrics dashboard.
+category: patterns
+source: sentry/views/insights/pages/goRuntime/onboarding
+---
+
+import * as Storybook from 'sentry/stories';
+import {GoRuntimeMetricsOnboarding} from 'sentry/views/insights/pages/goRuntime/onboarding';
+
+The Go runtime dashboard uses this panel when the selected projects have no transaction data,
+following the Node.js runtime dashboard's onboarding gate. Projects with traces but no runtime
+metrics currently see empty charts instead.
+
+## Collection setup
+
+<Storybook.Demo>
+  <GoRuntimeMetricsOnboarding />
+</Storybook.Demo>
+
+```tsx
+<GoRuntimeMetricsOnboarding />
+```
+
+The panel explains the six default gauges, per-metric overrides, optional signals, and
+baseline samples. Add a setup snippet and minimum SDK version when the collector API is
+finalized in GO-160. The dashboard includes a separate row for memory limit, heap goal,
+and GC pause p99. These optional charts stay visible with the standard no-data state
+until samples are received; the prebuilt dashboard does not automatically hide empty widgets.
+
+## Local verification
+
+For this panel, run `pnpm dev-ui` and open Scraps, then search for
+"Go Runtime Metrics Onboarding". The frontend server proxies API requests to production,
+so it cannot exercise the new backend dashboard registration before that change is deployed.
+
+To test the dashboard locally, follow the
+[development environment guide](https://develop.sentry.dev/development-infrastructure/environment/).
+After installing `devenv` and starting Docker, run `devenv sync`. In your local
+`~/.sentry/sentry.conf.py`, enable the existing dashboard and metrics features:
+
+```python
+SENTRY_FEATURES.update({
+    "organizations:dashboards-prebuilt-insights-dashboards": True,
+    "organizations:tracemetrics-enabled": True,
+})
+SENTRY_OPTIONS["dashboards.prebuilt-dashboard-ids"] = [30]
+SENTRY_USE_RELAY = True
+```
+
+Preserve any other IDs already enabled in that local option. Start ingestion with
+`devservices up --mode ingest`, then run `devservices serve` and open
+`http://dev.getsentry.net:8000`. In Dashboards, select "Go Runtime Metrics".
+
+Use a test project and emit the ticket's six gauges to its local DSN every 30 seconds.
+Ratios and goroutine counts use no unit; memory uses `byte` and scheduler delay uses
+`second`. The current onboarding gate also requires transaction data to show charts.
+Verify project/environment filters, memory formatting, and missing samples. Scheduler
+delay should show the maximum reported p99 in each chart interval. A collector integration
+test remains dependent on GO-160; manually emitted gauges can validate the dashboard first.
+Also send each optional gauge independently and verify that only its chart gains data.
+Without optional samples, those charts should remain visible and empty. GC pause p99
+uses the maximum reported p99, like scheduler delay.
+
+## Accessibility
+
+The panel uses a heading and a labeled documentation link. The illustration is decorative
+and has empty alternative text. The component has no props.
