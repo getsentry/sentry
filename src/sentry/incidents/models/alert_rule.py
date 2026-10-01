@@ -509,9 +509,9 @@ class AlertRuleActivity(Model):
 
     __relocation_scope__ = RelocationScope.Organization
 
-    alert_rule = FlexibleForeignKey("sentry.AlertRule")
+    alert_rule = FlexibleForeignKey("sentry.AlertRule", db_constraint=False)
     previous_alert_rule = FlexibleForeignKey(
-        "sentry.AlertRule", null=True, related_name="previous_alert_rule"
+        "sentry.AlertRule", null=True, related_name="previous_alert_rule", db_constraint=False
     )
     user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
     type = models.IntegerField()
