@@ -65,7 +65,9 @@ class CreateOpenPeriodTest(TestCase):
         assert GroupOpenPeriod.objects.filter(group=self.group).count() == 2
         open_periods = GroupOpenPeriod.objects.filter(group=self.group, date_ended__isnull=True)
         assert open_periods.count() == 1
-        assert open_periods.first().date_started == second_start
+        new_open_period = open_periods.first()
+        assert new_open_period is not None
+        assert new_open_period.date_started == second_start
 
 
 class CreateOpenPeriodConcurrencyTest(TransactionTestCase):
