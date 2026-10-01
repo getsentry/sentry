@@ -83,7 +83,7 @@ it('expands nested variables with the keyboard and the item summary', async () =
   await userEvent.click(screen.getByText('position'));
   await userEvent.click(screen.getByText('Vec3'));
   expect(screen.queryByText('1.5')).not.toBeInTheDocument();
-  await userEvent.click(screen.getByText('{ 3 items · x, y, z }'));
+  await userEvent.click(screen.getByText('{ x, y, z }'));
   expect(screen.getByText('1.5')).toBeInTheDocument();
   await userEvent.click(screen.getByText('position'));
   expect(screen.getByText('1.5')).toBeInTheDocument();
@@ -110,7 +110,27 @@ it('previews whole keys within the summary budget', () => {
   );
 
   expect(
-    screen.getByText('{ 4 items · allocated, available, capacity, … }')
+    screen.getByText('{ allocated, available, capacity, 1 more }')
+  ).toBeInTheDocument();
+});
+
+it('counts unshown keys, including truncated object entries', () => {
+  render(
+    <FrameVariablesTree
+      defaultExpanded={[]}
+      variables={getJsonFrameVariables(
+        {
+          position: {x: 1, y: 2, z: 3},
+          allocator: {allocated: 0, available: 0, capacity: 0, count: 0, remaining: 0},
+        },
+        {position: {'': {len: 5}}}
+      )}
+    />
+  );
+
+  expect(screen.getByText('{ x, y, z, 2 more }')).toBeInTheDocument();
+  expect(
+    screen.getByText('{ allocated, available, capacity, 2 more }')
   ).toBeInTheDocument();
 });
 
@@ -120,7 +140,7 @@ it('keeps empty objects and arrays static', () => {
   );
 
   expect(screen.getByText('[ 0 items ]')).toBeInTheDocument();
-  expect(screen.getByText('{ 0 items }')).toBeInTheDocument();
+  expect(screen.getByText('{}')).toBeInTheDocument();
   expect(screen.queryByRole('button', {name: /Expand/})).not.toBeInTheDocument();
   expect(screen.queryByRole('button', {name: /Copy/})).not.toBeInTheDocument();
 });

@@ -29,28 +29,32 @@ const KEY_PREVIEW_LENGTH = 32;
 const AUTO_EXPAND_MAX_ITEMS = 5;
 const AUTO_EXPAND_MAX_DEPTH = 2;
 
-/**
- * Preview whole child keys within a character budget, followed by an ellipsis
- * when more keys remain. An oversized first key is truncated instead.
- */
-function getKeyPreview(children: readonly FrameVariable[]): string {
+/** Preview keys within a character budget, then count any remaining keys. */
+function getObjectSummary(
+  children: readonly FrameVariable[],
+  totalCount: number
+): string {
   const [first, ...remaining] = children;
   if (!first) {
-    return '';
+    return '{}';
   }
-  if (first.name.length > KEY_PREVIEW_LENGTH) {
-    return `${first.name.slice(0, KEY_PREVIEW_LENGTH - 1)}…`;
-  }
-
   let preview = first.name;
+  if (preview.length > KEY_PREVIEW_LENGTH) {
+    preview = `${preview.slice(0, KEY_PREVIEW_LENGTH - 1)}…`;
+  }
+  let shown = 1;
   for (const {name} of remaining) {
     const next = `${preview}, ${name}`;
     if (next.length > KEY_PREVIEW_LENGTH) {
-      return `${preview}, …`;
+      break;
     }
     preview = next;
+    shown++;
   }
-  return preview;
+  if (totalCount > shown) {
+    preview += `, ${t('%s more', totalCount - shown)}`;
+  }
+  return `{ ${preview} }`;
 }
 
 export function FrameVariablesTree({
@@ -159,12 +163,8 @@ function Variable({
       </Tooltip>
     ) : (
       <Text monospace size="xs" variant="muted" ellipsis>
-        {variable.kind === 'array' ? '[ ' : '{ '}
-        {tn('%s item', '%s items', totalCount)}
-        {variable.kind === 'object' &&
-          hasChildren &&
-          ` · ${getKeyPreview(variable.children)}`}
-        {variable.kind === 'array' ? ' ]' : ' }'}
+        {variable.kind === 'array' && `[ ${tn('%s item', '%s items', totalCount)} ]`}
+        {variable.kind === 'object' && getObjectSummary(variable.children, totalCount)}
       </Text>
     ));
 
