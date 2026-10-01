@@ -1090,25 +1090,23 @@ function SentryAppEditForm({
               <SimpleTable.HeaderCell>{t('Token')}</SimpleTable.HeaderCell>
               <SimpleTable.HeaderCell>{t('Created On')}</SimpleTable.HeaderCell>
               <SimpleTable.HeaderCell>{t('Scopes')}</SimpleTable.HeaderCell>
-              <SimpleTable.HeaderCell>
-                <AddTokenHeader>
-                  <Tooltip
-                    disabled={hasTokenAccess()}
-                    title={t(
-                      'You must be a Manager or Owner to create authentication tokens.'
-                    )}
+              <SimpleTable.HeaderCell align="right">
+                <Tooltip
+                  disabled={hasTokenAccess()}
+                  title={t(
+                    'You must be a Manager or Owner to create authentication tokens.'
+                  )}
+                >
+                  <Button
+                    size="xs"
+                    icon={<IconAdd />}
+                    onClick={onAddToken}
+                    disabled={!hasTokenAccess()}
+                    data-test-id="token-add"
                   >
-                    <Button
-                      size="xs"
-                      icon={<IconAdd />}
-                      onClick={onAddToken}
-                      disabled={!hasTokenAccess()}
-                      data-test-id="token-add"
-                    >
-                      {t('New Token')}
-                    </Button>
-                  </Tooltip>
-                </AddTokenHeader>
+                    {t('New Token')}
+                  </Button>
+                </Tooltip>
               </SimpleTable.HeaderCell>
             </SimpleTable.HeaderRow>
           }
@@ -1187,10 +1185,4 @@ const ClientSecret = styled('div')`
   justify-content: right;
   align-items: center;
   margin-right: 0;
-`;
-
-const AddTokenHeader = styled('div')`
-  margin: -${p => p.theme.space.md} 0;
-  display: flex;
-  justify-content: flex-end;
 `;
