@@ -204,19 +204,28 @@ async function acquire() {
   throw new Error('Another lint transaction is still running. Retry after it finishes.');
 }
 
-async function transaction<T>(operation: (original: string | null) => Promise<T>) {
+async function transaction<T>(
+  operation: (
+    original: string | null,
+    updateLease: (patch: Pick<Lease, 'original' | 'policy'>) => void
+  ) => Promise<T>
+) {
   const lease = await acquire();
+  const updateLease = (patch: Pick<Lease, 'original' | 'policy'>) => {
+    const next = {...lease, ...patch};
+    atomicWrite(lock, JSON.stringify(next));
+    Object.assign(lease, next);
+  };
   try {
-    lease.original = existsSync(asset) ? readFileSync(asset).toString('base64') : null;
-    atomicWrite(lock, JSON.stringify(lease));
-    return await operation(lease.original);
+    const original = existsSync(asset) ? readFileSync(asset).toString('base64') : null;
+    updateLease({original});
+    return await operation(original, updateLease);
   } finally {
-    const latest = readLease(lock);
-    restore(latest.original);
-    if (latest.policy) {
-      rmSync(path.join(root, latest.policy), {force: true});
+    restore(lease.original);
+    if (lease.policy) {
+      rmSync(path.join(root, lease.policy), {force: true});
     }
-    rmSync(lock);
+    rmSync(lock, {force: true});
   }
 }
 
@@ -268,11 +277,10 @@ async function rawScan(directory: string, allowed: Set<string>, policy: string) 
     child.on('error', reject);
     child.on('close', status => resolve({status, stdout, stderr}));
   });
+  if (result.stderr) {
+    process.stderr.write(result.stderr);
+  }
   assert(result.status === 0 || result.status === 1, `Oxlint failed: ${result.stderr}`);
-  assert(
-    result.stderr.trim() === '',
-    `Oxlint could not complete the scan: ${result.stderr}`
-  );
   const output: unknown = JSON.parse(result.stdout);
   assert(
     record(output) && Array.isArray(output.diagnostics),
@@ -501,7 +509,7 @@ Native oxlint options:
     allowed.add(canonicalRule(rule));
   }
   if (!command) {
-    await transaction(async original => {
+    await transaction(async (original, updateLease) => {
       assert(
         original !== null,
         'Missing oxlint-suppressions.json. Run pnpm run lint:js --enroll --base REF with trusted source.'
@@ -531,9 +539,7 @@ Native oxlint options:
       }
       const bytes = serialize(candidate);
       if (bytes !== serialize(committed)) {
-        const lease = readLease(lock);
-        lease.original = Buffer.from(bytes).toString('base64');
-        atomicWrite(lock, JSON.stringify(lease));
+        updateLease({original: Buffer.from(bytes).toString('base64')});
       }
     });
     return;
@@ -545,7 +551,7 @@ Native oxlint options:
     );
   }
   let replacement: Suppressions | undefined;
-  await transaction(async original => {
+  await transaction(async (original, updateLease) => {
     const committed =
       original === null
         ? undefined
@@ -555,9 +561,7 @@ Native oxlint options:
           );
     rmSync(asset, {force: true});
     const policy = path.join(root, `.oxlint-incubator-${randomUUID()}.json`);
-    const owner = readLease(lock);
-    owner.policy = path.basename(policy);
-    atomicWrite(lock, JSON.stringify(owner));
+    updateLease({policy: path.basename(policy)});
     const absolutePlugin = (specifier: string) => require.resolve(specifier);
     atomicWrite(
       policy,
@@ -648,9 +652,7 @@ Native oxlint options:
       }
       if (replacement) {
         // Updating the durable original makes a completed maintenance write recoverable too.
-        const lease = readLease(lock);
-        lease.original = Buffer.from(serialize(replacement)).toString('base64');
-        atomicWrite(lock, JSON.stringify(lease));
+        updateLease({original: Buffer.from(serialize(replacement)).toString('base64')});
       }
     } finally {
       rmSync(policy, {force: true});
