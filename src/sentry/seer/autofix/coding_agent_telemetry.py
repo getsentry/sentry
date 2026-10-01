@@ -16,6 +16,7 @@ import sentry_sdk
 from django.conf import settings
 from django.db import router, transaction
 from sentry_sdk import Scope
+from sentry_sdk.scope import use_scope
 
 import sentry
 from sentry.models.organization import Organization
@@ -57,13 +58,16 @@ def _capture_span(attributes: dict[str, str | int | float | bool]) -> None:
     # A fresh Scope deliberately prevents the active backend request trace, tags,
     # user, and client from leaking into this separate telemetry project.
     scope = Scope(client=_get_client(dsn))
-    with scope.start_streamed_span(
-        name=_SPAN_NAME,
-        attributes={"sentry.op": _SPAN_OP, **attributes},
-        parent_span=None,
-        active=False,
-    ):
-        pass
+    # The streaming sampler resolves its client through the *current* scope, so
+    # constructing Scope(client=...) alone would produce a NoOpStreamedSpan.
+    with use_scope(scope):
+        with scope.start_streamed_span(
+            name=_SPAN_NAME,
+            attributes={"sentry.op": _SPAN_OP, **attributes},
+            parent_span=None,
+            active=False,
+        ):
+            pass
 
 
 def _group_id(handoff: SeerRunCodingAgentHandoff) -> int | None:

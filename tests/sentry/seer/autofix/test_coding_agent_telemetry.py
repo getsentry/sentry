@@ -1,6 +1,8 @@
 from unittest.mock import Mock, patch
 
+import sentry_sdk
 from django.test import override_settings
+from sentry_sdk.transport import Transport
 
 from sentry.models.pullrequest import PullRequestLifecycleState
 from sentry.seer.autofix.coding_agent_telemetry import (
@@ -45,10 +47,11 @@ class RecordHandoffEventTest(TestCase):
         assert attributes["run_id"] == 123
 
     @override_settings(SEER_CODING_AGENT_TELEMETRY_DSN="https://public@example.com/6178942")
+    @patch("sentry.seer.autofix.coding_agent_telemetry.use_scope")
     @patch("sentry.seer.autofix.coding_agent_telemetry.Scope")
     @patch("sentry.seer.autofix.coding_agent_telemetry._get_client")
     def test_uses_an_isolated_dedicated_client(
-        self, mock_get_client: Mock, mock_scope_class: Mock
+        self, mock_get_client: Mock, mock_scope_class: Mock, mock_use_scope: Mock
     ) -> None:
         client = mock_get_client.return_value
         scope = mock_scope_class.return_value
@@ -57,6 +60,7 @@ class RecordHandoffEventTest(TestCase):
 
         mock_get_client.assert_called_once_with("https://public@example.com/6178942")
         mock_scope_class.assert_called_once_with(client=client)
+        mock_use_scope.assert_called_once_with(scope)
         scope.start_streamed_span.assert_called_once_with(
             name="Seer coding agent handoff lifecycle",
             attributes={
@@ -66,6 +70,32 @@ class RecordHandoffEventTest(TestCase):
             parent_span=None,
             active=False,
         )
+
+    @override_settings(SEER_CODING_AGENT_TELEMETRY_DSN="https://public@example.com/6178942")
+    def test_captures_a_streamed_span_envelope(self) -> None:
+        class RecordingTransport(Transport):
+            def __init__(self) -> None:
+                super().__init__()
+                self.envelopes = []
+
+            def capture_envelope(self, envelope) -> None:
+                self.envelopes.append(envelope)
+
+        transport = RecordingTransport()
+        client = sentry_sdk.Client(
+            dsn="https://public@example.com/6178942",
+            transport=transport,
+            default_integrations=False,
+            traces_sample_rate=1.0,
+            trace_lifecycle="stream",
+        )
+
+        with patch("sentry.seer.autofix.coding_agent_telemetry._get_client", return_value=client):
+            _capture_span({"anthropic.session.id": "sesn_123"})
+            client.flush(timeout=1)
+
+        assert len(transport.envelopes) == 1
+        assert [item.type for item in transport.envelopes[0].items] == ["span"]
 
     @patch("sentry.seer.autofix.coding_agent_telemetry.record_handoff_event")
     def test_terminal_pr_webhook_is_idempotent(self, mock_record: Mock) -> None:
