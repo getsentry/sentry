@@ -18,8 +18,8 @@ rely on DB state. Instead we (a) filter on ``object_attributes.action == "open"`
 (the GitLab analog of GitHub's "opened") and (b) record a short-lived Redis key per
 ``(org, repo, MR iid)`` to drop re-deliveries within the TTL window. GitLab
 redelivers merge_request hooks on response timeout and the endpoint also
-dispatches each payload once per installed organization; both can otherwise
-cause actions to be logged multiple times for a single MR-open.
+dispatches each payload once per organization that added the repository; both
+can otherwise cause actions to be logged multiple times for a single MR-open.
 
 Both processors are gated by ``organizations:seer-gitlab-support`` — the same
 cohort flag ``handle_merge_request_event`` uses — so seeding only happens for orgs

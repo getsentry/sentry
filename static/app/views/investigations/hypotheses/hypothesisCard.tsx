@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import {Button} from '@sentry/scraps/button';
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {Timeline} from 'sentry/components/timeline';
@@ -105,13 +106,15 @@ export function HypothesisCard({
           <DropdownMenu
             position="bottom-end"
             usePortal
-            triggerProps={{
-              size: 'xs',
-              variant: 'transparent',
-              showChevron: false,
-              icon: <IconEllipsis size="xs" />,
-              'aria-label': t('Actions for %s', hypothesis.statement),
-            }}
+            trigger={triggerProps => (
+              <OverlayTrigger.IconButton
+                {...triggerProps}
+                size="xs"
+                variant="transparent"
+                icon={<IconEllipsis size="xs" />}
+                aria-label={t('Actions for %s', hypothesis.statement)}
+              />
+            )}
             items={actions}
           />
         ) : null}
@@ -156,13 +159,7 @@ export function HypothesisCard({
                       <StepTitle size="sm" variant="muted" bold={false}>
                         {showAllSteps
                           ? t('Show less')
-                          : isTerminal
-                            ? tn('Show %s step', 'Show all %s steps', steps.length)
-                            : tn(
-                                'Show %s more step',
-                                'Show %s more steps',
-                                hiddenStepCount
-                              )}
+                          : tn('Show %s step', 'Show %s steps', hiddenStepCount)}
                       </StepTitle>
                       <IconChevron
                         size="xs"

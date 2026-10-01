@@ -54,6 +54,35 @@ describe('useDroppedData', () => {
     expect(result.current.acceptedAnnotations).toEqual(acceptedAnnotations);
   });
 
+  it('requests a count over all trace metrics', async () => {
+    const request = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-timeseries/`,
+      body: {
+        timeSeries: [],
+        meta: {droppedAnnotations, acceptedAnnotations},
+      },
+    });
+
+    const {result} = renderHookWithProviders(
+      () => useDroppedData({dataset: DiscoverDatasets.TRACEMETRICS}),
+      {organization}
+    );
+
+    await waitFor(() => expect(result.current.isPending).toBe(false));
+
+    expect(request).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/events-timeseries/`,
+      expect.objectContaining({
+        query: expect.objectContaining({
+          dataset: DiscoverDatasets.TRACEMETRICS,
+          yAxis: 'count(value)',
+          includeAnnotations: 1,
+        }),
+      })
+    );
+    expect(result.current.droppedAnnotations).toEqual(droppedAnnotations);
+  });
+
   it('does not request annotations without the feature flag', () => {
     const request = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-timeseries/`,

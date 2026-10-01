@@ -1,0 +1,24 @@
+name: Scraps package
+
+on:
+  pull_request:
+    paths:
+      - 'static/packages/scraps/**'
+      - 'pnpm-workspace.yaml'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/scraps-package.yml'
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+jobs:
+  verify:
+    name: scraps-package-verify
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+      - uses: ./.github/actions/setup-node-pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: pnpm --dir static/packages/scraps typecheck
+      - run: pnpm --dir static/packages/scraps test --ci --maxWorkers=2

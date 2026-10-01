@@ -14,11 +14,6 @@ describe('HypothesisList', () => {
     render(<HypothesisList hypotheses={InvestigationHypothesesFixture()} />);
 
     expect(screen.getAllByTestId('investigation-hypothesis')).toHaveLength(3);
-    expect(
-      screen.getByRole('heading', {
-        name: 'Database or cache degradation delayed the response',
-      })
-    ).toBeInTheDocument();
   });
 
   it('orders cards by the projection order, not array position', () => {

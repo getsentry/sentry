@@ -1,95 +1,51 @@
-import {useCallback, useEffect, useState} from 'react';
-import {uuid4} from '@sentry/core';
-import {useQuery} from '@tanstack/react-query';
+import {useCallback, useMemo} from 'react';
 
+import type {AgenticRunSession} from 'sentry/components/onboarding/agenticProgress/types';
+import {
+  createAgenticRunSession,
+  useAgenticProgressInit,
+} from 'sentry/components/onboarding/agenticProgress/useAgenticProgressInit';
 import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
-import {RequestError} from 'sentry/utils/requestError/requestError';
-import {useOrganization} from 'sentry/utils/useOrganization';
 
-import type {InitializedAgenticProgressRun} from './types';
-
-type UseAgenticProgressInitOptions = {
-  enabled: boolean;
-};
-
-const createOnboardingCode = () => uuid4().slice(0, 10);
-
-export function useAgenticProgressInit({enabled}: UseAgenticProgressInitOptions) {
-  const organization = useOrganization();
+function useOnboardingAgentSession() {
   const {
     agenticProgressClientRunId,
     agenticProgressOnboardingCode,
     setAgenticProgressClientRunId,
     setAgenticProgressOnboardingCode,
   } = useOnboardingContext();
-  const [initialClientRunId] = useState(uuid4);
-  const [initialOnboardingCode] = useState(createOnboardingCode);
-  const clientRunId = agenticProgressClientRunId ?? initialClientRunId;
-  const onboardingCode = agenticProgressOnboardingCode ?? initialOnboardingCode;
+  const session = useMemo(
+    () =>
+      agenticProgressClientRunId && agenticProgressOnboardingCode
+        ? {
+            clientRunId: agenticProgressClientRunId,
+            onboardingCode: agenticProgressOnboardingCode,
+          }
+        : undefined,
+    [agenticProgressClientRunId, agenticProgressOnboardingCode]
+  );
 
-  const initializeRun = (nextClientRunId: string, nextOnboardingCode: string) =>
-    fetchMutation<InitializedAgenticProgressRun>({
-      method: 'POST',
-      url: getApiUrl('/organizations/$organizationIdOrSlug/onboarding/agent/runs/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-      data: {
-        clientRunId: nextClientRunId,
-        onboardingCode: nextOnboardingCode,
-      },
-    });
-
-  // A conflicting onboarding code is replaced without changing the run's cache identity.
-  // eslint-disable-next-line @tanstack/query/exhaustive-deps
-  const query = useQuery({
-    queryKey: ['agentic-progress-init', organization.slug, clientRunId],
-    queryFn: async () => {
-      try {
-        return await initializeRun(clientRunId, onboardingCode);
-      } catch (error) {
-        if (!(error instanceof RequestError) || error.status !== 409) {
-          throw error;
-        }
-
-        const replacementOnboardingCode = createOnboardingCode();
-        setAgenticProgressOnboardingCode(replacementOnboardingCode);
-
-        return initializeRun(clientRunId, replacementOnboardingCode);
-      }
+  const onSessionChange = useCallback(
+    (next: AgenticRunSession) => {
+      setAgenticProgressClientRunId(next.clientRunId);
+      setAgenticProgressOnboardingCode(next.onboardingCode);
     },
-    enabled,
-    retry: false,
-    staleTime: Infinity,
-  });
+    [setAgenticProgressClientRunId, setAgenticProgressOnboardingCode]
+  );
 
-  useEffect(() => {
-    if (!agenticProgressClientRunId) {
-      setAgenticProgressClientRunId(clientRunId);
-    }
+  return {session, onSessionChange};
+}
 
-    if (!agenticProgressOnboardingCode) {
-      setAgenticProgressOnboardingCode(onboardingCode);
-    }
-  }, [
-    agenticProgressClientRunId,
-    agenticProgressOnboardingCode,
-    clientRunId,
-    onboardingCode,
-    setAgenticProgressClientRunId,
-    setAgenticProgressOnboardingCode,
-  ]);
+export function useOnboardingAgenticProgressInit({enabled}: {enabled: boolean}) {
+  const {session, onSessionChange} = useOnboardingAgentSession();
 
-  return query;
+  return useAgenticProgressInit({enabled, session, onSessionChange}).query;
 }
 
 export function useRestartAgenticRun() {
-  const {setAgenticProgressClientRunId, setAgenticProgressOnboardingCode} =
-    useOnboardingContext();
+  const {onSessionChange} = useOnboardingAgentSession();
 
   return useCallback(() => {
-    setAgenticProgressOnboardingCode(createOnboardingCode());
-    setAgenticProgressClientRunId(uuid4());
-  }, [setAgenticProgressClientRunId, setAgenticProgressOnboardingCode]);
+    onSessionChange(createAgenticRunSession());
+  }, [onSessionChange]);
 }

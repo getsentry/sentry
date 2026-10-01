@@ -20,7 +20,7 @@ import {JumpButtons} from 'sentry/components/replays/jumpButtons';
 import {useJumpButtons} from 'sentry/components/replays/useJumpButtons';
 import {DataTable} from 'sentry/components/tables/dataTable';
 import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
-import {IconArrow, IconWarning} from 'sentry/icons';
+import {IconArrow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {TagCollection} from 'sentry/types/group';
@@ -829,14 +829,14 @@ function LogsTableHeader({
 }
 
 function ErrorRenderer({error, onRetry}: {error?: unknown; onRetry?: () => void}) {
+  if (!isRateLimitError(error)) {
+    return <DataTable.Error onRetry={onRetry} />;
+  }
+
   return (
-    <DataTable.Status>
-      {isRateLimitError(error) ? (
-        <LogsRateLimitError onRetry={onRetry} />
-      ) : (
-        <IconWarning variant="muted" size="lg" />
-      )}
-    </DataTable.Status>
+    <DataTable.Empty>
+      <LogsRateLimitError onRetry={onRetry} />
+    </DataTable.Empty>
   );
 }
 
@@ -853,7 +853,7 @@ export function LoadingRenderer({
   );
 
   return (
-    <DataTable.Status>
+    <DataTable.Empty>
       <Stack align="center">
         <EmptyStateText size="md" textAlign="center">
           <StyledLoadingIndicator margin="1em auto" />
@@ -875,7 +875,7 @@ export function LoadingRenderer({
           )}
         </EmptyStateText>
       </Stack>
-    </DataTable.Status>
+    </DataTable.Empty>
   );
 }
 

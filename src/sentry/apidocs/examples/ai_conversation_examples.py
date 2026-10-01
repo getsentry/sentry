@@ -25,6 +25,7 @@ class AIConversationExamples:
                     "usageByModel": [
                         {
                             "model": "gpt-4o-mini-2024-07-18",
+                            "llmCalls": 1,
                             "inputTokens": 0,
                             "outputTokens": 0,
                             "totalTokens": 485,

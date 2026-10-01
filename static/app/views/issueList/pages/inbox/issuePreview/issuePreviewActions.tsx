@@ -133,14 +133,16 @@ export function OpenIssueButton({
   );
 }
 
-function FixAppliedActions({
+function IssueResolutionActions({
   disabled,
   group,
   project,
+  variant = 'primary',
 }: {
   disabled: boolean;
   group: Group;
   project: Project;
+  variant?: 'primary' | 'secondary';
 }) {
   const api = useApi({persistInFlight: true});
   const organization = useOrganization();
@@ -228,6 +230,7 @@ function FixAppliedActions({
       group={group}
       onUpdate={handleUpdate}
       project={project}
+      variant={variant}
     />
   );
 }
@@ -765,7 +768,7 @@ export function IssuePreviewActions({
   const {autofix, isLoading, shouldShowSeerActions} = useIssuePreviewSeer();
 
   if (shouldShowFixAppliedActions(group, project)) {
-    return <FixAppliedActions disabled={disabled} group={group} project={project} />;
+    return <IssueResolutionActions disabled={disabled} group={group} project={project} />;
   }
 
   if (isLoading) {
@@ -779,12 +782,20 @@ export function IssuePreviewActions({
   }
 
   return (
-    <AutofixActions
-      autofix={autofix}
-      disabled={disabled}
-      group={group}
-      onContinueInSeer={onContinueInSeer}
-      onRetryCodeChanges={onRetryCodeChanges}
-    />
+    <Flex align="center" gap="sm" wrap="wrap">
+      <AutofixActions
+        autofix={autofix}
+        disabled={disabled}
+        group={group}
+        onContinueInSeer={onContinueInSeer}
+        onRetryCodeChanges={onRetryCodeChanges}
+      />
+      <IssueResolutionActions
+        disabled={disabled}
+        group={group}
+        project={project}
+        variant="secondary"
+      />
+    </Flex>
   );
 }

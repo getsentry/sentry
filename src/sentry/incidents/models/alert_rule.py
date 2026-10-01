@@ -221,17 +221,6 @@ class AlertRule(Model):
     __repr__ = sane_repr("id", "name", "date_added")
 
     @property
-    def created_by_id(self) -> int | None:
-        try:
-            created_activity = AlertRuleActivity.objects.get(
-                alert_rule=self, type=AlertRuleActivityType.CREATED.value
-            )
-            return created_activity.user_id
-        except AlertRuleActivity.DoesNotExist:
-            pass
-        return None
-
-    @property
     def owner(self) -> Actor | None:
         """Part of ActorOwned Protocol"""
         return Actor.from_id(user_id=self.user_id, team_id=self.team_id)
@@ -509,9 +498,9 @@ class AlertRuleActivity(Model):
 
     __relocation_scope__ = RelocationScope.Organization
 
-    alert_rule = FlexibleForeignKey("sentry.AlertRule")
+    alert_rule = FlexibleForeignKey("sentry.AlertRule", db_constraint=False)
     previous_alert_rule = FlexibleForeignKey(
-        "sentry.AlertRule", null=True, related_name="previous_alert_rule"
+        "sentry.AlertRule", null=True, related_name="previous_alert_rule", db_constraint=False
     )
     user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
     type = models.IntegerField()

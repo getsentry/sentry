@@ -23,7 +23,6 @@ from .groupactionlogentry import *  # noqa: F401,F403
 from .grouprelease import GroupReleaseSerializer, GroupReleaseWithStatsSerializer  # noqa: F401,F403
 from .groupseen import *  # noqa: F401,F403
 from .grouptombstone import *  # noqa: F401,F403
-from .incidentactivity import *  # noqa: F401,F403
 from .organization import *  # noqa: F401,F403
 from .organization_access_request import *  # noqa: F401,F403
 from .organization_member.base import *  # noqa: F401,F403

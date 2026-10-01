@@ -632,6 +632,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
             conversation_id=conversation_id,
             timestamp=now,
             op="gen_ai.chat",
+            operation_name="chat",
             operation_type="ai_client",
             trace_id=trace_id,
             messages=[{"role": "user", "content": "Hello"}],
@@ -665,6 +666,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         assert span["project.id"] == self.project.id
         assert "transaction" in span
         assert "is_transaction" in span
+        assert span["gen_ai.operation.name"] == "chat"
         assert span["gen_ai.operation.type"] == "ai_client"
         assert span["gen_ai.request.messages"] is not None
         assert span["gen_ai.response.text"] == "Hi there!"
@@ -1037,6 +1039,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         expected_usage_by_model = [
             {
                 "model": "model-b",
+                "llmCalls": 1,
                 "inputTokens": 120,
                 "outputTokens": 80,
                 "totalTokens": 200,
@@ -1049,6 +1052,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
             },
             {
                 "model": "model-a",
+                "llmCalls": 1,
                 "inputTokens": 70,
                 "outputTokens": 30,
                 "totalTokens": 100,
