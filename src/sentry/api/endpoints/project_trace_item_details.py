@@ -114,6 +114,7 @@ def convert_rpc_attribute_to_json(
     trace_item_type: SupportedTraceItemType,
     include_internal: bool = False,
     include_arrays: bool = False,
+    include_internal_convention_attributes: bool = False,
 ) -> list[TraceItemAttribute]:
     result: list[TraceItemAttribute] = []
     all_internal_names = {attr["name"] for attr in attributes}
@@ -122,7 +123,10 @@ def convert_rpc_attribute_to_json(
         internal_name = attribute["name"]
 
         if not can_expose_attribute_to_api(
-            internal_name, trace_item_type, include_internal=include_internal
+            internal_name,
+            trace_item_type,
+            include_internal=include_internal,
+            include_internal_convention_attributes=include_internal_convention_attributes,
         ):
             continue
 
@@ -497,6 +501,7 @@ class ProjectTraceItemDetailsEndpoint(ProjectEndpoint):
         )
 
         include_internal = is_active_superuser(request) or is_active_staff(request)
+        include_internal_convention_attributes = request.user.is_staff or request.user.is_superuser
 
         resp_dict = {
             "itemId": serialize_item_id(resp["itemId"], item_type),
@@ -505,6 +510,7 @@ class ProjectTraceItemDetailsEndpoint(ProjectEndpoint):
                 resp["attributes"],
                 item_type,
                 include_internal=include_internal,
+                include_internal_convention_attributes=include_internal_convention_attributes,
                 include_arrays=include_arrays,
             ),
             "meta": serialize_meta(resp["attributes"], item_type),
