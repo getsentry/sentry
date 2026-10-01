@@ -91,7 +91,7 @@ interface AttributesTreeColumnsProps<
   columnCount: number;
 }
 
-export interface AttributesTreeRowConfig extends KeyValueTreeRowConfig {
+interface AttributesTreeRowConfig extends KeyValueTreeRowConfig {
   /**
    * When provided, hovering an attribute key describes the attribute, reading
    * its description from this registry. Otherwise keys show their full name in
