@@ -77,6 +77,15 @@ export function CreateBroadcastModal({
         data,
       }),
     onSuccess: data => navigate(`/_admin/broadcasts/${data.id}/`),
+    onError: error => {
+      if (
+        error instanceof RequestError &&
+        setFieldErrors(form, requestErrorToFieldErrors(error, form.state.values))
+      ) {
+        return;
+      }
+      addErrorMessage('An error occurred while submitting this form.');
+    },
   });
 
   const form = useScrapsForm({
@@ -99,7 +108,7 @@ export function CreateBroadcastModal({
       isActive: true,
     },
     validators: {onDynamic: schema},
-    onSubmit: async ({value, formApi}) => {
+    onSubmit: ({value}) => {
       const {organizations, ...rest} = value;
       const payload = {
         ...rest,
@@ -113,17 +122,7 @@ export function CreateBroadcastModal({
               .filter(id => id > 0)
           : undefined,
       };
-      try {
-        await mutation.mutateAsync(payload);
-      } catch (error) {
-        if (
-          error instanceof RequestError &&
-          setFieldErrors(formApi, requestErrorToFieldErrors(error, formApi.state.values))
-        ) {
-          return;
-        }
-        addErrorMessage('An error occurred while submitting this form.');
-      }
+      return mutation.mutateAsync(payload).catch(() => {});
     },
   });
 
