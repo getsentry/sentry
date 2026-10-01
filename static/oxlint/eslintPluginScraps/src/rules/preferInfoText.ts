@@ -68,26 +68,14 @@ export const preferInfoText = defineRule({
   },
 
   create(context) {
-    const importTracker = createImportTracker();
-    let resolved = false;
-    let tooltipNames: string[] = [];
-    let textNames: string[] = [];
+    const importTracker = createImportTracker(context);
 
     function isLocaleCall(node: ESTree.Expression): boolean {
       return (
         node.type === 'CallExpression' &&
         node.callee.type === 'Identifier' &&
-        importTracker.resolve(node.callee.name)?.source === LOCALE_SOURCE
+        importTracker.resolve(node.callee)?.source === LOCALE_SOURCE
       );
-    }
-
-    function resolveNames() {
-      if (resolved) {
-        return;
-      }
-      resolved = true;
-      tooltipNames = importTracker.findLocalNames(TOOLTIP_SOURCE, 'Tooltip');
-      textNames = importTracker.findLocalNames(TEXT_SOURCE, 'Text');
     }
 
     function isTextLikeExpression(expr: ESTree.Expression): boolean {
@@ -125,7 +113,7 @@ export const preferInfoText = defineRule({
           const name = getElementName(child.openingElement.name);
           // Text is intended to render text content, so do not require the
           // expression inside it to be statically recognizable as text.
-          if (textNames.includes(name)) {
+          if (importTracker.is(child.openingElement.name, TEXT_SOURCE, 'Text')) {
             return true;
           }
           if (TEXT_LIKE_INTRINSICS.has(name)) {
@@ -164,8 +152,7 @@ export const preferInfoText = defineRule({
         return null;
       }
 
-      const name = getElementName(child.openingElement.name);
-      if (!textNames.includes(name)) {
+      if (!importTracker.is(child.openingElement.name, TEXT_SOURCE, 'Text')) {
         return null;
       }
 
@@ -262,9 +249,7 @@ export const preferInfoText = defineRule({
       ...importTracker.visitors,
 
       JSXElement(node) {
-        resolveNames();
-        const name = getElementName(node.openingElement.name);
-        if (!tooltipNames.includes(name)) {
+        if (!importTracker.is(node.openingElement.name, TOOLTIP_SOURCE, 'Tooltip')) {
           return;
         }
         if (allChildrenAreTextLike(node.children)) {

@@ -1,6 +1,8 @@
 import {defineRule} from '@oxlint/plugins';
 import {RuleTester} from 'oxlint/plugins-dev';
 
+import {createImportTracker} from '../tracker/imports';
+
 import {getStyledCallInfo} from './styled';
 
 /**
@@ -16,9 +18,11 @@ const testRule = defineRule({
     },
   },
   create(context) {
+    const importTracker = createImportTracker(context);
     return {
+      ...importTracker.visitors,
       TaggedTemplateExpression(node) {
-        const info = getStyledCallInfo(node);
+        const info = getStyledCallInfo(node, importTracker);
         if (info) {
           context.report({
             node,
@@ -31,7 +35,7 @@ const testRule = defineRule({
         }
       },
       CallExpression(node) {
-        const info = getStyledCallInfo(node);
+        const info = getStyledCallInfo(node, importTracker);
         if (info) {
           context.report({
             node,
@@ -63,49 +67,49 @@ ruleTester.run('getStyledCallInfo', testRule, {
   invalid: [
     // css``
     {
-      code: 'const x = css`color: red`;',
+      code: "import {css} from '@emotion/react'; const x = css`color: red`;",
       filename: '/project/src/file.tsx',
       errors: [{messageId: 'info', data: {kind: 'css', name: ''}}],
     },
     // styled.div``
     {
-      code: 'const Box = styled.div`color: red`;',
+      code: "import styled from '@emotion/styled'; const Box = styled.div`color: red`;",
       filename: '/project/src/file.tsx',
       errors: [{messageId: 'info', data: {kind: 'element', name: 'div'}}],
     },
     // styled.span``
     {
-      code: 'const Box = styled.span`color: red`;',
+      code: "import styled from '@emotion/styled'; const Box = styled.span`color: red`;",
       filename: '/project/src/file.tsx',
       errors: [{messageId: 'info', data: {kind: 'element', name: 'span'}}],
     },
     // styled('div')`` — only outermost TaggedTemplateExpression matches
     {
-      code: "const Box = styled('div')`color: red`;",
+      code: "import styled from '@emotion/styled'; const Box = styled('div')`color: red`;",
       filename: '/project/src/file.tsx',
       errors: [{messageId: 'info', data: {kind: 'element', name: 'div'}}],
     },
     // styled(Button)`` — only outermost TaggedTemplateExpression matches
     {
-      code: 'const MyButton = styled(Button)`color: red`;',
+      code: "import styled from '@emotion/styled'; const MyButton = styled(Button)`color: red`;",
       filename: '/project/src/file.tsx',
       errors: [{messageId: 'info', data: {kind: 'component', name: 'Button'}}],
     },
     // styled(Mod.Button)``
     {
-      code: 'const MyButton = styled(Mod.Button)`color: red`;',
+      code: "import styled from '@emotion/styled'; const MyButton = styled(Mod.Button)`color: red`;",
       filename: '/project/src/file.tsx',
       errors: [{messageId: 'info', data: {kind: 'component', name: 'Mod.Button'}}],
     },
     // styled.div({...}) — object syntax call expression
     {
-      code: 'const Box = styled.div({ color: "red" });',
+      code: "import styled from '@emotion/styled'; const Box = styled.div({ color: 'red' });",
       filename: '/project/src/file.tsx',
       errors: [{messageId: 'info', data: {kind: 'element', name: 'div'}}],
     },
     // styled('div')({...}) — only outermost CallExpression matches
     {
-      code: "const Box = styled('div')({ color: 'red' });",
+      code: "import styled from '@emotion/styled'; const Box = styled('div')({ color: 'red' });",
       filename: '/project/src/file.tsx',
       errors: [{messageId: 'info', data: {kind: 'element', name: 'div'}}],
     },

@@ -1,4 +1,8 @@
 import type {ESTree} from '@oxlint/plugins';
+
+import type {createImportTracker} from '../tracker/imports.ts';
+
+type ImportTracker = ReturnType<typeof createImportTracker>;
 /**
  * @file Shared utility for classifying styled/css tagged template and call expressions.
  *
@@ -61,23 +65,26 @@ function classifyName(name: string, tag: ESTree.Node): NonNullable<StyledCallInf
  * This is the core classification logic — `getStyledCallInfo` is a thin
  * wrapper that extracts the tag/callee and delegates here.
  */
-function classifyTag(tag: ESTree.Node): StyledCallInfo {
+function classifyTag(tag: ESTree.Node, imports: ImportTracker): StyledCallInfo {
   // css`...` — bare identifier
-  if (tag.type === 'Identifier' && tag.name === 'css') {
+  if (imports.is(tag, '@emotion/react', 'css')) {
     return {kind: 'css', tag};
   }
 
   // MemberExpression patterns
   if (tag.type === 'MemberExpression') {
     // X.css`...`
-    if (tag.property.type === 'Identifier' && tag.property.name === 'css') {
+    if (
+      tag.property.type === 'Identifier' &&
+      tag.property.name === 'css' &&
+      imports.is(tag.object, '@emotion/react', '*')
+    ) {
       return {kind: 'css', tag};
     }
 
     // styled.div`...` or styled.div({...})
     if (
-      tag.object.type === 'Identifier' &&
-      tag.object.name === 'styled' &&
+      imports.is(tag.object, '@emotion/styled', 'default') &&
       tag.property.type === 'Identifier'
     ) {
       return classifyName(tag.property.name, tag);
@@ -89,7 +96,7 @@ function classifyTag(tag: ESTree.Node): StyledCallInfo {
       tag.property.name === 'attrs' &&
       tag.object.type === 'CallExpression'
     ) {
-      return classifyTag(tag.object);
+      return classifyTag(tag.object, imports);
     }
   }
 
@@ -98,7 +105,7 @@ function classifyTag(tag: ESTree.Node): StyledCallInfo {
     const innerCallee = tag.callee;
 
     // styled(X)
-    if (innerCallee.type === 'Identifier' && innerCallee.name === 'styled') {
+    if (imports.is(innerCallee, '@emotion/styled', 'default')) {
       return classifyStyledArgs(tag.arguments, tag);
     }
 
@@ -109,7 +116,7 @@ function classifyTag(tag: ESTree.Node): StyledCallInfo {
       innerCallee.property.name === 'attrs' &&
       innerCallee.object.type === 'CallExpression'
     ) {
-      return classifyTag(innerCallee.object);
+      return classifyTag(innerCallee.object, imports);
     }
   }
 
@@ -181,7 +188,8 @@ function isIntermediateCall(node: ESTree.CallExpression): boolean {
  * - `X.css\`...\`` (member expression ending in css)
  */
 export function getStyledCallInfo(
-  node: ESTree.TaggedTemplateExpression | ESTree.CallExpression
+  node: ESTree.TaggedTemplateExpression | ESTree.CallExpression,
+  imports: ImportTracker
 ): StyledCallInfo {
   // Skip intermediate CallExpressions — the outermost node will classify instead
   if (node.type === 'CallExpression' && isIntermediateCall(node)) {
@@ -191,17 +199,13 @@ export function getStyledCallInfo(
   const tag = node.type === 'TaggedTemplateExpression' ? node.tag : node.callee;
 
   // Try classifying from the tag/callee expression
-  const result = classifyTag(tag);
+  const result = classifyTag(tag, imports);
   if (result) {
     return result;
   }
 
   // Direct styled(X) as a CallExpression node (not as tag of template)
-  if (
-    node.type === 'CallExpression' &&
-    tag.type === 'Identifier' &&
-    tag.name === 'styled'
-  ) {
+  if (node.type === 'CallExpression' && imports.is(tag, '@emotion/styled', 'default')) {
     return classifyStyledArgs(node.arguments, node);
   }
 
