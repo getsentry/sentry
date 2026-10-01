@@ -26,12 +26,10 @@ import {getAnalyicsDataForProject} from 'sentry/utils/projects';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {
-  GroupActions,
-  GroupResolutionActions,
-} from 'sentry/views/issueDetails/actions/index';
+import {GroupResolutionActions} from 'sentry/views/issueDetails/actions/index';
 import {useIssuePreviewSeer} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewSeer';
 import {IssuePreviewSeerActions} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewSeerActions';
+import {IssuePreviewStandardActions} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewStandardActions';
 
 function shouldShowFixAppliedActions(group: Group, project: Project) {
   return (
@@ -193,7 +191,7 @@ export function IssuePreviewActions({
 
   if (!shouldShowSeerActions) {
     return (
-      <GroupActions group={group} project={project} disabled={disabled} event={null} />
+      <IssuePreviewStandardActions group={group} project={project} disabled={disabled} />
     );
   }
 
