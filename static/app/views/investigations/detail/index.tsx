@@ -46,6 +46,7 @@ import {
   shouldPollInvestigationBlocks,
 } from 'sentry/views/investigations/detail/cell';
 import {InvestigationCellPlaceholder} from 'sentry/views/investigations/detail/cellPlaceholder';
+import {InvestigationViewers} from 'sentry/views/investigations/detail/presence';
 import {InvestigationRunTimer} from 'sentry/views/investigations/detail/runTimer';
 import {
   InvestigationHypotheses,
@@ -407,6 +408,10 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                     date: <DateTime date={investigation.dateUpdated} year />,
                   })}
                 </Text>
+                <InvestigationViewers
+                  investigationId={investigation.id}
+                  separator={<MetaDivider />}
+                />
               </Flex>
               <FeedbackButton
                 feedbackOptions={{
