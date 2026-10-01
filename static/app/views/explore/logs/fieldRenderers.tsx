@@ -4,9 +4,7 @@ import * as Sentry from '@sentry/react';
 import {useQuery} from '@tanstack/react-query';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
-import moment from 'moment-timezone';
 
-import {useClockDisplay} from '@sentry/scraps/datetime';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -21,7 +19,6 @@ import {IconPlay} from 'sentry/icons';
 import {tct} from 'sentry/locale';
 import type {PageFilterDatetime} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
-import {getFormat} from 'sentry/utils/dates';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {
   getFieldRenderer,
@@ -160,30 +157,6 @@ export function SeverityCircleRenderer(props: Omit<LogFieldRendererProps, 'item'
   );
 }
 
-// Two-digit day and hour on both 12h and 24h clocks, so no other timestamp renders wider.
-const WIDEST_TIMESTAMP = '2000-12-28T22:58:58.888Z';
-
-function LogTimestampContainer({
-  align,
-  children,
-}: {
-  children: React.ReactNode;
-  align?: 'left' | 'center' | 'right';
-}) {
-  const clockDisplay = useClockDisplay();
-  const widthReserve = moment
-    .utc(WIDEST_TIMESTAMP)
-    .format(
-      getFormat({seconds: true, milliseconds: true, clock24Hours: clockDisplay === '24'})
-    );
-
-  return (
-    <LogTimestamp align={align} data-width-reserve={widthReserve}>
-      {children}
-    </LogTimestamp>
-  );
-}
-
 function TimestampRenderer(props: LogFieldRendererProps) {
   const preciseTimestamp = props.extra.attributes[OurLogKnownFieldKey.TIMESTAMP_PRECISE];
 
@@ -192,7 +165,7 @@ function TimestampRenderer(props: LogFieldRendererProps) {
     : props.item.value;
 
   return (
-    <LogTimestampContainer align={props.extra.align}>
+    <LogTimestamp align={props.extra.align}>
       <LogsTimestampTooltip
         timestamp={props.item.value!}
         attributes={props.extra.attributes}
@@ -201,7 +174,7 @@ function TimestampRenderer(props: LogFieldRendererProps) {
       >
         <DateTime seconds milliseconds date={timestampToUse} />
       </LogsTimestampTooltip>
-    </LogTimestampContainer>
+    </LogTimestamp>
   );
 }
 

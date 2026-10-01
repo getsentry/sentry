@@ -100,36 +100,6 @@ describe('Logs Field Renderers', () => {
       expect(screen.queryByText(/AM|PM/)).not.toBeInTheDocument();
     });
 
-    it('reserves the widest 12h timestamp width when the clock display is 12h', () => {
-      const props = makeRendererProps(timestamp);
-      const result = TimestampRenderer!(props);
-
-      render(
-        <DateTimeProvider value={{timezone: 'UTC', clockDisplay: '12'}}>
-          <Fragment>{result}</Fragment>
-        </DateTimeProvider>
-      );
-
-      expect(
-        screen.getByText(/Jan 15, 2024 2:30:45\.123 PM/).closest('[data-width-reserve]')
-      ).toHaveAttribute('data-width-reserve', 'Dec 28, 10:58:58.888 PM');
-    });
-
-    it('reserves the widest 24h timestamp width when the clock display is 24h', () => {
-      const props = makeRendererProps(timestamp);
-      const result = TimestampRenderer!(props);
-
-      render(
-        <DateTimeProvider value={{timezone: 'UTC', clockDisplay: '24'}}>
-          <Fragment>{result}</Fragment>
-        </DateTimeProvider>
-      );
-
-      expect(
-        screen.getByText(/Jan 15, 2024 14:30:45\.123/).closest('[data-width-reserve]')
-      ).toHaveAttribute('data-width-reserve', 'Dec 28, 22:58:58.888');
-    });
-
     it('renders milliseconds when present', () => {
       expect(TimestampRenderer).toBeDefined();
       const props = makeRendererProps(timestamp);

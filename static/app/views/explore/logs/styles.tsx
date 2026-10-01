@@ -325,22 +325,10 @@ export const LogDate = styled('span')<{align?: 'left' | 'center' | 'right'}>`
   text-align: ${p => p.align || 'left'};
 `;
 
-// The table is virtualized, so its column width only reflects the rendered rows.
-// Reserving the widest possible timestamp keeps every row the same width, so a
-// width locked while scrolling (see useLogsTableColumnWidths) fits later rows too.
+// The widest 12h timestamp ("Dec 28, 10:58:58.888 PM"), so a column width locked
+// while scrolling (see useLogsTableColumnWidths) still fits rows rendered later.
 export const LogTimestamp = styled(LogDate)`
-  display: inline-grid;
-  white-space: nowrap;
-
-  > *,
-  &::after {
-    grid-area: 1 / 1;
-  }
-
-  &::after {
-    content: attr(data-width-reserve);
-    visibility: hidden;
-  }
+  min-width: 23ch;
 `;
 
 export const LogsHighlight = styled(MultiHighlight)`
