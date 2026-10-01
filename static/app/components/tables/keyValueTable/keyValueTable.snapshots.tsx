@@ -1,4 +1,5 @@
 import {Button} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
 
 import {KeyValueTable, KeyValueTableRow} from './keyValueTable';
 import {KeyValueTableCard} from './keyValueTableCard';
@@ -160,7 +161,7 @@ describe('KeyValueTable', () => {
   it.snapshot(
     'list-multi-value',
     () => (
-      <div style={{padding: 8, width: 500}}>
+      <Container containerType="inline-size" style={{padding: 8, width: 500}}>
         <KeyValueTableDataList
           shouldSort={false}
           data={[
@@ -178,7 +179,7 @@ describe('KeyValueTable', () => {
             },
           ]}
         />
-      </div>
+      </Container>
     ),
     {tags: {area: 'core', variant: 'list'}}
   );
