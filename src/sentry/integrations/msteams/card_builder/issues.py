@@ -29,9 +29,7 @@ from sentry.integrations.services.integration import RpcIntegration
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
-from sentry.models.rule import Rule
 from sentry.notifications.types import NotificationRule
-from sentry.notifications.utils.rules import get_legacy_rule_id
 from sentry.services.eventstore.models import Event, GroupEvent
 
 from .base import MSTeamsMessageBuilder
@@ -54,16 +52,8 @@ from .block import (
 logger = logging.getLogger(__name__)
 
 
-def get_workflow_ids(rules: Sequence[Rule | NotificationRule]) -> list[int]:
-    workflow_ids = []
-    for rule in rules:
-        action = rule.data.get("actions", [{}])[0]
-        workflow_id = action.get("workflow_id")
-
-        if workflow_id is not None:
-            workflow_ids.append(int(workflow_id))
-
-    return workflow_ids
+def get_workflow_ids(rules: Sequence[NotificationRule]) -> list[int]:
+    return [rule.workflow_id for rule in rules if rule.workflow_id is not None]
 
 
 class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
@@ -71,7 +61,7 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
         self,
         group: Group,
         event: Event | GroupEvent | None,
-        rules: Sequence[Rule | NotificationRule],
+        rules: Sequence[NotificationRule],
         integration: RpcIntegration,
         workflow_ids: Sequence[int] = (),
     ):
@@ -90,9 +80,7 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
                 "groupId": self.group.id,
                 "eventId": self.event.event_id if self.event else None,
                 "rules": [
-                    rule_id
-                    for rule in self.rules
-                    if (rule_id := get_legacy_rule_id(rule)) is not None
+                    rule.legacy_rule_id for rule in self.rules if rule.legacy_rule_id is not None
                 ],
                 "workflows": list(dict.fromkeys([*workflow_ids, *self.workflow_ids])),
                 "integrationId": self.integration.id,

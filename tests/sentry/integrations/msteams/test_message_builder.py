@@ -118,9 +118,12 @@ class MSTeamsMessageBuilderTest(TestCase):
         assert self.event1.group is not None
         self.group1 = self.event1.group
 
-        self.rules = [
+        persisted_rules = [
             self.create_project_rule(name="rule1"),
             self.create_project_rule(name="rule2"),
+        ]
+        self.rules = [
+            NotificationRule.from_deprecated_legacy_rule(rule) for rule in persisted_rules
         ]
 
     def test_simple(self) -> None:
@@ -423,9 +426,8 @@ class MSTeamsMessageBuilderTest(TestCase):
         assert card_json[0] == "{" and card_json[-1] == "}"
 
     def test_issue_action_payload_includes_rule_and_workflow_ids(self) -> None:
-        self.rules[0].data["actions"][0].update(
-            {"legacy_rule_id": self.rules[0].id, "workflow_id": 123}
-        )
+        self.rules[0].legacy_rule_id = self.rules[0].id
+        self.rules[0].workflow_id = 123
 
         payload = MSTeamsIssueMessageBuilder(
             group=self.group1,

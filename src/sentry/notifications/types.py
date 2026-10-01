@@ -9,6 +9,7 @@ from sentry.hybridcloud.rpc import ValueEqualityEnum
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
     from sentry.models.project import Project
+    from sentry.models.rule import Rule
 
 
 class NotificationRuleData(TypedDict):
@@ -32,6 +33,38 @@ class NotificationRule:
     workflow_id: int | None
     legacy_rule_id: int | None
 
+    @classmethod
+    def from_deprecated_legacy_rule(
+        cls, rule: Rule, *, workflow_id: int | None = None
+    ) -> NotificationRule:
+        actions = rule.data.get("actions")
+        if (
+            not isinstance(actions, list)
+            or not actions
+            or not all(isinstance(action, dict) for action in actions)
+        ):
+            raise ValueError("Legacy Rule requires at least one notification action")
+
+        first_action = actions[0]
+        embedded_workflow_id = first_action.get("workflow_id")
+        embedded_legacy_rule_id = first_action.get("legacy_rule_id")
+        effective_workflow_id = workflow_id or embedded_workflow_id
+        legacy_rule_id = (
+            None
+            if effective_workflow_id is not None and embedded_legacy_rule_id is None
+            else rule.id
+        )
+
+        return cls(
+            id=rule.id,
+            label=rule.label,
+            data={"actions": [dict(action) for action in actions]},
+            project=rule.project,
+            environment_id=rule.environment_id,
+            workflow_id=effective_workflow_id,
+            legacy_rule_id=legacy_rule_id,
+        )
+
     def __post_init__(self) -> None:
         if not self.data["actions"]:
             raise ValueError("NotificationRule requires at least one action")
@@ -39,8 +72,10 @@ class NotificationRule:
         if self.legacy_rule_id == TEST_NOTIFICATION_ID:
             if self.workflow_id is not None:
                 raise ValueError("Test notification cannot have a workflow ID")
-        elif self.workflow_id is None or self.workflow_id == TEST_NOTIFICATION_ID:
-            raise ValueError("NotificationRule requires a workflow ID")
+        elif self.workflow_id == TEST_NOTIFICATION_ID:
+            raise ValueError("Workflow ID cannot be the test notification ID")
+        elif self.workflow_id is None and self.legacy_rule_id is None:
+            raise ValueError("NotificationRule requires a workflow or legacy rule ID")
 
     @property
     def is_test_notification(self) -> bool:
@@ -53,6 +88,13 @@ class NotificationRule:
     @property
     def is_workflow_with_legacy_rule(self) -> bool:
         return self.workflow_id is not None and self.legacy_rule_id is not None
+
+    @property
+    def is_legacy_rule_only(self) -> bool:
+        return self.workflow_id is None and self.legacy_rule_id not in (
+            None,
+            TEST_NOTIFICATION_ID,
+        )
 
     @property
     def project_id(self) -> int:

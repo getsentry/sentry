@@ -57,7 +57,10 @@ class IssueCardLegacyParityTest(TestCase):
         rpc_integration = integration_service.get_integration(integration_id=self.integration.id)
         assert rpc_integration is not None
         return MSTeamsIssueMessageBuilder(
-            self.issue_group, self.event, [self.rule], rpc_integration
+            self.issue_group,
+            self.event,
+            [NotificationRule.from_deprecated_legacy_rule(self.rule)],
+            rpc_integration,
         ).build_group_card()
 
     def platform_card(self) -> AdaptiveCard:

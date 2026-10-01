@@ -38,6 +38,7 @@ from sentry.models.repository import Repository
 from sentry.models.rule import Rule as IssueAlertRule
 from sentry.models.team import Team
 from sentry.monitors.grouptype import MonitorIncidentType
+from sentry.notifications.types import NotificationRule
 from sentry.notifications.utils.actions import MessageAction
 from sentry.services.eventstore.models import Event
 from sentry.silo.base import SiloMode
@@ -388,7 +389,10 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         more_tags = {"escape": "`room`", "foo": "bar", "release": release.version}
         notes = "hey @colleen fix it"
 
-        assert SlackIssuesMessageBuilder(group, rules=[rule]).build() == build_test_message_blocks(
+        notification_rule = NotificationRule.from_deprecated_legacy_rule(rule)
+        assert SlackIssuesMessageBuilder(
+            group, rules=[notification_rule]
+        ).build() == build_test_message_blocks(
             teams={self.team},
             users={self.user},
             group=group,

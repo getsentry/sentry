@@ -255,7 +255,7 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
                 legacy_rule_id=None,
             )
 
-        with pytest.raises(ValueError, match="requires a workflow ID"):
+        with pytest.raises(ValueError, match="requires a workflow or legacy rule ID"):
             NotificationRule(
                 id=self.action.id,
                 label="Invalid",
@@ -276,6 +276,15 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
                 workflow_id=self.workflow.id,
                 legacy_rule_id=TEST_NOTIFICATION_ID,
             )
+
+    def test_from_deprecated_legacy_rule(self) -> None:
+        notification_rule = NotificationRule.from_deprecated_legacy_rule(self.rule)
+
+        assert notification_rule.id == self.rule.id
+        assert notification_rule.legacy_rule_id == self.rule.id
+        assert notification_rule.workflow_id is None
+        assert notification_rule.is_legacy_rule_only
+        assert notification_rule.data == {"actions": self.rule.data["actions"]}
 
     def test_create_rule_instance_from_action_no_environment(self) -> None:
         """Test that create_rule_instance_from_action creates a notification rule."""

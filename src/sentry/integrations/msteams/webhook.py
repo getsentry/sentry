@@ -50,7 +50,7 @@ from sentry.issues.action_log import ActionSource, GroupActionActor, action_cont
 from sentry.models.activity import ActivityIntegration
 from sentry.models.apikey import ApiKey
 from sentry.models.group import Group
-from sentry.models.rule import Rule
+from sentry.notifications.utils.rules import get_notification_rules
 from sentry.services import eventstore
 from sentry.silo.base import SiloMode
 from sentry.users.services.user.service import user_service
@@ -653,13 +653,19 @@ class MsTeamsWebhookEndpoint(Endpoint):
             # get the rules from the payload
             rule_ids = payload.get("rules", [])
             workflow_ids = payload.get("workflows", [])
-            rules = tuple(Rule.objects.filter(id__in=rule_ids, project_id=group.project_id))
+            rules = tuple(
+                get_notification_rules(
+                    group.project,
+                    legacy_rule_ids=rule_ids,
+                    workflow_ids=workflow_ids,
+                )
+            )
             metrics.incr(
                 "integrations.msteams.action.rule_lookup",
                 tags={
                     "has_rule": bool(rule_ids),
                     "has_workflow_ids": bool(workflow_ids),
-                    "lookup_succeeded": bool(rule_ids) and len(rules) == len(set(rule_ids)),
+                    "lookup_succeeded": bool(rules),
                 },
                 sample_rate=1.0,
             )
