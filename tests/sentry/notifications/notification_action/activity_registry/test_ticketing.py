@@ -14,6 +14,7 @@ from sentry.notifications.notification_action.activity_registry.ticketing import
     TicketingActivityHandler,
 )
 from sentry.notifications.notification_action.registry import activity_handler_registry
+from sentry.notifications.notification_action.utils import execute_via_group_type_registry
 from sentry.testutils.helpers.action_log import capture_action_log
 from sentry.types.activity import ActivityType
 from sentry.workflow_engine.models import Action
@@ -215,3 +216,12 @@ class TestTicketingActivityHandler(BaseWorkflowTest):
         assert call_data["issuetype"] == "Bug"
         assert call_data["title"] == f"[Code Changes] {self.group.title}"
         assert "Sentry Issue:" in call_data["description"]
+
+    def test_invoke_action_ignores_expected_integration_errors(self) -> None:
+        self.action.data = {"additional_fields": {}}
+
+        with mock.patch.object(Activity, "send_notification") as mock_send_notification:
+            execute_via_group_type_registry(self._create_invocation(self.activity))
+
+        mock_send_notification.assert_not_called()
+        assert ExternalIssue.objects.count() == 0
