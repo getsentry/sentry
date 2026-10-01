@@ -18,6 +18,8 @@ detect: |
   Do NOT flag:
     - Calls to api.requestPromise() that are properly awaited or .then()-chained
       without success/error/complete callback options
+    - Calls to api.requestPromise() returned directly from a React Query mutationFn
+      — the framework awaits the returned promise, so this follows the modern pattern
     - The definition of request() or requestPromise() methods themselves
     - References in comments, documentation, or test mocks
 
@@ -63,6 +65,7 @@ examples:
   good:
     - "const data = await api.requestPromise('/endpoint/');"
     - "await this.api.requestPromise('/endpoint/', { method: 'POST', data });"
+    - "useMutation({ mutationFn: () => api.requestPromise('/endpoint/', { method: 'DELETE' }) })"
 
 include:
   - 'static/app/**/*.tsx'
@@ -74,4 +77,4 @@ exclude:
   - '**/*.test.*'
   - '**/test/**'
 
-prefilter: "grep -rl --include='*.tsx' --include='*.ts' -E 'api\\.request\\(|api\\.requestPromise\\(' {repo_path}/static/"
+prefilter: "grep -rl --include='*.tsx' --include='*.ts' -E 'api\\.request\\(|api\\.requestPromise\\(' {repo_path}/static/app/"
