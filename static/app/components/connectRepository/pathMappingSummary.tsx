@@ -1,7 +1,7 @@
 import {Button} from '@sentry/scraps/button';
+import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconArrow, IconBranch, IconChevron, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -66,12 +66,9 @@ export function PathMappingSummary({
           maxWidth="max-content"
         >
           <Container flexShrink={0}>{props => <IconBranch {...props} />}</Container>
-          {/* eslint-disable-next-line @sentry/scraps/prefer-info-text -- InfoText has no showOnlyOnOverflow support */}
-          <Tooltip title={branchName} showOnlyOnOverflow skipWrapper>
-            <Text variant="muted" ellipsis>
-              {branchName}
-            </Text>
-          </Tooltip>
+          <InfoText title={branchName} mode="overflowOnly" variant="muted">
+            {branchName}
+          </InfoText>
         </Flex>
 
         <Flex align="center" gap="xs" flexShrink={0}>
