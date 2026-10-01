@@ -142,7 +142,7 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
                 name=f"{TRANSACTION_PREFIX}.multiprocess_worker",
                 transaction=True,
                 custom_sampling_context={
-                    "sample_rate": 0.05 * settings.SENTRY_BACKEND_APM_SAMPLING
+                    "sample_rate": 0.01 * settings.SENTRY_BACKEND_APM_SAMPLING
                 },
             ):
                 task_execution(model_name, chunk, project_id, deferred_filter)
