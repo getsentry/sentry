@@ -79,6 +79,11 @@ type SeerStatusBlockProps = {
    * otherwise.
    */
   action?: ReactNode;
+  /**
+   * Content under the description that a plain sentence can't carry, such as
+   * the conclusion of a finished investigation.
+   */
+  children?: ReactNode;
   className?: string;
   /** The paragraph under the title. */
   description?: string;
@@ -110,6 +115,7 @@ type SeerStatusBlockProps = {
  */
 export function SeerStatusBlock({
   action,
+  children,
   className,
   description,
   elapsed,
@@ -161,6 +167,8 @@ export function SeerStatusBlock({
               {description}
             </Text>
           ) : null}
+
+          {children}
 
           {action ? (
             <Container

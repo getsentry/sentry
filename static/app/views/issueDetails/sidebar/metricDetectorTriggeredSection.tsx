@@ -792,8 +792,17 @@ function getInvestigationStatusBlock(
   if (investigation?.summary && investigation.summaryDescription) {
     return {
       variant: 'complete',
-      title: investigation.summary,
-      description: investigation.summaryDescription,
+      title: t('Seer investigation completed'),
+      children: (
+        <Stack gap="xs">
+          <Text size="sm" bold>
+            {investigation.summary}
+          </Text>
+          <Text size="sm" density="comfortable">
+            {investigation.summaryDescription}
+          </Text>
+        </Stack>
+      ),
     };
   }
   const runStatus = orchestration ? getSeerStatusBlock(orchestration) : null;
@@ -802,7 +811,10 @@ function getInvestigationStatusBlock(
   }
   return {
     variant: runStatus.variant,
-    title: runStatus.title,
+    title:
+      runStatus.variant === 'complete'
+        ? t('Seer investigation completed')
+        : runStatus.title,
     meta: runStatus.meta,
     // The running copy is written for the investigation page itself ("will open
     // automatically"), so only the stopped states, whose descriptions explain
