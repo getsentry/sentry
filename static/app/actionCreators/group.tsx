@@ -164,9 +164,8 @@ type MergeGroupsParams = UpdateParams;
 
 export async function mergeGroups(
   api: Client,
-  params: MergeGroupsParams,
-  options: RequestCallbacks = {}
-) {
+  params: MergeGroupsParams
+): Promise<any> {
   const {itemIds} = params;
   const path = getUpdateUrl(params);
 
@@ -175,25 +174,18 @@ export async function mergeGroups(
 
   GroupStore.onMerge(id, itemIds);
 
-  let responseMeta: any;
-  let statusText: string | undefined;
-
   try {
-    const [response, status, meta] = await api.requestPromise(path, {
+    const [response] = await api.requestPromise(path, {
       query,
       method: 'PUT',
       data: {merge: 1},
       includeAllArgs: true,
     });
-    statusText = status;
-    responseMeta = meta;
     GroupStore.onMergeSuccess(id, itemIds, response);
-    options?.success?.(response, statusText, responseMeta);
+    return response;
   } catch (error) {
     GroupStore.onMergeError(id, itemIds, error);
-    options?.error?.(error);
-  } finally {
-    options?.complete?.(responseMeta, statusText ?? '');
+    throw error;
   }
 }
 

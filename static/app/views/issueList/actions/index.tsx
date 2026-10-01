@@ -223,18 +223,14 @@ export function IssueListActions({
 
   function handleMerge() {
     actionSelectedGroups(itemIds => {
-      mergeGroups(
-        api,
-        {
-          orgId: organization.slug,
-          itemIds,
-          query: queryExcludingPerformanceIssues,
-          project: selection.projects,
-          environment: selection.environments,
-          ...selection.datetime,
-        },
-        {}
-      );
+      mergeGroups(api, {
+        orgId: organization.slug,
+        itemIds,
+        query: queryExcludingPerformanceIssues,
+        project: selection.projects,
+        environment: selection.environments,
+        ...selection.datetime,
+      }).catch(() => {});
       if (selection.projects[0]) {
         const trackProject = ProjectsStore.getById(`${selection.projects[0]}`);
         trackAnalytics('issues_stream.merged', {
