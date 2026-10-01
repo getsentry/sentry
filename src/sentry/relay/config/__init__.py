@@ -24,6 +24,7 @@ from sentry.ingest.inbound_filters import (
     get_all_filter_specs,
     get_filter_key,
     get_generic_filters,
+    strip_comments,
 )
 from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.ingest.transaction_clusterer.meta import get_clusterer_meta
@@ -149,15 +150,19 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
     )
 
     if filter_features.custom_inbound_filters:
-        invalid_releases = project.get_option(f"sentry:{FilterTypes.RELEASES}")
+        invalid_releases = strip_comments(
+            project.get_option(f"sentry:{FilterTypes.RELEASES}") or []
+        )
         if invalid_releases:
             filter_settings["releases"] = {"releases": invalid_releases}
 
-        error_messages = project.get_option(f"sentry:{FilterTypes.ERROR_MESSAGES}")
+        error_messages = strip_comments(
+            project.get_option(f"sentry:{FilterTypes.ERROR_MESSAGES}") or []
+        )
         if error_messages:
             filter_settings["errorMessages"] = {"patterns": error_messages}
 
-    blacklisted_ips = project.get_option("sentry:blacklisted_ips")
+    blacklisted_ips = strip_comments(project.get_option("sentry:blacklisted_ips") or [])
     if blacklisted_ips and not filter_features.generic_ip_filter:
         filter_settings["clientIps"] = {"blacklistedIps": blacklisted_ips}
 
