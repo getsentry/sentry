@@ -417,7 +417,7 @@ describe('groupEventDetails', () => {
         url: '/organizations/org-slug/prompts-activity/',
         body: {dismissed_ts: undefined, snoozed_ts: undefined},
       });
-      MockApiClient.addMockResponse({
+      const stacktraceLinkMock = MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/stacktrace-link/',
         body: {config: null, sourceUrl: null, integrations: []},
       });
@@ -430,6 +430,7 @@ describe('groupEventDetails', () => {
       expect(screen.queryAllByTestId('native-stack-trace-frame-title')).toHaveLength(
         enabled ? 1 : 0
       );
+      await waitFor(() => expect(stacktraceLinkMock).toHaveBeenCalled());
     }
   );
 
