@@ -150,17 +150,12 @@ function SubtitleWithCopyButton({
   subTitle: string;
 }) {
   return (
-    <Container
-      width="100%"
-      overflow="hidden"
-      whiteSpace="nowrap"
-      css={css`
-        text-overflow: ellipsis;
-      `}
-    >
-      <Text as="span" size="md" variant="secondary">
-        {subTitle}
-      </Text>
+    <Flex align="center" width="100%">
+      <Container flex="1 1" minWidth="0">
+        <Text as="div" size="md" variant="secondary" ellipsis>
+          {subTitle}
+        </Text>
+      </Container>
       {clipboardText ? (
         <CopyToClipboardButton
           aria-label={t('Copy to clipboard')}
@@ -170,7 +165,7 @@ function SubtitleWithCopyButton({
           tooltipProps={{disabled: true}}
         />
       ) : null}
-    </Container>
+    </Flex>
   );
 }
 
@@ -393,14 +388,7 @@ function Highlights({
           </Flex>
         </Stack>
         <Stack justify="left" flex="1" height="100%" overflow="hidden">
-          <Text
-            as="div"
-            size="md"
-            bold
-            css={css`
-              line-height: normal;
-            `}
-          >
+          <Text as="div" size="md" bold>
             {node.op}
           </Text>
           <Flex align="center" gap="md" marginBottom="md">
@@ -417,19 +405,20 @@ function Highlights({
             <Grid
               columns="max-content minmax(0, 1fr)"
               gap="xs lg"
-              css={theme => css`
-                font-size: ${theme.font.size.md};
-                &:not(:last-child) {
-                  margin-bottom: ${theme.space.lg};
-                }
-              `}
+              marginBottom={
+                !hidePanelAndBreakdown || (isAiNode && !hideNodeActions)
+                  ? 'lg'
+                  : undefined
+              }
             >
               {highlightedAttributes.map(({name, value}) => (
                 <Fragment key={name}>
                   <Text as="div" variant="secondary">
                     {name}
                   </Text>
-                  <div>{value}</div>
+                  <Text as="div" size="md">
+                    {value}
+                  </Text>
                 </Fragment>
               ))}
             </Grid>
@@ -497,9 +486,6 @@ function HighLightsOpsBreakdown({event}: {event: EventTransaction}) {
               align="center"
               gap="xs"
               cursor="pointer"
-              css={css`
-                font-size: 13px;
-              `}
               key={operationName}
               onClick={() =>
                 dispatch({
@@ -510,7 +496,9 @@ function HighLightsOpsBreakdown({event}: {event: EventTransaction}) {
               }
             >
               <StyledIconCircleFill size="xs" fill={color} />
-              {operationName}
+              <Text as="span" size="md">
+                {operationName}
+              </Text>
               <Text as="div" size="md" variant="secondary">
                 {pctLabel}%
               </Text>
@@ -562,9 +550,6 @@ function HighLightEAPOpsBreakdown({node}: {node: EapSpanNode}) {
               align="center"
               gap="xs"
               cursor="pointer"
-              css={css`
-                font-size: 13px;
-              `}
               key={operationName}
               onClick={() =>
                 dispatch({
@@ -575,7 +560,9 @@ function HighLightEAPOpsBreakdown({node}: {node: EapSpanNode}) {
               }
             >
               <StyledIconCircleFill size="xs" fill={color} />
-              {operationName}
+              <Text as="span" size="md">
+                {operationName}
+              </Text>
               <Text as="div" size="md" variant="secondary">
                 {pctLabel}%
               </Text>
@@ -1039,12 +1026,7 @@ function SectionCardGroup({children}: {children: React.ReactNode}) {
 function CopyableCardValueWithLink({value}: {value: React.ReactNode}) {
   return (
     <Flex align="center" justify="between" gap="md" wrap="wrap">
-      <Text
-        as="span"
-        css={css`
-          overflow-wrap: anywhere;
-        `}
-      >
+      <Text as="span" wordBreak="break-word">
         {value}
         {typeof value === 'string' ? (
           <StyledCopyToClipboardButton
