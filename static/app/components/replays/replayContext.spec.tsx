@@ -20,6 +20,7 @@ const mockPause = jest.fn();
 const mockPlay = jest.fn();
 const mockVideoPause = jest.fn();
 const mockVideoPlay = jest.fn();
+const mockGetCurrentTime = jest.fn(() => 0);
 const mockReplayerHandlers = new Map<string, (arg: any) => void>();
 
 jest.mock('@sentry/rrweb', () => {
@@ -34,7 +35,7 @@ jest.mock('@sentry/rrweb', () => {
         return {
           config: {skipInactive: false, speed: 1},
           destroy: jest.fn(),
-          getCurrentTime: () => 0,
+          getCurrentTime: mockGetCurrentTime,
           getMirror: () => null,
           iframe: document.createElement('iframe'),
           on: jest.fn((event: string, handler: (arg: any) => void) => {
@@ -53,7 +54,7 @@ jest.mock('sentry/components/replays/videoReplayerWithInteractions', () => ({
   VideoReplayerWithInteractions: jest.fn().mockImplementation(() => ({
     config: {skipInactive: false, speed: 1},
     destroy: jest.fn(),
-    getCurrentTime: () => 0,
+    getCurrentTime: mockGetCurrentTime,
     pause: mockVideoPause,
     play: mockVideoPlay,
     setConfig: jest.fn(),
@@ -63,13 +64,14 @@ jest.mock('sentry/components/replays/videoReplayerWithInteractions', () => ({
 const startedAt = new Date('2023-12-25T00:00:00');
 
 function TestPlayer() {
-  const {fastForwardSpeed, setRoot, togglePlayPause} = useReplayContext();
+  const {currentTime, fastForwardSpeed, setRoot, togglePlayPause} = useReplayContext();
 
   return (
     <div ref={setRoot}>
       <button onClick={() => togglePlayPause(true)}>Play</button>
       <button onClick={() => togglePlayPause(false)}>Pause</button>
       <span>Fast forward: {fastForwardSpeed}</span>
+      <span>Current time: {currentTime}</span>
     </div>
   );
 }
@@ -137,6 +139,65 @@ function setVisibility(visibilityState: 'hidden' | 'visible') {
 }
 
 describe('replayContext', () => {
+  it.each([false, true])(
+    'keeps polling the player after an unchanged timestamp (video: %s)',
+    video => {
+      const frames = new Map<number, FrameRequestCallback>();
+      let frameId = 0;
+      const requestFrame = jest
+        .spyOn(window, 'requestAnimationFrame')
+        .mockImplementation(callback => {
+          frames.set(++frameId, callback);
+          return frameId;
+        });
+      const cancelFrame = jest
+        .spyOn(window, 'cancelAnimationFrame')
+        .mockImplementation(id => {
+          frames.delete(id);
+        });
+      const advanceFrame = () => {
+        act(() => {
+          const callbacks = [...frames.values()];
+          frames.clear();
+          callbacks.forEach(callback => callback(0));
+        });
+      };
+
+      try {
+        const replay = makeReader({
+          attachments: video
+            ? [VideoFrameEventFixture()]
+            : RRWebInitFrameEventsFixture({timestamp: startedAt}),
+        });
+        const {unmount} = render(
+          <ReplayContextProvider analyticsContext="" isFetching={false} replay={replay}>
+            <TestPlayer />
+          </ReplayContextProvider>
+        );
+
+        // An unchanged clock must not stop polling before playback starts advancing.
+        advanceFrame();
+        advanceFrame();
+        mockGetCurrentTime.mockReturnValue(1_000);
+        advanceFrame();
+        expect(screen.getByText('Current time: 1000')).toBeInTheDocument();
+
+        // Buffering can also keep the clock unchanged between advancing frames.
+        advanceFrame();
+        mockGetCurrentTime.mockReturnValue(2_000);
+        advanceFrame();
+        expect(screen.getByText('Current time: 2000')).toBeInTheDocument();
+
+        unmount();
+        expect(frames.size).toBe(0);
+      } finally {
+        mockGetCurrentTime.mockReturnValue(0);
+        requestFrame.mockRestore();
+        cancelFrame.mockRestore();
+      }
+    }
+  );
+
   afterEach(() => {
     Object.defineProperty(document, 'visibilityState', {
       configurable: true,
