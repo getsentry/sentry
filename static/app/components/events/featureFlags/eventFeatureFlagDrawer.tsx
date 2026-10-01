@@ -117,7 +117,10 @@ export function EventFeatureFlagDrawer({
       </EventNavigator>
       <EventDrawerBody>
         <CardContainer numCols={1}>
-          <KeyValueTableCard expandLeft contentItems={searchResults} />
+          <KeyValueTableCard
+            itemProps={{expandLeft: true}}
+            contentItems={searchResults}
+          />
         </CardContainer>
       </EventDrawerBody>
     </EventDrawerContainer>

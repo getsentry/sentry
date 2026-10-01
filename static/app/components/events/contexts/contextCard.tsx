@@ -62,6 +62,14 @@ interface ContextCardContentProps {
   type?: string;
 }
 
+function getContextItemMeta(
+  meta: Record<string, any> | undefined,
+  key: string
+): Pick<KeyValueTableDataRowProps, 'errors' | 'meta'> {
+  const itemMeta = meta?.[key];
+  return {meta: itemMeta, errors: itemMeta?.['']?.err ?? []};
+}
+
 export function ContextCardContent({
   item,
   alias,
@@ -74,8 +82,7 @@ export function ContextCardContent({
   if (contextKey === 'type') {
     return null;
   }
-  const contextMeta = meta?.[contextKey];
-  const contextErrors = contextMeta?.['']?.err ?? [];
+  const {meta: contextMeta, errors: contextErrors} = getContextItemMeta(meta, contextKey);
   const contextSubject =
     config?.includeAliasInSubject && alias ? `${startCase(alias)}: ${subject}` : subject;
   const attributeDetailsType = config?.attributeDetailsType;
@@ -127,15 +134,10 @@ export function ContextCard({alias, event, type, project, value = {}}: ContextCa
     location,
   });
 
-  const contentItems = contextItems.map<KeyValueTableDataRowProps>(item => {
-    const itemMeta: KeyValueTableDataRowProps['meta'] = meta?.[item?.key];
-    const itemErrors: KeyValueTableDataRowProps['errors'] = itemMeta?.['']?.err ?? [];
-    return {
-      item,
-      meta: itemMeta,
-      errors: itemErrors,
-    };
-  });
+  const contentItems = contextItems.map<KeyValueTableDataRowProps>(item => ({
+    item,
+    ...getContextItemMeta(meta, item.key),
+  }));
 
   return (
     <KeyValueTableCard
