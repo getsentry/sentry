@@ -22,7 +22,7 @@ function getFieldDefinitionFromAttributeSearchMetadata(
 
   return {
     kind: valueType === FieldValueType.ARRAY ? FieldKind.ARRAY : FieldKind.FIELD,
-    desc: td(metadata.brief),
+    desc: td(ATTRIBUTE_SEARCH_METADATA[key]!.brief),
     valueType,
     ...(keywords.length ? {keywords} : {}),
     ...(preferredKey && preferredKey !== key ? {deprecated: true} : {}),
