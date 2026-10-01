@@ -6,6 +6,7 @@ import {
   FieldValueType,
   getFieldDefinition,
 } from 'sentry/utils/fields';
+import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
 import {SpanFields} from 'sentry/views/insights/types';
 
 describe('getFieldDefinition attribute search metadata', () => {
@@ -39,6 +40,15 @@ describe('getFieldDefinition attribute search metadata', () => {
     );
     expect(getFieldDefinition(FieldKey.TYPE, 'span')?.desc).toBe(
       ATTRIBUTE_SEARCH_METADATA[FieldKey.TYPE]?.brief
+    );
+  });
+
+  it('keeps the metric-specific description for id', () => {
+    expect(getFieldDefinition(TraceMetricKnownFieldKey.ID, 'tracemetric')?.desc).toBe(
+      'The unique identifier of the metric sample.'
+    );
+    expect(getFieldDefinition(TraceMetricKnownFieldKey.ID, 'span')?.desc).toBe(
+      ATTRIBUTE_SEARCH_METADATA[TraceMetricKnownFieldKey.ID]?.brief
     );
   });
 
