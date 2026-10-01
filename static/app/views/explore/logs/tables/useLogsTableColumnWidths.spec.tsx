@@ -34,6 +34,7 @@ describe('useLogsTableColumnWidths', () => {
         isScrolling: false,
         dataLength: 10,
         tableWidth: 1000,
+        timestampWidth: 22,
       })
     );
 
@@ -52,6 +53,7 @@ describe('useLogsTableColumnWidths', () => {
         isScrolling: false,
         dataLength: 10,
         tableWidth: 1000,
+        timestampWidth: 22,
       })
     );
 
@@ -71,6 +73,7 @@ describe('useLogsTableColumnWidths', () => {
         isScrolling: true,
         dataLength: 10,
         tableWidth: 1000,
+        timestampWidth: 22,
       })
     );
 
@@ -93,6 +96,7 @@ describe('useLogsTableColumnWidths', () => {
         isScrolling: true,
         dataLength: 10,
         tableWidth: 1000,
+        timestampWidth: 22,
       })
     );
 
@@ -114,6 +118,7 @@ describe('useLogsTableColumnWidths', () => {
         isScrolling: true,
         dataLength: 10,
         tableWidth: 1000,
+        timestampWidth: 22,
       })
     );
 
@@ -133,6 +138,7 @@ describe('useLogsTableColumnWidths', () => {
         isScrolling: true,
         dataLength: 10,
         tableWidth: 1000,
+        timestampWidth: 22,
       })
     );
 
@@ -152,6 +158,7 @@ describe('useLogsTableColumnWidths', () => {
         isScrolling: true,
         dataLength: 10,
         tableWidth: 1000,
+        timestampWidth: 22,
       })
     );
 
@@ -170,6 +177,7 @@ describe('useLogsTableColumnWidths', () => {
           isScrolling: true,
           dataLength: 10,
           tableWidth: 1000,
+          timestampWidth: 22,
         }),
       {initialProps: {fields: ['timestamp', 'code.file.path', MESSAGE]}}
     );
@@ -204,6 +212,7 @@ describe('useLogsTableColumnWidths', () => {
           isScrolling: true,
           dataLength: 10,
           tableWidth: 1000,
+          timestampWidth: 22,
         }),
       {initialProps: {fields: ['timestamp', 'code.file.path', MESSAGE]}}
     );
@@ -239,6 +248,7 @@ describe('useLogsTableColumnWidths', () => {
           isScrolling: true,
           dataLength: 10,
           tableWidth,
+          timestampWidth: 22,
         }),
       {initialProps: {tableWidth: 1535}}
     );
@@ -251,6 +261,36 @@ describe('useLogsTableColumnWidths', () => {
     expect(result.current).toEqual({
       timestamp: 175,
       'code.file.path': 300,
+      [MESSAGE]: FLEX,
+    });
+  });
+
+  it('re-locks with fresh measurements after the timestamp width changes', () => {
+    const tableRef = mockGridTemplateColumns('60px 175px 500px 800px');
+    const fields = ['timestamp', 'code.file.path', MESSAGE];
+
+    const {result, rerender} = renderHook(
+      ({timestampWidth}) =>
+        useLogsTableColumnWidths({
+          fields,
+          tableRef,
+          isPending: false,
+          isScrolling: true,
+          dataLength: 10,
+          tableWidth: 1000,
+          timestampWidth,
+        }),
+      {initialProps: {timestampWidth: 22}}
+    );
+
+    jest
+      .spyOn(window, 'getComputedStyle')
+      .mockReturnValue(styleWith('60px 183px 492px 800px'));
+    rerender({timestampWidth: 23});
+
+    expect(result.current).toEqual({
+      timestamp: 183,
+      'code.file.path': 492,
       [MESSAGE]: FLEX,
     });
   });

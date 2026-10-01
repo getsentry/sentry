@@ -10,8 +10,10 @@ import {
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {Virtualizer} from '@tanstack/react-virtual';
+import moment from 'moment-timezone';
 
 import {Button} from '@sentry/scraps/button';
+import {useClockDisplay, useTimezone} from '@sentry/scraps/datetime';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {FileSize} from 'sentry/components/fileSize';
@@ -25,6 +27,7 @@ import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {TagCollection} from 'sentry/types/group';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
+import {getFormat} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import type {ColumnType} from 'sentry/utils/discover/fields';
@@ -242,6 +245,27 @@ export function LogsInfiniteTable({
 
   const isEmptyWithoutInjectedErrors = isEmpty && !hasInjectedErrorRows;
 
+  const timezone = useTimezone();
+  const clockDisplay = useClockDisplay();
+
+  // Rows are virtualized, so the timestamp column would otherwise only fit the
+  // rendered rows and wrap wider ones that scroll in after its width is locked.
+  const timestampWidth = useMemo(() => {
+    const currentYear = moment.tz(timezone).year();
+    return data.reduce((widest, row) => {
+      const date = moment.tz(row[OurLogKnownFieldKey.TIMESTAMP], timezone);
+      const formatted = date.format(
+        getFormat({
+          seconds: true,
+          milliseconds: true,
+          year: date.year() !== currentYear,
+          clock24Hours: clockDisplay === '24',
+        })
+      );
+      return Math.max(widest, formatted.length);
+    }, 0);
+  }, [clockDisplay, data, timezone]);
+
   // Calculate quantized start and end times for replay links
   const {logStart, logEnd} = useMemo(() => {
     if (!baseData || baseData.length === 0) {
@@ -405,6 +429,7 @@ export function LogsInfiniteTable({
     isScrolling,
     dataLength: data?.length ?? 0,
     tableWidth,
+    timestampWidth,
   });
 
   useEffect(() => {
@@ -607,6 +632,7 @@ export function LogsInfiniteTable({
         hideBorder={embedded}
         data-test-id="logs-table"
         minWidth={calculateLogsTableMinWidth(fields.length)}
+        timestampWidth={timestampWidth}
         showVerticalScrollbar={embeddedStyling?.showVerticalScrollbar}
       >
         {embedded ? null : (

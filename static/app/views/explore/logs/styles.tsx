@@ -188,8 +188,9 @@ function ContentsTable(props: React.ComponentProps<typeof DataTable>) {
   return <DataTable contentsBody {...props} />;
 }
 
-export const LogTable = styled(ContentsTable)<{minWidth: string}>`
+export const LogTable = styled(ContentsTable)<{minWidth: string; timestampWidth: number}>`
   --logsPinEdgeGap: ${p => p.theme.space.sm};
+  --logsTimestampWidth: ${p => p.timestampWidth}ch;
   --logsPinButtonArea: calc(2rem + var(--logsPinEdgeGap));
   flex: 1;
   min-height: 0;
@@ -325,9 +326,8 @@ export const LogDate = styled('span')<{align?: 'left' | 'center' | 'right'}>`
   text-align: ${p => p.align || 'left'};
 `;
 
-// The widest 12h timestamp: "Dec 28, 10:58:58.888 PM"
 export const LogTimestamp = styled(LogDate)`
-  min-width: 23ch;
+  min-width: var(--logsTimestampWidth);
 `;
 
 export const LogsHighlight = styled(MultiHighlight)`
