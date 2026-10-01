@@ -137,7 +137,9 @@ export class VirtualizedViewManager {
   > = [];
   span_patterns: Array<Array<{ref: HTMLElement; space: [number, number]} | undefined>> =
     [];
-  invisible_bars: Array<{ref: HTMLElement; space: [number, number]} | undefined> = [];
+  invisible_bars: Array<
+    {kind: 'error' | 'autogroup'; ref: HTMLElement; space: [number, number]} | undefined
+  > = [];
   span_arrows: Array<
     | {
         position: 0 | 1;
@@ -560,19 +562,12 @@ export class VirtualizedViewManager {
   registerInvisibleBarRef(
     ref: HTMLElement | null,
     space: [number, number],
-    index: number
+    index: number,
+    kind: 'error' | 'autogroup'
   ) {
     if (ref) {
-      this.invisible_bars[index] = ref ? {ref, space} : undefined;
-
-      const span_transform = this.computeSpanCSSMatrixTransform(space);
-      ref.style.transform = `matrix(${span_transform.join(',')}`;
-      const inverseScale = Math.round((1 / span_transform[0]) * 1e4) / 1e4;
-      ref.style.setProperty(
-        '--inverse-span-scale',
-        // @ts-expect-error TS(2345): Argument of type 'number' is not assignable to par... Remove this comment to see the full error message
-        isNaN(inverseScale) ? 1 : inverseScale
-      );
+      this.invisible_bars[index] = ref ? {kind, ref, space} : undefined;
+      this.drawInvisibleBar(this.invisible_bars[index]);
     }
   }
 
@@ -2260,6 +2255,34 @@ export class VirtualizedViewManager {
   last_list_column_width = 0;
   last_span_column_width = 0;
 
+  drawInvisibleBar(invisible_bar: this['invisible_bars'][0]) {
+    if (!invisible_bar) {
+      return;
+    }
+
+    const span_transform = this.computeSpanCSSMatrixTransform(invisible_bar.space);
+    if (invisible_bar.kind === 'error') {
+      // Error icons use their timestamp without the span bar's end-of-trace offset.
+      span_transform[4] = this.transformXFromTimestamp(invisible_bar.space[0]);
+    }
+    invisible_bar.ref.style.transform = `matrix(${span_transform.join(',')}`;
+    const inverseScale = Math.round((1 / span_transform[0]) * 1e4) / 1e4;
+    invisible_bar.ref.style.setProperty(
+      '--inverse-span-scale',
+      // @ts-expect-error TS(2345): Argument of type 'number' is not assignable to par... Remove this comment to see the full error message
+      isNaN(inverseScale) ? 1 : inverseScale
+    );
+
+    if (invisible_bar.kind === 'error') {
+      const icon = invisible_bar.ref.querySelector('.TraceIcon');
+      if (icon) {
+        const edge = this.computeTraceIconEdge(invisible_bar.space[0], TRACE_ICON_WIDTH);
+        icon.classList.toggle('TraceIconStart', edge === 'start');
+        icon.classList.toggle('TraceIconEnd', edge === 'end');
+      }
+    }
+  }
+
   private drawAutogroupIssueIcons(ref: HTMLElement, node: BaseNode) {
     const icons = Array.from(ref.children).filter(
       (child): child is HTMLElement =>
@@ -2308,16 +2331,9 @@ export class VirtualizedViewManager {
       const invisible_bar = this.invisible_bars[i];
       const text = this.span_text[i];
 
-      if (invisible_bar) {
-        const span_transform = this.computeSpanCSSMatrixTransform(invisible_bar?.space);
-        invisible_bar.ref.style.transform = `matrix(${span_transform.join(',')}`;
-        const inverseScale = Math.round((1 / span_transform[0]) * 1e4) / 1e4;
-        invisible_bar.ref.style.setProperty(
-          '--inverse-span-scale',
-          // @ts-expect-error TS(2345): Argument of type 'number' is not assignable to par... Remove this comment to see the full error message
-          isNaN(inverseScale) ? 1 : inverseScale
-        );
+      this.drawInvisibleBar(invisible_bar);
 
+      if (invisible_bar?.kind === 'autogroup') {
         const node = this.columns.list.column_nodes[i];
         if (node && (isParentAutogroupedNode(node) || isSiblingAutogroupedNode(node))) {
           node.autogroupedSegments.forEach((space, index) => {
