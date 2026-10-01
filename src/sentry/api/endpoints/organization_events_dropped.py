@@ -8,10 +8,12 @@ from rest_framework.response import Response
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
+from sentry.api.client_kind import get_client_kind
 from sentry.api.endpoints.timeseries import Annotation
 from sentry.api.helpers.data_annotations import (
     DATASET_TO_CATEGORY,
     get_dropped_data_annotations,
+    record_dropped_events_telemetry,
 )
 from sentry.api.utils import handle_query_errors
 from sentry.apidocs import constants as api_constants
@@ -19,6 +21,9 @@ from sentry.apidocs.parameters import GlobalParams, OrganizationParams, Visibili
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
 from sentry.snuba.utils import DATASET_LABELS
+from sentry.utils.tracing import start_span
+
+_ENDPOINT = "events-dropped"
 
 _ACCEPTED = "accepted"
 
@@ -118,18 +123,27 @@ class OrganizationEventsDroppedEndpoint(OrganizationEventsEndpointBase):
 
             dropped_events: list[DroppedEventsBucket] = []
             accepted_events: list[DroppedEventsBucket] = []
-            try:
-                dropped_raw, accepted_raw = get_dropped_data_annotations(
-                    dataset, snuba_params, rollup
-                )
-                dropped_events = [_to_bucket(bucket) for bucket in dropped_raw]
-                accepted_events = [
-                    _to_bucket(bucket, outcome=_ACCEPTED, reason=_ACCEPTED)
-                    for bucket in accepted_raw
-                ]
-            except Exception:
-                # An Outcomes failure degrades to empty rather than failing the request.
-                sentry_sdk.capture_exception()
+            with start_span(op="dropped_events.serve", name=_ENDPOINT):
+                try:
+                    dropped_raw, accepted_raw = get_dropped_data_annotations(
+                        dataset, snuba_params, rollup
+                    )
+                    dropped_events = [_to_bucket(bucket) for bucket in dropped_raw]
+                    accepted_events = [
+                        _to_bucket(bucket, outcome=_ACCEPTED, reason=_ACCEPTED)
+                        for bucket in accepted_raw
+                    ]
+                except Exception:
+                    # An Outcomes failure degrades to empty rather than failing the request.
+                    sentry_sdk.capture_exception()
+
+            record_dropped_events_telemetry(
+                endpoint=_ENDPOINT,
+                client_kind=get_client_kind(request).value,
+                dataset_label=DATASET_LABELS[dataset],
+                dropped_count=len(dropped_events),
+                accepted_count=len(accepted_events),
+            )
 
         meta: DroppedEventsMeta = {
             "dataset": DATASET_LABELS[dataset],
