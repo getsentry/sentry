@@ -53,33 +53,28 @@ function useChangePriority(group: Group, onChange?: (priority: PriorityLevel) =>
     addLoadingMessage(t('Saving changes\u2026'));
     IssueListCacheStore.reset();
 
-    bulkUpdate(
-      api,
-      {
-        orgId: organization.slug,
-        itemIds: [group.id],
-        data: {priority: nextPriority},
-        failSilently: true,
-        project: [group.project.id],
-      },
-      {
-        success: () => {
-          queryClient.invalidateQueries({
-            queryKey: groupQueryKey({
-              organizationSlug: organization.slug,
-              groupId: group.id,
-            }),
-          });
-          clearIndicators();
-          addSuccessMessage(getPriorityUpdateSuccessMessage(nextPriority));
-          onChange?.(nextPriority);
-        },
-        error: () => {
-          clearIndicators();
-          addErrorMessage(t('Unable to update issue priority'));
-        },
-      }
-    );
+    bulkUpdate(api, {
+      orgId: organization.slug,
+      itemIds: [group.id],
+      data: {priority: nextPriority},
+      failSilently: true,
+      project: [group.project.id],
+    })
+      .then(() => {
+        queryClient.invalidateQueries({
+          queryKey: groupQueryKey({
+            organizationSlug: organization.slug,
+            groupId: group.id,
+          }),
+        });
+        clearIndicators();
+        addSuccessMessage(getPriorityUpdateSuccessMessage(nextPriority));
+        onChange?.(nextPriority);
+      })
+      .catch(() => {
+        clearIndicators();
+        addErrorMessage(t('Unable to update issue priority'));
+      });
   };
 }
 

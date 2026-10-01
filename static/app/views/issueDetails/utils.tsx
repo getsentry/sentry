@@ -28,17 +28,13 @@ export function markEventSeen(
   projectId: string,
   groupId: string
 ) {
-  bulkUpdate(
-    api,
-    {
-      orgId,
-      projectId,
-      itemIds: [groupId],
-      failSilently: true,
-      data: {hasSeen: true},
-    },
-    {}
-  );
+  bulkUpdate(api, {
+    orgId,
+    projectId,
+    itemIds: [groupId],
+    failSilently: true,
+    data: {hasSeen: true},
+  }).catch(() => {});
 
   IssueListCacheStore.markGroupAsSeen(groupId);
 }

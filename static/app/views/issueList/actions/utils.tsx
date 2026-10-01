@@ -257,27 +257,22 @@ export function performBulkUpdate({
 
   addLoadingMessage(t('Saving changes…'));
 
-  bulkUpdate(
-    api,
-    {
-      orgId: organizationSlug,
-      itemIds,
-      data,
-      query,
-      environment: selection.environments,
-      failSilently: true,
-      ...projectConstraints,
-      ...selection.datetime,
-    },
-    {
-      success: () => {
-        clearIndicators();
-        onSuccess?.(itemIds);
-      },
-      error: () => {
-        clearIndicators();
-        addErrorMessage(t('Unable to update issues'));
-      },
-    }
-  );
+  bulkUpdate(api, {
+    orgId: organizationSlug,
+    itemIds,
+    data,
+    query,
+    environment: selection.environments,
+    failSilently: true,
+    ...projectConstraints,
+    ...selection.datetime,
+  })
+    .then(() => {
+      clearIndicators();
+      onSuccess?.(itemIds);
+    })
+    .catch(() => {
+      clearIndicators();
+      addErrorMessage(t('Unable to update issues'));
+    });
 }

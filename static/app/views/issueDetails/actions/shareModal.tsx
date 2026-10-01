@@ -101,33 +101,28 @@ export function ShareIssueModal({
     e?.preventDefault();
     setLoading(true);
     onToggle();
-    bulkUpdate(
-      api,
-      {
-        orgId: organization.slug,
-        projectId: projectSlug,
-        itemIds: [groupId],
-        data: {
-          isPublic: reshare ?? !isPublished,
-        },
+    bulkUpdate(api, {
+      orgId: organization.slug,
+      projectId: projectSlug,
+      itemIds: [groupId],
+      data: {
+        isPublic: reshare ?? !isPublished,
       },
-      {
-        success: () => {
-          queryClient.invalidateQueries({
-            queryKey: groupQueryKey({
-              organizationSlug: organization.slug,
-              groupId,
-            }),
-          });
-        },
-        error: () => {
-          addErrorMessage(t('Error sharing'));
-        },
-        complete: () => {
-          setLoading(false);
-        },
-      }
-    );
+    })
+      .then(() => {
+        queryClient.invalidateQueries({
+          queryKey: groupQueryKey({
+            organizationSlug: organization.slug,
+            groupId,
+          }),
+        });
+      })
+      .catch(() => {
+        addErrorMessage(t('Error sharing'));
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   };
 
   const shareUrl = group?.shareId ? getShareUrl(organization, group) : null;

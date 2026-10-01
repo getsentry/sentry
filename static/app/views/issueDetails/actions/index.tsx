@@ -288,32 +288,27 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
   const onUpdate = (data: UpdateData, onComplete?: () => void) => {
     const successMessage = getUpdateSuccessMessage(group, data);
 
-    bulkUpdate(
-      api,
-      {
-        orgId: organization.slug,
-        projectId: project.slug,
-        itemIds: [group.id],
-        data,
-      },
-      {
-        success: () => {
-          clearIndicators();
-          if (successMessage) {
-            addSuccessMessage(successMessage);
-          }
-          onComplete?.();
-        },
-        complete: () => {
-          queryClient.invalidateQueries({
-            queryKey: groupQueryKey({
-              organizationSlug: organization.slug,
-              groupId: group.id,
-            }),
-          });
-        },
-      }
-    );
+    bulkUpdate(api, {
+      orgId: organization.slug,
+      projectId: project.slug,
+      itemIds: [group.id],
+      data,
+    })
+      .then(() => {
+        clearIndicators();
+        if (successMessage) {
+          addSuccessMessage(successMessage);
+        }
+        onComplete?.();
+      })
+      .finally(() => {
+        queryClient.invalidateQueries({
+          queryKey: groupQueryKey({
+            organizationSlug: organization.slug,
+            groupId: group.id,
+          }),
+        });
+      });
 
     if (isResolutionStatus(data)) {
       trackIssueAction(
