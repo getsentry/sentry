@@ -18,4 +18,14 @@ describe('LogsAnsiHighlight', () => {
 
     expect(screen.getByText('connect').tagName).toBe('SPAN');
   });
+
+  it('preserves whitespace when given colored segments', () => {
+    render(
+      <LogsAnsiHighlight>{'\x1B[31m  failed\x1B[0m  to connect'}</LogsAnsiHighlight>
+    );
+
+    expect(screen.getByText('failed').parentElement).toHaveStyle({
+      whiteSpaceCollapse: 'preserve',
+    });
+  });
 });

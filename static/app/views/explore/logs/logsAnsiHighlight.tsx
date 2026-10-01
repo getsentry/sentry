@@ -14,6 +14,7 @@ export function LogsAnsiHighlight({
 }: LogsAnsiHighlightProps) {
   return (
     <AnsiText
+      preserveWhitespace
       renderText={text => (
         <LogsHighlight caseSensitive={caseSensitive} terms={terms}>
           {text}

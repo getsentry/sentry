@@ -106,9 +106,17 @@ describe('AnsiText', () => {
     ]);
   });
 
-  it('preserves whitespace when given escape codes', () => {
+  it('collapses whitespace by default when given escape codes', () => {
     const {wrapper} = renderSegments(' \x1B[41m FATAL \x1B[0m  ');
 
-    expect(wrapper).toHaveStyle({whiteSpaceCollapse: 'preserve'});
+    expect(wrapper).not.toHaveStyle({whiteSpaceCollapse: 'preserve'});
+  });
+
+  it('preserves whitespace when given escape codes and preserveWhitespace', () => {
+    render(<AnsiText preserveWhitespace>{' \x1B[41m FATAL \x1B[0m  '}</AnsiText>);
+
+    expect(screen.getByText('FATAL').parentElement).toHaveStyle({
+      whiteSpaceCollapse: 'preserve',
+    });
   });
 });

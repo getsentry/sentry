@@ -17,10 +17,15 @@ type ColorPalette = ReturnType<typeof createColorPalette>;
 
 interface AnsiTextProps {
   children: string;
+  preserveWhitespace?: boolean;
   renderText?: (text: string) => ReactNode;
 }
 
-export function AnsiText({children, renderText = text => text}: AnsiTextProps) {
+export function AnsiText({
+  children,
+  preserveWhitespace,
+  renderText = text => text,
+}: AnsiTextProps) {
   const theme = useTheme();
   const palette = useMemo(() => createColorPalette(theme.tokens.syntax.ansi), [theme]);
   const tokens = useMemo(
@@ -38,7 +43,7 @@ export function AnsiText({children, renderText = text => text}: AnsiTextProps) {
   }
 
   return (
-    <span style={PRESERVE_WHITESPACE_STYLE}>
+    <span style={preserveWhitespace ? PRESERVE_WHITESPACE_STYLE : undefined}>
       {tokens.map((token, index) => (
         <span key={index} style={getTokenStyle(token, palette)}>
           {renderText(token.value)}
