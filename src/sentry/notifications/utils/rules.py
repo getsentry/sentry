@@ -1,47 +1,87 @@
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from typing import Literal
 
+from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.notifications.types import NotificationRule
+from sentry.workflow_engine.models import AlertRuleWorkflow, Workflow
 
 RuleIdType = Literal["workflow_id", "legacy_rule_id"]
 
 
-def get_legacy_rule_id(rule: Rule | NotificationRule) -> int | None:
-    if isinstance(rule, Rule):
-        return rule.id
-    return rule.legacy_rule_id
+def get_notification_rules(
+    project: Project,
+    *,
+    legacy_rule_ids: Iterable[int] = (),
+    workflow_ids: Iterable[int] = (),
+) -> list[NotificationRule]:
+    workflow_ids = list(dict.fromkeys(workflow_ids))
+    legacy_rule_ids = list(dict.fromkeys(legacy_rule_ids))
+    workflows = Workflow.objects.filter(organization_id=project.organization_id).in_bulk(
+        workflow_ids
+    )
+    workflow_links = {
+        link.workflow_id: link.rule_id
+        for link in AlertRuleWorkflow.objects.filter(
+            workflow_id__in=workflows, rule_id__isnull=False
+        )
+    }
+    rules = Rule.objects.filter(project_id=project.id).in_bulk(
+        {*legacy_rule_ids, *workflow_links.values()}
+    )
 
+    notification_rules = []
+    linked_rule_ids = set()
+    for workflow_id in workflow_ids:
+        workflow = workflows.get(workflow_id)
+        if workflow is None:
+            continue
 
-def get_key_from_rule_data(rule: Rule | NotificationRule, key: str) -> str:
-    if isinstance(rule, NotificationRule):
-        if key == "legacy_rule_id":
-            value = rule.legacy_rule_id
-        elif key == "workflow_id":
-            value = rule.workflow_id
+        legacy_rule_id = workflow_links.get(workflow_id)
+        legacy_rule = rules.get(legacy_rule_id) if legacy_rule_id is not None else None
+        if legacy_rule is not None:
+            linked_rule_ids.add(legacy_rule.id)
+            notification_rules.append(
+                NotificationRule.from_deprecated_legacy_rule(
+                    legacy_rule, workflow_id=workflow_id
+                )
+            )
         else:
-            raise KeyError(key)
-        assert value is not None
-        return str(value)
+            notification_rules.append(
+                NotificationRule(
+                    id=workflow_id,
+                    label=workflow.name,
+                    data={"actions": [{"workflow_id": workflow_id}]},
+                    project=project,
+                    environment_id=workflow.environment_id,
+                    workflow_id=workflow_id,
+                    legacy_rule_id=None,
+                )
+            )
 
-    value = rule.data.get("actions", [{}])[0].get(key)
-    assert value is not None
-    return value
+    notification_rules.extend(
+        NotificationRule.from_deprecated_legacy_rule(rule)
+        for rule_id in legacy_rule_ids
+        if rule_id not in linked_rule_ids and (rule := rules.get(rule_id)) is not None
+    )
+    return notification_rules
 
 
 @dataclass
-class RulesAndWorkflows[RuleT: Rule | NotificationRule]:
-    rules: list[RuleT]
-    workflow_rules: list[RuleT]
+class RulesAndWorkflows:
+    rules: list[NotificationRule]
+    workflow_rules: list[NotificationRule]
 
 
-def split_rules_by_rule_workflow_id[RuleT: Rule | NotificationRule](
-    rules: Sequence[RuleT],
-) -> RulesAndWorkflows[RuleT]:
+def split_rules_by_rule_workflow_id(
+    rules: Sequence[Rule | NotificationRule],
+) -> RulesAndWorkflows:
     parsed_rules = []
     workflow_rules = []
     for rule in rules:
+        if isinstance(rule, Rule):
+            rule = NotificationRule.from_deprecated_legacy_rule(rule)
         key, _ = get_rule_or_workflow_id(rule)
         match key:
             case "workflow_id":
@@ -52,7 +92,7 @@ def split_rules_by_rule_workflow_id[RuleT: Rule | NotificationRule](
 
 
 def get_rule_or_workflow_id(
-    rule: Rule | NotificationRule, *, prefer: RuleIdType = "legacy_rule_id"
+    rule: NotificationRule, *, prefer: RuleIdType = "legacy_rule_id"
 ) -> tuple[RuleIdType, str]:
     """
     Returns which id the rule data carries, and its value. When both a legacy
@@ -64,10 +104,7 @@ def get_rule_or_workflow_id(
         else ("legacy_rule_id", "workflow_id")
     )
     for key in keys:
-        try:
-            return (key, get_key_from_rule_data(rule, key))
-        except AssertionError:
-            pass
-    if isinstance(rule, Rule):
-        return ("legacy_rule_id", str(rule.id))
+        value = rule.workflow_id if key == "workflow_id" else rule.legacy_rule_id
+        if value is not None:
+            return (key, str(value))
     raise AssertionError("NotificationRule must have a workflow or legacy rule ID")

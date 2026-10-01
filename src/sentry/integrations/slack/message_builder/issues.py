@@ -48,7 +48,6 @@ from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.release import Release
-from sentry.models.rule import Rule
 from sentry.models.team import Team
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.platform.slack.renderers.seer import SeerSlackRenderer
@@ -66,7 +65,6 @@ from sentry.snuba.referrer import Referrer
 from sentry.types.actor import Actor
 from sentry.types.group import SUBSTATUS_TO_STR
 from sentry.users.services.user.model import RpcUser
-from sentry.workflow_engine.models import Workflow
 
 STATUSES = {"resolved": "resolved", "ignored": "ignored", "unresolved": "re-opened"}
 MAX_BLOCK_TEXT_LENGTH = 256
@@ -74,7 +72,7 @@ USER_FEEDBACK_MAX_BLOCK_TEXT_LENGTH = 1500
 MAX_SUGGESTED_ASSIGNEES = 3
 
 
-def get_group_users_count(group: Group, rules: list[Rule] | None = None) -> int:
+def get_group_users_count(group: Group, rules: list[NotificationRule] | None = None) -> int:
     environment_ids: list[int] | None = None
     if rules:
         environment_ids = [rule.environment_id for rule in rules if rule.environment_id is not None]
@@ -196,7 +194,7 @@ def get_tags(
     return fields
 
 
-def get_context(group: Group, rules: list[Rule | NotificationRule] | None = None) -> str:
+def get_context(group: Group, rules: list[NotificationRule] | None = None) -> str:
     context_text = ""
 
     context = group.issue_type.notification_config.context.copy()
@@ -417,7 +415,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         tags: set[str] | None = None,
         identity: RpcIdentity | None = None,
         actions: Sequence[MessageAction | BlockKitMessageAction] | None = None,
-        rules: list[Rule | NotificationRule] | None = None,
+        rules: list[NotificationRule] | None = None,
         link_to_event: bool = False,
         issue_details: bool = False,
         notification: ProjectNotification | None = None,
@@ -614,18 +612,10 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             # handler, so it keeps preferring the legacy rule id.
             _, value = get_rule_or_workflow_id(self.rules[0])
             rule_id = int(value)
-            action = self.rules[0].data.get("actions", [{}])[0]
-            if action.get("workflow_id") is not None:
-                workflow_id = int(action["workflow_id"])
-
+            workflow_id = self.rules[0].workflow_id or workflow_id
             link_key, link_value = get_rule_or_workflow_id(self.rules[0], prefer="workflow_id")
             link_id = int(link_value)
-            match link_key:
-                case "workflow_id":
-                    workflow = Workflow.objects.filter(id=link_id).first()
-                    rule_environment_id = workflow.environment_id if workflow else None
-                case "legacy_rule_id":
-                    rule_environment_id = self.rules[0].environment_id
+            rule_environment_id = self.rules[0].environment_id
 
         # build up actions text
         if self.actions and self.identity and not action_text:
