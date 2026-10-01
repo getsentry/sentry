@@ -261,25 +261,22 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
   const onDelete = () => {
     addLoadingMessage(t('Delete event\u2026'));
 
-    bulkDelete(
-      api,
-      {
-        orgId: organization.slug,
-        projectId: project.slug,
-        itemIds: [group.id],
-      },
-      {
-        success: () => {
-          clearIndicators();
-
-          addSuccessMessage(t('Issue deleted'));
-          navigate({
-            pathname: `/organizations/${organization.slug}/issues/`,
-            query: {project: project.id},
-          });
-        },
+    void bulkDelete(api, {
+      orgId: organization.slug,
+      projectId: project.slug,
+      itemIds: [group.id],
+    }).then(success => {
+      if (!success) {
+        return;
       }
-    );
+      clearIndicators();
+
+      addSuccessMessage(t('Issue deleted'));
+      navigate({
+        pathname: `/organizations/${organization.slug}/issues/`,
+        query: {project: project.id},
+      });
+    });
 
     trackIssueAction('deleted');
     IssueListCacheStore.reset();

@@ -202,22 +202,14 @@ export function IssueListActions({
 
   function handleDelete() {
     actionSelectedGroups(itemIds => {
-      bulkDelete(
-        api,
-        {
-          orgId: organization.slug,
-          itemIds,
-          query: queryExcludingPerformanceIssues,
-          project: selection.projects,
-          environment: selection.environments,
-          ...selection.datetime,
-        },
-        {
-          complete: () => {
-            onDelete();
-          },
-        }
-      );
+      void bulkDelete(api, {
+        orgId: organization.slug,
+        itemIds,
+        query: queryExcludingPerformanceIssues,
+        project: selection.projects,
+        environment: selection.environments,
+        ...selection.datetime,
+      }).then(() => onDelete());
     });
   }
 
