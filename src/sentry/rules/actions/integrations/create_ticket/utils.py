@@ -20,6 +20,7 @@ from sentry.issues.action_log.publish import publish_action_from_context
 from sentry.issues.action_log.types import CreateExternalIssueAction
 from sentry.models.activity import Activity
 from sentry.models.grouplink import GroupLink
+from sentry.notifications.types import RuleFuture
 from sentry.notifications.utils.links import create_link_to_workflow
 from sentry.services.eventstore.models import GroupEvent
 from sentry.shared_integrations.exceptions import (
@@ -31,7 +32,6 @@ from sentry.shared_integrations.exceptions import (
 )
 from sentry.silo.base import cell_silo_function
 from sentry.types.activity import ActivityType
-from sentry.types.rules import RuleFuture
 
 logger = logging.getLogger("sentry.rules")
 
