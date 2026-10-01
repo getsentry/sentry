@@ -3,7 +3,8 @@ import {useMutation} from '@tanstack/react-query';
 
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Grid, Stack} from '@sentry/scraps/layout';
-import {Heading} from '@sentry/scraps/text';
+import {Switch} from '@sentry/scraps/switch';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -58,12 +59,12 @@ export function UserPermissionsModal({
     mutationFn: async (data: {
       isStaff: boolean;
       isSuperuser: boolean;
-      permissions: boolean[];
+      permissions: string[];
     }) => {
       const currentPerms = new Set(permissions);
-      const newPerms = available.filter((_, index) => data.permissions[index]);
+      const selectedPerms = new Set(data.permissions);
+      const newPerms = available.filter(perm => selectedPerms.has(perm));
       const addedPerms = newPerms.filter(perm => !currentPerms.has(perm));
-      const selectedPerms = new Set(newPerms);
       const removedPerms = permissions.filter(perm => !selectedPerms.has(perm));
 
       await Promise.all([
@@ -107,7 +108,7 @@ export function UserPermissionsModal({
   const defaultValues = {
     isSuperuser: user.isSuperuser,
     isStaff: user.isStaff,
-    permissions: available.map(perm => permissions.includes(perm)),
+    permissions,
   };
   const form = useScrapsForm({
     ...defaultFormOptions,
@@ -120,7 +121,7 @@ export function UserPermissionsModal({
       form.reset({
         isSuperuser: user.isSuperuser,
         isStaff: user.isStaff,
-        permissions: availablePermissions.map(perm => permissionList.includes(perm)),
+        permissions: permissionList,
       });
     }
   }, [availablePermissions, permissionList, form, user.isStaff, user.isSuperuser]);
@@ -164,24 +165,35 @@ export function UserPermissionsModal({
           <Heading as="h5" size="md">
             Additional Permissions
           </Heading>
-          {available.map((perm, index) => (
-            <form.AppField key={perm} name={`permissions[${index}]`}>
-              {field => (
+          <form.AppField name="permissions">
+            {field =>
+              available.map(perm => (
                 <Grid
+                  key={perm}
                   columns="12rem max-content"
                   align="center"
                   gap="md"
                   width="fit-content"
                 >
-                  <field.Meta.Label>{perm}</field.Meta.Label>
-                  <field.Switch
-                    checked={field.state.value}
-                    onChange={field.handleChange}
+                  <Text as="label" htmlFor={`permission-${perm}`}>
+                    {perm}
+                  </Text>
+                  <Switch
+                    id={`permission-${perm}`}
+                    size="lg"
+                    checked={field.state.value.includes(perm)}
+                    onChange={event =>
+                      field.handleChange(
+                        event.target.checked
+                          ? [...field.state.value, perm]
+                          : field.state.value.filter(value => value !== perm)
+                      )
+                    }
                   />
                 </Grid>
-              )}
-            </form.AppField>
-          ))}
+              ))
+            }
+          </form.AppField>
         </Stack>
       </Body>
       <Footer>
