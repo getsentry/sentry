@@ -573,9 +573,12 @@ class AuthIdentityHandler:
         return response
 
     def has_verified_account(self, verification_value: dict[str, Any]) -> bool:
+        # A confirmation link is issued for a single organization's provider, so
+        # it must only be honored by that organization's login flow.
         return bool(
             verification_value["email"] == self.identity["email"]
             and verification_value["user_id"] == self.user.id
+            and verification_value.get("organization_id") == self.organization.id
         )
 
     @property
