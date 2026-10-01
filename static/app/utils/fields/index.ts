@@ -5,6 +5,7 @@ import {
   WEB_VITALS_QUALITY,
 } from 'sentry/utils/discover/types';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
+import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
 import {SpanFields} from 'sentry/views/insights/types';
 import {METRICS_ARTIFACT_TYPES} from 'sentry/views/settings/project/preprod/types';
 
@@ -2532,6 +2533,55 @@ const TRACEMETRIC_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.DATE,
   },
+  [TraceMetricKnownFieldKey.ID]: {
+    desc: t('The unique identifier of the metric sample.'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+    allowWildcard: false,
+  },
+  [TraceMetricKnownFieldKey.METRIC_NAME]: {
+    desc: t('The name of the metric.'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [TraceMetricKnownFieldKey.METRIC_TYPE]: {
+    desc: t('The type of the metric: counter, gauge, or distribution.'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [TraceMetricKnownFieldKey.METRIC_UNIT]: {
+    desc: t('The unit of the metric value, such as millisecond or byte.'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [TraceMetricKnownFieldKey.METRIC_VALUE]: {
+    desc: t('The value recorded for this metric sample.'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.NUMBER,
+  },
+  [TraceMetricKnownFieldKey.OBSERVED_TIMESTAMP_PRECISE]: {
+    desc: t('The time Sentry received the metric, in nanoseconds since the Unix epoch.'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.NUMBER,
+  },
+  [TraceMetricKnownFieldKey.PROJECT]: {
+    desc: t('The project the metric was sent to.'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+    allowWildcard: false,
+  },
+  [TraceMetricKnownFieldKey.SPAN_ID]: {
+    desc: t('The ID of the span that was active when the metric was recorded.'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+    allowWildcard: false,
+  },
+  [TraceMetricKnownFieldKey.TRACE]: {
+    desc: t('The ID of the trace the metric was recorded in.'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+    allowWildcard: false,
+  },
 };
 
 export const ISSUE_PROPERTY_FIELDS: FieldKey[] = [
@@ -3435,7 +3485,8 @@ export const getFieldDefinition = (
       keepLocalDescription:
         type === 'replay' ||
         type === 'feedback' ||
-        (type === 'event' && key === FieldKey.TYPE),
+        (type === 'event' && key === FieldKey.TYPE) ||
+        (type === 'tracemetric' && key === TraceMetricKnownFieldKey.ID),
     });
   }
 
