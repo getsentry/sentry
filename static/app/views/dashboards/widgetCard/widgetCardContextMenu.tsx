@@ -178,7 +178,8 @@ export function getMenuOptions(
   onDelete?: () => void,
   onDuplicate?: () => void,
   onEdit?: () => void,
-  timeseriesResults?: Series[]
+  timeseriesResults?: Series[],
+  onAskSeer?: () => void
 ) {
   const menuOptions: MenuItemProps[] = [];
 
@@ -361,6 +362,14 @@ export function getMenuOptions(
       key: 'open-in-issues',
       label: t('Open in Issues'),
       to: issuesLocation,
+    });
+  }
+
+  if (onAskSeer) {
+    menuOptions.push({
+      key: 'ask-seer',
+      label: t('Ask Seer'),
+      onAction: onAskSeer,
     });
   }
 

@@ -128,6 +128,18 @@ class InstallationEventHandlerTest(TestCase):
         assert metadata["expires_at"] == "2026-09-16T23:00:00Z"
         assert metadata["repo_selection_mode"] == "all"
 
+    def test_an_update_with_an_unknown_owner_type_is_applied(self) -> None:
+        """Origin sends an empty string when it doesn't know the owner type."""
+        self._handle(
+            "installation.updated",
+            _installation(
+                target={"slug": "acme", "id": "ns_01example", "type": ""},
+                repoSelectionMode="all",
+            ),
+        )
+
+        assert self._integration().metadata["repo_selection_mode"] == "all"
+
     def test_an_update_without_a_slug_is_refused(self) -> None:
         """Origin documents the target's slug as always present."""
         with pytest.raises(OriginPayloadError, match="installation -> target -> slug"):

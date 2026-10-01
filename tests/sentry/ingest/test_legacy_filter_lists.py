@@ -1,6 +1,13 @@
 from sentry.ingest.inbound_filters import FilterTypes
-from sentry.ingest.legacy_filter_lists import STAGE_OPTION, Stage, set_list, stage
+from sentry.ingest.legacy_filter_lists import (
+    DOUBLE_WRITE_FLAG,
+    STAGE_OPTION,
+    Stage,
+    set_list,
+    stage,
+)
 from sentry.models.custominboundfilter import CustomInboundFilter, LegacyFilter
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 
@@ -20,11 +27,28 @@ def rows_of(project) -> list[dict]:
     ]
 
 
+@django_db_all
 @override_options({STAGE_OPTION: {"releases": "double_write", "log_messages": "typo"}})
-def test_stage_defaults_to_off_for_a_missing_or_unknown_value() -> None:
-    assert stage(FilterTypes.RELEASES) is Stage.DOUBLE_WRITE
-    assert stage(FilterTypes.LOG_MESSAGES) is Stage.OFF
-    assert stage(FilterTypes.ERROR_MESSAGES) is Stage.OFF
+def test_stage_defaults_to_off_for_a_missing_or_unknown_value(default_organization) -> None:
+    assert stage(FilterTypes.RELEASES, default_organization) is Stage.DOUBLE_WRITE
+    assert stage(FilterTypes.LOG_MESSAGES, default_organization) is Stage.OFF
+    assert stage(FilterTypes.ERROR_MESSAGES, default_organization) is Stage.OFF
+
+
+@django_db_all
+@with_feature(DOUBLE_WRITE_FLAG)
+def test_flag_lifts_every_list_of_the_org_to_double_write(default_organization) -> None:
+    assert stage(FilterTypes.RELEASES, default_organization) is Stage.DOUBLE_WRITE
+    assert stage(FilterTypes.LOG_MESSAGES, default_organization) is Stage.DOUBLE_WRITE
+
+
+@django_db_all
+@with_feature(DOUBLE_WRITE_FLAG)
+def test_flag_double_writes_the_list(default_project) -> None:
+    set_list(default_project, FilterTypes.ERROR_MESSAGES, ["TypeError*"])
+
+    assert default_project.get_option("sentry:error_messages") == ["TypeError*"]
+    assert [row["legacy_filter"] for row in rows_of(default_project)] == ["error-message"]
 
 
 @django_db_all
