@@ -60,7 +60,6 @@ export function UserPermissionsModal({
 
   const mutation = useMutation({
     mutationFn: async (data: Record<string, boolean>) => {
-      addLoadingMessage('Saving changes\u2026');
       const currentPerms = new Set(permissions);
       const newPerms = available.filter(k => data[k]);
       const addedPerms = newPerms.filter(perm => !currentPerms.has(perm));
@@ -97,6 +96,7 @@ export function UserPermissionsModal({
         permissions: new Set(newPerms),
       };
     },
+    onMutate: () => addLoadingMessage('Saving changes\u2026'),
     onSuccess: newUser => {
       onSubmit(newUser);
       closeModal();
