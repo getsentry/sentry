@@ -9,7 +9,7 @@ import {
 } from './getAttributeSearchSecondaryAliases';
 import {FieldKind, FieldValueType, type FieldDefinition} from './types';
 
-export function getFieldDefinitionFromAttributeSearchMetadata(
+function getFieldDefinitionFromAttributeSearchMetadata(
   key: string
 ): FieldDefinition | null {
   const metadata = ATTRIBUTE_SEARCH_METADATA[key];

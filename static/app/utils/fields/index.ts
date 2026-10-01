@@ -10,10 +10,7 @@ import {METRICS_ARTIFACT_TYPES} from 'sentry/views/settings/project/preprod/type
 
 import {applyAttributeSearchFieldOverrides} from './applyAttributeSearchFieldOverrides';
 import {ATTRIBUTE_SEARCH_SECONDARY_ALIASES} from './getAttributeSearchSecondaryAliases';
-import {
-  ATTRIBUTE_SEARCH_FIELD_DEFINITIONS,
-  getFieldDefinitionFromAttributeSearchMetadata,
-} from './getFieldDefinitionFromAttributeSearchMetadata';
+import {ATTRIBUTE_SEARCH_FIELD_DEFINITIONS} from './getFieldDefinitionFromAttributeSearchMetadata';
 import {mergeAttributeSearchMetadata} from './mergeAttributeSearchMetadata';
 import {pickAttributeSearchFieldDefinitions} from './pickAttributeSearchFieldDefinitions';
 import {
@@ -3440,7 +3437,9 @@ export const getFieldDefinition = (
   }
 
   if (type === 'span' || type === 'log' || type === 'tracemetric' || type === 'preprod') {
-    return getFieldDefinitionFromAttributeSearchMetadata(key);
+    return Object.hasOwn(ATTRIBUTE_SEARCH_FIELD_DEFINITIONS, key)
+      ? (ATTRIBUTE_SEARCH_FIELD_DEFINITIONS[key] ?? null)
+      : null;
   }
 
   return null;
