@@ -328,33 +328,46 @@ describe('IssuePreviewAutofixSummary', () => {
     ).not.toBeInTheDocument();
   });
 
-  it.each([
-    [
-      'errored step',
-      ExplorerAutofixStateFixture({
-        blocks: [ExplorerAutofixBlockFixture({artifacts: [rootCauseArtifact]})],
-        status: 'error',
-      }),
-    ],
-    [
-      'invalid artifact',
-      ExplorerAutofixStateFixture({
-        blocks: [
-          ExplorerAutofixBlockFixture({
-            artifacts: [
-              AutofixRootCauseArtifactFixture({
-                reason: 'Malformed root cause',
-                data: {one_line_description: 'Missing required details'},
+  it('renders an empty section for an errored step', () => {
+    render(
+      <IssuePreviewAutofixSummary
+        autofix={ExplorerAutofixFixture({
+          runState: ExplorerAutofixStateFixture({
+            blocks: [ExplorerAutofixBlockFixture({artifacts: [rootCauseArtifact]})],
+            status: 'error',
+          }),
+        })}
+        groupId="preview-group"
+      />
+    );
+
+    expect(screen.queryByRole('region', {name: 'Code Changes'})).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('region', {name: 'Implementation Plan'})
+    ).not.toBeInTheDocument();
+    const rootCause = screen.getByRole('region', {name: 'Root Cause'});
+    expect(
+      within(rootCause).getByText('No root cause was identified.')
+    ).toBeInTheDocument();
+  });
+
+  it('renders an empty section for an invalid artifact', () => {
+    render(
+      <IssuePreviewAutofixSummary
+        autofix={ExplorerAutofixFixture({
+          runState: ExplorerAutofixStateFixture({
+            blocks: [
+              ExplorerAutofixBlockFixture({
+                artifacts: [
+                  AutofixRootCauseArtifactFixture({
+                    reason: 'Malformed root cause',
+                    data: {one_line_description: 'Missing required details'},
+                  }),
+                ],
               }),
             ],
           }),
-        ],
-      }),
-    ],
-  ])('renders an empty section for a %s', (_label, runState) => {
-    render(
-      <IssuePreviewAutofixSummary
-        autofix={ExplorerAutofixFixture({runState})}
+        })}
         groupId="preview-group"
       />
     );
