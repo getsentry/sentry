@@ -2378,7 +2378,7 @@ requires-dist = [
     { name = "tokenizers", specifier = ">=0.22.0" },
     { name = "toronado", specifier = ">=0.1.0" },
     { name = "typing-extensions", specifier = ">=4.12.0" },
-    { name = "tzdata", specifier = ">=2025.2" },
+    { name = "tzdata", specifier = ">=2026.4" },
     { name = "ua-parser", specifier = ">=0.10.0" },
     { name = "unidiff", specifier = ">=0.7.4" },
     { name = "urllib3", specifier = ">=2.7.0" },
@@ -3036,10 +3036,10 @@ wheels = [
 
 [[package]]
 name = "tzdata"
-version = "2025.2"
+version = "2026.4"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/tzdata-2025.2-py2.py3-none-any.whl", hash = "sha256:1a403fada01ff9221ca8044d701868fa132215d84beb92242d9acd2147f667a8" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/tzdata-2026.4-py2.py3-none-any.whl", hash = "sha256:c2169a8b0a7a5e9674da5a135ccdfb2b3e671b333ed9fed17b41f73c34476e81" },
 ]
 
 [[package]]
