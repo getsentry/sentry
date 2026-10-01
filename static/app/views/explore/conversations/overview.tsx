@@ -38,6 +38,7 @@ import {ConversationMissingMessagesAlert} from 'sentry/views/explore/conversatio
 import {ConversationsChart} from 'sentry/views/explore/conversations/components/conversationsChart';
 import {ConversationsTable} from 'sentry/views/explore/conversations/components/conversationsTable';
 import {SaveConversationQueryButton} from 'sentry/views/explore/conversations/components/saveConversationQueryButton';
+import {useConversationDirectHitRedirect} from 'sentry/views/explore/conversations/hooks/useConversationDirectHitRedirect';
 import {
   CONVERSATION_FIELDS,
   useConversations,
@@ -130,6 +131,10 @@ function ConversationsOverviewPage() {
     isFetching: isConversationsFetching,
     error: conversationsError,
   } = conversationsResult;
+  useConversationDirectHitRedirect({
+    isDirectHit: conversationsResult.isDirectHit,
+    conversations,
+  });
   const showMissingMessagesAlert =
     !isConversationsFetching &&
     !conversationsError &&
@@ -146,6 +151,12 @@ function ConversationsOverviewPage() {
     ? (selectedTab ?? (hasConversations ? 'conversations' : 'traces'))
     : 'conversations';
   const isConversationsTab = activeTab === 'conversations';
+  const searchPlaceholder =
+    activeTab === 'conversations'
+      ? t('Search by conversation ID, user, model, or message')
+      : activeTab === 'traces'
+        ? t('Search by trace ID, operation, service, or user')
+        : t('Search by model, provider, tokens, or operation');
   const selectedTabShowsOnboarding = isConversationsTab
     ? !hasConversations
     : !hasAgenticSpans;
@@ -273,14 +284,7 @@ function ConversationsOverviewPage() {
   const tableSearchBar = showSearch ? (
     <Flex gap="md" width="100%">
       <Flex flex={1} minWidth="0">
-        <TraceItemSearchQueryBuilder
-          {...spanSearchQueryBuilderProps}
-          placeholder={
-            isConversationsTab
-              ? t('Search or paste a conversation ID')
-              : t('Search spans')
-          }
-        />
+        <TraceItemSearchQueryBuilder {...spanSearchQueryBuilderProps} />
       </Flex>
       {isConversationsTab && <SaveConversationQueryButton />}
     </Flex>
@@ -322,7 +326,10 @@ function ConversationsOverviewPage() {
   }
 
   return (
-    <SearchQueryBuilderProvider {...searchQueryBuilderProviderProps}>
+    <SearchQueryBuilderProvider
+      {...searchQueryBuilderProviderProps}
+      placeholder={searchPlaceholder}
+    >
       <ExploreBodySearch>
         <Layout.Main width="full">
           <Stack gap="md">
@@ -352,14 +359,7 @@ function ConversationsOverviewPage() {
               )}
               {!agentsOverviewEnabled && showSearch && (
                 <Flex flex={1} minWidth="300px">
-                  <TraceItemSearchQueryBuilder
-                    {...spanSearchQueryBuilderProps}
-                    placeholder={
-                      isConversationsTab
-                        ? t('Search or paste a conversation ID')
-                        : t('Search spans')
-                    }
-                  />
+                  <TraceItemSearchQueryBuilder {...spanSearchQueryBuilderProps} />
                 </Flex>
               )}
               {!agentsOverviewEnabled && showSearch && isConversationsTab && (
