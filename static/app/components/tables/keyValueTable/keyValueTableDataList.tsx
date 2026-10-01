@@ -75,20 +75,23 @@ function Row({
     isMultiValue,
   } = item;
 
-  const renderValue = (v: KeyValueListDataItem['value']) =>
-    item.isContextData || isContextData ? (
-      <ContextDataValue value={v} meta={meta} raw={raw} subjectIcon={subjectIcon} />
-    ) : (
-      <PreformattedValue value={v} meta={meta} subjectIcon={subjectIcon} />
-    );
+  const renderedValue = (
+    <RowValue
+      value={value}
+      isContextData={item.isContextData || isContextData}
+      meta={meta}
+      raw={raw}
+      subjectIcon={subjectIcon}
+    />
+  );
 
   const rendered =
     isMultiValue && Array.isArray(value) ? (
       value.map((entry, index) => <PreformattedValue key={index} value={entry} />)
     ) : action?.link ? (
-      <ValueLink to={action.link}>{renderValue(value)}</ValueLink>
+      <ValueLink to={action.link}>{renderedValue}</ValueLink>
     ) : (
-      renderValue(value)
+      renderedValue
     );
 
   return (
@@ -113,6 +116,23 @@ function Row({
         </ValueWrapper>
       </Container>
     </Grid>
+  );
+}
+
+function RowValue({
+  value,
+  isContextData,
+  meta,
+  raw,
+  subjectIcon,
+}: Pick<KeyValueListDataItem, 'value' | 'meta' | 'subjectIcon'> & {
+  isContextData: boolean;
+  raw: boolean;
+}) {
+  return isContextData ? (
+    <ContextDataValue value={value} meta={meta} raw={raw} subjectIcon={subjectIcon} />
+  ) : (
+    <PreformattedValue value={value} meta={meta} subjectIcon={subjectIcon} />
   );
 }
 
