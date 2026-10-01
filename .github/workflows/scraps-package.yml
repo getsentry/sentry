@@ -34,4 +34,5 @@ jobs:
         with:
           name: scraps-tarball
           path: static/packages/scraps/.artifacts/*.tgz
+          include-hidden-files: true
           if-no-files-found: error
