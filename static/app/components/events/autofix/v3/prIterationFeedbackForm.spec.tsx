@@ -101,7 +101,7 @@ describe('PrIterationFeedbackForm', () => {
     expect(screen.getByRole('button', {name: 'Submit'})).toBeEnabled();
   });
 
-  it('keeps the feedback and surfaces an error when submit fails', async () => {
+  it('keeps the feedback when submit fails', async () => {
     const autofix = makeAutofix({
       startStep: jest.fn().mockRejectedValue(new Error('boom')),
     });
@@ -118,9 +118,13 @@ describe('PrIterationFeedbackForm', () => {
     await userEvent.type(screen.getByRole('textbox'), 'make it blue');
     await userEvent.click(screen.getByRole('button', {name: 'Submit'}));
 
-    await waitFor(() => expect(addErrorMessage).toHaveBeenCalled());
+    await waitFor(() =>
+      expect(screen.getByRole('button', {name: 'Submit'})).toBeEnabled()
+    );
     expect(onClose).not.toHaveBeenCalled();
     expect(screen.getByRole('textbox')).toHaveValue('make it blue');
     expect(trackAnalytics).not.toHaveBeenCalled();
+    // startStep owns the error message, so the form must not add its own.
+    expect(addErrorMessage).not.toHaveBeenCalled();
   });
 });

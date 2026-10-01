@@ -5,7 +5,7 @@ import * as Sentry from '@sentry/react';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 
 import {ExternalLink} from 'sentry/components/links/externalLink';
-import {t, tct, tctCode} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -15,7 +15,6 @@ import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/con
 import {useCacheBuilderState} from 'sentry/views/dashboards/widgetBuilder/hooks/useCacheBuilderState';
 import {useDashboardWidgetSource} from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
 import {useIsEditingWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
-import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
 
 export function WidgetBuilderDatasetSelector() {
@@ -31,21 +30,6 @@ export function WidgetBuilderDatasetSelector() {
     label: t('Errors'),
     details: t('Errors from your application'),
   });
-
-  const isTransactionsDeprecated = organization.features.includes(
-    'discover-saved-queries-deprecation'
-  );
-
-  const transactionsOption = {
-    value: WidgetType.TRANSACTIONS,
-    label: t('Transactions'),
-    disabled: isTransactionsDeprecated,
-    details: isTransactionsDeprecated
-      ? tctCode(
-          'No longer supported. Use the spans dataset with the [code:is_transaction:true] filter.'
-        )
-      : t('Transactions from your application'),
-  };
 
   if (organization.features.includes('visibility-explore-view')) {
     datasetOptions.push({
@@ -87,10 +71,6 @@ export function WidgetBuilderDatasetSelector() {
     label: t('Mobile Builds'),
     details: t('Mobile app size metrics'),
   });
-
-  if (!getDiscoverDeprecation(organization)) {
-    datasetOptions.push(transactionsOption);
-  }
 
   return (
     <Fragment>

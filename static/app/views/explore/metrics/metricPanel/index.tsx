@@ -141,6 +141,7 @@ export function MetricPanel({
 
   useEffect(() => {
     if (isVisualizeEquation(visualize)) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setTitle(
         visualize.internalExpression ??
           unresolveExpression(visualize.expression.text, referenceMap)
@@ -313,6 +314,7 @@ export function MetricPanel({
               {isAnyDragging ? (
                 <DnDPlaceholder
                   isDragging={isDragging}
+                  // oxlint-disable-next-line react/refs
                   contentHeight={contentHeightRef.current}
                 />
               ) : null}
@@ -324,7 +326,7 @@ export function MetricPanel({
                     }
                   }}
                 >
-                  <Grid columns={{'screen:xs': '1fr', 'screen:md': '1fr 1fr'}} gap="sm">
+                  <Grid columns={{xs: '1fr', lg: '1fr 1fr'}} gap="sm">
                     <Container minWidth="0" ref={chartContainerRef}>
                       {areHeatMapsEnabled && isHeatmap ? (
                         <MetricsHeatMap

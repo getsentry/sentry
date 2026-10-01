@@ -32,6 +32,7 @@ export function useReplayReady(): boolean {
   useEffect(() => {
     if (replayRef) {
       // Integration was registered before this subscriber mounted; flip now.
+      // oxlint-disable-next-line react/set-state-in-effect
       setReady(true);
       return;
     }

@@ -650,7 +650,21 @@ class _RemoteSiloCall:
                 unit="byte",
             )
             if response.status_code == 200:
-                return response.json()
+                try:
+                    return response.json()
+                except ValueError as e:
+                    # Handle the case where the response from the remote silo
+                    # is not valid JSON. This could arise if we receive errors
+                    # from the LB rather than the application.
+                    metrics.incr(
+                        "hybrid_cloud.dispatch_rpc.failure",
+                        tags=self._metrics_tags(kind="malformed_response"),
+                    )
+                    raise RpcResponseException(
+                        service_name=self.service_name,
+                        method_name=self.method_name,
+                        message=f"Received malformed 200 response of {len(response.content)} byte(s)",
+                    ) from e
             self._raise_from_response_status_error(response)
 
     @contextmanager

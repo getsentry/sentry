@@ -24,11 +24,19 @@ class BaseAIConversationsTestCase(BaseSpansTestCase, SpanTestCase, APITestCase):
         op="gen_ai.chat",
         description=None,
         status="ok",
+        operation_name=None,
         operation_type=None,
         tokens=None,
         input_tokens=None,
         output_tokens=None,
+        cache_read_tokens=None,
+        cache_write_tokens=None,
+        reasoning_tokens=None,
         cost=None,
+        input_cost=None,
+        output_cost=None,
+        request_model=None,
+        response_model=None,
         trace_id=None,
         agent_name=None,
         messages=None,
@@ -41,6 +49,7 @@ class BaseAIConversationsTestCase(BaseSpansTestCase, SpanTestCase, APITestCase):
         user_email=None,
         user_username=None,
         user_ip=None,
+        origin=None,
         input_messages=None,
         output_messages=None,
         system_instructions=None,
@@ -56,11 +65,19 @@ class BaseAIConversationsTestCase(BaseSpansTestCase, SpanTestCase, APITestCase):
             op: The span operation (default: "gen_ai.chat")
             description: Span description
             status: Span status (default: "ok")
+            operation_name: The gen_ai.operation.name attribute
             operation_type: The gen_ai.operation.type attribute
             tokens: Token count (gen_ai.usage.total_tokens)
             input_tokens: Input token count (gen_ai.usage.input_tokens)
             output_tokens: Output token count (gen_ai.usage.output_tokens)
+            cache_read_tokens: Cache-read input token count
+            cache_write_tokens: Cache-creation input token count
+            reasoning_tokens: Reasoning output token count
             cost: Cost (gen_ai.cost.total_tokens)
+            input_cost: Input token cost (gen_ai.cost.input_tokens)
+            output_cost: Output token cost (gen_ai.cost.output_tokens)
+            request_model: Requested model (gen_ai.request.model)
+            response_model: Responding model (gen_ai.response.model)
             trace_id: The trace ID for the span
             agent_name: The gen_ai.agent.name attribute
             messages: The gen_ai.request.messages (will be JSON serialized)
@@ -86,6 +103,8 @@ class BaseAIConversationsTestCase(BaseSpansTestCase, SpanTestCase, APITestCase):
             # deprecated in favour of `ai_conversation_id` down below.
             "gen_ai.conversation.id": conversation_id,
         }
+        if operation_name is not None:
+            span_data["gen_ai.operation.name"] = operation_name
         if operation_type:
             span_data["gen_ai.operation.type"] = operation_type
         if tokens is not None:
@@ -94,8 +113,22 @@ class BaseAIConversationsTestCase(BaseSpansTestCase, SpanTestCase, APITestCase):
             span_data["gen_ai.usage.input_tokens"] = input_tokens
         if output_tokens is not None:
             span_data["gen_ai.usage.output_tokens"] = output_tokens
+        if cache_read_tokens is not None:
+            span_data["gen_ai.usage.cache_read.input_tokens"] = cache_read_tokens
+        if cache_write_tokens is not None:
+            span_data["gen_ai.usage.cache_creation.input_tokens"] = cache_write_tokens
+        if reasoning_tokens is not None:
+            span_data["gen_ai.usage.reasoning.output_tokens"] = reasoning_tokens
         if cost is not None:
             span_data["gen_ai.cost.total_tokens"] = cost
+        if input_cost is not None:
+            span_data["gen_ai.cost.input_tokens"] = input_cost
+        if output_cost is not None:
+            span_data["gen_ai.cost.output_tokens"] = output_cost
+        if request_model is not None:
+            span_data["gen_ai.request.model"] = request_model
+        if response_model is not None:
+            span_data["gen_ai.response.model"] = response_model
         if agent_name is not None:
             span_data["gen_ai.agent.name"] = agent_name
         if messages is not None:
@@ -129,6 +162,8 @@ class BaseAIConversationsTestCase(BaseSpansTestCase, SpanTestCase, APITestCase):
             span_data["sentry.user.username"] = user_username
         if user_ip is not None:
             span_data["sentry.user.ip"] = user_ip
+        if origin is not None:
+            span_data["sentry.origin"] = origin
 
         extra_data = {
             "description": description or "default",

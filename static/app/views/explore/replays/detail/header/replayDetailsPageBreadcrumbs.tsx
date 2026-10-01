@@ -84,6 +84,7 @@ export function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
       </TopBar.Slot>
       <TopBar.Slot name="title">
         <BreadcrumbList.Title
+          // oxlint-disable-next-line react/refs
           item={{
             type: 'page-title',
             label: replayRecord?.id
@@ -94,18 +95,22 @@ export function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
             ) : (
               <Placeholder width="16px" height="16px" />
             ),
+            // oxlint-disable-next-line react/refs
             pagination: {
+              // oxlint-disable-next-line react/refs
               previous: {
                 ariaLabel: t('Previous replay based on search query'),
                 tooltip: previousReplay
                   ? t('Previous replay based on search query')
                   : undefined,
+                // oxlint-disable-next-line react/refs
                 to: previousReplay
                   ? {
                       pathname: makeReplaysPathname({
                         path: `/${previousReplay.id}/`,
                         organization,
                       }),
+                      // oxlint-disable-next-line react/refs
                       query: initialLocation.current.query,
                     }
                   : undefined,
@@ -115,15 +120,18 @@ export function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
                     organization,
                   }),
               },
+              // oxlint-disable-next-line react/refs
               next: {
                 ariaLabel: t('Next replay based on search query'),
                 tooltip: nextReplay ? t('Next replay based on search query') : undefined,
+                // oxlint-disable-next-line react/refs
                 to: nextReplay
                   ? {
                       pathname: makeReplaysPathname({
                         path: `/${nextReplay.id}/`,
                         organization,
                       }),
+                      // oxlint-disable-next-line react/refs
                       query: initialLocation.current.query,
                     }
                   : undefined,

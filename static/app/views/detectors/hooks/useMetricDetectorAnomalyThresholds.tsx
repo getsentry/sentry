@@ -2,7 +2,7 @@ import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import type {LineSeriesOption} from 'echarts';
 
-import {lineSeries} from 'sentry/components/charts/series/lineSeries';
+import {createLineSeries} from 'sentry/components/charts/series/lineSeries';
 import type {Series} from 'sentry/types/echarts';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -139,7 +139,7 @@ export function useMetricDetectorAnomalyThresholds({
     const lineColor = theme.colors.red400;
 
     return [
-      lineSeries({
+      createLineSeries({
         name: UPPER_THRESHOLD_SERIES_NAME,
         data: upperBoundData,
         lineStyle: {
@@ -161,7 +161,7 @@ export function useMetricDetectorAnomalyThresholds({
         connectNulls: true,
         step: false,
       }),
-      lineSeries({
+      createLineSeries({
         name: LOWER_THRESHOLD_SERIES_NAME,
         data: lowerBoundData,
         lineStyle: {

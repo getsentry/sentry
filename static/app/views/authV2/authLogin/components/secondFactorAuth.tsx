@@ -4,12 +4,13 @@ import {motion} from 'framer-motion';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
 import {AnimatedActivity} from 'sentry/components/animatedActivity';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconArrow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {useDimensions} from 'sentry/utils/useDimensions';
@@ -78,7 +79,8 @@ export function SecondFactorAuth({
     : sortedMethods[0]?.id;
   const auth = useSecondFactorAuth();
   const cancellation = useCancelSecondFactorAuth();
-  const isProcessing = auth.isPending || Boolean(auth.result) || cancellation.isPending;
+  const isAuthenticating = auth.isPending || Boolean(auth.result);
+  const isProcessing = isAuthenticating || cancellation.isPending;
   const authenticate = (credentials: SecondFactorCredentials) => {
     cancellation.reset();
     auth.authenticate(credentials);
@@ -146,6 +148,7 @@ export function SecondFactorAuth({
                 <MethodInput
                   method={method.id}
                   isActive={isActive}
+                  isAuthenticating={isAuthenticating}
                   isProcessing={isProcessing}
                   resetKey={auth.errorMessage}
                   onAuthenticate={authenticate}
@@ -172,12 +175,15 @@ export function SecondFactorAuth({
           {otherMethods.length > 1 ? (
             <DropdownMenu
               size="xs"
-              triggerLabel={t('Use Different Method')}
-              triggerProps={{
-                disabled: isProcessing,
-                size: 'xs',
-                variant: 'transparent',
-              }}
+              trigger={triggerProps => (
+                <OverlayTrigger.Button
+                  {...triggerProps}
+                  disabled={isProcessing}
+                  variant="transparent"
+                >
+                  {t('Use Different Method')}
+                </OverlayTrigger.Button>
+              )}
               items={otherMethods.map(method => ({
                 key: method.id,
                 label: METHOD_LABELS[method.id],
@@ -208,6 +214,7 @@ export function SecondFactorAuth({
 
 interface MethodInputProps {
   isActive: boolean;
+  isAuthenticating: boolean;
   isProcessing: boolean;
   method: MfaMethod['id'];
   onAuthenticate: (credentials: SecondFactorCredentials) => void;
@@ -217,6 +224,7 @@ interface MethodInputProps {
 
 function MethodInput({
   isActive,
+  isAuthenticating,
   isProcessing,
   method,
   onAuthenticate,
@@ -228,6 +236,7 @@ function MethodInput({
       return (
         <WebAuthn2FAMethod
           isActive={isActive}
+          isAuthenticating={isAuthenticating}
           isProcessing={isProcessing}
           submissionFailed={Boolean(resetKey)}
           onRetrySubmission={onResetAuthentication}

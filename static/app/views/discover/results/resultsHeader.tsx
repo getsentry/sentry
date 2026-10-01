@@ -1,24 +1,18 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
 import type {Location} from 'history';
 
-import type {ContainerProps} from '@sentry/scraps/layout';
-
 import {fetchHomepageQuery} from 'sentry/actionCreators/discoverHomepageQueries';
 import {fetchSavedQuery} from 'sentry/actionCreators/discoverSavedQueries';
 import type {Client} from 'sentry/api';
 import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
-import * as Layout from 'sentry/components/layouts/thirds';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {t} from 'sentry/locale';
 import type {Organization, SavedQuery} from 'sentry/types/organization';
 import type {EventView} from 'sentry/utils/discover/eventView';
-import type {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {withApi} from 'sentry/utils/withApi';
 import {DiscoverBreadcrumb} from 'sentry/views/discover/breadcrumb';
 import SavedQueryButtonGroup from 'sentry/views/discover/savedQuery';
-import {DatasetSelectorTabs} from 'sentry/views/discover/savedQuery/datasetSelectorTabs';
 import {getSavedQueryWithDataset} from 'sentry/views/discover/savedQuery/utils';
-import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
 type Props = {
@@ -30,7 +24,6 @@ type Props = {
   setSavedQuery: (savedQuery?: SavedQuery) => void;
   yAxis: string[];
   isHomepage?: boolean;
-  splitDecision?: SavedQueryDatasets;
 };
 
 function ResultsHeaderBase({
@@ -42,7 +35,6 @@ function ResultsHeaderBase({
   setSavedQuery,
   yAxis,
   isHomepage,
-  splitDecision,
 }: Props) {
   const [homepageQuery, setHomepageQuery] = useState<SavedQuery | undefined>(undefined);
   const [savedQuery, setSavedQueryState] = useState<SavedQuery | undefined>(undefined);
@@ -68,6 +60,7 @@ function ResultsHeaderBase({
 
   useEffect(() => {
     if (!isHomepage && eventView.id) {
+      // oxlint-disable-next-line react/set-state-in-effect
       fetchData();
     } else if (eventView.id === undefined) {
       setLoading(false);
@@ -76,11 +69,15 @@ function ResultsHeaderBase({
 
   useEffect(() => {
     if (isHomepage) {
+      // oxlint-disable-next-line react/set-state-in-effect
       fetchHomepageQueryData();
     }
   }, [isHomepage, fetchHomepageQueryData]);
 
   const hasDiscoverQueryFeature = organization.features.includes('discover-query');
+  const migrateDiscoverQueries = organization.features.includes(
+    'discover-queries-in-all-queries'
+  );
 
   const savedQueryButton = (
     <SavedQueryButtonGroup
@@ -106,7 +103,7 @@ function ResultsHeaderBase({
 
   const title = (
     <Fragment>
-      {getDiscoverDeprecation(organization) ? t('Errors') : t('Discover')}
+      {t('Errors')}
       <PageHeadingQuestionTooltip
         docsUrl="https://docs.sentry.io/product/discover-queries/"
         title={t('Create queries to get insights into the health of your system.')}
@@ -114,55 +111,29 @@ function ResultsHeaderBase({
     </Fragment>
   );
 
-  const discoverBreadcrumb = (
-    <DiscoverBreadcrumb
-      eventView={eventView}
-      organization={organization}
-      location={location}
-      isHomepage={isHomepage}
-      savedQuery={savedQuery}
-    />
-  );
-
-  // there's some styling that gets messed up when choosing to not render the
-  // dataset selector tabs so i'm injecting some styles fix it. This should be removed
-  // when the dataset selector tabs are removed.
-  const deprecationHeaderStyles: ContainerProps<'header'> = {
-    padding: {
-      'screen:sm': '0',
-      'screen:md': '0',
-    },
-    borderBottom: {
-      '2xs': 'none',
-      xs: 'none',
-      sm: 'none',
-      md: 'none',
-    },
-  };
-
   return (
-    <Layout.Header
-      {...(getDiscoverDeprecation(organization) ? deprecationHeaderStyles : {})}
-    >
-      <TopBar.Slot name="title">
-        {isHomepage ? (
-          <GuideAnchor target="discover_landing_header">{title}</GuideAnchor>
-        ) : hasDiscoverQueryFeature ? (
-          discoverBreadcrumb
-        ) : (
-          title
-        )}
-      </TopBar.Slot>
-      <TopBar.Slot name="actions">{savedQueryButton}</TopBar.Slot>
-      {!getDiscoverDeprecation(organization) && (
-        <DatasetSelectorTabs
+    <Fragment>
+      {!isHomepage && hasDiscoverQueryFeature ? (
+        // Owns both the breadcrumbs and title slots.
+        <DiscoverBreadcrumb
           eventView={eventView}
-          isHomepage={isHomepage}
+          organization={organization}
+          location={location}
           savedQuery={savedQuery}
-          splitDecision={splitDecision}
         />
+      ) : (
+        <TopBar.Slot name="title">
+          {isHomepage ? (
+            <GuideAnchor target="discover_landing_header">{title}</GuideAnchor>
+          ) : (
+            title
+          )}
+        </TopBar.Slot>
       )}
-    </Layout.Header>
+      {!migrateDiscoverQueries && (
+        <TopBar.Slot name="actions">{savedQueryButton}</TopBar.Slot>
+      )}
+    </Fragment>
   );
 }
 

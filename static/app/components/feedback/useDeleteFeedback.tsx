@@ -34,8 +34,7 @@ export const useDeleteFeedback = (feedbackIds: any, projectId: any) => {
             itemIds: feedbackIds,
           },
           {
-            complete: () => {
-              refetchFeedbackList();
+            success: () => {
               navigate(
                 normalizeUrl({
                   pathname: makeFeedbackPathname({
@@ -51,6 +50,7 @@ export const useDeleteFeedback = (feedbackIds: any, projectId: any) => {
                 })
               );
             },
+            complete: refetchFeedbackList,
           }
         );
       },

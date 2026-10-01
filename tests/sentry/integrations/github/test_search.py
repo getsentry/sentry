@@ -192,30 +192,23 @@ class GithubSearchTest(APITestCase):
         assert resp.data == {"detail": "Rate limit exceeded"}
 
     @responses.activate
-    def test_prefetches_assignee_results(self) -> None:
+    def test_assignee_results(self) -> None:
         responses.add(
-            responses.GET,
-            self.base_url + "/repos/test/example/assignees",
-            json=[
-                {"login": "octocat", "name": "The Octocat"},
-                {"login": "github-actions[bot]", "name": None},
-            ],
+            responses.POST,
+            self.graphql_url,
+            json={
+                "data": {
+                    "repository": {
+                        "results": {
+                            "nodes": [
+                                {"login": "octocat", "name": "The Octocat"},
+                                {"login": "github-actions[bot]", "name": None},
+                            ]
+                        }
+                    }
+                }
+            },
         )
-
-        resp = self.client.get(
-            self.url,
-            data={"field": "assignee", "query": "", "repo": "test/example"},
-        )
-
-        assert resp.status_code == 200
-        assert resp.data == [
-            {"value": "", "label": "Unassigned"},
-            {"value": "octocat", "label": "The Octocat (@octocat)"},
-            {"value": "github-actions[bot]", "label": "github-actions[bot]"},
-        ]
-
-    @responses.activate
-    def test_searches_assignees(self) -> None:
         responses.add(
             responses.POST,
             self.graphql_url,
@@ -228,16 +221,37 @@ class GithubSearchTest(APITestCase):
             },
         )
 
-        resp = self.client.get(
+        prefetch_response = self.client.get(
+            self.url,
+            data={"field": "assignee", "query": "", "repo": "test/example"},
+        )
+
+        assert prefetch_response.status_code == 200
+        assert prefetch_response.data == [
+            {"value": "", "label": "Unassigned"},
+            {"value": "octocat", "label": "The Octocat (@octocat)"},
+            {"value": "github-actions[bot]", "label": "github-actions[bot]"},
+        ]
+        prefetch_body = orjson.loads(responses.calls[0].request.body)
+        assert "assignableUsers" in prefetch_body["query"]
+        assert prefetch_body["variables"] == {
+            "owner": "test",
+            "name": "example",
+            "search": "",
+        }
+
+        search_response = self.client.get(
             self.url,
             data={"field": "assignee", "query": "TARGET", "repo": "test/example"},
         )
 
-        assert resp.status_code == 200
-        assert resp.data == [{"value": "target-user", "label": "Target User (@target-user)"}]
-        request_body = orjson.loads(responses.calls[0].request.body)
-        assert "assignableUsers" in request_body["query"]
-        assert request_body["variables"] == {
+        assert search_response.status_code == 200
+        assert search_response.data == [
+            {"value": "target-user", "label": "Target User (@target-user)"}
+        ]
+        search_body = orjson.loads(responses.calls[1].request.body)
+        assert "assignableUsers" in search_body["query"]
+        assert search_body["variables"] == {
             "owner": "test",
             "name": "example",
             "search": "TARGET",

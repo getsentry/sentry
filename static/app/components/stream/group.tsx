@@ -14,6 +14,7 @@ import type {AssignableEntity} from 'sentry/components/assigneeSelectorDropdown'
 import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
 import {GroupStatusChart} from 'sentry/components/charts/groupStatusChart';
 import {Count} from 'sentry/components/count';
+import {AssigneeAvatar} from 'sentry/components/group/assigneeAvatar';
 import {AssigneeSelector} from 'sentry/components/group/assigneeSelector';
 import {getBadgeProperties} from 'sentry/components/group/inboxBadges/statusBadge';
 import {GroupHeaderRow} from 'sentry/components/groupHeaderRow';
@@ -328,7 +329,8 @@ export function LoadingStreamGroup({
               <Placeholder height="24px" />
             </Flex>
           )}
-          {withColumns.includes('assignee') && (
+          {(withColumns.includes('assignee') ||
+            withColumns.includes('assigneeAvatar')) && (
             <Flex
               display={{zero: 'none', [COLUMN_BREAKPOINTS.ASSIGNEE]: 'flex'}}
               alignSelf="center"
@@ -344,6 +346,65 @@ export function LoadingStreamGroup({
         </Fragment>
       )}
     </Wrapper>
+  );
+}
+
+function ReprocessingColumns({group}: {group: GroupReprocessing}) {
+  const theme = useTheme();
+  const {statusDetails, count} = group;
+  const {info, pendingEvents} = statusDetails;
+
+  if (!info) {
+    return null;
+  }
+
+  const {totalEvents, dateCreated} = info;
+
+  const remainingEventsToReprocess = totalEvents - pendingEvents;
+  const remainingEventsToReprocessPercent = percent(
+    remainingEventsToReprocess,
+    totalEvents
+  );
+
+  return (
+    <Fragment>
+      <Flex
+        width={{zero: '85px', xl: '140px'}}
+        alignSelf="center"
+        margin="0 xl"
+        whiteSpace="nowrap"
+        overflow="hidden"
+        style={{color: theme.colors.gray800, textOverflow: 'ellipsis'}}
+      >
+        <TimeSince date={dateCreated} />
+      </Flex>
+      <Container
+        width={{zero: '75px', xl: '140px'}}
+        alignSelf="center"
+        margin="0 xl"
+        whiteSpace="nowrap"
+        overflow="hidden"
+        style={{color: theme.colors.gray800, textOverflow: 'ellipsis'}}
+      >
+        {defined(count) ? (
+          <Fragment>
+            <Count value={remainingEventsToReprocess} />
+            {'/'}
+            <Count value={totalEvents} />
+          </Fragment>
+        ) : (
+          <Placeholder height="17px" />
+        )}
+      </Container>
+      <Container
+        display={{zero: 'none', xl: 'block'}}
+        width="160px"
+        margin="0 xl"
+        alignSelf="center"
+      >
+        <ProgressBar value={remainingEventsToReprocessPercent} />
+      </Container>
+    </Fragment>
   );
 }
 
@@ -365,8 +426,6 @@ export function StreamGroup({
   onAssigneeChange,
   progressState,
 }: Props) {
-  const theme = useTheme();
-
   const issueSelectionSummary = useOptionalIssueSelectionSummary();
   const issueSelectionActions = useOptionalIssueSelectionActions();
   const groupId = group.id;
@@ -523,67 +582,10 @@ export function StreamGroup({
     };
   };
 
-  const renderReprocessingColumns = () => {
-    const {statusDetails, count} = group as GroupReprocessing;
-    const {info, pendingEvents} = statusDetails;
-
-    if (!info) {
-      return null;
-    }
-
-    const {totalEvents, dateCreated} = info;
-
-    const remainingEventsToReprocess = totalEvents - pendingEvents;
-    const remainingEventsToReprocessPercent = percent(
-      remainingEventsToReprocess,
-      totalEvents
-    );
-
-    return (
-      <Fragment>
-        <Flex
-          width={{zero: '85px', xl: '140px'}}
-          alignSelf="center"
-          margin="0 xl"
-          whiteSpace="nowrap"
-          overflow="hidden"
-          style={{color: theme.colors.gray800, textOverflow: 'ellipsis'}}
-        >
-          <TimeSince date={dateCreated} />
-        </Flex>
-        <Container
-          width={{zero: '75px', xl: '140px'}}
-          alignSelf="center"
-          margin="0 xl"
-          whiteSpace="nowrap"
-          overflow="hidden"
-          style={{color: theme.colors.gray800, textOverflow: 'ellipsis'}}
-        >
-          {defined(count) ? (
-            <Fragment>
-              <Count value={remainingEventsToReprocess} />
-              {'/'}
-              <Count value={totalEvents} />
-            </Fragment>
-          ) : (
-            <Placeholder height="17px" />
-          )}
-        </Container>
-        <Container
-          display={{zero: 'none', xl: 'block'}}
-          width="160px"
-          margin="0 xl"
-          alignSelf="center"
-        >
-          <ProgressBar value={remainingEventsToReprocessPercent} />
-        </Container>
-      </Fragment>
-    );
-  };
-
   const issueTypeConfig = getConfigForIssueType(group, group.project);
   const reviewed =
     // Original state had an inbox reason
+    // oxlint-disable-next-line react/refs
     originalInboxState.current?.reason !== undefined &&
     // Updated state has been removed from inbox
     !group.inbox &&
@@ -642,7 +644,6 @@ export function StreamGroup({
 
   const groupUsersCount = (
     <Tooltip
-      disabled={!usePageFilters}
       title={
         <CountTooltipContent>
           <h4>{t('Affected Users')}</h4>
@@ -771,12 +772,10 @@ export function StreamGroup({
         >
           {issueTypeConfig.stats.enabled && defined(groupStats) ? (
             <GroupStatusChart
-              hideZeros
               stats={groupStats}
               secondaryStats={groupSecondaryStats}
               showSecondaryPoints={showSecondaryPoints}
               groupStatus={getBadgeProperties(group.status, group.substatus)?.status}
-              showMarkLine
             />
           ) : issueTypeConfig.stats.enabled ? (
             <Placeholder height="36px" />
@@ -784,7 +783,7 @@ export function StreamGroup({
         </Container>
       )}
       {displayReprocessingLayout ? (
-        renderReprocessingColumns()
+        <ReprocessingColumns group={group as GroupReprocessing} />
       ) : (
         <Fragment>
           {withColumns.includes('event') && (
@@ -858,7 +857,8 @@ export function StreamGroup({
               )}
             </Flex>
           )}
-          {withColumns.includes('assignee') && (
+          {(withColumns.includes('assignee') ||
+            withColumns.includes('assigneeAvatar')) && (
             <Flex
               display={{zero: 'none', [COLUMN_BREAKPOINTS.ASSIGNEE]: 'flex'}}
               alignSelf="center"
@@ -868,12 +868,16 @@ export function StreamGroup({
               justify="end"
               style={{textAlign: 'right'}}
             >
-              <AssigneeSelector
-                group={group}
-                assigneeLoading={assigneeLoading}
-                handleAssigneeChange={handleAssigneeChange}
-                memberList={memberList}
-              />
+              {withColumns.includes('assigneeAvatar') ? (
+                <AssigneeAvatar assignedTo={group.assignedTo} />
+              ) : (
+                <AssigneeSelector
+                  group={group}
+                  assigneeLoading={assigneeLoading}
+                  handleAssigneeChange={handleAssigneeChange}
+                  memberList={memberList}
+                />
+              )}
             </Flex>
           )}
         </Fragment>

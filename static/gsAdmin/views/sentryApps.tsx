@@ -3,8 +3,9 @@ import {Tag} from '@sentry/scraps/badge';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
+import {ResultGrid} from 'sentry/components/resultGrid';
+
 import {PageHeader} from 'admin/components/pageHeader';
-import {ResultGrid} from 'admin/components/resultGrid';
 
 const getRow = (row: any) => [
   <td key="name">
@@ -45,7 +46,6 @@ export function SentryApps() {
         inPanel
         path="/_admin/sentry-apps/"
         endpoint="/sentry-apps/"
-        method="GET"
         columns={[
           <th key="name">Name</th>,
           <th key="owner" style={{width: 200, textAlign: 'center'}}>

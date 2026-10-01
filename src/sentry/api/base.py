@@ -6,7 +6,7 @@ import logging
 import time
 from collections.abc import Callable, Iterable, Mapping
 from datetime import datetime, timedelta, timezone
-from typing import Any, TypedDict
+from typing import TYPE_CHECKING, Any, TypedDict
 from urllib.parse import quote as urlquote
 
 import sentry_sdk
@@ -29,10 +29,12 @@ logger = logging.getLogger(__name__)
 audit_logger = logging.getLogger("sentry.audit.api")
 api_access_logger = logging.getLogger("sentry.access.api")
 
-from sentry import analytics, tsdb
+from sentry import analytics, features, tsdb
 from sentry.analytics.events.release_set_commits import ReleaseSetCommitsLocalEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.client_kind import FEATURE_FLAG as CLIENT_KIND_FEATURE_FLAG
+from sentry.api.client_kind import set_client_kind_attributes
 from sentry.api.exceptions import (
     INSUFFICIENT_SCOPE_ATTR,
     InsufficientScope,
@@ -45,7 +47,9 @@ from sentry.auth.scope_declaration import bind_endpoint_scope_declaration
 from sentry.auth.staff import has_staff_option
 from sentry.hybridcloud.apigateway.cell_request_resolvers import CellRequestResolver
 from sentry.middleware import is_frontend_request
+from sentry.models.organization import Organization
 from sentry.organizations.absolute_url import generate_organization_url
+from sentry.organizations.services.organization import RpcOrganization
 from sentry.ratelimits.config import DEFAULT_RATE_LIMIT_CONFIG, RateLimitConfig
 from sentry.seer import agent_token
 from sentry.silo.base import SiloLimit, SiloMode
@@ -61,6 +65,9 @@ from sentry.utils.http import (
 )
 from sentry.utils.sdk import capture_exception, merge_context_into_scope
 from sentry.utils.tracing import set_span_data, start_span
+
+if TYPE_CHECKING:
+    from rest_framework.views import AsView, GenericView
 
 from ..utils.pagination_factory import (
     annotate_span_with_pagination_args,
@@ -253,6 +260,9 @@ class Endpoint(APIView):
     # Note: the available renderer and parser classes can be found in conf/server.py.
     authentication_classes: tuple[type[BaseAuthentication], ...] = DEFAULT_AUTHENTICATION
     permission_classes: tuple[type[BasePermission], ...] = (NoPermission,)
+    # Enable this for anonymous browser endpoints that rely on cookie-backed session state.
+    # DRF only performs its own CSRF check after session authentication succeeds.
+    csrf_protect = False
 
     cursor_name = "cursor"
 
@@ -261,6 +271,13 @@ class Endpoint(APIView):
     rate_limits: RateLimitConfig | Callable[..., RateLimitConfig] = DEFAULT_RATE_LIMIT_CONFIG
     enforce_rate_limit: bool = settings.SENTRY_RATELIMITER_ENABLED
     servers: list[dict[str, Any]] | None = None
+
+    @classmethod
+    def as_view(cls, **initkwargs: Any) -> AsView[GenericView]:
+        view = super().as_view(**initkwargs)
+        if cls.csrf_protect:
+            view.csrf_exempt = False
+        return view
 
     def build_cursor_link(self, request: HttpRequest, name: str, cursor: Cursor) -> str:
         if request.GET.get("cursor") is None:
@@ -493,6 +510,17 @@ class Endpoint(APIView):
                     (args, kwargs) = self.convert_args(request, *args, **kwargs)
                     self.args = args
                     self.kwargs = kwargs
+
+                    # Resolved solely to check the opt-in; everything else is
+                    # derived from the request. Both sources are conventions rather
+                    # than contracts, so the result is type-checked before use.
+                    organization = kwargs.get("organization") or getattr(
+                        request, "organization", None
+                    )
+                    if isinstance(organization, (Organization, RpcOrganization)) and features.has(
+                        CLIENT_KIND_FEATURE_FLAG, organization, actor=request.user
+                    ):
+                        set_client_kind_attributes(request)
                 else:
                     handler = self.http_method_not_allowed
 

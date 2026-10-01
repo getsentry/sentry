@@ -111,7 +111,7 @@ export function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
       <SingleCard>
         <Flex align="center" gap="md">
           <MeetSeerHeader>MEET SEER</MeetSeerHeader>
-          <IconSeer animation="waiting" variant="muted" size="lg" />
+          <IconSeer animation="idle" variant="muted" size="lg" />
         </Flex>
         <Paragraph>
           {t(

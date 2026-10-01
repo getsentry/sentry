@@ -5,10 +5,10 @@ from collections.abc import Mapping
 from typing import Any, TypedDict
 
 import orjson
-from objectstore_client import Session
 
 from sentry.preprod.api.models.public.snapshots import SnapshotImageResponseDict
 from sentry.preprod.snapshots.image_serialization import build_head_image_list
+from sentry.preprod.snapshots.storage import SnapshotStorage
 from sentry.utils.tracing import set_span_data, start_span
 
 logger = logging.getLogger(__name__)
@@ -36,7 +36,7 @@ def build_head_images_payload(
     }
 
 
-def refresh_manifest_expiration(session: Session, manifest_key: str | None) -> None:
+def refresh_manifest_expiration(session: SnapshotStorage, manifest_key: str | None) -> None:
     if not manifest_key:
         return
     try:
@@ -46,7 +46,7 @@ def refresh_manifest_expiration(session: Session, manifest_key: str | None) -> N
 
 
 def load_precomputed_head_images(
-    session: Session, key: str | None
+    session: SnapshotStorage, key: str | None
 ) -> tuple[list[SnapshotImageResponseDict], float | None] | None:
     if not key:
         return None

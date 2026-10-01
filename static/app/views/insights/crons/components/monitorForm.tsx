@@ -26,6 +26,7 @@ import {PanelBody} from 'sentry/components/panels/panelBody';
 import {timezoneOptions} from 'sentry/data/timezones';
 import {t, tct, tn} from 'sentry/locale';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
+import {DEFAULT_CHECKIN_MARGIN, DEFAULT_MAX_RUNTIME} from 'sentry/utils/monitor/cron';
 import {slugify} from 'sentry/utils/slugify';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -56,9 +57,6 @@ const DEFAULT_CRONTAB = '0 0 * * *';
 const RULE_TARGET_MAP = {team: 'Team', user: 'Member'} as const;
 const RULES_SELECTOR_MAP = {Team: 'team', Member: 'user'} as const;
 
-// In minutes
-export const DEFAULT_MAX_RUNTIME = 30;
-export const DEFAULT_CHECKIN_MARGIN = 1;
 const CHECKIN_MARGIN_MINIMUM = 1;
 const TIMEOUT_MINIMUM = 1;
 
@@ -67,7 +65,6 @@ type Props = {
   apiMethod: FormProps['apiMethod'];
   onSubmitSuccess: FormProps['onSubmitSuccess'];
   monitor?: Monitor;
-  submitLabel?: string;
 };
 
 interface TransformedData extends Partial<Omit<Monitor, 'config' | 'alertRule'>> {
@@ -168,13 +165,7 @@ function mapMonitorFormErrors(responseJson?: any) {
   return {...responseRest, ...configErrors};
 }
 
-export function MonitorForm({
-  monitor,
-  submitLabel,
-  apiEndpoint,
-  apiMethod,
-  onSubmitSuccess,
-}: Props) {
+export function MonitorForm({monitor, apiEndpoint, apiMethod, onSubmitSuccess}: Props) {
   const theme = useTheme();
   const organization = useOrganization();
   const form = useRef(
@@ -182,6 +173,7 @@ export function MonitorForm({
       transformData: transformMonitorFormData,
     })
   );
+  // oxlint-disable-next-line react/refs
   const {onFieldChange} = useFormEagerValidation(form.current);
 
   const {projects} = useProjects();
@@ -237,6 +229,7 @@ export function MonitorForm({
       requireChanges
       apiEndpoint={apiEndpoint}
       apiMethod={apiMethod}
+      // oxlint-disable-next-line react/refs
       model={form.current}
       onFieldChange={onFieldChange}
       initialData={
@@ -255,7 +248,6 @@ export function MonitorForm({
             }
       }
       onSubmitSuccess={onSubmitSuccess}
-      submitLabel={submitLabel}
       mapFormErrors={mapMonitorFormErrors}
     >
       <StyledList symbol="colored-numeric">

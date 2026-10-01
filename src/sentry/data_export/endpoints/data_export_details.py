@@ -1,3 +1,5 @@
+from typing import Any
+
 from django.http import StreamingHttpResponse
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
@@ -8,6 +10,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationDataExportPermission, OrganizationEndpoint
 from sentry.api.serializers import serialize
+from sentry.api.utils import to_valid_int_id
 from sentry.data_export.models import ExportedData
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -22,14 +25,20 @@ class DataExportDetailsEndpoint(OrganizationEndpoint):
     owner = ApiOwner.DATA_BROWSING
     permission_classes = (OrganizationDataExportPermission,)
 
+    def convert_args(
+        self, request: Request, data_export_id: str, *args: Any, **kwargs: Any
+    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
+        args, kwargs = super().convert_args(request, *args, **kwargs)
+        kwargs["data_export_id"] = to_valid_int_id("data_export_id", data_export_id, raise_404=True)
+        return args, kwargs
+
     def get(
-        self, request: Request, organization: Organization, data_export_id: str
+        self, request: Request, organization: Organization, data_export_id: int
     ) -> Response | StreamingHttpResponse:
         """
         Retrieve information about the temporary file record.
         Used to populate page emailed to the user.
         """
-
         try:
             data_export = ExportedData.objects.get(
                 id=data_export_id, organization=organization, user_id=request.user.id

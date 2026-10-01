@@ -13,6 +13,7 @@ import {
   getAutofixArtifactFromSection,
   isCodeChangesArtifact,
   isPrIterationBlock,
+  isPrIterationPaused,
   type AutofixSection,
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
@@ -24,8 +25,12 @@ import {
   FeedbackList,
   usePrIterationFeedback,
 } from 'sentry/components/events/autofix/v3/feedbackList';
-import {PrIterationFeedbackForm} from 'sentry/components/events/autofix/v3/prIterationFeedbackForm';
+import {
+  PR_ITERATION_PAUSED_TOOLTIP,
+  PrIterationFeedbackForm,
+} from 'sentry/components/events/autofix/v3/prIterationFeedbackForm';
 import {useResetAutofixStep} from 'sentry/components/events/autofix/v3/useResetAutofixStep';
+import {useRethinkInChat} from 'sentry/components/events/autofix/v3/useRethinkInChat';
 import {artifactToMarkdown} from 'sentry/components/events/autofix/v3/utils';
 import {IconCode} from 'sentry/icons/iconCode';
 import {IconRefresh} from 'sentry/icons/iconRefresh';
@@ -114,8 +119,11 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
   const noCodingAgents =
     Object.values(autofix.runState?.coding_agents ?? {}).length === 0;
 
+  const isPaused = isPrIterationPaused(autofix.runState);
+
   // Reset-after-PR is only reachable where reset opens the manual form.
   const isResetEligible =
+    !isPaused &&
     !hasFailedOnlyPRs &&
     (hasManualPrIterationFeature
       ? noCodingAgents && (hasPRs || autofix.runState?.status !== 'processing')
@@ -185,6 +193,13 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
   }, [patchesByRepo]);
 
   const showPrIterationForm = hasPRs && hasManualPrIterationFeature;
+
+  const rethinkInChat = useRethinkInChat({
+    prompt: t('How can this code change be improved?'),
+    step: 'code_changes',
+  });
+  // Feedback on an open PR goes through the PR iteration form, not the chat.
+  const resetInChat = showPrIterationForm ? undefined : rethinkInChat;
   const prIterationForm = (
     <PrIterationFeedbackForm
       autofix={autofix}
@@ -339,7 +354,9 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
           : undefined
       }
       allowReset
-      onReset={canReset ? () => setShouldShowReset(true) : undefined}
+      onReset={canReset ? (resetInChat ?? (() => setShouldShowReset(true))) : undefined}
+      resetInChat={defined(resetInChat)}
+      resetTooltip={isPaused ? PR_ITERATION_PAUSED_TOOLTIP : undefined}
     >
       <FeedbackList items={feedback} />
       {content}

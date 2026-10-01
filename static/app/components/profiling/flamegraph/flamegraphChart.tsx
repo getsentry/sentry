@@ -63,6 +63,7 @@ export function FlamegraphChart({
   >(null);
 
   const configSpaceCursorRef = useRef<vec2 | null>(null);
+  // oxlint-disable-next-line react/refs
   configSpaceCursorRef.current = configSpaceCursor;
 
   const chartRenderer = useMemo(() => {
@@ -121,6 +122,7 @@ export function FlamegraphChart({
 
   useEffect(() => {
     drawchart();
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [drawchart, configSpaceCursor]);
 
   useEffect(() => {

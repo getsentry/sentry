@@ -15,7 +15,7 @@ import type {Group} from 'sentry/types/group';
 
 import {GroupingVariant} from './groupingVariant';
 
-interface GroupingSummaryProps {
+interface GroupingInfoProps {
   event: Event;
   group: Group | undefined;
   projectSlug: string;
@@ -27,15 +27,21 @@ export default function GroupingInfo({
   projectSlug,
   showGroupingConfig,
   group,
-}: GroupingSummaryProps) {
+}: GroupingInfoProps) {
   const [showNonContributing, setShowNonContributing] = useState(false);
 
-  const {groupInfo, isPending, isError, isSuccess, hasPerformanceGrouping} =
-    useEventGroupingInfo({
-      event,
-      group,
-      projectSlug,
-    });
+  const {groupInfo, isPending, isError} = useEventGroupingInfo({
+    event,
+    group,
+    projectSlug,
+  });
+
+  if (isPending) {
+    return <LoadingIndicator />;
+  }
+  if (isError) {
+    return <LoadingError message={t('Failed to fetch grouping info.')} />;
+  }
 
   const variants = groupInfo?.variants
     ? Object.values(groupInfo.variants).sort((a, b) => {
@@ -69,12 +75,7 @@ export default function GroupingInfo({
   return (
     <Fragment>
       <Flex justify="between" marginBottom="2xs" gap="md">
-        <GroupInfoSummary
-          event={event}
-          group={group}
-          projectSlug={projectSlug}
-          showGroupingConfig={showGroupingConfig}
-        />
+        <GroupInfoSummary groupInfo={groupInfo} showGroupingConfig={showGroupingConfig} />
         {feedbackComponent}
       </Flex>
       <ToggleContainer>
@@ -90,22 +91,18 @@ export default function GroupingInfo({
           <SegmentedControl.Item key="all">{t('All Values')}</SegmentedControl.Item>
         </SegmentedControl>
       </ToggleContainer>
-      {isError ? <LoadingError message={t('Failed to fetch grouping info.')} /> : null}
-      {isPending && !hasPerformanceGrouping ? <LoadingIndicator /> : null}
-      {hasPerformanceGrouping || isSuccess
-        ? variants
-            .filter(variant => variant.contributes || showNonContributing)
-            .map((variant, index, filteredVariants) => (
-              <Fragment key={variant.key}>
-                <GroupingVariant
-                  event={event}
-                  variant={variant}
-                  showNonContributing={showNonContributing}
-                />
-                {index < filteredVariants.length - 1 && <VariantDivider />}
-              </Fragment>
-            ))
-        : null}
+      {variants
+        .filter(variant => variant.contributes || showNonContributing)
+        .map((variant, index, filteredVariants) => (
+          <Fragment key={variant.key}>
+            <GroupingVariant
+              event={event}
+              variant={variant}
+              showNonContributing={showNonContributing}
+            />
+            {index < filteredVariants.length - 1 && <VariantDivider />}
+          </Fragment>
+        ))}
     </Fragment>
   );
 }

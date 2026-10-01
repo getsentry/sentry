@@ -156,6 +156,7 @@ export function PlatformPicker({
   });
 
   const debounceSearch = useRef(
+    // oxlint-disable-next-line react/refs
     debounce(() => {
       const {
         filter: currentFilter,

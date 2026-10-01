@@ -126,12 +126,15 @@ GETTING_STARTED_DOCS_PLATFORMS = [
     "node-cloudflare-pages",
     "node-cloudflare-workers",
     "node-connect",
+    "node-eve",
     "node-express",
     "node-fastify",
+    "node-flue",
     "node-gcpfunctions",
     "node-hapi",
     "node-hono",
     "node-koa",
+    "node-mastra",
     "node-nestjs",
     "php",
     "php-laravel",
@@ -581,9 +584,16 @@ class Project(Model):
             if monitor.slug in new_monitors:
                 CellScheduledDeletion.schedule(monitor, days=0)
             else:
-                for monitor_env_id, env_id in MonitorEnvironment.objects.filter(
-                    monitor_id=monitor.id, status=MonitorStatus.ACTIVE
-                ).values_list("id", "environment_id"):
+                for monitor_env_id, env_id in (
+                    MonitorEnvironment.objects.filter(monitor_id=monitor.id)
+                    .exclude(
+                        status__in=[
+                            MonitorStatus.PENDING_DELETION,
+                            MonitorStatus.DELETION_IN_PROGRESS,
+                        ]
+                    )
+                    .values_list("id", "environment_id")
+                ):
                     MonitorEnvironment.objects.filter(id=monitor_env_id).update(
                         environment_id=Environment.get_or_create(
                             self, name=environment_names.get(env_id, None)
@@ -880,6 +890,7 @@ class Project(Model):
         Returns True if the settings have successfully been copied over
         Returns False otherwise
         """
+        from sentry.ingest import legacy_filter_lists
         from sentry.models.environment import EnvironmentProject
         from sentry.models.options.project_option import ProjectOption
         from sentry.models.projectownership import ProjectOwnership
@@ -909,7 +920,10 @@ class Project(Model):
 
                 options = ProjectOption.objects.get_all_values(project=project)
                 for key, value in options.items():
-                    self.update_option(key, value)
+                    if key in legacy_filter_lists.OPTION_KEYS:
+                        legacy_filter_lists.set_list(self, key.removeprefix("sentry:"), value)
+                    else:
+                        self.update_option(key, value)
 
         except IntegrityError as e:
             logging.exception(
@@ -969,11 +983,12 @@ class Project(Model):
     def write_relocation_import(
         self, scope: ImportScope, flags: ImportFlags
     ) -> tuple[int, ImportKind] | None:
+        from sentry.receivers.core import disable_default_project_key_creation
         from sentry.workflow_engine.receivers.project_detectors import (
             disable_default_detector_creation,
         )
 
-        with disable_default_detector_creation():
+        with disable_default_detector_creation(), disable_default_project_key_creation():
             return super().write_relocation_import(scope, flags)
 
     # pending deletion implementation

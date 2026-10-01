@@ -6,6 +6,7 @@ import {UserAvatar} from '@sentry/scraps/avatar';
 import {Badge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Input} from '@sentry/scraps/input';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
@@ -130,6 +131,15 @@ export function HomePage() {
   const projSelect = (project: ProjectSearchResult) => {
     navigate(`/_admin/customers/${project.organization.slug}/projects/${project.slug}/`);
   };
+  const invoiceSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    const invoiceId = formData.get('invoiceId');
+
+    if (selectedCell && typeof invoiceId === 'string' && invoiceId.trim()) {
+      navigate(`/_admin/invoices/${selectedCell.name}/${invoiceId.trim()}/`);
+    }
+  };
 
   if (oldSplash) {
     return <Overview />;
@@ -239,6 +249,25 @@ export function HomePage() {
             }}
             renderResult={renderProjectResult}
           />
+        </Container>
+
+        <Container paddingTop="xl">
+          <form onSubmit={invoiceSubmit}>
+            <Stack gap="xs">
+              <Text as="label" bold htmlFor="invoiceId">
+                Invoices
+              </Text>
+              <Flex gap="sm">
+                <Input
+                  id="invoiceId"
+                  name="invoiceId"
+                  placeholder="Invoice GUID"
+                  required
+                />
+                <Button type="submit">Open invoice</Button>
+              </Flex>
+            </Stack>
+          </form>
         </Container>
       </Container>
 

@@ -8,7 +8,7 @@ import {Quote} from '@sentry/scraps/quote';
 import {Separator} from '@sentry/scraps/separator';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {isSafeHref, isInternalHref} from 'sentry/utils/marked/marked';
+import {isSafeHref, isInternalHref} from './marked';
 
 export function DefaultParagraph({children}: {children: ReactNode}) {
   return (
@@ -72,7 +72,7 @@ export function DefaultCodeBlock({children, lang}: {children: string; lang?: str
   return <CodeBlock language={lang}>{children}</CodeBlock>;
 }
 
-export function DefaultHtmlBlock({html}: {html: string}) {
+export function DefaultHtmlBlock({html}: {html: TrustedHTML}) {
   return <span dangerouslySetInnerHTML={{__html: html}} />;
 }
 
@@ -109,7 +109,7 @@ export function DefaultListItem({children}: {children: ReactNode}) {
   // <p>) keep md body size instead of inheriting a smaller parent size.
   return (
     <Text size="md" density="comfortable">
-      {({className}) => <li className={className}>{children}</li>}
+      {textProps => <li {...textProps}>{children}</li>}
     </Text>
   );
 }

@@ -1,7 +1,6 @@
 import {useEffect, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {PlatformIcon} from 'platformicons';
 
 import emptyTraceImg from 'sentry-images/spot/profiling-empty-state.svg';
 
@@ -23,7 +22,6 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import {StepTitles} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
-  BasePlatformOptions,
   DocsParams,
   OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
@@ -31,7 +29,6 @@ import {DocsPageLocation} from 'sentry/components/onboarding/gettingStartedDoc/t
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import {PlatformOptionDropdown} from 'sentry/components/onboarding/platformOptionDropdown';
-import {useUrlPlatformOptions} from 'sentry/components/onboarding/platformOptionsControl';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
@@ -51,21 +48,9 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {LLM_ONBOARDING_COPY_MARKDOWN} from 'sentry/views/insights/pages/agents/llmOnboardingInstructions';
-import {
-  AGENT_INTEGRATION_ICONS,
-  AGENT_INTEGRATION_LABELS,
-  AgentIntegration,
-  DENO_AGENT_INTEGRATIONS,
-  DEPLOYMENT_TARGET_ICONS,
-  DEPLOYMENT_TARGET_LABELS,
-  DeploymentTarget,
-  getIntegrationDeploymentTarget,
-  NODE_AGENT_INTEGRATIONS,
-  PHP_AGENT_INTEGRATIONS,
-  PYTHON_AGENT_INTEGRATIONS,
-} from 'sentry/views/insights/pages/agents/utils/agentIntegrations';
 import {getHasAiSpansFilter} from 'sentry/views/insights/pages/agents/utils/query';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
+import {useAgentOnboardingOptions} from 'sentry/views/insights/pages/agents/utils/useAgentOnboardingOptions';
 import {
   BulletList,
   HeaderText,
@@ -106,6 +91,7 @@ function useAiSpanWaiter(project: Project) {
 
   useEffect(() => {
     if (hasEvents && shouldRefetch) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setShouldRefetch(false);
     }
   }, [hasEvents, shouldRefetch]);
@@ -215,7 +201,7 @@ function OnboardingPanel({
                 <Preview>
                   <BodyTitle>{t('Preview Agent Insights')}</BodyTitle>
                   <Arcade
-                    src="https://demo.arcade.software/aEDAYP7ebTJvWKABSBdc?embed"
+                    src="https://demo.arcade.software/0NzB6M1Wn8sDsFDAj4sE?embed"
                     loading="lazy"
                     allowFullScreen
                   />
@@ -247,86 +233,16 @@ export function Onboarding() {
     projSlug: project?.slug,
   });
 
-  // Local integration options for Agent Monitoring only
-  const isPythonPlatform = (project?.platform ?? '').startsWith('python');
-  const isDenoPlatform = project?.platform === 'deno';
-  const isPhpPlatform = (project?.platform ?? '').startsWith('php');
-  // Node-based platforms can deploy their agents to either the Node runtime or
-  // Cloudflare Workers, so we let the user pick a target that tailors the setup.
-  const isNodePlatform = (project?.platform ?? '').startsWith('node');
-  // Cloudflare Workers projects are pinned to the Cloudflare (withSentry) setup.
-  // Cloudflare Pages bootstraps via `sentryPagesPlugin` instead, so it's left out
-  // of this selector for now and keeps its existing onboarding.
-  const isCloudflareWorkers = project?.platform === 'node-cloudflare-workers';
-  const isCloudflarePages = project?.platform === 'node-cloudflare-pages';
-  const showDeploymentTarget =
-    isNodePlatform && !isCloudflareWorkers && !isCloudflarePages;
-
-  const deploymentTargetOptions: BasePlatformOptions = showDeploymentTarget
-    ? {
-        deploymentTarget: {
-          label: t('Deployment'),
-          defaultValue: DeploymentTarget.NODE,
-          items: [DeploymentTarget.NODE, DeploymentTarget.CLOUDFLARE].map(target => ({
-            label: DEPLOYMENT_TARGET_LABELS[target],
-            value: target,
-            leadingItems: (
-              <PlatformIcon platform={DEPLOYMENT_TARGET_ICONS[target]} size={16} alt="" />
-            ),
-          })),
-        },
-      }
-    : {};
-
-  // The SDK list is no longer filtered by runtime: Node projects see every
-  // Node/Cloudflare agent SDK, and the chosen SDK drives the runtime below.
-  const integrations = isPythonPlatform
-    ? PYTHON_AGENT_INTEGRATIONS
-    : isDenoPlatform
-      ? DENO_AGENT_INTEGRATIONS
-      : isPhpPlatform
-        ? PHP_AGENT_INTEGRATIONS
-        : NODE_AGENT_INTEGRATIONS;
-
-  const platformOptions: BasePlatformOptions = {
-    integration: {
-      label: t('Integration'),
-      items: integrations.map(integration => ({
-        label: isPhpPlatform
-          ? (currentPlatform?.name ?? t('Laravel'))
-          : AGENT_INTEGRATION_LABELS[integration],
-        value: integration,
-        leadingItems: (
-          <PlatformIcon
-            platform={
-              isPhpPlatform
-                ? (project?.platform ?? 'php-laravel')
-                : AGENT_INTEGRATION_ICONS[integration]
-            }
-            size={16}
-            alt=""
-          />
-        ),
-      })),
-    },
-    ...deploymentTargetOptions,
-  };
-
-  const selectedPlatformOptions = useUrlPlatformOptions(platformOptions);
-
-  // A runtime-specific SDK (e.g. Workers AI -> Cloudflare, Mastra -> Node) pins
-  // the runtime and locks the selector; otherwise the user's dropdown choice
-  // wins (the selector defaults to Node). Cloudflare Workers projects stay
-  // pinned to Cloudflare regardless of the SDK.
-  const integrationDeploymentTarget = getIntegrationDeploymentTarget(
-    selectedPlatformOptions.integration
-  );
-  const selectedDeploymentTarget = selectedPlatformOptions.deploymentTarget as
-    | DeploymentTarget
-    | undefined;
-  const deploymentTarget = isCloudflareWorkers
-    ? DeploymentTarget.CLOUDFLARE
-    : (integrationDeploymentTarget ?? selectedDeploymentTarget);
+  const {
+    deploymentTarget,
+    integrationDeploymentTarget,
+    platformOptions,
+    projectAgentIntegration,
+    selectedPlatformOptions,
+  } = useAgentOnboardingOptions({
+    platform: project?.platform,
+    platformInfo: currentPlatform,
+  });
 
   const {isPending: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);
@@ -388,21 +304,21 @@ export function Onboarding() {
   return (
     <OnboardingPanel project={project}>
       <SetupTitle project={project} />
-      <OptionsWrapper>
-        <PlatformOptionDropdown
-          platformOptions={platformOptions}
-          connectors={{deploymentTarget: t('on')}}
-          lockedValues={
-            integrationDeploymentTarget
-              ? {deploymentTarget: integrationDeploymentTarget}
-              : undefined
-          }
-        />
-      </OptionsWrapper>
+      {!projectAgentIntegration && (
+        <OptionsWrapper>
+          <PlatformOptionDropdown
+            platformOptions={platformOptions}
+            connectors={{deploymentTarget: t('on')}}
+            lockedValues={
+              integrationDeploymentTarget
+                ? {deploymentTarget: integrationDeploymentTarget}
+                : undefined
+            }
+          />
+        </OptionsWrapper>
+      )}
       {introduction && <DescriptionWrapper>{introduction}</DescriptionWrapper>}
-      {/* Eve only drains OpenTelemetry traces, so there's no Sentry SDK call to
-          set a conversation ID - hide the Conversations pointer for it. */}
-      {selectedPlatformOptions.integration !== AgentIntegration.EVE && (
+      {!projectAgentIntegration && (
         <DescriptionWrapper>
           <p>
             {tct(
@@ -501,7 +417,13 @@ export function UnsupportedPlatformOnboarding({
             'You can [link:manually instrument] your agents using the Sentry SDK tracing API, or click [bold:Copy instructions] to have an AI coding agent do it for you.',
             {
               link: (
-                <ExternalLink href="https://docs.sentry.io/platforms/python/tracing/instrumentation/custom-instrumentation/ai-agents-module/" />
+                <ExternalLink
+                  href={
+                    project.platform?.startsWith('javascript')
+                      ? 'https://docs.sentry.io/platforms/javascript/tracing/instrumentation/ai-agents-module-browser/#manual-span-creation'
+                      : 'https://docs.sentry.io/platforms/python/tracing/instrumentation/custom-instrumentation/ai-agents-module/'
+                  }
+                />
               ),
               bold: <strong />,
             }

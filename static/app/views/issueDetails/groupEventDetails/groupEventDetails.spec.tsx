@@ -7,6 +7,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {
   render,
   screen,
+  userEvent,
   waitFor,
   within,
   type RouterConfig,
@@ -16,11 +17,21 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
-import {IssueCategory, IssueType} from 'sentry/types/group';
+import {
+  GroupActivityType,
+  GroupStatus,
+  IssueCategory,
+  IssueType,
+} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
-import type {TraceFullDetailed} from 'sentry/views/performance/newTraceDetails/traceApi/types';
+import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
+import {
+  makeEAPError,
+  makeEAPOccurrence,
+  makeEAPSpan,
+} from 'sentry/views/performance/traceDetails/traceModels/traceTreeTestUtils';
 
 const TRACE_ID = '797cda4e24844bdc90e0efe741616047';
 
@@ -105,54 +116,47 @@ const makeDefaultMockData = (
   };
 };
 
-const mockedTrace = (project: Project) => {
-  return {
+const mockedTrace = (project: Project): TraceTree.EAPSpan =>
+  makeEAPSpan({
     event_id: '8806ea4691c24fc7b1c77ecd78df574f',
-    span_id: 'b0e6f15b45c36b12',
     transaction: 'MainActivity.add_attachment',
-    'transaction.duration': 1000,
-    'transaction.op': 'navigation',
+    transaction_id: '8806ea4691c24fc7b1c77ecd78df574f',
+    name: 'MainActivity.add_attachment',
+    op: 'navigation',
     project_id: parseInt(project.id, 10),
     project_slug: project.slug,
     parent_span_id: null,
-    parent_event_id: null,
-    generation: 0,
+    is_transaction: true,
+    start_timestamp: 1678290374.150561,
+    end_timestamp: 1678290375.150561,
     errors: [
-      {
+      makeEAPError({
         event_id: 'c6971a73454646338bc3ec80c70f8891',
         issue_id: 104,
-        span: 'b0e6f15b45c36b12',
         project_id: parseInt(project.id, 10),
         project_slug: project.slug,
-        title: 'ApplicationNotResponding: ANR for at least 5000 ms.',
-        message: 'ANR for at least 5000 ms.',
+        description: 'ApplicationNotResponding: ANR for at least 5000 ms.',
         level: 'error',
-        issue: '',
-      },
+        start_timestamp: 1678290374.150561,
+        transaction: 'MainActivity.add_attachment',
+      }),
     ],
-    performance_issues: [
-      {
+    occurrences: [
+      makeEAPOccurrence({
         event_id: '8806ea4691c24fc7b1c77ecd78df574f',
         issue_id: 110,
-        issue_short_id: 'SENTRY-ANDROID-1R',
-        span: ['b0e6f15b45c36b12'],
-        suspect_spans: ['89930aab9a0314d4'],
+        short_id: 'SENTRY-ANDROID-1R',
         project_id: parseInt(project.id, 10),
         project_slug: project.slug,
-        title: 'File IO on Main Thread',
-        message: 'File IO on Main Thread',
+        description: 'File IO on Main Thread',
         level: 'info',
         culprit: 'MainActivity.add_attachment',
-        type: 1008,
-        end: 1678290375.15056,
-        start: 1678290374.150562,
-      },
+        issue_type: 1008,
+        start_timestamp: 1678290374.150562,
+        transaction: 'MainActivity.add_attachment',
+      }),
     ],
-    timestamp: 1678290375.150561,
-    start_timestamp: 1678290374.150561,
-    children: [],
-  } as Partial<TraceFullDetailed>;
-};
+  });
 
 const mockGroupApis = (
   organization: Organization,
@@ -160,7 +164,7 @@ const mockGroupApis = (
   group: Group,
   event: Event,
   replayId?: string,
-  trace?: Partial<TraceFullDetailed>
+  trace?: TraceTree.EAPSpan
 ) => {
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/issues/1/events/',
@@ -196,10 +200,8 @@ const mockGroupApis = (
   });
 
   MockApiClient.addMockResponse({
-    url: `/organizations/${organization.slug}/events-trace/${TRACE_ID}/`,
-    body: trace
-      ? {transactions: [trace], orphan_errors: []}
-      : {transactions: [], orphan_errors: []},
+    url: `/organizations/${organization.slug}/trace/${TRACE_ID}/`,
+    body: trace ? ([trace] satisfies TraceTree.EAPTrace) : [],
   });
 
   MockApiClient.addMockResponse({
@@ -412,26 +414,122 @@ describe('groupEventDetails', () => {
     );
   });
 
-  it('displays error on event error', async () => {
+  it('retries a failed event request without clearing filters', async () => {
     const props = makeDefaultMockData();
 
-    mockGroupApis(
-      props.organization,
-      props.project,
-      props.group,
-      EventFixture({
-        size: 1,
-        dateCreated: '2019-03-20T00:00:00.000Z',
-        errors: [],
-        entries: [],
-        tags: [{key: 'environment', value: 'dev'}],
-        previousEventID: 'prev-event-id',
-        nextEventID: 'next-event-id',
+    mockGroupApis(props.organization, props.project, props.group, props.event);
+
+    const url = `/organizations/${props.organization.slug}/issues/${props.group.id}/events/recommended/`;
+    MockApiClient.addMockResponse({url, statusCode: 500});
+
+    const query = {query: 'release:1.0', environment: 'dev', statsPeriod: '7d'};
+
+    render(<GroupEventDetails />, {
+      organization: props.organization,
+      initialRouterConfig: {
+        ...props.initialRouterConfig,
+        location: {
+          pathname: `/organizations/${props.organization.slug}/issues/${props.group.id}/`,
+          query,
+        },
+      },
+    });
+
+    const retryButton = await screen.findByRole('button', {name: 'Retry'});
+    expect(
+      screen.getByText('The server encountered an error while processing this request.')
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/couldn't track down an event/)).not.toBeInTheDocument();
+
+    const retryRequest = MockApiClient.addMockResponse({url, body: props.event});
+    await userEvent.click(retryButton);
+
+    expect(
+      await screen.findByRole('button', {name: 'Copy Event ID'})
+    ).toBeInTheDocument();
+    expect(retryRequest).toHaveBeenCalledWith(
+      url,
+      expect.objectContaining({
+        query: expect.objectContaining({...query, environment: ['dev']}),
       })
     );
+  });
 
+  it.each([
+    {statusCode: 400, detail: 'Invalid search query.', message: 'Invalid search query.'},
+    {
+      statusCode: 403,
+      detail: undefined,
+      message: 'You do not have permission to load this data.',
+    },
+  ])(
+    'explains event request errors with status $statusCode',
+    async ({statusCode, detail, message}) => {
+      const props = makeDefaultMockData();
+      mockGroupApis(props.organization, props.project, props.group, props.event);
+      MockApiClient.addMockResponse({
+        url: `/organizations/${props.organization.slug}/issues/${props.group.id}/events/recommended/`,
+        statusCode,
+        body: {detail},
+      });
+
+      render(<GroupEventDetails />, {
+        organization: props.organization,
+        initialRouterConfig: props.initialRouterConfig,
+      });
+
+      expect(await screen.findByText(message)).toBeInTheDocument();
+      expect(
+        screen.queryByRole('link', {name: 'Clear event filters'})
+      ).not.toBeInTheDocument();
+    }
+  );
+
+  it.each([
+    {eventId: 'recommended', linkName: 'Clear event filters'},
+    {eventId: 'missing-event', linkName: 'View recommended event'},
+  ])(
+    'preserves missing-event guidance for a 404 on $eventId',
+    async ({eventId, linkName}) => {
+      const props = makeDefaultMockData();
+      mockGroupApis(props.organization, props.project, props.group, props.event);
+      MockApiClient.addMockResponse({
+        url: `/organizations/${props.organization.slug}/issues/${props.group.id}/events/${eventId}/`,
+        statusCode: 404,
+      });
+
+      render(<GroupEventDetails />, {
+        organization: props.organization,
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${props.organization.slug}/issues/${props.group.id}/events/${eventId}/`,
+          },
+          route: '/organizations/:orgId/issues/:groupId/events/:eventId/',
+        },
+      });
+
+      expect(await screen.findByRole('link', {name: linkName})).toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: 'Retry'})).not.toBeInTheDocument();
+    }
+  );
+
+  it('preserves reprocessing progress when an event request fails', async () => {
+    const props = makeDefaultMockData();
+    const group = GroupFixture({
+      status: GroupStatus.REPROCESSING,
+      statusDetails: {pendingEvents: 5, info: null},
+      activity: [
+        {
+          id: 'reprocess-activity',
+          dateCreated: '2026-01-01T00:00:00Z',
+          type: GroupActivityType.REPROCESS,
+          data: {eventCount: 10, newGroupId: 2, oldGroupId: 1},
+        },
+      ],
+    });
+    mockGroupApis(props.organization, props.project, group, props.event);
     MockApiClient.addMockResponse({
-      url: `/organizations/${props.organization.slug}/issues/${props.group.id}/events/recommended/`,
+      url: `/organizations/${props.organization.slug}/issues/${group.id}/events/recommended/`,
       statusCode: 500,
     });
 
@@ -440,7 +538,10 @@ describe('groupEventDetails', () => {
       initialRouterConfig: props.initialRouterConfig,
     });
 
-    expect(await screen.findByText(/couldn't track down an event/)).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', {name: 'Reprocessing…'})
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Retry'})).not.toBeInTheDocument();
   });
 
   it('renders the Span Evidence section for Performance Issues', async () => {
@@ -644,7 +745,7 @@ describe('groupEventDetails', () => {
         undefined,
         {
           ...trace,
-          performance_issues: [],
+          occurrences: [],
         }
       );
 

@@ -4,8 +4,10 @@ import {useTheme} from '@emotion/react';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {bulkDelete, bulkUpdate} from 'sentry/actionCreators/group';
 import {
@@ -22,7 +24,6 @@ import {ResolveActions} from 'sentry/components/actions/resolve';
 import {CMDKAction} from 'sentry/components/commandPalette/ui/cmdk';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {
   IconCheckmark,
@@ -105,6 +106,7 @@ interface GroupActionsProps {
 
 interface GroupResolutionActionsProps extends GroupActionsProps {
   onUpdate: (data: GroupStatusResolution) => void;
+  variant?: 'primary' | 'secondary';
 }
 
 export function GroupResolutionActions({
@@ -113,6 +115,7 @@ export function GroupResolutionActions({
   group,
   onUpdate,
   project,
+  variant = 'primary',
 }: GroupResolutionActionsProps) {
   const hasRelease = !!project.features?.includes('releases');
   const eventReleaseVersion = event?.release?.versionInfo?.version;
@@ -177,7 +180,7 @@ export function GroupResolutionActions({
       onUpdate={onUpdate}
       project={project}
       size="sm"
-      priority="primary"
+      variant={variant}
     />
   );
 }
@@ -266,7 +269,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
         itemIds: [group.id],
       },
       {
-        complete: () => {
+        success: () => {
           clearIndicators();
 
           addSuccessMessage(t('Issue deleted'));
@@ -294,12 +297,14 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
         data,
       },
       {
-        complete: () => {
+        success: () => {
           clearIndicators();
           if (successMessage) {
             addSuccessMessage(successMessage);
           }
           onComplete?.();
+        },
+        complete: () => {
           queryClient.invalidateQueries({
             queryKey: groupQueryKey({
               organizationSlug: organization.slug,
@@ -589,12 +594,14 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
           analyticsEventName="Issue Details: Share Action Clicked"
         />
         <DropdownMenu
-          triggerProps={{
-            'aria-label': t('More Actions'),
-            icon: <IconEllipsis />,
-            showChevron: false,
-            size: 'sm',
-          }}
+          trigger={triggerProps => (
+            <OverlayTrigger.IconButton
+              {...triggerProps}
+              aria-label={t('More Actions')}
+              icon={<IconEllipsis />}
+              size="sm"
+            />
+          )}
           items={[
             {
               key: 'mark-review',

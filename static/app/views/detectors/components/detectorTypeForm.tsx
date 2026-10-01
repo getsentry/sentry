@@ -78,7 +78,7 @@ function MonitorTypeField() {
 
   const useMetricDetectorLimit =
     getOverride('react-hook:use-metric-detector-limit') ?? (() => null);
-  const quota = useMetricDetectorLimit();
+  const quota = useMetricDetectorLimit(); // oxlint-disable-line react/hooks -- Hook comes from the override registry, which is populated before React renders.
   const canCreateMetricDetector = !quota?.hasReachedLimit;
 
   const handleChange = (value: SelectableDetectorType) => {

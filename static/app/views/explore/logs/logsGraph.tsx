@@ -3,10 +3,10 @@ import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import Feature from 'sentry/components/acl/feature';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {IconClock, IconContract, IconEllipsis, IconExpand, IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -419,12 +419,15 @@ function ContextMenu({interval, visualize}: {interval: string; visualize: Visual
 
   return (
     <DropdownMenu
-      triggerProps={{
-        size: 'xs',
-        variant: 'transparent',
-        showChevron: false,
-        icon: <IconEllipsis />,
-      }}
+      trigger={triggerProps => (
+        <OverlayTrigger.IconButton
+          {...triggerProps}
+          size="xs"
+          variant="transparent"
+          icon={<IconEllipsis />}
+          aria-label={t('Chart actions')}
+        />
+      )}
       position="bottom-end"
       items={items}
     />

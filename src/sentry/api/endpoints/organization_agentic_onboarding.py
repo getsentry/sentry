@@ -8,7 +8,11 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from sentry import analytics
-from sentry.analytics.events.agentic_onboarding import AgenticOnboardingStageCompletedEvent
+from sentry.analytics.events.agentic_onboarding import (
+    AgenticOnboardingRunCompletedEvent,
+    AgenticOnboardingStageCompletedEvent,
+    AgenticOnboardingStageStatusChangedEvent,
+)
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -207,7 +211,7 @@ class OrganizationAgenticOnboardingStatusEndpoint(OrganizationEndpoint):
         assert user_id is not None
 
         try:
-            run, _, stage_status_changed = get_onboarding_progress_service().update(
+            run, changed, stage_status_changed = get_onboarding_progress_service().update(
                 token=values["run_token"],
                 user_id=user_id,
                 organization_id=organization.id,
@@ -223,6 +227,16 @@ class OrganizationAgenticOnboardingStatusEndpoint(OrganizationEndpoint):
             return Response({"detail": INVALID_PROGRESS_UPDATE_DETAIL}, status=400)
 
         if stage_status_changed:
+            analytics.record(
+                AgenticOnboardingStageStatusChangedEvent(
+                    user_id=user_id,
+                    organization_id=organization.id,
+                    run_id=run.run_id,
+                    stage=values["update"].stage.value,
+                    status=values["update"].status.value,
+                )
+            )
+
             if values["update"].status is StageStatus.COMPLETED:
                 analytics.record(
                     AgenticOnboardingStageCompletedEvent(
@@ -233,6 +247,16 @@ class OrganizationAgenticOnboardingStatusEndpoint(OrganizationEndpoint):
                         status=values["update"].status.value,
                     )
                 )
+
+        if changed and run.run_status is RunStatus.COMPLETED:
+            analytics.record(
+                AgenticOnboardingRunCompletedEvent(
+                    user_id=user_id,
+                    organization_id=organization.id,
+                    run_id=run.run_id,
+                    status=run.run_status.value,
+                )
+            )
 
         snapshot = serialize(run, request.user, AgenticOnboardingRunSerializer())
         return Response(snapshot)

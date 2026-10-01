@@ -35,7 +35,6 @@ export const automationsApiOptions = (
     detector?: string[];
     ids?: string[];
     limit?: number;
-    priorityDetector?: string;
     projects?: number[];
     query?: string;
     sortBy?: string;
@@ -45,7 +44,6 @@ export const automationsApiOptions = (
     ? {
         query: options.query,
         sortBy: options.sortBy,
-        priorityDetector: options.priorityDetector,
         id: options.ids,
         per_page: options.limit,
         cursor: options.cursor,

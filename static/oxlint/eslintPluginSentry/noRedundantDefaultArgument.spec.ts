@@ -1,14 +1,11 @@
-// oxlint-disable-next-line import-js/no-extraneous-dependencies
-import parser from '@typescript-eslint/parser';
-import {RuleTester} from '@typescript-eslint/rule-tester';
-import {TSESLint} from '@typescript-eslint/utils';
+import {RuleTester} from 'oxlint/plugins-dev';
 
 import {noRedundantDefaultArgument} from './noRedundantDefaultArgument';
 
 const ruleTester = new RuleTester({
   languageOptions: {
     parserOptions: {
-      ecmaFeatures: {jsx: true},
+      lang: 'tsx',
     },
   },
 });
@@ -17,40 +14,48 @@ it('refreshes cached imported defaults after the source file changes', () => {
   const consumer = `${__dirname}/fixtures/consumer.ts`;
   const dependency = `${__dirname}/fixtures/mutableImportedDefault.ts`;
   const originalDependency = 'export function mutableDefault(value = 1) {}';
+  const call = (value: number) =>
+    `import {mutableDefault} from './mutableImportedDefault'; mutableDefault(${value});`;
+  const output =
+    "import {mutableDefault} from './mutableImportedDefault'; mutableDefault();";
+  const tester = new RuleTester();
+  const originalDescribe = RuleTester.describe;
+  const originalIt = RuleTester.it;
 
-  const lint = (code: string, filename: string) =>
-    new TSESLint.Linter().verify(
-      code,
-      [
-        {
-          files: ['**/*.ts'],
-          languageOptions: {parser},
-          plugins: {
-            sentry: {
-              rules: {'no-redundant-default-argument': noRedundantDefaultArgument},
-            },
-          },
-          rules: {'sentry/no-redundant-default-argument': 'error'},
-        },
+  // Run every lint pass synchronously inside this one Jest test.
+  RuleTester.describe = (_name, run) => run();
+  RuleTester.it = (_name, run) => run();
+  try {
+    tester.run('initial default', noRedundantDefaultArgument, {
+      valid: [],
+      invalid: [{code: call(1), filename: consumer, errors: 1, output}],
+    });
+    tester.run('update dependency', noRedundantDefaultArgument, {
+      valid: [
+        {code: 'export function mutableDefault(value = 2) {}', filename: dependency},
       ],
-      {filename}
-    );
-
-  const callMutableDefault = (value: number) =>
-    lint(
-      `import {mutableDefault} from './mutableImportedDefault'; mutableDefault(${value});`,
-      consumer
-    );
-
-  expect(callMutableDefault(1)).toHaveLength(1);
-  expect(lint('export function mutableDefault(value = 2) {}', dependency)).toHaveLength(
-    0
-  );
-  expect(callMutableDefault(1)).toHaveLength(0);
-  expect(callMutableDefault(2)).toHaveLength(1);
-  expect(lint(originalDependency, dependency)).toHaveLength(0);
+      invalid: [],
+    });
+    tester.run('old default is allowed', noRedundantDefaultArgument, {
+      valid: [{code: call(1), filename: consumer}],
+      invalid: [],
+    });
+    tester.run('new default is redundant', noRedundantDefaultArgument, {
+      valid: [],
+      invalid: [{code: call(2), filename: consumer, errors: 1, output}],
+    });
+  } finally {
+    try {
+      tester.run('restore dependency', noRedundantDefaultArgument, {
+        valid: [{code: originalDependency, filename: dependency}],
+        invalid: [],
+      });
+    } finally {
+      RuleTester.describe = originalDescribe;
+      RuleTester.it = originalIt;
+    }
+  }
 });
-
 ruleTester.run('no-redundant-default-argument', noRedundantDefaultArgument, {
   valid: [
     {

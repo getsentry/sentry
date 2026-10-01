@@ -1,16 +1,14 @@
 import type {ReactNode} from 'react';
-import {PageFilterStateFixture, PageFiltersFixture} from 'sentry-fixture/pageFilters';
+import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
 import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {FieldKind} from 'sentry/utils/fields';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {useLogsSearchQueryBuilderProps} from 'sentry/views/explore/logs/useLogsSearchQueryBuilderProps';
 import type {EventValidationData} from 'sentry/views/explore/utils/validateEventParamsOptions';
-
-jest.mock('sentry/components/pageFilters/usePageFilters');
 
 function Wrapper({children}: {children: ReactNode}) {
   return (
@@ -47,18 +45,17 @@ const arrayFeatures = {features: ['trace-item-array-query-support']};
 
 describe('useLogsSearchQueryBuilderProps', () => {
   beforeEach(() => {
-    jest.mocked(usePageFilters).mockReturnValue(
-      PageFilterStateFixture({
-        selection: PageFiltersFixture({
-          datetime: {period: '14d', start: null, end: null, utc: false},
-          environments: [],
-          projects: [1],
-        }),
+    PageFiltersStore.onInitializeUrlState(
+      PageFiltersFixture({
+        datetime: {period: '14d', start: null, end: null, utc: false},
+        environments: [],
+        projects: [1],
       })
     );
   });
 
   afterEach(() => {
+    PageFiltersStore.reset();
     jest.clearAllMocks();
   });
 

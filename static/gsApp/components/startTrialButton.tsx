@@ -4,9 +4,9 @@ import {
   type ButtonProps,
   type LinkButtonProps,
 } from '@sentry/scraps/button';
+import {toast} from '@sentry/scraps/toast';
 
 import {t} from 'sentry/locale';
-import {IndicatorStore} from 'sentry/stores/indicatorStore';
 import type {Organization} from 'sentry/types/organization';
 
 import TrialStarter from 'getsentry/components/trialStarter';
@@ -38,7 +38,7 @@ export function StartTrialButton({
       source={source}
       organization={organization}
       onTrialFailed={() => {
-        IndicatorStore.addError(t('Error starting trial. Please try again.'));
+        toast.error(t('Error starting trial. Please try again.'), {duration: 2000});
         onTrialFailed?.();
       }}
       onTrialStarted={onTrialStarted}

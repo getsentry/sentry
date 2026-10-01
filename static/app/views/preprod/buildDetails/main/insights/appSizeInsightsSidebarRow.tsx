@@ -114,6 +114,7 @@ export function AppSizeInsightsSidebarRow({
 
   useEffect(() => {
     if (!isExpanded) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setCurrentPage(0);
     }
   }, [isExpanded]);

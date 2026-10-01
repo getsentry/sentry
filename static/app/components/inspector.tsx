@@ -8,7 +8,6 @@ import {useHotkeys} from '@sentry/scraps/hotkey';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
-import {useTranslation} from '@sentry/scraps/translationContext';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Overlay} from 'sentry/components/overlay';
@@ -20,6 +19,7 @@ import {
 } from 'sentry/components/profiling/profilingContextMenu';
 import {NODE_ENV} from 'sentry/constants';
 import {IconChevron, IconCopy, IconDocs, IconLink, IconOpen} from 'sentry/icons';
+import {t} from 'sentry/locale';
 // eslint-disable-next-line boundaries/dependencies
 import {storyFiles, storyFrontmatterIndex} from 'sentry/stories/storyManifest.generated';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -39,7 +39,6 @@ const storybookFilesLookup = storyFiles.reduce<Record<string, string>>((acc, fil
 
 export function SentryComponentInspector() {
   const theme = useTheme();
-  const {t} = useTranslation();
   const tooltipRef = useRef<HTMLDivElement>(null);
   const contextMenuElementRef = useRef<HTMLDivElement>(null);
   const skipShowingTooltipRef = useRef(false);
@@ -68,6 +67,7 @@ export function SentryComponentInspector() {
     },
   ]);
 
+  // oxlint-disable-next-line react/refs
   const contextMenu = useContextMenu({container: tooltipRef.current});
   const [contextMenuTrace, setContextMenuTrace] = useState<TraceElement[] | null>(null);
 
@@ -96,6 +96,7 @@ export function SentryComponentInspector() {
 
   // Store the state in a ref to avoid re-rendering inside the listeners
   const stateRef = useRef(state);
+  // oxlint-disable-next-line react/refs
   stateRef.current = state;
 
   useLayoutEffect(() => {
@@ -414,6 +415,7 @@ export function SentryComponentInspector() {
           </ProfilingContextMenu>
           <div
             ref={el => {
+              // oxlint-disable-next-line react/immutability
               contextMenu.subMenuRef.current = el;
             }}
             data-inspector-skip
@@ -466,13 +468,13 @@ function MenuItem(props: {
   storybook: string | null;
   subMenuPortalRef: HTMLElement | null;
 }) {
-  const {t} = useTranslation();
   const figmaUrl = props.storybook
     ? storyFrontmatterIndex[props.storybook]?.figma
     : undefined;
 
   const [isOpen, _setIsOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
+  // oxlint-disable-next-line react/refs
   const popper = usePopper(triggerRef.current, props.subMenuPortalRef, {
     placement: 'right-start',
     modifiers: [
@@ -518,6 +520,7 @@ function MenuItem(props: {
   return (
     <Fragment>
       <ProfilingContextMenuItemButton
+        // oxlint-disable-next-line react/refs
         {...props.contextMenu.getMenuItemProps({
           ref: el => {
             triggerRef.current = el;

@@ -5,17 +5,7 @@ from typing import Required, TypedDict
 
 import sentry_sdk
 from django.db import IntegrityError, router, transaction
-from django.db.models import (
-    Case,
-    Exists,
-    F,
-    IntegerField,
-    OrderBy,
-    OuterRef,
-    Subquery,
-    Value,
-    When,
-)
+from django.db.models import Case, Exists, F, IntegerField, OrderBy, OuterRef, Subquery, Value, When
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.request import Request
@@ -54,7 +44,11 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.superuser import is_active_superuser
 from sentry.db.models.fields.text import CharField
 from sentry.locks import locks
-from sentry.models.dashboard import Dashboard, DashboardFavoriteUser, DashboardLastVisited
+from sentry.models.dashboard import (
+    Dashboard,
+    DashboardFavoriteUser,
+    DashboardLastVisited,
+)
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization.model import (
     RpcOrganization,
@@ -104,6 +98,7 @@ class PrebuiltDashboard(TypedDict, total=False):
     title: Required[str]
     hidden: bool
     pre_favorited: bool
+    required_feature_flags: list[str]
 
 
 # Prebuilt dashboards store minimal fields in the database. The actual dashboard and widget settings are
@@ -240,6 +235,7 @@ PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
     {
         "prebuilt_id": PrebuiltDashboardId.NODE_RUNTIME_METRICS,
         "title": "Node.js Runtime Metrics",
+        "required_feature_flags": ["organizations:tracemetrics-enabled"],
     },
 ]
 
@@ -263,6 +259,10 @@ def get_enabled_prebuilt_dashboards(
         dashboard
         for dashboard in all_prebuilt_dashboards
         if dashboard["prebuilt_id"] in enabled_prebuilt_dashboard_ids
+        and all(
+            features.has(feature, organization)
+            for feature in dashboard.get("required_feature_flags", [])
+        )
     ]
 
 
@@ -374,10 +374,10 @@ def sync_prebuilt_dashboards_favorited(organization: Organization, user_id: int)
 
 class OrganizationDashboardsPermission(OrganizationPermission):
     scope_map = {
-        "GET": ["org:read", "org:write", "org:admin"],
-        "POST": ["org:read", "org:write", "org:admin"],
-        "PUT": ["org:read", "org:write", "org:admin"],
-        "DELETE": ["org:read", "org:write", "org:admin"],
+        "GET": ["org:read", "org:write", "org:admin", "dashboard:read"],
+        "POST": ["org:read", "org:write", "org:admin", "dashboard:write"],
+        "PUT": ["org:read", "org:write", "org:admin", "dashboard:write"],
+        "DELETE": ["org:read", "org:write", "org:admin", "dashboard:delete"],
     }
 
     def has_object_permission(

@@ -46,7 +46,7 @@ from sentry.preprod.vcs.status_checks.utils import (
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.namespaces import preprod_tasks
+from sentry.taskworker.namespaces import preprod_size_tasks
 
 logger = logging.getLogger(__name__)
 
@@ -220,7 +220,7 @@ def evaluate_size_and_format_messages(
 
 @instrumented_task(
     name="sentry.preprod.tasks.create_preprod_status_check",
-    namespace=preprod_tasks,
+    namespace=preprod_size_tasks,
     processing_deadline_duration=30,
     silo_mode=SiloMode.CELL,
 )

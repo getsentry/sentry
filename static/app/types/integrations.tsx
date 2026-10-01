@@ -195,6 +195,7 @@ export interface LinkedPullRequest extends Omit<PullRequest, 'author'> {
 
 export interface LinkedPullRequestsResponse {
   pullRequests: LinkedPullRequest[];
+  latestRegressionAt?: string | null;
 }
 
 /**
@@ -461,6 +462,8 @@ interface CommonIntegration {
   organizationIntegrationStatus: ObjectStatus;
   provider: OrganizationIntegrationProvider;
   status: ObjectStatus;
+  /** GitHub only: feature tiers this installation is missing, oldest first. */
+  missingFeatures?: Array<{description: string; key: string; name: string}> | null;
   outOfDate?: boolean | null;
 }
 

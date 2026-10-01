@@ -1,6 +1,7 @@
 import {renderHook} from 'sentry-test/reactTestingLibrary';
 
-import {loadPrismLanguage} from 'sentry/utils/prism';
+import {loadPrismLanguage} from '@sentry/scraps/code';
+
 import {usePrismTokens} from 'sentry/utils/usePrismTokens';
 
 jest.unmock('prismjs');

@@ -3,10 +3,10 @@ import moment from 'moment-timezone';
 import {Link} from '@sentry/scraps/link';
 
 import {UserBadge} from 'sentry/components/idBadge/userBadge';
+import {ResultGrid} from 'sentry/components/resultGrid';
 import {Truncate} from 'sentry/components/truncate';
 
 import {PageHeader} from 'admin/components/pageHeader';
-import {ResultGrid} from 'admin/components/resultGrid';
 
 const getRow = (row: any) => [
   <td key="user">
@@ -42,7 +42,6 @@ export function Users() {
         inPanel
         path="/_admin/users/"
         endpoint="/users/"
-        method="GET"
         columns={[
           <th key="user">User</th>,
           <th key="email" style={{width: 100, textAlign: 'center'}}>

@@ -4,12 +4,11 @@ import type {LocationDescriptor} from 'history';
 
 import {Button, ButtonBar, LinkButton, type ButtonProps} from '@sentry/scraps/button';
 import {MenuComponents} from '@sentry/scraps/compactSelect';
+import {DropdownMenu, DropdownMenuFooter} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 
 import {bulkUpdate} from 'sentry/actionCreators/group';
 import {addSuccessMessage, clearIndicators} from 'sentry/actionCreators/indicator';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {DropdownMenuFooter} from 'sentry/components/dropdownMenu/footer';
 import {getAutofixNextStep} from 'sentry/components/events/autofix/getAutofixNextStep';
 import {findCodingAgentResultLink} from 'sentry/components/events/autofix/pullRequests';
 import {getCodingAgentName} from 'sentry/components/events/autofix/types';
@@ -22,7 +21,10 @@ import {
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {useCodingAgents} from 'sentry/components/events/autofix/v3/useCodingAgents';
-import {useLinkedPullRequests} from 'sentry/components/group/externalIssuesList/linkedPullRequests';
+import {
+  partitionLinkedPullRequests,
+  useLinkedPullRequests,
+} from 'sentry/components/group/externalIssuesList/linkedPullRequests';
 import {Placeholder} from 'sentry/components/placeholder';
 import {
   IconAdd,
@@ -131,14 +133,16 @@ export function OpenIssueButton({
   );
 }
 
-function FixAppliedActions({
+function IssueResolutionActions({
   disabled,
   group,
   project,
+  variant = 'primary',
 }: {
   disabled: boolean;
   group: Group;
   project: Project;
+  variant?: 'primary' | 'secondary';
 }) {
   const api = useApi({persistInFlight: true});
   const organization = useOrganization();
@@ -226,6 +230,7 @@ function FixAppliedActions({
       group={group}
       onUpdate={handleUpdate}
       project={project}
+      variant={variant}
     />
   );
 }
@@ -666,12 +671,15 @@ function ActionButtons({
   onContinueInSeer,
   onRetryCodeChanges,
 }: AutofixActionProps) {
-  const openPullRequests =
-    linkedPullRequestsData?.pullRequests
-      .filter(
-        pullRequest => pullRequest.status === 'open' || pullRequest.status === 'draft'
-      )
-      .sort((a, b) => Date.parse(b.dateCreated) - Date.parse(a.dateCreated)) ?? [];
+  const {currentPullRequests} = partitionLinkedPullRequests(
+    linkedPullRequestsData?.pullRequests ?? [],
+    linkedPullRequestsData?.latestRegressionAt
+  );
+  const openPullRequests = currentPullRequests
+    .filter(
+      pullRequest => pullRequest.status === 'open' || pullRequest.status === 'draft'
+    )
+    .sort((a, b) => Date.parse(b.dateCreated) - Date.parse(a.dateCreated));
   const hasMultiplePullRequests = openPullRequests.length > 1;
   const displayedPullRequests = hasMultiplePullRequests
     ? openPullRequests.slice(0, 2)
@@ -760,7 +768,7 @@ export function IssuePreviewActions({
   const {autofix, isLoading, shouldShowSeerActions} = useIssuePreviewSeer();
 
   if (shouldShowFixAppliedActions(group, project)) {
-    return <FixAppliedActions disabled={disabled} group={group} project={project} />;
+    return <IssueResolutionActions disabled={disabled} group={group} project={project} />;
   }
 
   if (isLoading) {
@@ -774,12 +782,20 @@ export function IssuePreviewActions({
   }
 
   return (
-    <AutofixActions
-      autofix={autofix}
-      disabled={disabled}
-      group={group}
-      onContinueInSeer={onContinueInSeer}
-      onRetryCodeChanges={onRetryCodeChanges}
-    />
+    <Flex align="center" gap="sm" wrap="wrap">
+      <AutofixActions
+        autofix={autofix}
+        disabled={disabled}
+        group={group}
+        onContinueInSeer={onContinueInSeer}
+        onRetryCodeChanges={onRetryCodeChanges}
+      />
+      <IssueResolutionActions
+        disabled={disabled}
+        group={group}
+        project={project}
+        variant="secondary"
+      />
+    </Flex>
   );
 }

@@ -135,8 +135,10 @@ export const useResizable = ({
     };
   }, [handleMouseMove, handleMouseUp]);
 
+  // oxlint-disable-next-line react/refs
   return {
     isHeld,
+    // oxlint-disable-next-line react/refs
     size: ref.current?.offsetWidth ?? initialSize,
     onMouseDown: handleMouseDown,
   };

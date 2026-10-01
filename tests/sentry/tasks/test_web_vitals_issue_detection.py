@@ -2,6 +2,7 @@ from contextlib import contextmanager
 from unittest.mock import patch
 
 import pytest
+from django.test import override_settings
 
 from sentry.issues.grouptype import WebVitalsGroup
 from sentry.issues.ingest import hash_fingerprint
@@ -12,6 +13,7 @@ from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.task_runner import TaskRunner
 
 
+@override_settings(SENTRY_SELF_HOSTED=False)
 class WebVitalsIssueDetectionDataTest(TestCase, SnubaTestCase, SpanTestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -45,7 +47,6 @@ class WebVitalsIssueDetectionDataTest(TestCase, SnubaTestCase, SpanTestCase):
                     "issue-detection.web-vitals-detection.projects-allowlist": [project.id],
                 }
             ),
-            self.feature("organizations:gen-ai-features"),
         ):
             run_web_vitals_issue_detection()
 
@@ -63,7 +64,6 @@ class WebVitalsIssueDetectionDataTest(TestCase, SnubaTestCase, SpanTestCase):
                     "issue-detection.web-vitals-detection.projects-allowlist": [project.id],
                 }
             ),
-            self.feature("organizations:gen-ai-features"),
         ):
             run_web_vitals_issue_detection()
 
@@ -79,7 +79,6 @@ class WebVitalsIssueDetectionDataTest(TestCase, SnubaTestCase, SpanTestCase):
                     "issue-detection.web-vitals-detection.projects-allowlist": [],
                 }
             ),
-            self.feature("organizations:gen-ai-features"),
         ):
             run_web_vitals_issue_detection()
 
@@ -171,7 +170,6 @@ class WebVitalsIssueDetectionDataTest(TestCase, SnubaTestCase, SpanTestCase):
                     "issue-detection.web-vitals-detection.projects-allowlist": [project.id],
                 }
             ),
-            self.feature("organizations:gen-ai-features"),
             TaskRunner(),
         ):
             run_web_vitals_issue_detection()
@@ -289,7 +287,6 @@ class WebVitalsIssueDetectionDataTest(TestCase, SnubaTestCase, SpanTestCase):
                     "issue-detection.web-vitals-detection.projects-allowlist": [project.id],
                 }
             ),
-            self.feature("organizations:gen-ai-features"),
             TaskRunner(),
         ):
             run_web_vitals_issue_detection()
@@ -375,7 +372,6 @@ class WebVitalsIssueDetectionDataTest(TestCase, SnubaTestCase, SpanTestCase):
                     "issue-detection.web-vitals-detection.projects-allowlist": [project.id],
                 }
             ),
-            self.feature("organizations:gen-ai-features"),
             TaskRunner(),
         ):
             run_web_vitals_issue_detection()
@@ -419,7 +415,6 @@ class WebVitalsIssueDetectionDataTest(TestCase, SnubaTestCase, SpanTestCase):
                     "issue-detection.web-vitals-detection.projects-allowlist": [project.id],
                 }
             ),
-            self.feature("organizations:gen-ai-features"),
             TaskRunner(),
         ):
             run_web_vitals_issue_detection()
@@ -500,7 +495,6 @@ class WebVitalsIssueDetectionDataTest(TestCase, SnubaTestCase, SpanTestCase):
                     "issue-detection.web-vitals-detection.projects-allowlist": [project.id],
                 }
             ),
-            self.feature("organizations:gen-ai-features"),
             TaskRunner(),
         ):
             run_web_vitals_issue_detection()
@@ -609,7 +603,6 @@ class WebVitalsIssueDetectionDataTest(TestCase, SnubaTestCase, SpanTestCase):
                     "issue-detection.web-vitals-detection.projects-allowlist": [project.id],
                 }
             ),
-            self.feature("organizations:gen-ai-features"),
             TaskRunner(),
         ):
             run_web_vitals_issue_detection()
@@ -642,7 +635,6 @@ class WebVitalsIssueDetectionDataTest(TestCase, SnubaTestCase, SpanTestCase):
                     "issue-detection.web-vitals-detection.projects-allowlist": [project.id],
                 }
             ),
-            self.feature("organizations:gen-ai-features"),
             TaskRunner(),
         ):
             run_web_vitals_issue_detection()

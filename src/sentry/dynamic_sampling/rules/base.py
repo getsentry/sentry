@@ -25,7 +25,7 @@ ALWAYS_INCLUDED_RULE_TYPES = {
 ALWAYS_ALLOWED_RULE_TYPES = {
     RuleType.MINIMUM_SAMPLE_RATE_RULE,
 }
-# This threshold should be in sync with the execution time of the cron job responsible for running the sliding window.
+# This threshold should be in sync with the schedule of the per-org dynamic sampling task.
 NEW_MODEL_THRESHOLD_IN_MINUTES = 10
 
 
@@ -38,9 +38,8 @@ def is_recently_added(model: Model) -> bool:
     to infer whether we should boost a specific project.
 
     The boosting has been implemented because we want to guarantee that the user will have a good onboarding
-    experience. In theory with the sliding window mechanism we will automatically give 100% also to new projects, but
-    it can also happen that there are problems with cron jobs and in that case, if we don't have a specific condition
-    like this one, the boosting will not happen.
+    experience. The per-org dynamic sampling task also gives 100% to new projects, but if it fails to run, this
+    condition still guarantees the boost.
     """
     if hasattr(model, "date_added"):
         ten_minutes_ago = datetime.now(tz=timezone.utc) - timedelta(
@@ -77,22 +76,15 @@ def get_guarded_project_sample_rate(organization: Organization, project: Project
     if sample_rate == 1.0:
         return float(sample_rate)
 
-    # For now, we will keep this new boost for orgs with the sliding window enabled.
-    #
     # In case the organization or the project have been recently added, we want to boost to 100% in order to give users
     # a better experience. Once this condition will become False, the dynamic sampling systems will kick in.
     if is_recently_added(model=project) or is_recently_added(model=organization):
         return 1.0
 
-    # When using the boosted project sample rate, we want to fall back to the blended sample rate in case there are
-    # any issues.
-    sample_rate = get_project_sample_rate(
-        org_id=organization.id,
-        project_id=project.id,
-        error_sample_rate_fallback=sample_rate,
-    )
-
-    return float(sample_rate)
+    balanced_sample_rate = get_project_sample_rate(org_id=organization.id, project_id=project.id)
+    if balanced_sample_rate is None:
+        return float(sample_rate)
+    return balanced_sample_rate
 
 
 def _get_rules_of_enabled_biases(

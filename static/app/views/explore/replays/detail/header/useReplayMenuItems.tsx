@@ -1,7 +1,8 @@
 import * as Sentry from '@sentry/react';
 
+import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {ExternalLink} from 'sentry/components/links/externalLink';
 import {useConfigureReplayMenuItem} from 'sentry/components/replays/header/configureReplayMenuItem';
 import {IconBug, IconCopyId, IconDelete, IconDownload, IconUpload} from 'sentry/icons';
@@ -90,6 +91,7 @@ export function useReplayMenuItems({
             try {
               const json = JSON.stringify(replay.getRRWebFrames());
               await navigator.clipboard.writeText(json);
+              // oxlint-disable-next-line react/immutability
               window.location.href = 'sentry-replay-debugger://open';
             } catch (error) {
               Sentry.captureException(error);

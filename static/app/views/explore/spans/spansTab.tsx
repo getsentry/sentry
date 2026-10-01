@@ -1,4 +1,4 @@
-import {Fragment, useEffect} from 'react';
+import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
@@ -116,7 +116,8 @@ interface SpanTabProps {
 const SPANS_TOOLBAR_STORAGE_KEY = 'explore-spans-toolbar';
 
 export function SpansTabContent({datePageFilterProps}: SpanTabProps) {
-  useVisitExplore();
+  const id = useQueryParamsId();
+  useVisitQuery(id);
 
   const [controlSectionExpanded, setControlSectionExpanded] = useControlSectionExpanded(
     SPANS_TOOLBAR_STORAGE_KEY
@@ -138,16 +139,6 @@ export function SpansTabContent({datePageFilterProps}: SpanTabProps) {
       </ChartSelectionProvider>
     </Fragment>
   );
-}
-
-function useVisitExplore() {
-  const id = useQueryParamsId();
-  const visitQuery = useVisitQuery();
-  useEffect(() => {
-    if (defined(id)) {
-      visitQuery(id);
-    }
-  }, [id, visitQuery]);
 }
 
 interface SpanTabControlSectionProps {

@@ -20,6 +20,15 @@ import type {
   ExplorerFilePatch,
   RepoPRState,
 } from 'sentry/views/seerExplorer/types';
+import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
+
+jest.mock('sentry/views/seerExplorer/useSeerExplorerContext', () => {
+  const actual = jest.requireActual('sentry/views/seerExplorer/useSeerExplorerContext');
+  return {
+    ...actual,
+    useSeerExplorerContext: jest.fn(actual.useSeerExplorerContext),
+  };
+});
 
 jest.mock('sentry/views/seerExplorer/components/fileDiffViewer', () => ({
   FileDiffViewer: ({defaultExpanded}: {defaultExpanded?: boolean}) => (
@@ -161,6 +170,125 @@ describe('ArtifactCard', () => {
     jest.clearAllMocks();
   });
 
+  describe('on the Autofix page', () => {
+    const chatOrganization = OrganizationFixture({
+      features: ['autofix-page', 'seer-explorer-chat-prompts', 'seer-explorer'],
+      openMembership: true,
+      hideAiFeatures: false,
+    });
+    const openChatPrompt = jest.fn();
+    const {useSeerExplorerContext: actualUseSeerExplorerContext} = jest.requireActual(
+      'sentry/views/seerExplorer/useSeerExplorerContext'
+    );
+
+    beforeEach(() => {
+      jest.mocked(useSeerExplorerContext).mockImplementation(() => ({
+        ...actualUseSeerExplorerContext(),
+        openChatPrompt,
+      }));
+    });
+
+    afterEach(() => {
+      jest
+        .mocked(useSeerExplorerContext)
+        .mockImplementation(actualUseSeerExplorerContext);
+    });
+
+    it.each([
+      [
+        'root cause',
+        () => (
+          <RootCauseCard
+            autofix={mockAutofixWithRunState}
+            groupId="1"
+            section={makeSection('root_cause', 'completed', [
+              makeRootCauseArtifact({one_line_description: 'Bug', five_whys: []}),
+            ])}
+          />
+        ),
+        'root_cause',
+        'How can this root cause be improved?',
+      ],
+      [
+        'plan',
+        () => (
+          <SolutionCard
+            autofix={mockAutofixWithRunState}
+            section={makeSection('solution', 'completed', [
+              makeSolutionArtifact({one_line_summary: 'Fix it', steps: []}),
+            ])}
+          />
+        ),
+        'solution',
+        'How can this plan be improved?',
+      ],
+      [
+        'code changes',
+        () => (
+          <CodeChangesCard
+            autofix={mockAutofixWithRunState}
+            groupId="1"
+            section={makeSection('code_changes', 'completed', [
+              [makePatch('org/repo', 'src/app.py')],
+            ])}
+          />
+        ),
+        'code_changes',
+        'How can this code change be improved?',
+      ],
+    ])(
+      'opens Seer Agent from the %s re-run button',
+      async (_name, card, step, question) => {
+        render(card(), {organization: chatOrganization});
+
+        expect(
+          screen.queryByRole('button', {name: 'Re-run step'})
+        ).not.toBeInTheDocument();
+        const chatButton = screen.getByRole('button', {
+          name: 'Chat with Seer about this step',
+        });
+        await userEvent.hover(chatButton);
+        expect(
+          await screen.findByText(
+            'Chat with Seer about this step, or provide more context for it to re-run'
+          )
+        ).toBeInTheDocument();
+
+        await userEvent.click(chatButton);
+
+        expect(openChatPrompt).toHaveBeenCalledWith({
+          prompt: question,
+          context: {autofixStep: step},
+        });
+        expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+      }
+    );
+
+    it('keeps the re-run prompt without chat prompts', async () => {
+      render(
+        <RootCauseCard
+          autofix={mockAutofixWithRunState}
+          groupId="1"
+          section={makeSection('root_cause', 'completed', [
+            makeRootCauseArtifact({one_line_description: 'Bug', five_whys: []}),
+          ])}
+        />,
+        {
+          organization: OrganizationFixture({
+            features: ['autofix-page', 'seer-explorer'],
+            openMembership: true,
+            hideAiFeatures: false,
+          }),
+        }
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Re-run step'}));
+
+      expect(openChatPrompt).not.toHaveBeenCalled();
+      expect(screen.getByRole('textbox')).toBeInTheDocument();
+    });
+  });
+
   describe('RootCauseCard', () => {
     it('renders title and one_line_description summary', () => {
       const artifact = makeRootCauseArtifact({
@@ -292,7 +420,10 @@ describe('ArtifactCard', () => {
         />
       );
 
-      expect(screen.queryByRole('button', {name: 'Copy as Markdown'})).toBeDisabled();
+      expect(screen.queryByRole('button', {name: 'Copy as Markdown'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
     });
   });
 
@@ -388,7 +519,10 @@ describe('ArtifactCard', () => {
         />
       );
 
-      expect(screen.queryByRole('button', {name: 'Copy as Markdown'})).toBeDisabled();
+      expect(screen.queryByRole('button', {name: 'Copy as Markdown'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
     });
   });
 
@@ -556,7 +690,10 @@ describe('ArtifactCard', () => {
         />
       );
 
-      expect(screen.queryByRole('button', {name: 'Copy as Markdown'})).toBeDisabled();
+      expect(screen.queryByRole('button', {name: 'Copy as Markdown'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
     });
 
     it('renders error state when all patches have no changes', () => {
@@ -1119,6 +1256,116 @@ describe('ArtifactCard', () => {
       expect(feedbackLink).toHaveAttribute('href', commentUrl);
     });
 
+    it('strips markup and markdown syntax from bot comments', () => {
+      const autofixWithQueued: ReturnType<typeof useExplorerAutofix> = {
+        ...mockAutofix,
+        runState: {
+          run_id: 123,
+          blocks: [],
+          status: 'completed',
+          updated_at: '2026-01-01T00:00:00Z',
+          queued_feedback: [
+            {
+              // Shaped like a real Bugbot comment.
+              text: '<!-- BUGBOT_REVIEW -->\n### Bugbot found <a href="https://cursor.com/open?link=eyJ2ZXJzaW9u">1 issue</a>. **Medium Severity**',
+              source: {
+                type: 'github-pr-comment',
+                comment: {
+                  html_url: 'https://github.com/org/repo/pull/42#issuecomment-1',
+                  user: {login: 'cursor'},
+                },
+              },
+            },
+          ],
+        },
+      };
+
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={autofixWithQueued}
+          section={makeSection('code_changes', 'completed', [
+            [makePatch('org/repo', 'src/app.py')],
+          ])}
+        />,
+        {organization: prIterationOrganization}
+      );
+
+      expect(
+        screen.getByText('Bugbot found 1 issue. Medium Severity')
+      ).toBeInTheDocument();
+      expect(screen.queryByText(/BUGBOT_REVIEW/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/eyJ2ZXJzaW9u/)).not.toBeInTheDocument();
+    });
+
+    it('collapses a long comment into a disclosure', async () => {
+      const longText = `Timeouts abort the upload batch. ${'x'.repeat(400)} End of comment.`;
+      const autofixWithQueued: ReturnType<typeof useExplorerAutofix> = {
+        ...mockAutofix,
+        runState: {
+          run_id: 123,
+          blocks: [],
+          status: 'completed',
+          updated_at: '2026-01-01T00:00:00Z',
+          queued_feedback: [{text: longText, source: {type: 'user-ui'}}],
+        },
+      };
+
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={autofixWithQueued}
+          section={makeSection('code_changes', 'completed', [
+            [makePatch('org/repo', 'src/app.py')],
+          ])}
+        />,
+        {organization: prIterationOrganization}
+      );
+
+      // Twice over: the summary's clipped preview, plus the still-mounted body.
+      const collapsed = screen.getAllByText(/End of comment\./);
+      expect(collapsed).toHaveLength(2);
+      const preview = collapsed.find(el => el.closest('summary'))!;
+      const body = collapsed.find(el => !el.closest('summary'))!;
+      const details = body.closest('details');
+      expect(details).not.toHaveAttribute('open');
+      expect(body).not.toBeVisible();
+
+      await userEvent.click(preview);
+
+      expect(details).toHaveAttribute('open');
+      expect(body).toBeVisible();
+      expect(screen.getAllByText(/End of comment\./)).toHaveLength(1);
+    });
+
+    it('does not collapse a short comment', () => {
+      const autofixWithQueued: ReturnType<typeof useExplorerAutofix> = {
+        ...mockAutofix,
+        runState: {
+          run_id: 123,
+          blocks: [],
+          status: 'completed',
+          updated_at: '2026-01-01T00:00:00Z',
+          queued_feedback: [{text: 'Make the button blue', source: {type: 'user-ui'}}],
+        },
+      };
+
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={autofixWithQueued}
+          section={makeSection('code_changes', 'completed', [
+            [makePatch('org/repo', 'src/app.py')],
+          ])}
+        />,
+        {organization: prIterationOrganization}
+      );
+
+      const comment = screen.getByText('Make the button blue');
+      expect(comment).toBeVisible();
+      expect(comment.closest('details')).toBeNull();
+    });
+
     it('groups a review body with its inline comments under a state header', () => {
       const reviewUrl = 'https://github.com/org/repo/pull/42#pullrequestreview-999';
       const autofixWithQueued: ReturnType<typeof useExplorerAutofix> = {
@@ -1604,6 +1851,39 @@ describe('ArtifactCard', () => {
       // Reset opens the manual feedback form, so the automated flag must not
       // unlock it once a PR exists.
       expect(screen.getByRole('button', {name: 'Re-run step'})).toBeDisabled();
+    });
+
+    it('disables reset when PR iteration is paused', async () => {
+      const autofix: ReturnType<typeof useExplorerAutofix> = {
+        ...mockAutofix,
+        runState: {
+          run_id: 123,
+          blocks: [],
+          status: 'completed',
+          updated_at: '2026-01-01T00:00:00Z',
+          repo_pr_states: {'org/repo': makePR()},
+          pr_iteration_paused: true,
+        },
+      };
+
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={autofix}
+          section={makeSection('code_changes', 'completed', [
+            [makePatch('org/repo', 'src/app.py')],
+          ])}
+        />,
+        {organization: manualPrIterationOrganization}
+      );
+
+      const resetButton = screen.getByRole('button', {name: 'Re-run step'});
+      expect(resetButton).toBeDisabled();
+
+      await userEvent.hover(resetButton);
+      expect(
+        await screen.findByText('PR iteration has been stopped for this Autofix run')
+      ).toBeInTheDocument();
     });
 
     it('keeps reset enabled with the feature flag even when PRs exist', () => {
@@ -2109,7 +2389,10 @@ describe('ArtifactCard', () => {
         />
       );
 
-      expect(screen.queryByRole('button', {name: 'Copy as Markdown'})).toBeDisabled();
+      expect(screen.queryByRole('button', {name: 'Copy as Markdown'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
     });
   });
 });

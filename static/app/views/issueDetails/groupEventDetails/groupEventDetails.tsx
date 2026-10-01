@@ -8,6 +8,8 @@ import {useSentryAppComponentsData} from 'sentry/stores/useSentryAppComponentsDa
 import type {GroupActivityReprocess, GroupReprocessing} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
+import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
+import {isNotFoundError} from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -39,6 +41,8 @@ function GroupEventDetails() {
     data: event,
     isPending: isLoadingEvent,
     isError: isEventError,
+    error: eventError,
+    refetch: refetchEvent,
   } = useGroupEvent({
     groupId: params.groupId,
     eventId: params.eventId,
@@ -112,15 +116,16 @@ function GroupEventDetails() {
     return <LoadingError onRetry={refetchGroup} />;
   }
 
-  const renderContent = () => {
-    if (isLoadingEvent) {
-      return <GroupEventDetailsLoading />;
-    }
-
-    return (
-      <GroupEventDetailsContent group={group} event={eventWithMeta} project={project} />
-    );
-  };
+  const content = isLoadingEvent ? (
+    <GroupEventDetailsLoading />
+  ) : isEventError && !isNotFoundError(eventError) ? (
+    <LoadingError
+      message={getRequestErrorUserMessage(eventError)}
+      onRetry={refetchEvent}
+    />
+  ) : (
+    <GroupEventDetailsContent group={group} event={eventWithMeta} project={project} />
+  );
 
   const groupReprocessingStatus = getGroupReprocessingStatus(group);
 
@@ -143,7 +148,7 @@ function GroupEventDetails() {
               }
             />
           ) : (
-            renderContent()
+            content
           )}
         </div>
       </VisuallyCompleteWithData>

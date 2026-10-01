@@ -1,7 +1,6 @@
 from copy import deepcopy
 
 import responses
-from django.core.cache import cache
 from django.http import HttpRequest, HttpResponse
 from django.test import RequestFactory
 from django.urls import reverse
@@ -10,7 +9,11 @@ from fixtures.vsts import WORK_ITEM_UNASSIGNED, WORK_ITEM_UPDATED, WORK_ITEM_UPD
 from sentry.middleware.integrations.classifications import IntegrationClassification
 from sentry.middleware.integrations.parsers.vsts import VstsRequestParser
 from sentry.testutils.cases import TestCase
-from sentry.testutils.outbox import assert_no_webhook_payloads, assert_webhook_payloads_for_mailbox
+from sentry.testutils.outbox import (
+    assert_no_webhook_payloads,
+    assert_webhook_payloads_for_mailbox,
+    override_mailbox_bucket_count,
+)
 from sentry.testutils.silo import control_silo_test, create_test_cells
 
 
@@ -22,6 +25,8 @@ class VstsRequestParserTest(TestCase):
 
     def setUp(self) -> None:
         super().setUp()
+        # Pin the rate-derived width so routing assertions exercise the bucket key.
+        self.enterContext(override_mailbox_bucket_count(64))
         self.user = self.create_user()
         self.organization = self.create_organization(owner=self.user)
         account_id = WORK_ITEM_UPDATED["resourceContainers"]["collection"]["id"]
@@ -71,7 +76,7 @@ class VstsRequestParserTest(TestCase):
         assert response.status_code == 202
         assert_webhook_payloads_for_mailbox(
             request=request,
-            mailbox_name=f"vsts:{self.integration.id}",
+            mailbox_name=f"vsts:{self.integration.id}:31",
             cell_names=["us"],
         )
 
@@ -139,16 +144,16 @@ class VstsRequestParserTest(TestCase):
         parser.get_response()
         assert_webhook_payloads_for_mailbox(
             request=request,
-            mailbox_name=f"vsts:{self.integration.id}",
+            mailbox_name=f"vsts:{self.integration.id}:31",
             cell_names=["us"],
         )
 
-    def test_webhook_outbox_creation_bucketed(self) -> None:
-        use_buckets_key = f"webhookpayload:vsts:{self.integration.id}:use_buckets"
-        cache.set(use_buckets_key, 1)
+    def test_webhook_outbox_creation_without_a_work_item(self) -> None:
+        data = deepcopy(WORK_ITEM_UPDATED)
+        del data["resource"]["workItemId"]
         request = self.factory.post(
             self.path,
-            data=WORK_ITEM_UPDATED,
+            data=data,
             content_type="application/json",
             HTTP_SHARED_SECRET=self.shared_secret,
         )
@@ -157,11 +162,9 @@ class VstsRequestParserTest(TestCase):
         assert_no_webhook_payloads()
         parser.get_response()
 
-        cache.delete(use_buckets_key)
         assert_webhook_payloads_for_mailbox(
             request=request,
-            # workItemId 31 % 10
-            mailbox_name=f"vsts:{self.integration.id}:1",
+            mailbox_name=f"vsts:{self.integration.id}",
             cell_names=["us"],
         )
 

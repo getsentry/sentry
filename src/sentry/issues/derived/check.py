@@ -1,15 +1,16 @@
 import logging
 import time
+from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Any, NamedTuple, TypedDict
+from typing import Any, NamedTuple, Protocol, TypedDict
 from uuid import uuid4
 
-from sentry.issues.derived.features import STATUS, IssueStatus
-from sentry.issues.derived.framework import Feature, Pipeline
+from sentry.issues.derived.features import NO_CHANGE_RECONCILE_IDS, STATUS, IssueStatus
+from sentry.issues.derived.framework import Feature, State
 from sentry.issues.derived.gate import derived_should_be_correct
 from sentry.issues.derived.processing import DEFAULT_BATCH_SIZE
-from sentry.issues.derived.store import GroupDerivedDataStore
+from sentry.issues.derived.store import GroupDerivedDataStore, PipelineFeatures
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.issues.models.groupderiveddata import EPOCH, GroupDerivedData
 from sentry.models.group import Group, GroupStatus
@@ -18,6 +19,14 @@ from sentry.utils import metrics
 from sentry.workflow_engine.caches.mapping import CacheMapping
 
 logger = logging.getLogger(__name__)
+
+
+class _GroupActionPipeline(PipelineFeatures, Protocol):
+    @property
+    def pipeline_hash(self) -> str: ...
+
+    def run(self, entries: Iterable[GroupActionLogEntry], state: State | None = None) -> State: ...
+
 
 _GROUP_STATUS_TO_DERIVED_STATUS = {
     GroupStatus.UNRESOLVED: IssueStatus.OPEN,
@@ -152,20 +161,18 @@ type CheckResult = CheckPassed | CheckFailure | CheckInvalidated
 
 
 def compare_derived_data(
-    pipeline: Pipeline[GroupActionLogEntry],
-    expected: GroupDerivedData,
-    actual: GroupDerivedData,
+    pipeline: PipelineFeatures,
+    expected: State,
+    actual: State,
 ) -> dict[Feature[Any], FeatureDifference]:
-    """Compare two derived-data values using a pipeline's features."""
-    expected_state = GroupDerivedDataStore.load(pipeline, expected)
-    actual_state = GroupDerivedDataStore.load(pipeline, actual)
+    """Compare two derived-data states using a pipeline's features."""
     return {
         feature: FeatureDifference(
-            expected=feature.to_json(expected_state[feature]),
-            actual=feature.to_json(actual_state[feature]),
+            expected=feature.to_json(expected[feature]),
+            actual=feature.to_json(actual[feature]),
         )
         for feature in pipeline.features
-        if expected_state[feature] != actual_state[feature]
+        if expected[feature] != actual[feature]
     }
 
 
@@ -243,9 +250,24 @@ def _entries_through_target_cursor(
     )
 
 
+def _log_redundant_reconciles(target: GroupDerivedData, state: State) -> None:
+    """Log when a GDD records a no-change reconcile, for coverage."""
+    no_change_ids = state[NO_CHANGE_RECONCILE_IDS]
+    if not no_change_ids:
+        return
+    logger.info(
+        "check_derived_data.redundant_reconcile",
+        extra={
+            "group_id": target.group_id,
+            "pipeline_hash": target.pipeline_hash,
+            "no_change_reconcile_ids": no_change_ids,
+        },
+    )
+
+
 def check_derived_data(
     target: GroupDerivedData,
-    pipeline: Pipeline[GroupActionLogEntry],
+    pipeline: _GroupActionPipeline,
     timeout: timedelta | None = None,
     *,
     check_id: CheckId | None = None,
@@ -261,6 +283,8 @@ def check_derived_data(
             return CheckInvalidated()
     else:
         check_id = CheckId.new_for_derived_data(target)
+
+    target_state = GroupDerivedDataStore.load(pipeline, target)
 
     replayed_derived = _check_cache.get(check_id)
     if replayed_derived is None:
@@ -293,9 +317,11 @@ def check_derived_data(
         _check_cache.delete(check_id)
         return CheckInvalidated()
 
-    differences = compare_derived_data(pipeline, replayed_derived, target)
+    replayed_state = GroupDerivedDataStore.load(pipeline, replayed_derived)
+    differences = compare_derived_data(pipeline, replayed_state, target_state)
     _check_cache.delete(check_id)
     if not differences:
+        _log_redundant_reconciles(target, replayed_state)
         return CheckPassed()
 
     return CheckFailure(

@@ -1,6 +1,7 @@
 import pytest
 from django.test import override_settings
-from sentry_relay.processing import is_glob_match, validate_rule_condition
+from sentry_ophio.glob import is_glob_match
+from sentry_relay.processing import validate_rule_condition
 
 from sentry.ingest.inbound_filters import (
     ACTIVE_GENERIC_FILTERS,
@@ -246,11 +247,29 @@ def error_type_rule_condition(values: list[str]) -> dict:
     }
 
 
+def release_rule_condition(values: list[str]) -> dict:
+    """The catch-all shape: the release field of every data type, combined with OR."""
+    return {
+        "op": "or",
+        "inner": [
+            {"op": "glob", "name": "event.release", "value": values},
+            {"op": "glob", "name": "log.attributes.sentry.release.value", "value": values},
+            {
+                "op": "glob",
+                "name": "trace_metric.attributes.sentry.release.value",
+                "value": values,
+            },
+            {"op": "glob", "name": "span.attributes.sentry.release.value", "value": values},
+        ],
+    }
+
+
 @django_db_all
 @pytest.mark.parametrize(
-    ("conditions", "expected_condition"),
+    ("data_type", "conditions", "expected_condition"),
     [
         pytest.param(
+            "error",
             [
                 {"type": "error_message", "value": ["*ConnectionError*"]},
                 {"type": "release", "value": ["1.*", "2.*"]},
@@ -265,11 +284,13 @@ def error_type_rule_condition(values: list[str]) -> dict:
             id="error_message_and_release",
         ),
         pytest.param(
+            "error",
             [{"type": "error_type", "value": ["TypeError", "*Timeout"]}],
             error_type_rule_condition(["TypeError", "*Timeout"]),
             id="error_type_only",
         ),
         pytest.param(
+            "error",
             [
                 {"type": "error_type", "value": ["TypeError"]},
                 {"type": "error_message", "value": ["*undefined*"]},
@@ -284,6 +305,7 @@ def error_type_rule_condition(values: list[str]) -> dict:
             id="error_type_and_error_message",
         ),
         pytest.param(
+            "error",
             [
                 {"type": "error_type", "value": ["TypeError"]},
                 {"type": "release", "value": ["1.*"]},
@@ -298,6 +320,7 @@ def error_type_rule_condition(values: list[str]) -> dict:
             id="error_type_and_release",
         ),
         pytest.param(
+            "log",
             [
                 {"type": "log_message", "value": ["*DEBUG*"]},
                 {"type": "release", "value": ["1.2.3"]},
@@ -316,6 +339,7 @@ def error_type_rule_condition(values: list[str]) -> dict:
             id="log_message_and_release",
         ),
         pytest.param(
+            "metric",
             [
                 {"type": "metric_name", "value": ["checkout.*"]},
                 {"type": "release", "value": ["1.2.3"]},
@@ -334,22 +358,78 @@ def error_type_rule_condition(values: list[str]) -> dict:
             id="metric_name_and_release",
         ),
         pytest.param(
+            "metric",
             [{"type": "metric_name", "value": ["checkout.*"]}],
             {"op": "glob", "name": "trace_metric.name", "value": ["checkout.*"]},
             id="single_condition_is_not_wrapped",
         ),
         pytest.param(
+            "span",
+            [{"type": "release", "value": ["1.2.3"]}],
+            {"op": "glob", "name": "span.attributes.sentry.release.value", "value": ["1.2.3"]},
+            id="release_on_spans",
+        ),
+        pytest.param(
+            "error",
             [{"type": "release", "value": ["1.*"]}],
             {"op": "glob", "name": "event.release", "value": ["1.*"]},
-            id="release_only_targets_events",
+            id="release_on_errors_reads_the_event_field_only",
+        ),
+        pytest.param(
+            "all",
+            [{"type": "release", "value": ["1.*"]}],
+            release_rule_condition(["1.*"]),
+            id="catch_all_release",
+        ),
+        pytest.param(
+            "all",
+            [
+                {"type": "release", "value": [">2*"]},
+                {"type": "release", "value": ["<4*"]},
+            ],
+            {
+                "op": "and",
+                "inner": [
+                    release_rule_condition([">2*"]),
+                    release_rule_condition(["<4*"]),
+                ],
+            },
+            id="catch_all_release_range",
+        ),
+        pytest.param(
+            "error",
+            [{"type": "ip_address", "value": ["10.0.0.0/8", "203.0.113.7"]}],
+            {"op": "cidr", "name": "envelope.client_ip", "value": ["10.0.0.0/8", "203.0.113.7"]},
+            id="ip_address_reads_the_envelope_client_ip",
+        ),
+        pytest.param(
+            "all",
+            [{"type": "ip_address", "value": ["10.0.0.0/8"]}],
+            {"op": "cidr", "name": "envelope.client_ip", "value": ["10.0.0.0/8"]},
+            id="catch_all_ip_address_needs_no_per_data_type_field",
+        ),
+        pytest.param(
+            "log",
+            [
+                {"type": "log_message", "value": ["*DEBUG*"]},
+                {"type": "ip_address", "value": ["10.0.0.0/8"]},
+            ],
+            {
+                "op": "and",
+                "inner": [
+                    {"op": "glob", "name": "log.body", "value": ["*DEBUG*"]},
+                    {"op": "cidr", "name": "envelope.client_ip", "value": ["10.0.0.0/8"]},
+                ],
+            },
+            id="ip_address_combines_with_item_conditions",
         ),
     ],
 )
 def test_custom_inbound_filter_condition_translation(
-    default_project, factories, conditions, expected_condition
+    default_project, factories, data_type, conditions, expected_condition
 ) -> None:
     custom_filter = factories.create_project_custom_inbound_filter(
-        default_project, conditions=conditions
+        default_project, data_type=data_type, conditions=conditions
     )
 
     [generic_filter] = get_custom_inbound_filter_generic_filters(default_project)
@@ -371,6 +451,7 @@ def test_custom_inbound_filter_row_becomes_relay_config(default_project, factori
 
     custom_filter = factories.create_project_custom_inbound_filter(
         default_project,
+        data_type="error",
         conditions=[
             {"type": "error_message", "value": ["*ConnectionError*", "Timeout*"]},
             {"type": "release", "value": ["1.*"]},
@@ -454,6 +535,7 @@ def test_custom_inbound_filter_skips_untranslatable_filters(default_project, fac
     # data than the user configured.
     factories.create_project_custom_inbound_filter(
         default_project,
+        data_type="error",
         conditions=[
             {"type": "error_message", "value": ["*Error*"]},
             {"type": "unknown_type", "value": ["nope"]},
@@ -463,9 +545,29 @@ def test_custom_inbound_filter_skips_untranslatable_filters(default_project, fac
         default_project,
         conditions=[{"type": "release", "value": []}],
     )
+    # A data type this revision does not know, e.g. one a newer deploy wrote.
+    factories.create_project_custom_inbound_filter(
+        default_project,
+        data_type="unknown_data_type",
+        conditions=[{"type": "release", "value": ["1.*"]}],
+    )
+    # A span filter accepts release alone, so any other condition disables the filter
+    # rather than widening it.
+    factories.create_project_custom_inbound_filter(
+        default_project,
+        data_type="span",
+        conditions=[{"type": "error_type", "value": ["TypeError"]}],
+    )
+    # A catch-all can only carry conditions every data type has a field for.
+    factories.create_project_custom_inbound_filter(
+        default_project,
+        data_type="all",
+        conditions=[{"type": "error_message", "value": ["*Error*"]}],
+    )
     # A log carries no exception type, so a filter mixing data types matches nothing.
     factories.create_project_custom_inbound_filter(
         default_project,
+        data_type="error",
         conditions=[
             {"type": "error_type", "value": ["TypeError"]},
             {"type": "log_message", "value": ["*DEBUG*"]},
@@ -528,8 +630,13 @@ def test_custom_inbound_filters_are_ordered_by_id(default_project, factories) ->
             id="custom_inbound_filters_v2",
         ),
         pytest.param(
-            InboundFilterFeatures(True, True, True, True),
-            ["log-message", "trace-metric-name", "cif"],
+            InboundFilterFeatures(generic_ip_filter=True),
+            ["ip-address"],
+            id="generic_ip_filter_needs_no_plan_feature",
+        ),
+        pytest.param(
+            InboundFilterFeatures(True, True, True, True, True),
+            ["ip-address", "log-message", "trace-metric-name", "cif"],
             id="every_feature",
         ),
     ],
@@ -539,6 +646,7 @@ def test_get_generic_filters_gates_each_source_on_its_feature(
 ) -> None:
     for builtin_filter_id, _ in ACTIVE_GENERIC_FILTERS:
         default_project.update_option(f"filters:{builtin_filter_id}", "0")
+    default_project.update_option("sentry:blacklisted_ips", ["10.0.0.0/8"])
     default_project.update_option("sentry:log_messages", ["some log"])
     default_project.update_option("sentry:trace_metric_names", ["some.metric"])
     custom_filter = factories.create_project_custom_inbound_filter(
@@ -564,5 +672,33 @@ def test_get_generic_filters_omits_gated_sources_without_configuration(default_p
         default_project.update_option(f"filters:{builtin_filter_id}", "0")
 
     assert (
-        get_generic_filters(default_project, InboundFilterFeatures(True, True, True, True)) is None
+        get_generic_filters(default_project, InboundFilterFeatures(True, True, True, True, True))
+        is None
     )
+
+
+@django_db_all
+def test_ip_denylist_becomes_a_generic_filter_with_the_native_reason(default_project) -> None:
+    for builtin_filter_id, _ in ACTIVE_GENERIC_FILTERS:
+        default_project.update_option(f"filters:{builtin_filter_id}", "0")
+    default_project.update_option("sentry:blacklisted_ips", ["10.0.0.0/8", "2001:db8::1"])
+
+    generic_filters = get_generic_filters(
+        default_project, InboundFilterFeatures(generic_ip_filter=True)
+    )
+
+    assert generic_filters == {
+        "version": 1,
+        "filters": [
+            {
+                "id": "ip-address",
+                "isEnabled": True,
+                "condition": {
+                    "op": "cidr",
+                    "name": "envelope.client_ip",
+                    "value": ["10.0.0.0/8", "2001:db8::1"],
+                },
+            }
+        ],
+    }
+    assert_relay_accepts_condition(generic_filters["filters"][0]["condition"])

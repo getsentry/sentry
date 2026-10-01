@@ -1,5 +1,7 @@
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.support import expected_conditions
+from selenium.webdriver.support.wait import WebDriverWait
 
 from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.silo import no_silo_test
@@ -92,7 +94,7 @@ class OrganizationDeveloperSettingsEditAcceptanceTest(AcceptanceTestCase):
 
         self.browser.click('[aria-label="Save Changes"]')
 
-        self.browser.wait_until(".ref-success")
+        self.browser.wait_until('[role="status"]')
 
         self.browser.wait_until('[data-test-id="tesla-app"]')
 
@@ -113,11 +115,19 @@ class OrganizationDeveloperSettingsEditAcceptanceTest(AcceptanceTestCase):
 
         self.browser.click('[aria-label="Revoke"]')
         self.browser.click('[data-test-id="confirm-button"]')
-        self.browser.wait_until(".ref-success")
 
-        assert self.browser.find_element(
-            by=By.XPATH,
-            value='//*[contains(text(), "You haven\'t created any authentication tokens yet.")]',
+        wait = WebDriverWait(self.browser.driver, 10)
+        wait.until(
+            expected_conditions.text_to_be_present_in_element(
+                (By.CSS_SELECTOR, '[role="status"]'),
+                "Token successfully deleted.",
+            )
+        )
+        wait.until(
+            expected_conditions.text_to_be_present_in_element(
+                (By.TAG_NAME, "body"),
+                "You haven't created any authentication tokens yet.",
+            )
         )
 
     def test_add_tokens_internal_app(self) -> None:
@@ -129,6 +139,6 @@ class OrganizationDeveloperSettingsEditAcceptanceTest(AcceptanceTestCase):
         assert self.browser.element_exists('[aria-label="Generated token"]') is False
 
         self.browser.click('[data-test-id="token-add"]')
-        self.browser.wait_until(".ref-success")
+        self.browser.wait_until('[role="status"]')
 
         assert len(self.browser.elements('[aria-label="Generated token"]')) == 1

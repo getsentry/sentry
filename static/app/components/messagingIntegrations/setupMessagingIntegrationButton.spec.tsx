@@ -24,7 +24,6 @@ describe('SetupAlertIntegrationButton', () => {
 
   const getComponent = () => (
     <SetupMessagingIntegrationButton
-      refetchConfigs={jest.fn()}
       analyticsView={MessagingIntegrationAnalyticsView.ALERT_RULE_CREATION}
     />
   );
@@ -131,6 +130,6 @@ describe('SetupAlertIntegrationButton', () => {
       expect(mock).toHaveBeenCalled();
     });
     await screen.findByRole('button', {name: /connect to messaging/i});
-    expect(screen.getByRole('button')).toBeDisabled();
+    expect(screen.getByRole('button')).toHaveAttribute('aria-disabled', 'true');
   });
 });

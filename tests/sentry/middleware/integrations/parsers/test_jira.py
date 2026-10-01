@@ -3,7 +3,6 @@ from __future__ import annotations
 from unittest.mock import patch
 
 import responses
-from django.core.cache import cache
 from django.http import HttpRequest, HttpResponse
 from django.test import RequestFactory, override_settings
 from rest_framework import status
@@ -14,7 +13,11 @@ from sentry.middleware.integrations.parsers.jira import JiraRequestParser
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.cell import override_cells
-from sentry.testutils.outbox import assert_no_webhook_payloads, assert_webhook_payloads_for_mailbox
+from sentry.testutils.outbox import (
+    assert_no_webhook_payloads,
+    assert_webhook_payloads_for_mailbox,
+    override_mailbox_bucket_count,
+)
 from sentry.testutils.silo import control_silo_test
 from sentry.types.cell import Cell, Locality
 
@@ -30,6 +33,11 @@ cell_config = (cell, eu_cell)
 class JiraRequestParserTest(TestCase):
     factory = RequestFactory()
     path_base = f"{IntegrationClassification.integration_prefix}jira"
+
+    def setUp(self) -> None:
+        super().setUp()
+        # Pin the rate-derived width so routing assertions exercise the bucket key.
+        self.enterContext(override_mailbox_bucket_count(64))
 
     def get_response(self, req: HttpRequest) -> HttpResponse:
         return HttpResponse(status=200, content="passthrough")
@@ -148,8 +156,6 @@ class JiraRequestParserTest(TestCase):
     @override_cells(cell_config)
     def test_get_response_routing_to_cell_async_bucketed(self) -> None:
         integration = self.get_integration()
-        use_buckets_key = f"webhookpayload:jira:{integration.id}:use_buckets"
-        cache.set(use_buckets_key, 1)
         request = self.factory.post(
             path=f"{self.path_base}/issue-updated/",
             data={"issue": {"id": "10425"}},
@@ -161,12 +167,11 @@ class JiraRequestParserTest(TestCase):
             method.return_value = integration
             response = parser.get_response()
 
-        cache.delete(use_buckets_key)
         assert isinstance(response, HttpResponse)
         assert response.status_code == status.HTTP_202_ACCEPTED
         assert_webhook_payloads_for_mailbox(
-            # 10425 % 10
-            mailbox_name=f"jira:{integration.id}:5",
+            # 10425 % 64
+            mailbox_name=f"jira:{integration.id}:57",
             cell_names=[cell.name],
             request=request,
         )

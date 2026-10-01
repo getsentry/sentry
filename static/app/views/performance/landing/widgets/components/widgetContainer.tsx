@@ -20,7 +20,6 @@ import {usePerformanceDisplayType} from 'sentry/utils/performance/contexts/perfo
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
-import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
@@ -56,7 +55,6 @@ interface Props extends ChartRowProps {
   rowChartSettings: PerformanceWidgetSetting[];
   setRowChartSettings: (settings: PerformanceWidgetSetting[]) => void;
   withStaticFilters: boolean;
-  forceDefaultChartSetting?: boolean;
 }
 
 function trackChartSettingChange(
@@ -82,8 +80,7 @@ export function WidgetContainer(props: Props) {
     index,
     chartHeight,
     performanceType,
-    rest.defaultChartSetting,
-    rest.forceDefaultChartSetting
+    rest.defaultChartSetting
   );
   const mepSetting = useMEPSettingContext();
   const allowedCharts = filterAllowedChartsMetrics(
@@ -99,9 +96,7 @@ export function WidgetContainer(props: Props) {
   const [chartSetting, setChartSettingState] = useState(_chartSetting);
 
   const setChartSetting = (setting: PerformanceWidgetSetting) => {
-    if (!props.forceDefaultChartSetting) {
-      _setChartSetting(index, chartHeight, performanceType, setting);
-    }
+    _setChartSetting(index, chartHeight, performanceType, setting);
     setChartSettingState(setting);
     const newSettings = [...rowChartSettings];
     newSettings[index] = setting;
@@ -115,7 +110,9 @@ export function WidgetContainer(props: Props) {
   };
 
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     setChartSettingState(_chartSetting);
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [rest.defaultChartSetting, _chartSetting]);
 
   const chartDefinition = WIDGET_DEFINITIONS({theme})[chartSetting];
@@ -208,9 +205,7 @@ function WidgetInteractiveTitle({
       menuOptions.push({label: t('Open in Explore'), value: 'open_in_explore'});
     } else {
       menuOptions.push({
-        label: getDiscoverDeprecation(organization)
-          ? t('Open in Explore')
-          : t('Open in Discover'),
+        label: t('Open in Explore'),
         value: 'open_in_discover',
       });
     }

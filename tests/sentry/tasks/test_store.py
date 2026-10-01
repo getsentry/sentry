@@ -309,6 +309,65 @@ def test_save_event_sets_viewer_context(default_project) -> None:
     assert captured_vc.actor_type == ActorType.SYSTEM
 
 
+@django_db_all
+def test_save_event_deletes_processing_store_at_end(
+    default_project, mock_event_processing_store
+) -> None:
+    data = {
+        "project": default_project.id,
+        "platform": "python",
+        "logentry": {"formatted": "test"},
+        "event_id": EVENT_ID,
+    }
+    cache_key = "e:test"
+    mock_event_processing_store.get.return_value = data
+    calls = []
+
+    with (
+        mock.patch.object(EventManager, "save", side_effect=lambda **kwargs: calls.append("save")),
+        mock.patch(
+            "sentry.tasks.store.reprocessing2.mark_event_reprocessed",
+            side_effect=lambda data: calls.append("reprocessing_cleanup"),
+        ),
+        mock.patch(
+            "sentry.tasks.store.track_event_since_received",
+            side_effect=lambda **kwargs: calls.append(kwargs["step"]),
+        ),
+    ):
+        mock_event_processing_store.delete_by_key.side_effect = lambda key: calls.append("delete")
+        save_event(cache_key=cache_key, event_id=EVENT_ID, project_id=default_project.id)
+
+    assert calls == [
+        "start_save_event",
+        "save",
+        "delete",
+        "reprocessing_cleanup",
+        "end_save_event",
+    ]
+    mock_event_processing_store.store.assert_not_called()
+    mock_event_processing_store.delete_by_key.assert_called_once_with(cache_key)
+
+
+@django_db_all
+def test_save_event_deletes_processing_store_on_failure(
+    default_project, mock_event_processing_store
+) -> None:
+    mock_event_processing_store.get.return_value = {
+        "project": default_project.id,
+        "platform": "python",
+        "logentry": {"formatted": "test"},
+        "event_id": EVENT_ID,
+    }
+
+    with (
+        mock.patch.object(EventManager, "save", side_effect=RuntimeError("save failed")),
+        pytest.raises(RuntimeError, match="save failed"),
+    ):
+        save_event(cache_key="e:test", event_id=EVENT_ID, project_id=default_project.id)
+
+    mock_event_processing_store.delete_by_key.assert_called_once_with("e:test")
+
+
 @pytest.fixture(params=["org", "project"])
 def options_model(request, default_organization, default_project):
     if request.param == "org":

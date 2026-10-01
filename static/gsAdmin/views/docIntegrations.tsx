@@ -5,11 +5,11 @@ import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
 
+import {ResultGrid} from 'sentry/components/resultGrid';
 import type {DocIntegration} from 'sentry/types/integrations';
 
 import {DocIntegrationModal} from 'admin/components/docIntegrationModal';
 import {PageHeader} from 'admin/components/pageHeader';
-import {ResultGrid} from 'admin/components/resultGrid';
 
 const getRow = (doc: DocIntegration) => [
   <td key="name" style={{textAlign: 'left'}}>
@@ -53,7 +53,6 @@ export function DocIntegrations() {
         inPanel
         path="/_admin/doc-integrations/"
         endpoint="/doc-integrations/"
-        method="GET"
         columns={[
           <th key="name" style={{width: 150, textAlign: 'left'}}>
             Author

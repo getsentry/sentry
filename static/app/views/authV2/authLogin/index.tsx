@@ -1,19 +1,17 @@
 import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
-import {Button, LinkButton} from '@sentry/scraps/button';
-import {Container, Grid, Stack} from '@sentry/scraps/layout';
+import {Button} from '@sentry/scraps/button';
+import {Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {BrandPageLayout} from 'sentry/components/brandPageLayout';
-import {IconGithub, IconGoogle, IconLab, IconSentry, IconVsts} from 'sentry/icons';
+import {IconLab} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {ConfigStore} from 'sentry/stores/configStore';
-import type {AuthConfig} from 'sentry/types/auth';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {isNotFoundError} from 'sentry/utils/requestError/requestError';
@@ -22,32 +20,24 @@ import {AuthV2CookieState, useEnableAuthV2} from 'sentry/utils/useEnableAuthV2';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
+import {useBrandedAuthLoading} from 'sentry/views/authV2/useBrandedAuthLoading';
 
-import {EmailAuth} from './components/emailAuth';
+import {AccountAuthentication} from './components/accountAuthentication';
 import {OrganizationSwitcher} from './components/organizationSwitcher';
 import {RequiredOrganizationSso} from './components/requiredOrganizationSso';
-import {SecondFactorAuth} from './components/secondFactorAuth';
 import {useAuthConfig} from './hooks/useAuthConfig';
 import {useAuthOrganization} from './hooks/useAuthOrganization';
+import {useDemoLogin} from './hooks/useDemoLogin';
 import type {EmailAuthResult} from './hooks/useEmailAuth';
+import {useSingleOrganizationLogin} from './hooks/useSingleOrganizationLogin';
 import type {AuthenticatedResult, MfaMethod} from './types';
-
-type AuthProviderLinkKey = keyof Pick<
-  AuthConfig,
-  'githubLoginLink' | 'googleLoginLink' | 'vstsLoginLink'
->;
-
-const AUTH_PROVIDER_CONFIG = {
-  googleLoginLink: {label: t('Google'), icon: <IconGoogle />},
-  githubLoginLink: {label: t('GitHub'), icon: <IconGithub />},
-  vstsLoginLink: {label: t('Azure'), icon: <IconVsts />},
-} satisfies Record<AuthProviderLinkKey, {icon: React.ReactNode; label: string}>;
 
 export default function AuthLogin() {
   const theme = useTheme();
   const {orgSlug} = useParams<{orgSlug?: string}>();
   const location = useLocation();
-  const sentryUrl = ConfigStore.get('links').sentryUrl;
+  const requestedNextUri =
+    typeof location.query.next === 'string' ? location.query.next : undefined;
   const {setAuthV2CookieState} = useEnableAuthV2();
   const hasStartedAnalyticsSession = useRef(false);
 
@@ -73,6 +63,11 @@ export default function AuthLogin() {
 
   const nextUri = authConfig && 'nextUri' in authConfig ? authConfig.nextUri : undefined;
   const loginConfig = authConfig && !('nextUri' in authConfig) ? authConfig : undefined;
+  const singleOrganizationSlug = loginConfig?.singleOrganizationSlug;
+  const isSingleOrganization = useSingleOrganizationLogin({
+    organizationSlug: orgSlug,
+    singleOrganizationSlug,
+  });
 
   // An authenticated user may still need to authenticate with an organization's SSO
   // provider before its APIs will grant access. Keep that organization in focus instead
@@ -80,6 +75,8 @@ export default function AuthLogin() {
   const focusedOrgAuth = Boolean(
     orgSlug && nextUri && authOrganization && !authOrganization.memberAuthenticated
   );
+  const showEmailAuth =
+    !focusedOrgAuth || (isSingleOrganization && !authOrganization?.ssoRequired);
   const isAuthOrganizationNotFound = isNotFoundError(authOrganizationError);
   const hasAuthOrganizationError = Boolean(
     authOrganizationError && !isAuthOrganizationNotFound
@@ -101,16 +98,6 @@ export default function AuthLogin() {
   ]);
 
   const navigate = useNavigate();
-  const authProviderButtons = loginConfig
-    ? (
-        Object.entries(AUTH_PROVIDER_CONFIG) as Array<
-          [AuthProviderLinkKey, (typeof AUTH_PROVIDER_CONFIG)[AuthProviderLinkKey]]
-        >
-      ).flatMap(([key, provider]) => {
-        const href = loginConfig[key];
-        return href ? [{...provider, href, id: key}] : [];
-      })
-    : [];
   const [mfaMethods, setMfaMethods] = useState<MfaMethod[]>();
   const pendingMfaMethods = mfaMethods ?? loginConfig?.pendingMfa?.mfaMethods;
   const organizationSsoOnly =
@@ -138,33 +125,73 @@ export default function AuthLogin() {
     navigate({pathname: '/auth/login/'});
   }, [navigate]);
 
+  const handleMfaRequired = useCallback(
+    (methods: MfaMethod[]) => {
+      setMfaMethods(methods);
+      navigate(location, {replace: true, state: null});
+    },
+    [location, navigate]
+  );
   const handleAuthResult = useCallback(
     (result: EmailAuthResult) => {
       if (result.status === 'mfa-required') {
-        setMfaMethods(result.methods);
-        navigate(location, {replace: true, state: null});
+        handleMfaRequired(result.methods);
         return;
       }
 
       completeAuthentication(result);
     },
-    [completeAuthentication, location, navigate]
+    [completeAuthentication, handleMfaRequired]
   );
 
-  const mainState = hasInitialAuthConfigError
-    ? 'auth_config_error'
-    : hasAuthOrganizationError
-      ? 'organization_error'
-      : pendingMfaMethods
-        ? 'mfa'
-        : organizationSsoOnly
-          ? 'organization_sso'
-          : 'login';
+  const demoLogin = useDemoLogin({
+    authOrganization,
+    enabled: Boolean(loginConfig && !pendingMfaMethods),
+    nextUri: requestedNextUri,
+    onAuthResult: handleAuthResult,
+  });
+  const accountAuthConfig = focusedOrgAuth ? undefined : loginConfig;
+  const organizationAuthenticationContext = (
+    <OrganizationSwitcher
+      authOrganization={authOrganization}
+      isInputVisible={isOrganizationSlugInputVisible}
+      onCancel={() => setIsOrganizationSlugInputVisible(false)}
+      onClear={
+        focusedOrgAuth || isSingleOrganization ? undefined : handleClearOrganization
+      }
+      onOpen={() => setIsOrganizationSlugInputVisible(true)}
+      onSelect={handleSelectOrganization}
+    />
+  );
+
+  function getMainState() {
+    if (hasInitialAuthConfigError) {
+      return 'auth_config_error' as const;
+    }
+
+    if (hasAuthOrganizationError) {
+      return 'organization_error' as const;
+    }
+
+    if (pendingMfaMethods) {
+      return 'mfa' as const;
+    }
+
+    if (organizationSsoOnly) {
+      return 'organization_sso' as const;
+    }
+
+    return 'login' as const;
+  }
+
+  const mainState = getMainState();
   const isLoginRenderable = !(
     isAuthConfigPending ||
     (orgSlug && isAuthOrganizationPending) ||
+    demoLogin.isLoading ||
     (nextUri && !focusedOrgAuth && !hasAuthOrganizationError)
   );
+  useBrandedAuthLoading(!isLoginRenderable);
 
   useEffect(() => {
     if (!isLoginRenderable) {
@@ -190,10 +217,6 @@ export default function AuthLogin() {
 
   return (
     <Fragment>
-      <BrandPageLayout.HeaderStart>
-        <IconSentry size="xl" />
-      </BrandPageLayout.HeaderStart>
-
       <BrandPageLayout.HeaderEnd>
         <Stack align="end" gap="sm" maxWidth="300px">
           <Tag variant="warning" icon={<IconLab isSolid />}>
@@ -218,8 +241,8 @@ export default function AuthLogin() {
         </Stack>
       </BrandPageLayout.HeaderEnd>
 
-      <Stack height="100%" align="center" justify="between" gap="2xl">
-        <LoginContainer width="100%" maxWidth="360px" gap="2xl">
+      <Fragment>
+        <Stack width="100%" maxWidth="360px" gap="2xl">
           <Heading as="h1" size="3xl" align="center">
             {t('Sign in to Sentry')}
           </Heading>
@@ -265,76 +288,47 @@ export default function AuthLogin() {
                   </Button>
                 </Stack>
               ) : pendingMfaMethods ? (
-                <SecondFactorAuth
-                  methods={pendingMfaMethods}
-                  onBack={() => {
+                <AccountAuthentication
+                  authConfig={loginConfig}
+                  mfaMethods={pendingMfaMethods}
+                  onCancelMfa={() => {
+                    demoLogin.reset();
                     setMfaMethods(undefined);
                   }}
-                  onComplete={completeAuthentication}
+                  onAuthenticated={completeAuthentication}
+                  onMfaRequired={handleMfaRequired}
                 />
               ) : organizationSsoOnly ? (
                 <RequiredOrganizationSso
                   authOrganization={organizationSsoOnly}
-                  onClear={handleClearOrganization}
+                  onClear={isSingleOrganization ? undefined : handleClearOrganization}
                 />
               ) : (
                 <Fragment>
-                  <Stack gap="md">
-                    {!focusedOrgAuth && authProviderButtons.length > 0 && (
-                      <Grid
-                        columns={`repeat(${authProviderButtons.length}, minmax(0, 1fr))`}
-                        gap="sm"
-                      >
-                        {authProviderButtons.map(button => (
-                          <LinkButton
-                            key={button.id}
-                            href={button.href}
-                            icon={button.icon}
-                            size="sm"
-                          >
-                            {button.label}
-                          </LinkButton>
-                        ))}
-                      </Grid>
-                    )}
-                    <OrganizationSwitcher
-                      authOrganization={authOrganization}
-                      isInputVisible={isOrganizationSlugInputVisible}
-                      onCancel={() => setIsOrganizationSlugInputVisible(false)}
-                      onClear={focusedOrgAuth ? undefined : handleClearOrganization}
-                      onOpen={() => setIsOrganizationSlugInputVisible(true)}
-                      onSelect={handleSelectOrganization}
-                    />
-                  </Stack>
-
-                  {focusedOrgAuth ? (
-                    <Stack gap="md">
-                      <Grid columns="1fr max-content 1fr" align="center" gap="md">
-                        <Container borderTop="secondary" />
-                        <Text as="div" align="center" variant="muted" size="lg">
-                          {t('or')}
-                        </Text>
-                        <Container borderTop="secondary" />
-                      </Grid>
-                      <LinkButton href={`${sentryUrl}/settings/account/`}>
-                        {t('Account Settings')}
-                      </LinkButton>
-                    </Stack>
-                  ) : (
-                    <Fragment>
-                      <AuthDivider />
-
-                      <EmailAuth
-                        organizationSlug={orgSlug}
-                        onAuthResult={handleAuthResult}
-                      />
-                    </Fragment>
+                  <AccountAuthentication
+                    authConfig={accountAuthConfig}
+                    organizationSlug={orgSlug}
+                    showEmailAuth={showEmailAuth}
+                    onAuthenticated={completeAuthentication}
+                    onCancelMfa={() => setMfaMethods(undefined)}
+                    onMfaRequired={handleMfaRequired}
+                  >
+                    <AccountAuthentication.Context>
+                      {organizationAuthenticationContext}
+                    </AccountAuthentication.Context>
+                  </AccountAuthentication>
+                  {loginConfig?.canRegister && (
+                    <Text as="div" align="center" size="sm">
+                      {tct('New to Sentry? [register:Create an account]', {
+                        register: <Link to="/auth/register/" />,
+                      })}
+                    </Text>
                   )}
                 </Fragment>
               )}
             </MotionStack>
           </AnimatePresence>
-        </LoginContainer>
+        </Stack>
 
         {(loginConfig?.warning || loginConfig?.loginBannerMarkdown) && (
           <Stack width="100%" gap="md">
@@ -348,25 +342,9 @@ export default function AuthLogin() {
             )}
           </Stack>
         )}
-      </Stack>
+      </Fragment>
     </Fragment>
   );
 }
-
-function AuthDivider() {
-  return (
-    <Grid columns="1fr max-content 1fr" align="center" gap="lg">
-      <Container borderTop="secondary" />
-      <Text as="div" align="center" variant="muted" size="xs" uppercase>
-        {t('or')}
-      </Text>
-      <Container borderTop="secondary" />
-    </Grid>
-  );
-}
-
-const LoginContainer = styled(Stack)`
-  padding-top: 18vh;
-`;
 
 const MotionStack = motion.create(Stack);

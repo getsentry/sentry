@@ -16,13 +16,100 @@ import {
 import {IssueAlertActionType} from 'sentry/types/alerts';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
 import {
+  buildIntegrationAction,
   buildNotificationSelection,
+  getChannelTarget,
   IssueAlertNotificationOptions,
   type IssueAlertNotificationProps,
   MultipleCheckboxOptions,
   useCreateNotificationAction,
   useScmNotificationAction,
 } from 'sentry/views/projectInstall/issueAlertNotificationOptions';
+
+describe('buildIntegrationAction', () => {
+  it.each([
+    [
+      'slack',
+      '#alerts',
+      {
+        id: IssueAlertActionType.SLACK,
+        workspace: '15',
+        channel: '#alerts',
+      },
+    ],
+    [
+      'discord',
+      '123456789',
+      {
+        id: IssueAlertActionType.DISCORD,
+        server: '15',
+        channel_id: '123456789',
+      },
+    ],
+    [
+      'msteams',
+      'General',
+      {
+        id: IssueAlertActionType.MS_TEAMS,
+        team: '15',
+        channel: 'General',
+      },
+    ],
+  ])('serializes a %s destination', (provider, channel, expectedAction) => {
+    expect(buildIntegrationAction({provider, integrationId: '15', channel})).toEqual(
+      expectedAction
+    );
+  });
+
+  it('returns undefined for an incomplete or unsupported selection', () => {
+    expect(buildIntegrationAction({provider: 'slack'})).toBeUndefined();
+    expect(
+      buildIntegrationAction({
+        provider: 'unsupported',
+        integrationId: '15',
+        channel: '#alerts',
+      })
+    ).toBeUndefined();
+  });
+});
+
+describe('getChannelTarget', () => {
+  it.each([
+    [
+      'slack',
+      {label: '#alerts', value: '#alerts', channelId: 'C123', channelName: '#alerts'},
+      '#alerts',
+    ],
+    [
+      'discord',
+      {
+        label: '#alerts (123456789)',
+        value: '123456789',
+        channelId: '123456789',
+        channelName: '#alerts',
+      },
+      '123456789',
+    ],
+    [
+      'msteams',
+      {
+        label: 'General',
+        value: 'General',
+        channelId: '19:abc@thread.tacv2',
+        channelName: 'General',
+      },
+      'General',
+    ],
+  ])('targets the field the %s backend resolves', (provider, channel, target) => {
+    expect(getChannelTarget(provider, channel)).toBe(target);
+  });
+
+  it('falls back to the picker value for a typed channel', () => {
+    expect(
+      getChannelTarget('msteams', {label: 'General', value: 'General', new: true})
+    ).toBe('General');
+  });
+});
 
 describe('MessagingIntegrationAlertRule', () => {
   const organization = OrganizationFixture();
