@@ -8,25 +8,25 @@ import {Select} from '@sentry/scraps/select';
 import {Text} from '@sentry/scraps/text';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {PathMappingList} from 'sentry/components/connectRepository/pathMappingList';
-import type {PathMappingValue} from 'sentry/components/connectRepository/type';
-import {hasExactDuplicate} from 'sentry/components/connectRepository/warnings';
-import {t, tct} from 'sentry/locale';
-import type {Project} from 'sentry/types/project';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   ConnectionModalFrame,
   LockedRepoField,
   getApiErrorMessage,
 } from 'sentry/components/connectRepository/connectionModalFrame';
-import {ScmVirtualizedMenuList} from 'sentry/components/onboarding/scm/scmVirtualizedMenuList';
+import {PathMappingList} from 'sentry/components/connectRepository/pathMappingList';
 import {
   orgProjectsOptions,
   saveProjectRepoConnection,
   useEditRepoInfo,
   useInvalidateRepoQueries,
 } from 'sentry/components/connectRepository/queries';
+import type {PathMappingValue} from 'sentry/components/connectRepository/type';
+import {hasExactDuplicate} from 'sentry/components/connectRepository/warnings';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {ScmVirtualizedMenuList} from 'sentry/components/onboarding/scm/scmVirtualizedMenuList';
+import {t, tct} from 'sentry/locale';
+import type {Project} from 'sentry/types/project';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 export type RepoLockedConnectFormProps = ModalRenderProps & {
   externalId: string | null;
@@ -39,9 +39,9 @@ export type RepoLockedConnectFormProps = ModalRenderProps & {
 function PathsPlaceholder() {
   return (
     <Container border="muted" radius="md" padding="2xl" style={{borderStyle: 'dashed'}}>
-      <Text variant="muted">
-        {t('Select a project first to configure code paths')}
-      </Text>
+      <Flex justify="center">
+        <Text variant="muted">{t('Select a project first to configure code paths')}</Text>
+      </Flex>
     </Container>
   );
 }

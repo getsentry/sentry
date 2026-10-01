@@ -72,29 +72,32 @@ describe('PathMapping', () => {
 
     expect(screen.getByRole('textbox', {name: /stack trace prefix/i})).toHaveAttribute(
       'placeholder',
-      'src/'
+      'e.g src/'
     );
     expect(screen.getByRole('textbox', {name: /repository prefix/i})).toHaveAttribute(
       'placeholder',
-      'src/app'
+      'e.g src/app/'
     );
   });
 
-  it('renders preview using placeholder example and updates on input', async () => {
+  it('always shows the two-column preview headings, even when both prefixes are empty', () => {
     render(<PathMapping {...defaultProps} editing isNew />);
 
+    expect(screen.getByText('Example preview')).toBeInTheDocument();
     expect(screen.getByText('In your stack trace')).toBeInTheDocument();
     expect(screen.getByText('Sentry opens in your repo')).toBeInTheDocument();
+    // No accent highlights — just the bare suffix on each side
+    expect(screen.getAllByText('views/index.tsx')).toHaveLength(2);
+  });
 
-    // Preview shows placeholder values while inputs are empty
-    expect(screen.getByText('src/')).toBeInTheDocument();
-    expect(screen.getByText('src/app/')).toBeInTheDocument();
+  it('accents only the filled prefix once a value is typed', async () => {
+    render(<PathMapping {...defaultProps} editing isNew />);
 
-    // Typing updates the stack root in the preview
     await userEvent.type(
       screen.getByRole('textbox', {name: /stack trace prefix/i}),
       'lib/'
     );
+
     expect(screen.getByText('lib/')).toBeInTheDocument();
   });
 });

@@ -193,7 +193,7 @@ describe('ConnectedRepositoriesPanel', () => {
     expect(screen.getByText('getsentry/relay')).toBeInTheDocument();
   });
 
-  it('opens overflow menu with Edit enabled and Disconnect disabled', async () => {
+  it('renders an Edit button for each repository', async () => {
     MockApiClient.addMockResponse({
       url: repoUrl,
       method: 'GET',
@@ -212,16 +212,8 @@ describe('ConnectedRepositoriesPanel', () => {
 
     renderPanel();
 
-    await userEvent.click(await screen.findByRole('button', {name: 'More Actions'}));
-
-    expect(screen.getByRole('menuitemradio', {name: 'Edit'})).not.toHaveAttribute(
-      'aria-disabled',
-      'true'
-    );
-    expect(screen.getByRole('menuitemradio', {name: 'Disconnect'})).toHaveAttribute(
-      'aria-disabled',
-      'true'
-    );
+    expect(await screen.findByRole('button', {name: 'Edit'})).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'More Actions'})).not.toBeInTheDocument();
   });
 
   it('Edit opens the modal locked to that repository with seeded path rows', async () => {
@@ -263,8 +255,7 @@ describe('ConnectedRepositoriesPanel', () => {
 
     renderPanel();
 
-    await userEvent.click(await screen.findByRole('button', {name: 'More Actions'}));
-    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Edit'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Edit'}));
 
     // Both fields are locked in edit mode.
     expect(await screen.findByText('Edit code mappings')).toBeInTheDocument();
@@ -326,8 +317,7 @@ describe('ConnectedRepositoriesPanel', () => {
 
     renderPanel();
 
-    await userEvent.click(await screen.findByRole('button', {name: 'More Actions'}));
-    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Edit'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Edit'}));
 
     // Wait for seeded row then add a second mapping.
     expect(await screen.findByRole('button', {name: 'Save'})).toBeEnabled();

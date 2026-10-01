@@ -5,11 +5,12 @@ import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconArrow, IconBranch, IconChevron, IconDelete, IconWarning} from 'sentry/icons';
+import {IconArrow, IconBranch, IconChevron, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 import {AccentPathSegment} from './accentPathSegment';
 import {normalizedPathMappingSchema} from './normalization';
+import {PathMappingDeleteButton} from './pathMappingDeleteButton';
 import type {PathMappingValue} from './type';
 import type {PathMappingWarning} from './warnings';
 
@@ -22,14 +23,10 @@ const WarningContainer = styled(Container)`
 
 interface PathMappingSummaryProps extends PathMappingValue {
   expanded: boolean;
-  onDelete: () => void;
   onExpandToggle: () => void;
+  onDelete?: () => void;
   warning?: PathMappingWarning | null;
 }
-
-const CODE_OWNER_DELETE_TOOLTIP = t(
-  'Remove the Code Owners connection before deleting this mapping.'
-);
 
 function PathSegment({value}: {value: string}) {
   return (
@@ -65,7 +62,7 @@ export function PathMappingSummary({
   const Wrapper = hasWarning ? WarningContainer : Container;
 
   return (
-    <Wrapper padding="md xl" border={hasWarning ? 'warning' : undefined}>
+    <Wrapper padding="md xl">
       <Flex align="center" gap="md" minWidth={0}>
         {hasWarning && (
           <Container flexShrink={0}>
@@ -111,15 +108,9 @@ export function PathMappingSummary({
             aria-label={expanded ? t('Collapse path mapping') : t('Expand path mapping')}
             onClick={onExpandToggle}
           />
-          <Button
-            size="zero"
-            variant="transparent"
-            icon={<IconDelete />}
-            aria-label={t('Delete path mapping')}
-            disabled={hasCodeOwner}
-            tooltipProps={hasCodeOwner ? {title: CODE_OWNER_DELETE_TOOLTIP} : undefined}
-            onClick={onDelete}
-          />
+          {onDelete && (
+            <PathMappingDeleteButton hasCodeOwner={hasCodeOwner} onDelete={onDelete} />
+          )}
         </Flex>
       </Flex>
     </Wrapper>

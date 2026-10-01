@@ -2,28 +2,27 @@ import {useInfiniteQuery} from '@tanstack/react-query';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
-import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 import {Text} from '@sentry/scraps/text';
 
+import {ConnectRepositoryModal} from 'sentry/components/connectRepository/connectRepositoryModal';
+import {
+  projectRepoInfiniteOptions,
+  type ProjectRepoListItem,
+} from 'sentry/components/connectRepository/queries';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {PanelItem} from 'sentry/components/panels/panelItem';
-import {IconAdd, IconEllipsis} from 'sentry/icons';
+import {IconAdd, IconEdit} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {ConnectRepositoryModal} from 'sentry/components/connectRepository/connectRepositoryModal';
-import {
-  projectRepoInfiniteOptions,
-  type ProjectRepoListItem,
-} from 'sentry/components/connectRepository/queries';
 
 function ConnectedRepositoryRow({
   repo,
@@ -33,32 +32,6 @@ function ConnectedRepositoryRow({
   repo: ProjectRepoListItem;
 }) {
   const {openModal} = useModal();
-
-  const overflowItems = [
-    {
-      key: 'edit',
-      label: t('Edit'),
-      onAction: () =>
-        openModal(modalProps => (
-          <ConnectRepositoryModal
-            {...modalProps}
-            project={project}
-            mode="edit"
-            repositoryId={repo.repositoryId}
-            repoName={repo.repoName}
-            providerKey={repo.providerKey}
-            integrationId={repo.integrationId}
-            externalId={repo.externalId}
-          />
-        )),
-    },
-    {
-      key: 'disconnect',
-      label: t('Disconnect'),
-      disabled: true,
-      tooltip: t('TODO: Disconnect'),
-    },
-  ];
 
   return (
     <PanelItem center>
@@ -73,18 +46,25 @@ function ConnectedRepositoryRow({
               {tn('%s mapping', '%s mappings', repo.mappingCount)}
             </Text>
           </Tag>
-          <DropdownMenu
-            items={overflowItems}
-            position="bottom-end"
-            trigger={triggerProps => (
-              <Button
-                {...triggerProps}
-                size="xs"
-                variant="transparent"
-                aria-label={t('More Actions')}
-                icon={<IconEllipsis />}
-              />
-            )}
+          <Button
+            size="xs"
+            variant="transparent"
+            aria-label={t('Edit')}
+            icon={<IconEdit />}
+            onClick={() =>
+              openModal(modalProps => (
+                <ConnectRepositoryModal
+                  {...modalProps}
+                  project={project}
+                  mode="edit"
+                  repositoryId={repo.repositoryId}
+                  repoName={repo.repoName}
+                  providerKey={repo.providerKey}
+                  integrationId={repo.integrationId}
+                  externalId={repo.externalId}
+                />
+              ))
+            }
           />
         </Flex>
       </Flex>

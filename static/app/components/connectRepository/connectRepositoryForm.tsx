@@ -2,36 +2,38 @@ import {useState} from 'react';
 import {useMutation} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Container, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
 import {Text} from '@sentry/scraps/text';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {PathMappingList} from 'sentry/components/connectRepository/pathMappingList';
-import type {PathMappingValue} from 'sentry/components/connectRepository/type';
-import {hasExactDuplicate} from 'sentry/components/connectRepository/warnings';
-import {ScmVirtualizedMenuList} from 'sentry/components/onboarding/scm/scmVirtualizedMenuList';
-import {t, tct} from 'sentry/locale';
-import type {Project} from 'sentry/types/project';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   getApiErrorMessage,
   ConnectionModalFrame,
   LockedProjectField,
 } from 'sentry/components/connectRepository/connectionModalFrame';
+import {PathMappingList} from 'sentry/components/connectRepository/pathMappingList';
 import {
   saveProjectRepoConnection,
   useGroupedRepoOptions,
   useInvalidateRepoQueries,
   type RepoSelectOption,
 } from 'sentry/components/connectRepository/queries';
+import type {PathMappingValue} from 'sentry/components/connectRepository/type';
+import {hasExactDuplicate} from 'sentry/components/connectRepository/warnings';
+import {ScmVirtualizedMenuList} from 'sentry/components/onboarding/scm/scmVirtualizedMenuList';
+import {t, tct} from 'sentry/locale';
+import type {Project} from 'sentry/types/project';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 function PathsPlaceholder() {
   return (
     <Container border="muted" radius="md" padding="2xl" style={{borderStyle: 'dashed'}}>
-      <Text variant="muted">
-        {t('Select a repository first to configure code paths')}
-      </Text>
+      <Flex justify="center">
+        <Text variant="muted">
+          {t('Select a repository first to configure code paths')}
+        </Text>
+      </Flex>
     </Container>
   );
 }

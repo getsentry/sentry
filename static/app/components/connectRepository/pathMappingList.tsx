@@ -168,6 +168,7 @@ export function PathMappingList({
             defaultBranch={defaultBranch}
             projectSlug={projectSlug}
             warning={warnings[index]}
+            enableDelete={entries.length > 1}
             onChange={value => handleChange(entry.id, value)}
             onDelete={() => handleDelete(entry.id)}
             onExpandToggle={() => toggle(entry.id)}

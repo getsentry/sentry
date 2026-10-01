@@ -15,7 +15,10 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import * as pipelineModal from 'sentry/components/pipeline/modal';
-import type {IntegrationWithConfig} from 'sentry/types/integrations';
+import type {
+  IntegrationWithConfig,
+  RepositoryProjectPathConfig,
+} from 'sentry/types/integrations';
 import {mockElementSize} from 'sentry/utils/fixtures/virtualization';
 import OrganizationRepositories from 'sentry/views/settings/organizationRepositories';
 
@@ -494,7 +497,7 @@ describe('OrganizationRepositories', () => {
     const PROJECT = ProjectFixture({id: 'proj-1', slug: 'my-project'});
     const organization = OrganizationFixture({features: ['code-mappings-refactor']});
 
-    function setupRepoMocks(codeMappingBody: object[]) {
+    function setupRepoMocks(codeMappingBody: RepositoryProjectPathConfig[]) {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/config/integrations/',
         body: {providers: [GITHUB_PROVIDER]},
@@ -598,7 +601,9 @@ describe('OrganizationRepositories', () => {
       const chip = await screen.findByTestId(/^platform-icon-/);
       await userEvent.click(chip);
 
-      expect(await screen.findByRole('heading', {name: 'Edit code mappings'})).toBeInTheDocument();
+      expect(
+        await screen.findByRole('heading', {name: 'Edit code mappings'})
+      ).toBeInTheDocument();
     });
   });
 });
