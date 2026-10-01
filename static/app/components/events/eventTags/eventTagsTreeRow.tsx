@@ -1,11 +1,8 @@
-import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
-import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
+import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {ExternalLink, Link} from '@sentry/scraps/link';
-import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
-import {RevealOnHover} from '@sentry/scraps/revealOnHover';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
@@ -15,10 +12,15 @@ import type {TagTreeContent} from 'sentry/components/events/eventTags/eventTagsT
 import {EventTagsValue} from 'sentry/components/events/eventTags/eventTagsValue';
 import {AnnotatedTextErrors} from 'sentry/components/events/meta/annotatedText/annotatedTextErrors';
 import {hasScrubbedData} from 'sentry/components/events/meta/annotatedText/utils';
+import {KeyValueTreeRow} from 'sentry/components/keyValueTree/keyValueTreeRow';
+import {
+  KeyValueTreeRowActions,
+  visitExternalLinkAction,
+} from 'sentry/components/keyValueTree/keyValueTreeRowActions';
+import type {KeyValueTreeRowConfig} from 'sentry/components/keyValueTree/utils';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {Version} from 'sentry/components/version';
 import {VersionHoverCard} from 'sentry/components/versionHoverCard';
-import {IconEllipsis} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {DetailedProject} from 'sentry/types/project';
@@ -39,22 +41,13 @@ import {
 import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 import {getSizeBuildPath} from 'sentry/views/preprod/utils/buildLinkUtils';
 
-export interface EventTagTreeRowConfig {
-  // Omits the dropdown of actions applicable to this tag
-  disableActions?: boolean;
-  // Omit error styling from being displayed, even if context is invalid
-  disableErrors?: boolean;
-  // Displays tag value as plain text, rather than a hyperlink if applicable
-  disableRichValue?: boolean;
-}
-
-export interface EventTagsTreeRowProps {
+interface EventTagsTreeRowProps {
   content: TagTreeContent;
   event: Event;
   project: DetailedProject;
   tagKey: string;
-  config?: EventTagTreeRowConfig;
-  isLast?: boolean;
+  config?: KeyValueTreeRowConfig;
+  hasStem?: boolean;
   spacerCount?: number;
 }
 
@@ -64,30 +57,24 @@ export function EventTagsTreeRow({
   tagKey,
   project,
   spacerCount = 0,
-  isLast = false,
+  hasStem = false,
   config = {},
   ...props
 }: EventTagsTreeRowProps) {
-  const originalTag = content.originalTag;
+  const originalTag = content.original;
   const tagErrors = content.meta?.value?.['']?.err ?? [];
   const hasTagErrors = tagErrors.length > 0 && !config?.disableErrors;
   const isScrubbed = hasScrubbedData(content.meta?.value?.['']?.rem);
-  const hasStem = !isLast && content.subtree.size === 0;
 
   if (!originalTag) {
     return (
-      <TreeRow hasErrors={hasTagErrors} {...props}>
-        <TreeKeyTrunk spacerCount={spacerCount}>
-          {spacerCount > 0 && (
-            <Fragment>
-              <TreeSpacer spacerCount={spacerCount} hasStem={hasStem} />
-              <TreeBranchIcon hasErrors={hasTagErrors} />
-            </Fragment>
-          )}
-          <TreeKey hasErrors={hasTagErrors}>{tagKey}</TreeKey>
-        </TreeKeyTrunk>
-        <TreeValueTrunk />
-      </TreeRow>
+      <KeyValueTreeRow
+        {...props}
+        hasErrors={hasTagErrors}
+        hasStem={hasStem}
+        label={tagKey}
+        spacerCount={spacerCount}
+      />
     );
   }
 
@@ -100,41 +87,32 @@ export function EventTagsTreeRow({
   );
 
   return (
-    <RevealOnHover>
-      {revealOnHoverProps => (
-        <TreeRow hasErrors={hasTagErrors} {...props} {...revealOnHoverProps}>
-          <TreeKeyTrunk spacerCount={spacerCount}>
-            {spacerCount > 0 && (
-              <Fragment>
-                <TreeSpacer spacerCount={spacerCount} hasStem={hasStem} />
-                <TreeBranchIcon hasErrors={hasTagErrors} />
-              </Fragment>
-            )}
-            <TreeSearchKey aria-hidden>{originalTag.key}</TreeSearchKey>
-            <TreeKey hasErrors={hasTagErrors}>
-              <AttributeDetailsTooltip
-                attributeKey={originalTag.key}
-                fieldDefinitionType="event"
-                isScrubbed={isScrubbed}
-              >
-                {tagKey}
-              </AttributeDetailsTooltip>
-            </TreeKey>
-          </TreeKeyTrunk>
-          <TreeValueTrunk>
-            <TreeValue hasErrors={hasTagErrors}>
-              <EventTagsTreeValue
-                config={config}
-                content={content}
-                event={event}
-                project={project}
-              />
-            </TreeValue>
-            {!config?.disableActions && tagActions}
-          </TreeValueTrunk>
-        </TreeRow>
-      )}
-    </RevealOnHover>
+    <KeyValueTreeRow
+      {...props}
+      actions={config?.disableActions ? undefined : tagActions}
+      hasErrors={hasTagErrors}
+      hasStem={hasStem}
+      fullKey={originalTag.key}
+      showFullKeyTitle={false}
+      label={
+        <AttributeDetailsTooltip
+          attributeKey={originalTag.key}
+          fieldDefinitionType="event"
+          isScrubbed={isScrubbed}
+        >
+          {tagKey}
+        </AttributeDetailsTooltip>
+      }
+      spacerCount={spacerCount}
+      value={
+        <EventTagsTreeValue
+          config={config}
+          content={content}
+          event={event}
+          project={project}
+        />
+      }
+    />
   );
 }
 
@@ -148,8 +126,7 @@ function EventTagsTreeRowDropdown({
   const hasExploreEnabled = organization.features.includes('visibility-explore-view');
   const {copy} = useCopyToClipboard();
   const {mutate: saveTag} = useUpdateProject(project);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const originalTag = content.originalTag;
+  const originalTag = content.original;
 
   if (!originalTag) {
     return null;
@@ -314,38 +291,17 @@ function EventTagsTreeRowDropdown({
             }
           : undefined,
     },
-    {
-      key: 'external-link',
-      label: t('Visit this external link'),
-      hidden: !isValidUrl(content.value),
-      onAction: () => {
-        openNavigateToExternalLinkModal({linkText: content.value});
-      },
-    },
+    visitExternalLinkAction(content.value),
   ];
 
   return (
-    <RevealOnHover.Action visible={isMenuOpen}>
-      <TreeValueDropdown
-        // Inline, the menu is trapped in the focused row's stacking context and
-        // renders under positioned content further down the page.
-        usePortal
-        preventOverflowOptions={{padding: 4}}
-        position="bottom-end"
-        size="xs"
-        isOpen={isMenuOpen}
-        onOpenChange={setIsMenuOpen}
-        trigger={triggerProps => (
-          <OverlayTrigger.IconButton
-            {...triggerProps}
-            aria-label={t('Tag Actions Menu')}
-            icon={<IconEllipsis />}
-            className="tag-button"
-          />
-        )}
-        items={items}
-      />
-    </RevealOnHover.Action>
+    <KeyValueTreeRowActions
+      ariaLabel={t('Tag Actions Menu')}
+      items={items}
+      // Inline, the menu is trapped in the focused row's stacking context and
+      // renders under positioned content further down the page.
+      usePortal
+    />
   );
 }
 
@@ -356,7 +312,7 @@ function EventTagsTreeValue({
   project,
 }: Pick<EventTagsTreeRowProps, 'config' | 'content' | 'event' | 'project'>) {
   const organization = useOrganization();
-  const {originalTag} = content;
+  const originalTag = content.original;
   const tagMeta = content.meta?.value?.[''];
   if (!originalTag) {
     return null;
@@ -461,103 +417,6 @@ function EventTagsTreeValue({
     tagValue
   );
 }
-
-const TreeRow = styled('div')<{hasErrors: boolean}>`
-  border-radius: ${p => p.theme.space.xs};
-  padding-left: ${p => p.theme.space.md};
-  position: relative;
-  &:focus-within {
-    z-index: 1;
-  }
-  display: grid;
-  align-items: center;
-  grid-column: span 2;
-  column-gap: ${p => p.theme.space.lg};
-  grid-template-columns: subgrid;
-  :nth-child(odd) {
-    background-color: ${p =>
-      p.hasErrors ? p.theme.colors.red100 : p.theme.tokens.background.secondary};
-  }
-  color: ${p => (p.hasErrors ? p.theme.colors.red500 : p.theme.tokens.content.secondary)};
-  background-color: ${p =>
-    p.hasErrors ? p.theme.colors.red100 : p.theme.tokens.background.primary};
-  box-shadow: inset 0 0 0 1px
-    ${p => (p.hasErrors ? p.theme.colors.red200 : 'transparent')};
-`;
-
-const TreeSpacer = styled('div')<{hasStem: boolean; spacerCount: number}>`
-  grid-column: span 1;
-  /* Allows TreeBranchIcons to appear connected vertically */
-  border-right: 1px solid
-    ${p => (p.hasStem ? p.theme.tokens.border.primary : 'transparent')};
-  margin-right: -1px;
-  height: 100%;
-  width: ${p => (p.spacerCount - 1) * 20 + 3}px;
-`;
-
-const TreeBranchIcon = styled('div')<{hasErrors: boolean}>`
-  border: 1px solid
-    ${p => (p.hasErrors ? p.theme.colors.red200 : p.theme.tokens.border.primary)};
-  border-width: 0 0 1px 1px;
-  border-radius: 0 0 0 5px;
-  grid-column: span 1;
-  height: 12px;
-  align-self: start;
-  margin-right: ${p => p.theme.space.xs};
-`;
-
-const TreeKeyTrunk = styled('div')<{spacerCount: number}>`
-  grid-column: 1 / 2;
-  display: grid;
-  height: 100%;
-  align-items: center;
-  grid-template-columns: ${p => (p.spacerCount > 0 ? 'auto 1rem 1fr' : '1fr')};
-`;
-
-const TreeValueTrunk = styled('div')`
-  grid-column: 2 / 3;
-  display: grid;
-  height: 100%;
-  align-items: center;
-  min-height: 22px;
-  grid-template-columns: 1fr auto;
-  grid-column-gap: ${p => p.theme.space.xs};
-`;
-
-const TreeValue = styled('div')<{hasErrors?: boolean}>`
-  padding: ${p => p.theme.space['2xs']} 0;
-  align-self: start;
-  font-family: ${p => p.theme.font.family.mono};
-  font-size: ${p => p.theme.font.size.sm};
-  word-break: break-word;
-  grid-column: span 1;
-  color: ${p => (p.hasErrors ? 'inherit' : p.theme.tokens.content.primary)};
-`;
-
-const TreeKey = styled(TreeValue)<{hasErrors?: boolean}>`
-  color: ${p => (p.hasErrors ? 'inherit' : p.theme.tokens.content.secondary)};
-`;
-
-/**
- * Hidden element to allow browser searching for exact key name
- */
-const TreeSearchKey = styled('span')`
-  font-size: 0;
-  position: absolute;
-`;
-
-const TreeValueDropdown = styled(DropdownMenu)`
-  display: block;
-  margin: 1px;
-  height: 20px;
-  .tag-button {
-    height: 20px;
-    min-height: 20px;
-    padding: 0 ${p => p.theme.space.sm};
-    border-radius: ${p => p.theme.space.xs};
-    z-index: 0;
-  }
-`;
 
 const TreeValueErrors = styled('div')`
   height: 20px;
