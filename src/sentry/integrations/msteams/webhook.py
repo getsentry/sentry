@@ -335,7 +335,9 @@ class MsTeamsWebhookEndpoint(Endpoint):
         event = channel_data.get("eventType")
 
         if event == "teamMemberAdded":
-            return self._handle_team_member_added(request)
+            # Teams also sends installationUpdate/add for a team install. Handle the setup card
+            # there so one installation does not produce duplicate messages.
+            return self.respond(status=204)
         elif event == "teamMemberRemoved":
             if SiloMode.get_current_mode() == SiloMode.CONTROL:
                 return self.respond(status=400)
@@ -354,6 +356,9 @@ class MsTeamsWebhookEndpoint(Endpoint):
         return verify_signature(request)
 
     def _handle_personal_member_add(self, request: Request):
+        if not options.get("msteams.personal-installation-link.enabled"):
+            return self.respond(status=204)
+
         data = request.data
         data["conversation_id"] = data["conversation"]["id"]
         tenant_id = data["conversation"]["tenantId"]
@@ -364,19 +369,6 @@ class MsTeamsWebhookEndpoint(Endpoint):
             "installation_type": "tenant",
         }
         return self._handle_member_add(data, params, build_personal_installation_message)
-
-    def _handle_team_member_added(self, request: Request) -> Response:
-        data = request.data
-        team = data["channelData"]["team"]
-        data["conversation_id"] = data["conversation"]["id"]
-
-        params = {
-            "external_id": team["id"],
-            "external_name": team["name"],
-            "installation_type": "team",
-        }
-
-        return self._handle_member_add(data, params, build_team_installation_message)
 
     def _handle_member_add(
         self,
