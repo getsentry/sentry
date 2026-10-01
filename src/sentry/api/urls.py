@@ -760,6 +760,7 @@ from .endpoints.internal import (
     InternalWarningsEndpoint,
 )
 from .endpoints.oauth_authorize import OAuthAuthorizeEndpoint
+from .endpoints.oauth_device import OAuthDeviceEndpoint
 from .endpoints.organization_access_request_details import OrganizationAccessRequestDetailsEndpoint
 from .endpoints.organization_agentic_onboarding import (
     OrganizationAgenticOnboardingRunIndexEndpoint,
@@ -1075,6 +1076,11 @@ AUTH_URLS = [
         r"^oauth/authorize/$",
         OAuthAuthorizeEndpoint.as_view(),
         name="sentry-api-0-oauth-authorize",
+    ),
+    re_path(
+        r"^oauth/device/$",
+        OAuthDeviceEndpoint.as_view(),
+        name="sentry-api-0-oauth-device",
     ),
     re_path(
         r"^$",

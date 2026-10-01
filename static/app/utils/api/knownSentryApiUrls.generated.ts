@@ -29,6 +29,7 @@ export type KnownSentryApiUrls =
   | '/auth/config/'
   | '/auth/login/'
   | '/auth/oauth/authorize/'
+  | '/auth/oauth/device/'
   | '/auth/organizations/$organizationIdOrSlug/config/'
   | '/auth/organizations/$organizationIdOrSlug/demo/'
   | '/auth/recovery/'
