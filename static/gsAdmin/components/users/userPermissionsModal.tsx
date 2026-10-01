@@ -5,11 +5,7 @@ import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Grid, Stack} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  clearIndicators,
-} from 'sentry/actionCreators/indicator';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -59,11 +55,16 @@ export function UserPermissionsModal({
   const available = availablePermissions ?? [];
 
   const mutation = useMutation({
-    mutationFn: async (data: Record<string, boolean>) => {
+    mutationFn: async (data: {
+      isStaff: boolean;
+      isSuperuser: boolean;
+      permissions: boolean[];
+    }) => {
       const currentPerms = new Set(permissions);
-      const newPerms = available.filter(k => data[k]);
+      const newPerms = available.filter((_, index) => data.permissions[index]);
       const addedPerms = newPerms.filter(perm => !currentPerms.has(perm));
-      const removedPerms = permissions.filter(perm => !data[perm]);
+      const selectedPerms = new Set(newPerms);
+      const removedPerms = permissions.filter(perm => !selectedPerms.has(perm));
 
       await Promise.all([
         fetchMutation({
@@ -96,19 +97,17 @@ export function UserPermissionsModal({
         permissions: new Set(newPerms),
       };
     },
-    onMutate: () => addLoadingMessage('Saving changes\u2026'),
     onSuccess: newUser => {
       onSubmit(newUser);
       closeModal();
     },
     onError: () => addErrorMessage('Unable to update user permissions.'),
-    onSettled: clearIndicators,
   });
 
-  const defaultValues: Record<string, boolean> = {
+  const defaultValues = {
     isSuperuser: user.isSuperuser,
     isStaff: user.isStaff,
-    ...Object.fromEntries(available.map(k => [k, permissions.includes(k)])),
+    permissions: available.map(perm => permissions.includes(perm)),
   };
   const form = useScrapsForm({
     ...defaultFormOptions,
@@ -121,9 +120,7 @@ export function UserPermissionsModal({
       form.reset({
         isSuperuser: user.isSuperuser,
         isStaff: user.isStaff,
-        ...Object.fromEntries(
-          availablePermissions.map(k => [k, permissionList.includes(k)])
-        ),
+        permissions: availablePermissions.map(perm => permissionList.includes(perm)),
       });
     }
   }, [availablePermissions, permissionList, form, user.isStaff, user.isSuperuser]);
@@ -167,8 +164,8 @@ export function UserPermissionsModal({
           <Heading as="h5" size="md">
             Additional Permissions
           </Heading>
-          {available.map(perm => (
-            <form.AppField key={perm} name={perm}>
+          {available.map((perm, index) => (
+            <form.AppField key={perm} name={`permissions[${index}]`}>
               {field => (
                 <Grid
                   columns="12rem max-content"
