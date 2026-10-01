@@ -20,6 +20,9 @@ detect: |
       without success/error/complete callback options
     - The definition of request() or requestPromise() methods themselves
     - References in comments, documentation, or test mocks
+    - api.requestPromise() used as the return value of a useMutation mutationFn —
+      in that context onSuccess/onError/onSettled are TanStack Query mutation
+      options on the outer useMutation call, NOT callbacks passed to api.requestPromise
 
 fix: |
   Convert callback-based api.request() to await api.requestPromise():
@@ -63,6 +66,7 @@ examples:
   good:
     - "const data = await api.requestPromise('/endpoint/');"
     - "await this.api.requestPromise('/endpoint/', { method: 'POST', data });"
+    - "useMutation({ mutationFn: (data) => api.requestPromise('/endpoint/', { method: 'POST', data }), onSuccess: () => navigate('/'), onError: () => addErrorMessage('Failed') })"
 
 include:
   - 'static/app/**/*.tsx'
@@ -74,4 +78,4 @@ exclude:
   - '**/*.test.*'
   - '**/test/**'
 
-prefilter: "grep -rl --include='*.tsx' --include='*.ts' -E 'api\\.request\\(|api\\.requestPromise\\(' {repo_path}/static/"
+prefilter: "grep -rl --include='*.tsx' --include='*.ts' -E 'api\\.request\\(|api\\.requestPromise\\(' {repo_path}/static/app/"
