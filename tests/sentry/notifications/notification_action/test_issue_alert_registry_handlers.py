@@ -3,6 +3,7 @@ from unittest import mock
 
 import pytest
 
+from sentry.models.rule import Rule
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.notification_action.issue_alert_registry import (
     AzureDevopsIssueAlertHandler,
@@ -302,6 +303,19 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
         assert notification_rule.workflow_id is None
         assert notification_rule.is_legacy_rule_only
         assert notification_rule.data == {"actions": legacy_rule.data["actions"]}
+
+    def test_from_deprecated_legacy_rule_without_actions(self) -> None:
+        legacy_rule = self.create_project_rule(project=self.project)
+        legacy_rule.update(data={})
+        legacy_rule = Rule.objects.get(id=legacy_rule.id)
+
+        with self.assertNumQueries(0):
+            notification_rule = NotificationRule.from_deprecated_legacy_rule(
+                legacy_rule, project=self.project
+            )
+
+        assert notification_rule.is_legacy_rule_only
+        assert notification_rule.data == {"actions": [{}]}
 
     def test_create_rule_instance_from_action_no_environment(self) -> None:
         """Test that create_rule_instance_from_action creates a notification rule."""

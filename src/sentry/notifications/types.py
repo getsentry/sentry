@@ -13,6 +13,8 @@ if TYPE_CHECKING:
 
 
 class NotificationRuleData(TypedDict):
+    """Configuration for legacy action instantiation, not notification identity."""
+
     actions: list[dict[str, Any]]
 
 
@@ -23,6 +25,12 @@ class NotificationRule:
     ``id`` identifies the source of this delivery. It is usually a workflow-engine
     Action ID, but its domain is not stable across every notification path. It must
     not be used to look up a persisted Rule; use ``legacy_rule_id`` explicitly.
+
+    ``workflow_id`` and ``legacy_rule_id`` are the canonical notification identities.
+    Notification code must not recover identity from ``data["actions"]``. Action data
+    exists only to configure the legacy action registry. Parsing identity from action
+    data is restricted to explicit compatibility boundaries for deprecated Rule rows
+    and payloads serialized before these top-level fields existed.
     """
 
     id: int
@@ -35,7 +43,11 @@ class NotificationRule:
 
     @classmethod
     def from_deprecated_legacy_rule(
-        cls, rule: Rule, *, workflow_id: int | None = None
+        cls,
+        rule: Rule,
+        *,
+        project: Project | None = None,
+        workflow_id: int | None = None,
     ) -> NotificationRule:
         actions = rule.data.get("actions")
         if (
@@ -43,7 +55,8 @@ class NotificationRule:
             or not actions
             or not all(isinstance(action, dict) for action in actions)
         ):
-            raise ValueError("Legacy Rule requires at least one notification action")
+            # Deprecated rules can reach render-only paths without action data.
+            actions = [{}]
 
         first_action = actions[0]
         embedded_workflow_id = first_action.get("workflow_id")
@@ -70,7 +83,7 @@ class NotificationRule:
             id=rule.id,
             label=rule.label,
             data={"actions": [dict(action) for action in actions]},
-            project=rule.project,
+            project=project or rule.project,
             environment_id=rule.environment_id,
             workflow_id=effective_workflow_id,
             legacy_rule_id=legacy_rule_id,

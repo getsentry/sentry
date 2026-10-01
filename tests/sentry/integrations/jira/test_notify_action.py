@@ -4,7 +4,7 @@ from fixtures.integrations.stub_service import StubService
 from sentry.integrations.jira import JiraCreateTicketAction
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.models.grouplink import GroupLink
-from sentry.notifications.types import RuleFuture
+from sentry.notifications.types import NotificationRule, RuleFuture
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
@@ -84,7 +84,12 @@ class JiraCreateTicketActionTest(RuleTestCase, PerformanceIssueTestCase):
         assert len(results) == 1
 
         # Trigger rule callback
-        rule_future = RuleFuture(rule=self.jira_rule, kwargs=results[0].kwargs)
+        persisted_rule = self.jira_rule.rule
+        assert persisted_rule is not None
+        rule_future = RuleFuture(
+            rule=NotificationRule.from_deprecated_legacy_rule(persisted_rule),
+            kwargs=results[0].kwargs,
+        )
         results[0].callback(event, futures=[rule_future])
         return json.loads(responses.calls[1].request.body)
 

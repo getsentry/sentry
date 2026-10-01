@@ -75,6 +75,21 @@ class IssueAlertInvocationMixin(TestCase):
 
 
 class IssueNotificationDataTest(IssueAlertInvocationMixin):
+    def test_deserializes_legacy_rule_proxy(self) -> None:
+        proxy = SerializableRuleProxy.parse_obj(
+            {
+                "id": 1,
+                "label": "Legacy payload",
+                "data": {"actions": [{"workflow_id": 2}]},
+                "project_id": self.project.id,
+            }
+        )
+
+        rule = proxy.to_notification_rule(self.project)
+
+        assert rule.workflow_id == 2
+        assert rule.legacy_rule_id is None
+
     def test_source(self) -> None:
         data = IssueNotificationData(
             group_id=self.group.id,

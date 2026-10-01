@@ -101,7 +101,7 @@ class AlertRuleNotification(ProjectNotification):
         self.rules = [
             rule
             if isinstance(rule, NotificationRule)
-            else NotificationRule.from_deprecated_legacy_rule(rule)
+            else NotificationRule.from_deprecated_legacy_rule(rule, project=project)
             for rule in notification.rules
         ]
 
