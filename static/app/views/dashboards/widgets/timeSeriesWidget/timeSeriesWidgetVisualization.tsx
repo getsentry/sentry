@@ -617,13 +617,13 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   // Keep track of what color in the chosen palette we're assigning
   let seriesColorIndex = 0;
-  const seriesFromPlottables: SeriesOption[] = props.plottables.flatMap(plottable => {
+  const seriesFromPlottables: SeriesOption[] = [];
+  for (const plottable of props.plottables) {
     let color: string | undefined;
 
     if (plottable.needsColor) {
       // For any timeseries in need of a color, pull from the chart palette
       color = palette[seriesColorIndex % palette.length]!; // Mod the index in case the number of plottables exceeds the palette length
-      // oxlint-disable-next-line react/immutability
       seriesColorIndex += 1;
     }
 
@@ -643,8 +643,8 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     });
     seriesIndex += seriesOfPlottable.length;
 
-    return seriesOfPlottable;
-  });
+    seriesFromPlottables.push(...seriesOfPlottable);
+  }
 
   const seriesIndexToPlottableRangeMap = new RangeMap<Plottable>(
     seriesIndexToPlottableMapRanges

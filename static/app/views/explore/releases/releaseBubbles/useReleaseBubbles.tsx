@@ -81,7 +81,6 @@ interface ReleaseBubbleSeriesProps {
   bubblePadding: number;
   bubbleSize: number;
   buckets: Bucket[];
-  chartRef: React.RefObject<ReactEchartsRef | null>;
   theme: Theme;
   timezone: string;
   onBucketClick?: (bucket: Bucket) => void;
@@ -93,7 +92,6 @@ interface ReleaseBubbleSeriesProps {
  */
 function createReleaseBubbleSeries({
   buckets,
-  chartRef,
   theme,
   bubbleSize,
   bubblePadding,
@@ -101,7 +99,7 @@ function createReleaseBubbleSeries({
   timezone,
   yAxisIndex,
   onBucketClick,
-}: ReleaseBubbleSeriesProps): CustomSeriesOption {
+}: ReleaseBubbleSeriesProps) {
   const totalReleases = buckets.reduce(
     (acc, {releases, flags}) => acc + flags.length + releases.length,
     0
@@ -283,12 +281,6 @@ function createReleaseBubbleSeries({
       trigger: 'item',
       position: 'bottom',
       formatter: params => {
-        // Only show the tooltip of the current chart. Otherwise, all tooltips
-        // in the chart group appear.
-        if (!isChartHovered(chartRef?.current)) {
-          return '';
-        }
-
         const bucket = params.data as Bucket;
         const numberReleases = bucket.releases.length;
         const numberFlags = bucket.flags.length;
@@ -320,7 +312,7 @@ ${t('Click to expand')}
 `;
       },
     },
-  };
+  } satisfies CustomSeriesOption;
 }
 
 interface UseReleaseBubblesParams {
@@ -502,33 +494,39 @@ export function useReleaseBubbles({
     [buckets.length]
   );
 
-  const releaseBubbleSeries = useMemo(
-    () =>
-      buckets.length
-        ? // oxlint-disable-next-line react/refs
-          createReleaseBubbleSeries({
-            yAxisIndex,
-            alignInMiddle,
-            buckets,
-            bubbleSize,
-            bubblePadding,
-            chartRef,
-            theme,
-            timezone: options.timezone,
-            onBucketClick: handleBucketClick,
-          })
-        : null,
-    [
-      alignInMiddle,
-      bubblePadding,
-      bubbleSize,
-      buckets,
-      handleBucketClick,
-      options.timezone,
-      theme,
+  const releaseBubbleSeries = useMemo(() => {
+    if (!buckets.length) {
+      return null;
+    }
+
+    const series = createReleaseBubbleSeries({
       yAxisIndex,
-    ]
-  );
+      alignInMiddle,
+      buckets,
+      bubbleSize,
+      bubblePadding,
+      theme,
+      timezone: options.timezone,
+      onBucketClick: handleBucketClick,
+    });
+
+    const formatter = series.tooltip.formatter;
+    series.tooltip.formatter = params => {
+      // Only show the tooltip of the current chart. Otherwise, all tooltips
+      // in the chart group appear.
+      return isChartHovered(chartRef.current) ? formatter(params) : '';
+    };
+    return series;
+  }, [
+    alignInMiddle,
+    bubblePadding,
+    bubbleSize,
+    buckets,
+    handleBucketClick,
+    options.timezone,
+    theme,
+    yAxisIndex,
+  ]);
 
   if (!buckets.length) {
     return {
