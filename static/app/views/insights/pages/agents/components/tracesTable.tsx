@@ -31,6 +31,7 @@ import {
   type GridColumnHeader,
   type GridColumnOrder,
 } from 'sentry/components/tables/gridEditable';
+import {TableNoDataPanel} from 'sentry/components/tables/tableNoDataPanel';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -331,6 +332,7 @@ export function TracesTable({
       isLoading={tracesRequest.isPending}
       error={tracesRequest.error}
       data={tableData}
+      emptyMessage={<TableNoDataPanel />}
       stickyHeader
       columnOrder={columnOrder}
       grid={{

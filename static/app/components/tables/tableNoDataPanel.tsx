@@ -3,12 +3,12 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
 
-export function WidgetNoDataPanel() {
+export function TableNoDataPanel() {
   return (
     <Flex width="100%" flexGrow={1} align="center" justify="center">
       <Stack gap="sm" align="center">
         <Heading as="h3" size="lg" align="center" style={{margin: 0}}>
-          {t('No data to plot.')}
+          {t('No results found')}
         </Heading>
         <Text as="p" size="md" variant="muted" align="center">
           {t('Try adjusting the filters.')}

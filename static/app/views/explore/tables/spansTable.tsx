@@ -45,6 +45,7 @@ interface SpansTableProps {
   spansTableResult: SpansTableResult;
   stringTags: TagCollection;
   validatedFieldTypes: Partial<Record<string, FieldValueType>>;
+  emptyMessage?: React.ReactNode;
 }
 
 interface ResolvedSpanTable {
@@ -58,6 +59,7 @@ interface ResolvedSpanTable {
 
 export function SpansTable({
   booleanTags,
+  emptyMessage,
   numberTags,
   spansTableResult,
   stringTags,
@@ -263,9 +265,11 @@ export function SpansTable({
             ))
           ) : (
             <DataTable.Status>
-              <EmptyStateWarning>
-                <p>{t('No spans found')}</p>
-              </EmptyStateWarning>
+              {emptyMessage ?? (
+                <EmptyStateWarning>
+                  <p>{t('No spans found')}</p>
+                </EmptyStateWarning>
+              )}
             </DataTable.Status>
           )}
         </DataTable.Body>
