@@ -112,7 +112,7 @@ class RedisQuota(Quota):
                     scope=QuotaScope.PROJECT,
                     scope_id=project.id,
                     categories=[DataCategory.MONITOR],
-                    reason_code="monitor_rate_limit",
+                    reason_code="monitor_env_rate_limit",
                     group_by=QuotaGroupBy(
                         max_cardinality=PER_MONITOR_MAX_CARDINALITY,
                         dimensions=(

@@ -278,7 +278,7 @@ class RedisQuotaTest(TestCase):
         assert quota.categories == {DataCategory.MONITOR}
         assert quota.limit == 6
         assert quota.window == 60
-        assert quota.reason_code == "monitor_rate_limit"
+        assert quota.reason_code == "monitor_env_rate_limit"
         assert quota.group_by == QuotaGroupBy(
             max_cardinality=2000,
             dimensions=(QuotaDimension.CHECK_IN_SLUG, QuotaDimension.CHECK_IN_ENVIRONMENT),
