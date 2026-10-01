@@ -6,6 +6,7 @@ from typing import NamedTuple
 
 DEFAULT_PREFIX_CAP = 200
 _SLASH = "/"
+_APP_SCHEME = "app:///"
 
 
 class RankedPrefix(NamedTuple):
@@ -14,15 +15,18 @@ class RankedPrefix(NamedTuple):
 
 
 def directory_prefixes(path: str) -> list[str]:
-    directories = _directory_segments(path)
-    if not directories:
-        return []
+    normalized = _normalize_separators(path)
+    scheme, remainder = _peel_scheme(normalized)
+    directories = _directory_segments(remainder)
 
     prefixes: list[str] = []
     built: list[str] = []
     for segment in directories:
         built.append(segment)
         prefixes.append(_SLASH.join(built) + _SLASH)
+
+    if scheme:
+        return [scheme] + [scheme + p for p in prefixes]
     return prefixes
 
 
@@ -44,6 +48,12 @@ def rank_directory_prefixes(
 
 def _normalize_separators(path: str) -> str:
     return path.replace("\\", _SLASH)
+
+
+def _peel_scheme(path: str) -> tuple[str, str]:
+    if path.startswith(_APP_SCHEME):
+        return _APP_SCHEME, path[len(_APP_SCHEME) :]
+    return "", path
 
 
 def _directory_segments(path: str) -> list[str]:

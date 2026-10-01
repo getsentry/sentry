@@ -31,6 +31,14 @@ class TestDirectoryPrefixes:
     def test_root_file_has_no_prefix(self) -> None:
         assert directory_prefixes("/foo.py") == []
 
+    def test_app_scheme_preserves_triple_slash(self) -> None:
+        result = directory_prefixes("app:///src/index.tsx")
+        assert result == ["app:///", "app:///src/"]
+        assert "app:/" not in result
+
+    def test_app_scheme_file_at_root(self) -> None:
+        assert directory_prefixes("app:///index.tsx") == ["app:///"]
+
 
 class TestRankDirectoryPrefixes:
     def test_ranks_by_file_count(self) -> None:
