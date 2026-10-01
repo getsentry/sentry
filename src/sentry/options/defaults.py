@@ -1117,6 +1117,25 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Upper bound on the number of `ArtifactBundleIndex` rows a single URL lookup in the
+# artifact-lookup endpoint scans. Releases that have more indexed files than this scan
+# their active bundles (uploaded or renewed recently) first, then the others, newest
+# first, until the budget is spent. 0 disables the limit and scans every bundle.
+register(
+    "sourcemaps.artifact-bundles.url-lookup.max-index-rows",
+    type=Int,
+    default=0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Days added to `system.debug-files-renewal-age-threshold-days` to decide which bundles
+# count as active for the URL lookup. A bundle in use is renewed once it is older than the
+# threshold, so the margin must cover the time between lookups of a bundle in use.
+register(
+    "sourcemaps.artifact-bundles.url-lookup.active-margin-days",
+    type=Int,
+    default=7,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Decide whether a release is fully indexed from its newest bundles only, instead of
 # counting every bundle in the release on each artifact-lookup request.
 register(
