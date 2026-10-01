@@ -36,7 +36,7 @@ export function KeyValueTableDataList({
   return (
     <Grid
       className={className}
-      columns="175px minmax(0, 1fr)"
+      columns="fit-content(175px) minmax(0, 1fr)"
       gap="md"
       marginBottom={margin ? '2xl' : undefined}
       role="table"
