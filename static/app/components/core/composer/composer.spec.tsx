@@ -397,6 +397,36 @@ describe('Composer', () => {
     expect(textbox).toHaveTextContent('Inserted snippet');
   });
 
+  it('allows repeating a command after clearing the editor', async () => {
+    render(<ControlledComposer sources={[COMMAND_SOURCE]} />);
+    const textbox = getEditor();
+
+    await userEvent.type(textbox, '/new');
+    await screen.findByRole('option', {name: '/new'});
+    await userEvent.keyboard('{Enter}');
+    expect(textbox).toBeEmptyDOMElement();
+
+    await userEvent.keyboard('/new');
+    expect(await screen.findByRole('option', {name: '/new'})).toBeVisible();
+    await userEvent.keyboard('{Enter}');
+    expect(textbox).toBeEmptyDOMElement();
+  });
+
+  it('allows repeating a command after inserting a snippet', async () => {
+    render(<ControlledComposer sources={[COMMAND_SOURCE]} />);
+    const textbox = getEditor();
+
+    await userEvent.type(textbox, '/sni');
+    await screen.findByRole('option', {name: '/snippet'});
+    await userEvent.keyboard('{Enter}');
+    expect(textbox).toHaveTextContent('Inserted snippet');
+
+    await userEvent.keyboard('{Control>}a{/Control}/sni');
+    expect(await screen.findByRole('option', {name: '/snippet'})).toBeVisible();
+    await userEvent.keyboard('{Enter}');
+    expect(textbox).toHaveTextContent('Inserted snippet');
+  });
+
   it('excludes restricted sources from a shared trigger after other text', async () => {
     render(
       <ControlledComposer
