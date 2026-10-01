@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Collection, Iterable, Mapping, Sequence
+from unittest.mock import patch
 
 from sentry.digests.notifications import Digest, DigestInfo, build_digest, event_to_record
 from sentry.digests.types import IdentifierKey, Record
@@ -20,6 +21,7 @@ from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.types.actor import ActorType
+from sentry.workflow_engine.models.alertrule_workflow import AlertRuleWorkflow
 
 
 def _get_records(project: Project, rules: Collection[RuleModel], event: Event) -> list[Record]:
@@ -279,6 +281,33 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
         assert_get_personalized_digests(self.project, digest, expected_result)
         assert_rule_ids(
             digest, [self.rule_with_legacy_rule_id.data["actions"][0]["legacy_rule_id"]]
+        )
+
+    def test_legacy_rule_id_records_include_workflow_id(self) -> None:
+        rule = self.rule_with_legacy_rule_id
+        workflow_id = AlertRuleWorkflow.objects.get(rule_id=rule.id).workflow_id
+        records = _get_records(self.project, (rule,), self.team1_events[0])
+
+        digest = build_digest(self.project, sort_records(records))[0]
+
+        [digest_rule] = digest.keys()
+        assert digest_rule.data["actions"][0]["legacy_rule_id"] == rule.id
+        assert digest_rule.data["actions"][0]["workflow_id"] == workflow_id
+
+    def test_legacy_rule_id_records_without_workflow(self) -> None:
+        rule = self.rule_with_legacy_rule_id
+        AlertRuleWorkflow.objects.filter(rule_id=rule.id).delete()
+        records = _get_records(self.project, (rule,), self.team1_events[0])
+
+        with patch("sentry.digests.notifications.logger") as mock_logger:
+            digest = build_digest(self.project, sort_records(records))[0]
+
+        [digest_rule] = digest.keys()
+        assert digest_rule.data["actions"][0]["legacy_rule_id"] == rule.id
+        assert "workflow_id" not in digest_rule.data["actions"][0]
+        mock_logger.error.assert_called_once_with(
+            "digests.build_digest.rule_without_workflow",
+            extra={"rule_id": rule.id, "project_id": self.project.id},
         )
 
     def test_direct_email(self) -> None:
