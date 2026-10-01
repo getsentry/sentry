@@ -1,6 +1,16 @@
 import {AnnotationFixture} from 'sentry-fixture/annotation';
+import {ThemeFixture} from 'sentry-fixture/theme';
 
-import {groupIntoBuckets, hasDroppedData, opacityForRatio, reasonTitle} from './utils';
+import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
+
+import {
+  groupIntoBuckets,
+  hasDroppedData,
+  reasonDescription,
+  reasonTitle,
+  severityColor,
+  withAlpha,
+} from './utils';
 
 describe('hasDroppedData', () => {
   it('is true when there is at least one dropped annotation', () => {
@@ -19,6 +29,18 @@ describe('hasDroppedData', () => {
         AnnotationFixture({outcome: 'filtered', reason: 'web-crawlers'}),
       ])
     ).toBe(false);
+  });
+
+  it('is true only when a bucket has dropped events', () => {
+    function hasDrops(dropped: number, accepted: number) {
+      return hasDroppedData(
+        [AnnotationFixture({start: 0, eventCount: dropped})],
+        [AnnotationFixture({start: 0, eventCount: accepted})]
+      );
+    }
+
+    expect(hasDrops(0, 100)).toBe(false);
+    expect(hasDrops(1, 99)).toBe(true);
   });
 });
 
@@ -182,13 +204,42 @@ describe('groupIntoBuckets', () => {
 
     expect(withoutBytes!.dropped.byteSize).toBeUndefined();
   });
+});
 
-  it('maps drop ratio continuously onto opacity', () => {
-    expect(opacityForRatio(0)).toBe(0);
-    expect(opacityForRatio(0.01)).toBeCloseTo(0.167);
-    expect(opacityForRatio(0.02)).toBeCloseTo(0.184);
-    expect(opacityForRatio(0.5)).toBe(1);
-    expect(opacityForRatio(1)).toBe(1);
+describe('severityColor', () => {
+  const theme = ThemeFixture();
+  const opaque = (color: string) => `${color}FF`.toUpperCase();
+
+  it.each([
+    [0, opaque(theme.tokens.background.secondary)],
+    [0.001, '#F6E5B4FF'],
+    [0.049, '#F6E5B4FF'],
+    [0.05, '#FFCE00FF'],
+    [0.1, '#FF615DFF'],
+    [0.25, '#B5006FFF'],
+    [0.5, '#3A1873FF'],
+    [1, '#3A1873FF'],
+  ])('colors a drop ratio of %s', (ratio, expected) => {
+    expect(severityColor(ratio, theme)).toBe(expected);
+  });
+
+  it.each([
+    ['light', lightTheme],
+    ['dark', darkTheme],
+  ])('returns #RRGGBBAA colors in the %s theme', (_, themeVariant) => {
+    for (const ratio of [0, 0.05, 0.1, 0.25, 0.5]) {
+      expect(severityColor(ratio, themeVariant)).toMatch(/^#[0-9A-F]{8}$/);
+    }
+  });
+});
+
+describe('withAlpha', () => {
+  it('appends an alpha channel to a #RRGGBB color', () => {
+    expect(withAlpha('#ff9500', 0.5)).toBe('#FF950080');
+  });
+
+  it('replaces the alpha channel of a #RRGGBBAA color', () => {
+    expect(withAlpha('#FF9500FF', 0)).toBe('#FF950000');
   });
 });
 
@@ -198,7 +249,45 @@ describe('reasonTitle', () => {
     expect(reasonTitle('too_large:span')).toBe('Span payload too large');
   });
 
+  it('maps category-prefixed quota reasons to the quota title', () => {
+    expect(reasonTitle('span_usage_exceeded')).toBe('Quota exceeded');
+    expect(reasonTitle('log_bytes_usage_exceeded')).toBe('Quota exceeded');
+  });
+
   it('falls back to the raw code for an unknown reason', () => {
     expect(reasonTitle('some_new_reason')).toBe('some_new_reason');
+  });
+});
+
+describe('reasonDescription', () => {
+  it('returns the short description for a known reason', () => {
+    expect(reasonDescription('queue_overflow', 'span')).toBe(
+      "SDK's send queue was full."
+    );
+  });
+
+  it('names the data type from the annotation category', () => {
+    expect(reasonDescription('project_abuse_limit', 'log_item')).toBe(
+      'Your log events exceeded the project abuse limit.'
+    );
+    expect(reasonDescription('usage_exceeded', 'trace_metric')).toBe(
+      'Your organization hit its quota for the application metric event type.'
+    );
+  });
+
+  it('describes category-prefixed quota reasons', () => {
+    expect(reasonDescription('span_usage_exceeded', 'span')).toBe(
+      'Your organization hit its quota for the span event type.'
+    );
+  });
+
+  it('drops the data type for an unknown category', () => {
+    expect(reasonDescription('too_large:event', 'unknown')).toBe(
+      'The event exceeded maximum payload size.'
+    );
+  });
+
+  it('returns undefined for an unknown reason', () => {
+    expect(reasonDescription('some_new_reason', 'span')).toBeUndefined();
   });
 });

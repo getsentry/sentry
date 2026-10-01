@@ -532,7 +532,7 @@ describe('logsTableRow', () => {
     expect(screen.getByText('Apr 10, 2025 7:21:10 PM UTC')).toBeInTheDocument();
   });
 
-  it('adds a similar spans action to the log message dropdown', async () => {
+  it('adds a connected spans action to the log message dropdown', async () => {
     const rowDataWithQuotedMessage = {
       ...rowData,
       [OurLogKnownFieldKey.MESSAGE]: 'test "quoted" log body',
@@ -564,7 +564,7 @@ describe('logsTableRow', () => {
         sharedHoverTimeoutRef={{
           current: null,
         }}
-        showExploreSimilarSpansLink
+        showExploreConnectedSpansLink
       />,
       {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
     );
@@ -575,7 +575,7 @@ describe('logsTableRow', () => {
     await userEvent.click(within(messageCell).getByRole('button', {name: 'Actions'}));
 
     const link = await waitFor(() => {
-      const anchor = screen.getByText('Explore similar spans').closest('a');
+      const anchor = screen.getByText('Explore connected spans').closest('a');
       expect(anchor).not.toBeNull();
       return anchor!;
     });
@@ -608,7 +608,7 @@ describe('logsTableRow', () => {
     ]);
   });
 
-  it('uses the untruncated message for the similar spans link when the table value was truncated', async () => {
+  it('uses the untruncated message for the connected spans link when the table value was truncated', async () => {
     render(
       <LogRowContent
         dataRow={rowDataWithTruncatedMessage}
@@ -617,7 +617,7 @@ describe('logsTableRow', () => {
         sharedHoverTimeoutRef={{
           current: null,
         }}
-        showExploreSimilarSpansLink
+        showExploreConnectedSpansLink
       />,
       {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
     );
@@ -629,7 +629,7 @@ describe('logsTableRow', () => {
 
     await waitFor(() => {
       const href = screen
-        .getByText('Explore similar spans')
+        .getByText('Explore connected spans')
         .closest('a')!
         .getAttribute('href')!;
       expect(JSON.parse(qs.parse(href.split('?')[1]!).crossEvents as string)).toEqual([
@@ -638,7 +638,7 @@ describe('logsTableRow', () => {
     });
   });
 
-  it('resolves the untruncated message when similar spans is clicked before the details load', async () => {
+  it('resolves the untruncated message when connected spans is clicked before the details load', async () => {
     // Hold the details response open so the item is still unresolved when clicked,
     // rather than racing the hover prefetch for that window.
     let releaseDetails = () => {};
@@ -676,7 +676,7 @@ describe('logsTableRow', () => {
         sharedHoverTimeoutRef={{
           current: null,
         }}
-        showExploreSimilarSpansLink
+        showExploreConnectedSpansLink
       />,
       {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
     );
@@ -685,7 +685,7 @@ describe('logsTableRow', () => {
     await userEvent.hover(logTableRow, {delay: null});
     const messageCell = await screen.findByTestId('log-table-cell-message');
     await userEvent.click(within(messageCell).getByRole('button', {name: 'Actions'}));
-    await userEvent.click(await screen.findByText('Explore similar spans'));
+    await userEvent.click(await screen.findByText('Explore connected spans'));
 
     releaseDetails();
 
@@ -696,7 +696,7 @@ describe('logsTableRow', () => {
     });
   });
 
-  it('navigates with the truncated message when similar spans cannot load the details', async () => {
+  it('navigates with the truncated message when connected spans cannot load the details', async () => {
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/trace-items/${rowDataWithTruncatedMessage[OurLogKnownFieldKey.ID]}/`,
       method: 'GET',
@@ -711,7 +711,7 @@ describe('logsTableRow', () => {
         sharedHoverTimeoutRef={{
           current: null,
         }}
-        showExploreSimilarSpansLink
+        showExploreConnectedSpansLink
       />,
       {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
     );
@@ -720,7 +720,7 @@ describe('logsTableRow', () => {
     await userEvent.hover(logTableRow, {delay: null});
     const messageCell = await screen.findByTestId('log-table-cell-message');
     await userEvent.click(within(messageCell).getByRole('button', {name: 'Actions'}));
-    await userEvent.click(await screen.findByText('Explore similar spans'));
+    await userEvent.click(await screen.findByText('Explore connected spans'));
 
     await waitFor(() => {
       expect(JSON.parse(router.location.query.crossEvents as string)).toEqual([

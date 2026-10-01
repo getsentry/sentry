@@ -647,12 +647,12 @@ class FeatureManagerTest(TestCase):
         manager.add("feat:4", OrganizationFeature, True)
         manager.add("feat:5", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
 
-        assert "feat:1" not in manager.entity_features
-        assert "feat:2" not in manager.entity_features
-        assert "feat:3" not in manager.entity_features
+        assert "feat:1" not in manager.flagpole_features
+        assert "feat:2" not in manager.flagpole_features
+        assert "feat:3" not in manager.flagpole_features
 
-        assert "feat:4" in manager.entity_features
-        assert "feat:5" in manager.entity_features
+        assert "feat:4" in manager.flagpole_features
+        assert "feat:5" in manager.flagpole_features
 
     def test_all(self) -> None:
         manager = features.FeatureManager()

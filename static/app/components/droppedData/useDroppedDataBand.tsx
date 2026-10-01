@@ -4,9 +4,14 @@ import type {
   CustomSeriesOption,
   CustomSeriesRenderItem,
   CustomSeriesRenderItemAPI,
+  CustomSeriesRenderItemParams,
   CustomSeriesRenderItemReturn,
 } from 'echarts';
-import type {TooltipPositionCallback} from 'echarts/types/dist/shared';
+import type {
+  LinearGradientObject,
+  TooltipPositionCallback,
+  ZRColor,
+} from 'echarts/types/dist/shared';
 
 import {useTimezone} from '@sentry/scraps/datetime';
 import {useRenderToString} from '@sentry/scraps/renderToString';
@@ -15,8 +20,9 @@ import {isChartHovered} from 'sentry/components/charts/utils';
 import {DroppedDataTooltip} from 'sentry/components/droppedData/droppedDataTooltip';
 import type {DroppedDataProps} from 'sentry/components/droppedData/types';
 import {
-  groupIntoBuckets,
-  opacityForRatio,
+  highlightedBuckets,
+  severityColor,
+  withAlpha,
   type AnnotationBucket,
 } from 'sentry/components/droppedData/utils';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
@@ -24,13 +30,13 @@ import {defined} from 'sentry/utils/defined';
 
 export const DROPPED_DATA_SERIES_ID = '__dropped_data__';
 
-// Styling constants
-const BAR_SLOT_FILL = 0.69;
 const BAND_PADDING = 4;
-const BOX_HEIGHT = 8;
+const BOX_HEIGHT = 4;
 export const BAND_HEIGHT = BAND_PADDING + BOX_HEIGHT + BAND_PADDING;
 const BOX_BORDER_RADIUS = 2;
 const TOOLTIP_GAP = 8;
+const BLEND_WIDTH = 0.3;
+const MAX_BLEND_WIDTH = 8;
 
 const DROPPED_DATA_Y_AXIS = {
   type: 'value' as const,
@@ -42,6 +48,7 @@ const DROPPED_DATA_Y_AXIS = {
 };
 
 interface DroppedDataItem extends AnnotationBucket {
+  fill: string;
   value: [start: number, y: number];
 }
 
@@ -54,59 +61,134 @@ interface DroppedDataSeriesParams {
   yAxisIndex?: number;
 }
 
-interface PillPosition {
+type BandGroup = Extract<NonNullable<CustomSeriesRenderItemReturn>, {type: 'group'}>;
+type BandElement = BandGroup['children'][number];
+
+type CartesianCoordSys = CustomSeriesRenderItemParams['coordSys'] & {
   width: number;
   x: number;
-  y: number;
+};
+
+interface PixelRange {
+  left: number;
+  right: number;
+}
+
+function clampRange({left, right}: PixelRange, track: PixelRange): PixelRange {
+  return {
+    left: Math.min(Math.max(left, track.left), track.right),
+    right: Math.min(Math.max(right, track.left), track.right),
+  };
 }
 
 /**
- * The single drop pill. Opacity encodes how much data is missing.
+ * Centred on the bucket start to line up with bar series, and rounded so
+ * neighbouring buckets meet without anti-aliased seams.
  */
-function droppedDataPill(
-  {x, y, width}: PillPosition,
-  ratio: number,
-  theme: Theme
-): CustomSeriesRenderItemReturn {
+function bucketSlot(
+  bucket: AnnotationBucket,
+  api: CustomSeriesRenderItemAPI
+): PixelRange | null {
+  const [startX] = api.coord([bucket.start, 0]);
+  const [endX] = api.coord([bucket.end, 0]);
+
+  if (!defined(startX) || !defined(endX)) {
+    return null;
+  }
+
+  const halfSlot = (endX - startX) / 2;
+  return {left: Math.round(startX - halfSlot), right: Math.round(endX - halfSlot)};
+}
+
+/**
+ * Rounds only the corners that sit on the ends of the track, so segments
+ * inside the band read as one continuous line.
+ */
+function bandRect(
+  range: PixelRange,
+  y: number,
+  track: PixelRange,
+  fill: ZRColor,
+  options: {silent?: boolean; z2?: number} = {}
+): BandElement {
+  const left = range.left <= track.left ? BOX_BORDER_RADIUS : 0;
+  const right = range.right >= track.right ? BOX_BORDER_RADIUS : 0;
+
   return {
     type: 'rect',
+    ...options,
     shape: {
-      x,
+      x: range.left,
       y,
-      width,
+      width: range.right - range.left,
       height: BOX_HEIGHT,
-      r: BOX_BORDER_RADIUS,
+      r: [left, right, right, left],
     },
     style: {
+      fill,
+      // Fakes padding so hovering anywhere in the band opens the tooltip.
       lineWidth: BAND_PADDING * 2,
       stroke: 'transparent',
-      fill: theme.tokens.dataviz.semantic.bad,
-      opacity: opacityForRatio(ratio),
     },
   };
 }
 
-function droppedDataBox(
-  dataItem: DroppedDataItem,
-  api: CustomSeriesRenderItemAPI,
-  bandOffset: number,
-  theme: Theme
-): CustomSeriesRenderItemReturn {
-  const [boxStartX, boxStartY] = api.coord([dataItem.start, 0]);
-  const [boxEndX] = api.coord([dataItem.end, 0]);
+interface BandGradient {
+  fill: LinearGradientObject;
+  range: PixelRange;
+}
 
-  if (!defined(boxStartX) || !defined(boxStartY) || !defined(boxEndX)) {
+function bandGradient(
+  data: DroppedDataItem[],
+  api: CustomSeriesRenderItemAPI
+): BandGradient | null {
+  const stops: Array<{color: string; x: number}> = [];
+
+  data.forEach((bucket, index) => {
+    const slot = bucketSlot(bucket, api);
+    if (!slot) {
+      return;
+    }
+
+    const blend = Math.min((slot.right - slot.left) * BLEND_WIDTH, MAX_BLEND_WIDTH);
+    const clear = withAlpha(bucket.fill, 0);
+
+    if (data[index - 1]?.end !== bucket.start) {
+      stops.push({x: slot.left - blend, color: clear});
+    }
+    stops.push(
+      {x: slot.left + blend, color: bucket.fill},
+      {x: slot.right - blend, color: bucket.fill}
+    );
+    if (data[index + 1]?.start !== bucket.end) {
+      stops.push({x: slot.right + blend, color: clear});
+    }
+  });
+
+  const first = stops[0];
+  const last = stops.at(-1);
+  if (!first || !last || last.x <= first.x) {
     return null;
   }
 
-  const boxWidth = (boxEndX - boxStartX) * BAR_SLOT_FILL;
-  const position = {
-    x: boxStartX - boxWidth / 2,
-    y: boxStartY + bandOffset + BAND_PADDING,
-    width: boxWidth,
-  };
+  const range = {left: first.x, right: last.x};
+  const width = range.right - range.left;
 
-  return droppedDataPill(position, dataItem.ratio, theme);
+  return {
+    range,
+    fill: {
+      type: 'linear',
+      global: true,
+      x: range.left,
+      y: 0,
+      x2: range.right,
+      y2: 0,
+      colorStops: stops.map(stop => ({
+        offset: (stop.x - range.left) / width,
+        color: stop.color,
+      })),
+    },
+  };
 }
 
 function droppedDataRenderItem(
@@ -114,14 +196,48 @@ function droppedDataRenderItem(
   bandOffset: number,
   theme: Theme
 ): CustomSeriesRenderItem {
+  const trackFill = theme.tokens.background.secondary;
+
   return function renderDroppedDataItem(params, api) {
-    const dataItem = data[params.dataIndex];
-    return dataItem ? droppedDataBox(dataItem, api, bandOffset, theme) : null;
+    const bucket = data[params.dataIndex];
+    if (!bucket) {
+      return null;
+    }
+
+    const slot = bucketSlot(bucket, api);
+    const [, baseY] = api.coord([bucket.start, 0]);
+    if (!slot || !defined(baseY)) {
+      return null;
+    }
+
+    const {x, width} = params.coordSys as CartesianCoordSys;
+    const track = {left: x, right: x + width};
+    const y = baseY + bandOffset + BAND_PADDING;
+
+    const children: BandElement[] = [];
+
+    if (params.dataIndexInside === 0) {
+      children.push(bandRect(track, y, track, trackFill, {silent: true, z2: -1}));
+
+      const gradient = bandGradient(data, api);
+      if (gradient) {
+        children.push(
+          bandRect(clampRange(gradient.range, track), y, track, gradient.fill, {
+            silent: true,
+          })
+        );
+      }
+    }
+
+    children.push(bandRect(clampRange(slot, track), y, track, 'transparent'));
+
+    return {type: 'group', children};
   };
 }
 
 /**
- * Smartly determines the position of the tooltip based on the hovered pill and the chart size.
+ * Small position fn to see if tooltip is at the edge of the chart
+ * and adjust accordingly.
  */
 const droppedDataTooltipPosition: TooltipPositionCallback = (
   point,
@@ -176,6 +292,7 @@ function createDroppedDataSeries({
 }: DroppedDataSeriesParams): CustomSeriesOption {
   const data: DroppedDataItem[] = buckets.map(bucket => ({
     value: [bucket.start, 0],
+    fill: severityColor(bucket.ratio, theme),
     ...bucket,
   }));
 
@@ -216,13 +333,14 @@ export function useDroppedDataBand({
 
   const buckets = useMemo(
     () =>
-      groupIntoBuckets(droppedAnnotations ?? [], acceptedAnnotations ?? []).filter(
-        bucket => bucket.ratio > 0
+      highlightedBuckets(droppedAnnotations ?? [], acceptedAnnotations).sort(
+        (a, b) => a.start - b.start
       ),
     [acceptedAnnotations, droppedAnnotations]
   );
   const isVisible = buckets.length > 0;
 
+  // TODO: reconsider using the tooltip from the main chart
   const renderTooltip = useCallback(
     (bucket: AnnotationBucket) =>
       renderToString(<DroppedDataTooltip bucket={bucket} timezone={timezone} />),

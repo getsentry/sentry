@@ -1,4 +1,4 @@
-import {Fragment, lazy, useMemo} from 'react';
+import {lazy, useMemo} from 'react';
 import {useQuery} from '@tanstack/react-query';
 
 import {Flex} from '@sentry/scraps/layout';
@@ -8,8 +8,7 @@ import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import type {GroupListColumn} from 'sentry/components/issues/groupList';
 import {LazyLoad} from 'sentry/components/lazyLoad';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
-import {SeerEmbedBlock} from 'sentry/components/seer/markdown/embeds/components/seerEmbedBlock';
+import {QueryEmbedCard} from 'sentry/components/seer/markdown/embeds/components/queryEmbed/queryEmbedCard';
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
 import {IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -49,10 +48,11 @@ export default function SavedIssueViewBlock({id, name}: EmbedOutput<'savedIssueV
   );
 
   return (
-    <SeerEmbedBlock
+    <QueryEmbedCard
       href={href}
       icon={IconStar}
       linkLabel={t('View Issues')}
+      query={view?.query}
       testId="seer-saved-issue-view-embed"
       title={view?.name ?? name ?? t('Issue view %s', id)}
     >
@@ -63,25 +63,22 @@ export default function SavedIssueViewBlock({id, name}: EmbedOutput<'savedIssueV
       ) : isError || !view || !queryParams ? (
         <Text variant="muted">{t('Unable to load saved issue view.')}</Text>
       ) : (
-        <Fragment>
-          {view.query ? <ProvidedFormattedQuery query={view.query} /> : null}
-          <ErrorBoundary mini>
-            <LazyLoad
-              LazyComponent={LazyGroupList}
-              canSelectGroups={false}
-              numPlaceholderRows={3}
-              query={view.query}
-              queryParams={queryParams}
-              source="seer-saved-issue-view-embed"
-              staleTime={30_000}
-              useFilteredStats
-              withChart
-              withColumns={PREVIEW_COLUMNS}
-              withPagination={false}
-            />
-          </ErrorBoundary>
-        </Fragment>
+        <ErrorBoundary mini>
+          <LazyLoad
+            LazyComponent={LazyGroupList}
+            canSelectGroups={false}
+            numPlaceholderRows={3}
+            query={view.query}
+            queryParams={queryParams}
+            source="seer-saved-issue-view-embed"
+            staleTime={30_000}
+            useFilteredStats
+            withChart
+            withColumns={PREVIEW_COLUMNS}
+            withPagination={false}
+          />
+        </ErrorBoundary>
       )}
-    </SeerEmbedBlock>
+    </QueryEmbedCard>
   );
 }

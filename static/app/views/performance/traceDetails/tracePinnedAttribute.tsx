@@ -5,6 +5,7 @@ import {
   useLayoutEffect,
   useMemo,
   useRef,
+  useSyncExternalStore,
 } from 'react';
 import {skipToken, useInfiniteQuery} from '@tanstack/react-query';
 
@@ -302,6 +303,25 @@ export function TraceAttributeDivider({
   manager: VirtualizedViewManager;
 }) {
   const previousX = useRef<number | null>(null);
+  const subscribe = useCallback(
+    (onChange: () => void) => {
+      manager.scheduler.on('divider resize', onChange);
+      manager.scheduler.on('divider resize end', onChange);
+      manager.scheduler.on('set container physical space', onChange);
+      return () => {
+        manager.scheduler.off('divider resize', onChange);
+        manager.scheduler.off('divider resize end', onChange);
+        manager.scheduler.off('set container physical space', onChange);
+      };
+    },
+    [manager]
+  );
+  const position = useSyncExternalStore(
+    subscribe,
+    () =>
+      manager.columns.list.width +
+      (edge === 'right' ? manager.columns.attribute.width : 0)
+  );
   return (
     <Flex
       role="separator"
@@ -313,11 +333,7 @@ export function TraceAttributeDivider({
       aria-orientation="vertical"
       aria-valuemin={0}
       aria-valuemax={100}
-      aria-valuenow={Math.round(
-        100 *
-          (manager.columns.list.width +
-            (edge === 'right' ? manager.columns.attribute.width : 0))
-      )}
+      aria-valuenow={Math.round(100 * position)}
       tabIndex={0}
       className={`TraceDivider TraceAttributeDivider ${edge}`}
       onKeyDown={event => {

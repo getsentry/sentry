@@ -185,10 +185,15 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
 
   // Clear state derived from the repository when the repo changes. Platform,
   // features, and the project-details form are repo-dependent (auto-detection
-  // seeds the platform, which in turn seeds the project name).
+  // seeds the platform, which in turn seeds the project name). The restored
+  // created project is too: the reuse check skips the repository link, so a
+  // new repository must create a new project (mirrors onboarding's
+  // clearDerivedState).
   const handleClearDerivedState = useCallback(() => {
     setState(s => ({
       ...s,
+      createdProjectId: undefined,
+      createdProjectSlug: undefined,
       selectedPlatform: undefined,
       selectedFeatures: undefined,
       projectDetailsForm: undefined,

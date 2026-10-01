@@ -4,6 +4,7 @@ import ipaddress
 from collections.abc import Mapping
 from typing import Any, TypedDict
 
+from django.db.models import QuerySet
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -237,6 +238,16 @@ def serialize_custom_inbound_filter(
     }
 
 
+def _user_filters(project: Project) -> QuerySet[CustomInboundFilter]:
+    """
+    The filters a user made here. A row with legacy_filter set is the double write of a
+    legacy list that the project settings still own, so this API neither lists, edits nor
+    deletes it for now. The serializer has no legacy_filter field, so a request cannot
+    set it.
+    """
+    return CustomInboundFilter.objects.filter(project_id=project.id, legacy_filter__isnull=True)
+
+
 class ProjectCustomInboundFilterEndpoint(ProjectEndpoint):
     owner = ApiOwner.TELEMETRY_EXPERIENCE
     permission_classes = (ProjectSettingPermission,)
@@ -248,6 +259,12 @@ class ProjectCustomInboundFilterEndpoint(ProjectEndpoint):
             raise ResourceDoesNotExist
 
         return features.has("projects:custom-inbound-filters", project, actor=request.user)
+
+    def get_custom_inbound_filter(self, project: Project, filter_id: str) -> CustomInboundFilter:
+        try:
+            return _user_filters(project).get(id=filter_id)
+        except (CustomInboundFilter.DoesNotExist, ValueError):
+            raise ResourceDoesNotExist
 
     @staticmethod
     def get_audit_log_data(
@@ -303,7 +320,7 @@ class CustomInboundFiltersEndpoint(ProjectCustomInboundFilterEndpoint):
         if not self.has_feature(request, project):
             return Response({"detail": "You do not have that feature enabled"}, status=400)
 
-        filters = CustomInboundFilter.objects.filter(project_id=project.id)
+        filters = _user_filters(project)
         return self.paginate(
             request=request,
             queryset=filters,
@@ -340,9 +357,7 @@ class CustomInboundFiltersEndpoint(ProjectCustomInboundFilterEndpoint):
         if not self.has_feature(request, project):
             return Response({"detail": "You do not have that feature enabled"}, status=400)
 
-        if CustomInboundFilter.objects.filter(project_id=project.id).count() >= (
-            MAX_FILTERS_PER_PROJECT
-        ):
+        if _user_filters(project).count() >= MAX_FILTERS_PER_PROJECT:
             return Response(
                 {
                     "detail": (
@@ -382,12 +397,6 @@ class CustomInboundFilterDetailsEndpoint(ProjectCustomInboundFilterEndpoint):
         "PUT": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
         "DELETE": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
     }
-
-    def get_custom_inbound_filter(self, project: Project, filter_id: str) -> CustomInboundFilter:
-        try:
-            return CustomInboundFilter.objects.get(id=filter_id, project_id=project.id)
-        except (CustomInboundFilter.DoesNotExist, ValueError):
-            raise ResourceDoesNotExist
 
     @extend_schema(
         operation_id="Retrieve a Custom Inbound Filter",

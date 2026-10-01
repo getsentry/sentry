@@ -178,7 +178,7 @@ describe('ExploreSecondaryNavigation', () => {
     );
   });
 
-  it('links Discover to homepage when discover-query is enabled', () => {
+  it('links Errors to the errors page when discover-basic is enabled', () => {
     const {organization: orgWithQuery} = initializeOrg({
       organization: {
         features: [
@@ -205,9 +205,9 @@ describe('ExploreSecondaryNavigation', () => {
       }
     );
 
-    expect(screen.getByRole('link', {name: 'Discover'})).toHaveAttribute(
+    expect(screen.getByRole('link', {name: 'Errors'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/explore/discover/homepage/'
+      '/organizations/org-slug/explore/errors/'
     );
   });
 

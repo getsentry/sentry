@@ -10,8 +10,6 @@ from django import forms
 
 from sentry.models.project import Project
 from sentry.services.eventstore.models import GroupEvent
-from sentry.snuba.dataset import Dataset
-from sentry.types.condition_activity import ConditionActivity
 from sentry.types.rules import RuleFuture
 
 if TYPE_CHECKING:
@@ -97,14 +95,6 @@ class RuleBase(abc.ABC):
         **kwargs: Any,
     ) -> CallbackFuture:
         return CallbackFuture(callback=callback, key=key, kwargs=kwargs)
-
-    def get_event_columns(self) -> dict[Dataset, Sequence[str]]:
-        return {}
-
-    def passes_activity(
-        self, condition_activity: ConditionActivity, event_map: dict[str, Any]
-    ) -> bool:
-        raise NotImplementedError
 
 
 class EventState:
