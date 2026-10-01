@@ -10,10 +10,9 @@ import {
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {Virtualizer} from '@tanstack/react-virtual';
-import moment from 'moment-timezone';
 
 import {Button} from '@sentry/scraps/button';
-import {useClockDisplay, useTimezone} from '@sentry/scraps/datetime';
+import {useClockDisplay} from '@sentry/scraps/datetime';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {FileSize} from 'sentry/components/fileSize';
@@ -27,7 +26,6 @@ import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {TagCollection} from 'sentry/types/group';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
-import {getFormat} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import type {ColumnType} from 'sentry/utils/discover/fields';
@@ -245,26 +243,19 @@ export function LogsInfiniteTable({
 
   const isEmptyWithoutInjectedErrors = isEmpty && !hasInjectedErrorRows;
 
-  const timezone = useTimezone();
   const clockDisplay = useClockDisplay();
 
   // Rows are virtualized, so the timestamp column would otherwise only fit the
   // rendered rows and wrap wider ones that scroll in after its width is locked.
+  // Widest timestamps: "Dec 28, 10:58:58.888 PM" (12h), "Dec 28, 22:58:58.888" (24h),
+  // plus "2025 " when the year is shown.
   const timestampWidth = useMemo(() => {
-    const currentYear = moment.tz(timezone).year();
-    return data.reduce((widest, row) => {
-      const date = moment.tz(row[OurLogKnownFieldKey.TIMESTAMP], timezone);
-      const formatted = date.format(
-        getFormat({
-          seconds: true,
-          milliseconds: true,
-          year: date.year() !== currentYear,
-          clock24Hours: clockDisplay === '24',
-        })
-      );
-      return Math.max(widest, formatted.length);
-    }, 0);
-  }, [clockDisplay, data, timezone]);
+    const currentYear = new Date().getFullYear();
+    const hasOtherYear = data.some(
+      row => new Date(row[OurLogKnownFieldKey.TIMESTAMP]).getFullYear() !== currentYear
+    );
+    return (clockDisplay === '24' ? 20 : 23) + (hasOtherYear ? 5 : 0);
+  }, [clockDisplay, data]);
 
   // Calculate quantized start and end times for replay links
   const {logStart, logEnd} = useMemo(() => {
