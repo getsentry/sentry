@@ -19,8 +19,6 @@ interface QueryEmbedCardProps {
   testId: string;
   /** The query's name, rendered as the card's heading. */
   title: ReactNode;
-  /** Right-aligned label for the query's mode, e.g. "Aggregate" or "Spans". */
-  badge?: ReactNode;
   /**
    * Inset content under the query: a chart above a table, or a whole preview
    * for a block with no table. Sits inside the card's padding, unlike `table`.
@@ -46,7 +44,6 @@ interface QueryEmbedCardProps {
  * them.
  */
 export function QueryEmbedCard({
-  badge,
   children,
   href,
   icon,
@@ -58,7 +55,6 @@ export function QueryEmbedCard({
 }: QueryEmbedCardProps) {
   return (
     <SeerEmbedBlock
-      badge={badge}
       gap="0"
       href={href}
       icon={icon}
