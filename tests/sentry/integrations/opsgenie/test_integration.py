@@ -7,6 +7,7 @@ import responses
 from django.urls import reverse
 from rest_framework.serializers import ValidationError
 
+from sentry.constants import ObjectStatus
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.pipeline import IntegrationPipeline
@@ -317,6 +318,35 @@ class OpsgenieApiPipelineTest(APITestCase):
             "organizations:integrations-enterprise-incident-management": True,
         }
     )
+    def test_cross_organization_install_preserves_global_data_when_installation_is_disabled(
+        self,
+    ) -> None:
+        self._install()
+        integration = Integration.objects.get(provider="opsgenie", external_id="cool-name")
+        OrganizationIntegration.objects.get(
+            integration=integration, organization_id=self.organization.id
+        ).update(status=ObjectStatus.DISABLED)
+
+        other_organization = self.create_organization(owner=self.user)
+        resp = self._install(
+            other_organization,
+            base_url="https://api.eu.opsgenie.com/",
+            api_key="other-key",
+        )
+        assert resp.status_code == 200
+
+        integration.refresh_from_db()
+        assert integration.metadata == {
+            "base_url": "https://api.opsgenie.com/",
+            "domain_name": "cool-name.app.opsgenie.com",
+        }
+
+    @with_feature(
+        {
+            "organizations:integrations-enterprise-alert-rule": True,
+            "organizations:integrations-enterprise-incident-management": True,
+        }
+    )
     def test_existing_legacy_key_is_not_copied_to_new_organization(self) -> None:
         integration = self.create_provider_integration(
             provider="opsgenie",
@@ -334,8 +364,11 @@ class OpsgenieApiPipelineTest(APITestCase):
         assert resp.status_code == 200
 
         integration.refresh_from_db()
-        assert integration.name == "Existing Name"
-        assert integration.metadata["api_key"] == "legacy-key"
+        assert integration.name == "cool-name"
+        assert integration.metadata == {
+            "base_url": "https://api.opsgenie.com/",
+            "domain_name": "cool-name.app.opsgenie.com",
+        }
         assert OrganizationIntegration.objects.get(
             integration=integration, organization_id=other_organization.id
         ).config == {"team_table": []}
@@ -346,7 +379,7 @@ class OpsgenieApiPipelineTest(APITestCase):
             "organizations:integrations-enterprise-incident-management": True,
         }
     )
-    def test_same_organization_reinstall_preserves_global_data_and_replaces_key(self) -> None:
+    def test_same_organization_reinstall_refreshes_global_data_and_replaces_key(self) -> None:
         self._install()
         integration = Integration.objects.get(provider="opsgenie", external_id="cool-name")
         org_integration = OrganizationIntegration.objects.get(
@@ -358,8 +391,8 @@ class OpsgenieApiPipelineTest(APITestCase):
         integration.refresh_from_db()
         org_integration.refresh_from_db()
         assert integration.metadata == {
-            "base_url": "https://api.opsgenie.com/",
-            "domain_name": "cool-name.app.opsgenie.com",
+            "base_url": "https://api.eu.opsgenie.com/",
+            "domain_name": "cool-name.app.eu.opsgenie.com",
         }
         assert (
             OrganizationIntegration.objects.get(
@@ -374,3 +407,53 @@ class OpsgenieApiPipelineTest(APITestCase):
                 "integration_key": "replacement-key",
             }
         ]
+
+    @with_feature(
+        {
+            "organizations:integrations-enterprise-alert-rule": True,
+            "organizations:integrations-enterprise-incident-management": True,
+        }
+    )
+    def test_reinstall_after_organization_integration_deletion_refreshes_global_data(self) -> None:
+        self._install()
+        integration = Integration.objects.get(provider="opsgenie", external_id="cool-name")
+        OrganizationIntegration.objects.get(
+            integration=integration, organization_id=self.organization.id
+        ).delete()
+
+        self._install(
+            base_url="https://api.atlassian.com/jsm/ops/integration/",
+            api_key="replacement-key",
+        )
+
+        integration.refresh_from_db()
+        assert integration.metadata == {
+            "base_url": "https://api.atlassian.com/jsm/ops/integration/",
+            "domain_name": "cool-name.atlassian.net",
+        }
+
+    @with_feature(
+        {
+            "organizations:integrations-enterprise-alert-rule": True,
+            "organizations:integrations-enterprise-incident-management": True,
+        }
+    )
+    def test_reinstall_ignores_pending_deletion_from_another_organization(self) -> None:
+        self._install()
+        integration = Integration.objects.get(provider="opsgenie", external_id="cool-name")
+        other_organization = self.create_organization(owner=self.user)
+        self._install(other_organization, base_url="https://api.eu.opsgenie.com/")
+        OrganizationIntegration.objects.get(
+            integration=integration, organization_id=other_organization.id
+        ).update(status=ObjectStatus.PENDING_DELETION)
+
+        self._install(
+            base_url="https://api.atlassian.com/jsm/ops/integration/",
+            api_key="replacement-key",
+        )
+
+        integration.refresh_from_db()
+        assert integration.metadata == {
+            "base_url": "https://api.atlassian.com/jsm/ops/integration/",
+            "domain_name": "cool-name.atlassian.net",
+        }

@@ -251,6 +251,8 @@ class IntegrationProvider(PipelineProvider["IntegrationPipeline"], abc.ABC):
     overwrite_existing_integration = True
     """whether installation refreshes an existing Integration's global fields"""
 
+    overwrite_existing_integration_if_unshared = False
+
     can_disable = False
     """
     if the integration can be uninstalled in Sentry, set to False
