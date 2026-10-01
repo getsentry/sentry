@@ -112,32 +112,31 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
       const yAxis =
         visualizations?.length > 0 ? visualizations[0]?.yAxes?.[0] : undefined;
 
-      const seerColumns: string[] = [];
+      const aggregateColumns: string[] = [];
       if (groupBys && groupBys.length > 0) {
-        seerColumns.push(...groupBys);
+        aggregateColumns.push(...groupBys);
       }
       if (visualizations && visualizations.length > 0) {
         for (const viz of visualizations) {
           if (viz.yAxes && viz.yAxes.length > 0) {
-            seerColumns.push(...viz.yAxes);
+            aggregateColumns.push(...viz.yAxes);
           }
         }
       }
 
       // Seer's group bys and y-axes replace the table's columns outright. When
-      // it returned neither, the page keeps the columns it already has, and
-      // either way any extra fields are appended on the end.
-      const columns = mergeSeerExtraFields(
-        seerColumns.length > 0 ? seerColumns : decodeList(location.query.field),
-        extraFields
-      );
+      // extraFields is returned instead, merge with the existing columns.
+      const columnsOverride =
+        aggregateColumns.length > 0
+          ? aggregateColumns
+          : mergeSeerExtraFields(decodeList(location.query.field), extraFields);
 
       askSeerSuggestedQueryRef.current = JSON.stringify({
         query: queryToUse,
         sort,
         ...timeParams,
         yAxis,
-        columns,
+        columns: columnsOverride,
       });
 
       trackAnalytics('ai_query.applied', {
@@ -170,8 +169,8 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
         newQueryParams.yAxis = yAxis;
       }
 
-      if (columns.length > 0) {
-        newQueryParams.field = columns;
+      if (columnsOverride.length > 0) {
+        newQueryParams.field = columnsOverride;
       }
 
       if (runId !== undefined) {

@@ -53,13 +53,12 @@ interface TraceAskSeerSearchResponse {
 export function SpansTabSeerComboBox() {
   const navigate = useNavigate();
   const pageFilters = usePageFilters();
+  const currFields = useQueryParamsFields();
   const organization = useOrganization();
   const {projects} = useProjects();
   const analyticsArea = useAnalyticsArea();
   const {setRunId} = useAiQueryContext();
   const {askSeerSuggestedQueryRef, enableAISearch} = useSearchQueryBuilderAI();
-
-  const fields = useQueryParamsFields();
 
   const initialSeerQuery = useInitialSeerQuery();
   const selectedProjectIds = useSelectedProjectIds();
@@ -149,7 +148,10 @@ export function SpansTabSeerComboBox() {
       // Keep the table's current columns and append any extras Seer asked for.
       // Passing them explicitly also stops getExploreUrl from dropping the
       // user's columns back to the defaults.
-      const field = mergeSeerExtraFields(fields, result.extraFields);
+      const newFields =
+        (result.extraFields ?? []).length > 0
+          ? mergeSeerExtraFields(currFields, result.extraFields)
+          : [];
 
       // TODO: Include traces mode once we can switch the table in getExploreUrl
       const url = getExploreUrl({
@@ -161,7 +163,7 @@ export function SpansTabSeerComboBox() {
         sort: seerQuery.sort,
         mode: seerQuery.mode,
         interval: seerQuery.interval,
-        field,
+        ...(newFields.length > 0 ? {field: newFields} : {}),
         ...(result.crossEvents?.length ? {crossEvents: result.crossEvents} : {}),
       });
 
@@ -173,7 +175,7 @@ export function SpansTabSeerComboBox() {
         sort: seerQuery.sort,
         mode: seerQuery.mode,
         interval: seerQuery.interval,
-        field,
+        ...(newFields.length > 0 ? {field: newFields} : {}),
         ...(result.crossEvents?.length ? {crossEvents: result.crossEvents} : {}),
       });
       trackAnalytics('ai_query.applied', {
@@ -191,7 +193,7 @@ export function SpansTabSeerComboBox() {
     [
       analyticsArea,
       askSeerSuggestedQueryRef,
-      fields,
+      currFields,
       navigate,
       organization,
       pageFilters.selection,
