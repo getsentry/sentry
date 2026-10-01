@@ -233,7 +233,7 @@ describe('IssueListOverview (actions)', () => {
         method: 'PUT',
       });
 
-      render(<IssueListOverview initialSort={IssueSortOptions.FREQ} />, {
+      render(<IssueListOverview />, {
         organization,
         initialRouterConfig: {
           route: '/organizations/:orgId/issues/',
@@ -264,7 +264,7 @@ describe('IssueListOverview (actions)', () => {
             environment: ['production'],
             statsPeriod: '24h',
             utc: true,
-            sort: IssueSortOptions.FREQ,
+            sort: IssueSortOptions.DATE,
           },
           data: {status: 'resolved', statusDetails: {}, substatus: null},
         })

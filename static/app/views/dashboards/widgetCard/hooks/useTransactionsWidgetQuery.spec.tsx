@@ -18,9 +18,7 @@ jest.mock('sentry/views/dashboards/utils/widgetQueryQueue', () => ({
 }));
 
 describe('useTransactionsSeriesQuery', () => {
-  const organization = OrganizationFixture({
-    features: ['on-demand-metrics-extraction', 'on-demand-metrics-ui-widgets'],
-  });
+  const organization = OrganizationFixture();
   const pageFilters = PageFiltersFixture();
 
   beforeEach(() => {
@@ -72,12 +70,41 @@ describe('useTransactionsSeriesQuery', () => {
       );
     });
   });
+
+  it('excludes the Other series for grouped widgets with multiple aggregates', async () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.LINE,
+      queries: [
+        {
+          name: '',
+          fields: [],
+          aggregates: ['count()', 'p95()'],
+          columns: ['transaction'],
+          conditions: '',
+          orderby: '',
+        },
+      ],
+    });
+    const mockRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: {},
+    });
+
+    renderHookWithProviders(() =>
+      useTransactionsSeriesQuery({widget, organization, pageFilters, enabled: true})
+    );
+
+    await waitFor(() =>
+      expect(mockRequest).toHaveBeenCalledWith(
+        '/organizations/org-slug/events-stats/',
+        expect.objectContaining({query: expect.objectContaining({excludeOther: '1'})})
+      )
+    );
+  });
 });
 
 describe('useTransactionsTableQuery', () => {
-  const organization = OrganizationFixture({
-    features: ['on-demand-metrics-extraction', 'on-demand-metrics-ui-widgets'],
-  });
+  const organization = OrganizationFixture();
   const pageFilters = PageFiltersFixture();
 
   beforeEach(() => {

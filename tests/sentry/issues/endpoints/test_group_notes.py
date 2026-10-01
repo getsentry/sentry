@@ -38,6 +38,7 @@ class GroupNoteTest(APITestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(activity.id)
+        assert response.data[0]["commentId"] == str(activity.id)
 
     def test_note_merge(self) -> None:
         """Test that when 2 (or more) issues with comments are merged, the chronological order of the comments are preserved."""
@@ -109,7 +110,7 @@ class GroupNoteTest(APITestCase):
     def test_reads_from_gale(self) -> None:
         group = self.group
 
-        self.create_group_action_log_entry(
+        entry = self.create_group_action_log_entry(
             group=group,
             type=GroupActionType.COMMENT,
             actor_type=GroupActorType.USER,
@@ -123,8 +124,8 @@ class GroupNoteTest(APITestCase):
         response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        # `id` is the Activity id (comment_id), matching the flag-off contract
-        assert response.data[0]["id"] == "123"
+        assert response.data[0]["id"] == str(entry.id)
+        assert response.data[0]["commentId"] == "123"
         assert response.data[0]["type"] == "note"
         assert response.data[0]["user"]["id"] == str(self.user.id)
         assert response.data[0]["data"]["text"] == "hello world"
@@ -172,17 +173,18 @@ class GroupNoteTest(APITestCase):
 
         # edits collapse into the original comment, so there is one row per comment
         assert len(response.data) == 2
-        # `id` is the Activity id (comment_id), matching the flag-off contract
-        unedited_id = str(unedited.data["comment_id"])
-        edited_id = str(edited.data["comment_id"])
+        unedited_id = str(unedited.id)
+        edited_id = str(edited.id)
         rows_by_id = {row["id"]: row for row in response.data}
         assert set(rows_by_id) == {unedited_id, edited_id}
 
         # the edited comment keeps type "note" and shows the latest edit text
         assert rows_by_id[edited_id]["type"] == "note"
+        assert rows_by_id[edited_id]["commentId"] == "2"
         assert rows_by_id[edited_id]["data"]["text"] == "latest edit"
         # the unedited comment is unaffected
         assert rows_by_id[unedited_id]["data"]["text"] == "unedited comment"
+        assert rows_by_id[unedited_id]["commentId"] == "1"
 
 
 class GroupNoteCreateTest(APITestCase):
@@ -200,6 +202,7 @@ class GroupNoteCreateTest(APITestCase):
         assert response.status_code == 201, response.content
 
         activity = Activity.objects.get(id=response.data["id"])
+        assert response.data["commentId"] == str(activity.id)
         assert activity.user_id == self.user.id
         assert activity.group == group
         assert activity.data == {"text": "hello world"}
@@ -226,10 +229,12 @@ class GroupNoteCreateTest(APITestCase):
         activity = Activity.objects.get(
             group=group, type=ActivityType.NOTE.value, user_id=self.user.id
         )
-        GroupActionLogEntry.objects.get(group_id=group.id, type=GroupActionType.COMMENT.value)
+        entry = GroupActionLogEntry.objects.get(
+            group_id=group.id, type=GroupActionType.COMMENT.value
+        )
 
-        # `id` is the Activity id (comment_id), matching the flag-off contract
-        assert response.data["id"] == str(activity.id)
+        assert response.data["id"] == str(entry.id)
+        assert response.data["commentId"] == str(activity.id)
         assert response.data["type"] == "note"
         assert response.data["source"] == "mcp:claude-code"
         assert response.data["user"]["id"] == str(self.user.id)

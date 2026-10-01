@@ -140,8 +140,8 @@ class OriginContents(TypedDict):
     sha: str
     encoding: str
     size: str
-    content: NotRequired[str]
-    entries: NotRequired[list[OriginContentEntry]]
+    content: str
+    entries: list[OriginContentEntry]
 
 
 class OriginApp(TypedDict):
@@ -279,6 +279,11 @@ class CursorOriginApiClient(IntegrationProxyClient, RepositoryClient, RepoTreesC
             logging_context=logging_context,
         )
 
+    def request(self, *args: Any, **kwargs: Any) -> Any:
+        """The Origin client doesn't use scm-platform's credentials_set, so drop it."""
+        kwargs.pop("credentials_set", None)
+        return super().request(*args, **kwargs)
+
     @control_silo_function
     def _refresh_access_token(self) -> AccessTokenData | None:
         integration = Integration.objects.filter(id=self.integration.id).first()
@@ -356,18 +361,25 @@ class CursorOriginApiClient(IntegrationProxyClient, RepositoryClient, RepoTreesC
         super().track_response_data(code, error, resp, extra)
 
     def _paginate[T](
-        self, path: str, collection_key: str, params: dict[str, Any] | None = None
+        self,
+        path: str,
+        collection_key: str,
+        params: dict[str, Any] | None = None,
+        limit: int | None = None,
     ) -> list[T]:
         results: list[T] = []
         page_token: str | None = None
+        page_size = min(PAGE_SIZE, limit) if limit else PAGE_SIZE
 
         for _ in range(self.page_number_limit):
-            request_params: dict[str, Any] = {"pageSize": PAGE_SIZE, **(params or {})}
+            request_params: dict[str, Any] = {"pageSize": page_size, **(params or {})}
             if page_token:
                 request_params["pageToken"] = page_token
 
             response = self.get(path, params=request_params)
             results.extend(response[collection_key])
+            if limit is not None and len(results) >= limit:
+                return results[:limit]
 
             # Present on every page; empty on the last one.
             page_token = response["nextPageToken"]
@@ -376,9 +388,10 @@ class CursorOriginApiClient(IntegrationProxyClient, RepositoryClient, RepoTreesC
 
         raise ApiPaginationTruncated(results)
 
-    def get_repositories(self) -> list[OriginRepositorySummary]:
-        """Repositories this installation can see."""
-        return self._paginate("/installation/repos", "repositories")
+    def get_repositories(self, query: str | None = None) -> list[OriginRepositorySummary]:
+        """Repositories this installation can see, narrowed by `query` where given."""
+        params = {"filter": query} if query else None
+        return self._paginate("/installation/repos", "repositories", params=params)
 
     def get_repo(self, repo_full_name: str) -> OriginRepository:
         return self.get(f"/repos/{repo_full_name}")
@@ -386,10 +399,14 @@ class CursorOriginApiClient(IntegrationProxyClient, RepositoryClient, RepoTreesC
     def get_branches(self, repo_full_name: str) -> list[OriginBranch]:
         return self._paginate(f"/repos/{repo_full_name}/branches", "branches")
 
-    def get_commits(self, repo_full_name: str, sha: str | None = None) -> list[OriginCommit]:
+    def get_commits(
+        self, repo_full_name: str, sha: str | None = None, limit: int | None = None
+    ) -> list[OriginCommit]:
         """Return commits from `sha`, newest first, or from the default branch."""
         params = {"sha": sha} if sha else None
-        return self._paginate(f"/repos/{repo_full_name}/commits", "commits", params=params)
+        return self._paginate(
+            f"/repos/{repo_full_name}/commits", "commits", params=params, limit=limit
+        )
 
     def get_commit(self, repo_full_name: str, sha: str) -> OriginCommit:
         """Return a commit with aggregate stats."""
@@ -478,11 +495,9 @@ class CursorOriginApiClient(IntegrationProxyClient, RepositoryClient, RepoTreesC
         self, repo: Repository, path: str, ref: str | None, codeowners: bool = False
     ) -> str:
         contents = self.get_contents(repo.name, path, ref=ref)
-        # A directory answers with entries and no content
-        content = contents.get("content")
-        if content is None:
+        if contents["type"] != "file":
             raise ApiError(f"No file content at {path!r} in {repo.name}")
-        return b64decode(content).decode("utf-8")
+        return b64decode(contents["content"]).decode("utf-8")
 
     def get_remaining_api_requests(self) -> int:
         return self._rate_limit_remaining

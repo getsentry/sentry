@@ -21,10 +21,7 @@ type Props = {
 };
 
 export function ThresholdsHoverWrapper({children, thresholds, type}: Props) {
-  const {
-    unit,
-    max_values: {max1, max2},
-  } = thresholds;
+  const {unit, max_values: {max1, max2} = {}} = thresholds;
   const theme = useTheme();
   const formattedUnit =
     unit && (type === 'duration' ? `${unit}s` : `/${unit.split('/')[1]}`);

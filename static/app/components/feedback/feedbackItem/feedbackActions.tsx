@@ -4,6 +4,7 @@ import {Fragment, useCallback} from 'react';
 import {Button} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
@@ -200,12 +201,14 @@ function MediumWidth({
 
       <DropdownMenu
         position="bottom-end"
-        triggerProps={{
-          'aria-label': t('Action Menu'),
-          icon: <IconEllipsis />,
-          showChevron: false,
-          size: 'xs',
-        }}
+        trigger={triggerProps => (
+          <OverlayTrigger.IconButton
+            {...triggerProps}
+            aria-label={t('Action Menu')}
+            icon={<IconEllipsis />}
+            size="xs"
+          />
+        )}
         items={[
           {
             key: 'spam',
@@ -265,12 +268,14 @@ function SmallWidth({
   return (
     <DropdownMenu
       position="bottom-end"
-      triggerProps={{
-        'aria-label': t('Action Menu'),
-        icon: <IconEllipsis />,
-        showChevron: false,
-        size: 'xs',
-      }}
+      trigger={triggerProps => (
+        <OverlayTrigger.IconButton
+          {...triggerProps}
+          aria-label={t('Action Menu')}
+          icon={<IconEllipsis />}
+          size="xs"
+        />
+      )}
       items={[
         {
           key: 'resolve',

@@ -1,20 +1,15 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import Sequence
-from typing import Any, ClassVar
+from typing import ClassVar
 
-import sentry_sdk
 from django import forms
 
-from sentry.rules import MATCH_CHOICES, EventState, MatchType, match_values
+from sentry.rules import MATCH_CHOICES
 from sentry.rules.conditions.base import EventCondition
-from sentry.rules.history.preview_strategy import DATASET_TO_COLUMN_NAME, get_dataset_columns
 from sentry.services.eventstore.models import GroupEvent
-from sentry.snuba.dataset import Dataset
 from sentry.snuba.events import Columns
-from sentry.types.condition_activity import ConditionActivity
-from sentry.utils.registry import NoRegistrationExistsError, Registry
+from sentry.utils.registry import Registry
 
 
 class AttributeHandler(ABC):
@@ -111,84 +106,6 @@ class EventAttributeCondition(EventCondition):
             "match": MATCH_CHOICES[self.data["match"]],
         }
         return self.label.format(**data)
-
-    def _passes(self, attribute_values: Sequence[object | None]) -> bool:
-        option_match = self.get_option("match")
-        option_value = self.get_option("value")
-
-        if not (
-            (option_match and option_value)
-            or (option_match in (MatchType.IS_SET, MatchType.NOT_SET))
-        ):
-            return False
-
-        option_value = option_value.lower()
-
-        attr_values = [str(v).lower() for v in attribute_values if v is not None]
-
-        # NOTE: IS_SET condition differs btw tagged_event and event_attribute so not handled by match_values
-        if option_match == MatchType.IS_SET:
-            return bool(attr_values)
-
-        elif option_match == MatchType.NOT_SET:
-            return not attr_values
-
-        return match_values(
-            group_values=attr_values, match_value=option_value, match_type=option_match
-        )
-
-    def passes(self, event: GroupEvent, state: EventState, **kwargs: Any) -> bool:
-        attr = self.get_option("attribute", "")
-        path = attr.split(".")
-
-        first_attr = path[0]
-        try:
-            attr_handler = attribute_registry.get(first_attr)
-        except NoRegistrationExistsError:
-            attr_handler = None
-
-        if not attr_handler:
-            attribute_values = []
-        else:
-            try:
-                attribute_values = attr_handler.handle(path, event)
-            except KeyError as e:
-                attribute_values = []
-                sentry_sdk.capture_exception(e)
-
-        return self._passes(attribute_values)
-
-    def passes_activity(
-        self, condition_activity: ConditionActivity, event_map: dict[str, Any]
-    ) -> bool:
-        try:
-            attr = self.get_option("attribute").lower()
-            dataset = condition_activity.data["dataset"]
-            column = ATTR_CHOICES[attr]
-            if column is None:
-                raise NotImplementedError
-
-            column = getattr(column.value, DATASET_TO_COLUMN_NAME[dataset])
-            attribute_values = event_map[condition_activity.data["event_id"]][column]
-
-            if isinstance(attribute_values, str):
-                attribute_values = [attribute_values]
-
-            # flip values, since the queried column is "error.handled"
-            if attr == "error.unhandled":
-                attribute_values = [not value for value in attribute_values]
-
-            return self._passes(attribute_values)
-        except (TypeError, KeyError):
-            return False
-
-    def get_event_columns(self) -> dict[Dataset, Sequence[str]]:
-        attr = self.get_option("attribute")
-        column = ATTR_CHOICES[attr]
-        if column is None:
-            raise NotImplementedError
-        columns: dict[Dataset, Sequence[str]] = get_dataset_columns([column])
-        return columns
 
     def get_form_instance(self) -> EventAttributeForm:
         return EventAttributeForm(self.data)

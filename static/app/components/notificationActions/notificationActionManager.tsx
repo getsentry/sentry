@@ -205,6 +205,7 @@ export function NotificationActionManager({
       });
     });
     return dropdownMenuItems;
+    // oxlint-disable-next-line react/memo-dependencies
   }, [actionsMap, availableServices, notificationActions]);
 
   let toolTipText: undefined | string;

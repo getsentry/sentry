@@ -370,6 +370,7 @@ export function CommandPalette({
         disabledKeys: treeState.selectionManager.disabledKeys,
         ref: resultsListRef,
       }),
+    // oxlint-disable-next-line react/memo-dependencies
     [treeState.collection, treeState.selectionManager.disabledKeys]
   );
 

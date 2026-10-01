@@ -7,24 +7,13 @@ import {Input} from '@sentry/scraps/input';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {IconDelete} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
-import {
-  createOnDemandFilterWarning,
-  shouldDisplayOnDemandWidgetWarning,
-} from 'sentry/utils/onDemandMetrics';
-import type {UseApiQueryResult} from 'sentry/utils/queryClient';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
-import {
-  DisplayType,
-  WidgetType,
-  type ValidateWidgetResponse,
-} from 'sentry/views/dashboards/types';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
-import {WidgetOnDemandQueryWarning} from 'sentry/views/dashboards/widgetBuilder/components/widgetOnDemandQueryWarning';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {useDashboardWidgetSource} from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
 import {useDisableTransactionWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useDisableTransactionWidget';
@@ -35,12 +24,10 @@ import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder
 
 interface WidgetBuilderQueryFilterBuilderProps {
   onQueryConditionChange: (valid: boolean) => void;
-  validatedWidgetResponse: UseApiQueryResult<ValidateWidgetResponse, RequestError>;
 }
 
 export function WidgetBuilderQueryFilterBuilder({
   onQueryConditionChange,
-  validatedWidgetResponse,
 }: WidgetBuilderQueryFilterBuilderProps) {
   const {state, dispatch} = useWidgetBuilderContext();
   const {selection} = usePageFilters();
@@ -164,15 +151,6 @@ export function WidgetBuilderQueryFilterBuilder({
     ]
   );
 
-  const getOnDemandFilterWarning = createOnDemandFilterWarning(
-    tct(
-      'We don’t routinely collect metrics from this property. However, we’ll do so [strong:once this widget has been saved.]',
-      {
-        strong: <strong />,
-      }
-    )
-  );
-
   return (
     <Fragment>
       <SectionHeader
@@ -189,15 +167,7 @@ export function WidgetBuilderQueryFilterBuilder({
       {state.query?.map((_, index) => (
         <QueryFieldRowWrapper key={index}>
           <datasetConfig.SearchBar
-            getFilterWarning={
-              shouldDisplayOnDemandWidgetWarning(
-                widget.queries[index]!,
-                widgetType,
-                organization
-              )
-                ? getOnDemandFilterWarning
-                : undefined
-            }
+            getFilterWarning={undefined}
             disabled={disableTransactionWidget}
             pageFilters={selection}
             onClose={handleClose(index)}
@@ -257,17 +227,6 @@ export function WidgetBuilderQueryFilterBuilder({
                   organization,
                 });
               }}
-            />
-          )}
-          {shouldDisplayOnDemandWidgetWarning(
-            widget.queries[index]!,
-            widgetType,
-            organization
-          ) && (
-            <WidgetOnDemandQueryWarning
-              query={widget.queries[index]!}
-              validatedWidgetResponse={validatedWidgetResponse}
-              queryIndex={index}
             />
           )}
           {state.query && state.query?.length > 1 && (

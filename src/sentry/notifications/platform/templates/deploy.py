@@ -4,9 +4,12 @@ from typing import TypedDict
 from urllib.parse import urlencode
 
 import orjson
+from django.conf import settings
+from django.core.mail.message import make_msgid
 from django.template.defaultfilters import pluralize
 from sentry_relay.processing import parse_release
 
+from sentry.models.activity import Activity
 from sentry.models.commit import Commit
 from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.deploy import Deploy
@@ -24,16 +27,20 @@ from sentry.notifications.platform.types import (
     LinkTextBlock,
     NotificationCategory,
     NotificationData,
+    NotificationProviderKey,
     NotificationRenderedAction,
     NotificationRenderedTemplate,
     NotificationSection,
     NotificationSource,
+    NotificationTarget,
     NotificationTemplate,
     NotificationTextBlock,
     ParagraphSection,
     PlainTextBlock,
 )
 from sentry.users.services.user.service import user_service
+from sentry.utils.email.address import get_from_email_domain
+from sentry.utils.strings import is_valid_dot_atom
 
 TEXT_DELIMITER = " · "
 MAX_SUBJECT_PROJECTS = 2
@@ -68,6 +75,20 @@ class DeployReleaseData(NotificationData):
     repo_setup_link: str | None = None
     version: str = "unknown"
     environment_name: str = "default"
+    email_headers: dict[str, str] | None = None
+    email_subject_prefix: str | None = None
+
+
+def build_deploy_email_headers(*, project: Project, organization: Organization) -> dict[str, str]:
+    headers = {
+        "X-SMTPAPI": orjson.dumps({"category": "release_activity"}).decode(),
+        "X-Sentry-Project": project.slug,
+        "Message-Id": make_msgid(domain=get_from_email_domain()),
+    }
+    list_id_label = f"{project.slug}.{organization.slug}"
+    if is_valid_dot_atom(list_id_label):
+        headers["List-Id"] = f"<{list_id_label}.{settings.SENTRY_MAIL_LIST_NAMESPACE}>"
+    return headers
 
 
 def build_deploy_subject(data: DeployReleaseData) -> list[NotificationTextBlock]:
@@ -252,6 +273,8 @@ class DeployReleaseTemplate(NotificationTemplate[DeployReleaseData]):
             body=build_deploy_body(data=data),
             actions=build_deploy_actions(data=data),
             footer=build_deploy_footer(data=data),
+            email_headers=data.email_headers,
+            email_subject_prefix=data.email_subject_prefix,
         )
 
 
@@ -338,18 +361,33 @@ def build_deploy_release_data(deploy: Deploy, release: Release) -> DeployRelease
     )
 
 
-def filter_deploy_data(
+def create_target_specific_deploy_data(
     *,
     data: DeployReleaseData,
+    activity: Activity,
+    target: NotificationTarget,
     organization: Organization,
-    user_id: int | None,
 ) -> DeployReleaseData:
+    from sentry.mail.notifications import build_subject_prefix
+
+    is_email_target = target.provider_key == NotificationProviderKey.EMAIL
+    email_headers = (
+        build_deploy_email_headers(project=activity.project, organization=organization)
+        if is_email_target
+        else None
+    )
+    email_subject_prefix = (
+        f"{build_subject_prefix(activity.project).rstrip()} " if is_email_target else None
+    )
+    email_kwargs = {"email_headers": email_headers, "email_subject_prefix": email_subject_prefix}
+
+    user_id = target.specific_data.get("user_id") if target.specific_data else None
     if user_id is None:
-        return data
+        return data.copy(update=email_kwargs)
 
     user_settings_url = organization.absolute_url("settings/account/notifications/deploy/")
     if organization.flags.allow_joinleave:
-        return data.copy(update={"user_settings_url": user_settings_url})
+        return data.copy(update={"user_settings_url": user_settings_url, **email_kwargs})
 
     user_team_ids = OrganizationMember.objects.get_teams_by_user(organization).get(user_id, [])
     user_project_slugs = (
@@ -365,5 +403,6 @@ def filter_deploy_data(
         update={
             "release_projects": filtered_release_projects,
             "user_settings_url": user_settings_url,
+            **email_kwargs,
         }
     )

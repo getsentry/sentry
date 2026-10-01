@@ -68,12 +68,9 @@ describe('usePictureInPicture', () => {
   });
 
   it('throws when used outside of a provider', () => {
-    jest.spyOn(console, 'error').mockImplementation(() => {});
     expect(() => renderHook(() => usePictureInPicture())).toThrow(
       'usePictureInPicture must be used within a PictureInPictureProvider'
     );
-    // eslint-disable-next-line no-console
-    jest.mocked(console.error).mockRestore();
   });
 
   it('reports unsupported when the API is unavailable', () => {

@@ -243,7 +243,6 @@ export function performBulkUpdate({
   query,
   selection,
   sort,
-  onError,
   onSuccess,
 }: {
   api: Client;
@@ -253,7 +252,6 @@ export function performBulkUpdate({
   query: string;
   selection: PageFilters;
   sort: IssueSortOptions;
-  onError?: () => void;
   onSuccess?: (itemIds: string[] | undefined) => void;
 }) {
   const projectConstraints = {
@@ -283,7 +281,6 @@ export function performBulkUpdate({
       error: () => {
         clearIndicators();
         addErrorMessage(t('Unable to update issues'));
-        onError?.();
       },
     }
   );
