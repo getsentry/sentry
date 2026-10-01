@@ -1,7 +1,7 @@
 import type {ComponentType, ReactNode} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
@@ -27,8 +27,9 @@ interface QueryEmbedCardProps {
    */
   children?: ReactNode;
   /**
-   * The search string, rendered as formatted tokens. Omitted when the query is
-   * empty, so an unfiltered preview doesn't show an empty token row.
+   * The search string, rendered as formatted tokens in a band flush under the
+   * header. Omitted when the query is empty, so an unfiltered preview doesn't
+   * show an empty token row.
    */
   query?: string;
   /**
@@ -40,8 +41,9 @@ interface QueryEmbedCardProps {
 
 /**
  * The chrome every query-embed block shares: {@link SeerEmbedBlock}'s
- * collapsible card, with the formatted query and any chart inset at the top and
- * the results table running edge to edge beneath them.
+ * collapsible card, with the formatted query running edge to edge under the
+ * header, any chart inset below it, and the results table edge to edge beneath
+ * them.
  */
 export function QueryEmbedCard({
   badge,
@@ -65,24 +67,36 @@ export function QueryEmbedCard({
       testId={testId}
       title={title}
     >
-      {/* A flush table below takes a tighter inset, so the query row sits close
-          to the table it filters. A card with no table -- an issue list, a
-          saved query's summary, a chart on its own -- keeps the roomier inset
-          every other block embed uses. */}
-      <InsetSection gap="md" padding={table ? 'md' : 'lg'}>
-        {query ? (
-          <Flex
-            align="center"
-            border="primary"
-            gap="sm"
-            padding="xs sm"
-            radius="md"
+      {query ? (
+        // A white row edge to edge under the header, like the table below it.
+        // The tokens sit together in one inset box that fills the row and
+        // wraps a long query onto more lines inside it.
+        <Flex align="center" gap="md" padding="lg" borderTop="primary">
+          <Text variant="muted" wrap="nowrap">
+            {t('Query:')}
+          </Text>
+          <Container
+            flex="1"
             minWidth="0"
+            background="secondary"
+            border="primary"
+            radius="md"
+            padding="xs"
           >
-            <Text variant="muted">{t('Query:')}</Text>
             <ProvidedFormattedQuery query={query} />
-          </Flex>
-        ) : null}
+          </Container>
+        </Flex>
+      ) : null}
+      {/* A flush table below takes a tighter inset, so a chart sits close to
+          the table under it. A card with no table -- an issue list, a saved
+          query's summary, a chart on its own -- keeps the roomier inset every
+          other block embed uses. The query row's padding already spaces the
+          content from it. */}
+      <InsetSection
+        gap="md"
+        padding={table ? 'md' : 'lg'}
+        paddingTop={query ? '0' : undefined}
+      >
         {children}
       </InsetSection>
       {table}
@@ -91,9 +105,9 @@ export function QueryEmbedCard({
 }
 
 /**
- * A chart with nothing to plot renders nothing, and an unfiltered query has no
- * token row, so this section can end up with no children. Dropping it then
- * keeps its padding from leaving an empty strip above the table.
+ * A chart with nothing to plot renders nothing, so this section can end up
+ * with no children. Dropping it then keeps its padding from leaving an empty
+ * strip between the query and the table.
  */
 const InsetSection = styled(Stack)`
   &:empty {
