@@ -13,6 +13,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {clearIndicators} from 'sentry/actionCreators/indicator';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {GroupStatus, ProgressState, type Group} from 'sentry/types/group';
+import type {LinkedPullRequest} from 'sentry/types/integrations';
 
 import {IssuePreview} from './issuePreview';
 
@@ -20,6 +21,17 @@ describe('IssuePreview', () => {
   const organization = OrganizationFixture();
   const project = ProjectFixture({id: '1'});
   const group = GroupFixture({id: '101', project, hasSeen: true});
+  const linkedPullRequest = {
+    ...PullRequestFixture({
+      id: '10',
+      externalUrl: 'https://github.com/example/repo-name/pull/10',
+    }),
+    attribution: null,
+    checksStatus: null,
+    dateLinked: '2026-07-20T12:00:00Z',
+    reviewStatus: null,
+    status: 'open',
+  } satisfies LinkedPullRequest;
   const fixAppliedGroup = GroupFixture({
     ...group,
     derivedData: {
@@ -56,14 +68,9 @@ describe('IssuePreview', () => {
       body: {
         pullRequests: [
           {
-            ...PullRequestFixture({
-              id: '10',
-              externalUrl: 'https://github.com/org/repository/pull/10',
-            }),
+            ...linkedPullRequest,
+            externalUrl: 'https://github.com/org/repository/pull/10',
             attribution: {id: 'seer', type: 'seer'},
-            checksStatus: null,
-            dateLinked: '2026-07-20T12:00:00Z',
-            reviewStatus: null,
             status: 'merged',
           },
         ],
@@ -117,7 +124,7 @@ describe('IssuePreview', () => {
     });
   });
 
-  it('shows standard actions without waiting for Seer setup when AI is hidden', async () => {
+  it('shows Resolve and Archive without waiting for Seer setup when AI is hidden', async () => {
     const setup = Promise.withResolvers<void>();
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/autofix/setup/`,
@@ -143,7 +150,48 @@ describe('IssuePreview', () => {
     expect(await screen.findByRole('heading', {name: 'Activity'})).toBeInTheDocument();
   });
 
-  it('links to an open user pull request and shows the next Autofix step', async () => {
+  it('keeps Resolve available while PRs load for Seer actions', async () => {
+    const pullRequests = Promise.withResolvers<void>();
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/autofix/`,
+      body: ExplorerAutofixResponseFixture({autofix: null}),
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/pull-requests/`,
+      body: {pullRequests: [linkedPullRequest]},
+      asyncDelay: pullRequests.promise,
+    });
+
+    render(<IssuePreview groupId={group.id} />, {organization});
+
+    expect(await screen.findByRole('button', {name: 'Resolve'})).toBeEnabled();
+    expect(screen.queryByRole('button', {name: 'View PR'})).not.toBeInTheDocument();
+
+    pullRequests.resolve();
+    expect(await screen.findByRole('button', {name: 'View PR'})).toBeInTheDocument();
+  });
+
+  it('keeps Resolve and Archive available while PRs load', async () => {
+    const pullRequests = Promise.withResolvers<void>();
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/pull-requests/`,
+      body: {pullRequests: [linkedPullRequest]},
+      asyncDelay: pullRequests.promise,
+    });
+
+    render(<IssuePreview groupId={group.id} />, {
+      organization: OrganizationFixture({hideAiFeatures: true}),
+    });
+
+    expect(await screen.findByRole('button', {name: 'Resolve'})).toBeEnabled();
+    expect(screen.getByRole('button', {name: 'Archive'})).toBeEnabled();
+    expect(screen.queryByRole('button', {name: 'View PR'})).not.toBeInTheDocument();
+
+    pullRequests.resolve();
+    expect(await screen.findByRole('button', {name: 'View PR'})).toBeInTheDocument();
+  });
+
+  it('links to an open pull request alongside the Seer action', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/autofix/`,
       body: ExplorerAutofixResponseFixture({autofix: null}),
@@ -151,19 +199,7 @@ describe('IssuePreview', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/pull-requests/`,
       body: {
-        pullRequests: [
-          {
-            ...PullRequestFixture({
-              id: '10',
-              externalUrl: 'https://github.com/example/repo-name/pull/10',
-            }),
-            attribution: null,
-            checksStatus: null,
-            dateLinked: '2026-07-20T12:00:00Z',
-            reviewStatus: null,
-            status: 'open',
-          },
-        ],
+        pullRequests: [linkedPullRequest],
       },
     });
 
@@ -177,7 +213,7 @@ describe('IssuePreview', () => {
     expect(screen.getByRole('button', {name: 'Resolve'})).toBeInTheDocument();
   });
 
-  it('labels and links each current PR CTA when multiple pull requests exist', async () => {
+  it('labels and links current PRs alongside Seer actions', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/autofix/`,
       body: ExplorerAutofixResponseFixture({
@@ -209,40 +245,24 @@ describe('IssuePreview', () => {
         latestRegressionAt: '2026-08-16T12:00:00Z',
         pullRequests: [
           {
-            ...PullRequestFixture({
-              id: '9',
-              dateCreated: '2026-08-15T12:00:00Z',
-              externalUrl: 'https://github.com/example/repo-name/pull/9',
-            }),
-            attribution: null,
-            checksStatus: null,
+            ...linkedPullRequest,
+            id: '9',
+            dateCreated: '2026-08-15T12:00:00Z',
+            externalUrl: 'https://github.com/example/repo-name/pull/9',
             dateLinked: '2026-08-15T12:00:00Z',
-            reviewStatus: null,
-            status: 'open',
           },
           {
-            ...PullRequestFixture({
-              id: '10',
-              dateCreated: '2026-08-16T12:00:00Z',
-              externalUrl: 'https://github.com/example/repo-name/pull/10',
-            }),
-            attribution: null,
-            checksStatus: null,
+            ...linkedPullRequest,
+            dateCreated: '2026-08-16T12:00:00Z',
             dateLinked: '2026-08-16T12:00:00Z',
-            reviewStatus: null,
-            status: 'open',
           },
           {
-            ...PullRequestFixture({
-              id: '11',
-              dateCreated: '2026-08-17T12:00:00Z',
-              externalUrl: 'https://github.com/example/repo-name/pull/11',
-            }),
+            ...linkedPullRequest,
+            id: '11',
+            dateCreated: '2026-08-17T12:00:00Z',
+            externalUrl: 'https://github.com/example/repo-name/pull/11',
             attribution: {id: 'seer', type: 'seer'},
-            checksStatus: null,
             dateLinked: '2026-08-17T12:00:00Z',
-            reviewStatus: null,
-            status: 'open',
           },
         ],
       },
@@ -261,6 +281,183 @@ describe('IssuePreview', () => {
     expect(screen.queryByRole('button', {name: 'View PR #9'})).not.toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Restart Autofix'})).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'View PR'})).not.toBeInTheDocument();
+  });
+
+  it('labels and links current PRs alongside Resolve and Archive', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/pull-requests/`,
+      body: {
+        latestRegressionAt: '2026-08-16T12:00:00Z',
+        pullRequests: [
+          {
+            ...linkedPullRequest,
+            id: '9',
+            dateCreated: '2026-08-15T12:00:00Z',
+            externalUrl: 'https://github.com/example/repo-name/pull/9',
+            dateLinked: '2026-08-15T12:00:00Z',
+          },
+          {
+            ...linkedPullRequest,
+            dateCreated: '2026-08-16T12:00:00Z',
+            dateLinked: '2026-08-16T12:00:00Z',
+          },
+          {
+            ...linkedPullRequest,
+            id: '11',
+            dateCreated: '2026-08-17T12:00:00Z',
+            externalUrl: 'https://github.com/example/repo-name/pull/11',
+            attribution: {id: 'seer', type: 'seer'},
+            dateLinked: '2026-08-17T12:00:00Z',
+          },
+        ],
+      },
+    });
+
+    render(<IssuePreview groupId={group.id} />, {
+      organization: OrganizationFixture({hideAiFeatures: true}),
+    });
+
+    expect(await screen.findByRole('button', {name: 'View PR #11'})).toHaveAttribute(
+      'href',
+      'https://github.com/example/repo-name/pull/11'
+    );
+    expect(screen.getByRole('button', {name: 'View PR #10'})).toHaveAttribute(
+      'href',
+      'https://github.com/example/repo-name/pull/10'
+    );
+    expect(screen.queryByRole('button', {name: 'View PR #9'})).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Archive'})).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Restart Autofix'})
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'View PR'})).not.toBeInTheDocument();
+  });
+
+  describe('issue actions', () => {
+    const organizationWithoutAi = OrganizationFixture({hideAiFeatures: true});
+
+    it('shows an open PR alongside Resolve and Archive', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${group.id}/pull-requests/`,
+        body: {pullRequests: [linkedPullRequest]},
+      });
+
+      render(<IssuePreview groupId={group.id} />, {organization: organizationWithoutAi});
+
+      expect(await screen.findByRole('button', {name: 'View PR'})).toHaveAttribute(
+        'href',
+        linkedPullRequest.externalUrl
+      );
+      expect(screen.getByRole('button', {name: 'Resolve'})).toBeEnabled();
+      expect(screen.getByRole('button', {name: 'Archive'})).toBeEnabled();
+      expect(
+        screen.queryByRole('button', {name: 'Find Root Cause'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('shows a draft PR alongside Resolve and Archive', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${group.id}/pull-requests/`,
+        body: {pullRequests: [{...linkedPullRequest, status: 'draft'}]},
+      });
+
+      render(<IssuePreview groupId={group.id} />, {organization: organizationWithoutAi});
+
+      expect(await screen.findByRole('button', {name: 'View PR'})).toHaveAttribute(
+        'href',
+        linkedPullRequest.externalUrl
+      );
+      expect(screen.getByRole('button', {name: 'Resolve'})).toBeEnabled();
+      expect(screen.getByRole('button', {name: 'Archive'})).toBeEnabled();
+    });
+
+    it('shows a PR when Seer needs configuration', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/onboarding-check/`,
+        body: {isSeerConfigured: false},
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${group.id}/`,
+        body: GroupFixture({
+          ...group,
+          derivedData: {
+            ...fixAppliedGroup.derivedData!,
+            progress: ProgressState.ASSIGNED,
+          },
+        }),
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${group.id}/autofix/`,
+        body: ExplorerAutofixResponseFixture({autofix: null}),
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${group.id}/pull-requests/`,
+        body: {
+          pullRequests: [linkedPullRequest],
+        },
+      });
+
+      render(<IssuePreview groupId={group.id} />, {organization});
+
+      expect(await screen.findByRole('button', {name: 'View PR'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Resolve'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Archive'})).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Find Root Cause'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('keeps closed PRs out of the header', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${group.id}/pull-requests/`,
+        body: {pullRequests: [{...linkedPullRequest, status: 'closed'}]},
+      });
+
+      render(<IssuePreview groupId={group.id} />, {organization: organizationWithoutAi});
+
+      expect(await screen.findByRole('button', {name: 'Resolve'})).toBeEnabled();
+      expect(screen.getByRole('button', {name: 'Archive'})).toBeEnabled();
+      expect(screen.queryByRole('button', {name: /View PR/})).not.toBeInTheDocument();
+    });
+
+    it('keeps merged PRs out of the header', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${group.id}/pull-requests/`,
+        body: {pullRequests: [{...linkedPullRequest, status: 'merged'}]},
+      });
+
+      render(<IssuePreview groupId={group.id} />, {organization: organizationWithoutAi});
+
+      expect(await screen.findByRole('button', {name: 'Resolve'})).toBeEnabled();
+      expect(screen.getByRole('button', {name: 'Archive'})).toBeEnabled();
+      expect(screen.queryByRole('button', {name: /View PR/})).not.toBeInTheDocument();
+    });
+
+    it('keeps Resolve and Archive available when no PRs are linked', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${group.id}/pull-requests/`,
+        body: {pullRequests: []},
+      });
+
+      render(<IssuePreview groupId={group.id} />, {organization: organizationWithoutAi});
+
+      expect(await screen.findByRole('button', {name: 'Resolve'})).toBeEnabled();
+      expect(screen.getByRole('button', {name: 'Archive'})).toBeEnabled();
+      expect(screen.queryByRole('button', {name: /View PR/})).not.toBeInTheDocument();
+    });
+
+    it('keeps Resolve and Archive available when PRs cannot be loaded', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${group.id}/pull-requests/`,
+        statusCode: 500,
+      });
+
+      render(<IssuePreview groupId={group.id} />, {organization: organizationWithoutAi});
+
+      expect(await screen.findByRole('button', {name: 'Resolve'})).toBeEnabled();
+      expect(screen.getByRole('button', {name: 'Archive'})).toBeEnabled();
+      expect(screen.queryByRole('button', {name: /View PR/})).not.toBeInTheDocument();
+    });
   });
 
   it('offers a retry instead of a PR when Autofix produced no code changes', async () => {
