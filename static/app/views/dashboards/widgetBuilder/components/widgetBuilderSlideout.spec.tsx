@@ -296,14 +296,14 @@ describe('WidgetBuilderSlideout', () => {
         />
       </WidgetBuilderProvider>,
       {
-        organization,
+        organization: OrganizationFixture({features: ['visibility-explore-view']}),
         initialRouterConfig: {
           location: {
             pathname: '/dashboards/',
             query: {
-              field: ['count()'],
+              field: ['count(span.duration)'],
               yAxis: [],
-              dataset: WidgetType.TRANSACTIONS,
+              dataset: WidgetType.SPANS,
               displayType: DisplayType.TABLE,
             },
           },
@@ -314,7 +314,7 @@ describe('WidgetBuilderSlideout', () => {
     await userEvent.type(await screen.findByPlaceholderText('Add Alias'), 'test alias');
     expect(screen.getByPlaceholderText('Add Alias')).toHaveValue('test alias');
 
-    await userEvent.click(await screen.findByRole('button', {name: 'Transactions'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Spans'}));
     await userEvent.click(await screen.findByRole('option', {name: 'Errors'}));
 
     await waitFor(() => {

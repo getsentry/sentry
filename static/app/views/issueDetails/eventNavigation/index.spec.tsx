@@ -108,12 +108,12 @@ describe('EventNavigation', () => {
         }
       );
 
-      const discoverButton = screen.getByLabelText('Open in Discover');
+      const discoverButton = screen.getByLabelText('Open in Explore');
       expect(discoverButton).toBeInTheDocument();
       expect(discoverButton).toHaveAttribute(
         'href',
         expect.stringContaining(
-          `/organizations/${organization.slug}/explore/discover/results/`
+          `/organizations/${organization.slug}/explore/errors/results/`
         )
       );
 
@@ -136,7 +136,7 @@ describe('EventNavigation', () => {
         }
       );
 
-      const discoverButton = screen.getByLabelText('Open in Discover');
+      const discoverButton = screen.getByLabelText('Open in Explore');
       expect(discoverButton).toBeInTheDocument();
       const url = new URL(
         discoverButton.getAttribute('href') ?? '',
@@ -162,7 +162,7 @@ describe('EventNavigation', () => {
         }
       );
 
-      const discoverButton = screen.getByLabelText('Open in Discover');
+      const discoverButton = screen.getByLabelText('Open in Explore');
       expect(discoverButton).toBeInTheDocument();
       const url = new URL(
         discoverButton.getAttribute('href') ?? '',
@@ -174,7 +174,7 @@ describe('EventNavigation', () => {
 
   describe('issue content navigation', () => {
     const seerOrganization = OrganizationFixture({
-      features: ['discover-basic', 'gen-ai-features', 'autofix-page'],
+      features: ['discover-basic', 'autofix-page'],
       hideAiFeatures: false,
     });
 
@@ -255,7 +255,7 @@ describe('EventNavigation', () => {
     it('omits the autofix tab when AI features are hidden', () => {
       renderNav(
         OrganizationFixture({
-          features: ['discover-basic', 'gen-ai-features', 'autofix-page'],
+          features: ['discover-basic', 'autofix-page'],
           hideAiFeatures: true,
         })
       );
@@ -404,7 +404,7 @@ describe('EventNavigation', () => {
 
   describe('autofix tab', () => {
     const seerOrganization = OrganizationFixture({
-      features: ['discover-basic', 'gen-ai-features', 'autofix-page'],
+      features: ['discover-basic', 'autofix-page'],
       hideAiFeatures: false,
     });
 

@@ -12,15 +12,20 @@ import type {
 import {AutofixChatProvider} from 'sentry/components/seer/autofixChatContext';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {ExplorerFilePatch} from 'sentry/views/seerExplorer/types';
+import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 
 import {SeerDrawerNextStep} from './nextStep';
 
 jest.mock('sentry/utils/analytics');
+jest.mock('sentry/views/seerExplorer/useSeerExplorerContext', () => ({
+  ...jest.requireActual('sentry/views/seerExplorer/useSeerExplorerContext'),
+  useSeerExplorerContext: jest.fn(),
+}));
 
 // The agent is only reachable when the Explorer is, so code mode needs the
 // Explorer's own prerequisites on top of its flag.
 const codeModeOrganization = OrganizationFixture({
-  features: ['seer-explorer-code-mode-tools', 'seer-explorer', 'gen-ai-features'],
+  features: ['seer-explorer-code-mode-tools', 'seer-explorer'],
   openMembership: true,
   hideAiFeatures: false,
 });
@@ -116,6 +121,135 @@ function makeSection(
 }
 
 describe('SeerDrawerNextStep', () => {
+  const openChatPrompt = jest.fn();
+
+  beforeEach(() => {
+    openChatPrompt.mockClear();
+    jest.mocked(useSeerExplorerContext).mockReturnValue({
+      closeSeerExplorer: jest.fn(),
+      isOpen: false,
+      openChatPrompt,
+      openSeerExplorer: jest.fn(),
+      sessionState: 'inactive',
+      sidebarContainerRef: {current: null},
+      setSidebarPosition: jest.fn(),
+      sidebarAppendInitialQuery: false,
+      sidebarInitialQuery: undefined,
+      sidebarKey: 0,
+      sidebarPosition: 'auto',
+      toggleSeerExplorer: jest.fn(),
+      unreadCount: 0,
+    });
+  });
+
+  describe('on the Autofix page', () => {
+    const autofixPageOrganization = OrganizationFixture({
+      features: ['autofix-page', 'seer-explorer-chat-prompts', 'seer-explorer'],
+      openMembership: true,
+      hideAiFeatures: false,
+    });
+
+    beforeEach(() => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/integrations/coding-agents/',
+        body: {integrations: []},
+      });
+      MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug/seer/repos/',
+        body: [{provider: 'github'}],
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/1/autofix/repos/',
+        body: {repos: [{has_write_access: true}]},
+      });
+    });
+
+    it.each([
+      ['root_cause', 'How can this root cause be improved?'],
+      ['solution', 'How can this plan be improved?'],
+      ['code_changes', 'How can this code change be improved?'],
+    ])(
+      'asks for changes to %s in Seer Agent instead of the textarea',
+      async (step, question) => {
+        const autofix = makeAutofix();
+        render(
+          <SeerDrawerNextStep
+            group={GroupFixture()}
+            sections={[makeSection(step)]}
+            autofix={autofix}
+          />,
+          {organization: autofixPageOrganization}
+        );
+
+        await userEvent.click(await screen.findByRole('button', {name: 'No'}));
+
+        expect(openChatPrompt).toHaveBeenCalledWith({
+          prompt: question,
+          context: {autofixStep: step},
+        });
+        expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+        expect(autofix.startStep).not.toHaveBeenCalled();
+      }
+    );
+
+    it('asks through the rethink chat from Ask Seer in code mode', async () => {
+      const autofix = makeAutofix();
+      const sendMessage = jest.fn();
+      render(
+        <AutofixChatProvider sendMessage={sendMessage}>
+          <SeerDrawerNextStep
+            group={GroupFixture()}
+            sections={[makeSection('root_cause')]}
+            autofix={autofix}
+          />
+        </AutofixChatProvider>,
+        {
+          organization: OrganizationFixture({
+            features: [
+              'autofix-page',
+              'seer-explorer-chat-prompts',
+              'seer-explorer-code-mode-tools',
+              'seer-explorer',
+            ],
+            openMembership: true,
+            hideAiFeatures: false,
+          }),
+        }
+      );
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Ask Seer'}));
+
+      expect(openChatPrompt).toHaveBeenCalledWith({
+        prompt: 'How can this root cause be improved?',
+        context: {autofixStep: 'root_cause'},
+      });
+      expect(sendMessage).not.toHaveBeenCalled();
+      expect(autofix.startStep).not.toHaveBeenCalled();
+    });
+
+    it('keeps the textarea without chat prompts', async () => {
+      render(
+        <SeerDrawerNextStep
+          group={GroupFixture()}
+          sections={[makeSection('root_cause')]}
+          autofix={makeAutofix()}
+        />,
+        {
+          organization: OrganizationFixture({
+            features: ['autofix-page', 'seer-explorer'],
+            openMembership: true,
+            hideAiFeatures: false,
+          }),
+        }
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'No'}));
+
+      expect(openChatPrompt).not.toHaveBeenCalled();
+      expect(screen.getByRole('textbox')).toBeInTheDocument();
+    });
+  });
+
   it('returns null when no runId', () => {
     const autofix = makeAutofix({runState: null});
     const {container} = render(
@@ -231,15 +365,15 @@ describe('SeerDrawerNextStep', () => {
         ).not.toBeInTheDocument();
       });
 
-      it('hands the yes to the agent instead of starting the next step', async () => {
+      it('still starts the next step on yes', async () => {
         const autofix = makeAutofix();
         const sendMessage = jest.fn();
         renderCodeMode(autofix, sendMessage);
 
         await userEvent.click(screen.getByRole('button', {name: 'Yes, make a plan'}));
 
-        expect(sendMessage).toHaveBeenCalledWith('Run the next Autofix step');
-        expect(autofix.startStep).not.toHaveBeenCalled();
+        expect(autofix.startStep).toHaveBeenCalledWith('solution', {runId: 1});
+        expect(sendMessage).not.toHaveBeenCalled();
       });
 
       it('keeps the ordinary buttons when no chat is reachable', async () => {
@@ -699,42 +833,16 @@ describe('SeerDrawerNextStep', () => {
       expect(autofix.createPR).toHaveBeenCalledWith(1);
     });
 
-    it('skips the write-access gate in code mode', async () => {
+    it('keeps the write-access gate in code mode', async () => {
       addRepoPermissionsResponse(false);
       addGithubIntegrationResponse();
       const autofix = makeAutofix();
       const sendMessage = jest.fn();
 
+      // "Yes" opens a pull request in code mode too, so missing write access
+      // still needs the permissions check in front of it.
       render(
         <AutofixChatProvider sendMessage={sendMessage}>
-          <SeerDrawerNextStep
-            group={GroupFixture()}
-            sections={[makeSection('code_changes')]}
-            autofix={autofix}
-          />
-        </AutofixChatProvider>,
-        {organization: codeModeOrganization}
-      );
-
-      // No pull request is opened in code mode, so missing write access must
-      // not swap the question for a permissions errand.
-      await userEvent.click(await screen.findByRole('button', {name: 'Yes, draft a PR'}));
-      expect(sendMessage).toHaveBeenCalledWith('Run the next Autofix step');
-      expect(autofix.createPR).not.toHaveBeenCalled();
-      expect(
-        screen.queryByRole('button', {name: 'Yes, view GitHub permissions'})
-      ).not.toBeInTheDocument();
-    });
-
-    it('keeps the write-access gate when code mode has no chat to hand to', async () => {
-      addRepoPermissionsResponse(false);
-      addGithubIntegrationResponse();
-      const autofix = makeAutofix();
-
-      // With nowhere to send the question, "yes" falls back to creating the PR,
-      // so the permissions check has to stay in front of it.
-      render(
-        <AutofixChatProvider sendMessage={undefined}>
           <SeerDrawerNextStep
             group={GroupFixture()}
             sections={[makeSection('code_changes')]}
@@ -751,6 +859,7 @@ describe('SeerDrawerNextStep', () => {
         screen.queryByRole('button', {name: 'Yes, draft a PR'})
       ).not.toBeInTheDocument();
       expect(autofix.createPR).not.toHaveBeenCalled();
+      expect(sendMessage).not.toHaveBeenCalled();
     });
 
     it('checks provider permissions on refocus and proceeds when access is granted', async () => {

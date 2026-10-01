@@ -4,9 +4,12 @@ from typing import Any
 from unittest.mock import patch
 
 import pytest
+from django.test import override_settings
+from pydantic import ValidationError
 
 from sentry.integrations.services.integration.serial import serialize_integration
 from sentry.models.repositorysettings import CodeReviewTrigger
+from sentry.seer.code_review.models import SeerCodeReviewTaskRequestForPrReview
 from sentry.seer.code_review.webhooks.review_request import (
     PullRequestReviewEvent,
     request_review,
@@ -14,7 +17,7 @@ from sentry.seer.code_review.webhooks.review_request import (
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 
-CODE_REVIEW_FEATURES = {"organizations:gen-ai-features", "organizations:code-review-beta"}
+CODE_REVIEW_FEATURES = {"organizations:code-review-beta"}
 
 
 def _event(**overrides: object) -> PullRequestReviewEvent:
@@ -34,6 +37,7 @@ def _event(**overrides: object) -> PullRequestReviewEvent:
     return PullRequestReviewEvent(**fields)  # type: ignore[arg-type]
 
 
+@override_settings(SENTRY_SELF_HOSTED=False)
 class RequestReviewTest(TestCase):
     @pytest.fixture(autouse=True)
     def mock_seer_request(self) -> Generator[None]:
@@ -156,3 +160,60 @@ class RequestReviewTest(TestCase):
         self._request(_event())
 
         self.mock_seer.assert_not_called()
+
+    def _logged(self, event: PullRequestReviewEvent) -> dict[str, dict[str, Any]]:
+        with patch("sentry.seer.code_review.webhooks.review_request.logger") as logger:
+            self._request(event)
+        return {call.args[0]: call.kwargs["extra"] for call in logger.info.call_args_list}
+
+    @with_feature(CODE_REVIEW_FEATURES)
+    def test_a_scheduled_review_is_logged(self) -> None:
+        self._enable()
+
+        logged = self._logged(_event())
+
+        extra = logged["code_review.review_request.scheduled"]
+        assert extra["organization_id"] == self.organization.id
+        assert extra["repository_id"] == self.repo.id
+        assert extra["provider"] == "github"
+        assert extra["pr_number"] == 17
+
+    @with_feature(CODE_REVIEW_FEATURES)
+    def test_a_denial_is_logged_with_its_reason(self) -> None:
+        self._enable()
+
+        logged = self._logged(_event(author_external_id="9999"))
+
+        assert logged["code_review.review_request.denied"]["denial_reason"] == (
+            "org_contributor_not_found"
+        )
+
+    @with_feature(CODE_REVIEW_FEATURES)
+    def test_a_disabled_trigger_is_logged(self) -> None:
+        self._enable([CodeReviewTrigger.ON_READY_FOR_REVIEW])
+
+        logged = self._logged(_event(trigger=CodeReviewTrigger.ON_NEW_COMMIT))
+
+        assert "code_review.review_request.trigger_disabled" in logged
+
+    @with_feature(CODE_REVIEW_FEATURES)
+    def test_a_skipped_draft_is_logged(self) -> None:
+        self._enable()
+
+        logged = self._logged(_event(is_draft=True))
+
+        assert "code_review.review_request.draft_skipped" in logged
+
+    @with_feature(CODE_REVIEW_FEATURES)
+    def test_an_invalid_payload_is_logged_instead_of_scheduled(self) -> None:
+        self._enable()
+
+        with patch(
+            "sentry.seer.code_review.webhooks.review_request.SeerCodeReviewTaskRequestForPrReview.parse_obj",
+            side_effect=ValidationError([], SeerCodeReviewTaskRequestForPrReview),
+        ):
+            logged = self._logged(_event())
+
+        self.mock_seer.assert_not_called()
+        assert "code_review.review_request.invalid_payload" in logged
+        assert "code_review.review_request.scheduled" not in logged

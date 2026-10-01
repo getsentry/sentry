@@ -44,7 +44,7 @@ const defaultHookReturn: ReturnType<typeof useSeerExplorerModule.useSeerExplorer
 describe('SeerExplorerContent', () => {
   const organization = OrganizationFixture({
     openMembership: true,
-    features: ['seer-explorer', 'gen-ai-features'],
+    features: ['seer-explorer'],
     hideAiFeatures: false,
   });
 
@@ -87,7 +87,7 @@ describe('SeerExplorerContent', () => {
     it('renders thinking traces when code mode tools is enabled', async () => {
       const codeModeOrganization = OrganizationFixture({
         openMembership: true,
-        features: ['seer-explorer', 'gen-ai-features', 'seer-explorer-code-mode-tools'],
+        features: ['seer-explorer', 'seer-explorer-code-mode-tools'],
         hideAiFeatures: false,
       });
 
@@ -951,10 +951,62 @@ describe('SeerExplorerContent', () => {
       );
 
       await userEvent.click(screen.getByRole('button', {name: 'Retry'}));
-      expect(sendMessage).toHaveBeenCalledWith('Timed out question', 2);
+      expect(sendMessage).toHaveBeenCalledWith('Timed out question', 2, undefined, null);
 
       await userEvent.click(screen.getByRole('button', {name: 'New chat'}));
       expect(startNewSession).toHaveBeenCalledTimes(1);
+    });
+
+    it('shows the question a message answered and resends it on retry', async () => {
+      const sendMessage = jest.fn();
+      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
+        ...defaultHookReturn,
+        isTimedOut: true,
+        runId: 123,
+        sendMessage,
+        sessionData: {
+          blocks: [
+            {
+              id: 'user-1',
+              message: {
+                role: 'user',
+                content: 'the second one',
+                metadata: {
+                  chat_prompt: 'What would you like to know about this widget?',
+                  chat_prompt_context: '{"title":"p95 latency"}',
+                },
+              },
+              timestamp: '2024-01-01T00:00:00Z',
+            },
+          ],
+          status: 'error',
+          updated_at: '2024-01-01T00:01:00Z',
+          failure_reason: 'timeout',
+        },
+      });
+
+      render(
+        <PictureInPictureProvider>
+          <SeerExplorerSessionsProvider>
+            <SeerExplorerContent
+              getPageReferrer={mockGetPageReferrer}
+              onClose={() => {}}
+            />
+          </SeerExplorerSessionsProvider>
+        </PictureInPictureProvider>,
+        {organization}
+      );
+
+      expect(
+        await screen.findByText('What would you like to know about this widget?')
+      ).toBeInTheDocument();
+      expect(screen.getByText('the second one')).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Retry'}));
+      expect(sendMessage).toHaveBeenCalledWith('the second one', 0, undefined, {
+        text: 'What would you like to know about this widget?',
+        context: '{"title":"p95 latency"}',
+      });
     });
   });
 
@@ -1218,11 +1270,7 @@ describe('SeerExplorerContent', () => {
     const orgWithFlag = OrganizationFixture({
       openMembership: true,
       hideAiFeatures: false,
-      features: [
-        'seer-explorer',
-        'gen-ai-features',
-        'seer-explorer-context-engine-fe-override-ui-flag',
-      ],
+      features: ['seer-explorer', 'seer-explorer-context-engine-fe-override-ui-flag'],
     });
 
     beforeEach(() => {
@@ -1418,7 +1466,7 @@ describe('SeerExplorerContent', () => {
     it('hides the reinstall nudge when the user cannot manage integrations', async () => {
       const memberOrg = OrganizationFixture({
         openMembership: true,
-        features: ['seer-explorer', 'gen-ai-features'],
+        features: ['seer-explorer'],
         hideAiFeatures: false,
         access: ['org:read', 'project:read', 'team:read', 'alerts:read'],
       });

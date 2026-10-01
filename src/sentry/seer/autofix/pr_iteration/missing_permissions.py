@@ -66,7 +66,7 @@ def get_missing_permissions_marker(seer_run: SeerRun, repo_name: str) -> dict[st
 
 
 def record_missing_permissions_marker(
-    seer_run: SeerRun, repo_name: str, *, missing_tiers: list[str], pr_id: int | None
+    seer_run: SeerRun, repo_name: str, *, missing_tiers: list[str], pr_id: str | None
 ) -> None:
     record_run_marker(
         seer_run,
@@ -327,7 +327,7 @@ def post_missing_permissions_comment(
     run_id: int,
     repo_name: str,
     pr_number: int,
-    pr_id: int | None,
+    pr_id: str | None,
     integration_id: int,
     queued_repository_id: int | None = None,
     log_ctx: PrIterationLogContext,

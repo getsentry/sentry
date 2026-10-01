@@ -15,7 +15,6 @@ from sentry.preprod.vcs.pr_comments.snapshot_tasks import (
 )
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import cell_silo_test
 
 _sentinel = object()
@@ -541,7 +540,6 @@ class CreateSnapshotPrCommentSoloTest(SnapshotPrCommentTaskTestBase):
 
 
 @cell_silo_test
-@with_feature("organizations:preprod-snapshot-pr-comment-head-check")
 class PostSnapshotPrCommentTaskTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -591,25 +589,6 @@ class PostSnapshotPrCommentTaskTest(TestCase):
         snapshots = self.commit_comparison.extras["pr_comments"]["snapshots"]
         assert snapshots["success"] is True
         assert snapshots["comment_id"] == "99999"
-
-    @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.get_github_client")
-    def test_creates_comment_without_head_check_when_feature_disabled(self, mock_get_client):
-        mock_client = self._create_mock_github_client(head_sha="c" * 40)
-        mock_client.create_comment.return_value = {"id": 99999}
-        mock_get_client.return_value = mock_client
-
-        with self.feature({"organizations:preprod-snapshot-pr-comment-head-check": False}):
-            post_snapshot_pr_comment_task(
-                organization_id=self.organization.id,
-                repo_name="owner/repo",
-                provider="github",
-                pr_number=42,
-                commit_comparison_id=self.commit_comparison.id,
-                comment_body="body",
-            )
-
-        mock_client.get_pull_request.assert_not_called()
-        mock_client.create_comment.assert_called_once()
 
     @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.get_github_client")
     def test_updates_existing_comment(self, mock_get_client):

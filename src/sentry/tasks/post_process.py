@@ -4,7 +4,7 @@ import functools
 import logging
 import random
 import uuid
-from collections.abc import MutableMapping, Sequence
+from collections.abc import Sequence
 from datetime import datetime
 from time import time
 from typing import TYPE_CHECKING, Any, Callable, TypedDict
@@ -15,7 +15,7 @@ from django.db.models.signals import post_save
 from django.utils import timezone
 from google.api_core.exceptions import ServiceUnavailable
 
-from sentry import features, options, projectoptions
+from sentry import features, nodestore, options, projectoptions
 from sentry.constants import ObjectStatus
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.issues.grouptype import GroupCategory
@@ -45,6 +45,7 @@ from sentry.utils.sdk import bind_organization_context, set_current_event_projec
 from sentry.utils.sdk_crashes.sdk_crash_detection_config import build_sdk_crash_detection_configs
 from sentry.utils.services import build_instance_from_options_of_type
 from sentry.utils.tracing import start_span, trace
+from sentry.utils.validators import normalize_event_id
 from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
 
 if TYPE_CHECKING:
@@ -546,11 +547,12 @@ def post_process_group(
     is_new: bool,
     is_regression: bool | None,
     is_new_group_environment: bool,
-    cache_key: str | None,
+    cache_key: str | None = None,
     group_id: int | None = None,
     occurrence_id: str | None = None,
     *,
     project_id: int,
+    event_id: str | None = None,
     eventstream_type: str | None = None,
     **kwargs: Any,
 ) -> None:
@@ -561,50 +563,35 @@ def post_process_group(
 
     with snuba.options_override({"consistent": True}):
         from sentry.issues.occurrence_consumer import EventLookupError
+        from sentry.models.event import EventDict
         from sentry.models.organization import Organization
         from sentry.models.project import Project
         from sentry.reprocessing2 import is_reprocessed_event
         from sentry.services import eventstore
-        from sentry.services.eventstore.processing import event_processing_store
+        from sentry.services.eventstore.models import Event
 
         if occurrence_id is None:
-            # We use the data being present/missing in the processing store
-            # to ensure that we don't duplicate work should the forwarding consumers
-            # need to rewind history.
-            assert cache_key is not None
-            data = event_processing_store.get(cache_key)
-            if not data:
-                logger.info(
-                    "post_process.skipped",
-                    extra={"cache_key": cache_key, "reason": "missing_cache"},
-                )
-                return
-            with metrics.timer("tasks.post_process.delete_event_cache"):
-                event_processing_store.delete_by_key(cache_key)
-            occurrence = None
-            event = process_event(data, group_id)
+            # Reprocessing keeps the event ID but assigns a new group. Allow that
+            # group's post-processing to run even while the original lock exists.
+            lock_key = f"ppg:{project_id}:{event_id}:{group_id}-once"
+            lock_name = "post_process_event_once"
         else:
-            # Note: We attempt to acquire the lock here, but we don't release it and instead just
-            # rely on the ttl. The goal here is to make sure we only ever run post process group
-            # at most once per occurrence. Even though we don't use retries on the task, this is
-            # still necessary since the consumer that sends these might reprocess a batch.
-            # TODO: It might be better to instead set a value that we delete here, similar to what
-            # we do with `event_processing_store`. If we could do this *before* the occurrence ends
-            # up in Kafka (IE via the api that will sit in front of it), then we could guarantee at
-            # most once running of post process group.
-            lock = locks.get(
-                f"ppg:{occurrence_id}-once",
-                duration=600,
-                name="post_process_w_o",
-            )
+            lock_key = f"ppg:{occurrence_id}-once"
+            lock_name = "post_process_w_o"
 
-            try:
-                lock.acquire()
-            except Exception:
-                # If we fail to acquire the lock, we've already run post process group for this
-                # occurrence
-                return
+        # Note: We attempt to acquire the lock here, but we don't release it and instead just
+        # rely on the ttl. The goal here is to make sure we only ever run post process group
+        # at most once per event. Even though we don't use retries on the task, this is
+        # still necessary since the consumer that sends these might reprocess a batch.
+        lock = locks.get(lock_key, duration=600, name=lock_name)
+        try:
+            lock.acquire()
+        except UnableToAcquireLock:
+            # If we fail to acquire the lock, we've already run post process group
+            return
 
+        occurrence = None
+        if occurrence_id is not None:
             occurrence = (
                 IssueOccurrence.fetch(occurrence_id, project_id=project_id) if project_id else None
             )
@@ -614,25 +601,34 @@ def post_process_group(
                     extra={"occurrence_id": occurrence_id, "project_id": project_id},
                 )
                 return
-            # Issue platform events don't use `event_processing_store`. Fetch from eventstore
-            # instead.
+            event_id = occurrence.event_id
 
-            def get_event_raise_exception() -> Event:
-                assert occurrence is not None
+        assert event_id is not None
+
+        def get_event_raise_exception() -> Event:
+            retrieved = None
+            if occurrence_id is not None:
                 retrieved = eventstore.backend.get_event_by_id(
                     project_id,
-                    occurrence.event_id,
+                    event_id,
                     group_id=group_id,
                     skip_transaction_groupevent=True,
                     occurrence_id=occurrence_id,
                 )
-                if retrieved is None:
-                    raise EventLookupError(
-                        f"failed to retrieve event(project_id={project_id}, event_id={occurrence.event_id}, group_id={group_id}) from eventstore"
-                    )
-                return retrieved
+            elif normalized_id := normalize_event_id(event_id):
+                event = Event(project_id=project_id, event_id=normalized_id, group_id=group_id)
+                if data := nodestore.backend.get(event.data.id):
+                    # Ingestion already normalized the payload, and the task provides
+                    # the group ID, so this load does not need Snuba or renormalization.
+                    event.data.bind_data(EventDict(data, skip_renormalization=True))
+                    retrieved = event
+            if retrieved is None:
+                raise EventLookupError(
+                    f"failed to retrieve event(project_id={project_id}, event_id={event_id}, group_id={group_id})"
+                )
+            return retrieved
 
-            event = fetch_retry_policy(get_event_raise_exception)
+        event = fetch_retry_policy(get_event_raise_exception)
 
         track_event_since_received(
             step="start_post_process",
@@ -800,20 +796,6 @@ def run_post_process_job(job: PostProcessJob) -> None:
                     },
                 )
                 break
-
-
-def process_event(data: MutableMapping[str, Any], group_id: int | None) -> Event:
-    from sentry.models.event import EventDict
-    from sentry.services.eventstore.models import Event
-
-    event = Event(
-        project_id=data["project"], event_id=data["event_id"], group_id=group_id, data=data
-    )
-
-    # Re-bind node data to avoid renormalization. We only want to
-    # renormalize when loading old data from the database.
-    event.data = EventDict(event.data, skip_renormalization=True)
-    return event
 
 
 def update_event_group(event: Event, group_state: GroupState) -> GroupEvent:

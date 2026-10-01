@@ -40,79 +40,21 @@ describe('HypothesisCard', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('renders the statement, rationale, and one-based ordinal', () => {
-    render(
-      <HypothesisCard
-        hypothesis={InvestigationHypothesisFixture({
-          order: 1,
-          statement: 'An external SSO provider slowed the response',
-          rationale: 'SSO and non-SSO organizations slowed together.',
-        })}
-      />
-    );
+  it('numbers the hypothesis from one', () => {
+    render(<HypothesisCard hypothesis={InvestigationHypothesisFixture({order: 1})} />);
 
-    expect(
-      screen.getByRole('heading', {name: 'An external SSO provider slowed the response'})
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText('SSO and non-SSO organizations slowed together.')
-    ).toBeInTheDocument();
     // `order` is zero-based on the wire, so the second hypothesis reads as 2.
     expect(screen.getByText('Hypothesis 2')).toBeInTheDocument();
   });
 
-  it('shows the verdict as a tag without confidence', () => {
+  it('shows the verdict as a tag', () => {
     render(
       <HypothesisCard
-        hypothesis={InvestigationHypothesisFixture({
-          effectiveStatus: 'supported',
-          confidence: 0.86,
-        })}
+        hypothesis={InvestigationHypothesisFixture({effectiveStatus: 'supported'})}
       />
     );
 
     expect(screen.getByTestId('hypothesis-status')).toHaveTextContent('Supported');
-    expect(screen.queryByText(/confidence/i)).not.toBeInTheDocument();
-  });
-
-  it('omits confidence stored on the agent verdict', () => {
-    render(
-      <HypothesisCard
-        hypothesis={InvestigationHypothesisFixture({
-          effectiveStatus: 'inconclusive',
-          confidence: undefined,
-          agentVerdict: {
-            verdict: 'inconclusive',
-            confidence: 0.34,
-            rationale: 'Span coverage is incomplete.',
-            supportingEvidenceIds: [],
-            refutingEvidenceIds: [],
-            remainingGaps: [],
-          },
-        })}
-      />
-    );
-
-    expect(screen.getByTestId('hypothesis-status')).toHaveTextContent('Inconclusive');
-    expect(screen.queryByText(/confidence/i)).not.toBeInTheDocument();
-  });
-
-  it('omits confidence while the hypothesis is still in flight', () => {
-    render(
-      <HypothesisCard
-        hypothesis={InvestigationHypothesisFixture({
-          effectiveStatus: 'investigating',
-          status: 'running',
-          confidence: 0.4,
-          verificationSteps: [
-            InvestigationVerificationStepFixture({status: 'running', result: null}),
-          ],
-        })}
-      />
-    );
-
-    expect(screen.getByText('Verifying…')).toBeInTheDocument();
-    expect(screen.queryByText(/confidence/i)).not.toBeInTheDocument();
   });
 
   // A hypothesis in flight is one `effectiveStatus`, but it passes through
@@ -154,7 +96,7 @@ describe('HypothesisCard', () => {
     ).toBeInTheDocument();
   });
 
-  it('lists only verification titles in order without an evidence heading', () => {
+  it('lists only verification titles in order', () => {
     render(
       <HypothesisCard
         hypothesis={InvestigationHypothesisFixture({
@@ -177,11 +119,6 @@ describe('HypothesisCard', () => {
       />
     );
 
-    // The status tag reads "Evidence checked" here; what must not come back is
-    // the section heading of the same name.
-    expect(
-      screen.queryByRole('heading', {name: 'Evidence checked'})
-    ).not.toBeInTheDocument();
     expect(screen.queryByText('Ran first.')).not.toBeInTheDocument();
     expect(screen.queryByText('Ran second.')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', {name: /check/})).not.toBeInTheDocument();
@@ -215,7 +152,6 @@ describe('HypothesisCard', () => {
     const steps = within(screen.getByRole('list', {name: 'Verification steps'}));
 
     expect(steps.getByRole('listitem', {current: 'step'})).toHaveTextContent(first.title);
-    expect(screen.queryByText('Awaiting evidence')).not.toBeInTheDocument();
 
     rerender(
       <HypothesisCard

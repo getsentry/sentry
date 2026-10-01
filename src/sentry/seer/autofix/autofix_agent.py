@@ -44,6 +44,7 @@ from sentry.seer.autofix.feature.dispatch import (
 from sentry.seer.autofix.feature.models import (
     FEATURE_ID,
     LEGACY_FEATURE_ID,
+    CodeChangesStepArgs,
     RCAStepArgs,
     RepoPin,
     RepoPins,
@@ -371,6 +372,15 @@ def get_latest_iteration_index(state: SeerRunState) -> int:
     return iterations[-1].index if iterations else 0
 
 
+def get_open_iteration_index(state: SeerRunState) -> int:
+    """The index of the iteration a drain has claimed but not started yet.
+
+    Its row stores no index, and the run state only gains the iteration once
+    the agent starts it, so the index is one past the last one the state holds.
+    """
+    return get_latest_iteration_index(state) + 1
+
+
 def get_iteration_for_insert_index(state: SeerRunState, insert_index: int) -> int:
     block = state.blocks[insert_index]
     metadata = block.message.metadata or {}
@@ -548,19 +558,23 @@ def trigger_autofix_agent(
         and features.has("organizations:autofix-should-run-repo-checks", group.organization)
     )
 
-    use_seer_feature = step in (
-        AutofixStep.ROOT_CAUSE,
-        AutofixStep.SOLUTION,
+    use_seer_feature = step in (AutofixStep.ROOT_CAUSE, AutofixStep.SOLUTION) or (
+        step == AutofixStep.CODE_CHANGES
+        and features.has(
+            "organizations:autofix-code-changes-in-seer", group.organization, actor=user
+        )
     )
     if use_seer_feature:
         if run_id is not None:
             _assert_existing_run_belongs_to_group(group, run_id)
 
-        step_args: RCAStepArgs | SolutionStepArgs
+        step_args: RCAStepArgs | SolutionStepArgs | CodeChangesStepArgs
         if step == AutofixStep.ROOT_CAUSE:
             step_args = RCAStepArgs(repo_pins=_build_repo_pins(group, referrer))
         elif step == AutofixStep.SOLUTION:
             step_args = SolutionStepArgs(should_run_repo_checks=enable_bash_mode)
+        elif step == AutofixStep.CODE_CHANGES:
+            step_args = CodeChangesStepArgs(should_run_repo_checks=enable_bash_mode)
         else:
             raise ValueError(f"invalid step: {step}")
 
@@ -599,6 +613,7 @@ def trigger_autofix_agent(
             feature_run_id,
             str(feature_run.uuid),
             referrer,
+            actor_user_id=actor_user_id,
         )
         return feature_run
 
@@ -626,7 +641,7 @@ def trigger_autofix_agent(
         if insert_index is not None:
             iteration_index = get_iteration_for_insert_index(run_state, insert_index)
         else:
-            iteration_index = get_latest_iteration_index(run_state) + 1
+            iteration_index = get_open_iteration_index(run_state)
 
     prompt = build_step_prompt(
         step,

@@ -7,13 +7,18 @@ from sentry.rules.conditions.event_attribute import ATTR_CHOICES, attribute_regi
 from sentry.services.eventstore.models import GroupEvent
 from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.preview import UnsupportedPreviewBehavior
 from sentry.workflow_engine.registry import condition_handler_registry
-from sentry.workflow_engine.types import DataConditionHandler, WorkflowEventData
+from sentry.workflow_engine.types import (
+    ActionFilterDataConditionHandler,
+    DataConditionHandler,
+    WorkflowEventData,
+)
 
 
 @condition_handler_registry.register(Condition.EVENT_ATTRIBUTE)
-class EventAttributeConditionHandler(DataConditionHandler[WorkflowEventData]):
-    group = DataConditionHandler.Group.ACTION_FILTER
+class EventAttributeConditionHandler(ActionFilterDataConditionHandler[WorkflowEventData]):
+    preview_behavior = UnsupportedPreviewBehavior("Event attributes require event data")
     subgroup = DataConditionHandler.Subgroup.EVENT_ATTRIBUTES
     label_template = "The event's {attribute} value {match} {value}"
 
