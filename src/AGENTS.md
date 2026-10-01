@@ -76,6 +76,10 @@ Viewer identity is wired through the app via the `ViewerContext` contextvar; use
 
 See the **feature-flags** skill (`.agents/skills/feature-flags/`) for registration, the `features.has(...)` check, and test usage.
 
+### Seer One-Shots
+
+One synchronous structured LLM call through `sentry.seer.oneshot.run_oneshot`. The handler for an `oneshot_id` lives in the Seer repo, so a new id needs a Seer PR before the Sentry caller works → use the **`seer-oneshot`** skill.
+
 ### Permissions
 
 ```python
