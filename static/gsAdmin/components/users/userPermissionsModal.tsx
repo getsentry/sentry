@@ -145,7 +145,7 @@ export function UserPermissionsModal({
         <Stack gap="lg">
           <form.AppField name="isSuperuser">
             {field => (
-              <Grid columns="minmax(0, 1fr) auto" align="center" gap="md">
+              <Grid columns="minmax(0, 1fr) max-content" align="center" gap="md">
                 <field.Meta.Label>
                   Grant superuser permission (required for admin access).
                 </field.Meta.Label>
@@ -155,7 +155,7 @@ export function UserPermissionsModal({
           </form.AppField>
           <form.AppField name="isStaff">
             {field => (
-              <Grid columns="minmax(0, 1fr) auto" align="center" gap="md">
+              <Grid columns="minmax(0, 1fr) max-content" align="center" gap="md">
                 <field.Meta.Label>
                   Grant staff permission (WIP, will be required for admin access in the
                   future).
@@ -164,7 +164,9 @@ export function UserPermissionsModal({
               </Grid>
             )}
           </form.AppField>
-          <Heading as="h4">Additional Permissions</Heading>
+          <Heading as="h5" size="md">
+            Additional Permissions
+          </Heading>
           {available.map(perm => (
             <form.AppField key={perm} name={perm}>
               {field => (
