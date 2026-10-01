@@ -85,25 +85,27 @@ export function CreateBroadcastModal({
     },
   });
 
+  const defaultValues: z.input<typeof schema> = {
+    title: '',
+    message: '',
+    link: '',
+    organizations: '',
+    mediaUrl: '',
+    category: '',
+    region: '',
+    platform: [],
+    product: [],
+    roles: [],
+    plans: [],
+    trialStatus: [],
+    earlyAdopter: false,
+    dateExpires: moment().add(7, 'days').format('YYYY-MM-DDTHH:mm'),
+    isActive: true,
+  };
+
   const form = useScrapsForm({
     ...defaultFormOptions,
-    defaultValues: {
-      title: '',
-      message: '',
-      link: '',
-      organizations: '',
-      mediaUrl: '',
-      category: '',
-      region: '',
-      platform: [] as string[],
-      product: [] as string[],
-      roles: [] as string[],
-      plans: [] as string[],
-      trialStatus: [] as string[],
-      earlyAdopter: false,
-      dateExpires: moment().add(7, 'days').format('YYYY-MM-DDTHH:mm'),
-      isActive: true,
-    },
+    defaultValues,
     validators: {onDynamic: schema},
     onSubmit: ({value}) => {
       const {organizations, ...rest} = value;
@@ -201,8 +203,9 @@ export function CreateBroadcastModal({
               {field => (
                 <field.Layout.Stack label="Category">
                   <field.Select
+                    clearable
                     value={field.state.value}
-                    onChange={field.handleChange}
+                    onChange={value => field.handleChange(value ?? '')}
                     options={options(CATEGORYCHOICES)}
                   />
                 </field.Layout.Stack>
@@ -212,8 +215,9 @@ export function CreateBroadcastModal({
               {field => (
                 <field.Layout.Stack label="Region">
                   <field.Select
+                    clearable
                     value={field.state.value}
-                    onChange={field.handleChange}
+                    onChange={value => field.handleChange(value ?? '')}
                     options={options(REGIONCHOICES)}
                   />
                 </field.Layout.Stack>
